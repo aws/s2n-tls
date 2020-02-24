@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -23,25 +23,28 @@
 
 #include "utils/s2n_safety.h"
 
-int s2n_send_client_signature_algorithms_extension(struct s2n_connection *conn, struct s2n_stuffer *out)
+int s2n_extensions_client_signature_algorithms_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     /* The extension header */
     GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SIGNATURE_ALGORITHMS));
 
-    /* Each SignatureScheme is two bytes, and there's another two bytes for
-     * the extension length field.
-     */
-    uint16_t num_signature_schemes = s2n_supported_sig_scheme_pref_list_len;
-    uint16_t signature_schemes_size = num_signature_schemes * TLS_SIGNATURE_SCHEME_LEN;
-    uint16_t extension_len_field_size = 2;
+    /* Total size of this extension - extension type - extension size */
+    const uint16_t total_size = s2n_extensions_client_signature_algorithms_size(conn);
+    const uint16_t extension_size = total_size - 4;
 
-    GUARD(s2n_stuffer_write_uint16(out, extension_len_field_size + signature_schemes_size));
-    GUARD(s2n_send_supported_signature_algorithms(out));
+    GUARD(s2n_stuffer_write_uint16(out, extension_size));
+    GUARD(s2n_send_supported_sig_scheme_list(conn, out));
 
     return 0;
 }
 
-int s2n_recv_client_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *extension)
+int s2n_extensions_client_signature_algorithms_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     return s2n_recv_supported_sig_scheme_list(extension, &conn->handshake_params.client_sig_hash_algs);
+}
+
+int s2n_extensions_client_signature_algorithms_size(struct s2n_connection *conn)
+{
+    /* extra 6 = 2 from extension type, 2 from extension size, 2 from list length */
+    return s2n_supported_sig_scheme_list_size(conn) + 6;
 }

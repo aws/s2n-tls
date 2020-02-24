@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
     /* SignatureScheme */
     if (conn->actual_protocol_version >= S2N_TLS12) {
-        total_size += (s2n_supported_sig_scheme_pref_list_len * TLS_SIGNATURE_SCHEME_LEN) + 6;
+        total_size += s2n_extensions_client_signature_algorithms_size(conn);
     }
 
     struct s2n_blob *client_app_protocols;
@@ -94,18 +94,11 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
 
     const uint8_t pq_kem_extension_required = s2n_pq_kem_extension_required(cipher_preferences);
+    /* pq_kem_extension_required is true if and only if cipher_preferences->kem_count > 0 */
     if (pq_kem_extension_required) {
-        for (int i = 0; i < cipher_preferences->count; i++) {
-            const struct s2n_iana_to_kem *supported_params = NULL;
-            if (s2n_cipher_suite_to_kem(cipher_preferences->suites[i]->iana_value, &supported_params) == 0) {
-                /* Each supported kem id is 2 bytes */
-                pq_kem_list_size += supported_params->kem_count * 2;
-            }
-        }
-        if (pq_kem_list_size > 0) {
-            /* 2 for the extension id, 2 for overall length, 2 for length of the list, and the list size  */
-            total_size += 6 + pq_kem_list_size;
-        }
+        /* 2 for the extension id, 2 for overall length, 2 for length of the list, and 2 for each kem ID*/
+        pq_kem_list_size = cipher_preferences->kem_count * 2;
+        total_size += 6 + pq_kem_list_size;
     }
 
     if (conn->client_protocol_version >= S2N_TLS13) {
@@ -121,7 +114,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
 
     if (conn->actual_protocol_version >= S2N_TLS12) {
-        GUARD(s2n_send_client_signature_algorithms_extension(conn, out));
+        GUARD(s2n_extensions_client_signature_algorithms_send(conn, out));
     }
 
     if (server_name_len) {
@@ -184,7 +177,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
             GUARD(s2n_parse_client_hello_server_name(conn, &extension));
             break;
         case TLS_EXTENSION_SIGNATURE_ALGORITHMS:
-            GUARD(s2n_recv_client_signature_algorithms(conn, &extension));
+            GUARD(s2n_extensions_client_signature_algorithms_recv(conn, &extension));
             break;
         case TLS_EXTENSION_ALPN:
             GUARD(s2n_recv_client_alpn(conn, &extension));

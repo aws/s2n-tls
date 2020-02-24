@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ ret_t
 sample_uniform_r_bits_with_fixed_prf_context(OUT r_t *r,
                                              IN OUT
                                                  aes_ctr_prf_state_t *prf_state,
-                                             IN const must_be_odd_t must_be_odd);
+                                             IN must_be_odd_t must_be_odd);
 
 // Return's an array of r pseudorandom bits
 // No restrictions exist for the top or bottom bits -
@@ -69,8 +69,6 @@ sample_uniform_r_bits(OUT r_t *r,
 
   GUARD(sample_uniform_r_bits_with_fixed_prf_context(r, &prf_state, must_be_odd));
 
-  finalize_aes_ctr_prf(&prf_state);
-
   return SUCCESS;
 }
 
@@ -78,15 +76,15 @@ sample_uniform_r_bits(OUT r_t *r,
 // Using the pseudorandom ctx supplied
 // Outputs also a compressed (not ordered) list of indices
 ret_t
-generate_sparse_rep(OUT uint64_t *    a,
-                    OUT idx_t         wlist[],
-                    IN const uint32_t weight,
-                    IN const uint32_t len,
-                    IN const uint32_t padded_len,
+generate_sparse_rep(OUT uint64_t *a,
+                    OUT idx_t     wlist[],
+                    IN uint32_t   weight,
+                    IN uint32_t   len,
+                    IN uint32_t   padded_len,
                     IN OUT aes_ctr_prf_state_t *prf_state);
 
 EXTERNC void
-secure_set_bits(IN OUT uint64_t * a,
-                IN const idx_t    wlist[],
-                IN const uint32_t a_len,
-                IN const uint32_t weight);
+secure_set_bits(IN OUT uint64_t *a,
+                IN const idx_t   wlist[],
+                IN uint32_t      a_len,
+                IN uint32_t      weight);

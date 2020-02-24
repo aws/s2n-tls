@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
+#include "tls/extensions/s2n_client_signature_algorithms.h"
 #include "tls/s2n_client_extensions.h"
 #include "tls/s2n_tls.h"
 
@@ -28,6 +29,35 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+
+    /* Test that recv can parse send */
+    {
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+
+        struct s2n_stuffer io;
+        s2n_stuffer_alloc(&io, s2n_extensions_client_signature_algorithms_size(client_conn));
+
+        EXPECT_SUCCESS(s2n_extensions_client_signature_algorithms_send(client_conn, &io));
+
+        uint16_t extension_type;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&io, &extension_type));
+        EXPECT_EQUAL(extension_type, TLS_EXTENSION_SIGNATURE_ALGORITHMS);
+
+        uint16_t extension_size;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&io, &extension_size));
+        EXPECT_EQUAL(extension_size, s2n_stuffer_data_available(&io));
+
+        EXPECT_SUCCESS(s2n_extensions_client_signature_algorithms_recv(server_conn, &io));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&io), 0);
+
+        EXPECT_EQUAL(server_conn->handshake_params.client_sig_hash_algs.len,
+                s2n_supported_sig_schemes_count(client_conn));
+
+        s2n_stuffer_free(&io);
+        s2n_connection_free(client_conn);
+        s2n_connection_free(server_conn);
+    }
 
     {
         /* Test that unknown TLS_EXTENSION_SIGNATURE_ALGORITHMS values are ignored and negotiation fails */

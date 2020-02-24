@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -86,19 +86,15 @@ int main(int argc, char **argv)
     struct s2n_connection *server_conn;
     struct s2n_config *server_config;
     s2n_blocked_status server_blocked;
-    int server_to_client[2];
-    int client_to_server[2];
     char *cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE);
     char *private_key = malloc(S2N_MAX_TEST_PEM_SIZE);
     struct s2n_cert_chain_and_key *chain_and_key;
 
-    signal(SIGPIPE, SIG_IGN);
-    EXPECT_SUCCESS(pipe(server_to_client));
-    EXPECT_SUCCESS(pipe(client_to_server));
+    struct s2n_test_piped_io piped_io;
+    EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
 
     EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-    EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-    EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
+    EXPECT_SUCCESS(s2n_connection_set_piped_io(server_conn, &piped_io));
 
     EXPECT_NOT_NULL(server_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
@@ -109,16 +105,16 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
     /* Send the client hello */
-    EXPECT_EQUAL(write(client_to_server[1], record_header, sizeof(record_header)), sizeof(record_header));
-    EXPECT_EQUAL(write(client_to_server[1], message_header, sizeof(message_header)), sizeof(message_header));
-    EXPECT_EQUAL(write(client_to_server[1], client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
+    EXPECT_EQUAL(write(piped_io.client_write, record_header, sizeof(record_header)), sizeof(record_header));
+    EXPECT_EQUAL(write(piped_io.client_write, message_header, sizeof(message_header)), sizeof(message_header));
+    EXPECT_EQUAL(write(piped_io.client_write, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
 
     /* Send an alert from client to server */
-    EXPECT_EQUAL(write(client_to_server[1], alert_record, sizeof(alert_record)), sizeof(alert_record));
+    EXPECT_EQUAL(write(piped_io.client_write, alert_record, sizeof(alert_record)), sizeof(alert_record));
 
     /* Close the client read/write end */
-    EXPECT_SUCCESS(close(server_to_client[0]));
-    EXPECT_SUCCESS(close(client_to_server[1]));
+    EXPECT_SUCCESS(close(piped_io.client_read));
+    EXPECT_SUCCESS(close(piped_io.client_write));
 
     /* Expect the server to fail due to an incoming alert. We should not fail due to an I/O error(EPIPE). */
     s2n_negotiate(server_conn, &server_blocked);
@@ -131,8 +127,8 @@ int main(int argc, char **argv)
     free(cert_chain);
     free(private_key);
 
-    EXPECT_SUCCESS(close(server_to_client[1]));
-    EXPECT_SUCCESS(close(client_to_server[0]));
+    EXPECT_SUCCESS(close(piped_io.server_read));
+    EXPECT_SUCCESS(close(piped_io.server_write));
 
     END_TEST();
 }

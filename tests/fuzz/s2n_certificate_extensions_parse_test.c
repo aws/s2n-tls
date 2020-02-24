@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -13,12 +13,15 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_certificate_extensions_parse s2n_recv_server_sct_list
+                     s2n_server_certificate_status_parse */
+
 #include <stdint.h>
 
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 
-#include "tls/extensions/s2n_certificate_extensions.c"
+#include "tls/extensions/s2n_certificate_extensions.h"
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"

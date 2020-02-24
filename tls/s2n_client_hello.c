@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -172,14 +172,13 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     GUARD(s2n_stuffer_erase_and_read_bytes(in, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_stuffer_read_uint8(in, &conn->session_id_len));
 
-    conn->client_protocol_version = (client_protocol_version[0] * 10) + client_protocol_version[1];
-    conn->client_hello_version = conn->client_protocol_version;
     /* Protocol version in the ClientHello is fixed at 0x0303(TLS 1.2) for
-     * future versions of TLS. Still, we will negotiate down if a client sends
+     * future versions of TLS. Therefore, we will negotiate down if a client sends
      * an unexpected value above 0x0303.
      */
-    conn->actual_protocol_version = MIN(conn->client_protocol_version, conn->server_protocol_version);
-
+    conn->client_protocol_version = MIN((client_protocol_version[0] * 10) + client_protocol_version[1], S2N_TLS12);
+    conn->client_hello_version = conn->client_protocol_version;
+    
     S2N_ERROR_IF(conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN || conn->session_id_len > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
     GUARD(s2n_stuffer_read_bytes(in, conn->session_id, conn->session_id_len));
@@ -274,60 +273,6 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
 
     return 0;
 }
-int s2n_handshake_status_handler(struct s2n_connection *conn)
-{
-    /* Set the handshake type */
-    GUARD(s2n_conn_set_handshake_type(conn));
-
-    if(conn->client_hello_version != S2N_SSLv2)
-    {
-        /* We've selected the parameters for the handshake, update the required hashes for this connection */
-        GUARD(s2n_conn_update_required_handshake_hashes(conn));
-    }
-
-    return 0;
-}
-
-/* in TLS 1.3, pick a signature algorithm scheme based on preference order along with available cert types */
-int s2n_choose_tls13_sig_scheme_and_set_cert(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
-                                struct s2n_signature_scheme *sig_scheme_out)
-{
-    S2N_ERROR_IF(conn->actual_protocol_version != S2N_TLS13, S2N_ERR_BAD_MESSAGE);
-    notnull_check(peer_wire_prefs);
-    S2N_ERROR_IF(peer_wire_prefs->len == 0, S2N_ERR_EMPTY_SIGNATURE_SCHEME);
-
-    const struct s2n_signature_scheme* const* our_pref_list;
-    size_t our_pref_len;
-    GUARD(s2n_get_signature_scheme_pref_list(conn, &our_pref_list, &our_pref_len));
-
-    for (int i = 0; i < our_pref_len; i++) {
-        const struct s2n_signature_scheme *candidate_scheme = our_pref_list[i];
-
-        /* first check if we have a suitable cert for this scheme */
-        s2n_authentication_method candidate_auth_method;
-        GUARD(s2n_get_cert_type_from_sig_alg(candidate_scheme->sig_alg, &candidate_auth_method));
-        struct s2n_cert_chain_and_key *key_chain = s2n_conn_get_compatible_cert_chain_and_key(conn, candidate_auth_method);
-
-        if (key_chain == NULL) {
-            continue;
-        }
-
-        uint16_t iana_value = candidate_scheme->iana_value;
-
-        /* now check if our peer list supports this scheme */
-        for (int j = 0; j < peer_wire_prefs->len; j++) {
-            if (peer_wire_prefs->iana_list[j] == iana_value) {
-                conn->handshake_params.our_chain_and_key = key_chain;
-                *sig_scheme_out = *candidate_scheme;
-
-                return 0;
-            }
-        }
-    }
-
-    /* no compatible signature scheme / algorithm could be used */
-    S2N_ERROR(S2N_ERR_SIGNATURE_SCHEME_MISMATCH);
-}
 
 int s2n_process_client_hello(struct s2n_connection *conn)
 {
@@ -338,7 +283,10 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     if (client_hello->parsed_extensions != NULL && client_hello->parsed_extensions->num_of_elements > 0) {
         GUARD(s2n_client_extensions_recv(conn, client_hello->parsed_extensions));
     }
-
+    
+    if (conn->actual_protocol_version != S2N_TLS13) {
+        conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
+    }
     const struct s2n_cipher_preferences *cipher_preferences;
     GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
 
@@ -355,15 +303,15 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     GUARD(s2n_set_cipher_and_cert_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
 
     /* And set the signature and hash algorithm used for key exchange signatures */
-    if (conn->actual_protocol_version < S2N_TLS13) {
-        GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn,
-            &conn->handshake_params.client_sig_hash_algs,
-            &conn->secure.conn_sig_scheme));
-    } else {
-        /* in TLS 1.3 select signature scheme and set certificate */
-        GUARD(s2n_choose_tls13_sig_scheme_and_set_cert(conn,
-            &conn->handshake_params.client_sig_hash_algs,
-            &conn->secure.conn_sig_scheme));
+    GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn,
+        &conn->handshake_params.client_sig_hash_algs,
+        &conn->secure.conn_sig_scheme));
+
+    /* In TLS1.3, certs are not handled by cipher suites, so we must set them here. */
+    if (conn->actual_protocol_version >= S2N_TLS13 ) {
+        s2n_authentication_method auth_method;
+        GUARD(s2n_get_auth_method_from_sig_alg(conn->secure.conn_sig_scheme.sig_alg, &auth_method));
+        conn->handshake_params.our_chain_and_key = s2n_conn_get_compatible_cert_chain_and_key(conn, auth_method);
     }
 
     return 0;
@@ -391,15 +339,6 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
         }
     }
     GUARD(s2n_process_client_hello(conn));
-
-    /* s2n_conn_set_handshake_type() is called by SERVER_SESSION_LOOKUP in < TLS 1.3,
-     * which is something not present in the current s2n tls 1.3 state machine.
-     * we call this manually so the state machine can transition to the
-     * negotiated and handshake type for tls1.3
-     */
-    if (conn->actual_protocol_version == S2N_TLS13) {
-        GUARD(s2n_conn_set_handshake_type(conn));
-    }
 
     return 0;
 }

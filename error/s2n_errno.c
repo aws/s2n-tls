@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -66,7 +66,6 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_INVALID_SIGNATURE_ALGORITHM, "Invalid signature algorithm") \
     ERR_ENTRY(S2N_ERR_INVALID_SIGNATURE_SCHEME, "Invalid signature scheme") \
     ERR_ENTRY(S2N_ERR_EMPTY_SIGNATURE_SCHEME, "Empty signature scheme") \
-    ERR_ENTRY(S2N_ERR_SIGNATURE_SCHEME_MISMATCH, "Signature scheme mismatch") \
     ERR_ENTRY(S2N_ERR_CBC_VERIFY, "Failed CBC verification") \
     ERR_ENTRY(S2N_ERR_DH_COPYING_PUBLIC_KEY, "error copying Diffie-Hellman public key") \
     ERR_ENTRY(S2N_ERR_SIGN, "error signing data") \
@@ -201,6 +200,8 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_CONNECTION_CACHING_DISALLOWED, "This connection is not allowed to be cached") \
     ERR_ENTRY(S2N_ERR_SESSION_TICKET_NOT_SUPPORTED, "Session ticket not supported for this connection") \
     ERR_ENTRY(S2N_ERR_OCSP_NOT_SUPPORTED, "OCSP stapling was requested, but is not supported") \
+    ERR_ENTRY(S2N_ERR_INVALID_SIGNATURE_ALGORITHMS_PREFERENCES, "Invalid signature algorithms preferences version") \
+    ERR_ENTRY(S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS, "PQ KEMs are disallowed while in FIPS mode") \
 
 #define ERR_STR_CASE(ERR, str) case ERR: return str;
 #define ERR_NAME_CASE(ERR, str) case ERR: return #ERR;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -847,6 +847,8 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
         conn->ipv6 = (ipv6 ? 1 : 0);
     }
 
+    conn->write_fd_broken = 0;
+
     return 0;
 }
 
@@ -1168,6 +1170,9 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
 {
     notnull_check(conn);
     notnull_check(conn->send);
+    if (conn->write_fd_broken) {
+        S2N_ERROR(S2N_ERR_SEND_STUFFER_TO_CONN);
+    }
     /* Make sure we even have the data */
     GUARD(s2n_stuffer_skip_read(stuffer, len));
 
@@ -1181,6 +1186,11 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
         if (errno == EINTR) {
             goto SEND;
         }
+
+        if (errno == EPIPE) {
+            conn->write_fd_broken = 1;
+        }
+
         S2N_ERROR(S2N_ERR_SEND_STUFFER_TO_CONN);
     }
 
