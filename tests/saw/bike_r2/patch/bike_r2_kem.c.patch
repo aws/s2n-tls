@@ -1,12 +1,4 @@
 119c119
-<   DEFER_CLEANUP(compressed_idx_t_t dummy, compressed_idx_t_cleanup);
+<   DEFER_CLEANUP(ALIGN(8) compressed_idx_t_t dummy, compressed_idx_t_cleanup);
 ---
 >   DEFER_CLEANUP(ALIGN(8) compressed_idx_t_t dummy = {0}, compressed_idx_t_cleanup);
-231c231
-<   DEFER_CLEANUP(sk_t l_sk = {0}, sk_cleanup);
----
->   DEFER_CLEANUP(ALIGN(8) sk_t l_sk = {0}, sk_cleanup);
-346c346
-<   DEFER_CLEANUP(sk_t l_sk, sk_cleanup);
----
->   DEFER_CLEANUP(ALIGN(8) sk_t l_sk, sk_cleanup);
