@@ -67,7 +67,7 @@ static int s2n_get_memory(struct s2n_blob *b, uint32_t size)
         *b = (struct s2n_blob) {.data = NULL, .size = size, .allocated = allocate, .mlocked = 1, .growable = 1};
         S2N_ERROR_IF(posix_memalign((void**) &b->data, page_size, allocate), S2N_ERR_ALLOC);
 #ifdef MADV_DONTDUMP
-        if(madvise(b->data, b->size, MADV_DONTDUMP) < 0) {
+        if (madvise(b->data, b->size, MADV_DONTDUMP) < 0) {
             free(b->data);
             S2N_ERROR(S2N_ERR_MADVISE);
         }
