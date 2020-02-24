@@ -425,14 +425,10 @@ static int s2n_stuffer_copy_impl(struct s2n_stuffer *from, struct s2n_stuffer *t
 int s2n_stuffer_reserve_space(struct s2n_stuffer *stuffer, uint32_t n)
 {
     if (s2n_stuffer_space_remaining(stuffer) < n) {
-        if (stuffer->growable) {
-            /* Always grow a stuffer by at least 1k */
-            uint32_t growth = MAX(n - s2n_stuffer_space_remaining(stuffer), 1024);
-
-            GUARD(s2n_stuffer_resize(stuffer, stuffer->blob.size + growth));
-        } else {
-            S2N_ERROR(S2N_ERR_STUFFER_IS_FULL);
-        }
+	S2N_ERROR_IF(!stuffer->growable, S2N_ERR_STUFFER_IS_FULL);
+	/* Always grow a stuffer by at least 1k */
+	uint32_t growth = MAX(n - s2n_stuffer_space_remaining(stuffer), 1024);
+	GUARD(s2n_stuffer_resize(stuffer, stuffer->blob.size + growth));
     }
     return S2N_SUCCESS;
 }
