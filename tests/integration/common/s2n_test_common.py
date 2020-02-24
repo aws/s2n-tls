@@ -1,5 +1,5 @@
 ##
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -87,10 +87,13 @@ def run_connection_test(get_peer, scenarios, test_func=None):
         server = None
         try:
             server, client = connect(get_peer, scenario)
-            if test_func:
-                return test_func(server, client)
-            else:
-                return Result()
+            result = test_func(server, client) if test_func else Result()
+            if client.poll():
+                raise AssertionError("Client process crashed")
+            if server.poll():
+                raise AssertionError("Server process crashed")
+
+            return result
         except AssertionError as error:
             return Result(error)
         finally:

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@
 #define TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 0xFF, 0x08
 #define TLS_EXTENSION_PQ_KEM_PARAMETERS 0xFE01
 #define TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1 1
-#define TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2 2
+#define TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2 13
 #define TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1 10
 #define TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2 16
 
@@ -92,6 +92,7 @@
 
 /* TLS 1.3 extensions from https://tools.ietf.org/html/rfc8446#section-4.2 */
 #define TLS_EXTENSION_SUPPORTED_VERSIONS   43
+#define TLS_EXTENSION_COOKIE               44
 #define TLS_EXTENSION_KEY_SHARE            51
 
 /* TLS Signature Algorithms - RFC 5246 7.4.1.4.1 */
@@ -232,4 +233,3 @@
 #define TLS_HANDSHAKE_HEADER_LENGTH   4
 
 #define S2N_MAX_SERVER_NAME 255
-

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -37,7 +37,6 @@ int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, int rfd, uint32_t len)
 
     int r = 0;
     do {
-        errno = 0;
         r = read(rfd, stuffer->blob.data + stuffer->write_cursor, len);
         S2N_ERROR_IF(r < 0 && errno != EINTR, S2N_ERR_READ);
     } while (r < 0);
@@ -57,7 +56,6 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len)
 
     int w = 0;
     do {
-        errno = 0;
         w = write(wfd, stuffer->blob.data + stuffer->read_cursor, len);
         S2N_ERROR_IF (w < 0 && errno != EINTR, S2N_ERR_WRITE);
     } while (w < 0);
@@ -86,7 +84,6 @@ int s2n_stuffer_alloc_ro_from_file(struct s2n_stuffer *stuffer, const char *file
     int fd;
 
     do {
-        errno = 0;
         fd = open(file, O_RDONLY);
         S2N_ERROR_IF(fd < 0 && errno != EINTR, S2N_ERR_OPEN);
     } while (fd < 0);

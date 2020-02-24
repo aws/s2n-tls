@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -192,7 +192,6 @@ int s2n_socket_read(void *io_context, uint8_t *buf, uint32_t len)
 
     /* On success, the number of bytes read is returned. On failure, -1 is
      * returned and errno is set appropriately. */
-    errno = 0;
     return read(rfd, buf, len);
 }
 
@@ -206,7 +205,6 @@ int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len)
 
     /* On success, the number of bytes written is returned. On failure, -1 is
      * returned and errno is set appropriately. */
-    errno = 0;
     return write(wfd, buf, len);
 }
 

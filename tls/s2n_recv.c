@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -58,8 +58,9 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
         if (s2n_connection_is_managed_corked(conn)) {
             GUARD(s2n_socket_set_read_size(conn, remaining));
         }
-        r = s2n_connection_recv_stuffer(&conn->header_in, conn, remaining);
 
+        errno = 0;
+        r = s2n_connection_recv_stuffer(&conn->header_in, conn, remaining);
         if (r == 0) {
             conn->closed = 1;
             S2N_ERROR(S2N_ERR_CLOSED);
@@ -97,8 +98,8 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
             GUARD(s2n_socket_set_read_size(conn, remaining));
         }
 
+        errno = 0;
         r = s2n_connection_recv_stuffer(&conn->in, conn, remaining);
-
         if (r == 0) {
             conn->closed = 1;
             S2N_ERROR(S2N_ERR_CLOSED);
