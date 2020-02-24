@@ -53,24 +53,6 @@ jobs:
     # Force S2N to use the generic C code for PQ crypto (instead of the optimized x86_64 assembly code)
     env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=9 S2N_NO_PQ_ASM=true
 
-# Formal Verification - SAW
-  - os : linux
-    dist: trusty
-    env: TESTS=sawSIKE_r2 SAW=true GCC_VERSION=NONE
-    addons: &sawaddons
-      apt:
-        packages:
-          - clang-3.9
-          - llvm-3.9
-  - os : linux
-    dist: trusty
-    env: TESTS=sawSIKE_r2_x86 SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    dist: trusty
-    env: TESTS=sawBIKE_r2 SAW=true GCC_VERSION=NONE S2N_LIBCRYPTO=openssl-1.0.2
-    addons : *sawaddons
-
 before_install:
   - source .travis/s2n_setup_env.sh
 

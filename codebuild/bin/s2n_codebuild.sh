@@ -82,7 +82,10 @@ if [[ "$TESTS" == "ALL" || "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/
 if [[ "$TESTS" == "ALL" || "$TESTS" == "tls" ]]; then make -C tests/saw tmp/verify_handshake.log ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawSIKE_r1" ]]; then make -C tests/saw sike_r1 ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "sawSIKE_r2" ]]; then make -C tests/saw sike_r2 ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "sawSIKE_r2_x86" ]]; then make -C tests/saw sike_r2_x86 ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawBIKE_r1" ]]; then make -C tests/saw bike_r1 ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "sawBIKE_r2" ]]; then make -C tests/saw bike_r2 ; fi
 
 # Generate *.gcov files that can be picked up by the CodeCov.io Bash helper script. Don't run lcov or genhtml 
 # since those will delete .gcov files as they're processed.
