@@ -439,12 +439,12 @@ int s2n_stuffer_reserve_space(struct s2n_stuffer *stuffer, uint32_t n)
  * restore the old value of the stuffer */
 int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, const uint32_t len)
 {
-    const uint32_t from_read_cursor = from->read_cursor;
-    const uint32_t to_write_cursor = to->write_cursor;
+    const uint32_t orig_read_cursor = from->read_cursor;
+    const uint32_t orig_write_cursor = to->write_cursor;
 
     if (s2n_stuffer_copy_impl(from, to, len) < 0) {
-	from->read_cursor = from_read_cursor;
-	to->write_cursor = to_write_cursor;
+	from->read_cursor = orig_read_cursor;
+	to->write_cursor = orig_write_cursor;
 	S2N_ERROR_PRESERVE_ERRNO();
     }
 
