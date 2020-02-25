@@ -41,8 +41,8 @@ const struct s2n_kem *pq_kems_r1[2] = {
 /* Extension list for round 2 and round 1 PQ KEMs, in order of preference */
 const struct s2n_kem *pq_kems_r2r1[4] = {
     &s2n_bike1_l1_r2,
-    &s2n_bike1_l1_r1,
     &s2n_sike_p434_r2,
+    &s2n_bike1_l1_r1,
     &s2n_sike_p503_r1,
 };
 
