@@ -19,6 +19,7 @@
 
 #include <s2n.h>
 
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 
