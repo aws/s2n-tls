@@ -55,3 +55,11 @@ To bootstrap the CodeBuild jobs, the python script:
 - CodeBuild's environment is more restrictive than Travis- these jobs require elevated privilege to function.
 - Warning message from the fuzzer about test speed appear in CodeBuild output, but not in Travis-CI with the same test (See comments on AWS forums about a difference in ANSI TERM support); this also affects colorized output.
 - macOS/OSX platform files were not copied because CodeBuild does not support macOS builds.
+
+
+### Querying codebuild projects
+
+Here is a sample of how to double check the size of the build hosts, as an example.
+```
+for i in $(cat jobs); do echo -e "$i\t";aws codebuild batch-get-projects --name "$i" |jq '.projects[].environment.computeType'; done
+```
