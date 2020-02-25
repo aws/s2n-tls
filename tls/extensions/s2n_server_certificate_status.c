@@ -23,7 +23,7 @@
 
 int s2n_server_certificate_status_parse(struct s2n_connection *conn, struct s2n_blob *status)
 {
-    GUARD(s2n_alloc(&conn->status_response, status->size));
+    GUARD(s2n_realloc(&conn->status_response, status->size));
     memcpy_check(conn->status_response.data, status->data, status->size);
     conn->status_response.size = status->size;
 
