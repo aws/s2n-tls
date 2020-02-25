@@ -27,6 +27,7 @@
 #include "utils/s2n_safety.h"
 
 #define EXTENSION_LEN       2
+#define EXTENSION_DATA_LEN  2
 #define COOKIE_SIZE_LEN     2
 #define COOKIE_TEST_SIZE    16
 
@@ -64,21 +65,22 @@ int main(int argc, char *argv[])
             /* Initialize the extension stuff which will be written to */
             struct s2n_blob out_blob;
             struct s2n_stuffer out_stuffer;
-            uint8_t extension_out[COOKIE_SIZE_LEN + EXTENSION_LEN + COOKIE_TEST_SIZE] = { 0 };
+            uint8_t extension_out[EXTENSION_LEN + EXTENSION_DATA_LEN + COOKIE_SIZE_LEN + COOKIE_TEST_SIZE] = { 0 };
 
             /* Send the extension and verify the expected number of bytes were written */
             EXPECT_SUCCESS(s2n_blob_init(&out_blob, extension_out, sizeof(extension_out)));
             EXPECT_SUCCESS(s2n_stuffer_init(&out_stuffer, &out_blob));
-            EXPECT_SUCCESS(s2n_cookie_send(conn, &out_stuffer));
-            S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(&out_stuffer, EXTENSION_LEN + COOKIE_SIZE_LEN + COOKIE_TEST_SIZE);
+            EXPECT_SUCCESS(s2n_extensions_cookie_send(conn, &out_stuffer));
+            S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(&out_stuffer, EXTENSION_LEN + EXTENSION_DATA_LEN + COOKIE_SIZE_LEN + COOKIE_TEST_SIZE);
 
             /* Reset the extension stuffer and cookie data */
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->cookie_stuffer));
             EXPECT_SUCCESS(s2n_stuffer_reread(&out_stuffer));
             EXPECT_SUCCESS(s2n_stuffer_skip_read(&out_stuffer, EXTENSION_LEN));
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&out_stuffer, EXTENSION_DATA_LEN));
 
             /* Verify we can receive the extension and the cookie_data is set correctly */
-            EXPECT_SUCCESS(s2n_cookie_recv(conn, &out_stuffer));
+            EXPECT_SUCCESS(s2n_extensions_cookie_recv(conn, &out_stuffer));
             S2N_BLOB_EXPECT_EQUAL(conn->cookie_stuffer.blob, compare_blob);
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -92,7 +94,7 @@ int main(int argc, char *argv[])
             /* Initialize the extension stuff which will be written to */
             struct s2n_blob out_blob;
             struct s2n_stuffer out_stuffer;
-            uint8_t extension_out[COOKIE_SIZE_LEN + EXTENSION_LEN + COOKIE_TEST_SIZE] = { 0 };
+            uint8_t extension_out[EXTENSION_LEN + EXTENSION_DATA_LEN + COOKIE_SIZE_LEN + COOKIE_TEST_SIZE] = { 0 };
 
             EXPECT_SUCCESS(s2n_blob_init(&out_blob, extension_out, sizeof(extension_out)));
             EXPECT_SUCCESS(s2n_stuffer_init(&out_stuffer, &out_blob));
@@ -103,8 +105,8 @@ int main(int argc, char *argv[])
 
             /* The receive should succeed, but since the extension was corrupted it 
              * should not be saved to the connection. */
-            EXPECT_SUCCESS(s2n_cookie_recv(conn, &out_stuffer));
-            EXPECT_EQUAL(s2n_cookie_len(conn), 0);
+            EXPECT_SUCCESS(s2n_extensions_cookie_recv(conn, &out_stuffer));
+            EXPECT_EQUAL(s2n_extensions_cookie_size(conn), 0);
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 

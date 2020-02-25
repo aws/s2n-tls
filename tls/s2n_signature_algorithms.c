@@ -15,43 +15,15 @@
 
 #include "crypto/s2n_fips.h"
 #include "error/s2n_errno.h"
+
+#include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_kex.h"
 #include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_signature_scheme.h"
+
 #include "utils/s2n_safety.h"
-
-/* lookup s2n signature authentication type based on signature algorithm */
-int s2n_get_auth_method_from_sig_alg(s2n_signature_algorithm in, s2n_authentication_method* out)
-{
-    switch(in) {
-    case S2N_SIGNATURE_RSA:
-    case S2N_SIGNATURE_RSA_PSS_RSAE:
-        *out = S2N_AUTHENTICATION_RSA;
-        return 0;
-    case S2N_SIGNATURE_RSA_PSS_PSS:
-        *out = S2N_AUTHENTICATION_RSA_PSS;
-        return 0;
-    case S2N_SIGNATURE_ECDSA:
-        *out = S2N_AUTHENTICATION_ECDSA;
-        return 0;
-    default:
-        S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
-    }
-}
-
-int s2n_auth_method_requires_ephemeral_kex(const s2n_authentication_method auth_method)
-{
-    switch (auth_method) {
-    case S2N_AUTHENTICATION_RSA_PSS:
-        /* RSA-PSS only supports Sign/Verify, and not Encrypt/Decrypt, which means that it MUST be used with an
-         * ephemeral Key Exchange Algorithm. */
-        return 1;
-    default:
-        return 0;
-    }
-}
 
 /* We don't know what protocol version we will eventually negotiate, but we know that it won't be any higher. */
 static int s2n_signature_scheme_valid_to_offer(struct s2n_connection *conn, const struct s2n_signature_scheme *scheme)
@@ -73,24 +45,6 @@ static int s2n_signature_scheme_valid_to_accept(struct s2n_connection *conn, con
     return 0;
 }
 
-static int s2n_signature_scheme_valid_auth_method(struct s2n_connection *conn, const struct s2n_signature_scheme *scheme)
-{
-    notnull_check(conn);
-
-    struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
-    notnull_check(cipher_suite);
-
-    s2n_authentication_method candidate_auth_method;
-    GUARD(s2n_get_auth_method_from_sig_alg(scheme->sig_alg, &candidate_auth_method));
-    if (conn->actual_protocol_version < S2N_TLS13) {
-        eq_check(candidate_auth_method, cipher_suite->auth_method);
-    } else {
-        notnull_check(s2n_conn_get_compatible_cert_chain_and_key(conn, candidate_auth_method));
-    }
-
-    return 0;
-}
-
 int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
                           struct s2n_signature_scheme *chosen_scheme_out)
 {
@@ -103,16 +57,11 @@ int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_scheme_lis
     for (int i = 0; i < signature_preferences->count; i++) {
         const struct s2n_signature_scheme *candidate = signature_preferences->signature_schemes[i];
 
-        if (s2n_signature_scheme_valid_to_accept(conn, candidate) != 0) {
+        if (s2n_signature_scheme_valid_to_accept(conn, candidate) != S2N_SUCCESS) {
             continue;
         }
 
-        const struct s2n_kex *required_kex_method = cipher_suite->key_exchange_alg;
-        if (s2n_auth_method_requires_ephemeral_kex(cipher_suite->auth_method) && !required_kex_method->is_ephemeral) {
-            continue;
-        }
-
-        if (s2n_signature_scheme_valid_auth_method(conn, candidate) != 0) {
+        if (s2n_is_sig_alg_valid_for_auth(conn, candidate->sig_alg) != S2N_SUCCESS) {
             continue;
         }
 
@@ -148,7 +97,7 @@ int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn
 
         if (candidate->iana_value == actual_iana_val) {
             *chosen_sig_scheme = *candidate;
-            return 0;
+            return S2N_SUCCESS;
         }
     }
 
@@ -181,7 +130,7 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
     }
 
     /* SignatureScheme preference list was first added in TLS 1.2. It will be empty in older TLS versions. */
-    if (0 < peer_wire_prefs->len) {
+    if (peer_wire_prefs != NULL && peer_wire_prefs->len > 0) {
         GUARD(s2n_choose_sig_scheme(conn, peer_wire_prefs, &chosen_scheme));
     } else {
         S2N_ERROR_IF(conn->actual_protocol_version == S2N_TLS13, S2N_ERR_EMPTY_SIGNATURE_SCHEME);

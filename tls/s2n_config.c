@@ -128,7 +128,7 @@ static int s2n_config_init(struct s2n_config *config)
 
     notnull_check(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
     GUARD(s2n_map_complete(config->domain_name_to_cert_map));
-    memset(&config->default_cert_per_auth_method, 0, sizeof(struct auth_method_to_cert_value));
+    memset(&config->default_certs_by_type, 0, sizeof(struct certs_by_type));
     config->default_certs_are_explicit = 0;
 
     s2n_x509_trust_store_init_empty(&config->trust_store);
@@ -161,20 +161,20 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
         return 0;
     }
     struct s2n_blob s2n_map_value = { 0 };
-    s2n_authentication_method auth_method = s2n_cert_chain_and_key_get_auth_method(cert_key_pair);
+    s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
     if (s2n_map_lookup(domain_name_to_cert_map, name, &s2n_map_value) == 0) {
-        struct auth_method_to_cert_value value = {{ 0 }};
-        value.certs[auth_method] = cert_key_pair;
+        struct certs_by_type value = {{ 0 }};
+        value.certs[cert_type] = cert_key_pair;
         s2n_map_value.data = (uint8_t *) &value;
-        s2n_map_value.size = sizeof(struct auth_method_to_cert_value);
+        s2n_map_value.size = sizeof(struct certs_by_type);
 
         GUARD(s2n_map_unlock(domain_name_to_cert_map));
         GUARD(s2n_map_add(domain_name_to_cert_map, name, &s2n_map_value));
         GUARD(s2n_map_complete(domain_name_to_cert_map));
     } else {
-        struct auth_method_to_cert_value *value = (void *) s2n_map_value.data;;
-        if (value->certs[auth_method] == NULL) {
-            value->certs[auth_method] = cert_key_pair;
+        struct certs_by_type *value = (void *) s2n_map_value.data;;
+        if (value->certs[cert_type] == NULL) {
+            value->certs[cert_type] = cert_key_pair;
         } else if (config->cert_tiebreak_cb) {
             /* There's an existing certificate for this (domain_name, auth_method).
              * Run the application's tiebreaking callback to decide which cert should be used.
@@ -182,12 +182,12 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
              * on factors like trust, expiry, etc.
              */
             struct s2n_cert_chain_and_key *winner = config->cert_tiebreak_cb(
-                    value->certs[auth_method],
+                    value->certs[cert_type],
                     cert_key_pair,
                     name->data,
                     name->size);
             if (winner) {
-                value->certs[auth_method] = winner;
+                value->certs[cert_type] = winner;
             }
         }
     }
@@ -361,8 +361,8 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
     /* Free the cert_chain_and_key since the application has no reference
      * to it. This is necessary until s2n_config_add_cert_chain_and_key is deprecated. */
     if (config->cert_allocated) {
-        for (int i = 0; i < S2N_AUTHENTICATION_METHOD_SENTINEL; i++) {
-            s2n_cert_chain_and_key_free(config->default_cert_per_auth_method.certs[i]);
+        for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+            s2n_cert_chain_and_key_free(config->default_certs_by_type.certs[i]);
         }
     }
 
@@ -514,9 +514,9 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct
     if (!config->default_certs_are_explicit) {
         /* Attempt to auto set default based on ordering. ie: first RSA cert is the default, first ECDSA cert is the
          * default, etc. */
-        s2n_authentication_method cert_auth_method = s2n_cert_chain_and_key_get_auth_method(cert_key_pair);
-        if (config->default_cert_per_auth_method.certs[cert_auth_method] == NULL) {
-            config->default_cert_per_auth_method.certs[cert_auth_method] = cert_key_pair;
+        s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
+        if (config->default_certs_by_type.certs[cert_type] == NULL) {
+            config->default_certs_by_type.certs[cert_type] = cert_key_pair;
         }
     }
 
@@ -526,8 +526,8 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct
 int s2n_config_clear_default_certificates(struct s2n_config *config)
 {
     notnull_check(config);
-    for (int i = 0; i < S2N_AUTHENTICATION_METHOD_SENTINEL; i++) {
-        config->default_cert_per_auth_method.certs[i] = NULL;
+    for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+        config->default_certs_by_type.certs[i] = NULL;
     }
     return 0;
 }
@@ -538,22 +538,22 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
 {
     notnull_check(config);
     notnull_check(cert_key_pairs);
-    S2N_ERROR_IF(num_cert_key_pairs < 1 || num_cert_key_pairs > S2N_AUTHENTICATION_METHOD_SENTINEL,
+    S2N_ERROR_IF(num_cert_key_pairs < 1 || num_cert_key_pairs > S2N_CERT_TYPE_COUNT,
             S2N_ERR_NUM_DEFAULT_CERTIFICATES);
 
     /* Validate certs being set before clearing auto-chosen defaults or previously set defaults */
-    struct auth_method_to_cert_value new_defaults = {{ 0 }};
+    struct certs_by_type new_defaults = {{ 0 }};
     for (int i = 0; i < num_cert_key_pairs; i++) {
         notnull_check(cert_key_pairs[i]);
-        s2n_authentication_method auth_method = s2n_cert_chain_and_key_get_auth_method(cert_key_pairs[i]);
-        S2N_ERROR_IF(new_defaults.certs[auth_method] != NULL, S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE);
-        new_defaults.certs[auth_method] = cert_key_pairs[i];
+        s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pairs[i]);
+        S2N_ERROR_IF(new_defaults.certs[cert_type] != NULL, S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE);
+        new_defaults.certs[cert_type] = cert_key_pairs[i];
     }
 
     GUARD(s2n_config_clear_default_certificates(config));
     for (int i = 0; i < num_cert_key_pairs; i++) {
-        s2n_authentication_method auth_method = s2n_cert_chain_and_key_get_auth_method(cert_key_pairs[i]);
-        config->default_cert_per_auth_method.certs[auth_method] = cert_key_pairs[i];
+        s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pairs[i]);
+        config->default_certs_by_type.certs[cert_type] = cert_key_pairs[i];
     }
 
     config->default_certs_are_explicit = 1;
@@ -836,9 +836,9 @@ struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_con
     notnull_check_ptr(config);
     struct s2n_cert_chain_and_key *cert = NULL;
 
-    for (int i = S2N_AUTHENTICATION_METHOD_SENTINEL - 1; i >= 0; i--) {
-        if (config->default_cert_per_auth_method.certs[i] != NULL) {
-            cert = config->default_cert_per_auth_method.certs[i];
+    for (int i = S2N_CERT_TYPE_COUNT - 1; i >= 0; i--) {
+        if (config->default_certs_by_type.certs[i] != NULL) {
+            cert = config->default_certs_by_type.certs[i];
         }
     }
     return cert;
@@ -848,8 +848,8 @@ int s2n_config_get_num_default_certs(struct s2n_config *config)
 {
     notnull_check(config);
     int num_certs = 0;
-    for (int i = 0; i < S2N_AUTHENTICATION_METHOD_SENTINEL; i++) {
-        if (config->default_cert_per_auth_method.certs[i] != NULL) {
+    for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+        if (config->default_certs_by_type.certs[i] != NULL) {
             num_certs++;
         }
     }

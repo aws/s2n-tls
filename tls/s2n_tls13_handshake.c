@@ -14,6 +14,7 @@
  */
 
 #include "tls/s2n_tls13_handshake.h"
+#include "tls/s2n_cipher_suites.h"
 
 int s2n_tls13_mac_verify(struct s2n_tls13_keys *keys, struct s2n_blob *finished_verify, struct s2n_blob *wire_verify)
 {

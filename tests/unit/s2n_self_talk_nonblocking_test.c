@@ -157,7 +157,6 @@ int mock_client_iov(struct s2n_test_piped_io *piped_io, struct iovec *iov, uint3
     return 0;
 }
 
-int test_count = 0;
 char *cert_chain_pem;
 char *private_key_pem;
 char *dhparams_pem;
@@ -318,9 +317,7 @@ int main(int argc, char **argv)
     /* Ignore SIGPIPE */
     signal(SIGPIPE, SIG_IGN);
 
-#define test_count _test_count
     BEGIN_TEST();
-#undef test_count
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));

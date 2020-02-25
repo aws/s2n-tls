@@ -25,6 +25,8 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 
+int test_count;
+
 /* Macro definitions for calls that occur within BEGIN_TEST() and END_TEST() to preserve the SKIPPED test behavior
  * by ignoring the test_count, keeping it as 0 to indicate that a test was skipped. */
 #define EXPECT_TRUE_WITHOUT_COUNT( condition )    do { if ( !(condition) ) { FAIL_MSG( #condition " is not true "); } } while(0)
@@ -40,8 +42,8 @@
  */
 #ifdef S2N_TEST_IN_FIPS_MODE
 #define BEGIN_TEST()						\
-  int test_count = 0;						\
   do {								\
+    test_count = 0; \
     EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));	\
     EXPECT_NOT_EQUAL_WITHOUT_COUNT(FIPS_mode_set(1), 0);	\
     EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());			\
@@ -49,7 +51,8 @@
   } while(0)
 #else
 #define BEGIN_TEST()						\
-  int test_count = 0; do {					\
+  do {					\
+    test_count = 0; \
     EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));	\
     EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());			\
     fprintf(stdout, "Running %-50s ... ", __FILE__);		\
