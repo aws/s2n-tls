@@ -242,11 +242,11 @@ static int s2n_rsa_pss_keys_match(const struct s2n_pkey *pub, const struct s2n_p
 
 static int s2n_rsa_pss_key_free(struct s2n_pkey *pkey)
 {
-    struct s2n_rsa_pss_key key = pkey->key.rsa_pss_key;
+    struct s2n_rsa_pss_key *key = &pkey->key.rsa_pss_key;
 
-    if (key.pkey != NULL) {
-        EVP_PKEY_free(key.pkey);
-        key.pkey = NULL;
+    if (key->pkey != NULL) {
+        EVP_PKEY_free(key->pkey);
+        key->pkey = NULL;
     }
 
     return 0;

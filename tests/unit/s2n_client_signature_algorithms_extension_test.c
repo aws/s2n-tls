@@ -14,6 +14,7 @@
  */
 
 #include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
 #include <stdint.h>
 
@@ -29,6 +30,13 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    struct s2n_config *config;
+    EXPECT_NOT_NULL(config = s2n_config_new());
+
+    struct s2n_cert_chain_and_key *chain_and_key;
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     /* Test that recv can parse send */
     {
@@ -99,12 +107,13 @@ int main(int argc, char **argv)
         };
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        GUARD(s2n_connection_set_config(conn, config));
 
         struct s2n_stuffer signature_algorithms_extension;
         EXPECT_SUCCESS(s2n_stuffer_alloc(&signature_algorithms_extension, 2 + (sig_hash_algs.len * 2)));
-        GUARD(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.len * 2));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.len * 2));
         for (int i = 0; i < sig_hash_algs.len; i++) {
-                GUARD(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.iana_list[i]));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.iana_list[i]));
         }
 
         struct s2n_array *parsed_extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension));
@@ -123,6 +132,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_array_free(parsed_extensions));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
+
+    EXPECT_SUCCESS(s2n_config_free(config));
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
     END_TEST();
     return 0;

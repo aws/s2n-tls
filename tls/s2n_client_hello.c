@@ -24,6 +24,7 @@
 
 #include "crypto/s2n_hash.h"
 
+#include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
@@ -298,21 +299,16 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     /* Find potential certificate matches before we choose the cipher. */
     GUARD(s2n_conn_find_name_matching_certs(conn));
 
-    /* Now choose the ciphers and the cert chain. */
-    /* In TLS 1.3, only cipher suite is chosen, and cert chain selection deferred till signature scheme selection */
-    GUARD(s2n_set_cipher_and_cert_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
+    /* Now choose the ciphers we have certs for. */
+    GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
 
     /* And set the signature and hash algorithm used for key exchange signatures */
     GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn,
         &conn->handshake_params.client_sig_hash_algs,
         &conn->secure.conn_sig_scheme));
 
-    /* In TLS1.3, certs are not handled by cipher suites, so we must set them here. */
-    if (conn->actual_protocol_version >= S2N_TLS13 ) {
-        s2n_authentication_method auth_method;
-        GUARD(s2n_get_auth_method_from_sig_alg(conn->secure.conn_sig_scheme.sig_alg, &auth_method));
-        conn->handshake_params.our_chain_and_key = s2n_conn_get_compatible_cert_chain_and_key(conn, auth_method);
-    }
+    /* And finally, set the certs specified by the final auth + sig_alg combo. */
+    GUARD(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));
 
     return 0;
 }
@@ -458,7 +454,9 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     /* Find potential certificate matches before we choose the cipher. */
     GUARD(s2n_conn_find_name_matching_certs(conn));
 
-    GUARD(s2n_set_cipher_and_cert_as_sslv2_server(conn, cipher_suites, cipher_suites_length / S2N_SSLv2_CIPHER_SUITE_LEN));
+    GUARD(s2n_set_cipher_as_sslv2_server(conn, cipher_suites, cipher_suites_length / S2N_SSLv2_CIPHER_SUITE_LEN));
+    GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn, NULL, &conn->secure.conn_sig_scheme));
+    GUARD(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));
 
     S2N_ERROR_IF(session_id_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
     if (session_id_length > 0 && session_id_length <= S2N_TLS_SESSION_ID_MAX_LEN) {

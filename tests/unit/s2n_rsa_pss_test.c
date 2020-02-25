@@ -78,6 +78,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_pkey_free(&public_key));
         free(cert_chain_pem);
         free(private_key_pem);
+
+        /* Verify repeated key frees.
+         * (Later calls should be a no-op) */
+        EXPECT_SUCCESS(s2n_pkey_free(&public_key));
     }
 
     /* Negative Test: Loading mismatching RSA PSS Public/Private Keys will fail.
