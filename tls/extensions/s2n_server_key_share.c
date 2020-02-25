@@ -17,6 +17,7 @@
 
 #include "tls/s2n_client_extensions.h"
 #include "utils/s2n_safety.h"
+#include "tls/s2n_tls.h"
 
 /*
  * Check whether client has sent a corresponding curve and key_share
@@ -44,6 +45,27 @@ int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn)
     S2N_ERROR_IF(client_ecc_evp.evp_pkey == NULL, S2N_ERR_BAD_KEY_SHARE);
 
     return 0;
+}
+/*
+ * Selects highest priority mutually supported keyshare
+ */
+int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
+{
+    for (uint32_t i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+        /* Checks sent supported group and keyshare have both been sent */
+        if (conn->secure.client_ecc_evp_params[i].negotiated_curve &&
+             conn->secure.mutually_supported_groups[i].negotiated_curve) {
+            conn->secure.server_ecc_evp_params.negotiated_curve = conn->secure.client_ecc_evp_params[i].negotiated_curve;
+            return 0;
+        }
+    }
+    /* Client sent no keyshares, need to send Hello Retry Request with first negotiated curve */
+
+    if (conn->secure.server_ecc_evp_params.negotiated_curve) {
+        GUARD(s2n_server_hello_retry_send(conn));
+        return 0;
+    }   
+    S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 }
 
 /*

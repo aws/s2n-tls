@@ -34,6 +34,7 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_client_extensions.h"
 #include "tls/s2n_tls_digest_preferences.h"
+#include "tls/extensions/s2n_server_key_share.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -289,7 +290,10 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     if (client_hello->parsed_extensions != NULL && client_hello->parsed_extensions->num_of_elements > 0) {
         GUARD(s2n_client_extensions_recv(conn, client_hello->parsed_extensions));
     }
-    
+    /* After parsing extensions, select a curve and corresponding keyshare to use */
+    if (conn->actual_protocol_version >= S2N_TLS13) {
+        GUARD(s2n_extensions_server_key_share_select(conn));
+    }
     if (conn->actual_protocol_version != S2N_TLS13) {
         conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
     }

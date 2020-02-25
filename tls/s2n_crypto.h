@@ -71,6 +71,7 @@ struct s2n_crypto_parameters {
     struct s2n_dh_params server_dh_params;
     struct s2n_ecc_evp_params server_ecc_evp_params;
     struct s2n_ecc_evp_params client_ecc_evp_params[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT];
+    struct s2n_ecc_evp_params mutually_supported_groups[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT];
     struct s2n_kem_keypair s2n_kem_keys;
     struct s2n_blob client_key_exchange_message;
     struct s2n_blob client_pq_kem_extension;

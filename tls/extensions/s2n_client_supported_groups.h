@@ -20,3 +20,5 @@
 
 extern int s2n_extensions_client_supported_groups_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 extern int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct s2n_stuffer *extension);
+extern int s2n_parse_client_supported_groups_list(struct s2n_blob *iana_ids, struct s2n_ecc_evp_params *supported_groups);
+extern int s2n_choose_supported_group(struct s2n_ecc_evp_params *chosen_group, struct s2n_ecc_evp_params *group_options);
