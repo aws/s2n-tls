@@ -65,7 +65,9 @@ clean_the_dir :
 	${RM} -r tmp
 	${RM} -r failure_tests/*.log
 	${RM} -r sike_r1/*.log
+	${RM} -r sike_r2/*.log
 	${RM} -r bike_r1/*.log
+	${RM} -r bike_r2/*.log
 	${RM} -r bitcode/*.bc
 
 ###########################################
@@ -90,19 +92,19 @@ sike: sike_r2 sike_r2_x86 sike_r1
 
 .PHONY : sike_r2
 sike_r2 : sike_r2_patched_bitcode
-	@${MAKE} sike_r1/sike_r2.log
+	@${MAKE} sike_r2/sike_r2.log
 
-sike_r1/sike_r2.log :
+sike_r2/sike_r2.log :
 	@set -o pipefail; \
-	saw sike_r1/verify_sike_r2.saw | tee $@
+	saw sike_r2/verify_sike_r2.saw | tee $@
 
 .PHONY : sike_r2_x86
 sike_r2_x86 : sike_r2_x86_patched_bitcode s2n/lib/libs2n.so
-	@${MAKE} sike_r1/sike_r2_x86.log
+	@${MAKE} sike_r2/sike_r2_x86.log
 
-sike_r1/sike_r2_x86.log :
+sike_r2/sike_r2_x86.log :
 	@set -o pipefail; \
-	saw sike_r1/verify_sike_r2_x86.saw | tee $@
+	saw sike_r2/verify_sike_r2_x86.saw | tee $@
 
 .PHONY : sike_r1
 sike_r1 : sike_r1_patched_bitcode
@@ -306,7 +308,7 @@ bitcode/sike_r1_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/uti
 
 .PHONY : bitcode/sike_r2_llvm.bc
 bitcode/sike_r2_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r2 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R2_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
-	patch s2n/pq-crypto/sike_r2/ec_isogeny.c sike_r1/patch/ec_isogeny.c.patch
+	patch s2n/pq-crypto/sike_r2/ec_isogeny.c sike_r2/patch/ec_isogeny.c.patch
 	${MAKE} -C s2n sike_r2_bc
 	${MAKE} -C bitcode all_llvm.bc
 
