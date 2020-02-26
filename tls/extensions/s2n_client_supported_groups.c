@@ -73,7 +73,7 @@ int s2n_parse_client_supported_groups_list(struct s2n_blob *iana_ids, struct s2n
         uint16_t iana_id;
         GUARD(s2n_stuffer_read_uint16(&iana_ids_in, &iana_id));
         for (int j = 0; j < s2n_ecc_evp_supported_curves_list_len; j++) {
-            const struct s2n_ecc_named_curve *supported_curve = s2n_ecc_evp_supported_curves_list[i];
+            const struct s2n_ecc_named_curve *supported_curve = s2n_ecc_evp_supported_curves_list[j];
             if (supported_curve->iana_id == iana_id) {
                 supported_groups[j].negotiated_curve = supported_curve;
             }
