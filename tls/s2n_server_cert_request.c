@@ -119,6 +119,8 @@ int s2n_tls13_cert_req_recv(struct s2n_connection *conn)
 
     GUARD(s2n_server_certificate_request_extensions_recv(conn, &extensions));
 
+    GUARD(s2n_set_cert_chain_as_client(conn));
+
     return 0;
 }
 

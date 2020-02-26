@@ -78,7 +78,7 @@ let prove_state_machine = do {
     prove_print abc {{ tls12rfcSimulatesS2N `{16} }};
 
     print "Checking proof that the TLS1.3 RFC simulates our Cryptol s2n spec";
-    prove_print yices {{ tls13rfcSimulatesS2N `{16} }};
+    prove_print z3 {{ tls13rfcSimulatesS2N `{16} }};
     
     return ();
 };

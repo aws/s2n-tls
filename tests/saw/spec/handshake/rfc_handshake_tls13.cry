@@ -88,8 +88,8 @@ connectionParameters conn params = params.psk_mode == conn_psk_mode
                                    /\ conn.actual_protocol_version == S2N_TLS13
   where conn_psk_mode =         False /* Not supported yet */
         conn_retry =            False /* Not supported yet */
-        conn_client_auth =      False /* Not supported yet */
-        conn_no_client_cert =   False /* Not supported yet */
+        conn_client_auth =      conn.client_auth_flag
+        conn_no_client_cert =   conn.no_client_cert
         conn_zero_rtt =         False /* Not supported yet */
 
 type Action = {
@@ -339,7 +339,8 @@ testConnection = {
             server_can_send_ocsp = False,
             key_exchange_eph = False,
             client_auth_flag = False,
-            actual_protocol_version = 0x22
+            actual_protocol_version = 0x22,
+            no_client_cert = True
         }
 
 type Character = [8]

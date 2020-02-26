@@ -374,6 +374,20 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
             CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             APPLICATION_DATA
     },
+
+    [NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH] = {
+            CLIENT_HELLO,
+            SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+            CLIENT_CHANGE_CIPHER_SPEC, CLIENT_CERT, CLIENT_CERT_VERIFY, CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
+    [NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | NO_CLIENT_CERT ] = {
+            CLIENT_HELLO,
+            SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+            CLIENT_CHANGE_CIPHER_SPEC, CLIENT_CERT, CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
 };
 
 #define MAX_HANDSHAKE_TYPE_LEN 128
@@ -480,9 +494,20 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     /* A handshake type has been negotiated */
     conn->handshake.handshake_type = NEGOTIATED;
 
-    /* In the initial TLS1.3 release, we will only support the basic handshake. */
+    s2n_cert_auth_type client_cert_auth_type;
+    GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
+
+    if (conn->mode == S2N_CLIENT && client_cert_auth_type == S2N_CERT_AUTH_REQUIRED) {
+        /* If we're a client, and Client Auth is REQUIRED, then the Client must expect the CLIENT_CERT_REQ Message */
+        conn->handshake.handshake_type |= CLIENT_AUTH;
+    } else if (conn->mode == S2N_SERVER && client_cert_auth_type != S2N_CERT_AUTH_NONE) {
+        /* If we're a server, and Client Auth is REQUIRED or OPTIONAL, then the server must send the CLIENT_CERT_REQ Message*/
+        conn->handshake.handshake_type |= CLIENT_AUTH;
+    }
+
     if (IS_TLS13_HANDSHAKE(conn)) {
         conn->handshake.handshake_type |= FULL_HANDSHAKE;
+
         return 0;
     }
 
@@ -525,17 +550,6 @@ skip_cache_lookup:
 
     /* If we get this far, it's a full handshake */
     conn->handshake.handshake_type |= FULL_HANDSHAKE;
-
-    s2n_cert_auth_type client_cert_auth_type;
-    GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
-
-    if (conn->mode == S2N_CLIENT && client_cert_auth_type == S2N_CERT_AUTH_REQUIRED) {
-        /* If we're a client, and Client Auth is REQUIRED, then the Client must expect the CLIENT_CERT_REQ Message */
-        conn->handshake.handshake_type |= CLIENT_AUTH;
-    } else if (conn->mode == S2N_SERVER && client_cert_auth_type != S2N_CERT_AUTH_NONE) {
-        /* If we're a server, and Client Auth is REQUIRED or OPTIONAL, then the server must send the CLIENT_CERT_REQ Message*/
-        conn->handshake.handshake_type |= CLIENT_AUTH;
-    }
 
     if (s2n_kex_is_ephemeral(conn->secure.cipher_suite->key_exchange_alg)) {
         conn->handshake.handshake_type |= TLS12_PERFECT_FORWARD_SECRECY;
