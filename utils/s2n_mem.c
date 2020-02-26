@@ -121,7 +121,7 @@ int s2n_free(struct s2n_blob *b)
     S2N_ERROR_IF(!s2n_blob_is_growable(b), S2N_ERR_FREE_STATIC_BLOB);
     /* To avoid memory leaks, still free the data even if we can't unlock / wipe it */
     int zero_rc = s2n_blob_zero(b);
-    int munlock_rc = b->mlocked ? munlock(b->data, b->size) : 0;
+    int munlock_rc = b->mlocked ? munlock(b->data, b->allocated) : 0;
     free(b->data);
     *b = (struct s2n_blob) {0};
     S2N_ERROR_IF(munlock_rc < 0, S2N_ERR_MUNLOCK);
