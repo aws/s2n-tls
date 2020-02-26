@@ -188,12 +188,14 @@ int main(int argc, char **argv)
             SSLv2_CLIENT_HELLO_PREFIX,
             SSLv2_CLIENT_HELLO_CIPHER_SUITES,
             SSLv2_CLIENT_HELLO_CHALLENGE,
-	};
+	    };
+
         int sslv2_client_hello_len = sizeof(sslv2_client_hello);
 
         uint8_t sslv2_client_hello_header[] = {
             SSLv2_CLIENT_HELLO_HEADER,
         };
+        
         int sslv2_client_hello_header_len = sizeof(sslv2_client_hello_header);
 
         /* Create nonblocking pipes */

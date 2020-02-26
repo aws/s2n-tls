@@ -39,7 +39,11 @@ curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/z
 mkdir -p "$INSTALL_DIR"/bin
 mv z3 "$INSTALL_DIR"/bin
 mv yices-2.6.1/bin/* "$INSTALL_DIR"/bin
-sudo chmod +x  "$INSTALL_DIR"/bin/*
+if [[ -z "${NO_SUDO}" ]]; then
+	sudo chmod +x  "$INSTALL_DIR"/bin/*
+else
+	chmod +x  "$INSTALL_DIR"/bin/*
+fi
 
 "$INSTALL_DIR"/bin/yices-smt2 --version
 "$INSTALL_DIR"/bin/yices --version

@@ -166,9 +166,11 @@ struct s2n_handshake {
 
 /* Handshake should request a Client Certificate */
 #define CLIENT_AUTH                 0x10
+#define IS_CLIENT_AUTH_HANDSHAKE( type )   ( (type) & CLIENT_AUTH )
 
 /* Handshake requested a Client Certificate but did not get one */
 #define NO_CLIENT_CERT              0x40
+#define IS_CLIENT_AUTH_NO_CERT( type )   ( IS_CLIENT_AUTH_HANDSHAKE( (type) ) && ( (type) & NO_CLIENT_CERT) )
 
 /* Session Resumption via session-tickets */
 #define WITH_SESSION_TICKET         0x20

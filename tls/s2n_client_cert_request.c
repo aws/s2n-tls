@@ -105,7 +105,7 @@ int s2n_client_cert_req_recv(struct s2n_connection *conn)
     GUARD(s2n_recv_client_cert_preferences(in, &cert_type));
     GUARD(s2n_cert_type_to_pkey_type(cert_type, &conn->secure.client_cert_pkey_type));
 
-    if (conn->actual_protocol_version == S2N_TLS12) {
+    if (conn->actual_protocol_version >= S2N_TLS12) {
         GUARD(s2n_recv_supported_sig_scheme_list(in, &conn->handshake_params.server_sig_hash_algs));
     }
 
@@ -138,7 +138,7 @@ int s2n_client_cert_req_send(struct s2n_connection *conn)
         GUARD(s2n_stuffer_write_uint8(out, s2n_cert_type_preference_list[i]));
     }
 
-    if (conn->actual_protocol_version == S2N_TLS12) {
+    if (conn->actual_protocol_version >= S2N_TLS12) {
         GUARD(s2n_send_supported_sig_scheme_list(conn, out));
     }
 

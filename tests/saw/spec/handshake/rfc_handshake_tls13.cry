@@ -88,8 +88,8 @@ connectionParameters conn params = params.psk_mode == conn_psk_mode
                                    /\ conn.actual_protocol_version == S2N_TLS13
   where conn_psk_mode =         False /* Not supported yet */
         conn_retry =            False /* Not supported yet */
-        conn_client_auth =      False /* Not supported yet */
-        conn_no_client_cert =   False /* Not supported yet */
+        conn_client_auth =      conn.client_auth_flag
+        conn_no_client_cert =   conn.no_client_cert
         conn_zero_rtt =         False /* Not supported yet */
 
 type Action = {
@@ -305,3 +305,54 @@ rfc2S2N msg = mkAct recordType messageType writer
                  | msg.sender == both then 'B'
                  else '!'
         noMessageType = TLS_HELLO_REQUEST // HelloRequests don't exist in tls1.3
+
+testParameters : Parameters
+testParameters = {
+            compat_mode = [False, True],
+            psk_mode = False,
+            retry = False,
+            client_auth = True,
+            no_client_cert = True,
+            zero_rtt = False
+        }
+
+testConnection : connection
+testConnection = {
+            handshake = {handshake_type = 0x00000000,
+                message_number = 0x00000000},
+            mode = 0x00000001,
+            corked_io = '\NUL',
+            corked = zero,
+            is_caching_enabled = False,
+            resume_from_cache = False,
+            server_can_send_ocsp = False,
+            key_exchange_eph = False,
+            client_auth_flag = True,
+            actual_protocol_version = 0x22,
+            no_client_cert = True
+        }
+
+printHandshake : {len} (fin len, len >= 1) => ([3][8], [len][22][8], [3][8], [len][22][8])
+printHandshake = ("rfc", map s2nToWords (map rfc2S2N (doHandshake`{len} params)),
+                  "s2n", map s2nToWords (traceS2N`{len} conn))
+  where (params : Parameters) = testParameters
+        (conn : connection) = testConnection
+ 
+s2nToWords : handshake_action -> [22][8]
+s2nToWords action = name # [ '(', action.writer, ')']
+  where padded : {a, b} (fin a, fin b) => [b][8] -> [a+b][8]
+        padded msg = repeat ' ' # msg
+        name : [19][8]
+        name = if action.record_type == TLS_CHANGE_CIPHER_SPEC then padded    "CCS"
+               |  action.record_type == TLS_APPLICATION_DATA then padded      "Data"
+               |  action.message_type == TLS_CLIENT_HELLO then padded         "ClientHello"
+               |  action.message_type == TLS_SERVER_HELLO then padded         "ServerHello"
+               |  action.message_type == TLS_HELLO_RETRY_REQUEST then padded  "HelloRetryRequest"
+               |  action.message_type == TLS_ENCRYPTED_EXTENSIONS then padded "EncryptedExtensions"
+               |  action.message_type == TLS_CERTIFICATE_REQ then padded      "CertRequest"
+               |  action.message_type == TLS_CERTIFICATE then padded          "Cert"
+               |  action.message_type == TLS_CERT_VERIFY then padded          "CertVerify"
+               |  action.message_type == TLS_FINISHED then padded             "Finished"
+               |  action.message_type == TLS_END_OF_EARLY_DATA then padded    "EndOfEarlyData"
+               |  action.message_type == TLS_SERVER_SESSION_LOOKUP then padded "SessionLookup"
+               else padded                                                    "Error"

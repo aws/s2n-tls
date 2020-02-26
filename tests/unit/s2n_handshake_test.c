@@ -84,7 +84,8 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
 }
 
 int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config *client_config,
-        struct s2n_cert_chain_and_key *expected_cert_chain, s2n_signature_algorithm expected_sig_alg) {
+        struct s2n_cert_chain_and_key *expected_cert_chain, s2n_signature_algorithm expected_sig_alg)
+{
     const struct s2n_cipher_preferences *cipher_preferences;
 
     cipher_preferences = server_config->cipher_preferences;

@@ -25,7 +25,7 @@
 
 int s2n_server_cert_recv(struct s2n_connection *conn)
 {
-    if (conn->actual_protocol_version == S2N_TLS13) {
+    if (conn->actual_protocol_version >= S2N_TLS13) {
         uint8_t certificate_request_context_len;
         GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &certificate_request_context_len));
     }
@@ -57,7 +57,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
 int s2n_server_cert_send(struct s2n_connection *conn)
 {
     S2N_ERROR_IF(conn->handshake_params.our_chain_and_key == NULL, S2N_ERR_CERT_TYPE_UNSUPPORTED);
-    if (conn->actual_protocol_version == S2N_TLS13) {
+    if (conn->actual_protocol_version >= S2N_TLS13) {
         /* server's certificate request context should always be of zero length */
         /* https://tools.ietf.org/html/rfc8446#section-4.4.2*/
         uint8_t certificate_request_context_len = 0;
