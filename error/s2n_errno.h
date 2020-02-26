@@ -276,6 +276,8 @@ extern __thread const char *s2n_debug_str;
 #define S2N_OBJECT_PTR_IS_READABLE(ptr) S2N_MEM_IS_READABLE((ptr), sizeof(*(ptr)))
 #define S2N_OBJECT_PTR_IS_WRITABLE(ptr) S2N_MEM_IS_WRITABLE((ptr), sizeof(*(ptr)))
 
+#define IMPLIES(a, b) (!(a) || (b))
+
 /** Calculate and print stacktraces */
 struct s2n_stacktrace {
   char **trace;
