@@ -336,18 +336,30 @@ int main(int argc, char **argv)
     CHECK_OVF(s2n_mul_overflow, uint32_t, ~0u, ~0u);
 
     uint32_t result = 1;
-    EXPECT_SUCCESS(s2n_align_to(0,10,&result));
+    EXPECT_SUCCESS(s2n_align_to(0, 10, &result));
     EXPECT_EQUAL(result, 0);
 
-    EXPECT_FAILURE(s2n_align_to(1,0,&result));
+    EXPECT_FAILURE(s2n_align_to(1, 0, &result));
 
-    EXPECT_SUCCESS(s2n_align_to(10,16,&result));
+    EXPECT_SUCCESS(s2n_align_to(10, 16, &result));
     EXPECT_EQUAL(result, 16);
 
-    EXPECT_SUCCESS(s2n_align_to(20,16,&result));
+    EXPECT_SUCCESS(s2n_align_to(20, 16, &result));
     EXPECT_EQUAL(result, 32);
 
     EXPECT_FAILURE(s2n_align_to(UINT32_MAX, 4, &result));
+
+    EXPECT_SUCCESS(s2n_align_to(10, 4096, &result));
+    EXPECT_EQUAL(result, 4096);
+
+    EXPECT_SUCCESS(s2n_align_to(4097, 4096, &result));
+    EXPECT_EQUAL(result, 8192);
+
+    EXPECT_SUCCESS(s2n_align_to(4096, 4096, &result));
+    EXPECT_EQUAL(result, 4096);
+
+    EXPECT_FAILURE(s2n_align_to(UINT32_MAX - 4000, 4096, &result));
+    EXPECT_FAILURE(s2n_align_to(UINT32_MAX, 4096, &result));
     END_TEST();
     return 0;
 }
