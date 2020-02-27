@@ -455,7 +455,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     GUARD(s2n_conn_find_name_matching_certs(conn));
 
     GUARD(s2n_set_cipher_as_sslv2_server(conn, cipher_suites, cipher_suites_length / S2N_SSLv2_CIPHER_SUITE_LEN));
-    GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn, NULL, &conn->secure.conn_sig_scheme));
+    GUARD(s2n_choose_default_sig_scheme(conn, &conn->secure.conn_sig_scheme));
     GUARD(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));
 
     S2N_ERROR_IF(session_id_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);

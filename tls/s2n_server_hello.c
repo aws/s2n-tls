@@ -181,16 +181,11 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         GUARD(s2n_prf_key_expansion(conn));
     }
 
-    /* We've selected the cipher, update the required hashes for this connection */
-    GUARD(s2n_conn_update_required_handshake_hashes(conn));
+    /* Choose a default signature scheme */
+    GUARD(s2n_choose_default_sig_scheme(conn, &conn->secure.conn_sig_scheme));
 
-    /* Default our signature digest algorithm to SHA1. Will be used when verifying a client certificate. */
-    conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha1;
-    if (conn->actual_protocol_version < S2N_TLS12 && !s2n_is_in_fips_mode()
-            && conn->secure.cipher_suite->auth_method == S2N_AUTHENTICATION_RSA) {
-        /* TLS prior to 1.2 defaults to MD5 SHA1 hash if authentication is RSA */
-        conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_md5_sha1;
-    }
+    /* Update the required hashes for this connection */
+    GUARD(s2n_conn_update_required_handshake_hashes(conn));
 
     return 0;
 }

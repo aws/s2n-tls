@@ -104,36 +104,47 @@ int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn
     S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_SCHEME);
 }
 
-int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
-                                                        struct s2n_signature_scheme *sig_scheme_out)
+int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out)
 {
-    /* This function could be called in two places: after receiving the
-     * ClientHello and parsing the extensions and cipher suites, and after
-     * receiving the CertificateRequest which includes supported signature/hash
-     * pairs. In both cases, the cipher suite will have been set */
+    notnull_check(conn);
+    notnull_check(conn->secure.cipher_suite);
+    notnull_check(sig_scheme_out);
+
     s2n_authentication_method cipher_suite_auth_method = conn->secure.cipher_suite->auth_method;
 
     /* Default our signature digest algorithms. For TLS 1.2 this default is different and may be
      * overridden by the signature_algorithms extension. If the server chooses an ECDHE_ECDSA
      * cipher suite, this will be overridden to SHA1.
      */
-    struct s2n_signature_scheme chosen_scheme = s2n_rsa_pkcs1_md5_sha1;
+    *sig_scheme_out = s2n_rsa_pkcs1_md5_sha1;
 
     if (cipher_suite_auth_method == S2N_AUTHENTICATION_ECDSA) {
-        chosen_scheme = s2n_ecdsa_sha1;
+        *sig_scheme_out = s2n_ecdsa_sha1;
     }
 
     /* Default RSA Hash Algorithm is SHA1 (instead of MD5_SHA1) if TLS 1.2 or FIPS mode */
     if ((conn->actual_protocol_version >= S2N_TLS12 || s2n_is_in_fips_mode())
-            && (chosen_scheme.sig_alg == S2N_SIGNATURE_RSA)) {
-        chosen_scheme = s2n_rsa_pkcs1_sha1;
+            && (sig_scheme_out->sig_alg == S2N_SIGNATURE_RSA)) {
+        *sig_scheme_out = s2n_rsa_pkcs1_sha1;
     }
+
+    return S2N_SUCCESS;
+}
+
+int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
+                                                        struct s2n_signature_scheme *sig_scheme_out)
+{
+    notnull_check(conn);
+    notnull_check(sig_scheme_out);
+
+    struct s2n_signature_scheme chosen_scheme;
 
     /* SignatureScheme preference list was first added in TLS 1.2. It will be empty in older TLS versions. */
     if (peer_wire_prefs != NULL && peer_wire_prefs->len > 0) {
         GUARD(s2n_choose_sig_scheme(conn, peer_wire_prefs, &chosen_scheme));
     } else {
         S2N_ERROR_IF(conn->actual_protocol_version == S2N_TLS13, S2N_ERR_EMPTY_SIGNATURE_SCHEME);
+        GUARD(s2n_choose_default_sig_scheme(conn, &chosen_scheme));
     }
 
     /* In TLS 1.3, SigScheme also defines the ECDSA curve to use (instead of reusing whatever ECDHE Key Exchange curve
