@@ -195,7 +195,6 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_stuffer server_random = {0};
     struct s2n_blob b, rand_data;
-    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
     b.data = conn->secure.server_random;
     b.size = S2N_TLS_RANDOM_DATA_LEN;
@@ -208,8 +207,11 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     notnull_check(rand_data.data);
     GUARD(s2n_get_public_random_data(&rand_data));
 
-    protocol_version[0] = (uint8_t)(conn->actual_protocol_version / 10);
-    protocol_version[1] = (uint8_t)(conn->actual_protocol_version % 10);
+    /* Server hello should respond with the legacy version */
+    uint16_t legacy_protocol_version = MIN(conn->actual_protocol_version, S2N_TLS12);
+    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    protocol_version[0] = (uint8_t)(legacy_protocol_version / 10);
+    protocol_version[1] = (uint8_t)(legacy_protocol_version % 10);
 
     GUARD(s2n_server_add_downgrade_mechanism(conn));
 
