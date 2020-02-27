@@ -171,3 +171,18 @@ int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out)
     *out = (uint32_t) result;
     return S2N_SUCCESS;
 }
+
+int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out)
+{
+    S2N_PRECONDITION(alignment != 0);
+    if (initial == 0) {
+	*out = 0;
+	return S2N_SUCCESS;
+    }
+    uint64_t i = initial;
+    uint64_t a = alignment;
+    uint64_t result = a * (((i - 1) / a) + 1);
+    S2N_ERROR_IF(result > UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    *out = (uint32_t) result;
+    return S2N_SUCCESS;
+}

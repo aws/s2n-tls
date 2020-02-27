@@ -165,3 +165,4 @@ extern int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t * dst, const uint8_t * 
 #define s2n_array_len(array) (sizeof(array) / sizeof(array[0]))
 
 extern int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out);
+extern int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out);

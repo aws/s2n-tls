@@ -63,7 +63,8 @@ static int s2n_get_memory(struct s2n_blob *b, uint32_t size)
 {
     if(use_mlock) {
         /* Page aligned allocation required for mlock */
-        uint32_t allocate = page_size * (((size - 1) / page_size) + 1);
+        uint32_t allocate;
+        GUARD(s2n_align_to(size, page_size, &allocate));
         *b = (struct s2n_blob) {.data = NULL, .size = size, .allocated = allocate, .mlocked = 1, .growable = 1};
         S2N_ERROR_IF(posix_memalign((void**) &b->data, page_size, allocate), S2N_ERR_ALLOC);
 #ifdef MADV_DONTDUMP
