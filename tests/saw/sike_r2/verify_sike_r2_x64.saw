@@ -1,4 +1,4 @@
-// verify_sike_r2_x86.saw Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// verify_sike_r2_x64.saw Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -11,7 +11,7 @@ enable_experimental;
 
 include "proof/base.saw";
 include "proof/sike_r2_defs.saw";
-include "proof/sike_r2_x86_defs.saw";
+include "proof/sike_r2_x64_defs.saw";
 include "proof/sike_base.saw";
 include "proof/word.saw";
 include "proof/field_specs.saw";

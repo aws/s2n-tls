@@ -88,7 +88,7 @@ tmp/%.log : %.saw bitcode/all_llvm.bc tmp
 ## SIKE Tests
 ###########################################
 
-sike: sike_r2 sike_r2_x86 sike_r1
+sike: sike_r2 sike_r2_x64 sike_r1
 
 .PHONY : sike_r2
 sike_r2 : sike_r2_patched_bitcode
@@ -98,13 +98,13 @@ sike_r2/sike_r2.log :
 	@set -o pipefail; \
 	saw sike_r2/verify_sike_r2.saw | tee $@
 
-.PHONY : sike_r2_x86
-sike_r2_x86 : sike_r2_x86_patched_bitcode s2n/lib/libs2n.so
-	@${MAKE} sike_r2/sike_r2_x86.log
+.PHONY : sike_r2_x64
+sike_r2_x64 : sike_r2_x64_patched_bitcode s2n/lib/libs2n.so
+	@${MAKE} sike_r2/sike_r2_x64.log
 
-sike_r2/sike_r2_x86.log :
+sike_r2/sike_r2_x64.log :
 	@set -o pipefail; \
-	saw sike_r2/verify_sike_r2_x86.saw | tee $@
+	saw sike_r2/verify_sike_r2_x64.saw | tee $@
 
 .PHONY : sike_r1
 sike_r1 : sike_r1_patched_bitcode
@@ -201,8 +201,8 @@ sike_r2_patched_bitcode :
 	${MAKE} clean_the_dir
 	S2N_NO_PQ_ASM=1 ${MAKE} bitcode/sike_r2_llvm.bc
 
-.PHONY : sike_r2_x86_patched_bitcode
-sike_r2_x86_patched_bitcode :
+.PHONY : sike_r2_x64_patched_bitcode
+sike_r2_x64_patched_bitcode :
 	${MAKE} clean_the_dir
 	${MAKE} bitcode/sike_r2_llvm.bc
 
