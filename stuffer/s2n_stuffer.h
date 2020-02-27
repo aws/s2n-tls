@@ -71,6 +71,9 @@ extern int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct io
 extern int s2n_stuffer_skip_read(struct s2n_stuffer *stuffer, uint32_t n);
 extern int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n);
 
+/* Tries to reserve enough space to write n additional bytes into the stuffer.*/
+extern int s2n_stuffer_reserve_space(struct s2n_stuffer *stuffer, uint32_t n);
+
 /* Raw read/write move the cursor along and give you a pointer you can
  * read/write data_len bytes from/to in-place.
  */
