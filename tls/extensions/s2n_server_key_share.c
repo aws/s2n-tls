@@ -52,7 +52,7 @@ int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn)
 int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
 {
     for (uint32_t i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
-        /* Checks sent supported group and keyshare have both been sent */
+        /* Checks supported group and keyshare have both been sent */
         if (conn->secure.client_ecc_evp_params[i].negotiated_curve &&
              conn->secure.mutually_supported_groups[i].negotiated_curve) {
             conn->secure.server_ecc_evp_params.negotiated_curve = conn->secure.client_ecc_evp_params[i].negotiated_curve;
@@ -60,9 +60,8 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
         }
     }
     /* Client sent no keyshares, need to send Hello Retry Request with first negotiated curve */
-
     if (conn->secure.server_ecc_evp_params.negotiated_curve) {
-        GUARD(s2n_server_hello_retry_send(conn));
+        /* TODO: set Hello Retry Request flag when implemented */
         return 0;
     }   
     S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);

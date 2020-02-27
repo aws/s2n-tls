@@ -67,7 +67,7 @@ int s2n_parse_client_supported_groups_list(struct s2n_blob *iana_ids, struct s2n
     struct s2n_stuffer iana_ids_in = {0};
 
     GUARD(s2n_stuffer_init(&iana_ids_in, iana_ids));
-    GUARD(s2n_stuffer_write(&iana_ids_in, iana_ids));
+    iana_ids->data = s2n_stuffer_raw_write(&iana_ids_in, iana_ids->size);
     
     for (int i = 0; i < iana_ids->size / 2; i++) {
         uint16_t iana_id;
