@@ -54,6 +54,7 @@ struct s2n_config {
 
     const struct s2n_cipher_preferences *cipher_preferences;
     const struct s2n_signature_preferences *signature_preferences;
+    const struct s2n_ecc_named_curve *preferred_curves;
 
     void *sys_clock_ctx;
     void *monotonic_clock_ctx;
@@ -96,6 +97,8 @@ struct s2n_config {
 
     struct s2n_x509_trust_store trust_store;
     uint16_t max_verify_cert_chain_depth;
+
+    struct s2n_array *key_shares;
 };
 
 extern struct s2n_config *s2n_fetch_default_config(void);
@@ -109,3 +112,5 @@ extern int s2n_config_free_session_ticket_keys(struct s2n_config *config);
 extern void s2n_wipe_static_configs(void);
 extern struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config);
 extern int s2n_config_get_num_default_certs(struct s2n_config *config);
+
+int s2n_config_add_all_curves(struct s2n_config *conf);

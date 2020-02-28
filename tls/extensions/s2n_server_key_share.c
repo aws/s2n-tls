@@ -159,6 +159,15 @@ int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n
     /* If this is a HelloRetryRequest, we won't have a key share. We just have the selected group.
      * Exit early so a proper keyshare can be generated. */
     if (s2n_server_hello_retry_is_valid(conn)) {
+        /* Our original key shares didn't cut it, so clear the list and fill it with what the server wants */
+        GUARD(s2n_connection_clear_all_key_shares(conn));
+
+        for (uint32_t i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+            if (s2n_ecc_evp_supported_curves_list[i]->iana_id == named_group) {
+                GUARD(s2n_connection_add_preferred_key_share_by_group(conn, named_group));
+            }
+        }
+
         return 0;
     }
 

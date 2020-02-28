@@ -64,6 +64,7 @@ int s2n_server_hello_retry_send(struct s2n_connection *conn)
     /* We only send retries in S2N_TLS13, so we know the legacy protocol version should be S2N_TLS12 */
     protocol_version[0] = (uint8_t)(S2N_TLS12 / 10);
     protocol_version[1] = (uint8_t)(S2N_TLS12 % 10);
+
     GUARD(s2n_stuffer_write_bytes(out, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     /* Retry requests have a specifc random value */
@@ -92,8 +93,9 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     /* Only allow one retry request per connection */
     S2N_ERROR_IF(conn->handshake.client_received_hrr == 1, S2N_ERR_BAD_MESSAGE);
 
-    /* Verify this message meets the minimum requirements */
-    S2N_ERROR_IF(!s2n_server_hello_retry_is_valid(conn), S2N_ERR_BAD_MESSAGE);
+    /* Find out what changed in the key share */
+
+    /* Setup our ciphersuite and curves so the right value will be chosen next time */
 
     return 0;
 }

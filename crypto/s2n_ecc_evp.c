@@ -17,8 +17,10 @@
 
 #include <openssl/ecdh.h>
 #include <openssl/evp.h>
+#include <strings.h>
 #include <stdint.h>
 
+#include "tls/s2n_connection.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
@@ -478,4 +480,16 @@ int s2n_ecc_evp_params_free(struct s2n_ecc_evp_params *ecc_evp_params) {
         ecc_evp_params->evp_pkey = NULL;
     }
     return 0;
+}
+
+/* Determines whether the curve is a valid curve.
+ * This is necessary because the connection has a list of curves that
+ * are allowed to be used for key shares. That list is laid out in the
+ * same order as the s2n_ecc_evp_supported_curves list. The curves
+ * that have not been selected will have 0 value, while the selected
+ * curves will have been copied from the s2n_ecc_evp_supported_curves list.
+ */
+bool s2n_is_curve_valid(const struct s2n_ecc_named_curve *curve)
+{
+    return curve->share_size > 0;
 }

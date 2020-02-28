@@ -25,6 +25,7 @@
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 #include "crypto/s2n_hkdf.h"
+#include "crypto/s2n_ecc_evp.h"
 #include "utils/s2n_map.h"
 #include "utils/s2n_blob.h"
 
@@ -134,6 +135,8 @@ static int s2n_config_init(struct s2n_config *config)
     s2n_x509_trust_store_init_empty(&config->trust_store);
     s2n_x509_trust_store_from_system_defaults(&config->trust_store);
 
+    config->key_shares = s2n_array_new(sizeof(const char *));
+
     return 0;
 }
 
@@ -147,6 +150,8 @@ static int s2n_config_cleanup(struct s2n_config *config)
     GUARD(s2n_config_free_dhparams(config));
     GUARD(s2n_free(&config->application_protocols));
     GUARD(s2n_map_free(config->domain_name_to_cert_map));
+    
+    s2n_array_free(config->key_shares);
 
     return 0;
 }
@@ -212,11 +217,42 @@ static int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, s
     return 0;
 }
 
+int s2n_config_add_all_curves(struct s2n_config *conf)
+{
+    for (int i=0; i<s2n_ecc_evp_supported_curves_list_len; i++) {
+        const struct s2n_ecc_named_curve *curve = s2n_ecc_evp_supported_curves_list[i];
+        GUARD(s2n_array_insert_and_copy(conf->key_shares, &curve->name, conf->key_shares->num_of_elements));
+    }
+
+    return 0;
+}
+
+int s2n_config_clear_all_curves(struct s2n_config *conf)
+{
+    GUARD(s2n_array_free(conf->key_shares));
+    conf->key_shares = s2n_array_new(sizeof(const char *));
+    return 0;
+}
+
+int s2n_config_add_keyshare_by_name(struct s2n_config *conf, const char **curve_name)
+{
+    for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+        if (!strcasecmp(*curve_name, s2n_ecc_evp_supported_curves_list[i]->name)) {
+            GUARD(s2n_array_insert_and_copy(conf->key_shares, curve_name, conf->key_shares->num_of_elements));
+            return 0;
+        }
+    }
+
+    S2N_ERROR(S2N_ERR_INVALID_CIPHER_PREFERENCES);
+}
+
+
 struct s2n_config *s2n_fetch_default_config(void)
 {
     if (!default_config_init) {
         GUARD_PTR(s2n_config_init(&s2n_default_config));
-        s2n_config_set_cipher_preferences(&s2n_default_config, "default");
+        GUARD_PTR(s2n_config_add_all_curves(&s2n_default_config));
+        GUARD_PTR(s2n_config_set_cipher_preferences(&s2n_default_config, "default"));
         s2n_default_config.client_cert_auth_type = S2N_CERT_AUTH_NONE; /* Do not require the client to provide a Cert to the Server */
 
         default_config_init = 1;
@@ -229,6 +265,7 @@ struct s2n_config *s2n_fetch_default_fips_config(void)
 {
     if (!default_fips_config_init) {
         GUARD_PTR(s2n_config_init(&s2n_default_fips_config));
+        GUARD_PTR(s2n_config_add_all_curves(&s2n_default_fips_config));
         s2n_config_set_cipher_preferences(&s2n_default_fips_config, "default_fips");
 
         default_fips_config_init = 1;
@@ -241,6 +278,7 @@ struct s2n_config *s2n_fetch_unsafe_client_testing_config(void)
 {
     if (!unsafe_client_testing_config_init) {
         GUARD_PTR(s2n_config_init(&s2n_unsafe_client_testing_config));
+        GUARD_PTR(s2n_config_add_all_curves(&s2n_unsafe_client_testing_config));
         s2n_config_set_cipher_preferences(&s2n_unsafe_client_testing_config, "default");
         s2n_unsafe_client_testing_config.client_cert_auth_type = S2N_CERT_AUTH_NONE;
         s2n_unsafe_client_testing_config.check_ocsp = 0;
@@ -256,6 +294,7 @@ struct s2n_config *s2n_fetch_unsafe_client_ecdsa_testing_config(void)
 {
     if (!unsafe_client_ecdsa_testing_config_init) {
         GUARD_PTR(s2n_config_init(&s2n_unsafe_client_ecdsa_testing_config));
+        GUARD_PTR(s2n_config_add_all_curves(&s2n_unsafe_client_ecdsa_testing_config));
         s2n_config_set_cipher_preferences(&s2n_unsafe_client_ecdsa_testing_config, "test_all_ecdsa");
         s2n_unsafe_client_ecdsa_testing_config.client_cert_auth_type = S2N_CERT_AUTH_NONE;
         s2n_unsafe_client_ecdsa_testing_config.check_ocsp = 0;
@@ -271,6 +310,7 @@ struct s2n_config *s2n_fetch_default_client_config(void)
 {
     if (!default_client_config_init) {
         GUARD_PTR(s2n_config_init(&default_client_config));
+        GUARD_PTR(s2n_config_add_all_curves(&default_client_config));
         s2n_config_set_cipher_preferences(&default_client_config, "default");
         default_client_config.client_cert_auth_type = S2N_CERT_AUTH_REQUIRED;
 

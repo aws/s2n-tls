@@ -74,14 +74,14 @@ int main(int argc, char **argv)
         {
             struct s2n_stuffer key_share_extension;
             struct s2n_connection *conn;
-            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(NULL)));
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(conn)));
 
             EXPECT_SUCCESS(s2n_extensions_client_key_share_send(conn, &key_share_extension));
 
             for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
                 struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
-                EXPECT_EQUAL(ecc_evp_params->negotiated_curve, s2n_ecc_evp_supported_curves_list[i]);
+                EXPECT_BYTEARRAY_EQUAL(ecc_evp_params->negotiated_curve, s2n_ecc_evp_supported_curves_list[i], sizeof(struct s2n_ecc_evp_params));
                 EXPECT_NOT_NULL(ecc_evp_params->evp_pkey);
             }
 
@@ -93,8 +93,8 @@ int main(int argc, char **argv)
         {
             struct s2n_stuffer key_share_extension;
             struct s2n_connection *conn;
-            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(NULL)));
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(conn)));
 
             EXPECT_SUCCESS(s2n_extensions_client_key_share_send(conn, &key_share_extension));
 
@@ -138,10 +138,11 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *client_conn, *server_conn;
             struct s2n_stuffer key_share_extension;
-            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(NULL)));
 
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(client_conn)));
 
             EXPECT_SUCCESS(s2n_extensions_client_key_share_send(client_conn, &key_share_extension));
 
@@ -173,8 +174,8 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             struct s2n_stuffer key_share_extension;
-            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(NULL)));
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(conn)));
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&key_share_extension, s2n_ecc_evp_supported_curves_list[0]->share_size * 10));
             EXPECT_SUCCESS(s2n_write_named_curve(&key_share_extension, s2n_ecc_evp_supported_curves_list[0]));
@@ -189,8 +190,8 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             struct s2n_stuffer key_share_extension;
-            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(NULL)));
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(conn)));
 
             /* Write curve with huge length */
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);
@@ -208,8 +209,8 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             struct s2n_stuffer key_share_extension;
-            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(NULL)));
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(conn)));
 
             /* Write only first curve */
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);
@@ -242,8 +243,8 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *server_conn;
             struct s2n_stuffer key_share_extension;
-            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(NULL)));
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(server_conn)));
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&key_share_extension, 0));
 
@@ -264,8 +265,8 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             struct s2n_stuffer key_share_extension;
-            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(NULL)));
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(conn)));
 
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);
 
@@ -299,8 +300,8 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             struct s2n_stuffer key_share_extension;
-            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(NULL)));
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(conn)));
 
             /* Write supported curve, but with a different curve's size */
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);
@@ -330,8 +331,8 @@ int main(int argc, char **argv)
             struct s2n_stuffer key_share_extension;
             struct s2n_ecc_evp_params first_params, second_params;
             int supported_curve_index = 0;
-            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(NULL)));
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(server_conn)));
 
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);
 
@@ -366,8 +367,8 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             struct s2n_stuffer key_share_extension;
-            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(NULL)));
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(conn)));
 
             /* Write first curve */
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);

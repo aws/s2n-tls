@@ -45,24 +45,6 @@
  * - Key shares for named groups not in the client's supported_groups extension.
  **/
 
-uint32_t s2n_client_key_share_extension_size;
-
-static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-
-int s2n_client_key_share_init()
-{
-    s2n_client_key_share_extension_size = S2N_SIZE_OF_EXTENSION_TYPE
-            + S2N_SIZE_OF_EXTENSION_DATA_SIZE
-            + S2N_SIZE_OF_CLIENT_SHARES_SIZE;
-
-    for (uint32_t i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
-        s2n_client_key_share_extension_size += S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIZE_OF_NAMED_GROUP;
-        s2n_client_key_share_extension_size += s2n_ecc_evp_supported_curves_list[i]->share_size;
-    }
-
-    return 0;
-}
-
 int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     notnull_check(conn);
@@ -76,6 +58,10 @@ int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n
     struct s2n_blob point_blob;
     uint16_t named_group, share_size;
     uint32_t supported_curve_index;
+
+    /* Clear all existing key shares */
+    /* TODO: This should be done after HRR cleanup, not here */
+    GUARD(s2n_connection_clear_all_key_shares(conn));
 
     /* Whether a match was found */
     uint8_t match = 0;
@@ -140,26 +126,20 @@ int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n
 
 uint32_t s2n_extensions_client_key_share_size(struct s2n_connection *conn)
 {
+    uint32_t s2n_client_key_share_extension_size = S2N_SIZE_OF_EXTENSION_TYPE
+            + S2N_SIZE_OF_EXTENSION_DATA_SIZE
+            + S2N_SIZE_OF_CLIENT_SHARES_SIZE;
+
+    /* Only include the key shares that will be sent in the extension size */
+    for (uint32_t i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+        struct s2n_ecc_named_curve *c = &conn->secure.preferred_key_shares[i];
+        if (s2n_is_curve_valid(c)) {
+            s2n_client_key_share_extension_size += S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIZE_OF_NAMED_GROUP;
+            s2n_client_key_share_extension_size += c->share_size;
+        }
+    }
+
     return s2n_client_key_share_extension_size;
-}
-
-int s2n_extensions_client_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    notnull_check(out);
-
-    const uint16_t extension_type = TLS_EXTENSION_KEY_SHARE;
-    const uint16_t extension_data_size =
-            s2n_client_key_share_extension_size - S2N_SIZE_OF_EXTENSION_TYPE - S2N_SIZE_OF_EXTENSION_DATA_SIZE;
-    const uint16_t client_shares_size =
-            extension_data_size - S2N_SIZE_OF_CLIENT_SHARES_SIZE;
-
-    GUARD(s2n_stuffer_write_uint16(out, extension_type));
-    GUARD(s2n_stuffer_write_uint16(out, extension_data_size));
-    GUARD(s2n_stuffer_write_uint16(out, client_shares_size));
-
-    GUARD(s2n_ecdhe_supported_curves_send(conn, out));
-
-    return 0;
 }
 
 static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -171,12 +151,34 @@ static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s
 
     for (uint32_t i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
         ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
-        named_curve = s2n_ecc_evp_supported_curves_list[i];
+        named_curve = &conn->secure.preferred_key_shares[i];
 
-        ecc_evp_params->negotiated_curve = named_curve;
-        ecc_evp_params->evp_pkey = NULL;
-        GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
+        /* Only generate key shares for the curves that have been added to the preferred list */
+        if (s2n_is_curve_valid(named_curve)) {
+            ecc_evp_params->negotiated_curve = named_curve;
+            ecc_evp_params->evp_pkey = NULL;
+            GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
+        }
     }
+
+    return 0;
+}
+
+int s2n_extensions_client_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    notnull_check(out);
+
+    const uint16_t extension_type = TLS_EXTENSION_KEY_SHARE;
+    const uint16_t extension_data_size =
+            s2n_extensions_client_key_share_size(conn) - S2N_SIZE_OF_EXTENSION_TYPE - S2N_SIZE_OF_EXTENSION_DATA_SIZE;
+    const uint16_t client_shares_size =
+            extension_data_size - S2N_SIZE_OF_CLIENT_SHARES_SIZE;
+
+    GUARD(s2n_stuffer_write_uint16(out, extension_type));
+    GUARD(s2n_stuffer_write_uint16(out, extension_data_size));
+    GUARD(s2n_stuffer_write_uint16(out, client_shares_size));
+
+    GUARD(s2n_ecdhe_supported_curves_send(conn, out));
 
     return 0;
 }
