@@ -21,7 +21,7 @@ cd s2n
 # Pick an "env" line from the codebuild/codebuild.config file and run it, in this case choose the openssl-1.1.1 with GCC 9 build
 S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=9
 
-source codebuild/s2n_setup_env.sh
+source codebuild/bin/s2n_setup_env.sh
 codebuild/bin/s2n_install_test_dependencies.sh
 codebuild/bin/s2n_codebuild.sh
 ```
