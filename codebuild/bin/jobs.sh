@@ -13,23 +13,11 @@
 # permissions and limitations under the License.
 #
 
-set -e
-
-usage() {
-    echo "install_cppcheck.sh install_dir"
-    exit 1
-}
-
-if [ "$#" -ne "1" ]; then
-    usage
+# Find if the environment has more than 8 cores
+JOBS=8
+if [[ -x "$(command -v nproc)" ]]; then
+    UNITS=$(nproc);
+    if [[ $UNITS -gt $JOBS ]]; then
+        JOBS=$UNITS;
+    fi
 fi
-
-INSTALL_DIR=$1
-source codebuild/bin/jobs.sh
-
-cd "$INSTALL_DIR"
-git clone https://github.com/danmar/cppcheck.git
-cd cppcheck
-git checkout 1.88
-
-make -j $JOBS
