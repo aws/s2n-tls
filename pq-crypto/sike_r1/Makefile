@@ -22,11 +22,7 @@ BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
 .PHONY : all
 all: $(OBJS)
 
-include ../../s2n.mk
-
-CFLAGS_LLVM = -emit-llvm -c -g \
-              -std=c99 -fgnu89-inline -D_POSIX_C_SOURCE=200809L -D_FORTIFY_SOURCE=2 \
-              -I$(LIBCRYPTO_ROOT)/include/ -I../../api/ -I../../
-
 .PHONY : bc
 bc: $(BCS)
+
+include ../../s2n.mk

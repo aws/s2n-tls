@@ -1,0 +1,20 @@
+// outside.saw Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Specifications
+
+let get_random_bytes_spec n = do {
+  buffer_ptr <- out_ref (i8_array_t n);
+  crucible_execute_func [buffer_ptr, tm {{ `n:[32] }}];
+  _ <- point_to (i8_array_t n) buffer_ptr "buffer";
+  crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+get_random_bytes_ov <- admit "get_random_bytes" []
+  (get_random_bytes_spec (eval_int {{ `(NUM_OF_SEEDS * 32) : [64] }}));
+

@@ -29,9 +29,17 @@ all: $(OBJS)
 sike_r1_bc: $(BCS1)
 	$(MAKE) -C sike_r1 bc
 
+.PHONY : sike_r2_bc
+sike_r2_bc: $(BCS1)
+	$(MAKE) -C sike_r2 bc
+
 .PHONY : bike_r1_bc
 bike_r1_bc: $(BCS1)
 	$(MAKE) -C bike_r1 bc
+
+.PHONY : bike_r2_bc
+bike_r2_bc: $(BCS1)
+	$(MAKE) -C bike_r2 bc
 
 .PHONY : run-gcov
 run-gcov: gcov

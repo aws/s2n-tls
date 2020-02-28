@@ -116,7 +116,7 @@ function_h(OUT split_e_t *splitted_e, IN const r_t *in0, IN const r_t *in1)
   GUARD(init_aes_ctr_prf_state(&prf_state, MAX_AES_INVOKATION, &seed_for_hash));
 
   DEFER_CLEANUP(padded_e_t e, padded_e_cleanup);
-  DEFER_CLEANUP(compressed_idx_t_t dummy, compressed_idx_t_cleanup);
+  DEFER_CLEANUP(ALIGN(8) compressed_idx_t_t dummy, compressed_idx_t_cleanup);
 
   GUARD(generate_sparse_rep((uint64_t *)&e, dummy.val, T1, N_BITS, sizeof(e),
                             &prf_state));
@@ -228,7 +228,7 @@ BIKE1_L1_R2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
 
   // Convert to this implementation types
   pk_t *l_pk = (pk_t *)pk;
-  DEFER_CLEANUP(sk_t l_sk = {0}, sk_cleanup);
+  DEFER_CLEANUP(ALIGN(8) sk_t l_sk = {0}, sk_cleanup);
 
   // For DRBG and AES_PRF
   DEFER_CLEANUP(seeds_t seeds = {0}, seeds_cleanup);
@@ -343,7 +343,7 @@ BIKE1_L1_R2_crypto_kem_dec(OUT unsigned char *     ss,
   notnull_check(ct);
   notnull_check(ss);
 
-  DEFER_CLEANUP(sk_t l_sk, sk_cleanup);
+  DEFER_CLEANUP(ALIGN(8) sk_t l_sk, sk_cleanup);
   memcpy(&l_sk, sk, sizeof(l_sk));
 
   // Force zero initialization.

@@ -63,6 +63,10 @@ ifneq ($(NO_STACK_PROTECTOR), 1)
 DEFAULT_CFLAGS += -Wstack-protector -fstack-protector-all
 endif
 
+ifeq ($(NO_INLINE), 1)
+DEFAULT_CFLAGS += -fno-inline
+endif
+
 # Define S2N_TEST_IN_FIPS_MODE - to be used for testing when present.
 ifdef S2N_TEST_IN_FIPS_MODE
     DEFAULT_CFLAGS += -DS2N_TEST_IN_FIPS_MODE
@@ -130,7 +134,7 @@ INDENTOPTS = -npro -kr -i4 -ts4 -nut -sob -l180 -ss -ncs -cp1
 .PHONY : indentsource
 indentsource:
 	( for source in ${SOURCES} ; do ${INDENT} ${INDENTOPTS} $$source; done )
-	
+
 .PHONY : gcov
 gcov: 
 	( for source in ${SOURCES} ; do $(COV_TOOL) $$source;  done )
