@@ -58,8 +58,8 @@ int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct s2n_stu
     proposed_curves.data = s2n_stuffer_raw_read(extension, proposed_curves.size);
     notnull_check(proposed_curves.data);
 
-    s2n_parse_client_supported_groups_list(&proposed_curves, conn->secure.mutually_supported_groups);
-    s2n_choose_supported_group(&conn->secure.server_ecc_evp_params, conn->secure.mutually_supported_groups);
+    GUARD(s2n_parse_client_supported_groups_list(&proposed_curves, conn->secure.mutually_supported_groups));
+    GUARD(s2n_choose_supported_group(&conn->secure.server_ecc_evp_params, conn->secure.mutually_supported_groups));
     return 0;
 }
 
@@ -83,6 +83,7 @@ int s2n_parse_client_supported_groups_list(struct s2n_blob *iana_ids, struct s2n
 }
 
 int s2n_choose_supported_group(struct s2n_ecc_evp_params *chosen_group, struct s2n_ecc_evp_params *group_options) {
+    eq_check(s2n_ecc_evp_supported_curves_list_len, s2n_array_len(group_options));
     for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
         if (group_options[i].negotiated_curve) {
             chosen_group->negotiated_curve = group_options[i].negotiated_curve;
