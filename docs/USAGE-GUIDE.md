@@ -1187,6 +1187,10 @@ ssize_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *o
 **s2n_client_hello_get_raw_message** copies **max_lenght** bytes of the ClientHello message into the **out** buffer and returns the number of bytes that were copied.
 The ClientHello instrumented using this function will have the Random bytes zero-ed out.
 
+For SSLv2 ClientHello messages, the raw message contains only the cipher_specs, session_id and members portions of the hello message
+(see [RFC5246](https://tools.ietf.org/html/rfc5246#appendix-E.2)). To access other members, you may use the
+**s2n_connection_get_client_hello_version**, **s2n_connection_get_client_protocol_version**  and **s2n_connection_get_session_id_length** accesor functions.
+
 ### s2n\_client\_hello\_get\_cipher\_suites
 
 ```c
