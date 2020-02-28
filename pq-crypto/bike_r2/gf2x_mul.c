@@ -92,7 +92,7 @@ gf2x_mod_mul(OUT uint64_t *res, IN const uint64_t *a, IN const uint64_t *b)
   bike_static_assert(sizeof(secure_buffer) % sizeof(uint64_t) == 0,
                      secure_buffer_not_eligable_for_uint64_t);
 
-  karatzuba(res, a, b, R_PADDED_QW, (uint64_t *)secure_buffer);
+  karatzuba(res, a, b, R_PADDED_QW, (uint64_t *)(void*)secure_buffer);
 
   // This function implicitly assumes that the size of res is 2*R_PADDED_QW.
   red(res);
