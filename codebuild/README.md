@@ -49,6 +49,11 @@ To bootstrap the CodeBuild jobs, the python script:
 - Use CloudFormation to create the stack with the generated template.
 - Open the CodeBuild projects in the console and setup the Source correctly, using your OTP credentials to connect to Github
 
+### Words about CodeBuild instance size and concurrency
+
+The [AWS Codebuild](https://docs.aws.amazon.com/codebuild/latest/userguide/limits.html) docs list the number of concurrent jobs at 60.
+With extensive testing, we've learned this number appears to be weighted based on [instance size](https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-compute-types.html) (or provisioning limits), so running all tests on the largest possible instances will reduce actual concurrency.  Additionally provisioning time is currently longer for larger instances, so there is a time penalty that might not be recovered by using a larger instance for short lived tests.
+
 ### Notes on moving from Travis-ci
 
 - Install_clang from Travis is using google chromium clang commit from 2017- which requires python2.7 (EOL); updated for CodeBuild.
@@ -57,9 +62,11 @@ To bootstrap the CodeBuild jobs, the python script:
 - macOS/OSX platform files were not copied because CodeBuild does not support macOS builds.
 
 
-### Querying codebuild projects
+### Querying CodeBuild projects
 
-Here is a sample of how to double check the size of the build hosts, as an example.
+Here is a sample of how to double check the size of the build hosts, as an example.  AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY for an associated AWS account will need to be set for this to work, as well as a file called jobs, listing the names of all the CodeBuild jobs you'd like to check.
+
+
 ```
 for i in $(cat jobs); do echo -e "$i\t";aws codebuild batch-get-projects --name "$i" |jq '.projects[].environment.computeType'; done
 ```

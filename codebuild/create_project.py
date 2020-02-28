@@ -31,8 +31,8 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def build_cw_event(template=Template, project_name=None, role=None):
-    # Run during the business day PDT
-    hour = randrange(14, 23)
+    # Run either at 12 or 13:00 UTC, 04/05:00 PST
+    hour = randrange(12, 14)
     project_target = Target(
         f"{project_name}Target",
         Arn=GetAtt(project_name, "Arn"),
@@ -50,6 +50,33 @@ def build_cw_event(template=Template, project_name=None, role=None):
         DependsOn=project_name
     )
     )
+    return rule
+
+
+def build_cw_cb_role(template=None, role_name="s2nEventsInvokeCodeBuildRole"):
+    """
+    Create a role for CloudWatch events to trigger Codebuild jobs.
+    """
+    role_id = template.add_resource(
+        Role(
+            role_name,
+            Path='/',
+            AssumeRolePolicyDocument=PolicyDocument(
+                Statement=[
+                    Statement(
+                        Effect=Allow,
+                        Action=[Action("codebuild", "StartBuild"),
+                                ],
+                        Resource=[
+                            "arn:aws:codebuild:us-west-2:024603541914:project/*",
+                        ]
+                    )
+                ]
+            )
+        )
+    )
+    return role_id
+
 
 
 def build_github_role(template=None, role_name="s2nCodeBuildGithubRole"):
@@ -77,6 +104,7 @@ def build_github_role(template=None, role_name="s2nCodeBuildGithubRole"):
             )
         )
     )
+    return Ref(role_id)
 
     template.add_output([Output(role_name, Value=Ref(role_id))])
     return Ref(role_id)
@@ -165,6 +193,8 @@ def main(**kwargs):
     """ Create the CFN template and either write to screen or update/create boto3. """
     codebuild = Template()
     codebuild.set_version('2010-09-09')
+    # Create a single CloudWatch Event role to allow codebuild:startBuild
+    cw_event_role=build_cw_cb_role(codebuild)
 
     # TODO: There is a problem with the resource statement
     #logging.info('Creating github role: {}', build_github_role(codebuild))
@@ -178,9 +208,9 @@ def main(**kwargs):
                               service_role=service_role['Ref'], raw_env=config.get(job, 'env'))
             else:
                 build_project(template=codebuild, project_name=job_title, section=job, service_role=service_role['Ref'])
-            build_cw_event(template=codebuild, project_name=job_title, role = service_role['Ref'])
-
-    with(open(args.output_dir + "/codebuild_test_projects.yml", 'w')) as fh:
+            build_cw_event(template=codebuild, project_name=job_title, role = cw_event_role)
+            
+    with(open(args.output_dir + "/s2n_codebuild_projects.yml", 'w')) as fh:
         fh.write(codebuild.to_yaml())
 
     if args.dry_run:
