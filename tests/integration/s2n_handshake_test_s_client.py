@@ -296,6 +296,8 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
     if use_corked_io:
         s2nd_cmd.append("-C")
 
+    s2nd_cmd.append("--tls13")
+
     s2nd = subprocess.Popen(s2nd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
     # Make sure s2nd has started
