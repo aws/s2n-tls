@@ -83,7 +83,7 @@ int test_count;
 #define FAIL()      FAIL_MSG("")
 
 #define FAIL_MSG( msg ) do { \
-                          s2n_print_stacktrace(stdout); \
+                          s2n_print_threadlocal_stacktrace(stdout); \
                           /* isatty will overwrite errno on failure */ \
                           int real_errno = errno; \
                           if (isatty(fileno(stdout))) { \

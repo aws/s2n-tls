@@ -301,37 +301,47 @@ int s2n_stack_traces_enabled_set(bool newval)
 #define MAX_BACKTRACE_DEPTH 20
 __thread struct s2n_stacktrace tl_stacktrace = {0};
 
-int s2n_free_stacktrace(void)
+int s2n_calculate_stacktrace(struct s2n_stacktrace* out)
 {
-    if (tl_stacktrace.trace != NULL) {
-        free(tl_stacktrace.trace);
-	struct s2n_stacktrace zero_stacktrace = {0};
-	tl_stacktrace = zero_stacktrace;
-    }
-    return S2N_SUCCESS;
-}
-
-int s2n_calculate_stacktrace(void)
-{
-    if (!s_s2n_stack_traces_enabled) {
-        return S2N_SUCCESS;
-    }
-
+    S2N_PRECONDITION(out->trace == NULL);
     int old_errno = errno;
-    GUARD(s2n_free_stacktrace());
+    GUARD(s2n_free_stacktrace(out));
     void *array[MAX_BACKTRACE_DEPTH];
-    tl_stacktrace.trace_size = backtrace(array, MAX_BACKTRACE_DEPTH);
-    tl_stacktrace.trace = backtrace_symbols(array, tl_stacktrace.trace_size);
+    out->trace_size = backtrace(array, MAX_BACKTRACE_DEPTH);
+    out->trace = backtrace_symbols(array, tl_stacktrace.trace_size);
     errno = old_errno;
     return S2N_SUCCESS;
 }
 
-int s2n_get_stacktrace(struct s2n_stacktrace *trace) {
-    *trace = tl_stacktrace;
+int s2n_free_stacktrace(struct s2n_stacktrace* st)
+{
+    if (st->trace != NULL) {
+        free(st->trace);
+    }
+    *st = (struct s2n_stacktrace) {0};
     return S2N_SUCCESS;
 }
 
-int s2n_print_stacktrace(FILE *fptr)
+int s2n_free_threadlocal_stacktrace()
+{
+    return s2n_free_stacktrace(&tl_stacktrace);
+}
+
+int s2n_get_threadlocal_stacktrace(const struct s2n_stacktrace **trace) {
+    *trace = &tl_stacktrace;
+    return S2N_SUCCESS;
+}
+
+int s2n_print_stacktrace(FILE *fptr, const struct s2n_stacktrace* st)
+{
+    fprintf(fptr, "\nStacktrace is:\n");
+    for (int i = 0; i < st->trace_size; ++i){
+        fprintf(fptr, "%s\n", st->trace[i]);
+    }
+    return S2N_SUCCESS;
+}
+
+int s2n_print_threadlocal_stacktrace(FILE *fptr)
 {
     if (!s_s2n_stack_traces_enabled) {
       fprintf(fptr, "%s\n%s\n",
@@ -340,9 +350,15 @@ int s2n_print_stacktrace(FILE *fptr)
         return S2N_SUCCESS;
     }
 
-    fprintf(fptr, "\nStacktrace is:\n");
-    for (int i = 0; i < tl_stacktrace.trace_size; ++i){
-        fprintf(fptr, "%s\n",  tl_stacktrace.trace[i]);
+    return s2n_print_stacktrace(fptr, &tl_stacktrace);
+}
+
+int s2n_update_threadlocal_stacktrace()
+{
+    if (!s_s2n_stack_traces_enabled) {
+        return S2N_SUCCESS;
     }
-    return S2N_SUCCESS;
+
+    GUARD(s2n_free_stacktrace(&tl_stacktrace));
+    return s2n_calculate_stacktrace(&tl_stacktrace);
 }

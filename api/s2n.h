@@ -83,10 +83,13 @@ extern const char *s2n_strerror_name(int error);
 struct s2n_stacktrace;
 extern bool s2n_stack_traces_enabled(void);
 extern int s2n_stack_traces_enabled_set(bool newval);
-extern int s2n_calculate_stacktrace(void);
-extern int s2n_print_stacktrace(FILE *fptr);
-extern int s2n_free_stacktrace(void);
-extern int s2n_get_stacktrace(struct s2n_stacktrace *trace);
+extern int s2n_calculate_stacktrace(struct s2n_stacktrace* out);
+extern int s2n_free_stacktrace(struct s2n_stacktrace* st);
+extern int s2n_free_threadlocal_stacktrace();
+extern int s2n_get_threadlocal_stacktrace(const struct s2n_stacktrace **trace);
+extern int s2n_print_stacktrace(FILE *fptr, const struct s2n_stacktrace* st);
+extern int s2n_print_threadlocal_stacktrace(FILE *fptr);
+extern int s2n_update_threadlocal_stacktrace();
 
 extern int s2n_config_set_cache_store_callback(struct s2n_config *config, s2n_cache_store_callback cache_store_callback, void *data);
 extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, s2n_cache_retrieve_callback cache_retrieve_callback, void *data);

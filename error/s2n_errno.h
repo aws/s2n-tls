@@ -239,7 +239,7 @@ extern __thread const char *s2n_debug_str;
 #define STRING__LINE__ STRING_(__LINE__)
 
 #define _S2N_DEBUG_LINE     "Error encountered in " __FILE__ " line " STRING__LINE__
-#define _S2N_ERROR( x )     do { s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x ); s2n_calculate_stacktrace(); } while (0)
+#define _S2N_ERROR( x )     do { s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x ); s2n_update_threadlocal_stacktrace(); } while (0)
 #define S2N_ERROR( x )      do { _S2N_ERROR( ( x ) ); return -1; } while (0)
 #define S2N_ERROR_PRESERVE_ERRNO() do { return -1; } while (0)
 #define S2N_ERROR_PTR( x )  do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
@@ -283,7 +283,10 @@ struct s2n_stacktrace {
 extern bool s2n_stack_traces_enabled();
 extern int s2n_stack_traces_enabled_set(bool newval);
 
-extern int s2n_calculate_stacktrace(void);
-extern int s2n_print_stacktrace(FILE *fptr);
-extern int s2n_free_stacktrace(void);
-extern int s2n_get_stacktrace(struct s2n_stacktrace *trace);
+extern int s2n_calculate_stacktrace(struct s2n_stacktrace* out);
+extern int s2n_free_stacktrace(struct s2n_stacktrace* st);
+extern int s2n_free_threadlocal_stacktrace();
+extern int s2n_get_threadlocal_stacktrace(const struct s2n_stacktrace **trace);
+extern int s2n_print_stacktrace(FILE *fptr, const struct s2n_stacktrace* st);
+extern int s2n_print_threadlocal_stacktrace(FILE *fptr);
+extern int s2n_update_threadlocal_stacktrace();
