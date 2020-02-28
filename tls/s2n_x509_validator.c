@@ -113,14 +113,6 @@ int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char 
         GUARD_OSSL(X509_STORE_add_cert(store->trust_store, ca_cert), S2N_ERR_DECODE_CERTIFICATE);
     } while (s2n_stuffer_data_available(&pem_in_stuffer));
 
-    /* It's a likely scenario if this function is called, a self-signed certificate is used, and that is was generated
-     * without a trust anchor. However if you call this function, the assumption is you trust ca_file or path and if a certificate
-     * is encountered that's in that path, it should be trusted. The following flag tells libcrypto to not care that the cert
-     * is missing a root anchor. */
-    unsigned long flags = X509_VP_FLAG_DEFAULT;
-    flags |= X509_V_FLAG_PARTIAL_CHAIN;
-    X509_STORE_set_flags(store->trust_store, flags);
-
     return 0;
 }
 
