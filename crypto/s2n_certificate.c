@@ -29,15 +29,6 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
-int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *public_key, RSA *openssl_rsa)
-{
-    notnull_check(openssl_rsa);
-    notnull_check(public_key);
-    public_key->key.rsa_key.rsa = openssl_rsa;
-
-    return 0;
-}
-
 int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type)
 {
     notnull_check(cert);

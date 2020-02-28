@@ -14,6 +14,7 @@
  */
 
 #include "crypto/s2n_fips.h"
+#include "crypto/s2n_rsa_pss.h"
 #include "error/s2n_errno.h"
 
 #include "tls/s2n_auth_selection.h"
@@ -25,10 +26,16 @@
 
 #include "utils/s2n_safety.h"
 
-/* We don't know what protocol version we will eventually negotiate, but we know that it won't be any higher. */
 static int s2n_signature_scheme_valid_to_offer(struct s2n_connection *conn, const struct s2n_signature_scheme *scheme)
 {
+    /* We don't know what protocol version we will eventually negotiate, but we know that it won't be any higher. */
     gte_check(conn->actual_protocol_version, scheme->minimum_protocol_version);
+
+    if (!s2n_is_rsa_pss_supported()) {
+        ne_check(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_RSAE);
+        ne_check(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
+    }
+
     return 0;
 }
 

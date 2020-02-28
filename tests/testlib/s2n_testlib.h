@@ -93,7 +93,6 @@ int s2n_fd_set_non_blocking(int fd);
 /* Missing line endings between PEM encapsulation boundaries */
 #define S2N_MISSING_LINE_ENDINGS_CERT_CHAIN    "../pems/rsa_2048_missing_line_endings_cert.pem"
 
-
 /* Illegally formatted PEMs */
 #define S2N_INVALID_HEADER_CERT_CHAIN   "../pems/rsa_2048_invalid_header_cert.pem"
 #define S2N_INVALID_TRAILER_CERT_CHAIN  "../pems/rsa_2048_invalid_trailer_cert.pem"

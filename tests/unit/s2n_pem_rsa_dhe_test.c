@@ -146,8 +146,8 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_hash_update(&tls10_one, inputpad, sizeof(inputpad)));
         EXPECT_SUCCESS(s2n_hash_update(&tls10_two, inputpad, sizeof(inputpad)));
-        EXPECT_SUCCESS(s2n_pkey_sign(&priv_key, &tls10_one, &signature));
-        EXPECT_SUCCESS(s2n_pkey_verify(&pub_key, &tls10_two, &signature));
+        EXPECT_SUCCESS(s2n_pkey_sign(&priv_key, S2N_SIGNATURE_RSA, &tls10_one, &signature));
+        EXPECT_SUCCESS(s2n_pkey_verify(&pub_key, S2N_SIGNATURE_RSA, &tls10_two, &signature));
 
         EXPECT_SUCCESS(s2n_hash_free(&tls10_one));
         EXPECT_SUCCESS(s2n_hash_free(&tls10_two));
@@ -162,8 +162,8 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_hash_update(&tls12_one, inputpad, sizeof(inputpad)));
     EXPECT_SUCCESS(s2n_hash_update(&tls12_two, inputpad, sizeof(inputpad)));
-    EXPECT_SUCCESS(s2n_pkey_sign(&priv_key, &tls12_one, &signature));
-    EXPECT_SUCCESS(s2n_pkey_verify(&pub_key, &tls12_two, &signature));
+    EXPECT_SUCCESS(s2n_pkey_sign(&priv_key, S2N_SIGNATURE_RSA, &tls12_one, &signature));
+    EXPECT_SUCCESS(s2n_pkey_verify(&pub_key, S2N_SIGNATURE_RSA, &tls12_two, &signature));
 
     EXPECT_SUCCESS(s2n_hash_free(&tls12_one));
     EXPECT_SUCCESS(s2n_hash_free(&tls12_two));

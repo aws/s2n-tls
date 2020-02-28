@@ -64,7 +64,7 @@ int s2n_server_cert_read_and_verify_signature(struct s2n_connection *conn)
 
     GUARD(s2n_hash_init(&message_hash, chosen_sig_scheme.hash_alg));
     GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data, s2n_stuffer_data_available(&unsigned_content)));
-    GUARD(s2n_pkey_verify(&conn->secure.server_public_key, &message_hash, &signed_content));
+    GUARD(s2n_pkey_verify(&conn->secure.server_public_key, chosen_sig_scheme.sig_alg, &message_hash, &signed_content));
 
     return 0;
 }
@@ -98,7 +98,7 @@ int s2n_server_write_cert_verify_signature(struct s2n_connection *conn, struct s
     GUARD(s2n_server_generate_unsigned_cert_verify_content(conn, &unsigned_content));
 
     GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data, s2n_stuffer_data_available(&unsigned_content)));
-    GUARD(s2n_pkey_sign(pkey, &message_hash, &signed_content));
+    GUARD(s2n_pkey_sign(pkey, conn->secure.conn_sig_scheme.sig_alg, &message_hash, &signed_content));
 
     GUARD(s2n_stuffer_write_uint16(out, signed_content.size));
     GUARD(s2n_stuffer_write_bytes(out, signed_content.data, signed_content.size));

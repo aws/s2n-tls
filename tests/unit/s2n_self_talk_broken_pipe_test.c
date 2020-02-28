@@ -93,14 +93,11 @@ int main(int argc, char **argv)
     s2n_blocked_status blocked;
     int status;
     pid_t pid;
-    char *cert_chain_pem;
-    char *private_key_pem;
-    char *dhparams_pem;
+    char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+    char private_key_pem[S2N_MAX_TEST_PEM_SIZE];
+    char dhparams_pem[S2N_MAX_TEST_PEM_SIZE];
 
     BEGIN_TEST();
-    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
 
     for (int is_dh_key_exchange = 0; is_dh_key_exchange <= 1; is_dh_key_exchange++) {
         struct s2n_cert_chain_and_key *chain_and_keys[SUPPORTED_CERTIFICATE_FORMATS];
@@ -177,10 +174,6 @@ int main(int argc, char **argv)
         }
         EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
     }
-
-    free(cert_chain_pem);
-    free(private_key_pem);
-    free(dhparams_pem);
 
     END_TEST();
     return 0;

@@ -311,7 +311,7 @@ int run_tests(const struct s2n_server_cert_verify_test *test_case)
 
         /* send and receive with mismatched signature algs */
         client_conn->secure.conn_sig_scheme.hash_alg = S2N_HASH_SHA256;
-        client_conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_ANONYMOUS;
+        client_conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
         client_conn->secure.conn_sig_scheme.iana_value = 0xFFFF;
 
         EXPECT_SUCCESS(s2n_hash_init(&client_conn->handshake.sha256, S2N_HASH_SHA256));
