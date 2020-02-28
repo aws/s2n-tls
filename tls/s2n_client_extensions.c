@@ -27,6 +27,7 @@
 #include "tls/s2n_client_extensions.h"
 #include "tls/s2n_resume.h"
 
+#include "extensions/s2n_cookie.h"
 #include "extensions/s2n_client_supported_versions.h"
 #include "extensions/s2n_client_signature_algorithms.h"
 #include "extensions/s2n_client_max_frag_len.h"
@@ -214,6 +215,11 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
         case TLS_EXTENSION_KEY_SHARE:
             if (s2n_is_tls13_enabled()) {
                 GUARD(s2n_extensions_client_key_share_recv(conn, &extension));
+            }
+            break;
+        case TLS_EXTENSION_COOKIE:
+            if (s2n_is_tls13_enabled()) {
+                GUARD(s2n_extensions_cookie_recv(conn, &extension));
             }
             break;
         }

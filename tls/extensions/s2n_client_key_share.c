@@ -15,6 +15,7 @@
 
 #include "tls/extensions/s2n_client_key_share.h"
 #include "tls/extensions/s2n_key_share.h"
+#include "tls/s2n_tls.h"
 
 #include "crypto/s2n_ecc_evp.h"
 #include "error/s2n_errno.h"
@@ -76,6 +77,9 @@ int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n
     uint16_t named_group, share_size;
     uint32_t supported_curve_index;
 
+    /* Whether a match was found */
+    uint8_t match = 0;
+
     /* bytes_processed is declared as a uint32_t to avoid integer overflow in later calculations */
     uint32_t bytes_processed = 0;
 
@@ -120,7 +124,15 @@ int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n
             /* Ignore curves with points we can't parse */
             conn->secure.client_ecc_evp_params[supported_curve_index].negotiated_curve = NULL;
             GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[supported_curve_index]));
+        } else {
+            match = 1;
         }
+    }
+
+    /* If there was no matching key share then we received an empty key share extension
+     * or we didn't match a keyshare with a supported group. We should send a retry. */
+    if (match == 0) {
+        GUARD(s2n_server_should_retry(conn));
     }
 
     return 0;
