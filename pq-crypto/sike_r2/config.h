@@ -44,6 +44,7 @@
 #define TARGET_x86 2
 #define TARGET_ARM 3
 #define TARGET_ARM64 4
+#define TARGET_MIPS 5
 
 #if defined(__x86_64__)
 #define TARGET TARGET_AMD64
@@ -69,6 +70,12 @@ typedef uint16_t hdigit_t; // Unsigned 16-bit digit
 #define LOG2RADIX 6
 typedef uint64_t digit_t;  // Unsigned 64-bit digit
 typedef uint32_t hdigit_t; // Unsigned 32-bit digit
+#elif defined(__mips__)
+#define TARGET TARGET_MIPS
+#define RADIX 32
+#define LOG2RADIX 5
+typedef uint32_t digit_t;  // Unsigned 32-bit digit
+typedef uint16_t hdigit_t; // Unsigned 16-bit digit
 #else
 #error-- "Unsupported ARCHITECTURE"
 #endif
