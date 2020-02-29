@@ -29,9 +29,11 @@ GNUTLS_BUILD_DIR=$1
 GNUTLS_INSTALL_DIR=$2
 OS_NAME=$3
 
+source codebuild/bin/jobs.sh
+
 # libgmp is needed for libnettle
 if [ "$OS_NAME" == "linux" ]; then
-    apt-get -qq install libgmp3-dev -y
+    sudo apt-get -qq install libgmp3-dev -y
 elif [ "$OS_NAME" == "osx" ]; then
     # Installing an existing package is a "failure" in brew
     brew install gmp || true ;
@@ -48,8 +50,8 @@ curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2
 tar -xzf nettle-3.3.tar.gz
 cd nettle-3.3
 ./configure --prefix="$GNUTLS_INSTALL_DIR"/nettle
-make
-make install
+make -j $JOBS
+make -j $JOBS install
 cd ..
 
 # Install GnuTLS
@@ -65,5 +67,5 @@ cd gnutls-3.5.5
             --without-p11-kit \
             --with-included-libtasn1 \
             --prefix="$GNUTLS_INSTALL_DIR"
-make
-make install
+make -j $JOBS
+make -j $JOBS install

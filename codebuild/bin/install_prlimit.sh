@@ -27,7 +27,7 @@ fi
 
 BUILD_DIR=$1
 INSTALL_DIR=$2
-NUM_CORES=$(nproc)
+source codebuild/bin/jobs.sh
 
 sudo apt-get install -y libncurses5-dev
 
@@ -52,5 +52,5 @@ cd util-linux-2.25.2
     --without-ncurses \
     --prefix="$INSTALL_DIR" || cat config.log
 
-make -j "$NUM_CORES" > /dev/null
-make install > /dev/null
+make -j $JOBS > /dev/null
+make -j $JOBS install > /dev/null
