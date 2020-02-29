@@ -194,11 +194,10 @@ int s2n_server_hello_send(struct s2n_connection *conn)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_stuffer server_random = {0};
-    struct s2n_blob b, rand_data;
+    struct s2n_blob b, rand_data = {0};
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
-    b.data = conn->secure.server_random;
-    b.size = S2N_TLS_RANDOM_DATA_LEN;
+    s2n_blob_init(&b, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN);
 
     /* Create the server random data */
     GUARD(s2n_stuffer_init(&server_random, &b));
