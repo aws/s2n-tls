@@ -155,6 +155,7 @@
 #define TLS_SIGNATURE_SCHEME_LIST_MAX_LEN               32
 
 /* The TLS record types we support */
+#define SSLv2_CLIENT_HELLO     1
 #define TLS_CHANGE_CIPHER_SPEC 20
 #define TLS_ALERT              21
 #define TLS_HANDSHAKE          22

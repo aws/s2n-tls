@@ -850,12 +850,36 @@ static int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
 
     /* Handle an SSLv2 client hello */
     GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, s2n_stuffer_data_available(&conn->in)));
-    GUARD(s2n_sslv2_client_hello_recv(conn));
+    /* Set the client hello version */
+    conn->client_hello_version = S2N_SSLv2;
+    /* Execute the state machine handler */
+    int r = ACTIVE_STATE(conn).handler[conn->mode](conn);
     GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
     /* We're done with the record, wipe it */
     GUARD(s2n_stuffer_wipe(&conn->header_in));
     GUARD(s2n_stuffer_wipe(&conn->in));
+    if (r < 0) {
+        /* Don't invoke blinding on some of the common errors */
+        switch (s2n_errno) {
+            case S2N_ERR_CANCELLED:
+            case S2N_ERR_CIPHER_NOT_SUPPORTED:
+            case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
+                conn->closed = 1;
+                break;
+            case S2N_CALLBACK_BLOCKED:
+                /* Fallthrough */
+            case S2N_ERR_BLOCKED:
+                /* A blocking condition is retryable, so we should return without killing the connection. */
+                S2N_ERROR_PRESERVE_ERRNO();
+                break;
+            default:
+                GUARD(s2n_connection_kill(conn));
+        }
+
+        return r;
+    }
+
     conn->in_status = ENCRYPTED;
 
     /* Advance the state machine */
@@ -891,6 +915,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
     GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
 
     if (isSSLv2) {
+        S2N_ERROR_IF(record_type != SSLv2_CLIENT_HELLO, S2N_ERR_BAD_MESSAGE);
         GUARD(s2n_handshake_handle_sslv2(conn));
     }
 

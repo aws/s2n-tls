@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #include "s2n_test.h"
 
 #include "testlib/s2n_testlib.h"
+#include "testlib/s2n_sslv2_client_hello.h"
 
 #include <sys/wait.h>
 #include <unistd.h>
@@ -70,6 +71,40 @@ int main(int argc, char **argv)
 
     /* These tests verify the logic behind the setting of these three connection fields: 
     server_protocol_version, client_protocol_version, and actual_protocol version. */ 
+
+    /* Test we can successfully receive an sslv2 client hello and set a
+     * tls12 connection */
+    {
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        /* Record version and protocol version are in the header for SSLv2 */
+        server_conn->client_hello_version = S2N_SSLv2;
+        server_conn->client_protocol_version = S2N_TLS12;
+
+        uint8_t sslv2_client_hello[] = {
+            SSLv2_CLIENT_HELLO_PREFIX,
+            SSLv2_CLIENT_HELLO_CIPHER_SUITES,
+            SSLv2_CLIENT_HELLO_CHALLENGE,
+	};
+        struct s2n_blob client_hello = {
+            .data = sslv2_client_hello,
+            .size = sizeof(sslv2_client_hello),
+            .allocated = 0,
+            .growable = 0,
+            .mlocked = 0
+        };
+        EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_hello));
+        EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+
+        EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(server_conn->client_hello_version, S2N_SSLv2);
+        EXPECT_EQUAL(server_conn->client_hello.parsed, 1);
+
+        s2n_connection_free(server_conn);
+    }
     
     /* Test that a tls12 client legacy version and tls12 server version 
     will successfully set a tls12 connection, since tls13 is not enabled. */
@@ -83,9 +118,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_conn->handshake.io.blob));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-        EXPECT_SUCCESS(server_conn->server_protocol_version = S2N_TLS12);
-        EXPECT_SUCCESS(server_conn->actual_protocol_version = S2N_TLS12);
-        EXPECT_SUCCESS(server_conn->client_protocol_version = S2N_TLS12);
+        EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS12);
 
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
@@ -104,9 +139,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_conn->handshake.io.blob));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-        EXPECT_SUCCESS(server_conn->server_protocol_version = S2N_TLS12);
-        EXPECT_SUCCESS(server_conn->actual_protocol_version = S2N_TLS11);
-        EXPECT_SUCCESS(server_conn->client_protocol_version = S2N_TLS11);
+        EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS11);
+        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS11);
 
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
@@ -125,9 +160,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_conn->handshake.io.blob));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn)); 
       
-        EXPECT_SUCCESS(server_conn->server_protocol_version = S2N_TLS13);
-        EXPECT_SUCCESS(server_conn->actual_protocol_version = S2N_TLS12);
-        EXPECT_SUCCESS(server_conn->client_protocol_version = S2N_TLS12);
+        EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS12);
 
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
@@ -159,9 +194,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &hello_stuffer->blob));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn)); 
 
-        EXPECT_SUCCESS(server_conn->server_protocol_version = S2N_TLS13);
-        EXPECT_SUCCESS(server_conn->actual_protocol_version = S2N_TLS13);
-        EXPECT_SUCCESS(server_conn->client_protocol_version = S2N_TLS13);
+        EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
 
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
@@ -184,9 +219,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_conn->handshake.io.blob));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn)); 
        
-        EXPECT_SUCCESS(server_conn->server_protocol_version = S2N_TLS13);
-        EXPECT_SUCCESS(server_conn->actual_protocol_version = S2N_TLS13);
-        EXPECT_SUCCESS(server_conn->client_protocol_version = S2N_TLS13);
+        EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
 
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);
@@ -217,9 +252,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &hello_stuffer->blob));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn)); 
     
-        EXPECT_SUCCESS(server_conn->server_protocol_version = S2N_TLS13);
-        EXPECT_SUCCESS(server_conn->actual_protocol_version = S2N_TLS12);
-        EXPECT_SUCCESS(server_conn->client_protocol_version = S2N_TLS12);
+        EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS12);
 
         s2n_connection_free(server_conn);
         s2n_connection_free(client_conn);

@@ -163,6 +163,11 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
 {
     GUARD(s2n_collect_client_hello(conn, &conn->handshake.io));
 
+    if (conn->client_hello_version == S2N_SSLv2) {
+        GUARD(s2n_sslv2_client_hello_recv(conn));
+        return S2N_SUCCESS;
+    }
+
     /* Going forward, we parse the collected client hello */
     struct s2n_client_hello *client_hello = &conn->client_hello;
     struct s2n_stuffer *in = &client_hello->raw_message;
@@ -334,7 +339,9 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
             conn->server_name_used = 1;
         }
     }
-    GUARD(s2n_process_client_hello(conn));
+    if (conn->client_hello_version != S2N_SSLv2) {
+        GUARD(s2n_process_client_hello(conn));
+    }
 
     return 0;
 }
@@ -421,11 +428,8 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 /* See http://www-archive.mozilla.org/projects/security/pki/nss/ssl/draft02.html 2.5 */
 int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
 {
-    struct s2n_stuffer *in = &conn->handshake.io;
-    uint16_t session_id_length;
-    uint16_t cipher_suites_length;
-    uint16_t challenge_length;
-    uint8_t *cipher_suites;
+    struct s2n_client_hello *client_hello = &conn->client_hello;
+    struct s2n_stuffer *in = &client_hello->raw_message;
 
     const struct s2n_cipher_preferences *cipher_preferences;
     GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
@@ -435,26 +439,28 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
         S2N_ERROR(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
     conn->actual_protocol_version = MIN(conn->client_protocol_version, conn->server_protocol_version);
-    conn->client_hello_version = S2N_SSLv2;
 
     /* We start 5 bytes into the record */
+    uint16_t cipher_suites_length;
     GUARD(s2n_stuffer_read_uint16(in, &cipher_suites_length));
-
     S2N_ERROR_IF(cipher_suites_length % S2N_SSLv2_CIPHER_SUITE_LEN, S2N_ERR_BAD_MESSAGE);
 
+    uint16_t session_id_length;
     GUARD(s2n_stuffer_read_uint16(in, &session_id_length));
 
+    uint16_t challenge_length;
     GUARD(s2n_stuffer_read_uint16(in, &challenge_length));
 
     S2N_ERROR_IF(challenge_length > S2N_TLS_RANDOM_DATA_LEN, S2N_ERR_BAD_MESSAGE);
 
-    cipher_suites = s2n_stuffer_raw_read(in, cipher_suites_length);
-    notnull_check(cipher_suites);
+    client_hello->cipher_suites.size = cipher_suites_length;
+    client_hello->cipher_suites.data = s2n_stuffer_raw_read(in, cipher_suites_length);
+    notnull_check(client_hello->cipher_suites.data);
 
     /* Find potential certificate matches before we choose the cipher. */
     GUARD(s2n_conn_find_name_matching_certs(conn));
 
-    GUARD(s2n_set_cipher_as_sslv2_server(conn, cipher_suites, cipher_suites_length / S2N_SSLv2_CIPHER_SUITE_LEN));
+    GUARD(s2n_set_cipher_as_sslv2_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / S2N_SSLv2_CIPHER_SUITE_LEN));
     GUARD(s2n_choose_default_sig_scheme(conn, &conn->secure.conn_sig_scheme));
     GUARD(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));
 
