@@ -27,7 +27,6 @@
 
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
-DEFINE_POINTER_CLEANUP_FUNC(EC_KEY *, EC_KEY_free);
 
 #if !MODERN_EC_SUPPORTED
 DEFINE_POINTER_CLEANUP_FUNC(EC_POINT *, EC_POINT_free);
@@ -65,6 +64,9 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {
 const struct s2n_ecc_named_curve *const s2n_ecc_evp_supported_curves_list[] = {
     &s2n_ecc_curve_secp256r1,
     &s2n_ecc_curve_secp384r1,
+#if MODERN_EC_SUPPORTED	
+    &s2n_ecc_curve_x25519,	
+#endif
 };
 
 const size_t s2n_ecc_evp_supported_curves_list_len = s2n_array_len(s2n_ecc_evp_supported_curves_list);
@@ -132,11 +134,6 @@ static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, struct s2n_blob *shared_secret) {
     notnull_check(peer_public);
     notnull_check(own_key);
-
-    /* Peers MUST validate each other’s public key */
-    DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(peer_public), EC_KEY_free_pointer);
-    S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
-    GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_SHARED_SECRET);
 
     size_t shared_secret_size;
     
