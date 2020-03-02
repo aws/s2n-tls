@@ -60,22 +60,29 @@ static int wall_clock(void *data, uint64_t *nanoseconds)
     return 0;
 }
 
-static uint8_t default_config_init = 0;
-static uint8_t unsafe_client_testing_config_init = 0;
-static uint8_t unsafe_client_ecdsa_testing_config_init = 0;
-static uint8_t default_client_config_init = 0;
-static uint8_t default_fips_config_init = 0;
-
 static struct s2n_config s2n_default_config = {0};
-
-/* This config should only used by the s2n_client for unit/integration testing purposes. */
-static struct s2n_config s2n_unsafe_client_testing_config = {0};
-
-static struct s2n_config s2n_unsafe_client_ecdsa_testing_config = {0};
-
-static struct s2n_config default_client_config = {0};
-
 static struct s2n_config s2n_default_fips_config = {0};
+static struct s2n_config s2n_default_tls13_config = {0};
+
+static int s2n_config_setup_default(struct s2n_config *config)
+{
+    GUARD(s2n_config_set_cipher_preferences(config, "default"));
+    GUARD(s2n_config_set_signature_preferences(config, "default"));
+    return S2N_SUCCESS;
+}
+
+static int s2n_config_setup_tls13(struct s2n_config *config)
+{
+    GUARD(s2n_config_set_cipher_preferences(config, "default_tls13"));
+    GUARD(s2n_config_set_signature_preferences(config, "default_tls13"));
+    return S2N_SUCCESS;
+}
+
+static int s2n_config_setup_fips(struct s2n_config *config)
+{
+    GUARD(s2n_config_set_cipher_preferences(config, "default_fips"));
+    return S2N_SUCCESS;
+}
 
 static int s2n_config_init(struct s2n_config *config)
 {
@@ -116,15 +123,12 @@ static int s2n_config_init(struct s2n_config *config)
     config->max_verify_cert_chain_depth_set = 0;
     config->cert_tiebreak_cb = NULL;
 
-    s2n_config_set_cipher_preferences(config, "default");
-    if (s2n_is_in_fips_mode()) {
-        s2n_config_set_cipher_preferences(config, "default_fips");
-    }
+    GUARD(s2n_config_setup_default(config));
     if (s2n_is_tls13_enabled()) {
-        s2n_config_set_cipher_preferences(config, "default_tls13");
+       GUARD(s2n_config_setup_tls13(config));
+    } else if (s2n_is_in_fips_mode()) {
+        GUARD(s2n_config_setup_fips(config));
     }
-
-    s2n_config_set_signature_preferences(config, "default");
 
     notnull_check(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
     GUARD(s2n_map_complete(config->domain_name_to_cert_map));
@@ -214,93 +218,47 @@ static int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, s
 
 struct s2n_config *s2n_fetch_default_config(void)
 {
-    if (!default_config_init) {
-        GUARD_PTR(s2n_config_init(&s2n_default_config));
-        s2n_config_set_cipher_preferences(&s2n_default_config, "default");
-        s2n_default_config.client_cert_auth_type = S2N_CERT_AUTH_NONE; /* Do not require the client to provide a Cert to the Server */
-
-        default_config_init = 1;
+    if (s2n_is_tls13_enabled()) {
+        return &s2n_default_tls13_config;
     }
-
+    if (s2n_is_in_fips_mode()) {
+        return &s2n_default_fips_config;
+    }
     return &s2n_default_config;
 }
 
-struct s2n_config *s2n_fetch_default_fips_config(void)
+int s2n_config_set_unsafe_for_testing(struct s2n_config *config)
 {
-    if (!default_fips_config_init) {
-        GUARD_PTR(s2n_config_init(&s2n_default_fips_config));
-        s2n_config_set_cipher_preferences(&s2n_default_fips_config, "default_fips");
+    S2N_ERROR_IF(!S2N_IN_TEST, S2N_ERR_NOT_IN_UNIT_TEST);
+    config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
+    config->check_ocsp = 0;
+    config->disable_x509_validation = 1;
 
-        default_fips_config_init = 1;
-    }
-
-    return &s2n_default_fips_config;
+    return S2N_SUCCESS;
 }
 
-struct s2n_config *s2n_fetch_unsafe_client_testing_config(void)
+int s2n_config_defaults_init(void)
 {
-    if (!unsafe_client_testing_config_init) {
-        GUARD_PTR(s2n_config_init(&s2n_unsafe_client_testing_config));
-        s2n_config_set_cipher_preferences(&s2n_unsafe_client_testing_config, "default");
-        s2n_unsafe_client_testing_config.client_cert_auth_type = S2N_CERT_AUTH_NONE;
-        s2n_unsafe_client_testing_config.check_ocsp = 0;
-        s2n_unsafe_client_testing_config.disable_x509_validation = 1;
+    /* Set up default */
+    GUARD(s2n_config_init(&s2n_default_config));
+    GUARD(s2n_config_setup_default(&s2n_default_config));
 
-        unsafe_client_testing_config_init = 1;
-    }
+    /* Set up fips defaults */
+    GUARD(s2n_config_init(&s2n_default_fips_config));
+    GUARD(s2n_config_setup_fips(&s2n_default_fips_config));
 
-    return &s2n_unsafe_client_testing_config;
-}
+    /* Set up TLS 1.3 defaults */
+    GUARD(s2n_config_init(&s2n_default_tls13_config));
+    GUARD(s2n_config_setup_tls13(&s2n_default_tls13_config));
 
-struct s2n_config *s2n_fetch_unsafe_client_ecdsa_testing_config(void)
-{
-    if (!unsafe_client_ecdsa_testing_config_init) {
-        GUARD_PTR(s2n_config_init(&s2n_unsafe_client_ecdsa_testing_config));
-        s2n_config_set_cipher_preferences(&s2n_unsafe_client_ecdsa_testing_config, "test_all_ecdsa");
-        s2n_unsafe_client_ecdsa_testing_config.client_cert_auth_type = S2N_CERT_AUTH_NONE;
-        s2n_unsafe_client_ecdsa_testing_config.check_ocsp = 0;
-        s2n_unsafe_client_ecdsa_testing_config.disable_x509_validation = 1;
-
-        unsafe_client_ecdsa_testing_config_init = 1;
-    }
-
-    return &s2n_unsafe_client_ecdsa_testing_config;
-}
-
-struct s2n_config *s2n_fetch_default_client_config(void)
-{
-    if (!default_client_config_init) {
-        GUARD_PTR(s2n_config_init(&default_client_config));
-        s2n_config_set_cipher_preferences(&default_client_config, "default");
-        default_client_config.client_cert_auth_type = S2N_CERT_AUTH_REQUIRED;
-
-        default_client_config_init = 1;
-    }
-
-    return &default_client_config;
+    return S2N_SUCCESS;
 }
 
 void s2n_wipe_static_configs(void)
 {
-    if (default_client_config_init) {
-        s2n_config_cleanup(&default_client_config);
-        default_client_config_init = 0;
-    }
-
-    if (unsafe_client_testing_config_init) {
-        s2n_config_cleanup(&s2n_unsafe_client_testing_config);
-        unsafe_client_testing_config_init = 0;
-    }
-
-    if (unsafe_client_ecdsa_testing_config_init) {
-        s2n_config_cleanup(&s2n_unsafe_client_ecdsa_testing_config);
-        unsafe_client_ecdsa_testing_config_init = 0;
-    }
-
-    if (default_fips_config_init) {
-        s2n_config_cleanup(&s2n_default_fips_config);
-        default_fips_config_init = 0;
-    }
+    s2n_config_cleanup(&s2n_default_config);
+    s2n_config_cleanup(&s2n_default_fips_config);
+    s2n_config_cleanup(&s2n_default_tls13_config);
 }
 
 struct s2n_config *s2n_config_new(void)

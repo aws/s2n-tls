@@ -242,6 +242,7 @@ static struct {
     const struct s2n_signature_preferences *preferences;
 } selection[] = {
         {.version = "default", .preferences = &s2n_signature_preferences_20140601 },
+        {.version = "default_tls13", .preferences = &s2n_signature_preferences_20200207 },
         {.version = "20200207", .preferences = &s2n_signature_preferences_20200207 },
         {.version = "20140601", .preferences = &s2n_signature_preferences_20140601 },
         {.version = NULL, .preferences = NULL }, /* Sentinel */
