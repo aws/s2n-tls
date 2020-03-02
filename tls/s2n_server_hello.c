@@ -248,3 +248,4 @@ int s2n_server_hello_send(struct s2n_connection *conn)
 
     return 0;
 }
+
