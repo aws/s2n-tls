@@ -159,7 +159,9 @@ int main(int argc, char **argv)
 
         /* Start out with zero byte padding */
         fragment[i - 1] = 0;
-        struct s2n_blob decrypted = { .data = fragment, .size = i};
+        
+        struct s2n_blob decrypted = {0};
+        s2n_blob_init(&decrypted, fragment, i);
 
         uint64_t timings[10001];
         for (int t = 0; t < 10001; t++) {

@@ -22,10 +22,23 @@
 
 
 struct s2n_blob {
+    /* The data for the s2n_blob */
     uint8_t *data;
+
+    /* The size of the data */
     uint32_t size;
+
+    /* The amount of memory allocated for this blob (i.e. the amount of memory
+     * which needs to be freed when the blob is cleaned up). If this blob was 
+     * created with s2n_blob_init(), this value is 0. If s2n_alloc() was called,
+     * this value will be greater than 0. 
+     */
     uint32_t allocated;
+
+    /* Is the data mlocked */
     unsigned mlocked :1;
+
+    /* Can this blob be resized */
     unsigned growable :1;
 };
 

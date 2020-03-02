@@ -172,3 +172,4 @@ extern int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out);
  * NOT CONSTANT TIME.
  */
 extern int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out);
+extern int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out);
