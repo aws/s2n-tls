@@ -29,7 +29,7 @@ ifeq ($(S2N_CORKED_IO),true)
 endif
 
 .PHONY : all
-all: tls13 client_endpoints dynamic_record s_client s_server gnutls_cli gnutls_serv sslyze
+all: tls13 client_endpoints dynamic_record old_s_client s_client s_server gnutls_cli gnutls_serv sslyze
 
 tls13:
 	( \
@@ -64,6 +64,15 @@ s_client:
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	S2N_INTEG_TEST=1 \
 	python3 s2n_handshake_test_s_client.py $(HANDSHAKE_TEST_PARAMS); \
+	)
+
+old_s_client:
+	( \
+	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	PATH=$(OPENSSL_0_9_8_INSTALL_DIR)/bin:$$PATH \
+	S2N_INTEG_TEST=1 \
+	python3 s2n_handshake_test_old_s_client.py $(HANDSHAKE_TEST_PARAMS); \
 	)
 
 s_server:
