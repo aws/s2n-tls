@@ -55,7 +55,10 @@ static int s2n_rsa_pss_size(const struct s2n_pkey *key)
 
 static int s2n_rsa_is_private_key(RSA *rsa_key)
 {
-    if (RSA_get0_d(rsa_key)) {
+    const BIGNUM *d = NULL;
+    RSA_get0_key(rsa_key, NULL, NULL, &d);
+
+    if (d) {
         return 1;
     }
     return 0;
