@@ -152,6 +152,9 @@ static int assert_kex_fips_checks(struct s2n_cipher_suite *cipher_suite, const c
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+
+#if !defined(S2N_NO_PQ)
+
     if (s2n_is_in_fips_mode()) {
         /* There is no support for PQ KEMs while in FIPS mode. So we verify functions s2n_check_kem() and
          * s2n_configure_kem() (in s2n_kex.c) are performing their FIPS checks appropriately. */
@@ -197,6 +200,8 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p503_r1),
                                   S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     }
+
+#endif
 
     END_TEST();
 }

@@ -18,18 +18,22 @@
 
 int main(int argc, char **argv)
 {
+    BEGIN_TEST();
+
+#if !defined(S2N_NO_PQ)
+
     unsigned char pub_key[SIKE_P434_R2_PUBLIC_KEY_BYTES] = {0};
     unsigned char priv_key[SIKE_P434_R2_SECRET_KEY_BYTES] = {0};
     unsigned char c_shared_secret[SIKE_P434_R2_SHARED_SECRET_BYTES];
     unsigned char s_shared_secret[SIKE_P434_R2_SHARED_SECRET_BYTES];
     unsigned char ciphertext[SIKE_P434_R2_CIPHERTEXT_BYTES];
 
-    BEGIN_TEST();
-
     EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_keypair(pub_key, priv_key));
     EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_enc(ciphertext, c_shared_secret, pub_key));
     EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_dec(s_shared_secret, ciphertext, priv_key));
     EXPECT_BYTEARRAY_EQUAL(s_shared_secret, c_shared_secret, SIKE_P434_R2_SHARED_SECRET_BYTES);
+
+#endif
 
     END_TEST();
 }

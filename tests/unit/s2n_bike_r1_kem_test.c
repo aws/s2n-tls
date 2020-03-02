@@ -19,13 +19,16 @@
 
 int main(int argc, char **argv)
 {
+    BEGIN_TEST();
+
+#if !defined(S2N_NO_PQ)
+
     unsigned char publicKey[BIKE1_L1_R1_PUBLIC_KEY_BYTES];
     unsigned char privateKey[BIKE1_L1_R1_SECRET_KEY_BYTES];
     unsigned char clientSharedSecretPlaintext[BIKE1_L1_R1_SHARED_SECRET_BYTES];
     unsigned char serverSharedSecretPlaintext[BIKE1_L1_R1_SHARED_SECRET_BYTES];
     unsigned char encryptedSecret[BIKE1_L1_R1_CIPHERTEXT_BYTES];
 
-    BEGIN_TEST();
     if (s2n_is_in_fips_mode()) {
         /* There is no support for PQ KEMs while in FIPS mode */
         END_TEST();
@@ -35,6 +38,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(BIKE1_L1_R1_crypto_kem_enc(encryptedSecret, clientSharedSecretPlaintext, publicKey));
     EXPECT_SUCCESS(BIKE1_L1_R1_crypto_kem_dec(serverSharedSecretPlaintext, encryptedSecret, privateKey));
     EXPECT_BYTEARRAY_EQUAL(serverSharedSecretPlaintext, clientSharedSecretPlaintext, BIKE1_L1_R1_SHARED_SECRET_BYTES);
+
+#endif
 
     END_TEST();
 }

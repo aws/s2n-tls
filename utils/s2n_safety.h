@@ -162,7 +162,7 @@ extern int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t * dst, const uint8_t * 
   }                                                         \
   struct __useless_struct_to_allow_trailing_semicolon__
 
-#define s2n_array_len(array) (sizeof(array) / sizeof(array[0]))
+#define s2n_array_len(array) ((array != NULL) ? (sizeof(array) / sizeof(array[0])) : 0)
 
 extern int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out);
 
