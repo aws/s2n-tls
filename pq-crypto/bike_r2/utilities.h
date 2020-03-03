@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -28,11 +28,11 @@
 
 // Printing values in Little Endian
 void
-print_LE(IN const uint64_t *in, IN const uint32_t bits_num);
+print_LE(IN const uint64_t *in, IN uint32_t bits_num);
 
 // Printing values in Big Endian
 void
-print_BE(IN const uint64_t *in, IN const uint32_t bits_num);
+print_BE(IN const uint64_t *in, IN uint32_t bits_num);
 
 // Printing number is required only in verbose level 2 or above
 #if VERBOSE >= 2

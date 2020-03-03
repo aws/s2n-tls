@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -90,17 +90,27 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
     lt_check(__tmp_n, high);                    \
   } while (0)
 
+/* Check for specific classes of errors */
+#define ERR_IS_BLOCKING( x )    ( x == S2N_ERR_BLOCKED || x == S2N_CALLBACK_BLOCKED )
+
 #define GUARD( x )              do {if ( (x) < 0 ) return S2N_FAILURE;} while (0)
 #define GUARD_STRICT( x )       do {if ( (x) != 0 ) return S2N_FAILURE;} while (0)
 #define GUARD_GOTO( x , label ) do {if ( (x) < 0 ) goto label;} while (0)
 #define GUARD_PTR( x )          do {if ( (x) < 0 ) return NULL;} while (0)
 
+/* Similar to GUARD, but preserves the blocking error code. S2N_CALLBACK_BLOCKED is left to preserve backwards compatibility .*/
+#define GUARD_NONBLOCKING( x )          \
+  do {                                  \
+    int __tmp_r = (x);                  \
+    if (ERR_IS_BLOCKING( __tmp_r )) {   \
+      S2N_ERROR( __tmp_r );             \
+    }                                   \
+    GUARD( __tmp_r );                   \
+  } while(0)
+
 #define GUARD_NONNULL( x )              do {if ( (x) == NULL ) return S2N_FAILURE;} while (0)
 #define GUARD_NONNULL_GOTO( x , label ) do {if ( (x) == NULL ) goto label;} while (0)
 #define GUARD_NONNULL_PTR( x )          do {if ( (x) == NULL ) return NULL;} while (0)
-
-/* Check the return value from caller. If this value is -2, S2N_ERR_BLOCKED is marked*/
-#define GUARD_AGAIN( x )  do {if ( (x) == -2 ) { S2N_ERROR(S2N_ERR_BLOCKED); } GUARD( x );} while(0)
 
 /* Returns true if s2n is in unit test mode, false otherwise */
 bool s2n_in_unit_test();
@@ -155,3 +165,11 @@ extern int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t * dst, const uint8_t * 
 #define s2n_array_len(array) (sizeof(array) / sizeof(array[0]))
 
 extern int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out);
+
+/**
+ * Rounds "initial" up to a multiple of "alignment", and stores the result in "out".
+ * Raises an error if overflow would occur.
+ * NOT CONSTANT TIME.
+ */
+extern int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out);
+extern int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out);

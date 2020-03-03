@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -30,6 +30,18 @@ endif
 all: $(UNIT_TESTS)
 
 include ../../s2n.mk
+
+# Verify that the ASM code compiles before actually including it in the build.
+# (At least) One unit test verifies if we are using the PQ ASM code, so we need to
+# include the flag here as appropriate.
+# Output is directed to /dev/null so it doesn't pollute the console on compilation
+# failures that may be expected.
+ifndef S2N_NO_PQ_ASM
+	TRY_COMPILE_PQ_ASM := $(shell $(CC) -c -o ../../pq-crypto/sike_r2/fp_x64_asm.o ../../pq-crypto/sike_r2/fp_x64_asm.S > /dev/null 2>&1; echo $$?)
+	ifneq ($(TRY_COMPILE_PQ_ASM), 0)
+		CFLAGS += -DS2N_NO_PQ_ASM
+	endif
+endif
 
 CRUFT += $(wildcard *_test)
 LIBS += -lm -ltests2n -ls2n -ldl

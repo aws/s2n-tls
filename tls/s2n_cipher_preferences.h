@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -18,12 +18,20 @@
 #include <stdint.h>
 
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_kem.h"
 
 struct s2n_cipher_preferences {
     uint8_t count;
     struct s2n_cipher_suite **suites;
     int minimum_protocol_version;
+    uint8_t kem_count;
+    const struct s2n_kem **kems;
 };
+
+extern const struct s2n_kem *pq_kems_r1[2];
+extern const struct s2n_kem *pq_kems_r2r1[4];
+extern const struct s2n_kem *pq_kems_sike_r1[1];
+extern const struct s2n_kem *pq_kems_sike_r2r1[2];
 
 extern const struct s2n_cipher_preferences cipher_preferences_20140601;
 extern const struct s2n_cipher_preferences cipher_preferences_20141001;

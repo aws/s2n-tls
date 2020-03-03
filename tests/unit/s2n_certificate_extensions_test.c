@@ -1,5 +1,5 @@
     /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/extensions/s2n_certificate_extensions.h"
@@ -97,6 +98,7 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         server_conn->actual_protocol_version = S2N_TLS13;
+        server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         /* Initialize cert chain */
         char *cert_chain_pem;
@@ -237,7 +239,6 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        client_conn->actual_protocol_version = S2N_TLS13;
 
         S2N_BLOB_FROM_HEX(tls13_cert, tls13_cert_single_ext_hex);
         EXPECT_SUCCESS(s2n_stuffer_write(&client_conn->handshake.io, &tls13_cert));

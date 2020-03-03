@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -20,11 +20,18 @@
 #include "s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_kem.h"
+#include "crypto/s2n_fips.h"
 
 #define RSP_FILE "kats/sike_r2.kat"
 
 int main(int argc, char **argv, char **envp) {
     BEGIN_TEST();
+
+    if (s2n_is_in_fips_mode()) {
+        /* There is no support for PQ KEMs while in FIPS mode */
+        END_TEST();
+    }
+
     EXPECT_SUCCESS(s2n_test_kem_with_kat(&s2n_sike_p434_r2, RSP_FILE));
     END_TEST();
 }

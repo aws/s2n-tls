@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -37,6 +37,16 @@
 #define S2N_TLS12_AES_GCM_AEAD_NONCE     0x01
 #define S2N_TLS12_CHACHA_POLY_AEAD_NONCE 0x02
 #define S2N_TLS13_RECORD_AEAD_NONCE      0x04
+
+typedef enum {
+    S2N_AUTHENTICATION_RSA = 0,
+    S2N_AUTHENTICATION_ECDSA,
+    S2N_AUTHENTICATION_METHOD_SENTINEL
+} s2n_authentication_method;
+
+/* Used by TLS 1.3 CipherSuites (Eg TLS_AES_128_GCM_SHA256 "0x1301") where the Auth method will be specified by the
+ * SignatureScheme Extension, not the CipherSuite. */
+#define S2N_AUTHENTICATION_METHOD_TLS13 S2N_AUTHENTICATION_METHOD_SENTINEL
 
 struct s2n_record_algorithm {
     const struct s2n_cipher *cipher;
@@ -88,7 +98,7 @@ struct s2n_cipher_suite {
     /* RFC 5426(TLS1.2) allows cipher suite defined PRFs. Cipher suites defined in and before TLS1.2 will use
      * P_hash with SHA256 when TLS1.2 is negotiated.
      */
-    const s2n_hmac_algorithm tls12_prf_alg;
+    const s2n_hmac_algorithm prf_alg;
 
     const uint8_t minimum_required_tls_version;
 };
@@ -139,5 +149,5 @@ extern int s2n_cipher_suites_init(void);
 extern int s2n_cipher_suites_cleanup(void);
 extern struct s2n_cipher_suite *s2n_cipher_suite_from_wire(const uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN]);
 extern int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN]);
-extern int s2n_set_cipher_and_cert_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
-extern int s2n_set_cipher_and_cert_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
+extern int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
+extern int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);

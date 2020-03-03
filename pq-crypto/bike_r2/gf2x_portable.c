@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -73,7 +73,7 @@ gf2x_mul_1x1(uint64_t *c, uint64_t a, uint64_t b)
 }
 
 void
-karatzuba_add1(OUT uint64_t *res,
+karatzuba_add1(OUT const uint64_t *res,
                IN const uint64_t *a,
                IN const uint64_t *b,
                IN const uint64_t  n_half,

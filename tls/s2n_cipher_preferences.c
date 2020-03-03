@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_kex.h"
 #include "tls/s2n_config.h"
+#include "tls/s2n_kem.h"
 
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
@@ -30,6 +31,32 @@
     &s2n_tls13_aes_256_gcm_sha384,          \
     &s2n_tls13_aes_128_gcm_sha256,          \
     &s2n_tls13_chacha20_poly1305_sha256     \
+
+/* Extension list for round 1 PQ KEMs, in order of preference */
+const struct s2n_kem *pq_kems_r1[2] = {
+    &s2n_bike1_l1_r1,
+    &s2n_sike_p503_r1,
+};
+
+/* Extension list for round 2 and round 1 PQ KEMs, in order of preference */
+const struct s2n_kem *pq_kems_r2r1[4] = {
+    &s2n_bike1_l1_r2,
+    &s2n_sike_p434_r2,
+    &s2n_bike1_l1_r1,
+    &s2n_sike_p503_r1,
+};
+
+/* Extension list for SIKE P503 Round 1 only (for testing) */
+const struct s2n_kem *pq_kems_sike_r1[1] = {
+    &s2n_sike_p503_r1,
+};
+
+/* Extension list for SIKE P434 Round 2 and SIKE P503 Round 1 only (for testing),
+ * in order of preference */
+const struct s2n_kem *pq_kems_sike_r2r1[2] = {
+        &s2n_sike_p434_r2,
+        &s2n_sike_p503_r1,
+};
 
 /* s2n's list of cipher suites, in order of preferences, as of 2019-08-01 */
 struct s2n_cipher_suite *cipher_suites_20190801[] = {
@@ -49,6 +76,8 @@ const struct s2n_cipher_preferences cipher_preferences_20190801 = {
     .count = s2n_array_len(cipher_suites_20190801),
     .suites = cipher_suites_20190801,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* s2n's list of cipher suites, in order of preference, as of 2014-06-01 */
@@ -67,6 +96,8 @@ const struct s2n_cipher_preferences cipher_preferences_20140601 = {
     .count = s2n_array_len(cipher_suites_20140601),
     .suites = cipher_suites_20140601,
     .minimum_protocol_version = S2N_SSLv3,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* Disable SSLv3 due to POODLE */
@@ -74,6 +105,8 @@ const struct s2n_cipher_preferences cipher_preferences_20141001 = {
     .count = s2n_array_len(cipher_suites_20140601),
     .suites = cipher_suites_20140601,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* Disable RC4 */
@@ -90,6 +123,8 @@ const struct s2n_cipher_preferences cipher_preferences_20150202 = {
     .count = s2n_array_len(cipher_suites_20150202),
     .suites = cipher_suites_20150202,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* Support AES-GCM modes */
@@ -108,6 +143,8 @@ const struct s2n_cipher_preferences cipher_preferences_20150214 = {
     .count = s2n_array_len(cipher_suites_20150214),
     .suites = cipher_suites_20150214,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* Make a CBC cipher #1 to avoid negotiating GCM with buggy Java clients */
@@ -131,6 +168,8 @@ const struct s2n_cipher_preferences cipher_preferences_20160411 = {
     .count = s2n_array_len(cipher_suites_20160411),
     .suites = cipher_suites_20160411,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* Use ECDHE instead of plain DHE. Prioritize ECDHE in favour of non ECDHE; GCM in favour of CBC; AES128 in favour of AES256. */
@@ -151,6 +190,8 @@ const struct s2n_cipher_preferences cipher_preferences_20150306 = {
     .count = s2n_array_len(cipher_suites_20150306),
     .suites = cipher_suites_20150306,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_20160804[] = {
@@ -173,6 +214,8 @@ const struct s2n_cipher_preferences cipher_preferences_20160804 = {
     .count = s2n_array_len(cipher_suites_20160804),
     .suites = cipher_suites_20160804,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_20160824[] = {
@@ -190,6 +233,8 @@ const struct s2n_cipher_preferences cipher_preferences_20160824 = {
     .count = s2n_array_len(cipher_suites_20160824),
     .suites = cipher_suites_20160824,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* Add ChaCha20 suite */
@@ -209,6 +254,8 @@ const struct s2n_cipher_preferences cipher_preferences_20170210 = {
     .count = s2n_array_len(cipher_suites_20170210),
     .suites = cipher_suites_20170210,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* Same as 20160411, but with ChaCha20 added as 1st in Preference List */
@@ -233,6 +280,8 @@ const struct s2n_cipher_preferences cipher_preferences_20190122 = {
     .count = s2n_array_len(cipher_suites_20190122),
     .suites = cipher_suites_20190122,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* Same as 20160804, but with ChaCha20 added as 2nd in Preference List */
@@ -257,6 +306,8 @@ const struct s2n_cipher_preferences cipher_preferences_20190121 = {
     .count = s2n_array_len(cipher_suites_20190121),
     .suites = cipher_suites_20190121,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* Same as 20160411, but with ChaCha20 in 3rd Place after CBC and GCM */
@@ -281,6 +332,8 @@ const struct s2n_cipher_preferences cipher_preferences_20190120 = {
     .count = s2n_array_len(cipher_suites_20190120),
     .suites = cipher_suites_20190120,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* Preferences optimized for interop, includes ECDSA priortitized. DHE and 3DES are added(at the lowest preference). */
@@ -316,6 +369,8 @@ const struct s2n_cipher_preferences cipher_preferences_20190214 = {
     .count = s2n_array_len(cipher_suites_20190214),
     .suites = cipher_suites_20190214,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_null[] = {
@@ -326,6 +381,8 @@ const struct s2n_cipher_preferences cipher_preferences_null = {
     .count = s2n_array_len(cipher_suites_null),
     .suites = cipher_suites_null,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* Preferences optimized for interop. DHE and 3DES are added(at the lowest preference). */
@@ -355,6 +412,8 @@ const struct s2n_cipher_preferences cipher_preferences_20170328 = {
     .count = s2n_array_len(cipher_suites_20170328),
     .suites = cipher_suites_20170328,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* Preferences optimized for FIPS compatibility. */
@@ -376,6 +435,8 @@ const struct s2n_cipher_preferences cipher_preferences_20170405 = {
     .count = s2n_array_len(cipher_suites_20170405),
     .suites = cipher_suites_20170405,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 /* Equivalent to cipher_suite_20160411 with 3DES removed.
@@ -399,6 +460,8 @@ const struct s2n_cipher_preferences cipher_preferences_20170718 = {
     .count = s2n_array_len(cipher_suites_20170718),
     .suites = cipher_suites_20170718,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_2015_04[] = {
@@ -427,6 +490,8 @@ const struct s2n_cipher_preferences elb_security_policy_2015_04 = {
     .count = s2n_array_len(cipher_suites_elb_security_policy_2015_04),
     .suites = cipher_suites_elb_security_policy_2015_04,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_2016_08[] = {
@@ -454,6 +519,8 @@ const struct s2n_cipher_preferences elb_security_policy_2016_08 = {
     .count = s2n_array_len(cipher_suites_elb_security_policy_2016_08),
     .suites = cipher_suites_elb_security_policy_2016_08,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls_1_2_2017_01[] = {
@@ -475,6 +542,8 @@ const struct s2n_cipher_preferences elb_security_policy_tls_1_2_2017_01 = {
     .count = s2n_array_len(cipher_suites_elb_security_policy_tls_1_2_2017_01),
     .suites = cipher_suites_elb_security_policy_tls_1_2_2017_01,
     .minimum_protocol_version = S2N_TLS12,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls_1_1_2017_01[] = {
@@ -502,6 +571,8 @@ const struct s2n_cipher_preferences elb_security_policy_tls_1_1_2017_01 = {
     .count = s2n_array_len(cipher_suites_elb_security_policy_tls_1_1_2017_01),
     .suites = cipher_suites_elb_security_policy_tls_1_1_2017_01,
     .minimum_protocol_version = S2N_TLS11,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls_1_2_ext_2018_06[] = {
@@ -529,6 +600,8 @@ const struct s2n_cipher_preferences elb_security_policy_tls_1_2_ext_2018_06 = {
     .count = s2n_array_len(cipher_suites_elb_security_policy_tls_1_2_ext_2018_06),
     .suites = cipher_suites_elb_security_policy_tls_1_2_ext_2018_06,
     .minimum_protocol_version = S2N_TLS12,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_2018_06[] = {
@@ -550,6 +623,8 @@ const struct s2n_cipher_preferences elb_security_policy_fs_2018_06 = {
     .count = s2n_array_len(cipher_suites_elb_security_policy_fs_2018_06),
     .suites = cipher_suites_elb_security_policy_fs_2018_06,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_1_2_2019_08[] = {
@@ -571,6 +646,8 @@ const struct s2n_cipher_preferences elb_security_policy_fs_1_2_2019_08 = {
     .count = s2n_array_len(cipher_suites_elb_security_policy_fs_1_2_2019_08),
     .suites = cipher_suites_elb_security_policy_fs_1_2_2019_08, 
     .minimum_protocol_version = S2N_TLS12,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_1_1_2019_08[] = {
@@ -592,6 +669,8 @@ const struct s2n_cipher_preferences elb_security_policy_fs_1_1_2019_08 = {
     .count = s2n_array_len(cipher_suites_elb_security_policy_fs_1_1_2019_08),
     .suites = cipher_suites_elb_security_policy_fs_1_1_2019_08, 
     .minimum_protocol_version = S2N_TLS11,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_fs_1_2_Res_2019_08[] = {
@@ -609,6 +688,8 @@ const struct s2n_cipher_preferences elb_security_policy_fs_1_2_Res_2019_08 = {
     .count = s2n_array_len(cipher_suites_elb_security_policy_fs_1_2_Res_2019_08),
     .suites = cipher_suites_elb_security_policy_fs_1_2_Res_2019_08, 
     .minimum_protocol_version = S2N_TLS12,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_upstream[] = {
@@ -637,6 +718,8 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream = {
     .count = s2n_array_len(cipher_suites_cloudfront_upstream),
     .suites = cipher_suites_cloudfront_upstream,
     .minimum_protocol_version = S2N_SSLv3,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_ssl_v_3[] = {
@@ -659,6 +742,8 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_ssl_v_3 = {
     .count = s2n_array_len(cipher_suites_cloudfront_ssl_v_3),
     .suites = cipher_suites_cloudfront_ssl_v_3,
     .minimum_protocol_version = S2N_SSLv3,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_0_2014[] = {
@@ -680,6 +765,8 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2014 =
     .count = s2n_array_len(cipher_suites_cloudfront_tls_1_0_2014),
     .suites = cipher_suites_cloudfront_tls_1_0_2014,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_0_2016[] = {
@@ -700,6 +787,8 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2016 =
     .count = s2n_array_len(cipher_suites_cloudfront_tls_1_0_2016),
     .suites = cipher_suites_cloudfront_tls_1_0_2016,
     .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_1_2016[] = {
@@ -720,6 +809,8 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_1_2016 =
     .count = s2n_array_len(cipher_suites_cloudfront_tls_1_1_2016),
     .suites = cipher_suites_cloudfront_tls_1_1_2016,
     .minimum_protocol_version = S2N_TLS11,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2018[] = {
@@ -736,6 +827,8 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2018 =
     .count = s2n_array_len(cipher_suites_cloudfront_tls_1_2_2018),
     .suites = cipher_suites_cloudfront_tls_1_2_2018,
     .minimum_protocol_version = S2N_TLS12,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2019[] = {
@@ -749,82 +842,113 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2019 =
     .count = s2n_array_len(cipher_suites_cloudfront_tls_1_2_2019),
     .suites = cipher_suites_cloudfront_tls_1_2_2019,
     .minimum_protocol_version = S2N_TLS12,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_kms_tls_1_0_2018_10[] = {
-        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-        &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
-        &s2n_dhe_rsa_with_aes_256_cbc_sha256,
-        &s2n_dhe_rsa_with_aes_128_cbc_sha256,
-        &s2n_dhe_rsa_with_aes_256_cbc_sha,
-        &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
 };
 
 const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10 = {
-        .count = s2n_array_len(cipher_suites_kms_tls_1_0_2018_10),
-        .suites = cipher_suites_kms_tls_1_0_2018_10,
-        .minimum_protocol_version = S2N_TLS10,
+    .count = s2n_array_len(cipher_suites_kms_tls_1_0_2018_10),
+    .suites = cipher_suites_kms_tls_1_0_2018_10,
+    .minimum_protocol_version = S2N_TLS10,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct s2n_cipher_suite *cipher_suites_kms_pq_tls_1_0_2019_06[] = {
-        &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-        &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
-        &s2n_dhe_rsa_with_aes_256_cbc_sha256,
-        &s2n_dhe_rsa_with_aes_128_cbc_sha256,
-        &s2n_dhe_rsa_with_aes_256_cbc_sha,
-        &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
 };
 
+/* Includes only round 1 PQ KEM params */
 const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2019_06 = {
-        .count = s2n_array_len(cipher_suites_kms_pq_tls_1_0_2019_06),
-        .suites = cipher_suites_kms_pq_tls_1_0_2019_06,
-        .minimum_protocol_version = S2N_TLS10,
+    .count = s2n_array_len(cipher_suites_kms_pq_tls_1_0_2019_06),
+    .suites = cipher_suites_kms_pq_tls_1_0_2019_06,
+    .minimum_protocol_version = S2N_TLS10,
+    .kem_count = s2n_array_len(pq_kems_r1),
+    .kems = pq_kems_r1,
+};
+
+/* Includes round 1 and round 2 PQ KEM params. The cipher suite list is the same
+ * as in cipher_preferences_kms_pq_tls_1_0_2019_06.*/
+const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2020_02 = {
+    .count = s2n_array_len(cipher_suites_kms_pq_tls_1_0_2019_06),
+    .suites = cipher_suites_kms_pq_tls_1_0_2019_06,
+    .minimum_protocol_version = S2N_TLS10,
+    .kem_count = s2n_array_len(pq_kems_r2r1),
+    .kems = pq_kems_r2r1,
 };
 
 struct s2n_cipher_suite *cipher_suites_pq_sike_test_tls_1_0_2019_11[] = {
-        &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-        &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
-        &s2n_dhe_rsa_with_aes_256_cbc_sha256,
-        &s2n_dhe_rsa_with_aes_128_cbc_sha256,
-        &s2n_dhe_rsa_with_aes_256_cbc_sha,
-        &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
 };
 
+/* Includes only SIKE round 1 (for integration tests) */
 const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2019_11 = {
+    .count = s2n_array_len(cipher_suites_pq_sike_test_tls_1_0_2019_11),
+    .suites = cipher_suites_pq_sike_test_tls_1_0_2019_11,
+    .minimum_protocol_version = S2N_TLS10,
+    .kem_count = s2n_array_len(pq_kems_sike_r1),
+    .kems = pq_kems_sike_r1,
+};
+
+/* Includes only SIKE round 1 and round 2 (for integration tests). The cipher suite list
+ * is the same as in cipher_preferences_pq_sike_test_tls_1_0_2019_11. */
+const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2020_02 = {
         .count = s2n_array_len(cipher_suites_pq_sike_test_tls_1_0_2019_11),
         .suites = cipher_suites_pq_sike_test_tls_1_0_2019_11,
         .minimum_protocol_version = S2N_TLS10,
+        .kem_count = s2n_array_len(pq_kems_sike_r2r1),
+        .kems = pq_kems_sike_r2r1,
 };
 
 struct s2n_cipher_suite *cipher_suites_kms_fips_tls_1_2_2018_10[] = {
-        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-        &s2n_dhe_rsa_with_aes_256_cbc_sha256,
-        &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
 };
 
 const struct s2n_cipher_preferences cipher_preferences_kms_fips_tls_1_2_2018_10 = {
-        .count = s2n_array_len(cipher_suites_kms_fips_tls_1_2_2018_10),
-        .suites = cipher_suites_kms_fips_tls_1_2_2018_10,
-        .minimum_protocol_version = S2N_TLS12,
-
+    .count = s2n_array_len(cipher_suites_kms_fips_tls_1_2_2018_10),
+    .suites = cipher_suites_kms_fips_tls_1_2_2018_10,
+    .minimum_protocol_version = S2N_TLS12,
+    .kem_count = 0,
+    .kems = NULL,
 };
 
 struct {
@@ -857,7 +981,9 @@ struct {
     { .version="CloudFront-TLS-1-2-2019", .preferences=&cipher_preferences_cloudfront_tls_1_2_2019, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="KMS-TLS-1-0-2018-10", .preferences=&cipher_preferences_kms_tls_1_0_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="KMS-PQ-TLS-1-0-2019-06", .preferences=&cipher_preferences_kms_pq_tls_1_0_2019_06, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="KMS-PQ-TLS-1-0-2020-02", .preferences=&cipher_preferences_kms_pq_tls_1_0_2020_02, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="PQ-SIKE-TEST-TLS-1-0-2019-11", .preferences=&cipher_preferences_pq_sike_test_tls_1_0_2019_11, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="PQ-SIKE-TEST-TLS-1-0-2020-02", .preferences=&cipher_preferences_pq_sike_test_tls_1_0_2020_02, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="KMS-FIPS-TLS-1-2-2018-10", .preferences=&cipher_preferences_kms_fips_tls_1_2_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="20140601", .preferences=&cipher_preferences_20140601, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="20141001", .preferences=&cipher_preferences_20141001, .ecc_extension_required=0, .pq_kem_extension_required=0},
@@ -956,6 +1082,14 @@ int s2n_cipher_preferences_init()
             if (cipher->key_exchange_alg == &s2n_hybrid_ecdhe_kem) {
                 selection[i].pq_kem_extension_required = 1;
             }
+        }
+
+        if (selection[i].pq_kem_extension_required == 1) {
+            S2N_ERROR_IF(preferences->kem_count == 0, S2N_ERR_INVALID_CIPHER_PREFERENCES);
+            S2N_ERROR_IF(preferences->kems == NULL, S2N_ERR_INVALID_CIPHER_PREFERENCES);
+        } else {
+            S2N_ERROR_IF(preferences->kem_count != 0, S2N_ERR_INVALID_CIPHER_PREFERENCES);
+            S2N_ERROR_IF(preferences->kems != NULL, S2N_ERR_INVALID_CIPHER_PREFERENCES);
         }
     }
     return 0;

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -65,6 +65,12 @@ fi
 if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]] && [[ ! -d "$GNUTLS_INSTALL_DIR" ]]; then
     mkdir -p "$GNUTLS_INSTALL_DIR";
     .travis/install_gnutls.sh "$(mktemp -d)" "$GNUTLS_INSTALL_DIR" "$TRAVIS_OS_NAME" > /dev/null ;
+fi
+
+# Download and Install Openssl-0.9.8 for integration tests
+if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]] && [[ ! -d "$OPENSSL_0_9_8_INSTALL_DIR" ]]; then
+    mkdir -p "$OPENSSL_0_9_8_INSTALL_DIR";
+    .travis/install_openssl_0_9_8.sh "$(mktemp -d)" "$OPENSSL_0_9_8_INSTALL_DIR" "$TRAVIS_OS_NAME" > /dev/null ;
 fi
 
 # Install SAW, Z3, and Yices for formal verification

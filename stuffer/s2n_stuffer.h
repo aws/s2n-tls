@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -70,6 +70,9 @@ extern int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t * 
 extern int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec* iov, int iov_count, size_t offs, size_t size);
 extern int s2n_stuffer_skip_read(struct s2n_stuffer *stuffer, uint32_t n);
 extern int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n);
+
+/* Tries to reserve enough space to write n additional bytes into the stuffer.*/
+extern int s2n_stuffer_reserve_space(struct s2n_stuffer *stuffer, uint32_t n);
 
 /* Raw read/write move the cursor along and give you a pointer you can
  * read/write data_len bytes from/to in-place.

@@ -1,5 +1,5 @@
 #
-# Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ ifeq ($(S2N_CORKED_IO),true)
 endif
 
 .PHONY : all
-all: client_endpoints dynamic_record s_client s_server gnutls_cli gnutls_serv sslyze
+all: tls13 client_endpoints dynamic_record old_s_client s_client s_server gnutls_cli gnutls_serv sslyze
 
 tls13:
 	( \
@@ -45,7 +45,7 @@ client_endpoints:
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	S2N_INTEG_TEST=1 \
-	python3 s2n_client_endpoint_handshake_test.py $(S2ND_HOST) $(S2ND_PORT); \
+	python3 s2n_client_endpoint_handshake_test.py; \
 	)
 
 dynamic_record:
@@ -64,6 +64,15 @@ s_client:
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	S2N_INTEG_TEST=1 \
 	python3 s2n_handshake_test_s_client.py $(HANDSHAKE_TEST_PARAMS); \
+	)
+
+old_s_client:
+	( \
+	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	PATH=$(OPENSSL_0_9_8_INSTALL_DIR)/bin:$$PATH \
+	S2N_INTEG_TEST=1 \
+	python3 s2n_handshake_test_old_s_client.py $(HANDSHAKE_TEST_PARAMS); \
 	)
 
 s_server:

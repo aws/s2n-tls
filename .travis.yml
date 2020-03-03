@@ -13,11 +13,6 @@ jobs:
     dist: bionic
     env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=6 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
 
-  - os: linux
-    # coverage + fuzz flags don't work simultaneously on bionic
-    dist: trusty
-    env: S2N_LIBCRYPTO=openssl-1.1.1 LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=90 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
-
 # Normal Build Targets
   - os: linux
     dist: bionic
@@ -57,24 +52,6 @@ jobs:
     dist: bionic
     # Force S2N to use the generic C code for PQ crypto (instead of the optimized x86_64 assembly code)
     env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=9 S2N_NO_PQ_ASM=true
-
-# Fuzz Tests
-  - os: linux
-    dist: bionic
-    env: S2N_LIBCRYPTO=openssl-1.1.1 LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=90
-
-  - os: linux
-    dist: bionic
-    env: S2N_LIBCRYPTO=openssl-1.0.2-fips LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=90
-  
-# Formal Verification - Sidetrail
-  - os : linux
-    dist: trusty
-    env: TESTS=sidetrail PART=1
-
-  - os : linux
-    dist: trusty
-    env: TESTS=sidetrail PART=2
 
 before_install:
   - source .travis/s2n_setup_env.sh

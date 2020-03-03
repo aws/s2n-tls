@@ -1,0 +1,106 @@
+// sike_r2_defs.saw Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+
+///////////////////////////////////////////////////////////////////////////////
+// SIKE R2 definitions 
+
+let SIKE_REVISION = 2;
+
+
+///////////////////////////////////////////////////////////////////////////////
+// SIKE constants
+
+let RADIX = 64;
+let NBITS_FIELD = 434;
+let NBITS_ORDER = 256;
+let nwords_field = 7;
+
+let OALICE_BITS = 216;
+let OBOB_BITS  = 217;
+
+let MSG_BYTES = 16;
+
+let CRYPTO_BYTES = 16;
+
+let SHAKE128_RATE = 168;
+let SHAKE256_RATE = 136;
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Function names
+
+let clear_words_fun_name = "clear_words";
+let copy_words_fun_name = "copy_words";
+let digit_x_digit_fun_name = "digit_x_digit";
+let is_digit_lessthan_ct_fun_name = "is_digit_lessthan_ct";
+let is_digit_nonzero_ct_fun_name = "is_digit_nonzero_ct";
+let is_digit_zero_ct_fun_name = "is_digit_zero_ct";
+let mp_add_fun_name = "mp_add";
+let mp_sub_fun_name = "mp_sub";
+let mp_mul_fun_name = "mp_mul";
+let mp_shiftr1_fun_name = "mp_shiftr1";
+
+let fpzero_fun_name = "fpzero434";
+let fpcopy_fun_name = "fpcopy434";
+let fpcorrection_fun_name = "fpcorrection434";
+let fpneg_fun_name = "fpneg434";
+let fpadd_fun_name = "fpadd434";
+let fpsub_fun_name = "fpsub434";
+let fpdiv2_fun_name = "fpdiv2_434";
+let rdc_mont_fun_name = "rdc_mont";
+let fpmul_mont_fun_name = "fpmul434_mont";
+let fpsqr_mont_fun_name = "fpsqr434_mont";
+let fpinv_chain_mont_fun_name = "fpinv434_chain_mont";
+let fpinv_mont_fun_name = "fpinv434_mont";
+let to_mont_fun_name = "to_mont";
+let from_mont_fun_name = "from_mont";
+let fp2copy_fun_name = "fp2copy434";
+let fp2correction_fun_name = "fp2correction434";
+let fp2neg_fun_name = "fp2neg434";
+let fp2add_fun_name = "fp2add434";
+let fp2sub_fun_name = "fp2sub434";
+let fp2div2_fun_name = "fp2div2_434";
+let fp2mul_mont_fun_name = "fp2mul434_mont";
+let fp2sqr_mont_fun_name = "fp2sqr434_mont";
+let fp2inv_mont_fun_name = "fp2inv434_mont";
+let to_fp2mont_fun_name = "to_fp2mont";
+let from_fp2mont_fun_name = "from_fp2mont";
+let mp_addfast_fun_name = "mp_addfast";
+let mp_subaddfast_fun_name = "mp_subaddfast";
+let mp_dblsubfast_fun_name = "mp_dblsubfast";
+
+let xDBL_fun_name = "xDBL";
+let xDBLe_fun_name = "xDBLe";
+let xTPL_fun_name = "xTPL";
+let xTPLe_fun_name = "xTPLe";
+
+let get_3_isog_fun_name = "get_3_isog";
+let get_4_isog_fun_name = "get_4_isog";
+let eval_3_isog_fun_name = "eval_3_isog";
+let eval_4_isog_fun_name = "eval_4_isog";
+let get_A_fun_name = "get_A";
+let inv_3_way_fun_name = "inv_3_way";
+let j_inv_fun_name = "j_inv";
+let xDBLADD_fun_name = "xDBLADD";
+let swap_points_fun_name = "swap_points";
+let LADDER3PT_fun_name = "LADDER3PT";
+
+let random_mod_order_B_fun_name = "oqs_kem_sidh_p434_random_mod_order_B";
+let init_basis_fun_name = "init_basis";
+let fp2_decode_fun_name = "fp2_decode";
+let fp2_encode_fun_name = "fp2_encode";
+let EphemeralKeyGeneration_A_fun_name = "oqs_kem_sidh_p434_EphemeralKeyGeneration_A";
+let EphemeralKeyGeneration_B_fun_name = "oqs_kem_sidh_p434_EphemeralKeyGeneration_B";
+let EphemeralSecretAgreement_A_fun_name = "oqs_kem_sidh_p434_EphemeralSecretAgreement_A";
+let EphemeralSecretAgreement_B_fun_name = "oqs_kem_sidh_p434_EphemeralSecretAgreement_B";
+
+let load64_fun_name = "load64";
+let store64_fun_name = "store64";
+let KeccakF1600_StatePermute_fun_name = "KeccakF1600_StatePermute";
+let shake256_fun_name = "shake256";
+
+let SIKE_crypto_kem_keypair_fun_name = "SIKE_P434_r2_crypto_kem_keypair";
+let SIKE_crypto_kem_enc_fun_name = "SIKE_P434_r2_crypto_kem_enc";
+let SIKE_crypto_kem_dec_fun_name = "SIKE_P434_r2_crypto_kem_dec";
+

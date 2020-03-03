@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
+#include "utils/s2n_bitmap.h"
 #include "stuffer/s2n_stuffer.h"
 
 #include "tls/s2n_tls.h"
@@ -26,6 +27,9 @@ static int s2n_get_number_certs_in_chain(struct s2n_cert *head, uint8_t *chain_l
 
 int s2n_certificate_extensions_parse(struct s2n_connection *conn, struct s2n_blob *extensions)
 {
+    static __thread char parsed_extensions_mask[8192];
+    memset(parsed_extensions_mask, 0, 8192);
+
     struct s2n_stuffer extensions_in = {0};
     GUARD(s2n_stuffer_init(&extensions_in, extensions));
     GUARD(s2n_stuffer_write(&extensions_in, extensions));
@@ -38,6 +42,10 @@ int s2n_certificate_extensions_parse(struct s2n_connection *conn, struct s2n_blo
         S2N_ERROR_IF(s2n_stuffer_data_available(&extensions_in) < 4, S2N_ERR_BAD_MESSAGE);
         GUARD(s2n_stuffer_read_uint16(&extensions_in, &extension_type));
         GUARD(s2n_stuffer_read_uint16(&extensions_in, &extension_size));
+
+        /* Each extension should only be sent once per certificate extensions block */
+        S2N_ERROR_IF(S2N_CBIT_TEST(parsed_extensions_mask, extension_type), S2N_ERR_BAD_MESSAGE);
+        S2N_CBIT_SET(parsed_extensions_mask, extension_type);
 
         S2N_ERROR_IF(extension_size > s2n_stuffer_data_available(&extensions_in), S2N_ERR_BAD_MESSAGE);
         ext.size = extension_size;

@@ -1,0 +1,213 @@
+////////////////////////////////////////////////////////////////
+// Copyright 2020 Galois, Inc. All Rights Reserved
+//
+// Authors:
+//      Aaron Tomb : atomb@galois.com
+//	Nathan Collins : conathan@galois.com
+//      Joey Dodds : jdodds@galois.com
+//
+// Licensed under the Apache License, Version 2.0 (the "License").
+// You may not use this file except in compliance with the License.
+// A copy of the License is located at
+//
+//  http://aws.amazon.com/apache2.0
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+//
+////////////////////////////////////////////////////////////////
+
+include "HMAC/spec/HMAC.saw";
+
+m <- llvm_load_module "bitcode/all_llvm.bc";
+
+// Verifies s2n_hmac_init at 3 key sizes in the given config
+let verify_s2n_hmac_init
+  (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) = do {
+  set_base 16;
+  
+  print "";
+  print (str_concat "Verifying HMAC init: alg = " cfg.name);
+  
+  print "Creating hash overrides...";
+  (t, hash_init_ov)  <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_init" hash_init_spec);
+  (t, hmac_digest_size_ov) <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hmac_digest_size" (hmac_digest_size_spec cfg));
+  (t, hash_copy_ov) <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_copy" hash_copy_spec);
+  (t, hash_reset_ov) <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_reset" hash_reset_spec);
+  (t, hash_get_currently_in_hash_total_ov) <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_get_currently_in_hash_total" (hash_get_currently_in_hash_total_spec));
+  (t, hash_update_block_size_ov)  <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_update" (hash_update_spec cfg.block_size));
+  (t, hash_digest_ov) <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_digest" (hash_digest_spec (cfg.digest_size)));
+  print "Done";
+  
+  let ovs =
+    [ hash_init_ov
+    , hmac_digest_size_ov
+    , hash_copy_ov
+    , hash_reset_ov
+    , hash_get_currently_in_hash_total_ov
+    , hash_update_block_size_ov
+    , hash_digest_ov
+    ];
+  let block_size = cfg.block_size;
+  
+  // We do verification at the block size, less than the blocksize and greater
+  // than the blocksize, because these cover distinct code paths
+  for [ eval_size {| block_size - 1 |},
+        block_size
+      , eval_size {| block_size + 1 |}] 
+        (\key_size -> do{
+          print "";
+          print (str_concat "Proving s2n_hmac_init: key_size=" (show key_size));
+          // We do this override here because it is key-size specific, the
+          // ones above are agnostic
+          (t, hash_update_key_size_ov) <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_update" (hash_update_spec key_size));
+          with_time (crucible_llvm_verify m "s2n_hmac_init" (concat ovs [hash_update_key_size_ov]) false (hmac_init_spec key_size cfg) yices_hash_unint);
+        });
+        
+  print "Finished proving s2n_hmac_init";
+};
+
+// Verifies s2n_hmac_update at the given message sizes and config
+let verify_s2n_hmac_update
+  (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             })
+  message_sizes = do {
+  set_base 16;
+  
+  print "";
+  print (str_concat "Verifying HMAC update: alg = " cfg.name);
+  
+  for message_sizes 
+        (\message_size -> do{
+          print "";
+          print (str_concat "Proving s2n_hmac_update: message_size=" (show message_size));
+          (t, hash_update_msg_size_ov) <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_update" (hash_update_spec message_size));
+          with_time (crucible_llvm_verify m "s2n_hmac_update" [hash_update_msg_size_ov] false (hmac_update_spec message_size cfg) yices_hash_unint);
+        });
+        
+  print "Finished proving s2n_hmac_update";
+};
+
+// Verifies s2n_hmac_digest
+let verify_s2n_hmac_digest
+  (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) = do {
+  set_base 16;
+  
+  print "";
+  print (str_concat "Verifying HMAC digest: alg = " cfg.name);
+  
+  print "Creating hash overrides...";
+  (t, hash_copy_ov) <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_copy" hash_copy_spec);
+  (t, hash_update_block_size_ov)  <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_update" (hash_update_spec cfg.digest_size));
+  (t, hash_digest_ov) <- with_time (crucible_llvm_unsafe_assume_spec m "s2n_hash_digest" (hash_digest_spec (cfg.digest_size)));
+  print "Done";
+  
+  let ovs =
+    [ hash_copy_ov
+    , hash_update_block_size_ov
+    , hash_digest_ov
+    ];
+  
+  (t, hmac_digest_ov) <-
+    with_time (crucible_llvm_verify m "s2n_hmac_digest" ovs false (hmac_digest_spec cfg) yices_hash_unint);
+        
+  print "Finished proving s2n_hmac_digest";
+};
+
+let none_cfg =
+  { name            = "NONE"
+  , hmac_alg        = {{ S2N_HMAC_NONE }}
+  , digest_size     = 0
+  , block_size      = 64
+  , hash_block_size = 64
+  };
+
+// let sslv3_md5_cfg = <not supported>
+
+let md5_cfg =
+  { name            = "MD5"
+  , hmac_alg        = {{ S2N_HMAC_MD5 }}
+  , digest_size     = 16
+  , block_size      = 64
+  , hash_block_size = 64
+  };
+
+// let sslv3_sha1_cfg = <not supported>
+
+let sha1_cfg =
+  { name            = "SHA1"
+  , hmac_alg        = {{ S2N_HMAC_SHA1 }}
+  , digest_size     = 20
+  , block_size      = 64
+  , hash_block_size = 64
+  };
+
+let sha224_cfg =
+  { name            = "SHA224"
+  , hmac_alg        = {{ S2N_HMAC_SHA224 }}
+  , digest_size     = 28
+  , block_size      = 64
+  , hash_block_size = 64
+  };
+
+let sha256_cfg =
+  { name            = "SHA256"
+  , hmac_alg        = {{ S2N_HMAC_SHA256 }}
+  , digest_size     = 32
+  , block_size      = 64
+  , hash_block_size = 64
+  };
+
+let sha384_cfg =
+  { name            = "SHA384"
+  , hmac_alg        = {{ S2N_HMAC_SHA384 }}
+  , digest_size     = 48
+  , block_size      = 128
+  , hash_block_size = 128
+  };
+
+let sha512_cfg =
+  { name            = "SHA512"
+  , hmac_alg        = {{ S2N_HMAC_SHA512 }}
+  , digest_size     = 64
+  , block_size      = 128
+  , hash_block_size = 128
+  };
+
+let verify_s2n_hmac_at_several_key_and_msg_sizes
+      (cfg : { name            : String
+             , hmac_alg        : Term
+             , digest_size     : Int
+             , block_size      : Int
+             , hash_block_size : Int
+             }) msg_sizes = do {
+  let block_size = cfg.block_size;
+  verify_s2n_hmac_init cfg;
+  verify_s2n_hmac_update cfg msg_sizes;
+  verify_s2n_hmac_digest cfg;
+};
+
+let verify_s2n_hmac = do {
+  let configs = [md5_cfg, sha1_cfg, sha224_cfg, sha256_cfg, sha384_cfg, sha512_cfg];
+  let sizes = [1,10,100,200,300,400];
+  
+  for configs (\config -> verify_s2n_hmac_at_several_key_and_msg_sizes config sizes);
+};
+
+verify_s2n_hmac;

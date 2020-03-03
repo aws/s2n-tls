@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -35,10 +35,15 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    struct s2n_cert_chain_and_key *chain_and_key;
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
     /* s2n_server_extensions_send */
     {
         struct s2n_config *config;
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         /* Test Server Extensions Send - No extensions */
         {
@@ -261,7 +266,7 @@ int main(int argc, char **argv)
             /* Test that s2n_server_extensions_send() only works when protocol version is TLS13 */
             conn->client_protocol_version = S2N_TLS13;
             conn->actual_protocol_version = S2N_TLS13;
-            EXPECT_SUCCESS(s2n_set_cipher_and_cert_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
+            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
 
             /* key_share_send() requires a negotiated_curve */
             conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
@@ -291,6 +296,8 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_free(config));
     }
+
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
     END_TEST();
     return 0;

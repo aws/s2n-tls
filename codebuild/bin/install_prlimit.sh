@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ fi
 
 BUILD_DIR=$1
 INSTALL_DIR=$2
-NUM_CORES=$(nproc)
+source codebuild/bin/jobs.sh
 
 sudo apt-get install -y libncurses5-dev
 
@@ -52,5 +52,5 @@ cd util-linux-2.25.2
     --without-ncurses \
     --prefix="$INSTALL_DIR" || cat config.log
 
-make -j "$NUM_CORES" > /dev/null
-make install > /dev/null
+make -j $JOBS > /dev/null
+make -j $JOBS install > /dev/null

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -13,12 +13,14 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_recv_client_supported_groups s2n_ecc_evp_find_supported_curve */
+
 #include <stdint.h>
 
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 
-#include "tls/extensions/s2n_client_supported_groups.c"
+#include "tls/extensions/s2n_client_supported_groups.h"
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"

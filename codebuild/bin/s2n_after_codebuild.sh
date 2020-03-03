@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -17,5 +17,10 @@ set -ex
 
 # Upload Code Coverage Information to CodeCov.io
 if [[ -n "$CODECOV_IO_UPLOAD" ]]; then
-    bash <(curl -s https://codecov.io/bash) -F ${TESTS};
+    if [[ -n "$FUZZ_COVERAGE" ]]; then
+        bash <(curl -s https://codecov.io/bash) -f coverage/fuzz/codecov.txt
+    else
+        bash <(curl -s https://codecov.io/bash) -F ${TESTS};
+    fi
 fi
+

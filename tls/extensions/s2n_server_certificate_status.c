@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 
 int s2n_server_certificate_status_parse(struct s2n_connection *conn, struct s2n_blob *status)
 {
-    GUARD(s2n_alloc(&conn->status_response, status->size));
+    GUARD(s2n_realloc(&conn->status_response, status->size));
     memcpy_check(conn->status_response.data, status->data, status->size);
     conn->status_response.size = status->size;
 

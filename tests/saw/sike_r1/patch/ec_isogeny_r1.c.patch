@@ -1,7 +1,4 @@
-306a307,308
-> extern void __breakpoint__LADDER3PT_main_loop(point_proj**, const digit_t**, point_proj_t*, point_proj_t*, f2elm_t**, digit_t*, int*, int*, int*, int*, int*) __attribute__((noduplicate));
-> 
-338c340
-<     for (i = 0; i < nbits; i++) {
+339c339
+<         bit = (m[i >> LOG2RADIX] >> (i & (RADIX-1))) & 1;
 ---
->     for (i = 0; __breakpoint__LADDER3PT_main_loop(&R, &m, &R0, &R2, &A24, &mask, &i, &nbits, &bit, &swap, &prevbit), i < nbits; i++) {
+>         bit = (((const unsigned char *) m)[i >> 3] >> (i & 7)) & 1;

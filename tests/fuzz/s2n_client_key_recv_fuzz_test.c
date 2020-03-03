@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -13,6 +13,11 @@
  * permissions and limitations under the License.
  */
 
+/* Target Functions: s2n_client_key_recv s2n_kex_client_key_recv calculate_keys
+                     s2n_hybrid_client_action s2n_kex_tls_prf s2n_prf_key_expansion
+                     s2n_rsa_client_key_recv s2n_dhe_client_key_recv
+                     s2n_ecdhe_client_key_recv s2n_kem_client_key_recv */
+
 #include <stdint.h>
 
 #include <openssl/crypto.h>
@@ -24,6 +29,7 @@
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"

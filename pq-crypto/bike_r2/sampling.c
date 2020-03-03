@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -82,7 +82,7 @@ sample_uniform_r_bits_with_fixed_prf_context(OUT r_t *r,
 }
 
 _INLINE_ int
-is_new(IN idx_t wlist[], IN const uint32_t ctr)
+is_new(IN const idx_t wlist[], IN const uint32_t ctr)
 {
   for(uint32_t i = 0; i < ctr; i++)
   {

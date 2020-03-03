@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -212,8 +212,8 @@ int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *ke
 
     uint8_t index = ((const uint8_t *)key)[0];
 
-    S2N_ERROR_IF(cache[index].key_len != key_size, S2N_ERR_INVALID_ARGUMENT);
-    S2N_ERROR_IF(memcmp(cache[index].key, key, key_size), S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(cache[index].key_len != 0 && cache[index].key_len != key_size, S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(cache[index].key_len != 0 && memcmp(cache[index].key, key, key_size), S2N_ERR_INVALID_ARGUMENT);
 
     cache[index].key_len = 0;
     cache[index].value_len = 0;
@@ -342,17 +342,18 @@ void usage()
 
 
 struct conn_settings {
-    int mutual_auth;
-    int self_service_blinding;
-    int only_negotiate;
-    int prefer_throughput;
-    int prefer_low_latency;
-    int enable_mfl;
-    int session_ticket;
+    unsigned mutual_auth:1;
+    unsigned self_service_blinding:1;
+    unsigned only_negotiate:1;
+    unsigned prefer_throughput:1;
+    unsigned prefer_low_latency:1;
+    unsigned enable_mfl:1;
+    unsigned session_ticket:1;
+    unsigned session_cache:1;
+    unsigned insecure:1;
+    unsigned use_corked_io:1;
     const char *ca_dir;
     const char *ca_file;
-    int insecure;
-    int use_corked_io;
 };
 
 int handle_connection(int fd, struct s2n_config *config, struct conn_settings settings)
@@ -445,6 +446,7 @@ int main(int argc, char *const *argv)
     int parallelize = 0;
     int use_tls13 = 0;
     conn_settings.session_ticket = 1;
+    conn_settings.session_cache = 1;
 
     struct option long_options[] = {
         {"ciphers", required_argument, NULL, 'c'},
@@ -713,7 +715,13 @@ int main(int argc, char *const *argv)
 
     if (conn_settings.session_ticket) {
         GUARD_EXIT(s2n_config_set_session_tickets_onoff(config, 1), "Error enabling session tickets");
+    }
 
+    if (conn_settings.session_cache) {
+        GUARD_EXIT(s2n_config_set_session_cache_onoff(config, 1), "Error enabling session cache using id");
+    }
+
+    if (conn_settings.session_ticket || conn_settings.session_cache) {
         /* Key initialization */
         uint8_t *st_key;
         uint32_t st_key_length;
@@ -736,7 +744,7 @@ int main(int argc, char *const *argv)
             st_key_length = sizeof(default_ticket_key);
         }
 
-        if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name), st_key, st_key_length, 0) != 0) {
+        if (s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char*)ticket_key_name), st_key, st_key_length, 0) != 0) {
             fprintf(stderr, "Error adding ticket key: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             exit(1);
         }

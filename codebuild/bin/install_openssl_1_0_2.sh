@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ fi
 BUILD_DIR=$1
 INSTALL_DIR=$2
 OS_NAME=$3
+source codebuild/bin/jobs.sh
 
 cd "$BUILD_DIR"
 curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_1_0_2-stable.zip --output openssl-OpenSSL_1_0_2-stable.zip
@@ -48,9 +49,9 @@ $CONFIGURE -g3 -fPIC no-libunbound no-gmp no-jpake no-krb5 no-md2 no-rc5 no-rfc3
          no-dsa no-ssl2 no-capieng -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS \
          --prefix="$INSTALL_DIR"
 
-make depend
-make
-make install_sw
+make -j $JOBS depend
+make -j $JOBS
+make -j $JOBS install_sw
 
 popd
 

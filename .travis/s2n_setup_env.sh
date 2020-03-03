@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@
 : "${LIBFUZZER_INSTALL_DIR:=$(pwd)/test-deps/libfuzzer}"
 : "${LATEST_CLANG_INSTALL_DIR:=$(pwd)/test-deps/clang}"
 : "${SCAN_BUILD_INSTALL_DIR:=$(pwd)/test-deps/scan-build}"
+: "${OPENSSL_0_9_8_INSTALL_DIR:=$(pwd)/test-deps/openssl-0.9.8}"
 : "${OPENSSL_1_1_1_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.1.1}"
 : "${OPENSSL_1_0_2_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.0.2}"
 : "${OPENSSL_1_0_2_FIPS_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.0.2-fips}"
@@ -65,6 +66,7 @@ export Z3_INSTALL_DIR
 export LIBFUZZER_INSTALL_DIR
 export LATEST_CLANG_INSTALL_DIR
 export SCAN_BUILD_INSTALL_DIR
+export OPENSSL_0_9_8_INSTALL_DIR
 export OPENSSL_1_1_1_INSTALL_DIR
 export OPENSSL_1_0_2_INSTALL_DIR
 export OPENSSL_1_0_2_FIPS_INSTALL_DIR

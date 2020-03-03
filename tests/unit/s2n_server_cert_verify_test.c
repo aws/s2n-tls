@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "error/s2n_errno.h"
@@ -27,21 +28,37 @@
 uint8_t hello[] = "Hello, World!\n";
 uint8_t goodbye[] = "Goodbye, World!\n";
 
-int main(int argc, char **argv)
-{
-    BEGIN_TEST();
+struct s2n_server_cert_verify_test {
+    const char * const cert_file;
+    const char * const key_file;
+    const struct s2n_signature_scheme *sig_scheme;
+};
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
+const struct s2n_server_cert_verify_test test_cases[] = {
+        { .cert_file = S2N_ECDSA_P384_PKCS1_CERT_CHAIN, .key_file = S2N_ECDSA_P384_PKCS1_KEY,
+          .sig_scheme = &s2n_ecdsa_secp256r1_sha256 },
+#if RSA_PSS_SUPPORTED
+        { .cert_file = S2N_RSA_PSS_2048_SHA256_LEAF_CERT, .key_file = S2N_RSA_PSS_2048_SHA256_LEAF_KEY,
+          .sig_scheme = &s2n_rsa_pss_pss_sha256 },
+#endif
+};
+
+int run_tests(const struct s2n_server_cert_verify_test *test_case)
+{
+    const char *cert_file = test_case->cert_file;
+    const char *key_file = test_case->key_file;
+    struct s2n_signature_scheme sig_scheme = *test_case->sig_scheme;
 
     struct s2n_config *config;
     EXPECT_NOT_NULL(config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_signature_preferences(config, "20200207"));
 
     /* Successfully send and receive certificate verify */
     {
         /* Derive private/public keys and set connection variables */
         struct s2n_stuffer certificate_in, certificate_out;
         struct s2n_blob b;
-        struct s2n_cert_chain_and_key *ecdsa_cert;
+        struct s2n_cert_chain_and_key *cert_chain;
         char *cert_chain_pem;
         char *private_key_pem;
         s2n_pkey_type pkey_type;
@@ -52,18 +69,20 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(ecdsa_cert = s2n_cert_chain_and_key_new());
+        EXPECT_NOT_NULL(cert_chain = s2n_cert_chain_and_key_new());
         EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(ecdsa_cert, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_read_test_pem(cert_file, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(key_file, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(cert_chain, cert_chain_pem, private_key_pem));
 
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
-        server_conn->handshake_params.our_chain_and_key = ecdsa_cert;
-        server_conn->secure.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
+        server_conn->handshake_params.our_chain_and_key = cert_chain;
+        server_conn->secure.conn_sig_scheme = sig_scheme;
         server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         b.data = (uint8_t *) cert_chain_pem;
@@ -89,7 +108,7 @@ int main(int argc, char **argv)
 
         /* Receive and verify cert */
         EXPECT_SUCCESS(s2n_server_cert_verify_recv(client_conn));
-        EXPECT_EQUAL(client_conn->secure.conn_sig_scheme.iana_value, TLS_SIGNATURE_SCHEME_ECDSA_SHA256);
+        EXPECT_EQUAL(client_conn->secure.conn_sig_scheme.iana_value, sig_scheme.iana_value);
 
         /* Repeat the above test succesfully */
         EXPECT_SUCCESS(s2n_server_cert_verify_send(server_conn));
@@ -105,7 +124,7 @@ int main(int argc, char **argv)
         /* Clean up */
         free(cert_chain_pem);
         free(private_key_pem);
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_chain));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -117,7 +136,7 @@ int main(int argc, char **argv)
         /* Derive private/public keys and set connection variables */
         struct s2n_stuffer certificate_in, certificate_out;
         struct s2n_blob b;
-        struct s2n_cert_chain_and_key *ecdsa_cert;
+        struct s2n_cert_chain_and_key *cert_chain;
         char *cert_chain_pem;
         char *private_key_pem;
         uint64_t bytes_in_hash;
@@ -125,19 +144,19 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(ecdsa_cert = s2n_cert_chain_and_key_new());
+        EXPECT_NOT_NULL(cert_chain = s2n_cert_chain_and_key_new());
         EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(ecdsa_cert, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_read_test_pem(cert_file, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(key_file, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(cert_chain, cert_chain_pem, private_key_pem));
 
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-        client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
-        client_conn->secure.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
+        client_conn->handshake_params.our_chain_and_key = cert_chain;
+        client_conn->secure.conn_sig_scheme = sig_scheme;
         client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         b.data = (uint8_t *) cert_chain_pem;
@@ -172,7 +191,7 @@ int main(int argc, char **argv)
         free(cert_chain_pem);
         free(private_key_pem);
         EXPECT_SUCCESS(s2n_pkey_free(&client_conn->secure.server_public_key));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_chain));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
@@ -182,26 +201,26 @@ int main(int argc, char **argv)
     {
         struct s2n_stuffer certificate_in, certificate_out;
         struct s2n_blob b;
-        struct s2n_cert_chain_and_key *ecdsa_cert;
+        struct s2n_cert_chain_and_key *cert_chain;
         char *cert_chain_pem;
         char *private_key_pem;
         s2n_pkey_type pkey_type;
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(ecdsa_cert = s2n_cert_chain_and_key_new());
+        EXPECT_NOT_NULL(cert_chain = s2n_cert_chain_and_key_new());
         EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(ecdsa_cert, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_read_test_pem(cert_file, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(key_file, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(cert_chain, cert_chain_pem, private_key_pem));
 
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-        client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
-        client_conn->secure.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
+        client_conn->handshake_params.our_chain_and_key = cert_chain;
+        client_conn->secure.conn_sig_scheme = sig_scheme;
         client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         b.data = (uint8_t *) cert_chain_pem;
@@ -232,7 +251,7 @@ int main(int argc, char **argv)
         free(cert_chain_pem);
         free(private_key_pem);
         EXPECT_SUCCESS(s2n_pkey_free(&client_conn->secure.server_public_key));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_chain));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
@@ -243,26 +262,26 @@ int main(int argc, char **argv)
         /* Derive private/public keys and set connection variables */
         struct s2n_stuffer certificate_in, certificate_out;
         struct s2n_blob b;
-        struct s2n_cert_chain_and_key *ecdsa_cert;
+        struct s2n_cert_chain_and_key *cert_chain;
         char *cert_chain_pem;
         char *private_key_pem;
         s2n_pkey_type pkey_type;
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(ecdsa_cert = s2n_cert_chain_and_key_new());
+        EXPECT_NOT_NULL(cert_chain = s2n_cert_chain_and_key_new());
         EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(ecdsa_cert, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_read_test_pem(cert_file, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(key_file, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(cert_chain, cert_chain_pem, private_key_pem));
 
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-        client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
-        client_conn->secure.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
+        client_conn->handshake_params.our_chain_and_key = cert_chain;
+        client_conn->secure.conn_sig_scheme = sig_scheme;
         client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         b.data = (uint8_t *) cert_chain_pem;
@@ -292,7 +311,7 @@ int main(int argc, char **argv)
 
         /* send and receive with mismatched signature algs */
         client_conn->secure.conn_sig_scheme.hash_alg = S2N_HASH_SHA256;
-        client_conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_ANONYMOUS;
+        client_conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
         client_conn->secure.conn_sig_scheme.iana_value = 0xFFFF;
 
         EXPECT_SUCCESS(s2n_hash_init(&client_conn->handshake.sha256, S2N_HASH_SHA256));
@@ -309,13 +328,26 @@ int main(int argc, char **argv)
         free(cert_chain_pem);
         free(private_key_pem);
         EXPECT_SUCCESS(s2n_pkey_free(&client_conn->secure.server_public_key));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_chain));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
     EXPECT_SUCCESS(s2n_config_free(config));
+
+    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    BEGIN_TEST();
+
+    EXPECT_SUCCESS(s2n_enable_tls13());
+
+    for (int i = 0; i < sizeof(test_cases) / sizeof(struct s2n_server_cert_verify_test); i++) {
+        run_tests(&test_cases[i]);
+    }
 
     END_TEST();
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -98,6 +98,9 @@ struct s2n_connection {
      */
     unsigned server_name_used:1;
 
+    /* If write fd is broken */
+    unsigned write_fd_broken:1;
+    
     /* Is this connection a client or a server connection */
     s2n_mode mode;
 
@@ -281,6 +284,9 @@ struct s2n_connection {
 
     /* application protocols overridden */
     struct s2n_blob application_protocols_overridden;
+
+    /* Cookie extension data */
+    struct s2n_stuffer cookie_stuffer;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);

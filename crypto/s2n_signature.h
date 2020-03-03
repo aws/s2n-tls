@@ -1,4 +1,4 @@
-/* Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+/* Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -16,10 +16,11 @@
 
 #include "tls/s2n_tls_parameters.h"
 
+#define sig_alg_check(a, b)  do { if ( (a) != (b) ) { S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM); } } while(0)
+
 typedef enum {
     S2N_SIGNATURE_ANONYMOUS = TLS_SIGNATURE_ALGORITHM_ANONYMOUS,
     S2N_SIGNATURE_RSA = TLS_SIGNATURE_ALGORITHM_RSA,
-    S2N_SIGNATURE_DSA = TLS_SIGNATURE_ALGORITHM_DSA,
     S2N_SIGNATURE_ECDSA = TLS_SIGNATURE_ALGORITHM_ECDSA,
 
     /* Use Private Range for RSA PSS */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -361,7 +361,7 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
     conn->prf_space.tls.p_hash_hmac_impl = s2n_is_in_fips_mode() ? &s2n_evp_hmac : &s2n_hmac;
 
     if (conn->actual_protocol_version == S2N_TLS12) {
-        return s2n_p_hash(&conn->prf_space, conn->secure.cipher_suite->tls12_prf_alg, secret, label, seed_a, seed_b,
+        return s2n_p_hash(&conn->prf_space, conn->secure.cipher_suite->prf_alg, secret, label, seed_a, seed_b,
                           seed_c, out);
     }
 
@@ -479,7 +479,7 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
     master_secret.data = conn->secure.master_secret;
     master_secret.size = sizeof(conn->secure.master_secret);
     if (conn->actual_protocol_version == S2N_TLS12) {
-        switch (conn->secure.cipher_suite->tls12_prf_alg) {
+        switch (conn->secure.cipher_suite->prf_alg) {
         case S2N_HMAC_SHA256:
             GUARD(s2n_hash_copy(&conn->handshake.prf_tls12_hash_copy, &conn->handshake.sha256));
             GUARD(s2n_hash_digest(&conn->handshake.prf_tls12_hash_copy, sha_digest, SHA256_DIGEST_LENGTH));
@@ -532,7 +532,7 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     master_secret.data = conn->secure.master_secret;
     master_secret.size = sizeof(conn->secure.master_secret);
     if (conn->actual_protocol_version == S2N_TLS12) {
-        switch (conn->secure.cipher_suite->tls12_prf_alg) {
+        switch (conn->secure.cipher_suite->prf_alg) {
         case S2N_HMAC_SHA256:
             GUARD(s2n_hash_copy(&conn->handshake.prf_tls12_hash_copy, &conn->handshake.sha256));
             GUARD(s2n_hash_digest(&conn->handshake.prf_tls12_hash_copy, sha_digest, SHA256_DIGEST_LENGTH));
@@ -607,8 +607,7 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
 
     label.data = key_expansion_label;
     label.size = sizeof(key_expansion_label) - 1;
-    out.data = key_block;
-    out.size = sizeof(key_block);
+    GUARD(s2n_blob_init(&out, key_block, sizeof(key_block)));
 
     struct s2n_stuffer key_material = {0};
     GUARD(s2n_prf(conn, &master_secret, &label, &server_random, &client_random, NULL, &out));

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -181,16 +181,11 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         GUARD(s2n_prf_key_expansion(conn));
     }
 
-    /* We've selected the cipher, update the required hashes for this connection */
-    GUARD(s2n_conn_update_required_handshake_hashes(conn));
+    /* Choose a default signature scheme */
+    GUARD(s2n_choose_default_sig_scheme(conn, &conn->secure.conn_sig_scheme));
 
-    /* Default our signature digest algorithm to SHA1. Will be used when verifying a client certificate. */
-    conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha1;
-    if (conn->actual_protocol_version < S2N_TLS12 && !s2n_is_in_fips_mode()
-            && conn->secure.cipher_suite->auth_method == S2N_AUTHENTICATION_RSA) {
-        /* TLS prior to 1.2 defaults to MD5 SHA1 hash if authentication is RSA */
-        conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_md5_sha1;
-    }
+    /* Update the required hashes for this connection */
+    GUARD(s2n_conn_update_required_handshake_hashes(conn));
 
     return 0;
 }
@@ -199,11 +194,10 @@ int s2n_server_hello_send(struct s2n_connection *conn)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_stuffer server_random = {0};
-    struct s2n_blob b, rand_data;
+    struct s2n_blob b, rand_data = {0};
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
-    b.data = conn->secure.server_random;
-    b.size = S2N_TLS_RANDOM_DATA_LEN;
+    s2n_blob_init(&b, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN);
 
     /* Create the server random data */
     GUARD(s2n_stuffer_init(&server_random, &b));

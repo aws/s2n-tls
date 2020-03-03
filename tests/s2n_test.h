@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 
+int test_count;
+
 /* Macro definitions for calls that occur within BEGIN_TEST() and END_TEST() to preserve the SKIPPED test behavior
  * by ignoring the test_count, keeping it as 0 to indicate that a test was skipped. */
 #define EXPECT_TRUE_WITHOUT_COUNT( condition )    do { if ( !(condition) ) { FAIL_MSG( #condition " is not true "); } } while(0)
@@ -40,8 +42,8 @@
  */
 #ifdef S2N_TEST_IN_FIPS_MODE
 #define BEGIN_TEST()						\
-  int test_count = 0;						\
   do {								\
+    test_count = 0; \
     EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));	\
     EXPECT_NOT_EQUAL_WITHOUT_COUNT(FIPS_mode_set(1), 0);	\
     EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());			\
@@ -49,7 +51,8 @@
   } while(0)
 #else
 #define BEGIN_TEST()						\
-  int test_count = 0; do {					\
+  do {					\
+    test_count = 0; \
     EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));	\
     EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());			\
     fprintf(stdout, "Running %-50s ... ", __FILE__);		\
@@ -137,6 +140,7 @@
 #define EXPECT_BYTEARRAY_NOT_EQUAL( p1, p2, l ) EXPECT_NOT_EQUAL( memcmp( (p1), (p2), (l) ), 0 )
 
 #define EXPECT_STRING_EQUAL( p1, p2 ) EXPECT_EQUAL( strcmp( (p1), (p2) ), 0 )
+#define EXPECT_STRING_NOT_EQUAL( p1, p2 ) EXPECT_NOT_EQUAL( strcmp( (p1), (p2) ), 0 )
 
 #define S2N_TEST_ENTER_FIPS_MODE()    { if (FIPS_mode_set(1) == 0) { \
                                             unsigned long fips_rc = ERR_get_error(); \

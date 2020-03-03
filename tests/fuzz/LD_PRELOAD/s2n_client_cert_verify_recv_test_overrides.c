@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -25,12 +25,14 @@
 
 
 
-int s2n_pkey_verify(const struct s2n_pkey *key, struct s2n_hash_state *digest, struct s2n_blob *signature){
+int s2n_pkey_verify(const struct s2n_pkey *key, s2n_signature_algorithm sig_alg,
+        struct s2n_hash_state *digest, struct s2n_blob *signature){
 
-    typedef int (*orig_s2n_pkey_verify_func_type)(const struct s2n_pkey *key, struct s2n_hash_state *digest, struct s2n_blob *signature);
+    typedef int (*orig_s2n_pkey_verify_func_type)(const struct s2n_pkey *key, s2n_signature_algorithm sig_alg,
+            struct s2n_hash_state *digest, struct s2n_blob *signature);
     orig_s2n_pkey_verify_func_type orig_s2n_pkey_verify;
     orig_s2n_pkey_verify = (orig_s2n_pkey_verify_func_type) dlsym(RTLD_NEXT, "s2n_pkey_verify");
-    orig_s2n_pkey_verify(key, digest, signature);
+    orig_s2n_pkey_verify(key, sig_alg, digest, signature);
 
     /* Always assume that pkey_verify passes */
     return 0;

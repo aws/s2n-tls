@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ set -ex
 python3 -m pip install --user --upgrade pip setuptools
 python3 -m pip install --user sslyze
 
-ln -s /root/.local/bin/sslyze /usr/bin/sslyze || true
+sudo ln -s /root/.local/bin/sslyze /usr/bin/sslyze || true
 
 which sslyze
-sslyze --version 
+sslyze --version

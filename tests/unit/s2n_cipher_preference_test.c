@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -28,36 +28,69 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("default", &preferences));
         EXPECT_TRUE(s2n_ecc_extension_required(preferences));
         EXPECT_FALSE(s2n_pq_kem_extension_required(preferences));
+        EXPECT_EQUAL(0, preferences->kem_count);
+        EXPECT_NULL(preferences->kems);
 
         preferences = NULL;
         EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("default_tls13", &preferences));
         EXPECT_TRUE(s2n_ecc_extension_required(preferences));
         EXPECT_FALSE(s2n_pq_kem_extension_required(preferences));
+        EXPECT_EQUAL(0, preferences->kem_count);
+        EXPECT_NULL(preferences->kems);
 
         preferences = NULL;
         EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("test_all", &preferences));
         EXPECT_TRUE(s2n_ecc_extension_required(preferences));
         EXPECT_TRUE(s2n_pq_kem_extension_required(preferences));
+        EXPECT_EQUAL(4, preferences->kem_count);
+        EXPECT_NOT_NULL(preferences->kems);
+        EXPECT_EQUAL(preferences->kems, pq_kems_r2r1);
 
         preferences = NULL;
         EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("KMS-TLS-1-0-2018-10", &preferences));
         EXPECT_TRUE(s2n_ecc_extension_required(preferences));
         EXPECT_FALSE(s2n_pq_kem_extension_required(preferences));
+        EXPECT_EQUAL(0, preferences->kem_count);
+        EXPECT_NULL(preferences->kems);
 
         preferences = NULL;
         EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("KMS-PQ-TLS-1-0-2019-06", &preferences));
         EXPECT_TRUE(s2n_ecc_extension_required(preferences));
         EXPECT_TRUE(s2n_pq_kem_extension_required(preferences));
+        EXPECT_EQUAL(2, preferences->kem_count);
+        EXPECT_NOT_NULL(preferences->kems);
+        EXPECT_EQUAL(preferences->kems, pq_kems_r1);
 
         preferences = NULL;
         EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("PQ-SIKE-TEST-TLS-1-0-2019-11", &preferences));
         EXPECT_TRUE(s2n_ecc_extension_required(preferences));
         EXPECT_TRUE(s2n_pq_kem_extension_required(preferences));
+        EXPECT_EQUAL(1, preferences->kem_count);
+        EXPECT_NOT_NULL(preferences->kems);
+        EXPECT_EQUAL(preferences->kems, pq_kems_sike_r1);
+
+        preferences = NULL;
+        EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &preferences));
+        EXPECT_TRUE(s2n_ecc_extension_required(preferences));
+        EXPECT_TRUE(s2n_pq_kem_extension_required(preferences));
+        EXPECT_EQUAL(2, preferences->kem_count);
+        EXPECT_NOT_NULL(preferences->kems);
+        EXPECT_EQUAL(preferences->kems, pq_kems_sike_r2r1);
+
+        preferences = NULL;
+        EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("KMS-PQ-TLS-1-0-2020-02", &preferences));
+        EXPECT_TRUE(s2n_ecc_extension_required(preferences));
+        EXPECT_TRUE(s2n_pq_kem_extension_required(preferences));
+        EXPECT_EQUAL(4, preferences->kem_count);
+        EXPECT_NOT_NULL(preferences->kems);
+        EXPECT_EQUAL(preferences->kems, pq_kems_r2r1);
 
         preferences = NULL;
         EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("20141001", &preferences));
         EXPECT_FALSE(s2n_ecc_extension_required(preferences));
         EXPECT_FALSE(s2n_pq_kem_extension_required(preferences));
+        EXPECT_EQUAL(0, preferences->kem_count);
+        EXPECT_NULL(preferences->kems);
     }
 
     /* Test that null fails */

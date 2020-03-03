@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -182,6 +182,23 @@ int main(int argc, char **argv)
 
     struct s2n_stuffer stuffer_invalid4 = {.blob = blob_valid, .read_cursor = 12, .write_cursor = 1};
     EXPECT_FALSE(s2n_stuffer_is_valid(&stuffer_invalid4));
+
+    struct s2n_stuffer reserve_test_stuffer = {0};
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&reserve_test_stuffer, 1024));
+    EXPECT_EQUAL(s2n_stuffer_space_remaining(&reserve_test_stuffer), 1024);
+    EXPECT_EQUAL(s2n_stuffer_data_available(&reserve_test_stuffer), 0);
+    EXPECT_FAILURE(s2n_stuffer_reserve_space(&reserve_test_stuffer, 2048));
+    EXPECT_EQUAL(s2n_stuffer_space_remaining(&reserve_test_stuffer), 1024);
+    EXPECT_EQUAL(s2n_stuffer_data_available(&reserve_test_stuffer), 0);
+    EXPECT_SUCCESS(s2n_stuffer_free(&reserve_test_stuffer));
+
+    EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&reserve_test_stuffer, 1024));
+    EXPECT_EQUAL(s2n_stuffer_space_remaining(&reserve_test_stuffer), 1024);
+    EXPECT_EQUAL(s2n_stuffer_data_available(&reserve_test_stuffer), 0);
+    EXPECT_SUCCESS(s2n_stuffer_reserve_space(&reserve_test_stuffer, 2048));
+    EXPECT_EQUAL(s2n_stuffer_space_remaining(&reserve_test_stuffer), 2048);
+    EXPECT_EQUAL(s2n_stuffer_data_available(&reserve_test_stuffer), 0);
+    EXPECT_SUCCESS(s2n_stuffer_free(&reserve_test_stuffer));
 
     END_TEST();
 }

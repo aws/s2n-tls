@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -85,6 +85,7 @@ typedef enum {
     S2N_ERR_DECODE_PRIVATE_KEY,
     S2N_ERR_INVALID_SIGNATURE_ALGORITHM,
     S2N_ERR_INVALID_SIGNATURE_SCHEME,
+    S2N_ERR_EMPTY_SIGNATURE_SCHEME,
     S2N_ERR_CBC_VERIFY,
     S2N_ERR_DH_COPYING_PUBLIC_KEY,
     S2N_ERR_SIGN,
@@ -107,6 +108,7 @@ typedef enum {
     S2N_ERR_BAD_KEY_SHARE,
     S2N_ERR_CANCELLED,
     S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED,
+    S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS,
     S2N_ERR_T_PROTO_END,
 
     /* S2N_ERR_T_INTERNAL */
@@ -225,6 +227,8 @@ typedef enum {
     S2N_ERR_CONNECTION_CACHING_DISALLOWED,
     S2N_ERR_SESSION_TICKET_NOT_SUPPORTED,
     S2N_ERR_OCSP_NOT_SUPPORTED,
+    S2N_ERR_INVALID_SIGNATURE_ALGORITHMS_PREFERENCES,
+    S2N_RSA_PSS_NOT_SUPPORTED,
     S2N_ERR_T_USAGE_END,
 } s2n_error;
 

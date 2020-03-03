@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -25,10 +25,11 @@ if [ "$#" -ne "1" ]; then
 fi
 
 INSTALL_DIR=$1
+source codebuild/bin/jobs.sh
 
 cd "$INSTALL_DIR"
 git clone https://github.com/danmar/cppcheck.git
 cd cppcheck
 git checkout 1.88
 
-make
+make -j $JOBS

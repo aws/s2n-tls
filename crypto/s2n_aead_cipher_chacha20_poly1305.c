@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -114,11 +114,11 @@ static int s2n_aead_chacha20_poly1305_set_encryption_key(struct s2n_session_key 
 #ifdef S2N_CHACHA20_POLY1305_AVAILABLE
     eq_check(in->size, S2N_TLS_CHACHA20_POLY1305_KEY_LEN);
 
-    GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_chacha20_poly1305(), NULL, NULL, NULL), S2N_ERR_KEY_INIT);
+    GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_chacha20_poly1305(), NULL, NULL, NULL), S2N_ERR_KEY_INIT);
 
     EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_AEAD_SET_IVLEN, S2N_TLS_CHACHA20_POLY1305_IV_LEN, NULL);
 
-    GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
     return 0;
 #else

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 
 set -ex
 source codebuild/bin/s2n_setup_env.sh
+
 
  # Install latest version of clang, clang++, and llvm-symbolizer. Needed for fuzzing.
 if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" || "$LATEST_CLANG" == "true" ]]; then
@@ -60,6 +61,12 @@ fi
 if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]]; then
     mkdir -p "$PYTHON_INSTALL_DIR"||true
     codebuild/bin/install_python.sh "$OPENSSL_1_1_1_INSTALL_DIR" "$(mktemp -d)" "$PYTHON_INSTALL_DIR" > /dev/null ;
+fi
+
+# Download and Install Openssl 0.9.8
+if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]]; then
+    mkdir -p "$OPENSSL_0_9_8_INSTALL_DIR"||true
+    codebuild/bin/install_openssl_0_9_8.sh "$(mktemp -d)" "$OPENSSL_0_9_8_INSTALL_DIR" "$OS_NAME" > /dev/null ;
 fi
 
 # Download and Install GnuTLS for integration tests

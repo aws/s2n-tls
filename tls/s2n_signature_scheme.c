@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -17,52 +17,53 @@
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_signature.h"
+#include "tls/s2n_connection.h"
 #include "tls/s2n_signature_scheme.h"
 #include "crypto/s2n_ecc_evp.h"
 #include "utils/s2n_safety.h"
-
 
 /* RSA PKCS1 */
 const struct s2n_signature_scheme s2n_rsa_pkcs1_md5_sha1 = {
         .iana_value = TLS_SIGNATURE_SCHEME_PRIVATE_INTERNAL_RSA_PKCS1_MD5_SHA1,
         .hash_alg = S2N_HASH_MD5_SHA1,
         .sig_alg = S2N_SIGNATURE_RSA,
-        .signature_curve = NULL /* Elliptic Curve not needed for RSA */
+        .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
 };
 
 const struct s2n_signature_scheme s2n_rsa_pkcs1_sha1 = {
         .iana_value = TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA1,
         .hash_alg = S2N_HASH_SHA1,
         .sig_alg = S2N_SIGNATURE_RSA,
-        .signature_curve = NULL /* Elliptic Curve not needed for RSA */
+        .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
 };
 
 const struct s2n_signature_scheme s2n_rsa_pkcs1_sha224 = {
         .iana_value = TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA224,
         .hash_alg = S2N_HASH_SHA224,
         .sig_alg = S2N_SIGNATURE_RSA,
-        .signature_curve = NULL /* Elliptic Curve not needed for RSA */
+        .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
+        .maximum_protocol_version = S2N_TLS12,
 };
 
 const struct s2n_signature_scheme s2n_rsa_pkcs1_sha256 = {
         .iana_value = TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA256,
         .hash_alg = S2N_HASH_SHA256,
         .sig_alg = S2N_SIGNATURE_RSA,
-        .signature_curve = NULL /* Elliptic Curve not needed for RSA */
+        .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
 };
 
 const struct s2n_signature_scheme s2n_rsa_pkcs1_sha384 = {
         .iana_value = TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA384,
         .hash_alg = S2N_HASH_SHA384,
         .sig_alg = S2N_SIGNATURE_RSA,
-        .signature_curve = NULL /* Elliptic Curve not needed for RSA */
+        .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
 };
 
 const struct s2n_signature_scheme s2n_rsa_pkcs1_sha512 = {
         .iana_value = TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA512,
         .hash_alg = S2N_HASH_SHA512,
         .sig_alg = S2N_SIGNATURE_RSA,
-        .signature_curve = NULL /* Elliptic Curve not needed for RSA */
+        .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
 };
 
 /* TLS 1.2 Compatible ECDSA Signature Schemes */
@@ -70,35 +71,39 @@ const struct s2n_signature_scheme s2n_ecdsa_sha1 = {
         .iana_value = TLS_SIGNATURE_SCHEME_ECDSA_SHA1,
         .hash_alg = S2N_HASH_SHA1,
         .sig_alg = S2N_SIGNATURE_ECDSA,
-        .signature_curve = NULL /* Decided by supported_groups Extension in TLS 1.2 and before */
+        .signature_curve = NULL, /* Decided by supported_groups Extension in TLS 1.2 and before */
 };
 
 const struct s2n_signature_scheme s2n_ecdsa_sha224 = {
         .iana_value = TLS_SIGNATURE_SCHEME_ECDSA_SHA224,
         .hash_alg = S2N_HASH_SHA224,
         .sig_alg = S2N_SIGNATURE_ECDSA,
-        .signature_curve = NULL /* Decided by supported_groups Extension in TLS 1.2 and before */
+        .signature_curve = NULL, /* Decided by supported_groups Extension in TLS 1.2 and before */
+        .maximum_protocol_version = S2N_TLS12,
 };
 
 const struct s2n_signature_scheme s2n_ecdsa_sha256 = {
         .iana_value = TLS_SIGNATURE_SCHEME_ECDSA_SHA256,
         .hash_alg = S2N_HASH_SHA256,
         .sig_alg = S2N_SIGNATURE_ECDSA,
-        .signature_curve = NULL /* Decided by supported_groups Extension in TLS 1.2 and before */
+        .signature_curve = NULL, /* Decided by supported_groups Extension in TLS 1.2 and before */
+        .maximum_protocol_version = S2N_TLS12,
 };
 
 const struct s2n_signature_scheme s2n_ecdsa_sha384 = {
         .iana_value = TLS_SIGNATURE_SCHEME_ECDSA_SHA384,
         .hash_alg = S2N_HASH_SHA384,
         .sig_alg = S2N_SIGNATURE_ECDSA,
-        .signature_curve = NULL /* Decided by supported_groups Extension in TLS 1.2 and before */
+        .signature_curve = NULL, /* Decided by supported_groups Extension in TLS 1.2 and before */
+        .maximum_protocol_version = S2N_TLS12,
 };
 
 const struct s2n_signature_scheme s2n_ecdsa_sha512 = {
         .iana_value = TLS_SIGNATURE_SCHEME_ECDSA_SHA512,
         .hash_alg = S2N_HASH_SHA512,
         .sig_alg = S2N_SIGNATURE_ECDSA,
-        .signature_curve = NULL /* Decided by supported_groups Extension in TLS 1.2 and before */
+        .signature_curve = NULL, /* Decided by supported_groups Extension in TLS 1.2 and before */
+        .maximum_protocol_version = S2N_TLS12,
 };
 
 /* TLS 1.3 Compatible ECDSA Schemes */
@@ -108,14 +113,16 @@ const struct s2n_signature_scheme s2n_ecdsa_secp256r1_sha256 = {
         .iana_value = TLS_SIGNATURE_SCHEME_ECDSA_SECP256R1_SHA256,
         .hash_alg = S2N_HASH_SHA256,
         .sig_alg = S2N_SIGNATURE_ECDSA,
-        .signature_curve = &s2n_ecc_curve_secp256r1 /* Hardcoded as of TLS 1.3 */
+        .signature_curve = &s2n_ecc_curve_secp256r1, /* Hardcoded as of TLS 1.3 */
+        .minimum_protocol_version = S2N_TLS13,
 };
 
 const struct s2n_signature_scheme s2n_ecdsa_secp384r1_sha384 = {
         .iana_value = TLS_SIGNATURE_SCHEME_ECDSA_SECP384R1_SHA384,
         .hash_alg = S2N_HASH_SHA384,
         .sig_alg = S2N_SIGNATURE_ECDSA,
-        .signature_curve = &s2n_ecc_curve_secp384r1 /* Hardcoded as of TLS 1.3 */
+        .signature_curve = &s2n_ecc_curve_secp384r1, /* Hardcoded as of TLS 1.3 */
+        .minimum_protocol_version = S2N_TLS13,
 };
 
 /**
@@ -125,21 +132,21 @@ const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha256 = {
         .iana_value = TLS_SIGNATURE_SCHEME_RSA_PSS_RSAE_SHA256,
         .hash_alg = S2N_HASH_SHA256,
         .sig_alg = S2N_SIGNATURE_RSA_PSS_RSAE,
-        .signature_curve = NULL /* Elliptic Curve not needed for RSA */
+        .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
 };
 
 const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha384 = {
         .iana_value = TLS_SIGNATURE_SCHEME_RSA_PSS_RSAE_SHA384,
         .hash_alg = S2N_HASH_SHA384,
         .sig_alg = S2N_SIGNATURE_RSA_PSS_RSAE,
-        .signature_curve = NULL /* Elliptic Curve not needed for RSA */
+        .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
 };
 
 const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha512 = {
         .iana_value = TLS_SIGNATURE_SCHEME_RSA_PSS_RSAE_SHA512,
         .hash_alg = S2N_HASH_SHA512,
         .sig_alg = S2N_SIGNATURE_RSA_PSS_RSAE,
-        .signature_curve = NULL /* Elliptic Curve not needed for RSA */
+        .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
 };
 
 /**
@@ -149,33 +156,57 @@ const struct s2n_signature_scheme s2n_rsa_pss_pss_sha256 = {
         .iana_value = TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA256,
         .hash_alg = S2N_HASH_SHA256,
         .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
-        .signature_curve = NULL /* Elliptic Curve not needed for RSA */
+        .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
+        .minimum_protocol_version = S2N_TLS13,
 };
 
 const struct s2n_signature_scheme s2n_rsa_pss_pss_sha384 = {
         .iana_value = TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA384,
         .hash_alg = S2N_HASH_SHA384,
         .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
-        .signature_curve = NULL /* Elliptic Curve not needed for RSA */
+        .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
+        .minimum_protocol_version = S2N_TLS13,
 };
 
 const struct s2n_signature_scheme s2n_rsa_pss_pss_sha512 = {
         .iana_value = TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA512,
         .hash_alg = S2N_HASH_SHA512,
         .sig_alg = S2N_SIGNATURE_RSA_PSS_PSS,
-        .signature_curve = NULL /* Elliptic Curve not needed for RSA */
+        .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
+        .minimum_protocol_version = S2N_TLS13,
 };
 
-/* All Supported SignatureSchemes (Both TLS 1.2 and 1.3) to send in the ClientHello to the Server. */
+/* All Supported SignatureSchemes. */
 /* No MD5 to avoid SLOTH Vulnerability */
-const struct s2n_signature_scheme* const s2n_supported_sig_scheme_pref_list[] = {
-        /* RSA PSS - Commented out until Handshake can negotiate it */
-        /* &s2n_rsa_pss_pss_sha256, */
-        /* &s2n_rsa_pss_pss_sha384, */
-        /* &s2n_rsa_pss_pss_sha512, */
-        /* &s2n_rsa_pss_rsae_sha256, */
-        /* &s2n_rsa_pss_rsae_sha384, */
-        /* &s2n_rsa_pss_rsae_sha512, */
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20140601[] = {
+        /* RSA PKCS1 */
+        &s2n_rsa_pkcs1_sha256,
+        &s2n_rsa_pkcs1_sha384,
+        &s2n_rsa_pkcs1_sha512,
+        &s2n_rsa_pkcs1_sha224,
+
+        /* ECDSA - TLS 1.2 */
+        &s2n_ecdsa_sha256, /* same iana value as TLS 1.3 s2n_ecdsa_secp256r1_sha256 */
+        &s2n_ecdsa_secp256r1_sha256,
+        &s2n_ecdsa_sha384, /* same iana value as TLS 1.3 s2n_ecdsa_secp384r1_sha384 */
+        &s2n_ecdsa_secp384r1_sha384,
+        &s2n_ecdsa_sha512,
+        &s2n_ecdsa_sha224,
+
+        /* SHA-1 Legacy */
+        &s2n_rsa_pkcs1_sha1,
+        &s2n_ecdsa_sha1,
+};
+
+/* The original preference list, but with rsa_pss supported. */
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20200207[] = {
+        /* RSA PSS */
+        &s2n_rsa_pss_pss_sha256,
+        &s2n_rsa_pss_pss_sha384,
+        &s2n_rsa_pss_pss_sha512,
+        &s2n_rsa_pss_rsae_sha256,
+        &s2n_rsa_pss_rsae_sha384,
+        &s2n_rsa_pss_rsae_sha512,
 
         /* RSA PKCS1 */
         &s2n_rsa_pkcs1_sha256,
@@ -185,64 +216,55 @@ const struct s2n_signature_scheme* const s2n_supported_sig_scheme_pref_list[] = 
 
         /* ECDSA - TLS 1.2 */
         &s2n_ecdsa_sha256, /* same iana value as TLS 1.3 s2n_ecdsa_secp256r1_sha256 */
-        &s2n_ecdsa_sha384, /* same iana value as TLS 1.3 s2n_ecdsa_secp384r1_sha384 */
-        &s2n_ecdsa_sha512,
-        &s2n_ecdsa_sha224,
-
-        /* SHA-1 Legacy */
-        &s2n_rsa_pkcs1_sha1,
-        &s2n_ecdsa_sha1,
-};
-
-/* Signature Scheme Preference List to use when picking a <=TLS 1.2 SignatureAlgorithm/SignatureScheme */
-/* As per RFC: This list MUST NOT contain any s2n_signature_scheme's with a non-null signature_curve defined. */
-const struct s2n_signature_scheme* const s2n_legacy_sig_scheme_pref_list[] = {
-        /* RSA PSS - Commented out until Handshake can negotiate it */
-        /* &s2n_rsa_pss_pss_sha256, */
-        /* &s2n_rsa_pss_pss_sha384, */
-        /* &s2n_rsa_pss_pss_sha512, */
-        /* &s2n_rsa_pss_rsae_sha256, */
-        /* &s2n_rsa_pss_rsae_sha384, */
-        /* &s2n_rsa_pss_rsae_sha512, */
-
-        /* RSA PKCS1 */
-        &s2n_rsa_pkcs1_sha256,
-        &s2n_rsa_pkcs1_sha384,
-        &s2n_rsa_pkcs1_sha512,
-        &s2n_rsa_pkcs1_sha224,
-        &s2n_rsa_pkcs1_sha1,
-
-        /* ECDSA */
-        &s2n_ecdsa_sha256,
-        &s2n_ecdsa_sha384,
-        &s2n_ecdsa_sha512,
-        &s2n_ecdsa_sha224,
-        &s2n_ecdsa_sha1,
-};
-
-/* Signature Scheme Preference List:  TLS 1.3 */
-/* This list MUST NOT contain any ECDSA s2n_signature_scheme's with a NULL signature_curve (except ECDSA_SHA1). */
-const struct s2n_signature_scheme * const s2n_tls13_sig_scheme_pref_list[] = {
-        /* RSA PSS - Commented out until it is actually supported */
-        /* &s2n_rsa_pss_rsae_sha256, */
-        /* &s2n_rsa_pss_rsae_sha384, */
-        /* &s2n_rsa_pss_rsae_sha512, */
-
-        /* RSA PKCS1 */
-        &s2n_rsa_pkcs1_sha256,
-        &s2n_rsa_pkcs1_sha384,
-        &s2n_rsa_pkcs1_sha512,
-
-        /* ECDSA */
         &s2n_ecdsa_secp256r1_sha256,
+        &s2n_ecdsa_sha384, /* same iana value as TLS 1.3 s2n_ecdsa_secp384r1_sha384 */
         &s2n_ecdsa_secp384r1_sha384,
+        &s2n_ecdsa_sha512,
+        &s2n_ecdsa_sha224,
 
         /* SHA-1 Legacy */
         &s2n_rsa_pkcs1_sha1,
         &s2n_ecdsa_sha1,
 };
 
-const size_t s2n_supported_sig_scheme_pref_list_len = s2n_array_len(s2n_supported_sig_scheme_pref_list);
-const size_t s2n_legacy_sig_scheme_pref_list_len = s2n_array_len(s2n_legacy_sig_scheme_pref_list);
-const size_t s2n_tls13_sig_scheme_pref_list_len = s2n_array_len(s2n_tls13_sig_scheme_pref_list);
+const struct s2n_signature_preferences s2n_signature_preferences_20140601 = {
+        .count = s2n_array_len(s2n_sig_scheme_pref_list_20140601),
+        .signature_schemes = s2n_sig_scheme_pref_list_20140601,
+};
+
+const struct s2n_signature_preferences s2n_signature_preferences_20200207 = {
+        .count = s2n_array_len(s2n_sig_scheme_pref_list_20200207),
+        .signature_schemes = s2n_sig_scheme_pref_list_20200207,
+};
+
+static struct {
+    const char *version;
+    const struct s2n_signature_preferences *preferences;
+} selection[] = {
+        {.version = "default", .preferences = &s2n_signature_preferences_20140601 },
+        {.version = "20200207", .preferences = &s2n_signature_preferences_20200207 },
+        {.version = "20140601", .preferences = &s2n_signature_preferences_20140601 },
+        {.version = NULL, .preferences = NULL }, /* Sentinel */
+};
+
+static int s2n_find_signature_pref_from_version(const char *version, const struct s2n_signature_preferences **signature_preferences)
+{
+    notnull_check(version);
+    notnull_check(signature_preferences);
+
+    for (int i = 0; selection[i].version != NULL; i++) {
+        if (!strcasecmp(version, selection[i].version)) {
+            *signature_preferences = selection[i].preferences;
+            return 0;
+        }
+    }
+
+    S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHMS_PREFERENCES);
+}
+
+int s2n_config_set_signature_preferences(struct s2n_config *config, const char *version)
+{
+    GUARD(s2n_find_signature_pref_from_version(version, &config->signature_preferences));
+    return 0;
+}
 

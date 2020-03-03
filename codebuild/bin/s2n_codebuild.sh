@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -77,17 +77,18 @@ fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "asan" ]]; then make clean; S2N_ADDRESS_SANITIZER=1 make -j $JOBS ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "integration" ]]; then make clean; make integration ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "fuzz" ]]; then (make clean && make fuzz) ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMAC" ]] && [[ "$OS_NAME" == "linux" ]]; then make -C tests/saw/ tmp/"verify_s2n_hmac_$SAW_HMAC_TEST".log ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMAC" ]] && [[ "$OS_NAME" == "linux" ]]; then make -C tests/saw/ tmp/verify_HMAC.log ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/verify_drbg.log ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "tls" ]]; then make -C tests/saw tmp/verify_handshake.log ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "ctverif" ]]; then .travis/run_ctverif.sh "$CTVERIF_INSTALL_DIR" ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawSIKE_r1" ]]; then make -C tests/saw sike_r1 ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "sawSIKE_r2" ]]; then make -C tests/saw sike_r2 ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "sawSIKE_r2_x64" ]]; then make -C tests/saw sike_r2_x64 ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawBIKE_r1" ]]; then make -C tests/saw bike_r1 ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "sidetrail" ]]; then .travis/run_sidetrail.sh "$SIDETRAIL_INSTALL_DIR" "$PART" ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "sawBIKE_r2" ]]; then make -C tests/saw bike_r2 ; fi
 
 # Generate *.gcov files that can be picked up by the CodeCov.io Bash helper script. Don't run lcov or genhtml 
 # since those will delete .gcov files as they're processed.
-if [[ -n "$CODECOV_IO_UPLOAD" ]]; then
+if [[ -n "$CODECOV_IO_UPLOAD" && -z "$FUZZ_COVERAGE" ]]; then
     make run-gcov;
 fi

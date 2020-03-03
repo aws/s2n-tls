@@ -1,5 +1,5 @@
 #
-# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import time
 import socket
 import subprocess
 import itertools
+import argparse
 from s2n_test_constants import *
 
 
@@ -81,17 +82,32 @@ def try_client_handshake(endpoint, arguments, expected_cipher):
 
     return 0
 
-def well_known_endpoints_test(use_corked_io):
+def well_known_endpoints_test(use_corked_io, tls13_enabled):
+
     arguments = []
-    msg = "\n\tTesting s2n Client with Well Known Endpoints:"
+    msg = "\n\tTesting s2n Client with Well Known Endpoints"
+    opt_list = []
+
+    if tls13_enabled:
+        arguments += ["--tls13", "--ciphers", "default_tls13"]
+        opt_list += ["TLS 1.3"]
     if use_corked_io:
-        msg = "\n\tTesting s2n Client with Well Known Endpoints using Corked IO:"
         arguments += ["-C"]
-    print(msg)
+        opt_list += ["Corked IO"]
+
+    if len(opt_list) != 0:
+        msg += " using "
+        if len(opt_list) > 1:
+            msg += ", ".join(opt_list[:-2] + [opt_list[-2] + " and " + opt_list[-1]])
+        else:
+            msg += opt_list[0]
+
+    print(msg + ":")
 
     maxRetries = 5
     failed = 0
     for endpoint_config in well_known_endpoints:
+
         endpoint = endpoint_config["endpoint"]
         expected_cipher = endpoint_config.get("expected_cipher")
 
@@ -104,6 +120,8 @@ def well_known_endpoints_test(use_corked_io):
             if ret is 0:
                 break
             else:
+                if endpoint in allowed_endpoints_failures:
+                    break
                 time.sleep(i)
 
         print_result("Endpoint: %-35sExpected Cipher: %-40s... " % (endpoint, expected_cipher if expected_cipher else "Any"), ret)
@@ -113,16 +131,22 @@ def well_known_endpoints_test(use_corked_io):
     return failed
 
 def main(argv):
-    if len(argv) < 2:
-        print("s2n_handshake_test_s_client.py host port")
-        sys.exit(1)
 
-    host = argv[0]
-    port = argv[1]
+    parser = argparse.ArgumentParser(description="Run client endpoint handshake tests")
+    parser.add_argument("--no-tls13", action="store_true", help="Disable TLS 1.3 tests")
+    args = parser.parse_args()
 
     failed = 0
-    failed += well_known_endpoints_test(False)
-    failed += well_known_endpoints_test(True)
+
+    # TLS 1.2 Tests
+    failed += well_known_endpoints_test(use_corked_io=False, tls13_enabled=False)
+    failed += well_known_endpoints_test(use_corked_io=True, tls13_enabled=False)
+
+    # TLS 1.3 Tests
+    if not args.no_tls13:
+        failed += well_known_endpoints_test(use_corked_io=False, tls13_enabled=True)
+        failed += well_known_endpoints_test(use_corked_io=True, tls13_enabled=True)
+
     return failed
 
 if __name__ == "__main__":

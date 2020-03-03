@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ fi
 
 BUILD_DIR=$1
 INSTALL_DIR=$2
+source codebuild/bin/jobs.sh
 
 cd "$BUILD_DIR"
 # Originally from: https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-2.6.4.tar.gz
@@ -33,5 +34,5 @@ curl https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-12-29_
 tar -xzvf libressl-2.6.4.tar.gz
 cd libressl-2.6.4
 ./configure --prefix="$INSTALL_DIR"
-make CFLAGS=-fPIC install
+make -j $JOBS CFLAGS=-fPIC install
 

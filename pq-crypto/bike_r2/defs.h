@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@
 #endif
 
 // Divide by the divider and round up to next integer
-#define DIVIDE_AND_CEIL(x, divider) ((x + (divider)) / (divider))
+#define DIVIDE_AND_CEIL(x, divider) (((x) + (divider)) / (divider))
 
 #define BIT(len) (1ULL << (len))
 
@@ -79,20 +79,22 @@
 #define UPTOPOW2(v) (UPTOPOW2_5(v) + 1)
 
 // Works only for v < 512
-#define LOG2_MSB(v)                                       \
-  (v < 2                                                  \
-       ? 1                                                \
-       : (v < 4                                           \
-              ? 2                                         \
-              : (v < 8 ? 3                                \
-                       : (v < 16                          \
-                              ? 4                         \
-                              : (v < 32                   \
-                                     ? 5                  \
-                                     : (v < 64 ? 6        \
-                                               : (v < 128 \
-                                                      ? 7 \
-                                                      : (v < 256 ? 8 : 9))))))))
+#define LOG2_MSB(v)                                    \
+  ((v) < 2                                             \
+       ? 1                                             \
+       : ((v) < 4                                      \
+              ? 2                                      \
+              : ((v) < 8                               \
+                     ? 3                               \
+                     : ((v) < 16                       \
+                            ? 4                        \
+                            : ((v) < 32                \
+                                   ? 5                 \
+                                   : ((v) < 64         \
+                                          ? 6          \
+                                          : ((v) < 128 \
+                                                 ? 7   \
+                                                 : ((v) < 256 ? 8 : 9))))))))
 
 ////////////////////////////////////////////
 //             Debug

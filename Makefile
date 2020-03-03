@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -44,9 +44,17 @@ bc:
 sike_r1_bc: bc
 	${MAKE} -C pq-crypto sike_r1_bc
 
+.PHONY : sike_r2_bc
+sike_r2_bc: bc
+	${MAKE} -C pq-crypto sike_r2_bc
+
 .PHONY : bike_r1_bc
 bike_r1_bc: bc
 	${MAKE} -C pq-crypto bike_r1_bc
+
+.PHONY : bike_r2_bc
+bike_r2_bc: bc
+	${MAKE} -C pq-crypto bike_r2_bc
 
 .PHONY : saw
 saw : bc 

@@ -1,0 +1,31 @@
+// sike_r2_x64_defs.saw Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// Proof commands
+
+// NOTE: The proof command is being defined here, as opposed to base.saw,
+//       because it is only enabled though a special SAW flag
+
+let asm_globals =
+  [ ("asm_p434", 56)
+  , ("asm_p434p1", 56)
+  , ("asm_p434x2", 56)
+  ];
+
+let verify_asm func spec =
+    if do_prove then
+        crucible_llvm_verify_x86 m "../../s2n/lib/libs2n.so" func asm_globals false spec
+    else
+        crucible_llvm_unsafe_assume_spec m func spec;
+
+///////////////////////////////////////////////////////////////////////////////
+// Function names
+
+let fpadd_asm_fun_name = "fpadd434_asm";
+let fpsub_asm_fun_name = "fpsub434_asm";
+let rdc_asm_fun_name = "rdc434_asm";
+let mp_mul_asm_fun_name = "mul434_asm";
+let mp_add_asm_fun_name = "mp_add434_asm";
+let mp_subaddx2_asm_fun_name = "mp_subadd434x2_asm";
+let mp_dblsubx2_asm_fun_name = "mp_dblsub434x2_asm";
