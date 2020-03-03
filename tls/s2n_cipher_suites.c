@@ -15,6 +15,8 @@
 
 #include <string.h>
 
+#include <openssl/crypto.h>
+
 #include "error/s2n_errno.h"
 
 #include "crypto/s2n_cipher.h"

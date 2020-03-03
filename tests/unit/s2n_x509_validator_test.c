@@ -776,7 +776,7 @@ int main(int argc, char **argv) {
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
     }
-
+#if S2N_OCSP_STAPLING_SUPPORTED
     /* Test valid OCSP date range */
     {
         struct s2n_x509_trust_store trust_store;
@@ -920,7 +920,7 @@ int main(int argc, char **argv) {
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
     }
-
+#endif // S2N_OCSP_STAPLING_SUPPORTED
     /* test validator in safe mode, with default host name validator. Connection server name matches alternative name on a certificate. */
     {
         struct s2n_x509_trust_store trust_store;
@@ -1058,7 +1058,7 @@ int main(int argc, char **argv) {
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
     }
-
+#if S2N_OCSP_STAPLING_SUPPORTED
     /* Test invalid OCSP date range (after is off) */
     {
         struct s2n_x509_trust_store trust_store;
@@ -1206,6 +1206,7 @@ int main(int argc, char **argv) {
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
     }
+#endif // S2N_OCSP_STAPLING_SUPPORTED
 
     /* Test trust store in a configuration can handle invalid PEM without crashing */
     {

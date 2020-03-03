@@ -26,13 +26,20 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+/* LibreSSL and BoringSSL supports the cipher, but the interface is different from Openssl's. We
+ * should define a separate s2n_cipher struct for LibreSSL and BoringSSL.
+ */
+#if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1) && !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL)
+#define S2N_AES_SHA_COMPOSITE_AVAILABLE
+#endif
+
 /* Silly accessors, but we avoid using version macro guards in multiple places */
 static const EVP_CIPHER *s2n_evp_aes_128_cbc_hmac_sha1(void)
 {
     /* Symbols for AES-SHA1-CBC composite ciphers were added in Openssl 1.0.1:
      * See https://www.openssl.org/news/cl101.txt.
      */
-    #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1) && !defined LIBRESSL_VERSION_NUMBER
+    #if defined(S2N_AES_SHA_COMPOSITE_AVAILABLE)
         return EVP_aes_128_cbc_hmac_sha1();
     #else
         return NULL;
@@ -41,7 +48,7 @@ static const EVP_CIPHER *s2n_evp_aes_128_cbc_hmac_sha1(void)
 
 static const EVP_CIPHER *s2n_evp_aes_256_cbc_hmac_sha1(void)
 {
-    #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1) && !defined LIBRESSL_VERSION_NUMBER
+    #if defined(S2N_AES_SHA_COMPOSITE_AVAILABLE)
         return EVP_aes_256_cbc_hmac_sha1();
     #else
         return NULL;
@@ -53,7 +60,7 @@ static const EVP_CIPHER *s2n_evp_aes_128_cbc_hmac_sha256(void)
     /* Symbols for AES-SHA256-CBC composite ciphers were added in Openssl 1.0.2:
      * See https://www.openssl.org/news/cl102.txt. Not supported in any LibreSSL releases.
      */
-    #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,2) && !defined LIBRESSL_VERSION_NUMBER
+    #if defined(S2N_AES_SHA_COMPOSITE_AVAILABLE)
         return EVP_aes_128_cbc_hmac_sha256();
     #else
         return NULL;
@@ -62,7 +69,7 @@ static const EVP_CIPHER *s2n_evp_aes_128_cbc_hmac_sha256(void)
 
 static const EVP_CIPHER *s2n_evp_aes_256_cbc_hmac_sha256(void)
 {
-    #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,2) && !defined LIBRESSL_VERSION_NUMBER
+    #if defined(S2N_AES_SHA_COMPOSITE_AVAILABLE)
         return EVP_aes_256_cbc_hmac_sha256();
     #else
         return NULL;
@@ -111,6 +118,13 @@ static uint8_t s2n_composite_cipher_aes256_sha256_available(void)
 static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type,
                                                      uint16_t protocol_version, uint16_t payload_and_eiv_len, int *extra)
 {
+    /* BoringSSL does not support these composite ciphers with the existing EVP API, and they took out the
+     * constants used below. This method should never be called with BoringSSL because the isAvaliable checked
+     * will fail. Instead of defining a possibly dangerous default or hard coding this to 0x16 error out with BoringSSL.
+     */
+#ifdef OPENSSL_IS_BORINGSSL
+  S2N_ERROR(S2N_ERR_LIBCRYPTO_NOT_SUPPORTED);
+#else
     uint8_t ctrl_buf[S2N_TLS12_AAD_LEN];
     struct s2n_blob ctrl_blob = { .data = ctrl_buf, .size = S2N_TLS12_AAD_LEN };
     struct s2n_stuffer ctrl_stuffer = {0};
@@ -133,6 +147,7 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
 
     *extra = ctrl_ret;
     return 0;
+#endif
 }
 
 static int s2n_composite_cipher_aes_sha_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)

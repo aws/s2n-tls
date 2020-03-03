@@ -32,14 +32,6 @@
 #include <openssl/ocsp.h>
 #endif
 
-/* one day, boringssl, may add ocsp stapling support. Let's future proof this a bit by grabbing a definition
- * that would have to be there when they add support */
-#if defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL)
-#define S2N_OCSP_STAPLING_SUPPORTED 0
-#else
-#define S2N_OCSP_STAPLING_SUPPORTED 1
-#endif /* defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL) */
-
 /* our friends at openssl love to make backwards incompatible changes */
 #if !defined(LIBRESSL_VERSION_NUMBER) && S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
 #define OCSP_GET_CERTS(a) OCSP_resp_get0_certs(a)
