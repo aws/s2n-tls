@@ -924,7 +924,7 @@ Initially *value_size will be set to the amount of space allocated for
 the value, the callback should set *value_size to the actual size of the
 data returned. If there is insufficient space, -1 should be returned.
 
-If the cache is not ready to provide data for the request, S2N_CALLBACK_BLOCKED should be returned.
+If the cache is not ready to provide data for the request, S2N_ERR_APPLICATION_BLOCKED should be returned.
 This will cause s2n_negotiate() to return S2N_BLOCKED_ON_APPLICATION_INPUT.
 
 ### s2n\_config\_set\_cache\_delete\_callback

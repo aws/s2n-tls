@@ -91,7 +91,7 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
   } while (0)
 
 /* Check for specific classes of errors */
-#define ERR_IS_BLOCKING( x )    ( x == S2N_ERR_BLOCKED || x == S2N_CALLBACK_BLOCKED )
+#define ERR_IS_BLOCKING( x )    ( (x) == S2N_ERR_BLOCKED || (x) == S2N_ERR_APPLICATION_BLOCKED )
 
 #define GUARD( x )              do {if ( (x) < 0 ) return S2N_FAILURE;} while (0)
 #define GUARD_STRICT( x )       do {if ( (x) != 0 ) return S2N_FAILURE;} while (0)
@@ -102,8 +102,8 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
 #define GUARD_NONBLOCKING( x )          \
   do {                                  \
     int __tmp_r = (x);                  \
-    if (ERR_IS_BLOCKING( __tmp_r )) {   \
-      S2N_ERROR( __tmp_r );             \
+    if (__tmp_r == S2N_CALLBACK_BLOCKED) {   \
+      S2N_ERROR( S2N_ERR_APPLICATION_BLOCKED );             \
     }                                   \
     GUARD( __tmp_r );                   \
   } while(0)

@@ -183,6 +183,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE, "Serialized session state is not in valid format") \
     ERR_ENTRY(S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG, "Serialized session state is too long") \
     ERR_ENTRY(S2N_ERR_SESSION_ID_TOO_LONG, "Session id is too long") \
+    ERR_ENTRY(S2N_ERR_APPLICATION_BLOCKED, "Read is blocked by upstream application") \
     ERR_ENTRY(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE, "Client Auth is not supported in session resumption mode") \
     ERR_ENTRY(S2N_ERR_INVALID_TICKET_KEY_LENGTH, "Session ticket key length cannot be zero") \
     ERR_ENTRY(S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH, "Session ticket key name should be unique and the name length cannot be zero") \

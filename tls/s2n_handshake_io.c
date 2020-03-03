@@ -1017,7 +1017,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
                 case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
                     conn->closed = 1;
                     break;
-                case S2N_CALLBACK_BLOCKED:
+                case S2N_ERR_APPLICATION_BLOCKED:
                     /* Fallthrough */
                 case S2N_ERR_BLOCKED:
                     /* A blocking condition is retryable, so we should return without killing the connection. */
@@ -1080,7 +1080,6 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
 int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
 {
     errno = 0;
-    s2n_errno = S2N_ERR_OK;
 
     char this = 'S';
     if (conn->mode == S2N_CLIENT) {
@@ -1129,8 +1128,9 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
                     s2n_try_delete_session_cache(conn);
                 }
 
-                if (s2n_errno == S2N_CALLBACK_BLOCKED) {
+                if (s2n_errno == S2N_ERR_APPLICATION_BLOCKED) {
                     *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
+                    s2n_errno = S2N_ERR_BLOCKED;
                 }
 
                 S2N_ERROR_PRESERVE_ERRNO();
