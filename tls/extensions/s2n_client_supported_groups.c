@@ -59,7 +59,12 @@ int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct s2n_stu
     notnull_check(proposed_curves.data);
 
     GUARD(s2n_parse_client_supported_groups_list(&proposed_curves, conn->secure.mutually_supported_groups));
-    GUARD(s2n_choose_supported_group(&conn->secure.server_ecc_evp_params, conn->secure.mutually_supported_groups));
+    uint16_t supported_groups_size =  s2n_array_len(conn->secure.mutually_supported_groups);
+    if (s2n_choose_supported_group(&conn->secure.server_ecc_evp_params, conn->secure.mutually_supported_groups,
+        supported_groups_size) != 0) {
+            /* Can't agree on a curve, ECC is not allowed. Return success to proceed with the handshake. */
+            conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
+        }
     return 0;
 }
 
@@ -82,15 +87,13 @@ int s2n_parse_client_supported_groups_list(struct s2n_blob *iana_ids, struct s2n
     return 0;
 }
 
-int s2n_choose_supported_group(struct s2n_ecc_evp_params *chosen_group, struct s2n_ecc_evp_params *group_options) {
-    eq_check(s2n_ecc_evp_supported_curves_list_len, s2n_array_len(group_options));
+int s2n_choose_supported_group(struct s2n_ecc_evp_params *chosen_group, struct s2n_ecc_evp_params *group_options, uint16_t length) {
+    eq_check(s2n_ecc_evp_supported_curves_list_len, length);
     for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
         if (group_options[i].negotiated_curve) {
             chosen_group->negotiated_curve = group_options[i].negotiated_curve;
             return 0;
         }
     }
-    /* Can't agree on a curve, ECC is not allowed. Return success to proceed with the handshake. */
-    chosen_group->negotiated_curve = NULL;
-    return 0;
+    S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 }
