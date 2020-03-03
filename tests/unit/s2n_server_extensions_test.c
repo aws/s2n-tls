@@ -262,7 +262,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
 
-            s2n_connection_set_cipher_preferences(conn, "test_tls13_null_key_exchange_alg");
+            s2n_connection_set_cipher_preferences(conn, "test_all_tls13");
             /* Test that s2n_server_extensions_send() only works when protocol version is TLS13 */
             conn->client_protocol_version = S2N_TLS13;
             conn->actual_protocol_version = S2N_TLS13;

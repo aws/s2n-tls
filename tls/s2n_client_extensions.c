@@ -207,12 +207,14 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
             GUARD(s2n_recv_pq_kem_extension(conn, &extension));
             break;
         case TLS_EXTENSION_SUPPORTED_VERSIONS:
+            /* allow supported versions to be parsed to get highest client version */
             if (s2n_is_tls13_enabled()) {
                 GUARD(s2n_extensions_client_supported_versions_recv(conn, &extension));
             }
             break;
         case TLS_EXTENSION_KEY_SHARE:
-            if (s2n_is_tls13_enabled()) {
+            /* parse key share only if negiotated protocol is in TLS 1.3 */
+            if (s2n_is_tls13_enabled() && conn->actual_protocol_version == S2N_TLS13) {
                 GUARD(s2n_extensions_client_key_share_recv(conn, &extension));
             }
             break;

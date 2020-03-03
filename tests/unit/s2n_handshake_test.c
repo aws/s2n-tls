@@ -182,9 +182,9 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
-    
+
         client_config = s2n_fetch_unsafe_client_testing_config();
-        
+
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config,
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_config = s2n_fetch_unsafe_client_ecdsa_testing_config());
 
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_ECDSA_P384_PKCS1_CERT_CHAIN, NULL));
-        
+
         EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config,
                 chain_and_key, S2N_SIGNATURE_ECDSA));
 
@@ -276,12 +276,12 @@ int main(int argc, char **argv)
                 S2N_RSA_PSS_2048_SHA256_LEAF_CERT, S2N_RSA_PSS_2048_SHA256_LEAF_KEY));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_tls13_null_key_exchange_alg"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all_tls13"));
         EXPECT_SUCCESS(s2n_config_set_signature_preferences(server_config, "20200207"));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_tls13_null_key_exchange_alg"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all_tls13"));
         EXPECT_SUCCESS(s2n_config_set_signature_preferences(client_config, "20200207"));
         client_config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
         client_config->check_ocsp = 0;

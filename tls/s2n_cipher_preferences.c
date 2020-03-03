@@ -956,6 +956,7 @@ struct {
     const struct s2n_cipher_preferences *preferences;
     unsigned ecc_extension_required:1;
     unsigned pq_kem_extension_required:1;
+    unsigned supports_tls13:1;
 } selection[] = {
     /* Zero init .ecc_extension_required and .pq_kem_extension_required, they'll be initialized later in s2n_cipher_preferences_init() */
     { .version="default", .preferences=&cipher_preferences_20170210, .ecc_extension_required=0, .pq_kem_extension_required=0},
@@ -1005,7 +1006,8 @@ struct {
     { .version="test_all_fips", .preferences=&cipher_preferences_test_all_fips, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="test_all_ecdsa", .preferences=&cipher_preferences_test_all_ecdsa, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="test_ecdsa_priority", .preferences=&cipher_preferences_test_ecdsa_priority, .ecc_extension_required=0, .pq_kem_extension_required=0},
-    { .version="test_tls13_null_key_exchange_alg", .preferences=&cipher_preferences_test_tls13_null_key_exchange_alg, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="test_all_tls13", .preferences=&cipher_preferences_test_all_tls13, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="test_all_tls12", .preferences=&cipher_preferences_test_all_tls12, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="null", .preferences=&cipher_preferences_null, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version=NULL, .preferences=NULL, .ecc_extension_required=0, .pq_kem_extension_required=0}
 };
@@ -1073,6 +1075,10 @@ int s2n_cipher_preferences_init()
              * but the elliptic curves extension is always required. */
             if (cipher->minimum_required_tls_version >= S2N_TLS13) {
                 selection[i].ecc_extension_required = 1;
+                /* Valid TLS 1.3 Ciphers are 0x1301, 0x1302, 0x1303, 0x1304, 0x1305 */
+                bool is_tls13_cipher = cipher->iana_value[0] == 0x13 && cipher->iana_value[1] >= 0x01 && cipher->iana_value[1] <= 0x05;
+                S2N_ERROR_IF(!is_tls13_cipher, S2N_ERR_INVALID_CIPHER_PREFERENCES);
+                selection[i].supports_tls13 = 1;
             }
 
             if (cipher->key_exchange_alg == &s2n_ecdhe || cipher->key_exchange_alg == &s2n_hybrid_ecdhe_kem) {
@@ -1112,6 +1118,20 @@ int s2n_pq_kem_extension_required(const struct s2n_cipher_preferences *preferenc
     for (int i = 0; selection[i].version != NULL; i++) {
         if (selection[i].preferences == preferences) {
             return 1 == selection[i].pq_kem_extension_required;
+        }
+    }
+    S2N_ERROR(S2N_ERR_INVALID_CIPHER_PREFERENCES);
+}
+
+/* Checks whether cipher preference supports TLS 1.3 based on whether it is configured
+ * with TLS 1.3 ciphers. Returns 1 if true, 0 if false, S2N_ERROR otherwise
+ */
+int s2n_cipher_preference_supports_tls13(const struct s2n_cipher_preferences *preferences)
+{
+    notnull_check(preferences);
+    for (int i = 0; selection[i].version != NULL; i++) {
+        if (selection[i].preferences == preferences) {
+            return selection[i].supports_tls13;
         }
     }
     S2N_ERROR(S2N_ERR_INVALID_CIPHER_PREFERENCES);

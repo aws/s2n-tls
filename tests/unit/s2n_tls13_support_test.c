@@ -62,7 +62,7 @@ int main(int argc, char **argv)
         uint8_t original_data_size = s2n_stuffer_data_available(&extension_data);
 
         struct s2n_array *extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension));
-        for (int i=0; i < sizeof(tls13_extensions) / sizeof(uint8_t); i++) {
+        for (int i=0; i < s2n_array_len(tls13_extensions); i++) {
             struct s2n_client_hello_parsed_extension *extension;
             EXPECT_NOT_NULL(extension = s2n_array_pushback(extensions));
 
@@ -120,7 +120,9 @@ int main(int argc, char **argv)
         struct s2n_client_hello_parsed_extension *extension;
         EXPECT_NOT_NULL(extension = s2n_array_pushback(extensions));
 
-        for (int i=0; i < sizeof(new_extensions) / sizeof(uint8_t); i++) {
+        /* Protocol version is required for key share extension parsing */
+        server_conn->actual_protocol_version = S2N_TLS13;
+        for (int i = 0; i < s2n_array_len(new_extensions); i++) {
             EXPECT_SUCCESS(s2n_stuffer_wipe(&extension_data));
             EXPECT_SUCCESS(s2n_stuffer_write_str(&extension_data, "bad extension"));
 

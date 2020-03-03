@@ -184,7 +184,7 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
      */
     conn->client_protocol_version = MIN((client_protocol_version[0] * 10) + client_protocol_version[1], S2N_TLS12);
     conn->client_hello_version = conn->client_protocol_version;
-    
+
     S2N_ERROR_IF(conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN || conn->session_id_len > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
     GUARD(s2n_stuffer_read_bytes(in, conn->session_id, conn->session_id_len));
@@ -286,15 +286,22 @@ int s2n_process_client_hello(struct s2n_connection *conn)
      * Negotiate protocol version, cipher suite, ALPN, select a cert, etc. */
     struct s2n_client_hello *client_hello = &conn->client_hello;
 
+    const struct s2n_cipher_preferences *cipher_preferences;
+    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+
+    /* Ensure that highest supported version is set correctly */
+    if (s2n_cipher_preference_supports_tls13(cipher_preferences) != 1) {
+        conn->server_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
+        conn->actual_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
+    }
+
     if (client_hello->parsed_extensions != NULL && client_hello->parsed_extensions->num_of_elements > 0) {
         GUARD(s2n_client_extensions_recv(conn, client_hello->parsed_extensions));
     }
-    
+
     if (conn->actual_protocol_version != S2N_TLS13) {
         conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
     }
-    const struct s2n_cipher_preferences *cipher_preferences;
-    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
 
     if (conn->client_protocol_version < cipher_preferences->minimum_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
@@ -348,6 +355,16 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
 int s2n_client_hello_send(struct s2n_connection *conn)
 {
+    const struct s2n_cipher_preferences *cipher_preferences;
+    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+
+    /* Check whether cipher preference supports TLS 1.3. If it doesn't,
+       our highest supported version is S2N_TLS12 */
+    if (s2n_cipher_preference_supports_tls13(cipher_preferences) != 1) {
+        conn->client_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
+        conn->actual_protocol_version = MIN(conn->actual_protocol_version, S2N_TLS12);
+    }
+
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_stuffer client_random = {0};
     struct s2n_blob b, r = {0};
@@ -384,9 +401,6 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     if (conn->session_id_len > 0) {
         GUARD(s2n_stuffer_write_bytes(out, conn->session_id, conn->session_id_len));
     }
-
-    const struct s2n_cipher_preferences *cipher_preferences;
-    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
 
     /* Find the number of available suites in the preference list. Some ciphers may be unavailable if s2n is built
      * with an older libcrypto
