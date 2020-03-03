@@ -920,146 +920,8 @@ int main(int argc, char **argv) {
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
     }
-#endif // S2N_OCSP_STAPLING_SUPPORTED
-    /* test validator in safe mode, with default host name validator. Connection server name matches alternative name on a certificate. */
-    {
-        struct s2n_x509_trust_store trust_store;
-        s2n_x509_trust_store_init_empty(&trust_store);
-        EXPECT_EQUAL(0, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_RSA_2048_SHA256_WILDCARD_CERT, NULL));
 
-        struct s2n_x509_validator validator;
-        s2n_x509_validator_init(&validator, &trust_store, 1);
-
-        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
-        EXPECT_NOT_NULL(connection);
-
-        EXPECT_SUCCESS(s2n_set_server_name(connection, "localhost"));
-
-        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
-        EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
-
-        struct s2n_pkey public_key_out;
-        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
-        s2n_pkey_type pkey_type;
-        EXPECT_EQUAL(S2N_CERT_OK,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
-        s2n_stuffer_free(&chain_stuffer);
-        EXPECT_EQUAL(S2N_PKEY_TYPE_RSA, pkey_type);
-        s2n_connection_free(connection);
-        s2n_pkey_free(&public_key_out);
-
-        s2n_x509_validator_wipe(&validator);
-        s2n_x509_trust_store_wipe(&trust_store);
-    }
-
-    /* test validator in safe mode, with default host name validator. Connection server name matches wildcard alternative name on a certificate. */
-    {
-        struct s2n_x509_trust_store trust_store;
-        s2n_x509_trust_store_init_empty(&trust_store);
-        EXPECT_EQUAL(0, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_RSA_2048_SHA256_WILDCARD_CERT, NULL));
-
-        struct s2n_x509_validator validator;
-        s2n_x509_validator_init(&validator, &trust_store, 1);
-
-        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
-        EXPECT_NOT_NULL(connection);
-
-        EXPECT_SUCCESS(s2n_set_server_name(connection, "test.localhost"));
-
-        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
-        EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
-
-        struct s2n_pkey public_key_out;
-        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
-        s2n_pkey_type pkey_type;
-        EXPECT_EQUAL(S2N_CERT_OK,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
-        s2n_stuffer_free(&chain_stuffer);
-        EXPECT_EQUAL(S2N_PKEY_TYPE_RSA, pkey_type);
-        s2n_connection_free(connection);
-        s2n_pkey_free(&public_key_out);
-
-        s2n_x509_validator_wipe(&validator);
-        s2n_x509_trust_store_wipe(&trust_store);
-    }
-
-    /* test validator in safe mode, with default host name validator. Connection server does not match alternative names on a certificate. */
-    {
-        struct s2n_x509_trust_store trust_store;
-        s2n_x509_trust_store_init_empty(&trust_store);
-        EXPECT_EQUAL(0, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_RSA_2048_SHA256_WILDCARD_CERT, NULL));
-
-        struct s2n_x509_validator validator;
-        s2n_x509_validator_init(&validator, &trust_store, 1);
-
-        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
-        EXPECT_NOT_NULL(connection);
-
-        EXPECT_SUCCESS(s2n_set_server_name(connection, "127.0.0.1"));
-
-        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
-        EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
-
-        struct s2n_pkey public_key_out;
-        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
-        s2n_pkey_type pkey_type;
-        EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
-        s2n_stuffer_free(&chain_stuffer);
-        EXPECT_EQUAL(S2N_PKEY_TYPE_RSA, pkey_type);
-        s2n_connection_free(connection);
-        s2n_pkey_free(&public_key_out);
-
-        s2n_x509_validator_wipe(&validator);
-        s2n_x509_trust_store_wipe(&trust_store);
-    }
-
-    /* test validator in safe mode, with default host name validator. No connection server name supplied. */
-    {
-        struct s2n_x509_trust_store trust_store;
-        s2n_x509_trust_store_init_empty(&trust_store);
-        EXPECT_EQUAL(0, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_RSA_2048_SHA256_WILDCARD_CERT, NULL));
-
-        struct s2n_x509_validator validator;
-        s2n_x509_validator_init(&validator, &trust_store, 1);
-
-        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
-        EXPECT_NOT_NULL(connection);
-
-        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
-        EXPECT_TRUE(chain_len > 0);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
-
-        struct s2n_pkey public_key_out;
-        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
-        s2n_pkey_type pkey_type;
-        EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED,
-                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
-        s2n_stuffer_free(&chain_stuffer);
-        EXPECT_EQUAL(S2N_PKEY_TYPE_RSA, pkey_type);
-        s2n_connection_free(connection);
-        s2n_pkey_free(&public_key_out);
-
-        s2n_x509_validator_wipe(&validator);
-        s2n_x509_trust_store_wipe(&trust_store);
-    }
-#if S2N_OCSP_STAPLING_SUPPORTED
-    /* Test invalid OCSP date range (after is off) */
+        /* Test invalid OCSP date range (after is off) */
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init_empty(&trust_store);
@@ -1206,7 +1068,144 @@ int main(int argc, char **argv) {
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
     }
-#endif // S2N_OCSP_STAPLING_SUPPORTED
+#endif /* S2N_OCSP_STAPLING_SUPPORTED */
+    /* test validator in safe mode, with default host name validator. Connection server name matches alternative name on a certificate. */
+    {
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init_empty(&trust_store);
+        EXPECT_EQUAL(0, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_RSA_2048_SHA256_WILDCARD_CERT, NULL));
+
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+
+        EXPECT_SUCCESS(s2n_set_server_name(connection, "localhost"));
+
+        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
+
+        struct s2n_pkey public_key_out;
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type;
+        EXPECT_EQUAL(S2N_CERT_OK,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
+        EXPECT_EQUAL(S2N_PKEY_TYPE_RSA, pkey_type);
+        s2n_connection_free(connection);
+        s2n_pkey_free(&public_key_out);
+
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
+    }
+
+    /* test validator in safe mode, with default host name validator. Connection server name matches wildcard alternative name on a certificate. */
+    {
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init_empty(&trust_store);
+        EXPECT_EQUAL(0, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_RSA_2048_SHA256_WILDCARD_CERT, NULL));
+
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+
+        EXPECT_SUCCESS(s2n_set_server_name(connection, "test.localhost"));
+
+        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
+
+        struct s2n_pkey public_key_out;
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type;
+        EXPECT_EQUAL(S2N_CERT_OK,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
+        EXPECT_EQUAL(S2N_PKEY_TYPE_RSA, pkey_type);
+        s2n_connection_free(connection);
+        s2n_pkey_free(&public_key_out);
+
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
+    }
+
+    /* test validator in safe mode, with default host name validator. Connection server does not match alternative names on a certificate. */
+    {
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init_empty(&trust_store);
+        EXPECT_EQUAL(0, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_RSA_2048_SHA256_WILDCARD_CERT, NULL));
+
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+
+        EXPECT_SUCCESS(s2n_set_server_name(connection, "127.0.0.1"));
+
+        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
+
+        struct s2n_pkey public_key_out;
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type;
+        EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
+        EXPECT_EQUAL(S2N_PKEY_TYPE_RSA, pkey_type);
+        s2n_connection_free(connection);
+        s2n_pkey_free(&public_key_out);
+
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
+    }
+
+    /* test validator in safe mode, with default host name validator. No connection server name supplied. */
+    {
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init_empty(&trust_store);
+        EXPECT_EQUAL(0, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_RSA_2048_SHA256_WILDCARD_CERT, NULL));
+
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+
+        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
+
+        struct s2n_pkey public_key_out;
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type;
+        EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
+        EXPECT_EQUAL(S2N_PKEY_TYPE_RSA, pkey_type);
+        s2n_connection_free(connection);
+        s2n_pkey_free(&public_key_out);
+
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
+    }
 
     /* Test trust store in a configuration can handle invalid PEM without crashing */
     {
