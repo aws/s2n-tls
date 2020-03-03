@@ -65,6 +65,9 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {
 const struct s2n_ecc_named_curve *const s2n_ecc_evp_supported_curves_list[] = {
     &s2n_ecc_curve_secp256r1,
     &s2n_ecc_curve_secp384r1,
+#if MODERN_EC_SUPPORTED	
+    &s2n_ecc_curve_x25519,	
+#endif
 };
 
 const size_t s2n_ecc_evp_supported_curves_list_len = s2n_array_len(s2n_ecc_evp_supported_curves_list);
