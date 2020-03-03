@@ -67,6 +67,12 @@ if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]] && [[ ! -d "$GNUTLS_INST
     .travis/install_gnutls.sh "$(mktemp -d)" "$GNUTLS_INSTALL_DIR" "$TRAVIS_OS_NAME" > /dev/null ;
 fi
 
+# Download and Install Openssl-0.9.8 for integration tests
+if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]] && [[ ! -d "$OPENSSL_0_9_8_INSTALL_DIR" ]]; then
+    mkdir -p "$OPENSSL_0_9_8_INSTALL_DIR";
+    .travis/install_openssl_0_9_8.sh "$(mktemp -d)" "$OPENSSL_0_9_8_INSTALL_DIR" "$TRAVIS_OS_NAME" > /dev/null ;
+fi
+
 # Install SAW, Z3, and Yices for formal verification
 if [[ "$SAW" == "true" || "$TESTS" == "ALL" ]] && [[ ! -d "$SAW_INSTALL_DIR" ]]; then
     mkdir -p "$SAW_INSTALL_DIR";

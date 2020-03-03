@@ -196,6 +196,7 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     client_hello->cipher_suites.size = cipher_suites_length;
     client_hello->cipher_suites.data = s2n_stuffer_raw_read(in, cipher_suites_length);
     notnull_check(client_hello->cipher_suites.data);
+
     /* Don't choose the cipher yet, read the extensions first */
     uint8_t num_compression_methods = 0;
     GUARD(s2n_stuffer_read_uint8(in, &num_compression_methods));
@@ -350,12 +351,10 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_stuffer client_random = {0};
-    struct s2n_blob b, r;
+    struct s2n_blob b, r = {0};
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
 
-    b.data = conn->secure.client_random;
-    b.size = S2N_TLS_RANDOM_DATA_LEN;
-
+    GUARD(s2n_blob_init(&b, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
     /* Create the client random data */
     GUARD(s2n_stuffer_init(&client_random, &b));
 

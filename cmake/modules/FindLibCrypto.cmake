@@ -22,7 +22,7 @@ find_path(LibCrypto_INCLUDE_DIR
         ${CMAKE_INSTALL_PREFIX}/include
     )
 find_library(LibCrypto_SHARED_LIBRARY
-    NAMES libcrypto.so
+    NAMES libcrypto.so libcrypto.dylib
     HINTS
     ${CMAKE_PREFIX_PATH}/build/crypto
     ${CMAKE_PREFIX_PATH}/build

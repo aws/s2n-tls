@@ -32,6 +32,7 @@
 : "${LIBFUZZER_INSTALL_DIR:=$(pwd)/test-deps/libfuzzer}"
 : "${LATEST_CLANG_INSTALL_DIR:=$(pwd)/test-deps/clang}"
 : "${SCAN_BUILD_INSTALL_DIR:=$(pwd)/test-deps/scan-build}"
+: "${OPENSSL_0_9_8_INSTALL_DIR:=$(pwd)/test-deps/openssl-0.9.8}"
 : "${OPENSSL_1_1_1_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.1.1}"
 : "${OPENSSL_1_0_2_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.0.2}"
 : "${OPENSSL_1_0_2_FIPS_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.0.2-fips}"
@@ -65,6 +66,7 @@ export Z3_INSTALL_DIR
 export LIBFUZZER_INSTALL_DIR
 export LATEST_CLANG_INSTALL_DIR
 export SCAN_BUILD_INSTALL_DIR
+export OPENSSL_0_9_8_INSTALL_DIR
 export OPENSSL_1_1_1_INSTALL_DIR
 export OPENSSL_1_0_2_INSTALL_DIR
 export OPENSSL_1_0_2_FIPS_INSTALL_DIR
@@ -79,6 +81,9 @@ export UBUNTU_VERSION
 export S2N_CORKED_IO
 export S2N_NO_PQ_ASM
 
+
+# Unset the FIPS flag incase the tester has changed modes after a FIPS test
+unset S2N_TEST_IN_FIPS_MODE
 
 # Select the libcrypto to build s2n against. If this is unset, default to the latest stable version(Openssl 1.1.1)
 if [[ -z $S2N_LIBCRYPTO ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_1_INSTALL_DIR ; fi

@@ -63,6 +63,12 @@ if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]]; then
     codebuild/bin/install_python.sh "$OPENSSL_1_1_1_INSTALL_DIR" "$(mktemp -d)" "$PYTHON_INSTALL_DIR" > /dev/null ;
 fi
 
+# Download and Install Openssl 0.9.8
+if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]]; then
+    mkdir -p "$OPENSSL_0_9_8_INSTALL_DIR"||true
+    codebuild/bin/install_openssl_0_9_8.sh "$(mktemp -d)" "$OPENSSL_0_9_8_INSTALL_DIR" "$OS_NAME" > /dev/null ;
+fi
+
 # Download and Install GnuTLS for integration tests
 if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]]; then
     mkdir -p "$GNUTLS_INSTALL_DIR"||true

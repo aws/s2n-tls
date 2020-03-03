@@ -25,6 +25,7 @@
 #include "tls/s2n_kex.h"
 #include "tls/s2n_cipher_suites.h"
 
+#include "tls/extensions/s2n_cookie.h"
 #include "tls/extensions/s2n_server_renegotiation_info.h"
 #include "tls/extensions/s2n_server_alpn.h"
 #include "tls/extensions/s2n_server_status_request.h"
@@ -86,6 +87,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (conn->actual_protocol_version >= S2N_TLS13) {
         total_size += s2n_extensions_server_supported_versions_size();
         total_size += s2n_extensions_server_key_share_send_size(conn);
+        total_size += s2n_extensions_cookie_size(conn);
     }
 
     if (total_size == 0) {
@@ -156,6 +158,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     /* Write key share extension */
     if (conn->actual_protocol_version >= S2N_TLS13) {
         GUARD(s2n_extensions_server_key_share_send(conn, out));
+        GUARD(s2n_extensions_cookie_send(conn, out));
     }
 
     return 0;
@@ -213,6 +216,11 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
         case TLS_EXTENSION_KEY_SHARE:
             if (s2n_is_tls13_enabled()) {
                 GUARD(s2n_extensions_server_key_share_recv(conn, &extension));
+            }
+            break;
+        case TLS_EXTENSION_COOKIE:
+            if (s2n_is_tls13_enabled()) {
+                GUARD(s2n_extensions_cookie_recv(conn, &extension));
             }
             break;
         }

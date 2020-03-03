@@ -33,6 +33,7 @@
 : "${LIBFUZZER_INSTALL_DIR:=$(pwd)/test-deps/libfuzzer}"
 : "${LATEST_CLANG_INSTALL_DIR:=$(pwd)/test-deps/clang}"
 : "${SCAN_BUILD_INSTALL_DIR:=$(pwd)/test-deps/scan-build}"
+: "${OPENSSL_0_9_8_INSTALL_DIR:=$(pwd)/test-deps/openssl-0.9.8}"
 : "${OPENSSL_1_1_1_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.1.1}"
 : "${OPENSSL_1_0_2_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.0.2}"
 : "${OPENSSL_1_0_2_FIPS_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.0.2-fips}"
@@ -60,6 +61,7 @@ export Z3_INSTALL_DIR
 export LIBFUZZER_INSTALL_DIR
 export LATEST_CLANG_INSTALL_DIR
 export SCAN_BUILD_INSTALL_DIR
+export OPENSSL_0_9_8_INSTALL_DIR
 export OPENSSL_1_1_1_INSTALL_DIR
 export OPENSSL_1_0_2_INSTALL_DIR
 export OPENSSL_1_0_2_FIPS_INSTALL_DIR
