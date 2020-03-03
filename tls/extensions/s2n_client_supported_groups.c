@@ -68,7 +68,7 @@ int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct s2n_stu
     return 0;
 }
 
-int s2n_parse_client_supported_groups_list(struct s2n_blob *iana_ids, struct s2n_ecc_evp_params *supported_groups) {
+int s2n_parse_client_supported_groups_list(struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **supported_groups) {
     struct s2n_stuffer iana_ids_in = {0};
 
     GUARD(s2n_stuffer_init(&iana_ids_in, iana_ids));
@@ -80,18 +80,19 @@ int s2n_parse_client_supported_groups_list(struct s2n_blob *iana_ids, struct s2n
         for (int j = 0; j < s2n_ecc_evp_supported_curves_list_len; j++) {
             const struct s2n_ecc_named_curve *supported_curve = s2n_ecc_evp_supported_curves_list[j];
             if (supported_curve->iana_id == iana_id) {
-                supported_groups[j].negotiated_curve = supported_curve;
+                supported_groups[j] = supported_curve;
             }
         }
     }
     return 0;
 }
 
-int s2n_choose_supported_group(struct s2n_ecc_evp_params *chosen_group, struct s2n_ecc_evp_params *group_options, uint16_t length) {
+int s2n_choose_supported_group(struct s2n_ecc_evp_params *chosen_group, const struct s2n_ecc_named_curve **group_options, uint16_t length) {
     eq_check(s2n_ecc_evp_supported_curves_list_len, length);
+
     for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
-        if (group_options[i].negotiated_curve) {
-            chosen_group->negotiated_curve = group_options[i].negotiated_curve;
+        if (group_options[i]) {
+            chosen_group->negotiated_curve = group_options[i];
             return 0;
         }
     }

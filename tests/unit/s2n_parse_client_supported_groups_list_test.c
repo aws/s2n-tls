@@ -41,13 +41,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&out, s2n_ecc_evp_supported_curves_list[0]->iana_id));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
-            EXPECT_NULL(server_conn->secure.mutually_supported_groups[i].negotiated_curve);
+            EXPECT_NULL(server_conn->secure.mutually_supported_groups[i]);
         }
         
         EXPECT_SUCCESS(s2n_parse_client_supported_groups_list(&iana_ids, server_conn->secure.mutually_supported_groups));
         
-        EXPECT_EQUAL(server_conn->secure.mutually_supported_groups[0].negotiated_curve, s2n_ecc_evp_supported_curves_list[0]);
-        EXPECT_NULL(server_conn->secure.mutually_supported_groups[1].negotiated_curve);
+        EXPECT_EQUAL(server_conn->secure.mutually_supported_groups[0], s2n_ecc_evp_supported_curves_list[0]);
+        EXPECT_NULL(server_conn->secure.mutually_supported_groups[1]);
         
         EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
     }
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_parse_client_supported_groups_list(&iana_ids, server_conn->secure.mutually_supported_groups));
         
         for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
-            EXPECT_NULL(server_conn->secure.mutually_supported_groups[i].negotiated_curve);
+            EXPECT_NULL(server_conn->secure.mutually_supported_groups[i]);
         }
         EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
     }
@@ -85,8 +85,8 @@ int main(int argc, char **argv)
                 
         EXPECT_SUCCESS(s2n_parse_client_supported_groups_list(&iana_ids, server_conn->secure.mutually_supported_groups));
 
-        EXPECT_NULL(server_conn->secure.mutually_supported_groups[0].negotiated_curve);
-        EXPECT_EQUAL(server_conn->secure.mutually_supported_groups[1].negotiated_curve, s2n_ecc_evp_supported_curves_list[1]);
+        EXPECT_NULL(server_conn->secure.mutually_supported_groups[0]);
+        EXPECT_EQUAL(server_conn->secure.mutually_supported_groups[1], s2n_ecc_evp_supported_curves_list[1]);
         EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
     }
 

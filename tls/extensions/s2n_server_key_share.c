@@ -54,7 +54,7 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
     for (uint32_t i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
         /* Checks supported group and keyshare have both been sent */
         if (conn->secure.client_ecc_evp_params[i].negotiated_curve &&
-             conn->secure.mutually_supported_groups[i].negotiated_curve) {
+             conn->secure.mutually_supported_groups[i]) {
             conn->secure.server_ecc_evp_params.negotiated_curve = conn->secure.client_ecc_evp_params[i].negotiated_curve;
             return 0;
         }

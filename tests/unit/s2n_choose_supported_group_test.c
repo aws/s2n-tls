@@ -31,7 +31,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
         for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
-            EXPECT_NULL(server_conn->secure.mutually_supported_groups[i].negotiated_curve);
+            EXPECT_NULL(server_conn->secure.mutually_supported_groups[i]);
         }
         uint16_t supported_groups_size =  s2n_array_len(server_conn->secure.mutually_supported_groups);
         EXPECT_FAILURE_WITH_ERRNO(s2n_choose_supported_group(&server_conn->secure.server_ecc_evp_params, 
@@ -47,7 +47,7 @@ int main(int argc, char **argv)
          */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-        server_conn->secure.mutually_supported_groups[1].negotiated_curve = s2n_ecc_evp_supported_curves_list[1];
+        server_conn->secure.mutually_supported_groups[1] = s2n_ecc_evp_supported_curves_list[1];
 
         uint16_t supported_groups_size =  s2n_array_len(server_conn->secure.mutually_supported_groups);
         EXPECT_SUCCESS(s2n_choose_supported_group(&server_conn->secure.server_ecc_evp_params,
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
         for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
-            server_conn->secure.mutually_supported_groups[i].negotiated_curve = s2n_ecc_evp_supported_curves_list[i];
+            server_conn->secure.mutually_supported_groups[i] = s2n_ecc_evp_supported_curves_list[i];
         }
         uint16_t supported_groups_size =  s2n_array_len(server_conn->secure.mutually_supported_groups);
         EXPECT_SUCCESS(s2n_choose_supported_group(&server_conn->secure.server_ecc_evp_params,
