@@ -28,10 +28,14 @@ struct s2n_cipher_preferences {
     const struct s2n_kem **kems;
 };
 
+#if !defined(S2N_NO_PQ)
+
 extern const struct s2n_kem *pq_kems_r1[2];
 extern const struct s2n_kem *pq_kems_r2r1[4];
 extern const struct s2n_kem *pq_kems_sike_r1[1];
 extern const struct s2n_kem *pq_kems_sike_r2r1[2];
+
+#endif
 
 extern const struct s2n_cipher_preferences cipher_preferences_20140601;
 extern const struct s2n_cipher_preferences cipher_preferences_20141001;

@@ -8,6 +8,7 @@ set(INSTALL_LIB_DIR lib CACHE PATH "Installaction directory for libraries")
 set(INSTALL_INCLUDE_DIR include CACHE PATH "installaction directory for header files")
 set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake files")
 
+option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this for older compilers or uncommon platforms.")
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain. You likely want this on older compilers." OFF)
 
 ##header files
@@ -21,13 +22,6 @@ file(GLOB CRYPTO_HEADERS
 
 file(GLOB ERROR_HEADERS
     "error/*.h"
-)
-
-file(GLOB PQ_HEADERS
-    "pq-crypto/*.h"
-    "pq-crypto/bike_r1/*.h"
-    "pq-crypto/bike_r2/*.h"
-    "pq-crypto/sike_r1/*.h"
 )
 
 file(GLOB STUFFER_HEADERS
@@ -51,18 +45,32 @@ file(GLOB ERROR_SRC
     "error/*.c"
 )
 
-# The SIKE code #includes .c files directly, including all sike_r*/*.c breaks the build due to duplicates
-file(GLOB PQ_SRC
-        "pq-crypto/*.c"
-        "pq-crypto/bike_r1/*.c"
-        "pq-crypto/bike_r2/*.c"
-        "pq-crypto/sike_r1/fp_generic_r1.c"
-        "pq-crypto/sike_r1/P503_r1.c"
-        "pq-crypto/sike_r1/sike_r1_kem.c"
-        "pq-crypto/sike_r1/fips202_r1.c"
-        "pq-crypto/sike_r2/fips202.c"
-        "pq-crypto/sike_r2/P434.c"
-        )
+if(S2N_NO_PQ)
+    message(STATUS "S2N_NO_PQ flag was detected - Disabling Post Quantum Crypto")
+    # If all Post Quantum Code is disabled, also disable PQ assembly optimized code
+    set(S2N_NO_PQ_ASM ON)
+else()
+    file(GLOB PQ_HEADERS
+        "pq-crypto/*.h"
+        "pq-crypto/bike_r1/*.h"
+        "pq-crypto/bike_r2/*.h"
+        "pq-crypto/sike_r1/*.h"
+        "pq-crypto/sike_r2/*.h"
+    )
+
+    # The SIKE code #includes .c files directly, including all sike_r*/*.c breaks the build due to duplicates
+    file(GLOB PQ_SRC
+            "pq-crypto/*.c"
+            "pq-crypto/bike_r1/*.c"
+            "pq-crypto/bike_r2/*.c"
+            "pq-crypto/sike_r1/fp_generic_r1.c"
+            "pq-crypto/sike_r1/P503_r1.c"
+            "pq-crypto/sike_r1/sike_r1_kem.c"
+            "pq-crypto/sike_r1/fips202_r1.c"
+            "pq-crypto/sike_r2/fips202.c"
+            "pq-crypto/sike_r2/P434.c"
+    )
+endif()
 
 file(GLOB STUFFER_SRC
     "stuffer/*.c"
@@ -158,6 +166,10 @@ target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Werro
 
 if(S2N_NO_PQ_ASM)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_NO_PQ_ASM)
+endif()
+
+if(S2N_NO_PQ)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_NO_PQ)
 endif()
 
 target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)

@@ -44,10 +44,14 @@ struct s2n_iana_to_kem {
     uint8_t kem_count;
 };
 
+#if !defined(S2N_NO_PQ)
+
 extern const struct s2n_kem s2n_bike1_l1_r1;
 extern const struct s2n_kem s2n_bike1_l1_r2;
 extern const struct s2n_kem s2n_sike_p503_r1;
 extern const struct s2n_kem s2n_sike_p434_r2;
+
+#endif
 
 extern int s2n_kem_generate_keypair(struct s2n_kem_keypair *kem_keys);
 

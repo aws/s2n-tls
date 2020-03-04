@@ -20,6 +20,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+#if !defined(S2N_NO_PQ)
 
     if (s2n_is_in_fips_mode()) {
         /* There is no support for PQ KEMs while in FIPS mode */
@@ -38,7 +39,9 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(sike_r2_fp_code_identifier(), GENERIC_C_CODE_IDENTIFIER);
 #else
     FAIL_MSG("Neither S2N_PQ_ASM nor S2N_PQ_GENERIC was defined. One of those must be defined.");
-#endif
+#endif /* defined(S2N_PQ_ASM) */
+
+#endif /* !defined(S2N_NO_PQ) */
 
     END_TEST();
 }
