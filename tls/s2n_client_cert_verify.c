@@ -57,7 +57,6 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
     return 0;
 }
 
-
 int s2n_client_cert_verify_send(struct s2n_connection *conn)
 {
     struct s2n_stuffer *out = &conn->handshake.io;

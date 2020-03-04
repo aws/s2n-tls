@@ -82,6 +82,9 @@ export S2N_CORKED_IO
 export S2N_NO_PQ_ASM
 
 
+# Unset the FIPS flag incase the tester has changed modes after a FIPS test
+unset S2N_TEST_IN_FIPS_MODE
+
 # Select the libcrypto to build s2n against. If this is unset, default to the latest stable version(Openssl 1.1.1)
 if [[ -z $S2N_LIBCRYPTO ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_1_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.1" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_1_INSTALL_DIR ; fi
