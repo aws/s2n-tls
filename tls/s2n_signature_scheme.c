@@ -28,6 +28,7 @@ const struct s2n_signature_scheme s2n_rsa_pkcs1_md5_sha1 = {
         .hash_alg = S2N_HASH_MD5_SHA1,
         .sig_alg = S2N_SIGNATURE_RSA,
         .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
+        .maximum_protocol_version = S2N_TLS12, /* TLS1.3 does not support pkcs1 or sha1 */
 };
 
 const struct s2n_signature_scheme s2n_rsa_pkcs1_sha1 = {
@@ -35,6 +36,7 @@ const struct s2n_signature_scheme s2n_rsa_pkcs1_sha1 = {
         .hash_alg = S2N_HASH_SHA1,
         .sig_alg = S2N_SIGNATURE_RSA,
         .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
+        .maximum_protocol_version = S2N_TLS12, /* TLS1.3 does not support pkcs1 or sha1 */
 };
 
 const struct s2n_signature_scheme s2n_rsa_pkcs1_sha224 = {
@@ -42,7 +44,7 @@ const struct s2n_signature_scheme s2n_rsa_pkcs1_sha224 = {
         .hash_alg = S2N_HASH_SHA224,
         .sig_alg = S2N_SIGNATURE_RSA,
         .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
-        .maximum_protocol_version = S2N_TLS12,
+        .maximum_protocol_version = S2N_TLS12, /* TLS1.3 does not support pkcs1 */
 };
 
 const struct s2n_signature_scheme s2n_rsa_pkcs1_sha256 = {
@@ -50,6 +52,7 @@ const struct s2n_signature_scheme s2n_rsa_pkcs1_sha256 = {
         .hash_alg = S2N_HASH_SHA256,
         .sig_alg = S2N_SIGNATURE_RSA,
         .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
+        .maximum_protocol_version = S2N_TLS12, /* TLS1.3 does not support pkcs1 */
 };
 
 const struct s2n_signature_scheme s2n_rsa_pkcs1_sha384 = {
@@ -57,6 +60,7 @@ const struct s2n_signature_scheme s2n_rsa_pkcs1_sha384 = {
         .hash_alg = S2N_HASH_SHA384,
         .sig_alg = S2N_SIGNATURE_RSA,
         .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
+        .maximum_protocol_version = S2N_TLS12, /* TLS1.3 does not support pkcs1 */
 };
 
 const struct s2n_signature_scheme s2n_rsa_pkcs1_sha512 = {
@@ -64,6 +68,7 @@ const struct s2n_signature_scheme s2n_rsa_pkcs1_sha512 = {
         .hash_alg = S2N_HASH_SHA512,
         .sig_alg = S2N_SIGNATURE_RSA,
         .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
+        .maximum_protocol_version = S2N_TLS12, /* TLS1.3 does not support pkcs1 */
 };
 
 /* TLS 1.2 Compatible ECDSA Signature Schemes */
@@ -72,6 +77,7 @@ const struct s2n_signature_scheme s2n_ecdsa_sha1 = {
         .hash_alg = S2N_HASH_SHA1,
         .sig_alg = S2N_SIGNATURE_ECDSA,
         .signature_curve = NULL, /* Decided by supported_groups Extension in TLS 1.2 and before */
+        .maximum_protocol_version = S2N_TLS12, /* TLS1.3 does not support sha1 and requires a signature curve */
 };
 
 const struct s2n_signature_scheme s2n_ecdsa_sha224 = {
@@ -79,7 +85,7 @@ const struct s2n_signature_scheme s2n_ecdsa_sha224 = {
         .hash_alg = S2N_HASH_SHA224,
         .sig_alg = S2N_SIGNATURE_ECDSA,
         .signature_curve = NULL, /* Decided by supported_groups Extension in TLS 1.2 and before */
-        .maximum_protocol_version = S2N_TLS12,
+        .maximum_protocol_version = S2N_TLS12, /* TLS1.3 requires a signature curve */
 };
 
 const struct s2n_signature_scheme s2n_ecdsa_sha256 = {
@@ -87,7 +93,7 @@ const struct s2n_signature_scheme s2n_ecdsa_sha256 = {
         .hash_alg = S2N_HASH_SHA256,
         .sig_alg = S2N_SIGNATURE_ECDSA,
         .signature_curve = NULL, /* Decided by supported_groups Extension in TLS 1.2 and before */
-        .maximum_protocol_version = S2N_TLS12,
+        .maximum_protocol_version = S2N_TLS12, /* TLS1.3 requires a signature curve */
 };
 
 const struct s2n_signature_scheme s2n_ecdsa_sha384 = {
@@ -95,7 +101,7 @@ const struct s2n_signature_scheme s2n_ecdsa_sha384 = {
         .hash_alg = S2N_HASH_SHA384,
         .sig_alg = S2N_SIGNATURE_ECDSA,
         .signature_curve = NULL, /* Decided by supported_groups Extension in TLS 1.2 and before */
-        .maximum_protocol_version = S2N_TLS12,
+        .maximum_protocol_version = S2N_TLS12, /* TLS1.3 requires a signature curve */
 };
 
 const struct s2n_signature_scheme s2n_ecdsa_sha512 = {
@@ -103,7 +109,7 @@ const struct s2n_signature_scheme s2n_ecdsa_sha512 = {
         .hash_alg = S2N_HASH_SHA512,
         .sig_alg = S2N_SIGNATURE_ECDSA,
         .signature_curve = NULL, /* Decided by supported_groups Extension in TLS 1.2 and before */
-        .maximum_protocol_version = S2N_TLS12,
+        .maximum_protocol_version = S2N_TLS12, /* TLS1.3 requires a signature curve */
 };
 
 /* TLS 1.3 Compatible ECDSA Schemes */
