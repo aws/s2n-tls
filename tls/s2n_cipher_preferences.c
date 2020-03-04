@@ -1064,7 +1064,7 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
 }
 
 /* Valid TLS 1.3 Ciphers are 0x1301, 0x1302, 0x1303, 0x1304, 0x1305 */
-static bool is_valid_tls13_cipher(const uint8_t version[2]) {
+static bool s2n_is_valid_tls13_cipher(const uint8_t version[2]) {
     return version[0] == 0x13 && version[1] >= 0x01 && version[1] <= 0x05;
 }
 
@@ -1085,7 +1085,7 @@ int s2n_cipher_preferences_init()
             }
 
             /* Sanity check that valid tls13 has minimum tls version set correctly */
-            S2N_ERROR_IF(is_valid_tls13_cipher(cipher->iana_value) ^
+            S2N_ERROR_IF(s2n_is_valid_tls13_cipher(cipher->iana_value) ^
                 (cipher->minimum_required_tls_version >= S2N_TLS13), S2N_ERR_INVALID_CIPHER_PREFERENCES);
 
             if (cipher->key_exchange_alg == &s2n_ecdhe || cipher->key_exchange_alg == &s2n_hybrid_ecdhe_kem) {
@@ -1147,7 +1147,7 @@ bool s2n_cipher_preference_supports_tls13(const struct s2n_cipher_preferences *p
 
     /* if cipher preference is not in the official list, compute the result */
     for (uint8_t i = 0; i < preferences->count; i++) {
-        if (is_valid_tls13_cipher(preferences->suites[i]->iana_value)) {
+        if (s2n_is_valid_tls13_cipher(preferences->suites[i]->iana_value)) {
             return true;
         }
     }
