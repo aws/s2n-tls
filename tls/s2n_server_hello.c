@@ -184,9 +184,6 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         return 0;
     }
 
-    /* Clear the retry flag if we are not handling a retry request */
-    conn->handshake.client_received_hrr = 0;
-
     conn->actual_protocol_version_established = 1;
 
     GUARD(s2n_conn_set_handshake_type(conn));

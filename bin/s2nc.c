@@ -79,9 +79,7 @@ void usage()
     fprintf(stderr, "    Turn on corked io\n");
     if (S2N_IN_TEST) {
         fprintf(stderr, "  --tls13\n");
-        fprintf(stderr, "    Turn on experimental TLS1.3 support for testing.\n");
-        fprintf(stderr, "  --keyshare [curve name]\n");
-        fprintf(stderr, "    Name of curve to generate a keyshare for. Default is all supported curves\n");
+        fprintf(stderr, "    Turn on experimental TLS1.3 support for testing.");
     }
     fprintf(stderr, "\n");
     exit(1);
@@ -225,7 +223,6 @@ int main(int argc, char *const *argv)
     const char *server_name = NULL;
     const char *ca_file = NULL;
     const char *ca_dir = NULL;
-    const char *keyshare = NULL;
     uint16_t mfl_value = 0;
     uint8_t insecure = 0;
     int reconnect = 0;
@@ -259,12 +256,11 @@ int main(int argc, char *const *argv)
         {"timeout", required_argument, 0, 't'},
         {"corked-io", no_argument, 0, 'C'},
         {"tls13", no_argument, 0, '3'},
-        {"keyshare", no_argument, 0, 'k'},
     };
 
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:D:t:k:irTC", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:D:t:irTC", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -320,9 +316,6 @@ int main(int argc, char *const *argv)
             break;
         case '3':
             use_tls13 = 1;
-            break;
-        case 'k':
-            keyshare = optarg;
             break;
         case '?':
         default:
@@ -389,9 +382,6 @@ int main(int argc, char *const *argv)
 
         struct s2n_config *config = s2n_config_new();
         setup_s2n_config(config, cipher_prefs, type, &unsafe_verify_data, host, alpn_protocols, mfl_value);
-        if (keyshare) {
-            s2n_config_add_keyshare_by_name(config, &keyshare);
-        }
 
         if (ca_file || ca_dir) {
             if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {

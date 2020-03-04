@@ -404,7 +404,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
         this_mode = 'C';
     }
 
-    /* If we were responding to a client hello with a retry request, reset the handshake */
+    /* If this SERVER_HELLO message is actually a HelloRetryRequest (inbound or outbound) then we need to reset the handshake state */
     if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO && (s2n_server_requires_retry(conn) || s2n_server_hello_retry_is_valid(conn))) {
         /* Reset handshake state */
         conn->handshake.server_sent_hrr = 1;
@@ -423,6 +423,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
 
     /* Actually advance the message number */
     conn->handshake.message_number++;
+
     /* When reading and using TLS1.3, skip optional change_cipher_spec states. */
     if (ACTIVE_STATE(conn).writer != this_mode &&
             EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC &&
@@ -908,7 +909,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
 
         /* If we just read a HelloRetryRequest, we need to rebuild the hash transcript */
-        if (conn->handshake.message_number == SERVER_HELLO && conn->handshake.client_received_hrr == 1) {
+        if (conn->handshake.message_number == SERVER_HELLO && s2n_server_hello_retry_is_valid(conn)) {
             GUARD(s2n_server_hello_retry_recreate_transcript(conn));
         }
 

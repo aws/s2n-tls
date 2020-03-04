@@ -182,9 +182,6 @@ int s2n_tls13_derive_handshake_secrets(struct s2n_tls13_keys *keys,
     GUARD(s2n_hash_copy(&hkdf_hash_copy, client_server_hello_hash));
     s2n_hash_digest(&hkdf_hash_copy, message_digest.data, message_digest.size);
     s2n_hash_free(&hkdf_hash_copy);
-    printf("[XXX] hash from the derive handshake secrets\n");
-    for (int i=0; i<message_digest.size; i++) printf("%02x, ", message_digest.data[i]);
-    printf("\n");
 
     /* produce client + server traffic secrets */
     GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,

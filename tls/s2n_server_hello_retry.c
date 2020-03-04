@@ -85,6 +85,9 @@ int s2n_server_hello_retry_send(struct s2n_connection *conn)
     /* Let the handshake writer know that we sent a request */
     conn->handshake.server_sent_hrr = 1;
 
+    /* Clear all existing key shares so we can verify that what the client sends back is valid */
+    GUARD(s2n_connection_clear_all_key_shares(conn));
+
     return 0;
 }
 

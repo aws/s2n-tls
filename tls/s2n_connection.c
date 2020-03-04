@@ -556,12 +556,8 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         }
     }
 
-    /* Set the connection's preferred key shares based on the configuration */
+    /* XXX: For testing, we start the connection with no generated key shares. This will force the server to send a retry. */
     GUARD(s2n_connection_clear_all_key_shares(conn));
-    for (int i = 0; i < config->key_shares->num_of_elements; i++) {
-        char **curve = s2n_array_get(config->key_shares, i);
-        GUARD(s2n_connection_add_preferred_key_share(conn, *curve));
-    }
 
     conn->config = config;
 

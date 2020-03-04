@@ -127,8 +127,6 @@ extern int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
                                                       struct s2n_cert_chain_and_key **cert_key_pairs,
                                                       uint32_t num_cert_key_pairs);
 
-extern int s2n_config_add_keyshare_by_name(struct s2n_config *config, const char **curve_name);
-
 extern int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
 extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem);
 

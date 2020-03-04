@@ -482,14 +482,14 @@ int s2n_ecc_evp_params_free(struct s2n_ecc_evp_params *ecc_evp_params) {
     return 0;
 }
 
-/* Determines whether the curve is a valid curve.
+/* Determines whether the curve has been selected for use.
  * This is necessary because the connection has a list of curves that
  * are allowed to be used for key shares. That list is laid out in the
  * same order as the s2n_ecc_evp_supported_curves list. The curves
  * that have not been selected will have 0 value, while the selected
  * curves will have been copied from the s2n_ecc_evp_supported_curves list.
  */
-bool s2n_is_curve_valid(const struct s2n_ecc_named_curve *curve)
+bool s2n_is_curve_selected(const struct s2n_ecc_named_curve *curve)
 {
     return curve->share_size > 0;
 }

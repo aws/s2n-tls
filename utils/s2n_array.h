@@ -41,4 +41,4 @@ extern void *s2n_array_insert(struct s2n_array *array, uint32_t index);
 extern int s2n_array_remove(struct s2n_array *array, uint32_t index);
 extern int s2n_array_free_p(struct s2n_array **parray);
 extern int s2n_array_free(struct s2n_array *array);
-extern int s2n_array_insert_and_copy(struct s2n_array *array, const void* element, uint32_t index);
+extern int s2n_array_insert_and_copy(struct s2n_array *array, void* element, uint32_t index);

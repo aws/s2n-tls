@@ -59,10 +59,6 @@ int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n
     uint16_t named_group, share_size;
     uint32_t supported_curve_index;
 
-    /* Clear all existing key shares */
-    /* TODO: This should be done after HRR cleanup, not here */
-    GUARD(s2n_connection_clear_all_key_shares(conn));
-
     /* Whether a match was found */
     uint8_t match = 0;
 
@@ -130,10 +126,11 @@ uint32_t s2n_extensions_client_key_share_size(struct s2n_connection *conn)
             + S2N_SIZE_OF_EXTENSION_DATA_SIZE
             + S2N_SIZE_OF_CLIENT_SHARES_SIZE;
 
-    /* Only include the key shares that will be sent in the extension size */
+    /* Only curves that the customer has selected, or that a server has specified in
+     * a HelloRetryRequest, should be included in the size */
     for (uint32_t i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
         struct s2n_ecc_named_curve *c = &conn->secure.preferred_key_shares[i];
-        if (s2n_is_curve_valid(c)) {
+        if (s2n_is_curve_selected(c)) {
             s2n_client_key_share_extension_size += S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIZE_OF_NAMED_GROUP;
             s2n_client_key_share_extension_size += c->share_size;
         }
@@ -154,7 +151,7 @@ static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s
         named_curve = &conn->secure.preferred_key_shares[i];
 
         /* Only generate key shares for the curves that have been added to the preferred list */
-        if (s2n_is_curve_valid(named_curve)) {
+        if (s2n_is_curve_selected(named_curve)) {
             ecc_evp_params->negotiated_curve = named_curve;
             ecc_evp_params->evp_pkey = NULL;
             GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
