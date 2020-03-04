@@ -34,8 +34,8 @@ int main(int argc, char **argv)
             EXPECT_NULL(server_conn->secure.mutually_supported_groups[i]);
         }
         uint16_t supported_groups_size =  s2n_array_len(server_conn->secure.mutually_supported_groups);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_choose_supported_group(&server_conn->secure.server_ecc_evp_params, 
-            server_conn->secure.mutually_supported_groups, supported_groups_size), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_choose_supported_group(server_conn->secure.mutually_supported_groups,
+            supported_groups_size, &server_conn->secure.server_ecc_evp_params), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -50,8 +50,8 @@ int main(int argc, char **argv)
         server_conn->secure.mutually_supported_groups[1] = s2n_ecc_evp_supported_curves_list[1];
 
         uint16_t supported_groups_size =  s2n_array_len(server_conn->secure.mutually_supported_groups);
-        EXPECT_SUCCESS(s2n_choose_supported_group(&server_conn->secure.server_ecc_evp_params,
-            server_conn->secure.mutually_supported_groups, supported_groups_size));
+        EXPECT_SUCCESS(s2n_choose_supported_group(server_conn->secure.mutually_supported_groups, supported_groups_size, 
+            &server_conn->secure.server_ecc_evp_params));
 
         EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, s2n_ecc_evp_supported_curves_list[1]);
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -68,8 +68,8 @@ int main(int argc, char **argv)
             server_conn->secure.mutually_supported_groups[i] = s2n_ecc_evp_supported_curves_list[i];
         }
         uint16_t supported_groups_size =  s2n_array_len(server_conn->secure.mutually_supported_groups);
-        EXPECT_SUCCESS(s2n_choose_supported_group(&server_conn->secure.server_ecc_evp_params,
-            server_conn->secure.mutually_supported_groups, supported_groups_size));
+        EXPECT_SUCCESS(s2n_choose_supported_group(server_conn->secure.mutually_supported_groups, supported_groups_size,
+            &server_conn->secure.server_ecc_evp_params));
 
         EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, s2n_ecc_evp_supported_curves_list[0]);
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
