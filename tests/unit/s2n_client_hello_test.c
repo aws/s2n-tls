@@ -206,7 +206,7 @@ int main(int argc, char **argv)
         }
 
         {
-            /* TLS 1.2 client cipher preference uses TLS13 version */
+            /* TLS 1.2 client cipher preference uses TLS12 version */
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -237,7 +237,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
             EXPECT_EQUAL(client_conn->client_protocol_version, S2N_TLS13);
 
-            /* Server configured with TLS 1.2 negotiates TLS12 */
+            /* Server configured with TLS 1.2 negotiates TLS12 version */
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
             struct s2n_config *server_config;
             EXPECT_NOT_NULL(server_config = s2n_config_new());

@@ -290,7 +290,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
 
     /* Ensure that highest supported version is set correctly */
-    if (s2n_cipher_preference_supports_tls13(cipher_preferences) != 1) {
+    if (!s2n_cipher_preference_supports_tls13(cipher_preferences)) {
         conn->server_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
         conn->actual_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
     }
@@ -299,6 +299,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
         GUARD(s2n_client_extensions_recv(conn, client_hello->parsed_extensions));
     }
 
+    /* for pre TLS 1.3 connections, protocol selection is not done in supported_versions extensions, so do it here */
     if (conn->actual_protocol_version != S2N_TLS13) {
         conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
     }
@@ -360,7 +361,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 
     /* Check whether cipher preference supports TLS 1.3. If it doesn't,
        our highest supported version is S2N_TLS12 */
-    if (s2n_cipher_preference_supports_tls13(cipher_preferences) != 1) {
+    if (!s2n_cipher_preference_supports_tls13(cipher_preferences)) {
         conn->client_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
         conn->actual_protocol_version = MIN(conn->actual_protocol_version, S2N_TLS12);
     }

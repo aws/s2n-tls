@@ -151,7 +151,7 @@ int main(int argc, char **argv)
             "test_all_tls12",
         };
 
-        for (uint8_t i = 0; i < s2n_array_len(tls12_only_cipher_preference_strings); i++) {
+        for (size_t i = 0; i < s2n_array_len(tls12_only_cipher_preference_strings); i++) {
             preferences = NULL;
             EXPECT_SUCCESS(s2n_find_cipher_pref_from_version(tls12_only_cipher_preference_strings[i], &preferences));
             EXPECT_FALSE(s2n_cipher_preference_supports_tls13(preferences));
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
             "test_all",
             "test_all_tls13",
         };
-        for (uint8_t i = 0; i < s2n_array_len(tls13_cipher_preference_strings); i++) {
+        for (size_t i = 0; i < s2n_array_len(tls13_cipher_preference_strings); i++) {
             preferences = NULL;
             EXPECT_SUCCESS(s2n_find_cipher_pref_from_version(tls13_cipher_preference_strings[i], &preferences));
             EXPECT_TRUE(s2n_cipher_preference_supports_tls13(preferences));
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
         preferences = NULL;
         EXPECT_FAILURE(s2n_ecc_extension_required(preferences));
         EXPECT_FAILURE(s2n_pq_kem_extension_required(preferences));
-        EXPECT_FAILURE(s2n_cipher_preference_supports_tls13(preferences));
+        EXPECT_FALSE(s2n_cipher_preference_supports_tls13(preferences));
     }
 
     /* Test that anything not automatically configured in s2n_cipher_preferences_init fails */
@@ -190,7 +190,7 @@ int main(int argc, char **argv)
         preferences = &fake_preferences;
         EXPECT_FAILURE(s2n_ecc_extension_required(preferences));
         EXPECT_FAILURE(s2n_pq_kem_extension_required(preferences));
-        EXPECT_FAILURE(s2n_cipher_preference_supports_tls13(preferences));
+        EXPECT_FALSE(s2n_cipher_preference_supports_tls13(preferences));
     }
 
     END_TEST();

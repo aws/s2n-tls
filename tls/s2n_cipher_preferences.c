@@ -1063,6 +1063,11 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
     return 0;
 }
 
+/* Valid TLS 1.3 Ciphers are 0x1301, 0x1302, 0x1303, 0x1304, 0x1305 */
+static bool is_valid_tls13_cipher(const uint8_t version[2]) {
+    return version[0] == 0x13 && version[1] >= 0x01 && version[1] <= 0x05;
+}
+
 int s2n_cipher_preferences_init()
 {
     for (int i = 0; selection[i].version != NULL; i++) {
@@ -1075,11 +1080,13 @@ int s2n_cipher_preferences_init()
              * but the elliptic curves extension is always required. */
             if (cipher->minimum_required_tls_version >= S2N_TLS13) {
                 selection[i].ecc_extension_required = 1;
-                /* Valid TLS 1.3 Ciphers are 0x1301, 0x1302, 0x1303, 0x1304, 0x1305 */
-                bool is_tls13_cipher = cipher->iana_value[0] == 0x13 && cipher->iana_value[1] >= 0x01 && cipher->iana_value[1] <= 0x05;
-                S2N_ERROR_IF(!is_tls13_cipher, S2N_ERR_INVALID_CIPHER_PREFERENCES);
+
                 selection[i].supports_tls13 = 1;
             }
+
+            /* Sanity check that valid tls13 has minimum tls version set correctly */
+            S2N_ERROR_IF(is_valid_tls13_cipher(cipher->iana_value) ^
+                (cipher->minimum_required_tls_version >= S2N_TLS13), S2N_ERR_INVALID_CIPHER_PREFERENCES);
 
             if (cipher->key_exchange_alg == &s2n_ecdhe || cipher->key_exchange_alg == &s2n_hybrid_ecdhe_kem) {
                 selection[i].ecc_extension_required = 1;
@@ -1124,15 +1131,26 @@ int s2n_pq_kem_extension_required(const struct s2n_cipher_preferences *preferenc
 }
 
 /* Checks whether cipher preference supports TLS 1.3 based on whether it is configured
- * with TLS 1.3 ciphers. Returns 1 if true, 0 if false, S2N_ERROR otherwise
+ * with TLS 1.3 ciphers. Returns true or false.
  */
-int s2n_cipher_preference_supports_tls13(const struct s2n_cipher_preferences *preferences)
+bool s2n_cipher_preference_supports_tls13(const struct s2n_cipher_preferences *preferences)
 {
-    notnull_check(preferences);
-    for (int i = 0; selection[i].version != NULL; i++) {
+    if (preferences == NULL) {
+        return false;
+    }
+
+    for (uint8_t i = 0; selection[i].version != NULL; i++) {
         if (selection[i].preferences == preferences) {
-            return selection[i].supports_tls13;
+            return selection[i].supports_tls13 == 1;
         }
     }
-    S2N_ERROR(S2N_ERR_INVALID_CIPHER_PREFERENCES);
+
+    /* if cipher preference is not in the official list, compute the result */
+    for (uint8_t i = 0; i < preferences->count; i++) {
+        if (is_valid_tls13_cipher(preferences->suites[i]->iana_value)) {
+            return true;
+        }
+    }
+
+    return false;
 }
