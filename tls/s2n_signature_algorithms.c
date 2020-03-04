@@ -154,19 +154,6 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
         GUARD(s2n_choose_default_sig_scheme(conn, &chosen_scheme));
     }
 
-    /* In TLS 1.3, SigScheme also defines the ECDSA curve to use (instead of reusing whatever ECDHE Key Exchange curve
-     * was negotiated). In TLS 1.2 and before, chosen_scheme.signature_curve must *always* be NULL, if it's not, it's
-     * a bug in s2n's preference list. */
-    S2N_ERROR_IF(conn->actual_protocol_version <= S2N_TLS12 && chosen_scheme.signature_curve != NULL, S2N_ERR_INVALID_SIGNATURE_SCHEME);
-
-    /* If TLS 1.3 is negotiated, then every ECDSA SigScheme must also define an ECDSA Curve *except* ECDSA_SHA1, which
-     * uses the same curve negotiated in the ECDHE SupportedGroups Extension. */
-    S2N_ERROR_IF(conn->actual_protocol_version == S2N_TLS13
-            && chosen_scheme.sig_alg == S2N_SIGNATURE_ECDSA
-            && chosen_scheme.hash_alg != S2N_HASH_SHA1
-            && chosen_scheme.signature_curve == NULL,
-            S2N_ERR_ECDSA_UNSUPPORTED_CURVE);
-
     *sig_scheme_out = chosen_scheme;
 
     return 0;
