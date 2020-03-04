@@ -766,8 +766,10 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
     &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
     &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
+#if !defined(S2N_NO_PQ)
     &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x04 */
     &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x08 */
+#endif
 };
 
 /* All supported ciphers. Exposed for integration testing. */
@@ -821,16 +823,23 @@ static struct s2n_cipher_suite *s2n_all_tls12_cipher_suites[] = {
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
     &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
     &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
+#if !defined(S2N_NO_PQ)
     &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x04 */
     &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x08 */
+#endif
 };
 
 const struct s2n_cipher_preferences cipher_preferences_test_all_tls12 = {
     .count = s2n_array_len(s2n_all_tls12_cipher_suites),
     .suites = s2n_all_tls12_cipher_suites,
     .minimum_protocol_version = S2N_SSLv3,
+#if !defined(S2N_NO_PQ)
     .kem_count = s2n_array_len(pq_kems_r2r1),
     .kems = pq_kems_r2r1,
+#else
+    .kem_count = 0,
+    .kems = NULL,
+#endif
 };
 
 

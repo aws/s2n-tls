@@ -43,13 +43,14 @@ int main(int argc, char **argv)
         preferences = NULL;
         EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("test_all", &preferences));
         EXPECT_TRUE(s2n_ecc_extension_required(preferences));
-        EXPECT_TRUE(s2n_pq_kem_extension_required(preferences));
         EXPECT_TRUE(s2n_cipher_preference_supports_tls13(preferences));
-        EXPECT_EQUAL(4, preferences->kem_count);
 #if !defined(S2N_NO_PQ)
+        EXPECT_EQUAL(4, preferences->kem_count);
+        EXPECT_TRUE(s2n_pq_kem_extension_required(preferences));
         EXPECT_NOT_NULL(preferences->kems);
         EXPECT_EQUAL(preferences->kems, pq_kems_r2r1);
 #else
+        EXPECT_EQUAL(0, preferences->kem_count);
         EXPECT_NULL(preferences->kems);
 #endif
 
@@ -143,10 +144,12 @@ int main(int argc, char **argv)
             "CloudFront-TLS-1-2-2018",
             "CloudFront-TLS-1-2-2019",
             "KMS-TLS-1-0-2018-10",
+#if !defined(S2N_NO_PQ)
             "KMS-PQ-TLS-1-0-2019-06",
             "KMS-PQ-TLS-1-0-2020-02",
             "PQ-SIKE-TEST-TLS-1-0-2019-11",
             "PQ-SIKE-TEST-TLS-1-0-2020-02",
+#endif
             "KMS-FIPS-TLS-1-2-2018-10",
             "20140601",
             "20141001",
