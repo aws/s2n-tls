@@ -5,7 +5,7 @@
  * AWS Cryptographic Algorithms Group.
  * (ndrucker@amazon.com, gueron@amazon.com)
  */
- 
+
 #include "cleanup.h"
 #include "gf2x.h"
 #include "gf2x_internal.h"

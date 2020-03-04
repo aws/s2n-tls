@@ -5,7 +5,7 @@
  * AWS Cryptographic Algorithms Group.
  * (ndrucker@amazon.com, gueron@amazon.com)
  */
- 
+
 #pragma once
 
 #include "bike_defs.h"
@@ -74,8 +74,8 @@ typedef struct sk_s
   compressed_idx_dv_ar_t wlist;
   r_t                    bin[N0];
 #ifndef INDCPA
-  r_t                    sigma0;
-  r_t                    sigma1;
+  r_t sigma0;
+  r_t sigma1;
 #endif
 } sk_t;
 

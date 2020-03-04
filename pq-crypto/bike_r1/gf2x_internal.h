@@ -5,7 +5,7 @@
  * AWS Cryptographic Algorithms Group.
  * (ndrucker@amazon.com, gueron@amazon.com)
  */
- 
+
 #pragma once
 
 #include "types.h"

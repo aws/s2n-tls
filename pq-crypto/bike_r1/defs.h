@@ -5,7 +5,7 @@
  * AWS Cryptographic Algorithms Group.
  * (ndrucker@amazon.com, gueron@amazon.com)
  */
- 
+
 #pragma once
 
 ////////////////////////////////////////////
@@ -66,30 +66,33 @@
 
 #define UPTOPOW2(v) (UPTOPOW2_5(v) + 1)
 
-// Works only for v < 512
-#define LOG2_MSB(v)                                    \
-  ((v) < 2                                             \
-       ? 1                                             \
-       : ((v) < 4                                      \
-              ? 2                                      \
-              : ((v) < 8                               \
-                     ? 3                               \
-                     : ((v) < 16                       \
-                            ? 4                        \
-                            : ((v) < 32                \
-                                   ? 5                 \
-                                   : ((v) < 64         \
-                                          ? 6          \
-                                          : ((v) < 128 \
-                                                 ? 7   \
-                                                 : ((v) < 256 ? 8 : 9))))))))
+// Works only for 0 < v < 512
+#define LOG2_MSB(v)                                                       \
+  ((v) == 0                                                               \
+       ? 0                                                                \
+       : ((v) < 2                                                         \
+              ? 1                                                         \
+              : ((v) < 4                                                  \
+                     ? 2                                                  \
+                     : ((v) < 8                                           \
+                            ? 3                                           \
+                            : ((v) < 16                                   \
+                                   ? 4                                    \
+                                   : ((v) < 32                            \
+                                          ? 5                             \
+                                          : ((v) < 64 ? 6                 \
+                                                      : ((v) < 128        \
+                                                             ? 7          \
+                                                             : ((v) < 256 \
+                                                                    ? 8   \
+                                                                    : 9)))))))))
 
 ////////////////////////////////////////////
 //             Debug
 ///////////////////////////////////////////
 
 #ifndef VERBOSE
-#  define VERBOSE 1
+#  define VERBOSE 0
 #endif
 
 #include <stdio.h>

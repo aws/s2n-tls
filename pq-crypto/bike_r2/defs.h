@@ -1,17 +1,5 @@
-/*
- * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- * http://aws.amazon.com/apache2.0
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
- * The license is detailed in the file LICENSE.md, and applies to this file.
+/* Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0"
  *
  * Written by Nir Drucker and Shay Gueron
  * AWS Cryptographic Algorithms Group.
@@ -78,30 +66,33 @@
 
 #define UPTOPOW2(v) (UPTOPOW2_5(v) + 1)
 
-// Works only for v < 512
-#define LOG2_MSB(v)                                    \
-  ((v) < 2                                             \
-       ? 1                                             \
-       : ((v) < 4                                      \
-              ? 2                                      \
-              : ((v) < 8                               \
-                     ? 3                               \
-                     : ((v) < 16                       \
-                            ? 4                        \
-                            : ((v) < 32                \
-                                   ? 5                 \
-                                   : ((v) < 64         \
-                                          ? 6          \
-                                          : ((v) < 128 \
-                                                 ? 7   \
-                                                 : ((v) < 256 ? 8 : 9))))))))
+// Works only for 0 < v < 512
+#define LOG2_MSB(v)                                                       \
+  ((v) == 0                                                               \
+       ? 0                                                                \
+       : ((v) < 2                                                         \
+              ? 1                                                         \
+              : ((v) < 4                                                  \
+                     ? 2                                                  \
+                     : ((v) < 8                                           \
+                            ? 3                                           \
+                            : ((v) < 16                                   \
+                                   ? 4                                    \
+                                   : ((v) < 32                            \
+                                          ? 5                             \
+                                          : ((v) < 64 ? 6                 \
+                                                      : ((v) < 128        \
+                                                             ? 7          \
+                                                             : ((v) < 256 \
+                                                                    ? 8   \
+                                                                    : 9)))))))))
 
 ////////////////////////////////////////////
 //             Debug
 ///////////////////////////////////////////
 
 #ifndef VERBOSE
-#  define VERBOSE 1
+#  define VERBOSE 0
 #endif
 
 #include <stdio.h>
