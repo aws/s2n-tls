@@ -88,7 +88,8 @@ int main(int argc, char **argv)
         parsed_named_group_extension->extension_type = TLS_EXTENSION_SIGNATURE_ALGORITHMS;
         parsed_named_group_extension->extension = signature_algorithms_extension.blob;
 
-        /* If only unknown algorithms are offered, expect choosing a scheme to fail */
+        /* If only unknown algorithms are offered, expect choosing a scheme to fail for TLS1.3 */
+        conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_client_extensions_recv(conn, parsed_extensions));
         EXPECT_EQUAL(conn->handshake_params.client_sig_hash_algs.len, sig_hash_algs.len);
         EXPECT_FAILURE(s2n_choose_sig_scheme_from_peer_preference_list(conn, &conn->handshake_params.client_sig_hash_algs,

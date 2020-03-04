@@ -329,7 +329,7 @@ int main(int argc, char **argv)
                     S2N_ERR_EMPTY_SIGNATURE_SCHEME);
         }
 
-        /* Test: no shared valid signature schemes */
+        /* Test: no shared valid signature schemes, using TLS1.3 */
         {
             conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS13;
@@ -343,6 +343,30 @@ int main(int argc, char **argv)
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result),
                     S2N_ERR_INVALID_SIGNATURE_SCHEME);
+        }
+
+        /* Test: no shared valid signature schemes, using TLS1.2 */
+        {
+            conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+            conn->actual_protocol_version = S2N_TLS12;
+
+            /* Peer list contains no signature schemes that we support */
+            struct s2n_sig_scheme_list peer_list = {
+                    .len = 1, .iana_list = { 0 },
+            };
+
+            EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
+
+            /* Verify that we did not choose the peer's offered signature scheme */
+            EXPECT_NOT_EQUAL(result.iana_value, peer_list.iana_list[0]);
+
+            /* Verify that we chose the default signature scheme, even though it wasn't in
+             * the peer's offered list. This proves that when we share no signature schemes
+             * with the peer, then calling s2n_choose_sig_scheme_from_peer_preference_list
+             * is equivalent to calling s2n_choose_default_sig_scheme. */
+            struct s2n_signature_scheme default_scheme;
+            EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &default_scheme));
+            EXPECT_EQUAL(result.iana_value, default_scheme.iana_value);
         }
 
         /* Test: choose valid signature from peer list */
