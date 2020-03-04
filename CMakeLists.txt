@@ -8,7 +8,8 @@ set(INSTALL_LIB_DIR lib CACHE PATH "Installaction directory for libraries")
 set(INSTALL_INCLUDE_DIR include CACHE PATH "installaction directory for header files")
 set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake files")
 
-option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this for older compilers or uncommon platforms.")
+option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
+for older compilers or uncommon platforms." OFF)
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain. You likely want this on older compilers." OFF)
 
 ##header files

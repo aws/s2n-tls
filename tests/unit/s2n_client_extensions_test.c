@@ -1194,6 +1194,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
 
+#if !defined(S2N_NO_PQ)
     if (!s2n_is_in_fips_mode()) {
         /* PQ KEMs are not supported when in FIPS mode */
         /* All PQ KEM byte values are from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-02 */
@@ -1487,6 +1488,7 @@ int main(int argc, char **argv)
                                   "KMS-PQ-TLS-1-0-2019-06", -1, &piped_io));
         }
     }
+#endif
 
     EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
     free(cert_chain);

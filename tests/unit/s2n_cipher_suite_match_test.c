@@ -231,6 +231,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_rsa_wire_choice));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
+#if !defined(S2N_NO_PQ)
         if (!s2n_is_in_fips_mode()) {
             /* There is no support for PQ KEMs while in FIPS mode */
             /* Test that clients that support PQ ciphers can negotiate them. */
@@ -266,6 +267,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
             }
         }
+#endif
 
         /* Clean+free to setup for ECDSA tests */
         EXPECT_SUCCESS(s2n_config_free(server_config));
