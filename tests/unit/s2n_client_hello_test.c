@@ -29,6 +29,7 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_client_hello.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_tls_parameters.h"
@@ -153,7 +154,9 @@ int main(int argc, char **argv)
                 struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
                 EXPECT_SUCCESS(s2n_client_hello_send(conn));
+
                 EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, LENGTH_TO_CIPHER_LIST));
+                EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS13);
 
                 uint16_t list_length = 0;
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(hello_stuffer, &list_length));
@@ -178,6 +181,91 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test that cipher suites enforce proper highest supported versions.
+     * Eg. server configs TLS 1.2 only ciphers should never negotiate TLS 1.3
+     */
+    {
+        EXPECT_SUCCESS(s2n_enable_tls13());
+
+        struct s2n_config *config;
+        EXPECT_NOT_NULL(config = s2n_config_new());
+
+        {
+            /* TLS 1.3 client cipher preference uses TLS13 version */
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+            EXPECT_TRUE(s2n_cipher_preference_supports_tls13(config->cipher_preferences));
+
+            EXPECT_SUCCESS(s2n_client_hello_send(conn));
+            EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(conn->client_protocol_version, S2N_TLS13);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        {
+            /* TLS 1.2 client cipher preference uses TLS12 version */
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default"));
+
+            const struct s2n_cipher_preferences *cipher_preferences;
+            GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+            EXPECT_FALSE(s2n_cipher_preference_supports_tls13(cipher_preferences));
+
+            EXPECT_SUCCESS(s2n_client_hello_send(conn));
+            EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
+            EXPECT_EQUAL(conn->client_protocol_version, S2N_TLS12);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        {
+            /* TLS 1.3 client cipher preference uses TLS13 version */
+            struct s2n_connection *client_conn, *server_conn;
+            EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
+            EXPECT_TRUE(s2n_cipher_preference_supports_tls13(config->cipher_preferences));
+
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+
+            EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(client_conn->client_protocol_version, S2N_TLS13);
+
+            /* Server configured with TLS 1.2 negotiates TLS12 version */
+            EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            struct s2n_config *server_config;
+            EXPECT_NOT_NULL(server_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
+
+            const struct s2n_cipher_preferences *cipher_preferences;
+            GUARD(s2n_connection_get_cipher_preferences(server_conn, &cipher_preferences));
+            EXPECT_FALSE(s2n_cipher_preference_supports_tls13(cipher_preferences));
+
+            EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io, s2n_stuffer_data_available(&client_conn->handshake.io)));
+
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS12);
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+            EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
+
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_config_free(server_config));
+        }
+
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_disable_tls13());
+    }
+
     /* SSlv2 client hello */
     {
         struct s2n_connection *server_conn;
@@ -188,7 +276,7 @@ int main(int argc, char **argv)
             SSLv2_CLIENT_HELLO_PREFIX,
             SSLv2_CLIENT_HELLO_CIPHER_SUITES,
             SSLv2_CLIENT_HELLO_CHALLENGE,
-	};
+        };
         int sslv2_client_hello_len = sizeof(sslv2_client_hello);
 
         uint8_t sslv2_client_hello_header[] = {

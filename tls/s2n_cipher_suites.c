@@ -784,6 +784,56 @@ const struct s2n_cipher_preferences cipher_preferences_test_all = {
 #endif
 };
 
+/* All TLS12 Cipher Suites */
+
+static struct s2n_cipher_suite *s2n_all_tls12_cipher_suites[] = {
+    &s2n_rsa_with_rc4_128_md5,                      /* 0x00,0x04 */
+    &s2n_rsa_with_rc4_128_sha,                      /* 0x00,0x05 */
+    &s2n_rsa_with_3des_ede_cbc_sha,                 /* 0x00,0x0A */
+    &s2n_dhe_rsa_with_3des_ede_cbc_sha,             /* 0x00,0x16 */
+    &s2n_rsa_with_aes_128_cbc_sha,                  /* 0x00,0x2F */
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,              /* 0x00,0x33 */
+    &s2n_rsa_with_aes_256_cbc_sha,                  /* 0x00,0x35 */
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,              /* 0x00,0x39 */
+    &s2n_rsa_with_aes_128_cbc_sha256,               /* 0x00,0x3C */
+    &s2n_rsa_with_aes_256_cbc_sha256,               /* 0x00,0x3D */
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,           /* 0x00,0x67 */
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,           /* 0x00,0x6B */
+    &s2n_rsa_with_aes_128_gcm_sha256,               /* 0x00,0x9C */
+    &s2n_rsa_with_aes_256_gcm_sha384,               /* 0x00,0x9D */
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,           /* 0x00,0x9E */
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,           /* 0x00,0x9F */
+
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,          /* 0xC0,0x09 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,          /* 0xC0,0x0A */
+    &s2n_ecdhe_rsa_with_rc4_128_sha,                /* 0xC0,0x11 */
+    &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,           /* 0xC0,0x12 */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,            /* 0xC0,0x13 */
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,            /* 0xC0,0x14 */
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,       /* 0xC0,0x23 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,       /* 0xC0,0x24 */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,         /* 0xC0,0x27 */
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,         /* 0xC0,0x28 */
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,       /* 0xC0,0x2B */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,       /* 0xC0,0x2C */
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,         /* 0xC0,0x2F */
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,         /* 0xC0,0x30 */
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
+    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
+    &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
+    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x04 */
+    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x08 */
+};
+
+const struct s2n_cipher_preferences cipher_preferences_test_all_tls12 = {
+    .count = s2n_array_len(s2n_all_tls12_cipher_suites),
+    .suites = s2n_all_tls12_cipher_suites,
+    .minimum_protocol_version = S2N_SSLv3,
+    .kem_count = s2n_array_len(pq_kems_r2r1),
+    .kems = pq_kems_r2r1,
+};
+
+
 /* All of the cipher suites that s2n can negotiate when in FIPS mode,
  * in order of IANA value. Exposed for the "test_all_fips" cipher preference list.
  */
@@ -888,15 +938,15 @@ const struct s2n_cipher_preferences cipher_preferences_test_ecdsa_priority = {
     .kems = NULL,
 };
 
-static struct s2n_cipher_suite *s2n_tls13_null_key_exchange_alg_cipher_suites[] = {
+static struct s2n_cipher_suite *s2n_all_tls13_cipher_suites[] = {
     &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
     &s2n_tls13_aes_256_gcm_sha384,                  /* 0x13,0x02 */
     &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
 };
 
-const struct s2n_cipher_preferences cipher_preferences_test_tls13_null_key_exchange_alg = {
-    .count = s2n_array_len(s2n_tls13_null_key_exchange_alg_cipher_suites),
-    .suites = s2n_tls13_null_key_exchange_alg_cipher_suites,
+const struct s2n_cipher_preferences cipher_preferences_test_all_tls13 = {
+    .count = s2n_array_len(s2n_all_tls13_cipher_suites),
+    .suites = s2n_all_tls13_cipher_suites,
     .minimum_protocol_version = S2N_SSLv3,
     .kem_count = 0,
     .kems = NULL,
@@ -1036,7 +1086,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
      * version, and the client cipher list contains TLS_FALLBACK_SCSV, then the server must abort the connection since
      * TLS_FALLBACK_SCSV should only be present when the client previously failed to negotiate a higher TLS version.
      */
-    if (conn->client_protocol_version < s2n_highest_protocol_version) {
+    if (conn->client_protocol_version < conn->server_protocol_version) {
         uint8_t fallback_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_FALLBACK_SCSV };
         if (s2n_wire_ciphers_contain(fallback_scsv, wire, count, cipher_suite_len)) {
             conn->closed = 1;
