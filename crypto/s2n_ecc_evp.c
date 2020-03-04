@@ -65,6 +65,9 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {
 const struct s2n_ecc_named_curve *const s2n_ecc_evp_supported_curves_list[] = {
     &s2n_ecc_curve_secp256r1,
     &s2n_ecc_curve_secp384r1,
+#if MODERN_EC_SUPPORTED	
+    &s2n_ecc_curve_x25519,	
+#endif
 };
 
 const size_t s2n_ecc_evp_supported_curves_list_len = s2n_array_len(s2n_ecc_evp_supported_curves_list);
@@ -78,7 +81,7 @@ static EC_POINT *s2n_ecc_evp_blob_to_point(struct s2n_blob *blob, const EC_KEY *
 #endif
 static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
-static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, struct s2n_blob *shared_secret);
+static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret);
 
 #if MODERN_EC_SUPPORTED
 static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
@@ -129,14 +132,19 @@ static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_
     S2N_ERROR(S2N_ERR_ECDHE_GEN_KEY);
 }
 
-static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, struct s2n_blob *shared_secret) {
+static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret) {
     notnull_check(peer_public);
     notnull_check(own_key);
 
-    /* Peers MUST validate each other’s public key */
-    DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(peer_public), EC_KEY_free_pointer);
-    S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
-    GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_SHARED_SECRET);
+    /* From RFC 8446 Section 4.2.8.2: For the curves secp256r1 and secp384r1 peers MUST validate each other's
+     * public value Q by ensuring that the point is a valid point on the elliptic curve.
+     * For the curve x25519 the peer public-key validation check doesn't apply.
+     */
+    if (iana_id == TLS_EC_CURVE_SECP_256_R1 || iana_id == TLS_EC_CURVE_SECP_384_R1) {
+        DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(peer_public), EC_KEY_free_pointer);
+        S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+        GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_SHARED_SECRET);
+    }
 
     size_t shared_secret_size;
     
@@ -175,7 +183,7 @@ int s2n_ecc_evp_compute_shared_secret_from_params(struct s2n_ecc_evp_params *pri
     S2N_ERROR_IF(private_ecc_evp_params->negotiated_curve->iana_id != public_ecc_evp_params->negotiated_curve->iana_id,
                  S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
     GUARD(s2n_ecc_evp_compute_shared_secret(private_ecc_evp_params->evp_pkey, public_ecc_evp_params->evp_pkey,
-                                            shared_key));
+                                            private_ecc_evp_params->negotiated_curve->iana_id, shared_key));
     return 0;
 }
 
@@ -220,7 +228,8 @@ int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_e
     S2N_ERROR_IF(success == 0, S2N_ERR_BAD_MESSAGE);
 #endif
 
-    return s2n_ecc_evp_compute_shared_secret(ecc_evp_params->evp_pkey, peer_key, shared_key);
+    return s2n_ecc_evp_compute_shared_secret(ecc_evp_params->evp_pkey, peer_key,
+                                             ecc_evp_params->negotiated_curve->iana_id, shared_key);
 
 }
 
@@ -234,7 +243,8 @@ int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *ecc_e
     GUARD(s2n_ecc_evp_generate_own_key(client_params.negotiated_curve, &client_params.evp_pkey));
     S2N_ERROR_IF(client_params.evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
 
-    if (s2n_ecc_evp_compute_shared_secret(client_params.evp_pkey, ecc_evp_params->evp_pkey, shared_key) != 0) {
+    if (s2n_ecc_evp_compute_shared_secret(client_params.evp_pkey, ecc_evp_params->evp_pkey, 
+                                          ecc_evp_params->negotiated_curve->iana_id, shared_key) != 0) {
         S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
     }
 
