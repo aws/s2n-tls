@@ -32,6 +32,8 @@
     &s2n_tls13_aes_128_gcm_sha256,          \
     &s2n_tls13_chacha20_poly1305_sha256     \
 
+
+#if !defined(S2N_NO_PQ)
 /* Extension list for round 1 PQ KEMs, in order of preference */
 const struct s2n_kem *pq_kems_r1[2] = {
     &s2n_bike1_l1_r1,
@@ -57,6 +59,8 @@ const struct s2n_kem *pq_kems_sike_r2r1[2] = {
         &s2n_sike_p434_r2,
         &s2n_sike_p503_r1,
 };
+
+#endif
 
 /* s2n's list of cipher suites, in order of preferences, as of 2019-08-01 */
 struct s2n_cipher_suite *cipher_suites_20190801[] = {
@@ -867,6 +871,8 @@ const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10 = {
     .kems = NULL,
 };
 
+#if !defined(S2N_NO_PQ)
+
 struct s2n_cipher_suite *cipher_suites_kms_pq_tls_1_0_2019_06[] = {
     &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
@@ -934,6 +940,8 @@ const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2020
         .kems = pq_kems_sike_r2r1,
 };
 
+#endif
+
 struct s2n_cipher_suite *cipher_suites_kms_fips_tls_1_2_2018_10[] = {
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
@@ -980,10 +988,12 @@ struct {
     { .version="CloudFront-TLS-1-2-2018", .preferences=&cipher_preferences_cloudfront_tls_1_2_2018, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="CloudFront-TLS-1-2-2019", .preferences=&cipher_preferences_cloudfront_tls_1_2_2019, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="KMS-TLS-1-0-2018-10", .preferences=&cipher_preferences_kms_tls_1_0_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0},
+#if !defined(S2N_NO_PQ)
     { .version="KMS-PQ-TLS-1-0-2019-06", .preferences=&cipher_preferences_kms_pq_tls_1_0_2019_06, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="KMS-PQ-TLS-1-0-2020-02", .preferences=&cipher_preferences_kms_pq_tls_1_0_2020_02, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="PQ-SIKE-TEST-TLS-1-0-2019-11", .preferences=&cipher_preferences_pq_sike_test_tls_1_0_2019_11, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="PQ-SIKE-TEST-TLS-1-0-2020-02", .preferences=&cipher_preferences_pq_sike_test_tls_1_0_2020_02, .ecc_extension_required=0, .pq_kem_extension_required=0},
+#endif
     { .version="KMS-FIPS-TLS-1-2-2018-10", .preferences=&cipher_preferences_kms_fips_tls_1_2_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="20140601", .preferences=&cipher_preferences_20140601, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="20141001", .preferences=&cipher_preferences_20141001, .ecc_extension_required=0, .pq_kem_extension_required=0},

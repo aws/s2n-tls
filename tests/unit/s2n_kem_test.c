@@ -94,6 +94,8 @@ int main(int argc, char **argv)
         END_TEST();
     }
 
+#if !defined(S2N_NO_PQ)
+
     {
         /* Regression test for network parsing data of expected sizes */
         EXPECT_EQUAL(sizeof(kem_extension_size), 2);
@@ -299,6 +301,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_sike_p503_r1.kem_extension_id);
         EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_sike_p434_r2.kem_extension_id);
     }
+
+#endif
 
     END_TEST();
 }

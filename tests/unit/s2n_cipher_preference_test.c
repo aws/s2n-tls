@@ -43,8 +43,12 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_ecc_extension_required(preferences));
         EXPECT_TRUE(s2n_pq_kem_extension_required(preferences));
         EXPECT_EQUAL(4, preferences->kem_count);
+#if !defined(S2N_NO_PQ)
         EXPECT_NOT_NULL(preferences->kems);
         EXPECT_EQUAL(preferences->kems, pq_kems_r2r1);
+#else
+        EXPECT_NULL(preferences->kems);
+#endif
 
         preferences = NULL;
         EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("KMS-TLS-1-0-2018-10", &preferences));
@@ -53,6 +57,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(0, preferences->kem_count);
         EXPECT_NULL(preferences->kems);
 
+#if !defined(S2N_NO_PQ)
         preferences = NULL;
         EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("KMS-PQ-TLS-1-0-2019-06", &preferences));
         EXPECT_TRUE(s2n_ecc_extension_required(preferences));
@@ -84,6 +89,20 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(4, preferences->kem_count);
         EXPECT_NOT_NULL(preferences->kems);
         EXPECT_EQUAL(preferences->kems, pq_kems_r2r1);
+#else
+        preferences = NULL;
+        EXPECT_FAILURE(s2n_find_cipher_pref_from_version("KMS-PQ-TLS-1-0-2019-06", &preferences));
+        EXPECT_EQUAL(preferences, NULL);
+
+        EXPECT_FAILURE(s2n_find_cipher_pref_from_version("PQ-SIKE-TEST-TLS-1-0-2019-11", &preferences));
+        EXPECT_EQUAL(preferences, NULL);
+
+        EXPECT_FAILURE(s2n_find_cipher_pref_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &preferences));
+        EXPECT_EQUAL(preferences, NULL);
+
+        EXPECT_FAILURE(s2n_find_cipher_pref_from_version("KMS-PQ-TLS-1-0-2020-02", &preferences));
+        EXPECT_EQUAL(preferences, NULL);
+#endif
 
         preferences = NULL;
         EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("20141001", &preferences));

@@ -26,11 +26,17 @@
 
 int main(int argc, char **argv) {
     BEGIN_TEST();
+
+#if !defined(S2N_NO_PQ)
+
     if (s2n_is_in_fips_mode()) {
         /* There is no support for PQ KEMs while in FIPS mode */
         END_TEST();
     }
     EXPECT_SUCCESS(s2n_test_hybrid_ecdhe_kem_with_kat(&s2n_sike_p434_r2, &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
             "KMS-PQ-TLS-1-0-2020-02", RSP_FILE_NAME, SERVER_KEY_MESSAGE_LENGTH, CLIENT_KEY_MESSAGE_LENGTH));
+
+#endif
+
     END_TEST();
 }

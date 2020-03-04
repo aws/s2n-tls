@@ -13,11 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include "pq-crypto/bike_r1/bike_r1_kem.h"
-#include "pq-crypto/bike_r2/bike_r2_kem.h"
-#include "pq-crypto/sike_r1/sike_r1_kem.h"
-#include "pq-crypto/sike_r2/sike_r2_kem.h"
-
 #include "stuffer/s2n_stuffer.h"
 
 #include "tls/s2n_tls_parameters.h"
@@ -25,6 +20,13 @@
 
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
+
+#if !defined(S2N_NO_PQ)
+
+#include "pq-crypto/bike_r1/bike_r1_kem.h"
+#include "pq-crypto/bike_r2/bike_r2_kem.h"
+#include "pq-crypto/sike_r1/sike_r1_kem.h"
+#include "pq-crypto/sike_r2/sike_r2_kem.h"
 
 /* The names below come from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-02#section-5.1.6 */
 const struct s2n_kem s2n_bike1_l1_r1 = {
@@ -99,6 +101,14 @@ const struct s2n_iana_to_kem kem_mapping[2] = {
             .kem_count = s2n_array_len(sike_kems),
         }
 };
+
+#else
+
+/* Compiler warns that zero-length arrays are undefined according to the C standard. So make kem_mapping NULL if
+ * Post Quantum ciphers are disabled, and have s2n_cipher_suite_to_kem() detect NULL and treat it as zero-length. */
+const struct s2n_iana_to_kem *kem_mapping = NULL;
+
+#endif
 
 int s2n_kem_generate_keypair(struct s2n_kem_keypair *kem_keys)
 {
@@ -236,6 +246,9 @@ int s2n_kem_free(struct s2n_kem_keypair *kem_keys)
 
 int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_iana_to_kem **compatible_params)
 {
+    /* cppcheck-suppress knownConditionTrueFalse */
+    S2N_ERROR_IF(kem_mapping == NULL, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+
     for (int i = 0; i < s2n_array_len(kem_mapping); i++) {
         const struct s2n_iana_to_kem *candidate = &kem_mapping[i];
         if (memcmp(iana_value, candidate->iana_value, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
