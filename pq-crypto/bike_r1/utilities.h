@@ -1,13 +1,10 @@
-/***************************************************************************
- * Additional implementation of "BIKE: Bit Flipping Key Encapsulation".
- * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+/* Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0"
  *
  * Written by Nir Drucker and Shay Gueron
- * AWS Cryptographic Algorithms Group
+ * AWS Cryptographic Algorithms Group.
  * (ndrucker@amazon.com, gueron@amazon.com)
- *
- * The license is detailed in the file LICENSE.md, and applies to this file.
- * ***************************************************************************/
+ */
 
 #pragma once
 
@@ -19,29 +16,39 @@
 
 // Printing values in Little Endian
 void
-print_LE(IN const uint64_t *in, IN const uint32_t bits_num);
+print_LE(IN const uint64_t *in, IN uint32_t bits_num);
 
 // Printing values in Big Endian
 void
-print_BE(IN const uint64_t *in, IN const uint32_t bits_num);
+print_BE(IN const uint64_t *in, IN uint32_t bits_num);
 
 // Printing number is required only in verbose level 2 or above
 #if VERBOSE >= 2
 #  ifdef PRINT_IN_BE
 // Print in Big Endian
-#    define print(in, bits_num) print_BE(in, bits_num)
+#    define print(name, in, bits_num) \
+      do                              \
+      {                               \
+        EDMSG(name);                  \
+        print_BE(in, bits_num);       \
+      } while(0)
 #  else
 // Print in Little Endian
-#    define print(in, bits_num) print_LE(in, bits_num)
+#    define print(name, in, bits_num) \
+      do                              \
+      {                               \
+        EDMSG(name);                  \
+        print_LE(in, bits_num);       \
+      } while(0)
 #  endif
 #else
 // No prints at all
-#  define print(in, bits_num)
+#  define print(name, in, bits_num)
 #endif
 
 // Comparing value in a constant time manner
 _INLINE_ uint32_t
-safe_cmp(IN const uint8_t *a, IN const uint8_t *b, IN const uint32_t size)
+secure_cmp(IN const uint8_t *a, IN const uint8_t *b, IN const uint32_t size)
 {
   volatile uint8_t res = 0;
 
@@ -52,6 +59,9 @@ safe_cmp(IN const uint8_t *a, IN const uint8_t *b, IN const uint32_t size)
 
   return (0 == res);
 }
+
+uint64_t
+r_bits_vector_weight(IN const r_t *in);
 
 // Constant time
 _INLINE_ uint32_t
@@ -120,8 +130,8 @@ secure_l32_mask(IN const uint32_t v1, IN const uint32_t v2)
 {
 #if defined(__aarch64__)
   uint32_t res;
-  __asm__ __volatile__("cmp  %w1, %w2; \n "
-                       "cset %w0, LS; \n"
+  __asm__ __volatile__("cmp  %w2, %w1; \n "
+                       "cset %w0, HI; \n"
                        : "=r"(res)
                        : "r"(v1), "r"(v2)
                        :);
@@ -133,9 +143,11 @@ secure_l32_mask(IN const uint32_t v1, IN const uint32_t v2)
                        "setl %%dl; \n"
                        "dec %%edx; \n"
                        "mov %%edx, %0; \n"
+
                        : "=r"(res)
                        : "r"(v2), "r"(v1)
                        : "rdx");
+
   return res;
 #else
   // If v1 >= v2 then the subtraction result is 0^32||(v1-v2)
@@ -144,7 +156,3 @@ secure_l32_mask(IN const uint32_t v1, IN const uint32_t v2)
   return ~((uint32_t)(((uint64_t)v1 - (uint64_t)v2) >> 32));
 #endif
 }
-
-// len is bytes length of in
-EXTERNC uint64_t
-count_ones(IN const uint8_t *in, IN const uint32_t len);

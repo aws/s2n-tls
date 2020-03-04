@@ -1,5 +1,5 @@
 /*
- * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -34,7 +34,8 @@
 //
 // It is designed to convert the serial hashing to a parallelizeable process.
 //
-// This function assumes that m is of N_BITS length
+// This function assumes that m is of N_BITS length and that
+// ((la / MAX_MB_SLICES) >= SLICE_REM)
 void
 parallel_hash(OUT sha_hash_t *out_hash,
               IN const uint8_t *m,

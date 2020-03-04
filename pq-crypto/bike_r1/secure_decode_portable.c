@@ -1,17 +1,5 @@
-/*
- * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- * http://aws.amazon.com/apache2.0
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
- * The license is detailed in the file LICENSE.md, and applies to this file.
+/* Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0"
  *
  * Written by Nir Drucker and Shay Gueron
  * AWS Cryptographic Algorithms Group.
@@ -20,130 +8,59 @@
 
 #include "decode.h"
 #include "utilities.h"
-#include <string.h>
 
-EXTERNC void
-compute_counter_of_unsat(OUT uint8_t      upc[N_BITS],
-                         IN const uint8_t s[N_BITS],
-                         IN const compressed_idx_dv_t *inv_h0_compressed,
-                         IN const compressed_idx_dv_t *inv_h1_compressed)
+#define R_QW_HALF_LOG2 UPTOPOW2(R_QW / 2)
+
+_INLINE_ void
+rotr_big(OUT syndrome_t *out, IN const syndrome_t *in, IN size_t qw_num)
 {
-  uint32_t i = 0, j = 0, mask[2] = {0}, pos[2] = {0};
+  // For preventing overflows (comparison in bytes)
+  bike_static_assert(sizeof(*out) > 8 * (R_QW + (2 * R_QW_HALF_LOG2)),
+                     rotr_big_err);
 
-  memset(upc, 0, N_BITS);
+  memcpy(out, in, sizeof(*in));
 
-  for(j = 0; j < FAKE_DV; j++)
+  for(uint32_t idx = R_QW_HALF_LOG2; idx >= 1; idx >>= 1)
   {
-    // It is faster (by 5M cycles) to have one loop instead of two.
-    mask[0] = inv_h0_compressed->val[j].used;
-    mask[1] = inv_h1_compressed->val[j].used;
-    pos[0]  = inv_h0_compressed->val[j].val;
-    pos[1]  = inv_h1_compressed->val[j].val;
-    for(i = 0; i < R_BITS; i++)
+    // Convert 32 bit mask to 64 bit mask
+    const uint64_t mask = ((uint32_t)secure_l32_mask(qw_num, idx) + 1U) - 1ULL;
+    qw_num              = qw_num - (idx & mask);
+
+    // Rotate R_QW quadwords and another idx quadwords needed by the next
+    // iteration
+    for(size_t i = 0; i < (R_QW + idx); i++)
     {
-      upc[i] += (s[i + pos[0]] & mask[0]);
-      upc[R_BITS + i] += (s[i + pos[1]] & mask[1]);
+      out->qw[i] = (out->qw[i] & (~mask)) | (out->qw[i + idx] & mask);
     }
   }
 }
 
-EXTERNC void
-find_error1(IN OUT e_t *e,
-            OUT e_t *black_e,
-            OUT e_t *gray_e,
-            IN const uint8_t *upc,
-            IN const uint32_t black_th,
-            IN const uint32_t gray_th)
+_INLINE_ void
+rotr_small(OUT syndrome_t *out, IN const syndrome_t *in, IN const size_t bits)
 {
-  uint8_t  bit = 1, black_acc = 0, gray_acc = 0;
-  uint8_t  val = 0, mask = 0;
-  uint32_t byte_itr = 0;
+  bike_static_assert(bits < 64, rotr_small_err);
+  bike_static_assert(sizeof(*out) > (8 * R_QW), rotr_small_qw_err);
 
-  for(uint64_t j = 0; j < N0; j++)
+  // Convert |bits| to 0/1 by using !!bits then create a mask of 0 or 0xffffffffff
+  // Use high_shift to avoid undefined behaviour when doing x << 64;
+  const uint64_t mask       = (0 - (!!bits));
+  const uint64_t high_shift = (64 - bits) & mask;
+
+  for(size_t i = 0; i < R_QW; i++)
   {
-    val  = upc[j * R_BITS];
-    mask = secure_l32_mask(val, black_th);
-    black_acc |= (bit & mask);
-
-    // Update the gray list only if not in the black list
-    val &= (~mask);
-
-    mask = secure_l32_mask(val, gray_th);
-    gray_acc |= (bit & mask);
-
-    for(int i = R_BITS - 1; i > 0; i--)
-    {
-      if(bit == 0x80)
-      {
-        e->raw[byte_itr] ^= black_acc;
-        black_e->raw[byte_itr] = black_acc;
-        gray_e->raw[byte_itr]  = gray_acc;
-        byte_itr++;
-
-        bit       = 1;
-        black_acc = 0;
-        gray_acc  = 0;
-      }
-      else
-      {
-        bit <<= 1;
-      }
-
-      val  = upc[i + (j * R_BITS)];
-      mask = secure_l32_mask(val, black_th);
-      black_acc |= (bit & mask);
-
-      // Update the gray list only if not in the black list
-      val &= (~mask);
-
-      mask = secure_l32_mask(val, gray_th);
-      gray_acc |= (bit & mask);
-    }
-    bit <<= 1;
+    const uint64_t low_part  = in->qw[i] >> bits;
+    const uint64_t high_part = (in->qw[i + 1] << high_shift) & mask;
+    out->qw[i]               = low_part | high_part;
   }
-
-  // Final bytes
-  e->raw[byte_itr] ^= black_acc;
-  black_e->raw[byte_itr] = black_acc;
-  gray_e->raw[byte_itr]  = gray_acc;
 }
 
-EXTERNC void
-find_error2(IN OUT e_t *e,
-            IN e_t * pos_e,
-            IN const uint8_t *upc,
-            IN const uint32_t threshold)
+void
+rotate_right(OUT syndrome_t *out,
+             IN const syndrome_t *in,
+             IN const uint32_t    bitscount)
 {
-  uint8_t  bit      = 1;
-  uint8_t  pos_acc  = 0;
-  uint32_t byte_itr = 0;
-
-  for(uint64_t j = 0; j < N0; j++)
-  {
-    uint8_t mask = secure_l32_mask(upc[j * R_BITS], threshold);
-    pos_acc |= (bit & mask);
-
-    for(int i = R_BITS - 1; i > 0; i--)
-    {
-      if(bit == 0x80)
-      {
-        e->raw[byte_itr] ^= (pos_e->raw[byte_itr] & pos_acc);
-        byte_itr++;
-
-        bit     = 1;
-        pos_acc = 0;
-      }
-      else
-      {
-        bit <<= 1;
-      }
-
-      mask = secure_l32_mask(upc[i + (j * R_BITS)], threshold);
-      pos_acc |= (bit & mask);
-    }
-    bit <<= 1;
-  }
-
-  // Final byte
-  e->raw[byte_itr] ^= (pos_e->raw[byte_itr] & pos_acc);
+  // Rotate (64-bit) quad-words
+  rotr_big(out, in, (bitscount / 64));
+  // Rotate bits (less than 64)
+  rotr_small(out, out, (bitscount % 64));
 }

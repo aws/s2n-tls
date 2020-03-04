@@ -1,17 +1,5 @@
-/*
- * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- * http://aws.amazon.com/apache2.0
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
- * The license is detailed in the file LICENSE.md, and applies to this file.
+/* Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0"
  *
  * Written by Nir Drucker and Shay Gueron
  * AWS Cryptographic Algorithms Group.
@@ -35,11 +23,11 @@ init_aes_ctr_prf_state(OUT aes_ctr_prf_state_t *s,
   // Set the key schedule (from seed).
   // Make sure the size matches the AES256 key size
   DEFER_CLEANUP(aes256_key_t key, aes256_key_cleanup);
-  bike_static_assert(sizeof(seed->u) == sizeof(key.raw),
-                     seed_size_equals_ky_size);
-  memcpy(key.raw, seed->u.raw, sizeof(key.raw));
 
-  GUARD(aes256_key_expansion(&s->ks, &key));
+  bike_static_assert(sizeof(*seed) == sizeof(key.raw), seed_size_equals_ky_size);
+  memcpy(key.raw, seed->raw, sizeof(key.raw));
+
+  GUARD(aes256_key_expansion(&s->ks_ptr, &key));
 
   // Initialize buffer and counter
   s->ctr.u.qw[0]    = 0;
@@ -53,7 +41,7 @@ init_aes_ctr_prf_state(OUT aes_ctr_prf_state_t *s,
   SEDMSG("    Init aes_prf_ctr state:\n");
   SEDMSG("      s.pos = %d\n", s->pos);
   SEDMSG("      s.rem_invokations = %u\n", s->rem_invokations);
-  SEDMSG("      s.ctr = 0x");
+  SEDMSG("      s.ctr = 0x\n");
 
   return SUCCESS;
 }
@@ -68,10 +56,10 @@ perform_aes(OUT uint8_t *ct, IN OUT aes_ctr_prf_state_t *s)
 
   if(0 == s->rem_invokations)
   {
-    return E_AES_OVER_USED;
+    BIKE_ERROR(E_AES_OVER_USED);
   }
 
-  GUARD(aes256_enc(ct, s->ctr.u.bytes, &s->ks));
+  GUARD(aes256_enc(ct, s->ctr.u.bytes, &s->ks_ptr));
 
   s->ctr.u.qw[0]++;
   s->rem_invokations--;
