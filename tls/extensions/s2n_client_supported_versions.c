@@ -71,6 +71,13 @@ int s2n_extensions_client_supported_versions_process(struct s2n_connection *conn
         uint8_t client_version_parts[S2N_TLS_PROTOCOL_VERSION_LEN];
         GUARD(s2n_stuffer_read_bytes(extension, client_version_parts, S2N_TLS_PROTOCOL_VERSION_LEN));
 
+        /* If the client version is outside of our supported versions, then ignore the value.
+         * S2N does not support SSLv2 except for upgrading connections. Since this extension is
+         * a TLS1.3 extension, we will skip any SSLv2 values. */
+        if (client_version_parts[0] != 3 || client_version_parts[1] > 4) {
+            continue;
+        }
+
         uint16_t client_version = (client_version_parts[0] * 10) + client_version_parts[1];
 
         conn->client_protocol_version = MAX(client_version, conn->client_protocol_version);
