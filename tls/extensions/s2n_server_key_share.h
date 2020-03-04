@@ -22,5 +22,6 @@
 
 extern int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn);
 extern int s2n_extensions_server_key_share_send_size(struct s2n_connection *conn);
+extern int s2n_extensions_server_key_share_select(struct s2n_connection *conn);
 extern int s2n_extensions_server_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 extern int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);

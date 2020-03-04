@@ -34,7 +34,7 @@ const uint8_t hello_retry_req_random[S2N_TLS_RANDOM_DATA_LEN] = {
 /* Lets the server flag whether a HelloRetryRequest is needed while processing extensions */
 int s2n_server_should_retry(struct s2n_connection *conn)
 {
-    S2N_ERROR_IF(conn->handshake.server_requires_hrr == 1, S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(conn->handshake.server_sent_hrr == 1, S2N_ERR_BAD_MESSAGE);
 
     conn->handshake.server_requires_hrr = 1;
 
