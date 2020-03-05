@@ -1212,7 +1212,7 @@ int main(int argc, char **argv)
                     /* BIKE1_L1_R1 */
                     0x00, 0x01,
                     /* SIKE_P434_R2 */
-                    0x00, 0x10,
+                    0x00, 0x13,
                     /* BIKE1_L1_R2 */
                     0x00, 0x0D,
             };
@@ -1257,7 +1257,7 @@ int main(int argc, char **argv)
                     /* BIKE1_L1_R2 */
                     0x00, 0x0D,
                     /* SIKE_P434_R2 */
-                    0x00, 0x10,
+                    0x00, 0x13,
                     /* BIKE1_L1_R1 */
                     0x00, 0x01,
             };
@@ -1302,7 +1302,7 @@ int main(int argc, char **argv)
                     /* SIKE_P503_R1 */
                     0x00, 0x0A,
                     /* SIKE_P434_R2 */
-                    0x00, 0x10,
+                    0x00, 0x13,
             };
             size_t client_extensions_len = sizeof(client_extensions);
             uint8_t client_hello_message[] = {
@@ -1456,7 +1456,7 @@ int main(int argc, char **argv)
                     /* KEM names len */
                     0x00, 0x04,
                     /* SIKE_P434_R2 */
-                    0x00, 0x10,
+                    0x00, 0x13,
                     /* BIKE1_L1_R2 */
                     0x00, 0x0D,
             };
