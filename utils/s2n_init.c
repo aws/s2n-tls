@@ -42,15 +42,9 @@ int s2n_init(void)
     GUARD(s2n_cipher_suites_init());
     GUARD(s2n_cipher_preferences_init());
     GUARD(s2n_client_key_share_init());
+    GUARD(s2n_config_defaults_init());
 
     S2N_ERROR_IF(atexit(s2n_cleanup_atexit) != 0, S2N_ERR_ATEXIT);
-
-    /* these functions do lazy init. Avoid the race conditions and just do it here. */
-    if (s2n_is_in_fips_mode()) {
-        s2n_fetch_default_fips_config();
-    } else {
-        s2n_fetch_default_config();
-    }
 
     /* Set the supported extension mask bits for each of the recognized
      * extensions */

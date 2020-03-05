@@ -375,8 +375,10 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
 
-        struct s2n_config *server_config;
+        struct s2n_config *server_config, *client_config;
         EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
 
         char *cert_chain = NULL;
         char *private_key = NULL;
@@ -394,7 +396,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, s2n_fetch_unsafe_client_testing_config()));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         struct s2n_stuffer client_to_server;
         struct s2n_stuffer server_to_client;
@@ -523,6 +525,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(default_cert));
         EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
 
         free(private_key);
         free(cert_chain);
