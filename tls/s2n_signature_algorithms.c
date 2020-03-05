@@ -52,7 +52,7 @@ static int s2n_signature_scheme_valid_to_accept(struct s2n_connection *conn, con
     return 0;
 }
 
-int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
+static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
                           struct s2n_signature_scheme *chosen_scheme_out)
 {
     const struct s2n_signature_preferences *signature_preferences = conn->config->signature_preferences;
@@ -77,14 +77,13 @@ int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_scheme_lis
 
             if (candidate->iana_value == their_iana_val) {
                 *chosen_scheme_out = *candidate;
-                return 0;
+                return S2N_SUCCESS;
             }
         }
     }
 
     S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_SCHEME);
 }
-
 
 int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn, struct s2n_stuffer *in,
                                              struct s2n_signature_scheme *chosen_sig_scheme)
@@ -146,12 +145,18 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
 
     struct s2n_signature_scheme chosen_scheme;
 
+    GUARD(s2n_choose_default_sig_scheme(conn, &chosen_scheme));
+
     /* SignatureScheme preference list was first added in TLS 1.2. It will be empty in older TLS versions. */
     if (peer_wire_prefs != NULL && peer_wire_prefs->len > 0) {
-        GUARD(s2n_choose_sig_scheme(conn, peer_wire_prefs, &chosen_scheme));
+        int result = s2n_choose_sig_scheme(conn, peer_wire_prefs, &chosen_scheme);
+
+        /* We require an exact match in TLS 1.3, but all previous versions can fall back to the default.
+         * The pre-TLS1.3 behavior is an intentional choice to maximize support. */
+        S2N_ERROR_IF(result != S2N_SUCCESS && conn->actual_protocol_version == S2N_TLS13,
+                S2N_ERR_INVALID_SIGNATURE_SCHEME);
     } else {
         S2N_ERROR_IF(conn->actual_protocol_version == S2N_TLS13, S2N_ERR_EMPTY_SIGNATURE_SCHEME);
-        GUARD(s2n_choose_default_sig_scheme(conn, &chosen_scheme));
     }
 
     /* In TLS 1.3, SigScheme also defines the ECDSA curve to use (instead of reusing whatever ECDHE Key Exchange curve
@@ -169,7 +174,7 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
 
     *sig_scheme_out = chosen_scheme;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_send_supported_sig_scheme_list(struct s2n_connection *conn, struct s2n_stuffer *out)
