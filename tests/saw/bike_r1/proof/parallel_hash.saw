@@ -1,35 +1,25 @@
 // parallel_hash.saw Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+
 ///////////////////////////////////////////////////////////////////////////////
 // Specifications
 
-let alpha = eval_int {{ (((`N_SIZE / `MAX_MB_SLICES) - `SLICE_REM) / `HASH_BLOCK_SIZE):[64] }};
-let ls = eval_int {{ ((`alpha * `HASH_BLOCK_SIZE) + `SLICE_REM):[64] }};
-
-let compute_slice_len_spec = do {
-    crucible_execute_func [tm {{ `N_SIZE:[64] }}];
-    crucible_return (tm {{ `ls:[64] }});
+let parallel_hash_spec n = do {
+  out_hash_ptr <- out_ref sha384_hash_t;
+  (_, m_ptr) <- in_ref (i8_array_t n) "m";
+  crucible_execute_func [out_hash_ptr, m_ptr, tm {{ `n:[32] }}];
+  _ <- point_to sha384_hash_t out_hash_ptr "parallel_hash_out_hash'";
+  return ();
 };
 
-// NOTE: Used by get_ss
-let parallel_hash_spec = do {
-    ap <- out_ref sha384_hash_T;
-    (b, bp) <- in_ref (make_i8_T N_SIZE) "m";
-    crucible_execute_func [ap, bp, tm {{ `N_SIZE:[32] }}];
-    a' <- point_to sha384_hash_T ap "parallel_hash_out_hash'";
-    return ();
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
-compute_slice_len_ov <- verify "compute_slice_len" [] (compute_slice_len_spec);
+parallel_hash_ov <- verify parallel_hash_fun_name
+  [ sha384_239_ov
+  , sha384_1013_ov
+  ]
+  (parallel_hash_spec N_SIZE);
 
-parallel_hash_ov <- admit "parallel_hash"
-    [ compute_slice_len_ov
-    , sha_ov
-    , sha_mb_ov
-    , secure_clean_ov1408
-    ]
-    parallel_hash_spec;
