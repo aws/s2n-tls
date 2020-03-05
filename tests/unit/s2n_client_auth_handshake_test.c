@@ -138,11 +138,15 @@ int s2n_test_client_auth(struct s2n_config *server_config, struct s2n_config *cl
 
     GUARD(s2n_try_handshake(server_conn, client_conn));
 
-    GUARD(IS_CLIENT_AUTH_HANDSHAKE(server_conn->handshake.handshake_type));
-    GUARD(IS_CLIENT_AUTH_HANDSHAKE(client_conn->handshake.handshake_type));
+    if (!IS_CLIENT_AUTH_HANDSHAKE(server_conn->handshake.handshake_type) ||
+            !IS_CLIENT_AUTH_HANDSHAKE(client_conn->handshake.handshake_type)) {
+        return -1;
+    }
 
-    GUARD(IS_CLIENT_AUTH_NO_CERT(server_conn->handshake.handshake_type) == no_cert);
-    GUARD(IS_CLIENT_AUTH_NO_CERT(client_conn->handshake.handshake_type) == no_cert);
+    if ((IS_CLIENT_AUTH_NO_CERT(server_conn->handshake.handshake_type) != no_cert) ||
+            (IS_CLIENT_AUTH_NO_CERT(client_conn->handshake.handshake_type) != no_cert)) {
+        return -1;
+    }
 
     const char *app_data_str = "APPLICATION_DATA";
     if(strcmp(app_data_str, s2n_connection_get_last_message_name(client_conn)) != 0) {
@@ -194,45 +198,10 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert));
         EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
         free(cert_chain_pem);
         free(private_key_pem);
     }
-
-    /* client_auth handshake with cert */
-    {
-        struct s2n_config *server_config, *client_config;
-        char *cert_chain_pem;
-        char *private_key_pem;
-        struct s2n_cert_chain_and_key *ecdsa_cert;
-
-        EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_NOT_NULL(client_config = s2n_config_new());
-
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(ecdsa_cert = s2n_cert_chain_and_key_new());
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(ecdsa_cert, cert_chain_pem, private_key_pem));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert));
-
-        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_ECDSA_P384_PKCS1_CERT_CHAIN, NULL));
-
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, ecdsa_cert));
-        EXPECT_SUCCESS(s2n_config_set_signature_preferences(server_config, "20200207"));
-        EXPECT_SUCCESS(s2n_config_set_signature_preferences(client_config, "20200207"));
-        EXPECT_SUCCESS(s2n_test_client_auth(server_config, client_config, 0));
-
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert));
-        EXPECT_SUCCESS(s2n_config_free(server_config));
-        free(cert_chain_pem);
-        free(private_key_pem);
-    }
-
-    /* client_auth no cert handshake low-level test */
-
-    /* client auth with cert handshake low-level test */
 
     END_TEST();
 }

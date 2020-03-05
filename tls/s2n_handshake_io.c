@@ -571,8 +571,6 @@ int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn)
     GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
     S2N_ERROR_IF(client_cert_auth_type != S2N_CERT_AUTH_OPTIONAL, S2N_ERR_BAD_MESSAGE);
 
-    /* Check if CLIENT_AUTH set. if not error */
-
     conn->handshake.handshake_type |= NO_CLIENT_CERT;
 
     return 0;

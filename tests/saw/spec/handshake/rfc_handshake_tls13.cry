@@ -306,6 +306,13 @@ rfc2S2N msg = mkAct recordType messageType writer
                  else '!'
         noMessageType = TLS_HELLO_REQUEST // HelloRequests don't exist in tls1.3
 
+/**
+ * printHandshake and s2nToWords are two helper functions for debugging cryptol
+ * Take the counterexample from tls13rfcSimulatesS2N and plug the values into
+ * testParameters and testConnection. Run printHandshake with ascii set to on. 
+ * Note with ascii on, you may see actual_protocol_version = '"'. This is because
+ * decimal value 34 (hex value 22) == asci character double quotes. 
+ */
 testParameters : Parameters
 testParameters = {
             compat_mode = [False, True],
