@@ -35,11 +35,6 @@
 
 #if RSA_PSS_SUPPORTED
 
-#define S2N_PARAM_NOT_REQUIRED  0
-#define S2N_PARAM_REQUIRED      1
-
-typedef const BIGNUM *(*ossl_get_rsa_param_fn) (const RSA *d);
-
 int s2n_is_rsa_pss_supported()
 {
     return 1;
@@ -112,19 +107,26 @@ static int s2n_rsa_pss_validate_sign_verify_match(const struct s2n_pkey *pub, co
     return 0;
 }
 
-static int s2n_rsa_validate_param_equal(const RSA *pub, const RSA *priv, int required,
-                                        ossl_get_rsa_param_fn get_rsa_param_fn)
+static int s2n_rsa_validate_params_equal(const RSA *pub, const RSA *priv)
 {
-    const BIGNUM *pub_val = get_rsa_param_fn(pub);
-    const BIGNUM *priv_val = get_rsa_param_fn(priv);
+    const BIGNUM *pub_val_e = NULL;
+    const BIGNUM *pub_val_n = NULL;
+    RSA_get0_key(pub, &pub_val_n, &pub_val_e, NULL);
 
-    if (required && (pub_val == NULL || priv_val == NULL)) {
+    const BIGNUM *priv_val_e = NULL;
+    const BIGNUM *priv_val_n = NULL;
+    RSA_get0_key(priv, &priv_val_n, &priv_val_e, NULL);
+
+    if (pub_val_e == NULL || priv_val_e == NULL) {
         S2N_ERROR(S2N_ERR_KEY_CHECK);
     }
 
-    if (pub_val != NULL && priv_val != NULL) {
-        S2N_ERROR_IF(BN_cmp(pub_val, priv_val) != 0, S2N_ERR_KEY_MISMATCH);
+    if (pub_val_n == NULL || priv_val_n == NULL) {
+        S2N_ERROR(S2N_ERR_KEY_CHECK);
     }
+
+    S2N_ERROR_IF(BN_cmp(pub_val_e, priv_val_e) != 0, S2N_ERR_KEY_MISMATCH);
+    S2N_ERROR_IF(BN_cmp(pub_val_n, priv_val_n) != 0, S2N_ERR_KEY_MISMATCH);
 
     return 0;
 }
@@ -136,7 +138,7 @@ static int s2n_rsa_validate_params_match(const struct s2n_pkey *pub, const struc
 
     /* OpenSSL Documentation Links:
      *  - https://www.openssl.org/docs/manmaster/man3/EVP_PKEY_get0_RSA.html
-     *  - https://www.openssl.org/docs/manmaster/man3/RSA_get0_n.html
+     *  - https://www.openssl.org/docs/manmaster/man3/RSA_get0_key.html
      */
     RSA *pub_rsa_key = pub->key.rsa_key.rsa;
     RSA *priv_rsa_key = priv->key.rsa_key.rsa;
@@ -144,8 +146,7 @@ static int s2n_rsa_validate_params_match(const struct s2n_pkey *pub, const struc
     notnull_check(pub_rsa_key);
     notnull_check(priv_rsa_key);
 
-    GUARD(s2n_rsa_validate_param_equal(pub_rsa_key, priv_rsa_key, S2N_PARAM_REQUIRED, &RSA_get0_n));
-    GUARD(s2n_rsa_validate_param_equal(pub_rsa_key, priv_rsa_key, S2N_PARAM_NOT_REQUIRED, &RSA_get0_e));
+    GUARD(s2n_rsa_validate_params_equal(pub_rsa_key, priv_rsa_key));
 
     return 0;
 }
