@@ -123,7 +123,7 @@ static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key
      * will fail. Instead of defining a possibly dangerous default or hard coding this to 0x16 error out with BoringSSL.
      */
 #ifdef OPENSSL_IS_BORINGSSL
-  S2N_ERROR(S2N_ERR_LIBCRYPTO_NOT_SUPPORTED);
+  S2N_ERROR(S2N_ERR_NO_AVAILABLE_BORINGSSL_API);
 #else
     uint8_t ctrl_buf[S2N_TLS12_AAD_LEN];
     struct s2n_blob ctrl_blob = { .data = ctrl_buf, .size = S2N_TLS12_AAD_LEN };
