@@ -58,20 +58,50 @@ int main(int argc, char **argv)
         struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
         /* Test s2n_server_hello_send */
-        {
-            const uint32_t total = S2N_TLS_PROTOCOL_VERSION_LEN
-                + S2N_TLS_RANDOM_DATA_LEN
-                + SESSION_ID_SIZE
-                + conn->session_id_len
-                + S2N_TLS_CIPHER_SUITE_LEN
-                + COMPRESSION_METHOD_SIZE;
+        const uint32_t total = S2N_TLS_PROTOCOL_VERSION_LEN
+            + S2N_TLS_RANDOM_DATA_LEN
+            + SESSION_ID_SIZE
+            + conn->session_id_len
+            + S2N_TLS_CIPHER_SUITE_LEN
+            + COMPRESSION_METHOD_SIZE;
 
-            EXPECT_SUCCESS(s2n_server_hello_send(conn));
-            S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, total);
-        }
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_server_hello_send(conn));
+        EXPECT_EQUAL(hello_stuffer->blob.data[0], 0x03);
+        EXPECT_EQUAL(hello_stuffer->blob.data[1], 0x03);
+        S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, total);
 
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test that legacy_version_field is set correct for TLS 1.3 Server Hello Send */
+    {
+        EXPECT_SUCCESS(s2n_enable_tls13());
+        struct s2n_config *config;
+        EXPECT_NOT_NULL(config = s2n_config_new());
+
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        /* configure these parameters so server hello can be sent */
+        conn->actual_protocol_version = S2N_TLS13;
+        conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+        conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+
+        struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
+        EXPECT_SUCCESS(s2n_server_hello_send(conn));
+
+        /* verify that legacy protocol version is 0x0303 (TLS12) */
+        EXPECT_EQUAL(hello_stuffer->blob.data[0], 0x03);
+        EXPECT_EQUAL(hello_stuffer->blob.data[1], 0x03);
+
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+
+        EXPECT_SUCCESS(s2n_disable_tls13());
     }
 
     /* Test basic Server Hello Recv */
