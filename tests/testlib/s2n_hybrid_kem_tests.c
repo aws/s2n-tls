@@ -65,7 +65,8 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
 
     struct s2n_config *server_config, *client_config;
 
-    client_config = s2n_fetch_unsafe_client_testing_config();
+    GUARD_NONNULL(client_config = s2n_config_new());
+    GUARD(s2n_config_set_unsafe_for_testing(client_config));
     GUARD(s2n_connection_set_config(client_conn, client_config));
 
     /* Part 1.1 setup server's keypair and the give the client the certificate */
@@ -187,6 +188,7 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
     GUARD(s2n_connection_free(client_conn));
     GUARD(s2n_connection_free(server_conn));
     GUARD(s2n_config_free(server_config));
+    GUARD(s2n_config_free(client_config));
     free(cert_chain);
     free(client_chain);
     free(private_key);

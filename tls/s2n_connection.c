@@ -158,11 +158,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
      */
     conn = (struct s2n_connection *)(void *)blob.data;
 
-    if (s2n_is_in_fips_mode()) {
-        s2n_connection_set_config(conn, s2n_fetch_default_fips_config());
-    } else {
-        s2n_connection_set_config(conn, s2n_fetch_default_config());
-    }
+    GUARD_PTR(s2n_connection_set_config(conn, s2n_fetch_default_config()));
 
     conn->mode = mode;
     conn->blinding = S2N_BUILT_IN_BLINDING;
