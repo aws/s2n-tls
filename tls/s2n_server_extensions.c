@@ -52,8 +52,8 @@
 /* compute size server extensions send requires */
 int s2n_server_extensions_send_size(struct s2n_connection *conn)
 {
-    uint16_t total_size = 0;
-    bool is_tls13_conn = conn->actual_protocol_version == S2N_TLS13;
+    int total_size = 0;
+    const bool is_tls13_conn = conn->actual_protocol_version == S2N_TLS13;
 
     const uint8_t application_protocol_len = strlen(conn->application_protocol);
 

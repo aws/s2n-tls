@@ -33,7 +33,8 @@ const uint8_t NEW_SESSION_TICKET_SIZE = 4;
 
 const uint8_t SUPPORTED_VERSION_SIZE = 6;
 const uint8_t P256_KEYSHARE_SIZE = ( 32 * 2 ) + 1 + 8;
-const uint8_t MIN_TLS13_EXTENSION_SIZE = P256_KEYSHARE_SIZE + SUPPORTED_VERSION_SIZE;
+const uint8_t MIN_TLS13_EXTENSION_SIZE = ( 32 * 2 ) + 1 + 8 + 6; /* expanded from
+                    P256_KEYSHARE_SIZE + SUPPORTED_VERSION_SIZE because gcc... */
 
 /* set up minimum parameters for a tls13 connection so server extensions can work */
 static int configure_tls13_connection(struct s2n_connection *conn)
@@ -81,7 +82,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
             /* server name size */
-            int size = 4;
+            const uint8_t size = 4;
 
             /* server name is sent when used */
             conn->server_name_used = 1;
@@ -150,7 +151,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, 0);
 
-            int MFL_EXT_SIZE = 2 + 2 + 1;
+            const uint8_t MFL_EXT_SIZE = 2 + 2 + 1;
             conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
             EXPECT_EQUAL(s2n_server_extensions_send_size(conn), MFL_EXT_SIZE);
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
@@ -180,7 +181,7 @@ int main(int argc, char **argv)
 
             conn->ct_level_requested = S2N_CT_SUPPORT_REQUEST;
             conn->handshake_params.our_chain_and_key = &fake_chain_and_key;
-            int size = 4 + sizeof(sct_list);
+            const uint8_t size = 4 + sizeof(sct_list);
             EXPECT_EQUAL(s2n_server_extensions_send_size(conn), size);
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, size + EXTENSION_LEN);
@@ -210,7 +211,7 @@ int main(int argc, char **argv)
             conn->status_type = S2N_STATUS_REQUEST_OCSP;
             conn->handshake_params.our_chain_and_key = &fake_chain_and_key;
 
-            int size = 4;
+            const uint8_t size = 4;
             EXPECT_EQUAL(s2n_server_extensions_send_size(conn), size);
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, size + EXTENSION_LEN);
@@ -280,7 +281,7 @@ int main(int argc, char **argv)
             /* key_share_send() requires a negotiated_curve */
             conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
 
-            uint8_t size = P256_KEYSHARE_SIZE + SUPPORTED_VERSION_SIZE;
+            const uint8_t size = P256_KEYSHARE_SIZE + SUPPORTED_VERSION_SIZE;
 
             EXPECT_EQUAL(s2n_extensions_server_supported_versions_size(), SUPPORTED_VERSION_SIZE);
             EXPECT_EQUAL(s2n_extensions_server_key_share_send_size(conn), P256_KEYSHARE_SIZE);
