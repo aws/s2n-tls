@@ -99,7 +99,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 {
     int total_size = s2n_server_extensions_send_size(conn);
 
-    GUARD(total_size);
+    GUARD(total_size >= 0 && total_size <= 65535);
 
     if (total_size == 0) {
         return 0;
