@@ -107,7 +107,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
 
-    bool is_tls13_conn = conn->actual_protocol_version == S2N_TLS13;
+    const bool is_tls13_conn = conn->actual_protocol_version == S2N_TLS13;
 
     /* Write supported versions extension if TLS 1.3 or greater */
     if (is_tls13_conn) {
