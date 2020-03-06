@@ -24,10 +24,10 @@
 #include "utils/s2n_blob.h"
 
 /* EVP for ChaCha20-Poly1305 added in Openssl 1.1.0. See: https://www.openssl.org/news/cl110.txt .
- * LibreSSL supports the cipher, but the interface is different from Openssl's. We should define a
- * separate s2n_cipher struct for the LibreSSL version.
+ * LibreSSL and BoringSSL supports the cipher, but the interface is different from Openssl's. We
+ * should define a separate s2n_cipher struct for LibreSSL and BoringSSL.
  */
-#if ((S2N_OPENSSL_VERSION_AT_LEAST(1,1,0)) && (!defined LIBRESSL_VERSION_NUMBER))
+#if ((S2N_OPENSSL_VERSION_AT_LEAST(1,1,0)) && !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL))
 #define S2N_CHACHA20_POLY1305_AVAILABLE
 #endif
 

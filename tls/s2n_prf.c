@@ -88,6 +88,7 @@ static int s2n_sslv3_prf(struct s2n_prf_working_space *ws, struct s2n_blob *secr
     return 0;
 }
 
+#ifndef OPENSSL_IS_BORINGSSL
 static int s2n_evp_hmac_p_hash_new(struct s2n_prf_working_space *ws)
 {
     notnull_check(ws->tls.p_hash.evp_hmac.evp_digest.ctx = S2N_EVP_MD_CTX_NEW());
@@ -199,6 +200,17 @@ static int s2n_evp_hmac_p_hash_free(struct s2n_prf_working_space *ws)
     return 0;
 }
 
+static const struct s2n_p_hash_hmac s2n_evp_hmac = {
+    .new = &s2n_evp_hmac_p_hash_new,
+    .init = &s2n_evp_hmac_p_hash_init,
+    .update = &s2n_evp_hmac_p_hash_update,
+    .final = &s2n_evp_hmac_p_hash_digest,
+    .reset = &s2n_evp_hmac_p_hash_reset,
+    .cleanup = &s2n_evp_hmac_p_hash_cleanup,
+    .free = &s2n_evp_hmac_p_hash_free,
+};
+#endif /* OPENSSL_IS_BORINGSSL */
+
 static int s2n_hmac_p_hash_new(struct s2n_prf_working_space *ws)
 {
     GUARD(s2n_hmac_new(&ws->tls.p_hash.s2n_hmac));
@@ -235,16 +247,6 @@ static int s2n_hmac_p_hash_free(struct s2n_prf_working_space *ws)
 {
     return s2n_hmac_free(&ws->tls.p_hash.s2n_hmac);
 }
-
-static const struct s2n_p_hash_hmac s2n_evp_hmac = {
-    .new = &s2n_evp_hmac_p_hash_new,
-    .init = &s2n_evp_hmac_p_hash_init,
-    .update = &s2n_evp_hmac_p_hash_update,
-    .final = &s2n_evp_hmac_p_hash_digest,
-    .reset = &s2n_evp_hmac_p_hash_reset,
-    .cleanup = &s2n_evp_hmac_p_hash_cleanup,
-    .free = &s2n_evp_hmac_p_hash_free,
-};
 
 static const struct s2n_p_hash_hmac s2n_hmac = {
     .new = &s2n_hmac_p_hash_new,
@@ -316,12 +318,20 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
     return 0;
 }
 
+const struct s2n_p_hash_hmac *s2n_get_hmac_implementation() {
+#ifdef OPENSSL_IS_BORINGSSL
+  return &s2n_hmac;
+#else
+  return s2n_is_in_fips_mode() ? &s2n_evp_hmac : &s2n_hmac;
+#endif
+}
+
 int s2n_prf_new(struct s2n_connection *conn)
 {
     /* Set p_hash_hmac_impl on initial prf creation. 
      * When in FIPS mode, the EVP API's must be used for the p_hash HMAC.
      */
-    conn->prf_space.tls.p_hash_hmac_impl = s2n_is_in_fips_mode() ? &s2n_evp_hmac : &s2n_hmac;
+    conn->prf_space.tls.p_hash_hmac_impl = s2n_get_hmac_implementation();
 
     return conn->prf_space.tls.p_hash_hmac_impl->new(&conn->prf_space);
 }
@@ -331,7 +341,7 @@ int s2n_prf_free(struct s2n_connection *conn)
     /* Ensure that p_hash_hmac_impl is set, as it may have been reset for prf_space on s2n_connection_wipe. 
      * When in FIPS mode, the EVP API's must be used for the p_hash HMAC.
      */
-    conn->prf_space.tls.p_hash_hmac_impl = s2n_is_in_fips_mode() ? &s2n_evp_hmac : &s2n_hmac;
+    conn->prf_space.tls.p_hash_hmac_impl = s2n_get_hmac_implementation();
 
     return conn->prf_space.tls.p_hash_hmac_impl->free(&conn->prf_space);
 }
@@ -358,7 +368,7 @@ static int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct 
     /* Ensure that p_hash_hmac_impl is set, as it may have been reset for prf_space on s2n_connection_wipe. 
      * When in FIPS mode, the EVP API's must be used for the p_hash HMAC.
      */
-    conn->prf_space.tls.p_hash_hmac_impl = s2n_is_in_fips_mode() ? &s2n_evp_hmac : &s2n_hmac;
+    conn->prf_space.tls.p_hash_hmac_impl = s2n_get_hmac_implementation();
 
     if (conn->actual_protocol_version == S2N_TLS12) {
         return s2n_p_hash(&conn->prf_space, conn->secure.cipher_suite->prf_alg, secret, label, seed_a, seed_b,
