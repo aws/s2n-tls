@@ -56,7 +56,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
-    /* s2n_server_extensions_recv */
+    /* TLS1.3: s2n_server_extensions_recv */
     {
         EXPECT_SUCCESS(s2n_enable_tls13());
 
@@ -74,7 +74,6 @@ int main(int argc, char **argv)
 
         /* TLS 1.3: The server name extension should not be sent from the server in the SH message */
         {
-            EXPECT_SUCCESS(s2n_stuffer_rewrite(&extension_stuffer));
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension_stuffer, TLS_EXTENSION_SERVER_NAME));
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension_stuffer, 0x1));
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension_stuffer, 0x41));

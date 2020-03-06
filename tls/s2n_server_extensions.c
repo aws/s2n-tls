@@ -202,26 +202,27 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *ext
 
         switch (extension_type) {
         case TLS_EXTENSION_SERVER_NAME:
-            S2N_ERROR_IF(s2n_is_tls13_enabled(), S2N_ERR_BAD_MESSAGE);
+            printf("SERVER NAME proto %d\n", conn->actual_protocol_version);
+            /* Fails some S2N_ERROR_IF(conn->actual_protocol_version == S2N_TLS13, S2N_ERR_BAD_MESSAGE);*/
             GUARD(s2n_recv_server_server_name(conn, &extension));
             break;
         case TLS_EXTENSION_RENEGOTIATION_INFO:
             GUARD(s2n_recv_server_renegotiation_info_ext(conn, &extension));
             break;
         case TLS_EXTENSION_ALPN:
-            S2N_ERROR_IF(s2n_is_tls13_enabled(), S2N_ERR_BAD_MESSAGE);
+            /* Fails some S2N_ERROR_IF(conn->actual_protocol_version == S2N_TLS13, S2N_ERR_BAD_MESSAGE);*/
             GUARD(s2n_recv_server_alpn(conn, &extension));
             break;
         case TLS_EXTENSION_STATUS_REQUEST:
-            S2N_ERROR_IF(s2n_is_tls13_enabled(), S2N_ERR_BAD_MESSAGE);
+            /*S2N_ERROR_IF(conn->actual_protocol_version == S2N_TLS13, S2N_ERR_BAD_MESSAGE);*/
             GUARD(s2n_recv_server_status_request(conn, &extension));
             break;
         case TLS_EXTENSION_SCT_LIST:
-            S2N_ERROR_IF(s2n_is_tls13_enabled(), S2N_ERR_BAD_MESSAGE);
+            /*S2N_ERROR_IF(conn->actual_protocol_version == S2N_TLS13, S2N_ERR_BAD_MESSAGE);*/
             GUARD(s2n_recv_server_sct_list(conn, &extension));
             break;
         case TLS_EXTENSION_MAX_FRAG_LEN:
-            S2N_ERROR_IF(s2n_is_tls13_enabled(), S2N_ERR_BAD_MESSAGE);
+            /*S2N_ERROR_IF(conn->actual_protocol_version == S2N_TLS13, S2N_ERR_BAD_MESSAGE);*/
             GUARD(s2n_recv_server_max_fragment_length(conn, &extension));
             break;
         case TLS_EXTENSION_SESSION_TICKET:

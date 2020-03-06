@@ -131,6 +131,8 @@ def get_s2n(scenario):
     s2n_cmd = get_s2n_cmd(scenario)
     s2n = get_process(s2n_cmd)
 
+    print("{}".format(" ".join(s2n_cmd)))
+
     if not wait_for_output(s2n, S2N_SIGNALS[scenario.s2n_mode]):
         raise AssertionError("s2n %s: %s" % (scenario.s2n_mode, get_error(s2n)))
 
