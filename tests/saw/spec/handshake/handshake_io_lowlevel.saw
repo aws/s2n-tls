@@ -396,3 +396,11 @@ let s2n_connection_is_managed_corked_spec = do {
 
     crucible_return (crucible_term {{ 1 : [32] }});
 };
+
+let s2n_server_requires_retry_spec = do {
+    pconn <- crucible_alloc_readonly (llvm_struct "struct.s2n_connection");
+
+    crucible_execute_func [pconn];
+
+    crucible_return (crucible_term {{ 0 : [1] }});
+};
