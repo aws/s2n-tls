@@ -49,7 +49,8 @@
 #define s2n_server_can_send_nst(conn) (s2n_server_sending_nst((conn)) && \
         (conn)->actual_protocol_version < S2N_TLS13)
 
-int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+/* compute size server extensions send requires */
+uint16_t s2n_server_extensions_send_size(struct s2n_connection *conn)
 {
     uint16_t total_size = 0;
 
@@ -88,6 +89,13 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         total_size += s2n_extensions_server_key_share_send_size(conn);
     }
 
+    return total_size;
+}
+
+int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    uint16_t total_size = s2n_server_extensions_send_size(conn);
+
     if (total_size == 0) {
         return 0;
     }
@@ -117,6 +125,8 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         /* renegotiated_connection length. Zero since we don't support renegotiation. */
         GUARD(s2n_stuffer_write_uint8(out, 0));
     }
+
+    const uint8_t application_protocol_len = strlen(conn->application_protocol);
 
     /* Write ALPN extension */
     if (application_protocol_len) {
