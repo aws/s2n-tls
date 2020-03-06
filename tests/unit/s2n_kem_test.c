@@ -150,7 +150,7 @@ int main(int argc, char **argv)
                     /* SIKE_P503_R1 */
                     0x00, 0x0a,
                     /* SIKE_P434_R2 */
-                    0x00, 0x10
+                    0x00, 0x13
             };
 
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
@@ -165,7 +165,7 @@ int main(int argc, char **argv)
                     /* BIKE1_L1_R1 */
                     0x00, 0x01,
                     /* SIKE_P434_R2 */
-                    0x00, 0x10,
+                    0x00, 0x13,
                     /* BIKE1_L1_R2 */
                     0x00, 0x0d
             };
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
                     /* BIKE1_L1_R2 */
                     0x00, 0x0d,
                     /* SIKE_P434_R2 */
-                    0x00, 0x10
+                    0x00, 0x13
             };
 
             EXPECT_FAILURE_WITH_ERRNO(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
@@ -206,7 +206,7 @@ int main(int argc, char **argv)
                     /* BIKE1_L1_R1 */
                     0x00, 0x01,
                     /* SIKE_P434_R2 */
-                    0x00, 0x10
+                    0x00, 0x13
             };
 
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 2, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
@@ -230,7 +230,7 @@ int main(int argc, char **argv)
         {
             uint8_t client_kems[] = {
                     /* SIKE_P434_R2 */
-                    0x00, 0x10,
+                    0x00, 0x13,
                     /* SIKE_P503_R1 */
                     0x00, 0x0a
             };
