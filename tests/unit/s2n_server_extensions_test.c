@@ -56,6 +56,73 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
+    /* s2n_server_extensions_recv */
+    {
+        EXPECT_SUCCESS(s2n_enable_tls13());
+
+        struct s2n_config *config;
+        EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+        EXPECT_SUCCESS(configure_tls13_connection(conn));
+
+        struct s2n_stuffer extension_stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension_stuffer, 0));
+
+        /* TLS 1.3: The server name extension should not be sent from the server in the SH message */
+        {
+            EXPECT_SUCCESS(s2n_stuffer_rewrite(&extension_stuffer));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension_stuffer, TLS_EXTENSION_SERVER_NAME));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension_stuffer, 0x1));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension_stuffer, 0x41));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_extensions_recv(conn, &extension_stuffer.blob), S2N_ERR_BAD_MESSAGE);
+        }
+
+        /* TLS 1.3: ALPN extension should not be sent from the server in the SH message */
+        {
+            EXPECT_SUCCESS(s2n_stuffer_rewrite(&extension_stuffer));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension_stuffer, TLS_EXTENSION_ALPN));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension_stuffer, 4));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension_stuffer, 2));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension_stuffer, 1));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension_stuffer, 0x41));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_extensions_recv(conn, &extension_stuffer.blob), S2N_ERR_BAD_MESSAGE);
+        }
+
+        /* TLS 1.3: OCSP request extension should not be sent from the server in the SH message */
+        {
+            EXPECT_SUCCESS(s2n_stuffer_rewrite(&extension_stuffer));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension_stuffer, TLS_EXTENSION_STATUS_REQUEST));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension_stuffer, 0x0000));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_extensions_recv(conn, &extension_stuffer.blob), S2N_ERR_BAD_MESSAGE);
+        }
+
+        /* TLS 1.3: MFL extension should not be sent from the server in the SH message */
+        {
+            EXPECT_SUCCESS(s2n_stuffer_rewrite(&extension_stuffer));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension_stuffer, TLS_EXTENSION_MAX_FRAG_LEN));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension_stuffer, sizeof(uint8_t)));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension_stuffer, 0x00));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_extensions_recv(conn, &extension_stuffer.blob), S2N_ERR_BAD_MESSAGE);
+        }
+
+        /* TLS 1.3: SCT extension should not be sent from the server in the SH message */
+        {
+            EXPECT_SUCCESS(s2n_stuffer_rewrite(&extension_stuffer));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension_stuffer, TLS_EXTENSION_SCT_LIST));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension_stuffer, 0x0000));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_extensions_recv(conn, &extension_stuffer.blob), S2N_ERR_BAD_MESSAGE);
+        }
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&extension_stuffer));
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_disable_tls13());
+    }
+
     /* s2n_server_extensions_send */
     {
         struct s2n_config *config;
@@ -223,7 +290,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, MIN_TLS13_EXTENSION_SIZE + EXTENSION_LEN);
             EXPECT_SUCCESS(s2n_disable_tls13(conn));
-
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
