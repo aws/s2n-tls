@@ -376,6 +376,15 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
                                  :"cc");
             /* cppcheck-suppress knownConditionTrueFalse */
             success = success_high & success_low;
+
+            /* Treat either all 1 or all 0 bits in either the high or low order
+             * bits as failure */
+            if (output.i386_fields.u_low == 0 ||
+                    output.i386_fields.u_low == UINT32_MAX ||
+                    output.i386_fields.u_high == 0 ||
+                    output.i386_fields.u_high == UINT32_MAX) {
+                success = 0;
+            }
 #else
             /* execute the rdrand instruction, store the result in a general purpose register (it's assigned to
             * output.u64). Check the carry bit, which will be set on success. Then clober the carry bit.
@@ -389,6 +398,22 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
             :
             :"cc");
 #endif /* defined(__i386__) */
+
+            /* Some AMD CPUs will find that RDRAND "sticks" on all 1s but still reports success.
+             * Some other very old CPUs use all 0s as an error condition while still reporting success.
+             * If we encounter either of these suspicious values (a 1/2^63 chance) we'll treat them as
+             * a failure and generate a new value.
+             *
+             * In the future we could add CPUID checks to detect processors with these known bugs,
+             * however it does not appear worth it. The entropy loss is negligible and the
+             * corresponding likelihood that a healthy CPU generates either of these values is also
+             * negligible (1/2^63). Finally, adding processor specific logic would greatly
+             * increase the complexity and would cause us to "miss" any unknown processors with
+             * similar bugs. */
+            if (output.u64 == UINT64_MAX ||
+                output.u64 == 0) {
+                success = 0;
+            }
 
             if (success) {
                 break;
