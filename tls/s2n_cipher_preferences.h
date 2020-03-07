@@ -23,6 +23,15 @@
 struct s2n_cipher_preferences {
     uint8_t count;
     struct s2n_cipher_suite **suites;
+
+    /* Preferences to use when the peer is detected to not have AES hardware acceleration.
+     * Currently, AES is the only crypto operation that may have a wide gap in performance compared to
+     * an "equivalently" secure alternative(ChaCha20) depending on the peer's implementation/platform.
+     * For now, this mechanism is specific to solve the AES problem. As more cases of "crypto performance"
+     * variance come up, we may consider generalizing this mechanism.
+     */
+    uint8_t unaccelerated_aes_suites_count;
+    struct s2n_cipher_suite **unaccelerated_aes_suites;
 };
 
 extern const struct s2n_cipher_preferences cipher_preferences_20140601;

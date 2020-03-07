@@ -14,6 +14,7 @@
  */
 
 #include <string.h>
+#include <stdbool.h>
 
 #include <openssl/crypto.h>
 
@@ -23,6 +24,7 @@
 #include "crypto/s2n_openssl.h"
 
 #include "tls/s2n_auth_selection.h"
+#include "tls/s2n_connection.h"
 #include "tls/s2n_kex.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
@@ -1200,9 +1202,17 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     const struct s2n_security_policy *security_policy;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
+    uint8_t preference_count = security_policy->cipher_preferences->count;
+    struct s2n_cipher_suite **our_suites = security_policy->cipher_preferences->suites;
+    if (conn->config->detect_unaccelerated_aes && s2n_wire_ciphers_unaccelerated_aes_detected(wire, count)) {
+        /* Client is detected to not have AES acceleration. Use a preference list with ChaCha20 prioritized. */
+        preference_count = security_policy->cipher_preferences->unaccelerated_aes_suites_count;
+        our_suites = security_policy->cipher_preferences->unaccelerated_aes_suites;
+    }
+
     /* s2n supports only server order */
-    for (int i = 0; i < security_policy->cipher_preferences->count; i++) {
-        const uint8_t *ours = security_policy->cipher_preferences->suites[i]->iana_value;
+    for (int i = 0; i < preference_count; i++) {
+        const uint8_t *ours = our_suites[i]->iana_value;
 
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
             /* We have a match */
@@ -1300,6 +1310,33 @@ bool s2n_cipher_suite_requires_ecc_extension(struct s2n_cipher_suite *cipher)
 
     if (s2n_kex_includes(cipher->key_exchange_alg, &s2n_ecdhe)) {
         return true;
+    }
+
+    return false;
+}
+
+static const uint8_t CHACHA20_CIPHERS[][S2N_TLS_CIPHER_SUITE_LEN] = {
+    { TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 },
+    { TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 },
+    { TLS_CHACHA20_POLY1305_SHA256 },
+};
+
+bool s2n_wire_ciphers_unaccelerated_aes_detected(uint8_t *wire, uint16_t count)
+{
+    if (count == 0) {
+        return false;
+    }
+
+   /* It may better here to run a full negotiation with the peer's wire ciphers as
+    * the preference in cases where the peer prefixes their preferences with
+    * code points we don't understand(GREASE values, experimental stuff, etc), but is still
+    * prioritizing ChaCha20 higher relative to AES.
+    * For now, we'll just look at the very first cipher offered.
+    */
+    for (int i = 0; i < s2n_array_len(CHACHA20_CIPHERS); i++) {
+        if (s2n_wire_ciphers_contain(CHACHA20_CIPHERS[i], wire, 1, S2N_TLS_CIPHER_SUITE_LEN)) {
+            return true;
+        }
     }
 
     return false;

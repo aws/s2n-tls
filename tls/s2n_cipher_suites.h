@@ -24,6 +24,7 @@
 #include "crypto/s2n_hmac.h"
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /* Key exchange flags that can be OR'ed */
 #define S2N_KEY_EXCHANGE_DH       0x01  /* Diffie-Hellman key exchange, including ephemeral */
@@ -168,3 +169,4 @@ extern int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *
 extern int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
 bool s2n_cipher_suite_requires_ecc_extension(struct s2n_cipher_suite *cipher);
 bool s2n_cipher_suite_requires_pq_extension(struct s2n_cipher_suite *cipher);
+bool s2n_wire_ciphers_unaccelerated_aes_detected(uint8_t *wire, uint16_t count);

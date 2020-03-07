@@ -55,6 +55,8 @@ struct s2n_config {
      * but async signing must be enabled. Use this flag to enforce that restriction.
      */
     unsigned no_signing_key:1;
+    /* If true, s2n server will detect lack of AES acceleration on client and prioritize ChaCha20-Poly1035. */
+    bool detect_unaccelerated_aes;
 
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is

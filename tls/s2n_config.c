@@ -924,3 +924,10 @@ int s2n_config_get_ctx(struct s2n_config *config, void **ctx) {
 
     return S2N_SUCCESS;
 }
+
+int s2n_config_set_unaccelerated_aes_detection(struct s2n_config *config, bool enabled)
+{
+    POSIX_ENSURE_REF(config);
+    config->detect_unaccelerated_aes = enabled;
+    return S2N_SUCCESS;
+}

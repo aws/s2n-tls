@@ -77,9 +77,34 @@ struct s2n_cipher_suite *cipher_suites_20210831[] = {
     &s2n_rsa_with_aes_128_cbc_sha
 };
 
+/* Same as 202110831, but with ChaCha20 prioritized ahead of AES-GCM. */
+struct s2n_cipher_suite *cipher_suites_20210831_chacha[] = {
+    &s2n_tls13_chacha20_poly1305_sha256,
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha
+};
+
 const struct s2n_cipher_preferences cipher_preferences_20210831 = {
     .count = s2n_array_len(cipher_suites_20210831),
     .suites = cipher_suites_20210831,
+    /* Cipher preferences to use when client is detected to not support AES-NI. */
+    .unaccelerated_aes_suites_count = s2n_array_len(cipher_suites_20210831_chacha),
+    .unaccelerated_aes_suites = cipher_suites_20210831_chacha,
 };
 
 /* s2n's list of cipher suites, in order of preference, as of 2014-06-01 */

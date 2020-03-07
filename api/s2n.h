@@ -1501,6 +1501,15 @@ S2N_API int s2n_offered_early_data_reject(struct s2n_offered_early_data *early_d
  */
 S2N_API int s2n_offered_early_data_accept(struct s2n_offered_early_data *early_data);
 
+/**
+ * Control whether s2n should prioritize ChaCha20 when lack of AES acceleration is detected.
+ *
+ * @param config the config to modify.
+ * @param enabled 1 to enable detection, 0 to disable.
+ * @return a POSIX error signal.
+ */
+S2N_API int s2n_config_set_unaccelerated_aes_detection(struct s2n_config *config, bool enabled);
+
 #ifdef __cplusplus
 }
 #endif
