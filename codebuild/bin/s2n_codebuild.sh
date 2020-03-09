@@ -81,10 +81,8 @@ if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMAC" ]] && [[ "$OS_NAME" == "linux" 
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawDRBG" ]]; then make -C tests/saw tmp/verify_drbg.log ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "tls" ]]; then make -C tests/saw tmp/verify_handshake.log ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "sawSIKE_r1" ]]; then make -C tests/saw sike_r1 ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "sawSIKE_r2" ]]; then make -C tests/saw sike_r2 ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "sawSIKE_r2_x64" ]]; then make -C tests/saw sike_r2_x64 ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "sawBIKE_r1" ]]; then make -C tests/saw bike_r1 ; fi
+# Below runs sike r_1 r_2 and x86
+if [[ "$TESTS" == "ALL" || "$TESTS" == "sawSIKE" ]]; then make -C tests/saw sike ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawBIKE_r2" ]]; then make -C tests/saw bike_r2 ; fi
 
 # Generate *.gcov files that can be picked up by the CodeCov.io Bash helper script. Don't run lcov or genhtml 
