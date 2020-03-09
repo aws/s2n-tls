@@ -117,6 +117,7 @@ sike_r1/sike_r1.log :
 ###########################################
 ## BIKE Tests
 ###########################################
+bike: bike_r1 bike_r2
 
 .PHONY: bike_r2
 bike_r2: bike_r2_patched_bitcode s2n/lib/libs2n.so
