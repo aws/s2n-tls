@@ -23,7 +23,7 @@ from awacs.sts import AssumeRole
 from random import randrange
 from troposphere import GetAtt, Template, Ref, Output
 from troposphere.events import Rule, Target
-from troposphere.iam import Role
+from troposphere.iam import Role, Policy
 from troposphere.codebuild import Artifacts, Environment, Source, Project
 
 logging.getLogger(__name__)
@@ -65,14 +65,27 @@ def build_cw_cb_role(template=None, role_name="s2nEventsInvokeCodeBuildRole"):
                 Statement=[
                     Statement(
                         Effect=Allow,
-                        Action=[Action("codebuild", "StartBuild"),
+                        Action=[Action("sts", "AssumeRole"),
                                 ],
+                        Principal=Principal("Service",["events.amazonaws.com"])
+                    )
+                ]
+            ),
+            Policies=[ Policy(
+                PolicyName=f"EventsInvokeCBRole",
+                PolicyDocument=PolicyDocument(
+                Statement=[
+                    Statement(
+                        Effect=Allow,
+                        Action=[Action("codebuild", "StartBuild")],
                         Resource=[
                             "arn:aws:codebuild:us-west-2:024603541914:project/*",
                         ]
                     )
                 ]
+                )
             )
+            ]
         )
     )
     return role_id
