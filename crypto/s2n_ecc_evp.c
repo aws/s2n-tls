@@ -352,12 +352,16 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
 
     size_t size = EVP_PKEY_get1_tls_encodedpoint(ecc_evp_params->evp_pkey, &encoded_point);
     if (size != ecc_evp_params->negotiated_curve->share_size) {
+        OPENSSL_free(encoded_point);
+        encoded_point = NULL;
         S2N_ERROR(S2N_ERR_ECDHE_SERIALIZING);
     }
 
     point_blob.data = s2n_stuffer_raw_write(out, ecc_evp_params->negotiated_curve->share_size);
     notnull_check(point_blob.data);
     memcpy_check(point_blob.data, encoded_point, size);
+    OPENSSL_free(encoded_point);
+    encoded_point = NULL;
 #else
     uint8_t point_len;
     struct s2n_blob point_blob = {0};

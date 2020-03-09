@@ -248,6 +248,7 @@ int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *sessi
     GUARD(s2n_stuffer_init(&from, &session_data));
     GUARD(s2n_stuffer_write(&from, &session_data));
     GUARD(s2n_client_deserialize_resumption_state(conn, &from));
+
     return 0;
 }
 

@@ -272,7 +272,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_hello_key_share, 1024));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_hello_key_share, 1024));
 
-            /* XXX: This is only happening because the connection clears all keyshares, this is part of the HRR test */
+            /* ISSUE 1657: This is only happening because the connection clears all keyshares, this is part of the HRR test */
             EXPECT_SUCCESS(s2n_connection_add_preferred_key_share_by_group(client_conn, s2n_ecc_evp_supported_curves_list[i]->iana_id));
 
             /* Client sends ClientHello key_share */
