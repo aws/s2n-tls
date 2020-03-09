@@ -7,11 +7,13 @@ module interface::H_defs where
 
 ///////////////////////////////////////////////////////////////////////////////
 
-type DIVIDE_AND_CEIL x divider = ((x + divider) / divider)
+type status_t = Integer
+(SUCCESS : status_t)                           = 0
+(FAIL : status_t)                              = 0
+(E_ERROR_WEIGHT_IS_NOT_T : status_t)           = 1
+(E_DECODING_FAILURE : status_t)                = 2
+(E_AES_CTR_PRF_INIT_FAIL : status_t)           = 3
+(E_AES_OVER_USED : status_t)                   = 4
+(EXTERNAL_LIB_ERROR_OPENSSL : status_t)        = 5
+(E_FAIL_TO_GET_SEED : status_t)                = 6
 
-type XMM_SIZE = 16 //0x10
-type YMM_SIZE = 32 //0x20
-type ZMM_SIZE = 64 //0x40
-
-type ALL_YMM_SIZE = (16*YMM_SIZE)
-type ALL_ZMM_SIZE = (32*ZMM_SIZE)

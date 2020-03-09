@@ -117,6 +117,7 @@ sike_r1/sike_r1.log :
 ###########################################
 ## BIKE Tests
 ###########################################
+bike: bike_r1 bike_r2
 
 .PHONY: bike_r2
 bike_r2: bike_r2_patched_bitcode s2n/lib/libs2n.so
@@ -127,9 +128,12 @@ bike_r2/verify_bike_r2.log:
 	saw bike_r2/verify_bike_r2.saw | tee $@
 
 .PHONY : bike_r1
-bike_r1 : bike_r1_patched_bitcode
-	@${MAKE} -C bike_r1 force_all
+bike_r1 : bike_r1_patched_bitcode s2n/lib/libs2n.so
+	@${MAKE} bike_r1/verify_bike_r1.log
 
+bike_r1/verify_bike_r1.log:
+	@set -o pipefail; \
+	saw bike_r1/verify_bike_r1.saw | tee $@
 
 ###########################################
 ## Failure Tests
@@ -314,18 +318,10 @@ bitcode/sike_r2_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r2 s2n/uti
 
 .PHONY : bitcode/bike_r1_llvm.bc
 bitcode/bike_r1_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike_r1 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(BIKE_R1_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
-	tr -d '\r' <../../pq-crypto/bike_r1/bike_r1_kem.c >s2n/pq-crypto/bike_r1/bike_r1_kem.c
-	patch s2n/pq-crypto/bike_r1/bike_r1_kem.c bike_r1/patch/bike_r1_kem.c.patch
-	tr -d '\r' <../../pq-crypto/bike_r1/cleanup.h >s2n/pq-crypto/bike_r1/cleanup.h
 	patch s2n/pq-crypto/bike_r1/cleanup.h bike_r1/patch/cleanup.h.patch
-	tr -d '\r' <../../pq-crypto/bike_r1/sampling.c >s2n/pq-crypto/bike_r1/sampling.c
-	patch s2n/pq-crypto/bike_r1/sampling.c bike_r1/patch/sampling.c.patch
-	tr -d '\r' <../../pq-crypto/bike_r1/decode.c >s2n/pq-crypto/bike_r1/decode.c
-	patch s2n/pq-crypto/bike_r1/decode.c bike_r1/patch/decode.c.patch
-	tr -d '\r' <../../pq-crypto/bike_r1/secure_decode_portable.c >s2n/pq-crypto/bike_r1/secure_decode_portable.c
-	patch s2n/pq-crypto/bike_r1/secure_decode_portable.c bike_r1/patch/secure_decode_portable.c.patch
-	tr -d '\r' <../../pq-crypto/bike_r1/sampling_portable.c >s2n/pq-crypto/bike_r1/sampling_portable.c
 	patch s2n/pq-crypto/bike_r1/sampling_portable.c bike_r1/patch/sampling_portable.c.patch
+	patch s2n/pq-crypto/bike_r1/sampling.c bike_r1/patch/sampling.c.patch
+	patch s2n/pq-crypto/bike_r1/bike_r1_kem.c bike_r1/patch/bike_r1_kem.c.patch
 	${MAKE} -C s2n bike_r1_bc
 	${MAKE} -C bitcode bike_r1_llvm.bc
 	${RM} -r s2n

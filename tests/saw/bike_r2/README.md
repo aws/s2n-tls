@@ -1,6 +1,6 @@
-# SAW verification of BIKE R1
+# SAW verification of BIKE R2
 
-This is a SAW memory safety only proof of the C implementation of BIKE R1. It guarantees that there is not any undefined behavior (e.g. segmentation faults, memory safety violations, etc) when the BIKE code is compiled through the LLVM toolchain and executed.
+This is a SAW memory safety only proof of the C implementation of BIKE R2. It guarantees that there is not any undefined behavior (e.g. segmentation faults, memory safety violations, etc) when the BIKE code is compiled through the LLVM toolchain and executed.
 
 ## Limitations
 
