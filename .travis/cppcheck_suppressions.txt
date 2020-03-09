@@ -18,6 +18,5 @@ redundantAssignment:tests/unit/s2n_timer_test.c
 // Reason: Cppcheck complains if you add a cppcheck-suppression that doesn't suppress anything, but different versions of cppcheck catch different issues. So ignore complaints about unneccessary cppcheck suppressions.
 unmatchedSuppression:*
 
-// cppcheck Message: [crypto/s2n_aead_cipher_chacha20_poly1305.c:163]: (error:syntaxError) syntax error
-// Reason: Cppcheck is not able to parse certain struct initialization syntaxes and complains that it can't tell if there might be a bug. Ignore these errors.
-syntaxError:*
+// This suppression is failing unless we list it twice.
+unmatchedSuppression:*
