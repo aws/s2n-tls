@@ -117,8 +117,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         S2N_ERROR_IF(extensions_size > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
         struct s2n_blob extensions = {0};
-        extensions.size = extensions_size;
-        extensions.data = s2n_stuffer_raw_read(in, extensions.size);
+	GUARD(s2n_blob_init(&extensions, s2n_stuffer_raw_read(in, extensions.size), extensions_size));
         notnull_check(extensions.data);
 
         GUARD(s2n_server_extensions_recv(conn, &extensions));
@@ -194,15 +193,15 @@ int s2n_server_hello_send(struct s2n_connection *conn)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_stuffer server_random = {0};
-    struct s2n_blob b, rand_data = {0};
-
-    s2n_blob_init(&b, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN);
+    
+    struct s2n_blob b = {0};
+    GUARD(s2n_blob_init(&b, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
     /* Create the server random data */
     GUARD(s2n_stuffer_init(&server_random, &b));
 
-    rand_data.data = s2n_stuffer_raw_write(&server_random, S2N_TLS_RANDOM_DATA_LEN);
-    rand_data.size = S2N_TLS_RANDOM_DATA_LEN;
+    struct s2n_blob rand_data = {0};
+    GUARD(s2n_blob_init(&rand_data, s2n_stuffer_raw_write(&server_random, S2N_TLS_RANDOM_DATA_LEN), S2N_TLS_RANDOM_DATA_LEN));
     notnull_check(rand_data.data);
     GUARD(s2n_get_public_random_data(&rand_data));
 
