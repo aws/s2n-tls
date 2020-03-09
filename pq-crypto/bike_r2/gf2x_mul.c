@@ -20,6 +20,9 @@
 // 3n/2 + 3n/4 + 3n/8 = 3(n/2 + n/4 + n/8) < 3n
 #  define SECURE_BUFFER_SIZE (3 * R_PADDED_SIZE)
 
+// Calculate number of uint64_t values needed to store SECURE_BUFFER_SIZE bytes. Rounding up to the next whole integer.
+#  define SECURE_BUFFER_SIZE_64_BIT  ((SECURE_BUFFER_SIZE / sizeof(uint64_t)) + ((SECURE_BUFFER_SIZE % sizeof(uint64_t)) != 0))
+
 // This functions assumes that n is even.
 _INLINE_ void
 karatzuba(OUT uint64_t *res,
@@ -75,7 +78,8 @@ gf2x_mod_mul(OUT uint64_t *res, IN const uint64_t *a, IN const uint64_t *b)
 {
   bike_static_assert((R_PADDED_QW % 2 == 0), karatzuba_n_is_odd);
 
-  ALIGN(sizeof(uint64_t)) uint8_t secure_buffer[SECURE_BUFFER_SIZE];
+  ALIGN(sizeof(uint64_t)) uint64_t secure_buffer[SECURE_BUFFER_SIZE_64_BIT];
+
   /* make sure we have the correct size allocation. */
   bike_static_assert(sizeof(secure_buffer) % sizeof(uint64_t) == 0,
                      secure_buffer_not_eligable_for_uint64_t);
@@ -85,7 +89,7 @@ gf2x_mod_mul(OUT uint64_t *res, IN const uint64_t *a, IN const uint64_t *b)
   // This function implicitly assumes that the size of res is 2*R_PADDED_QW.
   red(res);
 
-  secure_clean(secure_buffer, sizeof(secure_buffer));
+  secure_clean((uint8_t*)secure_buffer, sizeof(secure_buffer));
 
   return SUCCESS;
 }
