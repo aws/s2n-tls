@@ -90,7 +90,8 @@ ALL_CIPHERS = [
     Cipher("TLS_AES_128_GCM_SHA256", Version.TLS13)
 ]
 
-# Older Openssl and libressl do not support CHACHA20
+# Older versions of Openssl do not support CHACHA20. Current versions of LibreSSL and BoringSSL use a different API
+# that is unsupported by s2n.
 LEGACY_COMPATIBLE_CIPHERS = list(filter(lambda x: "CHACHA20" not in x.name, ALL_CIPHERS))
 
 ALL_CIPHERS_PER_LIBCRYPTO_VERSION = {
@@ -98,6 +99,7 @@ ALL_CIPHERS_PER_LIBCRYPTO_VERSION = {
     "openssl-1.0.2"         : LEGACY_COMPATIBLE_CIPHERS,
     "openssl-1.0.2-fips"    : LEGACY_COMPATIBLE_CIPHERS,
     "libressl"              : LEGACY_COMPATIBLE_CIPHERS,
+    "boringssl"             : LEGACY_COMPATIBLE_CIPHERS,
 }
 
 
