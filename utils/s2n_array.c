@@ -68,7 +68,8 @@ void *s2n_array_get(struct s2n_array *array, uint32_t index)
     return array->mem.data + array->element_size * index;
 }
 
-int s2n_array_insert_and_copy(struct s2n_array *array, void* element, uint32_t index)
+/* ISSUE 1657: Temporary change to allow single keyshare generation */
+int s2n_array_insert_and_copy(struct s2n_array *array, const void* element, uint32_t index)
 {
     void* insert_location = NULL;
     GUARD_NONNULL(insert_location = s2n_array_insert(array, index));

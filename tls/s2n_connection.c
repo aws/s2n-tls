@@ -473,6 +473,41 @@ int s2n_connection_free(struct s2n_connection *conn)
     return 0;
 }
 
+int s2n_connection_clear_all_key_shares(struct s2n_connection *conn)
+{
+    for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+        memset_check(&conn->secure.preferred_key_shares[i], 0, sizeof(struct s2n_ecc_named_curve));
+        GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
+        conn->secure.client_ecc_evp_params[i].negotiated_curve = NULL;
+    }
+
+    return 0;
+}
+
+int s2n_connection_add_preferred_key_share(struct s2n_connection *conn, const char *curve_name)
+{
+    for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+        if (!strcasecmp(curve_name, s2n_ecc_evp_supported_curves_list[i]->name)) {
+            memcpy_check(&conn->secure.preferred_key_shares[i], s2n_ecc_evp_supported_curves_list[i], sizeof(struct s2n_ecc_named_curve));
+            return 0;
+        }
+    }
+
+    S2N_ERROR(S2N_ERR_INVALID_CIPHER_PREFERENCES);
+}
+
+int s2n_connection_add_preferred_key_share_by_group(struct s2n_connection *conn, uint16_t iana_id)
+{
+    for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+        if (s2n_ecc_evp_supported_curves_list[i]->iana_id == iana_id) {
+            memcpy_check(&conn->secure.preferred_key_shares[i], s2n_ecc_evp_supported_curves_list[i], sizeof(struct s2n_ecc_named_curve));
+            return 0;
+        }
+    }
+
+    S2N_ERROR(S2N_ERR_INVALID_CIPHER_PREFERENCES);
+}
+
 int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *config)
 {
     notnull_check(conn);
@@ -517,7 +552,15 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         }
     }
 
+    /* ISSUE #1657: Set the connection's preferred key shares based on the configuration */
+    GUARD(s2n_connection_clear_all_key_shares(conn));
+    for (int i = 0; i < config->key_shares->num_of_elements; i++) {
+        char **curve = s2n_array_get(config->key_shares, i);
+        GUARD(s2n_connection_add_preferred_key_share(conn, *curve));
+    }
+
     conn->config = config;
+
     return 0;
 }
 

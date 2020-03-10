@@ -74,3 +74,7 @@ int s2n_ecc_evp_parse_params(struct s2n_ecdhe_raw_server_params *raw_server_ecc_
                              struct s2n_ecc_evp_params *ecc_evp_params);
 int s2n_ecc_evp_find_supported_curve(struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found);
 int s2n_ecc_evp_params_free(struct s2n_ecc_evp_params *ecc_evp_params);
+
+int s2n_connection_add_preferred_key_share(struct s2n_connection *conn, const char *curve_name);
+int s2n_connection_add_preferred_key_share_by_group(struct s2n_connection *conn, uint16_t iana_id);
+bool s2n_is_curve_selected(const struct s2n_ecc_named_curve *curve);

@@ -17,8 +17,10 @@
 
 #include "testlib/s2n_testlib.h"
 
+#include "tls/extensions/s2n_cookie.h"
 #include "tls/extensions/s2n_key_share.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
+#include "tls/extensions/s2n_server_key_share.h"
 
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
@@ -26,9 +28,9 @@
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
 
-#include "tls/extensions/s2n_server_key_share.h"
-
 #include "error/s2n_errno.h"
+
+#define TEST_COOKIE_SIZE    32
 
 const uint8_t SESSION_ID_SIZE = 1;
 const uint8_t COMPRESSION_METHOD_SIZE = 1;

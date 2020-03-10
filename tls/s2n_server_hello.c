@@ -177,10 +177,10 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     /* Read the message off the wire */
     GUARD(s2n_parse_server_hello(conn));
 
-    /* If this is a retry request, we have to move forward a little differently */
+    /* If this is a HelloRetryRequest, we don't process the ServerHello.
+     * Instead we proceed with retry logic. */
     if (s2n_server_hello_retry_is_valid(conn)) {
         GUARD(s2n_server_hello_retry_recv(conn));
-        conn->handshake.client_received_hrr = 1;
         return 0;
     }
 

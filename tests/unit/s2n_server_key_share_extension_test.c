@@ -272,12 +272,15 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_hello_key_share, 1024));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_hello_key_share, 1024));
 
+            /* ISSUE 1657: This is only happening because the connection clears all keyshares, this is part of the HRR test */
+            EXPECT_SUCCESS(s2n_connection_add_preferred_key_share_by_group(client_conn, s2n_ecc_evp_supported_curves_list[i]->iana_id));
+
             /* Client sends ClientHello key_share */
             EXPECT_SUCCESS(s2n_extensions_client_key_share_send(client_conn, &client_hello_key_share));
 
             /* Server receives ClientHello key_share */
             S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, TLS_EXTENSION_KEY_SHARE, uint16);
-            S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, s2n_extensions_client_key_share_size(server_conn) - 4, uint16);
+            S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, s2n_extensions_client_key_share_size(client_conn) - 4, uint16);
             EXPECT_SUCCESS(s2n_extensions_client_key_share_recv(server_conn, &client_hello_key_share));
             EXPECT_EQUAL(s2n_stuffer_data_available(&client_hello_key_share), 0);
 
@@ -297,6 +300,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve->iana_id, s2n_ecc_evp_supported_curves_list[i]->iana_id);
 
             /* Server sends ServerHello key_share */
+            EXPECT_SUCCESS(s2n_connection_add_preferred_key_share(server_conn, "secp256r1"));
             EXPECT_SUCCESS(s2n_extensions_server_key_share_send(server_conn, &server_hello_key_share));
 
             /* Client receives ServerHello key_share */
