@@ -29,7 +29,7 @@ ifeq ($(S2N_CORKED_IO),true)
 endif
 
 .PHONY : all
-all: tls13 client_endpoints dynamic_record old_s_client s_client s_server gnutls_cli gnutls_serv sslyze pq_handshake
+all: client_endpoints dynamic_record old_s_client s_client s_server gnutls_cli gnutls_serv sslyze pq_handshake
 
 tls13:
 	( \
