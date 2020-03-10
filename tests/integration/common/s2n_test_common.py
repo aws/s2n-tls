@@ -24,8 +24,15 @@ from common.s2n_test_reporting import Result
 from s2n_test_constants import TEST_ECDSA_CERT, TEST_ECDSA_KEY
 
 
-def get_error(process):
-    return process.stderr.readline().decode("utf-8")
+def get_error(process, line_limit=10):
+    error = ""
+    for count in range(line_limit):
+        line = process.stderr.readline().decode("utf-8")
+        if line:
+            error += line + "\t"
+        else:
+            return error
+    return error
 
 
 def wait_for_output(process, marker, line_limit=10):
@@ -44,6 +51,13 @@ def cleanup_processes(*processes):
 
 def get_process(cmd):
     return subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+
+def assert_no_errors(process):
+    error = get_error(process)
+    if error:
+        raise AssertionError(error)
+    return True
 
 
 def connect(get_peer, scenario):
@@ -88,10 +102,15 @@ def run_connection_test(get_peer, scenarios, test_func=None):
         try:
             server, client = connect(get_peer, scenario)
             result = test_func(server, client) if test_func else Result()
+
             if client.poll():
                 raise AssertionError("Client process crashed")
             if server.poll():
                 raise AssertionError("Server process crashed")
+
+            cleanup_processes(server, client)
+            assert_no_errors(client)
+            assert_no_errors(server)
 
             return result
         except AssertionError as error:

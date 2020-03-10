@@ -77,6 +77,6 @@ def get_openssl(scenario):
     return openssl
 
 
-def run_openssl_connection_test(scenarios, test_func=None):
-    return util.run_connection_test(get_openssl, scenarios, test_func)
+def run_openssl_connection_test(scenarios, **kwargs):
+    return util.run_connection_test(get_openssl, scenarios, **kwargs)
 
