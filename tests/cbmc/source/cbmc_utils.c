@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 
 void assert_bytes_match(const uint8_t *const a, const uint8_t *const b, const size_t len) {
