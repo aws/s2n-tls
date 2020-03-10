@@ -31,6 +31,7 @@ bool s2n_blob_is_valid(const struct s2n_blob* b)
 	S2N_OBJECT_PTR_IS_READABLE(b) &&
 	S2N_MEM_IS_READABLE(b->data,b->size) &&
 	IMPLIES(!b->growable, b->allocated == 0) &&
+	IMPLIES(b->growable, S2N_MEM_IS_READABLE(b->data,b->allocated)) &&
 	IMPLIES(b->growable, b->size <= b->allocated);
 }
 
