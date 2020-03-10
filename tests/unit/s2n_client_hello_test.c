@@ -44,16 +44,14 @@
 
 int main(int argc, char **argv)
 {
-    struct s2n_cert_chain_and_key *chain_and_key;
-    char cert_chain[S2N_MAX_TEST_PEM_SIZE];
-    char private_key[S2N_MAX_TEST_PEM_SIZE];
+    struct s2n_cert_chain_and_key *chain_and_key, *ecdsa_chain_and_key;
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
+            S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
 
@@ -78,7 +76,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
 
         /* TLS13 successfully sets certs */
         {
@@ -805,6 +803,7 @@ int main(int argc, char **argv)
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
     END_TEST();
     return 0;
 }
