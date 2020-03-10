@@ -93,16 +93,33 @@ int s2n_record_header_parse(
     return 0;
 }
 
+/* In TLS 1.3, handle CCS message as unprotected records all the time.
+ * https://tools.ietf.org/html/rfc8446#section-5
+ *
+ * In TLS 1.2 and TLS 1.3 Alert messages are plaintext or encrypted
+ * depending on the context of the connection. If we receive an encrypted
+ * alert, the record type is TLS_APPLICATION_DATA at this point. It will
+ * be decrypted and processed in s2n_handshake_io. We may receive a
+ * plaintext alert if we hit an error before the handshake completed
+ * (like a certificate failed to validate).
+ * https://tools.ietf.org/html/rfc8446#section-6
+ *
+ * This function is specific to TLS 1.3 to avoid changing the behavior
+ * of existing interpretation of TLS 1.2 alerts. */
+static bool s2n_is_tls13_plaintext_content(struct s2n_connection *conn, uint8_t content_type)
+{
+    return conn->actual_protocol_version == S2N_TLS13 && (content_type == TLS_ALERT || content_type == TLS_CHANGE_CIPHER_SPEC);
+}
+
 int s2n_record_parse(struct s2n_connection *conn)
 {
     uint8_t content_type;
     uint16_t encrypted_length;
     GUARD(s2n_record_header_parse(conn, &content_type, &encrypted_length));
 
-    /* In TLS 1.3, handle CCS message as unprotected records */
     struct s2n_crypto_parameters *current_client_crypto = conn->client;
     struct s2n_crypto_parameters *current_server_crypto = conn->server;
-    if (conn->actual_protocol_version == S2N_TLS13 && content_type == TLS_CHANGE_CIPHER_SPEC) {
+    if (s2n_is_tls13_plaintext_content(conn, content_type)) {
         conn->client = &conn->initial;
         conn->server = &conn->initial;
     }
@@ -121,7 +138,7 @@ int s2n_record_parse(struct s2n_connection *conn)
         session_key = &conn->server->server_key;
     }
 
-    if (conn->actual_protocol_version == S2N_TLS13 && content_type == TLS_CHANGE_CIPHER_SPEC) {
+    if (s2n_is_tls13_plaintext_content(conn, content_type)) {
         conn->client = current_client_crypto;
         conn->server = current_server_crypto;
     }
