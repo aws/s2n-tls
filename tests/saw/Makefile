@@ -99,7 +99,8 @@ sike_r2/sike_r2.log :
 	saw sike_r2/verify_sike_r2.saw | tee $@
 
 .PHONY : sike_r2_x64
-sike_r2_x64 : sike_r2_x64_patched_bitcode s2n/lib/libs2n.so
+sike_r2_x64 : sike_r2_x64_patched_bitcode
+	@${MAKE} s2n/lib/libs2n.so
 	@${MAKE} sike_r2/sike_r2_x64.log
 
 sike_r2/sike_r2_x64.log :
@@ -120,7 +121,8 @@ sike_r1/sike_r1.log :
 bike: bike_r1 bike_r2
 
 .PHONY: bike_r2
-bike_r2: bike_r2_patched_bitcode s2n/lib/libs2n.so
+bike_r2: bike_r2_patched_bitcode
+	@${MAKE} s2n/lib/libs2n.so
 	@${MAKE} bike_r2/verify_bike_r2.log
 
 bike_r2/verify_bike_r2.log:
@@ -128,7 +130,8 @@ bike_r2/verify_bike_r2.log:
 	saw bike_r2/verify_bike_r2.saw | tee $@
 
 .PHONY : bike_r1
-bike_r1 : bike_r1_patched_bitcode s2n/lib/libs2n.so
+bike_r1 : bike_r1_patched_bitcode
+	@${MAKE} s2n/lib/libs2n.so
 	@${MAKE} bike_r1/verify_bike_r1.log
 
 bike_r1/verify_bike_r1.log:
