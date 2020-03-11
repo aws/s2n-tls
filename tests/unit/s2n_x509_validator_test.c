@@ -16,13 +16,12 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-#if S2N_OCSP_STAPLING_SUPPORTED
 static int fetch_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp) {
-    *timestamp = 7283958536000000000;
-    return 0;
+  *timestamp = 7283958536000000000;
+  return 0;
 }
 
-
+#if S2N_OCSP_STAPLING_SUPPORTED
 static int fetch_invalid_before_ocsp_timestamp(void *data, uint64_t *timestamp) {
     *timestamp = 1425019604000000000;
     return 0;
@@ -31,6 +30,23 @@ static int fetch_invalid_before_ocsp_timestamp(void *data, uint64_t *timestamp) 
 static int fetch_not_expired_ocsp_timestamp(void *data, uint64_t *timestamp) {
     *timestamp = 1552824239000000000;
     return 0;
+}
+
+static int read_file(struct s2n_stuffer *file_output, const char *path, uint32_t max_len) {
+    FILE *fd = fopen(path, "rb");
+    s2n_stuffer_alloc(file_output, max_len);
+
+    if(fd) {
+        char data[1024];
+        size_t r = 0;
+        while((r =fread(data, 1, sizeof(data), fd)) > 0) {
+            s2n_stuffer_write_bytes(file_output, (const uint8_t *)data, (const uint32_t)r);
+        }
+        fclose(fd);
+        return s2n_stuffer_data_available(file_output) > 0;
+    }
+
+    return -1;
 }
 #endif /* S2N_OCSP_STAPLING_SUPPORTED */
 
@@ -57,23 +73,6 @@ static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out
     s2n_stuffer_free(&cert_stuffer);
     s2n_stuffer_free(&chain_in_stuffer);
     return chain_size;
-}
-
-static int read_file(struct s2n_stuffer *file_output, const char *path, uint32_t max_len) {
-    FILE *fd = fopen(path, "rb");
-    s2n_stuffer_alloc(file_output, max_len);
-
-    if(fd) {
-        char data[1024];
-        size_t r = 0;
-        while((r =fread(data, 1, sizeof(data), fd)) > 0) {
-            s2n_stuffer_write_bytes(file_output, (const uint8_t *)data, (const uint32_t)r);
-        }
-        fclose(fd);
-        return s2n_stuffer_data_available(file_output) > 0;
-    }
-
-    return -1;
 }
 
 struct host_verify_data {

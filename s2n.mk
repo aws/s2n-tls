@@ -35,15 +35,15 @@ SOURCES = $(wildcard *.c *.h)
 CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib *.bc *.gcov *.gcda *.gcno *.info *.profraw *.tmp)
 INDENT  = $(shell (if indent --version 2>&1 | grep GNU > /dev/null; then echo indent ; elif gindent --version 2>&1 | grep GNU > /dev/null; then echo gindent; else echo true ; fi ))
 
+# BoringSSL is a C11 library and has less strict compiler flags than s2n. All other libcryptos use the default c99 flags
 ifeq ($(S2N_LIBCRYPTO), boringssl)
-	DEFAULT_CFLAGS = -std=c11 -Wno-cast-qual
+	DEFAULT_CFLAGS = -std=c11
 else
-	DEFAULT_CFLAGS = -std=c99
+	DEFAULT_CFLAGS = -std=c99 -Wcast-qual
 endif
 
-
 DEFAULT_CFLAGS += -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized \
-                 -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -fPIC -Wno-missing-braces\
+                 -Wshadow  -Wcast-align -Wwrite-strings -fPIC -Wno-missing-braces\
                  -D_POSIX_C_SOURCE=200809L -O2 -I$(LIBCRYPTO_ROOT)/include/ \
                  -I$(S2N_ROOT)/api/ -I$(S2N_ROOT) -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
                  -D_FORTIFY_SOURCE=2 -fgnu89-inline 
