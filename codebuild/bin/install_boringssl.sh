@@ -33,7 +33,7 @@ git clone https://github.com/google/boringssl.git
 mkdir build
 cd build
 
-cmake ../boringssl
+cmake ../boringssl -DPOSITION_INDEPENDENT_CODE
 make -j $JOBS
 
 mkdir -p "${INSTALL_DIR}/lib"
