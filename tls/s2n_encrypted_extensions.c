@@ -39,18 +39,27 @@
 
 static int s2n_server_encrypted_extensions_parse(struct s2n_connection *conn, struct s2n_blob *extensions);
 
+int s2n_encrypted_extensions_send_size(struct s2n_connection *conn)
+{
+    /* Calculate size of encrypted extensions. */
+    int total_size = 0;
+
+    total_size += s2n_server_extensions_server_name_send_size(conn);
+    total_size += s2n_server_extensions_max_fragment_length_send_size(conn);
+    total_size += s2n_server_extensions_alpn_send_size(conn);
+
+    return total_size;
+}
+
 int s2n_encrypted_extensions_send(struct s2n_connection *conn)
 {
     S2N_ERROR_IF(conn->actual_protocol_version != S2N_TLS13, S2N_ERR_BAD_MESSAGE);
     struct s2n_stuffer *out = &conn->handshake.io;
 
-    /* Calculate size of encrypted extensions.
-     */
-    uint16_t total_size = 0;
+    int total_size = s2n_encrypted_extensions_send_size(conn);
 
-    total_size += s2n_server_extensions_server_name_send_size(conn);
-    total_size += s2n_server_extensions_alpn_send_size(conn);
-    total_size += s2n_server_extensions_max_fragment_length_send_size(conn);
+    GUARD(total_size);
+    S2N_ERROR_IF(total_size > 65535, S2N_ERR_INTEGER_OVERFLOW);
 
     /* Write length of extensions */
     GUARD(s2n_stuffer_write_uint16(out, total_size));
@@ -62,8 +71,8 @@ int s2n_encrypted_extensions_send(struct s2n_connection *conn)
     /* Write the extensions to the out buffer.
      */
     GUARD(s2n_server_extensions_server_name_send(conn, out));
-    GUARD(s2n_server_extensions_alpn_send(conn, out));
     GUARD(s2n_server_extensions_max_fragment_length_send(conn, out));
+    GUARD(s2n_server_extensions_alpn_send(conn, out));
 
     return 0;
 }

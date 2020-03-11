@@ -23,6 +23,8 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
+int s2n_encrypted_extensions_send_size(struct s2n_connection *conn);
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -39,10 +41,16 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-        uint8_t encrypted_extensions_expected_size = 2;
-        uint16_t encrypted_extensions_expected_length = 0;
+        const uint8_t encrypted_extensions_expected_size = 2;
+        const uint16_t encrypted_extensions_expected_length = 0;
 
+        /* Fail sending because encrypted extensions requires TLS 1.3 */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_encrypted_extensions_send(server_conn), S2N_ERR_BAD_MESSAGE);
+
+        /* Send success because encrypted extensions requires TLS 1.3 */
+        server_conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_encrypted_extensions_send(server_conn));
+        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), 0);
 
         /* Check that size and data in server_conn->handshake.io are correct */
         struct s2n_stuffer *server_out = &server_conn->handshake.io;
@@ -63,6 +71,7 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        client_conn->actual_protocol_version = S2N_TLS13;
 
         EXPECT_SUCCESS(s2n_encrypted_extensions_send(client_conn));
         EXPECT_SUCCESS(s2n_encrypted_extensions_recv(client_conn));
@@ -70,11 +79,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
-    /* Client successefully parses a non-empty encrypted extension */
+    /* Client successfully parses a non-empty encrypted extension */
     {
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        client_conn->actual_protocol_version = S2N_TLS13;;
 
         /* Write length of ALPN extension, then write the extension itself */
         strcpy(client_conn->application_protocol, "h2");

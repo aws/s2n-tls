@@ -283,7 +283,7 @@ int main(int argc, char **argv)
 
             const uint8_t size = P256_KEYSHARE_SIZE + SUPPORTED_VERSION_SIZE;
 
-            EXPECT_EQUAL(s2n_extensions_server_supported_versions_size(), SUPPORTED_VERSION_SIZE);
+            EXPECT_EQUAL(s2n_extensions_server_supported_versions_size(conn), SUPPORTED_VERSION_SIZE);
             EXPECT_EQUAL(s2n_extensions_server_key_share_send_size(conn), P256_KEYSHARE_SIZE);
 
             EXPECT_EQUAL(s2n_server_extensions_send_size(conn), size);
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
             conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
             /* secure_renegotiation extension not send >=TLS13*/
             uint8_t size = s2n_extensions_server_key_share_send_size(conn)
-                + s2n_extensions_server_supported_versions_size();
+                + s2n_extensions_server_supported_versions_size(conn);
 
             EXPECT_EQUAL(s2n_server_extensions_send_size(conn), size);
             EXPECT_FAILURE(s2n_server_extensions_send(conn, hello_stuffer));
@@ -370,7 +370,7 @@ int main(int argc, char **argv)
 
             /* nst extension not send >=TLS13*/
             uint8_t size = s2n_extensions_server_key_share_send_size(conn)
-                + s2n_extensions_server_supported_versions_size()
+                + s2n_extensions_server_supported_versions_size(conn)
             ;
 
             EXPECT_EQUAL(s2n_server_extensions_send_size(conn), size);
@@ -424,7 +424,7 @@ int main(int argc, char **argv)
             conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
 
             uint8_t size = s2n_extensions_server_key_share_send_size(conn)
-                + s2n_extensions_server_supported_versions_size();
+                + s2n_extensions_server_supported_versions_size(conn);
 
             EXPECT_EQUAL(s2n_server_extensions_send_size(conn), size);
             EXPECT_FAILURE(s2n_server_extensions_send(conn, hello_stuffer));
