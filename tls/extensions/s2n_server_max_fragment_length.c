@@ -24,6 +24,28 @@
 
 #include "tls/extensions/s2n_server_max_fragment_length.h"
 
+/* Precalculate size of extension */
+int s2n_server_extensions_max_fragment_length_send_size(struct s2n_connection *conn)
+{
+    if (!conn->mfl_code) {
+        return 0;
+    }
+    return 5;
+}
+
+/* Write MFL extension */
+int s2n_server_extensions_max_fragment_length_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    if (!conn->mfl_code) {
+        return 0;
+    }
+    GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_MAX_FRAG_LEN));
+    GUARD(s2n_stuffer_write_uint16(out, sizeof(uint8_t)));
+    GUARD(s2n_stuffer_write_uint8(out, conn->mfl_code));
+
+    return 0;
+}
+
 int s2n_recv_server_max_fragment_length(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint8_t mfl_code;

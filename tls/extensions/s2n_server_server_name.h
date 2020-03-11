@@ -15,4 +15,6 @@
 
 #pragma once
 
-extern int s2n_recv_server_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension);
+int s2n_server_extensions_server_name_send_size(struct s2n_connection *conn);
+int s2n_server_extensions_server_name_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+int s2n_recv_server_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension);

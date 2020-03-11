@@ -40,9 +40,6 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-#define s2n_server_can_send_server_name(conn) ((conn)->server_name_used && \
-        !s2n_connection_is_session_resumed((conn)))
-
 #define s2n_server_can_send_secure_renegotiation(conn) ((conn)->secure_renegotiation && \
         (conn)->actual_protocol_version < S2N_TLS13)
 
@@ -55,15 +52,14 @@ int s2n_server_extensions_send_size(struct s2n_connection *conn)
     int total_size = 0;
     const bool is_tls13_conn = conn->actual_protocol_version == S2N_TLS13;
 
-    const uint8_t application_protocol_len = strlen(conn->application_protocol);
-
-    if (s2n_server_can_send_server_name(conn) && !is_tls13_conn) {
-        total_size += 4;
+    if (!is_tls13_conn) {
+        total_size += s2n_server_extensions_server_name_send_size(conn);
     }
 
-    if (application_protocol_len && !is_tls13_conn) {
-        total_size += 7 + application_protocol_len;
+    if (!is_tls13_conn) {
+        total_size += s2n_server_extensions_alpn_send_size(conn);
     }
+
     if (s2n_server_can_send_secure_renegotiation(conn)) {
         total_size += 5;
     }
@@ -80,8 +76,8 @@ int s2n_server_extensions_send_size(struct s2n_connection *conn)
         total_size += 4 + conn->handshake_params.our_chain_and_key->sct_list.size;
     }
 
-    if (conn->mfl_code && !is_tls13_conn) {
-        total_size += 5;
+    if (!is_tls13_conn) {
+        total_size += s2n_server_extensions_max_fragment_length_send_size(conn);
     }
     if (s2n_server_can_send_nst(conn)) {
         total_size += 4;
@@ -115,9 +111,8 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     }
 
     /* Write server name extension */
-    if (s2n_server_can_send_server_name(conn) && !is_tls13_conn) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SERVER_NAME));
-        GUARD(s2n_stuffer_write_uint16(out, 0));
+    if (!is_tls13_conn) {
+        GUARD(s2n_server_extensions_server_name_send(conn, out));
     }
 
     if (s2n_server_can_send_kex(conn)) {
@@ -133,15 +128,9 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint8(out, 0));
     }
 
-    const uint8_t application_protocol_len = strlen(conn->application_protocol);
-
     /* Write ALPN extension */
-    if (application_protocol_len && !is_tls13_conn) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_ALPN));
-        GUARD(s2n_stuffer_write_uint16(out, application_protocol_len + 3));
-        GUARD(s2n_stuffer_write_uint16(out, application_protocol_len + 1));
-        GUARD(s2n_stuffer_write_uint8(out, application_protocol_len));
-        GUARD(s2n_stuffer_write_bytes(out, (uint8_t *) conn->application_protocol, application_protocol_len));
+    if (!is_tls13_conn) {
+        GUARD(s2n_server_extensions_alpn_send(conn, out));
     }
 
     /* Write OCSP extension */
@@ -158,10 +147,8 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
                                       conn->handshake_params.our_chain_and_key->sct_list.size));
     }
 
-    if (conn->mfl_code && !is_tls13_conn) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_MAX_FRAG_LEN));
-        GUARD(s2n_stuffer_write_uint16(out, sizeof(uint8_t)));
-        GUARD(s2n_stuffer_write_uint8(out, conn->mfl_code));
+    if (!is_tls13_conn) {
+        GUARD(s2n_server_extensions_max_fragment_length_send(conn, out));
     }
 
     /* Write session ticket extension */

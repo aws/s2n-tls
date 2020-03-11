@@ -18,6 +18,29 @@
 #include "tls/s2n_connection.h"
 #include "tls/extensions/s2n_server_server_name.h"
 
+#define s2n_server_can_send_server_name(conn) ((conn)->server_name_used && \
+        !s2n_connection_is_session_resumed((conn)))
+
+int s2n_server_extensions_server_name_send_size(struct s2n_connection *conn) {
+    if (!s2n_server_can_send_server_name(conn)) {
+        return 0;
+    }
+
+    return 4;
+}
+
+int s2n_server_extensions_server_name_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    if (!s2n_server_can_send_server_name(conn)) {
+        return 0;
+    }
+
+    GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SERVER_NAME));
+    GUARD(s2n_stuffer_write_uint16(out, 0));
+
+    return 0;
+}
+
 int s2n_recv_server_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     conn->server_name_used = 1;
