@@ -36,7 +36,7 @@ CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib *.bc *.gcov 
 INDENT  = $(shell (if indent --version 2>&1 | grep GNU > /dev/null; then echo indent ; elif gindent --version 2>&1 | grep GNU > /dev/null; then echo gindent; else echo true ; fi ))
 
 ifeq ($(S2N_LIBCRYPTO), boringssl)
-	DEFAULT_CFLAGS = -std=c11 -Wno-error=cast-qual
+	DEFAULT_CFLAGS = -std=c11 -Wno-cast-qual
 else
 	DEFAULT_CFLAGS = -std=c99
 endif

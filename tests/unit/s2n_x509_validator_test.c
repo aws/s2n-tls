@@ -16,6 +16,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
+#if S2N_OCSP_STAPLING_SUPPORTED
 static int fetch_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp) {
     *timestamp = 7283958536000000000;
     return 0;
@@ -31,7 +32,7 @@ static int fetch_not_expired_ocsp_timestamp(void *data, uint64_t *timestamp) {
     *timestamp = 1552824239000000000;
     return 0;
 }
-
+#endif /* S2N_OCSP_STAPLING_SUPPORTED */
 
 static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out_stuffer, const char *pem_data) {
     struct s2n_stuffer chain_in_stuffer, cert_stuffer;

@@ -33,11 +33,11 @@ git clone https://github.com/google/boringssl.git
 mkdir build
 cd build
 
-cmake ../boringssl -DPOSITION_INDEPENDENT_CODE
+cmake ../boringssl -DBUILD_SHARED_LIBS=1 -DCMAKE_BUILD_TYPE=Release
 make -j $JOBS
 
 mkdir -p "${INSTALL_DIR}/lib"
-cp crypto/libcrypto.a "${INSTALL_DIR}/lib/libcrypto.a"
+cp crypto/libcrypto.so "${INSTALL_DIR}/lib/libcrypto.so"
 cp -r ../boringssl/include "$INSTALL_DIR"
 
 popd
