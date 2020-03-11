@@ -36,8 +36,11 @@ cd build
 cmake ../boringssl -DBUILD_SHARED_LIBS=1 -DCMAKE_BUILD_TYPE=Release
 make -j $JOBS
 
+# BoringSSL does not define any install configuration in their CMake config, copy the stuff we know we need
 mkdir -p "${INSTALL_DIR}/lib"
+mkdir -p "${INSTALL_DIR}/bin"
 cp crypto/libcrypto.so "${INSTALL_DIR}/lib/libcrypto.so"
+cp tool/bssl "${INSTALL_DIR}/bin/bssl"
 cp -r ../boringssl/include "$INSTALL_DIR"
 
 popd
