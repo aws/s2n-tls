@@ -117,7 +117,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         S2N_ERROR_IF(extensions_size > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
         struct s2n_blob extensions = {0};
-	GUARD(s2n_blob_init(&extensions, s2n_stuffer_raw_read(in, extensions.size), extensions_size));
+        GUARD(s2n_blob_init(&extensions, s2n_stuffer_raw_read(in, extensions.size), extensions_size));
         notnull_check(extensions.data);
 
         GUARD(s2n_server_extensions_recv(conn, &extensions));

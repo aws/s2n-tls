@@ -57,9 +57,7 @@ int s2n_encrypted_extensions_send(struct s2n_connection *conn)
     struct s2n_stuffer *out = &conn->handshake.io;
 
     const int total_size = s2n_encrypted_extensions_send_size(conn);
-
-    GUARD(total_size);
-    S2N_ERROR_IF(total_size > 65535, S2N_ERR_INTEGER_OVERFLOW);
+    inclusive_range_check(0, total_size, 65535);
 
     /* Write length of extensions */
     GUARD(s2n_stuffer_write_uint16(out, total_size));
@@ -68,8 +66,7 @@ int s2n_encrypted_extensions_send(struct s2n_connection *conn)
         return 0;
     }
 
-    /* Write the extensions to the out buffer.
-     */
+    /* Write the extensions to the out buffer. */
     GUARD(s2n_server_extensions_server_name_send(conn, out));
     GUARD(s2n_server_extensions_max_fragment_length_send(conn, out));
     GUARD(s2n_server_extensions_alpn_send(conn, out));
