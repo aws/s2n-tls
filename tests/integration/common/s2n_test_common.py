@@ -55,14 +55,14 @@ def get_process(cmd):
 
 
 def basic_write_test(server, client):
-    server_msg = "Message:"+str(uuid.uuid4())
+    server_msg = "Message:" + str(uuid.uuid4())
     server.stdin.write((server_msg + "\n\n").encode("utf-8"))
     server.stdin.flush()
 
     if not wait_for_output(client, server_msg, line_limit=100):
         return Result("Failed to write '%s' from server to client" % (server_msg))
 
-    client_msg = "Message:"+str(uuid.uuid4())
+    client_msg = "Message:" + str(uuid.uuid4())
     client.stdin.write((client_msg + "\n\n").encode("utf-8"))
     client.stdin.flush()
 

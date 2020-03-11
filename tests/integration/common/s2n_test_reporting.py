@@ -49,7 +49,7 @@ class Result:
         self.error_msg = error_msg
         self.client_error = None
         self.server_error = None
-        self.status = Status.PASSED if error_msg == None else Status.FAILED
+        self.status = Status.PASSED if error_msg is None else Status.FAILED
 
     def is_success(self):
         return self.status is not Status.FAILED
