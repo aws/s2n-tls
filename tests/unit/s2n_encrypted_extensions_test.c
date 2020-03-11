@@ -14,9 +14,14 @@
  */
 
 #include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
+
+#include "tls/extensions/s2n_server_alpn.h"
+#include "tls/extensions/s2n_server_max_fragment_length.h"
+#include "tls/extensions/s2n_server_server_name.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
 
 #include "error/s2n_errno.h"
@@ -66,13 +71,79 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
-    /* Client successfully receives empty encrypted extension */
+    /* Test that server sends Encrypted Extensions  */
+    {
+        const uint8_t ENCRYPTED_EXTENSIONS_HEADER_SIZE = 2;
+        struct s2n_connection *server_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        server_conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), 0);
+
+        struct s2n_stuffer *extension_stuffer = &server_conn->handshake.io;
+
+        /* Server Name extension */
+        server_conn->server_name_used = 1;
+        const uint8_t EMPTY_SERVER_NAME_EXT_SIZE = 4;
+
+        EXPECT_EQUAL(s2n_server_extensions_server_name_send_size(server_conn), EMPTY_SERVER_NAME_EXT_SIZE);
+        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), EMPTY_SERVER_NAME_EXT_SIZE);
+        EXPECT_SUCCESS(s2n_encrypted_extensions_send(server_conn));
+        S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(extension_stuffer, EMPTY_SERVER_NAME_EXT_SIZE + ENCRYPTED_EXTENSIONS_HEADER_SIZE);
+        /* Reset and check */
+        server_conn->server_name_used = 0;
+        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), 0);
+
+        /* Max Fragment Length Extension (MFL) Extension */
+        const uint8_t MFL_EXT_SIZE = 2 + 2 + 1;
+        server_conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
+        EXPECT_EQUAL(s2n_server_extensions_max_fragment_length_send_size(server_conn), MFL_EXT_SIZE);
+        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), MFL_EXT_SIZE);
+        EXPECT_SUCCESS(s2n_encrypted_extensions_send(server_conn));
+        S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(extension_stuffer, MFL_EXT_SIZE + ENCRYPTED_EXTENSIONS_HEADER_SIZE);
+        /* Reset and check */
+        server_conn->mfl_code = 0;
+        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), 0);
+
+        /* Application Protocol (ALPN) Extension */
+        strcpy(server_conn->application_protocol, "h2");
+        const uint8_t application_protocol_len = strlen(server_conn->application_protocol);
+        const uint8_t ALPN_LEN = 7 + application_protocol_len;
+
+        EXPECT_EQUAL(s2n_server_extensions_alpn_send_size(server_conn), ALPN_LEN);
+        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), ALPN_LEN);
+        EXPECT_SUCCESS(s2n_encrypted_extensions_send(server_conn));
+        S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(extension_stuffer, ALPN_LEN + ENCRYPTED_EXTENSIONS_HEADER_SIZE);
+        /* Reset and check */
+        strcpy(server_conn->application_protocol, "");
+        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), 0);
+
+        /* Test a combination of 2 encrypted extensions sent */
+        server_conn->server_name_used = 1;
+        server_conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
+        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), EMPTY_SERVER_NAME_EXT_SIZE + MFL_EXT_SIZE);
+        EXPECT_SUCCESS(s2n_encrypted_extensions_send(server_conn));
+        S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(extension_stuffer, EMPTY_SERVER_NAME_EXT_SIZE + MFL_EXT_SIZE + ENCRYPTED_EXTENSIONS_HEADER_SIZE);
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* Self talk tests: Encrypted extensions send recv round trips */
     {
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         client_conn->actual_protocol_version = S2N_TLS13;
 
+        /* Client successfully receives empty encrypted extension */
+        EXPECT_SUCCESS(s2n_encrypted_extensions_send(client_conn));
+        EXPECT_SUCCESS(s2n_encrypted_extensions_recv(client_conn));
+
+        /* Client successfully receives all supported (server name, mfl, alpn) encrypted extensions */
+        client_conn->server_name_used = 1;
+        client_conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
+        config->mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
+        strcpy(client_conn->application_protocol, "h2");
         EXPECT_SUCCESS(s2n_encrypted_extensions_send(client_conn));
         EXPECT_SUCCESS(s2n_encrypted_extensions_recv(client_conn));
 
