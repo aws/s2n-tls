@@ -73,7 +73,7 @@ int main(int argc, char **argv)
     {
         const uint8_t ENCRYPTED_EXTENSIONS_HEADER_SIZE = 2;
         struct s2n_connection *server_conn;
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
         server_conn->actual_protocol_version = S2N_TLS13;
         EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), 0);
