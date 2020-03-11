@@ -17,8 +17,8 @@
 #include "testlib/s2n_testlib.h"
 
 static int fetch_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp) {
-  *timestamp = 7283958536000000000;
-  return 0;
+    *timestamp = 7283958536000000000;
+    return 0;
 }
 
 #if S2N_OCSP_STAPLING_SUPPORTED
