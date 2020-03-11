@@ -56,7 +56,7 @@ int s2n_encrypted_extensions_send(struct s2n_connection *conn)
     S2N_ERROR_IF(conn->actual_protocol_version != S2N_TLS13, S2N_ERR_BAD_MESSAGE);
     struct s2n_stuffer *out = &conn->handshake.io;
 
-    int total_size = s2n_encrypted_extensions_send_size(conn);
+    const int total_size = s2n_encrypted_extensions_send_size(conn);
 
     GUARD(total_size);
     S2N_ERROR_IF(total_size > 65535, S2N_ERR_INTEGER_OVERFLOW);

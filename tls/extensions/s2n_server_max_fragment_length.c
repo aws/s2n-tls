@@ -30,7 +30,7 @@ int s2n_server_extensions_max_fragment_length_send_size(struct s2n_connection *c
     if (!conn->mfl_code) {
         return 0;
     }
-    return 5;
+    return 2 * sizeof(uint16_t) + 1 * sizeof(uint8_t);
 }
 
 /* Write MFL extension */

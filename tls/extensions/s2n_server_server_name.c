@@ -26,7 +26,7 @@ int s2n_server_extensions_server_name_send_size(struct s2n_connection *conn) {
         return 0;
     }
 
-    return 4;
+    return 2 * sizeof(uint16_t);
 }
 
 int s2n_server_extensions_server_name_send(struct s2n_connection *conn, struct s2n_stuffer *out)

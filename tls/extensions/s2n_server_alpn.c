@@ -32,7 +32,7 @@ int s2n_server_extensions_alpn_send_size(struct s2n_connection *conn)
         return 0;
     }
 
-    return 7 + application_protocol_len;
+    return 3 * sizeof(uint16_t) + 1 * sizeof(uint8_t) + application_protocol_len;
 }
 
 /* Write ALPN extension */
