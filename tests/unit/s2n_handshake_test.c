@@ -223,12 +223,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
 
-    /* Stop here if RSA_PSS unsupported */
+    /* Stop here if RSA PSS signing is unsupported */
     if (!s2n_is_rsa_pss_supported()) {
         END_TEST();
     }
 
-    /*  Test: RSA cert with RSA_PSS signatures */
+    /*  Test: RSA cert with RSA PSS signatures */
     {
         const struct s2n_signature_scheme* const rsa_pss_rsae_sig_schemes[] = {
                 /* RSA PSS */
@@ -267,6 +267,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
+    }
+
+    /* Stop here if RSA PSS CERTS is unsupported */
+    if (!s2n_is_pss_certs_supported()) {
+        END_TEST();
     }
 
     /*  Test: RSA_PSS cert with RSA_PSS signatures */

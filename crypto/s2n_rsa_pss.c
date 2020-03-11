@@ -33,9 +33,9 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-#if RSA_PSS_SUPPORTED
+#if PSS_CERTS_SUPPORTED
 
-int s2n_is_rsa_pss_supported()
+int s2n_is_pss_certs_supported()
 {
     return 1;
 }
@@ -222,7 +222,7 @@ int s2n_rsa_pss_pkey_init(struct s2n_pkey *pkey)
 
 #else
 
-int s2n_is_rsa_pss_supported()
+int s2n_is_pss_certs_supported()
 {
     return 0;
 }

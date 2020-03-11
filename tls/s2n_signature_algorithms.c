@@ -14,6 +14,7 @@
  */
 
 #include "crypto/s2n_fips.h"
+#include "crypto/s2n_rsa_signing.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "error/s2n_errno.h"
 
@@ -33,6 +34,9 @@ static int s2n_signature_scheme_valid_to_offer(struct s2n_connection *conn, cons
 
     if (!s2n_is_rsa_pss_supported()) {
         ne_check(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_RSAE);
+    }
+
+    if (!s2n_is_pss_certs_supported()) {
         ne_check(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
     }
 
