@@ -520,7 +520,7 @@ int main(int argc, char **argv)
 
             struct s2n_signature_scheme result;
 
-            if (s2n_is_rsa_pss_siging_supported()) {
+            if (s2n_is_rsa_pss_signing_supported()) {
                 EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
                 EXPECT_EQUAL(result.iana_value, s2n_rsa_pss_rsae_sha256.iana_value);
             } else {
