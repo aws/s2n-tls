@@ -38,7 +38,7 @@
  * Selected Version (2 byte)
  **/
 
-int s2n_extensions_server_supported_versions_size()
+int s2n_extensions_server_supported_versions_size(struct s2n_connection *conn)
 {
     return 6;
 }
@@ -72,7 +72,7 @@ int s2n_extensions_server_supported_versions_recv(struct s2n_connection *conn, s
 
 int s2n_extensions_server_supported_versions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    int extension_length = s2n_extensions_server_supported_versions_size();
+    int extension_length = s2n_extensions_server_supported_versions_size(conn);
 
     GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SUPPORTED_VERSIONS));
     GUARD(s2n_stuffer_write_uint16(out, extension_length - 4));

@@ -22,6 +22,37 @@
 
 #include "tls/extensions/s2n_server_alpn.h"
 
+
+/* Precalculate size of extension */
+int s2n_server_extensions_alpn_send_size(struct s2n_connection *conn)
+{
+    const uint8_t application_protocol_len = strlen(conn->application_protocol);
+
+    if (!application_protocol_len) {
+        return 0;
+    }
+
+    return 3 * sizeof(uint16_t) + 1 * sizeof(uint8_t) + application_protocol_len;
+}
+
+/* Write ALPN extension */
+int s2n_server_extensions_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    const uint8_t application_protocol_len = strlen(conn->application_protocol);
+
+    if (!application_protocol_len) {
+        return 0;
+    }
+
+    GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_ALPN));
+    GUARD(s2n_stuffer_write_uint16(out, application_protocol_len + 3));
+    GUARD(s2n_stuffer_write_uint16(out, application_protocol_len + 1));
+    GUARD(s2n_stuffer_write_uint8(out, application_protocol_len));
+    GUARD(s2n_stuffer_write_bytes(out, (uint8_t *) conn->application_protocol, application_protocol_len));
+
+    return 0;
+}
+
 int s2n_recv_server_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint16_t size_of_all;
