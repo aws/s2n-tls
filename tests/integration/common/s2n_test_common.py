@@ -18,14 +18,22 @@ Common functions to run s2n integration tests.
 """
 
 import subprocess
+import uuid
 
 from common.s2n_test_scenario import Mode, Version, run_scenarios
 from common.s2n_test_reporting import Result
 from s2n_test_constants import TEST_ECDSA_CERT, TEST_ECDSA_KEY
 
 
-def get_error(process):
-    return process.stderr.readline().decode("utf-8")
+def get_error(process, line_limit=10):
+    error = ""
+    for count in range(line_limit):
+        line = process.stderr.readline().decode("utf-8")
+        if line:
+            error += line + "\t"
+        else:
+            return error
+    return error
 
 
 def wait_for_output(process, marker, line_limit=10):
@@ -46,6 +54,24 @@ def get_process(cmd):
     return subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
+def basic_write_test(server, client):
+    server_msg = "Message:" + str(uuid.uuid4())
+    server.stdin.write((server_msg + "\n\n").encode("utf-8"))
+    server.stdin.flush()
+
+    if not wait_for_output(client, server_msg, line_limit=100):
+        return Result("Failed to write '%s' from server to client" % (server_msg))
+
+    client_msg = "Message:" + str(uuid.uuid4())
+    client.stdin.write((client_msg + "\n\n").encode("utf-8"))
+    client.stdin.flush()
+
+    if not wait_for_output(server, client_msg, line_limit=100):
+        return Result("Failed to write %s from client to server" % (client_msg))
+
+    return Result()
+
+
 def connect(get_peer, scenario):
     """
     Perform a handshake between s2n and another TLS process.
@@ -64,7 +90,7 @@ def connect(get_peer, scenario):
     return (server, client)
 
 
-def run_connection_test(get_peer, scenarios, test_func=None):
+def run_connection_test(get_peer, scenarios, test_func=basic_write_test):
     """
     For each scenarios, s2n will attempt to perform a handshake with another TLS process
     and then run the given test.
@@ -85,19 +111,25 @@ def run_connection_test(get_peer, scenarios, test_func=None):
     def __test(scenario):
         client = None
         server = None
+        result = Result("Unknown Error")
         try:
             server, client = connect(get_peer, scenario)
             result = test_func(server, client) if test_func else Result()
-            if client.poll():
-                raise AssertionError("Client process crashed")
-            if server.poll():
-                raise AssertionError("Server process crashed")
 
-            return result
+            if result.is_success() and client.poll() is not None:
+                result = Result("Client process crashed")
+            if result.is_success() and server.poll() is not None:
+                result = Result("Server process crashed")
+
         except AssertionError as error:
-            return Result(error)
+            result = Result(error)
         finally:
             cleanup_processes(server, client)
+            if client:
+                result.client_error = get_error(client)
+            if server:
+                result.server_error = get_error(server)
+            return result
 
     return run_scenarios(__test, scenarios)
 
@@ -112,6 +144,8 @@ def get_s2n_cmd(scenario):
     if scenario.s2n_mode.is_server():
         s2n_cmd.extend(["--key", TEST_ECDSA_KEY])
         s2n_cmd.extend(["--cert", TEST_ECDSA_CERT])
+    else:
+        s2n_cmd.append("--echo")
 
     if scenario.version is Version.TLS13:
         s2n_cmd.append("--tls13")

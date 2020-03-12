@@ -242,7 +242,7 @@ int main(int argc, char *const *argv)
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
         {"ciphers", required_argument, 0, 'c'},
-        {"echo", required_argument, 0, 'e'},
+        {"echo", no_argument, 0, 'e'},
         {"help", no_argument, 0, 'h'},
         {"name", required_argument, 0, 'n'},
         {"status", no_argument, 0, 's'},
@@ -453,6 +453,8 @@ int main(int argc, char *const *argv)
         }
 
         if (echo_input == 1) {
+            fflush(stdout);
+            fflush(stderr);
             echo(conn, sockfd);
         }
 

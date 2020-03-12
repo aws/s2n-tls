@@ -21,13 +21,18 @@ import sys
 from enum import Enum
 
 
+class Color(Enum):
+    RED = 31
+    GREEN = 32
+
+
 class Status(Enum):
     """
     Enum to represent success/failure. The values are the
     color codes used to print the status.
     """
-    PASSED = 32
-    FAILED = 31
+    PASSED = Color.GREEN
+    FAILED = Color.RED
 
     def __str__(self):
         return with_color(self.name, self.value)
@@ -40,23 +45,32 @@ class Result:
 
     """
 
-    def __init__(self, error=None):
-        self.error = error
-        self.status = Status.PASSED if error == None else Status.FAILED
+    def __init__(self, error_msg=None):
+        self.error_msg = error_msg
+        self.client_error = None
+        self.server_error = None
+        self.status = Status.PASSED if error_msg is None else Status.FAILED
 
     def is_success(self):
         return self.status is not Status.FAILED
 
     def __str__(self):
         result = str(self.status)
-        if self.error:
-            result += "\n\t%s" % self.error
+        if self.error_msg:
+            result += "\n\t" + with_color(self.error_msg, Color.RED)
+            if self.client_error:
+                result += with_color("\n\tClient: ", Color.RED)
+                result += self.client_error.rstrip()
+            if self.server_error:
+                result += with_color("\n\tServer: ", Color.RED)
+                result += self.server_error.rstrip()
+
         return result
 
 
 def with_color(msg, color):
     if sys.stdout.isatty():
-        return "\033[%d;1m%s\033[0m" % (color, msg)
+        return "\033[%d;1m%s\033[0m" % (color.value, msg)
     else:
         return msg
 

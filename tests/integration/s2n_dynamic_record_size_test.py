@@ -118,6 +118,10 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
     file_input = open(test_file)
     s2nc = subprocess.Popen(s2nc_cmd, stdin=file_input, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+    # Wait file send complete
+    s2nc.wait()
+    cleanup_processes(s_server)
+
     # Read from s2nc until we get successful connection message
     found = 0
     seperators = 0
@@ -125,10 +129,6 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
         output = s2nc.stdout.readline().decode("utf-8")
         if output.strip() == "Connected to {}:{}".format(endpoint, port):
             found = 1
-
-    # Wait file send complete        
-    s2nc.wait()
-    cleanup_processes(s_server)
 
     if not found:
         sys.stderr.write("= TEST FAILED =\ns_server cmd: {}\n s_server STDERR: {}\n\ns2nc cmd: {}\nSTDERR {}\n".format(" ".join(s_server_cmd), s_server.stderr.read().decode("utf-8"), " ".join(s2nc_cmd), s2nc.stderr.read().decode("utf-8")))
