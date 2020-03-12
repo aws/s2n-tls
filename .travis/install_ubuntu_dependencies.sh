@@ -30,6 +30,10 @@ if [[ -n "$GCC_VERSION" ]] && [[ "$GCC_VERSION" != "NONE" ]]; then
     sudo apt-get -y install gcc-$GCC_VERSION g++-$GCC_VERSION;
 fi
 
+if [[ "$S2N_LIBCRYPTO" == "boringssl" ]]; then
+    sudo apt-get -y install cmake;
+fi
+
 # If prlimit is not on our current PATH, download and compile prlimit manually. s2n needs prlimit to memlock pages
 if ! type prlimit > /dev/null && [[ ! -d "$PRLIMIT_INSTALL_DIR" ]]; then
     mkdir -p "$PRLIMIT_INSTALL_DIR";
