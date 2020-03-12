@@ -22,7 +22,6 @@ import uuid
 
 from common.s2n_test_scenario import Mode, Version, run_scenarios
 from common.s2n_test_reporting import Result
-from s2n_test_constants import TEST_ECDSA_CERT, TEST_ECDSA_KEY
 
 
 def get_error(process, line_limit=10):
@@ -142,8 +141,8 @@ def get_s2n_cmd(scenario):
                 "--insecure"]
 
     if scenario.s2n_mode.is_server():
-        s2n_cmd.extend(["--key", TEST_ECDSA_KEY])
-        s2n_cmd.extend(["--cert", TEST_ECDSA_CERT])
+        s2n_cmd.extend(["--key", scenario.cert.key])
+        s2n_cmd.extend(["--cert", scenario.cert.cert])
     else:
         s2n_cmd.append("--echo")
 

@@ -19,7 +19,6 @@ Common functions used to create test openssl servers and clients.
 
 import common.s2n_test_common as util
 from common.s2n_test_scenario import Mode, Version
-from s2n_test_constants import TEST_ECDSA_CERT, TEST_ECDSA_KEY
 from time import sleep
 
 
@@ -45,8 +44,8 @@ def get_openssl_cmd(scenario):
     else:
         openssl_cmd.extend(["s_client", "-connect", str(scenario.host) + ":" + str(scenario.port)])
 
-    openssl_cmd.extend(["-cert", TEST_ECDSA_CERT,
-                        "-key", TEST_ECDSA_KEY,
+    openssl_cmd.extend(["-cert", scenario.cert.cert,
+                        "-key", scenario.cert.key,
                         "-tlsextdebug"])
 
     if scenario.version:
