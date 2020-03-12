@@ -37,7 +37,7 @@ struct s2n_server_cert_verify_test {
 const struct s2n_server_cert_verify_test test_cases[] = {
         { .cert_file = S2N_ECDSA_P384_PKCS1_CERT_CHAIN, .key_file = S2N_ECDSA_P384_PKCS1_KEY,
           .sig_scheme = &s2n_ecdsa_secp256r1_sha256 },
-#if RSA_PSS_SUPPORTED
+#if RSA_PSS_CERTS_SUPPORTED
         { .cert_file = S2N_RSA_PSS_2048_SHA256_LEAF_CERT, .key_file = S2N_RSA_PSS_2048_SHA256_LEAF_KEY,
           .sig_scheme = &s2n_rsa_pss_pss_sha256 },
 #endif

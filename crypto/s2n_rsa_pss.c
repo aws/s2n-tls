@@ -33,12 +33,13 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-#if PSS_CERTS_SUPPORTED
-
-int s2n_is_pss_certs_supported()
+/* Checks whether PSS Certs is supported */
+int s2n_is_rsa_pss_certs_supported()
 {
-    return 1;
+    return RSA_PSS_CERTS_SUPPORTED;
 }
+
+#if RSA_PSS_CERTS_SUPPORTED
 
 static int s2n_rsa_pss_size(const struct s2n_pkey *key)
 {
@@ -221,11 +222,6 @@ int s2n_rsa_pss_pkey_init(struct s2n_pkey *pkey)
 }
 
 #else
-
-int s2n_is_pss_certs_supported()
-{
-    return 0;
-}
 
 int s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_pss_key, EVP_PKEY *pkey)
 {

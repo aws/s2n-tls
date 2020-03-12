@@ -469,13 +469,6 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-        /* Check that s2n_is_pss_certs_supported() is a superset of s2n_is_rsa_pss_supported() */
-        {
-            if (s2n_is_pss_certs_supported()) {
-                EXPECT_TRUE(s2n_is_rsa_pss_supported());
-            }
-        }
-
         /* Do not offer PSS signatures schemes if unsupported:
          * s2n_send_supported_sig_scheme_list + PSS */
         {
@@ -487,9 +480,9 @@ int main(int argc, char **argv)
             uint16_t size;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&result, &size));
             EXPECT_EQUAL(size, s2n_supported_sig_scheme_list_size(conn));
-            if (s2n_is_pss_certs_supported()) {
+            if (s2n_is_rsa_pss_certs_supported()) {
                 EXPECT_EQUAL(size, 2 * sizeof(uint16_t));
-            }  else if (s2n_is_rsa_pss_supported()) {
+            }  else if (s2n_is_rsa_pss_signing_supported()) {
                 EXPECT_EQUAL(size, 1 * sizeof(uint16_t));
             } else {
                 EXPECT_EQUAL(size, 0);
@@ -507,7 +500,7 @@ int main(int argc, char **argv)
 
             struct s2n_signature_scheme result;
 
-            if (s2n_is_rsa_pss_supported()) {
+            if (s2n_is_rsa_pss_siging_supported()) {
                 EXPECT_SUCCESS(s2n_get_and_validate_negotiated_signature_scheme(conn, &choice, &result));
                 EXPECT_EQUAL(result.iana_value, s2n_rsa_pss_rsae_sha256.iana_value);
             } else {
@@ -527,7 +520,7 @@ int main(int argc, char **argv)
 
             struct s2n_signature_scheme result;
 
-            if (s2n_is_rsa_pss_supported()) {
+            if (s2n_is_rsa_pss_siging_supported()) {
                 EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
                 EXPECT_EQUAL(result.iana_value, s2n_rsa_pss_rsae_sha256.iana_value);
             } else {

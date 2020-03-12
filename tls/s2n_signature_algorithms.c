@@ -32,11 +32,11 @@ static int s2n_signature_scheme_valid_to_offer(struct s2n_connection *conn, cons
     /* We don't know what protocol version we will eventually negotiate, but we know that it won't be any higher. */
     gte_check(conn->actual_protocol_version, scheme->minimum_protocol_version);
 
-    if (!s2n_is_rsa_pss_supported()) {
+    if (!s2n_is_rsa_pss_signing_supported()) {
         ne_check(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_RSAE);
     }
 
-    if (!s2n_is_pss_certs_supported()) {
+    if (!s2n_is_rsa_pss_certs_supported()) {
         ne_check(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
     }
 

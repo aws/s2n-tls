@@ -123,7 +123,6 @@ int main(int argc, char **argv)
     s2n_stack_blob(random_msg, RANDOM_BLOB_SIZE, RANDOM_BLOB_SIZE);
     EXPECT_SUCCESS(s2n_get_private_random_data(&random_msg));
 
-#if !RSA_PSS_SUPPORTED
     /* If RSA_PSS not supported, cannot sign/verify with PSS */
     {
         struct s2n_pkey rsa_public_key;
@@ -134,14 +133,26 @@ int main(int argc, char **argv)
         hash_state_new(sign_hash, random_msg);
         hash_state_new(verify_hash, random_msg);
 
-        EXPECT_FAILURE_WITH_ERRNO(rsa_public_key.sign(rsa_cert_chain->private_key, S2N_SIGNATURE_RSA_PSS_RSAE, &sign_hash, &result),
-                S2N_RSA_PSS_NOT_SUPPORTED);
-        EXPECT_FAILURE_WITH_ERRNO(rsa_public_key.verify(&rsa_public_key, S2N_SIGNATURE_RSA_PSS_RSAE, &verify_hash, &result),
-                S2N_RSA_PSS_NOT_SUPPORTED);
+        EXPECT_EQUAL(s2n_is_rsa_pss_signing_supported(), RSA_PSS_SIGNING_SUPPORTED);
+
+        if (!s2n_is_rsa_pss_signing_supported()) {
+            EXPECT_FAILURE_WITH_ERRNO(rsa_public_key.sign(rsa_cert_chain->private_key, S2N_SIGNATURE_RSA_PSS_RSAE, &sign_hash, &result),
+                    S2N_RSA_PSS_NOT_SUPPORTED);
+            EXPECT_FAILURE_WITH_ERRNO(rsa_public_key.verify(&rsa_public_key, S2N_SIGNATURE_RSA_PSS_RSAE, &verify_hash, &result),
+                    S2N_RSA_PSS_NOT_SUPPORTED);
+        } else {
+            EXPECT_SUCCESS(rsa_public_key.sign(rsa_cert_chain->private_key, S2N_SIGNATURE_RSA_PSS_RSAE, &sign_hash, &result));
+            EXPECT_SUCCESS(rsa_public_key.verify(&rsa_public_key, S2N_SIGNATURE_RSA_PSS_RSAE, &verify_hash, &result));
+        }
 
         EXPECT_SUCCESS(s2n_pkey_free(&rsa_public_key));
     }
-#else
+
+    /* End tests early if RSA PSS Certs are not supported */
+    #if !RSA_PSS_CERTS_SUPPORTED
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert_chain));
+        END_TEST();
+    #endif
 
     struct s2n_cert_chain_and_key *rsa_pss_cert_chain;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_pss_cert_chain,
@@ -257,9 +268,6 @@ int main(int argc, char **argv)
 
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_pss_cert_chain));
-
-#endif
-
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert_chain));
     END_TEST();
 }

@@ -92,17 +92,13 @@ int s2n_rsa_pkcs1v15_verify(const struct s2n_pkey *pub, struct s2n_hash_state *d
     return 0;
 }
 
-/* this function returns whether PSS signing is supported */
-int s2n_is_rsa_pss_supported()
+/* this function returns whether RSA PSS signing is supported */
+int s2n_is_rsa_pss_signing_supported()
 {
-#if RSA_PSS_SUPPORTED
-    return 1;
-#else
-    return 0;
-#endif
+    return RSA_PSS_SIGNING_SUPPORTED;
 }
 
-#if RSA_PSS_SUPPORTED
+#if RSA_PSS_SIGNING_SUPPORTED
 
 const EVP_MD* s2n_hash_alg_to_evp_alg(s2n_hash_algorithm alg)
 {

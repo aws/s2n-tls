@@ -33,13 +33,13 @@
  *
  * This feature requires this Openssl commit for Openssl 1.1.x versions: openssl/openssl@4088b92
  */
-#if RSA_PSS_SUPPORTED && OPENSSL_VERSION_NUMBER > 0x1010104fL
-#define PSS_CERTS_SUPPORTED 1
+#if RSA_PSS_SIGNING_SUPPORTED && OPENSSL_VERSION_NUMBER > 0x1010104fL
+#define RSA_PSS_CERTS_SUPPORTED 1
 #else
-#define PSS_CERTS_SUPPORTED 0
+#define RSA_PSS_CERTS_SUPPORTED 0
 #endif
 
-int s2n_is_pss_certs_supported();
+int s2n_is_rsa_pss_certs_supported();
 int s2n_rsa_pss_pkey_init(struct s2n_pkey *pkey);
 int s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey);
 int s2n_evp_pkey_to_rsa_pss_private_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey);
