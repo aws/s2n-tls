@@ -18,9 +18,20 @@
 #include <s2n.h>
 
 #include "utils/s2n_blob.h"
+#include "crypto/s2n_openssl.h"
+#include "crypto/s2n_rsa.h"
+
+/* Check for libcrypto 1.1 for RSA PSS Signing and EV_Key usage */
+#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 1) && !defined(LIBRESSL_VERSION_NUMBER)
+#define RSA_PSS_SIGNING_SUPPORTED 1
+#else
+#define RSA_PSS_SIGNING_SUPPORTED 0
+#endif
 
 int s2n_rsa_pkcs1v15_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature);
 int s2n_rsa_pkcs1v15_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest, struct s2n_blob *signature);
 
 int s2n_rsa_pss_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature_out);
 int s2n_rsa_pss_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest, struct s2n_blob *signature_in);
+
+int s2n_is_rsa_pss_signing_supported();

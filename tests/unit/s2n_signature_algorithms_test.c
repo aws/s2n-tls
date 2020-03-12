@@ -107,7 +107,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&result, &size));
             EXPECT_EQUAL(size, s2n_supported_sig_scheme_list_size(conn));
 
-            for (int i=0; i < LENGTH; i++) {
+            for (int i = 0; i < LENGTH; i++) {
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(&result, &iana_value));
                 EXPECT_EQUAL(iana_value, test_signature_schemes[i]->iana_value);
             }
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&result, &size));
             EXPECT_EQUAL(size, s2n_supported_sig_scheme_list_size(conn));
 
-            for (int i=0; i < LENGTH; i++) {
+            for (int i = 0; i < LENGTH; i++) {
                 if (test_signature_schemes[i] != &s2n_ecdsa_secp384r1_sha384) {
                     EXPECT_SUCCESS(s2n_stuffer_read_uint16(&result, &iana_value));
                     EXPECT_EQUAL(iana_value, test_signature_schemes[i]->iana_value);
@@ -419,7 +419,7 @@ int main(int argc, char **argv)
 
         struct s2n_sig_scheme_list signatures;
 
-        for (int i=S2N_TLS10; i < S2N_TLS13; i++) {
+        for (int i = S2N_TLS10; i < S2N_TLS13; i++) {
             s2n_stuffer_wipe(&result);
             conn->actual_protocol_version = i;
 
@@ -432,9 +432,9 @@ int main(int argc, char **argv)
             /* Verify no duplicates - some preferences contain duplicates, but only
              * one should be valid at a time. */
             uint16_t iana, other_iana;
-            for (int a=0; a < signatures.len; a++) {
+            for (int a = 0; a < signatures.len; a++) {
                 iana = signatures.iana_list[a];
-                for (int b=0; b < signatures.len; b++) {
+                for (int b = 0; b < signatures.len; b++) {
                     if (a == b) {
                         continue;
                     }
@@ -480,8 +480,10 @@ int main(int argc, char **argv)
             uint16_t size;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&result, &size));
             EXPECT_EQUAL(size, s2n_supported_sig_scheme_list_size(conn));
-            if (s2n_is_rsa_pss_supported()) {
-                EXPECT_NOT_EQUAL(size, 0);
+            if (s2n_is_rsa_pss_certs_supported()) {
+                EXPECT_EQUAL(size, 2 * sizeof(uint16_t));
+            }  else if (s2n_is_rsa_pss_signing_supported()) {
+                EXPECT_EQUAL(size, 1 * sizeof(uint16_t));
             } else {
                 EXPECT_EQUAL(size, 0);
             }
@@ -498,7 +500,7 @@ int main(int argc, char **argv)
 
             struct s2n_signature_scheme result;
 
-            if (s2n_is_rsa_pss_supported()) {
+            if (s2n_is_rsa_pss_signing_supported()) {
                 EXPECT_SUCCESS(s2n_get_and_validate_negotiated_signature_scheme(conn, &choice, &result));
                 EXPECT_EQUAL(result.iana_value, s2n_rsa_pss_rsae_sha256.iana_value);
             } else {
@@ -518,7 +520,7 @@ int main(int argc, char **argv)
 
             struct s2n_signature_scheme result;
 
-            if (s2n_is_rsa_pss_supported()) {
+            if (s2n_is_rsa_pss_signing_supported()) {
                 EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
                 EXPECT_EQUAL(result.iana_value, s2n_rsa_pss_rsae_sha256.iana_value);
             } else {

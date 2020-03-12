@@ -223,12 +223,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
 
-    /* Stop here if RSA_PSS unsupported */
-    if (!s2n_is_rsa_pss_supported()) {
-        END_TEST();
-    }
-
-    /*  Test: RSA cert with RSA_PSS signatures */
+    /*  Test: RSA cert with RSA PSS signatures */
+    if (s2n_is_rsa_pss_signing_supported())
     {
         const struct s2n_signature_scheme* const rsa_pss_rsae_sig_schemes[] = {
                 /* RSA PSS */
@@ -270,6 +266,7 @@ int main(int argc, char **argv)
     }
 
     /*  Test: RSA_PSS cert with RSA_PSS signatures */
+    if (s2n_is_rsa_pss_certs_supported())
     {
         s2n_enable_tls13();
 
