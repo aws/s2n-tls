@@ -29,14 +29,6 @@ import multiprocessing
 from os import environ
 from multiprocessing.pool import ThreadPool
 from s2n_test_constants import *
-from enum import Enum
-
-
-class OCSP(Enum):
-    ENABLED = 1
-    DISABLED = 2
-    MALFORMED = 3
-
 
 def try_gnutls_handshake(endpoint, port, priority_str, session_tickets, ocsp):
     gnutls_cmd = ["gnutls-serv", "--priority=" + priority_str, "-p " + str(port),
@@ -152,7 +144,7 @@ def main():
     results = []
     for cipher in test_ciphers:
         for session_tickets in [True, False]:
-            for ocsp in OCSP:
+            for ocsp in S2N_LIBCRYPTO_TO_OCSP[args.libcrypto]:
                 async_result = threadpool.apply_async(handshake, (host, port + port_offset, cipher, session_tickets, ocsp))
                 port_offset += 1
                 results.append(async_result)
