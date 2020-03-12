@@ -25,6 +25,7 @@
 #include "utils/s2n_safety.h"
 
 #include "crypto/s2n_ecdsa.h"
+#include "crypto/s2n_ecc_evp.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_pkey.h"
@@ -156,5 +157,17 @@ int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey) {
     pkey->match = &s2n_ecdsa_keys_match;
     pkey->free = &s2n_ecdsa_key_free;
     pkey->check_key = &s2n_ecdsa_check_key_exists;
+    return 0;
+}
+
+int s2n_ecdsa_pkey_matches_curve(const struct s2n_ecdsa_key *ecdsa_key, const struct s2n_ecc_named_curve *curve)
+{
+    notnull_check(ecdsa_key);
+    notnull_check(ecdsa_key->ec_key);
+    notnull_check(curve);
+
+    int curve_id = EC_GROUP_get_curve_name(EC_KEY_get0_group(ecdsa_key->ec_key));
+    eq_check(curve_id, curve->libcrypto_nid);
+
     return 0;
 }

@@ -72,7 +72,7 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
             continue;
         }
 
-        if (s2n_is_sig_alg_valid_for_auth(conn, candidate->sig_alg) != S2N_SUCCESS) {
+        if (s2n_is_sig_scheme_valid_for_auth(conn, candidate) != S2N_SUCCESS) {
             continue;
         }
 

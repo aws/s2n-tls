@@ -128,14 +128,11 @@ S2N_PROTO_VERS_TO_GNUTLS = {
 
 TEST_CERT_DIRECTORY="../pems/"
 
-TEST_RSA_CERT=TEST_CERT_DIRECTORY + "rsa_2048_sha256_wildcard_cert.pem"
-TEST_RSA_KEY=TEST_CERT_DIRECTORY + "rsa_2048_sha256_wildcard_key.pem"
+TEST_RSA_CERT = TEST_CERT_DIRECTORY + "rsa_2048_sha256_wildcard_cert.pem"
+TEST_RSA_KEY  = TEST_CERT_DIRECTORY + "rsa_2048_sha256_wildcard_key.pem"
 
-# TODO: These key/certs needs to be configurable. We should be able
-# to choose different types of certs.
-# https://github.com/awslabs/s2n/issues/1673
-TEST_ECDSA_CERT=TEST_CERT_DIRECTORY + "ecdsa_p256_pkcs1_cert.pem"
-TEST_ECDSA_KEY=TEST_CERT_DIRECTORY + "ecdsa_p256_pkcs1_key.pem"
+TEST_ECDSA_CERT = TEST_CERT_DIRECTORY + "ecdsa_p384_pkcs1_cert.pem"
+TEST_ECDSA_KEY  = TEST_CERT_DIRECTORY + "ecdsa_p384_pkcs1_key.pem"
 
 TEST_DH_PARAMS=TEST_CERT_DIRECTORY + "dhparams_2048.pem"
 
