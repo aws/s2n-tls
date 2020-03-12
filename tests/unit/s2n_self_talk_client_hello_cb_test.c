@@ -24,6 +24,9 @@
 
 #include <s2n.h>
 #include <tls/s2n_connection.h>
+#include <tls/s2n_tls13.h>
+
+#define BUFSIZE 0xffff
 
 struct client_hello_context {
     int invoked;
@@ -31,7 +34,7 @@ struct client_hello_context {
     struct s2n_config *config;
 };
 
-int mock_client(struct s2n_test_piped_io *piped_io, int expect_failure, int expect_server_name_used)
+int mock_client(struct s2n_test_piped_io *piped_io, int expect_failure, int expect_server_name_used, int force_retry)
 {
     struct s2n_connection *conn;
     struct s2n_config *config;
@@ -53,6 +56,10 @@ int mock_client(struct s2n_test_piped_io *piped_io, int expect_failure, int expe
 
     s2n_set_server_name(conn, "example.com");
 
+    if (force_retry) {
+        s2n_connection_clear_all_key_shares(conn);
+    }
+
     rc = s2n_negotiate(conn, &blocked);
     if (expect_failure) {
         if (!rc) {
@@ -63,7 +70,7 @@ int mock_client(struct s2n_test_piped_io *piped_io, int expect_failure, int expe
             result = 2;
         }
     } else {
-        char buffer[0xffff];
+        char buffer[BUFSIZE];
 
         if (conn->server_name_used != expect_server_name_used) {
             result = 1;
@@ -73,7 +80,7 @@ int mock_client(struct s2n_test_piped_io *piped_io, int expect_failure, int expe
             result = 2;
         }
 
-        for (int i = 1; i < 0xffff; i += 100) {
+        for (int i = 1; i < BUFSIZE; i += 100) {
             memset(buffer, 33, sizeof(char) * i);
             s2n_send(conn, buffer, i, &blocked);
         }
@@ -167,9 +174,49 @@ int client_hello_fail_handshake(struct s2n_connection *conn, void *ctx)
     return -1;
 }
 
+int client_hello_successful_handshake(struct s2n_connection *conn, void *ctx)
+{
+    struct client_hello_context *client_hello_ctx;
+
+    if (ctx == NULL) {
+        return -1;
+    }
+    client_hello_ctx = ctx;
+
+    /* Increment counter to ensure that callback was invoked */
+    client_hello_ctx->invoked++;
+
+    /* Return 0 to continue the handshake */
+    return 0;
+}
+
+static int read_buffer_from_server(struct s2n_connection *conn)
+{
+    char buffer[BUFSIZE];
+
+    for (int i = 1; i < BUFSIZE; i += 100) {
+        char * ptr = buffer;
+        int size = i;
+
+        do {
+            int bytes_read = 0;
+            s2n_blocked_status blocked;
+            EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
+
+            size -= bytes_read;
+            ptr += bytes_read;
+        } while(size);
+
+        for (int j = 0; j < i; j++) {
+            EXPECT_EQUAL(buffer[j], 33);
+        }
+    }
+
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
-    char buffer[0xffff];
     struct s2n_connection *conn;
     struct s2n_config *config;
     struct s2n_config *swap_config;
@@ -221,7 +268,7 @@ int main(int argc, char **argv)
         /* This is the client process, close the server end of the pipe */
         EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
 
-        mock_client(&piped_io, 0, 1);
+        mock_client(&piped_io, 0, 1, 0);
     }
 
     /* This is the server process, close the client end of the pipe */
@@ -246,22 +293,8 @@ int main(int argc, char **argv)
     /* Expect most preferred negotiated protocol */
     EXPECT_STRING_EQUAL(s2n_get_application_protocol(conn), protocols[0]);
 
-    for (int i = 1; i < 0xffff; i += 100) {
-        char * ptr = buffer;
-        int size = i;
-
-        do {
-            int bytes_read = 0;
-            EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
-
-            size -= bytes_read;
-            ptr += bytes_read;
-        } while(size);
-
-        for (int j = 0; j < i; j++) {
-            EXPECT_EQUAL(buffer[j], 33);
-        }
-    }
+    /* Ensure that data can be read from the server */
+    EXPECT_SUCCESS(read_buffer_from_server(conn));
 
     EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
     EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -291,7 +324,7 @@ int main(int argc, char **argv)
         /* This is the client process, close the server end of the pipe */
         EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
 
-        mock_client(&piped_io, 0, 0);
+        mock_client(&piped_io, 0, 0, 0);
     }
 
     /* This is the parent */
@@ -314,22 +347,8 @@ int main(int argc, char **argv)
     /* Ensure that callback was invoked */
     EXPECT_EQUAL(client_hello_ctx.invoked, 1);
 
-    for (int i = 1; i < 0xffff; i += 100) {
-        char * ptr = buffer;
-        int size = i;
-
-        do {
-            int bytes_read = 0;
-            EXPECT_SUCCESS(bytes_read = s2n_recv(conn, ptr, size, &blocked));
-
-            size -= bytes_read;
-            ptr += bytes_read;
-        } while(size);
-
-        for (int j = 0; j < i; j++) {
-            EXPECT_EQUAL(buffer[j], 33);
-        }
-    }
+    /* Ensure that data can be read from the server */
+    EXPECT_SUCCESS(read_buffer_from_server(conn));
 
     EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
     EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -360,7 +379,7 @@ int main(int argc, char **argv)
         /* This is the client process, close the server end of the pipe */
         EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
 
-        mock_client(&piped_io, 1, 0);
+        mock_client(&piped_io, 1, 0, 0);
     }
 
     /* This is the server process, close the client end of the pipe */
@@ -395,10 +414,71 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
     EXPECT_SUCCESS(s2n_config_free(config));
+
+    /* Test that callback is only fired once */
+    EXPECT_SUCCESS(s2n_enable_tls13());
+    EXPECT_NOT_NULL(config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+    /* Setup ClientHello callback */
+    client_hello_ctx.invoked = 0;
+    client_hello_ctx.swap_config = 0;
+    client_hello_ctx.config = NULL;
+    EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_successful_handshake, &client_hello_ctx));
+
+    /* Create a pipe */
+    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
+    EXPECT_SUCCESS(s2n_piped_io_init(&piped_io));
+
+    /* Create a child process */
+    pid = fork();
+    if (pid == 0) {
+        /* This is the client process, close the server end of the pipe */
+        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
+
+        mock_client(&piped_io, 0, 0, 1);
+    }
+
+    /* This is the server process, close the client end of the pipe */
+    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_CLIENT));
+
+    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+    /* If s2n_negotiate fails, it usually would delay with a sleep. In order to
+     * test that we don't blind when CLientHello callback fails the handshake,
+     * disable blinding here */
+    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
+
+    /* Set up the connection to read from the fd */
+    EXPECT_SUCCESS(s2n_connection_set_piped_io(conn, &piped_io));
+
+    /* Negotiate the handshake. */
+    EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+
+    /* Check that blinding was not invoked */
+    EXPECT_EQUAL(s2n_connection_get_delay(conn), 0);
+
+    /* Ensure that callback was invoked */
+    EXPECT_EQUAL(client_hello_ctx.invoked, 1);
+
+    /* Ensure that data can be read from the server */
+    EXPECT_SUCCESS(read_buffer_from_server(conn));
+
+    /* Shutdown to flush alert. Expect failure as client doesn't send close
+     * notify */
+    EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
+    EXPECT_SUCCESS(s2n_connection_free(conn));
+
+    /* Clean up */
+    EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
+    EXPECT_EQUAL(status, 0);
+    EXPECT_SUCCESS(s2n_config_free(config));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     free(cert_chain_pem);
     free(private_key_pem);
 
+    EXPECT_SUCCESS(s2n_disable_tls13());
     END_TEST();
 
     return 0;

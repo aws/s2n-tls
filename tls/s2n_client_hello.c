@@ -334,7 +334,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     conn->client_hello.parsed = 1;
 
     /* Call client_hello_cb if exists, letting application to modify s2n_connection or swap s2n_config */
-    if (conn->config->client_hello_cb) {
+    if (conn->config->client_hello_cb && conn->handshake.server_sent_hrr == 0) {
         int rc = conn->config->client_hello_cb(conn, conn->config->client_hello_cb_ctx);
         if (rc < 0) {
             GUARD(s2n_queue_reader_handshake_failure_alert(conn));
