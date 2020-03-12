@@ -14,6 +14,12 @@
 #
 
 import collections
+from enum import Enum
+
+class OCSP(Enum):
+    ENABLED = 1
+    DISABLED = 2
+    MALFORMED = 3
 
 S2N_SSLv3 = 30
 S2N_TLS10 = 31
@@ -109,6 +115,14 @@ S2N_LIBCRYPTO_TO_TEST_CIPHERS = {
     "openssl-1.0.2-fips"    : OPENSSL_1_0_2_FIPS_TEST_CIPHERS,
     "libressl"              : LIBRESSL_TEST_CIPHERS,
     "boringssl"             : BORINGSSL_TEST_CIPHERS,
+}
+
+S2N_LIBCRYPTO_TO_OCSP = {
+    "openssl-1.1.1"         : [OCSP.ENABLED, OCSP.DISABLED, OCSP.MALFORMED],
+    "openssl-1.0.2"         : [OCSP.ENABLED, OCSP.DISABLED, OCSP.MALFORMED],
+    "openssl-1.0.2-fips"    : [OCSP.ENABLED, OCSP.DISABLED, OCSP.MALFORMED],
+    "libressl"              : [OCSP.ENABLED, OCSP.DISABLED, OCSP.MALFORMED],
+    "boringssl"             : [OCSP.DISABLED],
 }
 
 S2N_LIBCRYPTO_CHOICES = ['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.1', 'libressl', 'boringssl']
