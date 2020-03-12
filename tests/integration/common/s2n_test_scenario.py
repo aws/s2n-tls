@@ -57,6 +57,21 @@ class Mode(Enum):
         return Mode.server if self.is_client() else Mode.client
 
 
+class Cert():
+    def __init__(self, name, prefix, location="../pems/"):
+        self.name = name
+        self.cert = location + prefix + "_cert.pem"
+        self.key = location + prefix + "_key.pem"
+
+    def __str__(self):
+        return self.name
+
+ALL_CERTS = [
+    Cert("ECDSA_256", "ecdsa_p256_pkcs1"),
+    Cert("ECDSA_384", "ecdsa_p384_pkcs1"),
+]
+
+
 class Cipher():
     def __init__(self, name, min_version):
         self.name = name
@@ -113,7 +128,8 @@ class Scenario:
 
     """
 
-    def __init__(self, s2n_mode, host, port, version=None, cipher=None, curve=None, s2n_flags=[], peer_flags=[]):
+    def __init__(self, s2n_mode, host, port, version=None, cipher=None, curve=None,
+                 cert=ALL_CERTS[0], s2n_flags=[], peer_flags=[]):
         """
         Args:
             s2n_mode: whether s2n should act as a client or server.
@@ -133,14 +149,16 @@ class Scenario:
         self.version = version
         self.cipher = cipher
         self.curve = curve
+        self.cert = cert
         self.s2n_flags = s2n_flags
         self.peer_flags = peer_flags
 
     def __str__(self):
         version = self.version if self.version else "DEFAULT"
         cipher = self.cipher if self.cipher else "ANY"
-        result = "Mode:%s %s Version:%s Curve:%s Cipher:%s" % \
-            (self.s2n_mode, " ".join(self.s2n_flags), str(version).ljust(7), self.curve, str(cipher).ljust(30))
+        result = "Mode:%s %s Version:%s Curve:%s Cert:%s Cipher:%s" % \
+            (self.s2n_mode, " ".join(self.s2n_flags), str(version).ljust(7), self.curve,
+             str(self.cert).ljust(10), str(cipher).ljust(30))
 
         return result.ljust(100)
 
@@ -176,12 +194,13 @@ def run_scenarios(test_func, scenarios):
     return failed
 
 
-def get_scenarios(host, start_port, s2n_modes=Mode.all(), versions=[None], ciphers=[None], curves=ALL_CURVES, s2n_flags=[], peer_flags=[]):
+def get_scenarios(host, start_port, s2n_modes=Mode.all(), versions=[None], ciphers=[None],
+                  curves=ALL_CURVES, certs=ALL_CERTS, s2n_flags=[], peer_flags=[]):
     port = start_port
     scenarios = []
 
-    combos = itertools.product(versions, s2n_modes, ciphers, curves)
-    for (version, s2n_mode, cipher, curve) in combos:
+    combos = itertools.product(versions, s2n_modes, ciphers, curves, certs)
+    for (version, s2n_mode, cipher, curve, cert) in combos:
         if cipher and not cipher.valid_for(version):
             continue
 
@@ -193,6 +212,7 @@ def get_scenarios(host, start_port, s2n_modes=Mode.all(), versions=[None], ciphe
                 version=version,
                 cipher=cipher,
                 curve=curve,
+                cert=cert,
                 s2n_flags=s2n_flags,
                 peer_flags=peer_flags))
             port += 1

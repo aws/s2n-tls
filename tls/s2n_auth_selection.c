@@ -13,8 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_signature.h"
 #include "crypto/s2n_certificate.h"
+#include "crypto/s2n_ecdsa.h"
+#include "crypto/s2n_signature.h"
 
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_kex.h"
@@ -104,17 +105,27 @@ static int s2n_is_sig_alg_valid_for_cipher_suite(s2n_signature_algorithm sig_alg
     return S2N_SUCCESS;
 }
 
-static int s2n_certs_exist_for_sig_alg(struct s2n_connection *conn, s2n_signature_algorithm sig_alg)
+static int s2n_certs_exist_for_sig_scheme(struct s2n_connection *conn, const struct s2n_signature_scheme *sig_scheme)
 {
-    ne_check(sig_alg, S2N_SIGNATURE_ANONYMOUS);
+    notnull_check(sig_scheme);
 
     s2n_pkey_type cert_type;
-    s2n_get_cert_type_for_sig_alg(sig_alg, &cert_type);
+    GUARD(s2n_get_cert_type_for_sig_alg(sig_scheme->sig_alg, &cert_type));
 
-    if (s2n_get_compatible_cert_chain_and_key(conn, cert_type) != NULL) {
-        return S2N_SUCCESS;
+    /* A valid cert must exist for the authentication method. */
+    struct s2n_cert_chain_and_key *cert = s2n_get_compatible_cert_chain_and_key(conn, cert_type);
+    notnull_check(cert);
+
+    /* For sig_algs that include a curve, the group must also match. */
+    if (sig_scheme->signature_curve != NULL) {
+        notnull_check(cert->private_key);
+        notnull_check(cert->cert_chain);
+        notnull_check(cert->cert_chain->head);
+        eq_check(cert->cert_chain->head->pkey_type, S2N_PKEY_TYPE_ECDSA);
+        GUARD(s2n_ecdsa_pkey_matches_curve(&cert->private_key->key.ecdsa_key, sig_scheme->signature_curve));
     }
-    S2N_ERROR(S2N_ERR_CERT_TYPE_UNSUPPORTED);
+
+    return S2N_SUCCESS;
 }
 
 static int s2n_certs_exist_for_auth_method(struct s2n_connection *conn, s2n_authentication_method auth_method)
@@ -157,15 +168,16 @@ int s2n_is_cipher_suite_valid_for_auth(struct s2n_connection *conn, struct s2n_c
  *
  * This method is called by the both server and client when choosing a signature algorithm.
  */
-int s2n_is_sig_alg_valid_for_auth(struct s2n_connection *conn, s2n_signature_algorithm sig_alg)
+int s2n_is_sig_scheme_valid_for_auth(struct s2n_connection *conn, const struct s2n_signature_scheme *sig_scheme)
 {
     notnull_check(conn);
+    notnull_check(sig_scheme);
 
     struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
     notnull_check(cipher_suite);
 
-    GUARD(s2n_certs_exist_for_sig_alg(conn, sig_alg));
-    GUARD(s2n_is_sig_alg_valid_for_cipher_suite(sig_alg, cipher_suite));
+    GUARD(s2n_certs_exist_for_sig_scheme(conn, sig_scheme));
+    GUARD(s2n_is_sig_alg_valid_for_cipher_suite(sig_scheme->sig_alg, cipher_suite));
 
     return S2N_SUCCESS;
 }

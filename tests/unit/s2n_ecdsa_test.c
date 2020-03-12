@@ -68,6 +68,29 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
+    /* s2n_ecdsa_pkey_matches_curve */
+    {
+        struct s2n_ecdsa_key *p256_key, *p384_key;
+        struct s2n_cert_chain_and_key *p256_chain, *p384_chain;
+
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&p256_chain,
+                S2N_ECDSA_P256_PKCS1_CERT_CHAIN, S2N_ECDSA_P256_PKCS1_KEY));
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&p384_chain,
+                S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+
+        p256_key = &p256_chain->private_key->key.ecdsa_key;
+        p384_key = &p384_chain->private_key->key.ecdsa_key;
+
+        EXPECT_SUCCESS(s2n_ecdsa_pkey_matches_curve(p256_key, &s2n_ecc_curve_secp256r1));
+        EXPECT_SUCCESS(s2n_ecdsa_pkey_matches_curve(p384_key, &s2n_ecc_curve_secp384r1));
+
+        EXPECT_FAILURE(s2n_ecdsa_pkey_matches_curve(p256_key, &s2n_ecc_curve_secp384r1));
+        EXPECT_FAILURE(s2n_ecdsa_pkey_matches_curve(p384_key, &s2n_ecc_curve_secp256r1));
+
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(p256_chain));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(p384_chain));
+    }
+
     EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_stuffer_alloc(&ecdsa_key_in, S2N_MAX_TEST_PEM_SIZE));
