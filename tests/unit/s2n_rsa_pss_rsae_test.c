@@ -148,11 +148,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_pkey_free(&rsa_public_key));
     }
 
-    /* End tests early if RSA PSS Certs are not supported */
-    #if !RSA_PSS_CERTS_SUPPORTED
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert_chain));
-        END_TEST();
-    #endif
+    #if RSA_PSS_CERTS_SUPPORTED
 
     struct s2n_cert_chain_and_key *rsa_pss_cert_chain;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_pss_cert_chain,
@@ -266,8 +262,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_pkey_free(&rsa_public_key));
     }
 
-
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_pss_cert_chain));
+    #endif
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert_chain));
     END_TEST();
 }
