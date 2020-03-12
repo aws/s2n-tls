@@ -57,6 +57,11 @@ if [[ "$S2N_LIBCRYPTO" == "libressl" ]]; then
     codebuild/bin/install_libressl.sh "$(mktemp -d)" "$LIBRESSL_INSTALL_DIR" > /dev/null ;
 fi
 
+# Download and Install BoringSSL
+if [[ "$S2N_LIBCRYPTO" == "boringssl" ]]; then
+    codebuild/bin/install_boringssl.sh "$(mktemp -d)" "$BORINGSSL_INSTALL_DIR" > /dev/null ;
+fi
+
 # Install python linked with the latest Openssl for integration tests
 if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]]; then
     mkdir -p "$PYTHON_INSTALL_DIR"||true
