@@ -332,6 +332,8 @@ bitcode/bike_r1_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike_r1 s2n/uti
 .PHONY : bitcode/bike_r2_llvm.bc
 bitcode/bike_r2_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike_r2 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(BIKE_R2_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
 	patch s2n/pq-crypto/bike_r2/cleanup.h bike_r2/patch/cleanup.h.patch
+	patch s2n/pq-crypto/bike_r2/aes_ctr_prf.h bike_r2/patch/aes_ctr_prf.h.patch
+	patch s2n/pq-crypto/bike_r2/aes_ctr_prf.c bike_r2/patch/aes_ctr_prf.c.patch
 	patch s2n/pq-crypto/bike_r2/sampling_portable.c bike_r2/patch/sampling_portable.c.patch
 	patch s2n/pq-crypto/bike_r2/sampling.c bike_r2/patch/sampling.c.patch
 	patch s2n/pq-crypto/bike_r2/bike_r2_kem.c bike_r2/patch/bike_r2_kem.c.patch

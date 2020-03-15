@@ -1,0 +1,12 @@
+50c50
+< perform_aes(OUT uint8_t *ct, IN OUT aes_ctr_prf_state_t *s)
+---
+> perform_aes(IN OUT aes_ctr_prf_state_t *s, OUT uint8_t *ct)
+94c94
+<     GUARD(perform_aes(&a[idx], s));
+---
+>     GUARD(perform_aes(s, &a[idx]));
+98c98
+<   GUARD(perform_aes(s->buffer.u.bytes, s));
+---
+>   GUARD(perform_aes(s, s->buffer.u.bytes));

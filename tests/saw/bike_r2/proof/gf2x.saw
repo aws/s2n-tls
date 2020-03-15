@@ -10,7 +10,7 @@ let gf2x_add_spec = do {
   (_, b_ptr) <- in_ref rsize_t "b";
   crucible_execute_func [res_ptr, a_ptr, b_ptr, tm {{ `R_SIZE:[64] }}];
   _ <- point_to rsize_t res_ptr "res";
-  crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+  crucible_return (tm {{ `SUCCESS:[32] }});
 };
 
 let gf2x_add_left_spec = do {
@@ -18,7 +18,7 @@ let gf2x_add_left_spec = do {
   (_, b_ptr) <- in_ref rsize_t "b";
   crucible_execute_func [a_ptr, a_ptr, b_ptr, tm {{ `R_SIZE:[64] }}];
   _ <- point_to rsize_t a_ptr "a'";
-  crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+  crucible_return (tm {{ `SUCCESS:[32] }});
 };
 
 // NOTE: A comment in the C says that gf2x_mod_mul "requires the values to
@@ -33,7 +33,7 @@ let gf2x_mod_mul_spec = do {
   crucible_execute_func [res_ptr, a_ptr, b_ptr];
   res <- crucible_fresh_var "res" rsize_t;
   crucible_points_to_untyped res_ptr (tm res);
-  crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+  crucible_return (tm {{ `SUCCESS:[32] }});
 };
 
 let gf2x_mul_1x1_spec = do {
