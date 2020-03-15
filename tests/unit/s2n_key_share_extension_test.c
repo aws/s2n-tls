@@ -19,6 +19,7 @@
 
 #include "tls/s2n_tls.h"
 #include "tls/extensions/s2n_key_share.h"
+#include "crypto/s2n_ecc_evp.h"
 
 #include "testlib/s2n_testlib.h"
 #include "stuffer/s2n_stuffer.h"
@@ -27,21 +28,21 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    const struct s2n_ecc_named_curve *test_curve = s2n_all_supported_curves_list[0];
 
     /* Test s2n_ecdhe_parameters_send write with valid ecc params */
     {
         struct s2n_stuffer out;
 
         struct s2n_ecc_evp_params ecc_evp_params;
-        const struct s2n_ecc_named_curve *curve = s2n_ecc_evp_supported_curves_list[0];
-        ecc_evp_params.negotiated_curve = curve;
+        ecc_evp_params.negotiated_curve = test_curve;
         ecc_evp_params.evp_pkey = NULL;
 
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&out, curve->share_size + 4));
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&out, test_curve->share_size + 4));
         EXPECT_SUCCESS(s2n_ecdhe_parameters_send(&ecc_evp_params, &out));
-        S2N_STUFFER_READ_EXPECT_EQUAL(&out, curve->iana_id, uint16);
-        S2N_STUFFER_READ_EXPECT_EQUAL(&out, curve->share_size, uint16);
-        EXPECT_EQUAL(s2n_stuffer_data_available(&out), curve->share_size);
+        S2N_STUFFER_READ_EXPECT_EQUAL(&out, test_curve->iana_id, uint16);
+        S2N_STUFFER_READ_EXPECT_EQUAL(&out, test_curve->share_size, uint16);
+        EXPECT_EQUAL(s2n_stuffer_data_available(&out), test_curve->share_size);
 
         EXPECT_SUCCESS(s2n_ecc_evp_params_free(&ecc_evp_params));
         EXPECT_SUCCESS(s2n_stuffer_free(&out));
@@ -52,18 +53,17 @@ int main(int argc, char **argv)
         struct s2n_stuffer out;
 
         struct s2n_ecc_evp_params ecc_evp_params;
-        const struct s2n_ecc_named_curve *good_curve = s2n_ecc_evp_supported_curves_list[0];
-        const struct s2n_ecc_named_curve curve = {
+        const struct s2n_ecc_named_curve bad_curve = {
             .iana_id = 12345,
             .libcrypto_nid = 0,
-            .name = good_curve->name,
-            .share_size = good_curve->share_size
+            .name = test_curve->name,
+            .share_size = test_curve->share_size
         };
 
-        ecc_evp_params.negotiated_curve = &curve;
+        ecc_evp_params.negotiated_curve = &bad_curve;
         ecc_evp_params.evp_pkey = NULL;
 
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&out, curve.share_size + 4));
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&out, bad_curve.share_size + 4));
         /* generating an ECDHE key should fail */
         EXPECT_FAILURE(s2n_ecdhe_parameters_send(&ecc_evp_params, &out));
 

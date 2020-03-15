@@ -54,6 +54,7 @@ struct s2n_config {
 
     const struct s2n_cipher_preferences *cipher_preferences;
     const struct s2n_signature_preferences *signature_preferences;
+    const struct s2n_ecc_preferences *ecc_preferences;
 
     void *sys_clock_ctx;
     void *monotonic_clock_ctx;

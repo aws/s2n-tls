@@ -54,7 +54,7 @@ def get_openssl_cmd(scenario):
     if scenario.cipher:
         if scenario.version is Version.TLS13:
             openssl_cmd.extend(["-ciphersuites", str(scenario.cipher)])
-            openssl_cmd.extend(["-curves", scenario.curve])
+            openssl_cmd.extend(["-curves", str(scenario.curve)])
         else:
             openssl_cmd.extend(["cipher", str(scenario.cipher)])
 

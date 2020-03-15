@@ -552,6 +552,23 @@ The "default" version behaves as in **s2n_config_set_signature_preferences**. Nu
 |"20200207" | RSA-PSS, RSA-RSAE, RSA-PKCS1, and ECDSA. SHA1 allowed, but only as a fallback.
 |"20140601" | RSA-PKCS1 and ECDSA. SHA1 allowed, but only as a fallback.
 
+### s2n\_config\_set\_ecc\_preferences
+
+```c
+int s2n_config_set_ecc_preferences(struct s2n_config *config,
+                                      const char *version);
+```
+
+**s2n_config_set_ecc_preferences** sets the list of acceptable ecc curves in descending order of preference.
+
+The "default" version behaves as in **s2n_config_set_ecc_preferences**. Numbered versions are fixed and will never change. The currently supported versions are:
+
+| version | definition |
+|----------|-----------
+|"default" | Currently "20140601".
+|"20200310" | Curves x25519, secp256r1, and secp384r1. 
+|"20140601" | Curves secp256r1, and secp384r1. 
+
 ### s2n\_config\_add\_cert\_chain\_and\_key
 
 ```c

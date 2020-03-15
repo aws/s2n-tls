@@ -23,7 +23,7 @@ import os
 import sys
 
 from common.s2n_test_openssl import run_openssl_connection_test
-from common.s2n_test_scenario import get_scenarios, Mode, Cipher, Version
+from common.s2n_test_scenario import get_scenarios, Mode, Cipher, Version, Curve 
 
 
 def main():
@@ -38,7 +38,7 @@ def main():
     failed = 0
 
     print("\n\tRunning TLS1.3 handshake tests with openssl: %s" % os.popen('openssl version').read())
-    failed += run_openssl_connection_test(get_scenarios(host, port, versions=[Version.TLS13], s2n_modes=Mode.all(), ciphers=Cipher.all()))
+    failed += run_openssl_connection_test(get_scenarios(host, port, versions=[Version.TLS13], s2n_modes=Mode.all(), ciphers=Cipher.all(), curves=Curve.all()))
 
     return failed
 

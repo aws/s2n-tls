@@ -35,6 +35,7 @@
 #include "tls/s2n_client_extensions.h"
 #include "tls/s2n_tls_digest_preferences.h"
 #include "tls/extensions/s2n_server_key_share.h"
+#include "tls/s2n_ecc_preferences.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -202,8 +203,12 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     GUARD(s2n_stuffer_read_uint8(in, &num_compression_methods));
     GUARD(s2n_stuffer_skip_read(in, num_compression_methods));
 
+    notnull_check(conn->config);
+    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
+    notnull_check(ecc_pref);
+
     /* This is going to be our default if the client has no preference. */
-    conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
     uint16_t extensions_length = 0;
     if (s2n_stuffer_data_available(in) >= 2) {

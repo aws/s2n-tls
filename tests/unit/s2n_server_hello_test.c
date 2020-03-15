@@ -22,6 +22,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
+#include "tls/s2n_ecc_preferences.h"
 
 #include "utils/s2n_safety.h"
 
@@ -84,11 +85,13 @@ int main(int argc, char **argv)
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-
+        EXPECT_NOT_NULL(conn->config);
+        const struct s2n_ecc_preferences *ecc_preferences = config->ecc_preferences;
+        EXPECT_NOT_NULL(ecc_preferences);
         /* configure these parameters so server hello can be sent */
         conn->actual_protocol_version = S2N_TLS13;
-        conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
-        conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+        conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+        conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_preferences->ecc_curves[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
 
         struct s2n_stuffer *hello_stuffer = &conn->handshake.io;

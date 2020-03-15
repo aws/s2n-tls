@@ -289,6 +289,9 @@ void usage()
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
+    fprintf(stderr, "  -v [version_string]\n");
+    fprintf(stderr, "  --curves [version_string]\n");
+    fprintf(stderr, "    Set the ecc preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
     fprintf(stderr, "  --enter-fips-mode\n");
     fprintf(stderr, "    Enter libcrypto's FIPS mode. The linked version of OpenSSL must be built with the FIPS module.\n");
     fprintf(stderr, "  --cert\n");
@@ -431,6 +434,7 @@ int main(int argc, char *const *argv)
     const char *ocsp_response_file_path = NULL;
     const char *session_ticket_key_file_path = NULL;
     const char *cipher_prefs = "default";
+    const char *ecc_prefs = "default";
 
     /* The certificates provided by the user. If there are none provided, we will use the hardcoded default cert.
      * The associated private key for each cert will be at the same index in private_keys. If the user mixes up the
@@ -469,12 +473,13 @@ int main(int argc, char *const *argv)
         {"no-session-ticket", no_argument, 0, 'T'},
         {"corked-io", no_argument, 0, 'C'},
         {"tls13", no_argument, 0, '3'},
+        {"curves", required_argument, NULL, 'u'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:iTC", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:iTCu", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -549,6 +554,9 @@ int main(int argc, char *const *argv)
             break;
         case '3':
             use_tls13 = 1;
+            break;
+        case 'u':
+            ecc_prefs = optarg;
             break;
         case '?':
         default:
@@ -697,6 +705,8 @@ int main(int argc, char *const *argv)
     GUARD_EXIT(s2n_config_add_dhparams(config, dhparams), "Error adding DH parameters");
 
     GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs),"Error setting cipher prefs");
+
+    GUARD_EXIT(s2n_config_set_ecc_preferences(config, ecc_prefs), "Error setting ecc prefs");
 
     GUARD_EXIT(s2n_config_set_cache_store_callback(config, cache_store_callback, session_cache), "Error setting cache store callback");
 

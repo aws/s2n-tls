@@ -48,6 +48,9 @@ void usage()
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
+    fprintf(stderr, "  -v [version_string]\n");
+    fprintf(stderr, "  --curves [version_string]\n");
+    fprintf(stderr, "    Set the ecc preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
     fprintf(stderr, "  -e\n");
     fprintf(stderr, "  --echo\n");
     fprintf(stderr, "    Listen to stdin after TLS Connection is established and echo it to the Server\n");
@@ -105,7 +108,7 @@ extern void print_s2n_error(const char *app_error);
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
 
-static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs, s2n_status_request_type type,
+static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs, const char *ecc_prefs, s2n_status_request_type type,
     struct verify_data *unsafe_verify_data, const char *host, const char *alpn_protocols, uint16_t mfl_value) {
 
     if (config == NULL) {
@@ -114,6 +117,8 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
     }
 
     GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs), "Error setting cipher prefs");
+
+    GUARD_EXIT(s2n_config_set_ecc_preferences(config, ecc_prefs), "Error setting ecc prefs");
 
     GUARD_EXIT(s2n_config_set_status_request_type(config, type), "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
 
@@ -232,6 +237,7 @@ int main(int argc, char *const *argv)
     uint8_t dyn_rec_timeout = 0;
     /* required args */
     const char *cipher_prefs = "default";
+    const char *ecc_prefs = "default";
     const char *host = NULL;
     struct verify_data unsafe_verify_data;
     const char *port = "443";
@@ -256,11 +262,12 @@ int main(int argc, char *const *argv)
         {"timeout", required_argument, 0, 't'},
         {"corked-io", no_argument, 0, 'C'},
         {"tls13", no_argument, 0, '3'},
+        {"curves", required_argument, NULL, 'u'},
     };
 
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:D:t:irTC", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:D:t:irTCu", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -316,6 +323,9 @@ int main(int argc, char *const *argv)
             break;
         case '3':
             use_tls13 = 1;
+            break;
+        case 'u':
+            ecc_prefs = optarg;
             break;
         case '?':
         default:
@@ -381,7 +391,7 @@ int main(int argc, char *const *argv)
         }
 
         struct s2n_config *config = s2n_config_new();
-        setup_s2n_config(config, cipher_prefs, type, &unsafe_verify_data, host, alpn_protocols, mfl_value);
+        setup_s2n_config(config, cipher_prefs, ecc_prefs, type, &unsafe_verify_data, host, alpn_protocols, mfl_value);
 
         if (ca_file || ca_dir) {
             if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
