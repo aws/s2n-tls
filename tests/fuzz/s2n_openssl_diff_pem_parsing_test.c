@@ -71,7 +71,7 @@ static int openssl_parse_cert_chain(struct s2n_stuffer *in)
     while (1) {
         /* Try parsing Cert PEM with OpenSSL */
         cert = PEM_read_bio_X509(membio, NULL, 0, NULL);
-        if (cert != NULL){
+        if (cert != NULL) {
             X509_free(cert);
             chain_len++;
         } else {
@@ -87,7 +87,7 @@ static int openssl_parse_cert_chain(struct s2n_stuffer *in)
 static int s2n_parse_cert_chain(struct s2n_stuffer *in)
 {
     struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
-    
+
     /* Allocate the memory for the chain and key */
     if (s2n_create_cert_chain_from_stuffer(chain_and_key->cert_chain, in) != S2N_SUCCESS) {
         GUARD(s2n_cert_chain_and_key_free(chain_and_key));

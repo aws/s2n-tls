@@ -53,27 +53,32 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
-    for (int version = 0; version < s2n_array_len(TLS_VERSIONS); version++) {
+    /* We need at least one byte of input to set parameters */
+    S2N_FUZZ_ENSURE_MIN_LEN(len, 1);
 
-        /* Setup */
-        struct s2n_stuffer fuzz_stuffer = {0};
-        GUARD(s2n_stuffer_alloc(&fuzz_stuffer, len + 1));
-        GUARD(s2n_stuffer_write_bytes(&fuzz_stuffer, buf, len));
+    /* Setup */
+    struct s2n_stuffer fuzz_stuffer = {0};
+    GUARD(s2n_stuffer_alloc(&fuzz_stuffer, len));
+    GUARD(s2n_stuffer_write_bytes(&fuzz_stuffer, buf, len));
 
-        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-        notnull_check(client_conn);
-        client_conn->client_protocol_version = TLS_VERSIONS[version];
-        client_conn->config = s2n_config_new();
+    struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+    notnull_check(client_conn);
+    client_conn->config = s2n_config_new();
 
-        /* Run Test
-         * Do not use GUARD macro here since the connection memory hasn't been freed.
-         */
-        s2n_extensions_server_supported_versions_recv(client_conn, &fuzz_stuffer);
+    /* Pull a byte off the libfuzzer input and use it to set parameters */
+    uint8_t randval = 0;
+    GUARD(s2n_stuffer_read_uint8(&fuzz_stuffer, &randval));
+    client_conn->client_protocol_version = TLS_VERSIONS[randval % s2n_array_len(TLS_VERSIONS)];
 
-        /* Cleanup */
-        GUARD(s2n_config_free(client_conn->config));
-        GUARD(s2n_connection_free(client_conn));
-        GUARD(s2n_stuffer_free(&fuzz_stuffer));
-    }
+    /* Run Test
+     * Do not use GUARD macro here since the connection memory hasn't been freed.
+     */
+    s2n_extensions_server_supported_versions_recv(client_conn, &fuzz_stuffer);
+
+    /* Cleanup */
+    GUARD(s2n_config_free(client_conn->config));
+    GUARD(s2n_connection_free(client_conn));
+    GUARD(s2n_stuffer_free(&fuzz_stuffer));
+
     return 0;
 }

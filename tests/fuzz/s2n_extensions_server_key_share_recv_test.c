@@ -30,6 +30,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls13.h"
+#include "crypto/s2n_ecc_evp.h"
 
 /* This test is for TLS versions 1.3 and up only */
 static const uint8_t TLS_VERSIONS[] = {S2N_TLS13};
@@ -53,25 +54,36 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
-    for (int version = 0; version < s2n_array_len(TLS_VERSIONS); version++) {
+    /* We need at least one byte of input to set parameters */
+    S2N_FUZZ_ENSURE_MIN_LEN(len, 1);
 
-        /* Setup */
-        struct s2n_stuffer fuzz_stuffer = {0};
-        GUARD(s2n_stuffer_alloc(&fuzz_stuffer, len + 1));
-        GUARD(s2n_stuffer_write_bytes(&fuzz_stuffer, buf, len));
+    /* Setup */
+    struct s2n_stuffer fuzz_stuffer = {0};
+    GUARD(s2n_stuffer_alloc(&fuzz_stuffer, len));
+    GUARD(s2n_stuffer_write_bytes(&fuzz_stuffer, buf, len));
 
-        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-        notnull_check(client_conn);
-        client_conn->actual_protocol_version = TLS_VERSIONS[version];
+    struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+    notnull_check(client_conn);
 
-        /* Run Test
-         * Do not use GUARD macro here since the connection memory hasn't been freed.
-         */
-        s2n_extensions_server_key_share_recv(client_conn, &fuzz_stuffer);
+    /* Pull a byte off the libfuzzer input and use it to set parameters */
+    uint8_t randval = 0;
+    GUARD(s2n_stuffer_read_uint8(&fuzz_stuffer, &randval));
+    client_conn->actual_protocol_version = TLS_VERSIONS[randval % s2n_array_len(TLS_VERSIONS)];
 
-        /* Cleanup */
-        GUARD(s2n_connection_free(client_conn));
-        GUARD(s2n_stuffer_free(&fuzz_stuffer));
+    /* Generate ephemeral keys for all supported curves */
+    for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+        client_conn->secure.client_ecc_evp_params[i].negotiated_curve = s2n_ecc_evp_supported_curves_list[i];
+        GUARD(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[i]));
     }
+
+    /* Run Test
+     * Do not use GUARD macro here since the connection memory hasn't been freed.
+     */
+    s2n_extensions_server_key_share_recv(client_conn, &fuzz_stuffer);
+
+    /* Cleanup */
+    GUARD(s2n_connection_free(client_conn));
+    GUARD(s2n_stuffer_free(&fuzz_stuffer));
+
     return 0;
 }

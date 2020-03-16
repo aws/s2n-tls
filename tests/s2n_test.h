@@ -150,3 +150,6 @@ int test_count;
                                         } \
                                         printf("s2nd entered FIPS mode\n"); \
                                       }
+
+/* Ensures fuzz test input length is greater than or equal to the minimum needed for the test */
+#define S2N_FUZZ_ENSURE_MIN_LEN( len , min ) do {if ( (len) < (min) ) return 0;} while (0)
