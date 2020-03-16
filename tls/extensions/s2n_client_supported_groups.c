@@ -58,9 +58,45 @@ int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct s2n_stu
     proposed_curves.data = s2n_stuffer_raw_read(extension, proposed_curves.size);
     notnull_check(proposed_curves.data);
 
-    if (s2n_ecc_evp_find_supported_curve(&proposed_curves, &conn->secure.server_ecc_evp_params.negotiated_curve) != 0) {
+    GUARD(s2n_parse_client_supported_groups_list(&proposed_curves, conn->secure.mutually_supported_groups));
+    uint16_t supported_groups_size =  s2n_array_len(conn->secure.mutually_supported_groups);
+    if (s2n_choose_supported_group(conn->secure.mutually_supported_groups, supported_groups_size,
+            &conn->secure.server_ecc_evp_params) != 0) {
         /* Can't agree on a curve, ECC is not allowed. Return success to proceed with the handshake. */
         conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
     }
     return 0;
+}
+
+int s2n_parse_client_supported_groups_list(struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **supported_groups) {
+    struct s2n_stuffer iana_ids_in = {0};
+
+    GUARD(s2n_stuffer_init(&iana_ids_in, iana_ids));
+    iana_ids->data = s2n_stuffer_raw_write(&iana_ids_in, iana_ids->size);
+
+    for (int i = 0; i < iana_ids->size / 2; i++) {
+        uint16_t iana_id;
+        GUARD(s2n_stuffer_read_uint16(&iana_ids_in, &iana_id));
+        for (int j = 0; j < s2n_ecc_evp_supported_curves_list_len; j++) {
+            const struct s2n_ecc_named_curve *supported_curve = s2n_ecc_evp_supported_curves_list[j];
+            if (supported_curve->iana_id == iana_id) {
+                supported_groups[j] = supported_curve;
+            }
+        }
+    }
+    return 0;
+}
+
+int s2n_choose_supported_group(const struct s2n_ecc_named_curve **group_options, uint16_t group_options_length,
+    struct s2n_ecc_evp_params *chosen_group)
+ {
+    eq_check(s2n_ecc_evp_supported_curves_list_len, group_options_length);
+
+    for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+        if (group_options[i]) {
+            chosen_group->negotiated_curve = group_options[i];
+            return 0;
+        }
+    }
+    S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 }
