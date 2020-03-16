@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 ///////////////////////////////////////////////////////////////////////////////
-// SAW verification script for the top-level funcitons of the SIKE algorithm
+// SAW verification script for the top-level functions of the SIKE algorithm
 
 let do_prove = true;
 let debug = false;
