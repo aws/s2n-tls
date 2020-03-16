@@ -115,8 +115,8 @@ else()
     enable_language(ASM)
     try_compile(PQ_ASM_COMPILES ${CMAKE_BINARY_DIR}
             SOURCES
-            "${CMAKE_SOURCE_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
-            "${CMAKE_SOURCE_DIR}/pq-crypto/sike_r2/fp_x64_asm.S")
+            "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
+            "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r2/fp_x64_asm.S")
     if(PQ_ASM_COMPILES)
         message(STATUS "PQ ASM try_compile succeeded - using optimized x86_64 assembly for PQ crypto")
         file(GLOB PQ_X86_64_ASM "pq-crypto/sike_r2/fp_x64_asm.S")
