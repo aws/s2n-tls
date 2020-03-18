@@ -380,7 +380,7 @@ int main(int argc, char **argv)
         struct s2n_config *server_config, *client_config;
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));	
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
 
         char *cert_chain = NULL;
         char *private_key = NULL;
@@ -426,29 +426,32 @@ int main(int argc, char **argv)
         s2n_tls13_connection_keys(server_secrets_0, server_conn);
         EXPECT_EQUAL(server_secrets_0.size, 0);
 
+        EXPECT_EQUAL(client_conn->handshake.handshake_type, INITIAL);
         EXPECT_EQUAL(server_conn->handshake.handshake_type, INITIAL);
 
-        /* Server reads ClientHello */
+        /* Server reads ClientHello1 */
         EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), CLIENT_HELLO);
         EXPECT_SUCCESS(s2n_handshake_read_io(server_conn));
 
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13); /* Server is now on TLS13 */
+
         EXPECT_EQUAL(server_conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE);
+        EXPECT_EQUAL(s2n_server_requires_retry(server_conn), 1);
 
         s2n_tls13_connection_keys(server_secrets, server_conn);
         EXPECT_EQUAL(server_secrets.size, 48);
 
-        EXPECT_SUCCESS(s2n_conn_set_handshake_type(server_conn));
-
         /* Server sends HelloRetryRequest */
-        EXPECT_SUCCESS(s2n_server_should_retry(server_conn));
         EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_HELLO);
         EXPECT_SUCCESS(s2n_handshake_write_io(server_conn));
+
+        EXPECT_EQUAL(server_conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST);
 
         /* Client reads ServerHello */
         EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
         EXPECT_SUCCESS(s2n_handshake_read_io(client_conn));
-        EXPECT_EQUAL(client_conn->handshake.client_received_hrr, 1);
+
+        EXPECT_EQUAL(client_conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST);
 
         /* Client sends ClientHello2 */
         EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), CLIENT_HELLO);
@@ -459,20 +462,19 @@ int main(int argc, char **argv)
 
         EXPECT_EQUAL(server_secrets_0.size, 0);
 
-        EXPECT_EQUAL(server_conn->handshake.handshake_type, INITIAL);
+        EXPECT_EQUAL(client_conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST);
 
         /* Server reads ClientHello2 */
         EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), CLIENT_HELLO);
-        EXPECT_EQUAL(server_conn->handshake.server_requires_hrr, 0);
+        EXPECT_EQUAL(s2n_server_requires_retry(server_conn), 0);
         EXPECT_SUCCESS(s2n_handshake_read_io(server_conn));
 
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13); /* Server is now on TLS13 */
-        EXPECT_EQUAL(server_conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE);
-        EXPECT_EQUAL(server_conn->handshake.server_requires_hrr, 0);
+        EXPECT_EQUAL(s2n_server_requires_retry(server_conn), 0);
 
         EXPECT_EQUAL(server_secrets.size, 48);
 
-        EXPECT_SUCCESS(s2n_conn_set_handshake_type(server_conn));
+        EXPECT_EQUAL(server_conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST);
 
         /* Server sends ServerHello */
         EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_HELLO);
@@ -562,7 +564,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(default_cert));
         EXPECT_SUCCESS(s2n_config_free(client_config));
-	
+
         free(private_key);
         free(cert_chain);
     }

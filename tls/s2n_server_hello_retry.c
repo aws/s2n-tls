@@ -34,7 +34,7 @@ const uint8_t hello_retry_req_random[S2N_TLS_RANDOM_DATA_LEN] = {
 /* Lets the server flag whether a HelloRetryRequest is needed while processing extensions */
 int s2n_server_should_retry(struct s2n_connection *conn)
 {
-    S2N_ERROR_IF(conn->handshake.server_sent_hrr == 1, S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(conn->handshake.handshake_type & HELLO_RETRY_REQUEST, S2N_ERR_BAD_MESSAGE);
 
     conn->handshake.server_requires_hrr = 1;
 
@@ -82,9 +82,6 @@ int s2n_server_hello_retry_send(struct s2n_connection *conn)
     /* The HelloRetryRandom was written to the stuffer, but also needs to be stored in the connection */
     memcpy_check(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
 
-    /* Let the handshake writer know that we sent a request */
-    conn->handshake.server_sent_hrr = 1;
-
     /* Clear all existing key shares so we can verify that what the client sends back is valid */
     GUARD(s2n_connection_clear_all_key_shares(conn));
 
@@ -94,13 +91,14 @@ int s2n_server_hello_retry_send(struct s2n_connection *conn)
 int s2n_server_hello_retry_recv(struct s2n_connection *conn)
 {
     /* Only allow one retry request per connection */
-    S2N_ERROR_IF(conn->handshake.client_received_hrr == 1, S2N_ERR_BAD_MESSAGE);
-
-    /* Set the flag to prevent multiple HelloRetryRequests */
-    conn->handshake.client_received_hrr = 1;
+    S2N_ERROR_IF(conn->handshake.handshake_type & HELLO_RETRY_REQUEST, S2N_ERR_BAD_MESSAGE);
 
     /* The client extension parameters, like the key share extension, have already
      * been updated when the request was read off the wire. The state machine progress
      * will be updated after this message completes. Nothing else needs to be done here. */
+    conn->handshake.hello_retry_request = 1;
+
+    GUARD(s2n_conn_set_handshake_type(conn));
+
     return 0;
 }
