@@ -62,6 +62,7 @@ int s2n_init(void)
         TLS_EXTENSION_PQ_KEM_PARAMETERS,
         TLS_EXTENSION_RENEGOTIATION_INFO,
         TLS_EXTENSION_KEY_SHARE,
+        TLS_EXTENSION_COOKIE,
     };
     static const uint16_t  num_extensions = sizeof(extensions) / sizeof(uint16_t);
     for (uint16_t i = 0; i < num_extensions; i++) {

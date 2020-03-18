@@ -28,6 +28,7 @@
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
+#include "tls/s2n_tls13_handshake.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -89,7 +90,7 @@ static int s2n_server_add_downgrade_mechanism(struct s2n_connection *conn) {
     return 0;
 }
 
-int s2n_server_hello_recv(struct s2n_connection *conn)
+int s2n_parse_server_hello(struct s2n_connection *conn)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
     uint8_t compression_method;
@@ -124,12 +125,6 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     }
 
     if (conn->server_protocol_version >= S2N_TLS13) {
-        /* verify if it is a hello retry request*/
-        if (s2n_is_hello_retry_req(conn)) {
-            GUARD(s2n_server_hello_retry_recv(conn));
-        }
-
-        /* Check echoed session ID matches */
         S2N_ERROR_IF(session_id_len != conn->session_id_len || memcmp(session_id, conn->session_id, session_id_len), S2N_ERR_BAD_MESSAGE);
         conn->actual_protocol_version = conn->server_protocol_version;
         GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
@@ -172,6 +167,22 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         }
     }
 
+    return 0;
+}
+
+
+int s2n_server_hello_recv(struct s2n_connection *conn)
+{
+    /* Read the message off the wire */
+    GUARD(s2n_parse_server_hello(conn));
+
+    /* If this is a retry request, we have to move forward a little differently */
+    if (s2n_server_hello_retry_is_valid(conn)) {
+        GUARD(s2n_server_hello_retry_recv(conn));
+        conn->handshake.client_received_hrr = 1;
+        return 0;
+    }
+
     conn->actual_protocol_version_established = 1;
 
     GUARD(s2n_conn_set_handshake_type(conn));
@@ -191,9 +202,16 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
 int s2n_server_hello_send(struct s2n_connection *conn)
 {
+    /* If a curve was not negotiated we need to retry */
+    if (s2n_server_requires_retry(conn)) {
+        GUARD(s2n_server_hello_retry_send(conn));
+        GUARD(s2n_server_hello_retry_recreate_transcript(conn));
+
+        return 0;
+    }
+
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_stuffer server_random = {0};
-    
     struct s2n_blob b = {0};
     GUARD(s2n_blob_init(&b, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
 

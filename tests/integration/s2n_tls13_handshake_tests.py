@@ -24,6 +24,34 @@ import sys
 
 from common.s2n_test_openssl import run_openssl_connection_test
 from common.s2n_test_scenario import get_scenarios, Mode, Cipher, Version
+from common.s2n_test_reporting import Result, Status
+import common.s2n_test_common as util
+
+
+# An unsupported curve followed by a supported curve will cause OpenSSL
+# to advertise the supported curve, but only generate a keyshare for
+# the unsupported curve. This will make S2N send a HelloRetryRequest.
+HRR_ORDERED_CURVES = ['X448:P-256']
+
+
+def verify_hrr_random_data(server, client):
+    """
+    This callback verifies a HelloRetryRequest was sent from the S2N
+    server. If the rest of the integration test passes as well, then
+    the handshake completed after the HelloRetryRequest was sent.
+    """
+    result = Result()
+    result.status = Status.FAILED
+
+    # Start of HRR random data which will be printed in the
+    # client process output
+    marker = b"cf 21 ad 74 e5 9a 61 11 be 1d"
+    for line in client.stdout:
+        if marker in line:
+            result.status = Status.PASSED
+            break
+
+    return result
 
 
 def main():
@@ -39,6 +67,7 @@ def main():
 
     print("\n\tRunning TLS1.3 handshake tests with openssl: %s" % os.popen('openssl version').read())
     failed += run_openssl_connection_test(get_scenarios(host, port, versions=[Version.TLS13], s2n_modes=Mode.all(), ciphers=Cipher.all()))
+    failed += run_openssl_connection_test(get_scenarios(host, port, versions=[Version.TLS13], s2n_modes=[Mode.server], ciphers=Cipher.all(), curves=HRR_ORDERED_CURVES, peer_flags=['-tlsextdebug', '-msg']), test_func=verify_hrr_random_data)
 
     return failed
 

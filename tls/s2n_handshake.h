@@ -27,6 +27,25 @@
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_hash.h"
 
+/* From RFC 8446: https://tools.ietf.org/html/rfc8446#appendix-B.3 */
+#define TLS_HELLO_REQUEST              0
+#define TLS_CLIENT_HELLO               1
+#define TLS_SERVER_HELLO               2
+#define TLS_SERVER_NEW_SESSION_TICKET  4
+#define TLS_ENCRYPTED_EXTENSIONS       8
+#define TLS_CERTIFICATE               11
+#define TLS_SERVER_KEY                12
+#define TLS_CERT_REQ                  13
+#define TLS_SERVER_HELLO_DONE         14
+#define TLS_CERT_VERIFY               15
+#define TLS_CLIENT_KEY                16
+#define TLS_FINISHED                  20
+#define TLS_SERVER_CERT_STATUS        22
+#define TLS_SERVER_SESSION_LOOKUP     23
+#define TLS_MESSAGE_HASH             254
+
+#define MESSAGE_HASH_HEADER_LENGTH  4
+
 /* This is the list of message types that we support */
 typedef enum {
     CLIENT_HELLO=0,
@@ -160,6 +179,15 @@ struct s2n_handshake {
 
     /* Set to 1 if the RSA verification failed */
     uint8_t rsa_failed;
+
+    /* Used by the client to tracks if a HelloRetryRequest has already been seen */
+    unsigned client_received_hrr:1;
+
+    /* Used by the server to track whether a HelloRetryRequest was sent */
+    unsigned server_sent_hrr:1;
+
+    /* Used by the server to determine whether a HelloRetryRequest is needed */
+    unsigned server_requires_hrr:1;
 };
 
 extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
@@ -171,6 +199,7 @@ extern int s2n_handshake_require_all_hashes(struct s2n_handshake *handshake);
 extern uint8_t s2n_handshake_is_hash_required(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg);
 extern int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn);
 extern int s2n_handshake_get_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state *hash_state);
+extern int s2n_handshake_reset_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg);
 extern int s2n_conn_find_name_matching_certs(struct s2n_connection *conn);
 extern int s2n_create_wildcard_hostname(struct s2n_stuffer *hostname, struct s2n_stuffer *output);
 struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_connection *conn, const s2n_pkey_type cert_type);

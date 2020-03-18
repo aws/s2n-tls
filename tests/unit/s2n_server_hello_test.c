@@ -241,6 +241,9 @@ int main(int argc, char **argv)
             + S2N_TLS_CIPHER_SUITE_LEN
             + COMPRESSION_METHOD_SIZE;
 
+        /* Set the negotiated curve, otherwise the server might try to respond with a retry */
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+
         /* The server will respond with TLS1.1 even though it supports TLS1.3 */
         server_conn->actual_protocol_version = S2N_TLS11;
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
@@ -290,6 +293,9 @@ int main(int argc, char **argv)
             + server_conn->session_id_len
             + S2N_TLS_CIPHER_SUITE_LEN
             + COMPRESSION_METHOD_SIZE;
+
+        /* Set the negotiated curve, otherwise the server might try to respond with a retry */
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
 
         /* The server will respond with TLS1.2 even though it supports TLS1.3 */
         server_conn->actual_protocol_version = S2N_TLS12;
@@ -478,18 +484,21 @@ int main(int argc, char **argv)
 
         uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN] = {0};
         S2N_BLOB_FROM_HEX(random_blob, hello_retry_random_hex);
+
         /* random payload */
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(io, random_blob.data, S2N_TLS_RANDOM_DATA_LEN));
+
         /* session id */
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS_SESSION_ID_MAX_LEN));
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(io, session_id, S2N_TLS_SESSION_ID_MAX_LEN));
+
         /* cipher suites */
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(io, (0x13 << 8) + 0x01));
+
         /* no compression */
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, 0));
         EXPECT_EQUAL(S2N_TLS_RANDOM_DATA_LEN, random_blob.size);
-        /* Test s2n_server_hello_recv() fails with Unimplemented method error */
-        EXPECT_FAILURE_WITH_ERRNO_NO_RESET(s2n_server_hello_recv(client_conn), S2N_ERR_UNIMPLEMENTED);
+
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 

@@ -82,13 +82,13 @@ use_corked_io=False
 
 def get_supported_curves_list_by_version(libcrypto_version):
     if libcrypto_version == "openssl-1.1.1":
-        return  ["P-256", "P-384"]
+        return  ["P-256", "P-384", "X25519"]
     else:
         return  ["P-256", "P-384"]
 
 def get_supported_curves_str_by_version(libcrypto_version):
     if libcrypto_version == "openssl-1.1.1":
-        return "P-256:P-384"
+        return "P-256:P-384:X25519"
     else:
         return "P-256:P-384"
 

@@ -25,6 +25,7 @@ import os
 from enum import Enum as BaseEnum
 from multiprocessing.pool import ThreadPool
 
+
 class Enum(BaseEnum):
 
     def __str__(self):
@@ -116,7 +117,6 @@ ALL_CIPHERS_PER_LIBCRYPTO_VERSION = {
     "libressl"              : LEGACY_COMPATIBLE_CIPHERS,
     "boringssl"             : LEGACY_COMPATIBLE_CIPHERS,
 }
-
 
 ALL_CURVES = ["P-256", "P-384"]
 
@@ -216,6 +216,5 @@ def get_scenarios(host, start_port, s2n_modes=Mode.all(), versions=[None], ciphe
                 s2n_flags=s2n_flags,
                 peer_flags=peer_flags))
             port += 1
-        
-    return scenarios
 
+    return scenarios

@@ -22,6 +22,7 @@
 
 #include "crypto/s2n_fips.h"
 
+#include "tls/extensions/s2n_cookie.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
@@ -39,21 +40,6 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_str.h"
 
-/* From RFC 8446: https://tools.ietf.org/html/rfc8446#appendix-B.3 */
-#define TLS_HELLO_REQUEST              0
-#define TLS_CLIENT_HELLO               1
-#define TLS_SERVER_HELLO               2
-#define TLS_SERVER_NEW_SESSION_TICKET  4
-#define TLS_ENCRYPTED_EXTENSIONS       8
-#define TLS_CERTIFICATE               11
-#define TLS_SERVER_KEY                12
-#define TLS_CERT_REQ                  13
-#define TLS_SERVER_HELLO_DONE         14
-#define TLS_CERT_VERIFY               15
-#define TLS_CLIENT_KEY                16
-#define TLS_FINISHED                  20
-#define TLS_SERVER_CERT_STATUS        22
-#define TLS_SERVER_SESSION_LOOKUP     23
 
 struct s2n_handshake_action {
     uint8_t record_type;
@@ -418,6 +404,23 @@ static int s2n_advance_message(struct s2n_connection *conn)
         this_mode = 'C';
     }
 
+    /* If we were responding to a client hello with a retry request, reset the handshake */
+    if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO && s2n_server_requires_retry(conn)) {
+        /* Reset handshake state */
+        conn->handshake.server_sent_hrr = 1;
+        conn->handshake.server_requires_hrr = 0;
+        conn->handshake.client_hello_received = 0;
+        conn->handshake.handshake_type = INITIAL;
+        conn->handshake.message_number = CLIENT_HELLO;
+
+        /* Reset client hello state */
+        GUARD(s2n_stuffer_wipe(&conn->client_hello.raw_message));
+        GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, 0));
+        GUARD(s2n_client_hello_free(&conn->client_hello));
+        GUARD(s2n_stuffer_growable_alloc(&conn->client_hello.raw_message, 0));
+        return 0;
+    }
+
     /* Actually advance the message number */
     conn->handshake.message_number++;
 
@@ -615,104 +618,6 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
     return handshake_type_str[handshake_type];
 }
 
-static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
-{
-    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5)) {
-        /* The handshake MD5 hash state will fail the s2n_hash_is_available() check
-         * since MD5 is not permitted in FIPS mode. This check will not be used as
-         * the handshake MD5 hash state is specifically used by the TLS 1.0 and TLS 1.1
-         * PRF, which is required to comply with the TLS 1.0 and 1.1 RFCs and is approved
-         * as per NIST Special Publication 800-52 Revision 1.
-         */
-        GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
-    }
-
-    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1)) {
-        GUARD(s2n_hash_update(&conn->handshake.sha1, data->data, data->size));
-    }
-
-    const uint8_t md5_sha1_required = (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5) &&
-                                       s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1));
-
-    if (md5_sha1_required) {
-        /* The MD5_SHA1 hash can still be used for TLS 1.0 and 1.1 in FIPS mode for 
-         * the handshake hashes. This will only be used for the signature check in the
-         * CertificateVerify message and the PRF. NIST SP 800-52r1 approves use
-         * of MD5_SHA1 for these use cases (see footnotes 15 and 20, and section
-         * 3.3.2) */
-        GUARD(s2n_hash_update(&conn->handshake.md5_sha1, data->data, data->size));
-    }
-
-    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA224)) {
-        GUARD(s2n_hash_update(&conn->handshake.sha224, data->data, data->size));
-    }
-
-    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA256)) {
-        GUARD(s2n_hash_update(&conn->handshake.sha256, data->data, data->size));
-    }
-
-    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA384)) {
-        GUARD(s2n_hash_update(&conn->handshake.sha384, data->data, data->size));
-    }
-
-    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA512)) {
-        GUARD(s2n_hash_update(&conn->handshake.sha512, data->data, data->size));
-    }
-
-    return 0;
-}
-
-/* this hook runs before hashes are updated */
-static int s2n_conn_pre_handshake_hashes_update(struct s2n_connection *conn)
-{
-    if (conn->actual_protocol_version < S2N_TLS13) {
-        return 0;
-    }
-
-    /* Right now this function is only concerned with CLIENT_FINISHED */
-    if (s2n_conn_get_current_message_type(conn) != CLIENT_FINISHED) {
-        return 0;
-    }
-
-    /* This runs before handshake update because application secrets uses only
-     * handshake hashes up to Server finished. This handler works in both
-     * read and write modes.
-     */
-    GUARD(s2n_tls13_handle_application_secrets(conn));
-
-    return 0;
-}
-
-/* this hook runs after hashes are updated */
-static int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
-{
-    if (conn->actual_protocol_version < S2N_TLS13) {
-        return 0;
-    }
-
-    struct s2n_blob client_seq = {.data = conn->secure.client_sequence_number,.size = sizeof(conn->secure.client_sequence_number) };
-    struct s2n_blob server_seq = {.data = conn->secure.server_sequence_number,.size = sizeof(conn->secure.server_sequence_number) };
-
-    switch(s2n_conn_get_current_message_type(conn)) {
-    case SERVER_HELLO:
-        GUARD(s2n_tls13_handle_handshake_secrets(conn));
-        GUARD(s2n_blob_zero(&client_seq));
-        GUARD(s2n_blob_zero(&server_seq));
-        conn->server = &conn->secure;
-        conn->client = &conn->secure;
-        GUARD(s2n_stuffer_wipe(&conn->alert_in));
-        break;
-    case CLIENT_FINISHED:
-        /* Reset sequence numbers for Application Data */
-        GUARD(s2n_blob_zero(&client_seq));
-        GUARD(s2n_blob_zero(&server_seq));
-        break;
-    default:
-        break;
-    }
-    return 0;
-}
-
 /* Writing is relatively straight forward, simply write each message out as a record,
  * we may fragment a message across multiple records, but we never coalesce multiple
  * messages into single records. 
@@ -729,11 +634,11 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
      */
     if (s2n_stuffer_is_wiped(&conn->handshake.io)) {
         if (record_type == TLS_HANDSHAKE) {
-            GUARD(s2n_handshake_write_header(conn, ACTIVE_STATE(conn).message_type));
+            GUARD(s2n_handshake_write_header(&conn->handshake.io, ACTIVE_STATE(conn).message_type));
         }
         GUARD(ACTIVE_STATE(conn).handler[conn->mode] (conn));
         if (record_type == TLS_HANDSHAKE) {
-            GUARD(s2n_handshake_finish_header(conn));
+            GUARD(s2n_handshake_finish_header(&conn->handshake.io));
         }
     }
 
