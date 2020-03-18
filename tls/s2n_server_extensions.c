@@ -70,13 +70,8 @@ int s2n_server_extensions_send_size(struct s2n_connection *conn)
         total_size += s2n_kex_server_extension_size(conn->secure.cipher_suite->key_exchange_alg, conn);
     }
 
-    if (s2n_server_can_send_ocsp(conn)) {
-        total_size += 4;
-    }
-
-    if (s2n_server_can_send_sct_list(conn)) {
-        total_size += 4 + conn->handshake_params.our_chain_and_key->sct_list.size;
-    }
+    total_size += s2n_server_extensions_status_request_send_size(conn);
+    total_size += s2n_server_extensions_sct_list_send_size(conn);
 
     total_size += s2n_server_extensions_max_fragment_length_send_size(conn);
 
@@ -132,18 +127,10 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     GUARD(s2n_server_extensions_alpn_send(conn, out));
 
     /* Write OCSP extension */
-    if (s2n_server_can_send_ocsp(conn)) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_STATUS_REQUEST));
-        GUARD(s2n_stuffer_write_uint16(out, 0));
-    }
+    GUARD(s2n_server_extensions_status_request_send(conn, out));
 
     /* Write Signed Certificate Timestamp extension */
-    if (s2n_server_can_send_sct_list(conn)) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SCT_LIST));
-        GUARD(s2n_stuffer_write_uint16(out, conn->handshake_params.our_chain_and_key->sct_list.size));
-        GUARD(s2n_stuffer_write_bytes(out, conn->handshake_params.our_chain_and_key->sct_list.data,
-                                      conn->handshake_params.our_chain_and_key->sct_list.size));
-    }
+    GUARD(s2n_server_extensions_sct_list_send(conn, out));
 
     GUARD(s2n_server_extensions_max_fragment_length_send(conn, out));
 
