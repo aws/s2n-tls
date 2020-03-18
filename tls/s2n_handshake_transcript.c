@@ -33,8 +33,8 @@ int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
 
     switch(s2n_conn_get_current_message_type(conn)) {
     case SERVER_HELLO:
-        /* If we are sending a retry request, we didn't decide on a key share. There are no secrets to handle. */
-        if (s2n_server_requires_retry(conn)) {
+        /* If we are sending a retry request, or we just received a retry request, we didn't decide on a key share. There are no secrets to handle. */
+        if (s2n_server_requires_retry(conn) || s2n_server_hello_retry_is_valid(conn)) {
             break;
         }
 

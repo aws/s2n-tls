@@ -39,7 +39,7 @@ int s2n_extensions_client_supported_groups_send(struct s2n_connection *conn, str
     GUARD(s2n_stuffer_write_uint8(out, 1));
     /* Only allow uncompressed format */
     GUARD(s2n_stuffer_write_uint8(out, 0));
-    
+
     return 0;
 }
 

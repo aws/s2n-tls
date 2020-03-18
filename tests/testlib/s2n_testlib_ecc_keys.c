@@ -27,7 +27,7 @@ int s2n_public_ecc_keys_are_equal(struct s2n_ecc_evp_params *params_1, struct s2
     struct s2n_stuffer point_stuffer;
     int size = params_1->negotiated_curve->share_size;
 
-    if (params_1->negotiated_curve != params_2->negotiated_curve) {
+    if (memcmp(params_1->negotiated_curve, params_2->negotiated_curve, sizeof(struct s2n_ecc_named_curve)) != 0) {
         return 0;
     }
 

@@ -27,7 +27,6 @@ int main(int argc, char **argv)
     struct s2n_stuffer out;
 
     BEGIN_TEST();
-
     EXPECT_SUCCESS(s2n_enable_tls13());
 
     /* These tests check how the server parses the supported groups sent by the client */
@@ -49,10 +48,10 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->secure.mutually_supported_groups[0], s2n_ecc_evp_supported_curves_list[0]);
         EXPECT_NULL(server_conn->secure.mutually_supported_groups[1]);
 
-        EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
-    { 
+    {
         /* If the client sent no supported groups at all, mutually_supported_groups should contain
         * NULL values and no supported group should be chosen.
         */
@@ -65,13 +64,13 @@ int main(int argc, char **argv)
         for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
             EXPECT_NULL(server_conn->secure.mutually_supported_groups[i]);
         }
-        EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
     {
         /* If the client has sent one mutually supported group and several groups the server does not support,
-        * mutually_supported_groups should contain only the group that the server supports.
-        */
+         * mutually_supported_groups should contain only the group that the server supports.
+         */
 
         uint8_t data[6] = {0};
         EXPECT_SUCCESS(s2n_blob_init(&iana_ids, data, sizeof(data)));
@@ -82,7 +81,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&out, s2n_ecc_evp_supported_curves_list[1]->iana_id));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-
         EXPECT_SUCCESS(s2n_parse_client_supported_groups_list(&iana_ids, server_conn->secure.mutually_supported_groups));
 
         EXPECT_NULL(server_conn->secure.mutually_supported_groups[0]);

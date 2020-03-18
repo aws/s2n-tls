@@ -92,6 +92,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 {
     int total_size = s2n_server_extensions_send_size(conn);
 
+    GUARD(total_size);
     if (total_size == 0) {
         return 0;
     }
@@ -135,13 +136,13 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     GUARD(s2n_server_extensions_alpn_send(conn, out));
 
     /* Write OCSP extension */
-    if (s2n_server_can_send_ocsp(conn)) {
+    if (s2n_server_can_send_ocsp(conn) && !is_tls13_conn) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_STATUS_REQUEST));
         GUARD(s2n_stuffer_write_uint16(out, 0));
     }
 
     /* Write Signed Certificate Timestamp extension */
-    if (s2n_server_can_send_sct_list(conn)) {
+    if (s2n_server_can_send_sct_list(conn) && !is_tls13_conn) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SCT_LIST));
         GUARD(s2n_stuffer_write_uint16(out, conn->handshake_params.our_chain_and_key->sct_list.size));
         GUARD(s2n_stuffer_write_bytes(out, conn->handshake_params.our_chain_and_key->sct_list.data,

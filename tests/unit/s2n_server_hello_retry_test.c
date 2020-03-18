@@ -17,8 +17,10 @@
 
 #include "testlib/s2n_testlib.h"
 
+#include "tls/extensions/s2n_cookie.h"
 #include "tls/extensions/s2n_key_share.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
+#include "tls/extensions/s2n_server_key_share.h"
 
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
@@ -26,9 +28,9 @@
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
 
-#include "tls/extensions/s2n_server_key_share.h"
-
 #include "error/s2n_errno.h"
+
+#define TEST_COOKIE_SIZE    32
 
 const uint8_t SESSION_ID_SIZE = 1;
 const uint8_t COMPRESSION_METHOD_SIZE = 1;
@@ -80,7 +82,7 @@ int main(int argc, char **argv)
 
         /* The client will need a key share extension to properly parse the hello */
         /* Total extension size + size of each extension */
-        total += 2 + s2n_extensions_server_supported_versions_size() + s2n_extensions_server_key_share_send_size(server_conn);
+        total += 2 + s2n_extensions_server_supported_versions_size(server_conn) + s2n_extensions_server_key_share_send_size(server_conn);
 
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
 
@@ -98,6 +100,7 @@ int main(int argc, char **argv)
         client_conn->server_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
 
+        printf("XXX data avail %d\n", s2n_stuffer_data_available(client_stuffer));
         EXPECT_EQUAL(s2n_stuffer_data_available(client_stuffer), 0);
 
         EXPECT_EQUAL(client_conn->handshake.client_received_hrr, 1);

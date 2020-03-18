@@ -70,12 +70,9 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
     }
     /* Client sent no keyshares, need to send Hello Retry Request with first negotiated curve */
     if (conn->secure.server_ecc_evp_params.negotiated_curve) {
-        /* Once hello retry request is implemented in issue #1607, lines can
-         be uncommented and error can be removed. 
         GUARD(s2n_server_should_retry(conn));
-        return 0; */
-        S2N_ERROR(S2N_ERR_BAD_KEY_SHARE);
-    }   
+        return 0;
+    }
     S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 }
 
@@ -143,6 +140,26 @@ int s2n_extensions_server_key_share_send(struct s2n_connection *conn, struct s2n
     return 0;
 }
 
+static int s2n_hello_retry_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    uint16_t named_group;
+
+    /* Make sure we can read the 2 byte named group */
+    S2N_ERROR_IF(s2n_stuffer_data_available(extension) < 2, S2N_ERR_BAD_KEY_SHARE);
+    GUARD(s2n_stuffer_read_uint16(extension, &named_group));
+
+    /* Our original key shares didn't cut it, so clear the list and fill it with what the server wants */
+    GUARD(s2n_connection_clear_all_key_shares(conn));
+
+    for (uint32_t i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+        if (s2n_ecc_evp_supported_curves_list[i]->iana_id == named_group) {
+            GUARD(s2n_connection_add_preferred_key_share_by_group(conn, named_group));
+        }
+    }
+
+    return 0;
+}
+
 /*
  * Client receives a Server Hello key share.
  *
@@ -153,20 +170,17 @@ int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n
     notnull_check(conn);
     notnull_check(extension);
 
-    uint16_t named_group, share_size;
-
-    /* Make sure we can read the 2 byte named group */
-    S2N_ERROR_IF(s2n_stuffer_data_available(extension) < 2, S2N_ERR_BAD_KEY_SHARE);
-    GUARD(s2n_stuffer_read_uint16(extension, &named_group));
-
-    /* If this is a HelloRetryRequest, we won't have a key share. We just have the selected group.
-     * Exit early so a proper keyshare can be generated. */
+    /* If this is a HelloRetryRequest then we won't have a key share, just the selected group */
     if (s2n_server_hello_retry_is_valid(conn)) {
+        GUARD(s2n_hello_retry_key_share_recv(conn, extension));
         return 0;
     }
 
-    /* Make sure we can read the 2 byte key share size */
-    S2N_ERROR_IF(s2n_stuffer_data_available(extension) < 2, S2N_ERR_BAD_KEY_SHARE);
+    uint16_t named_group, share_size;
+
+    /* Make sure we can read 4 bytes to get the named group and share size */
+    S2N_ERROR_IF(s2n_stuffer_data_available(extension) < 4, S2N_ERR_BAD_KEY_SHARE);
+    GUARD(s2n_stuffer_read_uint16(extension, &named_group));
     GUARD(s2n_stuffer_read_uint16(extension, &share_size));
 
     /* Verify that *share_size* bytes are available in the stuffer */

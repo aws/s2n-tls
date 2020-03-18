@@ -24,14 +24,13 @@ int main(int argc, char **argv)
     struct s2n_connection *server_conn;
 
     BEGIN_TEST();
-
     EXPECT_SUCCESS(s2n_enable_tls13());
 
     /* These tests check the server's logic when selecting a keyshare and supporting group. */
 
     {
         /* If client and server have no mutually supported groups and no mutually supported
-         * keyshares, a Hello Retry Request is not sent. 
+         * keyshares, a Hello Retry Request is not sent.
          */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
@@ -44,16 +43,15 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-        /* Commented out until hello retry is implemented in issue #1607.
-        EXPECT_FALSE(s2n_server_requires_retry(server_conn)); */
+        EXPECT_FALSE(s2n_server_requires_retry(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
     {
-        /* If client and server have no mutually supported groups but client and server have 
+        /* If client and server have no mutually supported groups but client and server have
          * found mutually supported keyshares(erroneous behavior), a Hello Retry Request flag is not set and the server
-         * ignores the mutually supported keyshare. 
-         */ 
+         * ignores the mutually supported keyshare.
+         */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
         server_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
@@ -62,15 +60,14 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-        /* Commented out until hello retry is implemented in issue #1607.
-        EXPECT_FALSE(s2n_server_requires_retry(server_conn)); */
-        EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
+        EXPECT_FALSE(s2n_server_requires_retry(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
     {
         /* If client has sent no keys but server and client have found a mutually supported group,
-         * send Hello Retry Request. 
-         */ 
+         * send Hello Retry Request.
+         */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
         server_conn->secure.mutually_supported_groups[0] = s2n_ecc_evp_supported_curves_list[0];
@@ -78,20 +75,18 @@ int main(int argc, char **argv)
             EXPECT_NULL(server_conn->secure.client_ecc_evp_params[i].evp_pkey);
             EXPECT_NULL(server_conn->secure.client_ecc_evp_params[i].negotiated_curve);
         }
-        /* Commented out until hello retry request is implemented in issue #1607.
-        EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn)); */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn), S2N_ERR_BAD_KEY_SHARE);
+
+        EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
 
         EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, s2n_ecc_evp_supported_curves_list[0]);
-        /* Commented out until hello retry is implemented in issue #1607.
-        EXPECT_TRUE(s2n_server_requires_retry(server_conn)); */
-        EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
+        EXPECT_TRUE(s2n_server_requires_retry(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
     {
         /* When client and server mutually supported group 0 and group 1, but client has only sent a keyshare for
          * group 1, Hello Retry Request is not sent and server chooses group 1.
-         */ 
+         */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
         server_conn->secure.mutually_supported_groups[0] = s2n_ecc_evp_supported_curves_list[0];
@@ -101,12 +96,10 @@ int main(int argc, char **argv)
         EXPECT_NULL(server_conn->secure.client_ecc_evp_params[0].negotiated_curve);
         server_conn->secure.client_ecc_evp_params[1].negotiated_curve = s2n_ecc_evp_supported_curves_list[1];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.client_ecc_evp_params[1]));
-
         EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
 
         EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, s2n_ecc_evp_supported_curves_list[1]);
-        /* Commented out until hello retry is implemented in issue #1607.
-        EXPECT_FALSE(s2n_server_requires_retry(server_conn)); */
+        EXPECT_FALSE(s2n_server_requires_retry(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
     }
 
@@ -123,10 +116,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
 
         EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, s2n_ecc_evp_supported_curves_list[0]);
-        /* Commented out until hello retry is implemented in issue #1607.
-        EXPECT_FALSE(s2n_server_requires_retry(server_conn)); */
-        EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
-    } 
+        EXPECT_FALSE(s2n_server_requires_retry(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
 
     END_TEST();
     return 0;
