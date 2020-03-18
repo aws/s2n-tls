@@ -50,6 +50,29 @@ int s2n_init(void)
     
     S2N_ERROR_IF(atexit(s2n_cleanup_atexit) != 0, S2N_ERR_ATEXIT);
 
+    /* Set the supported extension mask bits for each of the recognized
+     * extensions */
+    static const uint16_t extensions[] = {
+        TLS_EXTENSION_SERVER_NAME,
+        TLS_EXTENSION_MAX_FRAG_LEN,
+        TLS_EXTENSION_STATUS_REQUEST,
+        TLS_EXTENSION_SUPPORTED_GROUPS,
+        TLS_EXTENSION_EC_POINT_FORMATS,
+        TLS_EXTENSION_SIGNATURE_ALGORITHMS,
+        TLS_EXTENSION_ALPN,
+        TLS_EXTENSION_SCT_LIST,
+        TLS_EXTENSION_SESSION_TICKET,
+        TLS_EXTENSION_SUPPORTED_VERSIONS,
+        TLS_EXTENSION_PQ_KEM_PARAMETERS,
+        TLS_EXTENSION_RENEGOTIATION_INFO,
+        TLS_EXTENSION_KEY_SHARE,
+        TLS_EXTENSION_COOKIE,
+    };
+    static const uint16_t  num_extensions = sizeof(extensions) / sizeof(uint16_t);
+    for (uint16_t i = 0; i < num_extensions; i++) {
+        s2n_register_extension(extensions[i]);
+    }
+
     if (getenv("S2N_PRINT_STACKTRACE")) {
       s2n_stack_traces_enabled_set(true);
     }
