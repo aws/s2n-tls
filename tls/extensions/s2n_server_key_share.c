@@ -98,7 +98,7 @@ int s2n_extensions_server_key_share_send_size(struct s2n_connection *conn)
 {
     const struct s2n_ecc_named_curve* curve = conn->secure.server_ecc_evp_params.negotiated_curve;
 
-    /* Retry requests have a different key share format, so the size is only includes the named group */
+    /* Retry requests have a different key share format, so the size only includes the named group */
     if (s2n_server_requires_retry(conn)) {
         const int retry_key_share_size = S2N_SIZE_OF_EXTENSION_TYPE
             + S2N_SIZE_OF_EXTENSION_DATA_SIZE

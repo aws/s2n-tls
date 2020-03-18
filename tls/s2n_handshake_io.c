@@ -119,7 +119,7 @@ static const char *message_names[] = {
 };
 
 /* Maximum number of valid handshakes */
-#define S2N_HANDSHAKES_COUNT        128
+#define S2N_HANDSHAKES_COUNT        256
 
 /* Maximum number of messages in a handshake */
 #define S2N_MAX_HANDSHAKE_LENGTH    32
@@ -374,6 +374,15 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
             CLIENT_CHANGE_CIPHER_SPEC, CLIENT_CERT, CLIENT_FINISHED,
             APPLICATION_DATA
     },
+
+    [NEGOTIATED | HELLO_RETRY_REQUEST | FULL_HANDSHAKE] = {
+            CLIENT_HELLO,
+            SERVER_HELLO,
+            CLIENT_HELLO,
+            SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+            CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
 };
 
 #define MAX_HANDSHAKE_TYPE_LEN 128
@@ -386,7 +395,8 @@ static const char* handshake_type_names[] = {
     "OCSP_STATUS|",
     "CLIENT_AUTH|",
     "WITH_SESSION_TICKET|",
-    "NO_CLIENT_CERT|"
+    "NO_CLIENT_CERT|",
+    "HELLO_RETRY_REQUEST|"
 };
 
 #define IS_TLS13_HANDSHAKE( conn )    ((conn)->actual_protocol_version == S2N_TLS13)
@@ -416,23 +426,6 @@ static int s2n_advance_message(struct s2n_connection *conn)
     char this_mode = 'S';
     if (conn->mode == S2N_CLIENT) {
         this_mode = 'C';
-    }
-
-    /* If we were responding to a client hello with a retry request, reset the handshake */
-    if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO && s2n_server_requires_retry(conn)) {
-        /* Reset handshake state */
-        conn->handshake.server_sent_hrr = 1;
-        conn->handshake.server_requires_hrr = 0;
-        conn->handshake.client_hello_received = 0;
-        conn->handshake.handshake_type = INITIAL;
-        conn->handshake.message_number = CLIENT_HELLO;
-
-        /* Reset client hello state */
-        GUARD(s2n_stuffer_wipe(&conn->client_hello.raw_message));
-        GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, 0));
-        GUARD(s2n_client_hello_free(&conn->client_hello));
-        GUARD(s2n_stuffer_growable_alloc(&conn->client_hello.raw_message, 0));
-        return 0;
     }
 
     /* Actually advance the message number */
@@ -510,6 +503,10 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
     if (IS_TLS13_HANDSHAKE(conn)) {
         conn->handshake.handshake_type |= FULL_HANDSHAKE;
+
+        if (conn->handshake.hello_retry_request == 1) {
+            conn->handshake.handshake_type |= HELLO_RETRY_REQUEST;
+        }
 
         return 0;
     }
