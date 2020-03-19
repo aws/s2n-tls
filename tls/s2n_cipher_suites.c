@@ -25,6 +25,7 @@
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 #include "tls/s2n_kex.h"
 #include "utils/s2n_safety.h"
 
@@ -1116,6 +1117,11 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
     /* s2n supports only server order */
     for (int i = 0; i < cipher_preferences->count; i++) {
         const uint8_t *ours = cipher_preferences->suites[i]->iana_value;
+
+        /* if the connection is using TLS 1.3, skip non-TLS 1.3 ciphers */
+        if (conn->actual_protocol_version >= S2N_TLS13 && !s2n_is_valid_tls13_cipher(ours)) {
+            continue;
+        }
 
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
             /* We have a match */

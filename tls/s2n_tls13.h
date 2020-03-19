@@ -18,3 +18,4 @@
 int s2n_is_tls13_enabled();
 int s2n_enable_tls13();
 int s2n_disable_tls13();
+bool s2n_is_valid_tls13_cipher(const uint8_t version[2]);
