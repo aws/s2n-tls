@@ -162,26 +162,19 @@ int main(int argc, char **argv)
     {
         uint8_t value[2] = { 0x13, 0x01 };
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13;
-        value[1] = 0x02;
+        value[0] = 0x13; value[1] = 0x02;
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13;
-        value[1] = 0x03;
+        value[0] = 0x13; value[1] = 0x03;
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13;
-        value[1] = 0x04;
+        value[0] = 0x13; value[1] = 0x04;
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13;
-        value[1] = 0x05;
+        value[0] = 0x13; value[1] = 0x05;
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13;
-        value[1] = 0x06;
+        value[0] = 0x13; value[1] = 0x06;
         EXPECT_FALSE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13;
-        value[1] = 0x00;
+        value[0] = 0x13; value[1] = 0x00;
         EXPECT_FALSE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x12;
-        value[1] = 0x01;
+        value[0] = 0x12; value[1] = 0x01;
         EXPECT_FALSE(s2n_is_valid_tls13_cipher(value));
 
         EXPECT_FALSE(s2n_is_valid_tls13_cipher(s2n_dhe_rsa_with_3des_ede_cbc_sha.iana_value));
