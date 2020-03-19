@@ -538,7 +538,7 @@ int main(int argc, char **argv)
             #if S2N_OPENSSL_VERSION_AT_LEAST(1,1,0)
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers2, count));
             EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
-            #else
+            #elif
             EXPECT_FAILURE(s2n_set_cipher_as_tls_server(conn, wire_ciphers2, count));
             #endif
 
