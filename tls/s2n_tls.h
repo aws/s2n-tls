@@ -87,7 +87,8 @@ extern uint16_t mfl_code_to_length[5];
 #define s2n_server_can_send_ec_point_formats(conn) \
         ((conn)->ec_point_formats)
 
-#define s2n_server_can_send_ocsp(conn) ((conn)->status_type == S2N_STATUS_REQUEST_OCSP && \
+#define s2n_server_can_send_ocsp(conn) ( (conn)->mode == S2N_SERVER && \
+        (conn)->status_type == S2N_STATUS_REQUEST_OCSP && \
         (conn)->handshake_params.our_chain_and_key && \
         (conn)->handshake_params.our_chain_and_key->ocsp_status.size > 0)
 

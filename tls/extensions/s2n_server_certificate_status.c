@@ -21,6 +21,22 @@
 #include "tls/extensions/s2n_server_certificate_status.h"
 #include "utils/s2n_safety.h"
 
+#define U24_SIZE 3
+
+int s2n_server_certificate_status_send_size(struct s2n_connection *conn)
+{
+    return sizeof(uint8_t) + U24_SIZE + conn->handshake_params.our_chain_and_key->ocsp_status.size;
+}
+
+int s2n_server_certificate_status_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    GUARD(s2n_stuffer_write_uint8(out, (uint8_t) S2N_STATUS_REQUEST_OCSP));
+    GUARD(s2n_stuffer_write_uint24(out, conn->handshake_params.our_chain_and_key->ocsp_status.size));
+    GUARD(s2n_stuffer_write(out, &conn->handshake_params.our_chain_and_key->ocsp_status));
+
+    return 0;
+}
+
 int s2n_server_certificate_status_parse(struct s2n_connection *conn, struct s2n_blob *status)
 {
     GUARD(s2n_realloc(&conn->status_response, status->size));

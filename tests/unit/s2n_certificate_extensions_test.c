@@ -111,7 +111,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(ecdsa_cert, cert_chain_pem, private_key_pem));
-        
+
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
         server_conn->handshake_params.our_chain_and_key = ecdsa_cert;
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(ecdsa_cert, cert_chain_pem, private_key_pem));
-        
+
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
     }
 
     /* Test this does not break happy path TLS 1.2 server send/recv */
-    { 
+    {
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         server_conn->actual_protocol_version = S2N_TLS12;
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(ecdsa_cert, cert_chain_pem, private_key_pem));
-        
+
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
         server_conn->handshake_params.our_chain_and_key = ecdsa_cert;
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
     }
 
     /* Test TLS 1.2 client send/recv happy path does not break */
-    { 
+    {
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->actual_protocol_version = S2N_TLS12;
@@ -218,7 +218,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(ecdsa_cert, cert_chain_pem, private_key_pem));
-        
+
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
@@ -268,6 +268,92 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->handshake.io), 0);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
+    }
+
+
+    /* Test OSCP sending with s2n_certificate_extensions_send() */
+    {
+        /* some arbitrary numbers for testing */
+        #define OCSP_SIZE 5
+        #define RAW_CERT_SIZE 7
+
+        struct s2n_connection *server_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
+        s2n_stack_blob(ocsp_status, OCSP_SIZE, OCSP_SIZE);
+        s2n_stack_blob(raw, RAW_CERT_SIZE, RAW_CERT_SIZE);
+        struct s2n_cert_chain_and_key chain_and_key = {0};
+        struct s2n_cert_chain cert_chain = {0};
+        struct s2n_cert cert1 = {0};
+        struct s2n_cert cert2 = {0};
+        cert1.raw = raw;
+        cert2.raw = raw;
+
+        cert_chain.chain_size = 3;
+        chain_and_key.cert_chain = &cert_chain;
+        cert_chain.head = &cert1;
+        cert1.next = &cert2;
+        chain_and_key.ocsp_status = ocsp_status;
+
+        /* 2 certs in the chain, total extensions will occupy 4 bytes */
+        EXPECT_EQUAL(s2n_certificate_total_extensions_size(server_conn, &chain_and_key), 4);
+
+        struct s2n_stuffer stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
+
+        /* Empty certificate extensions occupies 2 bytes */
+        EXPECT_SUCCESS(s2n_certificate_extensions_send_empty(&stuffer));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 2);
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+
+        /* Certificate extensions sending without extensions also occupies 2 bytes */
+        EXPECT_SUCCESS(s2n_certificate_extensions_send(server_conn, &stuffer, &chain_and_key));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 2);
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+
+        /* Turn on the flags for OCSP */
+        server_conn->status_type = S2N_STATUS_REQUEST_OCSP;
+        server_conn->handshake_params.our_chain_and_key = &chain_and_key;
+
+        const uint32_t EXPECTED_CERTIFICATE_EXTENSIONS_SIZE = 2 /* status request extensions header */
+                                                            + 2 /* status request size */
+                                                            + 1 /* status type */
+                                                            + 3 /* ocsp header size */
+                                                            + OCSP_SIZE; /* ocsp size; */
+        const uint32_t EXPECTED_EXTENSIONS_SIZE = 4 /* u16 headers for 2 cert chains */
+            + EXPECTED_CERTIFICATE_EXTENSIONS_SIZE;
+
+        EXPECT_EQUAL(s2n_certificate_extensions_size(server_conn, &chain_and_key), EXPECTED_CERTIFICATE_EXTENSIONS_SIZE);
+        EXPECT_EQUAL(s2n_certificate_total_extensions_size(server_conn, &chain_and_key), EXPECTED_EXTENSIONS_SIZE);
+        EXPECT_SUCCESS(s2n_certificate_extensions_send(server_conn, &stuffer, &chain_and_key));
+
+        uint16_t ocsp_extension_size = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &ocsp_extension_size));
+        EXPECT_EQUAL(ocsp_extension_size, s2n_stuffer_data_available(&stuffer));
+        EXPECT_EQUAL(ocsp_extension_size, EXPECTED_EXTENSIONS_SIZE - 4); /* remove the overall extensions header overheads */
+
+        struct s2n_blob extension_blob = {0};
+        EXPECT_SUCCESS(s2n_blob_init(&extension_blob, stuffer.blob.data + stuffer.read_cursor, s2n_stuffer_data_available(&stuffer)));
+
+        /* Test that s2n_certificate_extensions_parse() can read the contents */
+        EXPECT_SUCCESS(s2n_certificate_extensions_parse(server_conn, &extension_blob));
+
+        /* The current behaviour does not send OCSP stapling in client mode */
+        struct s2n_connection *client_conn;
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        client_conn->status_type = S2N_STATUS_REQUEST_OCSP;
+        client_conn->handshake_params.our_chain_and_key = &chain_and_key;
+
+        EXPECT_EQUAL(s2n_certificate_extensions_size(client_conn, &chain_and_key), 0);
+
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+        EXPECT_SUCCESS(s2n_certificate_extensions_send(client_conn, &stuffer, &chain_and_key));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 2); /* 2 bytes for empty extension */
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
     EXPECT_SUCCESS(s2n_config_free(config));
