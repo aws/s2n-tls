@@ -526,16 +526,22 @@ int main(int argc, char **argv)
             uint8_t wire_ciphers2[] = {
                 TLS_RSA_WITH_3DES_EDE_CBC_SHA,
                 TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
-                TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-                TLS_CHACHA20_POLY1305_SHA256,
+                TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, /* tls 1.2 */
+                TLS_CHACHA20_POLY1305_SHA256, /* tls 1.3 */
             };
 
             const uint8_t count = sizeof(wire_ciphers2) / S2N_TLS_CIPHER_SUITE_LEN;
             s2n_connection_set_cipher_preferences(conn, "test_all");
             conn->client_protocol_version = S2N_TLS13;
             conn->actual_protocol_version = S2N_TLS13;
+
+            #if S2N_OPENSSL_VERSION_AT_LEAST(1,1,0)
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers2, count));
             EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
+            #elif
+            EXPECT_FAILURE(s2n_set_cipher_as_tls_server(conn, wire_ciphers2, count));
+            #endif
+
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         }
 
