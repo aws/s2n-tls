@@ -1073,11 +1073,6 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
     return 0;
 }
 
-/* Valid TLS 1.3 Ciphers are 0x1301, 0x1302, 0x1303, 0x1304, 0x1305 */
-static bool s2n_is_valid_tls13_cipher(const uint8_t version[2]) {
-    return version[0] == 0x13 && version[1] >= 0x01 && version[1] <= 0x05;
-}
-
 int s2n_cipher_preferences_init()
 {
     for (int i = 0; selection[i].version != NULL; i++) {

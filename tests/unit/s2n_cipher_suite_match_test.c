@@ -498,15 +498,44 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         }
 
-        /* Client sends TLS1.3 cipher suites, server selects TLS1.3 */
+        /* Client sends TLS1.3 cipher suites, server selects correct TLS1.3 ciphersuite */
         {
-            const uint8_t expected_wire_choice[] = { TLS_AES_256_GCM_SHA384 };
+            struct test_case {
+                char cipher_pref[255];
+                uint8_t expected_cipher_wire[2];
+            };
+
+            struct test_case test_cases[] = {
+                {.cipher_pref = "default_tls13", .expected_cipher_wire = { TLS_AES_256_GCM_SHA384 }},
+                {.cipher_pref = "test_all", .expected_cipher_wire = { TLS_AES_128_GCM_SHA256 }},
+                {.cipher_pref = "test_all_tls13", .expected_cipher_wire = { TLS_AES_128_GCM_SHA256 }},
+            };
+
+            for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+                s2n_connection_set_cipher_preferences(conn, test_cases[i].cipher_pref);
+                conn->client_protocol_version = S2N_TLS13;
+                conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
+                EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(test_cases[i].expected_cipher_wire));
+                EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            }
+        }
+
+        /* Check wire's cipher suites with perferred tls12 ordering does not affect tls13 selection */
+        {
+            uint8_t wire_ciphers2[] = {
+                TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+                TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+                TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+                TLS_CHACHA20_POLY1305_SHA256,
+            };
+
+            const uint8_t count = sizeof(wire_ciphers2) / S2N_TLS_CIPHER_SUITE_LEN;
             s2n_connection_set_cipher_preferences(conn, "test_all");
-            s2n_connection_set_cipher_preferences(conn, "default_tls13");
             conn->client_protocol_version = S2N_TLS13;
             conn->actual_protocol_version = S2N_TLS13;
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
-            EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_wire_choice));
+            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers2, count));
+            EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         }
 

@@ -20,6 +20,7 @@
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_client_extensions.h"
+#include "tls/s2n_cipher_suites.h"
 
 static uint8_t tls13_extensions[] = { TLS_EXTENSION_SUPPORTED_VERSIONS, TLS_EXTENSION_KEY_SHARE };
 
@@ -156,6 +157,38 @@ int main(int argc, char **argv)
     /* TLS 1.3 can't be enabled outside of unit tests */
     EXPECT_SUCCESS(s2n_in_unit_test_set(false));
     EXPECT_FAILURE_WITH_ERRNO(s2n_enable_tls13(), S2N_ERR_NOT_IN_UNIT_TEST);
+
+    /* Test s2n_is_valid_tls13_cipher() */
+    {
+        uint8_t value[2] = { 0x13, 0x01 };
+        EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
+        value[0] = 0x13;
+        value[1] = 0x02;
+        EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
+        value[0] = 0x13;
+        value[1] = 0x03;
+        EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
+        value[0] = 0x13;
+        value[1] = 0x04;
+        EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
+        value[0] = 0x13;
+        value[1] = 0x05;
+        EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
+        value[0] = 0x13;
+        value[1] = 0x06;
+        EXPECT_FALSE(s2n_is_valid_tls13_cipher(value));
+        value[0] = 0x13;
+        value[1] = 0x00;
+        EXPECT_FALSE(s2n_is_valid_tls13_cipher(value));
+        value[0] = 0x12;
+        value[1] = 0x01;
+        EXPECT_FALSE(s2n_is_valid_tls13_cipher(value));
+
+        EXPECT_FALSE(s2n_is_valid_tls13_cipher(s2n_dhe_rsa_with_3des_ede_cbc_sha.iana_value));
+        EXPECT_TRUE(s2n_is_valid_tls13_cipher(s2n_tls13_aes_128_gcm_sha256.iana_value));
+        EXPECT_TRUE(s2n_is_valid_tls13_cipher(s2n_tls13_aes_256_gcm_sha384.iana_value));
+        EXPECT_TRUE(s2n_is_valid_tls13_cipher(s2n_tls13_chacha20_poly1305_sha256.iana_value));
+    }
 
     END_TEST();
     return 0;
