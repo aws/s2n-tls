@@ -38,6 +38,6 @@ jobs:
           S2N_LIBCRYPTO: ${{ matrix.openssl_version }}
           TESTS: "fuzz"
           LAGEST_CLANG: "true"
-          FUZZ_TIMEOUT_SEC: 43200
+          FUZZ_TIMEOUT_SEC: 1800
           requester: ${{ github.actor }}
           event-name: ${{ github.event_name }}
