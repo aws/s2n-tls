@@ -1132,13 +1132,18 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
                 match = match->sslv3_cipher_suite;
             }
 
-            /* Make sure the cipher is valid for available certs */
-            if (s2n_is_cipher_suite_valid_for_auth(conn, match) != S2N_SUCCESS) {
+            /* Skip the suite if we don't have an available implementation */
+            if (!match->available) {
                 continue;
             }
 
-            /* Skip the suite if we don't have an available implementation */
-            if (!match->available) {
+            /* Skip if cipher suite requires a higher version than what server is supporting */
+            if (match->minimum_required_tls_version > conn->server_protocol_version) {
+                continue;
+            }
+
+            /* Make sure the cipher is valid for available certs */
+            if (s2n_is_cipher_suite_valid_for_auth(conn, match) != S2N_SUCCESS) {
                 continue;
             }
 

@@ -515,6 +515,7 @@ int main(int argc, char **argv)
                 s2n_connection_set_cipher_preferences(conn, test_cases[i].cipher_pref);
                 conn->client_protocol_version = S2N_TLS13;
                 conn->actual_protocol_version = S2N_TLS13;
+                conn->server_protocol_version = S2N_TLS13;
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
                 EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(test_cases[i].expected_cipher_wire));
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -534,6 +535,7 @@ int main(int argc, char **argv)
             s2n_connection_set_cipher_preferences(conn, "test_all");
             conn->client_protocol_version = S2N_TLS13;
             conn->actual_protocol_version = S2N_TLS13;
+            conn->server_protocol_version = S2N_TLS13;
 
             if (s2n_chacha20_poly1305.is_available()) {
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers2, count));
@@ -541,6 +543,25 @@ int main(int argc, char **argv)
             } else {
                 EXPECT_FAILURE(s2n_set_cipher_as_tls_server(conn, wire_ciphers2, count));
             }
+            EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        }
+
+        /* Testcipher suite with a required version higher than what server supports should not be selected */
+        {
+            uint8_t test_wire_ciphers[] = {
+                TLS_AES_128_GCM_SHA256, /* tls 1.3 */
+                TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, /* tls 1.2 */
+            };
+
+            const uint8_t count = sizeof(test_wire_ciphers) / S2N_TLS_CIPHER_SUITE_LEN;
+            s2n_connection_set_cipher_preferences(conn, "test_all");
+            conn->server_protocol_version = S2N_TLS12; /* server configured with TLS 1.2 */
+            conn->actual_protocol_version = S2N_TLS12;
+            conn->client_protocol_version = S2N_TLS13; /* a TLS 1.3 client */
+            conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+
+            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, count));
+            EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_ecdhe_rsa_with_aes_128_gcm_sha256);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         }
 
