@@ -283,7 +283,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
 
     s2nd_cmd.extend([str(endpoint), str(port)])
 
-    s2nd_ciphers = "test_all"
+    s2nd_ciphers = "test_all_tls12"
     if server_cipher_pref is not None:
         s2nd_ciphers = server_cipher_pref
     if enter_fips_mode == True:
@@ -707,7 +707,7 @@ def cert_type_cipher_match_test(host, port, libcrypto_version):
 
     # Handshake with ECDSA cert + RSA priority server cipher prefs (must skip rsa ciphers)
     ecdsa_ret = try_handshake(host, port, cipher, None, curves=supported_curves,
-            server_cert=TEST_ECDSA_CERT, server_key=TEST_ECDSA_KEY, server_cipher_pref="test_all")
+            server_cert=TEST_ECDSA_CERT, server_key=TEST_ECDSA_KEY, server_cipher_pref="test_all_tls12")
     result_prefix = "Cert Type: ecdsa  Server Pref: rsa priority.  Vers: %-10s ... " % S2N_PROTO_VERS_TO_STR[None]
     print_result(result_prefix, ecdsa_ret)
     if ecdsa_ret != 0:
@@ -727,7 +727,7 @@ def multiple_cert_type_test(host, port, libcrypto_version):
     # Basic handshake with ECDSA cert + RSA cert
     for cipher in ["ECDHE-ECDSA-AES128-SHA", "ECDHE-RSA-AES128-GCM-SHA256"]:
         supported_curves = get_supported_curves_str_by_version(libcrypto_version)
-        server_prefs = "test_all"
+        server_prefs = "test_all_tls12"
         ret = try_handshake(host, port, cipher, None, curves=supported_curves,
                 server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
                 server_cipher_pref=server_prefs)
@@ -765,7 +765,7 @@ def multiple_cert_type_test(host, port, libcrypto_version):
     for cipher in ["ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-GCM-SHA256:AES128-SHA", "ECDHE-ECDSA-AES256-SHA:AES128-SHA"]:
         # Assume this is a curve s2n does not support
         supported_curves = "P-521"
-        server_prefs = "test_all"
+        server_prefs = "test_all_tls12"
         ret = try_handshake(host, port, cipher, None, curves=supported_curves,
                 server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
                 server_cipher_pref=server_prefs)
