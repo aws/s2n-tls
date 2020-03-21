@@ -307,6 +307,10 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
 
     if ssl_version is not None:
         s_client_cmd.append(PROTO_VERS_TO_S_CLIENT_ARG[ssl_version])
+    else:
+        s_client_cmd.append("-curves")
+        s_client_cmd.append("P-256")
+
     if cipher is not None:
         cipher_format = cipher
 
