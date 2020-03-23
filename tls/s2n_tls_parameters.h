@@ -229,6 +229,9 @@
 /* Put a 64k cap on the size of any handshake message */
 #define S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH (64 * 1024)
 
+/* Maximum size for full encoded TLSInnerPlaintext (https://tools.ietf.org/html/rfc8446#section-5.4) */
+#define S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH ((1 << 14) + 1)
+
 /* Alert messages are always 2 bytes long */
 #define S2N_ALERT_LENGTH 2
 
