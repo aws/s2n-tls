@@ -59,7 +59,7 @@ bool s2n_blob_is_growable(const struct s2n_blob* b)
   return b && (b->growable || (b->data == NULL && b->size == 0 && b->allocated == 0));
 }
 
-int s2n_get_memory(struct s2n_blob *b, uint32_t size)
+static int s2n_get_memory(struct s2n_blob *b, uint32_t size)
 {
     if(use_mlock) {
         /* Page aligned allocation required for mlock */
