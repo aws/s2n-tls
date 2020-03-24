@@ -10,7 +10,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "sike_r2_code_identifier.h"
 
 // Definition of operating system
 
@@ -37,9 +36,6 @@
 #endif
 
 // Definition of the targeted architecture and basic data types
-// NOTE - we determine whether to use the generic C code optimized assembly
-//     code in sike_r2_code_identifier.h.
-
 #define TARGET_AMD64 1
 #define TARGET_x86 2
 #define TARGET_ARM 3
@@ -76,7 +72,7 @@ typedef uint32_t hdigit_t; // Unsigned 32-bit digit
 #define RADIX64 64
 
 // Extended datatype support
-#if defined(S2N_PQ_GENERIC)
+#if defined(S2N_NO_PQ_ASM)
 typedef uint64_t uint128_t[2];
 #elif (TARGET == TARGET_AMD64 && OS_TARGET == OS_LINUX)
 typedef unsigned uint128_t __attribute__((mode(TI)));
@@ -113,7 +109,7 @@ unsigned int is_digit_lessthan_ct(digit_t x, digit_t y) { // Is x < y?
 
 /********************** Macros for platform-dependent operations **********************/
 
-#if defined(S2N_PQ_GENERIC) || (TARGET == TARGET_ARM)
+#if defined(S2N_NO_PQ_ASM) || (TARGET == TARGET_ARM)
 
 // Digit multiplication
 #define MUL(multiplier, multiplicand, hi, lo) \

@@ -107,6 +107,8 @@ else()
 endif()
 
 # The PQ ASM try_compile has to come after we turn on pthread
+set(PQ_ASM_COMPILES_ADX false)
+
 if(S2N_NO_PQ_ASM)
     message(STATUS "S2N_NO_PQ_ASM flag was detected - forcing usage of generic C code for PQ crypto")
 else()
@@ -121,6 +123,19 @@ else()
         message(STATUS "PQ ASM try_compile succeeded - using optimized x86_64 assembly for PQ crypto")
         file(GLOB PQ_X86_64_ASM "pq-crypto/sike_r2/fp_x64_asm.S")
         list(APPEND PQ_SRC ${PQ_X86_64_ASM})
+
+        message(STATUS "Attempting to try_compile PQ ASM with ADX support")
+        try_compile(PQ_ASM_COMPILES_ADX ${CMAKE_BINARY_DIR}
+                SOURCES
+                "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
+                "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r2/fp_x64_asm.S"
+                COMPILE_DEFINITIONS "-D_ADX_")
+        if(PQ_ASM_COMPILES_ADX)
+            message(STATUS "PQ ASM try_compile with ADX support succeeded - using ASM code with ADX instructions")
+            # The -D_ADX_ compile flag is added to the project below
+        else()
+            message(STATUS "PQ ASM try_compile with ADX support failed - using ASM code without ADX instructions")
+        endif()
     else()
         message(STATUS "PQ ASM try_compile failed - using generic C code for PQ crypto")
         set(S2N_NO_PQ_ASM ON)
@@ -171,6 +186,10 @@ endif()
 
 if(S2N_NO_PQ)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_NO_PQ)
+endif()
+
+if(PQ_ASM_COMPILES_ADX)
+    target_compile_options(${PROJECT_NAME} PUBLIC -D_ADX_)
 endif()
 
 target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)

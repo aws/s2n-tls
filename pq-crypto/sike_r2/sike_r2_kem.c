@@ -13,6 +13,14 @@ int SIKE_P434_r2_crypto_kem_keypair(unsigned char *pk, unsigned char *sk) {
     // Outputs: secret key sk (CRYPTO_SECRETKEYBYTES = MSG_BYTES + SECRETKEY_B_BYTES + CRYPTO_PUBLICKEYBYTES bytes)
     //          public key pk (CRYPTO_PUBLICKEYBYTES bytes)
 
+#if !defined(S2N_NO_PQ_ASM)
+    if (s2n_check_sike434_r2_asm_compatibility()) {
+        use_sike434_r2_asm = 1;
+    } else {
+        use_sike434_r2_asm = 0;
+    }
+#endif
+
     digit_t _sk[(SECRETKEY_B_BYTES / sizeof(digit_t)) + 1];
 
     // Generate lower portion of secret key sk <- s||SK
@@ -35,6 +43,14 @@ int SIKE_P434_r2_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsi
     // Input:   public key pk         (CRYPTO_PUBLICKEYBYTES bytes)
     // Outputs: shared secret ss      (CRYPTO_BYTES bytes)
     //          ciphertext message ct (CRYPTO_CIPHERTEXTBYTES = CRYPTO_PUBLICKEYBYTES + MSG_BYTES bytes)
+
+#if !defined(S2N_NO_PQ_ASM)
+    if (s2n_check_sike434_r2_asm_compatibility()) {
+        use_sike434_r2_asm = 1;
+    } else {
+        use_sike434_r2_asm = 0;
+    }
+#endif
 
     union {
         unsigned char b[SECRETKEY_A_BYTES];
@@ -69,6 +85,14 @@ int SIKE_P434_r2_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, cons
     // Input:   secret key sk         (CRYPTO_SECRETKEYBYTES = MSG_BYTES + SECRETKEY_B_BYTES + CRYPTO_PUBLICKEYBYTES bytes)
     //          ciphertext message ct (CRYPTO_CIPHERTEXTBYTES = CRYPTO_PUBLICKEYBYTES + MSG_BYTES bytes)
     // Outputs: shared secret ss      (CRYPTO_BYTES bytes)
+
+#if !defined(S2N_NO_PQ_ASM)
+    if (s2n_check_sike434_r2_asm_compatibility()) {
+        use_sike434_r2_asm = 1;
+    } else {
+        use_sike434_r2_asm = 0;
+    }
+#endif
 
     union {
         unsigned char b[SECRETKEY_A_BYTES];

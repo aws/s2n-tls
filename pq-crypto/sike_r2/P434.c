@@ -77,6 +77,10 @@ const unsigned int strat_Bob[MAX_Bob - 1] = {
     2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 3, 1, 1, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2,
     1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1};
 
+#if !defined(S2N_NO_PQ_ASM)
+uint8_t use_sike434_r2_asm = 0;
+#endif
+
 // Setting up macro defines and including GF(p), GF(p^2), curve, isogeny and kex functions
 #define fpcopy fpcopy434
 #define fpzero fpzero434
@@ -109,12 +113,56 @@ const unsigned int strat_Bob[MAX_Bob - 1] = {
 #define EphemeralSecretAgreement_A oqs_kem_sidh_p434_EphemeralSecretAgreement_A
 #define EphemeralSecretAgreement_B oqs_kem_sidh_p434_EphemeralSecretAgreement_B
 
-#if defined(S2N_PQ_ASM)
-#include "fp_x64.c"
-#else
-#include "fp_generic.c"
-#endif
+#if !defined(S2N_NO_PQ_ASM)
+static void s2n_cpuid(uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx) {
+    uint32_t leaf = *eax;
 
+    __asm__ volatile("xor %%ecx, %%ecx\n"
+                     "cpuid\n"
+                     : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
+                     : "a"(leaf));
+}
+
+static int s2n_check_sike434_r2_asm_compatibility() {
+    /*
+     * "In assembly language, the CPUID instruction takes no parameters as CPUID implicitly uses the EAX register
+     * to determine the main category of information returned. In Intel's more recent terminology, this is called
+     * the CPUID leaf. CPUID should be called with EAX = 0 first, as this will store in the EAX register the highest
+     * EAX calling parameter (leaf) that the CPU implements." See https://en.wikipedia.org/wiki/CPUID
+     *
+     * We need returned eax >= 7 to perform the extended features check below.
+     */
+    uint32_t eax = 0, ebx = 0, ecx = 0, edx = 0;
+    s2n_cpuid(&eax, &ebx, &ecx, &edx);
+    if (eax < 7) {
+        return 0;
+    }
+
+    /*
+     * In all cases, we need bmi2 support. The ASM code can be compiled with or without adx support; if it was
+     * compiled with adx support, then we must check for adx support at runtime. bmi2 and adx correspond to ebx
+     * bits 8 and 19 respectively. See https://en.wikipedia.org/wiki/CPUID#EAX=7,_ECX=0:_Extended_Features
+     */
+    eax = 7; ebx = 0; ecx = 0; edx = 0;
+    s2n_cpuid(&eax, &ebx, &ecx, &edx);
+
+    /* Check for bmi2 support */
+    if (!(edx & (1U << 8))) {
+        return 0;
+    }
+
+#if defined(_ADX_)
+    /* Check for adx support */
+    if (!(edx & (1U << 19))) {
+        return 0;
+    }
+#endif /* _ADX_ */
+
+    return 1;
+}
+#endif /* S2N_NO_PQ_ASM */
+
+#include "fp.c"
 #include "fpx.c"
 #include "ec_isogeny.c"
 #include "sidh.c"
