@@ -570,8 +570,8 @@ int main(int argc, char **argv)
             uint8_t invalid_cipher_pref[] = {
                 TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384
             };
-            const uint8_t invalid_cipher_count = s2n_array_len(invalid_cipher_pref);
 
+            const uint8_t invalid_cipher_count = sizeof(invalid_cipher_pref) / S2N_TLS_CIPHER_SUITE_LEN;
             s2n_connection_set_cipher_preferences(conn, "default_tls13");
             conn->client_protocol_version = S2N_TLS13;
             conn->actual_protocol_version = S2N_TLS13;

@@ -15,6 +15,7 @@
 
 #include "crypto/s2n_ecc_evp.h"
 
+#include <openssl/crypto.h>
 #include <openssl/ecdh.h>
 #include <openssl/evp.h>
 #include <strings.h>

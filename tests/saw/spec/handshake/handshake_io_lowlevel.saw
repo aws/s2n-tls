@@ -28,7 +28,12 @@ import "s2n_handshake_io.cry";
 llvm <- llvm_load_module "../../bitcode/all_llvm.bc";
 print "Loaded bitcode via Crucible";
 
+////////////////////////////////////////////////////////////////
 // References to various components of the connection state:
+// The Cryptol definitions are located in the s2n_handshake_io.cry file.
+// Those Cryptol definitions will be compared against the actual C
+// definitions by this SAW script.
+////////////////////////////////////////////////////////////////
 
 //conn->corked_io
 let conn_corked_io pconn = crucible_field pconn "corked_io";
@@ -89,6 +94,10 @@ let conn_handshake_handshake_type pconn =
 let conn_handshake_message_number pconn =
     crucible_field (crucible_field pconn "handshake") "message_number";
 
+//conn->handshake.hello_retry_request
+let conn_handshake_hello_retry_request pconn =
+    crucible_field (crucible_field pconn "handshake") "hello_retry_request";
+
 //conn->handshake_params.our_chain_and_key
 let conn_chain_and_key pconn =
     crucible_field (crucible_field pconn "handshake_params") "our_chain_and_key";
@@ -120,6 +129,10 @@ let setup_connection = do {
    message_number <- crucible_fresh_var "message_number" (llvm_int 32);
    crucible_points_to (conn_handshake_message_number pconn)
                       (crucible_term message_number);
+
+   hello_retry_request <- crucible_fresh_var "hello_retry_request" (llvm_int 8);
+   crucible_points_to (conn_handshake_hello_retry_request pconn)
+                      (crucible_term hello_retry_request);
 
    cork_val <- crucible_fresh_var "corked" (llvm_int 2);
    crucible_ghost_value corked cork_val;
@@ -166,10 +179,13 @@ let setup_connection = do {
 
    let client_cert_auth_type = {{ if cca_ov != 0 then cca else config_cca }};
 
+   // This return a connection containing a handshake. If the connection or the handshake
+   // definitions are changed, they must also be changed here.
    return (pconn, {{ {corked_io = corked_io
                      ,mode      = mode
                      ,handshake = {message_number = message_number
-                                  ,handshake_type = handshake_type}
+                                  ,handshake_type = handshake_type
+                                  ,hello_retry_request = hello_retry_request}
                      ,corked    = cork_val
                      ,is_caching_enabled = False
                      ,key_exchange_eph = eph_flag != zero
@@ -242,6 +258,8 @@ let s2n_conn_set_handshake_type_spec = do {
     // we assume that the handshake struct denotes a valid handshake state
     // (e.g. it will not index out of bounds in the state transition array
     // "handshakes")
+    // conn.handshake is defined in s2n_handshake_io.cry.
+    // valid_handshake is defined in s2n_handshake_io.cry as well.
     crucible_precond {{ valid_handshake conn.handshake }};
 
     // symbolically execute s2n_conn_set_handshake_type
@@ -257,6 +275,7 @@ let s2n_conn_set_handshake_type_spec = do {
     let conn' = {{ conn_set_handshake_type conn }};
     crucible_ghost_value corked {{ conn'.corked }};
     crucible_points_to (conn_handshake_handshake_type pconn) (crucible_term {{ conn'.handshake.handshake_type }});
+    crucible_points_to (conn_handshake_hello_retry_request pconn) (crucible_term {{ conn'.handshake.hello_retry_request }});
 
     // assert that s2n_conn_set_handshake_type returns 0 (true if the 4
     // functions it calls don't fail)
@@ -291,6 +310,7 @@ let s2n_advance_message_spec = do {
     // make sure the low-level spec representation of the declarative
     // handshake/cork-uncork state machine is equivalent to the one in
     // s2n
+    // The Cryptol representations are defined here: tests/saw/spec/handshake/s2n_handshake_io.cry
     crucible_points_to (crucible_global "handshakes") (crucible_term {{ handshakes }});
     crucible_points_to (crucible_global "tls13_handshakes") (crucible_term {{ tls13_handshakes }});
     

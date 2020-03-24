@@ -21,8 +21,9 @@ conn_set_handshake_type conn = conn'
                 }
         (handshake' : handshake) = {handshake_type = handshake_type'
                                    ,message_number = conn.handshake.message_number
+                                   ,hello_retry_request = conn.handshake.hello_retry_request
                                    }
-        handshake_type' = if (IS_TLS13_HANDSHAKE conn) then NEGOTIATED || FULL_HANDSHAKE
+        handshake_type' = if (IS_TLS13_HANDSHAKE conn) then NEGOTIATED || FULL_HANDSHAKE || hello_retry_request
                           else NEGOTIATED || full_handshake ||
                             (if (full_handshake != 0) then
                               perfect_forward_secrecy || ocsp_status || client_auth
@@ -30,6 +31,9 @@ conn_set_handshake_type conn = conn'
         full_handshake  = if (conn.is_caching_enabled && ~conn.resume_from_cache)
                           then zero
                           else FULL_HANDSHAKE
+        hello_retry_request = if (conn.handshake.hello_retry_request == 1)
+                                then HELLO_RETRY_REQUEST
+                                else zero
         perfect_forward_secrecy = if conn.key_exchange_eph
                                   then PERFECT_FORWARD_SECRECY
                                   else zero
@@ -55,8 +59,9 @@ advance_message conn = conn2
                 ,client_auth_flag = conn.client_auth_flag
                 ,actual_protocol_version = conn.actual_protocol_version
                 }
-        (handshake2 : handshake) = { handshake_type = conn.handshake.handshake_type,
-                                     message_number = message_number2 }
+        (handshake2 : handshake) = { handshake_type = conn.handshake.handshake_type
+                                     ,message_number = message_number2
+                                     ,hello_retry_request = conn.handshake.hello_retry_request }
         cork2 = if (ACTIVE_STATE conn2).writer != (ACTIVE_STATE conn).writer
                 then if (ACTIVE_STATE conn2).writer == mode_writer conn2.mode
                      then s2n_cork conn else s2n_uncork conn
@@ -81,6 +86,7 @@ normalizeAfterData hsas = map snd (tail (scanl f (False, dataMsg) hsas))
           dataMsg = mkAct TLS_APPLICATION_DATA 0 'B'
 
 // match actions, but drop any with an 'A' writer from the second trace
+// BUG: We don't have an 'A' writer any longer.
 tracesMatchExcludingWaits: {n} (fin n, width n>=1) => [n]handshake_action -> [n]handshake_action -> Bit
 tracesMatchExcludingWaits xs ys = go 0 0 where
   go: [width n] -> [width n] -> Bit
@@ -131,6 +137,7 @@ type connection = {handshake : handshake
 
 type handshake = {handshake_type : [32]
                  ,message_number : [32]
+                 ,hello_retry_request : [8]
                  }
 
 // functions model the corresponding macros in C
@@ -141,7 +148,7 @@ IS_TLS13_HANDSHAKE conn = conn.actual_protocol_version == S2N_TLS13
 ACTIVE_STATE_MACHINE : connection -> [19]handshake_action
 ACTIVE_STATE_MACHINE conn = if IS_TLS13_HANDSHAKE conn then tls13_state_machine else state_machine # zero
 
-ACTIVE_HANDSHAKES : connection -> [128][32][32]
+ACTIVE_HANDSHAKES : connection -> [256][32][32]
 ACTIVE_HANDSHAKES conn = if IS_TLS13_HANDSHAKE conn then tls13_handshakes else handshakes
 
 ACTIVE_MESSAGE : connection -> [32]
@@ -154,7 +161,7 @@ ACTIVE_STATE conn = (ACTIVE_STATE_MACHINE conn) @ (ACTIVE_MESSAGE conn)
 next_message : connection -> [32]
 next_message conn = ((ACTIVE_HANDSHAKES conn) @ (conn.handshake.handshake_type))
                                               @ (conn.handshake.message_number + 1)
-                                              
+
 next_state : connection -> handshake_action
 next_state conn = (ACTIVE_STATE_MACHINE conn) @ (next_message conn)
 
@@ -228,8 +235,8 @@ state_machine_fn m =
   else zero
 
 // A model of the tls1.3 handshake state machine (array handshakes in C)
-tls13_handshakes : [128][32][32]
-tls13_handshakes = [tls13_handshakes_fn h | h <- [0..127]]
+tls13_handshakes : [256][32][32]
+tls13_handshakes = [tls13_handshakes_fn h | h <- [0..255]]
 
 // A function that gives the tls1.3 handshake sequence for each valid handshake_type.
 tls13_handshakes_fn: [32] -> [32][32]
@@ -241,11 +248,19 @@ tls13_handshakes_fn handshk =
       CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
       APPLICATION_DATA
     ] # zero
+  else if handshk == (NEGOTIATED || FULL_HANDSHAKE || HELLO_RETRY_REQUEST) then
+    [ CLIENT_HELLO,
+      SERVER_HELLO,
+      CLIENT_HELLO,
+      SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+      CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+      APPLICATION_DATA
+    ] # zero
   else zero
 
 // A model of the handshake state machine (array handshakes in C)
-handshakes : [128][32][32]
-handshakes = [handshakes_fn h | h <- [0..127]]
+handshakes : [256][32][32]
+handshakes = [handshakes_fn h | h <- [0..255]]
 
 // A function that gives the handshake sequence for each valid handshake_type.
 // This is a sparse encoding of the handshakes array (which is sparse too).
@@ -414,10 +429,15 @@ handshakes_fn handshk =
 // (i.e. the fields are indexing into a valid state of the handshake
 // state machine)
 valid_handshake : handshake -> Bit
-valid_handshake hs = handshakefn != zero /\
-                     (hs.message_number < length handshakefn - 1) /\
-                     ((hs.message_number > 0) ==> (handshakefn@(hs.message_number + 1) != 0)) where
-                     handshakefn = (handshakes_fn hs.handshake_type)
+
+//we use a where clause, so handshakefn is defined in the last line, go there first
+valid_handshake hs = handshakefn != zero /\                             //We must have actually found a handshake
+                     (hs.message_number < length handshakefn - 1) /\    //Our message number is not out of bounds for the handshake
+                     ((hs.message_number > 0) ==> (handshakefn@(hs.message_number + 1) != 0)) //If the message is greater than zero
+                     // We can advance the handshake and still find a next state
+                     where
+                        handshakefn = (handshakes_fn hs.handshake_type) //handshakefn is the handshake for a specific message type
+
 
 valid_connection : connection -> Bit
 valid_connection conn = valid_handshake (conn.handshake)
@@ -425,7 +445,7 @@ valid_connection conn = valid_handshake (conn.handshake)
 // Tells if the connection struct is in a valid initial state
 initial_connection : connection -> Bit
 initial_connection conn = conn.handshake.handshake_type == INITIAL /\ conn.handshake.message_number == 0
-    /\ (conn.corked == 0 \/ conn.corked == 1)
+    /\ (conn.corked == 0 \/ conn.corked == 1) /\ conn.handshake.hello_retry_request == 0
     
 // Logical implication
 implies : Bit -> Bit -> Bit
@@ -450,6 +470,8 @@ CLIENT_AUTH : [32]
 CLIENT_AUTH = zero # 0x10
 NO_CLIENT_CERT : [32]
 NO_CLIENT_CERT = zero # 0x40
+HELLO_RETRY_REQUEST : [32]
+HELLO_RETRY_REQUEST = zero # 0x80
 
 S2N_TLS13 : [8]
 S2N_TLS13 = 34
