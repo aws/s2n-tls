@@ -189,7 +189,7 @@ struct s2n_handshake {
     /* unsigned client_received_hrr:1; */
 
     /* Used by the server to track whether a HelloRetryRequest was sent */
-    unsigned hello_retry_request:1;
+    uint8_t hello_retry_request;
 
     /* Used by the server to determine whether a HelloRetryRequest is needed */
     unsigned server_requires_hrr:1;
