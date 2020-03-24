@@ -88,7 +88,8 @@ tmp/%.log : %.saw bitcode/all_llvm.bc tmp
 ## SIKE Tests
 ###########################################
 
-sike: sike_r2 sike_r2_x64 sike_r1
+#sike: sike_r2 sike_r2_x64 sike_r1
+sike: sike_r2_x64
 
 .PHONY : sike_r2
 sike_r2 : sike_r2_patched_bitcode
