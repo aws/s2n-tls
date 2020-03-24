@@ -190,11 +190,12 @@ int s2n_tls13_parse_record_type(struct s2n_stuffer *stuffer, uint8_t *record_typ
         /* set the record type */
         GUARD(s2n_stuffer_read_uint8(stuffer, record_type));
 
-        /* wipe from the back so the rest so only plaintext remains */
+        /* wipe the last byte at the end of the stuffer */
         GUARD(s2n_stuffer_wipe_n(stuffer, 1));
     }
 
-    /* set the read cursor at where it should be */
+    /* only the original plaintext should remain */
+    /* now reset the read cursor at where it should be */
     GUARD(s2n_stuffer_reread(stuffer));
 
     return 0;
