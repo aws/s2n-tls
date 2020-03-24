@@ -35,7 +35,7 @@ int main(int argc, char **argv)
         /* If the client sent a supported group that the server also supports, mutually_supported_groups
          * should contain the sent group.
          */
-        uint8_t data[2];
+        uint8_t data[2] = {0};
         EXPECT_SUCCESS(s2n_blob_init(&iana_ids, data, sizeof(data)));
         EXPECT_SUCCESS(s2n_stuffer_init(&out, &iana_ids));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&out, s2n_ecc_evp_supported_curves_list[0]->iana_id));
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
         /* If the client sent no supported groups at all, mutually_supported_groups should contain
         * NULL values and no supported group should be chosen.
         */
-        uint8_t data[2];
+        uint8_t data[2] = {0};
         EXPECT_SUCCESS(s2n_blob_init(&iana_ids, data, sizeof(data)));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
         * mutually_supported_groups should contain only the group that the server supports.
         */
 
-        uint8_t data[6];
+        uint8_t data[6] = {0};
         EXPECT_SUCCESS(s2n_blob_init(&iana_ids, data, sizeof(data)));
         EXPECT_SUCCESS(s2n_stuffer_init(&out, &iana_ids));
         /* 17 and 18 are unsupported ids */
