@@ -6,7 +6,7 @@ on:
     - cron: '0 13 * * *'
 jobs:
   fuzz:
-    if: startsWith(github.event.repository.name, 'private-')
+    if: contains(${{ github.repository }}, 'private-s2n')
     runs-on: ubuntu-18.04
     strategy:
       matrix:
