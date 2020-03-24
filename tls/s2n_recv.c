@@ -127,7 +127,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     * is decrypted.
     */
     if (conn->actual_protocol_version == S2N_TLS13 && *record_type == TLS_APPLICATION_DATA) {
-        GUARD(s2n_parse_record_type(&conn->in, record_type));
+        GUARD(s2n_tls13_parse_record_type(&conn->in, record_type));
     }
 
     return 0;
