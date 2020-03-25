@@ -32,7 +32,6 @@ phases:
         if expr "${GCC_VERSION}" : "6" >/dev/null; then
           apt-get install -y --no-install-recommends g++ g++-6 gcc gcc-6;
         fi
-
       # Don't install old clang and llvm if LATEST_CLANG is enabled, handle it in install_clang.sh instead
       - |
         if expr "${LATEST_CLANG}" != "true" >/dev/null; then
@@ -42,6 +41,7 @@ phases:
   pre_build:
     commands:
       - codebuild/bin/install_default_dependencies.sh
+      - touch tests/fuzz/placeholder_results.txt tests/fuzz/placeholder_output.txt 
   build:
     commands:
       - printenv
@@ -53,14 +53,15 @@ phases:
       - codebuild/bin/s2n_after_codebuild.sh
 artifacts:
   files:
-    - "*.bin"
-  name: test-logs-$(date +%Y%m%d)-$CODEBUILD_BUILD_NUMBER
-  discard-paths: yes
-  base-directory: "/build/logs"
+    - "$FUZZ_TESTS/*"
+  name: fuzz-corpus-$FUZZ_TESTS-$(date +%Y%m%d)-$CODEBUILD_BUILD_NUMBER
+  discard-paths: no
+  base-directory: "./tests/fuzz/corpus"
   secondary-artifacts:
-    coveragefiles:
+    logs:
       files:
-        - "**/*"
-      name: test-all-$(date +%Y%m%d)-$CODEBUILD_BUILD_NUMBER
+        - "**/*_results.txt"
+        - "**/*_output.txt"
+      name: fuzz-logs-$FUZZ_TESTS-$(date +%Y%m%d)-$CODEBUILD_BUILD_NUMBER
       discard-paths: yes
-      base-directory: "/build"
+      base-directory: "./tests/fuzz"
