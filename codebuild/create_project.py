@@ -29,10 +29,11 @@ from troposphere.iam import Role, Policy
 from troposphere.codebuild import Artifacts, Environment, Source, Project
 
 logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 
 def build_cw_event(template=Template, project_name=None, role=None):
+    """ Create a CloudWatch Event to run a CodeBuild Project. """
     # Run either at 12 or 13:00 UTC, 04/05:00 PST
     hour = randrange(12, 14)
     project_target = Target(
@@ -55,7 +56,7 @@ def build_cw_event(template=Template, project_name=None, role=None):
 
 def build_cw_cb_role(template=None, role_name="s2nEventsInvokeCodeBuildRole"):
     """
-    Create a role for CloudWatch events to trigger Codebuild jobs.
+    Create a role for CloudWatch events to trigger scheduled CodeBuild jobs.
     """
     role_id = template.add_resource(
         Role(
@@ -118,12 +119,41 @@ def build_github_role(template=None, role_name="s2nCodeBuildGithubRole"):
     )
 
 
+def build_artifacts(identifier: str, s3_bucketname: str) -> Artifacts:
+    """ CodeBuild Artifact and Secondary Artifact creation. """
+    artifact = Artifacts(
+        Name=f"{identifier}Artifact",
+        ArtifactIdentifier=identifier,
+        EncryptionDisabled=True,
+        Location=s3_bucketname,
+        NamespaceType='None',
+        OverrideArtifactName=False,
+        Packaging='Zip',
+        Type='S3')
+    return artifact
+
+
 def build_project(template=Template(), section=None, project_name=None, raw_env=None,
                   service_role: str = None) -> Template:
+    """ Assemble all the requirements for a Troposphere CodeBuild Project. """
     template.set_version('2010-09-09')
-    artifacts = Artifacts(Type='NO_ARTIFACTS')
+    secondary_artifacts = list()
+
+    # Artifact object creation
+    if 'artifact_s3_bucket' in config[section]:
+        artifacts = build_artifacts(project_name,
+                                    config.get(section, 'artifact_s3_bucket'))
+        if 'artifact_secondary_identifiers' in config[section]:
+            # There can be N number of secondary artifacts
+            for arti in config.get(section, 'artifact_secondary_identifiers').split(','):
+                secondary_artifacts.append(build_artifacts(arti, config.get(section, 'artifact_s3_bucket')))
+
+    else:
+        # One blank Artifact object required.
+        artifacts = Artifacts(Type='NO_ARTIFACTS')
     env_list = list()
 
+    # Convert the env: line in the config to a list.
     try:
         logging.debug(f'raw_env is {raw_env}')
         env = raw_env.split(' ')
@@ -131,6 +161,7 @@ def build_project(template=Template(), section=None, project_name=None, raw_env=
         env = config.get(section, 'env').split(' ')
         logging.debug(f'Section is {section}')
 
+    # Split the env key/value pairs into dict.
     for i in env:
         k, v = i.split("=")
         env_list.append({"Name": k, "Value": v})
@@ -151,20 +182,36 @@ def build_project(template=Template(), section=None, project_name=None, raw_env=
         ReportBuildStatus=True
     )
 
-    project_id = project = Project(
-        project_name,
-        Artifacts=artifacts,
-        Environment=environment,
-        Name=project_name,
-        TimeoutInMinutes=config.get(section, 'timeout_in_min'),
-        ServiceRole=Ref(service_role),
-        Source=source,
-        SourceVersion=config.get(section, 'source_version'),
-        BadgeEnabled=True,
-        DependsOn=service_role,
-    )
+    # Artifact is required; SecondaryArtifact is optional.
+    if secondary_artifacts:
+        project = Project(
+            project_name,
+            Artifacts=artifacts,
+            SecondaryArtifacts=secondary_artifacts,
+            Environment=environment,
+            Name=project_name,
+            TimeoutInMinutes=config.get(section, 'timeout_in_min'),
+            ServiceRole=Ref(service_role),
+            Source=source,
+            SourceVersion=config.get(section, 'source_version'),
+            BadgeEnabled=True,
+            DependsOn=service_role,
+        )
+    else:
+        project = Project(
+            project_name,
+            Artifacts=artifacts,
+            Environment=environment,
+            Name=project_name,
+            TimeoutInMinutes=config.get(section, 'timeout_in_min'),
+            ServiceRole=Ref(service_role),
+            Source=source,
+            SourceVersion=config.get(section, 'source_version'),
+            BadgeEnabled=True,
+            DependsOn=service_role,
+        )
     template.add_resource(project)
-    template.add_output([Output(f"CodeBuildProject{project_name}", Value=Ref(project_id))])
+    template.add_output([Output(f"CodeBuildProject{project_name}", Value=Ref(project))])
 
 
 def build_codebuild_role(template=Template(), project_name: str = None, **kwargs) -> Ref:
@@ -172,16 +219,38 @@ def build_codebuild_role(template=Template(), project_name: str = None, **kwargs
     assert project_name
     project_name += 'Role'
 
+    # Create a policy to Allow CodeBuild to write to s3 for Artifact storage/retrieval.
+    # This should be an AWS Managed Policy, but here we are.
+    policies = [Policy(
+        PolicyName=f"CodeBuildArtifactPolicy",
+        PolicyDocument=PolicyDocument(
+            Statement=[
+                Statement(
+                    Effect=Allow,
+                    Action=[Action("s3", "PutObject"),
+                            Action("s3","GetObject"),
+                            Action("s3","GetObjectVersion"),
+                            Action("s3","GetBucketAcl"),
+                            Action("s3","GetBucketLocation")],
+                    Resource=[
+                        "arn:aws:s3:::s2n-build-artifacts/*",
+                    ]
+                )
+            ]
+        )
+    )]
+
     # NOTE: By default CodeBuild manages the policies for this role.  If you delete a CFN stack and try to recreate the
     # project or make changes to it when the Codebuild managed Policy still exists, you'll see an error in the UI:
     # `The policy is attached to 0 entities but it must be attached to a single role`. (CFN fails with fail to update)
     # Orphaned policies created by CodeBuild will have CodeBuildBasePolicy prepended to them; search for policies with
     # this name and no role and delete to clear the error.
-    # TODO: Get a CloudFormation feature request to turn this off for project creation- let CFN manage the policy.
     role_id = template.add_resource(
         Role(
             project_name,
             Path='/',
+            Description='Policy created by CloudFormation.',
+            Policies=policies,
             AssumeRolePolicyDocument=PolicyDocument(
                 Statement=[
                     Statement(
@@ -206,7 +275,6 @@ def validate_cfn(boto_client: boto3.client, cfn_template: str):
         logging.info('CloudFormation template validation complete.')
     except exceptions.ClientError as e:
         raise SystemExit(f"Failed: {e}")
-
 
 
 def main(**kwargs):
@@ -242,6 +310,7 @@ def main(**kwargs):
             logging.info('Respecting dry-run flag.  Done')
         else:
             logging.info('Updating CloudFormation Stack')
+
 
 if __name__ == '__main__':
     # Parse  options
