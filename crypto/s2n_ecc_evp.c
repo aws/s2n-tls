@@ -29,7 +29,7 @@ DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
 DEFINE_POINTER_CLEANUP_FUNC(EC_KEY *, EC_KEY_free);
 
-#if !MODERN_EC_SUPPORTED
+#if !EVP_APIS_SUPPORTED
 DEFINE_POINTER_CLEANUP_FUNC(EC_POINT *, EC_POINT_free);
 #endif
 
@@ -53,7 +53,7 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_secp384r1 =
         .share_size = ( 48 * 2 ) + 1
 };
 
-#if MODERN_EC_SUPPORTED
+#if EVP_APIS_SUPPORTED
 const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {
     .iana_id = TLS_EC_CURVE_ECDH_X25519, 
     .libcrypto_nid = NID_X25519, 
@@ -70,7 +70,7 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {0};
 const struct s2n_ecc_named_curve *const s2n_all_supported_curves_list[] = {
     &s2n_ecc_curve_secp256r1,
     &s2n_ecc_curve_secp384r1,
-#if MODERN_EC_SUPPORTED
+#if EVP_APIS_SUPPORTED
     &s2n_ecc_curve_x25519,
 #endif
 };
@@ -78,12 +78,12 @@ const struct s2n_ecc_named_curve *const s2n_all_supported_curves_list[] = {
 const size_t s2n_all_supported_curves_list_len = s2n_array_len(s2n_all_supported_curves_list);
 
 
-int s2n_is_modern_ec_supported()
+int s2n_is_evp_apis_supported()
 {
-    return MODERN_EC_SUPPORTED;
+    return EVP_APIS_SUPPORTED;
 }
 
-#if MODERN_EC_SUPPORTED
+#if EVP_APIS_SUPPORTED
 static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 #else
 static int s2n_ecc_evp_write_point_data_snug(const EC_POINT *point, const EC_GROUP *group, struct s2n_blob *out);
@@ -94,7 +94,7 @@ static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret);
 
-#if MODERN_EC_SUPPORTED
+#if EVP_APIS_SUPPORTED
 static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
 
     DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(named_curve->libcrypto_nid, NULL),
@@ -132,7 +132,7 @@ static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve
 }
 
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
-#if MODERN_EC_SUPPORTED
+#if EVP_APIS_SUPPORTED
     if (named_curve->libcrypto_nid == NID_X25519) {
         return s2n_ecc_evp_generate_key_x25519(named_curve, evp_pkey);
     }
@@ -214,7 +214,7 @@ int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_e
     client_public_blob.data = s2n_stuffer_raw_read(Yc_in, client_public_blob.size);
     notnull_check(client_public_blob.data);
 
-#if MODERN_EC_SUPPORTED
+#if EVP_APIS_SUPPORTED
     if (ecc_evp_params->negotiated_curve->libcrypto_nid == NID_X25519) {
         GUARD(EVP_PKEY_set_type(peer_key, ecc_evp_params->negotiated_curve->libcrypto_nid));
     } else {
@@ -268,7 +268,7 @@ int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *ecc_e
     
 }
 
-#if (!MODERN_EC_SUPPORTED)
+#if (!EVP_APIS_SUPPORTED)
 static int s2n_ecc_evp_calculate_point_length(const EC_POINT *point, const EC_GROUP *group, uint8_t *length) {
     size_t ret = EC_POINT_point2oct(group, point, POINT_CONVERSION_UNCOMPRESSED, NULL, 0, NULL);
     S2N_ERROR_IF(ret == 0, S2N_ERR_ECDHE_SERIALIZING);
@@ -344,7 +344,7 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     notnull_check(ecc_evp_params->evp_pkey);
     notnull_check(out);
 
-#if MODERN_EC_SUPPORTED
+#if EVP_APIS_SUPPORTED
     struct s2n_blob point_blob = {0};
     uint8_t *encoded_point = NULL;
 
@@ -411,7 +411,7 @@ int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_e
     notnull_check(ecc_evp_params->negotiated_curve);
     S2N_ERROR_IF(point_blob->size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
 
-#if MODERN_EC_SUPPORTED
+#if EVP_APIS_SUPPORTED
     if (ecc_evp_params->negotiated_curve->libcrypto_nid == NID_X25519) {
         if (ecc_evp_params->evp_pkey == NULL) {
             ecc_evp_params->evp_pkey = EVP_PKEY_new();

@@ -26,7 +26,7 @@ const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_20140601[] = {
 };
 
 const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_20200310[] = {
-#if MODERN_EC_SUPPORTED
+#if EVP_APIS_SUPPORTED
     &s2n_ecc_curve_x25519,
 #endif
     &s2n_ecc_curve_secp256r1,
