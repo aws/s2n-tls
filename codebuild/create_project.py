@@ -29,7 +29,7 @@ from troposphere.iam import Role, Policy
 from troposphere.codebuild import Artifacts, Environment, Source, Project
 
 logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 def build_cw_event(template=Template, project_name=None, role=None):
@@ -268,7 +268,7 @@ def build_codebuild_role(template=Template(), project_name: str = None, **kwargs
 
 
 def validate_cfn(boto_client: boto3.client, cfn_template: str):
-    """ Use boto validate_template. """
+    """ Call validate_template with boto. """
     try:
         response = boto_client.validate_template(TemplateBody=cfn_template)
         logging.debug(f"CloudFormation Template validation response: {response}")
@@ -278,19 +278,24 @@ def validate_cfn(boto_client: boto3.client, cfn_template: str):
 
 
 def main(**kwargs):
-    """ Create the CFN template and either write to screen or update/create boto3. """
+    """ Create the CFN template and do stuff with said template. """
     codebuild = Template()
     codebuild.set_version('2010-09-09')
     # Create a single CloudWatch Event role to allow codebuild:startBuild
     cw_event_role = build_cw_cb_role(codebuild)
     temp_yaml_filename = args.output_dir + "/s2n_codebuild_projects.yml"
 
+    # Role used by GitHub Actions.
     build_github_role(codebuild)
+
+    # Walk the config file, adding each stanza to the Troposphere template.
     for job in config.sections():
         if 'CodeBuild:' in job:
             job_title = job.split(':')[1]
             service_role = build_codebuild_role(template=codebuild, project_name=job_title).to_dict()
+
             # Pull the env out of the section, and use the snippet for the other values.
+            # Note: only env is over-ridden with snippets.
             if 'snippet' in config[job]:
                 build_project(template=codebuild, project_name=job_title, section=config.get(job, 'snippet'),
                               service_role=service_role['Ref'], raw_env=config.get(job, 'env'))
@@ -298,19 +303,28 @@ def main(**kwargs):
                 build_project(template=codebuild, project_name=job_title, section=job, service_role=service_role['Ref'])
             build_cw_event(template=codebuild, project_name=job_title, role=cw_event_role)
 
+    # Write out a CloudFormation template.  This is ephemeral and is not used again.
     with(open(temp_yaml_filename, 'w')) as fh:
         fh.write(codebuild.to_yaml())
-    if args.noop:
         logging.info(f"Wrote cfn yaml file to {temp_yaml_filename}")
+
+    if args.noop:
+        logging.info("Respecting noop, Done.")
+        return
     else:
-        # Fire up the boto
+        # Fire up the boto, exit gracefully if the user doesn't have creds setup.
         client = boto3.client('cloudformation', region_name=config.get('Global', 'aws_region'))
-        validate_cfn(client, codebuild.to_yaml())
+        try:
+            validate_cfn(client, codebuild.to_yaml())
+        except exceptions.NoCredentialsError:
+            raise SystemExit(f"Something went wrong with your AWS credentials;  Exiting.")
+
         if args.dry_run:
             logging.info('Respecting dry-run flag.  Done')
         else:
-            logging.info('Updating CloudFormation Stack')
-
+            logging.info('Creating a change set (would go here)')
+            #try:
+            #    change_set = client.create_change_set()
 
 if __name__ == '__main__':
     # Parse  options
