@@ -38,6 +38,7 @@
  * Selected Version (2 byte)
  **/
 
+/* Leaving conn as input for future unification */
 int s2n_extensions_server_supported_versions_size(struct s2n_connection *conn)
 {
     return 6;

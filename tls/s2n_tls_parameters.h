@@ -90,6 +90,7 @@
 #define TLS_EXTENSION_ALPN                 16
 #define TLS_EXTENSION_SCT_LIST             18
 #define TLS_EXTENSION_SESSION_TICKET       35
+#define TLS_EXTENSION_CERT_AUTHORITIES     47
 #define TLS_EXTENSION_RENEGOTIATION_INFO   65281
 
 /* TLS 1.3 extensions from https://tools.ietf.org/html/rfc8446#section-4.2 */

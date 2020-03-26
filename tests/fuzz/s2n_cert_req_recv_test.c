@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-/* Target Functions: s2n_client_cert_req_recv s2n_recv_client_cert_preferences
+/* Target Functions: s2n_cert_req_recv s2n_recv_client_cert_preferences
                      s2n_cert_type_to_pkey_type s2n_recv_supported_sig_scheme_list
                      s2n_choose_sig_scheme_from_peer_preference_list
                      s2n_set_cert_chain_as_client */
@@ -41,7 +41,7 @@
 static char *cert_chain, *private_key;
 struct s2n_cert_chain_and_key *default_cert;
 
-static void s2n_client_cert_req_recv_fuzz_atexit()
+static void s2n_cert_req_recv_fuzz_atexit()
 {
     s2n_cleanup();
     free(cert_chain);
@@ -52,7 +52,7 @@ static void s2n_client_cert_req_recv_fuzz_atexit()
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
     GUARD(s2n_init());
-    GUARD_STRICT(atexit(s2n_client_cert_req_recv_fuzz_atexit));
+    GUARD_STRICT(atexit(s2n_cert_req_recv_fuzz_atexit));
 
     /* Initialize test chain and key */
     cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE);
@@ -64,6 +64,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     GUARD(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
     GUARD(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
     GUARD(s2n_cert_chain_and_key_load_pem(default_cert, cert_chain, private_key));
+
     return 0;
 }
 
@@ -91,7 +92,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     /* Run Test
      * Do not use GUARD macro here since the connection memory hasn't been freed.
      */
-    s2n_client_cert_req_recv(client_conn);
+    s2n_cert_req_recv(client_conn);
 
     /* Cleanup */
     GUARD(s2n_connection_free(client_conn));
