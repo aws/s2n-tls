@@ -75,6 +75,16 @@ int s2n_check_ecc_preferences_curves_list(const struct s2n_ecc_preferences *ecc_
     return S2N_SUCCESS;
 }
 
+int s2n_ecc_preferences_init()
+{
+    for (int i = 0; selection[i].version != NULL; i++) {
+        const struct s2n_ecc_preferences *preferences = selection[i].preferences;
+        GUARD(s2n_check_ecc_preferences_curves_list(preferences));
+    }
+
+    return S2N_SUCCESS;
+}
+
 static int s2n_find_ecc_pref_from_version(const char *version, const struct s2n_ecc_preferences **ecc_preferences)
 {
     notnull_check(version);

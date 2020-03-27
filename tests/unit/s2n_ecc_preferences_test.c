@@ -20,9 +20,6 @@
 #include "tls/s2n_config.h"
 #include "tls/s2n_ecc_preferences.h"
 
-/* needed for selection */
-#include "tls/s2n_ecc_preferences.c"
-
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -47,14 +44,6 @@ int main(int argc, char **argv)
                 S2N_ERR_INVALID_ECC_PREFERENCES);
 
         s2n_config_free(config);
-    }
-      
-    /* Test s2n_check_ecc_preferences_curves_list over selection */
-    {
-        for (int i = 0; selection[i].version != NULL; i++) {
-            const struct s2n_ecc_preferences *preferences = selection[i].preferences;
-            EXPECT_SUCCESS(s2n_check_ecc_preferences_curves_list(preferences));
-            }
     }
 
     /* Failure case when s2n_ecc_preference lists contains a curve not present in s2n_all_supported_curves_list */
