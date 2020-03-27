@@ -16,6 +16,8 @@
 #include "tls/extensions/s2n_server_key_share.h"
 
 #include "tls/s2n_client_extensions.h"
+#include "tls/s2n_ecc_preferences.h"
+
 #include "utils/s2n_safety.h"
 #include "tls/s2n_tls.h"
 
@@ -24,13 +26,17 @@
  */
 int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
+    notnull_check(ecc_pref);
+
     const struct s2n_ecc_named_curve *server_curve, *client_curve;
     server_curve = conn->secure.server_ecc_evp_params.negotiated_curve;
     notnull_check(server_curve);
 
     int curve_index = -1;
-    for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
-        if (server_curve == s2n_ecc_evp_supported_curves_list[i]) {
+    for (int i = 0; i < ecc_pref->count; i++) {
+        if (server_curve == ecc_pref->ecc_curves[i]) {
             curve_index = i;
             break;
         }
@@ -51,7 +57,10 @@ int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn)
  */
 int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
 {
-    for (uint32_t i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+    notnull_check(conn->config);
+    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
+    notnull_check(ecc_pref);
+    for (uint32_t i = 0; i < ecc_pref->count; i++) {
         /* Checks supported group and keyshare have both been sent */
         if (conn->secure.client_ecc_evp_params[i].negotiated_curve &&
              conn->secure.mutually_supported_groups[i]) {
@@ -123,6 +132,9 @@ int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n
 {
     notnull_check(conn);
     notnull_check(extension);
+    notnull_check(conn->config);
+    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
+    notnull_check(ecc_pref);
 
     uint16_t named_group, share_size;
 
@@ -137,10 +149,10 @@ int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n
 
     int supported_curve_index = -1;
     const struct s2n_ecc_named_curve *supported_curve = NULL;
-    for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
-        if (named_group == s2n_ecc_evp_supported_curves_list[i]->iana_id) {
+    for (int i = 0; i < ecc_pref->count; i++) {
+        if (named_group == ecc_pref->ecc_curves[i]->iana_id) {
             supported_curve_index = i;
-            supported_curve = s2n_ecc_evp_supported_curves_list[i];
+            supported_curve = ecc_pref->ecc_curves[i];
             break;
         }
     }

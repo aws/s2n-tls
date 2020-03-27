@@ -19,18 +19,24 @@
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
+#include "tls/s2n_ecc_preferences.h"
 
 #include "utils/s2n_safety.h"
 
 int s2n_extensions_client_supported_groups_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
+    notnull_check(conn);
+    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
+    notnull_check(ecc_pref);
+
     GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SUPPORTED_GROUPS));
-    GUARD(s2n_stuffer_write_uint16(out, 2 + s2n_ecc_evp_supported_curves_list_len * 2));
+    /* size of extension, 2 byte iana ids */
+    GUARD(s2n_stuffer_write_uint16(out, 2 + ecc_pref->count * 2));
     /* Curve list len */
-    GUARD(s2n_stuffer_write_uint16(out, s2n_ecc_evp_supported_curves_list_len * 2));
+    GUARD(s2n_stuffer_write_uint16(out, ecc_pref->count * 2));
     /* Curve list */
-    for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
-        GUARD(s2n_stuffer_write_uint16(out, s2n_ecc_evp_supported_curves_list[i]->iana_id));
+    for (int i = 0; i < ecc_pref->count; i++) {
+        GUARD(s2n_stuffer_write_uint16(out, ecc_pref->ecc_curves[i]->iana_id));
     }
 
     GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_EC_POINT_FORMATS));
@@ -58,17 +64,20 @@ int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct s2n_stu
     proposed_curves.data = s2n_stuffer_raw_read(extension, proposed_curves.size);
     notnull_check(proposed_curves.data);
 
-    GUARD(s2n_parse_client_supported_groups_list(&proposed_curves, conn->secure.mutually_supported_groups));
-    uint16_t supported_groups_size =  s2n_array_len(conn->secure.mutually_supported_groups);
-    if (s2n_choose_supported_group(conn->secure.mutually_supported_groups, supported_groups_size,
-            &conn->secure.server_ecc_evp_params) != 0) {
+    GUARD(s2n_parse_client_supported_groups_list(conn, &proposed_curves, conn->secure.mutually_supported_groups));
+    if (s2n_choose_supported_group(conn, conn->secure.mutually_supported_groups,
+            &conn->secure.server_ecc_evp_params) != S2N_SUCCESS) {
         /* Can't agree on a curve, ECC is not allowed. Return success to proceed with the handshake. */
         conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
     }
     return 0;
 }
 
-int s2n_parse_client_supported_groups_list(struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **supported_groups) {
+int s2n_parse_client_supported_groups_list(struct s2n_connection *conn, struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **supported_groups) {
+    notnull_check(conn->config);
+    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
+    notnull_check(ecc_pref);
+
     struct s2n_stuffer iana_ids_in = {0};
 
     GUARD(s2n_stuffer_init(&iana_ids_in, iana_ids));
@@ -77,8 +86,8 @@ int s2n_parse_client_supported_groups_list(struct s2n_blob *iana_ids, const stru
     for (int i = 0; i < iana_ids->size / 2; i++) {
         uint16_t iana_id;
         GUARD(s2n_stuffer_read_uint16(&iana_ids_in, &iana_id));
-        for (int j = 0; j < s2n_ecc_evp_supported_curves_list_len; j++) {
-            const struct s2n_ecc_named_curve *supported_curve = s2n_ecc_evp_supported_curves_list[j];
+        for (int j = 0; j < ecc_pref->count; j++) {
+            const struct s2n_ecc_named_curve *supported_curve = ecc_pref->ecc_curves[j];
             if (supported_curve->iana_id == iana_id) {
                 supported_groups[j] = supported_curve;
             }
@@ -87,12 +96,13 @@ int s2n_parse_client_supported_groups_list(struct s2n_blob *iana_ids, const stru
     return 0;
 }
 
-int s2n_choose_supported_group(const struct s2n_ecc_named_curve **group_options, uint16_t group_options_length,
-    struct s2n_ecc_evp_params *chosen_group)
+int s2n_choose_supported_group(struct s2n_connection *conn, const struct s2n_ecc_named_curve **group_options, struct s2n_ecc_evp_params *chosen_group)
  {
-    eq_check(s2n_ecc_evp_supported_curves_list_len, group_options_length);
+    notnull_check(conn->config);
+    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
+    notnull_check(ecc_pref);
 
-    for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
+    for (int i = 0; i < ecc_pref->count; i++) {
         if (group_options[i]) {
             chosen_group->negotiated_curve = group_options[i];
             return 0;

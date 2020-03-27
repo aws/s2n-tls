@@ -33,6 +33,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_safety.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_ecc_preferences.h"
 
 static struct s2n_kem_keypair server_kem_keys = {.negotiated_kem = &s2n_bike1_l1_r1};
 
@@ -44,7 +45,8 @@ static struct s2n_kem_keypair server_kem_keys = {.negotiated_kem = &s2n_bike1_l1
 static int setup_connection(struct s2n_connection *server_conn)
 {
     server_conn->actual_protocol_version = S2N_TLS12;
-    server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+    const struct s2n_ecc_preferences *ecc_preferences = server_conn->config->ecc_preferences;
+    server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
     server_conn->secure.server_ecc_evp_params.evp_pkey = NULL;
     server_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_bike1_l1_r1;
     server_conn->secure.cipher_suite = &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384;
