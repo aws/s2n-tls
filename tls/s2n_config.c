@@ -70,6 +70,7 @@ static int s2n_config_setup_default(struct s2n_config *config)
     GUARD(s2n_config_set_cipher_preferences(config, "default"));
     GUARD(s2n_config_set_signature_preferences(config, "default"));
     GUARD(s2n_config_set_ecc_preferences(config, "default"));
+    GUARD(s2n_check_ecc_preferences_curves_list(config->ecc_preferences));
     return S2N_SUCCESS;
 }
 
@@ -77,7 +78,8 @@ static int s2n_config_setup_tls13(struct s2n_config *config)
 {
     GUARD(s2n_config_set_cipher_preferences(config, "default_tls13"));
     GUARD(s2n_config_set_signature_preferences(config, "default_tls13"));
-    GUARD(s2n_config_set_ecc_preferences(config, "default_tls13"));       
+    GUARD(s2n_config_set_ecc_preferences(config, "default_tls13")); 
+    GUARD(s2n_check_ecc_preferences_curves_list(config->ecc_preferences));      
     return S2N_SUCCESS;
 }
 

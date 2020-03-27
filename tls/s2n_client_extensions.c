@@ -95,7 +95,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     const uint8_t ecc_extension_required = s2n_ecc_extension_required(cipher_preferences);
     if (ecc_extension_required) {
         /* Write ECC extensions: Supported Curves and Supported Point Formats */
-        total_size += 12 + ecc_pref->count * 2; /* 12 = 5 * sizeof(uint16_t) + 2 * sizeof(uint8_t) */
+        total_size += 5 * sizeof(uint16_t) + 2 * sizeof(uint8_t) + ecc_pref->count * 2; 
     }
 
     const uint8_t pq_kem_extension_required = s2n_pq_kem_extension_required(cipher_preferences);

@@ -48,20 +48,15 @@ int main(int argc, char **argv)
 
         s2n_config_free(config);
     }
-
-    /* Verify that s2n_all_supported_curves_list is a superset of curves in s2n_ecc_preference lists */
+      
+    /* Test s2n_check_ecc_preferences_curves_list over selection */
     {
-        const struct s2n_ecc_preferences all_ecc_preferences[] = {
-            s2n_ecc_preferences_20200310,
-            s2n_ecc_preferences_20140601,
-        };
-
-        for (int i = 0; i < 2; i++) {
-            for (int j = 0; j < all_ecc_preferences[i].count; j++) {
-                 EXPECT_SUCCESS(s2n_check_ecc_preferences_curves_list(&all_ecc_preferences[i]));
+        for (int i = 0; selection[i].version != NULL; i++) {
+            const struct s2n_ecc_preferences *preferences = selection[i].preferences;
+            EXPECT_SUCCESS(s2n_check_ecc_preferences_curves_list(preferences));
             }
-        }
     }
+
     /* Failure case when s2n_ecc_preference lists contains a curve not present in s2n_all_supported_curves_list */
     {
         const struct s2n_ecc_named_curve test_curve = {

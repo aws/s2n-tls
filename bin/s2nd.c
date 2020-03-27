@@ -289,7 +289,7 @@ void usage()
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
-    fprintf(stderr, "  -v [version_string]\n");
+    fprintf(stderr, "  -u [version_string]\n");
     fprintf(stderr, "  --curves [version_string]\n");
     fprintf(stderr, "    Set the ecc preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
     fprintf(stderr, "  --enter-fips-mode\n");
@@ -479,7 +479,7 @@ int main(int argc, char *const *argv)
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:iTCu", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:iTCu:", long_options, &option_index);
         if (c == -1) {
             break;
         }

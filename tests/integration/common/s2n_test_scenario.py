@@ -231,7 +231,7 @@ def run_scenarios(test_func, scenarios):
 
 
 def get_scenarios(host, start_port, s2n_modes=Mode.all(), versions=[None], ciphers=[None],
-                  curves=[None], certs=ALL_CERTS, s2n_flags=[], peer_flags=[]):
+                  curves=Curve.all(), certs=ALL_CERTS, s2n_flags=[], peer_flags=[]):
     port = start_port
     scenarios = []
 

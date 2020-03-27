@@ -147,8 +147,7 @@ int main(int argc, char **argv)
         const struct s2n_ecc_preferences *ecc_pref = NULL;
 
         int i = 0;
-        do
-        {
+        do {
             struct s2n_connection *server_send_conn;
             struct s2n_connection *client_recv_conn;
             EXPECT_NOT_NULL(server_send_conn = s2n_connection_new(S2N_SERVER));
@@ -278,8 +277,7 @@ int main(int argc, char **argv)
             shared_secret_size[1] = 48;  
         }
         int i = 0;
-        do
-        {
+        do {
             struct s2n_connection *client_conn;
             struct s2n_connection *server_conn;
             struct s2n_stuffer client_hello_key_share;
@@ -371,7 +369,7 @@ int main(int argc, char **argv)
 
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(conn->config);
-            /* The default ecc_preferences list contains curves p-256 and p-384 */
+            /* Explicitly set the ecc_preferences list to contain the curves p-256 and p-384 */
             EXPECT_SUCCESS(s2n_config_set_ecc_preferences(conn->config, "default"));
             const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
             EXPECT_NOT_NULL(ecc_pref);
@@ -405,7 +403,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server_send_conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(client_recv_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_NOT_NULL(server_send_conn->config);
-            /* The default ecc_preferences list contains curves p-256 and p-384 */
+            /* Explicitly set the ecc_preferences list to contain the curves p-256 and p-384 */
             EXPECT_SUCCESS(s2n_config_set_ecc_preferences(server_send_conn->config, "default"));
             EXPECT_NOT_NULL(ecc_pref = server_send_conn->config->ecc_preferences);
 

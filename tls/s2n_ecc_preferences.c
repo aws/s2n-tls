@@ -83,7 +83,6 @@ static int s2n_find_ecc_pref_from_version(const char *version, const struct s2n_
     for (int i = 0; selection[i].version != NULL; i++) {
         if (!strcasecmp(version, selection[i].version)) {
             *ecc_preferences = selection[i].preferences;
-            GUARD(s2n_check_ecc_preferences_curves_list(*ecc_preferences));
             return S2N_SUCCESS;
         }
     }
