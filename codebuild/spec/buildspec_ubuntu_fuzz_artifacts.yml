@@ -52,15 +52,14 @@ phases:
       - codebuild/bin/s2n_after_codebuild.sh
 artifacts:
   files:
-    - "$FUZZ_TESTS/*"
+    - "./tests/fuzz/corpus/$FUZZ_TESTS/*"
   name: fuzz-corpus-$FUZZ_TESTS-$(date +%Y%m%d)-$CODEBUILD_BUILD_NUMBER
   discard-paths: no
-  base-directory: "./tests/fuzz/corpus"
   secondary-artifacts:
     logs:
       files:
-        - "**/*_results.txt"
-        - "**/*_output.txt"
-      name: fuzz-logs-$FUZZ_TESTS-$(date +%Y%m%d)-$CODEBUILD_BUILD_NUMBER
-      discard-paths: yes
-      base-directory: "./tests/fuzz"
+        - "./tests/fuzz/**/*_results.txt"
+        - "./tests/fuzz/**/*_output.txt"
+        - "./coverage/fuzz/**"
+      name: fuzz-cov-logs-$FUZZ_TESTS-$(date +%Y%m%d)-$CODEBUILD_BUILD_NUMBER
+      discard-paths: no
