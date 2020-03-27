@@ -359,7 +359,7 @@ int s2n_print_stacktrace(FILE *fptr)
 #else /* !S2N_HAVE_EXECINFO */
 int s2n_free_stacktrace(void)
 {
-    return S2N_ERR_UNIMPLEMENTED;
+    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
 }
 
 int s2n_calculate_stacktrace(void)
@@ -369,16 +369,16 @@ int s2n_calculate_stacktrace(void)
         return S2N_SUCCESS;
     }
 
-    return S2N_ERR_UNIMPLEMENTED;
+    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
 }
 
 int s2n_get_stacktrace(struct s2n_stacktrace *trace)
 {
-    return S2N_ERR_UNIMPLEMENTED;
+    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
 }
 
 int s2n_print_stacktrace(FILE *fptr)
 {
-    return S2N_ERR_UNIMPLEMENTED;
+    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
 }
 #endif /* S2N_HAVE_EXECINFO */
