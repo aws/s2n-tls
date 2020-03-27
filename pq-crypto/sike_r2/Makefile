@@ -40,6 +40,11 @@ ifndef S2N_NO_PQ_ASM
 	ifeq ($(TRY_COMPILE_PQ_ASM), 0)
 		ASRC=fp_x64_asm.S
 		OBJS+=$(ASRC:.S=.o)
+
+		TRY_COMPILE_PQ_ASM_ADX := $(shell $(CC) -D_ADX_ -c -o ./fp_x64_asm.o ./fp_x64_asm.S > /dev/null 2>&1; echo $$?)
+		ifeq ($(TRY_COMPILE_PQ_ASM_ADX), 0)
+			CFLAGS += -D_ADX_
+		endif
 	else
 		CFLAGS += -DS2N_NO_PQ_ASM
 	endif

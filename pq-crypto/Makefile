@@ -53,9 +53,9 @@ run-lcov: lcov
 
 .PHONY : clean
 clean: decruft
-	${MAKE} -C bike_r1 decruft
+	$(MAKE) -C bike_r1 decruft
 	$(MAKE) -C bike_r2 decruft
-	${MAKE} -C sike_r1 decruft
-	${MAKE} -C sike_r2 decruft
+	$(MAKE) -C sike_r1 decruft
+	$(MAKE) -C sike_r2 decruft
 
 include ../s2n.mk
