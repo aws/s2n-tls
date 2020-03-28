@@ -40,6 +40,7 @@
 #include "tls/s2n_prf.h"
 #include "tls/s2n_resume.h"
 #include "tls/s2n_kem.h"
+#include "tls/s2n_ecc_preferences.h"
 
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
@@ -291,7 +292,7 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
     GUARD(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
-    for (int i=0; i< s2n_ecc_evp_supported_curves_list_len; i++) {
+    for (int i=0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
         GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
     }
     GUARD(s2n_kem_free(&conn->secure.s2n_kem_keys));

@@ -80,18 +80,6 @@ class TlsExtensionServerName:
 
 use_corked_io=False
 
-def get_supported_curves_list_by_version(libcrypto_version):
-    if libcrypto_version == "openssl-1.1.1":
-        return  ["P-256", "P-384"]
-    else:
-        return  ["P-256", "P-384"]
-
-def get_supported_curves_str_by_version(libcrypto_version):
-    if libcrypto_version == "openssl-1.1.1":
-        return "P-256:P-384"
-    else:
-        return "P-256:P-384"
-
 def cleanup_processes(*processes):
     for p in processes:
         p.kill()
@@ -603,7 +591,7 @@ def elliptic_curve_test(host, port, libcrypto_version, fips_mode):
     Acceptance test for supported elliptic curves. Tests all possible supported curves with unsupported curves mixed in
     for noise.
     """
-    supported_curves = get_supported_curves_list_by_version(libcrypto_version)
+    supported_curves = ["P-256", "P-384"]
     unsupported_curves = ["B-163", "K-409"]
     print("\n\tRunning elliptic curve tests:")
     print("\tExpected supported:   " + str(supported_curves))
@@ -689,7 +677,7 @@ def cert_type_cipher_match_test(host, port, libcrypto_version):
     failed = False
 
     cipher = "ALL"
-    supported_curves = get_supported_curves_str_by_version(libcrypto_version)
+    supported_curves = "P-256:P-384"
 
     # Handshake with RSA cert + ECDSApriority server cipher pref (must skip ecdsa ciphers)
     rsa_ret = try_handshake(host, port, cipher, None, curves=supported_curves,
@@ -720,7 +708,7 @@ def multiple_cert_type_test(host, port, libcrypto_version):
 
     # Basic handshake with ECDSA cert + RSA cert
     for cipher in ["ECDHE-ECDSA-AES128-SHA", "ECDHE-RSA-AES128-GCM-SHA256"]:
-        supported_curves = get_supported_curves_str_by_version(libcrypto_version)
+        supported_curves = "P-256:P-384"
         server_prefs = "test_all"
         ret = try_handshake(host, port, cipher, None, curves=supported_curves,
                 server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
@@ -732,7 +720,7 @@ def multiple_cert_type_test(host, port, libcrypto_version):
 
     # Handshake with ECDSA + RSA cert but no ecdsa ciphers configured on the server
     for cipher in ["ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-GCM-SHA256", "AES128-SHA"]:
-        supported_curves = get_supported_curves_str_by_version(libcrypto_version)
+        supported_curves = "P-256:P-384"
         server_prefs = "20170210"
         ret = try_handshake(host, port, cipher, None, curves=supported_curves,
                 server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
@@ -744,7 +732,7 @@ def multiple_cert_type_test(host, port, libcrypto_version):
 
     # Handshake with ECDSA + RSA cert but no rsa ciphers configured on the server
     for cipher in ["ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-GCM-SHA256", "ECDHE-ECDSA-AES256-SHA"]:
-        supported_curves = get_supported_curves_str_by_version(libcrypto_version)
+        supported_curves = "P-256:P-384"
         server_prefs = "test_all_ecdsa"
         ret = try_handshake(host, port, cipher, None, curves=supported_curves,
                 server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],

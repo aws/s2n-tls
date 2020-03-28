@@ -6,7 +6,7 @@
 
 .intel_syntax noprefix
 
-#define _MULX_
+/* Requires bmi2 instruction set for mulx. adx instructions are optional, but preferred. */
 
 // Registers that are used for parameter passing:
 #define reg_p1  rdi
@@ -14,7 +14,6 @@
 #define reg_p3  rdx
 
 // Define addition instructions
-#ifdef _MULX_
 #ifdef _ADX_
 
 #define ADD1    adox
@@ -22,15 +21,14 @@
 #define ADD2    adcx
 #define ADC2    adcx
 
-#else
+#else // _ADX_
 
 #define ADD1    add
 #define ADC1    adc
 #define ADD2    add
 #define ADC2    adc
 
-#endif    
-#endif
+#endif // _ADX_
 
 // The constants below (asm_p434, asm_p434p1, and asm_p434x2) are duplicated from
 // P434.c, and correspond to the arrays p434, p434p1, and p434x2. The values are
@@ -147,7 +145,6 @@ fpadd434_asm:
   pop    r12
   ret
 
-
 //***********************************************************************
 //  Field subtraction
 //  Operation: c [reg_p3] = a [reg_p1] - b [reg_p2]
@@ -209,9 +206,6 @@ fpsub434_asm:
   pop    r13
   pop    r12
   ret
-
-
-#ifdef _MULX_
     
 ///////////////////////////////////////////////////////////////// MACRO
 // Schoolbook integer multiplication, a full row at a time
@@ -335,7 +329,7 @@ fpsub434_asm:
     mov    56\C, \T8         // C7_final
 .endm 
 
-#else
+#else // _ADX_
 
 .macro MUL192_SCHOOL M0, M1, C, T0, T1, T2, T3, T4, T5, T6
     mov    rdx, \M0
@@ -445,8 +439,7 @@ fpsub434_asm:
     adc    \T8, 0
     mov    56\C, \T8         // C7_final
 .endm
-#endif
-
+#endif // _ADX_
 
 //*****************************************************************************
 //  434-bit multiplication using Karatsuba (one level), schoolbook (one level)
@@ -595,26 +588,6 @@ mul434_asm:
     pop    r12
     ret
 
-#else
-
-//***********************************************************************                       
-//  Integer multiplication
-//  Based on Karatsuba method
-//  Operation: c [reg_p3] = a [reg_p1] * b [reg_p2]
-//  NOTE: a=c or b=c are not allowed
-//***********************************************************************
-.global mul434_asm
-mul434_asm:
-
-  ret
-
-# error "CONFIGURATION NOT SUPPORTED. TRY USE_MULX=TRUE"
-
-#endif
-
-
-#ifdef _MULX_
-
 ///////////////////////////////////////////////////////////////// MACRO
 // Schoolbook integer multiplication
 // Inputs:  memory pointers M0 and M1
@@ -664,7 +637,7 @@ mul434_asm:
     ADC1   \T5, rax 
 .endm
 
-#else
+#else // _ADX_
 
 .macro MUL128x256_SCHOOL M0, M1, T0, T1, T2, T3, T4, T5, T6 
     mov    rdx, \M0
@@ -692,9 +665,8 @@ mul434_asm:
     adc    \T4, rdx  
     adc    \T5, 0 
 .endm
-#endif
+#endif // _ADX_
 
-  
 //**************************************************************************************
 //  Montgomery reduction
 //  Based on method described in Faz-Hernandez et al. https://eprint.iacr.org/2017/1015
@@ -800,24 +772,6 @@ rdc434_asm:
     pop    r12
     ret
 
-#else
-  
-//***********************************************************************
-//  Montgomery reduction
-//  Based on comba method
-//  Operation: c [reg_p2] = a [reg_p1]                                                      
-//  NOTE: a=c is not allowed
-//*********************************************************************** 
-.global rdc434_asm
-rdc434_asm:
-
-  ret
-
-# error "CONFIGURATION NOT SUPPORTED. TRY USE_MULX=TRUE"
-
-#endif
-
-
 //***********************************************************************
 //  434-bit multiprecision addition
 //  Operation: c [reg_p3] = a [reg_p1] + b [reg_p2]
@@ -847,7 +801,6 @@ mp_add434_asm:
   mov    [reg_p3+40], r9
   mov    [reg_p3+48], r10
   ret
-
 
 //***********************************************************************
 //  2x434-bit multiprecision subtraction/addition
@@ -932,7 +885,6 @@ mp_subadd434x2_asm:
   pop    r13
   pop    r12
   ret
-
 
 //***********************************************************************
 //  Double 2x434-bit multiprecision subtraction

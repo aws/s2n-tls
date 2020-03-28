@@ -25,6 +25,7 @@
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 #include "tls/s2n_kex.h"
 #include "utils/s2n_safety.h"
 
@@ -1117,6 +1118,11 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
     for (int i = 0; i < cipher_preferences->count; i++) {
         const uint8_t *ours = cipher_preferences->suites[i]->iana_value;
 
+        /* if the connection is using TLS 1.3, skip non-TLS 1.3 ciphers */
+        if (conn->actual_protocol_version >= S2N_TLS13 && !s2n_is_valid_tls13_cipher(ours)) {
+            continue;
+        }
+
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
             /* We have a match */
             struct s2n_cipher_suite *match = s2n_cipher_suite_from_wire(ours);
@@ -1126,13 +1132,18 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
                 match = match->sslv3_cipher_suite;
             }
 
-            /* Make sure the cipher is valid for available certs */
-            if (s2n_is_cipher_suite_valid_for_auth(conn, match) != S2N_SUCCESS) {
+            /* Skip the suite if we don't have an available implementation */
+            if (!match->available) {
                 continue;
             }
 
-            /* Skip the suite if we don't have an available implementation */
-            if (!match->available) {
+            /* Skip if cipher suite requires a higher version than what server is supporting */
+            if (match->minimum_required_tls_version > conn->server_protocol_version) {
+                continue;
+            }
+
+            /* Make sure the cipher is valid for available certs */
+            if (s2n_is_cipher_suite_valid_for_auth(conn, match) != S2N_SUCCESS) {
                 continue;
             }
 

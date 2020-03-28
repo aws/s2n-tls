@@ -58,8 +58,8 @@ if [[ -v FUZZ_COVERAGE ]]; then
 	LLVM_INSTALL_DIR="$CLANG_INSTALL_DIR"/../llvm
 	mkdir -p "$LLVM_INSTALL_DIR"
 	python3 "$CLANG_DOWNLOAD_DIR"/clang/scripts/update.py --package="coverage_tools" --output-dir="$LLVM_INSTALL_DIR"
-	ln -s $LLVM_INSTALL_DIR/bin/llvm-cov /usr/bin/llvm-cov
-        ln -s $LLVM_INSTALL_DIR/bin/llvm-profdata /usr/bin/llvm-profdata
+	ln -sf $LLVM_INSTALL_DIR/bin/llvm-cov /usr/bin/llvm-cov
+	ln -sf $LLVM_INSTALL_DIR/bin/llvm-profdata /usr/bin/llvm-profdata
 fi
 
 mkdir -p "$CLANG_INSTALL_DIR" && cp -rf "$CLANG_DOWNLOAD_DIR"/third_party/llvm-build/Release+Asserts/* "$CLANG_INSTALL_DIR"

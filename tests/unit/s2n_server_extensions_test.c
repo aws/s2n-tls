@@ -24,6 +24,7 @@
 #include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_ecc_preferences.h"
 
 #include "utils/s2n_safety.h"
 
@@ -40,8 +41,9 @@ const uint8_t MIN_TLS13_EXTENSION_SIZE = ( 32 * 2 ) + 1 + 8 + 6; /* expanded fro
 static int configure_tls13_connection(struct s2n_connection *conn)
 {
     conn->actual_protocol_version = S2N_TLS13;
-    conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
-    conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
+    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+    conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
     EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
     EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->handshake.io));
 
@@ -272,14 +274,17 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_NOT_NULL(conn->config);
+            const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
+            EXPECT_NOT_NULL(ecc_pref);
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
-            conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
             /* Test that s2n_server_extensions_send() only works when protocol version is TLS13 */
             conn->actual_protocol_version = S2N_TLS13;
 
             /* key_share_send() requires a negotiated_curve */
-            conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+            conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
 
             const uint8_t size = P256_KEYSHARE_SIZE + SUPPORTED_VERSION_SIZE;
 
@@ -314,15 +319,18 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_NOT_NULL(conn->config);
+            const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
+            EXPECT_NOT_NULL(ecc_pref);
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
-            conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             /* secure renegotiation is requested */
             conn->secure_renegotiation = 1;
             /* Test that s2n_server_extensions_send() only works when protocol version is TLS13 */
             conn->actual_protocol_version = S2N_TLS13;
 
             /* key_share_send() requires a negotiated_curve */
-            conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+            conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
             /* secure_renegotiation extension not send >=TLS13*/
             uint8_t size = s2n_extensions_server_key_share_send_size(conn)
                 + s2n_extensions_server_supported_versions_size(conn);
@@ -355,8 +363,11 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_NOT_NULL(conn->config);
+            const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
+            EXPECT_NOT_NULL(ecc_pref);
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
-            conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
             /* New Session Ticket Requested*/
             conn->config->use_tickets = 1;
@@ -366,7 +377,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
 
             /* key_share_send() requires a negotiated_curve */
-            conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+            conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
 
             /* nst extension not send >=TLS13*/
             uint8_t size = s2n_extensions_server_key_share_send_size(conn)
@@ -411,8 +422,11 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_NOT_NULL(conn->config);
+            const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
+            EXPECT_NOT_NULL(ecc_pref);
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
-            conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
             s2n_connection_set_cipher_preferences(conn, "test_all_tls13");
             /* Test that s2n_server_extensions_send() only works when protocol version is TLS13 */
@@ -421,7 +435,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
 
             /* key_share_send() requires a negotiated_curve */
-            conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+            conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
 
             uint8_t size = s2n_extensions_server_key_share_send_size(conn)
                 + s2n_extensions_server_supported_versions_size(conn);

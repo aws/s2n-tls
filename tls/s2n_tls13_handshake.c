@@ -15,6 +15,7 @@
 
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_ecc_preferences.h"
 
 int s2n_tls13_mac_verify(struct s2n_tls13_keys *keys, struct s2n_blob *finished_verify, struct s2n_blob *wire_verify)
 {
@@ -52,14 +53,17 @@ int s2n_tls13_keys_from_conn(struct s2n_tls13_keys *keys, struct s2n_connection 
 
 int s2n_tls13_compute_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
 {
+    notnull_check(conn->config);
+    const struct s2n_ecc_preferences *ecc_preferences = conn->config->ecc_preferences;
+    notnull_check(ecc_preferences);
     struct s2n_ecc_evp_params *server_key = &conn->secure.server_ecc_evp_params;
     notnull_check(server_key);
 
     /* for now we do this tedious loop to find the matching client key selection.
      * this can be simplified if we get an index or a pointer to a specific key */
     int selection = -1;
-    for (int i = 0; i < s2n_ecc_evp_supported_curves_list_len; i++) {
-        if (server_key->negotiated_curve->iana_id == s2n_ecc_evp_supported_curves_list[i]->iana_id) {
+    for (int i = 0; i < ecc_preferences->count; i++) {
+        if (server_key->negotiated_curve->iana_id == ecc_preferences->ecc_curves[i]->iana_id) {
             selection = i;
             break;
         }
@@ -86,6 +90,10 @@ int s2n_tls13_compute_shared_secret(struct s2n_connection *conn, struct s2n_blob
  */
 int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
 {
+    notnull_check(conn->config);
+    const struct s2n_ecc_preferences *ecc_preferences = conn->config->ecc_preferences;
+    notnull_check(ecc_preferences);
+    
     /* get tls13 key context */
     s2n_tls13_connection_keys(secrets, conn);
 
@@ -127,7 +135,7 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
 
     /* since shared secret has been computed, clean up keys */
     GUARD(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
-    for (int i = 0; i< s2n_ecc_evp_supported_curves_list_len; i++) {
+    for (int i = 0; i < ecc_preferences->count; i++) {
         GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
     }
 

@@ -20,7 +20,7 @@ Common functions to run s2n integration tests.
 import subprocess
 import uuid
 
-from common.s2n_test_scenario import Mode, Version, run_scenarios
+from common.s2n_test_scenario import Mode, Version, run_scenarios, get_libcrypto
 from common.s2n_test_reporting import Result
 
 
@@ -148,6 +148,8 @@ def get_s2n_cmd(scenario):
 
     if scenario.version is Version.TLS13:
         s2n_cmd.append("--tls13")
+        if get_libcrypto() == "openssl-1.1.1":
+            s2n_cmd.extend(["--curves", "default_tls13"])
 
     s2n_cmd.extend(scenario.s2n_flags)
     s2n_cmd.extend([str(scenario.host), str(scenario.port)])

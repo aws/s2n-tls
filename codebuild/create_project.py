@@ -161,6 +161,7 @@ def build_project(template=Template(), section=None, project_name=None, raw_env=
         Artifacts=artifacts,
         Environment=environment,
         Name=project_name,
+        TimeoutInMinutes=config.get(section, 'timeout_in_min'),
         ServiceRole=Ref(service_role),
         Source=source,
         SourceVersion=config.get(section, 'source_version'),

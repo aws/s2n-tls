@@ -19,8 +19,7 @@ phases:
       python: 3.7
     commands:
       - echo Entered the install phase...
-      - apt-key list
-      - apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 6B05F25D762E3157
+      - echo "We need a test PPA for gcc-9."
       - add-apt-repository ppa:ubuntu-toolchain-r/test -y
       - apt-get update -o Acquire::CompressionTypes::Order::=gz
       - apt-get update -y

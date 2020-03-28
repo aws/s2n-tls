@@ -20,5 +20,5 @@
 
 extern int s2n_extensions_client_supported_groups_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 extern int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct s2n_stuffer *extension);
-int s2n_parse_client_supported_groups_list(struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **supported_groups);
-int s2n_choose_supported_group(const struct s2n_ecc_named_curve **group_options, uint16_t group_options_length, struct s2n_ecc_evp_params *chosen_group);
+int s2n_parse_client_supported_groups_list(struct s2n_connection *conn, struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **supported_groups);
+int s2n_choose_supported_group(struct s2n_connection *conn, const struct s2n_ecc_named_curve **group_options, struct s2n_ecc_evp_params *chosen_group);

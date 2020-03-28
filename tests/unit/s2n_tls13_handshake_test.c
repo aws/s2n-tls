@@ -31,6 +31,7 @@
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/extensions/s2n_client_key_share.h"
+#include "tls/s2n_ecc_preferences.h"
 #include "utils/s2n_safety.h"
 
 /* Just to get access to the static functions / variables we need to test */
@@ -51,6 +52,8 @@ int main(int argc, char **argv)
 
         client_conn->actual_protocol_version = S2N_TLS13;
         server_conn->actual_protocol_version = S2N_TLS13;
+        
+        const struct s2n_ecc_preferences *server_ecc_preferences = server_conn->config->ecc_preferences;
 
         struct s2n_stuffer client_hello_key_share;
         struct s2n_stuffer server_hello_key_share;
@@ -66,7 +69,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_extensions_client_key_share_recv(server_conn, &client_hello_key_share));
 
         /* Server configures the "negotiated_curve" */
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = server_ecc_preferences->ecc_curves[0];
 
         /* Server sends ServerHello key_share */
         EXPECT_SUCCESS(s2n_extensions_server_key_share_send(server_conn, &server_hello_key_share));
@@ -279,6 +282,9 @@ int main(int argc, char **argv)
             for (int i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
+                EXPECT_NOT_NULL(conn->config);
+                const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
+                EXPECT_NOT_NULL(ecc_pref);
 
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
@@ -290,8 +296,8 @@ int main(int argc, char **argv)
                 conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
                 conn->handshake.message_number = i;
 
-                conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
-                conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+                conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+                conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
 
@@ -326,6 +332,9 @@ int main(int argc, char **argv)
             for (int i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
+                EXPECT_NOT_NULL(conn->config);
+                const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
+                EXPECT_NOT_NULL(ecc_pref);
 
                 conn->actual_protocol_version = S2N_TLS12;
                 conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
@@ -337,8 +346,8 @@ int main(int argc, char **argv)
                 conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
                 conn->handshake.message_number = i;
 
-                conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
-                conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+                conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+                conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
 
