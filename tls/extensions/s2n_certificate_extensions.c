@@ -102,12 +102,15 @@ int s2n_certificate_extensions_send(struct s2n_connection *conn, struct s2n_stuf
     uint16_t extensions_size = s2n_certificate_extensions_size(conn, chain_and_key);
     GUARD(s2n_stuffer_write_uint16(out, extensions_size));
 
-    /* server sent extensions */
+    /* OCSP Extension */
     if (s2n_server_can_send_ocsp(conn)) {
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_STATUS_REQUEST));
         GUARD(s2n_stuffer_write_uint16(out, s2n_server_certificate_status_send_size(conn)));
         GUARD(s2n_server_certificate_status_send(conn, out));
     }
+
+    /* SCT Extension */
+    GUARD(s2n_server_extensions_sct_list_send(conn, out));
 
     return 0;
 }
@@ -118,6 +121,8 @@ int s2n_certificate_extensions_size(struct s2n_connection *conn, struct s2n_cert
     if (s2n_server_can_send_ocsp(conn)) {
         size += 2 * sizeof(uint16_t) + s2n_server_certificate_status_send_size(conn);
     }
+
+    size += s2n_server_extensions_sct_list_send_size(conn);
 
     return size;
 }

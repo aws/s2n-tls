@@ -270,13 +270,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
+    /* some arbitrary numbers for testing */
+    #define OCSP_SIZE 5
+    #define RAW_CERT_SIZE 7
+    #define FAKE_CHAIN_SIZE 3
+    #define SCT_LIST_SIZE 5
 
     /* Test OSCP sending with s2n_certificate_extensions_send() */
     {
-        /* some arbitrary numbers for testing */
-        #define OCSP_SIZE 5
-        #define RAW_CERT_SIZE 7
-
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
@@ -289,7 +290,7 @@ int main(int argc, char **argv)
         cert1.raw = raw;
         cert2.raw = raw;
 
-        cert_chain.chain_size = 3;
+        cert_chain.chain_size = FAKE_CHAIN_SIZE;
         chain_and_key.cert_chain = &cert_chain;
         cert_chain.head = &cert1;
         cert1.next = &cert2;
@@ -332,16 +333,186 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(ocsp_extension_size, s2n_stuffer_data_available(&stuffer));
         EXPECT_EQUAL(ocsp_extension_size, EXPECTED_EXTENSIONS_SIZE - 4); /* remove the overall extensions header overheads */
 
+        /* copy remaining stuffer contents into a extension blob */
         struct s2n_blob extension_blob = {0};
-        EXPECT_SUCCESS(s2n_blob_init(&extension_blob, stuffer.blob.data + stuffer.read_cursor, s2n_stuffer_data_available(&stuffer)));
+        extension_blob.size = s2n_stuffer_data_available(&stuffer);
+        extension_blob.data = s2n_stuffer_raw_read(&stuffer, extension_blob.size);
+        EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
 
-        /* Test that s2n_certificate_extensions_parse() can read the contents */
+        /* Test that s2n_certificate_extensions_parse() can read the extension blob contents */
         EXPECT_SUCCESS(s2n_certificate_extensions_parse(server_conn, &extension_blob));
 
         /* The current behaviour does not send OCSP stapling in client mode */
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->status_type = S2N_STATUS_REQUEST_OCSP;
+        client_conn->handshake_params.our_chain_and_key = &chain_and_key;
+
+        EXPECT_EQUAL(s2n_certificate_extensions_size(client_conn, &chain_and_key), 0);
+
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+        EXPECT_SUCCESS(s2n_certificate_extensions_send(client_conn, &stuffer, &chain_and_key));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 2); /* 2 bytes for empty extension */
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* Test Certificate Transparency / Server Certificate Timestamp Stapling */
+    {
+        struct s2n_connection *server_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
+        s2n_stack_blob(sct_list, SCT_LIST_SIZE, SCT_LIST_SIZE);
+        s2n_stack_blob(raw, RAW_CERT_SIZE, RAW_CERT_SIZE);
+        struct s2n_cert_chain_and_key chain_and_key = {0};
+        struct s2n_cert_chain cert_chain = {0};
+        struct s2n_cert cert1 = {0};
+        struct s2n_cert cert2 = {0};
+        cert1.raw = raw;
+        cert2.raw = raw;
+
+        cert_chain.chain_size = FAKE_CHAIN_SIZE;
+        chain_and_key.cert_chain = &cert_chain;
+        cert_chain.head = &cert1;
+        cert1.next = &cert2;
+        chain_and_key.sct_list = sct_list;
+
+        /* 2 certs in the chain, total extensions will occupy 4 bytes */
+        EXPECT_EQUAL(s2n_certificate_total_extensions_size(server_conn, &chain_and_key), 4);
+
+        struct s2n_stuffer stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
+
+        /* Empty certificate extensions occupies 2 bytes */
+        EXPECT_SUCCESS(s2n_certificate_extensions_send_empty(&stuffer));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 2);
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+
+        /* Certificate extensions sending without extensions also occupies 2 bytes */
+        EXPECT_SUCCESS(s2n_certificate_extensions_send(server_conn, &stuffer, &chain_and_key));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 2);
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+
+        /* Turn on the flags for Certificate Transparency */
+        server_conn->ct_level_requested = S2N_CT_SUPPORT_REQUEST;
+        server_conn->handshake_params.our_chain_and_key = &chain_and_key;
+
+        const uint32_t EXPECTED_CERTIFICATE_EXTENSIONS_SIZE = 2 /* sct list extensions header */
+                                                            + 2 /* sct list size */
+                                                            + SCT_LIST_SIZE; /* cert_transparency size; */
+        const uint32_t EXPECTED_EXTENSIONS_SIZE = 4 /* u16 headers for 2 cert chains */
+            + EXPECTED_CERTIFICATE_EXTENSIONS_SIZE;
+
+        EXPECT_EQUAL(s2n_certificate_extensions_size(server_conn, &chain_and_key), EXPECTED_CERTIFICATE_EXTENSIONS_SIZE);
+        EXPECT_EQUAL(s2n_certificate_total_extensions_size(server_conn, &chain_and_key), EXPECTED_EXTENSIONS_SIZE);
+        EXPECT_SUCCESS(s2n_certificate_extensions_send(server_conn, &stuffer, &chain_and_key));
+
+        uint16_t cert_transparency_extension_size = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &cert_transparency_extension_size));
+        EXPECT_EQUAL(cert_transparency_extension_size, s2n_stuffer_data_available(&stuffer));
+        EXPECT_EQUAL(cert_transparency_extension_size, EXPECTED_EXTENSIONS_SIZE - 4); /* remove the overall extensions header overheads */
+
+        /* copy remaining stuffer contents into a extension blob */
+        struct s2n_blob extension_blob = {0};
+        extension_blob.size = s2n_stuffer_data_available(&stuffer);
+        extension_blob.data = s2n_stuffer_raw_read(&stuffer, extension_blob.size);
+        EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
+
+        /* Test that s2n_certificate_extensions_parse() can read the contents */
+        EXPECT_SUCCESS(s2n_certificate_extensions_parse(server_conn, &extension_blob));
+
+        /* The current behaviour does not send cert_transparency stapling in client mode */
+        struct s2n_connection *client_conn;
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        client_conn->ct_level_requested = S2N_CT_SUPPORT_REQUEST;
+        client_conn->handshake_params.our_chain_and_key = &chain_and_key;
+
+        EXPECT_EQUAL(s2n_certificate_extensions_size(client_conn, &chain_and_key), 0);
+
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+        EXPECT_SUCCESS(s2n_certificate_extensions_send(client_conn, &stuffer, &chain_and_key));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 2); /* 2 bytes for empty extension */
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* Test Server OCSP and SCT Stapling */
+    {
+        struct s2n_connection *server_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
+        s2n_stack_blob(ocsp_status, OCSP_SIZE, OCSP_SIZE);
+        s2n_stack_blob(sct_list, SCT_LIST_SIZE, SCT_LIST_SIZE);
+        s2n_stack_blob(raw, RAW_CERT_SIZE, RAW_CERT_SIZE);
+        struct s2n_cert_chain_and_key chain_and_key = {0};
+        struct s2n_cert_chain cert_chain = {0};
+        struct s2n_cert cert1 = {0};
+        struct s2n_cert cert2 = {0};
+        cert1.raw = raw;
+        cert2.raw = raw;
+
+        cert_chain.chain_size = FAKE_CHAIN_SIZE;
+        chain_and_key.cert_chain = &cert_chain;
+        cert_chain.head = &cert1;
+        cert1.next = &cert2;
+        chain_and_key.sct_list = sct_list;
+        chain_and_key.ocsp_status = ocsp_status;
+
+        /* 2 certs in the chain, total extensions will occupy 4 bytes */
+        EXPECT_EQUAL(s2n_certificate_total_extensions_size(server_conn, &chain_and_key), 4);
+
+        struct s2n_stuffer stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
+
+        /* Certificate extensions sending without extensions also occupies 2 bytes */
+        EXPECT_SUCCESS(s2n_certificate_extensions_send(server_conn, &stuffer, &chain_and_key));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 2);
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+
+        /* Turn on the flags for OCSP and Certificate Transparency */
+        server_conn->status_type = S2N_STATUS_REQUEST_OCSP;
+        server_conn->ct_level_requested = S2N_CT_SUPPORT_REQUEST;
+        server_conn->handshake_params.our_chain_and_key = &chain_and_key;
+
+        const uint32_t EXPECTED_CERTIFICATE_EXTENSIONS_SIZE = 2 /* status request extensions header */
+                                                            + 2 /* status request size */
+                                                            + 1 /* status type */
+                                                            + 3 /* ocsp header size */
+                                                            + OCSP_SIZE
+                                                            + 2 /* sct list extensions header */
+                                                            + 2 /* sct list size */
+                                                            + SCT_LIST_SIZE; /* cert_transparency size; */
+        const uint32_t EXPECTED_EXTENSIONS_SIZE = 4 /* u16 headers for 2 cert chains */
+            + EXPECTED_CERTIFICATE_EXTENSIONS_SIZE;
+
+        EXPECT_EQUAL(s2n_certificate_extensions_size(server_conn, &chain_and_key), EXPECTED_CERTIFICATE_EXTENSIONS_SIZE);
+        EXPECT_EQUAL(s2n_certificate_total_extensions_size(server_conn, &chain_and_key), EXPECTED_EXTENSIONS_SIZE);
+        EXPECT_SUCCESS(s2n_certificate_extensions_send(server_conn, &stuffer, &chain_and_key));
+
+        uint16_t cert_transparency_extension_size = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &cert_transparency_extension_size));
+        EXPECT_EQUAL(cert_transparency_extension_size, s2n_stuffer_data_available(&stuffer));
+        EXPECT_EQUAL(cert_transparency_extension_size, EXPECTED_EXTENSIONS_SIZE - 4); /* remove the overall extensions header overheads */
+
+        /* copy remaining stuffer contents into a extension blob */
+        struct s2n_blob extension_blob = {0};
+        extension_blob.size = s2n_stuffer_data_available(&stuffer);
+        extension_blob.data = s2n_stuffer_raw_read(&stuffer, extension_blob.size);
+        EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
+
+        /* Test that s2n_certificate_extensions_parse() can read the contents */
+        EXPECT_SUCCESS(s2n_certificate_extensions_parse(server_conn, &extension_blob));
+
+        /* The current behaviour does not send cert_transparency stapling in client mode */
+        struct s2n_connection *client_conn;
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        client_conn->ct_level_requested = S2N_CT_SUPPORT_REQUEST;
         client_conn->handshake_params.our_chain_and_key = &chain_and_key;
 
         EXPECT_EQUAL(s2n_certificate_extensions_size(client_conn, &chain_and_key), 0);
