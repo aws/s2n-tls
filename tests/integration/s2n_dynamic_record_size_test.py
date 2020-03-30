@@ -161,7 +161,7 @@ def run_test(host, port, ssl_version, cipher, threshold):
 
     ret = try_dynamic_record(host, port, cipher_name, ssl_version, threshold)
     # wait for pipe ready
-    sleep(1)
+    sleep(2)
     subprocess.call(["sudo", "killall", "-9", "tcpdump"])
     out = tcpdump.communicate()[0].decode("utf-8")
     if out == '':
@@ -169,7 +169,7 @@ def run_test(host, port, ssl_version, cipher, threshold):
         return 0
     out_array = out.split('\n')
     # Skip no cipher match error
-    if ret != -2: 
+    if ret != -2:
         failed += ret
     if 0 == ret:
         # print("\nAnalyzing tcpdump results for cipher {}".format(cipher_name))
@@ -228,8 +228,13 @@ def analyze_latency_dump(array):
 
 def analyze_throughput_dump(array):
     failed = 1
+    array_len = len(array)
 
     for i in range(18, 36):
+        if i >= array_len:
+            print("Array len is ", array_len, ", expecting >= ", i)
+            print(array)
+            return failed
         output = array[i]
         # print(output)
         pos = output.find("length")
