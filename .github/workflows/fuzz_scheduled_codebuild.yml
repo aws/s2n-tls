@@ -1,12 +1,12 @@
 ---
-name: s2nPrivateFuzzScheduled
+name: s2nFuzzScheduled
 
 on:
   schedule:
     - cron: '0 13 * * *'
 jobs:
   fuzz:
-    if: contains(github.repository, 'private-s2n')
+    if: contains(github.repository, 'private-s2n-fuzz')
     runs-on: ubuntu-18.04
     strategy:
       matrix:
