@@ -305,3 +305,66 @@ rfc2S2N msg = mkAct recordType messageType writer
                  | msg.sender == both then 'B'
                  else '!'
         noMessageType = TLS_HELLO_REQUEST // HelloRequests don't exist in tls1.3
+
+/**
+ * printHandshake and s2nToWords are two helper functions for debugging cryptol
+ * Take the counterexample from tls13rfcSimulatesS2N and plug the connection and 
+ * parameter values into testParameters and testConnection. Run printHandshake 
+ * with ascii set to on. 
+ *     $ :s ascii = on
+ *     $ printHandshake`{16}
+ * Note with ascii on, you may see actual_protocol_version = '"'. This is because
+ * decimal value 34 (hex value 22) == asci character double quotes. 
+ */
+
+testParameters : Parameters
+testParameters = {
+            compat_mode = [False, False],
+            psk_mode = False,
+            retry = False,
+            client_auth = False,
+            no_client_cert = False,
+            zero_rtt = False
+        }
+
+testConnection : connection
+testConnection = {
+            handshake = {handshake_type = 0x00000000,
+                message_number = 0x00000000},
+            mode = 0x00000000,
+            corked_io = '\NUL',
+            corked = zero,
+            is_caching_enabled = False,
+            resume_from_cache = False,
+            server_can_send_ocsp = False,
+            key_exchange_eph = False,
+            client_auth_flag = False,
+            actual_protocol_version = 0x22
+        }
+
+type Character = [8]
+type MessageName = [22]Character
+
+printHandshake : {len} (fin len, len >= 1) => ([3]Character, [len]MessageName, [3]Character, [len]MessageName)
+printHandshake = ("rfc", map s2nToWords (map rfc2S2N (doHandshake`{len} params)),
+                  "s2n", map s2nToWords (traceS2N`{len} conn))
+  where (params : Parameters) = testParameters
+        (conn : connection) = testConnection
+ 
+s2nToWords : handshake_action -> MessageName
+s2nToWords action = name # [ '(', action.writer, ')']
+  where padded : {a, b} (fin a, fin b) => [b]Character -> [a+b]Character
+        padded msg = repeat ' ' # msg
+        name : [19]Character
+        name = if action.record_type == TLS_CHANGE_CIPHER_SPEC then padded    "CCS"
+               |  action.record_type == TLS_APPLICATION_DATA then padded      "Data"
+               |  action.message_type == TLS_CLIENT_HELLO then padded         "ClientHello"
+               |  action.message_type == TLS_SERVER_HELLO then padded         "ServerHello"
+               |  action.message_type == TLS_HELLO_RETRY_REQUEST then padded  "HelloRetryRequest"
+               |  action.message_type == TLS_ENCRYPTED_EXTENSIONS then padded "EncryptedExtensions"
+               |  action.message_type == TLS_CERTIFICATE_REQ then padded      "CertRequest"
+               |  action.message_type == TLS_CERTIFICATE then padded          "Cert"
+               |  action.message_type == TLS_CERT_VERIFY then padded          "CertVerify"
+               |  action.message_type == TLS_FINISHED then padded             "Finished"
+               |  action.message_type == TLS_END_OF_EARLY_DATA then padded    "EndOfEarlyData"
+               else padded                                                    "Error"
