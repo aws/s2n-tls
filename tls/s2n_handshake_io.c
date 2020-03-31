@@ -95,11 +95,11 @@ static struct s2n_handshake_action tls13_state_machine[] = {
     [ENCRYPTED_EXTENSIONS]      = {TLS_HANDSHAKE, TLS_ENCRYPTED_EXTENSIONS, 'S', {s2n_encrypted_extensions_send, s2n_encrypted_extensions_recv}},
     [SERVER_CERT_REQ]           = {TLS_HANDSHAKE, TLS_CERT_REQ, 'S', {s2n_tls13_cert_req_send, s2n_tls13_cert_req_recv}},
     [SERVER_CERT]               = {TLS_HANDSHAKE, TLS_CERTIFICATE, 'S', {s2n_server_cert_send, s2n_server_cert_recv}},
-    [SERVER_CERT_VERIFY]        = {TLS_HANDSHAKE, TLS_CERT_VERIFY, 'S', {s2n_server_cert_verify_send, s2n_server_cert_verify_recv}},
+    [SERVER_CERT_VERIFY]        = {TLS_HANDSHAKE, TLS_CERT_VERIFY, 'S', {s2n_tls13_cert_verify_send, s2n_tls13_cert_verify_recv}},
     [SERVER_FINISHED]           = {TLS_HANDSHAKE, TLS_FINISHED, 'S', {s2n_tls13_server_finished_send, s2n_tls13_server_finished_recv}},
 
     [CLIENT_CERT]               = {TLS_HANDSHAKE, TLS_CERTIFICATE, 'C', {s2n_client_cert_recv, s2n_client_cert_send}},
-    [CLIENT_CERT_VERIFY]        = {TLS_HANDSHAKE, TLS_CERT_VERIFY, 'C', {s2n_client_cert_verify_recv, s2n_client_cert_verify_send}},
+    [CLIENT_CERT_VERIFY]        = {TLS_HANDSHAKE, TLS_CERT_VERIFY, 'C', {s2n_tls13_cert_verify_recv, s2n_tls13_cert_verify_send}},
     [CLIENT_FINISHED]           = {TLS_HANDSHAKE, TLS_FINISHED, 'C', {s2n_tls13_client_finished_recv, s2n_tls13_client_finished_send}},
 
     /* Not used by TLS1.3, except to maintain middlebox compatibility */
