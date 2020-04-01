@@ -17,6 +17,7 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/extensions/s2n_client_supported_groups.h"
+#include "tls/s2n_ecc_preferences.h"
 
 int main(int argc, char **argv) 
 {
@@ -30,12 +31,15 @@ int main(int argc, char **argv)
         /* If the list of mutually supported groups is empty, chosen curve should be set to null */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-        for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
+        EXPECT_NOT_NULL(server_conn->config);
+        const struct s2n_ecc_preferences *ecc_pref = server_conn->config->ecc_preferences;
+        EXPECT_NOT_NULL(ecc_pref);
+        for (int i = 0; i < ecc_pref->count; i++) {
             EXPECT_NULL(server_conn->secure.mutually_supported_groups[i]);
         }
-        uint16_t supported_groups_size =  s2n_array_len(server_conn->secure.mutually_supported_groups);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_choose_supported_group(server_conn->secure.mutually_supported_groups,
-            supported_groups_size, &server_conn->secure.server_ecc_evp_params), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_choose_supported_group(server_conn, server_conn->secure.mutually_supported_groups,
+        &server_conn->secure.server_ecc_evp_params), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -46,14 +50,16 @@ int main(int argc, char **argv)
          * match.
          */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_NOT_NULL(server_conn->config);
+        const struct s2n_ecc_preferences *ecc_pref = server_conn->config->ecc_preferences;
+        EXPECT_NOT_NULL(ecc_pref);
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-        server_conn->secure.mutually_supported_groups[1] = s2n_ecc_evp_supported_curves_list[1];
+        server_conn->secure.mutually_supported_groups[1] = ecc_pref->ecc_curves[1];
 
-        uint16_t supported_groups_size =  s2n_array_len(server_conn->secure.mutually_supported_groups);
-        EXPECT_SUCCESS(s2n_choose_supported_group(server_conn->secure.mutually_supported_groups, supported_groups_size, 
+        EXPECT_SUCCESS(s2n_choose_supported_group(server_conn, server_conn->secure.mutually_supported_groups,
             &server_conn->secure.server_ecc_evp_params));
 
-        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, s2n_ecc_evp_supported_curves_list[1]);
+        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[1]);
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
     }
@@ -64,14 +70,17 @@ int main(int argc, char **argv)
          */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-        for (int i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
-            server_conn->secure.mutually_supported_groups[i] = s2n_ecc_evp_supported_curves_list[i];
+        EXPECT_NOT_NULL(server_conn->config);
+        const struct s2n_ecc_preferences *ecc_pref = server_conn->config->ecc_preferences;
+        EXPECT_NOT_NULL(ecc_pref);
+        for (int i = 0; i < ecc_pref->count; i++) {
+            server_conn->secure.mutually_supported_groups[i] = ecc_pref->ecc_curves[i];
         }
-        uint16_t supported_groups_size =  s2n_array_len(server_conn->secure.mutually_supported_groups);
-        EXPECT_SUCCESS(s2n_choose_supported_group(server_conn->secure.mutually_supported_groups, supported_groups_size,
+
+        EXPECT_SUCCESS(s2n_choose_supported_group(server_conn, server_conn->secure.mutually_supported_groups,
             &server_conn->secure.server_ecc_evp_params));
 
-        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, s2n_ecc_evp_supported_curves_list[0]);
+        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
     }

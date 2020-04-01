@@ -22,6 +22,7 @@
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 
 /* Test vectors from https://tools.ietf.org/html/rfc8448#section-3 */
@@ -166,6 +167,38 @@ int main(int argc, char **argv)
         free(tls13_cert_chain_hex);
         /* free memory allocated in s2n_alloc*/
         free(tls13_cert.data);
+    }
+
+    /* Test server sends cert and client receives cert for tls 1.3 */
+    {
+        EXPECT_SUCCESS(s2n_enable_tls13());
+
+        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        server_conn->actual_protocol_version = S2N_TLS13;
+        client_conn->actual_protocol_version = S2N_TLS13;
+        client_conn->x509_validator.skip_cert_validation = 1;
+
+        S2N_BLOB_FROM_HEX(tls13_cert_chain, tls13_cert_hex);
+        S2N_BLOB_FROM_HEX(tls13_cert_message, tls13_cert_message_hex);
+
+        struct s2n_cert cert = {.raw = tls13_cert_chain,.next = NULL};
+        struct s2n_cert_chain cert_chain = {.head = &cert, .chain_size = tls13_cert_chain.size + 3};
+        struct s2n_cert_chain_and_key cert_chain_and_key = {.cert_chain = &cert_chain};
+        server_conn->handshake_params.our_chain_and_key = &cert_chain_and_key;
+
+        EXPECT_SUCCESS(s2n_server_cert_send(server_conn));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->handshake.io), tls13_cert_message.size);
+        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io, s2n_stuffer_data_available(&server_conn->handshake.io)));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->handshake.io), tls13_cert_message.size);
+        EXPECT_SUCCESS(s2n_server_cert_recv(client_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+
+        EXPECT_SUCCESS(s2n_disable_tls13());
     }
     
     END_TEST();

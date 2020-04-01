@@ -26,6 +26,7 @@
 #include "tls/s2n_kem.h"
 #include "tls/s2n_client_key_exchange.h"
 #include "tls/s2n_kex.h"
+#include "tls/s2n_ecc_preferences.h"
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -195,9 +196,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     }
 
     server_conn->handshake_params.our_chain_and_key = cert;
-
+    EXPECT_NOT_NULL(server_conn->config);
+    const struct s2n_ecc_preferences *ecc_preferences = server_conn->config->ecc_preferences;
+    EXPECT_NOT_NULL(ecc_preferences);
+    
     if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_ecdhe_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
         s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.server_ecc_evp_params);
     }
 

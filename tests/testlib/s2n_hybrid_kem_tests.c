@@ -27,6 +27,7 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_ecc_preferences.h"
 
 /* If the configured lib crypto supports a custom random number generator this test is run with a AES 256 DRBG with no
  * prediction resistance RNG. Running in that mode all the server and client key exchange messages and final master
@@ -45,7 +46,8 @@ int setup_connection(struct s2n_connection *conn, const struct s2n_kem *kem, str
                      const char *cipher_pref_version) {
     S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     conn->actual_protocol_version = S2N_TLS12;
-    conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+    const struct s2n_ecc_preferences *ecc_preferences = conn->config->ecc_preferences;
+    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
     conn->secure.s2n_kem_keys.negotiated_kem = kem;
     conn->secure.cipher_suite = cipher_suite;
     conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha384;

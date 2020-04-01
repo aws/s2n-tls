@@ -1,12 +1,12 @@
 ---
-name: s2nPrivateFuzzScheduled
+name: s2nFuzzScheduled
 
 on:
   schedule:
     - cron: '0 13 * * *'
 jobs:
   fuzz:
-    if: startsWith(github.event.repository.name, 'private-')
+    if: contains(github.repository, 'private-s2n-fuzz')
     runs-on: ubuntu-18.04
     strategy:
       matrix:
@@ -42,7 +42,7 @@ jobs:
           - s2n_sike_r1_fuzz_test
           - s2n_sike_r2_fuzz_test
           - s2n_stuffer_pem_fuzz_test
-      fail-fast: true
+      fail-fast: false
     steps:
       - uses: actions/setup-node@v1
       - name: Configure AWS Credentials
@@ -68,6 +68,6 @@ jobs:
           TESTS: "fuzz"
           FUZZ_TESTS: ${{ matrix.specific_test }}
           LAGEST_CLANG: "true"
-          FUZZ_TIMEOUT_SEC: 28500
+          FUZZ_TIMEOUT_SEC: 21000
           requester: ${{ github.actor }}
           event-name: ${{ github.event_name }}

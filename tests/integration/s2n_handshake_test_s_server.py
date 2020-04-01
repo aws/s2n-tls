@@ -36,13 +36,6 @@ PROTO_VERS_TO_S_SERVER_ARG = {
 
 use_corked_io=False
 
-
-def get_supported_curves_list_by_version(libcrypto_version):
-    if libcrypto_version == "openssl-1.1.1":
-        return ["P-256", "P-384"]
-    else:
-        return ["P-256", "P-384"]
-
 def cleanup_processes(*processes):
     for p in processes:
         p.kill()
@@ -303,7 +296,7 @@ def elliptic_curve_test(host, port, libcrypto_version):
     Acceptance test for supported elliptic curves. Tests all possible supported curves with unsupported curves mixed in
     for noise.
     """
-    supported_curves = get_supported_curves_list_by_version(libcrypto_version)
+    supported_curves = ["P-256", "P-384"]
     unsupported_curves = ["B-163", "K-409"]
     print("\n\tRunning s2n Client elliptic curve tests:")
     print("\tExpected supported:   " + str(supported_curves))

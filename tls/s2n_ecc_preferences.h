@@ -15,10 +15,18 @@
 
 #pragma once
 
-#include "tls/s2n_connection.h"
-#include "stuffer/s2n_stuffer.h"
+#include <s2n.h>
+#include <strings.h>
 
-extern int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
-extern uint32_t s2n_extensions_client_key_share_size(struct s2n_connection *conn);
-extern int s2n_extensions_client_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+#include "crypto/s2n_ecc_evp.h"
 
+struct s2n_ecc_preferences {
+    uint8_t count;
+    const struct s2n_ecc_named_curve *const *ecc_curves;
+};
+extern const struct s2n_ecc_preferences s2n_ecc_preferences_20140601;
+extern const struct s2n_ecc_preferences s2n_ecc_preferences_20200310;
+
+int s2n_ecc_preferences_init();
+int s2n_config_set_ecc_preferences(struct s2n_config *config, const char *version);
+int s2n_check_ecc_preferences_curves_list(const struct s2n_ecc_preferences *ecc_preferences);
