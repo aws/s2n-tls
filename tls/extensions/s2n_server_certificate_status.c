@@ -25,14 +25,24 @@
 
 int s2n_server_certificate_status_send_size(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+    notnull_check(conn->handshake_params.our_chain_and_key);
+    struct s2n_blob *ocsp_status = &conn->handshake_params.our_chain_and_key->ocsp_status;
+    notnull_check(ocsp_status);
+
     return sizeof(uint8_t) + U24_SIZE + conn->handshake_params.our_chain_and_key->ocsp_status.size;
 }
 
 int s2n_server_certificate_status_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
+    notnull_check(conn);
+    notnull_check(conn->handshake_params.our_chain_and_key);
+    struct s2n_blob *ocsp_status = &conn->handshake_params.our_chain_and_key->ocsp_status;
+    notnull_check(ocsp_status);
+
     GUARD(s2n_stuffer_write_uint8(out, (uint8_t) S2N_STATUS_REQUEST_OCSP));
-    GUARD(s2n_stuffer_write_uint24(out, conn->handshake_params.our_chain_and_key->ocsp_status.size));
-    GUARD(s2n_stuffer_write(out, &conn->handshake_params.our_chain_and_key->ocsp_status));
+    GUARD(s2n_stuffer_write_uint24(out, ocsp_status->size));
+    GUARD(s2n_stuffer_write(out, ocsp_status));
 
     return 0;
 }

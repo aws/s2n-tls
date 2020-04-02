@@ -34,11 +34,14 @@ int s2n_server_extensions_sct_list_send_size(struct s2n_connection *conn)
 /* Write Signed Certificate Timestamp extension */
 int s2n_server_extensions_sct_list_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
+    notnull_check(conn);
+
     if (s2n_server_can_send_sct_list(conn)) {
+        struct s2n_blob *sct_list = &conn->handshake_params.our_chain_and_key->sct_list;
+
         GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SCT_LIST));
-        GUARD(s2n_stuffer_write_uint16(out, conn->handshake_params.our_chain_and_key->sct_list.size));
-        GUARD(s2n_stuffer_write_bytes(out, conn->handshake_params.our_chain_and_key->sct_list.data,
-                                        conn->handshake_params.our_chain_and_key->sct_list.size));
+        GUARD(s2n_stuffer_write_uint16(out, sct_list->size));
+        GUARD(s2n_stuffer_write(out, sct_list));
     }
 
     return 0;

@@ -314,6 +314,8 @@ int main(int argc, char **argv)
 
         /* Turn on the flags for OCSP */
         server_conn->status_type = S2N_STATUS_REQUEST_OCSP;
+
+        /* Configure chain and key */
         server_conn->handshake_params.our_chain_and_key = &chain_and_key;
 
         const uint32_t EXPECTED_CERTIFICATE_EXTENSIONS_SIZE = 2 /* status request extensions header */
@@ -347,6 +349,12 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->status_type = S2N_STATUS_REQUEST_OCSP;
         client_conn->handshake_params.our_chain_and_key = &chain_and_key;
+
+        /* Test a failure case */
+        struct s2n_stuffer small_stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&small_stuffer, 5));
+        EXPECT_FAILURE(s2n_certificate_extensions_send(server_conn, &small_stuffer, &chain_and_key));
+        EXPECT_SUCCESS(s2n_stuffer_free(&small_stuffer));
 
         EXPECT_EQUAL(s2n_certificate_extensions_size(client_conn, &chain_and_key), 0);
 
@@ -423,6 +431,12 @@ int main(int argc, char **argv)
 
         /* Test that s2n_certificate_extensions_parse() can read the contents */
         EXPECT_SUCCESS(s2n_certificate_extensions_parse(server_conn, &extension_blob));
+
+        /* Test a failure case */
+        struct s2n_stuffer small_stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&small_stuffer, 5));
+        EXPECT_FAILURE(s2n_certificate_extensions_send(server_conn, &small_stuffer, &chain_and_key));
+        EXPECT_SUCCESS(s2n_stuffer_free(&small_stuffer));
 
         /* The current behaviour does not send cert_transparency stapling in client mode */
         struct s2n_connection *client_conn;
@@ -508,6 +522,12 @@ int main(int argc, char **argv)
 
         /* Test that s2n_certificate_extensions_parse() can read the contents */
         EXPECT_SUCCESS(s2n_certificate_extensions_parse(server_conn, &extension_blob));
+
+        /* Test a failure case */
+        struct s2n_stuffer small_stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&small_stuffer, 5));
+        EXPECT_FAILURE(s2n_certificate_extensions_send(server_conn, &small_stuffer, &chain_and_key));
+        EXPECT_SUCCESS(s2n_stuffer_free(&small_stuffer));
 
         /* The current behaviour does not send cert_transparency stapling in client mode */
         struct s2n_connection *client_conn;

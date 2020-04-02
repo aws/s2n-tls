@@ -89,7 +89,7 @@ int s2n_certificate_extensions_parse(struct s2n_connection *conn, struct s2n_blo
 int s2n_certificate_extensions_send_empty(struct s2n_stuffer *out)
 {
     /* For sending no certificate extensions,
-     * we only send the length field with a value of 0. 
+     * we only send the length field with a value of 0.
      */
     GUARD(s2n_stuffer_write_uint16(out, 0));
 
@@ -119,10 +119,16 @@ int s2n_certificate_extensions_size(struct s2n_connection *conn, struct s2n_cert
 {
     uint16_t size = 0;
     if (s2n_server_can_send_ocsp(conn)) {
-        size += 2 * sizeof(uint16_t) + s2n_server_certificate_status_send_size(conn);
+        size += 2 * sizeof(uint16_t);
+
+        int status_send_size = s2n_server_certificate_status_send_size(conn);
+        inclusive_range_check(0, status_send_size, 65535);
+        size += status_send_size;
     }
 
-    size += s2n_server_extensions_sct_list_send_size(conn);
+    int sct_size = s2n_server_extensions_sct_list_send_size(conn);
+    inclusive_range_check(0, sct_size, 65535);
+    size += sct_size;
 
     return size;
 }
@@ -138,7 +144,9 @@ int s2n_certificate_total_extensions_size(struct s2n_connection *conn, struct s2
     GUARD(s2n_get_number_certs_in_chain(chain_and_key->cert_chain->head, &num_certs));
     uint16_t size = 2 * num_certs;
 
-    size += s2n_certificate_extensions_size(conn, chain_and_key);
+    int extensions_size = s2n_certificate_extensions_size(conn, chain_and_key);
+    inclusive_range_check(0, extensions_size, 65535);
+    size += extensions_size;
 
     return size;
 }
@@ -155,6 +163,6 @@ int s2n_get_number_certs_in_chain(struct s2n_cert *head, uint8_t *chain_length)
     }
 
     *chain_length = length;
-    
+
     return 0;
 }
