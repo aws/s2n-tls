@@ -17,12 +17,35 @@
 
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
-
+#include "tls/s2n_tls.h"
 #include "tls/extensions/s2n_server_session_ticket.h"
+
+#define s2n_server_can_send_nst(conn) (s2n_server_sending_nst((conn)) && \
+        (conn)->actual_protocol_version < S2N_TLS13)
 
 int s2n_recv_server_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     conn->session_ticket_status = S2N_NEW_TICKET;
+
+    return 0;
+}
+
+int s2n_send_server_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    if(s2n_server_can_send_nst(conn)){
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SESSION_TICKET));
+        GUARD(s2n_stuffer_write_uint16(out, 0));
+    }
+
+    return 0;
+}
+
+uint16_t s2n_server_session_ticket_ext_size(struct s2n_connection *conn)
+{
+    if (s2n_server_can_send_nst(conn)) {
+        /* 2 for extension type. 2 for extension length of 0 */
+        return 4;
+    }
 
     return 0;
 }
