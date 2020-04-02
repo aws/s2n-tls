@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
@@ -23,26 +22,54 @@
 
 #define U24_SIZE 3
 
-int s2n_server_certificate_status_send_size(struct s2n_connection *conn)
+static int s2n_server_certificate_status_send_size(struct s2n_connection *conn)
 {
     notnull_check(conn);
-    notnull_check(conn->handshake_params.our_chain_and_key);
-    struct s2n_blob *ocsp_status = &conn->handshake_params.our_chain_and_key->ocsp_status;
-    notnull_check(ocsp_status);
+    if (s2n_server_can_send_ocsp(conn)) {
+        return sizeof(uint8_t) + U24_SIZE + conn->handshake_params.our_chain_and_key->ocsp_status.size;
+    }
 
-    return sizeof(uint8_t) + U24_SIZE + conn->handshake_params.our_chain_and_key->ocsp_status.size;
+    return 0;
+}
+
+int s2n_tls13_ocsp_extension_send_size(struct s2n_connection *conn)
+{
+    notnull_check(conn);
+    if (s2n_server_can_send_ocsp(conn)) {
+        uint16_t size = s2n_server_certificate_status_send_size(conn);
+        inclusive_range_check(0, size, 65535);
+        size += 2 * sizeof(uint16_t);;
+        return size;
+    }
+
+    return 0;
+}
+
+/* In TLS 1.3, a response to a Status Request extension is sent as an extension with
+ * status request as well as the OCSP response. This contrasts to TLS 1.2 where
+ * the OCSP response is sent in the Certificate Status handshake message */
+int s2n_tls13_ocsp_extension_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    notnull_check(conn);
+    if (s2n_server_can_send_ocsp(conn)) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_STATUS_REQUEST));
+        GUARD(s2n_stuffer_write_uint16(out, s2n_server_certificate_status_send_size(conn)));
+        GUARD(s2n_server_certificate_status_send(conn, out));
+    }
+
+    return 0;
 }
 
 int s2n_server_certificate_status_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     notnull_check(conn);
-    notnull_check(conn->handshake_params.our_chain_and_key);
-    struct s2n_blob *ocsp_status = &conn->handshake_params.our_chain_and_key->ocsp_status;
-    notnull_check(ocsp_status);
+    if (s2n_server_can_send_ocsp(conn)) {
+        struct s2n_blob *ocsp_status = &conn->handshake_params.our_chain_and_key->ocsp_status; 
 
-    GUARD(s2n_stuffer_write_uint8(out, (uint8_t) S2N_STATUS_REQUEST_OCSP));
-    GUARD(s2n_stuffer_write_uint24(out, ocsp_status->size));
-    GUARD(s2n_stuffer_write(out, ocsp_status));
+        GUARD(s2n_stuffer_write_uint8(out, (uint8_t) S2N_STATUS_REQUEST_OCSP));
+        GUARD(s2n_stuffer_write_uint24(out, ocsp_status->size));
+        GUARD(s2n_stuffer_write(out, ocsp_status));
+    }
 
     return 0;
 }

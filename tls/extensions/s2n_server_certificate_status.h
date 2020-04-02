@@ -15,6 +15,7 @@
 
 #pragma once
 
-int s2n_server_certificate_status_send_size(struct s2n_connection *conn);
+int s2n_tls13_ocsp_extension_send_size(struct s2n_connection *conn);
+int s2n_tls13_ocsp_extension_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 int s2n_server_certificate_status_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 int s2n_server_certificate_status_parse(struct s2n_connection *conn, struct s2n_blob *status);
