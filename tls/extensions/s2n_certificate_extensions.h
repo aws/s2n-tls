@@ -19,6 +19,12 @@
 #include "tls/s2n_connection.h"
 #include "stuffer/s2n_stuffer.h"
 
+/* Guards against errors and non uint16s, then increments size */
+#define GUARD_UINT16_THEN_INCREMENT( x, size ) do { \
+    inclusive_range_check(0, x, 65535); \
+    size += x; \
+} while (0)
+
 int s2n_certificate_extensions_parse(struct s2n_connection *conn, struct s2n_blob *extensions);
 int s2n_certificate_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain_and_key);
 int s2n_certificate_total_extensions_size(struct s2n_connection *conn, struct s2n_cert_chain_and_key *chain_and_key);

@@ -394,8 +394,7 @@ int s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out, st
     uint32_t cert_chain_size = chain->chain_size;
 
     /* Certificate extensions are enabled for TLS 1.3 */
-    uint8_t actual_protocol_version = conn->actual_protocol_version;
-    bool certificate_extensions = actual_protocol_version >= S2N_TLS13;
+    bool certificate_extensions = conn->actual_protocol_version >= S2N_TLS13;
 
     if (certificate_extensions) {
         /* find additional certificate extensions size */

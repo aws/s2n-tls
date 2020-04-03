@@ -115,13 +115,8 @@ int s2n_certificate_extensions_size(struct s2n_connection *conn, struct s2n_cert
 {
     uint16_t size = 0;
 
-    int status_send_size = s2n_tls13_ocsp_extension_send_size(conn);
-    inclusive_range_check(0, status_send_size, 65535);
-    size += status_send_size;
-
-    int sct_size = s2n_server_extensions_sct_list_send_size(conn);
-    inclusive_range_check(0, sct_size, 65535);
-    size += sct_size;
+    GUARD_UINT16_THEN_INCREMENT(s2n_tls13_ocsp_extension_send_size(conn), size);
+    GUARD_UINT16_THEN_INCREMENT(s2n_server_extensions_sct_list_send_size(conn), size);
 
     return size;
 }
@@ -137,9 +132,7 @@ int s2n_certificate_total_extensions_size(struct s2n_connection *conn, struct s2
     GUARD(s2n_get_number_certs_in_chain(chain_and_key->cert_chain->head, &num_certs));
     uint16_t size = 2 * num_certs;
 
-    int extensions_size = s2n_certificate_extensions_size(conn, chain_and_key);
-    inclusive_range_check(0, extensions_size, 65535);
-    size += extensions_size;
+    GUARD_UINT16_THEN_INCREMENT(s2n_certificate_extensions_size(conn, chain_and_key), size);
 
     return size;
 }
