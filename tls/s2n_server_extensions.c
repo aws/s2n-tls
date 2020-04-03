@@ -40,11 +40,6 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-#define s2n_server_can_send_secure_renegotiation(conn) ((conn)->secure_renegotiation && \
-        (conn)->actual_protocol_version < S2N_TLS13)
-
-#define s2n_server_can_send_nst(conn) (s2n_server_sending_nst((conn)) && \
-        (conn)->actual_protocol_version < S2N_TLS13)
 
 /* compute size server extensions send requires */
 int s2n_server_extensions_send_size(struct s2n_connection *conn)
@@ -61,23 +56,13 @@ int s2n_server_extensions_send_size(struct s2n_connection *conn)
 
     total_size += s2n_server_extensions_server_name_send_size(conn);
     total_size += s2n_server_extensions_alpn_send_size(conn);
-
-    if (s2n_server_can_send_secure_renegotiation(conn)) {
-        total_size += 5;
-    }
-
-    if (s2n_server_can_send_kex(conn)) {
-        total_size += s2n_kex_server_extension_size(conn->secure.cipher_suite->key_exchange_alg, conn);
-    }
+    total_size += s2n_server_renegotiation_info_ext_size(conn);
+    total_size += s2n_kex_server_extension_size(conn->secure.cipher_suite->key_exchange_alg, conn);
+    total_size += s2n_server_extensions_max_fragment_length_send_size(conn);
+    total_size += s2n_server_session_ticket_ext_size(conn);
 
     total_size += s2n_server_extensions_status_request_send_size(conn);
     total_size += s2n_server_extensions_sct_list_send_size(conn);
-
-    total_size += s2n_server_extensions_max_fragment_length_send_size(conn);
-
-    if (s2n_server_can_send_nst(conn)) {
-        total_size += 4;
-    }
 
     return total_size;
 }
@@ -110,18 +95,11 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     /* Write server name extension */
     GUARD(s2n_server_extensions_server_name_send(conn, out));
 
-    if (s2n_server_can_send_kex(conn)) {
-        GUARD(s2n_kex_write_server_extension(conn->secure.cipher_suite->key_exchange_alg, conn, out));
-    }
-
+    /* Write kex extension */
+    GUARD(s2n_kex_write_server_extension(conn->secure.cipher_suite->key_exchange_alg, conn, out));
+    
     /* Write the renegotiation_info extension */
-    if (s2n_server_can_send_secure_renegotiation(conn)) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_RENEGOTIATION_INFO));
-        /* renegotiation_info length */
-        GUARD(s2n_stuffer_write_uint16(out, 1));
-        /* renegotiated_connection length. Zero since we don't support renegotiation. */
-        GUARD(s2n_stuffer_write_uint8(out, 0));
-    }
+    GUARD(s2n_send_server_renegotiation_info_ext(conn, out));
 
     /* Write ALPN extension */
     GUARD(s2n_server_extensions_alpn_send(conn, out));
@@ -132,13 +110,11 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     /* Write Signed Certificate Timestamp extension */
     GUARD(s2n_server_extensions_sct_list_send(conn, out));
 
+    /* Write max fragment length extension */
     GUARD(s2n_server_extensions_max_fragment_length_send(conn, out));
 
     /* Write session ticket extension */
-    if (s2n_server_can_send_nst(conn)) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SESSION_TICKET));
-        GUARD(s2n_stuffer_write_uint16(out, 0));
-    }
+    GUARD(s2n_send_server_session_ticket_ext(conn, out));
 
     return 0;
 }

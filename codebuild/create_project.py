@@ -15,11 +15,13 @@ copywrite = """# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserv
 """
 
 import argparse
+import boto3
 import configparser
 import logging
 
 from awacs.aws import Action, Allow, Statement, Principal, PolicyDocument
 from awacs.sts import AssumeRole
+from botocore import exceptions
 from random import randrange
 from troposphere import GetAtt, Template, Ref, Output
 from troposphere.events import Rule, Target
@@ -27,10 +29,11 @@ from troposphere.iam import Role, Policy
 from troposphere.codebuild import Artifacts, Environment, Source, Project
 
 logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 def build_cw_event(template=Template, project_name=None, role=None):
+    """ Create a CloudWatch Event to run a CodeBuild Project. """
     # Run either at 12 or 13:00 UTC, 04/05:00 PST
     hour = randrange(12, 14)
     project_target = Target(
@@ -39,23 +42,21 @@ def build_cw_event(template=Template, project_name=None, role=None):
         RoleArn=GetAtt(role, "Arn"),
         Id=f"{project_name}CWid"
     )
-    rule = template.add_resource(Rule(
-        f"{project_name}Rule",
-        Name=f"{project_name}Evernt",
-        Description="scheduled run Build with CloudFormation",
-        Targets=[project_target],
-        State='ENABLED',
-        # Run at the top of a random hour.
-        ScheduleExpression=f"cron(0 {hour} * * ? *)",
-        DependsOn=project_name
-    )
-    )
-    return rule
+    Rule(f"{project_name}Rule",
+         template=template,
+         Name=f"{project_name}Evernt",
+         Description="scheduled run Build with CloudFormation",
+         Targets=[project_target],
+         State='ENABLED',
+         # Run at the top of a random hour.
+         ScheduleExpression=f"cron(0 {hour} * * ? *)",
+         DependsOn=project_name
+         )
 
 
 def build_cw_cb_role(template=None, role_name="s2nEventsInvokeCodeBuildRole"):
     """
-    Create a role for CloudWatch events to trigger Codebuild jobs.
+    Create a role for CloudWatch events to trigger scheduled CodeBuild jobs.
     """
     role_id = template.add_resource(
         Role(
@@ -67,22 +68,22 @@ def build_cw_cb_role(template=None, role_name="s2nEventsInvokeCodeBuildRole"):
                         Effect=Allow,
                         Action=[Action("sts", "AssumeRole"),
                                 ],
-                        Principal=Principal("Service",["events.amazonaws.com"])
+                        Principal=Principal("Service", ["events.amazonaws.com"])
                     )
                 ]
             ),
-            Policies=[ Policy(
+            Policies=[Policy(
                 PolicyName=f"EventsInvokeCBRole",
                 PolicyDocument=PolicyDocument(
-                Statement=[
-                    Statement(
-                        Effect=Allow,
-                        Action=[Action("codebuild", "StartBuild")],
-                        Resource=[
-                            "arn:aws:codebuild:us-west-2:024603541914:project/*",
-                        ]
-                    )
-                ]
+                    Statement=[
+                        Statement(
+                            Effect=Allow,
+                            Action=[Action("codebuild", "StartBuild")],
+                            Resource=[
+                                "arn:aws:codebuild:us-west-2:024603541914:project/*",
+                            ]
+                        )
+                    ]
                 )
             )
             ]
@@ -91,13 +92,12 @@ def build_cw_cb_role(template=None, role_name="s2nEventsInvokeCodeBuildRole"):
     return role_id
 
 
-
 def build_github_role(template=None, role_name="s2nCodeBuildGithubRole"):
     """
     Create a role for GitHub actions to use for launching CodeBuild jobs.
     This is not attached to any other resource created in this file.
     """
-    role_id = template.add_resource(
+    template.add_resource(
         Role(
             role_name,
             Path='/',
@@ -117,18 +117,43 @@ def build_github_role(template=None, role_name="s2nCodeBuildGithubRole"):
             )
         )
     )
-    return Ref(role_id)
 
-    template.add_output([Output(role_name, Value=Ref(role_id))])
-    return Ref(role_id)
+
+def build_artifacts(identifier: str, s3_bucketname: str) -> Artifacts:
+    """ CodeBuild Artifact and Secondary Artifact creation. """
+    artifact = Artifacts(
+        Name=f"{identifier}Artifact",
+        ArtifactIdentifier=identifier,
+        EncryptionDisabled=True,
+        Location=s3_bucketname,
+        NamespaceType='None',
+        OverrideArtifactName=False,
+        Packaging='Zip',
+        Type='S3')
+    return artifact
 
 
 def build_project(template=Template(), section=None, project_name=None, raw_env=None,
                   service_role: str = None) -> Template:
+    """ Assemble all the requirements for a Troposphere CodeBuild Project. """
     template.set_version('2010-09-09')
-    artifacts = Artifacts(Type='NO_ARTIFACTS')
+    secondary_artifacts = list()
+
+    # Artifact object creation
+    if 'artifact_s3_bucket' in config[section]:
+        artifacts = build_artifacts(project_name,
+                                    config.get(section, 'artifact_s3_bucket'))
+        if 'artifact_secondary_identifiers' in config[section]:
+            # There can be N number of secondary artifacts
+            for arti in config.get(section, 'artifact_secondary_identifiers').split(','):
+                secondary_artifacts.append(build_artifacts(arti, config.get(section, 'artifact_s3_bucket')))
+
+    else:
+        # One blank Artifact object required.
+        artifacts = Artifacts(Type='NO_ARTIFACTS')
     env_list = list()
 
+    # Convert the env: line in the config to a list.
     try:
         logging.debug(f'raw_env is {raw_env}')
         env = raw_env.split(' ')
@@ -136,6 +161,7 @@ def build_project(template=Template(), section=None, project_name=None, raw_env=
         env = config.get(section, 'env').split(' ')
         logging.debug(f'Section is {section}')
 
+    # Split the env key/value pairs into dict.
     for i in env:
         k, v = i.split("=")
         env_list.append({"Name": k, "Value": v})
@@ -156,20 +182,36 @@ def build_project(template=Template(), section=None, project_name=None, raw_env=
         ReportBuildStatus=True
     )
 
-    project_id = project = Project(
-        project_name,
-        Artifacts=artifacts,
-        Environment=environment,
-        Name=project_name,
-        TimeoutInMinutes=config.get(section, 'timeout_in_min'),
-        ServiceRole=Ref(service_role),
-        Source=source,
-        SourceVersion=config.get(section, 'source_version'),
-        BadgeEnabled=True,
-        DependsOn=service_role,
-    )
+    # Artifact is required; SecondaryArtifact is optional.
+    if secondary_artifacts:
+        project = Project(
+            project_name,
+            Artifacts=artifacts,
+            SecondaryArtifacts=secondary_artifacts,
+            Environment=environment,
+            Name=project_name,
+            TimeoutInMinutes=config.get(section, 'timeout_in_min'),
+            ServiceRole=Ref(service_role),
+            Source=source,
+            SourceVersion=config.get(section, 'source_version'),
+            BadgeEnabled=True,
+            DependsOn=service_role,
+        )
+    else:
+        project = Project(
+            project_name,
+            Artifacts=artifacts,
+            Environment=environment,
+            Name=project_name,
+            TimeoutInMinutes=config.get(section, 'timeout_in_min'),
+            ServiceRole=Ref(service_role),
+            Source=source,
+            SourceVersion=config.get(section, 'source_version'),
+            BadgeEnabled=True,
+            DependsOn=service_role,
+        )
     template.add_resource(project)
-    template.add_output([Output(f"CodeBuildProject{project_name}", Value=Ref(project_id))])
+    template.add_output([Output(f"CodeBuildProject{project_name}", Value=Ref(project))])
 
 
 def build_codebuild_role(template=Template(), project_name: str = None, **kwargs) -> Ref:
@@ -177,16 +219,38 @@ def build_codebuild_role(template=Template(), project_name: str = None, **kwargs
     assert project_name
     project_name += 'Role'
 
+    # Create a policy to Allow CodeBuild to write to s3 for Artifact storage/retrieval.
+    # This should be an AWS Managed Policy, but here we are.
+    policies = [Policy(
+        PolicyName=f"CodeBuildArtifactPolicy",
+        PolicyDocument=PolicyDocument(
+            Statement=[
+                Statement(
+                    Effect=Allow,
+                    Action=[Action("s3", "PutObject"),
+                            Action("s3","GetObject"),
+                            Action("s3","GetObjectVersion"),
+                            Action("s3","GetBucketAcl"),
+                            Action("s3","GetBucketLocation")],
+                    Resource=[
+                        "arn:aws:s3:::s2n-build-artifacts/*",
+                    ]
+                )
+            ]
+        )
+    )]
+
     # NOTE: By default CodeBuild manages the policies for this role.  If you delete a CFN stack and try to recreate the
     # project or make changes to it when the Codebuild managed Policy still exists, you'll see an error in the UI:
     # `The policy is attached to 0 entities but it must be attached to a single role`. (CFN fails with fail to update)
     # Orphaned policies created by CodeBuild will have CodeBuildBasePolicy prepended to them; search for policies with
     # this name and no role and delete to clear the error.
-    # TODO: Get a CloudFormation feature request to turn this off for project creation- let CFN manage the policy.
     role_id = template.add_resource(
         Role(
             project_name,
             Path='/',
+            Description='Policy created by CloudFormation.',
+            Policies=policies,
             AssumeRolePolicyDocument=PolicyDocument(
                 Statement=[
                     Statement(
@@ -203,35 +267,64 @@ def build_codebuild_role(template=Template(), project_name: str = None, **kwargs
     return Ref(role_id)
 
 
+def validate_cfn(boto_client: boto3.client, cfn_template: str):
+    """ Call validate_template with boto. """
+    try:
+        response = boto_client.validate_template(TemplateBody=cfn_template)
+        logging.debug(f"CloudFormation Template validation response: {response}")
+        logging.info('CloudFormation template validation complete.')
+    except exceptions.ClientError as e:
+        raise SystemExit(f"Failed: {e}")
+
+
 def main(**kwargs):
-    """ Create the CFN template and either write to screen or update/create boto3. """
+    """ Create the CFN template and do stuff with said template. """
     codebuild = Template()
     codebuild.set_version('2010-09-09')
     # Create a single CloudWatch Event role to allow codebuild:startBuild
-    cw_event_role=build_cw_cb_role(codebuild)
+    cw_event_role = build_cw_cb_role(codebuild)
+    temp_yaml_filename = args.output_dir + "/s2n_codebuild_projects.yml"
 
-    # TODO: There is a problem with the resource statement
-    #logging.info('Creating github role: {}', build_github_role(codebuild))
+    # Role used by GitHub Actions.
+    build_github_role(codebuild)
+
+    # Walk the config file, adding each stanza to the Troposphere template.
     for job in config.sections():
         if 'CodeBuild:' in job:
             job_title = job.split(':')[1]
             service_role = build_codebuild_role(template=codebuild, project_name=job_title).to_dict()
+
             # Pull the env out of the section, and use the snippet for the other values.
+            # Note: only env is over-ridden with snippets.
             if 'snippet' in config[job]:
                 build_project(template=codebuild, project_name=job_title, section=config.get(job, 'snippet'),
                               service_role=service_role['Ref'], raw_env=config.get(job, 'env'))
             else:
                 build_project(template=codebuild, project_name=job_title, section=job, service_role=service_role['Ref'])
-            build_cw_event(template=codebuild, project_name=job_title, role = cw_event_role)
-            
-    with(open(args.output_dir + "/s2n_codebuild_projects.yml", 'w')) as fh:
+            build_cw_event(template=codebuild, project_name=job_title, role=cw_event_role)
+
+    # Write out a CloudFormation template.  This is ephemeral and is not used again.
+    with(open(temp_yaml_filename, 'w')) as fh:
         fh.write(codebuild.to_yaml())
+        logging.info(f"Wrote cfn yaml file to {temp_yaml_filename}")
 
-    if args.dry_run:
-        logging.debug('Dry Run: wrote cfn file, but not calling AWS.')
+    if args.noop:
+        logging.info("Respecting noop, Done.")
+        return
     else:
-        print('Boto functionality goes here.')
+        # Fire up the boto, exit gracefully if the user doesn't have creds setup.
+        client = boto3.client('cloudformation', region_name=config.get('Global', 'aws_region'))
+        try:
+            validate_cfn(client, codebuild.to_yaml())
+        except exceptions.NoCredentialsError:
+            raise SystemExit(f"Something went wrong with your AWS credentials;  Exiting.")
 
+        if args.dry_run:
+            logging.info('Respecting dry-run flag.  Done')
+        else:
+            logging.info('Creating a change set (would go here)')
+            #try:
+            #    change_set = client.create_change_set()
 
 if __name__ == '__main__':
     # Parse  options
@@ -239,7 +332,9 @@ if __name__ == '__main__':
                                                  'based on a simple config')
     parser.add_argument('--config', type=str, default="codebuild.config", help='The config filename to create the '
                                                                                'CodeBuild projects')
-    parser.add_argument('--dry-run', dest='dry_run', action='store_true', help='Output CFN to stdout; Do not call AWS')
+    parser.add_argument('--dry-run', dest='dry_run', action='store_true', help='Validate CloudFormation yaml.')
+    parser.add_argument('--noop', dest='noop', action='store_true',
+                        help='Create a local CFN yaml- but do no validation.')
     parser.add_argument('--output-dir', dest='output_dir', default='cfn', help="Directory to write CFN files")
     args = parser.parse_args()
 

@@ -21,8 +21,11 @@
 
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
-
+#include "tls/s2n_tls.h"
 #include "tls/extensions/s2n_server_renegotiation_info.h"
+
+#define s2n_server_can_send_secure_renegotiation(conn) ((conn)->secure_renegotiation && \
+        (conn)->actual_protocol_version < S2N_TLS13)
 
 int s2n_recv_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
@@ -35,5 +38,28 @@ int s2n_recv_server_renegotiation_info_ext(struct s2n_connection *conn, struct s
     S2N_ERROR_IF(renegotiated_connection_len, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
 
     conn->secure_renegotiation = 1;
+    return 0;
+}
+
+int s2n_send_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    if (s2n_server_can_send_secure_renegotiation(conn)) {
+        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_RENEGOTIATION_INFO));
+        /* renegotiation_info length */
+        GUARD(s2n_stuffer_write_uint16(out, 1));
+        /* renegotiated_connection length. Zero since we don't support renegotiation. */
+        GUARD(s2n_stuffer_write_uint8(out, 0));
+    }
+
+    return 0;
+}
+
+uint16_t s2n_server_renegotiation_info_ext_size(struct s2n_connection *conn)
+{
+    if (s2n_server_can_send_secure_renegotiation(conn)) {
+        /* 2 for ext type, 2 for extension length, 1 for value of 0 */
+        return 5;
+    }
+
     return 0;
 }

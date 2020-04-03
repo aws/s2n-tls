@@ -142,6 +142,14 @@ else()
     endif()
 endif()
 
+# Probe for execinfo.h extensions (not present on some systems, notably android)
+include(CheckCSourceCompiles)
+check_c_source_compiles("
+    #include <execinfo.h>
+    int main() {
+        return 0;
+    }" S2N_HAVE_EXECINFO)
+
 if(APPLE)
     set(OS_LIBS c Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
@@ -190,6 +198,10 @@ endif()
 
 if(PQ_ASM_COMPILES_ADX)
     target_compile_options(${PROJECT_NAME} PUBLIC -D_ADX_)
+endif()
+
+if(S2N_HAVE_EXECINFO)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_HAVE_EXECINFO)
 endif()
 
 target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)
