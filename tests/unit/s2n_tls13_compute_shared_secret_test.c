@@ -69,7 +69,6 @@ int main(int argc, char **argv) {
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_shared_secret(client_conn, &client_shared_secret), S2N_ERR_NULL);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-
     }
 
     /* This test ensures that if a server sent a keyshare extension with a public key and curve, a client can
@@ -93,7 +92,6 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(client_conn, &client_shared_secret));
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-
     }
 
     END_TEST();
