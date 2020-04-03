@@ -17,14 +17,11 @@
 
 #include "testlib/s2n_testlib.h"
 
-#include <stdint.h>
 #include <stdlib.h>
 
 #include <s2n.h>
 
-/* Just to get access to the static functions / variables we need to test */
 #include "tls/s2n_tls13_handshake.c"
-
 
 int main(int argc, char **argv) {
 
@@ -32,14 +29,10 @@ int main(int argc, char **argv) {
 
     struct s2n_connection *client_conn;
 
-    /* This file ensures the function s2n_tls_compute_shared_secret is correctly error-checking for missing data
-     * in the server hello. */
-
+    /* This test ensures that if the server did not send a keyshare extension in the server hello function,
+     * a null pointer error is correctly thrown.
+     */
     {
-        /* This test ensures that if the server did not send a keyshare extension in the server hello function,
-         * a null pointer error is correctly thrown. */
-
-
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
         client_conn->actual_protocol_version = S2N_TLS13;
@@ -47,7 +40,8 @@ int main(int argc, char **argv) {
         /* Select curve and generate key for client */
         client_conn->secure.client_ecc_evp_params[0].negotiated_curve = client_conn->config->ecc_preferences->ecc_curves[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[0]));
-
+        /* Recreating conditions where negotiated curve was not set */
+        client_conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
         DEFER_CLEANUP(struct s2n_blob client_shared_secret = {0}, s2n_free);
         /* Compute fails because server's curve and public key are missing. */
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_shared_secret(client_conn, &client_shared_secret), S2N_ERR_NULL);
@@ -55,10 +49,10 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
+    /* This test ensures that if a server sent a keyshare extension without a public key, a null pointer
+     * error is correctly thrown.
+     */
     {
-        /* This test ensures that if a server sent a keyshare extension without a public key, a null pointer
-         * error is correctly thrown. */
-
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
         client_conn->actual_protocol_version = S2N_TLS13;
@@ -78,10 +72,10 @@ int main(int argc, char **argv) {
 
     }
 
+    /* This test ensures that if a server sent a keyshare extension with a public key and curve, a client can
+     * generate a shared secret from it.
+     */
     {
-        /* This test ensures that if a server sent a keyshare extension with a public key and curve, a client can
-         * generate a shared secret from it. */
-
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
         client_conn->actual_protocol_version = S2N_TLS13;
