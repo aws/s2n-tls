@@ -146,6 +146,7 @@ int main(int argc, char **argv)
             "CloudFront-TLS-1-1-2016",
             "CloudFront-TLS-1-2-2018",
             "CloudFront-TLS-1-2-2019",
+            "CloudFront-TLS-1-2-2020",
             "KMS-TLS-1-0-2018-10",
 #if !defined(S2N_NO_PQ)
             "KMS-PQ-TLS-1-0-2019-06",
