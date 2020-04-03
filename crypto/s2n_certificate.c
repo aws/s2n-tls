@@ -411,6 +411,11 @@ int s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out, st
         GUARD(s2n_stuffer_write_uint24(out, cur_cert->raw.size));
         GUARD(s2n_stuffer_write_bytes(out, cur_cert->raw.data, cur_cert->raw.size));
 
+        /* According to https://tools.ietf.org/html/rfc8446#section-4.4.2,
+         * If an extension applies to the entire chain, it SHOULD be included in
+         * the first CertificateEntry.
+         * While the spec allow extensions to be included in other certificate
+         * entries, only the first matter to use here */
         if (certificate_extensions) {
             if (first_entry) {
                 GUARD(s2n_certificate_extensions_send(conn, out, chain_and_key));
