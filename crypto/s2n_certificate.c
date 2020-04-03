@@ -385,6 +385,7 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
 
 int s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain_and_key)
 {
+    notnull_check(conn);
     notnull_check(out);
     notnull_check(chain_and_key);
     struct s2n_cert_chain *chain = chain_and_key->cert_chain;

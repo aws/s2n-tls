@@ -98,6 +98,9 @@ int s2n_certificate_extensions_send_empty(struct s2n_stuffer *out)
 
 int s2n_certificate_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain_and_key)
 {
+    notnull_check(conn);
+    notnull_check(chain_and_key);
+
     /* Sending certificate extensions. */
     uint16_t extensions_size = s2n_certificate_extensions_size(conn, chain_and_key);
     GUARD(s2n_stuffer_write_uint16(out, extensions_size));
@@ -113,6 +116,9 @@ int s2n_certificate_extensions_send(struct s2n_connection *conn, struct s2n_stuf
 
 int s2n_certificate_extensions_size(struct s2n_connection *conn, struct s2n_cert_chain_and_key *chain_and_key)
 {
+    notnull_check(conn);
+    notnull_check(chain_and_key);
+
     uint16_t size = 0;
 
     GUARD_UINT16_THEN_INCREMENT(s2n_tls13_ocsp_extension_send_size(conn), size);
@@ -124,6 +130,7 @@ int s2n_certificate_extensions_size(struct s2n_connection *conn, struct s2n_cert
 /* sum the size of all extensions in the cert chain, including empty ones */
 int s2n_certificate_total_extensions_size(struct s2n_connection *conn, struct s2n_cert_chain_and_key *chain_and_key)
 {
+    notnull_check(conn);
     notnull_check(chain_and_key);
     notnull_check(chain_and_key->cert_chain);
     notnull_check(chain_and_key->cert_chain->head);
