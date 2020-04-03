@@ -21,7 +21,8 @@
 
 /* Guards against errors and non uint16s, then increments size */
 #define GUARD_UINT16_THEN_INCREMENT( x, size ) do { \
-    inclusive_range_check(0, x, 65535); \
+    GUARD(x); \
+    lte_check(x, 65535); \
     size += x; \
 } while (0)
 
