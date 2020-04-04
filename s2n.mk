@@ -84,6 +84,11 @@ ifdef S2N_NO_PQ_ASM
 	DEFAULT_CFLAGS += -DS2N_NO_PQ_ASM
 endif
 
+# All native platforms have execinfo.h, cross-compile targets often don't (android, ARM/alpine)
+ifndef CROSS_COMPILE
+	DEFAULT_CFLAGS += -DS2N_HAVE_EXECINFO
+endif
+
 CFLAGS += ${DEFAULT_CFLAGS}
 
 ifdef GCC_VERSION

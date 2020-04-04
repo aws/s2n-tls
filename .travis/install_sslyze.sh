@@ -16,7 +16,10 @@
 set -e
 
 pip3 install --user --upgrade pip setuptools
-pip3 install --user sslyze
+
+# Version 3.0.0 introduces backwards incompatible changes in the JSON we parse.
+# If we upgrade, the json format changes, breaking either Travis OR Codebuild.
+pip3 install --user "sslyze<3.0.0"
 
 which sslyze
 sslyze --version

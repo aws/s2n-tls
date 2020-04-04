@@ -18,12 +18,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <execinfo.h>
 #include "error/s2n_errno.h"
 
 #include <s2n.h>
 #include "utils/s2n_map.h"
 #include "utils/s2n_safety.h"
+
+#if S2N_HAVE_EXECINFO
+#   include <execinfo.h>
+#endif
 
 __thread int s2n_errno;
 __thread const char *s2n_debug_str;
@@ -289,7 +292,7 @@ int s2n_error_get_type(int error)
 
 
 /* https://www.gnu.org/software/libc/manual/html_node/Backtraces.html */
-static bool s_s2n_stack_traces_enabled;
+static bool s_s2n_stack_traces_enabled = false;
 
 bool s2n_stack_traces_enabled()
 {
@@ -301,6 +304,8 @@ int s2n_stack_traces_enabled_set(bool newval)
     s_s2n_stack_traces_enabled = newval;
     return S2N_SUCCESS;
 }
+
+#ifdef S2N_HAVE_EXECINFO
 
 #define MAX_BACKTRACE_DEPTH 20
 __thread struct s2n_stacktrace tl_stacktrace = {0};
@@ -350,3 +355,30 @@ int s2n_print_stacktrace(FILE *fptr)
     }
     return S2N_SUCCESS;
 }
+
+#else /* !S2N_HAVE_EXECINFO */
+int s2n_free_stacktrace(void)
+{
+    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+}
+
+int s2n_calculate_stacktrace(void)
+{
+    if (!s_s2n_stack_traces_enabled)
+    {
+        return S2N_SUCCESS;
+    }
+
+    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+}
+
+int s2n_get_stacktrace(struct s2n_stacktrace *trace)
+{
+    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+}
+
+int s2n_print_stacktrace(FILE *fptr)
+{
+    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+}
+#endif /* S2N_HAVE_EXECINFO */

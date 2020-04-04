@@ -31,7 +31,6 @@ jobs:
           - s2n_hybrid_ecdhe_bike_r2_fuzz_test
           - s2n_hybrid_ecdhe_sike_r1_fuzz_test
           - s2n_hybrid_ecdhe_sike_r2_fuzz_test
-          - s2n_memory_leak_negative_test
           - s2n_openssl_diff_pem_parsing_test
           - s2n_recv_client_supported_groups_test
           - s2n_select_server_cert_test

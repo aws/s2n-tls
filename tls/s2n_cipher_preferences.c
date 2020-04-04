@@ -726,6 +726,90 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream = {
     .kems = NULL,
 };
 
+struct s2n_cipher_suite *cipher_suites_cloudfront_upstream_tls10[] = {
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_rsa_with_rc4_128_md5
+};
+
+const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_tls10 = {
+    .count = s2n_array_len(cipher_suites_cloudfront_upstream_tls10),
+    .suites = cipher_suites_cloudfront_upstream_tls10,
+    .minimum_protocol_version = S2N_TLS10
+};
+
+struct s2n_cipher_suite *cipher_suites_cloudfront_upstream_tls11[] = {
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_rsa_with_rc4_128_md5
+};
+
+const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_tls11 = {
+    .count = s2n_array_len(cipher_suites_cloudfront_upstream_tls11),
+    .suites = cipher_suites_cloudfront_upstream_tls11,
+    .minimum_protocol_version = S2N_TLS11
+};
+
+struct s2n_cipher_suite *cipher_suites_cloudfront_upstream_tls12[] = {
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_rsa_with_rc4_128_md5
+};
+
+const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_tls12 = {
+    .count = s2n_array_len(cipher_suites_cloudfront_upstream_tls12),
+    .suites = cipher_suites_cloudfront_upstream_tls12,
+    .minimum_protocol_version = S2N_TLS12
+};
+
 struct s2n_cipher_suite *cipher_suites_cloudfront_ssl_v_3[] = {
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
@@ -845,6 +929,20 @@ struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2019[] = {
 const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2019 = {
     .count = s2n_array_len(cipher_suites_cloudfront_tls_1_2_2019),
     .suites = cipher_suites_cloudfront_tls_1_2_2019,
+    .minimum_protocol_version = S2N_TLS12,
+    .kem_count = 0,
+    .kems = NULL,
+};
+
+struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2020[] = {
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256
+};
+
+const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2020 = {
+    .count = s2n_array_len(cipher_suites_cloudfront_tls_1_2_2020),
+    .suites = cipher_suites_cloudfront_tls_1_2_2020,
     .minimum_protocol_version = S2N_TLS12,
     .kem_count = 0,
     .kems = NULL,
@@ -982,12 +1080,16 @@ struct {
     { .version="ELBSecurityPolicy-FS-1-1-2019-08", .preferences=&elb_security_policy_fs_1_1_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0}, 
     { .version="ELBSecurityPolicy-FS-1-2-Res-2019-08", .preferences=&elb_security_policy_fs_1_2_Res_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0}, 
     { .version="CloudFront-Upstream", .preferences=&cipher_preferences_cloudfront_upstream, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="CloudFront-Upstream-TLS-1-0", .preferences=&cipher_preferences_cloudfront_upstream_tls10, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="CloudFront-Upstream-TLS-1-1", .preferences=&cipher_preferences_cloudfront_upstream_tls11, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="CloudFront-Upstream-TLS-1-2", .preferences=&cipher_preferences_cloudfront_upstream_tls12, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="CloudFront-SSL-v-3", .preferences=&cipher_preferences_cloudfront_ssl_v_3, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="CloudFront-TLS-1-0-2014", .preferences=&cipher_preferences_cloudfront_tls_1_0_2014, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="CloudFront-TLS-1-0-2016", .preferences=&cipher_preferences_cloudfront_tls_1_0_2016, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="CloudFront-TLS-1-1-2016", .preferences=&cipher_preferences_cloudfront_tls_1_1_2016, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="CloudFront-TLS-1-2-2018", .preferences=&cipher_preferences_cloudfront_tls_1_2_2018, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="CloudFront-TLS-1-2-2019", .preferences=&cipher_preferences_cloudfront_tls_1_2_2019, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="CloudFront-TLS-1-2-2020", .preferences=&cipher_preferences_cloudfront_tls_1_2_2020, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="KMS-TLS-1-0-2018-10", .preferences=&cipher_preferences_kms_tls_1_0_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0},
 #if !defined(S2N_NO_PQ)
     { .version="KMS-PQ-TLS-1-0-2019-06", .preferences=&cipher_preferences_kms_pq_tls_1_0_2019_06, .ecc_extension_required=0, .pq_kem_extension_required=0},
