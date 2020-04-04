@@ -41,7 +41,8 @@ int main(int argc, char **argv) {
         client_conn->secure.client_ecc_evp_params[0].negotiated_curve = client_conn->config->ecc_preferences->ecc_curves[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[0]));
         /* Recreating conditions where negotiated curve was not set */
-        client_conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
+        struct s2n_ecc_evp_params missing_params = {NULL,NULL};
+        client_conn->secure.server_ecc_evp_params = missing_params;
         DEFER_CLEANUP(struct s2n_blob client_shared_secret = {0}, s2n_free);
         /* Compute fails because server's curve and public key are missing. */
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_shared_secret(client_conn, &client_shared_secret), S2N_ERR_NULL);
