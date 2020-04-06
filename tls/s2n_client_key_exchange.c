@@ -101,8 +101,8 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
     S2N_ERROR_IF(length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
     /* Keep a copy of the client hello version in wire format, which should be
-     * either the protocol versin supported by client if the supported version is <= TLS1.2,
-     * or TLS1.2 (the legacy version) if the supported version is TLS1.3
+     * either the protocol version supported by client if the supported version is <= TLS1.2,
+     * or TLS1.2 (the legacy version) if client supported version is TLS1.3
      */
     client_hello_version[0] = conn->client_hello_version / 10;
     client_hello_version[1] = conn->client_hello_version % 10;
@@ -216,9 +216,9 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
 
     GUARD(s2n_get_private_random_data(shared_key));
 
-    /* Over-write the first two bytes with the client hello version, per RFC2246 7.4.7.1.
-     * this client hello version is either the "supported_versions" extension by client if
-     * that supported version is <= TLS1.2, or TLS1.2 (legacy version) if the supported version is TLS1.3
+    /* Over-write the first two bytes with the client hello version, per RFC2246/RFC4346/RFC5246 7.4.7.1.
+     * The latest version supported by client (as seen from the the client hello version) are <= TLS1.2
+     * for all clients, because TLS 1.3 clients freezes the TLS1.2 legacy version in client hello.
      */
     memcpy_check(conn->secure.rsa_premaster_secret, client_hello_version, S2N_TLS_PROTOCOL_VERSION_LEN);
 
