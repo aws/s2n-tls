@@ -102,7 +102,8 @@ int s2n_certificate_extensions_send(struct s2n_connection *conn, struct s2n_stuf
     notnull_check(chain_and_key);
 
     /* Sending certificate extensions. */
-    uint16_t extensions_size = s2n_certificate_extensions_size(conn, chain_and_key);
+    uint16_t extensions_size = 0;
+    GUARD_UINT16_AND_INCREMENT(s2n_certificate_extensions_size(conn, chain_and_key), extensions_size);
     GUARD(s2n_stuffer_write_uint16(out, extensions_size));
 
     /* OCSP Extension */
@@ -121,8 +122,8 @@ int s2n_certificate_extensions_size(struct s2n_connection *conn, struct s2n_cert
 
     uint16_t size = 0;
 
-    GUARD_UINT16_THEN_INCREMENT(s2n_tls13_ocsp_extension_send_size(conn), size);
-    GUARD_UINT16_THEN_INCREMENT(s2n_server_extensions_sct_list_send_size(conn), size);
+    GUARD_UINT16_AND_INCREMENT(s2n_tls13_ocsp_extension_send_size(conn), size);
+    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_sct_list_send_size(conn), size);
 
     return size;
 }
@@ -137,9 +138,9 @@ int s2n_certificate_total_extensions_size(struct s2n_connection *conn, struct s2
 
     uint8_t num_certs;
     GUARD(s2n_get_number_certs_in_chain(chain_and_key->cert_chain->head, &num_certs));
-    uint16_t size = 2 * num_certs;
 
-    GUARD_UINT16_THEN_INCREMENT(s2n_certificate_extensions_size(conn, chain_and_key), size);
+    uint16_t size = 2 * num_certs;
+    GUARD_UINT16_AND_INCREMENT(s2n_certificate_extensions_size(conn, chain_and_key), size);
 
     return size;
 }

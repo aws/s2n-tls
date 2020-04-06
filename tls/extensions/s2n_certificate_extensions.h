@@ -20,7 +20,7 @@
 #include "stuffer/s2n_stuffer.h"
 
 /* Guards against errors and non uint16s, then increments size */
-#define GUARD_UINT16_THEN_INCREMENT( x, size ) do { \
+#define GUARD_UINT16_AND_INCREMENT( x, size ) do { \
     GUARD(x); \
     lte_check(x, 65535); \
     size += x; \

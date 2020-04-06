@@ -48,21 +48,20 @@ int s2n_server_extensions_send_size(struct s2n_connection *conn)
     const bool is_tls13_conn = conn->actual_protocol_version == S2N_TLS13;
 
     if (is_tls13_conn) {
-        GUARD_UINT16_THEN_INCREMENT(s2n_extensions_server_supported_versions_size(conn), total_size);
-        GUARD_UINT16_THEN_INCREMENT(s2n_extensions_server_key_share_send_size(conn), total_size);
+        GUARD_UINT16_AND_INCREMENT(s2n_extensions_server_supported_versions_size(conn), total_size);
+        GUARD_UINT16_AND_INCREMENT(s2n_extensions_server_key_share_send_size(conn), total_size);
 
         return total_size;
     }
 
-    GUARD_UINT16_THEN_INCREMENT(s2n_server_extensions_server_name_send_size(conn), total_size);
-    GUARD_UINT16_THEN_INCREMENT(s2n_server_extensions_alpn_send_size(conn), total_size);
-    GUARD_UINT16_THEN_INCREMENT(s2n_server_renegotiation_info_ext_size(conn), total_size);
-    GUARD_UINT16_THEN_INCREMENT(s2n_kex_server_extension_size(conn->secure.cipher_suite->key_exchange_alg, conn), total_size);
-    GUARD_UINT16_THEN_INCREMENT(s2n_server_extensions_max_fragment_length_send_size(conn), total_size);
-    GUARD_UINT16_THEN_INCREMENT(s2n_server_session_ticket_ext_size(conn), total_size);
-
-    GUARD_UINT16_THEN_INCREMENT(s2n_server_extensions_status_request_send_size(conn), total_size);
-    GUARD_UINT16_THEN_INCREMENT(s2n_server_extensions_sct_list_send_size(conn), total_size);
+    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_server_name_send_size(conn), total_size);
+    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_alpn_send_size(conn), total_size);
+    GUARD_UINT16_AND_INCREMENT(s2n_server_renegotiation_info_ext_size(conn), total_size);
+    GUARD_UINT16_AND_INCREMENT(s2n_kex_server_extension_size(conn->secure.cipher_suite->key_exchange_alg, conn), total_size);
+    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_max_fragment_length_send_size(conn), total_size);
+    GUARD_UINT16_AND_INCREMENT(s2n_server_session_ticket_ext_size(conn), total_size);
+    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_status_request_send_size(conn), total_size);
+    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_sct_list_send_size(conn), total_size);
 
     return total_size;
 }
