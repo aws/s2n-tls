@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
 #include <s2n.h>
 
 #include "error/s2n_errno.h"
@@ -89,7 +90,7 @@ static int calculate_keys(struct s2n_connection *conn, struct s2n_blob *shared_k
 int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
-    uint8_t client_hello_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    uint8_t client_version[S2N_TLS_PROTOCOL_VERSION_LEN];
     uint16_t length;
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
@@ -104,8 +105,9 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
      * either the protocol version supported by client if the supported version is <= TLS1.2,
      * or TLS1.2 (the legacy version) if client supported version is TLS1.3
      */
-    client_hello_version[0] = conn->client_hello_version / 10;
-    client_hello_version[1] = conn->client_hello_version % 10;
+    uint8_t legacy_client_version = MIN(conn->client_protocol_version, S2N_TLS12);
+    client_version[0] = legacy_client_version / 10;
+    client_version[1] = legacy_client_version % 10;
 
     /* Decrypt the pre-master secret */
     shared_key->data = conn->secure.rsa_premaster_secret;
@@ -117,14 +119,14 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
 
     /* First: use a random pre-master secret */
     GUARD(s2n_get_private_random_data(shared_key));
-    conn->secure.rsa_premaster_secret[0] = client_hello_version[0];
-    conn->secure.rsa_premaster_secret[1] = client_hello_version[1];
+    conn->secure.rsa_premaster_secret[0] = client_version[0];
+    conn->secure.rsa_premaster_secret[1] = client_version[1];
 
     /* Set rsa_failed to 1 if s2n_pkey_decrypt returns anything other than zero */
     conn->handshake.rsa_failed = !!s2n_pkey_decrypt(conn->handshake_params.our_chain_and_key->private_key, &encrypted, shared_key);
 
     /* Set rsa_failed to 1, if it isn't already, if the protocol version isn't what we expect */
-    conn->handshake.rsa_failed |= !s2n_constant_time_equals(client_hello_version, shared_key->data, S2N_TLS_PROTOCOL_VERSION_LEN);
+    conn->handshake.rsa_failed |= !s2n_constant_time_equals(client_version, shared_key->data, S2N_TLS_PROTOCOL_VERSION_LEN);
 
     return 0;
 }
@@ -207,9 +209,10 @@ int s2n_ecdhe_client_key_send(struct s2n_connection *conn, struct s2n_blob *shar
 
 int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
-    uint8_t client_hello_version[S2N_TLS_PROTOCOL_VERSION_LEN];
-    client_hello_version[0] = conn->client_hello_version / 10;
-    client_hello_version[1] = conn->client_hello_version % 10;
+    uint8_t client_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    uint8_t legacy_client_version = MIN(conn->client_protocol_version, S2N_TLS12);
+    client_version[0] = legacy_client_version / 10;
+    client_version[1] = legacy_client_version % 10;
 
     shared_key->data = conn->secure.rsa_premaster_secret;
     shared_key->size = S2N_TLS_SECRET_LEN;
@@ -220,7 +223,7 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
      * The latest version supported by client (as seen from the the client hello version) are <= TLS1.2
      * for all clients, because TLS 1.3 clients freezes the TLS1.2 legacy version in client hello.
      */
-    memcpy_check(conn->secure.rsa_premaster_secret, client_hello_version, S2N_TLS_PROTOCOL_VERSION_LEN);
+    memcpy_check(conn->secure.rsa_premaster_secret, client_version, S2N_TLS_PROTOCOL_VERSION_LEN);
 
     int encrypted_size = s2n_pkey_size(&conn->secure.server_public_key);
     S2N_ERROR_IF(encrypted_size < 0 || encrypted_size > 0xffff, S2N_ERR_SIZE_MISMATCH);
