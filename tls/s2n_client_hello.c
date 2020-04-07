@@ -394,7 +394,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     uint8_t reported_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
     client_protocol_version[0] = reported_protocol_version / 10;
     client_protocol_version[1] = reported_protocol_version % 10;
-    conn->client_hello_version = conn->client_protocol_version;
+    conn->client_hello_version = reported_protocol_version;
 
     GUARD(s2n_stuffer_write_bytes(out, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     GUARD(s2n_stuffer_copy(&client_random, out, S2N_TLS_RANDOM_DATA_LEN));
