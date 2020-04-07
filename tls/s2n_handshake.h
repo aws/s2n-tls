@@ -185,9 +185,6 @@ struct s2n_handshake {
     /* Set to 1 if the RSA verification failed */
     uint8_t rsa_failed;
 
-    /* Used by the client to tracks if a HelloRetryRequest has already been seen */
-    /* unsigned client_received_hrr:1; */
-
     /* Used by the server to track whether a HelloRetryRequest was sent */
     uint8_t hello_retry_request;
 

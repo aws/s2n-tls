@@ -81,9 +81,6 @@ int s2n_server_hello_retry_send(struct s2n_connection *conn)
     /* The HelloRetryRandom was written to the stuffer, but also needs to be stored in the connection */
     memcpy_check(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
 
-    /* Clear all existing key shares so we can verify that what the client sends back is valid */
-    GUARD(s2n_connection_clear_all_key_shares(conn));
-
     return 0;
 }
 

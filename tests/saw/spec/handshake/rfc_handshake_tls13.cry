@@ -321,7 +321,7 @@ testParameters : Parameters
 testParameters = {
             compat_mode = [False, False],
             psk_mode = False,
-            retry = False,
+            retry = 0,
             client_auth = False,
             no_client_cert = False,
             zero_rtt = False
@@ -330,7 +330,7 @@ testParameters = {
 testConnection : connection
 testConnection = {
             handshake = {handshake_type = 0x00000000,
-                message_number = 0x00000000},
+                message_number = 0x00000000, hello_retry_request = 0x00},
             mode = 0x00000000,
             corked_io = '\NUL',
             corked = zero,

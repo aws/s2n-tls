@@ -72,15 +72,15 @@ int main(int argc, char **argv)
 
         server_conn->actual_protocol_version = S2N_TLS13;
         server_conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
-        server_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+        server_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.client_ecc_evp_params[0]));
 
         EXPECT_SUCCESS(s2n_server_should_retry(server_conn));
 
         /* The client will need a key share extension to properly parse the hello */
         /* Total extension size + size of each extension */
-        total += 2 + s2n_extensions_server_supported_versions_size() + s2n_extensions_server_key_share_send_size(server_conn);
+        total += 2 + s2n_extensions_server_supported_versions_size(server_conn) + s2n_extensions_server_key_share_send_size(server_conn);
 
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
 
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
 
         /* Test s2n_server_hello_recv() */
         struct s2n_stuffer *client_stuffer = &client_conn->handshake.io;
-        client_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+        client_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[0]));
 
         memcpy_check(client_conn->secure.server_random, hello_retry_request_random_test_buffer, S2N_TLS_RANDOM_DATA_LEN);
@@ -127,8 +127,8 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS13;
 
         conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
-        conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
-        conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+        conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+        conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
 
         EXPECT_SUCCESS(s2n_server_should_retry(conn));
@@ -230,8 +230,8 @@ int main(int argc, char **argv)
 
         struct s2n_stuffer* extension_stuffer = &server_send_conn->handshake.io;
 
-        server_send_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
-        server_send_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+        server_send_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+        server_send_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_SUCCESS(s2n_server_should_retry(server_send_conn));
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_send_conn->secure.client_ecc_evp_params[0]));
         EXPECT_SUCCESS(s2n_extensions_server_key_share_send(server_send_conn, extension_stuffer));
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
         /* 4 = S2N_SIZE_OF_EXTENSION_TYPE + S2N_SIZE_OF_EXTENSION_DATA_SIZE */
         S2N_STUFFER_READ_EXPECT_EQUAL(extension_stuffer, s2n_extensions_server_key_share_send_size(server_send_conn) - 4, uint16);
 
-        client_recv_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+        client_recv_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_recv_conn->secure.client_ecc_evp_params[0]));
 
         /* Parse key share */
@@ -272,8 +272,8 @@ int main(int argc, char **argv)
 
         conn->server_protocol_version = S2N_TLS13;
         conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
-        conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
-        conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+        conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+        conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
 
         /* This blob is taken from the functional test RFC. That RFC does not actually provide hash transcript

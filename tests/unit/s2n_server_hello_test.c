@@ -245,7 +245,7 @@ int main(int argc, char **argv)
             + COMPRESSION_METHOD_SIZE;
 
         /* Set the negotiated curve, otherwise the server might try to respond with a retry */
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
 
         /* The server will respond with TLS1.1 even though it supports TLS1.3 */
         server_conn->actual_protocol_version = S2N_TLS11;
@@ -298,7 +298,7 @@ int main(int argc, char **argv)
             + COMPRESSION_METHOD_SIZE;
 
         /* Set the negotiated curve, otherwise the server might try to respond with a retry */
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
 
         /* The server will respond with TLS1.2 even though it supports TLS1.3 */
         server_conn->actual_protocol_version = S2N_TLS12;

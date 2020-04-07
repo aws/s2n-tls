@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 
         /* A HelloRetryRequest only requires a Selected Group, not a key share */
         conn->handshake.server_requires_hrr = 1;
-        conn->secure.server_ecc_evp_params.negotiated_curve = s2n_ecc_evp_supported_curves_list[0];
+        conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_EQUAL(6, s2n_extensions_server_key_share_send_size(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
