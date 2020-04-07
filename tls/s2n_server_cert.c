@@ -64,7 +64,7 @@ int s2n_server_cert_send(struct s2n_connection *conn)
         GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, certificate_request_context_len));
     }
 
-    GUARD(s2n_send_cert_chain(&conn->handshake.io, conn->handshake_params.our_chain_and_key->cert_chain, conn->actual_protocol_version));
+    GUARD(s2n_send_cert_chain(conn, &conn->handshake.io, conn->handshake_params.our_chain_and_key));
 
     return 0;
 }

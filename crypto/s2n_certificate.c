@@ -383,24 +383,46 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
     return 0;
 }
 
-int s2n_send_cert_chain(struct s2n_stuffer *out, struct s2n_cert_chain *chain, uint8_t actual_protocol_version)
+int s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain_and_key)
 {
+    notnull_check(conn);
     notnull_check(out);
+    notnull_check(chain_and_key);
+    struct s2n_cert_chain *chain = chain_and_key->cert_chain;
     notnull_check(chain);
-    if (actual_protocol_version == S2N_TLS13) {
-        GUARD(s2n_stuffer_write_uint24(out, chain->chain_size + s2n_certificate_extensions_size(chain->head)));
-    }
-    else {
-        GUARD(s2n_stuffer_write_uint24(out, chain->chain_size));
+    struct s2n_cert *cur_cert = chain->head;
+    notnull_check(cur_cert);
+    uint32_t cert_chain_size = chain->chain_size;
+
+    /* Certificate extensions are enabled for TLS 1.3 */
+    bool certificate_extensions = conn->actual_protocol_version >= S2N_TLS13;
+
+    if (certificate_extensions) {
+        /* find additional certificate extensions size */
+        cert_chain_size += s2n_certificate_total_extensions_size(conn, chain_and_key);
     }
 
-    struct s2n_cert *cur_cert = chain->head;
+    GUARD(s2n_stuffer_write_uint24(out, cert_chain_size));
+
+    /* Send certs and extensions (in TLS 1.3) */
+    bool first_entry = true;
     while (cur_cert) {
         notnull_check(cur_cert);
         GUARD(s2n_stuffer_write_uint24(out, cur_cert->raw.size));
         GUARD(s2n_stuffer_write_bytes(out, cur_cert->raw.data, cur_cert->raw.size));
-        if (actual_protocol_version == S2N_TLS13) {
-            GUARD(s2n_certificate_extensions_send(out));
+
+        /* According to https://tools.ietf.org/html/rfc8446#section-4.4.2,
+         * If an extension applies to the entire chain, it SHOULD be included in
+         * the first CertificateEntry.
+         * While the spec allow extensions to be included in other certificate
+         * entries, only the first matter to use here */
+        if (certificate_extensions) {
+            if (first_entry) {
+                GUARD(s2n_certificate_extensions_send(conn, out, chain_and_key));
+                first_entry = false;
+            } else {
+                GUARD(s2n_certificate_extensions_send_empty(out));
+            }
         }
         cur_cert = cur_cert->next;
     }

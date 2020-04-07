@@ -22,6 +22,8 @@
 #include "tls/s2n_tls13.h"
 #include "tls/extensions/s2n_server_sct_list.h"
 #include "tls/extensions/s2n_server_certificate_status.h"
+#include "tls/extensions/s2n_certificate_extensions.h"
+#include "tls/extensions/s2n_server_certificate_status.h"
 
 static int s2n_get_number_certs_in_chain(struct s2n_cert *head, uint8_t *chain_length);
 
@@ -84,24 +86,63 @@ int s2n_certificate_extensions_parse(struct s2n_connection *conn, struct s2n_blo
     return 0;
 }
 
-int s2n_certificate_extensions_send(struct s2n_stuffer *out)
+int s2n_certificate_extensions_send_empty(struct s2n_stuffer *out)
 {
-    /* For minimal TLS 1.3 implementation, we are sending no certificate extensions. 
-     * We only send the length field with a value of 0. 
+    /* For sending no certificate extensions,
+     * we only send the length field with a value of 0.
      */
     GUARD(s2n_stuffer_write_uint16(out, 0));
+
     return 0;
 }
 
-int s2n_certificate_extensions_size(struct s2n_cert *head)
+int s2n_certificate_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain_and_key)
 {
-    /* For minimal TLS 1.3 implementation, we are sending no certificate extensions. For now, size is
-     * hardcoded to 2 * num_certs in order to send extensions_length field with value 0 for each cert.
-     */
-    uint8_t num_certs;
-    GUARD(s2n_get_number_certs_in_chain(head, &num_certs));
+    notnull_check(conn);
+    notnull_check(chain_and_key);
 
-    return 2 * num_certs;
+    /* Sending certificate extensions. */
+    uint16_t extensions_size = 0;
+    GUARD_UINT16_AND_INCREMENT(s2n_certificate_extensions_size(conn, chain_and_key), extensions_size);
+    GUARD(s2n_stuffer_write_uint16(out, extensions_size));
+
+    /* OCSP Extension */
+    GUARD(s2n_tls13_ocsp_extension_send(conn, out));
+
+    /* SCT Extension */
+    GUARD(s2n_server_extensions_sct_list_send(conn, out));
+
+    return 0;
+}
+
+int s2n_certificate_extensions_size(struct s2n_connection *conn, struct s2n_cert_chain_and_key *chain_and_key)
+{
+    notnull_check(conn);
+    notnull_check(chain_and_key);
+
+    uint16_t size = 0;
+
+    GUARD_UINT16_AND_INCREMENT(s2n_tls13_ocsp_extension_send_size(conn), size);
+    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_sct_list_send_size(conn), size);
+
+    return size;
+}
+
+/* sum the size of all extensions in the cert chain, including empty ones */
+int s2n_certificate_total_extensions_size(struct s2n_connection *conn, struct s2n_cert_chain_and_key *chain_and_key)
+{
+    notnull_check(conn);
+    notnull_check(chain_and_key);
+    notnull_check(chain_and_key->cert_chain);
+    notnull_check(chain_and_key->cert_chain->head);
+
+    uint8_t num_certs;
+    GUARD(s2n_get_number_certs_in_chain(chain_and_key->cert_chain->head, &num_certs));
+
+    uint16_t size = 2 * num_certs;
+    GUARD_UINT16_AND_INCREMENT(s2n_certificate_extensions_size(conn, chain_and_key), size);
+
+    return size;
 }
 
 int s2n_get_number_certs_in_chain(struct s2n_cert *head, uint8_t *chain_length)
@@ -116,6 +157,6 @@ int s2n_get_number_certs_in_chain(struct s2n_cert *head, uint8_t *chain_length)
     }
 
     *chain_length = length;
-    
+
     return 0;
 }
