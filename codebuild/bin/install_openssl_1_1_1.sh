@@ -29,11 +29,12 @@ BUILD_DIR=$1
 INSTALL_DIR=$2
 OS_NAME=$3
 source codebuild/bin/jobs.sh
+RELEASE=1_1_1f
 
 cd "$BUILD_DIR"
-curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_1_1_1-stable.zip --output OpenSSL_1_1_1-stable.zip
-unzip OpenSSL_1_1_1-stable.zip
-cd openssl-OpenSSL_1_1_1-stable
+curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_${RELEASE}.zip --output OpenSSL_${RELEASE}.zip
+unzip OpenSSL_${RELEASE}.zip
+cd openssl-OpenSSL_${RELEASE}
 
 if [ "$OS_NAME" == "linux" ]; then
     CONFIGURE="./config -d"
