@@ -40,8 +40,6 @@ extern int s2n_server_cert_send(struct s2n_connection *conn);
 extern int s2n_server_cert_recv(struct s2n_connection *conn);
 extern int s2n_server_status_send(struct s2n_connection *conn);
 extern int s2n_server_status_recv(struct s2n_connection *conn);
-extern int s2n_server_cert_verify_send(struct s2n_connection *conn);
-extern int s2n_server_cert_verify_recv(struct s2n_connection *conn);
 extern int s2n_server_key_send(struct s2n_connection *conn);
 extern int s2n_server_key_recv(struct s2n_connection *conn);
 extern int s2n_cert_req_recv(struct s2n_connection *conn);
@@ -56,6 +54,8 @@ extern int s2n_client_key_send(struct s2n_connection *conn);
 extern int s2n_client_key_recv(struct s2n_connection *conn);
 extern int s2n_client_cert_verify_recv(struct s2n_connection *conn);
 extern int s2n_client_cert_verify_send(struct s2n_connection *conn);
+extern int s2n_tls13_cert_verify_recv(struct s2n_connection *conn);
+extern int s2n_tls13_cert_verify_send(struct s2n_connection *conn);
 extern int s2n_server_nst_send(struct s2n_connection *conn);
 extern int s2n_server_nst_recv(struct s2n_connection *conn);
 extern int s2n_ccs_send(struct s2n_connection *conn);
@@ -89,14 +89,16 @@ extern uint16_t mfl_code_to_length[5];
 #define s2n_server_can_send_ec_point_formats(conn) \
         ((conn)->ec_point_formats)
 
-#define s2n_server_can_send_ocsp(conn) ((conn)->status_type == S2N_STATUS_REQUEST_OCSP && \
+#define s2n_server_can_send_ocsp(conn) ((conn)->mode == S2N_SERVER && \
+        (conn)->status_type == S2N_STATUS_REQUEST_OCSP && \
         (conn)->handshake_params.our_chain_and_key && \
         (conn)->handshake_params.our_chain_and_key->ocsp_status.size > 0)
 
 #define s2n_server_sent_ocsp(conn) ((conn)->mode == S2N_CLIENT && \
         (conn)->status_type == S2N_STATUS_REQUEST_OCSP)
 
-#define s2n_server_can_send_sct_list(conn) ((conn)->ct_level_requested == S2N_CT_SUPPORT_REQUEST && \
+#define s2n_server_can_send_sct_list(conn) ((conn)->mode == S2N_SERVER && \
+        (conn)->ct_level_requested == S2N_CT_SUPPORT_REQUEST && \
         (conn)->handshake_params.our_chain_and_key && \
         (conn)->handshake_params.our_chain_and_key->sct_list.size > 0)
 

@@ -76,6 +76,6 @@ int s2n_client_cert_send(struct s2n_connection *conn)
         return 0;
     }
 
-    GUARD(s2n_send_cert_chain(&conn->handshake.io, chain_and_key->cert_chain, conn->actual_protocol_version));
+    GUARD(s2n_send_cert_chain(conn, &conn->handshake.io, chain_and_key));
     return 0;
 }

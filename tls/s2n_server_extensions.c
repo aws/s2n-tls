@@ -25,6 +25,7 @@
 #include "tls/s2n_kex.h"
 #include "tls/s2n_cipher_suites.h"
 
+#include "tls/extensions/s2n_certificate_extensions.h"
 #include "tls/extensions/s2n_server_renegotiation_info.h"
 #include "tls/extensions/s2n_server_alpn.h"
 #include "tls/extensions/s2n_server_status_request.h"
@@ -40,7 +41,6 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-
 /* compute size server extensions send requires */
 int s2n_server_extensions_send_size(struct s2n_connection *conn)
 {
@@ -48,26 +48,20 @@ int s2n_server_extensions_send_size(struct s2n_connection *conn)
     const bool is_tls13_conn = conn->actual_protocol_version == S2N_TLS13;
 
     if (is_tls13_conn) {
-        total_size += s2n_extensions_server_supported_versions_size(conn);
-        total_size += s2n_extensions_server_key_share_send_size(conn);
+        GUARD_UINT16_AND_INCREMENT(s2n_extensions_server_supported_versions_size(conn), total_size);
+        GUARD_UINT16_AND_INCREMENT(s2n_extensions_server_key_share_send_size(conn), total_size);
 
         return total_size;
     }
 
-    total_size += s2n_server_extensions_server_name_send_size(conn);
-    total_size += s2n_server_extensions_alpn_send_size(conn);
-    total_size += s2n_server_renegotiation_info_ext_size(conn);
-    total_size += s2n_kex_server_extension_size(conn->secure.cipher_suite->key_exchange_alg, conn);
-    total_size += s2n_server_extensions_max_fragment_length_send_size(conn);
-    total_size += s2n_server_session_ticket_ext_size(conn);
-
-    if (s2n_server_can_send_ocsp(conn)) {
-        total_size += 4;
-    }
-
-    if (s2n_server_can_send_sct_list(conn)) {
-        total_size += 4 + conn->handshake_params.our_chain_and_key->sct_list.size;
-    }
+    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_server_name_send_size(conn), total_size);
+    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_alpn_send_size(conn), total_size);
+    GUARD_UINT16_AND_INCREMENT(s2n_server_renegotiation_info_ext_size(conn), total_size);
+    GUARD_UINT16_AND_INCREMENT(s2n_kex_server_extension_size(conn->secure.cipher_suite->key_exchange_alg, conn), total_size);
+    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_max_fragment_length_send_size(conn), total_size);
+    GUARD_UINT16_AND_INCREMENT(s2n_server_session_ticket_ext_size(conn), total_size);
+    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_status_request_send_size(conn), total_size);
+    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_sct_list_send_size(conn), total_size);
 
     return total_size;
 }
@@ -110,18 +104,10 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     GUARD(s2n_server_extensions_alpn_send(conn, out));
 
     /* Write OCSP extension */
-    if (s2n_server_can_send_ocsp(conn)) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_STATUS_REQUEST));
-        GUARD(s2n_stuffer_write_uint16(out, 0));
-    }
+    GUARD(s2n_server_extensions_status_request_send(conn, out));
 
     /* Write Signed Certificate Timestamp extension */
-    if (s2n_server_can_send_sct_list(conn)) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SCT_LIST));
-        GUARD(s2n_stuffer_write_uint16(out, conn->handshake_params.our_chain_and_key->sct_list.size));
-        GUARD(s2n_stuffer_write_bytes(out, conn->handshake_params.our_chain_and_key->sct_list.data,
-                                      conn->handshake_params.our_chain_and_key->sct_list.size));
-    }
+    GUARD(s2n_server_extensions_sct_list_send(conn, out));
 
     /* Write max fragment length extension */
     GUARD(s2n_server_extensions_max_fragment_length_send(conn, out));
