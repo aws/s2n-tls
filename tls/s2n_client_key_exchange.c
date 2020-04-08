@@ -32,6 +32,9 @@
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
+
+#define get_client_hello_protocol_version(conn) (conn->client_hello_version == S2N_SSLv2 ? conn->client_protocol_version : conn->client_hello_version)
+
 typedef int s2n_kex_client_key_method(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);
 typedef void *s2n_stuffer_action(struct s2n_stuffer *stuffer, uint32_t data_len);
 static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob *combined_shared_key,
@@ -105,7 +108,7 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
      * either the protocol version supported by client if the supported version is <= TLS1.2,
      * or TLS1.2 (the legacy version) if client supported version is TLS1.3
      */
-    uint8_t legacy_client_hello_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
+    uint8_t legacy_client_hello_protocol_version = get_client_hello_protocol_version(conn);
     client_hello_protocol_version[0] = legacy_client_hello_protocol_version / 10;
     client_hello_protocol_version[1] = legacy_client_hello_protocol_version % 10;
 
@@ -210,7 +213,7 @@ int s2n_ecdhe_client_key_send(struct s2n_connection *conn, struct s2n_blob *shar
 int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     uint8_t client_hello_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
-    uint8_t legacy_client_hello_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
+    uint8_t legacy_client_hello_protocol_version = get_client_hello_protocol_version(conn);
     client_hello_protocol_version[0] = legacy_client_hello_protocol_version / 10;
     client_hello_protocol_version[1] = legacy_client_hello_protocol_version % 10;
 
