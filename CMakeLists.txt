@@ -266,10 +266,6 @@ if (BUILD_TESTING)
 
         set_property(
         TEST
-            ${test_case_name})
-
-        set_property(
-        TEST
             ${test_case_name}
         PROPERTY
             ENVIRONMENT S2N_DONT_MLOCK=1)
