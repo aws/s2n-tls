@@ -268,12 +268,6 @@ if (BUILD_TESTING)
         TEST
             ${test_case_name}
         PROPERTY
-            ENVIRONMENT S2N_UNIT_TEST=1)
-
-        set_property(
-        TEST
-            ${test_case_name}
-        PROPERTY
             ENVIRONMENT S2N_DONT_MLOCK=1)
 
     endforeach(test_case)
