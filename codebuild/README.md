@@ -41,9 +41,23 @@ General flow of the CodeBuild Test Projects
 
 ### Usage to setup Projects
 
+Using your favorite virtualenv, install the following dependencies:
+```
+pip install boto3
+pip install awacs
+pip install troposphere
+```
+
 To bootstrap the CodeBuild jobs, the python script:
 ```
-./create_project --dry-run
+# Verify your config is correct
+./create_project.py --config the-config-file.config
+
+# If this is a new stack, commit the changes
+./create_project.py --config the-config-file.config --production
+
+# If the stack already exists, then use a change set for the existing stack
+./create_project.py --config the-config-file.config --production --modify-existing
 ```
 
 - Use CloudFormation to create the stack with the generated template.
