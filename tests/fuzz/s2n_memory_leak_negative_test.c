@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -145,9 +145,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
-    if(len < S2N_TLS_RECORD_HEADER_LENGTH){
-        return 0;
-    }
+    S2N_FUZZ_ENSURE_MIN_LEN(len, S2N_TLS_RECORD_HEADER_LENGTH);
 
     /* Set up File Descriptors from client to server */
     int client_to_server[2];

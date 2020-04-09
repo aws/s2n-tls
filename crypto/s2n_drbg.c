@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ int s2n_increment_drbg_counter(struct s2n_blob *counter)
 
 static int s2n_drbg_block_encrypt(EVP_CIPHER_CTX * ctx, uint8_t in[S2N_DRBG_BLOCK_SIZE], uint8_t out[S2N_DRBG_BLOCK_SIZE])
 {
+    notnull_check(ctx);
     int len = S2N_DRBG_BLOCK_SIZE;
     GUARD_OSSL(EVP_EncryptUpdate(ctx, out, &len, in, S2N_DRBG_BLOCK_SIZE), S2N_ERR_DRBG);
     eq_check(len, S2N_DRBG_BLOCK_SIZE);
@@ -53,7 +54,12 @@ static int s2n_drbg_block_encrypt(EVP_CIPHER_CTX * ctx, uint8_t in[S2N_DRBG_BLOC
 
 static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
 {
-    struct s2n_blob value = {.data = drbg->v,.size = sizeof(drbg->v) };
+    notnull_check(drbg);
+    notnull_check(drbg->ctx);
+    notnull_check(out);
+
+    struct s2n_blob value = {0};
+    GUARD(s2n_blob_init(&value, drbg->v, sizeof(drbg->v)));
     int block_aligned_size = out->size - (out->size % S2N_DRBG_BLOCK_SIZE);
 
     /* Per NIST SP800-90A 10.2.1.2: */
@@ -79,6 +85,9 @@ static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
 
 static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data)
 {
+    notnull_check(drbg);
+    notnull_check(drbg->ctx);
+
     s2n_stack_blob(temp_blob, s2n_drbg_seed_size(drgb), S2N_DRBG_MAX_SEED_SIZE);
 
     eq_check(provided_data->size, s2n_drbg_seed_size(drbg));
@@ -100,6 +109,8 @@ static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data
 
 static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 {
+    notnull_check(drbg);
+    notnull_check(drbg->ctx);
     s2n_stack_blob(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
     if (drbg->entropy_generator) {
@@ -122,8 +133,9 @@ static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 
 int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string, const s2n_drbg_mode mode)
 {
-    S2N_ERROR_IF(mode == S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR && !S2N_IN_UNIT_TEST, S2N_ERR_NOT_IN_UNIT_TEST);
-    S2N_ERROR_IF(drbg->entropy_generator != NULL && !S2N_IN_UNIT_TEST, S2N_ERR_NOT_IN_UNIT_TEST);
+    notnull_check(drbg);
+    S2N_ERROR_IF(mode == S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR && !s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    S2N_ERROR_IF(drbg->entropy_generator != NULL && !s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
     if (mode == S2N_AES_128_CTR_NO_DF_PR || mode == S2N_AES_256_CTR_NO_DF_PR) {
         drbg->use_prediction_resistance = 1;
@@ -150,10 +162,9 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
     lte_check(s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
     static const uint8_t zero_key[S2N_DRBG_MAX_KEY_SIZE] = {0};
-    struct s2n_blob value = {.data = drbg->v,.size = sizeof(drbg->v) };
 
     /* Start off with zeroed data, per 10.2.1.3.1 item 4 and 5 */
-    GUARD(s2n_blob_zero(&value));
+    memset(drbg->v, 0, sizeof(drbg->v));
     GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, NULL, NULL, zero_key, NULL), S2N_ERR_DRBG);
 
     /* Copy the personalization string */
@@ -175,6 +186,8 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
 
 int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
 {
+    notnull_check(drbg);
+    notnull_check(drbg->ctx);
     s2n_stack_blob(zeros, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
     S2N_ERROR_IF(blob->size > S2N_DRBG_GENERATE_LIMIT, S2N_ERR_DRBG_REQUEST_SIZE);
@@ -182,7 +195,7 @@ int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
     /* If either use_prediction_resistance is set, or if we reach the definitely-need-to-reseed limit, then reseed */
     if (drbg->use_prediction_resistance || drbg->bytes_used + blob->size + S2N_DRBG_BLOCK_SIZE >= S2N_DRBG_RESEED_LIMIT) {
         GUARD(s2n_drbg_seed(drbg, &zeros));
-    } else if (!drbg->use_prediction_resistance && !S2N_IN_UNIT_TEST) {
+    } else if (!drbg->use_prediction_resistance && !s2n_in_unit_test()) {
         S2N_ERROR(S2N_ERR_NOT_IN_UNIT_TEST);
     }
 
@@ -194,8 +207,7 @@ int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
 
 int s2n_drbg_wipe(struct s2n_drbg *drbg)
 {
-    struct s2n_blob state = {.data = (void *)drbg,.size = sizeof(struct s2n_drbg) };
-
+    notnull_check(drbg);
     if (drbg->ctx) {
         GUARD_OSSL(EVP_CIPHER_CTX_cleanup(drbg->ctx), S2N_ERR_DRBG);
 
@@ -203,12 +215,12 @@ int s2n_drbg_wipe(struct s2n_drbg *drbg)
         drbg->ctx = NULL;
     }
 
-    GUARD(s2n_blob_zero(&state));
-
+    *drbg = (struct s2n_drbg) {0};
     return 0;
 }
 
 int s2n_drbg_bytes_used(struct s2n_drbg *drbg)
 {
+    notnull_check(drbg);
     return drbg->bytes_used;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -22,10 +22,12 @@
 #include "tls/s2n_kex_data.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_cipher_preferences.h"
+#include "crypto/s2n_fips.h"
 
 #include "utils/s2n_safety.h"
 
-struct s2n_kex s2n_test_kem_kex = {
+static struct s2n_kex s2n_test_kem_kex = {
         .server_key_recv_read_data = &s2n_kem_server_key_recv_read_data,
         .server_key_recv_parse_data = &s2n_kem_server_key_recv_parse_data,
         .server_key_send = &s2n_kem_server_key_send,
@@ -33,67 +35,173 @@ struct s2n_kex s2n_test_kem_kex = {
         .client_key_send = &s2n_kem_client_key_send,
 };
 
-struct s2n_cipher_suite s2n_test_suite = {
+static struct s2n_cipher_suite sike_test_suite = {
         .iana_value = { TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 },
         .key_exchange_alg = &s2n_test_kem_kex,
 };
+
+static struct s2n_cipher_suite bike_test_suite = {
+        .iana_value = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 },
+        .key_exchange_alg = &s2n_test_kem_kex,
+};
+
+static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *cipher_pref_version, const struct s2n_kem *negotiated_kem) {
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+
+    struct s2n_connection *client_conn;
+    struct s2n_connection *server_conn;
+
+    GUARD_NONNULL(client_conn = s2n_connection_new(S2N_CLIENT));
+    GUARD_NONNULL(server_conn = s2n_connection_new(S2N_SERVER));
+
+    const struct s2n_cipher_preferences *cipher_prefs = NULL;
+    GUARD(s2n_find_cipher_pref_from_version(cipher_pref_version, &cipher_prefs));
+    GUARD_NONNULL(cipher_prefs);
+
+    client_conn->secure.s2n_kem_keys.negotiated_kem = negotiated_kem;
+    client_conn->secure.cipher_suite = cipher_suite;
+    client_conn->cipher_pref_override = cipher_prefs;
+
+    server_conn->secure.s2n_kem_keys.negotiated_kem = negotiated_kem;
+    server_conn->secure.cipher_suite = cipher_suite;
+    server_conn->cipher_pref_override = cipher_prefs;
+
+    /* Part 1: Server calls send_key */
+    struct s2n_blob data_to_sign = {0};
+    GUARD(s2n_kem_server_key_send(server_conn, &data_to_sign));
+    /* 2 extra bytes for the kem extension id and 2 additional bytes for the length of the public key sent over the wire. */
+    const uint32_t KEM_PUBLIC_KEY_MESSAGE_SIZE = (*negotiated_kem).public_key_length + 4;
+    eq_check(data_to_sign.size, KEM_PUBLIC_KEY_MESSAGE_SIZE);
+
+    eq_check((*negotiated_kem).private_key_length, server_conn->secure.s2n_kem_keys.private_key.size);
+    struct s2n_blob server_key_message = {.size = KEM_PUBLIC_KEY_MESSAGE_SIZE, .data = s2n_stuffer_raw_read(&server_conn->handshake.io,
+            KEM_PUBLIC_KEY_MESSAGE_SIZE)};
+    GUARD_NONNULL(server_key_message.data);
+
+    /* Part 1.1: feed that to the client */
+    GUARD(s2n_stuffer_write(&client_conn->handshake.io, &server_key_message));
+
+    /* Part 2: Client calls recv_read and recv_parse */
+    struct s2n_kex_raw_server_data raw_params = {0};
+    struct s2n_blob data_to_verify = {0};
+    GUARD(s2n_kem_server_key_recv_read_data(client_conn, &data_to_verify, &raw_params));
+    eq_check(data_to_verify.size, KEM_PUBLIC_KEY_MESSAGE_SIZE);
+
+    if (s2n_kem_server_key_recv_parse_data(client_conn, &raw_params) != 0) {
+        /* Tests with incompatible parameters are expected to fail here;
+         * we want to clean up the connections before failing. */
+        GUARD(s2n_connection_free(client_conn));
+        GUARD(s2n_connection_free(server_conn));
+        S2N_ERROR_PRESERVE_ERRNO();
+    }
+
+    eq_check((*negotiated_kem).public_key_length, client_conn->secure.s2n_kem_keys.public_key.size);
+
+    /* Part 3: Client calls send_key. The additional 2 bytes are for the ciphertext length sent over the wire */
+    const uint32_t KEM_CIPHERTEXT_MESSAGE_SIZE = (*negotiated_kem).ciphertext_length + 2;
+    DEFER_CLEANUP(struct s2n_blob client_shared_key = {0}, s2n_free);
+    GUARD(s2n_kem_client_key_send(client_conn, &client_shared_key));
+    struct s2n_blob client_key_message = {.size = KEM_CIPHERTEXT_MESSAGE_SIZE, .data = s2n_stuffer_raw_read(&client_conn->handshake.io,
+            KEM_CIPHERTEXT_MESSAGE_SIZE)};
+    GUARD_NONNULL(client_key_message.data);
+
+    /* Part 3.1: Send that back to the server */
+    GUARD(s2n_stuffer_write(&server_conn->handshake.io, &client_key_message));
+
+    /* Part 4: Call client key recv */
+    DEFER_CLEANUP(struct s2n_blob server_shared_key = {0}, s2n_free);
+    GUARD(s2n_kem_client_key_recv(server_conn, &server_shared_key));
+    eq_check(memcmp(client_shared_key.data, server_shared_key.data, (*negotiated_kem).shared_secret_key_length), 0);
+
+    GUARD(s2n_connection_free(client_conn));
+    GUARD(s2n_connection_free(server_conn));
+
+    return 0;
+}
+
+static int assert_kex_fips_checks(struct s2n_cipher_suite *cipher_suite, const char *cipher_pref_version, const struct s2n_kem *negotiated_kem) {
+    if (!s2n_is_in_fips_mode()) {
+        /* This function should only be called when FIPS mode is enabled */
+        return S2N_FAILURE;
+    }
+
+    struct s2n_connection *server_conn;
+    GUARD_NONNULL(server_conn = s2n_connection_new(S2N_SERVER));
+    const struct s2n_cipher_preferences *cipher_prefs = NULL;
+    GUARD(s2n_find_cipher_pref_from_version(cipher_pref_version, &cipher_prefs));
+    GUARD_NONNULL(cipher_prefs);
+    server_conn->secure.s2n_kem_keys.negotiated_kem = negotiated_kem;
+    server_conn->secure.cipher_suite = cipher_suite;
+    server_conn->cipher_pref_override = cipher_prefs;
+
+    /* If in FIPS mode:
+     * s2n_check_kem() (s2n_hybrid_ecdhe_kem.connection_supported) should return 0
+     * s2n_configure_kem() (s2n_hybrid_ecdhe_kem.configure_connection) should return -1 and
+     *     set s2n_errno to S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS */
+    int ret_val = (s2n_hybrid_ecdhe_kem.connection_supported(cipher_suite, server_conn) != 0) &&
+                  (s2n_hybrid_ecdhe_kem.configure_connection(cipher_suite, server_conn) != S2N_FAILURE) &&
+                  (s2n_errno != S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+
+    GUARD(s2n_connection_free(server_conn));
+    s2n_errno = 0;
+    s2n_debug_str = NULL;
+
+    return ret_val;
+}
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    struct s2n_connection *client_conn;
-    struct s2n_connection *server_conn;
+#if !defined(S2N_NO_PQ)
 
-    EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-    EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+    if (s2n_is_in_fips_mode()) {
+        /* There is no support for PQ KEMs while in FIPS mode. So we verify functions s2n_check_kem() and
+         * s2n_configure_kem() (in s2n_kex.c) are performing their FIPS checks appropriately. */
+        EXPECT_SUCCESS(assert_kex_fips_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(assert_kex_fips_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r2));
+        EXPECT_SUCCESS(assert_kex_fips_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(assert_kex_fips_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r2));
 
-    client_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_p503_r1;
-    client_conn->secure.cipher_suite = &s2n_test_suite;
+        EXPECT_SUCCESS(assert_kex_fips_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(assert_kex_fips_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r2));
+        EXPECT_SUCCESS(assert_kex_fips_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(assert_kex_fips_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r2));
+    } else {
+        /* KMS-PQ-TLS-1-0-2019-06 supports only Round 1 KEMs
+         * KMS-PQ-TLS-1-0-2020-02 supports Round 1 and Round 2 KEMs */
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r2));
 
-    server_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_p503_r1;
-    server_conn->secure.cipher_suite = &s2n_test_suite;
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r2));
 
-    /* Part 1: Server calls send_key */
-    struct s2n_blob data_to_sign = {0};
-    EXPECT_SUCCESS(s2n_kem_server_key_send(server_conn, &data_to_sign));
-    /* 2 extra bytes for the kem extension id and 2 additional bytes for the length of the public key sent over the wire. */
-    const uint32_t KEM_PUBLIC_KEY_MESSAGE_SIZE = s2n_sike_p503_r1.public_key_length + 4;
-    EXPECT_EQUAL(data_to_sign.size, KEM_PUBLIC_KEY_MESSAGE_SIZE);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r2),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r1),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r2),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r1),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r2),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
-    EXPECT_EQUAL(s2n_sike_p503_r1.private_key_length, server_conn->secure.s2n_kem_keys.private_key.size);
-    struct s2n_blob server_key_message = {.size = KEM_PUBLIC_KEY_MESSAGE_SIZE, .data = s2n_stuffer_raw_read(&server_conn->handshake.io,
-                                                                                                    KEM_PUBLIC_KEY_MESSAGE_SIZE)};
-    EXPECT_NOT_NULL(server_key_message.data);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r2),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r2),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p503_r1),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r2),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p503_r1),
+                                  S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+    }
 
-    /* Part 1.1: feed that to the client */
-    EXPECT_SUCCESS(s2n_stuffer_write(&client_conn->handshake.io, &server_key_message));
+#endif
 
-    /* Part 2: Client calls recv_read and recv_parse */
-    struct s2n_kex_raw_server_data raw_parms = {{{0}}};
-    struct s2n_blob data_to_verify = {0};
-    EXPECT_SUCCESS(s2n_kem_server_key_recv_read_data(client_conn, &data_to_verify, &raw_parms));
-    EXPECT_EQUAL(data_to_verify.size, KEM_PUBLIC_KEY_MESSAGE_SIZE);
-    EXPECT_SUCCESS(s2n_kem_server_key_recv_parse_data(client_conn, &raw_parms));
-    EXPECT_EQUAL(s2n_sike_p503_r1.public_key_length, client_conn->secure.s2n_kem_keys.public_key.size);
-
-    /* Part 3: Client calls send_key. The additional 2 bytes are for the ciphertext length sent over the wire */
-    const uint32_t KEM_CIPHERTEXT_MESSAGE_SIZE = s2n_sike_p503_r1.ciphertext_length + 2;
-    DEFER_CLEANUP(struct s2n_blob client_shared_key = {0}, s2n_free);
-    EXPECT_SUCCESS(s2n_kem_client_key_send(client_conn, &client_shared_key));
-    struct s2n_blob client_key_message = {.size = KEM_CIPHERTEXT_MESSAGE_SIZE, .data = s2n_stuffer_raw_read(&client_conn->handshake.io,
-                                                                                                    KEM_CIPHERTEXT_MESSAGE_SIZE)};
-    EXPECT_NOT_NULL(client_key_message.data);
-
-    /* Part 3.1: Send that back to the server */
-    EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_key_message));
-
-    /* Part 4: Call client key recv */
-    DEFER_CLEANUP(struct s2n_blob server_shared_key = {0}, s2n_free);
-    EXPECT_SUCCESS(s2n_kem_client_key_recv(server_conn, &server_shared_key));
-    EXPECT_BYTEARRAY_EQUAL(client_shared_key.data, server_shared_key.data, s2n_sike_p503_r1.shared_secret_key_length);
-
-    EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    EXPECT_SUCCESS(s2n_connection_free(server_conn));
     END_TEST();
 }

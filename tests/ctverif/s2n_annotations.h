@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -16,5 +16,5 @@
 #pragma once
 #include "ct-verif.h"
 
-//Override the annotations to the ones that ct-verif expects
+/* Override the annotations to the ones that ct-verif expects */
 #define S2N_PUBLIC_INPUT(__a) public_in( __SMACK_value( __a ) )

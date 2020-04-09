@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -19,7 +19,9 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_cipher_preferences.h"
 #include "utils/s2n_safety.h"
+#include "crypto/s2n_fips.h"
 
 static int s2n_get_server_ecc_extension_size(const struct s2n_connection *conn)
 {
@@ -63,7 +65,7 @@ static int s2n_write_no_extension(const struct s2n_connection *conn, struct s2n_
 
 static int s2n_check_rsa_key(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
-    return conn->handshake_params.our_chain_and_key != NULL;
+    return s2n_get_compatible_cert_chain_and_key(conn, S2N_PKEY_TYPE_RSA) != NULL;
 }
 
 static int s2n_check_dhe(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
@@ -73,43 +75,60 @@ static int s2n_check_dhe(const struct s2n_cipher_suite *cipher_suite, struct s2n
 
 static int s2n_check_ecdhe(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
-    return conn->secure.server_ecc_params.negotiated_curve != NULL;
+    return conn->secure.server_ecc_evp_params.negotiated_curve != NULL;
 }
 
 static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
+    /* There is no support for PQ KEMs while in FIPS mode */
+    if (s2n_is_in_fips_mode()) {
+        return 0;
+    }
+
+    const struct s2n_cipher_preferences *server_cipher_preferences = NULL;
+    /* If the cipher preferences have no supported KEMs, return false. */
+    if (s2n_connection_get_cipher_preferences(conn, &server_cipher_preferences) != 0) { return 0; }
+    if (server_cipher_preferences->kem_count == 0) { return 0; }
+
     const struct s2n_iana_to_kem *supported_params = NULL;
     /* If the cipher suite has no supported KEMs return false */
     if (s2n_cipher_suite_to_kem(cipher_suite->iana_value, &supported_params) != 0) { return 0; }
     if (supported_params->kem_count == 0) { return 0; }
 
-    struct s2n_blob *proposed_kems = &conn->secure.client_pq_kem_extension;
-    /* If the client did not send a PQ KEM extension the server can pick any parameters it wants */
-    if (proposed_kems == NULL || proposed_kems->data == NULL) {
-        return 1;
+    struct s2n_blob *client_kem_pref_list = &(conn->secure.client_pq_kem_extension);
+    const struct s2n_kem *chosen_kem = NULL;
+    if (client_kem_pref_list == NULL || client_kem_pref_list->data == NULL) {
+        /* If the client did not send a PQ KEM extension, then the server can pick its preferred parameter */
+        if (s2n_choose_kem_without_peer_pref_list(cipher_suite->iana_value, server_cipher_preferences->kems,
+                server_cipher_preferences->kem_count, &chosen_kem) != 0) { return 0; }
+    } else {
+        /* If the client did send a PQ KEM extension, then the server must find a mutually supported parameter. */
+        if (s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, client_kem_pref_list, server_cipher_preferences->kems,
+                server_cipher_preferences->kem_count, &chosen_kem) != 0) { return 0; }
     }
 
-    /* If the client did send a PQ KEM extension the server must find a mutually supported parameter */
-    const struct s2n_kem *matching_kem = NULL;
-    if(s2n_kem_find_supported_kem(proposed_kems, *supported_params->kems, supported_params->kem_count, &matching_kem) != 0) { return 0; }
-    return matching_kem != NULL;
+    return chosen_kem != NULL;
 }
 
 static int s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
-    const struct s2n_iana_to_kem *supported_params = NULL;
-    GUARD(s2n_cipher_suite_to_kem(cipher_suite->iana_value, &supported_params));
+    /* There is no support for PQ KEMs while in FIPS mode */
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
 
-    struct s2n_blob *proposed_kems = &conn->secure.client_pq_kem_extension;
-    /* If the client did not send a PQ KEM extension the server can pick any parameters it wants */
+    const struct s2n_cipher_preferences *cipher_preferences = NULL;
+    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+
+    struct s2n_blob *proposed_kems = &(conn->secure.client_pq_kem_extension);
+    const struct s2n_kem *chosen_kem = NULL;
     if (proposed_kems == NULL || proposed_kems->data == NULL) {
-        conn->secure.s2n_kem_keys.negotiated_kem = supported_params->kems[0];
-        return 0;
+        /* If the client did not send a PQ KEM extension, then the server can pick its preferred parameter */
+        GUARD(s2n_choose_kem_without_peer_pref_list(cipher_suite->iana_value, cipher_preferences->kems, cipher_preferences->kem_count, &chosen_kem));
+    } else {
+        /* If the client did send a PQ KEM extension, then the server must find a mutually supported parameter. */
+        GUARD(s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, proposed_kems, cipher_preferences->kems, cipher_preferences->kem_count, &chosen_kem));
     }
 
-    const struct s2n_kem *matching_kem = NULL;
-    GUARD(s2n_kem_find_supported_kem(proposed_kems, *supported_params->kems, supported_params->kem_count, &matching_kem));
-    conn->secure.s2n_kem_keys.negotiated_kem = matching_kem;
+    conn->secure.s2n_kem_keys.negotiated_kem = chosen_kem;
     return 0;
 }
 
@@ -213,14 +232,24 @@ const struct s2n_kex s2n_hybrid_ecdhe_kem = {
 
 int s2n_kex_server_extension_size(const struct s2n_kex *kex, const struct s2n_connection *conn)
 {
-    notnull_check(kex->get_server_extension_size);
-    return kex->get_server_extension_size(conn);
+    if (s2n_server_can_send_kex(conn)) {
+        notnull_check(kex);
+        notnull_check(kex->get_server_extension_size);
+        return kex->get_server_extension_size(conn);
+    }
+
+    return 0;
 }
 
 int s2n_kex_write_server_extension(const struct s2n_kex *kex, const struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    notnull_check(kex->write_server_extensions);
-    return kex->write_server_extensions(conn, out);
+    if (s2n_server_can_send_kex(conn)) {
+        notnull_check(kex);
+        notnull_check(kex->write_server_extensions);
+        return kex->write_server_extensions(conn, out);
+    }
+
+    return 0;
 }
 
 int s2n_kex_supported(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
@@ -238,6 +267,7 @@ int s2n_configure_kex(const struct s2n_cipher_suite *cipher_suite, struct s2n_co
 
 int s2n_kex_is_ephemeral(const struct s2n_kex *kex)
 {
+    notnull_check(kex);
     return kex->is_ephemeral;
 }
 

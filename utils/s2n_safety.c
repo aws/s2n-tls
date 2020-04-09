@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -20,8 +20,10 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "s2n_annotations.h"
+#include "s2n_safety.h"
 
 /**
  * Get the process id
@@ -148,3 +150,48 @@ int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t * dst, const uint8_t * src, ui
 
     return 0;
 }
+
+static bool s_s2n_in_unit_test = false;
+
+bool s2n_in_unit_test()
+{
+    return s_s2n_in_unit_test;
+}
+
+int s2n_in_unit_test_set(bool newval)
+{
+    s_s2n_in_unit_test = newval;
+    return S2N_SUCCESS;
+}
+
+int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out)
+{
+    const uint64_t result = ((uint64_t) a) * ((uint64_t) b);
+    S2N_ERROR_IF(result > UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    *out = (uint32_t) result;
+    return S2N_SUCCESS;
+}
+
+int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out)
+{
+    S2N_PRECONDITION(alignment != 0);
+    if (initial == 0) {
+	*out = 0;
+	return S2N_SUCCESS;
+    }
+    const uint64_t i = initial;
+    const uint64_t a = alignment;
+    const uint64_t result = a * (((i - 1) / a) + 1);
+    S2N_ERROR_IF(result > UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    *out = (uint32_t) result;
+    return S2N_SUCCESS;
+}
+
+int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out)
+{
+    uint64_t result = ((uint64_t) a) + ((uint64_t) b);
+    S2N_ERROR_IF(result > UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    *out = (uint32_t) result;
+    return S2N_SUCCESS;
+}
+

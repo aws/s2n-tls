@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -28,11 +28,12 @@ fi
 BUILD_DIR=$1
 INSTALL_DIR=$2
 PLATFORM=$3
+RELEASE=1_1_1f
 
 cd "$BUILD_DIR"
-curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_1_1_1-stable.zip --output OpenSSL_1_1_1-stable.zip
-unzip OpenSSL_1_1_1-stable.zip
-cd openssl-OpenSSL_1_1_1-stable
+curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_${RELEASE}.zip --output OpenSSL_${RELEASE}.zip
+unzip OpenSSL_${RELEASE}.zip
+cd openssl-OpenSSL_${RELEASE}
 
 if [ "$PLATFORM" == "linux" ]; then
     CONFIGURE="./config -d"

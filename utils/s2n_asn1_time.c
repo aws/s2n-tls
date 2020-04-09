@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ typedef enum parser_state {
 } parser_state;
 
 static inline long get_gmt_offset(struct tm *t) {
-#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__APPLE__) && defined(__MACH__)
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__ANDROID__) || defined(ANDROID) || defined(__APPLE__) && defined(__MACH__)
     return t->tm_gmtoff;
 #else
     return t->__tm_gmtoff;
@@ -235,33 +235,31 @@ int s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len,
     }
 
     /* state on subsecond means no timezone info was found and we assume local time */
-    if (state == FINISHED || state == ON_SUBSECOND) {
+    S2N_ERROR_IF(!(state == FINISHED || state == ON_SUBSECOND), S2N_ERR_INVALID_ARGUMENT);
 
-        time_t clock_data = 0;
-        /* ASN1 + and - is in format HHMM. We need to convert it to seconds for the adjustment */
-        long gmt_offset = (args.offset_hours * 3600) + (args.offset_minutes * 60);
+    time_t clock_data = 0;
+    /* ASN1 + and - is in format HHMM. We need to convert it to seconds for the adjustment */
+    long gmt_offset = (args.offset_hours * 3600) + (args.offset_minutes * 60);
 
-        if (args.offset_negative) {
-            gmt_offset = 0 - gmt_offset;
-        }
-
-        clock_data = mktime(&args.time);
-
-        /* if we detected UTC is being used (please always use UTC), we need to add the detected timezone on the local
-         * machine back to the offset. Also, the offset includes an offset for daylight savings time. When the time being parsed
-         * and the local time are on different sides of the dst barrier, the offset has to be adjusted to account for it. */
-        if (!args.local_time_assumed) {
-            gmt_offset -= gmt_offset_current;
-            gmt_offset -= args.time.tm_isdst != is_dst ? (args.time.tm_isdst - is_dst) * 3600 : 0;
-        }
-
-        /* convert to nanoseconds and add the timezone offset. */
-        if (clock_data > 0) {
-            *ticks = ((uint64_t) clock_data - gmt_offset) * 1000000000;
-            return 0;
-        }
+    if (args.offset_negative) {
+        gmt_offset = 0 - gmt_offset;
     }
 
-    return -1;
+    clock_data = mktime(&args.time);
+    S2N_ERROR_IF(clock_data < 0, S2N_ERR_SAFETY);
+
+    /* if we detected UTC is being used (please always use UTC), we need to add the detected timezone on the local
+     * machine back to the offset. Also, the offset includes an offset for daylight savings time. When the time being parsed
+     * and the local time are on different sides of the dst barrier, the offset has to be adjusted to account for it. */
+    if (!args.local_time_assumed) {
+        gmt_offset -= gmt_offset_current;
+        gmt_offset -= args.time.tm_isdst != is_dst ? (args.time.tm_isdst - is_dst) * 3600 : 0;
+    }
+
+    S2N_ERROR_IF(clock_data < gmt_offset, S2N_ERR_SAFETY);
+
+    /* convert to nanoseconds and add the timezone offset. */
+    *ticks = ((uint64_t) clock_data - gmt_offset) * 1000000000;
+    return 0;
 }
 

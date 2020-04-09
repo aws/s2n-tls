@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -130,5 +130,5 @@ int s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
         return 0;
     }
 
-    return -1;
+    S2N_ERROR(S2N_ERR_INVALID_ARGUMENT);
 }

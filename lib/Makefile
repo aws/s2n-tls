@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -13,19 +13,23 @@
 # permissions and limitations under the License.
 #
 
-OBJS = $(wildcard ../utils/*.o ../stuffer/*.o ../tls/*.o ../iana/*.o ../crypto/*.o ../error/*.o ../pq-crypto/*.o ../pq-crypto/bike/*.o ../pq-crypto/sike/*.o)
+OBJS = $(wildcard ../utils/*.o ../stuffer/*.o ../tls/*.o ../tls/*/*.o ../iana/*.o ../crypto/*.o ../error/*.o ../pq-crypto/*.o ../pq-crypto/bike_r1/*.o ../pq-crypto/bike_r2/*.o ../pq-crypto/sike_r1/*.o ../pq-crypto/sike_r2/*.o)
 
 .PHONY : all
 all: libs2n.a libs2n.so libs2n.dylib
 
 include ../s2n.mk
 
+ifdef FUZZ_COVERAGE
+	FUZZCOV_FLAGS = -fprofile-instr-generate -fcoverage-mapping
+endif
+
 libs2n.a: ${OBJS}
 	$(AR) cru libs2n.a ${OBJS}
 	$(RANLIB) libs2n.a
 
 libs2n.so: ${OBJS}
-	${CC} -shared -o libs2n.so ${OBJS} ${LIBS} -L${LIBCRYPTO_ROOT}/lib ${CRYPTO_LIBS}
+	${CC} ${FUZZCOV_FLAGS} -shared -o libs2n.so ${OBJS} ${LIBS} -L${LIBCRYPTO_ROOT}/lib ${CRYPTO_LIBS}
 
 libs2n.dylib: ${OBJS}
 	test ! -f /usr/lib/libSystem.dylib || libtool -dynamic  ${LIBS} -L${LIBCRYPTO_ROOT}/lib ${CRYPTO_LIBS} -o libs2n.dylib ${OBJS}

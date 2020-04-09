@@ -11,6 +11,7 @@
 *.info
 *.profraw
 *.tmp
+*.pyc
 coverage/html/*
 libcrypto-build/*
 libcrypto-root
@@ -26,4 +27,5 @@ clang-*
 fuzz_dependencies/*
 .travis/prlimit
 .travis/.libs/*
+.vscode/
 test-deps/*

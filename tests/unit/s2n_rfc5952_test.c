@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -71,6 +71,13 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(inet_pton(AF_INET6, "0:0:0:0:0:0:0:0", ipv6));
     EXPECT_SUCCESS(s2n_inet_ntop(AF_INET6, ipv6, &ipv6_blob));
     EXPECT_EQUAL(strcmp("::", (char *) ipv6_buf), 0);
+
+    /* Prevents build failure on Mac */
+    #ifndef AF_BLUETOOTH
+        #define AF_BLUETOOTH 31
+    #endif
+
+    EXPECT_FAILURE_WITH_ERRNO(s2n_inet_ntop(AF_BLUETOOTH, ipv6, &ipv6_blob), S2N_ERR_INVALID_ARGUMENT);
     END_TEST();
 }
 

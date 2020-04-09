@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ int s2n_record_parse_composite(
 #define IV_SIZE 16
 #define MAX_SIZE 1024
 
-//Extra is actually mac_size
+/* Extra is actually mac_size */
 int initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type, uint16_t protocol_version,
 		 uint16_t payload_and_eiv_len, int *extra)
 {
@@ -121,9 +121,9 @@ int s2n_record_parse_wrapper(int *xor_pad,
     .record_alg = &record_algorithm,
   };
 
-  //cppcheck-suppress unassignedVariable
+  /* cppcheck-suppress unassignedVariable */
   uint8_t data1[MAX_SIZE];
-  //cppcheck-suppress unassignedVariable
+  /* cppcheck-suppress unassignedVariable */
   uint8_t data2[MAX_SIZE];
   
   struct s2n_connection conn = {
@@ -131,6 +131,7 @@ int s2n_record_parse_wrapper(int *xor_pad,
     .in = {
       .read_cursor = 0,
       .write_cursor = MAX_SIZE,
+      .high_water_mark = MAX_SIZE,
       .blob = {
 	.data = data1,
 	.size = MAX_SIZE,
@@ -139,6 +140,7 @@ int s2n_record_parse_wrapper(int *xor_pad,
     .header_in = {
       .read_cursor = 0,
       .write_cursor = S2N_TLS_RECORD_HEADER_LENGTH,
+      .high_water_mark = S2N_TLS_RECORD_HEADER_LENGTH,
       .blob = {
 	.data = data2,
 	.size = MAX_SIZE,

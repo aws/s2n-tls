@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -36,12 +36,3 @@ static const uint8_t s2n_hash_alg_to_tls[] = {
     [S2N_HASH_SHA384] = TLS_HASH_ALGORITHM_SHA384,
     [S2N_HASH_SHA512] = TLS_HASH_ALGORITHM_SHA512 };
 
-/* Our own order of preference for signature hashes. No MD5 to avoid
- * SLOTH.
- */
-static const uint8_t s2n_preferred_hashes[] = {
-    TLS_HASH_ALGORITHM_SHA256,
-    TLS_HASH_ALGORITHM_SHA384,
-    TLS_HASH_ALGORITHM_SHA512,
-    TLS_HASH_ALGORITHM_SHA224,
-    TLS_HASH_ALGORITHM_SHA1 };

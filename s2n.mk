@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -28,25 +28,40 @@ CRYPTO_LIBS = -lcrypto
 CC	:= $(CROSS_COMPILE)$(CC)
 AR	= $(CROSS_COMPILE)ar
 RANLIB	= $(CROSS_COMPILE)ranlib
-CLANG    ?= clang-3.8
-LLVMLINK ?= llvm-link-3.8
+CLANG    ?= clang-3.9
+LLVMLINK ?= llvm-link-3.9
 
 SOURCES = $(wildcard *.c *.h)
 CRUFT   = $(wildcard *.c~ *.h~ *.c.BAK *.h.BAK *.o *.a *.so *.dylib *.bc *.gcov *.gcda *.gcno *.info *.profraw *.tmp)
 INDENT  = $(shell (if indent --version 2>&1 | grep GNU > /dev/null; then echo indent ; elif gindent --version 2>&1 | grep GNU > /dev/null; then echo gindent; else echo true ; fi ))
 
-DEFAULT_CFLAGS = -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized \
-                 -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -fPIC \
-                 -std=c99 -D_POSIX_C_SOURCE=200809L -O2 -I$(LIBCRYPTO_ROOT)/include/ \
+# BoringSSL is a C11 library and has less strict compiler flags than s2n. All other libcryptos use the default c99 flags
+ifeq ($(S2N_LIBCRYPTO), boringssl)
+	DEFAULT_CFLAGS = -std=c11
+else
+	DEFAULT_CFLAGS = -std=c99 -Wcast-qual
+endif
+
+DEFAULT_CFLAGS += -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized \
+                 -Wshadow  -Wcast-align -Wwrite-strings -fPIC -Wno-missing-braces\
+                 -D_POSIX_C_SOURCE=200809L -O2 -I$(LIBCRYPTO_ROOT)/include/ \
                  -I$(S2N_ROOT)/api/ -I$(S2N_ROOT) -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
                  -D_FORTIFY_SOURCE=2 -fgnu89-inline 
 
 COVERAGE_CFLAGS = -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 
-ifdef S2N_COVERAGE
-    DEFAULT_CFLAGS += ${COVERAGE_CFLAGS}
-    LIBS += ${COVERAGE_LDFLAGS}
+FUZZ_CFLAGS = -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
+
+# Define FUZZ_COVERAGE - to be used for generating coverage reports on fuzz tests
+#                !!! NOT COMPATIBLE WITH S2N_COVERAGE !!!
+ifdef FUZZ_COVERAGE
+	FUZZ_CFLAGS += -fprofile-instr-generate -fcoverage-mapping
+else
+	ifdef S2N_COVERAGE
+		DEFAULT_CFLAGS += ${COVERAGE_CFLAGS}
+		LIBS += ${COVERAGE_LDFLAGS}
+	endif
 endif
 
 # Add a flag to disable stack protector for alternative libcs without
@@ -55,9 +70,23 @@ ifneq ($(NO_STACK_PROTECTOR), 1)
 DEFAULT_CFLAGS += -Wstack-protector -fstack-protector-all
 endif
 
+ifeq ($(NO_INLINE), 1)
+DEFAULT_CFLAGS += -fno-inline
+endif
+
 # Define S2N_TEST_IN_FIPS_MODE - to be used for testing when present.
 ifdef S2N_TEST_IN_FIPS_MODE
     DEFAULT_CFLAGS += -DS2N_TEST_IN_FIPS_MODE
+endif
+
+# Force the usage of generic C code for PQ crypto, even if the optimized assembly could be used
+ifdef S2N_NO_PQ_ASM
+	DEFAULT_CFLAGS += -DS2N_NO_PQ_ASM
+endif
+
+# All native platforms have execinfo.h, cross-compile targets often don't (android, ARM/alpine)
+ifndef CROSS_COMPILE
+	DEFAULT_CFLAGS += -DS2N_HAVE_EXECINFO
 endif
 
 CFLAGS += ${DEFAULT_CFLAGS}
@@ -83,7 +112,6 @@ ifdef S2N_DEBUG
 	CFLAGS += ${DEBUG_CFLAGS}
 endif
 
-FUZZ_CFLAGS = -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
 LLVM_GCOV_MARKER_FILE=${COVERAGE_DIR}/use-llvm-gcov.tmp
 
 ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
@@ -118,7 +146,7 @@ INDENTOPTS = -npro -kr -i4 -ts4 -nut -sob -l180 -ss -ncs -cp1
 .PHONY : indentsource
 indentsource:
 	( for source in ${SOURCES} ; do ${INDENT} ${INDENTOPTS} $$source; done )
-	
+
 .PHONY : gcov
 gcov: 
 	( for source in ${SOURCES} ; do $(COV_TOOL) $$source;  done )

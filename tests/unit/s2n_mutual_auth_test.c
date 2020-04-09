@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -27,56 +27,6 @@
 #include "tls/s2n_cipher_suites.h"
 #include "utils/s2n_safety.h"
 
-int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
-{
-    struct s2n_stuffer *in_buf;
-    int n_read, n_avail;
-
-    if (buf == NULL) {
-        return 0;
-    }
-
-    in_buf = (struct s2n_stuffer *) io_context;
-    if (in_buf == NULL) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    // read the number of bytes requested or less if it isn't available
-    n_avail = s2n_stuffer_data_available(in_buf);
-    n_read = (len < n_avail) ? len : n_avail;
-
-    if (n_read == 0) {
-        errno = EAGAIN;
-        return -1;
-    }
-
-    s2n_stuffer_read_bytes(in_buf, buf, n_read);
-    return n_read;
-}
-
-int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
-{
-    struct s2n_stuffer *out;
-
-    if (buf == NULL) {
-        return 0;
-    }
-
-    out = (struct s2n_stuffer *) io_context;
-    if (out == NULL) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    if (s2n_stuffer_write_bytes(out, buf, len) < 0) {
-        errno = EAGAIN;
-        return -1;
-    }
-
-    return len;
-}
-
 struct host_verify_data {
     uint8_t callback_invoked;
     uint8_t allow;
@@ -87,8 +37,6 @@ static uint8_t verify_host_fn(const char *host_name, size_t host_name_len, void 
     verify_data->callback_invoked = 1;
     return verify_data->allow;
 }
-
-extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 
 static const int MAX_TRIES = 100;
 
@@ -160,22 +108,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
-
         /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
-
-        /* Set Up Callbacks*/
-        EXPECT_SUCCESS(s2n_connection_set_recv_cb(client_conn, &buffer_read));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(client_conn, &buffer_write));
-        EXPECT_SUCCESS(s2n_connection_set_recv_cb(server_conn, &buffer_read));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(server_conn, &buffer_write));
-
-        /* Set up Callback Contexts to use stuffers */
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(client_conn, &server_to_client));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(client_conn, &client_to_server));
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(server_conn, &client_to_server));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(server_conn, &server_to_client));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
         int tries = 0;
         do {
@@ -243,18 +180,8 @@ int main(int argc, char **argv)
         /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
-
-        /* Set Up Callbacks*/
-        EXPECT_SUCCESS(s2n_connection_set_recv_cb(client_conn, &buffer_read));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(client_conn, &buffer_write));
-        EXPECT_SUCCESS(s2n_connection_set_recv_cb(server_conn, &buffer_read));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(server_conn, &buffer_write));
-
-        /* Set up Callback Contexts to use stuffers */
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(client_conn, &server_to_client));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(client_conn, &client_to_server));
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(server_conn, &client_to_server));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(server_conn, &server_to_client));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
         int tries = 0;
         do {
@@ -324,18 +251,8 @@ int main(int argc, char **argv)
         /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
-
-        /* Set Up Callbacks*/
-        EXPECT_SUCCESS(s2n_connection_set_recv_cb(client_conn, &buffer_read));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(client_conn, &buffer_write));
-        EXPECT_SUCCESS(s2n_connection_set_recv_cb(server_conn, &buffer_read));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(server_conn, &buffer_write));
-
-        /* Set up Callback Contexts to use stuffers */
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(client_conn, &server_to_client));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(client_conn, &client_to_server));
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(server_conn, &client_to_server));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(server_conn, &server_to_client));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
         int tries = 0;
         do {
@@ -402,22 +319,11 @@ int main(int argc, char **argv)
         /* Only set S2N_CERT_AUTH_REQUIRED on the server and not the client so that the connection fails */
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED));
 
-
         /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
-
-        /* Set Up Callbacks*/
-        EXPECT_SUCCESS(s2n_connection_set_recv_cb(client_conn, &buffer_read));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(client_conn, &buffer_write));
-        EXPECT_SUCCESS(s2n_connection_set_recv_cb(server_conn, &buffer_read));
-        EXPECT_SUCCESS(s2n_connection_set_send_cb(server_conn, &buffer_write));
-
-        /* Set up Callback Contexts to use stuffers */
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(client_conn, &server_to_client));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(client_conn, &client_to_server));
-        EXPECT_SUCCESS(s2n_connection_set_recv_ctx(server_conn, &client_to_server));
-        EXPECT_SUCCESS(s2n_connection_set_send_ctx(server_conn, &server_to_client));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
         int tries = 0;
         int failures = 0;

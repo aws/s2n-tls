@@ -250,7 +250,9 @@ but does accept SSL2.0 hello messages.
 
 ## Enums
 
-s2n defines five enum types:
+s2n defines the following enum types:
+
+### s2n_error_type
 
 ```c
 typedef enum {
@@ -269,6 +271,7 @@ typedef enum {
 This enum is optimized for use in C switch statements. Each value in the enum represents
 an error "category". See [Error Handling](#error-handling) for more detail.
 
+### s2n_mode
 
 ```c
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
@@ -277,6 +280,8 @@ typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
 **s2n_mode** is used to declare connections as server or client type,
 respectively.  At this time, s2n does not function as a client and only
 S2N_SERVER should be used.
+
+### s2n_blocked_status
 
 ```c
 typedef enum { S2N_NOT_BLOCKED, S2N_BLOCKED_ON_READ, S2N_BLOCKED_ON_WRITE } s2n_blocked_status;
@@ -287,14 +292,16 @@ direction s2n became blocked on I/O before it returned control to the caller.
 This allows an application to avoid retrying s2n operations until I/O is 
 possible in that direction.
 
+### s2n_blinding
+
 ```c
 typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
 ```
 
 **s2n_blinding** is used to opt-out of s2n's built-in blinding. Blinding is a
 mitigation against timing side-channels which in some cases can leak information
-about encrypted data. By default s2n will cause a thread to sleep between 1ms and 
-10 seconds whenever tampering is detected. 
+about encrypted data. By default s2n will cause a thread to sleep between 10 and 
+30 seconds whenever tampering is detected. 
 
 Setting the **S2N_SELF_SERVICE_BLINDING** option with **s2n_connection_set_blinding**
 turns off this behavior. This is useful for applications that are handling many connections
@@ -302,6 +309,8 @@ in a single thread. In that case, if s2n_recv() or s2n_negotiate() return an err
 self-service applications should call **s2n_connection_get_delay** and pause 
 activity on the connection  for the specified number of nanoseconds before calling
 close() or shutdown().
+
+### s2n_status_request_type
 
 ```c
 typedef enum { S2N_STATUS_REQUEST_NONE, S2N_STATUS_REQUEST_OCSP } s2n_status_request_type;
@@ -311,28 +320,13 @@ typedef enum { S2N_STATUS_REQUEST_NONE, S2N_STATUS_REQUEST_OCSP } s2n_status_req
 status request an S2N_CLIENT should make during the handshake. The only
 supported status request type is OCSP, **S2N_STATUS_REQUEST_OCSP**.
 
+### s2n_cert_auth_type
 
 ```c
 typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_OPTIONAL } s2n_cert_auth_type;
 ```
 **s2n_cert_auth_type** is used to declare what type of client certificiate authentication to use.
 Currently the default for s2n is for neither the server side or the client side to use Client (aka Mutual) authentication.
-
-```c
-typedef enum {
-    S2N_CERT_TYPE_RSA_SIGN = 1,
-    S2N_CERT_TYPE_DSS_SIGN = 2,
-    S2N_CERT_TYPE_RSA_FIXED_DH = 3,
-    S2N_CERT_TYPE_DSS_FIXED_DH = 4,
-    S2N_CERT_TYPE_RSA_EPHEMERAL_DH_RESERVED = 5,
-    S2N_CERT_TYPE_DSS_EPHEMERAL_DH_RESERVED = 6,
-    S2N_CERT_TYPE_FORTEZZA_DMS_RESERVED = 20,
-    S2N_CERT_TYPE_ECDSA_SIGN = 64,
-    S2N_CERT_TYPE_RSA_FIXED_ECDH = 65,
-    S2N_CERT_TYPE_ECDSA_FIXED_ECDH = 66,
-} s2n_cert_type;
-```
-**s2n_cert_type** is used to define what type of Certificate was used in a connection.
 
 ## Opaque structures
 
@@ -363,14 +357,16 @@ struct s2n_cert_public_key;
 ```
 const char *s2n_strerror(int error, const char *lang);
 const char *s2n_strerror_debug(int error, const char *lang);
+const char *s2n_strerror_name(int error);
 ````
 
 s2n functions that return 'int' return 0 to indicate success and -1 to indicate
 failure. s2n functions that return pointer types return NULL in the case of
 failure. When an s2n function returns a failure, s2n_errno will be set to a value
 corresponding to the error. This error value can be translated into a string
-explaining the error in English by calling s2n_strerror(s2n_errno, "EN");
-A string containing internal debug information, including filename and line number, can be generated with `s2n_strerror_debug`
+explaining the error in English by calling s2n_strerror(s2n_errno, "EN").
+A string containing human readable error name, can be generated with `s2n_strerror_name`.
+A string containing internal debug information, including filename and line number, can be generated with `s2n_strerror_debug`.
 This string is useful to include when reporting issues to the s2n development team.
 
 Example:
@@ -383,6 +379,22 @@ if (s2n_config_set_cipher_preferences(config, prefs) < 0) {
 ```
 
 **NOTE**: To avoid possible confusion, s2n_errno should be cleared after processing an error: `s2n_errno = S2N_ERR_T_OK`
+
+### Stacktraces
+s2n has an mechanism to capture stacktraces when errors occur.
+This mechanism is off by default, but can be enabled in code by calling `s2n_stack_traces_enabled_set()`.
+It can be enabled globally by setting the environment variable `S2N_PRINT_STACKTRACE=1`.
+Note that enabling stacktraces this can significantly slow down unit tests, and can cause failures on unit-tests (such as `s2n_cbc_verify`) that measure the timing of events.
+
+```
+bool s2n_stack_traces_enabled();
+int s2n_stack_traces_enabled_set(bool newval);
+
+int s2n_calculate_stacktrace(void);
+int s2n_print_stacktrace(FILE *fptr);
+int s2n_free_stacktrace(void);
+int s2n_get_stacktrace(char*** trace, int* trace_size);
+```
 
 ### Error categories
 
@@ -523,6 +535,39 @@ underlying encrpyt/decrypt functions are not available in older versions.
 3. Prefer encryption ciphers in the following order: AES128, AES256, ChaCha20, 3DES, RC4.
 4. Prefer record authentication modes in the following order: GCM, Poly1305, SHA256, SHA1, MD5.
 
+### s2n\_config\_set\_signature\_preferences
+
+```c
+int s2n_config_set_signature_preferences(struct s2n_config *config,
+                                      const char *version);
+```
+
+**s2n_config_set_signature_preferences** sets the list of acceptable signature schemes (signature + hash algorithms).
+
+The "default" version behaves as in **s2n_config_set_cipher_preferences**. Numbered versions are fixed and will never change. The currently supported versions are:
+
+| version | definition |
+|----------|-----------
+|"default" | Currently "20140601".
+|"20200207" | RSA-PSS, RSA-RSAE, RSA-PKCS1, and ECDSA. SHA1 allowed, but only as a fallback.
+|"20140601" | RSA-PKCS1 and ECDSA. SHA1 allowed, but only as a fallback.
+
+### s2n\_config\_set\_ecc\_preferences
+
+```c
+int s2n_config_set_ecc_preferences(struct s2n_config *config,
+                                      const char *version);
+```
+
+**s2n_config_set_ecc_preferences** sets the list of acceptable ecc curves in descending order of preference.
+
+The "default" version behaves as in **s2n_config_set_cipher_preferences**. Numbered versions are fixed and will never change. The currently supported versions are:
+
+| version | definition |
+|----------|-----------
+|"default" | Currently "20140601".
+|"20200310" | Curves x25519, secp256r1, and secp384r1. 
+|"20140601" | Curves secp256r1 and secp384r1. 
 
 ### s2n\_config\_add\_cert\_chain\_and\_key
 
@@ -635,7 +680,7 @@ is set in the **s2n_config** object, effectively clearing existing data.
       S2N_EXTENSION_SERVER_NAME = 0,
       S2N_EXTENSION_MAX_FRAG_LEN = 1,
       S2N_EXTENSION_OCSP_STAPLING = 5,
-      S2N_EXTENSION_ELLIPTIC_CURVES = 10,
+      S2N_EXTENSION_SUPPORTED_GROUPS = 10,
       S2N_EXTENSION_EC_POINT_FORMATS = 11,
       S2N_EXTENSION_SIGNATURE_ALGORITHMS = 13,
       S2N_EXTENSION_ALPN = 16,
@@ -769,7 +814,7 @@ typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
 
 The callback function take as an input s2n connection, which received
 ClientHello and context provided in **s2n_config_set_client_hello_cb**. The
-callback can get any ClientHello infromation from the connection and use
+callback can get any ClientHello information from the connection and use
 **s2n_connection_set_config** call to change the config of the connection.
 
 If any of the properties of the connection were changed based on server_name
@@ -895,6 +940,9 @@ and a pointer to a 64 bit unsigned integer specifing the size of this value.
 Initially *value_size will be set to the amount of space allocated for
 the value, the callback should set *value_size to the actual size of the
 data returned. If there is insufficient space, -1 should be returned.
+
+If the cache is not ready to provide data for the request, S2N_CALLBACK_BLOCKED should be returned.
+This will cause s2n_negotiate() to return S2N_BLOCKED_ON_APPLICATION_INPUT.
 
 ### s2n\_config\_set\_cache\_delete\_callback
 
@@ -1116,7 +1164,7 @@ number supported by the client, **s2n_connection_get_server_protocol_version**
 returns the protocol version number supported by the server and
 **s2n_connection_get_actual_protocol_version** returns the protocol version
 number actually used by s2n for the connection. **s2n_connection_get_client_hello_version**
-returns the protocol version used in the initial client hello message.
+returns the protocol version used to send the initial client hello message.
 
 Each version number value corresponds to the macros defined as **S2N_SSLv2**,
 **S2N_SSLv3**, **S2N_TLS10**, **S2N_TLS11** and **S2N_TLS12**.
@@ -1155,6 +1203,10 @@ ssize_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *o
 **s2n_client_hello_get_raw_message_length** returns the size of the ClientHello message received by the server; it can be used to allocate the **out** buffer.
 **s2n_client_hello_get_raw_message** copies **max_lenght** bytes of the ClientHello message into the **out** buffer and returns the number of bytes that were copied.
 The ClientHello instrumented using this function will have the Random bytes zero-ed out.
+
+For SSLv2 ClientHello messages, the raw message contains only the cipher_specs, session_id and members portions of the hello message
+(see [RFC5246](https://tools.ietf.org/html/rfc5246#appendix-E.2)). To access other members, you may use the
+**s2n_connection_get_client_hello_version**, **s2n_connection_get_client_protocol_version**  and **s2n_connection_get_session_id_length** accesor functions.
 
 ### s2n\_client\_hello\_get\_cipher\_suites
 
@@ -1233,6 +1285,22 @@ int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
 ```
 
 **s2n_connection_is_ocsp_stapled** returns 1 if OCSP response was sent (if connection is in S2N_SERVER mode) or received (if connection is in S2N_CLIENT mode) during handshake, otherwise it returns 0.
+
+### s2n\_connection\_get\_handshake\_type\_name
+
+```c
+const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn);
+```
+
+**s2n_connection_get_handshake_type_name** returns a human-readable handshake type name, e.g. "NEGOTIATED|FULL_HANDSHAKE|PERFECT_FORWARD_SECRECY"
+
+### s2n\_connection\_get\_last\_message\_name
+
+```c
+const char *s2n_connection_get_last_message_name(struct s2n_connection *conn);
+```
+
+**s2n_connection_get_last_message_name** returns the last message name in TLS state machine, e.g. "SERVER_HELLO", "APPLICATION_DATA".
 
 ### s2n\_connection\_get\_alert
 
@@ -1427,6 +1495,46 @@ do {
     written += w;
 } while (blocked != S2N_NOT_BLOCKED); 
 ```    
+
+### s2n\_sendv\_with\_offset
+
+```c
+ssize_t s2n_sendv_with_offset(struct s2n_connection *conn 
+              const struct iovec *bufs,
+              ssize_t count,
+              ssize_t offs,
+              s2n_blocked_status *blocked);
+```
+
+**s2n_sendv_with_offset** works in the same way as **s2n_send** except that it accepts vectorized buffers. **s2n_sendv_with_offset** will return the number of bytes written, and may indicate a partial write. Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active. **NOTE:** Unlike OpenSSL, repeated calls to **s2n_sendv_with_offset** should not duplicate the original parameters, but should update **bufs** and **count** per the indication of size written. For example;
+
+```c
+s2n_blocked_status blocked;
+int written = 0;
+char data[10]; /* Some data we want to write */
+struct iovec iov[1];
+iov[0].iov_base = data;
+iov[0].iov_len = 10;
+do {
+    int w = s2n_sendv_with_offset(conn, iov, 1, written, &blocked);
+    if (w < 0) {
+        /* Some kind of error */
+        break;
+    }
+    written += w;
+} while (blocked != S2N_NOT_BLOCKED); 
+```    
+
+### s2n\_sendv
+
+```c
+ssize_t s2n_sendv(struct s2n_connection *conn 
+              const struct iovec *bufs,
+              ssize_t count,
+              s2n_blocked_status *blocked);
+```
+
+**s2n_sendv** works in the same way as **s2n_sendv_with_offset** except that the latter's **offs** parameter is implicitly assumed to be 0. Therefore in the partial write case, the caller would have to make sure that **bufs** and **count** fields are modified in a way that takes the partial writes into account.
 
 ### s2n\_recv
 

@@ -113,11 +113,12 @@ if (s2n_do_something(with_something_else) < 0) {
 }
 ```
 
-is so common that utils/s2n_safety.h provides two macros:
+is so common that utils/s2n_safety.h provides three macros:
 
 ```c
-#define GUARD( x )      if ( (x) < 0 ) return -1
-#define GUARD_PTR( x )  if ( (x) < 0 ) return NULL
+#define GUARD( x )         if ( (x) < 0 ) return -1
+#define GUARD_STRICT( x )  if ( (x) != 0 ) return -1
+#define GUARD_PTR( x )     if ( (x) < 0 ) return NULL
 ```
 
 These macros should be used when calling functions you expect to succeed. Primarily these macros help save two lines that repeatedly clutter files, and secondarily they are very useful when developing and debugging code as it is easy to redefine the macro to implement a simple backtrace (even a simple printf will suffice, but a breakpoint is more usual). 
@@ -220,11 +221,11 @@ UNIT_TESTS=s2n_hash_test make
 
 ## A tour of s2n memory handling: blobs and stuffers
 
-C has a history of issues around memory and buffer handling. To avoid problems in this area, s2n does not use C string functions or standard buffer manipulation patterns. Instead memory regions are tracked explicitly, with s2n_blob structures, and buffers are re-oriented as streams with s2n_stuffer structures.
+C has a history of issues around memory and buffer handling. To avoid problems in this area, s2n does not use C string functions or standard buffer manipulation patterns. Instead memory regions are tracked explicitly, with `s2n_blob` structures, and buffers are re-oriented as streams with `s2n_stuffer` structures.
 
 ### s2n_blob : keeping track of memory ranges
 
-s2n_blob is a very simple data structure:
+`s2n_blob` is a very simple data structure:
 
 ```c
 struct s2n_blob {
@@ -292,21 +293,29 @@ void *s2n_stuffer_raw_write(struct s2n_stuffer *stuffer, uint32_t data_len);
 void *s2n_stuffer_raw_read(struct s2n_stuffer *stuffer, uint32_t data_len);
 ```
 
-the first function returns a pointer to the existing location of the write cursor, and then increments the write cursor by data_len, so an external function is free to write to the pointer, as long as it only writes data_len bytes. The second function does the same thing, except that it increments the read cursor. Use of these functions is discouraged and should only be done when necessary for compatibility. 
+the first function returns a pointer to the existing location of the write cursor, and then increments the write cursor by `data_len`, so an external function is free to write to the pointer, as long as it only writes `data_len` bytes.
+The second function does the same thing, except that it increments the read cursor.
+Use of these functions is discouraged and should only be done when necessary for compatibility.
 
 One problem with returning raw pointers is that a pointer can become stale if the stuffer is later resized. Growable stuffers are resized using realloc(), which is free to copy and re-address memory. This could leave the original pointer location dangling, potentially leading to an invalid access. To prevent this, stuffers have a life-cycle and can be tainted, which prevents them from being resized within their present life-cycle. 
 
-Internally stuffers track 4 bits of state:
+Internally stuffers track 4 pieces of state:
 
 ```c
+uint32_t     high_water_mark;
 unsigned int alloced:1;
 unsigned int growable:1;
-unsigned int wiped:1;
 unsigned int tainted:1;
 ```
 
-the first two bits of state track whether a stuffer was dynamically allocated (and so should be free'd later) and whether or not it is growable. The "wiped" piece of state tracks whether a stuffer has been wiped clean and the data erased. If a stuffer has been fully read then it should be in a wiped state, but a stuffer is also explicitly wiped at the end of its lifecycle and this bit of state helps avoids needless zeroing of memory. tainted is set to 1 whenever the raw access functions are called. If a stuffer is currently tainted then it can not be resized and it becomes ungrowable. This is reset when a stuffer is explicitly wiped, which begins the life-cycle anew. So any pointers returned by the raw access functions are legal only until s2n_stuffer_wipe is called. 
-
+The `high_water_mark` tracks the furthermost byte which has been written but not yet wiped.
+Note that this may be past the `write_cursor` if `s2n_stuffer_rewrite()` has been called.
+Explicitly tracking the `high_water_mark` allows us to track the bytes which need to be wiped, and helps avoids needless zeroing of memory.
+The next two bits of state track whether a stuffer was dynamically allocated (and so should be free'd later) and whether or not it is growable.
+`tainted` is set to 1 whenever the raw access functions are called.
+If a stuffer is currently tainted then it can not be resized and it becomes ungrowable.
+This is reset when a stuffer is explicitly wiped, which begins the life-cycle anew.
+So any pointers returned by the raw access functions are legal only until `s2n_stuffer_wipe()` is called.
 The end result is that this kind of pattern is legal:
 
 ```c

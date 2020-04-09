@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 
         /* Tamper the protocol version in the header, and ensure decryption fails, as we use this in the AAD */
         EXPECT_EQUAL(conn->header_in.blob.data[0], TLS_APPLICATION_DATA);
-        conn->header_in.blob.data[0] ^= 1; // Flip a bit in the content_type of the TLS Record Header
+        conn->header_in.blob.data[0] ^= 1; /* Flip a bit in the content_type of the TLS Record Header */
 
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA ^ 1);

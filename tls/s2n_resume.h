@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -34,6 +34,8 @@
 #define S2N_STATE_FORMAT_LEN            1
 #define S2N_TICKET_LIFETIME_HINT_LEN    4
 #define S2N_SESSION_TICKET_SIZE_LEN     2
+#define S2N_GREATER_OR_EQUAL            1
+#define S2N_LESS_THAN                  -1
 
 struct s2n_connection;
 struct s2n_config;
@@ -53,6 +55,8 @@ struct s2n_ticket_key_weight {
 extern struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t *name);
 extern int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *to);
 extern int s2n_decrypt_session_ticket(struct s2n_connection *conn);
+extern int s2n_encrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *to); 
+extern int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *from); 
 extern int s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config);
 extern int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint16_t *insert_index);
 extern int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t expired_key_index);

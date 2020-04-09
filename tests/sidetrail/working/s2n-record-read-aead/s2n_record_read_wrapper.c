@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -116,9 +116,9 @@ int s2n_record_parse_wrapper(int *xor_pad,
     .record_alg = &record_algorithm,
   };
 
-  //cppcheck-suppress unassignedVariable
+  /* cppcheck-suppress unassignedVariable */
   uint8_t data1[MAX_SIZE];
-  //cppcheck-suppress unassignedVariable
+  /* cppcheck-suppress unassignedVariable */
   uint8_t data2[MAX_SIZE];
   
   struct s2n_connection conn = {

@@ -1,0 +1,97 @@
+////////////////////////////////////////////////////////////////////////////
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved
+//
+// Licensed under the Apache License, Version 2.0 (the "License").
+// You may not use this file except in compliance with the License.
+// A copy of the License is located at
+//
+//  http://aws.amazon.com/apache2.0
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+//
+////////////////////////////////////////////////////////////////////////////
+//
+// This file proves correctness of the S2N TLS handshake. It:
+// - Proves the correspondence between the Cryptol specification
+//   of the TLS handshake and the C code
+// - Proves that the Cryptol specification of the TLS state machine
+//   matches the state machine described in the RFC
+// - Proves that the Cryptol specification handles corking and
+//   uncorking input correctly
+//
+////////////////////////////////////////////////////////////////////////////
+
+include "handshake_io_lowlevel.saw";
+import "rfc_handshake_tls12.cry";
+import "rfc_handshake_tls13.cry";
+import "cork_uncork.cry";
+
+// Verification tactic: use the Yices prover and print detailed information in
+// case of failure.
+let yices_debug = do { yices; print_goal; };
+
+// Workaround for If then else on nat
+let equalNat_ite = core_axiom
+  "\\(x y z : Nat) (b : Bool) -> eq Bool (equalNat x (ite Nat b y z)) (ite Bool b (equalNat x y) (equalNat x z))";
+
+// Low-level handshake_io correspondence proof
+let prove_handshake_io_lowlevel = do {
+    print "Beginning the low-level spec equivalence proof";
+
+    // Dependencies specifications/overrides
+    print "Assuming specifications for dependencies";
+    print "s2n_socket_write_uncork";
+    s2n_socket_write_uncork <- crucible_llvm_unsafe_assume_spec llvm "s2n_socket_write_uncork" s2n_socket_write_uncork_spec;
+    print "s2n_socket_write_cork";
+    s2n_socket_write_cork <- crucible_llvm_unsafe_assume_spec llvm "s2n_socket_write_cork" s2n_socket_write_cork_spec;
+    print "s2n_socket_was_corked";
+    s2n_socket_was_corked <- crucible_llvm_unsafe_assume_spec llvm "s2n_socket_was_corked" s2n_socket_was_corked_spec;
+    print "s2n_socket_quickack";
+    s2n_socket_quickack <- crucible_llvm_unsafe_assume_spec llvm "s2n_socket_quickack" s2n_socket_quickack_spec;
+    print "s2n_connection_is_managed_corked";
+    s2n_connection_is_managed_corked <- crucible_llvm_unsafe_assume_spec llvm "s2n_connection_is_managed_corked" s2n_connection_is_managed_corked_spec;
+    print "s2n_generate_new_client_session_id";
+    s2n_generate_new_client_session_id <- crucible_llvm_unsafe_assume_spec llvm "s2n_generate_new_client_session_id" s2n_generate_new_client_session_id_spec;    
+    print "s2n_allowed_to_cache_connection";
+    s2n_allowed_to_cache_connection <- crucible_llvm_unsafe_assume_spec llvm "s2n_allowed_to_cache_connection" s2n_allowed_to_cache_connection_spec;
+    print "s2n_decrypt_session_ticket";
+    s2n_decrypt_session_ticket <- crucible_llvm_unsafe_assume_spec llvm "s2n_decrypt_session_ticket" s2n_decrypt_session_ticket_spec;
+    let dependencies = [s2n_socket_write_uncork, s2n_socket_write_cork, s2n_socket_was_corked, s2n_connection_is_managed_corked, s2n_socket_quickack];
+
+    print "Proving correctness of get_auth_type";
+    auth_type_proof <- crucible_llvm_verify llvm "s2n_connection_get_client_auth_type" dependencies false s2n_connection_get_client_auth_type_spec (do {simplify (addsimp equalNat_ite basic_ss); yices;});
+    print "Proving correctness of s2n_advance_message";
+    s2n_advance_message_proof <- crucible_llvm_verify llvm "s2n_advance_message" dependencies false s2n_advance_message_spec yices;
+    print "Proving correctness of s2n_conn_set_handshake_type";
+    s2n_conn_set_handshake_type_proof <- crucible_llvm_verify llvm "s2n_conn_set_handshake_type" [s2n_allowed_to_cache_connection, auth_type_proof, s2n_generate_new_client_session_id, s2n_decrypt_session_ticket] false s2n_conn_set_handshake_type_spec yices;
+    
+    print "Done: Verified that the low-level specification corresponds to the C code";
+    
+    return ();
+};
+
+let prove_state_machine = do {
+    print "Checking proof that the TLS1.2 RFC simulates our Cryptol s2n spec";
+    prove_print abc {{ tls12rfcSimulatesS2N `{16} }};
+
+    print "Checking proof that the TLS1.3 RFC simulates our Cryptol s2n spec";
+    prove_print yices {{ tls13rfcSimulatesS2N `{16} }};
+    
+    return ();
+};
+
+let prove_cork_uncork = do {
+    print "Verifying the low-level->high-level cork-uncork simulation";
+    prove_print abc {{ highLevelSimulatesLowLevel `{16} }}; 
+    
+    print "Verifying that double uncorking or corking cannot occur in server mode";
+    prove_print abc {{ noDoubleCorkUncork `{16} }};
+    
+    print "Expecting failure when proving low-high simulation without the server mode assumption";
+    sat abc {{ ~highLevelDoesNotSimulateLowLevel `{16} }};
+    
+    return ();
+};

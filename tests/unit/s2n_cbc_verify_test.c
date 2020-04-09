@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -159,7 +159,9 @@ int main(int argc, char **argv)
 
         /* Start out with zero byte padding */
         fragment[i - 1] = 0;
-        struct s2n_blob decrypted = { .data = fragment, .size = i};
+        
+        struct s2n_blob decrypted = {0};
+        s2n_blob_init(&decrypted, fragment, i);
 
         uint64_t timings[10001];
         for (int t = 0; t < 10001; t++) {

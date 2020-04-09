@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -18,6 +18,14 @@
 #include "api/s2n.h"
 
 #include <openssl/x509v3.h>
+
+/* one day, boringssl, may add ocsp stapling support. Let's future proof this a bit by grabbing a definition
+ * that would have to be there when they add support */
+#if defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL)
+#define S2N_OCSP_STAPLING_SUPPORTED 0
+#else
+#define S2N_OCSP_STAPLING_SUPPORTED 1
+#endif /* defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL) */
 
 typedef enum {
     S2N_CERT_OK = 0,
@@ -100,7 +108,7 @@ void s2n_x509_validator_wipe(struct s2n_x509_validator *validator);
  * trusted, the chain will be considered UNTRUSTED
  */
 s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
-                                                                uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_cert_type *cert_type,
+                                                                uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_pkey_type *pkey_type,
                                                                 struct s2n_pkey *public_key_out);
 
 /**

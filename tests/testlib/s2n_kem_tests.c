@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
+#include "crypto/s2n_fips.h"
 
 #define SEED_LENGTH 48
 uint8_t kat_entropy_buff[SEED_LENGTH] = {0};
@@ -25,6 +26,7 @@ struct s2n_blob kat_entropy_blob = {.size = SEED_LENGTH, .data = kat_entropy_buf
 
 int kat_entropy(struct s2n_blob *blob)
 {
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     eq_check(blob->size, kat_entropy_blob.size);
     blob->data = kat_entropy_blob.data;
     return 0;
@@ -32,6 +34,8 @@ int kat_entropy(struct s2n_blob *blob)
 
 int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name)
 {
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+
     notnull_check(kem);
 
     FILE *kat_file = fopen(kat_file_name, "r");
@@ -87,9 +91,9 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name)
         eq_check(memcmp(client_shared_secret, server_shared_secret, kem->shared_secret_key_length), 0);
 
         /* Compare the KAT values */
-        eq_check(memcmp(pk_answer, pk, kem->shared_secret_key_length), 0);
-        eq_check(memcmp(sk_answer, sk, kem->shared_secret_key_length), 0);
-        eq_check(memcmp(ct_answer, ct, kem->shared_secret_key_length), 0);
+        eq_check(memcmp(pk_answer, pk, kem->public_key_length), 0);
+        eq_check(memcmp(sk_answer, sk, kem->private_key_length), 0);
+        eq_check(memcmp(ct_answer, ct, kem->ciphertext_length), 0);
         eq_check(memcmp(ss_answer, server_shared_secret, kem->shared_secret_key_length ), 0);
     }
     fclose(kat_file);

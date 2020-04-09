@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -14,6 +14,6 @@
  */
 #pragma once
 
-//For compilation purposes, these annotations are no-ops 
+/* For compilation purposes, these annotations are no-ops */
 #define S2N_PUBLIC_INPUT(__a)
 #define S2N_INVARIENT(__a)

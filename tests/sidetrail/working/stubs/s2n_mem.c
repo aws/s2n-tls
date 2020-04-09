@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ int s2n_alloc(struct s2n_blob *b, uint32_t size)
 
 void *realloc( void *ptr, size_t new_size )
 {
-  //just leave it undet for now
+  /* just leave it undet for now */
   void* ret = malloc(new_size);
   return ret;
 }

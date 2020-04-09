@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
 #include <s2n.h>
 
 #include "error/s2n_errno.h"
@@ -31,6 +32,9 @@
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
+
+#define get_client_hello_protocol_version(conn) (conn->client_hello_version == S2N_SSLv2 ? conn->client_protocol_version : conn->client_hello_version)
+
 typedef int s2n_kex_client_key_method(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);
 typedef void *s2n_stuffer_action(struct s2n_stuffer *stuffer, uint32_t data_len);
 static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob *combined_shared_key,
@@ -60,7 +64,7 @@ static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob
     client_key_exchange_message->size = end_cursor - start_cursor;
 
     GUARD(s2n_alloc(combined_shared_key, shared_key_0.size + shared_key_1.size));
-    struct s2n_stuffer stuffer_combiner = {{0}};
+    struct s2n_stuffer stuffer_combiner = {0};
     GUARD(s2n_stuffer_init(&stuffer_combiner, combined_shared_key));
     GUARD(s2n_stuffer_write(&stuffer_combiner, &shared_key_0));
     GUARD(s2n_stuffer_write(&stuffer_combiner, &shared_key_1));
@@ -89,7 +93,7 @@ static int calculate_keys(struct s2n_connection *conn, struct s2n_blob *shared_k
 int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
-    uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    uint8_t client_hello_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
     uint16_t length;
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
@@ -100,9 +104,13 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
 
     S2N_ERROR_IF(length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
-    /* Keep a copy of the client protocol version in wire format */
-    client_protocol_version[0] = conn->client_protocol_version / 10;
-    client_protocol_version[1] = conn->client_protocol_version % 10;
+    /* Keep a copy of the client hello version in wire format, which should be
+     * either the protocol version supported by client if the supported version is <= TLS1.2,
+     * or TLS1.2 (the legacy version) if client supported version is TLS1.3
+     */
+    uint8_t legacy_client_hello_protocol_version = get_client_hello_protocol_version(conn);
+    client_hello_protocol_version[0] = legacy_client_hello_protocol_version / 10;
+    client_hello_protocol_version[1] = legacy_client_hello_protocol_version % 10;
 
     /* Decrypt the pre-master secret */
     shared_key->data = conn->secure.rsa_premaster_secret;
@@ -114,14 +122,15 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
 
     /* First: use a random pre-master secret */
     GUARD(s2n_get_private_random_data(shared_key));
-    conn->secure.rsa_premaster_secret[0] = client_protocol_version[0];
-    conn->secure.rsa_premaster_secret[1] = client_protocol_version[1];
+    conn->secure.rsa_premaster_secret[0] = client_hello_protocol_version[0];
+    conn->secure.rsa_premaster_secret[1] = client_hello_protocol_version[1];
 
     /* Set rsa_failed to 1 if s2n_pkey_decrypt returns anything other than zero */
     conn->handshake.rsa_failed = !!s2n_pkey_decrypt(conn->handshake_params.our_chain_and_key->private_key, &encrypted, shared_key);
 
     /* Set rsa_failed to 1, if it isn't already, if the protocol version isn't what we expect */
-    conn->handshake.rsa_failed |= !s2n_constant_time_equals(client_protocol_version, shared_key->data, S2N_TLS_PROTOCOL_VERSION_LEN);
+    conn->handshake.rsa_failed |= !s2n_constant_time_equals(client_hello_protocol_version, shared_key->data, S2N_TLS_PROTOCOL_VERSION_LEN);
+
     return 0;
 }
 
@@ -141,9 +150,9 @@ int s2n_ecdhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shar
     struct s2n_stuffer *in = &conn->handshake.io;
 
     /* Get the shared key */
-    GUARD(s2n_ecc_compute_shared_secret_as_server(&conn->secure.server_ecc_params, in, shared_key));
+    GUARD(s2n_ecc_evp_compute_shared_secret_as_server(&conn->secure.server_ecc_evp_params, in, shared_key));
     /* We don't need the server params any more */
-    GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
+    GUARD(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
     return 0;
 }
 
@@ -194,26 +203,30 @@ int s2n_dhe_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
 int s2n_ecdhe_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
-    GUARD(s2n_ecc_compute_shared_secret_as_client(&conn->secure.server_ecc_params, out, shared_key));
+    GUARD(s2n_ecc_evp_compute_shared_secret_as_client(&conn->secure.server_ecc_evp_params, out, shared_key));
 
     /* We don't need the server params any more */
-    GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
+    GUARD(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
     return 0;
 }
 
 int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
-    uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
-    client_protocol_version[0] = conn->client_protocol_version / 10;
-    client_protocol_version[1] = conn->client_protocol_version % 10;
+    uint8_t client_hello_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    uint8_t legacy_client_hello_protocol_version = get_client_hello_protocol_version(conn);
+    client_hello_protocol_version[0] = legacy_client_hello_protocol_version / 10;
+    client_hello_protocol_version[1] = legacy_client_hello_protocol_version % 10;
 
     shared_key->data = conn->secure.rsa_premaster_secret;
     shared_key->size = S2N_TLS_SECRET_LEN;
 
     GUARD(s2n_get_private_random_data(shared_key));
 
-    /* Over-write the first two bytes with the client protocol version, per RFC2246 7.4.7.1 */
-    memcpy_check(conn->secure.rsa_premaster_secret, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN);
+    /* Over-write the first two bytes with the client hello version, per RFC2246/RFC4346/RFC5246 7.4.7.1.
+     * The latest version supported by client (as seen from the the client hello version) are <= TLS1.2
+     * for all clients, because TLS 1.3 clients freezes the TLS1.2 legacy version in client hello.
+     */
+    memcpy_check(conn->secure.rsa_premaster_secret, client_hello_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN);
 
     int encrypted_size = s2n_pkey_size(&conn->secure.server_public_key);
     S2N_ERROR_IF(encrypted_size < 0 || encrypted_size > 0xffff, S2N_ERR_SIZE_MISMATCH);

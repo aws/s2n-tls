@@ -1,5 +1,5 @@
 #
-# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -118,6 +118,10 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
     file_input = open(test_file)
     s2nc = subprocess.Popen(s2nc_cmd, stdin=file_input, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+    # Wait file send complete
+    s2nc.wait()
+    cleanup_processes(s_server)
+
     # Read from s2nc until we get successful connection message
     found = 0
     seperators = 0
@@ -125,10 +129,6 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
         output = s2nc.stdout.readline().decode("utf-8")
         if output.strip() == "Connected to {}:{}".format(endpoint, port):
             found = 1
-
-    # Wait file send complete        
-    s2nc.wait()
-    cleanup_processes(s_server)
 
     if not found:
         sys.stderr.write("= TEST FAILED =\ns_server cmd: {}\n s_server STDERR: {}\n\ns2nc cmd: {}\nSTDERR {}\n".format(" ".join(s_server_cmd), s_server.stderr.read().decode("utf-8"), " ".join(s2nc_cmd), s2nc.stderr.read().decode("utf-8")))
@@ -161,7 +161,7 @@ def run_test(host, port, ssl_version, cipher, threshold):
 
     ret = try_dynamic_record(host, port, cipher_name, ssl_version, threshold)
     # wait for pipe ready
-    sleep(1)
+    sleep(2)
     subprocess.call(["sudo", "killall", "-9", "tcpdump"])
     out = tcpdump.communicate()[0].decode("utf-8")
     if out == '':
@@ -169,7 +169,7 @@ def run_test(host, port, ssl_version, cipher, threshold):
         return 0
     out_array = out.split('\n')
     # Skip no cipher match error
-    if ret != -2: 
+    if ret != -2:
         failed += ret
     if 0 == ret:
         # print("\nAnalyzing tcpdump results for cipher {}".format(cipher_name))
@@ -228,8 +228,13 @@ def analyze_latency_dump(array):
 
 def analyze_throughput_dump(array):
     failed = 1
+    array_len = len(array)
 
     for i in range(18, 36):
+        if i >= array_len:
+            print("Array len is ", array_len, ", expecting >= ", i)
+            print(array)
+            return failed
         output = array[i]
         # print(output)
         pos = output.find("length")
@@ -263,7 +268,7 @@ def main():
     parser = argparse.ArgumentParser(description='Runs TLS server integration tests against Openssl s_server using s2nc')
     parser.add_argument('host', help='The host for s2nc to connect to')
     parser.add_argument('port', type=int, help='The port for s_server to bind to')
-    parser.add_argument('--libcrypto', default='openssl-1.1.1', choices=['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.1', 'libressl'],
+    parser.add_argument('--libcrypto', default='openssl-1.1.1', choices=S2N_LIBCRYPTO_CHOICES,
             help="""The Libcrypto that s2n was built with. s2n supports different cipher suites depending on
                     libcrypto version. Defaults to openssl-1.1.1.""")
     args = parser.parse_args()

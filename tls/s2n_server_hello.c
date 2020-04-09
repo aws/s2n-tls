@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -36,6 +37,58 @@
 /* From RFC5246 7.4.1.2. */
 #define S2N_TLS_COMPRESSION_METHOD_NULL 0
 
+/* From RFC8446 4.1.3. */
+#define S2N_DOWNGRADE_PROTECTION_SIZE   8
+const uint8_t tls12_downgrade_protection_bytes[] = {
+    0x44, 0x4F, 0x57, 0x4E, 0x47, 0x52, 0x44, 0x01
+};
+
+const uint8_t tls11_downgrade_protection_bytes[] = {
+    0x44, 0x4F, 0x57, 0x4E, 0x47, 0x52, 0x44, 0x00
+};
+
+static int s2n_client_detect_downgrade_mechanism(struct s2n_connection *conn) {
+    if (!s2n_is_tls13_enabled()) {
+        return 0;
+    }
+
+    notnull_check(conn);
+    uint8_t *downgrade_bytes = &conn->secure.server_random[S2N_TLS_RANDOM_DATA_LEN - S2N_DOWNGRADE_PROTECTION_SIZE];
+
+    /* Detect downgrade attacks according to RFC 8446 section 4.1.3 */
+    if (conn->client_protocol_version == S2N_TLS13 && conn->server_protocol_version == S2N_TLS12) {
+        if (s2n_constant_time_equals(downgrade_bytes, tls12_downgrade_protection_bytes, S2N_DOWNGRADE_PROTECTION_SIZE)) {
+            S2N_ERROR(S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
+        }
+    } else if (conn->client_protocol_version == S2N_TLS13 && conn->server_protocol_version <= S2N_TLS11) {
+        if (s2n_constant_time_equals(downgrade_bytes, tls11_downgrade_protection_bytes, S2N_DOWNGRADE_PROTECTION_SIZE)) {
+            S2N_ERROR(S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
+        }
+    }
+
+    return 0;
+}
+
+static int s2n_server_add_downgrade_mechanism(struct s2n_connection *conn) {
+    if (!s2n_is_tls13_enabled()) {
+        return 0;
+    }
+
+    notnull_check(conn);
+    uint8_t *downgrade_bytes = &conn->secure.server_random[S2N_TLS_RANDOM_DATA_LEN - S2N_DOWNGRADE_PROTECTION_SIZE];
+
+    /* Protect against downgrade attacks according to RFC 8446 section 4.1.3 */
+    if (conn->server_protocol_version >= S2N_TLS13 && conn->actual_protocol_version == S2N_TLS12) {
+        /* TLS1.3 servers MUST use a special random value when negotiating TLS1.2 */
+        memcpy_check(downgrade_bytes, tls12_downgrade_protection_bytes, S2N_DOWNGRADE_PROTECTION_SIZE);
+    } else if (conn->server_protocol_version >= S2N_TLS13 && conn->actual_protocol_version <= S2N_TLS11) {
+        /* TLS1.3 servers MUST, use a special random value when negotiating TLS1.1 or below */
+        memcpy_check(downgrade_bytes, tls11_downgrade_protection_bytes, S2N_DOWNGRADE_PROTECTION_SIZE);
+    }
+
+    return 0;
+}
+
 int s2n_server_hello_recv(struct s2n_connection *conn)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
@@ -44,7 +97,6 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     uint16_t extensions_size;
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
     uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN];
-    uint8_t actual_protocol_version;
 
     GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     GUARD(s2n_stuffer_read_bytes(in, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
@@ -59,53 +111,68 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     GUARD(s2n_stuffer_read_uint8(in, &compression_method));
     S2N_ERROR_IF(compression_method != S2N_TLS_COMPRESSION_METHOD_NULL, S2N_ERR_BAD_MESSAGE);
 
-    conn->server_protocol_version = (uint8_t)(protocol_version[0] * 10) + protocol_version[1];
-    const struct s2n_cipher_preferences *cipher_preferences;
-    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
-
-    if (conn->server_protocol_version < cipher_preferences->minimum_protocol_version
-            || conn->server_protocol_version > conn->client_protocol_version) {
-        GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
-        S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-    }
-
-    actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
-
-    /* Use the session state if server sent same session id as client sent in client hello */
-    if (session_id_len != 0  && session_id_len == conn->session_id_len
-            && !memcmp(session_id, conn->session_id, session_id_len)) {
-        /* check if the resumed session state is valid */
-        S2N_ERROR_IF(conn->actual_protocol_version != actual_protocol_version, S2N_ERR_BAD_MESSAGE);
-        S2N_ERROR_IF(memcmp(conn->secure.cipher_suite->iana_value, cipher_suite_wire, S2N_TLS_CIPHER_SUITE_LEN) != 0, S2N_ERR_BAD_MESSAGE);
-
-        /* Session is resumed */
-        conn->client_session_resumed = 1;
-    } else {
-        conn->session_id_len = session_id_len;
-        memcpy_check(conn->session_id, session_id, session_id_len);
-        conn->actual_protocol_version = actual_protocol_version;
-        GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
-        /* Erase master secret which might have been set for session resumption */
-        memset_check((uint8_t *)conn->secure.master_secret, 0, S2N_TLS_SECRET_LEN);
-
-        /* Erase client session ticket which might have been set for session resumption */
-        conn->client_ticket.size = 0;
-    }
-
-    conn->actual_protocol_version_established = 1;
-
     if (s2n_stuffer_data_available(in) >= 2) {
         GUARD(s2n_stuffer_read_uint16(in, &extensions_size));
 
         S2N_ERROR_IF(extensions_size > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
         struct s2n_blob extensions = {0};
-        extensions.size = extensions_size;
-        extensions.data = s2n_stuffer_raw_read(in, extensions.size);
+        GUARD(s2n_blob_init(&extensions, s2n_stuffer_raw_read(in, extensions.size), extensions_size));
         notnull_check(extensions.data);
 
         GUARD(s2n_server_extensions_recv(conn, &extensions));
     }
+
+    if (conn->server_protocol_version >= S2N_TLS13) {
+        /* verify if it is a hello retry request*/
+        if (s2n_is_hello_retry_req(conn)) {
+            GUARD(s2n_server_hello_retry_recv(conn));
+        }
+
+        /* Check echoed session ID matches */
+        S2N_ERROR_IF(session_id_len != conn->session_id_len || memcmp(session_id, conn->session_id, session_id_len), S2N_ERR_BAD_MESSAGE);
+        conn->actual_protocol_version = conn->server_protocol_version;
+        GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
+    } else {
+        uint8_t actual_protocol_version;
+        conn->server_protocol_version = (uint8_t)(protocol_version[0] * 10) + protocol_version[1];
+
+        S2N_ERROR_IF(s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
+
+        const struct s2n_cipher_preferences *cipher_preferences;
+        GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+
+        if (conn->server_protocol_version < cipher_preferences->minimum_protocol_version
+                || conn->server_protocol_version > conn->client_protocol_version) {
+            GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
+            S2N_ERROR(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+        }
+
+        actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
+
+        /* Use the session state if server sent same session id as client sent in client hello */
+        if (session_id_len != 0  && session_id_len == conn->session_id_len
+                && !memcmp(session_id, conn->session_id, session_id_len)) {
+            /* check if the resumed session state is valid */
+            S2N_ERROR_IF(conn->actual_protocol_version != actual_protocol_version, S2N_ERR_BAD_MESSAGE);
+            S2N_ERROR_IF(memcmp(conn->secure.cipher_suite->iana_value, cipher_suite_wire, S2N_TLS_CIPHER_SUITE_LEN) != 0, S2N_ERR_BAD_MESSAGE);
+
+            /* Session is resumed */
+            conn->client_session_resumed = 1;
+        } else {
+            conn->session_id_len = session_id_len;
+            memcpy_check(conn->session_id, session_id, session_id_len);
+            conn->actual_protocol_version = actual_protocol_version;
+            GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
+            /* Erase master secret which might have been set for session resumption */
+            memset_check((uint8_t *)conn->secure.master_secret, 0, S2N_TLS_SECRET_LEN);
+
+            /* Erase client session ticket which might have been set for session resumption */
+            conn->client_ticket.size = 0;
+        }
+    }
+
+    conn->actual_protocol_version_established = 1;
 
     GUARD(s2n_conn_set_handshake_type(conn));
 
@@ -113,16 +180,11 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
         GUARD(s2n_prf_key_expansion(conn));
     }
 
-    /* We've selected the cipher, update the required hashes for this connection */
-    GUARD(s2n_conn_update_required_handshake_hashes(conn));
+    /* Choose a default signature scheme */
+    GUARD(s2n_choose_default_sig_scheme(conn, &conn->secure.conn_sig_scheme));
 
-    /* Default our signature digest algorithm to SHA1. Will be used when verifying a client certificate. */
-    conn->secure.conn_hash_alg = S2N_HASH_SHA1;
-    if (conn->actual_protocol_version < S2N_TLS12 && !s2n_is_in_fips_mode()
-            && conn->secure.cipher_suite->auth_method == S2N_AUTHENTICATION_RSA) {
-        /* TLS prior to 1.2 defaults to MD5 SHA1 hash if authentication is RSA */
-        conn->secure.conn_hash_alg = S2N_HASH_MD5_SHA1;
-    }
+    /* Update the required hashes for this connection */
+    GUARD(s2n_conn_update_required_handshake_hashes(conn));
 
     return 0;
 }
@@ -130,24 +192,28 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 int s2n_server_hello_send(struct s2n_connection *conn)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
-    struct s2n_stuffer server_random = {{0}};
-    struct s2n_blob b, r;
-    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
-
-    b.data = conn->secure.server_random;
-    b.size = S2N_TLS_RANDOM_DATA_LEN;
+    struct s2n_stuffer server_random = {0};
+    
+    struct s2n_blob b = {0};
+    GUARD(s2n_blob_init(&b, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
     /* Create the server random data */
     GUARD(s2n_stuffer_init(&server_random, &b));
 
-    r.data = s2n_stuffer_raw_write(&server_random, S2N_TLS_RANDOM_DATA_LEN);
-    r.size = S2N_TLS_RANDOM_DATA_LEN;
-    notnull_check(r.data);
-    GUARD(s2n_get_public_random_data(&r));
+    struct s2n_blob rand_data = {0};
+    GUARD(s2n_blob_init(&rand_data, s2n_stuffer_raw_write(&server_random, S2N_TLS_RANDOM_DATA_LEN), S2N_TLS_RANDOM_DATA_LEN));
+    notnull_check(rand_data.data);
+    GUARD(s2n_get_public_random_data(&rand_data));
 
-    protocol_version[0] = (uint8_t)(conn->actual_protocol_version / 10);
-    protocol_version[1] = (uint8_t)(conn->actual_protocol_version % 10);
+    /* The actual_protocol_version is set while processing the CLIENT_HELLO message, so
+     * it could be S2N_TLS13. SERVER_HELLO should always respond with the legacy version.
+     * https://tools.ietf.org/html/rfc8446#section-4.1.3 */
+    uint16_t legacy_protocol_version = MIN(conn->actual_protocol_version, S2N_TLS12);
+    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    protocol_version[0] = (uint8_t)(legacy_protocol_version / 10);
+    protocol_version[1] = (uint8_t)(legacy_protocol_version % 10);
 
+    GUARD(s2n_server_add_downgrade_mechanism(conn));
 
     GUARD(s2n_stuffer_write_bytes(out, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     GUARD(s2n_stuffer_write_bytes(out, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));

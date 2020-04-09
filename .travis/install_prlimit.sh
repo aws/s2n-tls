@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -27,6 +27,8 @@ fi
 BUILD_DIR=$1
 INSTALL_DIR=$2
 NUM_CORES=$(nproc)
+
+sudo apt-get install -y libncurses5-dev
 
 cd "$BUILD_DIR"
 # Originally from: https://www.kernel.org/pub/linux/utils/util-linux/v2.25/util-linux-2.25.2.tar.gz

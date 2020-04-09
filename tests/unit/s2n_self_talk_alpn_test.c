@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@
 
 #include <s2n.h>
 
+
+#include "utils/s2n_safety.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
@@ -87,6 +89,7 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
         s2n_send(client_conn, buffer, i, &blocked);
     }
 
+    /* cppcheck-suppress unreadVariable */
     int shutdown_rc= -1;
     if(!result) {
         do {
@@ -121,7 +124,7 @@ int main(int argc, char **argv)
     struct s2n_cert_chain_and_key *chain_and_key;
 
     const char *protocols[] = { "http/1.1", "spdy/3.1", "h2" };
-    const int protocols_size = sizeof(protocols) / sizeof(protocols[0]);
+    const int protocols_size = s2n_array_len(protocols);
     const char *mismatch_protocols[] = { "spdy/2" };
 
     BEGIN_TEST();

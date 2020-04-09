@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -25,8 +25,11 @@
 #include "tls/s2n_config.h"
 
 #include "crypto/s2n_ecdsa.h"
-#include "crypto/s2n_ecc.h"
+#include "crypto/s2n_ecc_evp.h"
 #include "crypto/s2n_fips.h"
+
+#include "utils/s2n_safety.h"
+
 
 static uint8_t unmatched_private_key[] =
     "-----BEGIN EC PRIVATE KEY-----\n"
@@ -65,6 +68,29 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
+    /* s2n_ecdsa_pkey_matches_curve */
+    {
+        struct s2n_ecdsa_key *p256_key, *p384_key;
+        struct s2n_cert_chain_and_key *p256_chain, *p384_chain;
+
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&p256_chain,
+                S2N_ECDSA_P256_PKCS1_CERT_CHAIN, S2N_ECDSA_P256_PKCS1_KEY));
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&p384_chain,
+                S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+
+        p256_key = &p256_chain->private_key->key.ecdsa_key;
+        p384_key = &p384_chain->private_key->key.ecdsa_key;
+
+        EXPECT_SUCCESS(s2n_ecdsa_pkey_matches_curve(p256_key, &s2n_ecc_curve_secp256r1));
+        EXPECT_SUCCESS(s2n_ecdsa_pkey_matches_curve(p384_key, &s2n_ecc_curve_secp384r1));
+
+        EXPECT_FAILURE(s2n_ecdsa_pkey_matches_curve(p256_key, &s2n_ecc_curve_secp384r1));
+        EXPECT_FAILURE(s2n_ecdsa_pkey_matches_curve(p384_key, &s2n_ecc_curve_secp256r1));
+
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(p256_chain));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(p384_chain));
+    }
+
     EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_stuffer_alloc(&ecdsa_key_in, S2N_MAX_TEST_PEM_SIZE));
@@ -95,11 +121,11 @@ int main(int argc, char **argv)
     struct s2n_pkey pub_key;
     struct s2n_pkey priv_key;
     struct s2n_pkey unmatched_priv_key;
-    s2n_cert_type cert_type;
+    s2n_pkey_type pkey_type;
 
     b.size = s2n_stuffer_data_available(&certificate_out);
     b.data = s2n_stuffer_raw_read(&certificate_out, b.size);
-    EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&pub_key, &cert_type, &b));
+    EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&pub_key, &pkey_type, &b));
 
     b.size = s2n_stuffer_data_available(&ecdsa_key_out);
     b.data = s2n_stuffer_raw_read(&ecdsa_key_out, b.size);
@@ -123,7 +149,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hash_new(&hash_one));
     EXPECT_SUCCESS(s2n_hash_new(&hash_two));
 
-    for (int i = 0; i < sizeof(supported_hash_algorithms) / sizeof(supported_hash_algorithms[0]); i++) {
+    for (int i = 0; i < s2n_array_len(supported_hash_algorithms); i++) {
         int hash_alg = supported_hash_algorithms[i];
         
         if (!s2n_hash_is_available(hash_alg)) {
@@ -140,8 +166,8 @@ int main(int argc, char **argv)
         /* Reset signature size when we compute a new signature */
         signature.size = maximum_signature_length;
         
-        EXPECT_SUCCESS(s2n_pkey_sign(&priv_key, &hash_one, &signature));
-        EXPECT_SUCCESS(s2n_pkey_verify(&pub_key, &hash_two, &signature));
+        EXPECT_SUCCESS(s2n_pkey_sign(&priv_key, S2N_SIGNATURE_ECDSA, &hash_one, &signature));
+        EXPECT_SUCCESS(s2n_pkey_verify(&pub_key, S2N_SIGNATURE_ECDSA, &hash_two, &signature));
         
         EXPECT_SUCCESS(s2n_hash_reset(&hash_one));
         EXPECT_SUCCESS(s2n_hash_reset(&hash_two));
@@ -152,8 +178,8 @@ int main(int argc, char **argv)
 
     EXPECT_FAILURE(s2n_pkey_match(&pub_key, &unmatched_priv_key));
 
-    EXPECT_SUCCESS(s2n_pkey_sign(&unmatched_priv_key, &hash_one, &bad_signature));
-    EXPECT_FAILURE(s2n_pkey_verify(&pub_key, &hash_two, &bad_signature));
+    EXPECT_SUCCESS(s2n_pkey_sign(&unmatched_priv_key, S2N_SIGNATURE_ECDSA, &hash_one, &bad_signature));
+    EXPECT_FAILURE(s2n_pkey_verify(&pub_key, S2N_SIGNATURE_ECDSA, &hash_two, &bad_signature));
     
     EXPECT_SUCCESS(s2n_free(&signature));
     EXPECT_SUCCESS(s2n_free(&bad_signature));

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <sys/uio.h>
 
 #include "utils/s2n_blob.h"
 
@@ -27,10 +28,7 @@ struct s2n_stuffer {
     /* Cursors to the current read/write position in the s2n_stuffer */
     uint32_t read_cursor;
     uint32_t write_cursor;
-
-    /* The total size of the data segment */
-    /* Has the stuffer been wiped? */
-    unsigned int wiped:1;
+    uint32_t high_water_mark;
 
     /* Was this stuffer alloc()'d ? */
     unsigned int alloced:1;
@@ -44,6 +42,9 @@ struct s2n_stuffer {
 
 #define s2n_stuffer_data_available( s )   ((s)->write_cursor - (s)->read_cursor)
 #define s2n_stuffer_space_remaining( s )  ((s)->blob.size - (s)->write_cursor)
+#define s2n_stuffer_is_wiped( s )         ((s)->high_water_mark == 0)
+/* Check basic validity constraints on the stuffer: e.g. that cursors point within the blob */
+extern bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer);
 
 /* Initialize and destroying stuffers */
 extern int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in);
@@ -51,11 +52,13 @@ extern int s2n_stuffer_alloc(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_growable_alloc(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_free(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size);
+extern int s2n_stuffer_resize_if_empty(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size);
 extern int s2n_stuffer_reread(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_rewrite(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_wipe(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t n);
+extern int s2n_stuffer_release_if_empty(struct s2n_stuffer *stuffer);
 
 /* Basic read and write */
 extern int s2n_stuffer_read(struct s2n_stuffer *stuffer, struct s2n_blob *out);
@@ -64,8 +67,12 @@ extern int s2n_stuffer_write(struct s2n_stuffer *stuffer, const struct s2n_blob 
 extern int s2n_stuffer_read_bytes(struct s2n_stuffer *stuffer, uint8_t * out, uint32_t n);
 extern int s2n_stuffer_erase_and_read_bytes(struct s2n_stuffer *stuffer, uint8_t * data, uint32_t size);
 extern int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t * in, const uint32_t n);
+extern int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec* iov, int iov_count, size_t offs, size_t size);
 extern int s2n_stuffer_skip_read(struct s2n_stuffer *stuffer, uint32_t n);
 extern int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n);
+
+/* Tries to reserve enough space to write n additional bytes into the stuffer.*/
+extern int s2n_stuffer_reserve_space(struct s2n_stuffer *stuffer, uint32_t n);
 
 /* Raw read/write move the cursor along and give you a pointer you can
  * read/write data_len bytes from/to in-place.
@@ -124,3 +131,9 @@ extern int s2n_stuffer_certificate_from_pem(struct s2n_stuffer *pem, struct s2n_
 extern int s2n_stuffer_dhparams_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *pkcs3);
 
 extern int s2n_is_base64_char(char c);
+
+/* Copies all valid data from "stuffer" into "out".
+ * The old blob "out" pointed to is freed.
+ * It is the responsibility of the caller to free the free "out".
+ */
+extern int s2n_stuffer_extract_blob(struct s2n_stuffer *stuffer, struct s2n_blob *out);

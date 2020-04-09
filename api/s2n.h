@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -20,8 +20,17 @@ extern "C" {
 #endif
 
 #include <sys/types.h>
+#include <stdbool.h>
 #include <stdint.h>
-#include <openssl/ossl_typ.h>
+#include <stdio.h>
+#include <sys/uio.h>
+
+/* Function return code  */
+#define S2N_SUCCESS 0
+#define S2N_FAILURE -1
+
+/* Callback return code */
+#define S2N_CALLBACK_BLOCKED -2
 
 #define S2N_MINIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION 2
 #define S2N_MAXIMUM_SUPPORTED_TLS_RECORD_MAJOR_VERSION 3
@@ -30,6 +39,7 @@ extern "C" {
 #define S2N_TLS10 31
 #define S2N_TLS11 32
 #define S2N_TLS12 33
+#define S2N_TLS13 34
 #define S2N_UNKNOWN_PROTOCOL_VERSION 0
 
 extern __thread int s2n_errno;
@@ -68,6 +78,15 @@ extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_t
 
 extern const char *s2n_strerror(int error, const char *lang);
 extern const char *s2n_strerror_debug(int error, const char *lang);
+extern const char *s2n_strerror_name(int error); 
+
+struct s2n_stacktrace;
+extern bool s2n_stack_traces_enabled(void);
+extern int s2n_stack_traces_enabled_set(bool newval);
+extern int s2n_calculate_stacktrace(void);
+extern int s2n_print_stacktrace(FILE *fptr);
+extern int s2n_free_stacktrace(void);
+extern int s2n_get_stacktrace(struct s2n_stacktrace *trace);
 
 extern int s2n_config_set_cache_store_callback(struct s2n_config *config, s2n_cache_store_callback cache_store_callback, void *data);
 extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, s2n_cache_retrieve_callback cache_retrieve_callback, void *data);
@@ -77,7 +96,7 @@ typedef enum {
     S2N_EXTENSION_SERVER_NAME = 0,
     S2N_EXTENSION_MAX_FRAG_LEN = 1,
     S2N_EXTENSION_OCSP_STAPLING = 5,
-    S2N_EXTENSION_ELLIPTIC_CURVES = 10,
+    S2N_EXTENSION_SUPPORTED_GROUPS = 10,
     S2N_EXTENSION_EC_POINT_FORMATS = 11,
     S2N_EXTENSION_SIGNATURE_ALGORITHMS = 13,
     S2N_EXTENSION_ALPN = 16,
@@ -121,6 +140,8 @@ extern int s2n_config_set_max_cert_chain_depth(struct s2n_config *config, uint16
 
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
+extern int s2n_config_set_signature_preferences(struct s2n_config *config, const char *version);
+extern int s2n_config_set_ecc_preferences(struct s2n_config *config, const char *version);
 extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count);
 typedef enum { S2N_STATUS_REQUEST_NONE = 0, S2N_STATUS_REQUEST_OCSP = 1 } s2n_status_request_type;
 extern int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_request_type type);
@@ -135,6 +156,7 @@ extern int s2n_config_accept_max_fragment_length(struct s2n_config *config);
 extern int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
 
 extern int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enabled);
+extern int s2n_config_set_session_cache_onoff(struct s2n_config *config, uint8_t enabled);
 extern int s2n_config_set_ticket_encrypt_decrypt_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
 extern int s2n_config_set_ticket_decrypt_key_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
 extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
@@ -194,9 +216,11 @@ extern const char *s2n_get_application_protocol(struct s2n_connection *conn);
 extern const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t *length);
 extern const uint8_t *s2n_connection_get_sct_list(struct s2n_connection *conn, uint32_t *length);
 
-typedef enum { S2N_NOT_BLOCKED = 0, S2N_BLOCKED_ON_READ, S2N_BLOCKED_ON_WRITE } s2n_blocked_status;
+typedef enum { S2N_NOT_BLOCKED = 0, S2N_BLOCKED_ON_READ, S2N_BLOCKED_ON_WRITE, S2N_BLOCKED_ON_APPLICATION_INPUT } s2n_blocked_status;
 extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked);
 extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked);
+extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, s2n_blocked_status *blocked);
+extern ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked);
 extern ssize_t s2n_recv(struct s2n_connection *conn,  void *buf, ssize_t size, s2n_blocked_status *blocked);
 extern uint32_t s2n_peek(struct s2n_connection *conn);
 
@@ -225,28 +249,9 @@ extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
 
 extern struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2n_connection *conn);
 
-/* RFC's that define below values:
- *  - https://tools.ietf.org/html/rfc5246#section-7.4.4
- *  - https://tools.ietf.org/search/rfc4492#section-5.5
- */
-typedef enum {
-    S2N_CERT_TYPE_RSA_SIGN = 1,
-    S2N_CERT_TYPE_DSS_SIGN = 2,
-    S2N_CERT_TYPE_RSA_FIXED_DH = 3,
-    S2N_CERT_TYPE_DSS_FIXED_DH = 4,
-    S2N_CERT_TYPE_RSA_EPHEMERAL_DH_RESERVED = 5,
-    S2N_CERT_TYPE_DSS_EPHEMERAL_DH_RESERVED = 6,
-    S2N_CERT_TYPE_FORTEZZA_DMS_RESERVED = 20,
-    S2N_CERT_TYPE_ECDSA_SIGN = 64,
-    S2N_CERT_TYPE_RSA_FIXED_ECDH = 65,
-    S2N_CERT_TYPE_ECDSA_FIXED_ECDH = 66,
-} s2n_cert_type;
-
 struct s2n_pkey;
 typedef struct s2n_pkey s2n_cert_public_key;
 typedef struct s2n_pkey s2n_cert_private_key;
-
-extern int s2n_cert_public_key_set_rsa_from_openssl(s2n_cert_public_key *cert_pub_key, RSA *openssl_rsa);
 
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
 extern uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);
@@ -260,6 +265,8 @@ extern int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection 
 extern const char *s2n_connection_get_curve(struct s2n_connection *conn);
 extern const char *s2n_connection_get_kem_name(struct s2n_connection *conn);
 extern int s2n_connection_get_alert(struct s2n_connection *conn);
+extern const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn);
+extern const char *s2n_connection_get_last_message_name(struct s2n_connection *conn);
 
 #ifdef __cplusplus
 }

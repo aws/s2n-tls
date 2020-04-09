@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ struct session_cache_entry {
     uint8_t key_len;
     uint8_t value[MAX_VAL_LEN];
     uint8_t value_len;
+    uint8_t lock;
 };
 
 struct session_cache_entry session_cache[256];
@@ -74,6 +75,14 @@ int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *
 
     uint8_t index = ((const uint8_t *)key)[0];
 
+    if (cache[index].lock) {
+        /* here we mock a remote connection/event blocking the handshake
+         * state machine, until lock is free
+         */
+        cache[index].lock = 0;
+        return -2;
+    }
+
     if (cache[index].key_len != key_size) {
         return -1;
     }
@@ -102,6 +111,10 @@ int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *ke
 
     uint8_t index = ((const uint8_t *)key)[0];
 
+    if (cache[index].key_len == 0) {
+        return 0;
+    }
+
     if (cache[index].key_len != key_size) {
         return -1;
     }
@@ -116,7 +129,17 @@ int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *ke
     return 0;
 }
 
-void mock_client(int writefd, int readfd)
+/* init session cache lock field, which is used to mock a remote
+ * connection/event block
+ */
+static void initialize_cache()
+{
+    for (int i = 0; i < 256; i++) {
+        session_cache[i].lock = 1;
+    }
+}
+
+void mock_client(struct s2n_test_piped_io *piped_io)
 {
     size_t serialized_session_state_length = 0;
     uint8_t serialized_session_state[256] = { 0 };
@@ -135,8 +158,7 @@ void mock_client(int writefd, int readfd)
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
 
-    s2n_connection_set_read_fd(conn, readfd);
-    s2n_connection_set_write_fd(conn, writefd);
+    s2n_connection_set_piped_io(conn, piped_io);
 
     /* Set the session id to ensure we're able to fallback to full handshake if session is not in server cache */
     memcpy(conn->session_id, SESSION_ID, S2N_TLS_SESSION_ID_MAX_LEN);
@@ -171,8 +193,13 @@ void mock_client(int writefd, int readfd)
         result = 6;
     }
 
-    if (s2n_send(conn, MSG, sizeof(MSG), &blocked) != sizeof(MSG)) {
+    /* server would choose a session ID for client */
+    if (memcmp(conn->session_id, SESSION_ID, S2N_TLS_SESSION_ID_MAX_LEN) == 0) {
         result = 7;
+    }
+
+    if (s2n_send(conn, MSG, sizeof(MSG), &blocked) != sizeof(MSG)) {
+        result = 8;
     }
 
     int shutdown_rc = -1;
@@ -187,25 +214,24 @@ void mock_client(int writefd, int readfd)
 
     /* Session resumption */
     conn = s2n_connection_new(S2N_CLIENT);
-    s2n_connection_set_read_fd(conn, readfd);
-    s2n_connection_set_write_fd(conn, writefd);
+    s2n_connection_set_piped_io(conn, piped_io);
 
     /* Set session state on client connection */
     if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) < 0) {
-        result = 8;
+        result = 9;
     }
 
     if (s2n_negotiate(conn, &blocked) != 0) {
-        result = 9;
+        result = 10;
     }
 
     /* Make sure we did a abbreviated handshake */
     if (!IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type)) {
-        result = 10;
+        result = 11;
     }
 
     if (s2n_send(conn, MSG, sizeof(MSG), &blocked) != sizeof(MSG)) {
-        result = 11;
+        result = 12;
     }
 
     shutdown_rc = -1;
@@ -220,36 +246,35 @@ void mock_client(int writefd, int readfd)
 
     /* Session resumption with bad session state */
     conn = s2n_connection_new(S2N_CLIENT);
-    s2n_connection_set_read_fd(conn, readfd);
-    s2n_connection_set_write_fd(conn, writefd);
+    s2n_connection_set_piped_io(conn, piped_io);
 
     /* Change the format of the session state and check we cannot deserialize it */
     serialized_session_state[0] = 3;
     if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) == 0) {
-        result = 12;
+        result = 13;
     }
 
     if (s2n_errno != S2N_ERR_INVALID_SERIALIZED_SESSION_STATE) {
-        result = 13;
+        result = 14;
     }
 
     serialized_session_state[0] = 0;
     /* Change the protocol version (36th byte) in session state */
     if (serialized_session_state_length < 36) {
-        result = 14;
+        result = 15;
     }
 
     serialized_session_state[35] = 30;
     if (s2n_connection_set_session(conn, serialized_session_state, serialized_session_state_length) < 0) {
-        result = 15;
-    }
-
-    if (s2n_negotiate(conn, &blocked) == 0) {
         result = 16;
     }
 
-    if (s2n_errno != S2N_ERR_BAD_MESSAGE) {
+    if (s2n_negotiate(conn, &blocked) == 0) {
         result = 17;
+    }
+
+    if (s2n_errno != S2N_ERR_BAD_MESSAGE) {
+        result = 18;
     }
 
     s2n_connection_free(conn);
@@ -258,6 +283,7 @@ void mock_client(int writefd, int readfd)
     /* Give the server a chance to avoid sigpipe */
     sleep(1);
 
+    s2n_piped_io_close_one_end(piped_io, S2N_CLIENT);
     _exit(result);
 }
 
@@ -268,42 +294,48 @@ int main(int argc, char **argv)
     s2n_blocked_status blocked;
     int status;
     pid_t pid;
-    int server_to_client[2];
-    int client_to_server[2];
     char *cert_chain_pem;
     char *private_key_pem;
     struct s2n_cert_chain_and_key *chain_and_key;
     char buffer[256];
     int bytes_read;
     int shutdown_rc = -1;
+    uint64_t now;
     uint8_t session_id_from_server[MAX_KEY_LEN];
     uint8_t session_id_from_client[MAX_KEY_LEN];
+
+     /* aes keys. Used for session ticket/session data encryption. Taken from test vectors in https://tools.ietf.org/html/rfc5869 */
+    uint8_t ticket_key_name[16] = "2018.07.26.15\0";
+    uint8_t ticket_key[32] = {0x19, 0xef, 0x24, 0xa3, 0x2c, 0x71, 0x7b, 0x16, 0x7f, 0x33,
+                             0xa9, 0x1d, 0x6f, 0x64, 0x8b, 0xdf, 0x96, 0x59, 0x67, 0x76,
+                             0xaf, 0xdb, 0x63, 0x77, 0xac, 0x43, 0x4c, 0x1c, 0x29, 0x3c,
+                             0xcb, 0x04};
 
     BEGIN_TEST();
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
 
     /* Create a pipe */
-    EXPECT_SUCCESS(pipe(server_to_client));
-    EXPECT_SUCCESS(pipe(client_to_server));
+    struct s2n_test_piped_io piped_io;
+    EXPECT_SUCCESS(s2n_piped_io_init(&piped_io));
 
     /* Create a child process */
     pid = fork();
     if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(client_to_server[0]));
-        EXPECT_SUCCESS(close(server_to_client[1]));
+        /* This is the client process, close the server end of the pipe */
+        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
 
         /* Write the fragmented hello message */
-        mock_client(client_to_server[1], server_to_client[0]);
+        mock_client(&piped_io);
     }
 
-    /* This is the parent */
-    EXPECT_SUCCESS(close(client_to_server[1]));
-    EXPECT_SUCCESS(close(server_to_client[0]));
+    /* This is the server process, close the client end of the pipe */
+    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_CLIENT));
 
     /* Initial handshake */
     {
+        /* Initialize the cache so the client and server start off on the same page */
+        initialize_cache();
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(config = s2n_config_new());
 
@@ -317,13 +349,25 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(config, cache_retrieve_callback, session_cache));
         EXPECT_SUCCESS(s2n_config_set_cache_delete_callback(config, cache_delete_callback, session_cache));
 
+        /* Although we disable session ticket, as long as session cache
+         * callbacks are binded, session ticket key storage would be initialized
+         */
+        GUARD(s2n_config_set_session_cache_onoff(config, 1));
+        GUARD(config->wall_clock(config->sys_clock_ctx, &now));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char*)ticket_key_name), ticket_key, sizeof(ticket_key), now/ONE_SEC_IN_NANOS));
+
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
         /* Set up the connection to read from the fd */
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+        EXPECT_SUCCESS(s2n_connection_set_piped_io(conn, &piped_io));
 
         /* Negotiate the handshake. */
+        int r = s2n_negotiate(conn, &blocked);
+        /* first time it always blocks the handshake, as we mock a remote
+         * connection/event from the lock
+         */
+        EXPECT_EQUAL(r, -1);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
         /* Make sure the get_session_id and get_session_id_length APIs are
@@ -351,14 +395,20 @@ int main(int argc, char **argv)
 
     /* Session resumption */
     {
+        initialize_cache();
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
         /* Set up the connection to read from the fd */
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+        EXPECT_SUCCESS(s2n_connection_set_piped_io(conn, &piped_io));
 
         /* Negotiate the handshake. */
+        int r = s2n_negotiate(conn, &blocked);
+        /* first time it always blocks the handshake, as we mock a remote
+         * connection/event from the lock
+         */
+        EXPECT_EQUAL(r, -1);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
 
         /* Make sure the get_session_id and get_session_id_length APIs are
@@ -377,7 +427,6 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(memcmp(buffer, MSG, sizeof(MSG)), 0);
 
         /* Shutdown handshake */
-        shutdown_rc = -1;
         do {
             shutdown_rc = s2n_shutdown(conn, &blocked);
             EXPECT_TRUE(shutdown_rc == 0 || (errno == EAGAIN && blocked));
@@ -389,13 +438,16 @@ int main(int argc, char **argv)
 
     /* Session resumption with bad session state on client side */
     {
+        initialize_cache();
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
         /* Set up the connection to read from the fd */
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, server_to_client[1]));
+        EXPECT_SUCCESS(s2n_connection_set_piped_io(conn, &piped_io));
 
+        int r = s2n_negotiate(conn, &blocked);
+        EXPECT_EQUAL(r, -1);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
         /* Verify we failed to negotiate */
         EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
 
@@ -404,8 +456,7 @@ int main(int argc, char **argv)
     }
 
     /* Close the pipes */
-    EXPECT_SUCCESS(close(client_to_server[0]));
-    EXPECT_SUCCESS(close(server_to_client[1]));
+    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
 
     /* Clean up */
     EXPECT_SUCCESS(s2n_config_free(config));

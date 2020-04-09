@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -31,6 +31,10 @@
 
 #include <s2n.h>
 #include "common.h"
+#include <error/s2n_errno.h>
+
+#include "tls/s2n_tls13.h"
+#include "utils/s2n_safety.h"
 
 void usage()
 {
@@ -44,6 +48,9 @@ void usage()
     fprintf(stderr, "  -c [version_string]\n");
     fprintf(stderr, "  --ciphers [version_string]\n");
     fprintf(stderr, "    Set the cipher preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
+    fprintf(stderr, "  -u [version_string]\n");
+    fprintf(stderr, "  --curves [version_string]\n");
+    fprintf(stderr, "    Set the ecc preference version string. Defaults to \"default\". See USAGE-GUIDE.md\n");
     fprintf(stderr, "  -e\n");
     fprintf(stderr, "  --echo\n");
     fprintf(stderr, "    Listen to stdin after TLS Connection is established and echo it to the Server\n");
@@ -73,6 +80,10 @@ void usage()
     fprintf(stderr, "    Set dynamic record timeout threshold\n");
     fprintf(stderr, "  -C,--corked-io\n");
     fprintf(stderr, "    Turn on corked io\n");
+    if (S2N_IN_TEST) {
+        fprintf(stderr, "  --tls13\n");
+        fprintf(stderr, "    Turn on experimental TLS1.3 support for testing.");
+    }
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -84,9 +95,9 @@ struct verify_data {
 static uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *data) {
     struct verify_data *verify_data = (struct verify_data *)data;
 
-    char *offset = strstr(host_name, "*.");
-    if (offset) {
-        return (uint8_t)(strcasecmp(verify_data->trusted_host, offset + 2) == 0);
+    if (host_name_len > 2 && host_name[0] == '*' && host_name[1] == '.') {
+        char *suffix = strstr(verify_data->trusted_host, ".");
+        return (uint8_t)(strcasecmp(suffix, host_name + 1) == 0);
     }
 
     int equals = strcasecmp(host_name, verify_data->trusted_host);
@@ -97,7 +108,7 @@ extern void print_s2n_error(const char *app_error);
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
 
-static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs, s2n_status_request_type type,
+static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs, const char *ecc_prefs, s2n_status_request_type type,
     struct verify_data *unsafe_verify_data, const char *host, const char *alpn_protocols, uint16_t mfl_value) {
 
     if (config == NULL) {
@@ -106,6 +117,8 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
     }
 
     GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs), "Error setting cipher prefs");
+
+    GUARD_EXIT(s2n_config_set_ecc_preferences(config, ecc_prefs), "Error setting ecc prefs");
 
     GUARD_EXIT(s2n_config_set_status_request_type(config, type), "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
 
@@ -224,16 +237,18 @@ int main(int argc, char *const *argv)
     uint8_t dyn_rec_timeout = 0;
     /* required args */
     const char *cipher_prefs = "default";
+    const char *ecc_prefs = "default";
     const char *host = NULL;
     struct verify_data unsafe_verify_data;
     const char *port = "443";
     int echo_input = 0;
     int use_corked_io = 0;
+    int use_tls13 = 0;
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
         {"ciphers", required_argument, 0, 'c'},
-        {"echo", required_argument, 0, 'e'},
+        {"echo", no_argument, 0, 'e'},
         {"help", no_argument, 0, 'h'},
         {"name", required_argument, 0, 'n'},
         {"status", no_argument, 0, 's'},
@@ -246,11 +261,13 @@ int main(int argc, char *const *argv)
         {"dynamic", required_argument, 0, 'D'},
         {"timeout", required_argument, 0, 't'},
         {"corked-io", no_argument, 0, 'C'},
+        {"tls13", no_argument, 0, '3'},
+        {"curves", required_argument, NULL, 'u'},
     };
 
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:D:t:irTC", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:D:t:irTCu:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -298,10 +315,17 @@ int main(int argc, char *const *argv)
             dyn_rec_timeout = (uint8_t) MIN(255, atoi(optarg));
             break;
         case 'D':
+            errno = 0;
             dyn_rec_threshold = strtoul(optarg, 0, 10);
             if (errno == ERANGE) {
-              dyn_rec_threshold = 0;      
+                dyn_rec_threshold = 0;
             }
+            break;
+        case '3':
+            use_tls13 = 1;
+            break;
+        case 'u':
+            ecc_prefs = optarg;
             break;
         case '?':
         default:
@@ -313,6 +337,8 @@ int main(int argc, char *const *argv)
     if (optind < argc) {
         host = argv[optind++];
     }
+
+    /* cppcheck-suppress duplicateCondition */
     if (optind < argc) {
         port = argv[optind++];
     }
@@ -365,7 +391,7 @@ int main(int argc, char *const *argv)
         }
 
         struct s2n_config *config = s2n_config_new();
-        setup_s2n_config(config, cipher_prefs, type, &unsafe_verify_data, host, alpn_protocols, mfl_value);
+        setup_s2n_config(config, cipher_prefs, ecc_prefs, type, &unsafe_verify_data, host, alpn_protocols, mfl_value);
 
         if (ca_file || ca_dir) {
             if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
@@ -378,6 +404,10 @@ int main(int argc, char *const *argv)
 
         if (session_ticket) {
             GUARD_EXIT(s2n_config_set_session_tickets_onoff(config, 1), "Error enabling session tickets");
+        }
+
+        if (use_tls13 && S2N_IN_TEST) {
+            GUARD_EXIT(s2n_enable_tls13(), "Error enabling TLS1.3");
         }
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
@@ -393,6 +423,8 @@ int main(int argc, char *const *argv)
 
         GUARD_EXIT(s2n_connection_set_fd(conn, sockfd) , "Error setting file descriptor");
 
+        GUARD_EXIT(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL), "Error setting ClientAuth optional");
+
         if (use_corked_io) {
             GUARD_EXIT(s2n_connection_use_corked_io(conn), "Error setting corked io");
         }
@@ -403,11 +435,10 @@ int main(int argc, char *const *argv)
         }
 
         /* See echo.c */
-        int ret = negotiate(conn);
-
-        if (ret != 0) {
+        if (negotiate(conn) != 0)
+        {
             /* Error is printed in negotiate */
-            return -1;
+            S2N_ERROR_PRESERVE_ERRNO();
         }
 
         printf("Connected to %s:%s\n", host, port);
@@ -432,6 +463,8 @@ int main(int argc, char *const *argv)
         }
 
         if (echo_input == 1) {
+            fflush(stdout);
+            fflush(stderr);
             echo(conn, sockfd);
         }
 

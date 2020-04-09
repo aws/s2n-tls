@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 
-/* Highest version supported by s2n is TLS1.2 */
 uint8_t s2n_highest_protocol_version = S2N_TLS12;
 uint8_t s2n_unknown_protocol_version = S2N_UNKNOWN_PROTOCOL_VERSION;
 

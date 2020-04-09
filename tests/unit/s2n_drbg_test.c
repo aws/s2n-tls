@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -357,9 +357,9 @@ int nist_fake_256_no_pr_urandom_data(struct s2n_blob *blob)
 int check_drgb_version(s2n_drbg_mode mode, int (*generator)(struct s2n_blob *), int personalization_size,
         const char personalization_hex[], const char reference_values_hex[], const char returned_bits_hex[]) {
 
-    DEFER_CLEANUP(struct s2n_stuffer personalization = {{0}}, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer returned_bits = {{0}}, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer reference_values = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer personalization = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer returned_bits = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer reference_values = {0}, s2n_stuffer_free);
     GUARD(s2n_stuffer_alloc_ro_from_hex_string(&personalization, personalization_hex));
     GUARD(s2n_stuffer_alloc_ro_from_hex_string(&returned_bits, returned_bits_hex));
     GUARD(s2n_stuffer_alloc_ro_from_hex_string(&reference_values, reference_values_hex));
@@ -423,8 +423,8 @@ int main(int argc, char **argv)
                        nist_aes128_reference_values_hex, nist_aes128_reference_returned_bits_hex));
 
     /* Check everything against the NIST AES 256 vectors with prediction resistance */
-    DEFER_CLEANUP(struct s2n_stuffer temp1 = {{0}}, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer temp2 = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer temp1 = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer temp2 = {0}, s2n_stuffer_free);
     /* Combine nist_aes256_reference_entropy_hex_part1 and nist_aes256_reference_entropy_hex_part2 to avoid C99
      * string length limit. */
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&temp1, nist_aes256_reference_entropy_hex_part1));
@@ -503,7 +503,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(aes256_no_pr_drbg.generation, 1);
 
     /* Test that the drbg wont let you use dangerous configurations outside unit tests */
-    EXPECT_EQUAL(0, unsetenv("S2N_UNIT_TEST"));
+    EXPECT_SUCCESS(s2n_in_unit_test_set(false));
     struct s2n_drbg failing_drbg_mode = {0};
     EXPECT_FAILURE(s2n_drbg_instantiate(&failing_drbg_mode, &blob, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
 
@@ -511,7 +511,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_drbg_instantiate(&failing_drbg_entropy, &blob, S2N_AES_128_CTR_NO_DF_PR));
 
     /* Return to "unit test mode" and verify it would actually work and that was the reason for the failure */
-    EXPECT_EQUAL(0, setenv("S2N_UNIT_TEST", "1", 1));
+    EXPECT_SUCCESS(s2n_in_unit_test_set(true));
 
     EXPECT_SUCCESS(s2n_drbg_instantiate(&failing_drbg_mode, &blob, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
     EXPECT_SUCCESS(s2n_drbg_instantiate(&failing_drbg_entropy, &blob, S2N_AES_128_CTR_NO_DF_PR));

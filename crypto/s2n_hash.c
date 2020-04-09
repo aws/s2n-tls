@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -76,29 +76,25 @@ int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size)
     return 0;
 }
 
-/* Return 1 if hash algorithm is available, 0 otherwise. */
-int s2n_hash_is_available(s2n_hash_algorithm alg)
+/* Return true if hash algorithm is available, false otherwise. */
+bool s2n_hash_is_available(s2n_hash_algorithm alg)
 {
-    int is_available = 0;
     switch (alg) {
     case S2N_HASH_MD5:
     case S2N_HASH_MD5_SHA1:
-        /* Set is_available to 0 if in FIPS mode, as MD5 algs are not available in FIPS mode. */
-        is_available = !s2n_is_in_fips_mode();
-        break;
+        /* return false if in FIPS mode, as MD5 algs are not available in FIPS mode. */
+        return !s2n_is_in_fips_mode();
     case S2N_HASH_NONE:
     case S2N_HASH_SHA1:
     case S2N_HASH_SHA224:
     case S2N_HASH_SHA256:
     case S2N_HASH_SHA384:
     case S2N_HASH_SHA512:
-        is_available = 1;
-        break;
-    default:
-        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
+        return true;
+    case S2N_HASH_SENTINEL:
+        return false;
     }
-
-    return is_available;
+    return false;
 }
 
 int s2n_hash_is_ready_for_input(struct s2n_hash_state *state)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -12,6 +12,9 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
+/* Target Functions: s2n_conn_find_name_matching_certs s2n_config_add_cert_chain_and_key_to_store
+                     s2n_server_received_server_name s2n_find_cert_matches s2n_create_wildcard_hostname */
 
 #include <errno.h>
 #include <fcntl.h>
@@ -55,7 +58,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 #endif
 
     GUARD(s2n_init());
-    GUARD(atexit(s2n_fuzz_atexit));
+    GUARD_STRICT(atexit(s2n_fuzz_atexit));
     return 0;
 }
 
@@ -182,13 +185,13 @@ static struct s2n_cert_chain_and_key *create_cert(const char **names, int num_na
     x509_cert = NULL;
 
     /* Figure out if this should be an RSA or ECDSA certificate */
-    s2n_cert_type cert_type = (names[0][0] & 0x2) ? S2N_CERT_TYPE_RSA_SIGN : S2N_CERT_TYPE_ECDSA_SIGN;
+    s2n_pkey_type pkey_type = (names[0][0] & 0x2) ? S2N_PKEY_TYPE_RSA: S2N_PKEY_TYPE_ECDSA;
     struct s2n_cert *head = calloc(1, sizeof(struct s2n_cert));
     if (!head) {
         goto cert_cleanup;
     }
 
-    head->cert_type = cert_type;
+    head->pkey_type = pkey_type;
     cert->cert_chain->head = head;
     return cert;
 

@@ -1,4 +1,5 @@
 codecov:
+  token: e460b7c1-6019-4a50-b65d-555c4a8fbc22
   notify:
     require_ci_to_pass: no
     after_n_builds: 3
@@ -9,8 +10,16 @@ coverage:
   range: "70...100"
 
   status:
-    project: yes
-    patch: yes
+    project:
+      default:
+        target: auto
+        threshold: 0.5
+        base: auto
+    patch:
+      default:
+        target: auto
+        threshold: 0.5
+        base: auto
     changes: no
 
 parsers:
@@ -27,11 +36,13 @@ comment:
   require_changes: no
   require_head: no
   require_base: no
-  
+
 
 ignore:
   - ".travis/**/*"
   - "test-deps/**/*"
   - "libcrypto-build/**/*"
   - "libcrypto-root/**/*"
-  
+  - "tests/**/*"
+  - "codebuild/**/*"
+

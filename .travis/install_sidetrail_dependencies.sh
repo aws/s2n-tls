@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -20,14 +20,8 @@ set -x
 sudo apt-get install -y figlet
 
 #Install boogieman
-#sudo gem install --pre bam-bam-boogieman
-git clone https://github.com/Qthan/bam-bam-boogieman.git -b cost-modeling
-cd bam-bam-boogieman
-bundle update
-bundle exec rake install
-cd ..
+gem install bam-bam-boogieman
 which bam
-
 
 #Install the apt-get dependencies from the smack build script: this way they will still be there
 #when we get things from cache

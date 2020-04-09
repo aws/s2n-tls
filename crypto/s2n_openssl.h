@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -32,10 +32,11 @@
  * For our purposes we're only concerned about major/minor/fix. Patch versions don't usually introduce
  * features.
  */
+
 #define S2N_OPENSSL_VERSION_AT_LEAST(major, minor, fix) \
     (OPENSSL_VERSION_NUMBER >= ((major << 28) + (minor << 20) + (fix << 12)))
 
-#if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0))
+#if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)) && (!defined(OPENSSL_IS_BORINGSSL))
 #define s2n_evp_ctx_init(ctx) GUARD_OSSL(EVP_CIPHER_CTX_init(ctx), S2N_ERR_DRBG)
 #else
 #define s2n_evp_ctx_init(ctx) EVP_CIPHER_CTX_init(ctx)

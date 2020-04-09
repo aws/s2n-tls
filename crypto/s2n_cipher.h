@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -93,3 +93,5 @@ extern struct s2n_cipher s2n_aes128_sha256;
 extern struct s2n_cipher s2n_aes256_sha256;
 extern struct s2n_cipher s2n_chacha20_poly1305;
 
+extern struct s2n_cipher s2n_tls13_aes128_gcm;
+extern struct s2n_cipher s2n_tls13_aes256_gcm;

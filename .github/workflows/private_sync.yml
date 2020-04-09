@@ -1,0 +1,28 @@
+name: force_push
+on:
+  push:
+    branches:
+      - master
+jobs:
+  build:
+    if: endsWith(github.repository, 's2n')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Push cbmc
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.private_repos_s2n_20200214 }}
+          repository: awslabs/private-s2n-cbmc
+          branch: master
+          force: true
+      - name: Push fuzz
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.private_repos_s2n_20200214 }}
+          repository: awslabs/private-s2n-fuzz
+          branch: master
+          force: true

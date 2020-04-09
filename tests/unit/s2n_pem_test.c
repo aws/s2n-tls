@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 
 #include <s2n.h>
 
+#include "utils/s2n_safety.h"
 #include "testlib/s2n_testlib.h"
 
 static const char *valid_pem_pairs[][2] = {
@@ -65,7 +66,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
 
-    for (int i = 0; i < (sizeof(valid_pem_pairs) / sizeof(valid_pem_pairs[0])); i++) {
+    for (int i = 0; i < s2n_array_len(valid_pem_pairs); i++) {
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_read_test_pem(valid_pem_pairs[i][0], cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(valid_pem_pairs[i][1], private_key_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -76,7 +77,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(config));
     }
 
-    for (int i = 0; i < (sizeof(invalid_pem_pairs) / sizeof(invalid_pem_pairs[0])); i++) {
+    for (int i = 0; i < s2n_array_len(invalid_pem_pairs); i++) {
         EXPECT_SUCCESS(s2n_read_test_pem(invalid_pem_pairs[i][0], cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(invalid_pem_pairs[i][1], private_key_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());

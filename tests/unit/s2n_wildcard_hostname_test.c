@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@
 
 #include "crypto/s2n_certificate.h"
 
+#include "utils/s2n_safety.h"
+
 struct wildcardify_test_case {
     const char *hostname;
     const char *output;
@@ -44,7 +46,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    const int num_wildcardify_tests = sizeof(wildcardify_test_cases) / sizeof(wildcardify_test_cases[0]);
+    const int num_wildcardify_tests = s2n_array_len(wildcardify_test_cases);
     for (int i = 0; i < num_wildcardify_tests; i++) {
         const char *hostname = wildcardify_test_cases[i].hostname;
         struct s2n_blob hostname_blob = { .data = (uint8_t *) (uintptr_t) hostname , .size = strlen(hostname) };

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  */
 
 #include <openssl/evp.h>
+#include <openssl/rsa.h>
 #include <stdint.h>
 
 #include "error/s2n_errno.h"
@@ -23,6 +24,7 @@
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_rsa.h"
+#include "crypto/s2n_rsa_signing.h"
 #include "crypto/s2n_pkey.h"
 
 #include "utils/s2n_blob.h"
@@ -43,30 +45,6 @@ static int s2n_rsa_modulus_check(RSA *rsa)
     #endif
     return 0;
 }
-static int s2n_hash_alg_to_NID[] = {
-    [S2N_HASH_MD5_SHA1] = NID_md5_sha1,
-    [S2N_HASH_SHA1]     = NID_sha1,
-    [S2N_HASH_SHA224]   = NID_sha224,
-    [S2N_HASH_SHA256]   = NID_sha256,
-    [S2N_HASH_SHA384]   = NID_sha384,
-    [S2N_HASH_SHA512]   = NID_sha512 };
-
-int s2n_hash_NID_type(s2n_hash_algorithm alg, int *out)
-{
-    switch(alg) {
-    case S2N_HASH_MD5_SHA1:
-    case S2N_HASH_SHA1:
-    case S2N_HASH_SHA224:
-    case S2N_HASH_SHA256:
-    case S2N_HASH_SHA384:
-    case S2N_HASH_SHA512:
-        *out = s2n_hash_alg_to_NID[alg];
-        break;
-    default:
-        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
-    }
-    return 0;
-}
 
 static int s2n_rsa_encrypted_size(const struct s2n_pkey *key) 
 {
@@ -77,43 +55,34 @@ static int s2n_rsa_encrypted_size(const struct s2n_pkey *key)
     return RSA_size(rsa_key->rsa);
 }
 
-static int s2n_rsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature)
+static int s2n_rsa_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
+        struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
-    uint8_t digest_length;
-    int NID_type;
-    GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
-    GUARD(s2n_hash_NID_type(digest->alg, &NID_type));
-    lte_check(digest_length, S2N_MAX_DIGEST_LEN);
+    switch(sig_alg) {
+        case S2N_SIGNATURE_RSA:
+            return s2n_rsa_pkcs1v15_sign(priv, digest, signature);
+        case S2N_SIGNATURE_RSA_PSS_RSAE:
+            return s2n_rsa_pss_sign(priv, digest, signature);
+        default:
+            S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    }
 
-    const s2n_rsa_private_key *key = &priv->key.rsa_key;
-
-    uint8_t digest_out[S2N_MAX_DIGEST_LEN];
-    GUARD(s2n_hash_digest(digest, digest_out, digest_length));
-
-    unsigned int signature_size = signature->size;
-    GUARD_OSSL(RSA_sign(NID_type, digest_out, digest_length, signature->data, &signature_size, key->rsa), S2N_ERR_SIGN);
-    S2N_ERROR_IF(signature_size > signature->size, S2N_ERR_SIZE_MISMATCH);
-    signature->size = signature_size;
-
-    return 0;
+    return S2N_SUCCESS;
 }
 
-static int s2n_rsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest, struct s2n_blob *signature)
+static int s2n_rsa_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
+        struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
-    uint8_t digest_length;
-    int NID_type;
-    GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
-    GUARD(s2n_hash_NID_type(digest->alg, &NID_type));
-    lte_check(digest_length, S2N_MAX_DIGEST_LEN);
+    switch(sig_alg) {
+        case S2N_SIGNATURE_RSA:
+            return s2n_rsa_pkcs1v15_verify(pub, digest, signature);
+        case S2N_SIGNATURE_RSA_PSS_RSAE:
+            return s2n_rsa_pss_verify(pub, digest, signature);
+        default:
+            S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    }
 
-    const s2n_rsa_public_key *key = &pub->key.rsa_key;
-
-    uint8_t digest_out[S2N_MAX_DIGEST_LEN];
-    GUARD(s2n_hash_digest(digest, digest_out, digest_length));
-
-    GUARD_OSSL(RSA_verify(NID_type, digest_out, digest_length, signature->data, signature->size, key->rsa), S2N_ERR_VERIFY_SIGNATURE);
-
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, struct s2n_blob *out)
@@ -200,7 +169,6 @@ int s2n_evp_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *evp_pu
 
 int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *evp_private_key)
 {
-
     RSA *rsa = EVP_PKEY_get1_RSA(evp_private_key);
     S2N_ERROR_IF(rsa == NULL, S2N_ERR_DECODE_PRIVATE_KEY);
     

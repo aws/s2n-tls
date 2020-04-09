@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -23,38 +23,23 @@ struct array_element {
     char second;
 };
 
-int s2n_binary_search_comparator(void *a, void *b)
-{
-    if (((struct array_element *) a)->first > ((struct array_element *) b)->first) {
-        return 1;
-    } else if ((((struct array_element *) a)->first < ((struct array_element *) b)->first)) {
-        return -1;
-    } else {
-        return 0;
-    }
-}
+#define NUM_OF_ELEMENTS 17
 
 int main(int argc, char **argv)
 {
     struct s2n_array *array;
-    int num_of_elements = 17;
     int element_size = sizeof(struct array_element);
 
     BEGIN_TEST();
+    struct array_element elements[NUM_OF_ELEMENTS] = {0};
 
-    struct s2n_blob mem;
-    GUARD(s2n_alloc(&mem, sizeof(struct array_element) * num_of_elements));
-    GUARD(s2n_blob_zero(&mem));
-
-    struct array_element *elements = (struct  array_element *) (void *) mem.data;
-
-    for (int i = 0; i < num_of_elements; i++) {
+    for (int i = 0; i < NUM_OF_ELEMENTS; i++) {
         elements[i].first = i;
         elements[i].second = 'a' + i;
     }
 
     /* Verify add and get elements with null array */
-    EXPECT_NULL(s2n_array_add(NULL));
+    EXPECT_NULL(s2n_array_pushback(NULL));
     EXPECT_NULL(s2n_array_get(NULL, 0));
 
     /* Verify freeing null array */
@@ -68,7 +53,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(array->element_size, element_size);
 
     /* Add an element */
-    struct array_element *element = s2n_array_add(array);
+    struct array_element *element = s2n_array_pushback(array);
     element->first = elements[0].first;
     element->second = elements[0].second;
 
@@ -86,8 +71,8 @@ int main(int argc, char **argv)
     EXPECT_NULL(second_element);
 
     /* Add more than 16 elements */
-    for (int i = 1; i < num_of_elements; i++) {
-        struct array_element *elem = s2n_array_add(array);
+    for (int i = 1; i < NUM_OF_ELEMENTS; i++) {
+        struct array_element *elem = s2n_array_pushback(array);
         elem->first = elements[i].first;
         elem->second = elements[i].second;
     }
@@ -96,7 +81,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(array->capacity, 32);
     EXPECT_EQUAL(array->num_of_elements, 17);
     EXPECT_EQUAL(array->element_size, element_size);
-    EXPECT_SUCCESS(memcmp(array->elements, mem.data, num_of_elements * element_size));
+    EXPECT_SUCCESS(memcmp(array->mem.data, elements, NUM_OF_ELEMENTS * element_size));
 
     /* Insert element at given index */
     struct array_element *insert_element = s2n_array_insert(array, 16);
@@ -129,27 +114,13 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(after_removed_element->first, elements[1].first);
     EXPECT_EQUAL(after_removed_element->second, elements[1].second);
 
-    /* Validate struct with same member value already exists using binary search */
-    struct array_element find_element = { 10 , 'a' + 10};
-    EXPECT_EQUAL(-1, s2n_array_binary_search(0,
-                                             array->num_of_elements - 1,
-                                             array,
-                                             &find_element,
-                                             s2n_binary_search_comparator));
-
-    /* Find insert index of a struct based on increasing order of one of it's members */
-    struct array_element add_largest_element = { 25 , 'a' + 25};
-    int index = array->num_of_elements;
-    EXPECT_EQUAL(index, s2n_array_binary_search(0,
-                                                array->num_of_elements - 1,
-                                                array,
-                                                &add_largest_element,
-                                                s2n_binary_search_comparator));
-
     /* Done with the array, make sure it can be freed */
     EXPECT_SUCCESS(s2n_array_free(array));
 
-    EXPECT_SUCCESS(s2n_free(&mem));
-
+    /* Check what happens if there is an integer overflow */
+    /* 0xF00000F0 * 16 = 3840 (in 32 bit arithmatic) */
+    EXPECT_NULL(array = s2n_array_new(0xF00000F0));
+    EXPECT_NOT_NULL(array = s2n_array_new(240));
+    EXPECT_SUCCESS(s2n_array_free(array));
     END_TEST();
 }

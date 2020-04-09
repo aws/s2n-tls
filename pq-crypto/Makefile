@@ -1,5 +1,5 @@
 #
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -20,24 +20,42 @@ BCS1=$(addprefix $(BITCODE_DIR), $(BCS_11))
 
 .PHONY : all
 all: $(OBJS)
-	$(MAKE) -C bike
-	$(MAKE) -C sike
+	$(MAKE) -C bike_r1
+	$(MAKE) -C bike_r2
+	$(MAKE) -C sike_r1
+	$(MAKE) -C sike_r2
 
-.PHONY : bc
-bc: $(BCS1)
-	$(MAKE) -C sike bc
+.PHONY : sike_r1_bc
+sike_r1_bc: $(BCS1)
+	$(MAKE) -C sike_r1 bc
+
+.PHONY : sike_r2_bc
+sike_r2_bc: $(BCS1)
+	$(MAKE) -C sike_r2 bc
+
+.PHONY : bike_r1_bc
+bike_r1_bc: $(BCS1)
+	$(MAKE) -C bike_r1 bc
+
+.PHONY : bike_r2_bc
+bike_r2_bc: $(BCS1)
+	$(MAKE) -C bike_r2 bc
 
 .PHONY : run-gcov
 run-gcov: gcov
-	$(MAKE) -C sike gcov
+	$(MAKE) -C sike_r1 gcov
+	$(MAKE) -C sike_r2 gcov
 
 .PHONY : run-lcov
 run-lcov: lcov
-	$(MAKE) -C sike lcov
+	$(MAKE) -C sike_r1 lcov
+	$(MAKE) -C sike_r2 lcov
 
 .PHONY : clean
 clean: decruft
-	${MAKE} -C bike decruft
-	${MAKE} -C sike decruft
+	$(MAKE) -C bike_r1 decruft
+	$(MAKE) -C bike_r2 decruft
+	$(MAKE) -C sike_r1 decruft
+	$(MAKE) -C sike_r2 decruft
 
 include ../s2n.mk

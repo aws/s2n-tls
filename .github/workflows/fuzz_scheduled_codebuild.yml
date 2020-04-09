@@ -1,0 +1,72 @@
+---
+name: s2nFuzzScheduled
+
+on:
+  schedule:
+    - cron: '0 13 * * *'
+jobs:
+  fuzz:
+    if: contains(github.repository, 'private-s2n-fuzz')
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        openssl_version:
+          - openssl-1.1.1
+        specific_test:
+          - s2n_bike_r1_fuzz_test
+          - s2n_bike_r2_fuzz_test
+          - s2n_certificate_extensions_parse_test
+          - s2n_client_cert_recv_test
+          - s2n_client_cert_req_recv_test
+          - s2n_client_cert_verify_recv_test
+          - s2n_client_fuzz_test
+          - s2n_client_hello_recv_fuzz_test
+          - s2n_client_key_recv_fuzz_test
+          - s2n_encrypted_extensions_recv_test
+          - s2n_extensions_client_key_share_recv_test
+          - s2n_extensions_client_supported_versions_recv_test
+          - s2n_extensions_server_key_share_recv_test
+          - s2n_extensions_server_supported_versions_recv_test
+          - s2n_hybrid_ecdhe_bike_r1_fuzz_test
+          - s2n_hybrid_ecdhe_bike_r2_fuzz_test
+          - s2n_hybrid_ecdhe_sike_r1_fuzz_test
+          - s2n_hybrid_ecdhe_sike_r2_fuzz_test
+          - s2n_openssl_diff_pem_parsing_test
+          - s2n_recv_client_supported_groups_test
+          - s2n_select_server_cert_test
+          - s2n_server_cert_recv_test
+          - s2n_server_extensions_recv_test
+          - s2n_server_fuzz_test
+          - s2n_server_hello_recv_test
+          - s2n_sike_r1_fuzz_test
+          - s2n_sike_r2_fuzz_test
+          - s2n_stuffer_pem_fuzz_test
+      fail-fast: false
+    steps:
+      - uses: actions/setup-node@v1
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+      - name: S2n Fuzz CodeBuild
+        uses: aws-actions/aws-codebuild-run-build@master
+        with:
+          project-name: 's2nGithubCodebuild'
+          env-vars-for-codebuild: |
+            S2N_LIBCRYPTO,
+            TESTS,
+            LATEST_CLANG,
+            FUZZ_TESTS,
+            FUZZ_TIMEOUT_SEC,
+            requester,
+            event-name
+        env:
+          S2N_LIBCRYPTO: ${{ matrix.openssl_version }}
+          TESTS: "fuzz"
+          FUZZ_TESTS: ${{ matrix.specific_test }}
+          LAGEST_CLANG: "true"
+          FUZZ_TIMEOUT_SEC: 21000
+          requester: ${{ github.actor }}
+          event-name: ${{ github.event_name }}

@@ -1,0 +1,289 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+#     http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+
+################################################################
+# This Makefile is the base makefile for CBMC proofs in this repository
+# Consumers of this makefile are expected to set the relevant variables
+# e.g. ENTRY, CBMCFLAGS, UNWINDSET etc
+# and then include this makefile.  To see how to use this makefile, take a look
+# at any of the existing proofs in this repository.
+#
+# This makefile is designed so that all files created during a proof are
+# placed in the proof directory, or subdirectories of it.
+# In particular, all gotos are built into the "gotos" folder, and logs go into
+# the "logs" folder. This means that the main source directories are untouched by
+# doing a build, and should make it safe to simultaniously build multiple proofs,
+# including proofs with different configurations and -D defines.
+#
+# Dependency handling in this file may not be perfect.  It is recommended that
+# you "make clean" or "make veryclean" before rerunning a proof.
+
+SHELL=/bin/bash
+
+default: report
+
+# Use `sinclude` to include Makefile.local if it exists. This provides a way to override the defaults
+sinclude Makefile.local
+
+################################################################
+# Define some constants that are hard to reference otherwise
+SPACE :=$() $()
+COMMA :=,
+
+################################################################
+# Paths to binaries
+# By default, use the version on your path; this can be overriden to select particular
+# versions of the tools. /usr/bin/goto-analyzer or ${HOME}/sw/goto-analyzer etc
+CBMC ?= cbmc
+GOTO_ANALYZER ?= goto-analyzer
+GOTO_CC ?= goto-cc
+GOTO_INSTRUMENT ?= goto-instrument
+VIEWER ?= cbmc-viewer
+
+################################################################
+# Setup directory aliases
+SRCDIR ?= $(abspath ../../../..)
+HELPERDIR ?= $(SRCDIR)/tests/cbmc
+PROOFDIR = $(abspath .)
+GOTODIR = $(PROOFDIR)/gotos
+LOGDIR = $(PROOFDIR)/logs
+
+################################################################
+# Useful macros for running commands
+
+#1: command, 2: flags, 3: log file
+DO_AND_LOG_COMMAND = $(1) $(2) 2>&1 | tee $(3); exit $${PIPESTATUS[0]}
+
+#1: command, 2: flags, 3: log file
+# CBMC uses the special error-code 10 to signify that it detected an assertion violation.  Continue the build so we can output the trace.
+DO_AND_LOG_IGNORING_ERROR_10 =  $(1) $(2) 2>&1 | tee $(3); if [ $${PIPESTATUS[0]} -ne 10 ]; then exit $${PIPESTATUS[0]}; fi
+
+#1: flags, 2: source, 3: target
+DO_GOTO_ANALYZER = $(call DO_AND_LOG_COMMAND,$(GOTO_ANALYZER),$(CBMC_VERBOSITY) $(1) $(2) $(3), $(call LOG_FROM_ENTRY,$(3)))
+
+#1: flags, 2: source, 3: target
+DO_GOTO_CC =  $(call DO_AND_LOG_COMMAND,$(GOTO_CC),$(CBMC_VERBOSITY) $(1) $(2) -o $(3), $(call LOG_FROM_ENTRY,$(3)))
+
+#1: flags, 2: source, 3: target
+DO_GOTO_INSTRUMENT = $(call DO_AND_LOG_COMMAND,$(GOTO_INSTRUMENT),$(CBMC_VERBOSITY) $(1) $(2) $(3), $(call LOG_FROM_ENTRY,$(3)))
+
+#1: flags, 2: source, 3: logfile
+DO_CBMC =  $(call DO_AND_LOG_IGNORING_ERROR_10,$(CBMC),$(CBMC_VERBOSITY) $(1) $(2), $(3))
+
+#1: message 2: source 3: dest 
+DO_NOOP_COPY = cp $(2) $(3); echo $(1) | tee $(call LOG_FROM_ENTRY,$(3))
+
+
+################################################################
+# Useful macros translating filenames
+C_FROM_GOTO = $(patsubst $(GOTODIR)%,$(SRCDIR)%,$(1:.goto=.c))
+GOTO_FROM_C = $(patsubst $(SRCDIR)%,$(GOTODIR)%,$(1:.c=.goto))
+LOG_FROM_ENTRY = $(LOGDIR)/$(notdir $(1:.goto=.log))
+LOG_FROM_GOTO = $(patsubst $(GOTODIR)%,$(LOGDIR)%,$(1:.goto=.log))
+
+################################################################
+# Default CBMC flags
+CBMCFLAGS += --bounds-check
+CBMCFLAGS += --div-by-zero-check
+CBMCFLAGS += --float-overflow-check
+CBMCFLAGS += --nan-check
+CBMCFLAGS += --pointer-check
+CBMCFLAGS += --pointer-overflow-check
+CBMCFLAGS += --signed-overflow-check
+CBMCFLAGS += --undefined-shift-check
+CBMCFLAGS += --unsigned-overflow-check
+CBMCFLAGS += --unwind 1
+CBMCFLAGS += --unwinding-assertions
+
+################################################################
+# Verbosity
+# 0 none
+# 1 only errors
+# 2 + warnings
+# 4 + results
+# 6 + status/phase information
+# 8 + statistical information
+# 9 + progress information
+# 10 + debug info
+CBMC_VERBOSITY ?= --verbosity 4
+
+################################################################
+# Setup the unwindset
+# TODO: CBMC should accept multiple unwindset flags, making the substutions here
+# unnecessary.
+# Tracked in https://github.com/diffblue/cbmc/issues/5185
+ifneq ($(UNWINDSET),)
+CBMC_UNWINDSET := --unwindset $(subst $(SPACE),$(COMMA),$(strip $(UNWINDSET)))
+endif
+CBMCFLAGS += $(CBMC_UNWINDSET)
+
+################################################################
+# Set C compiler defines
+CBMC_OBJECT_BITS ?= 6
+CBMCFLAGS +=  --object-bits $(CBMC_OBJECT_BITS)
+DEFINES += -DCBMC_OBJECT_BITS=$(CBMC_OBJECT_BITS)
+DEFINES += -DCBMC=1
+
+################################################################
+# Setup include directory order
+# HELPERDIR must go before any other includes to override default
+# implementations by stubs
+INC += -I$(HELPERDIR)/include/
+INC += -I$(SRCDIR)
+INC += -I$(SRCDIR)/api
+
+################################################################
+# Enables costly checks (e.g. ones that contain loops)
+# Whether a proof needs these checks should be decided on a proof by proof basis.  
+# Checks can be enabled by setting AWS_DEEP_CHECKS to 1 in the makefile of the proof that requires them
+AWS_DEEP_CHECKS ?= 0
+DEFINES += -DAWS_DEEP_CHECKS=$(AWS_DEEP_CHECKS)
+
+################################################################
+# Remove function bodies that are not used in the proofs. 
+# Removing the function from the goto program helps CBMC's
+# function pointer analysis
+
+# We override abort() to be assert(0)
+ABSTRACTIONS += $(HELPERDIR)/stubs/abort_override_assert_false.c
+REMOVE_FUNCTION_BODY += --remove-function-body abort
+
+# Users can remove additonal functions using this paramater
+REMOVE_FUNCTION_BODY += $(ADDITIONAL_REMOVE_FUNCTION_BODY)
+
+################################################################
+# Determine the names of the goto files to build
+ENTRY_GOTO = $(GOTODIR)/$(ENTRY)
+
+################################################################
+# Temporarily disable UNWIND_GOTO, SIMPLIFY until the feature is
+# stable
+UNWIND_GOTO ?= 0
+SIMPLIFY ?= 0
+
+################################################################
+# Build targets that make the relevant .goto files
+
+# Here, whenever there is a change in any of ANSI-C source
+# dependency files, make will take action. However, to make
+# sure changes in the headers files will also trigger make,
+# the user must run make clean first.
+$(ENTRY_GOTO)0.goto: $(ENTRY).c $(DEPENDENCIES)
+	mkdir -p $(dir $@)
+	mkdir -p $(dir $(call LOG_FROM_ENTRY,$@))
+	$(call DO_GOTO_CC,--export-function-local-symbols --function $(ENTRY) $(INC) $(DEFINES),$^,$@)
+
+# Removes specified function bodies. This allows us to replace
+# function definitions with ABSTRACTIONS.
+$(ENTRY_GOTO)1.goto: $(ENTRY_GOTO)0.goto
+ifeq ($(REMOVE_FUNCTION_BODY),"")
+	$(call DO_NOOP_COPY,"Not removing function bodies",$<,$@)
+else
+	$(call DO_GOTO_INSTRUMENT,$(REMOVE_FUNCTION_BODY),$<,$@)
+endif
+
+# ABSTRACTIONS is a list of function stubs to use. If a function body
+# is missing and is not abstracted, then it returnes a non
+# deterministic value.
+$(ENTRY_GOTO)2.goto: $(ENTRY_GOTO)1.goto
+ifeq ($(ABSTRACTIONS),"")
+	$(call DO_NOOP_COPY,"Not implementing abstractions",$<,$@)
+else
+	$(call DO_GOTO_CC,--function $(ENTRY) $(ABSTRACTIONS) $(INC) $(DEFINES),$<,$@)
+endif
+
+# Simplify and constant propagation may benefit from unwinding first
+$(ENTRY_GOTO)3.goto: $(ENTRY_GOTO)2.goto
+ifeq ($(UNWIND_GOTO),1)
+	$(call DO_GOTO_INSTRUMENT,$(UNWINDING),$<,$@)
+else
+	$(call DO_NOOP_COPY,"Not unwinding goto program",$<,$@)
+endif
+
+# Skip simplify (and hence generate-function-body) until missing source locations debugged
+# --generate-function-body requires a regular expression specifying the names of functions
+# that a body is to be generated for: ".*" is all functions
+$(ENTRY_GOTO)4.goto: $(ENTRY_GOTO)3.goto
+ifeq ($(SIMPLIFY),1)
+	$(call DO_GOTO_INSTRUMENT,--generate-function-body '.*',$<,$@)
+else
+	$(call DO_NOOP_COPY,"Not generating-function-bodies in goto program",$<,$@)
+endif
+
+# Skip simplify (and hence generate-function-body) until missing source locations debugged
+$(ENTRY_GOTO)5.goto: $(ENTRY_GOTO)4.goto
+ifeq ($(SIMPLIFY),1)
+	$(call DO_GOTO_ANALYZER,--simplify,$@,$<)
+else
+	$(call DO_NOOP_COPY,"Not simplfying goto program",$<,$@)
+endif
+
+# Simplify the goto program by removing any unused function bodies
+$(ENTRY_GOTO)6.goto: $(ENTRY_GOTO)5.goto
+	$(call DO_GOTO_INSTRUMENT,--drop-unused-functions,$<,$@)
+
+# Simplify the goto program by slicing away initializations of unused
+# global variables
+$(ENTRY_GOTO)7.goto: $(ENTRY_GOTO)6.goto
+	$(call DO_GOTO_INSTRUMENT,--slice-global-inits,$<,$@)
+
+$(ENTRY_GOTO).goto: $(ENTRY_GOTO)7.goto
+	cp $< $@
+
+goto: $(ENTRY_GOTO).goto
+	echo $(DEPENDENT_GOTOS)
+
+################################################################
+# Targets to run the analysis commands
+logs/cbmc.log: $(ENTRY_GOTO).goto
+	$(call DO_CBMC,$(CBMCFLAGS) --trace,$<,$@)
+
+logs/property.xml: $(ENTRY_GOTO).goto
+	$(call DO_CBMC,$(CBMCFLAGS) --show-properties --xml-ui,$<,$@)
+
+logs/coverage.xml: $(ENTRY_GOTO).goto
+	$(call DO_CBMC,$(filter-out --unwinding-assertions,$(CBMCFLAGS)) --cover location --xml-ui,$<,$@)
+
+cbmc: logs/cbmc.log
+
+property: logs/property.xml
+
+coverage: logs/coverage.xml
+
+report: logs/cbmc.log logs/property.xml logs/coverage.xml
+	$(VIEWER) \
+	--block logs/coverage.xml \
+	--goto $(ENTRY_GOTO).goto \
+	--htmldir html \
+	--property logs/property.xml \
+	--result logs/cbmc.log \
+	--srcdir $(SRCDIR)
+
+################################################################
+# Targets to clean up after ourselves
+clean:
+	$(RM) *.goto
+	$(RM) $(DEPENDENT_GOTOS)
+	$(RM) *.log
+	$(RM) cbmc.log property.xml coverage.xml TAGS*
+	$(RM) *~ \#*
+	$(RM) -r gotos
+
+
+veryclean: clean
+	$(RM) -r html
+	$(RM) -r logs
+
+.PHONY: setup_dependencies cbmc property coverage report clean veryclean testdeps
+
+include $(HELPERDIR)/proofs/Makefile.cbmc_batch

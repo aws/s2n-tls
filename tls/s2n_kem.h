@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -44,8 +44,14 @@ struct s2n_iana_to_kem {
     uint8_t kem_count;
 };
 
-extern const struct s2n_kem s2n_bike_1_level_1_r1;
+#if !defined(S2N_NO_PQ)
+
+extern const struct s2n_kem s2n_bike1_l1_r1;
+extern const struct s2n_kem s2n_bike1_l1_r2;
 extern const struct s2n_kem s2n_sike_p503_r1;
+extern const struct s2n_kem s2n_sike_p434_r2;
+
+#endif
 
 extern int s2n_kem_generate_keypair(struct s2n_kem_keypair *kem_keys);
 
@@ -55,8 +61,12 @@ extern int s2n_kem_encapsulate(const struct s2n_kem_keypair *kem_keys, struct s2
 extern int s2n_kem_decapsulate(const struct s2n_kem_keypair *kem_params, struct s2n_blob *shared_secret,
                                const struct s2n_blob *ciphertext);
 
-extern int s2n_kem_find_supported_kem(struct s2n_blob *client_kem_names, const struct s2n_kem *server_kem_pref_list,
-                                      const int num_server_supported_kems, const struct s2n_kem **matching_kem);
+extern int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], struct s2n_blob *client_kem_ids,
+                                      const struct s2n_kem *server_kem_pref_list[], const uint8_t num_server_supported_kems,
+                                      const struct s2n_kem **chosen_kem);
+
+extern int s2n_choose_kem_without_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_kem *server_kem_pref_list[],
+                                        const uint8_t num_server_supported_kems, const struct s2n_kem **chosen_kem);
 
 extern int s2n_kem_free(struct s2n_kem_keypair *kem_keys);
 

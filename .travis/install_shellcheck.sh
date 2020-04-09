@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ fi
 TRAVIS_PLATFORM=$1
 
 if [ "$TRAVIS_PLATFORM" == "linux" ]; then
-    which shellcheck || sudo apt-get -qq install shellcheck -y
+    which shellcheck || (sudo apt-get -qq update && sudo apt-get -qq install shellcheck -y)
 elif [ "$TRAVIS_PLATFORM" == "osx" ]; then
     # Installing an existing package is a "failure" in brew
     brew install shellcheck || true ;

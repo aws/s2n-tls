@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 
 #include "stuffer/s2n_stuffer.h"
 
+#include "crypto/s2n_ecc_evp.h"
 #include "crypto/s2n_hash.h"
 
 #include "utils/s2n_blob.h"
@@ -36,6 +37,7 @@ typedef struct s2n_ecdsa_key s2n_ecdsa_public_key;
 typedef struct s2n_ecdsa_key s2n_ecdsa_private_key;
 
 extern int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey);
+extern int s2n_ecdsa_pkey_matches_curve(const struct s2n_ecdsa_key *ecdsa_key, const struct s2n_ecc_named_curve *curve);
 
 extern int s2n_evp_pkey_to_ecdsa_public_key(s2n_ecdsa_public_key *ecdsa_key, EVP_PKEY *pkey);
 extern int s2n_evp_pkey_to_ecdsa_private_key(s2n_ecdsa_private_key *ecdsa_key, EVP_PKEY *pkey);

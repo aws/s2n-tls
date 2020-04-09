@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -12,6 +12,8 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
+/* Target Functions: s2n_client_cert_verify_recv s2n_get_and_validate_negotiated_signature_scheme s2n_pkey_verify */
 
 #include <openssl/crypto.h>
 #include <openssl/err.h>
@@ -135,43 +137,47 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 #endif
 
     GUARD(s2n_init());
-    GUARD(atexit(s2n_fuzz_atexit));
+    GUARD_STRICT(atexit(s2n_fuzz_atexit));
 
     /* Set up Server Config */
     server_config = s2n_config_new();
     GUARD(s2n_config_add_cert_chain_and_key(server_config, certificate_chain, private_key));
-
-    s2n_cert_type cert_type;
+    s2n_pkey_type pkey_type;
     S2N_ERROR_IF(s2n_config_get_num_default_certs(server_config) == 0, S2N_ERR_NUM_DEFAULT_CERTIFICATES);
     struct s2n_cert_chain_and_key *cert = s2n_config_get_single_default_cert(server_config);
     notnull_check(cert);
-    GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &cert_type, &cert->cert_chain->head->raw));
+    GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &cert->cert_chain->head->raw));
 
     return 0;
 }
 
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
-    for(int version = 0; version < sizeof(TLS_VERSIONS); version++){
-        /* Setup */
-        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-        notnull_check(server_conn);
-        server_conn->actual_protocol_version = TLS_VERSIONS[version];
-        GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
-        server_conn->secure.client_public_key.key.rsa_key.rsa = public_key.key.rsa_key.rsa;
+    /* We need at least one byte of input to set parameters */
+    S2N_FUZZ_ENSURE_MIN_LEN(len, 1);
 
-        /* Run Test
-         * Do not use GUARD macro here since the connection memory hasn't been freed.
-         */
-        s2n_client_cert_verify_recv(server_conn);
+    /* Setup */
+    struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+    notnull_check(server_conn);
+    GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
+    server_conn->secure.client_public_key.key.rsa_key.rsa = public_key.key.rsa_key.rsa;
 
-        /* Set the client_rsa_public_key so that it is not free'd during s2n_connection_free since it will be reused in
-         * later fuzz tests  */
-        server_conn->secure.client_public_key.key.rsa_key.rsa = NULL;
+    /* Pull a byte off the libfuzzer input and use it to set parameters */
+    uint8_t randval = 0;
+    GUARD(s2n_stuffer_read_uint8(&server_conn->handshake.io, &randval));
+    server_conn->actual_protocol_version = TLS_VERSIONS[randval % s2n_array_len(TLS_VERSIONS)];
 
-        /* Cleanup */
-        GUARD(s2n_connection_free(server_conn));
-    }
+    /* Run Test
+     * Do not use GUARD macro here since the connection memory hasn't been freed.
+     */
+    s2n_client_cert_verify_recv(server_conn);
+
+    /* Set the client_rsa_public_key so that it is not free'd during s2n_connection_free since it will be reused in
+     * later fuzz tests  */
+    server_conn->secure.client_public_key.key.rsa_key.rsa = NULL;
+
+    /* Cleanup */
+    GUARD(s2n_connection_free(server_conn));
 
     return 0;
 }

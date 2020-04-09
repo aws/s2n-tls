@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -32,9 +32,11 @@
 : "${LIBFUZZER_INSTALL_DIR:=$(pwd)/test-deps/libfuzzer}"
 : "${LATEST_CLANG_INSTALL_DIR:=$(pwd)/test-deps/clang}"
 : "${SCAN_BUILD_INSTALL_DIR:=$(pwd)/test-deps/scan-build}"
+: "${OPENSSL_0_9_8_INSTALL_DIR:=$(pwd)/test-deps/openssl-0.9.8}"
 : "${OPENSSL_1_1_1_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.1.1}"
 : "${OPENSSL_1_0_2_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.0.2}"
 : "${OPENSSL_1_0_2_FIPS_INSTALL_DIR:=$(pwd)/test-deps/openssl-1.0.2-fips}"
+: "${BORINGSSL_INSTALL_DIR:=$(pwd)/test-deps/boringssl}"
 : "${LIBRESSL_INSTALL_DIR:=$(pwd)/test-deps/libressl-2.6.4}"
 : "${CPPCHECK_INSTALL_DIR:=$(pwd)/test-deps/cppcheck}"
 : "${CTVERIF_INSTALL_DIR:=$(pwd)/test-deps/ctverif}"
@@ -45,6 +47,7 @@
 unamestr=$(uname)
 if [[ "$unamestr" == 'Linux' ]]; then
    : "${TRAVIS_OS_NAME:=linux}"
+   : "${UBUNTU_VERSION:=$(lsb_release -rs)}"
 elif [[ "$unamestr" == 'Darwin' ]]; then
    : "${TRAVIS_OS_NAME:=osx}"
 fi
@@ -64,9 +67,11 @@ export Z3_INSTALL_DIR
 export LIBFUZZER_INSTALL_DIR
 export LATEST_CLANG_INSTALL_DIR
 export SCAN_BUILD_INSTALL_DIR
+export OPENSSL_0_9_8_INSTALL_DIR
 export OPENSSL_1_1_1_INSTALL_DIR
 export OPENSSL_1_0_2_INSTALL_DIR
 export OPENSSL_1_0_2_FIPS_INSTALL_DIR
+export BORINGSSL_INSTALL_DIR
 export LIBRESSL_INSTALL_DIR
 export CPPCHECK_INSTALL_DIR
 export CTVERIF_INSTALL_DIR
@@ -74,13 +79,10 @@ export SIDETRAIL_INSTALL_DIR
 export OPENSSL_1_1_X_MASTER_INSTALL_DIR
 export FUZZ_TIMEOUT_SEC
 export TRAVIS_OS_NAME
+export UBUNTU_VERSION
 export S2N_CORKED_IO
+export S2N_NO_PQ_ASM
 
-# Add all of our test dependencies to the PATH. Use Openssl 1.1.1 so the latest openssl is used for s_client
-# integration tests.
-export PATH=$PYTHON_INSTALL_DIR/bin:$OPENSSL_1_1_1_INSTALL_DIR/bin:$GNUTLS_INSTALL_DIR/bin:$SAW_INSTALL_DIR/bin:$Z3_INSTALL_DIR/bin:$SCAN_BUILD_INSTALL_DIR/bin:$LATEST_CLANG_INSTALL_DIR/bin:`pwd`/.travis/:$PATH
-export LD_LIBRARY_PATH=$OPENSSL_1_1_1_INSTALL_DIR/lib:$LD_LIBRARY_PATH; 
-export DYLD_LIBRARY_PATH=$OPENSSL_1_1_1_INSTALL_DIR/lib:$LD_LIBRARY_PATH;
 
 # Select the libcrypto to build s2n against. If this is unset, default to the latest stable version(Openssl 1.1.1)
 if [[ -z $S2N_LIBCRYPTO ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_1_INSTALL_DIR ; fi
@@ -90,6 +92,7 @@ if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2-fips" ]]; then
     export LIBCRYPTO_ROOT=$OPENSSL_1_0_2_FIPS_INSTALL_DIR ; 
     export S2N_TEST_IN_FIPS_MODE=1 ; 
 fi
+if [[ "$S2N_LIBCRYPTO" == "boringssl" ]]; then export LIBCRYPTO_ROOT=$BORINGSSL_INSTALL_DIR ; fi
 
 if [[ "$S2N_LIBCRYPTO" == "libressl" ]]; then export LIBCRYPTO_ROOT=$LIBRESSL_INSTALL_DIR ; fi
 
@@ -101,6 +104,7 @@ rm -rf libcrypto-root && ln -s "$LIBCRYPTO_ROOT" libcrypto-root
 export LIBFUZZER_ROOT=$LIBFUZZER_INSTALL_DIR
 
 echo "TRAVIS_OS_NAME=$TRAVIS_OS_NAME"
+echo "UBUNTU_VERSION=$UBUNTU_VERSION"
 echo "S2N_LIBCRYPTO=$S2N_LIBCRYPTO"
 echo "BUILD_S2N=$BUILD_S2N"
 echo "GCC_VERSION=$GCC_VERSION"

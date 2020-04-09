@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <s2n.h>
+#include <error/s2n_errno.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
@@ -33,7 +34,7 @@
 
 void print_s2n_error(const char *app_error)
 {
-    fprintf(stderr, "%s: '%s' : '%s'\n", app_error, s2n_strerror(s2n_errno, "EN"),
+    fprintf(stderr, "[%d] %s: '%s' : '%s'\n", getpid(), app_error, s2n_strerror(s2n_errno, "EN"),
             s2n_strerror_debug(s2n_errno, "EN"));
 }
 
@@ -44,7 +45,7 @@ int negotiate(struct s2n_connection *conn)
         if (s2n_negotiate(conn, &blocked) < 0) {
             fprintf(stderr, "Failed to negotiate: '%s'. %s\n", s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"));
             fprintf(stderr, "Alert: %d\n", s2n_connection_get_alert(conn));
-            return -1;
+            S2N_ERROR_PRESERVE_ERRNO();
         }
     } while (blocked);
 
@@ -56,19 +57,19 @@ int negotiate(struct s2n_connection *conn)
 
     if ((client_hello_version = s2n_connection_get_client_hello_version(conn)) < 0) {
         fprintf(stderr, "Could not get client hello version\n");
-        return -1;
+        S2N_ERROR(S2N_ERR_CLIENT_HELLO_VERSION);
     }
     if ((client_protocol_version = s2n_connection_get_client_protocol_version(conn)) < 0) {
         fprintf(stderr, "Could not get client protocol version\n");
-        return -1;
+        S2N_ERROR(S2N_ERR_CLIENT_PROTOCOL_VERSION);
     }
     if ((server_protocol_version = s2n_connection_get_server_protocol_version(conn)) < 0) {
         fprintf(stderr, "Could not get server protocol version\n");
-        return -1;
+        S2N_ERROR(S2N_ERR_SERVER_PROTOCOL_VERSION);
     }
     if ((actual_protocol_version = s2n_connection_get_actual_protocol_version(conn)) < 0) {
         fprintf(stderr, "Could not get actual protocol version\n");
-        return -1;
+        S2N_ERROR(S2N_ERR_ACTUAL_PROTOCOL_VERSION);
     }
     printf("CONNECTED:\n");
     printf("Client hello version: %d\n", client_hello_version);
@@ -110,6 +111,9 @@ int echo(struct s2n_connection *conn, int sockfd)
     readers[1].fd = STDIN_FILENO;
     readers[1].events = POLLIN;
 
+    /* Reset errno so that we can't inherit the errno == EINTR exit condition. */
+    errno = 0;
+
     /* Act as a simple proxy between stdin and the SSL connection */
     int p;
     s2n_blocked_status blocked;
@@ -146,12 +150,11 @@ int echo(struct s2n_connection *conn, int sockfd)
     
                 /* Read as many bytes as we think we can */
     	    do {
-    	        errno = 0;
-    		bytes_read = read(STDIN_FILENO, buffer, bytes_available);
-    		if(bytes_read < 0 && errno != EINTR){
-    		  fprintf(stderr, "Error reading from stdin\n");
-    		  exit(1);
-    		}
+    	        bytes_read = read(STDIN_FILENO, buffer, bytes_available);
+    	        if(bytes_read < 0 && errno != EINTR){
+    	            fprintf(stderr, "Error reading from stdin\n");
+    	            exit(1);
+    	        }
     	    } while (bytes_read < 0);
     
                 if (bytes_read == 0) {
@@ -180,13 +183,13 @@ int echo(struct s2n_connection *conn, int sockfd)
                         (readers[0].revents & POLLERR ) ? 1 : 0,
                         (readers[0].revents & POLLHUP ) ? 1 : 0,
                         (readers[0].revents & POLLNVAL ) ? 1 : 0);
-                return -1;
+                S2N_ERROR(S2N_ERR_POLLING_FROM_SOCKET);
             }
             if (readers[1].revents & (POLLERR | POLLNVAL)) {
                 fprintf(stderr, "Error polling from socket: err=%d nval=%d\n",
                         (readers[1].revents & POLLERR ) ? 1 : 0,
                         (readers[1].revents & POLLNVAL ) ? 1 : 0);
-                return -1;
+                S2N_ERROR(S2N_ERR_POLLING_FROM_SOCKET);
             }
         }
     } while (p < 0 && errno == EINTR);

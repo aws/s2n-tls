@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -14,128 +14,197 @@
  */
 
 #include "crypto/s2n_fips.h"
+#include "crypto/s2n_rsa_signing.h"
+#include "crypto/s2n_rsa_pss.h"
 #include "error/s2n_errno.h"
+
+#include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_kex.h"
 #include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_signature_algorithms.h"
+#include "tls/s2n_signature_scheme.h"
+
 #include "utils/s2n_safety.h"
 
-static int s2n_sig_hash_algs_pairs_set(struct s2n_sig_hash_alg_pairs *sig_hash_algs, uint8_t sig_alg, uint8_t hash_alg)
+static int s2n_signature_scheme_valid_to_offer(struct s2n_connection *conn, const struct s2n_signature_scheme *scheme)
 {
-    /* Skip unknown or unsupported values. If we receive any of these in the signature_algorithms extension 
-     * or CertificateRequest, we can ignore them and fall back to using the default signature-hash algorithm combination */
-    if (hash_alg < TLS_HASH_ALGORITHM_COUNT && sig_alg < TLS_SIGNATURE_ALGORITHM_COUNT) {
-        sig_hash_algs->matrix[sig_alg][hash_alg] = 1;
+    /* We don't know what protocol version we will eventually negotiate, but we know that it won't be any higher. */
+    gte_check(conn->actual_protocol_version, scheme->minimum_protocol_version);
+
+    if (!s2n_is_rsa_pss_signing_supported()) {
+        ne_check(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_RSAE);
+    }
+
+    if (!s2n_is_rsa_pss_certs_supported()) {
+        ne_check(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
     }
 
     return 0;
 }
 
-static int s2n_sig_hash_alg_pairs_get(struct s2n_sig_hash_alg_pairs *sig_hash_algs, uint8_t sig_alg, uint8_t hash_alg)
+static int s2n_signature_scheme_valid_to_accept(struct s2n_connection *conn, const struct s2n_signature_scheme *scheme)
 {
-    S2N_ERROR_IF(hash_alg >= TLS_HASH_ALGORITHM_COUNT, S2N_ERR_HASH_INVALID_ALGORITHM);
-    S2N_ERROR_IF(sig_alg >= TLS_SIGNATURE_ALGORITHM_COUNT, S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    notnull_check(scheme);
 
-    return sig_hash_algs->matrix[sig_alg][hash_alg];
+    GUARD(s2n_signature_scheme_valid_to_offer(conn, scheme));
+
+    if (scheme->maximum_protocol_version != S2N_UNKNOWN_PROTOCOL_VERSION) {
+        lte_check(conn->actual_protocol_version, scheme->maximum_protocol_version);
+    }
+
+    return 0;
 }
 
-int s2n_set_signature_hash_pair_from_preference_list(struct s2n_connection *conn, struct s2n_sig_hash_alg_pairs *sig_hash_algs, 
-                                                        s2n_hash_algorithm *hash, s2n_signature_algorithm *sig)
+static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
+                          struct s2n_signature_scheme *chosen_scheme_out)
 {
-    /* This function could be called in two places: after receiving the
-     * ClientHello and parsing the extensions and cipher suites, and after
-     * receiving the CertificateRequest which includes supported signature/hash
-     * pairs. In both cases, the cipher suite will have been set */
+    const struct s2n_signature_preferences *signature_preferences = conn->config->signature_preferences;
+    notnull_check(signature_preferences);
+
+    struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
+    notnull_check(cipher_suite);
+
+    for (int i = 0; i < signature_preferences->count; i++) {
+        const struct s2n_signature_scheme *candidate = signature_preferences->signature_schemes[i];
+
+        if (s2n_signature_scheme_valid_to_accept(conn, candidate) != S2N_SUCCESS) {
+            continue;
+        }
+
+        if (s2n_is_sig_scheme_valid_for_auth(conn, candidate) != S2N_SUCCESS) {
+            continue;
+        }
+
+        for (int j = 0; j < peer_wire_prefs->len; j++) {
+            uint16_t their_iana_val = peer_wire_prefs->iana_list[j];
+
+            if (candidate->iana_value == their_iana_val) {
+                *chosen_scheme_out = *candidate;
+                return S2N_SUCCESS;
+            }
+        }
+    }
+
+    S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_SCHEME);
+}
+
+int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn, struct s2n_stuffer *in,
+                                             struct s2n_signature_scheme *chosen_sig_scheme)
+{
+    uint16_t actual_iana_val;
+    GUARD(s2n_stuffer_read_uint16(in, &actual_iana_val));
+
+    const struct s2n_signature_preferences *signature_preferences = conn->config->signature_preferences;
+    notnull_check(signature_preferences);
+
+    for (int i = 0; i < signature_preferences->count; i++) {
+        const struct s2n_signature_scheme *candidate = signature_preferences->signature_schemes[i];
+
+        if (0 != s2n_signature_scheme_valid_to_accept(conn, candidate)) {
+            continue;
+        }
+
+        if (candidate->iana_value == actual_iana_val) {
+            *chosen_sig_scheme = *candidate;
+            return S2N_SUCCESS;
+        }
+    }
+
+    S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_SCHEME);
+}
+
+int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out)
+{
+    notnull_check(conn);
+    notnull_check(conn->secure.cipher_suite);
+    notnull_check(sig_scheme_out);
+
     s2n_authentication_method cipher_suite_auth_method = conn->secure.cipher_suite->auth_method;
 
     /* Default our signature digest algorithms. For TLS 1.2 this default is different and may be
      * overridden by the signature_algorithms extension. If the server chooses an ECDHE_ECDSA
      * cipher suite, this will be overridden to SHA1.
      */
-    s2n_hash_algorithm hash_alg_chosen = S2N_HASH_MD5_SHA1;
-    s2n_signature_algorithm sig_alg_chosen = S2N_SIGNATURE_RSA;
+    *sig_scheme_out = s2n_rsa_pkcs1_md5_sha1;
+
     if (cipher_suite_auth_method == S2N_AUTHENTICATION_ECDSA) {
-        sig_alg_chosen = S2N_SIGNATURE_ECDSA;
-        hash_alg_chosen = S2N_HASH_SHA1;
+        *sig_scheme_out = s2n_ecdsa_sha1;
     }
 
-    if (conn->actual_protocol_version == S2N_TLS12 || s2n_is_in_fips_mode()) {
-        hash_alg_chosen = S2N_HASH_SHA1;
+    /* Default RSA Hash Algorithm is SHA1 (instead of MD5_SHA1) if TLS 1.2 or FIPS mode */
+    if ((conn->actual_protocol_version >= S2N_TLS12 || s2n_is_in_fips_mode())
+            && (sig_scheme_out->sig_alg == S2N_SIGNATURE_RSA)) {
+        *sig_scheme_out = s2n_rsa_pkcs1_sha1;
     }
 
-    /* Override default if there were signature/hash pairs available for this signature algorithm */
-    for(int i = 0; i < sizeof(s2n_preferred_hashes) / sizeof(s2n_preferred_hashes[0]); i++) {
-        if (s2n_sig_hash_alg_pairs_get(sig_hash_algs, sig_alg_chosen, s2n_preferred_hashes[i]) == 1) {
-            /* Just set hash_alg_chosen because sig_alg_chosen was set above based on cert type */
-            hash_alg_chosen = s2n_hash_tls_to_alg[s2n_preferred_hashes[i]];
-            break;
-        }
-    }
-
-    *hash = hash_alg_chosen;
-    *sig = sig_alg_chosen;
-
-    return 0;
+    return S2N_SUCCESS;
 }
 
-int s2n_get_signature_hash_pair_if_supported(struct s2n_stuffer *in, s2n_hash_algorithm *hash_alg, s2n_signature_algorithm *signature_alg)
+int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
+                                                        struct s2n_signature_scheme *sig_scheme_out)
 {
-    uint8_t hash_algorithm;
-    uint8_t signature_algorithm;
+    notnull_check(conn);
+    notnull_check(sig_scheme_out);
 
-    GUARD(s2n_stuffer_read_uint8(in, &hash_algorithm));
-    GUARD(s2n_stuffer_read_uint8(in, &signature_algorithm));
+    struct s2n_signature_scheme chosen_scheme;
 
-    /* This function checks that the s2n_hash_algorithm and s2n_signature_algorithm sent in
-     * the stuffer is supported by the library's preference list before returning them
-     */
-    int sig_alg_matched = 0;
-    for (int i = 0; i < sizeof(s2n_preferred_signature_algorithms) / sizeof(s2n_preferred_signature_algorithms[0]); i++) {
-        if(s2n_preferred_signature_algorithms[i] == signature_algorithm) {
-            sig_alg_matched = 1;
-        }
-    }
-    if (sig_alg_matched) {
-        *signature_alg = signature_algorithm;
+    GUARD(s2n_choose_default_sig_scheme(conn, &chosen_scheme));
+
+    /* SignatureScheme preference list was first added in TLS 1.2. It will be empty in older TLS versions. */
+    if (peer_wire_prefs != NULL && peer_wire_prefs->len > 0) {
+        int result = s2n_choose_sig_scheme(conn, peer_wire_prefs, &chosen_scheme);
+
+        /* We require an exact match in TLS 1.3, but all previous versions can fall back to the default.
+         * The pre-TLS1.3 behavior is an intentional choice to maximize support. */
+        S2N_ERROR_IF(result != S2N_SUCCESS && conn->actual_protocol_version == S2N_TLS13,
+                S2N_ERR_INVALID_SIGNATURE_SCHEME);
     } else {
-        S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+        S2N_ERROR_IF(conn->actual_protocol_version == S2N_TLS13, S2N_ERR_EMPTY_SIGNATURE_SCHEME);
     }
 
-    int hash_matched = 0;
-    for (int j = 0; j < sizeof(s2n_preferred_hashes) / sizeof(s2n_preferred_hashes[0]); j++) {
-        if (s2n_preferred_hashes[j] == hash_algorithm) {
-            hash_matched = 1;
-            break;
-        }
-    }
-    if (hash_matched) {
-        *hash_alg = s2n_hash_tls_to_alg[hash_algorithm];
-    } else {
-        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
-    }
+    *sig_scheme_out = chosen_scheme;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
-int s2n_send_supported_signature_algorithms(struct s2n_stuffer *out)
+int s2n_send_supported_sig_scheme_list(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    /* The array of hashes and signature algorithms we support */
-    uint16_t preferred_hashes_len = sizeof(s2n_preferred_hashes) / sizeof(s2n_preferred_hashes[0]);
-    uint16_t num_signature_algs = 2;
-    uint16_t preferred_hashes_size = preferred_hashes_len * num_signature_algs * 2;
-    GUARD(s2n_stuffer_write_uint16(out, preferred_hashes_size));
+    const struct s2n_signature_preferences *signature_preferences = conn->config->signature_preferences;
+    notnull_check(signature_preferences);
 
-    for (int i =  0; i < preferred_hashes_len; i++) {
-        GUARD(s2n_stuffer_write_uint8(out, s2n_preferred_hashes[i]));
-        GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_ECDSA));
+    GUARD(s2n_stuffer_write_uint16(out, s2n_supported_sig_scheme_list_size(conn)));
 
-        GUARD(s2n_stuffer_write_uint8(out, s2n_preferred_hashes[i]));
-        GUARD(s2n_stuffer_write_uint8(out, TLS_SIGNATURE_ALGORITHM_RSA));
+    for (int i =  0; i < signature_preferences->count; i++) {
+        const struct s2n_signature_scheme *const scheme = signature_preferences->signature_schemes[i];
+        if (0 == s2n_signature_scheme_valid_to_offer(conn, scheme)) {
+            GUARD(s2n_stuffer_write_uint16(out, scheme->iana_value));
+        }
     }
+
     return 0;
 }
 
-int s2n_recv_supported_signature_algorithms(struct s2n_connection *conn, struct s2n_stuffer *in, struct s2n_sig_hash_alg_pairs *sig_hash_algs)
+int s2n_supported_sig_scheme_list_size(struct s2n_connection *conn)
+{
+    return s2n_supported_sig_schemes_count(conn) * TLS_SIGNATURE_SCHEME_LEN;
+}
+
+int s2n_supported_sig_schemes_count(struct s2n_connection *conn)
+{
+    const struct s2n_signature_preferences *signature_preferences = conn->config->signature_preferences;
+    notnull_check(signature_preferences);
+
+    uint8_t count = 0;
+    for (int i =  0; i < signature_preferences->count; i++) {
+        if (0 == s2n_signature_scheme_valid_to_offer(conn, signature_preferences->signature_schemes[i])) {
+            count ++;
+        }
+    }
+    return count;
+}
+
+int s2n_recv_supported_sig_scheme_list(struct s2n_stuffer *in, struct s2n_sig_scheme_list *sig_hash_algs)
 {
     uint16_t length_of_all_pairs;
     GUARD(s2n_stuffer_read_uint16(in, &length_of_all_pairs));
@@ -152,17 +221,19 @@ int s2n_recv_supported_signature_algorithms(struct s2n_connection *conn, struct 
 
     int pairs_available = length_of_all_pairs / 2;
 
-    uint8_t *hash_sig_pairs = s2n_stuffer_raw_read(in, pairs_available * 2);
-    notnull_check(hash_sig_pairs);
-
-    /* Store all of the pairs received. Preference order and whether or not the
-     * algorithms are even supported will factor in during selection */
-    for(int i = 0; i < pairs_available; i++) {
-        uint8_t hash_alg = hash_sig_pairs[2 * i];
-        uint8_t sig_alg = hash_sig_pairs[2 * i + 1];
-
-        GUARD(s2n_sig_hash_algs_pairs_set(sig_hash_algs, sig_alg, hash_alg));
+    if (pairs_available > TLS_SIGNATURE_SCHEME_LIST_MAX_LEN) {
+        S2N_ERROR(S2N_ERR_TOO_MANY_SIGNATURE_SCHEMES);
     }
     
+    sig_hash_algs->len = 0;
+
+    for (int i = 0; i < pairs_available; i++) {
+        uint16_t sig_scheme = 0;
+        GUARD(s2n_stuffer_read_uint16(in, &sig_scheme));
+
+        sig_hash_algs->iana_list[sig_hash_algs->len] = sig_scheme;
+        sig_hash_algs->len += 1;
+    }
+
     return 0;
 }

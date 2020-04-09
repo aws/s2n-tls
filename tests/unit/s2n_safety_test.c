@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -16,6 +16,33 @@
 #include "s2n_test.h"
 
 #include "utils/s2n_safety.h"
+
+#define CHECK_OVF_0(fn, type, a, b)             \
+  do {                                          \
+    type result_val;                            \
+    EXPECT_FAILURE(fn((a), (b), &result_val));  \
+  } while (0)
+
+
+#define CHECK_OVF(fn, type, a, b)               \
+  do {                                          \
+    CHECK_OVF_0(fn, type, a, b);                \
+    CHECK_OVF_0(fn, type, b, a);                \
+  } while (0)
+
+#define CHECK_NO_OVF_0(fn, type, a, b, r)       \
+  do {                                          \
+    type result_val;                            \
+    EXPECT_SUCCESS(fn((a), (b), &result_val));  \
+    EXPECT_EQUAL(result_val,(r));               \
+  } while (0)
+
+#define CHECK_NO_OVF(fn, type, a, b, r)         \
+  do {                                          \
+    CHECK_NO_OVF_0(fn, type, a, b, r);          \
+    CHECK_NO_OVF_0(fn, type, b, a, r);          \
+  } while (0)
+
 
 static int failure_gte()
 {
@@ -290,5 +317,69 @@ int main(int argc, char **argv)
         }
     }
 
+    CHECK_NO_OVF(s2n_mul_overflow, uint32_t, 0, 0, 0);
+    CHECK_NO_OVF(s2n_mul_overflow, uint32_t, 0, 1, 0);
+    CHECK_NO_OVF(s2n_mul_overflow, uint32_t, 0, ~0u, 0);
+    CHECK_NO_OVF(s2n_mul_overflow, uint32_t, 4, 5, 20);
+    CHECK_NO_OVF(s2n_mul_overflow, uint32_t, 1234, 4321, 5332114);
+
+    CHECK_NO_OVF(s2n_mul_overflow, uint32_t, 0xFFFFFFFF, 1, 0xFFFFFFFF);
+    CHECK_NO_OVF(s2n_mul_overflow, uint32_t, 0xFFFF, 1, 0xFFFF);
+    CHECK_NO_OVF(s2n_mul_overflow, uint32_t, 0xFFFF, 0xFFFF, 0xfffe0001u);
+    CHECK_NO_OVF(s2n_mul_overflow, uint32_t, 0x10000, 0xFFFF, 0xFFFF0000u);
+    CHECK_NO_OVF(s2n_mul_overflow, uint32_t, 0x10001, 0xFFFF, 0xFFFFFFFFu);
+    CHECK_NO_OVF(s2n_mul_overflow, uint32_t, 0x10001, 0xFFFE, 0xFFFEFFFEu);
+    CHECK_NO_OVF(s2n_mul_overflow, uint32_t, 0x10002, 0xFFFE, 0xFFFFFFFCu);
+    CHECK_OVF(s2n_mul_overflow, uint32_t, 0x10003, 0xFFFE);
+    CHECK_NO_OVF(s2n_mul_overflow, uint32_t, 0xFFFE, 0xFFFE, 0xFFFC0004u);
+    CHECK_OVF(s2n_mul_overflow, uint32_t, 0x1FFFF, 0x1FFFF);
+    CHECK_OVF(s2n_mul_overflow, uint32_t, ~0u, ~0u);
+
+    uint32_t result = 1;
+    EXPECT_SUCCESS(s2n_align_to(0, 10, &result));
+    EXPECT_EQUAL(result, 0);
+
+    EXPECT_FAILURE(s2n_align_to(1, 0, &result));
+
+    EXPECT_SUCCESS(s2n_align_to(10, 16, &result));
+    EXPECT_EQUAL(result, 16);
+
+    EXPECT_SUCCESS(s2n_align_to(20, 16, &result));
+    EXPECT_EQUAL(result, 32);
+
+    EXPECT_FAILURE(s2n_align_to(UINT32_MAX, 4, &result));
+
+    EXPECT_SUCCESS(s2n_align_to(10, 4096, &result));
+    EXPECT_EQUAL(result, 4096);
+
+    EXPECT_SUCCESS(s2n_align_to(4097, 4096, &result));
+    EXPECT_EQUAL(result, 8192);
+
+    EXPECT_SUCCESS(s2n_align_to(4096, 4096, &result));
+    EXPECT_EQUAL(result, 4096);
+
+    EXPECT_FAILURE(s2n_align_to(UINT32_MAX - 4000, 4096, &result));
+    EXPECT_FAILURE(s2n_align_to(UINT32_MAX, 4096, &result));
+    const uint32_t HALF_MAX = UINT32_MAX / 2;
+    const uint32_t ACTUAL_MAX = UINT32_MAX;
+
+    CHECK_NO_OVF(s2n_add_overflow, uint32_t, 0, 0, 0);
+    CHECK_NO_OVF(s2n_add_overflow, uint32_t, 0, 1, 1);
+    CHECK_NO_OVF(s2n_add_overflow, uint32_t, 4, 5, 9);
+    CHECK_NO_OVF(s2n_add_overflow, uint32_t, 1234, 4321, 5555);
+    CHECK_NO_OVF(s2n_add_overflow, uint32_t, 0, ACTUAL_MAX, ACTUAL_MAX);
+    CHECK_NO_OVF(s2n_add_overflow, uint32_t, HALF_MAX, HALF_MAX, ACTUAL_MAX - 1);
+    CHECK_NO_OVF(s2n_add_overflow, uint32_t, HALF_MAX + 1, HALF_MAX, ACTUAL_MAX);
+    CHECK_NO_OVF(s2n_add_overflow, uint32_t, 100, ACTUAL_MAX - 102, ACTUAL_MAX - 2);
+    CHECK_NO_OVF(s2n_add_overflow, uint32_t, 100, ACTUAL_MAX - 100, ACTUAL_MAX);
+    CHECK_OVF(s2n_add_overflow, uint32_t, 1, ACTUAL_MAX);
+    CHECK_OVF(s2n_add_overflow, uint32_t, 100, ACTUAL_MAX);
+    CHECK_OVF(s2n_add_overflow, uint32_t, HALF_MAX, ACTUAL_MAX);
+    CHECK_OVF(s2n_add_overflow, uint32_t, ACTUAL_MAX, ACTUAL_MAX);
+    CHECK_OVF(s2n_add_overflow, uint32_t, HALF_MAX + 1, HALF_MAX + 1);
+    CHECK_OVF(s2n_add_overflow, uint32_t, 100, ACTUAL_MAX - 99);
+    CHECK_OVF(s2n_add_overflow, uint32_t, 100, ACTUAL_MAX - 1);
+
     END_TEST();
+    return 0;
 }

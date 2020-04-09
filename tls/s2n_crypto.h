@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #pragma once
 
 #include "tls/s2n_config.h"
+#include "tls/s2n_signature_scheme.h"
 
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
@@ -24,7 +25,7 @@
 #include "crypto/s2n_pkey.h"
 #include "crypto/s2n_signature.h"
 #include "crypto/s2n_dhe.h"
-#include "crypto/s2n_ecc.h"
+#include "crypto/s2n_ecc_evp.h"
 
 #define S2N_TLS_SECRET_LEN             48
 #define S2N_TLS_RANDOM_DATA_LEN        32
@@ -42,6 +43,11 @@
 #define S2N_TLS_GCM_EXPLICIT_IV_LEN     8
 #define S2N_TLS_GCM_IV_LEN            (S2N_TLS_GCM_FIXED_IV_LEN + S2N_TLS_GCM_EXPLICIT_IV_LEN)
 #define S2N_TLS_GCM_TAG_LEN            16
+
+/* TLS 1.3 uses only implicit IVs - RFC 8446 5.3 */
+#define S2N_TLS13_AAD_LEN               5
+#define S2N_TLS13_RECORD_IV_LEN         0
+#define S2N_TLS13_FIXED_IV_LEN         12
 
 /* From RFC 7905 */
 #define S2N_TLS_CHACHA20_POLY1305_FIXED_IV_LEN    12
@@ -63,16 +69,19 @@ struct s2n_crypto_parameters {
     struct s2n_pkey server_public_key;
     struct s2n_pkey client_public_key;
     struct s2n_dh_params server_dh_params;
-    struct s2n_ecc_params server_ecc_params;
+    struct s2n_ecc_evp_params server_ecc_evp_params;
+    const struct s2n_ecc_named_curve * mutually_supported_groups[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT];
+    struct s2n_ecc_evp_params client_ecc_evp_params[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT];
     struct s2n_kem_keypair s2n_kem_keys;
     struct s2n_blob client_key_exchange_message;
     struct s2n_blob client_pq_kem_extension;
-    s2n_hash_algorithm conn_hash_alg;
-    s2n_signature_algorithm conn_sig_alg;
+
+    struct s2n_signature_scheme conn_sig_scheme;
+
     struct s2n_blob client_cert_chain;
-    s2n_cert_type client_cert_type;
-    s2n_hash_algorithm client_cert_hash_algorithm;
-    s2n_signature_algorithm client_cert_sig_alg;
+    s2n_pkey_type client_cert_pkey_type;
+
+    struct s2n_signature_scheme client_cert_sig_scheme;
 
     struct s2n_cipher_suite *cipher_suite;
     struct s2n_session_key client_key;

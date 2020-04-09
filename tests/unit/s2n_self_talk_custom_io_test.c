@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -33,57 +33,7 @@
 
 #define MAX_BUF_SIZE 10000
 
-int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
-{
-    struct s2n_stuffer *in_buf;
-    int n_read, n_avail;
-    
-    if (buf == NULL) {
-        return 0;
-    }
-
-    in_buf = (struct s2n_stuffer *) io_context;
-    if (in_buf == NULL) {
-        errno = EINVAL;
-        return -1;
-    }
-   
-    // read the number of bytes requested or less if it isn't available
-    n_avail = s2n_stuffer_data_available(in_buf);
-    n_read = (len < n_avail) ? len : n_avail;
-
-    if (n_read == 0) {
-        errno = EAGAIN;
-        return -1;
-    }
-
-    s2n_stuffer_read_bytes(in_buf, buf, n_read);
-    return n_read;
-}
-
-int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
-{
-    struct s2n_stuffer *out;
-
-    if (buf == NULL) {
-        return 0;
-    }
-    
-    out = (struct s2n_stuffer *) io_context;
-    if (out == NULL) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    if (s2n_stuffer_write_bytes(out, buf, len) < 0) {
-        errno = EAGAIN;
-        return -1;
-    }
-
-    return len;
-}
-
-int mock_client(int writefd, int readfd)
+int mock_client(struct s2n_test_piped_io *piped_io)
 {
     struct s2n_connection *conn;
     struct s2n_config *client_config;
@@ -95,9 +45,8 @@ int mock_client(int writefd, int readfd)
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(conn, client_config);
 
-    // Unlike the server, the client just passes ownership of I/O to s2n
-    s2n_connection_set_read_fd(conn, readfd);
-    s2n_connection_set_write_fd(conn, writefd);
+    /* Unlike the server, the client just passes ownership of I/O to s2n */
+    s2n_connection_set_piped_io(conn, piped_io);
 
     result = s2n_negotiate(conn, &blocked);
     if (result < 0) {
@@ -108,6 +57,7 @@ int mock_client(int writefd, int readfd)
     s2n_connection_free(conn);
     s2n_config_free(client_config);
     s2n_cleanup();
+    s2n_piped_io_close_one_end(piped_io, S2N_CLIENT);
 
     _exit(0);
 }
@@ -125,8 +75,6 @@ int main(int argc, char **argv)
     s2n_blocked_status blocked;
     int status;
     pid_t pid;
-    int server_to_client[2];
-    int client_to_server[2];
     char *cert_chain_pem;
     char *private_key_pem;
     char *dhparams_pem;
@@ -153,15 +101,14 @@ int main(int argc, char **argv)
     signal(SIGPIPE, SIG_IGN);
 
     /* Create a pipe */
-    EXPECT_SUCCESS(pipe(server_to_client));
-    EXPECT_SUCCESS(pipe(client_to_server));
+    struct s2n_test_piped_io piped_io;
+    EXPECT_SUCCESS(s2n_piped_io_init(&piped_io));
 
     /* Create a child process */
     pid = fork();
     if (pid == 0) {
-        /* This is the child process, close the read end of the pipe */
-        EXPECT_SUCCESS(close(client_to_server[0]));
-        EXPECT_SUCCESS(close(server_to_client[1]));
+        /* This is the client process, close the server end of the pipe */
+        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
 
         /* Free the config */
         EXPECT_SUCCESS(s2n_config_free(config));
@@ -170,12 +117,11 @@ int main(int argc, char **argv)
         free(dhparams_pem);
 
         /* Run the client */
-        mock_client(client_to_server[1], server_to_client[0]);
+        mock_client(&piped_io);
     }
 
-    /* This is the parent, close the write end of the pipe */
-    EXPECT_SUCCESS(close(client_to_server[1]));
-    EXPECT_SUCCESS(close(server_to_client[0]));
+    /* This is the server process, close the client end of the pipe */
+    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_CLIENT));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -185,15 +131,11 @@ int main(int argc, char **argv)
     /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
-
-    EXPECT_SUCCESS(s2n_connection_set_recv_cb(conn, &buffer_read));
-    EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, &buffer_write));
-    EXPECT_SUCCESS(s2n_connection_set_recv_ctx(conn, &in));
-    EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, &out));
+    EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&in, &out, conn));
     
     /* Make our pipes non-blocking */
-    EXPECT_NOT_EQUAL(fcntl(client_to_server[0], F_SETFL, fcntl(client_to_server[0], F_GETFL) | O_NONBLOCK), -1);
-    EXPECT_NOT_EQUAL(fcntl(server_to_client[1], F_SETFL, fcntl(server_to_client[1], F_GETFL) | O_NONBLOCK), -1);
+    EXPECT_SUCCESS(s2n_fd_set_non_blocking(piped_io.server_read));
+    EXPECT_SUCCESS(s2n_fd_set_non_blocking(piped_io.server_write));
 
     /* Negotiate the handshake. */
     do {
@@ -202,10 +144,11 @@ int main(int argc, char **argv)
         ret = s2n_negotiate(conn, &blocked);
         EXPECT_TRUE(ret == 0 || (blocked && (errno == EAGAIN || errno == EWOULDBLOCK)));
         
-        // check to see if we need to copy more over from the pipes to the buffers
-        // to continue the handshake
-        s2n_stuffer_recv_from_fd(&in, client_to_server[0], MAX_BUF_SIZE);
-        s2n_stuffer_send_to_fd(&out, server_to_client[1], s2n_stuffer_data_available(&out));
+        /* check to see if we need to copy more over from the pipes to the buffers
+         * to continue the handshake
+         */
+        s2n_stuffer_recv_from_fd(&in, piped_io.server_read, MAX_BUF_SIZE);
+        s2n_stuffer_send_to_fd(&out, piped_io.server_write, s2n_stuffer_data_available(&out));
     } while (blocked);
    
     /* Shutdown after negotiating */
@@ -218,9 +161,9 @@ int main(int argc, char **argv)
         if (ret == 0) {
             server_shutdown = 1;
         }
-        
-        s2n_stuffer_recv_from_fd(&in, client_to_server[0], MAX_BUF_SIZE);
-        s2n_stuffer_send_to_fd(&out, server_to_client[1], s2n_stuffer_data_available(&out));
+
+        s2n_stuffer_recv_from_fd(&in, piped_io.server_read, MAX_BUF_SIZE);
+        s2n_stuffer_send_to_fd(&out, piped_io.server_write, s2n_stuffer_data_available(&out));
     } while (!server_shutdown);
     
     EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -230,6 +173,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_free(&out));
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
+    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
     EXPECT_SUCCESS(s2n_config_free(config));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     free(cert_chain_pem);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include "utils/s2n_rfc5952.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
+#include "extensions/s2n_certificate_extensions.h"
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -30,14 +31,6 @@
 #if !defined(OPENSSL_IS_BORINGSSL)
 #include <openssl/ocsp.h>
 #endif
-
-/* one day, boringssl, may add ocsp stapling support. Let's future proof this a bit by grabbing a definition
- * that would have to be there when they add support */
-#if defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL)
-#define S2N_OCSP_STAPLING_SUPPORTED 0
-#else
-#define S2N_OCSP_STAPLING_SUPPORTED 1
-#endif /* defined(OPENSSL_IS_BORINGSSL) && !defined(OCSP_RESPONSE_STATUS_SUCCESSFUL) */
 
 /* our friends at openssl love to make backwards incompatible changes */
 #if !defined(LIBRESSL_VERSION_NUMBER) && S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
@@ -75,7 +68,7 @@ int s2n_x509_trust_store_from_system_defaults(struct s2n_x509_trust_store *store
     int err_code = X509_STORE_set_default_paths(store->trust_store);
     if (!err_code) {
         s2n_x509_trust_store_wipe(store);
-        return -1;
+        S2N_ERROR(S2N_ERR_X509_TRUST_STORE);
     }
 
     X509_STORE_set_flags(store->trust_store, X509_VP_FLAG_DEFAULT);
@@ -92,8 +85,8 @@ int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char 
         store->trust_store = X509_STORE_new();
     }
 
-    DEFER_CLEANUP(struct s2n_stuffer pem_in_stuffer = {{0}}, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_stuffer der_out_stuffer = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer pem_in_stuffer = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer der_out_stuffer = {0}, s2n_stuffer_free);
 
     GUARD(s2n_stuffer_alloc_ro_from_string(&pem_in_stuffer, pem));
     GUARD(s2n_stuffer_growable_alloc(&der_out_stuffer, 2048));
@@ -125,7 +118,7 @@ int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const 
     int err_code = X509_STORE_load_locations(store->trust_store, ca_pem_filename, ca_dir);
     if (!err_code) {
         s2n_x509_trust_store_wipe(store);
-        return -1;
+        S2N_ERROR(S2N_ERR_X509_TRUST_STORE);
     }
 
     /* It's a likely scenario if this function is called, a self-signed certificate is used, and that is was generated
@@ -184,13 +177,10 @@ void s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
 
 int s2n_x509_validator_set_max_chain_depth(struct s2n_x509_validator *validator, uint16_t max_depth) {
     notnull_check(validator);
+    S2N_ERROR_IF(max_depth == 0, S2N_ERR_INVALID_ARGUMENT);
 
-    if (max_depth > 0) {
-        validator->max_chain_depth = max_depth;
-        return 0;
-    }
-
-    return -1;
+    validator->max_chain_depth = max_depth;
+    return 0;
 }
 
 /*
@@ -209,6 +199,11 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
         if (current_name->type == GEN_DNS) {
             san_found = 1;
 
+            const char *name = (const char *) ASN1_STRING_data(current_name->d.ia5);
+            size_t name_len = (size_t) ASN1_STRING_length(current_name->d.ia5);
+
+            verified = conn->verify_host_fn(name, name_len, conn->data_for_verify_host);
+        } else if (current_name->type == GEN_URI) {
             const char *name = (const char *) ASN1_STRING_data(current_name->d.ia5);
             size_t name_len = (size_t) ASN1_STRING_length(current_name->d.ia5);
 
@@ -240,7 +235,7 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
     GENERAL_NAMES_free(names_list);
 
     /* if no SubjectAltNames of type DNS found, go to the common name. */
-    if (!san_found) {
+    if (!verified && !san_found) {
         X509_NAME *subject_name = X509_get_subject_name(public_cert);
         if (subject_name) {
             int next_idx = 0, curr_idx = -1;
@@ -257,7 +252,7 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
                     static size_t peer_cn_size = sizeof(peer_cn);
                     memset_check(&peer_cn, 0, peer_cn_size);
                     
-                    // X520CommonName allows the following ANSI string types per RFC 5280 Appendix A.1
+                    /* X520CommonName allows the following ANSI string types per RFC 5280 Appendix A.1 */
                     if (ASN1_STRING_type(common_name) == V_ASN1_TELETEXSTRING || 
                         ASN1_STRING_type(common_name) == V_ASN1_PRINTABLESTRING ||
                         ASN1_STRING_type(common_name) == V_ASN1_UNIVERSALSTRING ||
@@ -280,7 +275,7 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
 
 s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
                                                                 uint8_t *cert_chain_in, uint32_t cert_chain_len,
-                                                                s2n_cert_type *cert_type, struct s2n_pkey *public_key_out) {
+                                                                s2n_pkey_type *pkey_type, struct s2n_pkey *public_key_out) {
 
     if (!validator->skip_cert_validation && !s2n_x509_trust_store_has_certs(validator->trust_store)) {
         return S2N_CERT_ERR_UNTRUSTED;
@@ -289,7 +284,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
     DEFER_CLEANUP(X509_STORE_CTX *ctx = NULL, X509_STORE_CTX_free_pointer);
 
     struct s2n_blob cert_chain_blob = {.data = cert_chain_in, .size = cert_chain_len};
-    DEFER_CLEANUP(struct s2n_stuffer cert_chain_in_stuffer = {{0}}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer cert_chain_in_stuffer = {0}, s2n_stuffer_free);
     if (s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob) < 0) {
         return S2N_CERT_ERR_INVALID;
     }
@@ -301,7 +296,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
     X509 *server_cert = NULL;
 
-    DEFER_CLEANUP(struct s2n_pkey public_key = {{{0}}}, s2n_pkey_free);
+    DEFER_CLEANUP(struct s2n_pkey public_key = {0}, s2n_pkey_free);
     s2n_pkey_zero_init(&public_key);
 
     while (s2n_stuffer_data_available(&cert_chain_in_stuffer) && certificate_count < validator->max_chain_depth) {
@@ -316,8 +311,8 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         }
 
         struct s2n_blob asn1cert = {0};
-        asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
         asn1cert.size = certificate_size;
+        asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
         if (asn1cert.data == NULL) {
             return S2N_CERT_ERR_INVALID;
         }
@@ -340,8 +335,28 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
-            if (s2n_asn1der_to_public_key_and_type(&public_key, cert_type, &asn1cert) < 0) {
+            if (s2n_asn1der_to_public_key_and_type(&public_key, pkey_type, &asn1cert) < 0) {
                 return S2N_CERT_ERR_INVALID;
+            }
+        }
+
+        /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
+        if (conn->actual_protocol_version == S2N_TLS13) {
+            uint16_t certificate_extensions_length = 0;
+            S2N_ERROR_IF(2 > s2n_stuffer_data_available(&cert_chain_in_stuffer), S2N_ERR_BAD_MESSAGE);
+            GUARD(s2n_stuffer_read_uint16(&cert_chain_in_stuffer, &certificate_extensions_length));
+            S2N_ERROR_IF(certificate_extensions_length > s2n_stuffer_data_available(&cert_chain_in_stuffer), S2N_ERR_BAD_MESSAGE);
+
+            if (certificate_extensions_length > 0) {
+                struct s2n_blob extensions = {0};
+                extensions.size = certificate_extensions_length;
+                extensions.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, extensions.size);
+                notnull_check(extensions.data);
+                
+                /* RFC 8446: if an extension applies to the entire chain, it SHOULD be included in the first CertificateEntry */
+                if (certificate_count == 0) {
+                    GUARD(s2n_certificate_extensions_parse(conn, &extensions));
+                }
             }
         }
 

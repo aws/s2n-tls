@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ CPPCHECK_EXECUTABLE=${INSTALL_DIR}/cppcheck/cppcheck
 
 FAILED=0
 $CPPCHECK_EXECUTABLE --version
-$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet -j 8 --enable=all --template='[{file}:{line}]: ({severity}:{id}) {message}' --inline-suppr --suppressions-list=.travis/cppcheck_suppressions.txt -I ./tests api bin crypto error stuffer tests tls utils || FAILED=1
+$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet -j 8 --enable=all --template='[{file}:{line}]: ({severity}:{id}) {message}' --inline-suppr --suppressions-list=.travis/cppcheck_suppressions.txt -I ./tests api bin crypto error stuffer ./tests/unit tls utils || FAILED=1
 
 if [ $FAILED == 1 ];
 then

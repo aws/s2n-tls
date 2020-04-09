@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -24,6 +24,21 @@
 
 #include "testlib/s2n_testlib.h"
 
+int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
+        const char *cert_chain_file, const char *prviate_key_file)
+{
+    char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+    char private_key_pem[S2N_MAX_TEST_PEM_SIZE];
+
+    GUARD(s2n_read_test_pem(cert_chain_file, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+    GUARD(s2n_read_test_pem(prviate_key_file, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+
+    notnull_check(*chain_and_key = s2n_cert_chain_and_key_new());
+    GUARD(s2n_cert_chain_and_key_load_pem(*chain_and_key, cert_chain_pem, private_key_pem));
+
+    return S2N_SUCCESS;
+}
+
 int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size)
 {
     FILE *pem_file = fopen(pem_path, "rb");
@@ -31,10 +46,10 @@ int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size)
         S2N_ERROR(S2N_ERR_NULL);
     }
 
-    // Make sure we can fit the pem into the output buffer
+    /* Make sure we can fit the pem into the output buffer */
     fseek(pem_file, 0, SEEK_END);
     const long int pem_file_size = ftell(pem_file);
-    // one extra for the null byte
+    /* one extra for the null byte */
     rewind(pem_file);
 
     if (max_size < (pem_file_size + 1)) {

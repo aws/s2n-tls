@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ int check_cleanup_pointer_on_fn_exit()
   return 0;
 }
 
-//check that our macros don't cleanup null objects
+/* check that our macros don't cleanup null objects */
 int check_dont_cleanup_null_on_fn_exit()
 {
   DEFER_CLEANUP(struct foo* foop = NULL, foo_free_pointer);
@@ -62,13 +62,13 @@ int check_dont_cleanup_null_on_fn_exit()
   return 0;
 }
 
-//This test checks that the compiler correctly implements deferred cleanup
+/* This test checks that the compiler correctly implements deferred cleanup */
 int main()
 {
   BEGIN_TEST();
   int expected_cleanup_count = 0;
 
-  //check that the cleanup functions are called on each loop exit
+  /* check that the cleanup functions are called on each loop exit */
   for (int i = 0; i < 10; ++i) {
     DEFER_CLEANUP(struct foo x = {i}, foo_free);
     S2N_UNUSED(x);
@@ -87,7 +87,7 @@ int main()
   EXPECT_EQUAL(foo_cleanup_calls, expected_cleanup_count);
 
   EXPECT_SUCCESS(check_dont_cleanup_null_on_fn_exit());
-  //don't increment expected_cleanup_count
+  /* don't increment expected_cleanup_count */
   EXPECT_EQUAL(foo_cleanup_calls, expected_cleanup_count);
 
   END_TEST();

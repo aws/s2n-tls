@@ -1,5 +1,4 @@
 sudo: required
-dist: trusty
 language: c
 cache:
     directories:
@@ -8,96 +7,58 @@ cache:
         # https://docs.travis-ci.com/user/caching/#Caches-and-build-matrices
         - test-deps
 
-osx_image: xcode8
-
-os:
-  - osx
-  - linux
-
-env:
-  - TESTS=ctverif
-  # Code Coverage Targets
-  - S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=unit GCC_VERSION=6 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
-  - S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=6 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
-  - S2N_LIBCRYPTO=openssl-1.1.1 LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
-  # Normal Build Targets
-  - S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=6
-  - S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=9
-  - S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=6 S2N_CORKED_IO=true
-  - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=integration GCC_VERSION=6
-  - S2N_LIBCRYPTO=openssl-1.0.2-fips BUILD_S2N=true TESTS=integration GCC_VERSION=6
-  - S2N_LIBCRYPTO=libressl      BUILD_S2N=true TESTS=integration GCC_VERSION=6
-  # Force libcrypto to use "software only" crypto implementations for AES and AES-GCM. Verify s2n can gracefully use
-  # unoptimized routines. See https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_ia32cap.html
-  - S2N_LIBCRYPTO=openssl-1.1.1 OPENSSL_ia32cap="~0x200000200000000" BUILD_S2N=true TESTS=integration GCC_VERSION=6
-  - S2N_LIBCRYPTO=openssl-1.1.1 LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120
-  - S2N_LIBCRYPTO=openssl-1.0.2-fips LATEST_CLANG=true TESTS=fuzz FUZZ_TIMEOUT_SEC=120
-  - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=asan GCC_VERSION=6
-  - S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=valgrind GCC_VERSION=6
-
-matrix:
-  exclude:
-  - os: osx
-    env: TESTS=ctverif
-  - os: osx
-    env: S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=valgrind GCC_VERSION=6
-  - os: osx
-    env: S2N_LIBCRYPTO=openssl-1.0.2-fips LATEST_CLANG=true TESTS=fuzz
-  - os: osx
-    env: S2N_LIBCRYPTO=openssl-1.0.2-fips BUILD_S2N=true TESTS=integration GCC_VERSION=6
+jobs:
   include:
-  - os : linux
-    env: TESTS=sidetrail PART=1
-  - os : linux
-    env: TESTS=sidetrail PART=2
-  - os : linux
-    env : TESTS=sawHMAC SAW_HMAC_TEST=md5    SAW=true GCC_VERSION=NONE
-    addons: &sawaddons
-      apt:
-        packages:
-          - clang-3.8
-          - llvm-3.8
-  - os : linux
-    env : TESTS=sawHMAC SAW_HMAC_TEST=sha1   SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    env : TESTS=sawHMAC SAW_HMAC_TEST=sha224 SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    env : TESTS=sawHMAC SAW_HMAC_TEST=sha256 SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    env : TESTS=sawHMAC SAW_HMAC_TEST=sha384 SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    env : TESTS=sawHMAC SAW_HMAC_TEST=sha512 SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    env: TESTS=sawDRBG                       SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    env: TESTS=sawSIKE                       SAW=true GCC_VERSION=NONE
-    addons : *sawaddons
-  - os : linux
-    env : TESTS=tls SAW=true GCC_VERSION=NONE
-    addons : *sawaddons    
-  - os : linux
-    env : TESTS=sawHMACFailure SAW=true
-    addons : *sawaddons   
-  allow_failures:
-    - os: osx
-    - env: TESTS=ctverif
+  - os: linux
+    dist: bionic
+    env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=6 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
 
-  fast_finish: true
+# Normal Build Targets
+  - os: linux
+    dist: bionic
+    env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=6
+
+  - os: linux
+    dist: bionic
+    env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true GCC_VERSION=4.8
+
+  - os: linux
+    dist: bionic
+    env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=9
+
+  - os: linux
+    dist: bionic
+    env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=6 S2N_CORKED_IO=true
+
+  - os: linux
+    dist: bionic
+    env: S2N_LIBCRYPTO=openssl-1.0.2 BUILD_S2N=true TESTS=integration GCC_VERSION=6
+
+  - os: linux
+    dist: bionic
+    env: S2N_LIBCRYPTO=openssl-1.0.2-fips BUILD_S2N=true TESTS=integration GCC_VERSION=6
+
+  - os: linux
+    dist: bionic
+    env: S2N_LIBCRYPTO=libressl BUILD_S2N=true TESTS=integration GCC_VERSION=6
+
+  - os: linux
+    dist: bionic
+    # Force libcrypto to use "software only" crypto implementations for AES and AES-GCM. Verify s2n can gracefully use
+    # unoptimized routines. See https://www.openssl.org/docs/man1.1.0/crypto/OPENSSL_ia32cap.html
+    env: S2N_LIBCRYPTO=openssl-1.1.1 OPENSSL_ia32cap="~0x200000200000000" BUILD_S2N=true TESTS=integration GCC_VERSION=6
+
+  - os: linux
+    dist: bionic
+    # Force S2N to use the generic C code for PQ crypto (instead of the optimized x86_64 assembly code)
+    env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=9 S2N_NO_PQ_ASM=true
 
 before_install:
-  - apt-key list
-  - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 6B05F25D762E3157
-  - apt-key list
   - source .travis/s2n_setup_env.sh
 
 install:
   - travis_retry .travis/s2n_install_test_dependencies.sh
-  
+
 script:
   - .travis/s2n_travis_build.sh
+  - .travis/s2n_after_travis_build.sh

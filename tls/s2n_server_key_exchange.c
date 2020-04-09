@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_signature_algorithms.h"
+#include "tls/s2n_cipher_preferences.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -31,28 +32,33 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 
-static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pkey *priv_key, struct s2n_hash_state *digest);
+static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pkey *priv_key,
+        s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest);
 
 int s2n_server_key_recv(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+    notnull_check(conn->secure.cipher_suite);
+    notnull_check(conn->secure.cipher_suite->key_exchange_alg);
+
     struct s2n_hash_state *signature_hash = &conn->secure.signature_hash;
     const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_blob data_to_verify = {0};
 
     /* Read the KEX data */
-    struct s2n_kex_raw_server_data kex_data = {{{0}}};
+    struct s2n_kex_raw_server_data kex_data = {0};
     GUARD(s2n_kex_server_key_recv_read_data(key_exchange, conn, &data_to_verify, &kex_data));
 
     /* Add common signature data */
+    struct s2n_signature_scheme active_sig_scheme;
     if (conn->actual_protocol_version == S2N_TLS12) {
-        s2n_hash_algorithm hash_algorithm;
-        s2n_signature_algorithm signature_algorithm;
-        GUARD(s2n_get_signature_hash_pair_if_supported(in, &hash_algorithm, &signature_algorithm));
-        GUARD(s2n_hash_init(signature_hash, hash_algorithm));
+        /* Verify the SigScheme picked by the Server was actually in the list we sent */
+        GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, in, &active_sig_scheme));
     } else {
-        GUARD(s2n_hash_init(signature_hash, conn->secure.conn_hash_alg));
+        active_sig_scheme = conn->secure.conn_sig_scheme;
     }
+    GUARD(s2n_hash_init(signature_hash, active_sig_scheme.hash_alg));
     GUARD(s2n_hash_update(signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
@@ -67,7 +73,8 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     notnull_check(signature.data);
     gt_check(signature_length, 0);
 
-    S2N_ERROR_IF(s2n_pkey_verify(&conn->secure.server_public_key, signature_hash, &signature) < 0, S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(s2n_pkey_verify(&conn->secure.server_public_key, active_sig_scheme.sig_alg,signature_hash, &signature) < 0,
+            S2N_ERR_BAD_MESSAGE);
 
     /* We don't need the key any more, so free it */
     GUARD(s2n_pkey_free(&conn->secure.server_public_key));
@@ -81,13 +88,14 @@ int s2n_ecdhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_
 {
     struct s2n_stuffer *in = &conn->handshake.io;
 
-    GUARD(s2n_ecc_read_ecc_params(in, data_to_verify, &raw_server_data->ecdhe_data));
+    GUARD(s2n_ecc_evp_read_params(in, data_to_verify, &raw_server_data->ecdhe_data));
     return 0;
 }
 
 int s2n_ecdhe_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_kex_raw_server_data *raw_server_data)
 {
-    GUARD(s2n_ecc_parse_ecc_params(&conn->secure.server_ecc_params, &raw_server_data->ecdhe_data));
+    GUARD(s2n_ecc_evp_parse_params(&raw_server_data->ecdhe_data, &conn->secure.server_ecc_evp_params));
+
     return 0;
 }
 
@@ -165,11 +173,13 @@ int s2n_kem_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_k
     struct s2n_kem_raw_server_params *kem_data = &raw_server_data->kem_data;
 
     /* Check that the server's requested kem is supported by the client */
-    const struct s2n_kem *match = NULL;
-    const struct s2n_iana_to_kem *supported_params = NULL;
-    GUARD(s2n_cipher_suite_to_kem(conn->secure.cipher_suite->iana_value, &supported_params));
+    const struct s2n_cipher_preferences *cipher_preferences = NULL;
+    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
 
-    S2N_ERROR_IF(s2n_kem_find_supported_kem(&kem_data->kem_name, *supported_params->kems, supported_params->kem_count, &match) != 0, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+    const struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
+    const struct s2n_kem *match = NULL;
+    S2N_ERROR_IF(s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, &kem_data->kem_name, cipher_preferences->kems, cipher_preferences->kem_count, &match) != 0,
+            S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     conn->secure.s2n_kem_keys.negotiated_kem = match;
 
     S2N_ERROR_IF(kem_data->raw_public_key.size != conn->secure.s2n_kem_keys.negotiated_kem->public_key_length, S2N_ERR_BAD_MESSAGE);
@@ -225,12 +235,11 @@ int s2n_server_key_send(struct s2n_connection *conn)
 
     /* Add common signature data */
     if (conn->actual_protocol_version == S2N_TLS12) {
-        GUARD(s2n_stuffer_write_uint8(out, s2n_hash_alg_to_tls[ conn->secure.conn_hash_alg ]));
-        GUARD(s2n_stuffer_write_uint8(out, conn->secure.conn_sig_alg));
+        GUARD(s2n_stuffer_write_uint16(out, conn->secure.conn_sig_scheme.iana_value));
     }
 
     /* Add the random data to the hash */
-    GUARD(s2n_hash_init(signature_hash, conn->secure.conn_hash_alg));
+    GUARD(s2n_hash_init(signature_hash, conn->secure.conn_sig_scheme.hash_alg));
     GUARD(s2n_hash_update(signature_hash, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
     GUARD(s2n_hash_update(signature_hash, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
@@ -238,7 +247,8 @@ int s2n_server_key_send(struct s2n_connection *conn)
     GUARD(s2n_hash_update(signature_hash, data_to_sign.data, data_to_sign.size));
 
     /* Sign and write the signature */
-    GUARD(s2n_write_signature_blob(out, conn->handshake_params.our_chain_and_key->private_key, signature_hash));
+    GUARD(s2n_write_signature_blob(out, conn->handshake_params.our_chain_and_key->private_key,
+            conn->secure.conn_sig_scheme.sig_alg, signature_hash));
     return 0;
 }
 
@@ -247,10 +257,10 @@ int s2n_ecdhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data
     struct s2n_stuffer *out = &conn->handshake.io;
 
     /* Generate an ephemeral key and  */
-    GUARD(s2n_ecc_generate_ephemeral_key(&conn->secure.server_ecc_params));
+    GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
 
     /* Write it out and calculate the data to sign later */
-    GUARD(s2n_ecc_write_ecc_params(&conn->secure.server_ecc_params, out, data_to_sign));
+    GUARD(s2n_ecc_evp_write_params(&conn->secure.server_ecc_evp_params, out, data_to_sign));
     return 0;
 }
 
@@ -314,7 +324,8 @@ int s2n_hybrid_server_key_send(struct s2n_connection *conn, struct s2n_blob *tot
     return 0;
 }
 
-static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pkey *priv_key, struct s2n_hash_state *digest)
+static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pkey *priv_key,
+        s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest)
 {
     struct s2n_blob signature = {0};
     
@@ -327,7 +338,7 @@ static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pk
     signature.data = s2n_stuffer_raw_write(out, signature.size);
     notnull_check(signature.data);
 
-    S2N_ERROR_IF(s2n_pkey_sign(priv_key, digest, &signature) < 0, S2N_ERR_DH_FAILED_SIGNING);
+    S2N_ERROR_IF(s2n_pkey_sign(priv_key, sig_alg, digest, &signature) < 0, S2N_ERR_DH_FAILED_SIGNING);
 
     /* Now that the signature has been created, write the actual size that was stored in the signature blob */
     out->write_cursor -= max_signature_size;

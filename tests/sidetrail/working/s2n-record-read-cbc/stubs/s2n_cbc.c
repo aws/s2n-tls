@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ int nondet();
 int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted)
 {
   int leakage = nondet();
-  //We have a proof that the max leakage this step can introduce is MAX_LEAKAGE_DIFFERENCE
+  /* We have a proof that the max leakage this step can introduce is MAX_LEAKAGE_DIFFERENCE */
   __VERIFIER_assume(leakage >= 0);
   __VERIFIER_assume(leakage < MAX_LEAKAGE_DIFFERENCE);
   __VERIFIER_ASSUME_LEAKAGE(leakage);

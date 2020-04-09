@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -127,6 +127,7 @@ int s2n_get_urandom_data(struct s2n_blob *blob)
     long backoff = 1;
 
     while (n) {
+        errno = 0;
         int r = read(entropy_fd, data, n);
         if (r <= 0) {
             /*
@@ -305,7 +306,7 @@ int s2n_rand_cleanup_thread(void)
  */
 int s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
 {
-    S2N_ERROR_IF(!S2N_IN_UNIT_TEST, S2N_ERR_NOT_IN_UNIT_TEST);
+    S2N_ERROR_IF(!s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     GUARD(s2n_drbg_wipe(&per_thread_private_drbg));
 
     per_thread_private_drbg = drbg;
@@ -337,7 +338,7 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
 
 #if defined(__x86_64__) || defined(__i386__)
     int space_remaining = 0;
-    struct s2n_stuffer stuffer = {{0}};
+    struct s2n_stuffer stuffer = {0};
     union {
         uint64_t u64;
 #if defined(__i386__)
@@ -373,8 +374,17 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
             __asm__ __volatile__(".byte 0x0f, 0xc7, 0xf0;\n" "setc %b1;\n": "=a"(output.i386_fields.u_high), "=qm"(success_high)
                                  :
                                  :"cc");
-
+            /* cppcheck-suppress knownConditionTrueFalse */
             success = success_high & success_low;
+
+            /* Treat either all 1 or all 0 bits in either the high or low order
+             * bits as failure */
+            if (output.i386_fields.u_low == 0 ||
+                    output.i386_fields.u_low == UINT32_MAX ||
+                    output.i386_fields.u_high == 0 ||
+                    output.i386_fields.u_high == UINT32_MAX) {
+                success = 0;
+            }
 #else
             /* execute the rdrand instruction, store the result in a general purpose register (it's assigned to
             * output.u64). Check the carry bit, which will be set on success. Then clober the carry bit.
@@ -389,14 +399,28 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
             :"cc");
 #endif /* defined(__i386__) */
 
+            /* Some AMD CPUs will find that RDRAND "sticks" on all 1s but still reports success.
+             * Some other very old CPUs use all 0s as an error condition while still reporting success.
+             * If we encounter either of these suspicious values (a 1/2^63 chance) we'll treat them as
+             * a failure and generate a new value.
+             *
+             * In the future we could add CPUID checks to detect processors with these known bugs,
+             * however it does not appear worth it. The entropy loss is negligible and the
+             * corresponding likelihood that a healthy CPU generates either of these values is also
+             * negligible (1/2^63). Finally, adding processor specific logic would greatly
+             * increase the complexity and would cause us to "miss" any unknown processors with
+             * similar bugs. */
+            if (output.u64 == UINT64_MAX ||
+                output.u64 == 0) {
+                success = 0;
+            }
+
             if (success) {
                 break;
             }
         }
 
-        if (!success) {
-            return -1;
-        }
+        S2N_ERROR_IF(!success, S2N_ERR_RDRAND_FAILED);
 
         int data_to_fill = MIN(sizeof(output), space_remaining);
 
@@ -405,6 +429,6 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
 
     return 0;
 #else
-    return -1;
+    S2N_ERROR(S2N_ERR_UNSUPPORTED_CPU);
 #endif
 }

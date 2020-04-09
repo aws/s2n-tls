@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -76,7 +76,7 @@ static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stu
 {
     uint8_t base64_buf[64] = { 0 };
     struct s2n_blob base64__blob = { .data = base64_buf, .size = sizeof(base64_buf) };
-    struct s2n_stuffer base64_stuffer = {{0}};
+    struct s2n_stuffer base64_stuffer = {0};
     GUARD(s2n_stuffer_init(&base64_stuffer, &base64__blob));
 
     while (1) {

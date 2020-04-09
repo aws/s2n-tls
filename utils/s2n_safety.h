@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "error/s2n_errno.h"
@@ -89,10 +90,36 @@ static inline void* trace_memcpy_check(void *restrict to, const void *restrict f
     lt_check(__tmp_n, high);                    \
   } while (0)
 
-#define GUARD( x )              if ( (x) < 0 ) return -1
-#define GUARD_GOTO( x , label ) if ( (x) < 0 ) goto label
-#define GUARD_PTR( x )          if ( (x) < 0 ) return NULL
-#define S2N_IN_UNIT_TEST ( getenv("S2N_UNIT_TEST") != NULL )
+/* Check for specific classes of errors */
+#define ERR_IS_BLOCKING( x )    ( x == S2N_ERR_BLOCKED || x == S2N_CALLBACK_BLOCKED )
+
+#define GUARD( x )              do {if ( (x) < 0 ) return S2N_FAILURE;} while (0)
+#define GUARD_STRICT( x )       do {if ( (x) != 0 ) return S2N_FAILURE;} while (0)
+#define GUARD_GOTO( x , label ) do {if ( (x) < 0 ) goto label;} while (0)
+#define GUARD_PTR( x )          do {if ( (x) < 0 ) return NULL;} while (0)
+
+/* Similar to GUARD, but preserves the blocking error code. S2N_CALLBACK_BLOCKED is left to preserve backwards compatibility .*/
+#define GUARD_NONBLOCKING( x )          \
+  do {                                  \
+    int __tmp_r = (x);                  \
+    if (ERR_IS_BLOCKING( __tmp_r )) {   \
+      S2N_ERROR( __tmp_r );             \
+    }                                   \
+    GUARD( __tmp_r );                   \
+  } while(0)
+
+#define GUARD_NONNULL( x )              do {if ( (x) == NULL ) return S2N_FAILURE;} while (0)
+#define GUARD_NONNULL_GOTO( x , label ) do {if ( (x) == NULL ) goto label;} while (0)
+#define GUARD_NONNULL_PTR( x )          do {if ( (x) == NULL ) return NULL;} while (0)
+
+/* Returns true if s2n is in unit test mode, false otherwise */
+bool s2n_in_unit_test();
+
+/* Sets whether s2n is in unit test mode */
+int s2n_in_unit_test_set(bool newval);
+
+#define S2N_IN_INTEG_TEST ( getenv("S2N_INTEG_TEST") != NULL )
+#define S2N_IN_TEST ( s2n_in_unit_test() || S2N_IN_INTEG_TEST )
 
 /* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
 #define GUARD_OSSL( x , errcode )               \
@@ -114,7 +141,7 @@ extern pid_t s2n_actual_getpid();
 extern int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len);
 
 /* Copy src to dst, or don't copy it, in constant time */
-extern int s2n_constant_time_copy_or_dont(const uint8_t * dst, const uint8_t * src, uint32_t len, uint8_t dont);
+extern int s2n_constant_time_copy_or_dont(uint8_t * dst, const uint8_t * src, uint32_t len, uint8_t dont);
 
 /* If src contains valid PKCS#1 v1.5 padding of exactly expectlen bytes, decode
  * it into dst, otherwise leave dst alone, in constant time.
@@ -135,4 +162,14 @@ extern int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t * dst, const uint8_t * 
   }                                                         \
   struct __useless_struct_to_allow_trailing_semicolon__
 
-#define s2n_array_len(array) (sizeof(array) / sizeof(array[0]))
+#define s2n_array_len(array) ((array != NULL) ? (sizeof(array) / sizeof(array[0])) : 0)
+
+extern int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out);
+
+/**
+ * Rounds "initial" up to a multiple of "alignment", and stores the result in "out".
+ * Raises an error if overflow would occur.
+ * NOT CONSTANT TIME.
+ */
+extern int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out);
+extern int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out);

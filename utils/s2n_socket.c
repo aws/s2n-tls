@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -80,11 +80,11 @@ int s2n_socket_read_snapshot(struct s2n_connection *conn)
 {
 #ifdef SO_RCVLOWAT
     socklen_t watlen = sizeof(int);
-    
+
     struct s2n_socket_read_io_context *r_io_ctx = (struct s2n_socket_read_io_context *) conn->recv_io_context;
     notnull_check(r_io_ctx);
 
-    getsockopt(r_io_ctx->fd, IPPROTO_TCP, SO_RCVLOWAT, &r_io_ctx->original_rcvlowat_val, &watlen);
+    getsockopt(r_io_ctx->fd, SOL_SOCKET, SO_RCVLOWAT, &r_io_ctx->original_rcvlowat_val, &watlen);
     eq_check(watlen, sizeof(int));
     r_io_ctx->original_rcvlowat_is_set = 1;
 #endif
@@ -117,7 +117,7 @@ int s2n_socket_read_restore(struct s2n_connection *conn)
     if (!r_io_ctx->original_rcvlowat_is_set) {
         return 0;
     }
-    setsockopt(r_io_ctx->fd, IPPROTO_TCP, SO_RCVLOWAT, &r_io_ctx->original_rcvlowat_val, sizeof(r_io_ctx->original_rcvlowat_val));
+    setsockopt(r_io_ctx->fd, SOL_SOCKET, SO_RCVLOWAT, &r_io_ctx->original_rcvlowat_val, sizeof(r_io_ctx->original_rcvlowat_val));
     r_io_ctx->original_rcvlowat_is_set = 0;
 #endif
 
@@ -173,7 +173,7 @@ int s2n_socket_set_read_size(struct s2n_connection *conn, int size)
     struct s2n_socket_read_io_context *r_io_ctx = (struct s2n_socket_read_io_context *) conn->recv_io_context;
     notnull_check(r_io_ctx);
 
-    setsockopt(r_io_ctx->fd, IPPROTO_TCP, SO_RCVLOWAT, &size, sizeof(size));
+    setsockopt(r_io_ctx->fd, SOL_SOCKET, SO_RCVLOWAT, &size, sizeof(size));
 #endif
 
     return 0;
@@ -184,7 +184,7 @@ int s2n_socket_read(void *io_context, uint8_t *buf, uint32_t len)
     int rfd = ((struct s2n_socket_read_io_context*) io_context)->fd;
     if (rfd < 0) {
         errno = EBADF;
-        return -1;
+        S2N_ERROR(S2N_ERR_BAD_FD);
     }
 
     /* Clear the quickack flag so we know to reset it */
@@ -192,7 +192,6 @@ int s2n_socket_read(void *io_context, uint8_t *buf, uint32_t len)
 
     /* On success, the number of bytes read is returned. On failure, -1 is
      * returned and errno is set appropriately. */
-    errno = 0;
     return read(rfd, buf, len);
 }
 
@@ -201,12 +200,11 @@ int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len)
     int wfd = ((struct s2n_socket_write_io_context*) io_context)->fd;
     if (wfd < 0) {
         errno = EBADF;
-        return -1;
+        S2N_ERROR(S2N_ERR_BAD_FD);
     }
 
     /* On success, the number of bytes written is returned. On failure, -1 is
      * returned and errno is set appropriately. */
-    errno = 0;
     return write(wfd, buf, len);
 }
 

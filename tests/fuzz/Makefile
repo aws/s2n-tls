@@ -1,5 +1,5 @@
 #
-# Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
@@ -30,13 +30,12 @@ ifndef FUZZ_TESTS
     export FUZZ_TESTS=${TESTS}
 endif
 
-
 .PHONY : all
 all : run_tests
 
 include ../../s2n.mk
 
-CRUFT += $(wildcard *_test) $(wildcard fuzz-*.log) $(wildcard *_test_output.txt) $(wildcard *_test_results.txt) $(wildcard LD_PRELOAD/*.so)
+CRUFT += $(wildcard *_test) $(wildcard fuzz-*.log) $(wildcard *_test_output.txt) $(wildcard *_test_results.txt) $(wildcard LD_PRELOAD/*.so) $(wildcard *.prof*)
 LIBS += -lm -ltests2n
 
 CFLAGS += -Wno-unreachable-code -O0 -I$(LIBCRYPTO_ROOT)/include/ -I../
@@ -59,7 +58,9 @@ run_tests:: $(TESTS) ld-preload
 	./runFuzzTest.sh $${test_name} ${FUZZ_TIMEOUT_SEC} || fail_count=`expr $$fail_count + 1`; done; \
 	exit $${fail_count}; \
 	)
+	@./calcTotalCov.sh
 
 .PHONY : clean
 clean: decruft
 	${MAKE} -C LD_PRELOAD decruft
+	rm -rf profiles

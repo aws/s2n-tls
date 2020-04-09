@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_client_extensions.h"
+#include "tls/extensions/s2n_client_server_name.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_connection_evp_digests.h"
 #include "tls/s2n_handshake.h"
@@ -39,6 +40,7 @@
 #include "tls/s2n_prf.h"
 #include "tls/s2n_resume.h"
 #include "tls/s2n_kem.h"
+#include "tls/s2n_ecc_preferences.h"
 
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
@@ -146,22 +148,15 @@ static int s2n_connection_init_hmacs(struct s2n_connection *conn)
 struct s2n_connection *s2n_connection_new(s2n_mode mode)
 {
     struct s2n_blob blob = {0};
-    struct s2n_connection *conn;
-
     GUARD_PTR(s2n_alloc(&blob, sizeof(struct s2n_connection)));
-
     GUARD_PTR(s2n_blob_zero(&blob));
 
     /* Cast 'through' void to acknowledge that we are changing alignment,
      * which is ok, as blob.data is always aligned.
      */
-    conn = (struct s2n_connection *)(void *)blob.data;
+    struct s2n_connection* conn = (struct s2n_connection *)(void *)blob.data;
 
-    if (s2n_is_in_fips_mode()) {
-        s2n_connection_set_config(conn, s2n_fetch_default_fips_config());
-    } else {
-        s2n_connection_set_config(conn, s2n_fetch_default_config());
-    }
+    GUARD_PTR(s2n_connection_set_config(conn, s2n_fetch_default_config()));
 
     conn->mode = mode;
     conn->blinding = S2N_BUILT_IN_BLINDING;
@@ -184,24 +179,20 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn->session_ticket_status = S2N_NO_TICKET;
 
     /* Allocate the fixed-size stuffers */
-    blob.data = conn->alert_in_data;
-    blob.size = S2N_ALERT_LENGTH;
-
+    blob = (struct s2n_blob) {0};
+    GUARD_PTR(s2n_blob_init(&blob, conn->alert_in_data, S2N_ALERT_LENGTH));
     GUARD_PTR(s2n_stuffer_init(&conn->alert_in, &blob));
 
-    blob.data = conn->reader_alert_out_data;
-    blob.size = S2N_ALERT_LENGTH;
-
+    blob = (struct s2n_blob) {0};
+    GUARD_PTR(s2n_blob_init(&blob, conn->reader_alert_out_data, S2N_ALERT_LENGTH));
     GUARD_PTR(s2n_stuffer_init(&conn->reader_alert_out, &blob));
 
-    blob.data = conn->writer_alert_out_data;
-    blob.size = S2N_ALERT_LENGTH;
-
+    blob = (struct s2n_blob) {0};
+    GUARD_PTR(s2n_blob_init(&blob, conn->writer_alert_out_data, S2N_ALERT_LENGTH));
     GUARD_PTR(s2n_stuffer_init(&conn->writer_alert_out, &blob));
 
-    blob.data = conn->ticket_ext_data;
-    blob.size = S2N_TICKET_SIZE_IN_BYTES;
-
+    blob = (struct s2n_blob) {0};
+    GUARD_PTR(s2n_blob_init(&blob, conn->ticket_ext_data, S2N_TICKET_SIZE_IN_BYTES));
     GUARD_PTR(s2n_stuffer_init(&conn->client_ticket_to_decrypt, &blob));
 
     /* Allocate long term key memory */
@@ -222,9 +213,8 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     /* Initialize the growable stuffers. Zero length at first, but the resize
      * in _wipe will fix that
      */
-    blob.data = conn->header_in_data;
-    blob.size = S2N_TLS_RECORD_HEADER_LENGTH;
-
+    blob = (struct s2n_blob) {0};
+    GUARD_PTR(s2n_blob_init(&blob, conn->header_in_data, S2N_TLS_RECORD_HEADER_LENGTH));
     GUARD_PTR(s2n_stuffer_init(&conn->header_in, &blob));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->out, 0));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->in, 0));
@@ -232,6 +222,10 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->client_hello.raw_message, 0));
     GUARD_PTR(s2n_connection_wipe(conn));
     GUARD_PTR(s2n_timer_start(conn->config, &conn->write_timer));
+
+    /* Initialize the cookie stuffer with zero length. If a cookie extension
+     * is received, the stuffer will be resized according to the cookie length */
+    GUARD_PTR(s2n_stuffer_growable_alloc(&conn->cookie_stuffer, 0));
 
     return conn;
 }
@@ -297,7 +291,10 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     GUARD(s2n_pkey_zero_init(&conn->secure.client_public_key));
     s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
-    GUARD(s2n_ecc_params_free(&conn->secure.server_ecc_params));
+    GUARD(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
+    for (int i=0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
+        GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
+    }
     GUARD(s2n_kem_free(&conn->secure.s2n_kem_keys));
     GUARD(s2n_free(&conn->secure.client_cert_chain));
     GUARD(s2n_free(&conn->ct_response));
@@ -463,6 +460,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     s2n_x509_validator_wipe(&conn->x509_validator);
     GUARD(s2n_client_hello_free(&conn->client_hello));
     GUARD(s2n_free(&conn->application_protocols_overridden));
+    GUARD(s2n_stuffer_free(&conn->cookie_stuffer));
     GUARD(s2n_free_object((uint8_t **)&conn, sizeof(struct s2n_connection)));
 
     return 0;
@@ -529,12 +527,8 @@ void *s2n_connection_get_ctx(struct s2n_connection *conn)
 
 int s2n_connection_release_buffers(struct s2n_connection *conn)
 {
-    /* wipe and truncate the input and output buffers */
-    GUARD(s2n_stuffer_wipe(&conn->in));
-    GUARD(s2n_stuffer_wipe(&conn->out));
-
-    GUARD(s2n_stuffer_resize(&conn->in, 0));
-    GUARD(s2n_stuffer_resize(&conn->out, 0));
+    GUARD(s2n_stuffer_release_if_empty(&conn->out));
+    GUARD(s2n_stuffer_release_if_empty(&conn->in));
 
     return 0;
 }
@@ -566,6 +560,7 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
     GUARD(s2n_free(&conn->client_ticket));
     GUARD(s2n_free(&conn->status_response));
     GUARD(s2n_free(&conn->application_protocols_overridden));
+    GUARD(s2n_stuffer_free(&conn->cookie_stuffer));
 
     /* Remove parsed extensions array from client_hello */
     GUARD(s2n_client_hello_free_parsed_extensions(&conn->client_hello));
@@ -578,24 +573,24 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* First make a copy of everything we'd like to save, which isn't very much. */
     int mode = conn->mode;
     struct s2n_config *config = conn->config;
-    struct s2n_stuffer alert_in = {{0}};
-    struct s2n_stuffer reader_alert_out = {{0}};
-    struct s2n_stuffer writer_alert_out = {{0}};
-    struct s2n_stuffer client_ticket_to_decrypt = {{0}};
-    struct s2n_stuffer handshake_io = {{0}};
-    struct s2n_stuffer client_hello_raw_message = {{0}};
-    struct s2n_stuffer header_in = {{0}};
-    struct s2n_stuffer in = {{0}};
-    struct s2n_stuffer out = {{0}};
+    struct s2n_stuffer alert_in = {0};
+    struct s2n_stuffer reader_alert_out = {0};
+    struct s2n_stuffer writer_alert_out = {0};
+    struct s2n_stuffer client_ticket_to_decrypt = {0};
+    struct s2n_stuffer handshake_io = {0};
+    struct s2n_stuffer client_hello_raw_message = {0};
+    struct s2n_stuffer header_in = {0};
+    struct s2n_stuffer in = {0};
+    struct s2n_stuffer out = {0};
     /* Session keys will be wiped. Preserve structs to avoid reallocation */
     struct s2n_session_key initial_client_key = {0};
     struct s2n_session_key initial_server_key = {0};
     struct s2n_session_key secure_client_key = {0};
     struct s2n_session_key secure_server_key = {0};
     /* Parts of the PRF working space, hash states, and hmac states  will be wiped. Preserve structs to avoid reallocation */
-    struct s2n_connection_prf_handles prf_handles = {{{{0}}}};
-    struct s2n_connection_hash_handles hash_handles = {{{0}}};
-    struct s2n_connection_hmac_handles hmac_handles = {{{{0}}}};
+    struct s2n_connection_prf_handles prf_handles = {0};
+    struct s2n_connection_hash_handles hash_handles = {0};
+    struct s2n_connection_hmac_handles hmac_handles = {0};
 
     /* Wipe all of the sensitive stuff */
     GUARD(s2n_connection_wipe_keys(conn));
@@ -800,6 +795,7 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
     struct s2n_socket_read_io_context *peer_socket_ctx;
 
     GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_read_io_context)));
+    GUARD(s2n_blob_zero(&ctx_mem));
 
     peer_socket_ctx = (struct s2n_socket_read_io_context *)(void *)ctx_mem.data;
     peer_socket_ctx->fd = rfd;
@@ -839,6 +835,8 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
     if (0 == s2n_socket_is_ipv6(wfd, &ipv6)) {
         conn->ipv6 = (ipv6 ? 1 : 0);
     }
+
+    conn->write_fd_broken = 0;
 
     return 0;
 }
@@ -883,11 +881,11 @@ const char *s2n_connection_get_curve(struct s2n_connection *conn)
 {
     notnull_check_ptr(conn);
 
-    if (!conn->secure.server_ecc_params.negotiated_curve) {
+    if (!conn->secure.server_ecc_evp_params.negotiated_curve) {
         return "NONE";
     }
 
-    return conn->secure.server_ecc_params.negotiated_curve->name;
+    return conn->secure.server_ecc_evp_params.negotiated_curve->name;
 }
 
 const char *s2n_connection_get_kem_name(struct s2n_connection *conn)
@@ -983,7 +981,7 @@ const char *s2n_get_server_name(struct s2n_connection *conn)
 
     GUARD_PTR(s2n_client_hello_get_parsed_extension(conn->client_hello.parsed_extensions, S2N_EXTENSION_SERVER_NAME, &parsed_extension));
 
-    struct s2n_stuffer extension = {{0}};
+    struct s2n_stuffer extension = {0};
     GUARD_PTR(s2n_stuffer_init(&extension, &parsed_extension.extension));
     GUARD_PTR(s2n_stuffer_write(&extension, &parsed_extension.extension));
 
@@ -1137,25 +1135,17 @@ int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
 {
     notnull_check(conn->recv);
     /* Make sure we have enough space to write */
-    GUARD(s2n_stuffer_skip_write(stuffer, len));
+    GUARD(s2n_stuffer_reserve_space(stuffer, len));
 
-    /* "undo" the skip write */
-    stuffer->write_cursor -= len;
-
-  RECV:
-    errno = 0;
-    int r = conn->recv(conn->recv_io_context, stuffer->blob.data + stuffer->write_cursor, len);
-    if (r < 0) {
-        if (errno == EINTR) {
-            goto RECV;
-        }
-        return -1;
-    }
+    int r = 0;
+    do {
+        errno = 0;
+        r = conn->recv(conn->recv_io_context, stuffer->blob.data + stuffer->write_cursor, len);
+        S2N_ERROR_IF(r < 0 && errno != EINTR, S2N_ERR_RECV_STUFFER_FROM_CONN);
+    } while (r < 0);
 
     /* Record just how many bytes we have written */
-    stuffer->write_cursor += r;
-    stuffer->wiped = 0;
-
+    GUARD(s2n_stuffer_skip_write(stuffer, r));
     return r;
 }
 
@@ -1163,24 +1153,23 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
 {
     notnull_check(conn);
     notnull_check(conn->send);
-    /* Make sure we even have the data */
-    GUARD(s2n_stuffer_skip_read(stuffer, len));
-
-    /* "undo" the skip read */
-    stuffer->read_cursor -= len;
-
-  SEND:
-    errno = 0;
-    int w = conn->send(conn->send_io_context, stuffer->blob.data + stuffer->read_cursor, len);
-    if (w < 0) {
-        if (errno == EINTR) {
-            goto SEND;
-        }
-        return -1;
+    if (conn->write_fd_broken) {
+        S2N_ERROR(S2N_ERR_SEND_STUFFER_TO_CONN);
     }
+    /* Make sure we even have the data */
+    S2N_ERROR_IF(s2n_stuffer_data_available(stuffer) < len, S2N_ERR_STUFFER_OUT_OF_DATA);
 
-    stuffer->read_cursor += w;
+    int w = 0;
+    do {
+        errno = 0;
+        w = conn->send(conn->send_io_context, stuffer->blob.data + stuffer->read_cursor, len);
+	if (w < 0 && errno == EPIPE) {
+            conn->write_fd_broken = 1;
+        }
+        S2N_ERROR_IF(w < 0 && errno != EINTR, S2N_ERR_SEND_STUFFER_TO_CONN);
+    } while (w < 0);
 
+    GUARD(s2n_stuffer_skip_read(stuffer, w));
     return w;
 }
 

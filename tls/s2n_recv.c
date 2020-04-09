@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -49,8 +49,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
         *record_type = TLS_APPLICATION_DATA;
         return 0;
     }
-
-    GUARD(s2n_stuffer_resize(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
+    GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
 
     /* Read the record until we at least have a header */
     while (s2n_stuffer_data_available(&conn->header_in) < S2N_TLS_RECORD_HEADER_LENGTH) {
@@ -59,8 +58,9 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
         if (s2n_connection_is_managed_corked(conn)) {
             GUARD(s2n_socket_set_read_size(conn, remaining));
         }
-        r = s2n_connection_recv_stuffer(&conn->header_in, conn, remaining);
 
+        errno = 0;
+        r = s2n_connection_recv_stuffer(&conn->header_in, conn, remaining);
         if (r == 0) {
             conn->closed = 1;
             S2N_ERROR(S2N_ERR_CLOSED);
@@ -81,12 +81,12 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
 
         if (s2n_sslv2_record_header_parse(conn, record_type, &conn->client_protocol_version, &fragment_length) < 0) {
             GUARD(s2n_connection_kill(conn));
-            return -1;
+            S2N_ERROR_PRESERVE_ERRNO();
         }
     } else {
         if (s2n_record_header_parse(conn, record_type, &fragment_length) < 0) {
             GUARD(s2n_connection_kill(conn));
-            return -1;
+            S2N_ERROR_PRESERVE_ERRNO();
         }
     }
 
@@ -98,8 +98,8 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
             GUARD(s2n_socket_set_read_size(conn, remaining));
         }
 
+        errno = 0;
         r = s2n_connection_recv_stuffer(&conn->in, conn, remaining);
-
         if (r == 0) {
             conn->closed = 1;
             S2N_ERROR(S2N_ERR_CLOSED);
@@ -119,8 +119,15 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     /* Decrypt and parse the record */
     if (s2n_record_parse(conn) < 0) {
         GUARD(s2n_connection_kill(conn));
+        S2N_ERROR_PRESERVE_ERRNO();
+    }
 
-        return -1;
+    /* In TLS 1.3, encrypted handshake records would appear to be of record type
+    * TLS_APPLICATION_DATA. The actual record content type is found after the encrypted
+    * is decrypted.
+    */
+    if (conn->actual_protocol_version == S2N_TLS13 && *record_type == TLS_APPLICATION_DATA) {
+        GUARD(s2n_tls13_parse_record_type(&conn->in, record_type));
     }
 
     return 0;
@@ -162,7 +169,7 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
                 conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
             }
 
-            return -1;
+            S2N_ERROR_PRESERVE_ERRNO();
         }
 
         S2N_ERROR_IF(isSSLv2, S2N_ERR_BAD_MESSAGE);
@@ -229,3 +236,4 @@ int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status * bloc
     *blocked = S2N_NOT_BLOCKED;
     return 0;
 }
+

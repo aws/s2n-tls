@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -26,9 +26,10 @@
 #define MAX_MARKER_LEN 50
 #define NUM_OF_KATS 100
 
-//
-// ALLOW TO READ HEXADECIMAL ENTRY (KEYS, DATA, TEXT, etc.)
-//
+/*
+ * ALLOW TO READ HEXADECIMAL ENTRY (KEYS, DATA, TEXT, etc.)
+ */
+
 static inline int FindMarker(FILE *infile, const char *marker)
 {
     char line[MAX_MARKER_LEN];
@@ -61,9 +62,10 @@ static inline int FindMarker(FILE *infile, const char *marker)
     }
 }
 
-//
-// ALLOW TO READ HEXADECIMAL ENTRY (KEYS, DATA, TEXT, etc.)
-//
+/*
+ * ALLOW TO READ HEXADECIMAL ENTRY (KEYS, DATA, TEXT, etc.)
+ */
+
 static inline int ReadHex(FILE *infile, uint8_t *buf, uint32_t len, const char *str)
 {
     int ch;
@@ -107,7 +109,7 @@ static inline int ReadHex(FILE *infile, uint8_t *buf, uint32_t len, const char *
         }
         else 
         {
-            // shouldn't ever get here
+            /* shouldn't ever get here */
             ich = 0;
         }
 

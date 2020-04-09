@@ -1,5 +1,5 @@
-/*
- * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ /*
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -52,8 +52,6 @@ int main(int argc, char **argv)
     struct s2n_connection *server_conn;
     struct s2n_config *client_config;
     struct s2n_config *server_config;
-    int server_to_client[2];
-    int client_to_server[2];
     uint64_t now;
 
     size_t serialized_session_state_length = 0;
@@ -86,18 +84,22 @@ int main(int argc, char **argv)
      *    decrypt-only state due to absence of encrypt-decrypt key.
      * 6) Client sends non-empty ST extension. Server does a full handshake and issues a NST because the key is not found.
      * 7) Client sends non-empty ST extension. Server does a full handshake and issues a NST because the key has expired.
-     * 8) Client sends non-empty ST extension, but server cannot or does not want to honor the ticket.
-     * 9) Client sets corrupted ST extension.
-     * 10) User tries adding a duplicate key to the server.
-     * 11) Testing expired keys are removed from the server config while adding new keys.
-     * 12) Scenario 1: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST.
-     * 13) Scenario 2: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST.
-     * 14) Testing s2n_config_set_ticket_encrypt_decrypt_key_lifetime and s2n_config_set_ticket_decrypt_key_lifetime calls.
-     * 15) Add keys out of order and pre-emptively add a key.
-     * 16) Handshake with client auth and session ticket enabled.
+     * 8) Client sends non-empty ST extension. Server does a full handshake and issues a NST because the ticket has non-standard size.
+     * 9) Client sends non-empty ST extension, but server cannot or does not want to honor the ticket.
+     * 10) Client sets corrupted ST extension.
+     * 11) User tries adding a duplicate key to the server.
+     * 12) Testing expired keys are removed from the server config while adding new keys.
+     * 13) Scenario 1: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST.
+     * 14) Scenario 2: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST.
+     * 15) Testing s2n_config_set_ticket_encrypt_decrypt_key_lifetime and s2n_config_set_ticket_decrypt_key_lifetime calls.
+     * 16) Add keys out of order and pre-emptively add a key.
+     * 17) Handshake with client auth and session ticket enabled.
      */
 
     BEGIN_TEST();
+
+    struct s2n_test_piped_io piped_io;
+    EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
 
     EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -108,19 +110,9 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
 
-    /* Create nonblocking pipes */
-    EXPECT_SUCCESS(pipe(server_to_client));
-    EXPECT_SUCCESS(pipe(client_to_server));
-    for (int i = 0; i < 2; i++) {
-       EXPECT_NOT_EQUAL(fcntl(server_to_client[i], F_SETFL, fcntl(server_to_client[i], F_GETFL) | O_NONBLOCK), -1);
-       EXPECT_NOT_EQUAL(fcntl(client_to_server[i], F_SETFL, fcntl(client_to_server[i], F_GETFL) | O_NONBLOCK), -1);
-    }
-
     /* Client sends empty ST extension. Server issues NST. */
     {
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_config, 1));
@@ -128,12 +120,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
-
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -144,6 +136,9 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
+        /* A newly created connection should not be considered resumed */
+        EXPECT_FALSE(s2n_connection_is_session_resumed(server_conn));
+        EXPECT_FALSE(s2n_connection_is_session_resumed(client_conn));
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server did a full handshake and issued NST */
@@ -171,21 +166,18 @@ int main(int argc, char **argv)
      * to issue NST due to absence of an encrypt-decrypt key. */
     {
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
-
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_config, 1));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
-
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -210,8 +202,6 @@ int main(int argc, char **argv)
     /* Client sends non-empty ST extension. Server does an abbreviated handshake without issuing NST. */
     {
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         /* Set client ST and session state */
         EXPECT_SUCCESS(s2n_connection_set_session(client_conn, serialized_session_state, serialized_session_state_length));
@@ -221,12 +211,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
-
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -240,12 +230,13 @@ int main(int argc, char **argv)
 
         /* Verify that the server did an abbreviated handshake and not issue NST */
         EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(s2n_connection_is_session_resumed(server_conn));
         EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
 
         /* Verify that client_ticket is same as before because server didn't issue a NST */
         uint8_t old_session_ticket[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES];
         memcpy_check(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES);
-
+        EXPECT_TRUE(s2n_connection_is_session_resumed(client_conn));
         s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length);
         EXPECT_BYTEARRAY_EQUAL(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES);
 
@@ -266,8 +257,6 @@ int main(int argc, char **argv)
      */
     {
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         /* Set client ST and session state */
         EXPECT_SUCCESS(s2n_connection_set_session(client_conn, serialized_session_state, serialized_session_state_length));
@@ -277,12 +266,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -333,8 +323,6 @@ int main(int argc, char **argv)
      */
     {
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         /* Set client ST and session state */
         EXPECT_SUCCESS(s2n_connection_set_session(client_conn, serialized_session_state, serialized_session_state_length));
@@ -344,12 +332,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -398,16 +387,15 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_session(client_conn, serialized_session_state, serialized_session_state_length));
 
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -452,16 +440,15 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_session(client_conn, serialized_session_state, serialized_session_state_length));
 
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -485,13 +472,75 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
 
         /* Verify that the server has only the unexpired key */
-        EXPECT_BYTEARRAY_EQUAL(s2n_array_get(server_config->ticket_keys, 0), ticket_key_name2, strlen((char *)ticket_key_name2));
-        EXPECT_EQUAL(server_config->ticket_keys->num_of_elements, 1);
+        EXPECT_BYTEARRAY_EQUAL(s2n_set_get(server_config->ticket_keys, 0), ticket_key_name2, strlen((char *)ticket_key_name2));
+        EXPECT_EQUAL(s2n_set_size(server_config->ticket_keys), 1);
 
         /* Verify that the client received NST */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name2, strlen((char *)ticket_key_name2));
+
+        /* Verify the lifetime hint from the server */
+        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
+
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+    }
+
+    /* Client sends non-empty ST extension. Server does a full handshake and issues a NST because the ticket has non-standard size. */
+    {
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_config, 1));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+
+        /* Tamper session state to make session ticket size smaller than what we expect */
+        /* Verify that client_ticket is same as before because server did not issue a NST */
+        uint8_t tampered_session_state[sizeof(serialized_session_state) - 1];
+        /* Copy session format */
+        tampered_session_state[0] = serialized_session_state[0];
+        /* Copy and reduce by 1 the session ticket length */
+        tampered_session_state[1] = serialized_session_state[1];
+        tampered_session_state[2] = serialized_session_state[2] - 1;
+        /* Skip 1 byte of the session ticket and copy the rest */
+        memcpy_check(tampered_session_state + 3, serialized_session_state + 4, sizeof(tampered_session_state) - 4);
+
+        /* Set client tampered ST and session state */
+        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tampered_session_state, serialized_session_state_length - 1));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
+
+        /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
+        EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
+
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key1, sizeof(ticket_key1), 0));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Verify that the server did a full handshake and issued NST */
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
+
+        /* Verify that the client received NST */
+        serialized_session_state_length = s2n_connection_get_session_length(client_conn);
+        EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
+        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name1, strlen((char *)ticket_key_name1));
 
         /* Verify the lifetime hint from the server */
         EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
@@ -516,15 +565,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_session(client_conn, serialized_session_state, serialized_session_state_length));
 
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Not enabling resumption using ST */
 
@@ -542,7 +590,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_EQUAL(memcmp(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name2, strlen((char *)ticket_key_name2)), 0);
 
         /* Verify the lifetime hint from the server */
-        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), -1);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_ERR_SESSION_TICKET_NOT_SUPPORTED);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
@@ -574,7 +622,7 @@ int main(int argc, char **argv)
 
         /* Try adding the same key, but with a different name */
         EXPECT_EQUAL(-1, s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key1, sizeof(ticket_key1), 0));
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_TICKET_KEY_NOT_UNIQUE);
+        EXPECT_EQUAL(s2n_errno, S2N_ELEMENT_ALREADY_IN_ARRAY);
 
         /* Try adding a different key, but with the same name */
         EXPECT_EQUAL(-1, s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key2, sizeof(ticket_key2), 0));
@@ -605,16 +653,16 @@ int main(int argc, char **argv)
 
         /* Try adding the expired keys */
         EXPECT_EQUAL(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key2, sizeof(ticket_key2), 0), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_TICKET_KEY_NOT_UNIQUE);
+        EXPECT_EQUAL(s2n_errno, S2N_ELEMENT_ALREADY_IN_ARRAY);
         EXPECT_EQUAL(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key1, sizeof(ticket_key1), 0), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_TICKET_KEY_NOT_UNIQUE);
+        EXPECT_EQUAL(s2n_errno, S2N_ELEMENT_ALREADY_IN_ARRAY);
 
         /* Verify that the config has only one unexpired key */
-        EXPECT_BYTEARRAY_EQUAL(s2n_array_get(server_config->ticket_keys, 0), ticket_key_name3, strlen((char *)ticket_key_name3));
-        EXPECT_EQUAL(server_config->ticket_keys->num_of_elements, 1);
+        EXPECT_BYTEARRAY_EQUAL(s2n_set_get(server_config->ticket_keys, 0), ticket_key_name3, strlen((char *)ticket_key_name3));
+        EXPECT_EQUAL(s2n_set_size(server_config->ticket_keys), 1);
 
         /* Verify that the total number of key hashes is three */
-        EXPECT_EQUAL(server_config->ticket_key_hashes->num_of_elements, 3);
+        EXPECT_EQUAL(s2n_set_size(server_config->ticket_key_hashes), 3);
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
     }
@@ -627,16 +675,15 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -685,16 +732,15 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -748,16 +794,15 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -816,16 +861,15 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -858,9 +902,9 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name2, strlen((char *)ticket_key_name2));
 
         /* Verify that the keys are stored from oldest to newest */
-        EXPECT_BYTEARRAY_EQUAL(((struct s2n_ticket_key *)s2n_array_get(server_config->ticket_keys, 0))->key_name, ticket_key_name2, strlen((char *)ticket_key_name2));
-        EXPECT_BYTEARRAY_EQUAL(((struct s2n_ticket_key *)s2n_array_get(server_config->ticket_keys, 1))->key_name, ticket_key_name1, strlen((char *)ticket_key_name1));
-        EXPECT_BYTEARRAY_EQUAL(((struct s2n_ticket_key *)s2n_array_get(server_config->ticket_keys, 2))->key_name, ticket_key_name3, strlen((char *)ticket_key_name3));
+        EXPECT_BYTEARRAY_EQUAL(((struct s2n_ticket_key *)s2n_set_get(server_config->ticket_keys, 0))->key_name, ticket_key_name2, strlen((char *)ticket_key_name2));
+        EXPECT_BYTEARRAY_EQUAL(((struct s2n_ticket_key *)s2n_set_get(server_config->ticket_keys, 1))->key_name, ticket_key_name1, strlen((char *)ticket_key_name1));
+        EXPECT_BYTEARRAY_EQUAL(((struct s2n_ticket_key *)s2n_set_get(server_config->ticket_keys, 2))->key_name, ticket_key_name3, strlen((char *)ticket_key_name3));
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
@@ -881,21 +925,20 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(client_conn, server_to_client[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
-        EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, server_to_client[1]));
 
         /* Server has session ticket and mutual auth enabled */
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_OPTIONAL));
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -913,11 +956,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
 
-    for (int i = 0; i < 2; i++) {
-       EXPECT_SUCCESS(close(server_to_client[i]));
-       EXPECT_SUCCESS(close(client_to_server[i]));
-    }
-
+    EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     free(cert_chain);
     free(private_key);

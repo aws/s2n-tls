@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -14,8 +14,13 @@
  */
 #include "crypto/s2n_fips.h"
 
+#include "error/s2n_errno.h"
+
 #include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_client_extensions.h"
+#include "tls/extensions/s2n_client_key_share.h"
 
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
@@ -37,14 +42,35 @@ int s2n_init(void)
     GUARD(s2n_rand_init());
     GUARD(s2n_cipher_suites_init());
     GUARD(s2n_cipher_preferences_init());
-
+    GUARD(s2n_ecc_preferences_init());
+    GUARD(s2n_config_defaults_init());
+    
     S2N_ERROR_IF(atexit(s2n_cleanup_atexit) != 0, S2N_ERR_ATEXIT);
 
-    /* these functions do lazy init. Avoid the race conditions and just do it here. */
-    if (s2n_is_in_fips_mode()) {
-        s2n_fetch_default_fips_config();
-    } else {
-        s2n_fetch_default_config();
+    /* Set the supported extension mask bits for each of the recognized
+     * extensions */
+    static const uint16_t extensions[] = {
+        TLS_EXTENSION_SERVER_NAME,
+        TLS_EXTENSION_MAX_FRAG_LEN,
+        TLS_EXTENSION_STATUS_REQUEST,
+        TLS_EXTENSION_SUPPORTED_GROUPS,
+        TLS_EXTENSION_EC_POINT_FORMATS,
+        TLS_EXTENSION_SIGNATURE_ALGORITHMS,
+        TLS_EXTENSION_ALPN,
+        TLS_EXTENSION_SCT_LIST,
+        TLS_EXTENSION_SESSION_TICKET,
+        TLS_EXTENSION_SUPPORTED_VERSIONS,
+        TLS_EXTENSION_PQ_KEM_PARAMETERS,
+        TLS_EXTENSION_RENEGOTIATION_INFO,
+        TLS_EXTENSION_KEY_SHARE,
+    };
+    static const uint16_t  num_extensions = sizeof(extensions) / sizeof(uint16_t);
+    for (uint16_t i = 0; i < num_extensions; i++) {
+        s2n_register_extension(extensions[i]);
+    }
+
+    if (getenv("S2N_PRINT_STACKTRACE")) {
+      s2n_stack_traces_enabled_set(true);
     }
 
     return 0;
@@ -52,8 +78,9 @@ int s2n_init(void)
 
 int s2n_cleanup(void)
 {
+    /* s2n_cleanup is supposed to be called from each thread before exiting,
+     * so ensure that whatever clean ups we have here are thread safe */
     GUARD(s2n_rand_cleanup_thread());
-
     return 0;
 }
 

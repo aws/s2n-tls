@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 #include <openssl/ec.h>
 #include <openssl/ecdsa.h>
 #include <openssl/x509.h>
-
 #include "stuffer/s2n_stuffer.h"
 
 #include "error/s2n_errno.h"
@@ -26,6 +25,7 @@
 #include "utils/s2n_safety.h"
 
 #include "crypto/s2n_ecdsa.h"
+#include "crypto/s2n_ecc_evp.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_pkey.h"
@@ -38,8 +38,11 @@ int s2n_ecdsa_der_signature_size(const struct s2n_pkey *pkey)
     return ECDSA_size(ecdsa_key->ec_key);
 }
 
-static int s2n_ecdsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature)
+static int s2n_ecdsa_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
+        struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
+    sig_alg_check(sig_alg, S2N_SIGNATURE_ECDSA);
+
     const s2n_ecdsa_private_key *key = &priv->key.ecdsa_key;
     notnull_check(key->ec_key);
 
@@ -60,8 +63,11 @@ static int s2n_ecdsa_sign(const struct s2n_pkey *priv, struct s2n_hash_state *di
     return 0;
 }
 
-static int s2n_ecdsa_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest, struct s2n_blob *signature)
+static int s2n_ecdsa_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
+        struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
+    sig_alg_check(sig_alg, S2N_SIGNATURE_ECDSA);
+
     const s2n_ecdsa_public_key *key = &pub->key.ecdsa_key;
     notnull_check(key->ec_key);
 
@@ -98,8 +104,8 @@ static int s2n_ecdsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pke
 
     GUARD(s2n_alloc(&signature, s2n_ecdsa_der_signature_size(priv)));
 
-    GUARD(s2n_ecdsa_sign(priv, &state_in, &signature));
-    GUARD(s2n_ecdsa_verify(pub, &state_out, &signature));
+    GUARD(s2n_ecdsa_sign(priv, S2N_SIGNATURE_ECDSA, &state_in, &signature));
+    GUARD(s2n_ecdsa_verify(pub, S2N_SIGNATURE_ECDSA, &state_out, &signature));
 
     return 0;
 }
@@ -151,5 +157,17 @@ int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey) {
     pkey->match = &s2n_ecdsa_keys_match;
     pkey->free = &s2n_ecdsa_key_free;
     pkey->check_key = &s2n_ecdsa_check_key_exists;
+    return 0;
+}
+
+int s2n_ecdsa_pkey_matches_curve(const struct s2n_ecdsa_key *ecdsa_key, const struct s2n_ecc_named_curve *curve)
+{
+    notnull_check(ecdsa_key);
+    notnull_check(ecdsa_key->ec_key);
+    notnull_check(curve);
+
+    int curve_id = EC_GROUP_get_curve_name(EC_KEY_get0_group(ecdsa_key->ec_key));
+    eq_check(curve_id, curve->libcrypto_nid);
+
     return 0;
 }
