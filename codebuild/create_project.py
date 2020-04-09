@@ -18,6 +18,7 @@ import argparse
 import boto3
 import configparser
 import hashlib
+import json
 import logging
 import os
 import sys
@@ -26,7 +27,6 @@ import time
 from awacs.aws import Action, Allow, Statement, Principal, PolicyDocument
 from awacs.sts import AssumeRole
 from botocore import exceptions
-from random import randrange
 from troposphere import GetAtt, Template, Ref, Output
 from troposphere.events import Rule, Target
 from troposphere.iam import Role, Policy
@@ -36,25 +36,42 @@ logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-def build_cw_event(template=Template, project_name=None, role=None):
+def build_cw_event(template=Template, project_name=None, role=None, target_job=None, hour=12, input_json=None):
     """ Create a CloudWatch Event to run a CodeBuild Project. """
-    # Run either at 12 or 13:00 UTC, 04/05:00 PST
-    hour = randrange(12, 14)
-    project_target = Target(
-        f"{project_name}Target",
-        Arn=GetAtt(project_name, "Arn"),
-        RoleArn=GetAtt(role, "Arn"),
-        Id=f"{project_name}CWid"
-    )
+    # CloudFormation doesn't allow underscores
+    project_name = project_name.replace('_', '')
+
+    # target_job is only expected in the case where multiple events are pointed at the same target.
+    # Use the project name as the dependency otherwise.
+    if not target_job:
+        target_job = project_name
+
+    # input_json is used to pass additional ENV variables to the codebuild job.
+    if input_json:
+        project_target = Target(
+            f"{project_name}Target",
+            Arn=GetAtt(target_job, "Arn"),
+            RoleArn=GetAtt(role, "Arn"),
+            Input=json.dumps(input_json),
+            Id=f"{project_name}CWid"
+        )
+    else:
+        project_target = Target(
+            f"{project_name}Target",
+            Arn=GetAtt(target_job, "Arn"),
+            RoleArn=GetAtt(role, "Arn"),
+            Id=f"{project_name}CWid"
+        )
+
     Rule(f"{project_name}Rule",
          template=template,
          Name=f"{project_name}Evernt",
          Description="scheduled run Build with CloudFormation",
          Targets=[project_target],
          State='ENABLED',
-         # Run at the top of a random hour.
+         # Run at the top of hour.
          ScheduleExpression=f"cron(0 {hour} * * ? *)",
-         DependsOn=project_name
+         DependsOn=target_job
          )
 
 
@@ -127,10 +144,10 @@ def build_artifacts(identifier: str, s3_bucketname: str) -> Artifacts:
         ArtifactIdentifier=identifier,
         EncryptionDisabled=True,
         Location=s3_bucketname,
-        NamespaceType='None',
+        NamespaceType='NONE',  # NOTE: case sensitive
         OverrideArtifactName=False,
-        Packaging='Zip',
-        Type='S3')
+        Packaging='ZIP',  # NOTE: case sensitive
+        Type='S3')  # NOTE: case sensitive
     return artifact
 
 
@@ -232,10 +249,10 @@ def build_codebuild_role(config, template=Template(), project_name: str = None, 
                 Statement(
                     Effect=Allow,
                     Action=[Action("s3", "PutObject"),
-                            Action("s3","GetObject"),
-                            Action("s3","GetObjectVersion"),
-                            Action("s3","GetBucketAcl"),
-                            Action("s3","GetBucketLocation")],
+                            Action("s3", "GetObject"),
+                            Action("s3", "GetObjectVersion"),
+                            Action("s3", "GetBucketAcl"),
+                            Action("s3", "GetBucketLocation")],
                     Resource=[
                         "arn:aws:s3:::s2n-build-artifacts/*",
                     ]
@@ -363,13 +380,15 @@ def main(args, config):
     temp_yaml_filename = args.output_dir + "/s2n_codebuild_projects.yml"
 
     # Role used by GitHub Actions.
-    build_github_role(codebuild, config)
+    if config.has_option('Global', 'create_github_role') and config.getboolean('Global', 'create_github_role'):
+        build_github_role(codebuild, config)
 
     # Walk the config file, adding each stanza to the Troposphere template.
     for job in config.sections():
-        if 'CodeBuild:' in job:
+        if ':' in job:
             job_title = job.split(':')[1]
-            service_role = build_codebuild_role(config, template=codebuild, project_name=job_title).to_dict()
+        if 'CodeBuild:' in job:
+            service_role = build_codebuild_role(config,template=codebuild, project_name=job_title).to_dict()
 
             # Pull the env out of the section, and use the snippet for the other values.
             # Note: only env is over-ridden with snippets.
@@ -378,7 +397,16 @@ def main(args, config):
                               service_role=service_role['Ref'], raw_env=config.get(job, 'env'))
             else:
                 build_project(template=codebuild, project_name=job_title, section=job, service_role=service_role['Ref'])
+
+            # Scheduled runs triggered by CloudWatch.
             build_cw_event(template=codebuild, project_name=job_title, role=cw_event_role)
+        if 'CloudWatchEvent' in job:
+            # CloudWatch input allows us to over-ride environment variables passed to codebuild.
+            cw_input = json.loads(config.get(job, 'input'))
+            # Note that for Cloudwatch, we're need to reference an existing CodeBuild Job.
+            build_cw_event(template=codebuild, project_name=job_title, target_job=config.get(job, 'build_job_name'),
+                           role=cw_event_role,
+                           hour=config.get(job, 'start_time'), input_json=cw_input)
 
     # Write out a CloudFormation template.  This is ephemeral and is not used again.
     with(open(temp_yaml_filename, 'w')) as fh:
@@ -407,6 +435,7 @@ def main(args, config):
             create_new_stack(client, config, codebuild)
 
 
+
 if __name__ == '__main__':
     # Parse  options
     parser = argparse.ArgumentParser(description='Creates AWS CodeBuild Project CloudFormation files ' +
@@ -422,6 +451,8 @@ if __name__ == '__main__':
 
     config = configparser.RawConfigParser()
     logging.debug(f'Try to load config file {args.config}')
+    # The snippets/boilerplate should always be included.
+    config.read('common.config')
     config.read(args.config)
     assert config.get('CFNRole', 'account_number')
 
