@@ -38,6 +38,10 @@ libs:
 integration:
 	${MAKE} -C integration
 
+.PHONY : integrationv2
+integrationv2:
+	${MAKE} -C integrationv2
+
 .PHONY : fuzz
 fuzz:
 	${MAKE} -C testlib
