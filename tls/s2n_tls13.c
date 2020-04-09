@@ -22,6 +22,11 @@ int s2n_is_tls13_enabled()
     return s2n_highest_protocol_version == S2N_TLS13;
 }
 
+/* ** WARNING **
+ * Not all TLS 1.3 features are supported and may cause unknown behaviour.
+ * This function is not public and should only be used for testing
+ * and integration purposes.
+ **/
 int s2n_enable_tls13()
 {
     s2n_highest_protocol_version = S2N_TLS13;
