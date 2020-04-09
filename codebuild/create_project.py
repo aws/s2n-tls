@@ -282,6 +282,68 @@ def build_codebuild_role(config, template=Template(), project_name: str = None, 
     return Ref(role_id)
 
 
+def display_change_set(description):
+    """Not the greatest display, but this doesn't require any additional dependencies."""
+    for change in description['Changes']:
+        items = []
+        for k, v in change['ResourceChange'].items():
+            if type(v) is list:
+                v = str(v)
+            q = f"\n\t{k:<20} {v:>10}"
+            items.append(q)
+
+        logging.info("Summary of changes: {}".format("".join(items)))
+
+
+def modify_existing_stack(client, config, codebuild):
+    """Modify and exist Codebuild project's CloudFormation stack"""
+    stack_name = config.get("Global", "stack_name")
+
+    # ChangeSetNames are required to start with an Alphabetic character, and to be unique.
+    # Prefixing the hashed timed with an 'A' gets it done.
+    change_set_name = "A" + hashlib.sha256(bytes(time.asctime().encode('utf-8'))).hexdigest()
+
+    client.create_change_set(
+        StackName=stack_name,
+        TemplateBody=codebuild.to_yaml(),
+        Capabilities=["CAPABILITY_IAM"],
+        ChangeSetName=change_set_name)
+
+    logging.info(f"Waiting for change set {change_set_name}")
+    waiter = client.get_waiter('change_set_create_complete')
+    waiter.wait(StackName=stack_name, ChangeSetName=change_set_name, WaiterConfig={"Delay": 3, "MaxAttempt": 3})
+
+    description = client.describe_change_set(StackName=stack_name, ChangeSetName=change_set_name)
+    display_change_set(description)
+
+    key = input('\nDo these changes make sense? [Y/n]')
+    if key != "Y":
+        logging.info("Exiting without executing change set")
+        client.delete_change_set(StackName=stack_name, ChangeSetName=change_set_name)
+        return
+
+    logging.info(f"Executing {change_set_name}")
+    exc = client.execute_change_set(
+        StackName=stack_name,
+        ChangeSetName=change_set_name)
+
+    waiter = client.get_waiter('stack_update_complete')
+    waiter.wait(StackName=stack_name, WaiterConfig={"Delay": 5, "MaxAttempt": 6})
+    logging.info(f"Update completed: {exc}")
+
+
+def create_new_stack(client, config, codebuild):
+    """Create a new CloudFormation stack for the Codebuild project"""
+    try:
+        result = client.create_stack(
+            StackName=config.get("Global", "stack_name"),
+            TemplateBody=codebuild.to_yaml(),
+            Capabilities=["CAPABILITY_IAM"])
+        logging.info("Creating stack {}".format(result['StackId']))
+    except client.exceptions.AlreadyExistsException as e:
+        logging.error("Stack already exists, you must use the --modify-existing flag to update a stack")
+
+
 def validate_cfn(boto_client: boto3.client, cfn_template: str):
     """ Call validate_template with boto. """
     try:
@@ -334,40 +396,15 @@ def main(args, config):
         except exceptions.NoCredentialsError:
             raise SystemExit(f"Something went wrong with your AWS credentials;  Exiting.")
 
-        if args.production:
-            if args.modify_existing is True:
-                stack_name = config.get("Global", "stack_name")
-                change_set_name = "A" + hashlib.sha256(bytes(time.asctime().encode('utf-8'))).hexdigest()
-                # ^^^ Why are ChangeSetNames required to start with an Alphabetic character?
-
-                client.create_change_set(
-                    StackName=stack_name,
-                    TemplateBody=codebuild.to_yaml(),
-                    Capabilities=["CAPABILITY_IAM"],
-                    ChangeSetName=change_set_name)
-
-                logging.info("Waiting for change set {}".format(change_set_name))
-                waiter = client.get_waiter('change_set_create_complete')
-                waiter.wait(StackName=stack_name, ChangeSetName=change_set_name, WaiterConfig={"Delay": 3, "MaxAttempt": 3})
-
-                logging.info("Executing {}".format(change_set_name))
-                exc = client.execute_change_set(
-                    StackName=stack_name,
-                    ChangeSetName=change_set_name)
-
-                logging.info("Executed {}".format(exc))
-                return
-
-            try:
-                result = client.create_stack(
-                    StackName=config.get("Global", "stack_name"),
-                    TemplateBody=codebuild.to_yaml(),
-                    Capabilities=["CAPABILITY_IAM"])
-                logging.info("Creating stack {}".format(result['StackId']))
-            except client.exceptions.AlreadyExistsException as e:
-                logging.error("Stack already exists, you must use the --modify-existing flag to update a stack")
-        else:
+        # Default to not making changes
+        if not args.production:
             logging.info('Production flag not set, skipping mutating behavior.')
+            return
+
+        if args.modify_existing is True:
+            modify_existing_stack(client, config, codebuild)
+        else:
+            create_new_stack(client, config, codebuild)
 
 
 if __name__ == '__main__':
