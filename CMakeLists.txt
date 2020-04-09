@@ -266,9 +266,7 @@ if (BUILD_TESTING)
 
         set_property(
         TEST
-            ${test_case_name}
-        PROPERTY
-            ENVIRONMENT S2N_UNIT_TEST=1)
+            ${test_case_name})
 
         set_property(
         TEST
