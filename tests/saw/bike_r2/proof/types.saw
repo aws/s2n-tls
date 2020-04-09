@@ -54,20 +54,26 @@ let aes256_key_t = seed_t;
 
 let aes_ctr_prf_state_t = llvm_struct "struct.aes_ctr_prf_state_s";
 
-let points_to_fresh_aes_ctr_prf_state ptr ks_ptr name = do {
-  _ <- point_to uint128_t (crucible_elem ptr 0) (str_concat name ".ctr");
-  _ <- point_to uint128_t (crucible_elem ptr 1) (str_concat name ".buffer");
-  crucible_points_to (crucible_elem ptr 2) ks_ptr;
+let points_to_fresh_aes_ctr_prf_state (is_cond, cond) ptr ks_ptr name = do {
+  _ <- point_to uint128_t (crucible_field ptr "ctr") (str_concat name ".ctr");
+  if is_cond then do {
+    _ <- conditional_point_to cond uint128_t (crucible_field ptr "buffer") (str_concat name ".buffer");
+    return ();
+  } else do {
+    _ <- point_to uint128_t (crucible_field ptr "buffer") (str_concat name ".buffer");
+    return ();
+  };
+  crucible_points_to (crucible_field ptr "ks_ptr") ks_ptr;
   _ <- point_to evp_cipher_ctx_st_t ks_ptr (str_concat name ".ks");
-  rem_invokations <- point_to i32 (crucible_elem ptr 3) (str_concat name ".rem_invokations");
-  pos <- point_to i8 (crucible_elem ptr 4) (str_concat name ".pos");
-  return {{ {rem_invokations=rem_invokations, pos=pos} }};
+  _ <- point_to i32 (crucible_field ptr "rem_invokations") (str_concat name ".rem_invokations");
+  pos <- point_to i8 (crucible_field ptr "pos") (str_concat name ".pos");
+  return {{ {pos=pos} }};
 };
 
 let ptr_to_fresh_aes_ctr_prf_state name = do {
   ptr <- crucible_alloc aes_ctr_prf_state_t;
   ks_ptr <- crucible_alloc evp_cipher_ctx_st_t;
-  s <- points_to_fresh_aes_ctr_prf_state ptr ks_ptr name;
+  s <- points_to_fresh_aes_ctr_prf_state (false, {{ True }}) ptr ks_ptr name;
   return (s, ptr, ks_ptr);
 };
 

@@ -25,7 +25,7 @@ let compute_syndrome_spec = do {
   (_, sk_ptr) <- in_ref sk_t "sk";
   crucible_execute_func [syndrome_ptr, ct_ptr, sk_ptr];
   _ <- point_to syndrome_t syndrome_ptr "syndrome'";
-  crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+  crucible_return (tm {{ `SUCCESS:[32] }});
 };
 
 let bit_sliced_adder_spec = do {
@@ -78,15 +78,14 @@ let decode_spec = do {
   (ct, ct_ptr) <- in_ref ct_t "ct";
   (sk, sk_ptr) <- in_ref_aligned 8 sk_t "sk";
   crucible_alloc_global bike_errno_glob_name;
-  _bike_errno <- point_to i32 (crucible_global bike_errno_glob_name) "bike_errno";
+  _ <- point_to i32 (crucible_global bike_errno_glob_name) "bike_errno";
 
   crucible_execute_func [e_ptr, original_s_ptr, ct_ptr, sk_ptr];
 
+  _ <- return_code;
   e' <- point_to split_e_t e_ptr "e'";
   _bike_errno' <- point_to i32 (crucible_global bike_errno_glob_name) "bike_errno'";
-
-  res <- crucible_fresh_var "res" i32;
-  crucible_return (tm res);
+  return ();
 };
 
 
@@ -107,8 +106,10 @@ compute_syndrome_ov <- verify compute_syndrome_fun_name
   ]
   compute_syndrome_spec;
 
+enable_crucible_assert_then_assume;
 bit_sliced_adder_ov <- verify_pathsat "bit_sliced_adder" []
   bit_sliced_adder_spec;
+disable_crucible_assert_then_assume;
 
 bit_slice_full_subtract_ov <- verify "bit_slice_full_subtract" []
   bit_slice_full_subtract_spec;
@@ -133,6 +134,7 @@ decode_ov <- verify decode_fun_name
   , find_err1_ov
   , find_err2_ov
   , compute_syndrome_ov
+  , r_bits_vector_weight_ov
   ]
   decode_spec;
 

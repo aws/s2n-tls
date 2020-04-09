@@ -7,8 +7,6 @@ enable_smt_array_memory_model;
 
 m <- llvm_load_module "../bitcode/bike_r2_llvm.bc";
 
-import "spec/interface/H_defs.cry";
-
 include "proof/base.saw";
 include "proof/bike_r2_defs.saw";
 include "proof/constants.saw";

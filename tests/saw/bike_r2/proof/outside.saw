@@ -9,7 +9,7 @@ let get_random_bytes_spec n = do {
   buffer_ptr <- out_ref (i8_array_t n);
   crucible_execute_func [buffer_ptr, tm {{ `n:[32] }}];
   _ <- point_to (i8_array_t n) buffer_ptr "buffer";
-  crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+  crucible_return (tm {{ `SUCCESS:[32] }});
 };
 
 ///////////////////////////////////////////////////////////////////////////////

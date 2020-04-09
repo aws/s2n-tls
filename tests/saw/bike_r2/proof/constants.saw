@@ -25,3 +25,6 @@ let AES256_BLOCK_SIZE = 16;
 
 let SHA384_HASH_SIZE = 48;
 
+let SUCCESS = 0;
+let FAIL = eval_int {{ (-1) : [32] }};
+
