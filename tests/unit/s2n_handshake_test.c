@@ -185,7 +185,7 @@ int main(int argc, char **argv)
 
         GUARD_NONNULL(client_config = s2n_config_new());
         GUARD(s2n_config_set_unsafe_for_testing(client_config));
-        
+
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
         EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config,
@@ -194,6 +194,42 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
+    }
+
+    /*  Test: RSA (TLS 1.2) key exchanges with TLS 1.3 client */
+    {
+        if (!s2n_is_in_fips_mode()) {
+            /* Enable TLS 1.3 for the client */
+            EXPECT_SUCCESS(s2n_enable_tls13());
+            struct s2n_config *server_config, *client_config;
+
+            struct s2n_cert_chain_and_key *chain_and_key;
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                    S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+            EXPECT_NOT_NULL(server_config = s2n_config_new());
+            /* Configures server with maximum version 1.2 with only RSA key exchange ciphersuites */
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all_rsa_kex"));
+            EXPECT_SUCCESS(s2n_config_set_signature_preferences(server_config, "default"));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+            EXPECT_NOT_NULL(client_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_signature_preferences(client_config, "default"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
+            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+
+            /* RSA encrypted premaster secret key exchange requires client versions
+            * to be set and read correctly, this test covers the behavior with a 1.3 client */
+            EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config,
+                    chain_and_key, S2N_SIGNATURE_RSA));
+
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+            EXPECT_SUCCESS(s2n_config_free(server_config));
+            EXPECT_SUCCESS(s2n_config_free(client_config));
+            EXPECT_SUCCESS(s2n_disable_tls13());
+        }
     }
 
     /*  Test: ECDSA cert */

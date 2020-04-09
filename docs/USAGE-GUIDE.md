@@ -1164,7 +1164,7 @@ number supported by the client, **s2n_connection_get_server_protocol_version**
 returns the protocol version number supported by the server and
 **s2n_connection_get_actual_protocol_version** returns the protocol version
 number actually used by s2n for the connection. **s2n_connection_get_client_hello_version**
-returns the protocol version used in the initial client hello message.
+returns the protocol version used to send the initial client hello message.
 
 Each version number value corresponds to the macros defined as **S2N_SSLv2**,
 **S2N_SSLv3**, **S2N_TLS10**, **S2N_TLS11** and **S2N_TLS12**.
