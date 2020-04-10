@@ -97,8 +97,7 @@ int main(int argc, char **argv)
             .data = sslv2_client_hello,
             .size = sizeof(sslv2_client_hello),
             .allocated = 0,
-            .growable = 0,
-            .mlocked = 0
+            .growable = 0
         };
         EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_hello));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));

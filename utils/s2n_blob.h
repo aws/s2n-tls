@@ -35,9 +35,6 @@ struct s2n_blob {
      */
     uint32_t allocated;
 
-    /* Is the data mlocked */
-    unsigned mlocked :1;
-
     /* Can this blob be resized */
     unsigned growable :1;
 };
