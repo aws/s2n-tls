@@ -353,6 +353,7 @@ struct conn_settings {
     unsigned session_cache:1;
     unsigned insecure:1;
     unsigned use_corked_io:1;
+    unsigned exit_on_close:1;
     const char *ca_dir;
     const char *ca_file;
 };
@@ -477,7 +478,7 @@ int main(int argc, char *const *argv)
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:iTCu:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:iTCu:X", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -555,6 +556,9 @@ int main(int argc, char *const *argv)
             break;
         case 'u':
             ecc_prefs = optarg;
+            break;
+        case 'X':
+            conn_settings.exit_on_close = 1;
             break;
         case '?':
         default:
@@ -775,6 +779,11 @@ int main(int argc, char *const *argv)
             close(fd);
             if (rc < 0) {
                 exit(rc);
+            }
+
+            if (conn_settings.exit_on_close == 1) {
+                GUARD_EXIT(s2n_cleanup(),  "Error running s2n_cleanup()");
+                exit(0);
             }
         } else {
             /* Fork Process, one for the Acceptor (parent), and another for the Handler (child). */

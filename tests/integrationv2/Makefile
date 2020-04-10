@@ -31,5 +31,6 @@ all:
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	S2N_INTEG_TEST=1 \
+	PATH="../../bin":$(LIBCRYPTO_ROOT)/bin:$(PATH) \
 	tox \
 	)
