@@ -43,6 +43,7 @@ aes256_key_expansion(OUT aes256_ks_t *ks, IN const aes256_key_t *key)
   if(0 == EVP_EncryptInit_ex(*ks, EVP_aes_256_ecb(), NULL, key->raw, NULL))
   {
     EVP_CIPHER_CTX_free(*ks);
+    *ks = NULL;
     BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
   }
 

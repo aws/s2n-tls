@@ -1117,6 +1117,7 @@ struct {
     { .version="test_all", .preferences=&cipher_preferences_test_all, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="test_all_fips", .preferences=&cipher_preferences_test_all_fips, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="test_all_ecdsa", .preferences=&cipher_preferences_test_all_ecdsa, .ecc_extension_required=0, .pq_kem_extension_required=0},
+    { .version="test_all_rsa_kex", .preferences=&cipher_preferences_test_all_rsa_kex, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="test_ecdsa_priority", .preferences=&cipher_preferences_test_ecdsa_priority, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="test_all_tls13", .preferences=&cipher_preferences_test_all_tls13, .ecc_extension_required=0, .pq_kem_extension_required=0},
     { .version="test_all_tls12", .preferences=&cipher_preferences_test_all_tls12, .ecc_extension_required=0, .pq_kem_extension_required=0},

@@ -10,7 +10,7 @@ let ossl_add_spec = do {
     (c,cp) <- in_ref rsize_t "b";
     crucible_execute_func [ap, bp, cp];
     a' <- point_to rsize_t ap "a'";
-    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+    crucible_return (tm {{ `SUCCESS:[32] }});
 };
 
 let ossl_add_left_spec = do {
@@ -18,7 +18,7 @@ let ossl_add_left_spec = do {
     (b, bp) <- in_ref rsize_t "b";
     crucible_execute_func [ap, ap, bp];
     a' <- point_to rsize_t ap "a'";
-    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+    crucible_return (tm {{ `SUCCESS:[32] }});
 };
 
 let cyclic_product_spec = do {
@@ -27,7 +27,7 @@ let cyclic_product_spec = do {
     (b, bbp) <- in_ref rsize_t "b";
     crucible_execute_func [ rbp, abp, bbp];
     r' <- point_to rsize_t rbp "cyclic_product_r'"; // writes to the result
-    crucible_return (tm {{ fromInteger`{[32]} SUCCESS }});
+    crucible_return (tm {{ `SUCCESS:[32] }});
 };
 
 ///////////////////////////////////////////////////////////////////////////////

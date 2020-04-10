@@ -17,11 +17,15 @@ let EVP_CIPHER_CTX_free_spec = do {
   crucible_execute_func [ctx_ptr];
 };
 
+let EVP_CIPHER_CTX_free_null_spec = do {
+  crucible_execute_func [crucible_null];
+};
+
 let EVP_CIPHER_CTX_set_padding_spec = do {
   (_, ctx_ptr) <- inout_ref evp_cipher_ctx_st_t "ctx";
-  crucible_execute_func [ctx_ptr, tm {{ zero : [32] }}];
+  crucible_execute_func [ctx_ptr, tm {{ 0:[32] }}];
   _ <- point_to evp_cipher_ctx_st_t ctx_ptr "ctx'";
-  crucible_return (tm {{ 1 : [32] }});
+  crucible_return (tm {{ 1:[32] }});
 };
 
 let EVP_EncryptInit_ex_spec = do {
@@ -30,7 +34,9 @@ let EVP_EncryptInit_ex_spec = do {
   (_, key_ptr) <- in_ref (i8_array_t AES256_KEY_SIZE) "key";
   crucible_execute_func [ctx_ptr, type_ptr, crucible_null, key_ptr, crucible_null];
   _ <- point_to evp_cipher_ctx_st_t ctx_ptr "ctx'";
-  crucible_return (tm {{ 1 : [32] }});
+  ret <- crucible_fresh_var "ret" i32;
+  crucible_postcond {{ ret == 0 \/ ret == 1 }};
+  crucible_return (tm ret);
 };
 
 let EVP_EncryptUpdate_spec = do {
@@ -38,10 +44,13 @@ let EVP_EncryptUpdate_spec = do {
   out_ptr <- out_ref (i8_array_t AES256_BLOCK_SIZE);
   outl_ptr <- out_ref i32;
   (_, in_ptr) <- in_ref (i8_array_t AES256_BLOCK_SIZE) "in";
-  crucible_execute_func [ctx_ptr, out_ptr, outl_ptr, in_ptr, tm {{ `AES256_BLOCK_SIZE : [32] }}];
+  crucible_execute_func [ctx_ptr, out_ptr, outl_ptr, in_ptr, tm {{ `AES256_BLOCK_SIZE:[32] }}];
+  ret <- crucible_fresh_var "ret" i32;
+  crucible_postcond {{ ret == 0 \/ ret == 1 }};
+  crucible_return (tm ret);
   _ <- point_to evp_cipher_ctx_st_t ctx_ptr "ctx'";
-  _ <- point_to (i8_array_t AES256_BLOCK_SIZE) out_ptr "out";
-  crucible_return (tm {{ 1 : [32] }});
+  _ <- conditional_point_to {{ ret == 1 }} (i8_array_t AES256_BLOCK_SIZE) out_ptr "out";
+  return ();
 };
 
 let EVP_aes_256_ecb_spec = do {
@@ -66,6 +75,7 @@ let sha384_spec len = do {
 EVP_CIPHER_CTX_new_ov <- admit "EVP_CIPHER_CTX_new" [] EVP_CIPHER_CTX_new_spec;
 
 EVP_CIPHER_CTX_free_ov <- admit "EVP_CIPHER_CTX_free" [] EVP_CIPHER_CTX_free_spec;
+EVP_CIPHER_CTX_free_null_ov <- admit "EVP_CIPHER_CTX_free" [] EVP_CIPHER_CTX_free_null_spec;
 
 EVP_CIPHER_CTX_set_padding_ov <- admit "EVP_CIPHER_CTX_set_padding" [] EVP_CIPHER_CTX_set_padding_spec;
 

@@ -250,6 +250,8 @@ secure_set_bits_DV_R_ov <- verify secure_set_bits_fun_name
   [secure_set_bits_DV_R_loop_ov]
   (secure_set_bits_spec R_PADDED_QW DV);
 
+enable_crucible_assert_then_assume;
+
 generate_sparse_rep_T1_N_loop_ov <- admit breakpoint__generate_sparse_rep_loop
   [] (generate_sparse_rep_loop_spec T1 N_BITS N_PADDED_SIZE);
 verify_pathsat breakpoint__generate_sparse_rep_loop
@@ -273,4 +275,6 @@ verify_pathsat breakpoint__generate_sparse_rep_loop
 generate_sparse_rep_DV_R_ov <- verify_pathsat generate_sparse_rep_fun_name
   [generate_sparse_rep_DV_R_loop_ov]
   (generate_sparse_rep_spec DV R_BITS R_PADDED_SIZE);
+
+disable_crucible_assert_then_assume;
 

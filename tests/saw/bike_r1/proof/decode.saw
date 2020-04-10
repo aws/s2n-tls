@@ -107,8 +107,10 @@ compute_syndrome_ov <- verify compute_syndrome_fun_name
   ]
   compute_syndrome_spec;
 
+enable_crucible_assert_then_assume;
 bit_sliced_adder_ov <- verify_pathsat "bit_sliced_adder" []
   bit_sliced_adder_spec;
+disable_crucible_assert_then_assume;
 
 bit_slice_full_subtract_ov <- verify "bit_slice_full_subtract" []
   bit_slice_full_subtract_spec;

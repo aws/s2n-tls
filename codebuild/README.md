@@ -41,9 +41,46 @@ General flow of the CodeBuild Test Projects
 
 ### Usage to setup Projects
 
+Using your favorite virtualenv, install the following dependencies:
+```
+pip install boto3
+pip install awacs
+pip install troposphere
+```
+
 To bootstrap the CodeBuild jobs, the python script:
 ```
-./create_project --dry-run
+# Verify your config is correct
+./create_project.py --config the-config-file.config
+
+# If this is a new stack, commit the changes
+./create_project.py --config the-config-file.config --production
+
+# If the stack already exists, then use a change set for the existing stack
+./create_project.py --config the-config-file.config --production --modify-existing
+```
+
+If you are modifying an existing stack then a list of changes will be displayed and
+you have the option to accept or reject those changes.
+
+```
+ubuntu:codebuild/ $ ./create_project.py --config codebuild-integv2.config --production --modify-existing
+INFO:root:Wrote cfn yaml file to cfn/s2n_codebuild_projects.yml
+INFO:botocore.credentials:Found credentials in environment variables.
+INFO:root:CloudFormation template validation complete.
+INFO:root:Waiting for change set A2d385d4f0fcd217fff42e8a0cf3d51bd34a542e916524018b13176413410c2ab
+INFO:root:Summary of changes:
+    Action                   Modify
+    LogicalResourceId    s2nIntegrationV2OpenSSL111Gcc9Role
+    PhysicalResourceId   integv2s2nCodeBuildTests-s2nIntegrationV2OpenSSL11-161F84G7NJWVC
+    ResourceType         AWS::IAM::Role
+    Replacement               False
+    Scope                ['Properties']
+    Details              [{'Target': {'Attribute': 'Properties', 'Name': 'Policies', 'RequiresRecreation': 'Never'}, 'Evaluation': 'Static', 'ChangeSource': 'DirectModification'}]
+
+Do these changes make sense? [Y/n]Y
+INFO:root:Executing A2d385d4f0fcd217fff42e8a0cf3d51bd34a542e916524018b13176413410c2ab
+INFO:root:Update completed
 ```
 
 - Use CloudFormation to create the stack with the generated template.
