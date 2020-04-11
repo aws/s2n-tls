@@ -52,12 +52,12 @@ static int s2n_mem_free_impl(void *ptr, uint32_t size)
     return S2N_SUCCESS;
 }
 
-static int s2n_mem_calloc_impl(void **ptr, uint32_t requested, uint32_t *allocated)
+static int s2n_mem_malloc_impl(void **ptr, uint32_t requested, uint32_t *allocated)
 {
     notnull_check(ptr);
 
     if(!use_mlock) {
-        *ptr = calloc(requested, 1);
+        *ptr = malloc(requested);
         S2N_ERROR_IF(*ptr == NULL, S2N_ERR_ALLOC);
         *allocated = requested;
         return S2N_SUCCESS;
@@ -91,19 +91,20 @@ static int s2n_mem_calloc_impl(void **ptr, uint32_t requested, uint32_t *allocat
 
 static s2n_mem_init_callback s2n_mem_init_cb = s2n_mem_init_impl;
 static s2n_mem_cleanup_callback s2n_mem_cleanup_cb = s2n_mem_cleanup_impl;
-static s2n_mem_calloc_callback s2n_mem_calloc_cb = s2n_mem_calloc_impl;
+static s2n_mem_malloc_callback s2n_mem_malloc_cb = s2n_mem_malloc_impl;
 static s2n_mem_free_callback s2n_mem_free_cb = s2n_mem_free_impl;
 
-int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback, s2n_mem_calloc_callback mem_calloc_callback, s2n_mem_free_callback mem_free_callback)
+int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback,
+                          s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback)
 {
     notnull_check(mem_init_callback);
     notnull_check(mem_cleanup_callback);
-    notnull_check(mem_calloc_callback);
+    notnull_check(mem_malloc_callback);
     notnull_check(mem_free_callback);
 
     s2n_mem_init_cb = mem_init_callback;
     s2n_mem_cleanup_cb = mem_cleanup_callback;
-    s2n_mem_calloc_cb = mem_calloc_callback;
+    s2n_mem_malloc_cb = mem_malloc_callback;
     s2n_mem_free_cb = mem_free_callback;
 
     return S2N_SUCCESS;
@@ -143,7 +144,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
     }
 
     struct s2n_blob new_memory = {.data = NULL, .size = size, .allocated = 0, .growable = 1};
-    if(s2n_mem_calloc_cb((void **) &new_memory.data, new_memory.size, &new_memory.allocated) < 0) {
+    if(s2n_mem_malloc_cb((void **) &new_memory.data, new_memory.size, &new_memory.allocated) < 0) {
         S2N_ERROR_PRESERVE_ERRNO();
     }
 

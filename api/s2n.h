@@ -94,10 +94,11 @@ extern int s2n_config_set_cache_delete_callback(struct s2n_config *config, s2n_c
 
 typedef int (*s2n_mem_init_callback)(void);
 typedef int (*s2n_mem_cleanup_callback)(void);
-typedef int (*s2n_mem_calloc_callback)(void **ptr, uint32_t requested, uint32_t *allocated);
+typedef int (*s2n_mem_malloc_callback)(void **ptr, uint32_t requested, uint32_t *allocated);
 typedef int (*s2n_mem_free_callback)(void *ptr, uint32_t size);
 
-extern int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback, s2n_mem_calloc_callback mem_calloc_callback, s2n_mem_free_callback mem_free_callback);
+extern int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback,
+                                 s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback);
 
 typedef enum {
     S2N_EXTENSION_SERVER_NAME = 0,

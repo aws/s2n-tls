@@ -47,7 +47,7 @@ static int custom_mem_cleanup(void)
     return 0;
 }
 
-static int custom_mem_calloc(void **ptr, uint32_t requested, uint32_t *allocated)
+static int custom_mem_malloc(void **ptr, uint32_t requested, uint32_t *allocated)
 {
     int i;
     for (i = 0; i < HISTOGRAM_SIZE; i++) {
@@ -64,8 +64,12 @@ static int custom_mem_calloc(void **ptr, uint32_t requested, uint32_t *allocated
         histogram_counts[i] += 1;
     }
 
-    *ptr = calloc(1, requested);
+    *ptr = malloc(requested);
     *allocated = requested;
+
+    /* Fill the memory with non-zeroes to check that s2n handes that fine */
+    memset(*ptr, 'a', requested);
+
     return 0;
 }
 
@@ -159,7 +163,7 @@ int main(int argc, char **argv)
     /* We have to set the callback before BEGIN_TEST, because s2n_init() is called
      * there.
      */
-    int rc = s2n_mem_set_callbacks(custom_mem_init, custom_mem_cleanup, custom_mem_calloc, custom_mem_free);
+    int rc = s2n_mem_set_callbacks(custom_mem_init, custom_mem_cleanup, custom_mem_malloc, custom_mem_free);
 
     BEGIN_TEST();
     EXPECT_SUCCESS(rc);
