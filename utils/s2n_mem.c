@@ -79,7 +79,7 @@ static int s2n_mem_malloc_impl(void **ptr, uint32_t requested, uint32_t *allocat
     }
 #endif
 
-    if (mlock(ptr, *allocated) < 0) {
+    if (mlock(*ptr, *allocated) < 0) {
         GUARD(s2n_mem_free_impl(*ptr, *allocated));
         S2N_ERROR(S2N_ERR_MLOCK);
     }
