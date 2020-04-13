@@ -44,8 +44,6 @@
 #define TLS_SERVER_SESSION_LOOKUP     23
 #define TLS_MESSAGE_HASH             254
 
-#define MESSAGE_HASH_HEADER_LENGTH  4
-
 /* This is the list of message types that we support */
 typedef enum {
     CLIENT_HELLO=0,
@@ -67,6 +65,7 @@ typedef enum {
     /* TLS1.3 message types. Defined: https://tools.ietf.org/html/rfc8446#appendix-B.3 */
     ENCRYPTED_EXTENSIONS,
     SERVER_CERT_VERIFY,
+    HELLO_RETRY_MSG,
 
     APPLICATION_DATA,
 } message_type_t;
@@ -184,12 +183,6 @@ struct s2n_handshake {
 
     /* Set to 1 if the RSA verification failed */
     uint8_t rsa_failed;
-
-    /* Used by the server to track whether a HelloRetryRequest was sent */
-    uint8_t hello_retry_request;
-
-    /* Used by the server to determine whether a HelloRetryRequest is needed */
-    unsigned server_requires_hrr:1;
 };
 
 extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
@@ -205,3 +198,6 @@ extern int s2n_handshake_reset_hash_state(struct s2n_connection *conn, s2n_hash_
 extern int s2n_conn_find_name_matching_certs(struct s2n_connection *conn);
 extern int s2n_create_wildcard_hostname(struct s2n_stuffer *hostname, struct s2n_stuffer *output);
 struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_connection *conn, const s2n_pkey_type cert_type);
+int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn);
+int s2n_conn_pre_handshake_hashes_update(struct s2n_connection *conn);
+int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data);

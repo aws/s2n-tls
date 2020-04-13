@@ -68,46 +68,42 @@ int s2n_handshake_parse_header(struct s2n_connection *conn, uint8_t * message_ty
     return 0;
 }
 
-static struct s2n_hash_state *s2n_handshake_get_hash_state_ptr(struct s2n_connection *conn, s2n_hash_algorithm hash_alg)
+static int s2n_handshake_get_hash_state_ptr(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state **hash_state)
 {
-    struct s2n_hash_state *hash_state;
-
     switch (hash_alg) {
     case S2N_HASH_MD5:
-        hash_state = &conn->handshake.md5;
+        *hash_state = &conn->handshake.md5;
         break;
     case S2N_HASH_SHA1:
-        hash_state = &conn->handshake.sha1;
+        *hash_state = &conn->handshake.sha1;
         break;
     case S2N_HASH_SHA224:
-        hash_state = &conn->handshake.sha224;
+        *hash_state = &conn->handshake.sha224;
         break;
     case S2N_HASH_SHA256:
-        hash_state = &conn->handshake.sha256;
+        *hash_state = &conn->handshake.sha256;
         break;
     case S2N_HASH_SHA384:
-        hash_state = &conn->handshake.sha384;
+        *hash_state = &conn->handshake.sha384;
         break;
     case S2N_HASH_SHA512:
-        hash_state = &conn->handshake.sha512;
+        *hash_state = &conn->handshake.sha512;
         break;
     case S2N_HASH_MD5_SHA1:
-        hash_state = &conn->handshake.md5_sha1;
+        *hash_state = &conn->handshake.md5_sha1;
         break;
     default:
-        S2N_ERROR_PTR(S2N_ERR_HASH_INVALID_ALGORITHM);
+        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
         break;
     }
 
-    return hash_state;
+    return 0;
 }
 
 int s2n_handshake_reset_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg)
 {
-    struct s2n_hash_state *hash_state_ptr = s2n_handshake_get_hash_state_ptr(conn, hash_alg);
-    if (!hash_state_ptr) {
-        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
-    }
+    struct s2n_hash_state *hash_state_ptr = NULL;
+    GUARD(s2n_handshake_get_hash_state_ptr(conn, hash_alg, &hash_state_ptr));
 
     GUARD(s2n_hash_reset(hash_state_ptr));
 
@@ -125,10 +121,8 @@ int s2n_handshake_get_hash_state(struct s2n_connection *conn, s2n_hash_algorithm
 {
     notnull_check(hash_state);
 
-    struct s2n_hash_state *hash_state_ptr = s2n_handshake_get_hash_state_ptr(conn, hash_alg);
-    if (!hash_state_ptr) {
-        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
-    }
+    struct s2n_hash_state *hash_state_ptr = NULL;
+    GUARD(s2n_handshake_get_hash_state_ptr(conn, hash_alg, &hash_state_ptr));
 
     *hash_state = *hash_state_ptr;
 

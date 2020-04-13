@@ -30,7 +30,7 @@ extern int s2n_establish_session(struct s2n_connection *conn);
 extern int s2n_sslv2_client_hello_recv(struct s2n_connection *conn);
 extern int s2n_server_hello_retry_send(struct s2n_connection *conn);
 extern int s2n_server_hello_retry_recv(struct s2n_connection *conn);
-extern int s2n_parse_server_hello(struct s2n_connection *conn);
+extern int s2n_server_hello_write_message(struct s2n_connection *conn);
 extern int s2n_server_hello_send(struct s2n_connection *conn);
 extern int s2n_server_hello_recv(struct s2n_connection *conn);
 extern int s2n_encrypted_extensions_send_size(struct s2n_connection *conn);
@@ -83,11 +83,6 @@ extern int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_st
 extern int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *extensions);
 
 extern uint16_t mfl_code_to_length[5];
-
-bool s2n_server_requires_retry(struct s2n_connection *conn);
-bool s2n_server_hello_retry_is_valid(struct s2n_connection *conn);
-int s2n_server_hello_retry_write_message(uint8_t *session_id, uint8_t session_id_len, struct s2n_cipher_suite *cipher, struct s2n_stuffer *out);
-int s2n_server_should_retry(struct s2n_connection *conn);
 
 #define s2n_server_received_server_name(conn) ((conn)->server_name[0] != 0)
 

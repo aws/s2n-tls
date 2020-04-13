@@ -22,7 +22,6 @@
 
 #include "crypto/s2n_fips.h"
 
-#include "tls/extensions/s2n_cookie.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
@@ -78,6 +77,7 @@ static struct s2n_handshake_action tls13_state_machine[] = {
     /* message_type_t           = {Record type, Message type, Writer, {Server handler, client handler} }  */
     [CLIENT_HELLO]              = {TLS_HANDSHAKE, TLS_CLIENT_HELLO, 'C', {s2n_establish_session, s2n_client_hello_send}},
     [SERVER_HELLO]              = {TLS_HANDSHAKE, TLS_SERVER_HELLO, 'S', {s2n_server_hello_send, s2n_server_hello_recv}},
+    [HELLO_RETRY_MSG]           = {TLS_HANDSHAKE, TLS_SERVER_HELLO, 'S', {s2n_server_hello_retry_send, s2n_server_hello_retry_recv}},
     [ENCRYPTED_EXTENSIONS]      = {TLS_HANDSHAKE, TLS_ENCRYPTED_EXTENSIONS, 'S', {s2n_encrypted_extensions_send, s2n_encrypted_extensions_recv}},
     [SERVER_CERT_REQ]           = {TLS_HANDSHAKE, TLS_CERT_REQ, 'S', {s2n_tls13_cert_req_send, s2n_tls13_cert_req_recv}},
     [SERVER_CERT]               = {TLS_HANDSHAKE, TLS_CERTIFICATE, 'S', {s2n_server_cert_send, s2n_server_cert_recv}},
@@ -361,6 +361,33 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
             APPLICATION_DATA
     },
 
+    [NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST] = {
+            CLIENT_HELLO,
+            HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
+            CLIENT_CHANGE_CIPHER_SPEC, CLIENT_HELLO,
+            SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+            CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
+    [NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST | CLIENT_AUTH] = {
+            CLIENT_HELLO,
+            HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
+            CLIENT_CHANGE_CIPHER_SPEC, CLIENT_HELLO,
+            SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+            CLIENT_CERT, CLIENT_CERT_VERIFY, CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
+    [NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST | CLIENT_AUTH | NO_CLIENT_CERT ] = {
+            CLIENT_HELLO,
+            HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
+            CLIENT_CHANGE_CIPHER_SPEC, CLIENT_HELLO,
+            SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+            CLIENT_CERT, CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
     [NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH] = {
             CLIENT_HELLO,
             SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
@@ -375,14 +402,6 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
             APPLICATION_DATA
     },
 
-    [NEGOTIATED | HELLO_RETRY_REQUEST | FULL_HANDSHAKE] = {
-            CLIENT_HELLO,
-            SERVER_HELLO,
-            CLIENT_HELLO,
-            SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
-            CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
-            APPLICATION_DATA
-    },
 };
 
 #define MAX_HANDSHAKE_TYPE_LEN 128
@@ -485,10 +504,31 @@ int s2n_generate_new_client_session_id(struct s2n_connection *conn)
     return 0;
 }
 
+/* Lets the server flag whether a HelloRetryRequest is needed while processing extensions */
+int s2n_set_hello_retry_required(struct s2n_connection *conn)
+{
+    conn->handshake.handshake_type |= HELLO_RETRY_REQUEST;
+
+    return 0;
+}
+
+/* Lets the server determine whether a HelloRetryRequest should be sent.
+ * A retry is only possible after the first ClientHello (HELLO_RETRY_MSG). */
+bool s2n_is_hello_retry_required(struct s2n_connection *conn)
+{
+    return conn->handshake.handshake_type & HELLO_RETRY_REQUEST;
+}
+
 int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 {
+    if (conn->handshake.handshake_type & HELLO_RETRY_REQUEST) {
+        conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
+    } else {
+        conn->handshake.handshake_type = INITIAL;
+    }
+
     /* A handshake type has been negotiated */
-    conn->handshake.handshake_type = NEGOTIATED;
+    conn->handshake.handshake_type |= NEGOTIATED;
 
     s2n_cert_auth_type client_cert_auth_type;
     GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
@@ -503,10 +543,6 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
     if (IS_TLS13_HANDSHAKE(conn)) {
         conn->handshake.handshake_type |= FULL_HANDSHAKE;
-
-        if (conn->handshake.hello_retry_request == 1) {
-            conn->handshake.handshake_type |= HELLO_RETRY_REQUEST;
-        }
 
         return 0;
     }

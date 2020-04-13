@@ -20,7 +20,7 @@
 #include "tls/s2n_ecc_preferences.h"
 
 #include "utils/s2n_safety.h"
-#include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 
 /*
  * Check whether client has sent a corresponding curve and key_share
@@ -34,7 +34,7 @@ int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn)
     /* If we are responding to a retry request then we don't have a valid
      * curve from the client. Just return 0 so a selected group will be
      * chosen for the key share. */
-    if (s2n_server_requires_retry(conn)) {
+    if (s2n_is_hello_retry_required(conn)) {
         return 0;
     }
 
@@ -81,7 +81,7 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
 
     /* Client sent no keyshares, need to send Hello Retry Request with first negotiated curve */
     if (conn->secure.server_ecc_evp_params.negotiated_curve) {
-        GUARD(s2n_server_should_retry(conn));
+        GUARD(s2n_set_hello_retry_required(conn));
         return 0;
     }
 
@@ -92,29 +92,29 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
  * Calculate the data length for Server Key Share extension
  * based on negotiated_curve selected in server_ecc_evp_params.
  *
+ * Retry requests have a different key share format,
+ * https://tools.ietf.org/html/rfc8446#section-4.2.8
+ *
  * This functions does not error, but s2n_extensions_server_key_share_send() would
  */
 int s2n_extensions_server_key_share_send_size(struct s2n_connection *conn)
 {
     const struct s2n_ecc_named_curve* curve = conn->secure.server_ecc_evp_params.negotiated_curve;
+    int key_share_size = S2N_SIZE_OF_EXTENSION_TYPE
+        + S2N_SIZE_OF_EXTENSION_DATA_SIZE
+        + S2N_SIZE_OF_NAMED_GROUP;
 
-    /* Retry requests have a different key share format, so the size only includes the named group */
-    if (s2n_server_requires_retry(conn)) {
-        const int retry_key_share_size = S2N_SIZE_OF_EXTENSION_TYPE
-            + S2N_SIZE_OF_EXTENSION_DATA_SIZE
-            + S2N_SIZE_OF_NAMED_GROUP;
-        return retry_key_share_size;
+    /* If this is a KeyShareHelloRetryRequest we don't include the share size */
+    if (s2n_is_hello_retry_required(conn)) {
+        return key_share_size;
     }
 
     if (curve == NULL) {
         return 0;
     }
 
-    const int key_share_size = S2N_SIZE_OF_EXTENSION_TYPE
-        + S2N_SIZE_OF_EXTENSION_DATA_SIZE
-        + S2N_SIZE_OF_NAMED_GROUP
-        + S2N_SIZE_OF_KEY_SHARE_SIZE
-        + curve->share_size;
+    /* If this is a full KeyShareEntry, include the share size */
+    key_share_size += (S2N_SIZE_OF_KEY_SHARE_SIZE + curve->share_size);
 
     return key_share_size;
 }
@@ -138,7 +138,7 @@ int s2n_extensions_server_key_share_send(struct s2n_connection *conn, struct s2n
 
     /* Retry requests only require the selected named group, not an actual share.
      * https://tools.ietf.org/html/rfc8446#section-4.2.8 */
-    if (s2n_server_requires_retry(conn)) {
+    if (s2n_is_hello_retry_required(conn)) {
         notnull_check(conn->secure.server_ecc_evp_params.negotiated_curve);
 
         /* There was a mutually supported group, so that is the group we will select */
@@ -173,7 +173,7 @@ int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n
 
     /* If this is a HelloRetryRequest, we won't have a key share. We just have the selected group.
      * Exit early so a proper keyshare can be generated. */
-    if (s2n_server_hello_retry_is_valid(conn)) {
+    if (s2n_is_hello_retry_required(conn)) {
         return 0;
     }
 

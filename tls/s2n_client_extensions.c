@@ -29,7 +29,6 @@
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_ecc_preferences.h"
 
-#include "extensions/s2n_cookie.h"
 #include "extensions/s2n_client_supported_versions.h"
 #include "extensions/s2n_client_signature_algorithms.h"
 #include "extensions/s2n_client_max_frag_len.h"
@@ -223,11 +222,6 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
             /* parse key share only if negiotated protocol is in TLS 1.3 */
             if (s2n_is_tls13_enabled() && conn->actual_protocol_version == S2N_TLS13) {
                 GUARD(s2n_extensions_client_key_share_recv(conn, &extension));
-            }
-            break;
-        case TLS_EXTENSION_COOKIE:
-            if (s2n_is_tls13_enabled()) {
-                GUARD(s2n_extensions_cookie_recv(conn, &extension));
             }
             break;
         }

@@ -201,3 +201,12 @@ void s2n_print_connection(struct s2n_connection *conn, const char *marker)
     }
     printf("\n");
 }
+
+int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn)
+{
+    conn->actual_protocol_version = S2N_TLS13;
+    conn->handshake.message_number = 1;
+    conn->handshake.handshake_type = NEGOTIATED | HELLO_RETRY_REQUEST | FULL_HANDSHAKE;
+
+    return 0;
+}

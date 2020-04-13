@@ -21,9 +21,14 @@
 
 #include "utils/s2n_blob.h"
 
+/* Length of the synthetic message header */
+#define MESSAGE_HASH_HEADER_LENGTH  4
+
 /* this hook runs after hashes are updated */
 int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+
     if (conn->actual_protocol_version < S2N_TLS13) {
         return 0;
     }
@@ -32,12 +37,10 @@ int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
     struct s2n_blob server_seq = {.data = conn->secure.server_sequence_number,.size = sizeof(conn->secure.server_sequence_number) };
 
     switch(s2n_conn_get_current_message_type(conn)) {
-    case SERVER_HELLO:
+    case HELLO_RETRY_MSG:
         /* If we are sending a retry request, we didn't decide on a key share. There are no secrets to handle. */
-        if (s2n_server_requires_retry(conn) || s2n_server_hello_retry_is_valid(conn)) {
-            break;
-        }
-
+        break;
+    case SERVER_HELLO:
         GUARD(s2n_tls13_handle_handshake_secrets(conn));
         GUARD(s2n_blob_zero(&client_seq));
         GUARD(s2n_blob_zero(&server_seq));
@@ -59,6 +62,8 @@ int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
 /* this hook runs before hashes are updated */
 int s2n_conn_pre_handshake_hashes_update(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+
     if (conn->actual_protocol_version < S2N_TLS13) {
         return 0;
     }
@@ -79,6 +84,9 @@ int s2n_conn_pre_handshake_hashes_update(struct s2n_connection *conn)
 
 int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
 {
+    notnull_check(conn);
+    notnull_check(data);
+
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5)) {
         /* The handshake MD5 hash state will fail the s2n_hash_is_available() check
          * since MD5 is not permitted in FIPS mode. This check will not be used as
@@ -131,6 +139,8 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
  */
 int s2n_server_hello_retry_recreate_transcript(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+
     s2n_tls13_connection_keys(keys, conn);
     uint8_t hash_digest_length = keys.size;
 
@@ -149,12 +159,11 @@ int s2n_server_hello_retry_recreate_transcript(struct s2n_connection *conn)
     GUARD(s2n_hash_digest(&client_hello1_hash, client_hello1_digest_out, hash_digest_length));
     GUARD(s2n_hash_free(&client_hello1_hash));
 
-    struct s2n_blob msg_blob;
-
     /* Step 1: Reset the hash state */
     GUARD(s2n_handshake_reset_hash_state(conn, keys.hash_algorithm));
 
     /* Step 2: Update the transcript with the synthetic message */
+    struct s2n_blob msg_blob = {0};
     GUARD(s2n_blob_init(&msg_blob, msghdr, MESSAGE_HASH_HEADER_LENGTH));
     GUARD(s2n_conn_update_handshake_hashes(conn, &msg_blob));
 
