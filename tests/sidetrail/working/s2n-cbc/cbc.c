@@ -27,7 +27,7 @@
 #include "ct-verif.h"
 #include "sidetrail.h"
 
-int simple_cbc_wrapper(int currently_in_hash_block, int mlocked, int size, int *xor_pad, int * digest_pad)
+int simple_cbc_wrapper(int currently_in_hash_block, int size, int *xor_pad, int * digest_pad)
 {
   /* Even after code balancing, there is a small remaining leakage, because s2n forces an extra hash-compression
    * round by copying an extra hash block's worth of data into the hash.  This has extra cost of memcopy one
@@ -40,8 +40,6 @@ int simple_cbc_wrapper(int currently_in_hash_block, int mlocked, int size, int *
   public_in(__SMACK_value(currently_in_hash_block));
   __VERIFIER_assume(currently_in_hash_block >= 0);
   __VERIFIER_assume(currently_in_hash_block < BLOCK_SIZE);
-
-  public_in(__SMACK_value(mlocked));
 
   struct s2n_hmac_state hmac = {
     .alg = S2N_HMAC_SHA1,
@@ -82,7 +80,6 @@ int simple_cbc_wrapper(int currently_in_hash_block, int mlocked, int size, int *
     .data = data,
     .size = size,
     .allocated = 1,
-    .mlocked = mlocked
   };
 
   return s2n_verify_cbc(&conn, &hmac, &decrypted);
