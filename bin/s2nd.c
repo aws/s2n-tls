@@ -333,10 +333,8 @@ void usage()
     fprintf(stderr, "    Disable session ticket for resumption.\n");
     fprintf(stderr, "  -C,--corked-io\n");
     fprintf(stderr, "    Turn on corked io\n");
-    if (S2N_IN_TEST) {
-        fprintf(stderr, "  --tls13\n");
-        fprintf(stderr, "    Turn on experimental TLS1.3 support for testing.");
-    }
+    fprintf(stderr, "  --tls13\n");
+    fprintf(stderr, "    Turn on experimental TLS1.3 support.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -645,7 +643,7 @@ int main(int argc, char *const *argv)
 #endif
     }
 
-    if (use_tls13 && S2N_IN_TEST) {
+    if (use_tls13) {
         GUARD_EXIT(s2n_enable_tls13(), "Error enabling TLS1.3");
     }
 

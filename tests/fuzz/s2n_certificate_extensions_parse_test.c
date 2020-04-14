@@ -110,6 +110,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     GUARD(s2n_stuffer_read_uint8(&fuzz_stuffer, &randval));
     client_conn->x509_validator.skip_cert_validation = (randval >> 7) % 2;
 
+    /* Set connection to TLS 1.2 to temporary work around cert validation setup */
+    client_conn->actual_protocol_version = S2N_TLS12;
+
     /* Set cert chain and trust store for verification of OCSP response */
     if ((randval >> 6) % 2 && OPENSSL_VERSION_NUMBER >= 0x10101000L) {
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };

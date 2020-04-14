@@ -80,10 +80,8 @@ void usage()
     fprintf(stderr, "    Set dynamic record timeout threshold\n");
     fprintf(stderr, "  -C,--corked-io\n");
     fprintf(stderr, "    Turn on corked io\n");
-    if (S2N_IN_TEST) {
-        fprintf(stderr, "  --tls13\n");
-        fprintf(stderr, "    Turn on experimental TLS1.3 support for testing.");
-    }
+    fprintf(stderr, "  --tls13\n");
+    fprintf(stderr, "    Turn on experimental TLS1.3 support.\n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -406,7 +404,7 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(s2n_config_set_session_tickets_onoff(config, 1), "Error enabling session tickets");
         }
 
-        if (use_tls13 && S2N_IN_TEST) {
+        if (use_tls13) {
             GUARD_EXIT(s2n_enable_tls13(), "Error enabling TLS1.3");
         }
 
