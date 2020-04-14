@@ -1624,10 +1624,10 @@ Once **s2n_shutdown** is complete:
 ```c
 typedef int (*s2n_mem_init_callback)(void);
 typedef int (*s2n_mem_cleanup_callback)(void);
-typedef int (*s2n_mem_calloc_callback)(void **ptr, uint32_t requested, uint32_t *allocated);
+typedef int (*s2n_mem_malloc_callback)(void **ptr, uint32_t requested, uint32_t *allocated);
 typedef int (*s2n_mem_free_callback)(void *ptr, uint32_t size);
 
-extern int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback, s2n_mem_calloc_callback mem_calloc_callback, s2n_mem_free_callback mem_free_callback);
+extern int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback, s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback);
 ```
 
 
@@ -1635,11 +1635,10 @@ extern int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_me
 handling functions. To work correctly, **s2n_mem_set_callbacks** must be called
 before **s2n_init**. **s2n_mem_init_callback** should be a function that will
 be called when s2n is initialized.  **s2n_mem_cleanup_callback** will be called
-when **s2n_cleanup** is executed. **s2n_mem_calloc_callback** should be a
+when **s2n_cleanup** is executed. **s2n_mem_malloc_callback** should be a
 function that can allocate at least **requested** bytes of memory and store the
 location of that memory in **\*ptr**, and the size of the allocated data in
-**\*allocated**. The memory allocated must be zero initialized by the memory
-handler. The function may choose to allocate more memory than was requested.
+**\*allocated**. The function may choose to allocate more memory than was requested.
 s2n will consider all allocated memory available for use, and will attempt to
 free all allocated memory when able. **s2n_mem_free_callback** should be a
 function that can free memory.
