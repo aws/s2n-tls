@@ -38,7 +38,7 @@
 extern uint8_t s2n_unknown_protocol_version;
 
 /* How much overhead does the IV, MAC, TAG and padding bytes introduce ? */
-static uint16_t overhead(struct s2n_connection *conn)
+static int s2n_tls_record_overhead(struct s2n_connection *conn)
 {
     struct s2n_crypto_parameters *active = conn->server;
 
@@ -91,15 +91,18 @@ int s2n_record_rounded_write_payload_size(struct s2n_connection *conn, uint16_t 
         max_fragment_size -= 1;
     }
 
-    return max_fragment_size - overhead(conn);
+    int overhead;
+    GUARD(overhead = s2n_tls_record_overhead(conn));
+
+    return max_fragment_size - overhead;
 }
 
 /* This function returns maximum size of plaintext data to write for the payload. In the current
   s2n implementation, it is also critical that it syncs up with from connection buffer size object */
 int s2n_record_max_write_payload_size(struct s2n_connection *conn)
 {
-    int bytes = s2n_record_rounded_write_payload_size(conn, conn->max_outgoing_fragment_length);
-    /* Record size guards here */
+    int bytes;
+    GUARD(bytes = s2n_record_rounded_write_payload_size(conn, conn->max_outgoing_fragment_length));
     S2N_ERROR_IF(bytes > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
     S2N_ERROR_IF(bytes <= 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
     return bytes;
@@ -110,7 +113,9 @@ int s2n_record_min_write_payload_size(struct s2n_connection *conn)
 {
     uint16_t min_outgoing_fragement_length = ETH_MTU - (conn->ipv6 ? IP_V6_HEADER_LENGTH : IP_V4_HEADER_LENGTH)
         - TCP_HEADER_LENGTH - TCP_OPTIONS_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH;
-    return s2n_record_rounded_write_payload_size(conn, min_outgoing_fragement_length);
+    int size;
+    GUARD(size = s2n_record_rounded_write_payload_size(conn, min_outgoing_fragement_length));
+    return size;
 }
 
 int s2n_record_write_protocol_version(struct s2n_connection *conn)
@@ -181,8 +186,6 @@ static inline int s2n_record_encrypt(
     return 0;
 }
 
-
-
 int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const struct iovec *in, int in_count, size_t offs, size_t to_write)
 {
     struct s2n_blob iv;
@@ -227,7 +230,9 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     GUARD(max_write_payload_size = s2n_record_max_write_payload_size(conn));
     uint16_t data_bytes_to_take = MIN(to_write, max_write_payload_size);
 
-    uint16_t extra = overhead(conn);
+    int overhead;
+    GUARD(overhead = s2n_tls_record_overhead(conn));
+    uint16_t extra = overhead;
 
     /* If we have padding to worry about, figure that out too */
     if (cipher_suite->record_alg->cipher->type == S2N_CBC) {

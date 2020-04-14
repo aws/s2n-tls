@@ -89,6 +89,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.client_key));
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
+    #define ONE_BLOCK 1024
+    #define ONE_HUNDRED_K 100000
+
     /* Test s2n_record_max_write_payload_size() have proper checks in place */
     {
         struct s2n_connection *server_conn;
@@ -97,12 +100,12 @@ int main(int argc, char **argv)
         /* we deal with the default null cipher suite for now, as it makes reasoning
          * about easier s2n_record_max_write_payload_size(), as it incur 0 overheads */
         int size;
-        server_conn->max_outgoing_fragment_length = 1024;
+        server_conn->max_outgoing_fragment_length = ONE_BLOCK;
         EXPECT_SUCCESS(size = s2n_record_max_write_payload_size(server_conn));
-        EXPECT_EQUAL(size, 1024);
+        EXPECT_EQUAL(size, ONE_BLOCK);
 
         /* Trigger an overlarge payload by setting a maximum uint16_t value to max fragment length */
-        server_conn->max_outgoing_fragment_length = 65535;
+        server_conn->max_outgoing_fragment_length = UINT16_MAX;
         /* Check that we have an error guard */
         EXPECT_FAILURE_WITH_ERRNO(s2n_record_max_write_payload_size(server_conn), S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
 
@@ -113,7 +116,7 @@ int main(int argc, char **argv)
         /* Test boundary cases */
 
         /* This is the theorical maximum mfl allowed */
-        server_conn->max_outgoing_fragment_length = 16384;
+        server_conn->max_outgoing_fragment_length = S2N_TLS_MAXIMUM_FRAGMENT_LENGTH;
         EXPECT_SUCCESS(s2n_record_max_write_payload_size(server_conn));
 
         /* This is not allowed */
@@ -123,11 +126,12 @@ int main(int argc, char **argv)
         /* Test against different cipher suites */
         server_conn->actual_protocol_version = S2N_TLS13;
         server_conn->server->cipher_suite =  &s2n_tls13_aes_128_gcm_sha256;
-        server_conn->max_outgoing_fragment_length = 1024;
+        server_conn->max_outgoing_fragment_length = ONE_BLOCK;
+        /* note that we are testing the current s2n_record_max_write_payload_size() behavior */
         EXPECT_SUCCESS(size = s2n_record_max_write_payload_size(server_conn));
-        EXPECT_EQUAL(size, 1024
-            - 16 /* S2N_TLS_GCM_TAG_LEN */
-            - 1 /* content length */
+        EXPECT_EQUAL(size, ONE_BLOCK
+            - S2N_TLS_GCM_TAG_LEN /* S2N_TLS_GCM_TAG_LEN */
+            - 1 /* tls 1.3 content length */
         );
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -161,13 +165,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_prefer_throughput(server_conn));
 
         /* Testing with a small blob */
-        s2n_stack_blob(small_blob, 1024, 1024);
+        s2n_stack_blob(small_blob, ONE_BLOCK, ONE_BLOCK);
 
         int bytes_taken;
 
+        const uint16_t TLS13_RECORD_OVERHEAD = 22;
         EXPECT_SUCCESS(bytes_taken = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &small_blob));
-        EXPECT_EQUAL(bytes_taken, 1024); /* we wrote the full blob size */
-        EXPECT_EQUAL(server_conn->wire_bytes_out, 1046); /* bytes on the wire */
+        EXPECT_EQUAL(bytes_taken, ONE_BLOCK); /* we wrote the full blob size */
+        EXPECT_EQUAL(server_conn->wire_bytes_out, ONE_BLOCK + TLS13_RECORD_OVERHEAD); /* bytes on the wire */
 
         /* Check we get a friendly error if we use s2n_record_write again */
         EXPECT_FAILURE_WITH_ERRNO(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &small_blob), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
@@ -176,7 +181,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
         /* Testing a big 100k blob to be written */
-        s2n_stack_blob(big_blob, 100000, 100000);
+        s2n_stack_blob(big_blob, ONE_HUNDRED_K, ONE_HUNDRED_K);
 
         /* These tests serve a few purposes. The values acts as documentation
          * knowing the number of bytes taken and written. The numbers may not be most
@@ -188,13 +193,14 @@ int main(int argc, char **argv)
         server_conn->wire_bytes_out = 0;
         EXPECT_SUCCESS(bytes_taken = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &big_blob));
 
-        /* These values are subjected to change based on our implementation */
-        EXPECT_EQUAL(bytes_taken, 16367); /* plaintext bytes taken */
-        EXPECT_EQUAL(server_conn->wire_bytes_out, 16389); /* bytes sent on the wire */
+        /* These values are subjected to change based on our implementation (which is currently not the true max frag len) */
+        const uint16_t CURRENT_MAX_FRAG_LEN = 16367;
+        EXPECT_EQUAL(bytes_taken, CURRENT_MAX_FRAG_LEN); /* plaintext bytes taken */
+        EXPECT_EQUAL(server_conn->wire_bytes_out, CURRENT_MAX_FRAG_LEN + TLS13_RECORD_OVERHEAD); /* bytes sent on the wire */
 
         /* These are invariant regardless of s2n implementation */
-        EXPECT_TRUE(bytes_taken <= (1 << 14)); /* Plaintext max size - 2^14 = 16384 */
-        EXPECT_TRUE(bytes_taken <= ((1 << 14) + 255)); /* Max record size for TLS 1.3 - 2^14 + 255 = 16639 */
+        EXPECT_TRUE(bytes_taken <= S2N_TLS_MAXIMUM_FRAGMENT_LENGTH); /* Plaintext max size - 2^14 = 16384 */
+        EXPECT_TRUE(bytes_taken <= (S2N_TLS_MAXIMUM_FRAGMENT_LENGTH + 255)); /* Max record size for TLS 1.3 - 2^14 + 255 = 16639 */
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
@@ -208,10 +214,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
         /* Force a generous 20k resize on the outgoing record stuffer */
-        EXPECT_SUCCESS(s2n_stuffer_resize(&server_conn->out, 20000));
+        EXPECT_SUCCESS(s2n_stuffer_resize(&server_conn->out, ONE_HUNDRED_K));
         server_conn->max_outgoing_fragment_length = MAX_FORCED_OUTGOING_FRAGMENT_LENGTH;
         EXPECT_SUCCESS(bytes_taken = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &big_blob));
-        EXPECT_EQUAL(bytes_taken, 16383); /* still a off by one less than maximum allowed size, but not critical at this point */
+        EXPECT_EQUAL(bytes_taken, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH - 1); /* 16383: still a off by one less than maximum allowed size, which can be optimized in future */
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
