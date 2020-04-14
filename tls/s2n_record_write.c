@@ -63,22 +63,17 @@ static int s2n_tls_record_overhead(struct s2n_connection *conn)
         extra += active->cipher_suite->record_alg->cipher->io.comp.record_iv_size;
     }
 
-    /* TLS 1.3 protected record occupies one extra byte for content type */
-    if (active->cipher_suite->record_alg->flags & S2N_TLS13_RECORD_AEAD_NONCE) {
-        extra += TLS13_CONTENT_TYPE_LENGTH;
-    }
-
     return extra;
 }
 
 int s2n_record_rounded_write_payload_size(struct s2n_connection *conn, uint16_t size_without_overhead)
 {
-    uint16_t max_fragment_size = size_without_overhead;
-    struct s2n_crypto_parameters *active = conn->server;
+    const struct s2n_crypto_parameters *active = conn->mode == S2N_CLIENT ? conn->client : conn->server;
+    const int is_tls13_record = active->cipher_suite->record_alg->flags & S2N_TLS13_RECORD_AEAD_NONCE;
+    const int max_fragment_length = is_tls13_record ? S2N_TLS13_MAXIMUM_FRAGMENT_LENGTH : S2N_TLS_MAXIMUM_FRAGMENT_LENGTH;
 
-    if (conn->mode == S2N_CLIENT) {
-        active = conn->client;
-    }
+    /* reduce the fragment length to the maximum allowed by the protocol */
+    int max_fragment_size = MIN(size_without_overhead, max_fragment_length);
 
     /* Round the fragment size down to be block aligned */
     if (active->cipher_suite->record_alg->cipher->type == S2N_CBC) {
@@ -103,7 +98,11 @@ int s2n_record_max_write_payload_size(struct s2n_connection *conn)
 {
     int bytes;
     GUARD(bytes = s2n_record_rounded_write_payload_size(conn, conn->max_outgoing_fragment_length));
-    S2N_ERROR_IF(bytes > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+    const struct s2n_crypto_parameters *active = conn->mode == S2N_CLIENT ? conn->client : conn->server;
+    const int is_tls13_record = active->cipher_suite->record_alg->flags & S2N_TLS13_RECORD_AEAD_NONCE;
+    const int max_fragment_length = is_tls13_record ? S2N_TLS13_MAXIMUM_FRAGMENT_LENGTH : S2N_TLS_MAXIMUM_FRAGMENT_LENGTH;
+
+    S2N_ERROR_IF(bytes > max_fragment_length, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
     S2N_ERROR_IF(bytes <= 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
     return bytes;
 }
@@ -283,8 +282,16 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         extra += pad_and_mac_len;
     }
 
+    /* TLS 1.3 protected record occupies one extra byte for content type */
+    if (is_tls13_record) {
+        extra += TLS13_CONTENT_TYPE_LENGTH;
+    }
+
     /* Rewrite the length to be the actual fragment length */
     uint16_t actual_fragment_length = data_bytes_to_take + padding + extra;
+    /* ensure actual_fragment_length + S2N_TLS_RECORD_HEADER_LENGTH <= max record length */
+    const uint16_t max_record_length = is_tls13_record ? S2N_TLS13_MAXIMUM_RECORD_LENGTH : S2N_TLS_MAXIMUM_RECORD_LENGTH;
+    S2N_ERROR_IF(actual_fragment_length + S2N_TLS_RECORD_HEADER_LENGTH > max_record_length, S2N_ERR_RECORD_LENGTH_TOO_LARGE);
     GUARD(s2n_stuffer_wipe_n(&conn->out, 2));
     GUARD(s2n_stuffer_write_uint16(&conn->out, actual_fragment_length));
 
