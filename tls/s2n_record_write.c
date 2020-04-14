@@ -69,11 +69,9 @@ static int s2n_tls_record_overhead(struct s2n_connection *conn)
 int s2n_record_rounded_write_payload_size(struct s2n_connection *conn, uint16_t size_without_overhead)
 {
     const struct s2n_crypto_parameters *active = conn->mode == S2N_CLIENT ? conn->client : conn->server;
-    const int is_tls13_record = active->cipher_suite->record_alg->flags & S2N_TLS13_RECORD_AEAD_NONCE;
-    const int max_fragment_length = is_tls13_record ? S2N_TLS13_MAXIMUM_FRAGMENT_LENGTH : S2N_TLS_MAXIMUM_FRAGMENT_LENGTH;
 
     /* reduce the fragment length to the maximum allowed by the protocol */
-    int max_fragment_size = MIN(size_without_overhead, max_fragment_length);
+    int max_fragment_size = MIN(size_without_overhead, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
 
     /* Round the fragment size down to be block aligned */
     if (active->cipher_suite->record_alg->cipher->type == S2N_CBC) {
@@ -98,11 +96,8 @@ int s2n_record_max_write_payload_size(struct s2n_connection *conn)
 {
     int bytes;
     GUARD(bytes = s2n_record_rounded_write_payload_size(conn, conn->max_outgoing_fragment_length));
-    const struct s2n_crypto_parameters *active = conn->mode == S2N_CLIENT ? conn->client : conn->server;
-    const int is_tls13_record = active->cipher_suite->record_alg->flags & S2N_TLS13_RECORD_AEAD_NONCE;
-    const int max_fragment_length = is_tls13_record ? S2N_TLS13_MAXIMUM_FRAGMENT_LENGTH : S2N_TLS_MAXIMUM_FRAGMENT_LENGTH;
 
-    S2N_ERROR_IF(bytes > max_fragment_length, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+    S2N_ERROR_IF(bytes > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
     S2N_ERROR_IF(bytes <= 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
     return bytes;
 }
