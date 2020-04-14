@@ -25,13 +25,25 @@
 #include "utils/s2n_safety.h"
 
 static long page_size = 4096;
-static int use_mlock = 1;
+
+static int s2n_mem_init_impl(void);
+static int s2n_mem_cleanup_impl(void);
+static int s2n_mem_free_no_mlock_impl(void *ptr, uint32_t size);
+static int s2n_mem_free_mlock_impl(void *ptr, uint32_t size);
+static int s2n_mem_malloc_no_mlock_impl(void **ptr, uint32_t requested, uint32_t *allocated);
+static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *allocated);
+
+static s2n_mem_init_callback s2n_mem_init_cb = s2n_mem_init_impl;
+static s2n_mem_cleanup_callback s2n_mem_cleanup_cb = s2n_mem_cleanup_impl;
+static s2n_mem_malloc_callback s2n_mem_malloc_cb = s2n_mem_malloc_mlock_impl;
+static s2n_mem_free_callback s2n_mem_free_cb = s2n_mem_free_mlock_impl;
 
 static int s2n_mem_init_impl(void)
 {
     GUARD(page_size = sysconf(_SC_PAGESIZE));
     if (getenv("S2N_DONT_MLOCK")) {
-        use_mlock = 0;
+        s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
+        s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;
     }
     return S2N_SUCCESS;
 }
@@ -39,29 +51,30 @@ static int s2n_mem_init_impl(void)
 static int s2n_mem_cleanup_impl(void)
 {
     page_size = 4096;
-    use_mlock = 1;
+    s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
+    s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;
     return S2N_SUCCESS;
 }
 
-static int s2n_mem_free_impl(void *ptr, uint32_t size)
+static int s2n_mem_free_mlock_impl(void *ptr, uint32_t size)
 {
-    int munlock_rc = use_mlock ? munlock(ptr, size) : 0;
+    int munlock_rc = munlock(ptr, size);
     free(ptr);
     GUARD(munlock_rc);
 
     return S2N_SUCCESS;
 }
 
-static int s2n_mem_malloc_impl(void **ptr, uint32_t requested, uint32_t *allocated)
+static int s2n_mem_free_no_mlock_impl(void *ptr, uint32_t size)
+{
+    free(ptr);
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *allocated)
 {
     notnull_check(ptr);
-
-    if(!use_mlock) {
-        *ptr = malloc(requested);
-        S2N_ERROR_IF(*ptr == NULL, S2N_ERR_ALLOC);
-        *allocated = requested;
-        return S2N_SUCCESS;
-    }
 
     /* Page aligned allocation required for mlock */
     uint32_t allocate;
@@ -80,7 +93,7 @@ static int s2n_mem_malloc_impl(void **ptr, uint32_t requested, uint32_t *allocat
 #endif
 
     if (mlock(*ptr, *allocated) < 0) {
-        GUARD(s2n_mem_free_impl(*ptr, *allocated));
+        GUARD(s2n_mem_free_mlock_impl(*ptr, *allocated));
         S2N_ERROR(S2N_ERR_MLOCK);
     }
 
@@ -89,10 +102,14 @@ static int s2n_mem_malloc_impl(void **ptr, uint32_t requested, uint32_t *allocat
     return S2N_SUCCESS;
 }
 
-static s2n_mem_init_callback s2n_mem_init_cb = s2n_mem_init_impl;
-static s2n_mem_cleanup_callback s2n_mem_cleanup_cb = s2n_mem_cleanup_impl;
-static s2n_mem_malloc_callback s2n_mem_malloc_cb = s2n_mem_malloc_impl;
-static s2n_mem_free_callback s2n_mem_free_cb = s2n_mem_free_impl;
+static int s2n_mem_malloc_no_mlock_impl(void **ptr, uint32_t requested, uint32_t *allocated)
+{
+    *ptr = malloc(requested);
+    S2N_ERROR_IF(*ptr == NULL, S2N_ERR_ALLOC);
+    *allocated = requested;
+
+    return S2N_SUCCESS;
+}
 
 int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback,
                           s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback)

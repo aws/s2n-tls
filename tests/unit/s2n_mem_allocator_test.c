@@ -67,7 +67,7 @@ static int custom_mem_malloc(void **ptr, uint32_t requested, uint32_t *allocated
     *ptr = malloc(requested);
     *allocated = requested;
 
-    /* Fill the memory with non-zeroes to check that s2n handes that fine */
+    /* Fill the memory with non-zeroes to check that s2n handles that fine */
     memset(*ptr, 'a', requested);
 
     return 0;
