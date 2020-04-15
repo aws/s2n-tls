@@ -1,0 +1,35 @@
+---
+name: Linters
+
+on:
+  pull_request:
+    branches:
+      - master
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        command:
+          - |
+            echo "cppcheck"
+            source ./codebuild/bin/s2n_setup_env.sh
+            ./codebuild/bin/install_cppcheck.sh "$CPPCHECK_INSTALL_DIR"
+            ./codebuild/bin/run_cppcheck.sh "$CPPCHECK_INSTALL_DIR"
+          - |
+            echo "copyright mistake scanner"
+            source ./codebuild/bin/s2n_setup_env.sh
+            ./codebuild/bin/copyright_mistake_scanner.sh
+          - |
+            echo "grep simple mistakes"
+            source ./codebuild/bin/s2n_setup_env.sh
+            ./codebuild/bin/grep_simple_mistakes.sh
+          - |
+            echo "cpp style comment linter"
+            source ./codebuild/bin/s2n_setup_env.sh
+            ./codebuild/bin/run_kwstyle.sh
+            ./codebuild/bin/cpp_style_comment_linter.sh
+    steps:
+      - uses: actions/checkout@v2
+      - run: ${{ matrix.command }}
+

@@ -27,6 +27,7 @@ fi
 INSTALL_DIR=$1
 source codebuild/bin/jobs.sh
 
+mkdir -p $INSTALL_DIR||true
 cd "$INSTALL_DIR"
 git clone https://github.com/danmar/cppcheck.git
 cd cppcheck

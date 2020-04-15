@@ -20,20 +20,9 @@ source codebuild/bin/s2n_setup_env.sh
 # Some Test install scripts use curl commands to download files from S3, but those commands don't work when forced to load OpenSSL 1.1.1
 source codebuild/bin/s2n_override_paths.sh
 
-if [[ "$BUILD_S2N" == "true" ]]; then
-    codebuild/bin/run_cppcheck.sh "$CPPCHECK_INSTALL_DIR";
-    codebuild/bin/copyright_mistake_scanner.sh;
-    codebuild/bin/grep_simple_mistakes.sh;
-fi
-
-if [[ "$BUILD_S2N" == "true" && "$OS_NAME" == "linux" ]]; then
-    codebuild/bin/run_kwstyle.sh;
-    codebuild/bin/cpp_style_comment_linter.sh;
-fi
-
 # Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default
 # Codebuild Containers aren't allowing prlimit changes (and aren't being caught with the usual cgroup check)
-if [[ "$OS_NAME" == "linux" && -v "$CODEBUILD_BUILD_ARN" ]]; then
+if [[ "$OS_NAME" == "linux" && -n "$CODEBUILD_BUILD_ARN" ]]; then
     PRLIMIT_LOCATION=`which prlimit`
     sudo -E ${PRLIMIT_LOCATION} --pid "$$" --memlock=unlimited:unlimited;
 fi
