@@ -1,12 +1,10 @@
-import json
 import logging
 from agithub import GitHub
-from datetime import datetime
 
 logger = logging.getLogger()
 
 
-class GitHub_Client:
+class GitHubClient:
     # Over-ride
     params = {
         'github_username': None,
@@ -16,18 +14,8 @@ class GitHub_Client:
     }
 
     def __init__(self):
-        assert self.params['repo_organization'] != None
-        assert self.params['repo'] != None
-
-        # Decide which auth method to use.
-        if 'github_username' in self.params and self.params['github_username'] != None:
-            assert self.params['github_password'] != None
-            self._github = GitHub.GitHub(self.params['github_username'], self.params['github_password'])
-            logging.debug('Using username/key to auth with Github: ' + self.params['github_username'])
-        elif 'token' in self.params and self.params['token'] != None:
-            logging.debug('Using a token to auth with GitHub')
-            self._github = GitHub.GitHub(token=self.params['token'])
-
+        self._github = GitHub.GitHub(username=self.params['github_username'], password=self.params['github_password'],
+                                     token=self.params['token'])
         self.response = {}
         self.worklog = None
         self.repo_org = self.params['repo_organization']
@@ -50,11 +38,7 @@ class GitHub_Client:
         (status_code, self.response) = \
             self._github.repos[self.repo_org][self.repo].actions.runs.get(page=chunk,
                                                                           status=final_state)
-        if status_code < 300:
-            self.worklog = GitHub_Worklog(self.response)
-            return True
-        else:
-            return False
+        return status_code
 
     def get_workflow_name(self, workflow_id):
         logging.debug(f"Looking up workflow_id {workflow_id}")
@@ -62,22 +46,15 @@ class GitHub_Client:
             self._github.repos[self.repo_org][self.repo].actions.workflows[workflow_id].get()
         workflow_name = response['name']
         logging.debug(f"Github workflow lookup gave us {workflow_name}")
-        if status_code < 300:
-            return workflow_name
-        else:
-            return None
+        return workflow_name
 
 
-class GitHub_Worklog:
+class GitHubWorklog:
     def __init__(self, worklog):
-        self._worklog = worklog['workflow_runs']
-        self.index = len(self._worklog)
+        self._worklog = iter(worklog['workflow_runs'])
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        if self.index == 0:
-            raise StopIteration
-        self.index = self.index - 1
-        return self._worklog[self.index]
+        return next(self._worklog)

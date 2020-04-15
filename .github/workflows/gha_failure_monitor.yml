@@ -37,7 +37,7 @@ jobs:
       - name: GitHub failure check
         run: |
           cd $SCRIPT_PATH/
-          python3 gha_failures.py
+          python3 -m gha_monitor
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPO: ${{ matrix.repos.REPO }}
