@@ -106,8 +106,9 @@ int main(int argc, char **argv)
 
         /* Trigger an overlarge payload by setting a maximum uint16_t value to max fragment length */
         server_conn->max_outgoing_fragment_length = UINT16_MAX;
-        /* Check that we have an error guard */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_record_max_write_payload_size(server_conn), S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+        /* Check that we are bound by S2N_TLS_MAXIMUM_FRAGMENT_LENGTH */
+        EXPECT_SUCCESS(size = s2n_record_max_write_payload_size(server_conn));
+        EXPECT_EQUAL(size, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
 
         /* trigger a payload that is under the limits */
         server_conn->max_outgoing_fragment_length = 0;
@@ -119,9 +120,10 @@ int main(int argc, char **argv)
         server_conn->max_outgoing_fragment_length = S2N_TLS_MAXIMUM_FRAGMENT_LENGTH;
         EXPECT_SUCCESS(s2n_record_max_write_payload_size(server_conn));
 
-        /* This is not allowed */
+        /* This is not allowed, and reduced to S2N_TLS_MAXIMUM_FRAGMENT_LENGTH*/
         server_conn->max_outgoing_fragment_length++;
-        EXPECT_FAILURE(s2n_record_max_write_payload_size(server_conn));
+        EXPECT_SUCCESS(size = s2n_record_max_write_payload_size(server_conn));
+        EXPECT_EQUAL(size, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
 
         /* Test against different cipher suites */
         server_conn->actual_protocol_version = S2N_TLS13;
@@ -131,7 +133,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(size = s2n_record_max_write_payload_size(server_conn));
         EXPECT_EQUAL(size, ONE_BLOCK
             - S2N_TLS_GCM_TAG_LEN /* S2N_TLS_GCM_TAG_LEN */
-            - 1 /* tls 1.3 content length */
         );
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -194,30 +195,32 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(bytes_taken = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &big_blob));
 
         /* These values are subjected to change based on our implementation (which is currently not the true max frag len) */
-        const uint16_t CURRENT_MAX_FRAG_LEN = 16367;
+        const uint16_t CURRENT_MAX_FRAG_LEN = 16368;
         EXPECT_EQUAL(bytes_taken, CURRENT_MAX_FRAG_LEN); /* plaintext bytes taken */
         EXPECT_EQUAL(server_conn->wire_bytes_out, CURRENT_MAX_FRAG_LEN + TLS13_RECORD_OVERHEAD); /* bytes sent on the wire */
 
         /* These are invariant regardless of s2n implementation */
         EXPECT_TRUE(bytes_taken <= S2N_TLS_MAXIMUM_FRAGMENT_LENGTH); /* Plaintext max size - 2^14 = 16384 */
         EXPECT_TRUE(bytes_taken <= (S2N_TLS_MAXIMUM_FRAGMENT_LENGTH + 255)); /* Max record size for TLS 1.3 - 2^14 + 255 = 16639 */
+        EXPECT_TRUE(server_conn->wire_bytes_out <= S2N_TLS_MAXIMUM_RECORD_LENGTH);
+        EXPECT_TRUE(server_conn->wire_bytes_out <= S2N_TLS13_MAXIMUM_RECORD_LENGTH);
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
         /* Now we escape the sandbox and attempt to get record_write to use a larger plaintext bytes */
-        /* Ideally no error should be triggered if the record stuffer size should be large enough */
-        /* In the current implementation, record stuffer size is not large enough but should be guarded with an error */
+        /* However, we bound the max fragment length based on the protocol specification */
         const uint16_t MAX_FORCED_OUTGOING_FRAGMENT_LENGTH = 16400;
 
-        server_conn->max_outgoing_fragment_length = MAX_FORCED_OUTGOING_FRAGMENT_LENGTH; /* Trigger record stuffer out of space error */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &big_blob), S2N_ERR_RECORD_STUFFER_SIZE);
+        server_conn->max_outgoing_fragment_length = MAX_FORCED_OUTGOING_FRAGMENT_LENGTH; /* Trigger fragment length bounding */
+        EXPECT_SUCCESS(bytes_taken = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &big_blob));
+        EXPECT_EQUAL(bytes_taken, CURRENT_MAX_FRAG_LEN);
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
         /* Force a generous 100k resize on the outgoing record stuffer */
         EXPECT_SUCCESS(s2n_stuffer_resize(&server_conn->out, ONE_HUNDRED_K));
         server_conn->max_outgoing_fragment_length = MAX_FORCED_OUTGOING_FRAGMENT_LENGTH;
         EXPECT_SUCCESS(bytes_taken = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &big_blob));
-        EXPECT_EQUAL(bytes_taken, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH - 1); /* 16383: still a off by one less than maximum allowed size, which can be optimized in future */
+        EXPECT_EQUAL(bytes_taken, CURRENT_MAX_FRAG_LEN);
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 

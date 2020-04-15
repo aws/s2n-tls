@@ -194,11 +194,14 @@
  */
 #define S2N_TLS_RECORD_HEADER_LENGTH    5
 #define S2N_TLS_MAXIMUM_FRAGMENT_LENGTH 16384
-#define S2N_TLS_MAXIMUM_RECORD_LENGTH   (S2N_TLS_MAXIMUM_FRAGMENT_LENGTH + S2N_TLS_RECORD_HEADER_LENGTH)
+/* Maximum TLS record length allows for 2048 octets of compression expansion and padding */
+#define S2N_TLS_MAXIMUM_RECORD_LENGTH   (S2N_TLS_MAXIMUM_FRAGMENT_LENGTH + S2N_TLS_RECORD_HEADER_LENGTH + 2048)
 #define S2N_TLS_MAX_FRAG_LEN_EXT_NONE   0
 
+/* TLS1.3 has a max fragment length of 2^14 + 1 byte for the content type */
 #define S2N_TLS13_MAXIMUM_FRAGMENT_LENGTH 16385
-#define S2N_TLS13_MAXIMUM_RECORD_LENGTH   (S2N_TLS13_MAXIMUM_FRAGMENT_LENGTH + S2N_TLS_RECORD_HEADER_LENGTH)
+/* Max encryption overhead is 255 for AEAD padding */
+#define S2N_TLS13_MAXIMUM_RECORD_LENGTH   (S2N_TLS13_MAXIMUM_FRAGMENT_LENGTH + S2N_TLS_RECORD_HEADER_LENGTH + 255)
 
 /* The maximum size of an SSL2 message is 2^14 - 1, as neither of the first two
  * bits in the length field are usable. Per;
@@ -227,7 +230,7 @@
 /* S2N_LARGE_RECORD_LENGTH is used for initializing output buffers, we use the largest
  * possible value of all supported protocols to avoid branching at runtime
  */
-#define S2N_LARGE_RECORD_LENGTH S2N_TLS13_MAXIMUM_RECORD_LENGTH
+#define S2N_LARGE_RECORD_LENGTH S2N_TLS_MAXIMUM_RECORD_LENGTH
 #define S2N_LARGE_FRAGMENT_LENGTH S2N_TLS_MAXIMUM_FRAGMENT_LENGTH
 #define S2N_TLS13_LARGE_FRAGMENT_LENGTH S2N_TLS13_MAXIMUM_FRAGMENT_LENGTH
 
