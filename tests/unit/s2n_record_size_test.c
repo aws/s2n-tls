@@ -213,7 +213,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &big_blob), S2N_ERR_RECORD_STUFFER_SIZE);
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
-        /* Force a generous 20k resize on the outgoing record stuffer */
+        /* Force a generous 100k resize on the outgoing record stuffer */
         EXPECT_SUCCESS(s2n_stuffer_resize(&server_conn->out, ONE_HUNDRED_K));
         server_conn->max_outgoing_fragment_length = MAX_FORCED_OUTGOING_FRAGMENT_LENGTH;
         EXPECT_SUCCESS(bytes_taken = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &big_blob));
