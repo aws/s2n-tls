@@ -162,10 +162,12 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
     /* blob already has space for the request */
     if (size < b->allocated) {
 
-        /* Zero the memory before the we release it */
-        struct s2n_blob slice;
-        GUARD(s2n_blob_slice(b, &slice, size, b->size - size));
-        GUARD(s2n_blob_zero(&slice));
+        if (size < b->size) {
+            /* Zero the existing blob memory before the we release it */
+            struct s2n_blob slice = {0};
+            GUARD(s2n_blob_slice(b, &slice, size, b->size - size));
+            GUARD(s2n_blob_zero(&slice));
+        }
 
         b->size = size;
         return S2N_SUCCESS;
