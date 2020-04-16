@@ -20,7 +20,7 @@ phases:
     commands:
       - echo Entered the install phase...
       - echo "We need a test PPA for gcc-9."
-      - add-apt-repository ppa:ubuntu-toolchain-r/test -y
+      - add-apt-repository ppa:jonathonf/gcc-9.2 -y
       - apt-get update -o Acquire::CompressionTypes::Order::=gz
       - apt-get update -y
       - |

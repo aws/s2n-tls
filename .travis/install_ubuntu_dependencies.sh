@@ -19,7 +19,7 @@ apt-key list
 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 6B05F25D762E3157
 apt-key list
 
-sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+sudo add-apt-repository ppa:jonathonf/gcc-9.2 -y
 sudo apt-get update -o Acquire::CompressionTypes::Order::=gz
 
 DEPENDENCIES="unzip make indent kwstyle libssl-dev tcpdump valgrind lcov m4 nettle-dev nettle-bin pkg-config gcc g++ zlibc zlib1g-dev python3-pip llvm"
