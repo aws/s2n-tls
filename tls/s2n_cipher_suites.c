@@ -24,6 +24,8 @@
 
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_security_policies.h"
+#include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_kex.h"
@@ -779,14 +781,6 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
 const struct s2n_cipher_preferences cipher_preferences_test_all = {
     .count = s2n_array_len(s2n_all_cipher_suites),
     .suites = s2n_all_cipher_suites,
-    .minimum_protocol_version = S2N_SSLv3,
-#if !defined(S2N_NO_PQ)
-    .kem_count = s2n_array_len(pq_kems_r2r1),
-    .kems = pq_kems_r2r1,
-#else
-    .kem_count = 0,
-    .kems = NULL,
-#endif
 };
 
 /* All TLS12 Cipher Suites */
@@ -835,14 +829,6 @@ static struct s2n_cipher_suite *s2n_all_tls12_cipher_suites[] = {
 const struct s2n_cipher_preferences cipher_preferences_test_all_tls12 = {
     .count = s2n_array_len(s2n_all_tls12_cipher_suites),
     .suites = s2n_all_tls12_cipher_suites,
-    .minimum_protocol_version = S2N_SSLv3,
-#if !defined(S2N_NO_PQ)
-    .kem_count = s2n_array_len(pq_kems_r2r1),
-    .kems = pq_kems_r2r1,
-#else
-    .kem_count = 0,
-    .kems = NULL,
-#endif
 };
 
 
@@ -875,9 +861,6 @@ static struct s2n_cipher_suite *s2n_all_fips_cipher_suites[] = {
 const struct s2n_cipher_preferences cipher_preferences_test_all_fips = {
     .count = s2n_array_len(s2n_all_fips_cipher_suites),
     .suites = s2n_all_fips_cipher_suites,
-    .minimum_protocol_version = S2N_TLS10,
-    .kem_count = 0,
-    .kems = NULL,
 };
 
 /* All of the ECDSA cipher suites that s2n can negotiate, in order of IANA
@@ -897,9 +880,6 @@ static struct s2n_cipher_suite *s2n_all_ecdsa_cipher_suites[] = {
 const struct s2n_cipher_preferences cipher_preferences_test_all_ecdsa = {
     .count = s2n_array_len(s2n_all_ecdsa_cipher_suites),
     .suites = s2n_all_ecdsa_cipher_suites,
-    .minimum_protocol_version = S2N_TLS10,
-    .kem_count = 0,
-    .kems = NULL,
 };
 
 /* All cipher suites that uses RSA key exchange. Exposed for unit or integration tests. */
@@ -920,7 +900,6 @@ static struct s2n_cipher_suite *s2n_all_rsa_kex_cipher_suites[] = {
 const struct s2n_cipher_preferences cipher_preferences_test_all_rsa_kex = {
     .count = s2n_array_len(s2n_all_rsa_kex_cipher_suites),
     .suites = s2n_all_rsa_kex_cipher_suites,
-    .minimum_protocol_version = S2N_TLS10,
 };
 
 /* All ECDSA cipher suites first, then the rest of the supported ciphers that s2n can negotiate.
@@ -966,9 +945,6 @@ static struct s2n_cipher_suite *s2n_ecdsa_priority_cipher_suites[] = {
 const struct s2n_cipher_preferences cipher_preferences_test_ecdsa_priority = {
     .count = s2n_array_len(s2n_ecdsa_priority_cipher_suites),
     .suites = s2n_ecdsa_priority_cipher_suites,
-    .minimum_protocol_version = S2N_SSLv3,
-    .kem_count = 0,
-    .kems = NULL,
 };
 
 static struct s2n_cipher_suite *s2n_all_tls13_cipher_suites[] = {
@@ -980,9 +956,6 @@ static struct s2n_cipher_suite *s2n_all_tls13_cipher_suites[] = {
 const struct s2n_cipher_preferences cipher_preferences_test_all_tls13 = {
     .count = s2n_array_len(s2n_all_tls13_cipher_suites),
     .suites = s2n_all_tls13_cipher_suites,
-    .minimum_protocol_version = S2N_SSLv3,
-    .kem_count = 0,
-    .kems = NULL,
 };
 
 /* Determines cipher suite availability and selects record algorithms */
@@ -1132,12 +1105,12 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t * wire,
         conn->secure_renegotiation = 1;
     }
 
-    const struct s2n_cipher_preferences *cipher_preferences;
-    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+    const struct s2n_security_policy *security_policy;
+    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
     /* s2n supports only server order */
-    for (int i = 0; i < cipher_preferences->count; i++) {
-        const uint8_t *ours = cipher_preferences->suites[i]->iana_value;
+    for (int i = 0; i < security_policy->cipher_preferences->count; i++) {
+        const uint8_t *ours = security_policy->cipher_preferences->suites[i]->iana_value;
 
         /* if the connection is using TLS 1.3, skip non-TLS 1.3 ciphers */
         if (conn->actual_protocol_version >= S2N_TLS13 && !s2n_is_valid_tls13_cipher(ours)) {

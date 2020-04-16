@@ -27,17 +27,17 @@ struct s2n_kem_preferences {
 
 #if !defined(S2N_NO_PQ)
 
-const struct s2n_kem *pq_kems_r1[2];
-const struct s2n_kem *pq_kems_r2r1[4];
-const struct s2n_kem *pq_kems_sike_r1[1];
-const struct s2n_kem *pq_kems_sike_r2r1[2];
+extern const struct s2n_kem *pq_kems_r1[2];
+extern const struct s2n_kem *pq_kems_r2r1[4];
+extern const struct s2n_kem *pq_kems_sike_r1[1];
+extern const struct s2n_kem *pq_kems_sike_r2r1[2];
 
-const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2019_06;
-const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_02;
-const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2019_11;
-const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2020_02;
+extern const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2019_06;
+extern const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_02;
+extern const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2019_11;
+extern const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2020_02;
 
 #endif
 
-const struct s2n_kem_preferences kem_preferences_null;
+extern const struct s2n_kem_preferences kem_preferences_null;
 

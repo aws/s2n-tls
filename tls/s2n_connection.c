@@ -744,13 +744,11 @@ int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const str
     notnull_check(conn);
     notnull_check(cipher_preferences);
 
-    const struct s2n_security_policy *security_policy = NULL;
     if(conn->security_policy_override != NULL) {
-        security_policy = conn->security_policy_override;
+        *cipher_preferences= conn->security_policy_override->cipher_preferences;
     } else {
-        security_policy = conn->config->security_policy;
+        *cipher_preferences = conn->config->security_policy->cipher_preferences;
     }
-    *cipher_preferences = security_policy->cipher_preferences;
 
     return 0;
 }
@@ -758,6 +756,7 @@ int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const str
 int s2n_connection_get_security_policy(struct s2n_connection *conn, const struct s2n_security_policy **security_policy)
 {
     notnull_check(conn);
+    notnull_check(security_policy);
 
     if(conn->security_policy_override != NULL) {
         *security_policy = conn->security_policy_override;

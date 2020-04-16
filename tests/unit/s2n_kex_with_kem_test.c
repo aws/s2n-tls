@@ -22,7 +22,7 @@
 #include "tls/s2n_kex_data.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_tls.h"
-#include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_security_policies.h"
 #include "crypto/s2n_fips.h"
 
 #include "utils/s2n_safety.h"
@@ -45,7 +45,7 @@ static struct s2n_cipher_suite bike_test_suite = {
         .key_exchange_alg = &s2n_test_kem_kex,
 };
 
-static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *cipher_pref_version, const struct s2n_kem *negotiated_kem) {
+static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *security_policy_version, const struct s2n_kem *negotiated_kem) {
     S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
 
     struct s2n_connection *client_conn;
@@ -54,17 +54,17 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *ci
     GUARD_NONNULL(client_conn = s2n_connection_new(S2N_CLIENT));
     GUARD_NONNULL(server_conn = s2n_connection_new(S2N_SERVER));
 
-    const struct s2n_cipher_preferences *cipher_prefs = NULL;
-    GUARD(s2n_find_cipher_pref_from_version(cipher_pref_version, &cipher_prefs));
-    GUARD_NONNULL(cipher_prefs);
+    const struct s2n_security_policy *security_policy = NULL;
+    GUARD(s2n_find_security_policy_from_version(security_policy_version, &security_policy));
+    GUARD_NONNULL(security_policy);
 
     client_conn->secure.s2n_kem_keys.negotiated_kem = negotiated_kem;
     client_conn->secure.cipher_suite = cipher_suite;
-    client_conn->cipher_pref_override = cipher_prefs;
+    client_conn->security_policy_override = security_policy;
 
     server_conn->secure.s2n_kem_keys.negotiated_kem = negotiated_kem;
     server_conn->secure.cipher_suite = cipher_suite;
-    server_conn->cipher_pref_override = cipher_prefs;
+    client_conn->security_policy_override = security_policy;
 
     /* Part 1: Server calls send_key */
     struct s2n_blob data_to_sign = {0};
@@ -119,7 +119,7 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *ci
     return 0;
 }
 
-static int assert_kex_fips_checks(struct s2n_cipher_suite *cipher_suite, const char *cipher_pref_version, const struct s2n_kem *negotiated_kem) {
+static int assert_kex_fips_checks(struct s2n_cipher_suite *cipher_suite, const char *security_policy_version, const struct s2n_kem *negotiated_kem) {
     if (!s2n_is_in_fips_mode()) {
         /* This function should only be called when FIPS mode is enabled */
         return S2N_FAILURE;
@@ -127,12 +127,12 @@ static int assert_kex_fips_checks(struct s2n_cipher_suite *cipher_suite, const c
 
     struct s2n_connection *server_conn;
     GUARD_NONNULL(server_conn = s2n_connection_new(S2N_SERVER));
-    const struct s2n_cipher_preferences *cipher_prefs = NULL;
-    GUARD(s2n_find_cipher_pref_from_version(cipher_pref_version, &cipher_prefs));
-    GUARD_NONNULL(cipher_prefs);
+    const struct s2n_security_policy *security_policy = NULL;
+    GUARD(s2n_find_security_policy_from_version(security_policy_version, &security_policy));
+    GUARD_NONNULL(security_policy);
     server_conn->secure.s2n_kem_keys.negotiated_kem = negotiated_kem;
     server_conn->secure.cipher_suite = cipher_suite;
-    server_conn->cipher_pref_override = cipher_prefs;
+    server_conn->security_policy_override = security_policy;
 
     /* If in FIPS mode:
      * s2n_check_kem() (s2n_hybrid_ecdhe_kem.connection_supported) should return 0

@@ -28,6 +28,7 @@
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
+#include "tls/s2n_security_policies.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -139,10 +140,10 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
         S2N_ERROR_IF(s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
 
-        const struct s2n_cipher_preferences *cipher_preferences;
-        GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+        const struct s2n_security_policy *security_policy;
+        GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
-        if (conn->server_protocol_version < cipher_preferences->minimum_protocol_version
+        if (conn->server_protocol_version < security_policy->minimum_protocol_version
                 || conn->server_protocol_version > conn->client_protocol_version) {
             GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
             S2N_ERROR(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);

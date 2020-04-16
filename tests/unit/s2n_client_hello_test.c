@@ -30,6 +30,7 @@
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_client_hello.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_tls_parameters.h"
@@ -194,7 +195,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
-            EXPECT_TRUE(s2n_cipher_preference_supports_tls13(config->cipher_preferences));
+            EXPECT_TRUE(s2n_security_policy_supports_tls13(config->security_policy));
 
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS13);
@@ -211,9 +212,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default"));
 
-            const struct s2n_cipher_preferences *cipher_preferences;
-            GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
-            EXPECT_FALSE(s2n_cipher_preference_supports_tls13(cipher_preferences));
+            const struct s2n_security_policy *security_policy;
+            GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+            EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
@@ -230,7 +231,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
-            EXPECT_TRUE(s2n_cipher_preference_supports_tls13(config->cipher_preferences));
+            EXPECT_TRUE(s2n_security_policy_supports_tls13(config->security_policy));
 
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
 
@@ -247,9 +248,9 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
 
-            const struct s2n_cipher_preferences *cipher_preferences;
-            GUARD(s2n_connection_get_cipher_preferences(server_conn, &cipher_preferences));
-            EXPECT_FALSE(s2n_cipher_preference_supports_tls13(cipher_preferences));
+            const struct s2n_security_policy *security_policy;
+            GUARD(s2n_connection_get_security_policy(server_conn, &security_policy));
+            EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io, s2n_stuffer_data_available(&client_conn->handshake.io)));
 

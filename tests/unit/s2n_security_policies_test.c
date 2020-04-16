@@ -67,7 +67,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2019-06", &security_policy));
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_TRUE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_EQUAL(2, security_policy->kem_preferences->count);
         EXPECT_NOT_NULL(security_policy->kem_preferences->kems);
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r1);
@@ -76,7 +75,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2019-11", &security_policy));
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_TRUE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_EQUAL(1, security_policy->kem_preferences->count);
         EXPECT_NOT_NULL(security_policy->kem_preferences->kems);
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_sike_r1);
@@ -85,7 +83,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &security_policy));
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_TRUE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_EQUAL(2, security_policy->kem_preferences->count);
         EXPECT_NOT_NULL(security_policy->kem_preferences->kems);
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_sike_r2r1);
@@ -94,7 +91,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2020-02", &security_policy));
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_TRUE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_EQUAL(4, security_policy->kem_preferences->count);
         EXPECT_NOT_NULL(security_policy->kem_preferences->kems);
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r2r1);
@@ -179,7 +175,7 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < s2n_array_len(tls12_only_security_policy_strings); i++) {
             security_policy = NULL;
             EXPECT_SUCCESS(s2n_find_security_policy_from_version(tls12_only_security_policy_strings[i], &security_policy));
-            EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
+            EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
         }
 
         char tls13_security_policy_strings[][255] = {
@@ -190,7 +186,7 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < s2n_array_len(tls13_security_policy_strings); i++) {
             security_policy = NULL;
             EXPECT_SUCCESS(s2n_find_security_policy_from_version(tls13_security_policy_strings[i], &security_policy));
-            EXPECT_TRUE(s2n_pq_kem_is_extension_required(security_policy));
+            EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
         }
     }
 
@@ -199,7 +195,7 @@ int main(int argc, char **argv)
         security_policy = NULL;
         EXPECT_FAILURE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FAILURE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
     }
 
     /* Test failure case */
@@ -207,6 +203,7 @@ int main(int argc, char **argv)
         struct s2n_cipher_suite *fake_suites[] = {
             &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
         };
+        
         const struct s2n_cipher_preferences fake_cipher_preference = {
             .count = 1,
             .suites = fake_suites,
@@ -226,7 +223,7 @@ int main(int argc, char **argv)
         security_policy = &fake_security_policy;
         EXPECT_FAILURE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FAILURE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
     }
 
     END_TEST();

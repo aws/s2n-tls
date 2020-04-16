@@ -28,7 +28,6 @@
 #include "tls/s2n_config.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_x509_validator.h"
-
 #include "stuffer/s2n_stuffer.h"
 
 #include "crypto/s2n_hash.h"

@@ -21,6 +21,7 @@
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_tls13.h"
@@ -29,10 +30,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    const struct s2n_cipher_preferences *default_cipher_preferences, *tls13_cipher_preferences, *fips_cipher_preferences;
-    EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("default_tls13", &tls13_cipher_preferences));
-    EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("default_fips", &fips_cipher_preferences));
-    EXPECT_SUCCESS(s2n_find_cipher_pref_from_version("default", &default_cipher_preferences));
+    const struct s2n_security_policy *default_security_policy, *tls13_security_policy, *fips_security_policy;
+    EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &tls13_security_policy));
+    EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_fips", &fips_security_policy));
+    EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_security_policy));
 
     /* Test: s2n_config_new and tls13_default_config match */
     {
@@ -42,7 +43,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(default_config = s2n_fetch_default_config());
 
         /* s2n_config_new() matches s2n_fetch_default_config() */
-        EXPECT_EQUAL(default_config->cipher_preferences, config->cipher_preferences);
+        EXPECT_EQUAL(default_config->security_policy, config->security_policy);
         EXPECT_EQUAL(default_config->signature_preferences, config->signature_preferences);
         EXPECT_EQUAL(default_config->client_cert_auth_type, config->client_cert_auth_type);
 
@@ -65,7 +66,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
-            EXPECT_EQUAL(conn->config->cipher_preferences, default_cipher_preferences);
+            EXPECT_EQUAL(conn->config->security_policy, default_security_policy);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -77,7 +78,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
-            EXPECT_EQUAL(conn->config->cipher_preferences, tls13_cipher_preferences);
+            EXPECT_EQUAL(conn->config->security_policy, tls13_security_policy);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_disable_tls13());
@@ -89,7 +90,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
-            EXPECT_EQUAL(conn->config->cipher_preferences, fips_cipher_preferences);
+            EXPECT_EQUAL(conn->config->security_policy, fips_security_policy);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_disable_tls13());

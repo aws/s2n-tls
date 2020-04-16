@@ -18,6 +18,7 @@
 #include "tls/s2n_kem.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_kem_preferences.h"
 
 #include "utils/s2n_safety.h"
 
