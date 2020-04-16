@@ -41,6 +41,7 @@
 #include "tls/s2n_resume.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_ecc_preferences.h"
+#include "tls/s2n_security_policies.h"
 
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
@@ -174,7 +175,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn->managed_io = 0;
     conn->corked_io = 0;
     conn->context = NULL;
-    conn->cipher_pref_override = NULL;
+    conn->security_policy_override = NULL;
     conn->ticket_lifetime_hint = 0;
     conn->session_ticket_status = S2N_NO_TICKET;
 
@@ -743,12 +744,27 @@ int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const str
     notnull_check(conn);
     notnull_check(cipher_preferences);
 
-    if(conn->cipher_pref_override != NULL) {
-        *cipher_preferences = conn->cipher_pref_override;
+    const struct s2n_security_policy *security_policy = NULL;
+    if(conn->security_policy_override != NULL) {
+        security_policy = conn->security_policy_override;
     } else {
-        *cipher_preferences = conn->config->cipher_preferences;
+        security_policy = conn->config->security_policy;
     }
+    *cipher_preferences = security_policy->cipher_preferences;
 
+    return 0;
+}
+
+int s2n_connection_get_security_policy(struct s2n_connection *conn, const struct s2n_security_policy **security_policy)
+{
+    notnull_check(conn);
+
+    if(conn->security_policy_override != NULL) {
+        *security_policy = conn->security_policy_override;
+    } else {
+        *security_policy = conn->config->security_policy;
+    }
+    
     return 0;
 }
 
