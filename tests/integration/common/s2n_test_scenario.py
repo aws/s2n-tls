@@ -63,6 +63,13 @@ class Cert():
         self.cert = location + prefix + "_cert.pem"
         self.key = location + prefix + "_key.pem"
 
+    def valid_for(self, version):
+        # RSA PSS is currently only supported with libcryto openssl 1.1.1 in s2n
+        if self.name.startswith("RSA"):
+            return get_libcrypto() == "openssl-1.1.1"
+
+        return True
+
     def __str__(self):
         return self.name
 
@@ -257,6 +264,9 @@ def get_scenarios(host, start_port, s2n_modes=Mode.all(), versions=[None], ciphe
         if curve and not curve.valid_for(version):
             continue
 
+        if cert and not cert.valid_for(version):
+            continue
+
         for s2n_mode in s2n_modes:
             scenarios.append(Scenario(
                 s2n_mode=s2n_mode,
@@ -269,6 +279,6 @@ def get_scenarios(host, start_port, s2n_modes=Mode.all(), versions=[None], ciphe
                 s2n_flags=s2n_flags,
                 peer_flags=peer_flags))
             port += 1
-        
+
     return scenarios
 
