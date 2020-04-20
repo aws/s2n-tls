@@ -129,14 +129,6 @@ int s2n_in_unit_test_set(bool newval);
   }                                             \
   } while (0)
 
-/**
- * Get the process id
- *
- * Returns:
- *  The process ID of the current process
- */
-extern pid_t s2n_actual_getpid();
-
 /* Returns 1 if a and b are equal, in constant time */
 extern int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len);
 
