@@ -28,7 +28,7 @@ fi
 BUILD_DIR=$1
 INSTALL_DIR=$2
 PLATFORM=$3
-RELEASE=1_1_1f
+RELEASE=1_1_1g
 
 cd "$BUILD_DIR"
 curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_${RELEASE}.zip --output OpenSSL_${RELEASE}.zip
