@@ -29,7 +29,6 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_client_hello.h"
 #include "tls/s2n_handshake.h"
@@ -37,8 +36,7 @@
 
 #include "utils/s2n_safety.h"
 
-
-#define ZERO_TO_THIRTY_ONE  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, \
+#define ZERO_TO_THIRTY_ONE 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, \
                             0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
 
 #define LENGTH_TO_CIPHER_LIST (S2N_TLS_PROTOCOL_VERSION_LEN + S2N_TLS_RANDOM_DATA_LEN + 1)
@@ -215,7 +213,7 @@ int main(int argc, char **argv)
             const struct s2n_security_policy *security_policy;
             GUARD(s2n_connection_get_security_policy(conn, &security_policy));
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
-
+            
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(conn->client_protocol_version, S2N_TLS12);
@@ -317,7 +315,7 @@ int main(int argc, char **argv)
         /* Verify s2n_connection_get_client_hello returns the handle to the s2n_client_hello on the connection */
         EXPECT_EQUAL(client_hello, &server_conn->client_hello);
 
-        uint8_t* collected_client_hello = client_hello->raw_message.blob.data;
+        uint8_t *collected_client_hello = client_hello->raw_message.blob.data;
         uint16_t collected_client_hello_len = client_hello->raw_message.blob.size;
 
         /* Verify collected client hello message length */
@@ -388,40 +386,51 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
         s2n_blocked_status server_blocked;
-        uint8_t* sent_client_hello;
-        uint8_t* expected_client_hello;
+        uint8_t *sent_client_hello;
+        uint8_t *expected_client_hello;
 
         uint8_t client_extensions[] = {
             /* Extension type TLS_EXTENSION_SERVER_NAME */
-            0x00, 0x00,
+            0x00,
+            0x00,
             /* Extension size */
-            0x00, 0x08,
+            0x00,
+            0x08,
             /* Server names len */
-            0x00, 0x06,
+            0x00,
+            0x06,
             /* First server name type - host name */
             0x00,
             /* First server name len */
-            0x00, 0x03,
+            0x00,
+            0x03,
             /* First server name, matches sent_server_name */
-            's', 'v', 'r',
+            's',
+            'v',
+            'r',
         };
 
         uint8_t server_name_extension[] = {
             /* Server names len */
-            0x00, 0x06,
+            0x00,
+            0x06,
             /* First server name type - host name */
             0x00,
             /* First server name len */
-            0x00, 0x03,
+            0x00,
+            0x03,
             /* First server name, matches sent_server_name */
-            's', 'v', 'r',
+            's',
+            'v',
+            'r',
         };
         int server_name_extension_len = sizeof(server_name_extension);
 
         int client_extensions_len = sizeof(client_extensions);
         uint8_t client_hello_prefix[] = {
             /* Protocol version TLS 1.2 */
-            0x03, 0x03,
+            0x03,
+            0x03,
             /* Client random */
             ZERO_TO_THIRTY_ONE,
             /* SessionID len - 32 bytes */
@@ -429,15 +438,18 @@ int main(int argc, char **argv)
             /* Session ID */
             ZERO_TO_THIRTY_ONE,
             /* Cipher suites len */
-            0x00, 0x02,
+            0x00,
+            0x02,
             /* Cipher suite - TLS_RSA_WITH_AES_128_CBC_SHA256 */
-            0x00, 0x3C,
+            0x00,
+            0x3C,
             /* Compression methods len */
             0x01,
             /* Compression method - none */
             0x00,
             /* Extensions len */
-            (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
+            (client_extensions_len >> 8) & 0xff,
+            (client_extensions_len & 0xff),
         };
         int client_hello_prefix_len = sizeof(client_hello_prefix);
         int sent_client_hello_len = client_hello_prefix_len + client_extensions_len;
@@ -445,16 +457,20 @@ int main(int argc, char **argv)
             /* Handshake message type CLIENT HELLO */
             0x01,
             /* Body len */
-            (sent_client_hello_len >> 16) & 0xff, (sent_client_hello_len >> 8) & 0xff, (sent_client_hello_len & 0xff),
+            (sent_client_hello_len >> 16) & 0xff,
+            (sent_client_hello_len >> 8) & 0xff,
+            (sent_client_hello_len & 0xff),
         };
         int message_len = sizeof(message_header) + sent_client_hello_len;
         uint8_t record_header[] = {
             /* Record type HANDSHAKE */
             0x16,
             /* Protocol version TLS 1.2 */
-            0x03, 0x03,
+            0x03,
+            0x03,
             /* Message len */
-            (message_len >> 8) & 0xff, (message_len & 0xff),
+            (message_len >> 8) & 0xff,
+            (message_len & 0xff),
         };
 
         EXPECT_NOT_NULL(sent_client_hello = malloc(sent_client_hello_len));
@@ -501,7 +517,7 @@ int main(int argc, char **argv)
         /* Verify s2n_connection_get_client_hello returns the handle to the s2n_client_hello on the connection */
         EXPECT_EQUAL(client_hello, &server_conn->client_hello);
 
-        uint8_t* collected_client_hello = client_hello->raw_message.blob.data;
+        uint8_t *collected_client_hello = client_hello->raw_message.blob.data;
         uint16_t collected_client_hello_len = client_hello->raw_message.blob.size;
 
         /* Verify collected client hello message length */
@@ -521,7 +537,7 @@ int main(int argc, char **argv)
         /* Verify s2n_client_hello_get_raw_message_length correct */
         EXPECT_EQUAL(s2n_client_hello_get_raw_message_length(client_hello), sent_client_hello_len);
 
-        uint8_t* raw_ch_out;
+        uint8_t *raw_ch_out;
 
         /* Verify s2n_client_hello_get_raw_message retrieves the full message when its len <= max_len */
         EXPECT_TRUE(collected_client_hello_len < S2N_LARGE_RECORD_LENGTH);
@@ -552,7 +568,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_client_hello_get_cipher_suites_length(client_hello), sizeof(expected_cs));
 
         /* Verify s2n_client_hello_get_cipher_suites correct */
-        uint8_t* cs_out;
+        uint8_t *cs_out;
 
         /* Verify s2n_client_hello_get_cipher_suites retrieves the full cipher_suites when its len <= max_len */
         EXPECT_TRUE(client_hello->cipher_suites.size < S2N_LARGE_RECORD_LENGTH);
@@ -582,7 +598,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_client_hello_get_extensions_length(client_hello), client_extensions_len);
 
         /* Verify s2n_client_hello_get_extensions correct */
-        uint8_t* extensions_out;
+        uint8_t *extensions_out;
 
         /* Verify s2n_client_hello_get_extensions retrieves the full cipher_suites when its len <= max_len */
         EXPECT_TRUE(client_hello->extensions.size < S2N_LARGE_RECORD_LENGTH);
@@ -720,27 +736,34 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
         s2n_blocked_status server_blocked;
-        uint8_t* sent_client_hello;
+        uint8_t *sent_client_hello;
 
         uint8_t client_extensions[] = {
             /* Extension type TLS_EXTENSION_SERVER_NAME */
-            0x00, 0x00,
+            0x00,
+            0x00,
             /* Extension size */
-            0x00, 0x08,
+            0x00, 
+            0x08,
             /* Server names len */
-            0x00, 0x06,
+            0x00, 
+            0x06,
             /* First server name type - host name */
             0x00,
             /* First server name len */
-            0x00, 0x03,
+            0x00, 
+            0x03,
             /* First server name, matches sent_server_name */
-            's', 'v', 'r',
+            's', 
+            'v', 
+            'r',
         };
 
         int client_extensions_len = sizeof(client_extensions);
         uint8_t client_hello_prefix[] = {
             /* Protocol version TLS ??? */
-            0xFF, 0xFF,
+            0xFF, 
+            0xFF,
             /* Client random */
             ZERO_TO_THIRTY_ONE,
             /* SessionID len - 32 bytes */
@@ -748,15 +771,18 @@ int main(int argc, char **argv)
             /* Session ID */
             ZERO_TO_THIRTY_ONE,
             /* Cipher suites len */
-            0x00, 0x02,
+            0x00, 
+            0x02,
             /* Cipher suite - TLS_RSA_WITH_AES_128_CBC_SHA256 */
-            0x00, 0x3C,
+            0x00, 
+            0x3C,
             /* Compression methods len */
             0x01,
             /* Compression method - none */
             0x00,
             /* Extensions len */
-            (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
+            (client_extensions_len >> 8) & 0xff, 
+            (client_extensions_len & 0xff),
         };
         int client_hello_prefix_len = sizeof(client_hello_prefix);
         int sent_client_hello_len = client_hello_prefix_len + client_extensions_len;
@@ -764,16 +790,20 @@ int main(int argc, char **argv)
             /* Handshake message type CLIENT HELLO */
             0x01,
             /* Body len */
-            (sent_client_hello_len >> 16) & 0xff, (sent_client_hello_len >> 8) & 0xff, (sent_client_hello_len & 0xff),
+            (sent_client_hello_len >> 16) & 0xff, 
+            (sent_client_hello_len >> 8) & 0xff, 
+            (sent_client_hello_len & 0xff),
         };
         int message_len = sizeof(message_header) + sent_client_hello_len;
         uint8_t record_header[] = {
             /* Record type HANDSHAKE */
             0x16,
             /* Protocol version TLS 1.2 */
-            0x03, 0x03,
+            0x03, 
+            0x03,
             /* Message len */
-            (message_len >> 8) & 0xff, (message_len & 0xff),
+            (message_len >> 8) & 0xff, 
+            (message_len & 0xff),
         };
 
         EXPECT_NOT_NULL(sent_client_hello = malloc(sent_client_hello_len));
@@ -814,4 +844,3 @@ int main(int argc, char **argv)
     END_TEST();
     return 0;
 }
-

@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include <unistd.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <s2n.h>
 #include <stdbool.h>
@@ -27,32 +27,32 @@
 
 #include "error/s2n_errno.h"
 
-#include "tls/s2n_tls_parameters.h"
+#include "tls/extensions/s2n_client_server_name.h"
+#include "tls/s2n_alerts.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_client_extensions.h"
-#include "tls/extensions/s2n_client_server_name.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_connection_evp_digests.h"
-#include "tls/s2n_handshake.h"
-#include "tls/s2n_record.h"
-#include "tls/s2n_alerts.h"
-#include "tls/s2n_tls.h"
-#include "tls/s2n_prf.h"
-#include "tls/s2n_resume.h"
-#include "tls/s2n_kem.h"
 #include "tls/s2n_ecc_preferences.h"
+#include "tls/s2n_handshake.h"
+#include "tls/s2n_kem.h"
+#include "tls/s2n_prf.h"
+#include "tls/s2n_record.h"
+#include "tls/s2n_resume.h"
 #include "tls/s2n_security_policies.h"
+#include "tls/s2n_tls.h"
+#include "tls/s2n_tls_parameters.h"
 
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
 
+#include "utils/s2n_blob.h"
 #include "utils/s2n_compiler.h"
+#include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
 #include "utils/s2n_timer.h"
-#include "utils/s2n_blob.h"
-#include "utils/s2n_mem.h"
 
 static int s2n_connection_new_hashes(struct s2n_connection *conn)
 {
@@ -744,8 +744,8 @@ int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const str
     notnull_check(conn);
     notnull_check(cipher_preferences);
 
-    if(conn->security_policy_override != NULL) {
-        *cipher_preferences= conn->security_policy_override->cipher_preferences;
+    if (conn->security_policy_override != NULL) {
+        *cipher_preferences = conn->security_policy_override->cipher_preferences;
     } else {
         *cipher_preferences = conn->config->security_policy->cipher_preferences;
     }
@@ -758,12 +758,12 @@ int s2n_connection_get_security_policy(struct s2n_connection *conn, const struct
     notnull_check(conn);
     notnull_check(security_policy);
 
-    if(conn->security_policy_override != NULL) {
+    if (conn->security_policy_override != NULL) {
         *security_policy = conn->security_policy_override;
     } else {
         *security_policy = conn->config->security_policy;
     }
-    
+
     return 0;
 }
 

@@ -15,26 +15,27 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <signal.h>
 #include <errno.h>
 #include <s2n.h>
+#include <signal.h>
+#include <stdint.h>
+
+#include "stuffer/s2n_stuffer.h"
 
 #include "tls/extensions/s2n_extension_type.h"
-#include "tls/s2n_tls_parameters.h"
-#include "tls/s2n_handshake.h"
 #include "tls/s2n_client_hello.h"
-#include "tls/s2n_crypto.h"
 #include "tls/s2n_config.h"
+#include "tls/s2n_crypto.h"
+#include "tls/s2n_handshake.h"
 #include "tls/s2n_prf.h"
+#include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
-#include "stuffer/s2n_stuffer.h"
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
 
-#include "utils/s2n_timer.h"
 #include "utils/s2n_mem.h"
+#include "utils/s2n_timer.h"
 
 #define S2N_TLS_PROTOCOL_VERSION_LEN    2
 

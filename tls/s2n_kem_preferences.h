@@ -40,4 +40,3 @@ extern const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_202
 #endif
 
 extern const struct s2n_kem_preferences kem_preferences_null;
-

@@ -58,11 +58,11 @@ extern const struct s2n_security_policy security_policy_elb_fs_1_2_2019_08;
 extern const struct s2n_security_policy security_policy_elb_fs_1_1_2019_08;
 extern const struct s2n_security_policy security_policy_elb_fs_1_2_res_2019_08;
 
-    #if !defined(S2N_NO_PQ)
-    extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2019_06;
-    extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_02;
-    extern const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2019_11;
-    extern const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2020_02;
+#if !defined(S2N_NO_PQ)
+extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2019_06;
+extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_02;
+extern const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2019_11;
+extern const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2020_02;
 #endif
 
 extern const struct s2n_security_policy security_policy_cloudfront_upstream;

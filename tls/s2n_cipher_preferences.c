@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include <strings.h>
-#include <stdint.h>
-#include <s2n.h>
 #include "tls/s2n_cipher_preferences.h"
-#include "tls/s2n_kex.h"
+#include <s2n.h>
+#include <stdint.h>
+#include <strings.h>
 #include "tls/s2n_config.h"
 #include "tls/s2n_kem.h"
+#include "tls/s2n_kex.h"
 
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
@@ -27,11 +27,10 @@
 /* TLS 1.3 cipher suites, in order of preference.
  * Can be added to other ciphers suite lists to enable
  * TLS1.3 compatibility. */
-#define S2N_TLS13_CIPHER_SUITES_20190801    \
-    &s2n_tls13_aes_256_gcm_sha384,          \
-    &s2n_tls13_aes_128_gcm_sha256,          \
-    &s2n_tls13_chacha20_poly1305_sha256     \
-
+#define S2N_TLS13_CIPHER_SUITES_20190801 \
+    &s2n_tls13_aes_256_gcm_sha384,       \
+        &s2n_tls13_aes_128_gcm_sha256,   \
+        &s2n_tls13_chacha20_poly1305_sha256
 
 /* s2n's list of cipher suites, in order of preferences, as of 2019-08-01 */
 struct s2n_cipher_suite *cipher_suites_20190801[] = {
@@ -205,20 +204,20 @@ const struct s2n_cipher_preferences cipher_preferences_20170210 = {
 
 /* Same as 20160411, but with ChaCha20 added as 1st in Preference List */
 struct s2n_cipher_suite *cipher_suites_20190122[] = {
-        &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
-        &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
-        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-        &s2n_rsa_with_aes_128_cbc_sha,
-        &s2n_rsa_with_aes_128_gcm_sha256,
-        &s2n_rsa_with_aes_256_gcm_sha384,
-        &s2n_rsa_with_aes_128_cbc_sha256,
-        &s2n_rsa_with_aes_256_cbc_sha,
-        &s2n_rsa_with_aes_256_cbc_sha256,
-        &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha,
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20190122 = {
@@ -228,20 +227,20 @@ const struct s2n_cipher_preferences cipher_preferences_20190122 = {
 
 /* Same as 20160804, but with ChaCha20 added as 2nd in Preference List */
 struct s2n_cipher_suite *cipher_suites_20190121[] = {
-        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
-        &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
-        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-        &s2n_rsa_with_aes_128_gcm_sha256,
-        &s2n_rsa_with_aes_256_gcm_sha384,
-        &s2n_rsa_with_aes_128_cbc_sha,
-        &s2n_rsa_with_aes_128_cbc_sha256,
-        &s2n_rsa_with_aes_256_cbc_sha,
-        &s2n_rsa_with_aes_256_cbc_sha256,
-        &s2n_rsa_with_3des_ede_cbc_sha
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20190121 = {
@@ -251,20 +250,20 @@ const struct s2n_cipher_preferences cipher_preferences_20190121 = {
 
 /* Same as 20160411, but with ChaCha20 in 3rd Place after CBC and GCM */
 struct s2n_cipher_suite *cipher_suites_20190120[] = {
-        &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
-        &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-        &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-        &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
-        &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
-        &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-        &s2n_rsa_with_aes_128_cbc_sha,
-        &s2n_rsa_with_aes_128_gcm_sha256,
-        &s2n_rsa_with_aes_256_gcm_sha384,
-        &s2n_rsa_with_aes_128_cbc_sha256,
-        &s2n_rsa_with_aes_256_cbc_sha,
-        &s2n_rsa_with_aes_256_cbc_sha256,
-        &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha,
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20190120 = {
@@ -881,8 +880,8 @@ const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2019
 /* Includes only SIKE round 1 and round 2 (for integration tests). The cipher suite list
  * is the same as in cipher_preferences_pq_sike_test_tls_1_0_2019_11. */
 const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2020_02 = {
-        .count = s2n_array_len(cipher_suites_pq_sike_test_tls_1_0_2019_11),
-        .suites = cipher_suites_pq_sike_test_tls_1_0_2019_11,
+    .count = s2n_array_len(cipher_suites_pq_sike_test_tls_1_0_2019_11),
+    .suites = cipher_suites_pq_sike_test_tls_1_0_2019_11,
 };
 
 #endif

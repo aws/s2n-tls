@@ -203,7 +203,7 @@ int main(int argc, char **argv)
         struct s2n_cipher_suite *fake_suites[] = {
             &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
         };
-        
+
         const struct s2n_cipher_preferences fake_cipher_preference = {
             .count = 1,
             .suites = fake_suites,
@@ -215,11 +215,11 @@ int main(int argc, char **argv)
         };
 
         const struct s2n_security_policy fake_security_policy = {
-            .minimum_protocol_version = S2N_TLS10, 
+            .minimum_protocol_version = S2N_TLS10,
             .cipher_preferences = &fake_cipher_preference,
             .kem_preferences = &fake_kem_preference,
         };
-        
+
         security_policy = &fake_security_policy;
         EXPECT_FAILURE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FAILURE(s2n_pq_kem_is_extension_required(security_policy));
