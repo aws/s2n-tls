@@ -109,18 +109,21 @@ int s2n_stuffer_resize_if_empty(struct s2n_stuffer *stuffer, const uint32_t size
 
 int s2n_stuffer_rewrite(struct s2n_stuffer *stuffer)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     stuffer->write_cursor = 0;
     stuffer->read_cursor = 0;
-
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     return S2N_SUCCESS;
 }
 
 int s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     if(stuffer->read_cursor < size){
         S2N_ERROR(S2N_ERR_STUFFER_OUT_OF_DATA);
     }
     stuffer->read_cursor -= size;
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     return S2N_SUCCESS;
 }
 
@@ -238,9 +241,11 @@ int s2n_stuffer_erase_and_read_bytes(struct s2n_stuffer *stuffer, uint8_t * data
 
 int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     GUARD(s2n_stuffer_reserve_space(stuffer, n));
     stuffer->write_cursor += n;
     stuffer->high_water_mark = MAX(stuffer->write_cursor, stuffer->high_water_mark);
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     return S2N_SUCCESS;
 }
 
@@ -255,22 +260,28 @@ void *s2n_stuffer_raw_write(struct s2n_stuffer *stuffer, const uint32_t data_len
 
 int s2n_stuffer_write(struct s2n_stuffer *stuffer, const struct s2n_blob *in)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    PRECONDITION_POSIX(s2n_blob_is_valid(in));
     return s2n_stuffer_write_bytes(stuffer, in->data, in->size);
 }
 
 int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t * data, const uint32_t size)
 {
+    PRECONDITION_POSIX(S2N_MEM_IS_READABLE(data, size));
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     GUARD(s2n_stuffer_skip_write(stuffer, size));
 
     void *ptr = stuffer->blob.data + stuffer->write_cursor - size;
     notnull_check(ptr);
 
     if (ptr == data) {
+        POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
         return S2N_SUCCESS;
     }
 
     memcpy_check(ptr, data, size);
 
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     return S2N_SUCCESS;
 }
 
