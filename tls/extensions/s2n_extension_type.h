@@ -16,9 +16,14 @@
 #pragma once
 
 #include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_tls_parameters.h"
 
-typedef uint8_t s2n_extension_type_id;
-extern const s2n_extension_type_id s2n_unsupported_extension;
+/* The number of extensions supported by S2N */
+#define S2N_SUPPORTED_EXTENSIONS_COUNT          (sizeof(s2n_supported_extensions) / sizeof(s2n_supported_extensions[0]))
+
+/* The number of bytes needed to assign 1 bit to every supported extension.
+ * The +1 is necessary to handle any remainder left over when dividing. */
+#define S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN   ((S2N_SUPPORTED_EXTENSIONS_COUNT / sizeof(char)) + 1)
 
 typedef struct {
     uint16_t iana_value;
@@ -27,20 +32,39 @@ typedef struct {
     int (*send) (struct s2n_connection *conn, struct s2n_stuffer *out);
     int (*recv) (struct s2n_connection *conn, struct s2n_stuffer *in);
 
+    /* Returns true or false to indicate whether the extension should be sent */
     int (*should_send) (struct s2n_connection *conn);
-    int (*should_recv) (struct s2n_connection *conn, uint8_t *is_required);
+
+    /* Handler called if an extension is not received */
+    int (*if_missing) (struct s2n_connection *conn);
 } s2n_extension_type;
 
-int s2n_extension_send(s2n_extension_type *extension_type, struct s2n_connection *conn, struct s2n_stuffer *out);
-int s2n_extension_recv(s2n_extension_type *extension_type, struct s2n_connection *conn, struct s2n_stuffer *in);
+static const uint16_t s2n_supported_extensions[] = {
+    TLS_EXTENSION_RENEGOTIATION_INFO,
+    TLS_EXTENSION_PQ_KEM_PARAMETERS,
+    TLS_EXTENSION_SERVER_NAME,
+    TLS_EXTENSION_MAX_FRAG_LEN,
+    TLS_EXTENSION_STATUS_REQUEST,
+    TLS_EXTENSION_SUPPORTED_GROUPS,
+    TLS_EXTENSION_EC_POINT_FORMATS,
+    TLS_EXTENSION_SIGNATURE_ALGORITHMS,
+    TLS_EXTENSION_ALPN,
+    TLS_EXTENSION_SCT_LIST,
+    TLS_EXTENSION_SESSION_TICKET,
+    TLS_EXTENSION_SUPPORTED_VERSIONS,
+    TLS_EXTENSION_KEY_SHARE,
+};
+
+typedef char s2n_extension_bitfield[S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN];
+
+typedef uint8_t s2n_extension_type_id;
+extern const s2n_extension_type_id s2n_unsupported_extension;
+
+int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_connection *conn, struct s2n_stuffer *out);
+int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_connection *conn, struct s2n_stuffer *in);
 
 /* Initializer */
 int s2n_extension_type_init();
-
-/* Convert the IANA value (which ranges from 0->65535) to an id with a more
- * constrained range. That id can be used for bitfields, array indexes, etc.
- * to avoid allocating too much memory. */
-s2n_extension_type_id s2n_extension_iana_value_to_id(uint16_t iana_value);
 
 /* Common implementations for send */
 int s2n_extension_send_unimplemented(struct s2n_connection *conn, struct s2n_stuffer *out);
@@ -52,6 +76,6 @@ int s2n_extension_recv_unimplemented(struct s2n_connection *conn, struct s2n_stu
 int s2n_extension_always_send(struct s2n_connection *conn);
 int s2n_extension_never_send(struct s2n_connection *conn);
 
-/* Common implementations for should_recv */
-int s2n_extension_always_recv(struct s2n_connection *conn, uint8_t *is_required);
-int s2n_extension_may_recv(struct s2n_connection *conn, uint8_t *is_required);
+/* Common implementations for if_missing */
+int s2n_extension_error_if_missing(struct s2n_connection *conn);
+int s2n_extension_noop_if_missing(struct s2n_connection *conn);
