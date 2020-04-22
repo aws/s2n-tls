@@ -359,6 +359,10 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
+    if (use_tls13) {
+        GUARD_EXIT(s2n_enable_tls13(), "Error enabling TLS1.3");
+    }
+
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");
 
     if ((r = getaddrinfo(host, port, &hints, &ai_list)) != 0) {
@@ -402,10 +406,6 @@ int main(int argc, char *const *argv)
 
         if (session_ticket) {
             GUARD_EXIT(s2n_config_set_session_tickets_onoff(config, 1), "Error enabling session tickets");
-        }
-
-        if (use_tls13) {
-            GUARD_EXIT(s2n_enable_tls13(), "Error enabling TLS1.3");
         }
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);

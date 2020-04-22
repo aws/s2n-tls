@@ -63,10 +63,18 @@ class Cert():
         self.cert = location + prefix + "_cert.pem"
         self.key = location + prefix + "_key.pem"
 
+    def valid_for(self, version):
+        # RSA PSS is currently only supported with libcryto openssl 1.1.1 in s2n
+        if self.name.startswith("RSA"):
+            return get_libcrypto() == "openssl-1.1.1"
+
+        return True
+
     def __str__(self):
         return self.name
 
 ALL_CERTS = [
+    Cert("RSA_2048", "rsa_2048_pkcs1"),
     Cert("ECDSA_256", "ecdsa_p256_pkcs1"),
     Cert("ECDSA_384", "ecdsa_p384_pkcs1"),
 ]
@@ -204,6 +212,14 @@ def __create_thread_pool():
     threadpool = ThreadPool(processes=threadpool_size)
     return threadpool
 
+def scenario_runner(test_func, scenario):
+    def runner():
+        result = test_func(scenario)
+        # print results
+        print("%s %s" % (str(scenario), str(result).rstrip()))
+        return result
+
+    return runner
 
 def run_scenarios(test_func, scenarios):
     failed = 0
@@ -213,19 +229,24 @@ def run_scenarios(test_func, scenarios):
     print("\tRunning scenarios: " + str(len(scenarios)))
 
     for scenario in scenarios:
-        async_result = threadpool.apply_async(test_func, (scenario,))
+        async_result = threadpool.apply_async(scenario_runner(test_func, scenario))
         results.update({scenario: async_result})
 
     threadpool.close()
     threadpool.join()
 
-    results.update((k, v.get()) for k,v in results.items())
+    # get results, applying a 5 seconds limit for each task
+    results.update((k, v.get(5000)) for k,v in results.items())
+
+    print("\tScenarios ran. Reprinting failed tasks if any...")
     # Sort the results so that failures appear at the end
     sorted_results = sorted(results.items(), key=lambda x: not x[1].is_success())
     for scenario, result in sorted_results:
-        print("%s %s" % (str(scenario), str(result).rstrip()))
         if not result.is_success():
-            failed += 1
+            fail += 1
+            print("%s %s" % (str(scenario), str(result).rstrip()))
+
+    print("\tDone")
 
     return failed
 
@@ -243,6 +264,9 @@ def get_scenarios(host, start_port, s2n_modes=Mode.all(), versions=[None], ciphe
         if curve and not curve.valid_for(version):
             continue
 
+        if cert and not cert.valid_for(version):
+            continue
+
         for s2n_mode in s2n_modes:
             scenarios.append(Scenario(
                 s2n_mode=s2n_mode,
@@ -255,6 +279,6 @@ def get_scenarios(host, start_port, s2n_modes=Mode.all(), versions=[None], ciphe
                 s2n_flags=s2n_flags,
                 peer_flags=peer_flags))
             port += 1
-        
+
     return scenarios
 
