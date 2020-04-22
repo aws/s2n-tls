@@ -13,16 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include <s2n.h>
-#include <stdint.h>
-#include <strings.h>
-
-#include "error/s2n_errno.h"
-#include "tls/s2n_config.h"
-#include "tls/s2n_kem.h"
 #include "tls/s2n_kem_preferences.h"
-#include "tls/s2n_kex.h"
-#include "utils/s2n_safety.h"
 
 #if !defined(S2N_NO_PQ)
 

@@ -64,7 +64,7 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *se
 
     server_conn->secure.s2n_kem_keys.negotiated_kem = negotiated_kem;
     server_conn->secure.cipher_suite = cipher_suite;
-    client_conn->security_policy_override = security_policy;
+    server_conn->security_policy_override = security_policy;
 
     /* Part 1: Server calls send_key */
     struct s2n_blob data_to_sign = {0};

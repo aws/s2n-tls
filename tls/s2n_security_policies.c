@@ -73,13 +73,11 @@ const struct s2n_security_policy security_policy_elb_fs_2018_06= {
     .kem_preferences = &kem_preferences_null,
 };
 
-
 const struct s2n_security_policy security_policy_elb_fs_1_2_2019_08= {
     .minimum_protocol_version = S2N_TLS12,  
     .cipher_preferences = &elb_security_policy_fs_1_2_2019_08,
     .kem_preferences = &kem_preferences_null,
 };
-
 
 const struct s2n_security_policy security_policy_elb_fs_1_1_2019_08= {
     .minimum_protocol_version = S2N_TLS11,  
@@ -413,7 +411,7 @@ int s2n_find_security_policy_from_version(const char *version, const struct s2n_
     for (int i = 0; security_policy_selection[i].version != NULL; i++) {
         if (!strcasecmp(version, security_policy_selection[i].version)) {
             *security_policy = security_policy_selection[i].security_policy;
-            return S2N_SUCCESS;
+            return 0;
         }
     }
 
@@ -453,7 +451,6 @@ int s2n_security_policies_init()
              * but the elliptic curves extension is always required. */
             if (cipher->minimum_required_tls_version >= S2N_TLS13) {
                 security_policy_selection[i].ecc_extension_required = 1;
-
                 security_policy_selection[i].supports_tls13 = 1;
             }
 
@@ -484,7 +481,6 @@ int s2n_security_policies_init()
 int s2n_ecc_is_extension_required(const struct s2n_security_policy *security_policy)
 {
     notnull_check(security_policy);
-    notnull_check(security_policy->cipher_preferences);
     for (int i = 0; security_policy_selection[i].version != NULL; i++) {
         if (security_policy_selection[i].security_policy == security_policy) {
             return 1 == security_policy_selection[i].ecc_extension_required;
@@ -521,6 +517,7 @@ bool s2n_security_policy_supports_tls13(const struct s2n_security_policy *securi
 
     /* if cipher preference is not in the official list, compute the result */
     const struct s2n_cipher_preferences *cipher_preferences = security_policy->cipher_preferences;
+    notnull_check(cipher_preferences);
     for (uint8_t i = 0; i < cipher_preferences->count; i++) {
         if (s2n_is_valid_tls13_cipher(cipher_preferences->suites[i]->iana_value)) {
             return true;
@@ -536,8 +533,9 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
     notnull_check(version);
     notnull_check(conn->secure.cipher_suite);
 
-    const struct s2n_security_policy *security_policy;
+    const struct s2n_security_policy *security_policy = NULL;
     GUARD(s2n_find_security_policy_from_version(version, &security_policy));
+    notnull_check(security_policy);
 
     /* make sure we dont use a tls version lower than that configured by the version */
     if (s2n_connection_get_actual_protocol_version(conn) < security_policy->minimum_protocol_version) {
@@ -545,6 +543,7 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
     }
 
     struct s2n_cipher_suite *cipher = conn->secure.cipher_suite;
+    notnull_check(cipher);
     for (int i = 0; i < security_policy->cipher_preferences->count; ++i) {
         if (0 == memcmp(security_policy->cipher_preferences->suites[i]->iana_value, cipher->iana_value, S2N_TLS_CIPHER_SUITE_LEN)) {
             return 1;

@@ -15,10 +15,8 @@
 
 #pragma once
 
-#include <stdint.h>
 #include "tls/s2n_kem.h"
 #include "tls/s2n_kex.h"
-#include "tls/s2n_tls13.h"
 
 struct s2n_kem_preferences {
     uint8_t count;

@@ -213,7 +213,7 @@ int main(int argc, char **argv)
             const struct s2n_security_policy *security_policy;
             GUARD(s2n_connection_get_security_policy(conn, &security_policy));
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
-            
+
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(conn->client_protocol_version, S2N_TLS12);
@@ -391,46 +391,35 @@ int main(int argc, char **argv)
 
         uint8_t client_extensions[] = {
             /* Extension type TLS_EXTENSION_SERVER_NAME */
-            0x00,
-            0x00,
+            0x00, 0x00,
             /* Extension size */
-            0x00,
-            0x08,
+            0x00, 0x08,
             /* Server names len */
-            0x00,
-            0x06,
+            0x00, 0x06,
             /* First server name type - host name */
             0x00,
             /* First server name len */
-            0x00,
-            0x03,
+            0x00, 0x03,
             /* First server name, matches sent_server_name */
-            's',
-            'v',
-            'r',
+            's', 'v', 'r',
         };
 
         uint8_t server_name_extension[] = {
             /* Server names len */
-            0x00,
-            0x06,
+            0x00, 0x06,
             /* First server name type - host name */
             0x00,
             /* First server name len */
-            0x00,
-            0x03,
+            0x00, 0x03,
             /* First server name, matches sent_server_name */
-            's',
-            'v',
-            'r',
+            's', 'v', 'r',
         };
         int server_name_extension_len = sizeof(server_name_extension);
 
         int client_extensions_len = sizeof(client_extensions);
         uint8_t client_hello_prefix[] = {
             /* Protocol version TLS 1.2 */
-            0x03,
-            0x03,
+            0x03, 0x03,
             /* Client random */
             ZERO_TO_THIRTY_ONE,
             /* SessionID len - 32 bytes */
@@ -438,18 +427,15 @@ int main(int argc, char **argv)
             /* Session ID */
             ZERO_TO_THIRTY_ONE,
             /* Cipher suites len */
-            0x00,
-            0x02,
+            0x00, 0x02,
             /* Cipher suite - TLS_RSA_WITH_AES_128_CBC_SHA256 */
-            0x00,
-            0x3C,
+            0x00, 0x3C,
             /* Compression methods len */
             0x01,
             /* Compression method - none */
             0x00,
             /* Extensions len */
-            (client_extensions_len >> 8) & 0xff,
-            (client_extensions_len & 0xff),
+            (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
         };
         int client_hello_prefix_len = sizeof(client_hello_prefix);
         int sent_client_hello_len = client_hello_prefix_len + client_extensions_len;
@@ -457,20 +443,16 @@ int main(int argc, char **argv)
             /* Handshake message type CLIENT HELLO */
             0x01,
             /* Body len */
-            (sent_client_hello_len >> 16) & 0xff,
-            (sent_client_hello_len >> 8) & 0xff,
-            (sent_client_hello_len & 0xff),
+            (sent_client_hello_len >> 16) & 0xff, (sent_client_hello_len >> 8) & 0xff, (sent_client_hello_len & 0xff),
         };
         int message_len = sizeof(message_header) + sent_client_hello_len;
         uint8_t record_header[] = {
             /* Record type HANDSHAKE */
             0x16,
             /* Protocol version TLS 1.2 */
-            0x03,
-            0x03,
+            0x03, 0x03,
             /* Message len */
-            (message_len >> 8) & 0xff,
-            (message_len & 0xff),
+            (message_len >> 8) & 0xff, (message_len & 0xff),
         };
 
         EXPECT_NOT_NULL(sent_client_hello = malloc(sent_client_hello_len));
@@ -740,30 +722,23 @@ int main(int argc, char **argv)
 
         uint8_t client_extensions[] = {
             /* Extension type TLS_EXTENSION_SERVER_NAME */
-            0x00,
-            0x00,
+            0x00, 0x00,
             /* Extension size */
-            0x00, 
-            0x08,
+            0x00, 0x08,
             /* Server names len */
-            0x00, 
-            0x06,
+            0x00, 0x06,
             /* First server name type - host name */
             0x00,
             /* First server name len */
-            0x00, 
-            0x03,
+            0x00, 0x03,
             /* First server name, matches sent_server_name */
-            's', 
-            'v', 
-            'r',
+            's', 'v', 'r',
         };
 
         int client_extensions_len = sizeof(client_extensions);
         uint8_t client_hello_prefix[] = {
             /* Protocol version TLS ??? */
-            0xFF, 
-            0xFF,
+            0xFF, 0xFF,
             /* Client random */
             ZERO_TO_THIRTY_ONE,
             /* SessionID len - 32 bytes */
@@ -771,18 +746,15 @@ int main(int argc, char **argv)
             /* Session ID */
             ZERO_TO_THIRTY_ONE,
             /* Cipher suites len */
-            0x00, 
-            0x02,
+            0x00, 0x02,
             /* Cipher suite - TLS_RSA_WITH_AES_128_CBC_SHA256 */
-            0x00, 
-            0x3C,
+            0x00, 0x3C,
             /* Compression methods len */
             0x01,
             /* Compression method - none */
             0x00,
             /* Extensions len */
-            (client_extensions_len >> 8) & 0xff, 
-            (client_extensions_len & 0xff),
+            (client_extensions_len >> 8) & 0xff, (client_extensions_len & 0xff),
         };
         int client_hello_prefix_len = sizeof(client_hello_prefix);
         int sent_client_hello_len = client_hello_prefix_len + client_extensions_len;
@@ -790,20 +762,16 @@ int main(int argc, char **argv)
             /* Handshake message type CLIENT HELLO */
             0x01,
             /* Body len */
-            (sent_client_hello_len >> 16) & 0xff, 
-            (sent_client_hello_len >> 8) & 0xff, 
-            (sent_client_hello_len & 0xff),
+            (sent_client_hello_len >> 16) & 0xff, (sent_client_hello_len >> 8) & 0xff, (sent_client_hello_len & 0xff),
         };
         int message_len = sizeof(message_header) + sent_client_hello_len;
         uint8_t record_header[] = {
             /* Record type HANDSHAKE */
             0x16,
             /* Protocol version TLS 1.2 */
-            0x03, 
-            0x03,
+            0x03, 0x03,
             /* Message len */
-            (message_len >> 8) & 0xff, 
-            (message_len & 0xff),
+            (message_len >> 8) & 0xff, (message_len & 0xff),
         };
 
         EXPECT_NOT_NULL(sent_client_hello = malloc(sent_client_hello_len));
