@@ -208,7 +208,38 @@ int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len)
     return write(wfd, buf, len);
 }
 
-int s2n_socket_is_ipv6(int fd, uint8_t *ipv6) 
+int s2n_socket_recv(void *io_context, uint8_t *buf, uint32_t len)
+{
+    int rfd = ((struct s2n_socket_read_io_context*) io_context)->fd;
+    if (rfd < 0) {
+        errno = EBADF;
+        S2N_ERROR(S2N_ERR_BAD_FD);
+    }
+
+    /* Clear the quickack flag so we know to reset it */
+    ((struct s2n_socket_read_io_context*) io_context)->tcp_quickack_set = 0;
+
+    /* On success, the number of bytes read is returned. On failure, -1 is
+     * returned and errno is set appropriately. */
+    errno = 0;
+    return recv(rfd, buf, len, 0);
+}
+
+int s2n_socket_send(void *io_context, const uint8_t *buf, uint32_t len)
+{
+    int wfd = ((struct s2n_socket_write_io_context*) io_context)->fd;
+    if (wfd < 0) {
+        errno = EBADF;
+        S2N_ERROR(S2N_ERR_BAD_FD);
+    }
+
+    /* On success, the number of bytes written is returned. On failure, -1 is
+     * returned and errno is set appropriately. */
+    errno = 0;
+    return send(wfd, buf, len, 0);
+}
+
+int s2n_socket_is_ipv6(int fd, uint8_t *ipv6)
 {
     notnull_check(ipv6);
 
@@ -216,11 +247,11 @@ int s2n_socket_is_ipv6(int fd, uint8_t *ipv6)
     struct sockaddr_storage addr;
     len = sizeof (addr);
     GUARD(getpeername(fd, (struct sockaddr*)&addr, &len));
-    
+
     *ipv6 = 0;
     if (AF_INET6 == addr.ss_family) {
        *ipv6 = 1;
     }
-            
+
     return 0;
 }

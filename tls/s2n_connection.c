@@ -14,6 +14,7 @@
  */
 
 #include <unistd.h>
+#include <sys/stat.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -92,14 +93,14 @@ static int s2n_connection_init_hashes(struct s2n_connection *conn)
     if (s2n_is_in_fips_mode()) {
         GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.md5));
         GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.prf_md5_hash_copy));
-        
-        /* Do not check s2n_hash_is_available before initialization. Allow MD5 and 
+
+        /* Do not check s2n_hash_is_available before initialization. Allow MD5 and
          * SHA-1 for both fips and non-fips mode. This is required to perform the
-         * signature checks in the CertificateVerify message in TLS 1.0 and TLS 1.1. 
+         * signature checks in the CertificateVerify message in TLS 1.0 and TLS 1.1.
          * This is approved per Nist SP 800-52r1.*/
         GUARD(s2n_hash_allow_md5_for_fips(&conn->handshake.md5_sha1));
     }
-    
+
     GUARD(s2n_hash_init(&conn->handshake.md5, S2N_HASH_MD5));
     GUARD(s2n_hash_init(&conn->handshake.prf_md5_hash_copy, S2N_HASH_MD5));
     GUARD(s2n_hash_init(&conn->handshake.md5_sha1, S2N_HASH_MD5_SHA1));
@@ -793,6 +794,7 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 {
     struct s2n_blob ctx_mem = {0};
     struct s2n_socket_read_io_context *peer_socket_ctx;
+    struct stat statbuf = {0};
 
     GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_read_io_context)));
     GUARD(s2n_blob_zero(&ctx_mem));
@@ -800,7 +802,11 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
     peer_socket_ctx = (struct s2n_socket_read_io_context *)(void *)ctx_mem.data;
     peer_socket_ctx->fd = rfd;
 
-    s2n_connection_set_recv_cb(conn, s2n_socket_read);
+    if (fstat(rfd, &statbuf) == 0 && S_ISSOCK(statbuf.st_mode)) {
+        s2n_connection_set_recv_cb(conn, s2n_socket_recv);
+    } else {
+        s2n_connection_set_recv_cb(conn, s2n_socket_read);
+    }
     s2n_connection_set_recv_ctx(conn, peer_socket_ctx);
     conn->managed_io = 1;
 
@@ -816,13 +822,19 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
 {
     struct s2n_blob ctx_mem = {0};
     struct s2n_socket_write_io_context *peer_socket_ctx;
+    struct stat statbuf = {0};
 
     GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_write_io_context)));
 
     peer_socket_ctx = (struct s2n_socket_write_io_context *)(void *)ctx_mem.data;
     peer_socket_ctx->fd = wfd;
 
-    s2n_connection_set_send_cb(conn, s2n_socket_write);
+    if (fstat(wfd, &statbuf) == 0 && S_ISSOCK(statbuf.st_mode)) {
+        s2n_connection_set_send_cb(conn, s2n_socket_send);
+    } else {
+        s2n_connection_set_send_cb(conn, s2n_socket_write);
+    }
+
     s2n_connection_set_send_ctx(conn, peer_socket_ctx);
     conn->managed_io = 1;
 
