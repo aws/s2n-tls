@@ -55,7 +55,6 @@ int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t of
     notnull_check(slice);
 
     S2N_ERROR_IF(b->size < (offset + size), S2N_ERR_SIZE_MISMATCH);
-
     slice->data = b->data + offset;
     slice->size = size;
     slice->growable = 0;
