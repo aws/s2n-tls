@@ -25,7 +25,6 @@
 #include "utils/s2n_safety.h"
 
 static long page_size = 4096;
-static bool initialized = false;
 
 static int s2n_mem_init_impl(void);
 static int s2n_mem_cleanup_impl(void);
@@ -83,17 +82,17 @@ static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *a
     GUARD(s2n_align_to(requested, page_size, &allocate));
 
     *ptr = NULL;
-    S2N_ERROR_IF(posix_memalign(ptr, page_size, allocate) != 0, S2N_ERR_ALLOC);
+    S2N_ERROR_IF(posix_memalign(ptr, page_size, allocate), S2N_ERR_ALLOC);
     *allocated = allocate;
 
 #ifdef MADV_DONTDUMP
-    if (madvise(*ptr, *allocated, MADV_DONTDUMP) != 0) {
+    if (madvise(*ptr, *allocated, MADV_DONTDUMP) < 0) {
         GUARD(s2n_free_impl(*ptr, *allocated));
         S2N_ERROR(S2N_ERR_MADVISE);
     }
 #endif
 
-    if (mlock(*ptr, *allocated) != 0) {
+    if (mlock(*ptr, *allocated) < 0) {
         GUARD(s2n_mem_free_mlock_impl(*ptr, *allocated));
         S2N_ERROR(S2N_ERR_MLOCK);
     }
@@ -115,8 +114,6 @@ static int s2n_mem_malloc_no_mlock_impl(void **ptr, uint32_t requested, uint32_t
 int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback,
                           s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback)
 {
-    S2N_ERROR_IF(initialized == true, S2N_ERR_INITIALIZED);
-
     notnull_check(mem_init_callback);
     notnull_check(mem_cleanup_callback);
     notnull_check(mem_malloc_callback);
@@ -132,7 +129,6 @@ int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_clean
 
 int s2n_alloc(struct s2n_blob *b, uint32_t size)
 {
-    S2N_ERROR_IF(initialized == false, S2N_ERR_NOT_INITIALIZED);
     notnull_check(b);
     const struct s2n_blob temp = {0};
     *b = temp;
@@ -152,7 +148,6 @@ bool s2n_blob_is_growable(const struct s2n_blob* b)
  */
 int s2n_realloc(struct s2n_blob *b, uint32_t size)
 {
-    S2N_ERROR_IF(initialized == false, S2N_ERR_NOT_INITIALIZED);
     notnull_check(b);
     S2N_ERROR_IF(!s2n_blob_is_growable(b), S2N_ERR_RESIZE_STATIC_BLOB);
     if (size == 0) {
@@ -166,7 +161,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
     }
 
     struct s2n_blob new_memory = {.data = NULL, .size = size, .allocated = 0, .growable = 1};
-    if(s2n_mem_malloc_cb((void **) &new_memory.data, new_memory.size, &new_memory.allocated) != 0) {
+    if(s2n_mem_malloc_cb((void **) &new_memory.data, new_memory.size, &new_memory.allocated) < 0) {
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
@@ -184,7 +179,6 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
 
 int s2n_free_object(uint8_t **p_data, uint32_t size)
 {
-    S2N_ERROR_IF(initialized == false, S2N_ERR_NOT_INITIALIZED);
     notnull_check(p_data);
 
     if (*p_data == NULL) {
@@ -201,7 +195,6 @@ int s2n_free_object(uint8_t **p_data, uint32_t size)
 
 int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
 {
-    S2N_ERROR_IF(initialized == false, S2N_ERR_NOT_INITIALIZED);
     eq_check(to->size, 0);
     eq_check(to->data, NULL);
     ne_check(from->size, 0);
@@ -216,26 +209,16 @@ int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
 
 int s2n_mem_init(void)
 {
-    GUARD(s2n_mem_init_cb());
-
-    initialized = true;
-
-    return S2N_SUCCESS;
+    return s2n_mem_init_cb();
 }
 
 int s2n_mem_cleanup(void)
 {
-    S2N_ERROR_IF(initialized == false, S2N_ERR_NOT_INITIALIZED);
-    GUARD(s2n_mem_cleanup_cb());
-
-    initialized = false;
-
-    return S2N_SUCCESS;
+    return s2n_mem_cleanup_cb();
 }
 
 int s2n_free(struct s2n_blob *b)
 {
-    S2N_ERROR_IF(initialized == false, S2N_ERR_NOT_INITIALIZED);
     S2N_ERROR_IF(!s2n_blob_is_growable(b), S2N_ERR_FREE_STATIC_BLOB);
 
     /* To avoid memory leaks, still free the data even if we can't unlock / wipe it */

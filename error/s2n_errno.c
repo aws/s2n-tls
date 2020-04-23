@@ -102,7 +102,6 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_NOMEM, "no memory") \
     ERR_ENTRY(S2N_ERR_NULL, "NULL pointer encountered") \
     ERR_ENTRY(S2N_ERR_SAFETY, "a safety check failed") \
-    ERR_ENTRY(S2N_ERR_INITIALIZED, "s2n is initialized") \
     ERR_ENTRY(S2N_ERR_NOT_INITIALIZED, "s2n not initialized") \
     ERR_ENTRY(S2N_ERR_RANDOM_UNINITIALIZED, "s2n entropy not initialized") \
     ERR_ENTRY(S2N_ERR_OPEN_RANDOM, "error opening urandom") \
