@@ -49,21 +49,6 @@ int s2n_blob_zero(struct s2n_blob *b)
     return 0;
 }
 
-int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t offset, uint32_t size)
-{
-    notnull_check(b);
-    notnull_check(slice);
-
-    S2N_ERROR_IF(b->size < (offset + size), S2N_ERR_SIZE_MISMATCH);
-
-    slice->data = b->data + offset;
-    slice->size = size;
-    slice->growable = 0;
-    slice->allocated = 0;
-
-    return 0;
-}
-
 int s2n_blob_char_to_lower(struct s2n_blob *b)
 {
     uint8_t *ptr = b->data;
