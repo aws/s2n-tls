@@ -94,7 +94,8 @@ static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *a
 #endif
 
     if (mlock(*ptr, *allocated) != 0) {
-        GUARD(s2n_mem_free_mlock_impl(*ptr, *allocated));
+        /* When mlock fails, no memory will be locked, so we don't use munlock on free */
+        GUARD(s2n_mem_free_no_mlock_impl(*ptr, *allocated));
         S2N_ERROR(S2N_ERR_MLOCK);
     }
 
@@ -160,7 +161,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
     }
 
     /* blob already has space for the request */
-    if (size < b->allocated) {
+    if (size <= b->allocated) {
 
         if (size < b->size) {
             /* Zero the existing blob memory before the we release it */
