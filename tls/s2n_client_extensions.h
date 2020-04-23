@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include "utils/s2n_blob.h"
+#include "utils/s2n_array.h"
 
 struct s2n_client_hello_parsed_extension {
 	uint16_t extension_type;

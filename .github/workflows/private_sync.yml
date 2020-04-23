@@ -5,7 +5,8 @@ on:
       - master
 jobs:
   build:
-    if: endsWith(github.repository, 's2n')
+    # This should only run in one place.
+    if: contains(github.repository, 'awslabs/s2n')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

@@ -38,7 +38,7 @@
 extern uint8_t s2n_unknown_protocol_version;
 
 /* How much overhead does the IV, MAC, TAG and padding bytes introduce ? */
-static uint16_t overhead(struct s2n_connection *conn)
+static int s2n_tls_record_overhead(struct s2n_connection *conn)
 {
     struct s2n_crypto_parameters *active = conn->server;
 
@@ -68,12 +68,10 @@ static uint16_t overhead(struct s2n_connection *conn)
 
 int s2n_record_rounded_write_payload_size(struct s2n_connection *conn, uint16_t size_without_overhead)
 {
-    uint16_t max_fragment_size = size_without_overhead;
-    struct s2n_crypto_parameters *active = conn->server;
+    const struct s2n_crypto_parameters *active = conn->mode == S2N_CLIENT ? conn->client : conn->server;
 
-    if (conn->mode == S2N_CLIENT) {
-        active = conn->client;
-    }
+    /* reduce the fragment length to the maximum allowed by the protocol */
+    int max_fragment_size = MIN(size_without_overhead, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
 
     /* Round the fragment size down to be block aligned */
     if (active->cipher_suite->record_alg->cipher->type == S2N_CBC) {
@@ -86,19 +84,32 @@ int s2n_record_rounded_write_payload_size(struct s2n_connection *conn, uint16_t 
         max_fragment_size -= 1;
     }
 
-    return max_fragment_size - overhead(conn);
+    int overhead;
+    GUARD(overhead = s2n_tls_record_overhead(conn));
+
+    return max_fragment_size - overhead;
 }
 
+/* This function returns maximum size of plaintext data to write for the payload. In the current
+  s2n implementation, it is also critical that it syncs up with from connection buffer size object */
 int s2n_record_max_write_payload_size(struct s2n_connection *conn)
 {
-    return s2n_record_rounded_write_payload_size(conn, conn->max_outgoing_fragment_length);
+    int bytes;
+    GUARD(bytes = s2n_record_rounded_write_payload_size(conn, conn->max_outgoing_fragment_length));
+
+    S2N_ERROR_IF(bytes > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+    S2N_ERROR_IF(bytes <= 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
+    return bytes;
 }
 
+/* Find the size that will fit within an ethernet frame */
 int s2n_record_min_write_payload_size(struct s2n_connection *conn)
 {
     uint16_t min_outgoing_fragement_length = ETH_MTU - (conn->ipv6 ? IP_V6_HEADER_LENGTH : IP_V4_HEADER_LENGTH)
         - TCP_HEADER_LENGTH - TCP_OPTIONS_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH;
-    return s2n_record_rounded_write_payload_size(conn, min_outgoing_fragement_length);
+    int size;
+    GUARD(size = s2n_record_rounded_write_payload_size(conn, min_outgoing_fragement_length));
+    return size;
 }
 
 int s2n_record_write_protocol_version(struct s2n_connection *conn)
@@ -201,7 +212,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     const int is_tls13_record = cipher_suite->record_alg->flags & S2N_TLS13_RECORD_AEAD_NONCE;
     s2n_stack_blob(aad, is_tls13_record ? S2N_TLS13_AAD_LEN : S2N_TLS_MAX_AAD_LEN, S2N_TLS_MAX_AAD_LEN);
 
-    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->out), S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->out), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
 
     uint8_t mac_digest_size;
     GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
@@ -209,9 +220,13 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     /* Before we do anything, we need to figure out what the length of the
      * fragment is going to be.
      */
-    uint16_t data_bytes_to_take = MIN(to_write, s2n_record_max_write_payload_size(conn));
+    int max_write_payload_size;
+    GUARD(max_write_payload_size = s2n_record_max_write_payload_size(conn));
+    uint16_t data_bytes_to_take = MIN(to_write, max_write_payload_size);
 
-    uint16_t extra = overhead(conn);
+    int overhead;
+    GUARD(overhead = s2n_tls_record_overhead(conn));
+    uint16_t extra = overhead;
 
     /* If we have padding to worry about, figure that out too */
     if (cipher_suite->record_alg->cipher->type == S2N_CBC) {
@@ -262,11 +277,16 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         extra += pad_and_mac_len;
     }
 
+    /* TLS 1.3 protected record occupies one extra byte for content type */
+    if (is_tls13_record) {
+        extra += TLS13_CONTENT_TYPE_LENGTH;
+    }
+
     /* Rewrite the length to be the actual fragment length */
     uint16_t actual_fragment_length = data_bytes_to_take + padding + extra;
-    if (is_tls13_record) {
-        actual_fragment_length += TLS13_CONTENT_TYPE_LENGTH;
-    }
+    /* ensure actual_fragment_length + S2N_TLS_RECORD_HEADER_LENGTH <= max record length */
+    const uint16_t max_record_length = is_tls13_record ? S2N_TLS13_MAXIMUM_RECORD_LENGTH : S2N_TLS_MAXIMUM_RECORD_LENGTH;
+    S2N_ERROR_IF(actual_fragment_length + S2N_TLS_RECORD_HEADER_LENGTH > max_record_length, S2N_ERR_RECORD_LENGTH_TOO_LARGE);
     GUARD(s2n_stuffer_wipe_n(&conn->out, 2));
     GUARD(s2n_stuffer_write_uint16(&conn->out, actual_fragment_length));
 
@@ -376,6 +396,9 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     default:
         break;
     }
+
+    /* Check that stuffer have enough space to write encrypted record, because raw_write cannot expand tainted stuffer */
+    S2N_ERROR_IF(s2n_stuffer_space_remaining(&conn->out) < encrypted_length, S2N_ERR_RECORD_STUFFER_SIZE);
 
     /* Do the encryption */
     struct s2n_blob en = { .size = encrypted_length, .data = s2n_stuffer_raw_write(&conn->out, encrypted_length) };

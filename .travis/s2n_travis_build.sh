@@ -19,17 +19,6 @@ set -ex
 # Some Test install scripts use curl commands to download files from S3, but those commands don't work when forced to load OpenSSL 1.1.1
 source .travis/s2n_override_paths.sh
 
-if [[ "$BUILD_S2N" == "true" ]]; then
-    .travis/run_cppcheck.sh "$CPPCHECK_INSTALL_DIR";
-    .travis/copyright_mistake_scanner.sh;
-    .travis/grep_simple_mistakes.sh;
-fi
-
-if [[ "$BUILD_S2N" == "true" && "$TRAVIS_OS_NAME" == "linux" ]]; then
-    .travis/run_kwstyle.sh;
-    .travis/cpp_style_comment_linter.sh;
-fi
-
 # Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default
 if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     PRLIMIT_LOCATION=`which prlimit`

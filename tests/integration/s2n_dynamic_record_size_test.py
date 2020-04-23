@@ -156,7 +156,7 @@ def run_test(host, port, ssl_version, cipher, threshold):
 
     failed = 0
     tcpdump_filter = "dst port " + str(port)
-    tcpdump_cmd = ["sudo", "tcpdump", "-i", "lo", "-n", "-B", "65535", tcpdump_filter]
+    tcpdump_cmd = ["sudo", "tcpdump", "-l", "-i", "lo", "-n", "-B", "65535", tcpdump_filter]
     tcpdump = subprocess.Popen(tcpdump_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     ret = try_dynamic_record(host, port, cipher_name, ssl_version, threshold)

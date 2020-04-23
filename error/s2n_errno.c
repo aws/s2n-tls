@@ -159,6 +159,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_FREE_STATIC_BLOB, "Cannot free a static blob") \
     ERR_ENTRY(S2N_ERR_RESIZE_STATIC_BLOB, "Cannot resize a static blob") \
     ERR_ENTRY(S2N_ERR_NO_AVAILABLE_BORINGSSL_API, "BoringSSL does not support this API") \
+    ERR_ENTRY(S2N_ERR_RECORD_LENGTH_TOO_LARGE, "Record length exceeds protocol version maximum") \
     ERR_ENTRY(S2N_ERR_NO_ALERT, "No Alert present") \
     ERR_ENTRY(S2N_ERR_CLIENT_MODE, "operation not allowed in client mode") \
     ERR_ENTRY(S2N_ERR_CLIENT_MODE_DISABLED, "client connections not allowed") \
@@ -208,9 +209,13 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_INVALID_SIGNATURE_ALGORITHMS_PREFERENCES, "Invalid signature algorithms preferences version") \
     ERR_ENTRY(S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS, "PQ KEMs are disallowed while in FIPS mode") \
     ERR_ENTRY(S2N_RSA_PSS_NOT_SUPPORTED, "RSA-PSS signing not supported by underlying libcrypto implementation") \
-    ERR_ENTRY(S2N_ERR_MAX_INNER_PLAINTEXT_SIZE, "inner plaintext size exceeds limit") \
+    ERR_ENTRY(S2N_ERR_MAX_INNER_PLAINTEXT_SIZE, "Inner plaintext size exceeds limit") \
     ERR_ENTRY(S2N_ERR_INVALID_ECC_PREFERENCES, "Invalid ecc curves preferences version") \
-    
+    ERR_ENTRY(S2N_ERR_RECORD_STUFFER_SIZE, "Record stuffer out of space") \
+    ERR_ENTRY(S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL, "Fragment length is too small") \
+    ERR_ENTRY(S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE, "Fragment length is too large") \
+    ERR_ENTRY(S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING, "Record stuffer needs to be drained first") \
+
 #define ERR_STR_CASE(ERR, str) case ERR: return str;
 #define ERR_NAME_CASE(ERR, str) case ERR: return #ERR;
 

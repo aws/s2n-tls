@@ -58,14 +58,14 @@ def basic_write_test(server, client):
     server.stdin.write((server_msg + "\n\n").encode("utf-8"))
     server.stdin.flush()
 
-    if not wait_for_output(client, server_msg, line_limit=100):
+    if not wait_for_output(client, server_msg, line_limit=200):
         return Result("Failed to write '%s' from server to client" % (server_msg))
 
     client_msg = "Message:" + str(uuid.uuid4())
     client.stdin.write((client_msg + "\n\n").encode("utf-8"))
     client.stdin.flush()
 
-    if not wait_for_output(server, client_msg, line_limit=100):
+    if not wait_for_output(server, client_msg, line_limit=200):
         return Result("Failed to write %s from client to server" % (client_msg))
 
     return Result()
@@ -137,13 +137,13 @@ def get_s2n_cmd(scenario):
     mode_char = 'c' if scenario.s2n_mode.is_client() else 'd'
 
     s2n_cmd = [ "../../bin/s2n%c" % mode_char,
-                "-c", "test_all",
-                "--insecure"]
+                "-c", "test_all" ]
 
     if scenario.s2n_mode.is_server():
         s2n_cmd.extend(["--key", scenario.cert.key])
         s2n_cmd.extend(["--cert", scenario.cert.cert])
     else:
+        s2n_cmd.append("--insecure")
         s2n_cmd.append("--echo")
 
     if scenario.version is Version.TLS13:

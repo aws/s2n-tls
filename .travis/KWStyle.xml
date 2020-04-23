@@ -11,6 +11,6 @@
     -->
     <Functions>
         <regex>[A-Za-z=_]</regex>
-        <length>223</length>
+        <length>235</length>
     </Functions>
 </Description>

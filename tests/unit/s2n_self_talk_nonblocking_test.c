@@ -29,6 +29,7 @@
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_tls13.h"
 
 int mock_client(struct s2n_test_piped_io *piped_io, uint8_t *expected_data, uint32_t size)
 {
@@ -161,8 +162,12 @@ char *cert_chain_pem;
 char *private_key_pem;
 char *dhparams_pem;
 
-int test_send(int use_iov)
+int test_send(int use_tls13, int use_iov, int prefer_throughput)
 {
+    if (use_tls13) {
+        EXPECT_SUCCESS(s2n_enable_tls13());
+    }
+
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;
@@ -178,11 +183,15 @@ int test_send(int use_iov)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
+    if (use_tls13) {
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_signature_preferences(config, "default_tls13"));
+    }
 
     /* Get some random data to send/receive */
     uint32_t data_size = 0;
     DEFER_CLEANUP(struct s2n_blob blob = {0}, s2n_free);
-    int iov_payload_size = 8, iov_size = 16;
+    int iov_payload_size = 65536, iov_size = 4;
     struct iovec* iov = NULL;
     if (!use_iov) {
         data_size = 10000000;
@@ -224,8 +233,11 @@ int test_send(int use_iov)
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-    /* Use small records in order to have more chance fitting full record into pipe */
-    EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
+    if (prefer_throughput) {
+         EXPECT_SUCCESS(s2n_connection_prefer_throughput(conn));
+    } else {
+         EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
+    }
 
     /* Set up the connection to read from the fd */
     EXPECT_SUCCESS(s2n_connection_set_piped_io(conn, &piped_io));
@@ -309,6 +321,10 @@ int test_send(int use_iov)
         free(iov);
     }
 
+    if (use_tls13) {
+        EXPECT_SUCCESS(s2n_disable_tls13());
+    }
+
     return 0;
 }
 
@@ -321,8 +337,17 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    test_send(0);
-    test_send(1);
+
+    for (int use_tls13 = 0; use_tls13 < 2; use_tls13 ++) {
+        if (use_tls13 && !s2n_is_tls13_supported()) {
+            continue;
+        }
+        for (int use_iovec = 0; use_iovec < 2; use_iovec ++) {
+            for (int use_throughput = 0; use_throughput < 2; use_throughput ++) {
+                test_send(use_tls13, use_iovec, use_throughput);
+            }
+        }
+    }
     free(cert_chain_pem);
     free(private_key_pem);
     free(dhparams_pem);

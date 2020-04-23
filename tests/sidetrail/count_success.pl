@@ -38,7 +38,6 @@ my $verified = 0;
 my $errors = 0;
 open (FILE, $filename) or die "Can't open $filename $!";
 while (my $line = <FILE>){
-    print $line;
     #Check if the code under test used unexpected functions
     if ($line =~ /warning: module contains undefined functions:([a-zA-Z0-9_, ]+)/) {
 	print "found undefined\n\n";

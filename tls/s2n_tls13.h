@@ -15,6 +15,7 @@
 
 #pragma once
 
+int s2n_is_tls13_supported();
 int s2n_is_tls13_enabled();
 int s2n_enable_tls13();
 int s2n_disable_tls13();

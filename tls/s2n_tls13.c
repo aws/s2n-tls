@@ -16,16 +16,25 @@
 #include "api/s2n.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-#include "utils/s2n_safety.h"
+#include "crypto/s2n_rsa_signing.h"
+
+int s2n_is_tls13_supported()
+{
+    return s2n_is_rsa_pss_signing_supported();
+}
 
 int s2n_is_tls13_enabled()
 {
     return s2n_highest_protocol_version == S2N_TLS13;
 }
 
+/* ** WARNING **
+ * Not all TLS 1.3 features are supported and may cause unknown behaviour.
+ * This function is not public and should only be used for testing
+ * and integration purposes.
+ **/
 int s2n_enable_tls13()
 {
-    S2N_ERROR_IF(!S2N_IN_TEST, S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS13;
     return 0;
 }
