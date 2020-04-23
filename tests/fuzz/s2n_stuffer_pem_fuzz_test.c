@@ -32,6 +32,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
     struct s2n_stuffer in = {0};
     struct s2n_stuffer out = {0};
+
+    GUARD(s2n_init());
     GUARD(s2n_stuffer_alloc(&in, len + 1));
     GUARD(s2n_stuffer_alloc(&out, len));
     GUARD(s2n_stuffer_write_bytes(&in, buf, len));
