@@ -88,7 +88,7 @@ int main(int argc, char **argv)
     uint8_t hello[] = "hello ";
     uint8_t world[] = "world";
     EXPECT_SUCCESS(s2n_blob_slice(&g6, &g7, strlen((char *) hello), sizeof(world)));
-    EXPECT_SUCCESS(memcmp(g7.data, world, sizeof(world)));
+    EXPECT_EQUAL(memcmp(g7.data, world, sizeof(world)), 0);
     EXPECT_EQUAL(g7.size, sizeof(world));
 
     END_TEST();
