@@ -63,7 +63,6 @@ void s2n_stuffer_erase_and_read_harness() {
 
     assert(blob->allocated == old_blob.allocated);
     assert(blob->growable == old_blob.growable);
-    assert(blob->mlocked == old_blob.mlocked);
     assert(blob->size == old_blob.size);
 
     assert(s2n_stuffer_is_valid(stuffer));

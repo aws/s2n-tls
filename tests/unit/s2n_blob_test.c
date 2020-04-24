@@ -76,5 +76,20 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_realloc(&g5, 24));
     EXPECT_SUCCESS(s2n_free(&g5));
 
+    /* Down-casing works */
+    struct s2n_blob g6 = {0};
+    uint8_t hello_world[] = "HELLO WORLD";
+    EXPECT_SUCCESS(s2n_blob_init(&g6, hello_world, sizeof(hello_world)));
+    EXPECT_SUCCESS(s2n_blob_char_to_lower(&g6));
+    EXPECT_SUCCESS(memcmp(g6.data, "hello world", sizeof(hello_world)));
+
+    /* Slicing works */
+    struct s2n_blob g7 = {0};
+    uint8_t hello[] = "hello ";
+    uint8_t world[] = "world";
+    EXPECT_SUCCESS(s2n_blob_slice(&g6, &g7, strlen((char *) hello), sizeof(world)));
+    EXPECT_EQUAL(memcmp(g7.data, world, sizeof(world)), 0);
+    EXPECT_EQUAL(g7.size, sizeof(world));
+
     END_TEST();
 }

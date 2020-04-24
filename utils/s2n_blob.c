@@ -38,13 +38,27 @@ bool s2n_blob_is_valid(const struct s2n_blob* b)
 int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size)
 {
     notnull_check(b);
-    *b = (struct s2n_blob) {.data = data, .size = size, .allocated = 0, .growable = 0, .mlocked = 0};
+    *b = (struct s2n_blob) {.data = data, .size = size, .allocated = 0, .growable = 0};
     return 0;
 }
 
 int s2n_blob_zero(struct s2n_blob *b)
 {
     memset_check(b->data, 0, b->size);
+
+    return 0;
+}
+
+int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t offset, uint32_t size)
+{
+    notnull_check(b);
+    notnull_check(slice);
+
+    S2N_ERROR_IF(b->size < (offset + size), S2N_ERR_SIZE_MISMATCH);
+    slice->data = b->data + offset;
+    slice->size = size;
+    slice->growable = 0;
+    slice->allocated = 0;
 
     return 0;
 }
