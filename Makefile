@@ -80,6 +80,10 @@ bin: libs
 integration: bin
 	$(MAKE) -C tests integration
 
+.PHONY : integrationv2
+integrationv2: bin
+	$(MAKE) -C tests integrationv2
+
 .PHONY : valgrind
 valgrind: bin
 	$(MAKE) -C tests valgrind

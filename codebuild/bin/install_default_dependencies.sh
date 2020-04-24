@@ -30,7 +30,7 @@ if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" ]]; then
 fi
 
 # Download and Install Openssl 1.1.1
-if [[ ("$S2N_LIBCRYPTO" == "openssl-1.1.1") || ("$TESTS" == "integration"  || "$TESTS" == "ALL" ) ]]; then
+if [[ ("$S2N_LIBCRYPTO" == "openssl-1.1.1") || ("$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ) ]]; then
     mkdir -p "$OPENSSL_1_1_1_INSTALL_DIR"||true
     codebuild/bin/install_openssl_1_1_1.sh "$(mktemp -d)" "$OPENSSL_1_1_1_INSTALL_DIR" "$OS_NAME" > /dev/null ;
 fi
@@ -62,36 +62,33 @@ if [[ "$S2N_LIBCRYPTO" == "boringssl" ]]; then
     codebuild/bin/install_boringssl.sh "$(mktemp -d)" "$BORINGSSL_INSTALL_DIR" > /dev/null ;
 fi
 
-# Install python linked with the latest Openssl for integration tests
-if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]]; then
+if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
+    # Install tox if running on Ubuntu(only supported Linux at this time)
+    if [[ "$OS_NAME" == "linux" ]]; then
+        apt-get -y install tox
+    fi
+
+    # Install python linked with the latest Openssl for integration tests
     mkdir -p "$PYTHON_INSTALL_DIR"||true
     codebuild/bin/install_python.sh "$OPENSSL_1_1_1_INSTALL_DIR" "$(mktemp -d)" "$PYTHON_INSTALL_DIR" > /dev/null ;
-fi
 
-# Download and Install Openssl 0.9.8
-if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]]; then
+    # Download and Install Openssl 0.9.8
     mkdir -p "$OPENSSL_0_9_8_INSTALL_DIR"||true
     codebuild/bin/install_openssl_0_9_8.sh "$(mktemp -d)" "$OPENSSL_0_9_8_INSTALL_DIR" "$OS_NAME" > /dev/null ;
-fi
 
-# Download and Install GnuTLS for integration tests
-if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]]; then
+    # Download and Install GnuTLS for integration tests
     mkdir -p "$GNUTLS_INSTALL_DIR"||true
     codebuild/bin/install_gnutls.sh "$(mktemp -d)" "$GNUTLS_INSTALL_DIR" "$OS_NAME" > /dev/null ;
+
+    # Install SSLyze for all Integration Tests
+    codebuild/bin/install_sslyze.sh
 fi
 
 # Install SAW, Z3, and Yices for formal verification
 if [[ "$SAW" == "true" || "$TESTS" == "ALL" ]]; then
     mkdir -p "$SAW_INSTALL_DIR"||true
     codebuild/bin/install_saw.sh "$(mktemp -d)" "$SAW_INSTALL_DIR" > /dev/null ;
-fi
 
-if [[ "$SAW" == "true" || "$TESTS" == "ALL" ]]; then
     mkdir -p "$Z3_INSTALL_DIR"||true
     codebuild/bin/install_z3_yices.sh "$(mktemp -d)" "$Z3_INSTALL_DIR" > /dev/null ;
-fi
-
-# Install SSLyze for all Integration Tests
-if [[ "$TESTS" == "integration" || "$TESTS" == "ALL" ]] ; then
-    codebuild/bin/install_sslyze.sh
 fi
