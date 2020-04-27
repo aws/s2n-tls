@@ -287,6 +287,7 @@ int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection *conn)
 
 int s2n_connection_get_session_length(struct s2n_connection *conn, uint32_t *length)
 {
+    notnull_check(length);
     /* Session resumption using session ticket "format (1) + session_ticket_len + session_ticket + session state" */
     if (conn->config->use_tickets && conn->client_ticket.size > 0) {
         GUARD(s2n_add_overflow(S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN + S2N_STATE_SIZE_IN_BYTES, conn->client_ticket.size, length));
