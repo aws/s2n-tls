@@ -3,15 +3,15 @@ import os
 import pytest
 import time
 
-from configuration import available_ports, CIPHERSUITES, CURVES
+from configuration import available_ports, CIPHERSUITES, CURVES, PROVIDERS
 from common import ProviderOptions
 from fixtures import managed_process
-from providers import S2N, provider_list
+from providers import S2N
 
 
 @pytest.mark.parametrize("cipher", CIPHERSUITES)
 @pytest.mark.parametrize("curve", CURVES)
-@pytest.mark.parametrize("provider", provider_list)
+@pytest.mark.parametrize("provider", PROVIDERS)
 def test_s2n_server_happy_path(managed_process, cipher, curve, provider):
     host = "localhost"
     port = next(available_ports)
@@ -52,7 +52,7 @@ def test_s2n_server_happy_path(managed_process, cipher, curve, provider):
 
 @pytest.mark.parametrize("cipher", CIPHERSUITES)
 @pytest.mark.parametrize("curve", CURVES)
-@pytest.mark.parametrize("provider", provider_list)
+@pytest.mark.parametrize("provider", PROVIDERS)
 def test_s2n_client_happy_path(managed_process, cipher, curve, provider):
     host = "localhost"
     port = next(available_ports)

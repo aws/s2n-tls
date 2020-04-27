@@ -1,7 +1,7 @@
 import pytest
 import time
 import threading
-from common import ProviderOptions, Ciphersuites
+from common import ProviderOptions, Ciphersuites, Curves
 
 
 class Provider(object):
@@ -72,7 +72,9 @@ class S2N(Provider):
             cmd_line.append('--tls13')
         cmd_line.extend([options.host, options.port])
 
-        self._provider_ready = True
+        # Clients are always ready to connect
+        self.set_provider_ready()
+
         return cmd_line
 
     def setup_server(self, options: ProviderOptions):
@@ -125,7 +127,9 @@ class OpenSSL(Provider):
         if options.curve is not None:
             cmd_line.extend(['-curves', options.curve])
 
-        self._provider_ready = True
+        # Clients are always ready to connect
+        self.set_provider_ready()
+
         return cmd_line
 
     def setup_server(self, options: ProviderOptions):
@@ -137,10 +141,6 @@ class OpenSSL(Provider):
 
         # Additional debugging that will be captured incase of failure
         cmd_line.extend(['-debug', '-tlsextdebug'])
-
-        # A side effect of this is to not use STDIN, which is causing failues
-        # in the OpenSSL 1.1.1 server.
-        cmd_line.extend(['-www'])
 
         if options.cert is not None:
             cmd_line.extend(['-cert', options.cert])
@@ -165,6 +165,9 @@ class BoringSSL(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
+    def setup_server(self, options: ProviderOptions):
+        pytest.skip('BoringSSL does not support server mode at this time')
+
     def setup_client(self, options: ProviderOptions):
         cmd_line = ['bssl', 's_client']
         cmd_line.extend(['-connect', '{}:{}'.format(options.host, options.port)])
@@ -179,9 +182,17 @@ class BoringSSL(Provider):
                 pytest.skip('BoringSSL does not support Cipher {}'.format(options.cipher))
             elif options.cipher == Ciphersuites.TLS_AES_256_GCM_384:
                 pytest.skip('BoringSSL does not support Cipher {}'.format(options.cipher))
+        if options.curve is not None:
+            if options.curve == Curves.P256:
+                cmd_line.extend(['-curves', 'P-256'])
+            elif options.curve == Curves.P384:
+                cmd_line.extend(['-curves', 'P-384'])
+            elif options.curve == Curves.X25519:
+                pytest.skip('BoringSSL does not support curve {}'.format(options.curve))
 
-        self._provider_ready = True
+        # Clients are always ready to connect
+        self.set_provider_ready()
+
         return cmd_line
 
 
-provider_list = [S2N, OpenSSL]
