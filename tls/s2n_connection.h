@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <s2n.h>
 
+#include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_client_hello.h"
@@ -89,7 +90,16 @@ struct s2n_connection {
     /* Was the EC point formats sent by the client */
     unsigned ec_point_formats:1;
 
-     /* whether the connection address is ipv6 or not */
+    /* Track request extensions to ensure correct response extension behavior.
+     *
+     * We need to track client and server extensions separately because some
+     * extensions (like request_status and other Certificate extensions) can
+     * be requested by the client, the server, or both.
+     */
+    s2n_extension_bitfield extension_requests_sent;
+    s2n_extension_bitfield extension_requests_received;
+
+    /* whether the connection address is ipv6 or not */
     unsigned ipv6:1;
 
     /* Whether server_name extension was used to make a decision on cert selection.

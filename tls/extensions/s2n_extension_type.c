@@ -18,7 +18,8 @@
 #include "error/s2n_errno.h"
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_client_extensions.h"
-#include "tls/s2n_tls_parameters.h"
+#include "tls/s2n_connection.h"
+#include "utils/s2n_bitmap.h"
 #include "utils/s2n_safety.h"
 
 #define TLS_EXTENSION_DATA_LENGTH_BYTES 2
@@ -27,24 +28,7 @@
  * put the lowest (and most common) in a lookup table to conserve space. */
 #define S2N_MAX_INDEXED_EXTENSION_IANA 60
 
-const uint16_t s2n_supported_extensions[] = {
-    TLS_EXTENSION_RENEGOTIATION_INFO,
-    TLS_EXTENSION_PQ_KEM_PARAMETERS,
-    TLS_EXTENSION_SERVER_NAME,
-    TLS_EXTENSION_MAX_FRAG_LEN,
-    TLS_EXTENSION_STATUS_REQUEST,
-    TLS_EXTENSION_SUPPORTED_GROUPS,
-    TLS_EXTENSION_EC_POINT_FORMATS,
-    TLS_EXTENSION_SIGNATURE_ALGORITHMS,
-    TLS_EXTENSION_ALPN,
-    TLS_EXTENSION_SCT_LIST,
-    TLS_EXTENSION_SESSION_TICKET,
-    TLS_EXTENSION_SUPPORTED_VERSIONS,
-    TLS_EXTENSION_KEY_SHARE,
-};
-const s2n_extension_type_id s2n_supported_extensions_count = sizeof(s2n_supported_extensions) / sizeof(uint16_t);
-const s2n_extension_type_id s2n_unsupported_extension = sizeof(s2n_supported_extensions) / sizeof(uint16_t);
-
+const s2n_extension_type_id s2n_unsupported_extension = S2N_SUPPORTED_EXTENSIONS_COUNT;
 s2n_extension_type_id s2n_extension_ianas_to_ids[S2N_MAX_INDEXED_EXTENSION_IANA];
 
 int s2n_extension_type_init()
@@ -55,7 +39,7 @@ int s2n_extension_type_init()
     }
 
     /* Reverse the mapping */
-    for (int i = 0; i < s2n_supported_extensions_count; i++) {
+    for (int i = 0; i < S2N_SUPPORTED_EXTENSIONS_COUNT; i++) {
         uint16_t iana_value = s2n_supported_extensions[i];
         if (iana_value < S2N_MAX_INDEXED_EXTENSION_IANA) {
             s2n_extension_ianas_to_ids[iana_value] = i;
@@ -69,7 +53,10 @@ int s2n_extension_type_init()
     return S2N_SUCCESS;
 }
 
-s2n_extension_type_id s2n_extension_iana_value_to_id(uint16_t iana_value)
+/* Convert the IANA value (which ranges from 0->65535) to an id with a more
+ * constrained range. That id can be used for bitfields, array indexes, etc.
+ * to avoid allocating too much memory. */
+s2n_extension_type_id s2n_extension_iana_value_to_id(const uint16_t iana_value)
 {
     /* Check the lookup table */
     if (iana_value < S2N_MAX_INDEXED_EXTENSION_IANA) {
@@ -78,7 +65,7 @@ s2n_extension_type_id s2n_extension_iana_value_to_id(uint16_t iana_value)
 
     /* Fall back to the full list. We can handle this more
      * efficiently later if our extension list gets long. */
-    for (int i = 0; i < s2n_supported_extensions_count; i++) {
+    for (int i = 0; i < S2N_SUPPORTED_EXTENSIONS_COUNT; i++) {
         if (s2n_supported_extensions[i] == iana_value) {
             return i;
         }
@@ -87,32 +74,67 @@ s2n_extension_type_id s2n_extension_iana_value_to_id(uint16_t iana_value)
     return s2n_unsupported_extension;
 }
 
-int s2n_extension_send(s2n_extension_type *extension_type, struct s2n_connection *conn, struct s2n_stuffer *out)
+static s2n_extension_type_id s2n_extension_type_get_id(const s2n_extension_type *extension_type)
+{
+    return s2n_extension_iana_value_to_id(extension_type->iana_value);
+}
+
+int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     notnull_check(extension_type);
+    notnull_check(extension_type->should_send);
+    notnull_check(extension_type->send);
     notnull_check(conn);
-    notnull_check(out);
+
+    /* Do not send response if request not received. */
+    if (extension_type->is_response &&
+            !S2N_CBIT_TEST(conn->extension_requests_received, s2n_extension_type_get_id(extension_type))) {
+        return S2N_SUCCESS;
+    }
+
+    /* Check if we need to send. Some extensions are only sent if specific conditions are met. */
+    if (!extension_type->should_send(conn)) {
+        return S2N_SUCCESS;
+    }
 
     GUARD(s2n_stuffer_write_uint16(out, extension_type->iana_value));
 
     struct s2n_stuffer size_stuffer = *out;
     GUARD(s2n_stuffer_skip_write(out, TLS_EXTENSION_DATA_LENGTH_BYTES));
 
-    int result = extension_type->send(conn, out);
+    GUARD(extension_type->send(conn, out));
 
     GUARD(s2n_stuffer_write_uint16(&size_stuffer,
             s2n_stuffer_data_available(out) - s2n_stuffer_data_available(&size_stuffer) - TLS_EXTENSION_DATA_LENGTH_BYTES));
 
-    return result;
+    /* Set request bit flag */
+    if (!extension_type->is_response) {
+        S2N_CBIT_SET(conn->extension_requests_sent, s2n_extension_type_get_id(extension_type));
+    }
+
+    return S2N_SUCCESS;
 }
 
-int s2n_extension_recv(s2n_extension_type *extension_type, struct s2n_connection *conn, struct s2n_stuffer *in)
+int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_connection *conn, struct s2n_stuffer *in)
 {
     notnull_check(extension_type);
+    notnull_check(extension_type->recv);
     notnull_check(conn);
-    notnull_check(in);
 
-    return extension_type->recv(conn, in);
+    /* Do not accept a response if we did not send a request */
+    if(extension_type->is_response &&
+            !S2N_CBIT_TEST(conn->extension_requests_sent, s2n_extension_type_get_id(extension_type))) {
+        S2N_ERROR(S2N_ERR_UNSUPPORTED_EXTENSION);
+    }
+
+    GUARD(extension_type->recv(conn, in));
+
+    /* Set request bit flag */
+    if (!extension_type->is_response) {
+        S2N_CBIT_SET(conn->extension_requests_received, s2n_extension_type_get_id(extension_type));
+    }
+
+    return S2N_SUCCESS;
 }
 
 int s2n_extension_send_unimplemented(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -127,22 +149,20 @@ int s2n_extension_recv_unimplemented(struct s2n_connection *conn, struct s2n_stu
 
 int s2n_extension_always_send(struct s2n_connection *conn)
 {
-    return S2N_SUCCESS;
+    return true;
 }
 
 int s2n_extension_never_send(struct s2n_connection *conn)
 {
-    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+    return false;
 }
 
-int s2n_extension_always_recv(struct s2n_connection *conn, uint8_t *is_required)
+int s2n_extension_error_if_missing(struct s2n_connection *conn)
 {
-    *is_required = 1;
-    return S2N_SUCCESS;
+    S2N_ERROR(S2N_ERR_MISSING_EXTENSION);
 }
 
-int s2n_extension_may_recv(struct s2n_connection *conn, uint8_t *is_required)
+int s2n_extension_noop_if_missing(struct s2n_connection *conn)
 {
-    *is_required = 0;
     return S2N_SUCCESS;
 }
