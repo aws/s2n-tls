@@ -1,6 +1,7 @@
 import threading
 from contextlib import contextmanager
 from common import Ciphersuites, Curves
+from providers import S2N, OpenSSL, BoringSSL
 
 
 # List of ciphersuites that will be tested.
@@ -16,6 +17,10 @@ CURVES = [
     Curves.P256,
     Curves.P384
 ]
+
+
+# List of providers that will be tested.
+PROVIDERS = [S2N, OpenSSL, BoringSSL]
 
 
 class AvailablePorts():

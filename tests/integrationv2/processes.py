@@ -13,7 +13,7 @@ class ManagedProcess(threading.Thread):
     The stdin/stdout/stderr and exist code a monitored and results
     are made available to the caller.
     """
-    def __init__(self, cmd_line, provider_set_ready_condition, timeout):
+    def __init__(self, cmd_line, provider_set_ready_condition, timeout, data_source=None):
         threading.Thread.__init__(self)
         self.cmd_line = cmd_line
         self.timeout = timeout
@@ -22,6 +22,13 @@ class ManagedProcess(threading.Thread):
         self.results = None
         self.process_ready = False
         self.provider_set_ready_condition = provider_set_ready_condition
+
+        # We always need some data for stdin, otherwise .communicate() won't setup the input
+        # descriptor for the process. This causes some SSL providers to close the connection
+        # immediately upon creation.
+        self.data_source = b"A few test bytes"
+        if data_source is not None:
+            self.data_source = data_source
 
     def run(self):
         with self.results_condition:
@@ -36,7 +43,10 @@ class ManagedProcess(threading.Thread):
             # Result should be available to the whole scope
             proc_results = None
             try:
-                proc_results = proc.communicate(timeout=self.timeout)
+                # If the process' stdin is set, input *must* be provided. Otherwise stdin is closed
+                # almost immediately. This causes some SSL providers to close the connection before
+                # the s2n client can complete.
+                proc_results = proc.communicate(input=self.data_source, timeout=self.timeout)
                 self.results = Results(proc_results[0], proc_results[1], proc.returncode, None)
             except subprocess.TimeoutExpired as ex:
                 proc.kill()
@@ -49,6 +59,8 @@ class ManagedProcess(threading.Thread):
                 self.results = Results(None, None, None, ex)
                 raise ex
             finally:
+                # This data is dumped to stdout so we capture this
+                # information no matter where a test fails.
                 print("Command line: {}".format(" ".join(self.cmd_line)))
                 print(f"Exit code: {proc.returncode}")
                 print(f"Stdout: {proc_results[0]}")

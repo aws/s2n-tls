@@ -29,7 +29,10 @@ def managed_process():
     try:
         yield _fn
     except Exception as e:
-        print("Gracefully handling exception")
+        # The ManagedProcess already prints information to stdout, so there
+        # is nothing to capture here.
+        pass
     finally:
+        # Whether the processes succeeded or not, clean then up.
         for p in processes:
             p.join()
