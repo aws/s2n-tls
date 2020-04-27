@@ -54,7 +54,7 @@ int main(int argc, char **argv)
     struct s2n_config *server_config;
     uint64_t now;
 
-    size_t serialized_session_state_length = 0;
+    uint32_t serialized_session_state_length = 0;
     uint8_t s2n_state_with_session_id = S2N_STATE_WITH_SESSION_ID;
     uint8_t serialized_session_state[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES + S2N_STATE_SIZE_IN_BYTES] = { 0 };
 
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
 
         /* Verify that the client received NST */
-        serialized_session_state_length = s2n_connection_get_session_length(client_conn);
+        s2n_connection_get_session_length(client_conn, &serialized_session_state_length);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name1, strlen((char *)ticket_key_name1));
 
@@ -411,7 +411,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
 
         /* Verify that the client received NST */
-        serialized_session_state_length = s2n_connection_get_session_length(client_conn);
+        s2n_connection_get_session_length(client_conn, &serialized_session_state_length);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name1, strlen((char *)ticket_key_name1));
 
@@ -476,7 +476,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_set_size(server_config->ticket_keys), 1);
 
         /* Verify that the client received NST */
-        serialized_session_state_length = s2n_connection_get_session_length(client_conn);
+        s2n_connection_get_session_length(client_conn, &serialized_session_state_length);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name2, strlen((char *)ticket_key_name2));
 
@@ -538,7 +538,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
 
         /* Verify that the client received NST */
-        serialized_session_state_length = s2n_connection_get_session_length(client_conn);
+        s2n_connection_get_session_length(client_conn, &serialized_session_state_length);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name1, strlen((char *)ticket_key_name1));
 
@@ -708,7 +708,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
 
         /* Verify that the client received NST which is encrypted using a key which is at it's peak encryption */
-        serialized_session_state_length = s2n_connection_get_session_length(client_conn);
+        s2n_connection_get_session_length(client_conn, &serialized_session_state_length);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name1, strlen((char *)ticket_key_name1));
 
@@ -769,7 +769,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
 
         /* Verify that the client received NST which is encrypted using a key which is at it's peak encryption */
-        serialized_session_state_length = s2n_connection_get_session_length(client_conn);
+        s2n_connection_get_session_length(client_conn, &serialized_session_state_length);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name2, strlen((char *)ticket_key_name2));
 
@@ -837,7 +837,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
 
         /* Verify that the client received NST which is encrypted using a key which is at it's peak encryption */
-        serialized_session_state_length = s2n_connection_get_session_length(client_conn);
+        s2n_connection_get_session_length(client_conn, &serialized_session_state_length);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name2, strlen((char *)ticket_key_name2));
 
@@ -897,7 +897,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
 
         /* Verify that the client received NST which is encrypted using a key which is at it's peak encryption */
-        serialized_session_state_length = s2n_connection_get_session_length(client_conn);
+        s2n_connection_get_session_length(client_conn, &serialized_session_state_length);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name2, strlen((char *)ticket_key_name2));
 

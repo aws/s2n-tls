@@ -219,7 +219,7 @@ int main(int argc, char *const *argv)
 {
     struct addrinfo hints, *ai_list, *ai;
     int r, sockfd = 0;
-    ssize_t session_state_length = 0;
+    uint32_t session_state_length = 0;
     uint8_t *session_state = NULL;
     /* Optional args */
     const char *alpn_protocols = NULL;
@@ -448,7 +448,7 @@ int main(int argc, char *const *argv)
                 exit(1);
             }
             free(session_state);
-            session_state_length = s2n_connection_get_session_length(conn);
+            GUARD_EXIT(s2n_connection_get_session_length(conn, &session_state_length), "Error getting session length");
             session_state = calloc(session_state_length, sizeof(uint8_t));
             if (s2n_connection_get_session(conn, session_state, session_state_length) != session_state_length) {
                 print_s2n_error("Error getting serialized session state");

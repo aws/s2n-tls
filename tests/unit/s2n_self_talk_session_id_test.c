@@ -141,7 +141,7 @@ static void initialize_cache()
 
 void mock_client(struct s2n_test_piped_io *piped_io)
 {
-    size_t serialized_session_state_length = 0;
+    uint32_t serialized_session_state_length = 0;
     uint8_t serialized_session_state[256] = { 0 };
 
     struct s2n_connection *conn;
@@ -175,7 +175,7 @@ void mock_client(struct s2n_test_piped_io *piped_io)
 
     /* Save session state from the connection */
     memset(serialized_session_state, 0, sizeof(serialized_session_state));
-    serialized_session_state_length = s2n_connection_get_session_length(conn);
+    s2n_connection_get_session_length(conn, &serialized_session_state_length);
     if (serialized_session_state_length > sizeof(serialized_session_state)) {
         result = 3;
     }

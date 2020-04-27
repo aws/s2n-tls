@@ -256,7 +256,8 @@ int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, si
     notnull_check(conn);
     notnull_check(session);
 
-    int len = s2n_connection_get_session_length(conn);
+    uint32_t len;
+    GUARD(s2n_connection_get_session_length(conn, &len));
 
     if (len == 0) {
         return 0;
@@ -284,19 +285,19 @@ int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection *conn)
     return conn->ticket_lifetime_hint;
 }
 
-uint32_t s2n_connection_get_session_length(struct s2n_connection *conn)
+int s2n_connection_get_session_length(struct s2n_connection *conn, uint32_t *length)
 {
     /* Session resumption using session ticket "format (1) + session_ticket_len + session_ticket + session state" */
     if (conn->config->use_tickets && conn->client_ticket.size > 0) {
-        uint32_t result;
-        GUARD(s2n_add_overflow(S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN + S2N_STATE_SIZE_IN_BYTES, conn->client_ticket.size, &result));
-        return result;
+        GUARD(s2n_add_overflow(S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN + S2N_STATE_SIZE_IN_BYTES, conn->client_ticket.size, length));
     } else if (conn->session_id_len > 0) {
         /* Session resumption using session id: "format (0) + session_id_len + session_id + session state" */
-        return S2N_STATE_FORMAT_LEN + 1 + conn->session_id_len + S2N_STATE_SIZE_IN_BYTES;
+        *length = S2N_STATE_FORMAT_LEN + 1 + conn->session_id_len + S2N_STATE_SIZE_IN_BYTES;
     } else {
-        return 0;
+        *length = 0;
     }
+
+    return 0;
 }
 
 int s2n_connection_is_session_resumed(struct s2n_connection *conn)

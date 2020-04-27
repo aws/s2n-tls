@@ -24,6 +24,7 @@ int main(int argc, char **argv) {
     {
         struct s2n_connection *conn;
         struct s2n_config *config;
+        uint32_t length;
 
         conn = s2n_connection_new(S2N_CLIENT);
         config = s2n_config_new();
@@ -32,7 +33,7 @@ int main(int argc, char **argv) {
         config->use_tickets = true;
         conn->client_ticket.size = UINT32_MAX;
 
-        EXPECT_FAILURE(s2n_connection_get_session_length(conn));
+        EXPECT_FAILURE(s2n_connection_get_session_length(conn, &length));
     }
 
     END_TEST();
