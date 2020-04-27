@@ -284,11 +284,13 @@ int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection *conn)
     return conn->ticket_lifetime_hint;
 }
 
-int s2n_connection_get_session_length(struct s2n_connection *conn)
+uint32_t s2n_connection_get_session_length(struct s2n_connection *conn)
 {
     /* Session resumption using session ticket "format (1) + session_ticket_len + session_ticket + session state" */
     if (conn->config->use_tickets && conn->client_ticket.size > 0) {
-        return S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN + conn->client_ticket.size + S2N_STATE_SIZE_IN_BYTES;
+        uint32_t result;
+        GUARD(s2n_add_overflow(S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN + S2N_STATE_SIZE_IN_BYTES, conn->client_ticket.size, &result));
+        return result;
     } else if (conn->session_id_len > 0) {
         /* Session resumption using session id: "format (0) + session_id_len + session_id + session state" */
         return S2N_STATE_FORMAT_LEN + 1 + conn->session_id_len + S2N_STATE_SIZE_IN_BYTES;

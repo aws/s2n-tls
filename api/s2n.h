@@ -249,7 +249,7 @@ extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uin
 extern int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *session, size_t length);
 extern int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, size_t max_length);
 extern int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection *conn);
-extern int s2n_connection_get_session_length(struct s2n_connection *conn);
+extern uint32_t s2n_connection_get_session_length(struct s2n_connection *conn);
 extern int s2n_connection_get_session_id_length(struct s2n_connection *conn);
 extern int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_id, size_t max_length);
 extern int s2n_connection_is_session_resumed(struct s2n_connection *conn);
