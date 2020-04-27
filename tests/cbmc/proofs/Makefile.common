@@ -94,11 +94,14 @@ LOG_FROM_GOTO = $(patsubst $(GOTODIR)%,$(LOGDIR)%,$(1:.goto=.log))
 ################################################################
 # Default CBMC flags
 CBMCFLAGS += --bounds-check
+CBMCFLAGS += --conversion-check
 CBMCFLAGS += --div-by-zero-check
+CBMCFLAGS += --enum-range-check
 CBMCFLAGS += --float-overflow-check
 CBMCFLAGS += --nan-check
 CBMCFLAGS += --pointer-check
 CBMCFLAGS += --pointer-overflow-check
+CBMCFLAGS += --pointer-primitive-check
 CBMCFLAGS += --signed-overflow-check
 CBMCFLAGS += --undefined-shift-check
 CBMCFLAGS += --unsigned-overflow-check
