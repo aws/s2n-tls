@@ -97,7 +97,7 @@ int main(int argc, char **argv)
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_security_policy->cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
-        struct s2n_security_policy server_security_policy;
+        struct s2n_security_policy security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
 
@@ -113,11 +113,11 @@ int main(int argc, char **argv)
 
         server_cipher_preferences.suites = &cur_cipher;
         
-        memcpy_check(&server_security_policy, default_security_policy, sizeof(server_security_policy));
-        server_security_policy.cipher_preferences = &server_cipher_preferences;
+        memcpy_check(&security_policy, default_security_policy, sizeof(security_policy));
+        security_policy.cipher_preferences = &server_cipher_preferences;
 
-        client_config->security_policy = &server_security_policy;
-        server_config->security_policy = &server_security_policy;
+        client_config->security_policy = &security_policy;
+        server_config->security_policy = &security_policy;
 
         /* Create nonblocking pipes. */
         struct s2n_test_piped_io piped_io;
@@ -161,7 +161,7 @@ int main(int argc, char **argv)
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
-        struct s2n_security_policy server_security_policy;
+        struct s2n_security_policy security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
 
@@ -177,11 +177,11 @@ int main(int argc, char **argv)
 
         server_cipher_preferences.suites = &cur_cipher;
 
-        memcpy_check(&server_security_policy, default_security_policy, sizeof(server_security_policy));
-        server_security_policy.cipher_preferences = &server_cipher_preferences;
+        memcpy_check(&security_policy, default_security_policy, sizeof(security_policy));
+        security_policy.cipher_preferences = &server_cipher_preferences;
 
-        client_config->security_policy = &server_security_policy;
-        server_config->security_policy = &server_security_policy;
+        client_config->security_policy = &security_policy;
+        server_config->security_policy = &security_policy;
 
         /* Create nonblocking pipes. */
         struct s2n_test_piped_io piped_io;
@@ -225,7 +225,7 @@ int main(int argc, char **argv)
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
-        struct s2n_security_policy server_security_policy;
+        struct s2n_security_policy security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
 
@@ -241,11 +241,11 @@ int main(int argc, char **argv)
 
         server_cipher_preferences.suites = &cur_cipher;
 
-        memcpy_check(&server_security_policy, default_security_policy, sizeof(server_security_policy));
-        server_security_policy.cipher_preferences = &server_cipher_preferences;
+        memcpy_check(&security_policy, default_security_policy, sizeof(security_policy));
+        security_policy.cipher_preferences = &server_cipher_preferences;
 
-        client_config->security_policy = &server_security_policy;
-        server_config->security_policy = &server_security_policy;
+        client_config->security_policy = &security_policy;
+        server_config->security_policy = &security_policy;
 
         /* Create nonblocking pipes. */
         struct s2n_test_piped_io piped_io;
@@ -290,7 +290,7 @@ int main(int argc, char **argv)
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
-        struct s2n_security_policy server_security_policy;
+        struct s2n_security_policy security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
 
@@ -306,11 +306,11 @@ int main(int argc, char **argv)
 
         server_cipher_preferences.suites = &cur_cipher;
 
-        memcpy_check(&server_security_policy, default_security_policy, sizeof(server_security_policy));
-        server_security_policy.cipher_preferences = &server_cipher_preferences;
+        memcpy_check(&security_policy, default_security_policy, sizeof(security_policy));
+        security_policy.cipher_preferences = &server_cipher_preferences;
 
-        client_config->security_policy = &server_security_policy;
-        server_config->security_policy = &server_security_policy;
+        client_config->security_policy = &security_policy;
+        server_config->security_policy = &security_policy;
 
         /* Create nonblocking pipes. */
         struct s2n_test_piped_io piped_io;
@@ -360,7 +360,7 @@ int main(int argc, char **argv)
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
-        struct s2n_security_policy server_security_policy;
+        struct s2n_security_policy security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
 
@@ -376,11 +376,11 @@ int main(int argc, char **argv)
 
         server_cipher_preferences.suites = &cur_cipher;
 
-        memcpy_check(&server_security_policy, default_security_policy, sizeof(server_security_policy));
-        server_security_policy.cipher_preferences = &server_cipher_preferences;
+        memcpy_check(&security_policy, default_security_policy, sizeof(security_policy));
+        security_policy.cipher_preferences = &server_cipher_preferences;
 
-        client_config->security_policy = &server_security_policy;
-        server_config->security_policy = &server_security_policy;
+        client_config->security_policy = &security_policy;
+        server_config->security_policy = &security_policy;
 
         /* Create nonblocking pipes. */
         struct s2n_test_piped_io piped_io;
@@ -438,7 +438,7 @@ int main(int argc, char **argv)
     /* Verify that a handshake fails for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
-        struct s2n_security_policy server_security_policy;
+        struct s2n_security_policy security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
 
@@ -454,11 +454,11 @@ int main(int argc, char **argv)
 
         server_cipher_preferences.suites = &cur_cipher;
         
-        memcpy_check(&server_security_policy, default_security_policy, sizeof(server_security_policy));
-        server_security_policy.cipher_preferences = &server_cipher_preferences;
+        memcpy_check(&security_policy, default_security_policy, sizeof(security_policy));
+        security_policy.cipher_preferences = &server_cipher_preferences;
 
-        client_config->security_policy = &server_security_policy;
-        server_config->security_policy = &server_security_policy;
+        client_config->security_policy = &security_policy;
+        server_config->security_policy = &security_policy;
 
         /* Create nonblocking pipes. */
         struct s2n_test_piped_io piped_io;

@@ -69,7 +69,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
     EXPECT_NOT_NULL(default_security_policy = config->security_policy);
-    EXPECT_NOT_NULL(default_cipher_preferences =default_security_policy->cipher_preferences);
+    EXPECT_NOT_NULL(default_cipher_preferences = default_security_policy->cipher_preferences);
 
     struct host_verify_data verify_data = {.allow = 1, .callback_invoked = 0};
     EXPECT_SUCCESS(s2n_config_set_verify_host_callback(config, verify_host_fn, &verify_data));

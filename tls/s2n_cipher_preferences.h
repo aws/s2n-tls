@@ -39,15 +39,10 @@ extern const struct s2n_cipher_preferences cipher_preferences_20170405;
 extern const struct s2n_cipher_preferences cipher_preferences_20170718;
 extern const struct s2n_cipher_preferences cipher_preferences_20190214;
 extern const struct s2n_cipher_preferences cipher_preferences_20190801;
-extern const struct s2n_cipher_preferences cipher_preferences_test_all;
-extern const struct s2n_cipher_preferences cipher_preferences_20190801;
-
-extern const struct s2n_cipher_preferences cipher_preferences_20190122;
-extern const struct s2n_cipher_preferences cipher_preferences_20190121;
 extern const struct s2n_cipher_preferences cipher_preferences_20190120;
+extern const struct s2n_cipher_preferences cipher_preferences_20190121;
 extern const struct s2n_cipher_preferences cipher_preferences_20190122;
-extern const struct s2n_cipher_preferences cipher_preferences_20190122;
-extern const struct s2n_cipher_preferences cipher_preferences_20190122;
+extern const struct s2n_cipher_preferences cipher_preferences_test_all;
 
 extern const struct s2n_cipher_preferences cipher_preferences_test_all_tls12;
 extern const struct s2n_cipher_preferences cipher_preferences_test_all_fips;
@@ -59,11 +54,12 @@ extern const struct s2n_cipher_preferences cipher_preferences_test_all_tls13;
 /* See https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html */
 extern const struct s2n_cipher_preferences elb_security_policy_2015_04;
 extern const struct s2n_cipher_preferences elb_security_policy_2016_08;
-extern const struct s2n_cipher_preferences elb_security_policy_tls_1_2_2017_01;
-extern const struct s2n_cipher_preferences elb_security_policy_tls_1_1_2017_01;
-extern const struct s2n_cipher_preferences elb_security_policy_tls_1_2_ext_2018_06;
-extern const struct s2n_cipher_preferences elb_security_policy_fs_2018_06;
 
+extern const struct s2n_cipher_preferences elb_security_policy_tls_1_1_2017_01;
+extern const struct s2n_cipher_preferences elb_security_policy_tls_1_2_2017_01;
+extern const struct s2n_cipher_preferences elb_security_policy_tls_1_2_ext_2018_06;
+
+extern const struct s2n_cipher_preferences elb_security_policy_fs_2018_06;
 extern const struct s2n_cipher_preferences elb_security_policy_fs_1_2_2019_08;
 extern const struct s2n_cipher_preferences elb_security_policy_fs_1_1_2019_08;
 extern const struct s2n_cipher_preferences elb_security_policy_fs_1_2_Res_2019_08;

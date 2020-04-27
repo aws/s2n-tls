@@ -33,8 +33,7 @@ struct s2n_config {
     unsigned default_certs_are_explicit:1;
     unsigned use_tickets:1;
     unsigned use_session_cache:1;
-    /* if this is FALSE, server will ignore client's Maximum Fragment Length
-     * request */
+    /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
     unsigned accept_mfl:1;
     unsigned check_ocsp:1;
     unsigned disable_x509_validation:1;
@@ -42,8 +41,8 @@ struct s2n_config {
 
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
-     * used to release memory allocated only in the deprecated API that the
-     * application does not have a reference to. */
+     * used to release memory allocated only in the deprecated API that the application 
+     * does not have a reference to. */
     struct s2n_map *domain_name_to_cert_map;
     struct certs_by_type default_certs_by_type;
     struct s2n_blob application_protocols;
@@ -84,15 +83,12 @@ struct s2n_config {
 
     s2n_alert_behavior alert_behavior;
 
-    /* Return TRUE if the host should be trusted, If FALSE this will likely be
-     * called again for every host/alternative name in the certificate. If any
-     * respond TRUE. If none return TRUE, the cert will be considered untrusted.
-     */
+    /* Return TRUE if the host should be trusted, If FALSE this will likely be called again for every host/alternative name
+     * in the certificate. If any respond TRUE. If none return TRUE, the cert will be considered untrusted. */
     uint8_t (*verify_host)(const char *host_name, size_t host_name_len, void *data);
     void *data_for_verify_host;
 
-    /* Application supplied callback to resolve domain name conflicts when loading
-     * certs. */
+    /* Application supplied callback to resolve domain name conflicts when loading certs. */
     s2n_cert_tiebreak_callback cert_tiebreak_cb;
 
     uint8_t mfl_code;

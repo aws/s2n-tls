@@ -93,13 +93,13 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
     notnull_check(ecc_pref);
 
-    const uint8_t ecc_extension_required = s2n_ecc_is_extension_required(security_policy);
+    bool ecc_extension_required = s2n_ecc_is_extension_required(security_policy);
     if (ecc_extension_required) {
         /* Write ECC extensions: Supported Curves and Supported Point Formats */
         total_size += (5 * sizeof(uint16_t) + 2 * sizeof(uint8_t)) + ecc_pref->count * 2; 
     }
 
-    const uint8_t pq_kem_extension_required = s2n_pq_kem_is_extension_required(security_policy);
+    bool pq_kem_extension_required = s2n_pq_kem_is_extension_required(security_policy);
     /* pq_kem_extension_required is true if and only if cipher_preferences->kem_count > 0 */
     if (pq_kem_extension_required) {
         /* 2 for the extension id, 2 for overall length, 2 for length of the list, and 2 for each kem ID*/
