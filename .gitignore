@@ -29,3 +29,4 @@ fuzz_dependencies/*
 .travis/.libs/*
 .vscode/
 test-deps/*
+.idea/*
