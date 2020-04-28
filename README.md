@@ -11,9 +11,9 @@ s2n is a C99 implementation of the TLS/SSL protocols that is designed to be simp
 [![Github stars](https://img.shields.io/github/stars/awslabs/s2n.svg)](https://github.com/awslabs/s2n/stargazers)
 [![Join the chat at https://gitter.im/awslabs/s2n](https://badges.gitter.im/awslabs/s2n.svg)](https://gitter.im/awslabs/s2n?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-## Getting Started
+## Quickstart for Ubuntu
 1. Fork s2n on GitHub
-2. Run the following commands on either Ubuntu or Mac OSX.
+2. Run the following commands on Ubuntu.
 ```
 git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n.git
 cd s2n
@@ -26,7 +26,30 @@ codebuild/bin/s2n_install_test_dependencies.sh
 codebuild/bin/s2n_codebuild.sh
 ```
 
-### Have a Question?
+## Quickstart for OSX (or other platforms)
+
+If you are building on OSX, or simply don't want to execute the entire build script above, you can use build tools like Ninja.
+
+### OSX
+
+An example of building on OSX:
+
+```sh
+brew install ninja cmake
+git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n.git
+mkdir s2n_build
+cd s2n_build
+
+# Build with debug symbols and a specific OpenSSL version
+cmake -GNinja \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_PREFIX_PATH=/usr/local/Cellar/openssl@1.1/1.1.1g \
+    ../s2n
+ninja -j6
+CTEST_PARALLEL_LEVEL=5 ninja test
+```
+
+## Have a Question?
 If you have any questions about Submitting PR's, Opening Issues, s2n API usage, or something similar, we have a public chatroom available here to answer your questions: https://gitter.im/awslabs/s2n
 
 Otherwise, if you think you might have found a security impacting issue, please instead follow [our Security Notification Process.](#security-issue-notifications)
