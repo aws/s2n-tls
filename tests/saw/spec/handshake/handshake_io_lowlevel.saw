@@ -107,7 +107,8 @@ let setup_connection = do {
    let corked_io = {{1 : [8]}};
    crucible_points_to (conn_corked_io pconn) (crucible_term corked_io); 
    
-   version <- crucible_fresh_var "version" (llvm_int 8);
+   // TLS1.3 is temporarily removed from SAW testing, force the TLS1.2 version
+   let version = {{33 : [8]}};
    crucible_points_to (crucible_field pconn "actual_protocol_version") (crucible_term version);
    
    mode <- crucible_fresh_var "mode" (llvm_int 32);
@@ -295,14 +296,18 @@ let s2n_advance_message_spec = do {
     // handshake/cork-uncork state machine is equivalent to the one in
     // s2n
     crucible_points_to (crucible_global "handshakes") (crucible_term {{ handshakes }});
-    crucible_points_to (crucible_global "tls13_handshakes") (crucible_term {{ tls13_handshakes }});
+
+    // TLS1.3 is temporarily removed from SAW testing.
+    // crucible_points_to (crucible_global "tls13_handshakes") (crucible_term {{ tls13_handshakes }});
     
     let messages = [ {{CLIENT_HELLO : [5]}}, {{SERVER_HELLO : [5]}}, {{SERVER_CERT : [5]}}, {{SERVER_NEW_SESSION_TICKET : [5]}}, {{SERVER_CERT_STATUS : [5]}}, 
       {{SERVER_KEY : [5]}}, {{SERVER_CERT : [5]}}, {{SERVER_CERT_REQ : [5]}}, {{SERVER_HELLO_DONE : [5]}}, {{CLIENT_CERT : [5]}}, {{CLIENT_KEY : [5]}}, {{CLIENT_CERT_VERIFY : [5]}}, 
       {{CLIENT_CHANGE_CIPHER_SPEC : [5]}}, {{SERVER_FINISHED : [5]}}, {{ENCRYPTED_EXTENSIONS : [5]}}, {{SERVER_CERT_VERIFY : [5]}}, {{APPLICATION_DATA : [5]}} ];
 
     for messages (verify_state_machine_elem (crucible_global "state_machine") {{ state_machine }} );
-    for messages (verify_state_machine_elem (crucible_global "tls13_state_machine") {{ tls13_state_machine }} );
+
+    // TLS1.3 is temporarily removed from SAW testing.
+    // for messages (verify_state_machine_elem (crucible_global "tls13_state_machine") {{ tls13_state_machine }} );
 
     // assert that s2n_advance_message returns 0 (true if the 4
     // functions it calls don't fail)
