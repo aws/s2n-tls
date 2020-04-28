@@ -1,14 +1,14 @@
 #!/bin/bash
 
-set -ex
+set -e
 
-CLANGFORMAT=$(which clang-format-9)
-
-find ./lib ./libcrypto-build ./tls ./utils -exec "$CLANGFORMAT --verbose -i {}" \; -name '*.h' -or -name '*.c' -or -name '*.cpp'
+for i in $(find ./lib ./libcrypto-build ./tls ./utils -name '*.h' -or -name '*.c' -or -name '*.cpp'); do
+        clang-format-9 --verbose -i "$i" ;
+done
 
 if [[ `git status --porcelain` ]]; then
-	echo "clang-format updated files, throwing an error"
-	exit 255
+        echo "clang-format updated files, throwing an error"
+        exit 255
 else
-	echo "No files touched"
+        echo "No files touched"
 fi
