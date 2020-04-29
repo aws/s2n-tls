@@ -123,7 +123,7 @@ static int success_memcpy()
     char dst[1024];
     char src[1024] = {0};
 
-    memcpy_check(dst, src, 1024);
+    memcpy(dst, src, 1024);
 
     return 0;
 }
@@ -133,7 +133,7 @@ static int failure_memcpy()
     char src[1024];
     char *ptr = NULL;
 
-    memcpy_check(ptr, src, 1024);
+    memcpy(ptr, src, 1024);
 
     return 0;
 }

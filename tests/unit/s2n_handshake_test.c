@@ -121,11 +121,11 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
         /* Craft a cipher preference with a cipher_idx cipher
            NOTE: Its safe to use memcpy as the address of server_cipher_preferences
            will never be NULL */
-        memcpy_check(&server_cipher_preferences, cipher_preferences, sizeof(server_cipher_preferences));
+        memcpy(&server_cipher_preferences, cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         server_cipher_preferences.suites = &expected_cipher;
 
-        memcpy_check(&server_security_policy, security_policy, sizeof(server_security_policy));
+        memcpy(&server_security_policy, security_policy, sizeof(server_security_policy));
         server_security_policy.cipher_preferences = &server_cipher_preferences;
 
         server_conn->security_policy_override = &server_security_policy;

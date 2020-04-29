@@ -456,8 +456,8 @@ int main(int argc, char **argv)
         };
 
         EXPECT_NOT_NULL(sent_client_hello = malloc(sent_client_hello_len));
-        memcpy_check(sent_client_hello, client_hello_prefix, client_hello_prefix_len);
-        memcpy_check(sent_client_hello + client_hello_prefix_len, client_extensions, client_extensions_len);
+        memcpy(sent_client_hello, client_hello_prefix, client_hello_prefix_len);
+        memcpy(sent_client_hello + client_hello_prefix_len, client_extensions, client_extensions_len);
 
         /* Create nonblocking pipes */
         struct s2n_test_piped_io piped_io;
@@ -512,7 +512,7 @@ int main(int argc, char **argv)
 
         /* Verify the collected client hello matches what was sent except for the zero-ed client random */
         EXPECT_NOT_NULL(expected_client_hello = malloc(sent_client_hello_len));
-        memcpy_check(expected_client_hello, sent_client_hello, sent_client_hello_len);
+        memcpy(expected_client_hello, sent_client_hello, sent_client_hello_len);
         memset_check(expected_client_hello + client_random_offset, 0, S2N_TLS_RANDOM_DATA_LEN);
         EXPECT_SUCCESS(memcmp(collected_client_hello, expected_client_hello, sent_client_hello_len));
 
@@ -775,8 +775,8 @@ int main(int argc, char **argv)
         };
 
         EXPECT_NOT_NULL(sent_client_hello = malloc(sent_client_hello_len));
-        memcpy_check(sent_client_hello, client_hello_prefix, client_hello_prefix_len);
-        memcpy_check(sent_client_hello + client_hello_prefix_len, client_extensions, client_extensions_len);
+        memcpy(sent_client_hello, client_hello_prefix, client_hello_prefix_len);
+        memcpy(sent_client_hello + client_hello_prefix_len, client_extensions, client_extensions_len);
 
         /* Create nonblocking pipes */
         struct s2n_test_piped_io piped_io;
