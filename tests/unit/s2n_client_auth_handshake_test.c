@@ -113,8 +113,8 @@ int s2n_test_client_auth_message_by_message(bool no_cert)
     EXPECT_NOT_NULL(server_config = s2n_config_new());
     EXPECT_NOT_NULL(client_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20190801"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20190801"));
 
     char *cert_chain = NULL;
     char *private_key = NULL;
@@ -155,8 +155,8 @@ int s2n_test_client_auth_message_by_message(bool no_cert)
     EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
     EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
-    EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
-    EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
+    EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "20190801"));
+    EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "20190801"));
 
     /* Client sends ClientHello */
     EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), CLIENT_HELLO);
@@ -323,8 +323,8 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(client_config = s2n_config_new());
 
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20190801"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20190801"));
 
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));

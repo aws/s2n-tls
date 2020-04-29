@@ -234,7 +234,19 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
         EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20140601);
 
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
+        EXPECT_EQUAL(config->security_policy, &security_policy_20170210);
+        EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_20170210);
+        EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
+        EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20140601);
+
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+        EXPECT_EQUAL(config->security_policy, &security_policy_20190801);
+        EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_20190801);
+        EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
+        EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
+
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20190801"));
         EXPECT_EQUAL(config->security_policy, &security_policy_20190801);
         EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_20190801);
         EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);

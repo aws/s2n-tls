@@ -325,11 +325,11 @@ int main(int argc, char **argv)
                 S2N_RSA_PSS_2048_SHA256_LEAF_CERT, S2N_RSA_PSS_2048_SHA256_LEAF_KEY));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20200207"));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20200207"));
         client_config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
         client_config->check_ocsp = 0;
         client_config->disable_x509_validation = 1;

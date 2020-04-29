@@ -51,7 +51,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
     struct s2n_config *config;
     EXPECT_NOT_NULL(config = s2n_config_new());
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20200207"));
 
     /* Successfully send and receive certificate verify */
     {
