@@ -28,17 +28,19 @@ bool s2n_blob_is_valid(const struct s2n_blob* b)
     return
         b != NULL &&
         S2N_OBJECT_PTR_IS_READABLE(b) &&
-        S2N_IMPLIES(!b->growable, b->allocated == 0) &&
-        S2N_IMPLIES(b->growable, b->size <= b->allocated) &&
-        S2N_IMPLIES(b->growable, S2N_MEM_IS_READABLE(b->data, b->allocated)) &&
+        S2N_IMPLIES(b->growable == 0, b->allocated == 0) &&
+        S2N_IMPLIES(b->growable != 0, S2N_MEM_IS_READABLE(b->data, b->allocated)) &&
+        S2N_IMPLIES(b->growable != 0, b->size <= b->allocated) &&
         S2N_MEM_IS_READABLE(b->data,b->size);
 }
 
 int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size)
 {
     notnull_check(b);
+    if(size != 0) { notnull_check(data); }
     *b = (struct s2n_blob) {.data = data, .size = size, .allocated = 0, .growable = 0};
-    return 0;
+    ENSURE_POSTCONDITION(s2n_blob_is_valid(b));
+    return S2N_SUCCESS;
 }
 
 int s2n_blob_zero(struct s2n_blob *b)

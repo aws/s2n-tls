@@ -94,6 +94,11 @@
 #define ENSURE_NONNULL( x )                          ENSURE((x) != NULL, S2N_ERR_NULL)
 
 /**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with a `S2N_ERR_SAFETY` error
+ */
+#define ENSURE_POSTCONDITION( condition )            __S2N_ENSURE((condition), BAIL_POSIX(S2N_ERR_SAFETY))
+
+/**
  * Ensures `min <= n <= max`
  */
 #define ENSURE_INCLUSIVE_RANGE( min , n , max )      \
