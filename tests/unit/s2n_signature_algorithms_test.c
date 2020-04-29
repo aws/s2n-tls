@@ -26,6 +26,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_signature_scheme.h"
 #include "tls/s2n_signature_algorithms.h"
+#include "tls/s2n_security_policies.h"
 
 #define LENGTH 3
 #define STUFFER_SIZE (LENGTH * TLS_SIGNATURE_SCHEME_LEN + 10)
@@ -60,7 +61,14 @@ int main(int argc, char **argv)
     /* s2n_supported_sig_schemes_count & s2n_supported_sig_scheme_list_size */
     {
         struct s2n_config *config = s2n_config_new();
-        config->signature_preferences = &test_preferences;
+        struct s2n_security_policy test_security_policy = {
+            .minimum_protocol_version = config->security_policy->minimum_protocol_version,
+            .cipher_preferences = config->security_policy->cipher_preferences,
+            .kem_preferences = config->security_policy->kem_preferences,
+            .signature_preferences = &test_preferences,
+        };
+
+        config->security_policy = &test_security_policy;
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         s2n_connection_set_config(conn, config);
@@ -87,7 +95,14 @@ int main(int argc, char **argv)
     /* s2n_send_supported_sig_scheme_list */
     {
         struct s2n_config *config = s2n_config_new();
-        config->signature_preferences = &test_preferences;
+        struct s2n_security_policy test_security_policy = {
+            .minimum_protocol_version = config->security_policy->minimum_protocol_version,
+            .cipher_preferences = config->security_policy->cipher_preferences,
+            .kem_preferences = config->security_policy->kem_preferences,
+            .signature_preferences = &test_preferences,
+        };
+
+        config->security_policy = &test_security_policy;
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         s2n_connection_set_config(conn, config);
@@ -160,7 +175,14 @@ int main(int argc, char **argv)
     /* s2n_get_and_validate_negotiated_signature_scheme */
     {
         struct s2n_config *config = s2n_config_new();
-        config->signature_preferences = &test_preferences;
+        struct s2n_security_policy test_security_policy = {
+            .minimum_protocol_version = config->security_policy->minimum_protocol_version,
+            .cipher_preferences = config->security_policy->cipher_preferences,
+            .kem_preferences = config->security_policy->kem_preferences,
+            .signature_preferences = &test_preferences,
+        };
+
+        config->security_policy = &test_security_policy;
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         s2n_connection_set_config(conn, config);
@@ -233,7 +255,13 @@ int main(int argc, char **argv)
         };
 
         struct s2n_config *config = s2n_config_new();
-        config->signature_preferences = &dup_test_preferences;
+        struct s2n_security_policy test_security_policy = {
+            .minimum_protocol_version = config->security_policy->minimum_protocol_version,
+            .cipher_preferences = config->security_policy->cipher_preferences,
+            .kem_preferences = config->security_policy->kem_preferences,
+            .signature_preferences = &dup_test_preferences,
+        };
+        config->security_policy = &test_security_policy;
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         s2n_connection_set_config(conn, config);
@@ -265,7 +293,15 @@ int main(int argc, char **argv)
         struct s2n_config *config = s2n_config_new();
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert_chain));
-        config->signature_preferences = &test_preferences;
+        struct s2n_security_policy test_security_policy = {
+            .minimum_protocol_version = config->security_policy->minimum_protocol_version,
+            .cipher_preferences = config->security_policy->cipher_preferences,
+            .kem_preferences = config->security_policy->kem_preferences,
+            .signature_preferences = &test_preferences,
+        };
+
+        config->security_policy = &test_security_policy;
+
 
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -297,7 +333,15 @@ int main(int argc, char **argv)
         struct s2n_config *config = s2n_config_new();
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert_chain));
-        config->signature_preferences = &test_preferences;
+        struct s2n_security_policy test_security_policy = {
+            .minimum_protocol_version = config->security_policy->minimum_protocol_version,
+            .cipher_preferences = config->security_policy->cipher_preferences,
+            .kem_preferences = config->security_policy->kem_preferences,
+            .signature_preferences = &test_preferences,
+        };
+
+        config->security_policy = &test_security_policy;
+
 
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -462,7 +506,14 @@ int main(int argc, char **argv)
 
         struct s2n_config *config = s2n_config_new();
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
-        config->signature_preferences = &pss_test_preferences;
+        struct s2n_security_policy test_security_policy = {
+            .minimum_protocol_version = config->security_policy->minimum_protocol_version,
+            .cipher_preferences = config->security_policy->cipher_preferences,
+            .kem_preferences = config->security_policy->kem_preferences,
+            .signature_preferences = &pss_test_preferences,
+        };
+
+        config->security_policy = &test_security_policy;
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         conn->secure.cipher_suite = TLS13_CIPHER_SUITE;

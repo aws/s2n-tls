@@ -243,35 +243,4 @@ const struct s2n_signature_preferences s2n_signature_preferences_20200207 = {
         .signature_schemes = s2n_sig_scheme_pref_list_20200207,
 };
 
-static struct {
-    const char *version;
-    const struct s2n_signature_preferences *preferences;
-} selection[] = {
-        {.version = "default", .preferences = &s2n_signature_preferences_20140601 },
-        {.version = "default_tls13", .preferences = &s2n_signature_preferences_20200207 },
-        {.version = "20200207", .preferences = &s2n_signature_preferences_20200207 },
-        {.version = "20140601", .preferences = &s2n_signature_preferences_20140601 },
-        {.version = NULL, .preferences = NULL }, /* Sentinel */
-};
-
-static int s2n_find_signature_pref_from_version(const char *version, const struct s2n_signature_preferences **signature_preferences)
-{
-    notnull_check(version);
-    notnull_check(signature_preferences);
-
-    for (int i = 0; selection[i].version != NULL; i++) {
-        if (!strcasecmp(version, selection[i].version)) {
-            *signature_preferences = selection[i].preferences;
-            return 0;
-        }
-    }
-
-    S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHMS_PREFERENCES);
-}
-
-int s2n_config_set_signature_preferences(struct s2n_config *config, const char *version)
-{
-    GUARD(s2n_find_signature_pref_from_version(version, &config->signature_preferences));
-    return 0;
-}
 

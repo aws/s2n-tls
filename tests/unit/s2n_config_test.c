@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 
         /* s2n_config_new() matches s2n_fetch_default_config() */
         EXPECT_EQUAL(default_config->security_policy, config->security_policy);
-        EXPECT_EQUAL(default_config->signature_preferences, config->signature_preferences);
+        EXPECT_EQUAL(default_config->security_policy->signature_preferences, config->security_policy->signature_preferences);
         EXPECT_EQUAL(default_config->client_cert_auth_type, config->client_cert_auth_type);
 
         /* Calling s2n_fetch_default_config() repeatedly returns the same object */
@@ -102,14 +102,14 @@ int main(int argc, char **argv)
             struct s2n_config *config;
             EXPECT_NOT_NULL(config = s2n_config_new());
             EXPECT_EQUAL(config->security_policy, default_security_policy);
-            EXPECT_EQUAL(config->signature_preferences, &s2n_signature_preferences_20140601);
+            EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20140601);
             EXPECT_EQUAL(config->ecc_preferences, &s2n_ecc_preferences_20140601);
             EXPECT_SUCCESS(s2n_config_free(config));
 
             EXPECT_SUCCESS(s2n_enable_tls13());
             EXPECT_NOT_NULL(config = s2n_config_new());
             EXPECT_EQUAL(config->security_policy, tls13_security_policy);
-            EXPECT_EQUAL(config->signature_preferences, &s2n_signature_preferences_20200207);
+            EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
             EXPECT_EQUAL(config->ecc_preferences, &s2n_ecc_preferences_20200310);
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_disable_tls13());

@@ -24,6 +24,7 @@
 #include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_signature_scheme.h"
+#include "tls/s2n_security_policies.h"
 
 #include "utils/s2n_safety.h"
 
@@ -59,7 +60,7 @@ static int s2n_signature_scheme_valid_to_accept(struct s2n_connection *conn, con
 static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
                           struct s2n_signature_scheme *chosen_scheme_out)
 {
-    const struct s2n_signature_preferences *signature_preferences = conn->config->signature_preferences;
+    const struct s2n_signature_preferences *signature_preferences = conn->config->security_policy->signature_preferences;
     notnull_check(signature_preferences);
 
     struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
@@ -95,7 +96,7 @@ int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn
     uint16_t actual_iana_val;
     GUARD(s2n_stuffer_read_uint16(in, &actual_iana_val));
 
-    const struct s2n_signature_preferences *signature_preferences = conn->config->signature_preferences;
+    const struct s2n_signature_preferences *signature_preferences = conn->config->security_policy->signature_preferences;
     notnull_check(signature_preferences);
 
     for (int i = 0; i < signature_preferences->count; i++) {
@@ -170,7 +171,7 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
 
 int s2n_send_supported_sig_scheme_list(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    const struct s2n_signature_preferences *signature_preferences = conn->config->signature_preferences;
+    const struct s2n_signature_preferences *signature_preferences = conn->config->security_policy->signature_preferences;
     notnull_check(signature_preferences);
 
     GUARD(s2n_stuffer_write_uint16(out, s2n_supported_sig_scheme_list_size(conn)));
@@ -192,7 +193,7 @@ int s2n_supported_sig_scheme_list_size(struct s2n_connection *conn)
 
 int s2n_supported_sig_schemes_count(struct s2n_connection *conn)
 {
-    const struct s2n_signature_preferences *signature_preferences = conn->config->signature_preferences;
+    const struct s2n_signature_preferences *signature_preferences = conn->config->security_policy->signature_preferences;
     notnull_check(signature_preferences);
 
     uint8_t count = 0;

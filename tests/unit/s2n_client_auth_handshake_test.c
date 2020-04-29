@@ -113,8 +113,8 @@ int s2n_test_client_auth_message_by_message(bool no_cert)
     EXPECT_NOT_NULL(server_config = s2n_config_new());
     EXPECT_NOT_NULL(client_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
-    EXPECT_SUCCESS(s2n_config_set_signature_preferences(server_config, "20200207"));
-    EXPECT_SUCCESS(s2n_config_set_signature_preferences(client_config, "20200207"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
 
     char *cert_chain = NULL;
     char *private_key = NULL;
@@ -322,8 +322,9 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_signature_preferences(server_config, "20200207"));
-        EXPECT_SUCCESS(s2n_config_set_signature_preferences(client_config, "20200207"));
+
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
 
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));

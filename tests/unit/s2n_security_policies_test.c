@@ -16,6 +16,7 @@
 #include "s2n_test.h"
 
 #include "tls/s2n_security_policies.h"
+#include "tls/s2n_security_policies.c"
 
 int main(int argc, char **argv)
 {
@@ -223,6 +224,61 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
+    }
+    {
+        struct s2n_config *config = s2n_config_new();
+
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_EQUAL(config->security_policy, &security_policy_20170210);
+        EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_20170210);
+        EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
+        EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20140601);
+
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+        EXPECT_EQUAL(config->security_policy, &security_policy_20190801);
+        EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_20190801);
+        EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
+        EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "notathing"),
+                S2N_ERR_INVALID_SECURITY_POLICY);
+
+        s2n_config_free(config);
+    }
+
+    /* All signature preferences are valid */
+    {
+        for (int i = 0; security_policy_selection[i].version != NULL; i++) {
+            security_policy = security_policy_selection[i].security_policy;
+            EXPECT_NOT_NULL(security_policy);
+            EXPECT_NOT_NULL(security_policy->signature_preferences);
+
+            for (int j = 0; j < security_policy->signature_preferences->count; j++) {
+                const struct s2n_signature_scheme *scheme = security_policy->signature_preferences->signature_schemes[j];
+
+                EXPECT_NOT_NULL(scheme);
+
+                uint8_t max_version = scheme->maximum_protocol_version;
+                uint8_t min_version = scheme->minimum_protocol_version;
+
+                EXPECT_TRUE(max_version == S2N_UNKNOWN_PROTOCOL_VERSION || min_version <= max_version);
+
+                /* If scheme will be used for tls1.3 */
+                if (max_version == S2N_UNKNOWN_PROTOCOL_VERSION || max_version >= S2N_TLS13) {
+                    EXPECT_NOT_EQUAL(scheme->hash_alg, S2N_HASH_SHA1);
+                    EXPECT_NOT_EQUAL(scheme->sig_alg, S2N_SIGNATURE_RSA);
+                    if (scheme->sig_alg == S2N_SIGNATURE_ECDSA) {
+                        EXPECT_NOT_NULL(scheme->signature_curve);
+                    }
+                }
+
+                /* If scheme will be used for pre-tls1.3 */
+                if (min_version < S2N_TLS13) {
+                    EXPECT_NULL(scheme->signature_curve);
+                    EXPECT_NOT_EQUAL(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
+                }
+            }
+        }
     }
 
     END_TEST();
