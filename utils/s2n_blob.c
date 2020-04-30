@@ -53,15 +53,18 @@ int s2n_blob_zero(struct s2n_blob *b)
 
 int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t offset, uint32_t size)
 {
-    notnull_check(b);
-    notnull_check(slice);
+    PRECONDITION_POSIX(s2n_blob_is_valid(b));
+    PRECONDITION_POSIX(s2n_blob_is_valid(slice));
 
-    S2N_ERROR_IF(b->size < (offset + size), S2N_ERR_SIZE_MISMATCH);
+    uint32_t slice_size = 0;
+    GUARD(s2n_add_overflow(offset, size, &slice_size));
+    ENSURE_POSIX(b->size >= slice_size, S2N_ERR_SIZE_MISMATCH);
     slice->data = b->data + offset;
     slice->size = size;
     slice->growable = 0;
     slice->allocated = 0;
 
+    POSTCONDITION_POSIX(s2n_blob_is_valid(slice));
     return S2N_SUCCESS;
 }
 
