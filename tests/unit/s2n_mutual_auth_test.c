@@ -88,9 +88,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer client_to_server;
         struct s2n_stuffer server_to_client;
 
-        /* Craft a cipher preference with a cipher_idx cipher
-           NOTE: Its safe to use EXPECT_MEMCPY_SUCCESS as the address of server_cipher_preferences
-           will never be NULL */
+        /* Craft a cipher preference with a cipher_idx cipher */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
@@ -164,9 +162,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer client_to_server;
         struct s2n_stuffer server_to_client;
 
-        /* Craft a cipher preference with a cipher_idx cipher
-           NOTE: Its safe to use EXPECT_MEMCPY_SUCCESS as the address of server_cipher_preferences
-           will never be NULL */
+        /* Craft a cipher preference with a cipher_idx cipher */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
@@ -235,9 +231,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer client_to_server;
         struct s2n_stuffer server_to_client;
 
-        /* Craft a cipher preference with a cipher_idx cipher
-           NOTE: Its safe to use EXPECT_MEMCPY_SUCCESS as the address of server_cipher_preferences
-           will never be NULL */
+        /* Craft a cipher preference with a cipher_idx cipher */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
@@ -311,9 +305,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer client_to_server;
         struct s2n_stuffer server_to_client;
 
-        /* Craft a cipher preference with a cipher_idx cipher
-           NOTE: Its safe to use EXPECT_MEMCPY_SUCCESS as the address of server_cipher_preferences
-           will never be NULL */
+        /* Craft a cipher preference with a cipher_idx cipher */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
