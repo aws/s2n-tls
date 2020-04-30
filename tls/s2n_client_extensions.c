@@ -26,8 +26,6 @@
 #include "tls/s2n_client_extensions.h"
 #include "tls/s2n_resume.h"
 #include "tls/s2n_security_policies.h"
-#include "tls/s2n_cipher_preferences.h"
-#include "tls/s2n_ecc_preferences.h"
 
 #include "extensions/s2n_client_supported_versions.h"
 #include "extensions/s2n_client_signature_algorithms.h"
@@ -52,6 +50,8 @@
 
 int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
+    notnull_check(conn);
+    
     uint16_t total_size = 0;
     uint16_t pq_kem_list_size = 0;
 
@@ -86,12 +86,11 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
         total_size += 4 + client_ticket_len;
     }
 
-    const struct s2n_security_policy *security_policy;
+    const struct s2n_security_policy *security_policy = NULL;
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
     GUARD(s2n_connection_get_security_policy(conn, &security_policy));
-
-    notnull_check(conn->config);
-    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-    notnull_check(ecc_pref);
+    notnull_check(security_policy);
+    notnull_check(ecc_pref = security_policy->ecc_preferences);
 
     bool ecc_extension_required = s2n_ecc_is_extension_required(security_policy);
     if (ecc_extension_required) {

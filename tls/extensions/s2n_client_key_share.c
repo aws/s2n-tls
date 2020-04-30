@@ -15,8 +15,7 @@
 
 #include "tls/extensions/s2n_client_key_share.h"
 #include "tls/extensions/s2n_key_share.h"
-#include "tls/s2n_ecc_preferences.h"
-#include "tls/s2n_tls13.h"
+#include "tls/s2n_security_policies.h"
 
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
@@ -51,10 +50,12 @@ int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n
 {
     notnull_check(conn);
     notnull_check(extension);
-    notnull_check(conn->config);
 
-    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-    notnull_check(ecc_pref);
+    const struct s2n_security_policy *security_policy = NULL;
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    notnull_check(security_policy);
+    notnull_check(ecc_pref = security_policy->ecc_preferences);
 
     uint16_t key_shares_size;
     GUARD(s2n_stuffer_read_uint16(extension, &key_shares_size));
@@ -129,9 +130,12 @@ int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n
 uint32_t s2n_extensions_client_key_share_size(struct s2n_connection *conn)
 {
     notnull_check(conn);
-    notnull_check(conn->config);
-    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-    notnull_check(ecc_pref);
+
+    const struct s2n_security_policy *security_policy = NULL;
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    notnull_check(security_policy);
+    notnull_check(ecc_pref = security_policy->ecc_preferences);
 
     uint32_t s2n_client_key_share_extension_size = S2N_SIZE_OF_EXTENSION_TYPE
             + S2N_SIZE_OF_EXTENSION_DATA_SIZE
@@ -168,9 +172,12 @@ int s2n_extensions_client_key_share_send(struct s2n_connection *conn, struct s2n
 static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     notnull_check(conn);
-    notnull_check(conn->config);
-    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-    notnull_check(ecc_pref);
+
+    const struct s2n_security_policy *security_policy = NULL;
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    notnull_check(security_policy);
+    notnull_check(ecc_pref = security_policy->ecc_preferences);
 
     const struct s2n_ecc_named_curve *named_curve = NULL;
     struct s2n_ecc_evp_params *ecc_evp_params = NULL;

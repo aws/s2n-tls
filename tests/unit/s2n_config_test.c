@@ -20,7 +20,6 @@
 #include "crypto/s2n_fips.h"
 
 #include "tls/s2n_config.h"
-#include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
@@ -112,14 +111,14 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(config = s2n_config_new());
             EXPECT_EQUAL(config->security_policy, default_security_policy);
             EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20140601);
-            EXPECT_EQUAL(config->ecc_preferences, &s2n_ecc_preferences_20140601);
+            EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20140601);
             EXPECT_SUCCESS(s2n_config_free(config));
 
             EXPECT_SUCCESS(s2n_enable_tls13());
             EXPECT_NOT_NULL(config = s2n_config_new());
             EXPECT_EQUAL(config->security_policy, tls13_security_policy);
             EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
-            EXPECT_EQUAL(config->ecc_preferences, &s2n_ecc_preferences_20200310);
+            EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_disable_tls13());
         }

@@ -19,7 +19,7 @@
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_blob.h"
 #include "tls/extensions/s2n_client_supported_groups.h"
-#include "tls/s2n_ecc_preferences.h"
+#include "tls/s2n_security_policies.h"
 
 int main(int argc, char **argv)
 {
@@ -37,10 +37,13 @@ int main(int argc, char **argv)
          * should contain the sent group.
          */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_NOT_NULL(server_conn->config);
-        const struct s2n_ecc_preferences *ecc_pref = server_conn->config->ecc_preferences;
-        EXPECT_NOT_NULL(ecc_pref);
-        
+
+        const struct s2n_security_policy *security_policy = NULL;
+        const struct s2n_ecc_preferences *ecc_pref = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);;
+
         uint8_t data[2] = {0};
         EXPECT_SUCCESS(s2n_blob_init(&iana_ids, data, sizeof(data)));
         EXPECT_SUCCESS(s2n_stuffer_init(&out, &iana_ids));
@@ -65,9 +68,12 @@ int main(int argc, char **argv)
         uint8_t data[2] = {0};
         EXPECT_SUCCESS(s2n_blob_init(&iana_ids, data, sizeof(data)));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_NOT_NULL(server_conn->config);
-        const struct s2n_ecc_preferences *ecc_pref = server_conn->config->ecc_preferences;
-        EXPECT_NOT_NULL(ecc_pref);
+
+        const struct s2n_security_policy *security_policy = NULL;
+        const struct s2n_ecc_preferences *ecc_pref = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
 
         EXPECT_SUCCESS(s2n_parse_client_supported_groups_list(server_conn, &iana_ids, server_conn->secure.mutually_supported_groups));
 
@@ -82,9 +88,12 @@ int main(int argc, char **argv)
         * mutually_supported_groups should contain only the group that the server supports.
         */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_NOT_NULL(server_conn->config);
-        const struct s2n_ecc_preferences *ecc_pref = server_conn->config->ecc_preferences;
-        EXPECT_NOT_NULL(ecc_pref);
+
+        const struct s2n_security_policy *security_policy = NULL;
+        const struct s2n_ecc_preferences *ecc_pref = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
 
         uint8_t data[6] = {0};
         EXPECT_SUCCESS(s2n_blob_init(&iana_ids, data, sizeof(data)));

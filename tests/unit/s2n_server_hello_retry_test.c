@@ -20,9 +20,8 @@
 #include "tls/extensions/s2n_key_share.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
 
-#include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_ecc_preferences.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
@@ -382,7 +381,13 @@ int main(int argc, char **argv)
 
         /* Before sending the second message, clear out the existing keys.
          * Otherwise we will leak memory in this test. */
-        const struct s2n_ecc_preferences *ecc_pref = client_conn->config->ecc_preferences;
+
+        const struct s2n_security_policy *security_policy = NULL;
+        const struct s2n_ecc_preferences *ecc_pref = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(client_conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+
         for (int i=0; i<ecc_pref->count; i++) {
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_conn->secure.client_ecc_evp_params[i]));
         }

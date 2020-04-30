@@ -19,12 +19,14 @@
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_signature_scheme.h"
+#include "tls/s2n_ecc_preferences.h"
 
 struct s2n_security_policy {
     uint8_t minimum_protocol_version;
     const struct s2n_cipher_preferences *cipher_preferences;
     const struct s2n_kem_preferences *kem_preferences;
     const struct s2n_signature_preferences *signature_preferences;
+    const struct s2n_ecc_preferences *ecc_preferences;
 };
 
 extern const struct s2n_security_policy security_policy_20140601;

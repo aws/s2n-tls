@@ -21,7 +21,7 @@
 #include <openssl/err.h>
 
 #include "tls/extensions/s2n_server_key_share.h"
-#include "tls/s2n_ecc_preferences.h"
+#include "tls/s2n_security_policies.h"
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -71,9 +71,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     GUARD(s2n_stuffer_read_uint8(&fuzz_stuffer, &randval));
     client_conn->actual_protocol_version = TLS_VERSIONS[randval % s2n_array_len(TLS_VERSIONS)];
 
-    EXPECT_NOT_NULL(client_conn->config);
-    const struct s2n_ecc_preferences *ecc_preferences = client_conn->config->ecc_preferences;
-    EXPECT_NOT_NULL(ecc_preferences);
+    const struct s2n_security_policy *security_policy = NULL;
+    const struct s2n_ecc_preferences *ecc_preferences = NULL;
+    GUARD(s2n_connection_get_security_policy(client_conn, &security_policy));
+    notnull_check(security_policy);
+    notnull_check(ecc_preferences = security_policy->ecc_preferences);
     
     /* Generate ephemeral keys for all supported curves */
     for (int i = 0; i < ecc_preferences->count; i++) {

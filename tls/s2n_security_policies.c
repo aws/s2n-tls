@@ -24,6 +24,7 @@ const struct s2n_security_policy security_policy_20170210 = {
     .cipher_preferences = &cipher_preferences_20170210,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_20190801 = {
@@ -36,6 +37,7 @@ const struct s2n_security_policy security_policy_20190801 = {
      * name because customers use it.
      */
     .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
 const struct s2n_security_policy security_policy_20170405 = {
@@ -43,6 +45,7 @@ const struct s2n_security_policy security_policy_20170405 = {
     .cipher_preferences = &cipher_preferences_20170405,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_elb_2015_04 = {
@@ -50,6 +53,7 @@ const struct s2n_security_policy security_policy_elb_2015_04 = {
     .cipher_preferences = &elb_security_policy_2015_04,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_elb_2016_08 = {
@@ -57,6 +61,7 @@ const struct s2n_security_policy security_policy_elb_2016_08 = {
     .cipher_preferences = &elb_security_policy_2015_04,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_elb_tls_1_1_2017_01 = {
@@ -64,6 +69,7 @@ const struct s2n_security_policy security_policy_elb_tls_1_1_2017_01 = {
     .cipher_preferences = &elb_security_policy_tls_1_1_2017_01,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_elb_tls_1_2_2017_01 = {
@@ -71,6 +77,7 @@ const struct s2n_security_policy security_policy_elb_tls_1_2_2017_01 = {
     .cipher_preferences = &elb_security_policy_tls_1_2_2017_01,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_elb_tls_1_2_ext_2018_06 = {
@@ -78,6 +85,7 @@ const struct s2n_security_policy security_policy_elb_tls_1_2_ext_2018_06 = {
     .cipher_preferences = &elb_security_policy_tls_1_2_ext_2018_06,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_elb_fs_2018_06 = {
@@ -85,6 +93,7 @@ const struct s2n_security_policy security_policy_elb_fs_2018_06 = {
     .cipher_preferences = &elb_security_policy_fs_2018_06,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_elb_fs_1_2_2019_08 = {
@@ -92,6 +101,7 @@ const struct s2n_security_policy security_policy_elb_fs_1_2_2019_08 = {
     .cipher_preferences = &elb_security_policy_fs_1_2_2019_08,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_elb_fs_1_1_2019_08 = {
@@ -99,6 +109,7 @@ const struct s2n_security_policy security_policy_elb_fs_1_1_2019_08 = {
     .cipher_preferences = &elb_security_policy_fs_1_1_2019_08,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_elb_fs_1_2_Res_2019_08 = {
@@ -106,6 +117,7 @@ const struct s2n_security_policy security_policy_elb_fs_1_2_Res_2019_08 = {
     .cipher_preferences = &elb_security_policy_fs_1_2_Res_2019_08,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream = {
@@ -113,6 +125,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream = {
     .cipher_preferences = &cipher_preferences_cloudfront_upstream,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_tls10 = {
@@ -120,6 +133,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_tls10 = {
     .cipher_preferences = &cipher_preferences_cloudfront_upstream_tls10,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_tls11 = {
@@ -127,6 +141,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_tls11 = {
     .cipher_preferences = &cipher_preferences_cloudfront_upstream_tls11,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_tls12 = {
@@ -134,6 +149,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_tls12 = {
     .cipher_preferences = &cipher_preferences_cloudfront_upstream_tls12,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_ssl_v_3 = {
@@ -141,6 +157,7 @@ const struct s2n_security_policy security_policy_cloudfront_ssl_v_3 = {
     .cipher_preferences = &cipher_preferences_cloudfront_ssl_v_3,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014 = {
@@ -148,6 +165,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2014 = {
     .cipher_preferences = &cipher_preferences_cloudfront_tls_1_0_2014,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2016 = {
@@ -155,6 +173,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_0_2016 = {
     .cipher_preferences = &cipher_preferences_cloudfront_tls_1_0_2016,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_1_2016 = {
@@ -162,6 +181,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_1_2016 = {
     .cipher_preferences = &cipher_preferences_cloudfront_tls_1_1_2016,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018 = {
@@ -169,6 +189,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018 = {
     .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2018,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019 = {
@@ -176,6 +197,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019 = {
     .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2019,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2020 = {
@@ -183,6 +205,7 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2020 = {
     .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2020,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_kms_tls_1_0_2018_10 = {
@@ -190,6 +213,7 @@ const struct s2n_security_policy security_policy_kms_tls_1_0_2018_10 = {
     .cipher_preferences = &cipher_preferences_kms_tls_1_0_2018_10,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 #if !defined(S2N_NO_PQ)
@@ -199,6 +223,7 @@ const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2019_06 = {
     .cipher_preferences = &cipher_preferences_kms_pq_tls_1_0_2019_06,
     .kem_preferences = &kem_preferences_kms_pq_tls_1_0_2019_06,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_02 = {
@@ -206,6 +231,7 @@ const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_02 = {
     .cipher_preferences = &cipher_preferences_kms_pq_tls_1_0_2020_02,
     .kem_preferences = &kem_preferences_kms_pq_tls_1_0_2020_02,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2019_11 = {
@@ -213,6 +239,7 @@ const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2019_11 = 
     .cipher_preferences = &cipher_preferences_pq_sike_test_tls_1_0_2019_11,
     .kem_preferences = &kem_preferences_pq_sike_test_tls_1_0_2019_11,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2020_02 = {
@@ -220,6 +247,7 @@ const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2020_02 = 
     .cipher_preferences = &cipher_preferences_pq_sike_test_tls_1_0_2020_02,
     .kem_preferences = &kem_preferences_pq_sike_test_tls_1_0_2020_02,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 #endif
@@ -228,6 +256,7 @@ const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2018_10 = {
     .cipher_preferences = &cipher_preferences_kms_fips_tls_1_2_2018_10,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_20140601 = {
@@ -235,6 +264,7 @@ const struct s2n_security_policy security_policy_20140601 = {
     .cipher_preferences = &cipher_preferences_20140601,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_20141001 = {
@@ -242,6 +272,7 @@ const struct s2n_security_policy security_policy_20141001 = {
     .cipher_preferences = &cipher_preferences_20141001,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_20150202 = {
@@ -249,6 +280,7 @@ const struct s2n_security_policy security_policy_20150202 = {
     .cipher_preferences = &cipher_preferences_20150202,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_20150214 = {
@@ -256,6 +288,7 @@ const struct s2n_security_policy security_policy_20150214 = {
     .cipher_preferences = &cipher_preferences_20150214,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_20160411 = {
@@ -263,6 +296,7 @@ const struct s2n_security_policy security_policy_20160411 = {
     .cipher_preferences = &cipher_preferences_20160411,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_20150306 = {
@@ -270,6 +304,7 @@ const struct s2n_security_policy security_policy_20150306 = {
     .cipher_preferences = &cipher_preferences_20150306,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_20160804 = {
@@ -277,6 +312,7 @@ const struct s2n_security_policy security_policy_20160804 = {
     .cipher_preferences = &cipher_preferences_20160804,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_20160824 = {
@@ -284,6 +320,7 @@ const struct s2n_security_policy security_policy_20160824 = {
     .cipher_preferences = &cipher_preferences_20160824,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_20190122 = {
@@ -291,6 +328,7 @@ const struct s2n_security_policy security_policy_20190122 = {
     .cipher_preferences = &cipher_preferences_20190122,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_20190121 = {
@@ -298,6 +336,7 @@ const struct s2n_security_policy security_policy_20190121 = {
     .cipher_preferences = &cipher_preferences_20190121,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_20190120 = {
@@ -305,6 +344,7 @@ const struct s2n_security_policy security_policy_20190120 = {
     .cipher_preferences = &cipher_preferences_20190120,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_20190214 = {
@@ -312,6 +352,7 @@ const struct s2n_security_policy security_policy_20190214 = {
     .cipher_preferences = &cipher_preferences_20190214,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_20170328 = {
@@ -319,6 +360,7 @@ const struct s2n_security_policy security_policy_20170328 = {
     .cipher_preferences = &cipher_preferences_20170328,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_20170718 = {
@@ -326,6 +368,7 @@ const struct s2n_security_policy security_policy_20170718 = {
     .cipher_preferences = &cipher_preferences_20170718,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_test_all = {
@@ -337,6 +380,7 @@ const struct s2n_security_policy security_policy_test_all = {
     .kem_preferences = &kem_preferences_null,
 #endif
     .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
 const struct s2n_security_policy security_policy_test_all_tls12 = {
@@ -348,6 +392,7 @@ const struct s2n_security_policy security_policy_test_all_tls12 = {
     .kem_preferences = &kem_preferences_null,
 #endif
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_test_all_fips = {
@@ -355,6 +400,7 @@ const struct s2n_security_policy security_policy_test_all_fips = {
     .cipher_preferences = &cipher_preferences_test_all_fips,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_test_all_ecdsa = {
@@ -362,6 +408,7 @@ const struct s2n_security_policy security_policy_test_all_ecdsa = {
     .cipher_preferences = &cipher_preferences_test_all_ecdsa,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_test_all_rsa_kex = {
@@ -369,6 +416,7 @@ const struct s2n_security_policy security_policy_test_all_rsa_kex = {
     .cipher_preferences = &cipher_preferences_test_all_rsa_kex,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_test_all_tls13 = {
@@ -376,13 +424,15 @@ const struct s2n_security_policy security_policy_test_all_tls13 = {
     .cipher_preferences = &cipher_preferences_test_all_tls13,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
 const struct s2n_security_policy security_policy_test_ecdsa_priority = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_ecdsa_priority,
     .kem_preferences = &kem_preferences_null,    
-    .signature_preferences = &s2n_signature_preferences_20140601,    
+    .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,    
 };
 
 const struct s2n_security_policy security_policy_null = {
@@ -390,6 +440,7 @@ const struct s2n_security_policy security_policy_null = {
     .cipher_preferences = &cipher_preferences_null,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 struct {
@@ -503,6 +554,9 @@ int s2n_security_policies_init()
         notnull_check(cipher_preference);
         const struct s2n_kem_preferences *kem_preference = security_policy->kem_preferences;
         notnull_check(kem_preference);
+        const struct s2n_ecc_preferences *ecc_preference = security_policy->ecc_preferences;
+        notnull_check(ecc_preference);
+        GUARD(s2n_check_ecc_preferences_curves_list(ecc_preference));
         for (int j = 0; j < cipher_preference->count; j++) {
             struct s2n_cipher_suite *cipher = cipher_preference->suites[j];
             notnull_check(cipher);

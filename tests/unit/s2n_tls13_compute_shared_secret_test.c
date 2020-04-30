@@ -22,6 +22,7 @@
 #include <s2n.h>
 
 #include "tls/s2n_tls13_handshake.c"
+#include "tls/s2n_security_policies.h"
 
 int main(int argc, char **argv) {
 
@@ -37,8 +38,14 @@ int main(int argc, char **argv) {
 
         client_conn->actual_protocol_version = S2N_TLS13;
 
+        const struct s2n_security_policy *security_policy = NULL;
+        const struct s2n_ecc_preferences *ecc_pref = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(client_conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+
         /* Select curve and generate key for client */
-        client_conn->secure.client_ecc_evp_params[0].negotiated_curve = client_conn->config->ecc_preferences->ecc_curves[0];
+        client_conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[0]));
         /* Recreating conditions where negotiated curve was not set */
         struct s2n_ecc_evp_params missing_params = {NULL,NULL};
@@ -58,12 +65,18 @@ int main(int argc, char **argv) {
 
         client_conn->actual_protocol_version = S2N_TLS13;
 
+        const struct s2n_security_policy *security_policy = NULL;
+        const struct s2n_ecc_preferences *ecc_pref = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(client_conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+
         /* Select curve and generate key for client */
-        client_conn->secure.client_ecc_evp_params[0].negotiated_curve = client_conn->config->ecc_preferences->ecc_curves[0];
+        client_conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[0]));
 
         /* Set curve server sent in server hello */
-        client_conn->secure.server_ecc_evp_params.negotiated_curve = client_conn->config->ecc_preferences->ecc_curves[0];
+        client_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
         DEFER_CLEANUP(struct s2n_blob client_shared_secret = {0}, s2n_free);
         /* Compute fails because server's public key is missing */
@@ -78,14 +91,20 @@ int main(int argc, char **argv) {
     {
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
+        const struct s2n_security_policy *security_policy = NULL;
+        const struct s2n_ecc_preferences *ecc_pref = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(client_conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+
         client_conn->actual_protocol_version = S2N_TLS13;
 
         /* Select curve and generate key for client */
-        client_conn->secure.client_ecc_evp_params[0].negotiated_curve = client_conn->config->ecc_preferences->ecc_curves[0];
+        client_conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[0]));
 
         /* Set curve server sent in server hello */
-        client_conn->secure.server_ecc_evp_params.negotiated_curve = client_conn->config->ecc_preferences->ecc_curves[0];
+        client_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
         /* Generate public key server sent in server hello */
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.server_ecc_evp_params));
