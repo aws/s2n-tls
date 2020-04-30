@@ -25,7 +25,7 @@ void ensure_s2n_blob_has_allocated_fields(struct s2n_blob* blob) {
 struct s2n_blob* cbmc_allocate_s2n_blob() {
     struct s2n_blob* blob = can_fail_malloc(sizeof(*blob));
     if (blob !=  NULL) {
-	ensure_s2n_blob_has_allocated_fields(blob);
+	      ensure_s2n_blob_has_allocated_fields(blob);
     }
     return blob;
 }
