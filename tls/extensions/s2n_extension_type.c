@@ -19,6 +19,7 @@
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_client_extensions.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_tls13.h"
 #include "utils/s2n_bitmap.h"
 #include "utils/s2n_safety.h"
 
@@ -155,6 +156,11 @@ int s2n_extension_always_send(struct s2n_connection *conn)
 int s2n_extension_never_send(struct s2n_connection *conn)
 {
     return false;
+}
+
+int s2n_extension_send_if_tls13_enabled(struct s2n_connection *conn)
+{
+    return s2n_is_tls13_enabled();
 }
 
 int s2n_extension_error_if_missing(struct s2n_connection *conn)

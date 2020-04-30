@@ -18,6 +18,9 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_tls_parameters.h"
 
+#define S2N_EXTENSION_TYPE_FIELD_LENGTH     2
+#define S2N_EXTENSION_LENGTH_FIELD_LENGTH   2
+
 /* The number of extensions supported by S2N */
 #define S2N_SUPPORTED_EXTENSIONS_COUNT          (sizeof(s2n_supported_extensions) / sizeof(s2n_supported_extensions[0]))
 
@@ -75,6 +78,7 @@ int s2n_extension_recv_unimplemented(struct s2n_connection *conn, struct s2n_stu
 /* Common implementations for should_send */
 int s2n_extension_always_send(struct s2n_connection *conn);
 int s2n_extension_never_send(struct s2n_connection *conn);
+int s2n_extension_send_if_tls13_enabled(struct s2n_connection *conn);
 
 /* Common implementations for if_missing */
 int s2n_extension_error_if_missing(struct s2n_connection *conn);
