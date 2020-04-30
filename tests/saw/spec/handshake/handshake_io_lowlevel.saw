@@ -174,7 +174,7 @@ let setup_connection = do {
 
    let client_cert_auth_type = {{ if cca_ov != 0 then cca else config_cca }};
 
-   // This return a connection containing a handshake. If the connection or the handshake
+   // This returns a connection containing a handshake. If the connection or the handshake
    // definitions are changed, they must also be changed here.
    return (pconn, {{ {corked_io = corked_io
                      ,mode      = mode
