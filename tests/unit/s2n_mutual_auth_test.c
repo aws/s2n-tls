@@ -89,9 +89,9 @@ int main(int argc, char **argv)
         struct s2n_stuffer server_to_client;
 
         /* Craft a cipher preference with a cipher_idx cipher
-           NOTE: Its safe to use memcpy as the address of server_cipher_preferences
+           NOTE: Its safe to use EXPECT_MEMCPY_SUCCESS as the address of server_cipher_preferences
            will never be NULL */
-        memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
+        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
 
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 
         server_cipher_preferences.suites = &cur_cipher;
 
-        memcpy(&server_security_policy, default_security_policy, sizeof(server_security_policy));
+        EXPECT_MEMCPY_SUCCESS(&server_security_policy, default_security_policy, sizeof(server_security_policy));
         server_security_policy.cipher_preferences = &server_cipher_preferences;
         
         config->security_policy = &server_security_policy;
@@ -165,9 +165,9 @@ int main(int argc, char **argv)
         struct s2n_stuffer server_to_client;
 
         /* Craft a cipher preference with a cipher_idx cipher
-           NOTE: Its safe to use memcpy as the address of server_cipher_preferences
+           NOTE: Its safe to use EXPECT_MEMCPY_SUCCESS as the address of server_cipher_preferences
            will never be NULL */
-        memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
+        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
 
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
         }
 
         server_cipher_preferences.suites = &cur_cipher;
-        memcpy(&server_security_policy, default_security_policy, sizeof(server_security_policy));
+        EXPECT_MEMCPY_SUCCESS(&server_security_policy, default_security_policy, sizeof(server_security_policy));
         server_security_policy.cipher_preferences = &server_cipher_preferences;
         config->security_policy = &server_security_policy;
 
@@ -236,9 +236,9 @@ int main(int argc, char **argv)
         struct s2n_stuffer server_to_client;
 
         /* Craft a cipher preference with a cipher_idx cipher
-           NOTE: Its safe to use memcpy as the address of server_cipher_preferences
+           NOTE: Its safe to use EXPECT_MEMCPY_SUCCESS as the address of server_cipher_preferences
            will never be NULL */
-        memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
+        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
 
@@ -249,7 +249,7 @@ int main(int argc, char **argv)
 
         server_cipher_preferences.suites = &cur_cipher;
         
-        memcpy(&server_security_policy, default_security_policy, sizeof(server_security_policy));
+        EXPECT_MEMCPY_SUCCESS(&server_security_policy, default_security_policy, sizeof(server_security_policy));
         server_security_policy.cipher_preferences = &server_cipher_preferences;
         
         config->security_policy = &server_security_policy;
@@ -312,9 +312,9 @@ int main(int argc, char **argv)
         struct s2n_stuffer server_to_client;
 
         /* Craft a cipher preference with a cipher_idx cipher
-           NOTE: Its safe to use memcpy as the address of server_cipher_preferences
+           NOTE: Its safe to use EXPECT_MEMCPY_SUCCESS as the address of server_cipher_preferences
            will never be NULL */
-        memcpy(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
+        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
 
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
 
         server_cipher_preferences.suites = &cur_cipher;
 
-        memcpy(&server_security_policy, default_security_policy, sizeof(server_security_policy));
+        EXPECT_MEMCPY_SUCCESS(&server_security_policy, default_security_policy, sizeof(server_security_policy));
         server_security_policy.cipher_preferences = &server_cipher_preferences;
 
         config->security_policy = &server_security_policy;

@@ -235,7 +235,7 @@ int main(int argc, char **argv)
 
         /* Verify that client_ticket is same as before because server didn't issue a NST */
         uint8_t old_session_ticket[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES];
-        memcpy(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES);
+        EXPECT_MEMCPY_SUCCESS(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES);
         EXPECT_TRUE(s2n_connection_is_session_resumed(client_conn));
         s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length);
         EXPECT_BYTEARRAY_EQUAL(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES);
@@ -297,7 +297,7 @@ int main(int argc, char **argv)
 
         /* Verify that client_ticket is not same as before because server issued a NST */
         uint8_t old_session_ticket[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES];
-        memcpy(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES);
+        EXPECT_MEMCPY_SUCCESS(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES);
 
         s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length);
         EXPECT_TRUE(memcmp(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES));
@@ -360,7 +360,7 @@ int main(int argc, char **argv)
 
         /* Verify that client_ticket is same as before because server did not issue a NST */
         uint8_t old_session_ticket[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES];
-        memcpy(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES);
+        EXPECT_MEMCPY_SUCCESS(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES);
 
         s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length);
         EXPECT_FALSE(memcmp(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES));
@@ -508,7 +508,7 @@ int main(int argc, char **argv)
         tampered_session_state[1] = serialized_session_state[1];
         tampered_session_state[2] = serialized_session_state[2] - 1;
         /* Skip 1 byte of the session ticket and copy the rest */
-        memcpy(tampered_session_state + 3, serialized_session_state + 4, sizeof(tampered_session_state) - 4);
+        EXPECT_MEMCPY_SUCCESS(tampered_session_state + 3, serialized_session_state + 4, sizeof(tampered_session_state) - 4);
 
         /* Set client tampered ST and session state */
         EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tampered_session_state, serialized_session_state_length - 1));

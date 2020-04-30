@@ -56,8 +56,8 @@ int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, c
 
     uint8_t index = ((const uint8_t *)key)[0];
 
-    memcpy(cache[index].key, key, key_size);
-    memcpy(cache[index].value, value, value_size);
+    EXPECT_MEMCPY_SUCCESS(cache[index].key, key, key_size);
+    EXPECT_MEMCPY_SUCCESS(cache[index].value, value, value_size);
 
     cache[index].key_len = key_size;
     cache[index].value_len = value_size;
@@ -96,7 +96,7 @@ int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *
     }
 
     *value_size = cache[index].value_len;
-    memcpy(value, cache[index].value, cache[index].value_len);
+    EXPECT_MEMCPY_SUCCESS(value, cache[index].value, cache[index].value_len);
 
     return 0;
 }
@@ -161,7 +161,7 @@ void mock_client(struct s2n_test_piped_io *piped_io)
     s2n_connection_set_piped_io(conn, piped_io);
 
     /* Set the session id to ensure we're able to fallback to full handshake if session is not in server cache */
-    memcpy(conn->session_id, SESSION_ID, S2N_TLS_SESSION_ID_MAX_LEN);
+    EXPECT_MEMCPY_SUCCESS(conn->session_id, SESSION_ID, S2N_TLS_SESSION_ID_MAX_LEN);
     conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
 
     if (s2n_negotiate(conn, &blocked) != 0) {

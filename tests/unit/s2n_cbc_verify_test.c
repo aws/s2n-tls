@@ -153,7 +153,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_hmac_init(&record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 
-        memcpy(fragment, random_data, i - 20 - 1);
+        EXPECT_MEMCPY_SUCCESS(fragment, random_data, i - 20 - 1);
         EXPECT_SUCCESS(s2n_hmac_update(&record_mac, fragment, i - 20 - 1));
         EXPECT_SUCCESS(s2n_hmac_digest(&record_mac, fragment + (i - 20 - 1), 20));
 
@@ -197,7 +197,7 @@ int main(int argc, char **argv)
             fragment[i - j] = 254;
         }
 
-        memcpy(fragment, random_data, i - 20 - 255);
+        EXPECT_MEMCPY_SUCCESS(fragment, random_data, i - 20 - 255);
         EXPECT_SUCCESS(s2n_hmac_update(&record_mac, fragment, i - 20 - 255));
         EXPECT_SUCCESS(s2n_hmac_digest(&record_mac, fragment + (i - 20 - 255), 20));
 
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
             fragment[i - j] = 15;
         }
 
-        memcpy(fragment, random_data, i - 20 - 16);
+        EXPECT_MEMCPY_SUCCESS(fragment, random_data, i - 20 - 16);
         EXPECT_SUCCESS(s2n_hmac_update(&record_mac, fragment, i - 20 - 16));
         EXPECT_SUCCESS(s2n_hmac_digest(&record_mac, fragment + (i - 20 - 16), 20));
 
