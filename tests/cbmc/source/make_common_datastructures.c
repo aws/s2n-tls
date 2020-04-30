@@ -14,6 +14,11 @@
  */
 
 #include <cbmc_proof/make_common_datastructures.h>
+
+bool s2n_blob_is_bounded(const struct s2n_blob* blob, const size_t max_size) {
+    return (blob->size <= max_size);
+}
+
 void ensure_s2n_blob_has_allocated_fields(struct s2n_blob* blob) {
     if(blob->growable) {
         blob->data = (blob->allocated == 0) ? NULL : bounded_malloc(blob->allocated);

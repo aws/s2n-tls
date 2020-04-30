@@ -297,6 +297,11 @@ extern __thread const char *s2n_debug_str;
 #endif /* CBMC */
 
 #define S2N_IMPLIES(a, b) (!(a) || (b))
+/**
+ * If and only if (iff) is a biconditional logical connective between statements a and b.
+ * Equivalent to (S2N_IMPLIES(a, b) && S2N_IMPLIES(b, a)).
+ */
+#define S2N_IFF(a, b) (!!(a) == !!(b))
 
 /** Calculate and print stacktraces */
 struct s2n_stacktrace {

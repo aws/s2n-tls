@@ -28,6 +28,7 @@ bool s2n_blob_is_valid(const struct s2n_blob* b)
 {
     return S2N_OBJECT_PTR_IS_READABLE(b) &&
            S2N_IMPLIES(b->data == NULL, b->size == 0) &&
+           S2N_IMPLIES(b->data == NULL, b->allocated == 0) &&
            S2N_IMPLIES(b->growable == 0, b->allocated == 0) &&
            S2N_IMPLIES(b->growable != 0, b->size <= b->allocated) &&
            S2N_MEM_IS_READABLE(b->data, b->allocated) &&
@@ -70,12 +71,11 @@ int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t of
 
 int s2n_blob_char_to_lower(struct s2n_blob *b)
 {
-    uint8_t *ptr = b->data;
-    for (int i = 0; i < b->size; i++ ) {
-        *ptr = tolower(*ptr);
-        ptr++;
+    PRECONDITION_POSIX(s2n_blob_is_valid(b));
+    for (size_t i = 0; i < b->size; i++) {
+        b->data[i] = tolower(b->data[i]);
     }
-
+    POSTCONDITION_POSIX(s2n_blob_is_valid(b));
     return S2N_SUCCESS;
 }
 
