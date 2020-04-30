@@ -15,27 +15,27 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <signal.h>
 #include <errno.h>
 #include <s2n.h>
-
-#include "tls/extensions/s2n_extension_type.h"
-#include "tls/s2n_tls_parameters.h"
-#include "tls/s2n_handshake.h"
-#include "tls/s2n_client_hello.h"
-#include "tls/s2n_crypto.h"
-#include "tls/s2n_config.h"
-#include "tls/s2n_prf.h"
-#include "tls/s2n_x509_validator.h"
+#include <signal.h>
+#include <stdint.h>
 
 #include "stuffer/s2n_stuffer.h"
+
+#include "tls/extensions/s2n_extension_type.h"
+#include "tls/s2n_client_hello.h"
+#include "tls/s2n_config.h"
+#include "tls/s2n_crypto.h"
+#include "tls/s2n_handshake.h"
+#include "tls/s2n_prf.h"
+#include "tls/s2n_tls_parameters.h"
+#include "tls/s2n_x509_validator.h"
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
 
-#include "utils/s2n_timer.h"
 #include "utils/s2n_mem.h"
+#include "utils/s2n_timer.h"
 
 #define S2N_TLS_PROTOCOL_VERSION_LEN    2
 
@@ -51,8 +51,8 @@ struct s2n_connection {
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
 
-    /* Overrides Cipher Preferences in config if non-null */
-    const struct s2n_cipher_preferences *cipher_pref_override;
+    /* Overrides Security Policy in config if non-null */
+    const struct s2n_security_policy *security_policy_override;
 
     /* The user defined context associated with connection */
     void *context;
@@ -309,8 +309,9 @@ int s2n_connection_kill(struct s2n_connection *conn);
 int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connection *conn, uint32_t len);
 int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connection *conn, uint32_t len);
 
-extern int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const struct s2n_cipher_preferences **cipher_preferences);
-extern int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct s2n_blob **protocol_preferences);
-extern int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
-extern int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_cert_auth_type);
-extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
+int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const struct s2n_cipher_preferences **cipher_preferences);
+int s2n_connection_get_security_policy(struct s2n_connection *conn, const struct s2n_security_policy **security_policy);
+int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct s2n_blob **protocol_preferences);
+int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
+int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_cert_auth_type);
+int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);

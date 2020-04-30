@@ -13,19 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
 #include <stdint.h>
+#include <sys/param.h>
 
 #include "tls/extensions/s2n_supported_versions.h"
-#include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_security_policies.h"
 
 #include "utils/s2n_safety.h"
 
-int s2n_connection_get_minimum_supported_version(struct s2n_connection *conn, uint8_t *min_version) 
+int s2n_connection_get_minimum_supported_version(struct s2n_connection *conn, uint8_t *min_version)
 {
-    const struct s2n_cipher_preferences *cipher_preferences;
-    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
-    *min_version = cipher_preferences->minimum_protocol_version;
+    const struct s2n_security_policy *security_policy;
+    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    *min_version = security_policy->minimum_protocol_version;
 
     return 0;
 }

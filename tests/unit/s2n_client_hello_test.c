@@ -29,15 +29,14 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_client_hello.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_tls_parameters.h"
 
 #include "utils/s2n_safety.h"
 
-
-#define ZERO_TO_THIRTY_ONE  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, \
+#define ZERO_TO_THIRTY_ONE 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, \
                             0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
 
 #define LENGTH_TO_CIPHER_LIST (S2N_TLS_PROTOCOL_VERSION_LEN + S2N_TLS_RANDOM_DATA_LEN + 1)
@@ -194,7 +193,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
-            EXPECT_TRUE(s2n_cipher_preference_supports_tls13(config->cipher_preferences));
+            EXPECT_TRUE(s2n_security_policy_supports_tls13(config->security_policy));
 
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS13);
@@ -211,9 +210,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default"));
 
-            const struct s2n_cipher_preferences *cipher_preferences;
-            GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
-            EXPECT_FALSE(s2n_cipher_preference_supports_tls13(cipher_preferences));
+            const struct s2n_security_policy *security_policy;
+            GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+            EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
@@ -230,7 +229,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
-            EXPECT_TRUE(s2n_cipher_preference_supports_tls13(config->cipher_preferences));
+            EXPECT_TRUE(s2n_security_policy_supports_tls13(config->security_policy));
 
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
 
@@ -247,9 +246,9 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
 
-            const struct s2n_cipher_preferences *cipher_preferences;
-            GUARD(s2n_connection_get_cipher_preferences(server_conn, &cipher_preferences));
-            EXPECT_FALSE(s2n_cipher_preference_supports_tls13(cipher_preferences));
+            const struct s2n_security_policy *security_policy;
+            GUARD(s2n_connection_get_security_policy(server_conn, &security_policy));
+            EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io, s2n_stuffer_data_available(&client_conn->handshake.io)));
 
@@ -316,7 +315,7 @@ int main(int argc, char **argv)
         /* Verify s2n_connection_get_client_hello returns the handle to the s2n_client_hello on the connection */
         EXPECT_EQUAL(client_hello, &server_conn->client_hello);
 
-        uint8_t* collected_client_hello = client_hello->raw_message.blob.data;
+        uint8_t *collected_client_hello = client_hello->raw_message.blob.data;
         uint16_t collected_client_hello_len = client_hello->raw_message.blob.size;
 
         /* Verify collected client hello message length */
@@ -387,8 +386,8 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
         s2n_blocked_status server_blocked;
-        uint8_t* sent_client_hello;
-        uint8_t* expected_client_hello;
+        uint8_t *sent_client_hello;
+        uint8_t *expected_client_hello;
 
         uint8_t client_extensions[] = {
             /* Extension type TLS_EXTENSION_SERVER_NAME */
@@ -457,8 +456,8 @@ int main(int argc, char **argv)
         };
 
         EXPECT_NOT_NULL(sent_client_hello = malloc(sent_client_hello_len));
-        memcpy_check(sent_client_hello, client_hello_prefix, client_hello_prefix_len);
-        memcpy_check(sent_client_hello + client_hello_prefix_len, client_extensions, client_extensions_len);
+        memcpy(sent_client_hello, client_hello_prefix, client_hello_prefix_len);
+        memcpy(sent_client_hello + client_hello_prefix_len, client_extensions, client_extensions_len);
 
         /* Create nonblocking pipes */
         struct s2n_test_piped_io piped_io;
@@ -500,7 +499,7 @@ int main(int argc, char **argv)
         /* Verify s2n_connection_get_client_hello returns the handle to the s2n_client_hello on the connection */
         EXPECT_EQUAL(client_hello, &server_conn->client_hello);
 
-        uint8_t* collected_client_hello = client_hello->raw_message.blob.data;
+        uint8_t *collected_client_hello = client_hello->raw_message.blob.data;
         uint16_t collected_client_hello_len = client_hello->raw_message.blob.size;
 
         /* Verify collected client hello message length */
@@ -513,14 +512,14 @@ int main(int argc, char **argv)
 
         /* Verify the collected client hello matches what was sent except for the zero-ed client random */
         EXPECT_NOT_NULL(expected_client_hello = malloc(sent_client_hello_len));
-        memcpy_check(expected_client_hello, sent_client_hello, sent_client_hello_len);
+        memcpy(expected_client_hello, sent_client_hello, sent_client_hello_len);
         memset_check(expected_client_hello + client_random_offset, 0, S2N_TLS_RANDOM_DATA_LEN);
         EXPECT_SUCCESS(memcmp(collected_client_hello, expected_client_hello, sent_client_hello_len));
 
         /* Verify s2n_client_hello_get_raw_message_length correct */
         EXPECT_EQUAL(s2n_client_hello_get_raw_message_length(client_hello), sent_client_hello_len);
 
-        uint8_t* raw_ch_out;
+        uint8_t *raw_ch_out;
 
         /* Verify s2n_client_hello_get_raw_message retrieves the full message when its len <= max_len */
         EXPECT_TRUE(collected_client_hello_len < S2N_LARGE_RECORD_LENGTH);
@@ -551,7 +550,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_client_hello_get_cipher_suites_length(client_hello), sizeof(expected_cs));
 
         /* Verify s2n_client_hello_get_cipher_suites correct */
-        uint8_t* cs_out;
+        uint8_t *cs_out;
 
         /* Verify s2n_client_hello_get_cipher_suites retrieves the full cipher_suites when its len <= max_len */
         EXPECT_TRUE(client_hello->cipher_suites.size < S2N_LARGE_RECORD_LENGTH);
@@ -581,7 +580,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_client_hello_get_extensions_length(client_hello), client_extensions_len);
 
         /* Verify s2n_client_hello_get_extensions correct */
-        uint8_t* extensions_out;
+        uint8_t *extensions_out;
 
         /* Verify s2n_client_hello_get_extensions retrieves the full cipher_suites when its len <= max_len */
         EXPECT_TRUE(client_hello->extensions.size < S2N_LARGE_RECORD_LENGTH);
@@ -719,7 +718,7 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
         s2n_blocked_status server_blocked;
-        uint8_t* sent_client_hello;
+        uint8_t *sent_client_hello;
 
         uint8_t client_extensions[] = {
             /* Extension type TLS_EXTENSION_SERVER_NAME */
@@ -776,8 +775,8 @@ int main(int argc, char **argv)
         };
 
         EXPECT_NOT_NULL(sent_client_hello = malloc(sent_client_hello_len));
-        memcpy_check(sent_client_hello, client_hello_prefix, client_hello_prefix_len);
-        memcpy_check(sent_client_hello + client_hello_prefix_len, client_extensions, client_extensions_len);
+        memcpy(sent_client_hello, client_hello_prefix, client_hello_prefix_len);
+        memcpy(sent_client_hello + client_hello_prefix_len, client_extensions, client_extensions_len);
 
         /* Create nonblocking pipes */
         struct s2n_test_piped_io piped_io;
@@ -813,4 +812,3 @@ int main(int argc, char **argv)
     END_TEST();
     return 0;
 }
-

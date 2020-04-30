@@ -26,6 +26,7 @@
 
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_client_hello.h"
@@ -292,11 +293,11 @@ int s2n_process_client_hello(struct s2n_connection *conn)
      * Negotiate protocol version, cipher suite, ALPN, select a cert, etc. */
     struct s2n_client_hello *client_hello = &conn->client_hello;
 
-    const struct s2n_cipher_preferences *cipher_preferences;
-    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+    const struct s2n_security_policy *security_policy;
+    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
     /* Ensure that highest supported version is set correctly */
-    if (!s2n_cipher_preference_supports_tls13(cipher_preferences)) {
+    if (!s2n_security_policy_supports_tls13(security_policy)) {
         conn->server_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
         conn->actual_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
     }
@@ -315,7 +316,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
         conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
     }
 
-    if (conn->client_protocol_version < cipher_preferences->minimum_protocol_version) {
+    if (conn->client_protocol_version < security_policy->minimum_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
         S2N_ERROR(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
@@ -367,12 +368,12 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
 int s2n_client_hello_send(struct s2n_connection *conn)
 {
-    const struct s2n_cipher_preferences *cipher_preferences;
-    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+    const struct s2n_security_policy *security_policy;
+    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
     /* Check whether cipher preference supports TLS 1.3. If it doesn't,
        our highest supported version is S2N_TLS12 */
-    if (!s2n_cipher_preference_supports_tls13(cipher_preferences)) {
+    if (!s2n_security_policy_supports_tls13(security_policy)) {
         conn->client_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
         conn->actual_protocol_version = MIN(conn->actual_protocol_version, S2N_TLS12);
     }
@@ -418,8 +419,8 @@ int s2n_client_hello_send(struct s2n_connection *conn)
      * with an older libcrypto
      */
     uint16_t num_available_suites = 0;
-    for (int i = 0; i < cipher_preferences->count; i++) {
-        if (cipher_preferences->suites[i]->available) {
+    for (int i = 0; i < security_policy->cipher_preferences->count; i++) {
+        if (security_policy->cipher_preferences->suites[i]->available) {
             num_available_suites++;
         }
     }
@@ -430,9 +431,9 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     GUARD(s2n_stuffer_write_uint16(out, num_available_suites * S2N_TLS_CIPHER_SUITE_LEN));
 
     /* Now, write the IANA values every available cipher suite in our list */
-    for (int i = 0; i < cipher_preferences->count; i++ ) {
-        if (cipher_preferences->suites[i]->available) {
-            GUARD(s2n_stuffer_write_bytes(out, cipher_preferences->suites[i]->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
+    for (int i = 0; i < security_policy->cipher_preferences->count; i++ ) {
+        if (security_policy->cipher_preferences->suites[i]->available) {
+            GUARD(s2n_stuffer_write_bytes(out, security_policy->cipher_preferences->suites[i]->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
         }
     }
     /* Lastly, write TLS_EMPTY_RENEGOTIATION_INFO_SCSV so that server knows it's an initial handshake (RFC5746 Section 3.4) */
@@ -455,10 +456,10 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     struct s2n_client_hello *client_hello = &conn->client_hello;
     struct s2n_stuffer *in = &client_hello->raw_message;
 
-    const struct s2n_cipher_preferences *cipher_preferences;
-    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+    const struct s2n_security_policy *security_policy;
+    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
-    if (conn->client_protocol_version < cipher_preferences->minimum_protocol_version) {
+    if (conn->client_protocol_version < security_policy->minimum_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
         S2N_ERROR(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
