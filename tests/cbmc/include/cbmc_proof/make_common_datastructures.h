@@ -23,3 +23,9 @@ void ensure_s2n_blob_has_allocated_fields(struct s2n_blob* blob);
 struct s2n_blob* cbmc_allocate_s2n_blob();
 void ensure_s2n_stuffer_has_allocated_fields(struct s2n_stuffer* stuffer);
 struct s2n_stuffer* cbmc_allocate_s2n_stuffer();
+
+/**
+ * Ensures a valid const string is allocated,
+ * with as much nondet as possible, len < max_size
+ */
+const char *ensure_c_str_is_allocated(size_t max_size);
