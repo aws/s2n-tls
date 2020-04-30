@@ -44,6 +44,7 @@ int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size)
 
 int s2n_blob_zero(struct s2n_blob *b)
 {
+    PRECONDITION_POSIX(s2n_blob_is_valid(b));
     memset_check(b->data, 0, b->size);
     return S2N_SUCCESS;
 }
