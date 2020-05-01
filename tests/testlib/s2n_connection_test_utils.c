@@ -210,3 +210,10 @@ int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn)
 
     return 0;
 }
+
+int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn)
+{
+    memset_check(&conn->extension_requests_received, 0xFF, S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN);
+    memset_check(&conn->extension_requests_sent, 0xFF, S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN);
+    return S2N_SUCCESS;
+}

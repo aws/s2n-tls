@@ -44,8 +44,9 @@ static int configure_tls13_connection(struct s2n_connection *conn)
     const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
     conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
     conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-    EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
-    EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->handshake.io));
+    GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+    GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+    GUARD(s2n_connection_allow_all_response_extensions(conn));
 
     return 0;
 }
@@ -273,6 +274,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_enable_tls13());
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_NOT_NULL(conn->config);
             const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
@@ -318,6 +320,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_enable_tls13());
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_NOT_NULL(conn->config);
             const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
@@ -362,6 +365,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_enable_tls13());
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_NOT_NULL(conn->config);
             const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
@@ -421,6 +425,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_enable_tls13());
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_NOT_NULL(conn->config);
             const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
