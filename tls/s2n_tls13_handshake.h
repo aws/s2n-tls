@@ -36,3 +36,4 @@ int s2n_tls13_keys_from_conn(struct s2n_tls13_keys *keys, struct s2n_connection 
 int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn);
 int s2n_tls13_handle_application_secrets(struct s2n_connection *conn);
 
+int s2n_server_hello_retry_recreate_transcript(struct s2n_connection *conn);

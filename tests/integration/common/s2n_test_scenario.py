@@ -25,6 +25,7 @@ import os
 from enum import Enum as BaseEnum
 from multiprocessing.pool import ThreadPool
 
+
 class Enum(BaseEnum):
 
     def __str__(self):
@@ -281,4 +282,3 @@ def get_scenarios(host, start_port, s2n_modes=Mode.all(), versions=[None], ciphe
             port += 1
 
     return scenarios
-

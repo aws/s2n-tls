@@ -28,7 +28,12 @@ import "s2n_handshake_io.cry";
 llvm <- llvm_load_module "../../bitcode/all_llvm.bc";
 print "Loaded bitcode via Crucible";
 
+////////////////////////////////////////////////////////////////
 // References to various components of the connection state:
+// The Cryptol definitions are located in the s2n_handshake_io.cry file.
+// Those Cryptol definitions will be compared against the actual C
+// definitions by this SAW script.
+////////////////////////////////////////////////////////////////
 
 //conn->corked_io
 let conn_corked_io pconn = crucible_field pconn "corked_io";
@@ -169,6 +174,8 @@ let setup_connection = do {
 
    let client_cert_auth_type = {{ if cca_ov != 0 then cca else config_cca }};
 
+   // This returns a connection containing a handshake. If the connection or the handshake
+   // definitions are changed, they must also be changed here.
    return (pconn, {{ {corked_io = corked_io
                      ,mode      = mode
                      ,handshake = {message_number = message_number
@@ -182,8 +189,8 @@ let setup_connection = do {
                      ,resume_from_cache = False
                      ,client_auth_flag = if mode == S2N_CLIENT then client_cert_auth_type == 1 else 
                                          if mode == S2N_SERVER then client_cert_auth_type != 0 else False
-                     ,actual_protocol_version = version
                      ,no_client_cert = no_client_cert != zero
+                     ,actual_protocol_version = version
                      }
                   }}); 
 };
@@ -246,6 +253,8 @@ let s2n_conn_set_handshake_type_spec = do {
     // we assume that the handshake struct denotes a valid handshake state
     // (e.g. it will not index out of bounds in the state transition array
     // "handshakes")
+    // conn.handshake is defined in s2n_handshake_io.cry.
+    // valid_handshake is defined in s2n_handshake_io.cry as well.
     crucible_precond {{ valid_handshake conn.handshake }};
 
     // symbolically execute s2n_conn_set_handshake_type
@@ -295,6 +304,7 @@ let s2n_advance_message_spec = do {
     // make sure the low-level spec representation of the declarative
     // handshake/cork-uncork state machine is equivalent to the one in
     // s2n
+    // The Cryptol representations are defined here: tests/saw/spec/handshake/s2n_handshake_io.cry
     crucible_points_to (crucible_global "handshakes") (crucible_term {{ handshakes }});
 
     // TLS1.3 is temporarily removed from SAW testing.

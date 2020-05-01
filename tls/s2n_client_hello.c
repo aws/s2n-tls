@@ -199,6 +199,7 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     client_hello->cipher_suites.size = cipher_suites_length;
     client_hello->cipher_suites.data = s2n_stuffer_raw_read(in, cipher_suites_length);
     notnull_check(client_hello->cipher_suites.data);
+
     /* Don't choose the cipher yet, read the extensions first */
     uint8_t num_compression_methods = 0;
     GUARD(s2n_stuffer_read_uint8(in, &num_compression_methods));
@@ -345,20 +346,25 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
     GUARD(s2n_populate_client_hello_extensions(&conn->client_hello));
 
-    /* Mark the collected client hello as available when parsing is done and before the client hello callback */
-    conn->client_hello.parsed = 1;
+    /* If the CLIENT_HELLO has already been parsed, then we should not call
+     * the client_hello_cb a second time. */
+    if (conn->client_hello.parsed == 0) {
+        /* Mark the collected client hello as available when parsing is done and before the client hello callback */
+        conn->client_hello.parsed = 1;
 
-    /* Call client_hello_cb if exists, letting application to modify s2n_connection or swap s2n_config */
-    if (conn->config->client_hello_cb) {
-        int rc = conn->config->client_hello_cb(conn, conn->config->client_hello_cb_ctx);
-        if (rc < 0) {
-            GUARD(s2n_queue_reader_handshake_failure_alert(conn));
-            S2N_ERROR(S2N_ERR_CANCELLED);
-        }
-        if (rc) {
-            conn->server_name_used = 1;
+        /* Call client_hello_cb if exists, letting application to modify s2n_connection or swap s2n_config */
+        if (conn->config->client_hello_cb) {
+            int rc = conn->config->client_hello_cb(conn, conn->config->client_hello_cb_ctx);
+            if (rc < 0) {
+                GUARD(s2n_queue_reader_handshake_failure_alert(conn));
+                S2N_ERROR(S2N_ERR_CANCELLED);
+            }
+            if (rc) {
+                conn->server_name_used = 1;
+            }
         }
     }
+
     if (conn->client_hello_version != S2N_SSLv2) {
         GUARD(s2n_process_client_hello(conn));
     }

@@ -39,21 +39,6 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_str.h"
 
-/* From RFC 8446: https://tools.ietf.org/html/rfc8446#appendix-B.3 */
-#define TLS_HELLO_REQUEST              0
-#define TLS_CLIENT_HELLO               1
-#define TLS_SERVER_HELLO               2
-#define TLS_SERVER_NEW_SESSION_TICKET  4
-#define TLS_ENCRYPTED_EXTENSIONS       8
-#define TLS_CERTIFICATE               11
-#define TLS_SERVER_KEY                12
-#define TLS_CERT_REQ                  13
-#define TLS_SERVER_HELLO_DONE         14
-#define TLS_CERT_VERIFY               15
-#define TLS_CLIENT_KEY                16
-#define TLS_FINISHED                  20
-#define TLS_SERVER_CERT_STATUS        22
-#define TLS_SERVER_SESSION_LOOKUP     23
 
 struct s2n_handshake_action {
     uint8_t record_type;
@@ -92,6 +77,7 @@ static struct s2n_handshake_action tls13_state_machine[] = {
     /* message_type_t           = {Record type, Message type, Writer, {Server handler, client handler} }  */
     [CLIENT_HELLO]              = {TLS_HANDSHAKE, TLS_CLIENT_HELLO, 'C', {s2n_establish_session, s2n_client_hello_send}},
     [SERVER_HELLO]              = {TLS_HANDSHAKE, TLS_SERVER_HELLO, 'S', {s2n_server_hello_send, s2n_server_hello_recv}},
+    [HELLO_RETRY_MSG]           = {TLS_HANDSHAKE, TLS_SERVER_HELLO, 'S', {s2n_server_hello_retry_send, s2n_server_hello_retry_recv}},
     [ENCRYPTED_EXTENSIONS]      = {TLS_HANDSHAKE, TLS_ENCRYPTED_EXTENSIONS, 'S', {s2n_encrypted_extensions_send, s2n_encrypted_extensions_recv}},
     [SERVER_CERT_REQ]           = {TLS_HANDSHAKE, TLS_CERT_REQ, 'S', {s2n_tls13_cert_req_send, s2n_tls13_cert_req_recv}},
     [SERVER_CERT]               = {TLS_HANDSHAKE, TLS_CERTIFICATE, 'S', {s2n_server_cert_send, s2n_server_cert_recv}},
@@ -133,7 +119,7 @@ static const char *message_names[] = {
 };
 
 /* Maximum number of valid handshakes */
-#define S2N_HANDSHAKES_COUNT        128
+#define S2N_HANDSHAKES_COUNT        256
 
 /* Maximum number of messages in a handshake */
 #define S2N_MAX_HANDSHAKE_LENGTH    32
@@ -375,6 +361,33 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
             APPLICATION_DATA
     },
 
+    [NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST] = {
+            CLIENT_HELLO,
+            HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
+            CLIENT_CHANGE_CIPHER_SPEC, CLIENT_HELLO,
+            SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+            CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
+    [NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST | CLIENT_AUTH] = {
+            CLIENT_HELLO,
+            HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
+            CLIENT_CHANGE_CIPHER_SPEC, CLIENT_HELLO,
+            SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+            CLIENT_CERT, CLIENT_CERT_VERIFY, CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
+    [NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST | CLIENT_AUTH | NO_CLIENT_CERT ] = {
+            CLIENT_HELLO,
+            HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
+            CLIENT_CHANGE_CIPHER_SPEC, CLIENT_HELLO,
+            SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+            CLIENT_CERT, CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
     [NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH] = {
             CLIENT_HELLO,
             SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
@@ -388,6 +401,7 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
             CLIENT_CHANGE_CIPHER_SPEC, CLIENT_CERT, CLIENT_FINISHED,
             APPLICATION_DATA
     },
+
 };
 
 #define MAX_HANDSHAKE_TYPE_LEN 128
@@ -400,7 +414,8 @@ static const char* handshake_type_names[] = {
     "OCSP_STATUS|",
     "CLIENT_AUTH|",
     "WITH_SESSION_TICKET|",
-    "NO_CLIENT_CERT|"
+    "NO_CLIENT_CERT|",
+    "HELLO_RETRY_REQUEST|"
 };
 
 #define IS_TLS13_HANDSHAKE( conn )    ((conn)->actual_protocol_version == S2N_TLS13)
@@ -489,10 +504,31 @@ int s2n_generate_new_client_session_id(struct s2n_connection *conn)
     return 0;
 }
 
+/* Lets the server flag whether a HelloRetryRequest is needed while processing extensions */
+int s2n_set_hello_retry_required(struct s2n_connection *conn)
+{
+    conn->handshake.handshake_type |= HELLO_RETRY_REQUEST;
+
+    return 0;
+}
+
+/* Lets the server determine whether a HelloRetryRequest should be sent.
+ * A retry is only possible after the first ClientHello (HELLO_RETRY_MSG). */
+bool s2n_is_hello_retry_required(struct s2n_connection *conn)
+{
+    return conn->handshake.handshake_type & HELLO_RETRY_REQUEST;
+}
+
 int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 {
+    if (conn->handshake.handshake_type & HELLO_RETRY_REQUEST) {
+        conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
+    } else {
+        conn->handshake.handshake_type = INITIAL;
+    }
+
     /* A handshake type has been negotiated */
-    conn->handshake.handshake_type = NEGOTIATED;
+    conn->handshake.handshake_type |= NEGOTIATED;
 
     s2n_cert_auth_type client_cert_auth_type;
     GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
@@ -629,104 +665,6 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
     return handshake_type_str[handshake_type];
 }
 
-static int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
-{
-    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5)) {
-        /* The handshake MD5 hash state will fail the s2n_hash_is_available() check
-         * since MD5 is not permitted in FIPS mode. This check will not be used as
-         * the handshake MD5 hash state is specifically used by the TLS 1.0 and TLS 1.1
-         * PRF, which is required to comply with the TLS 1.0 and 1.1 RFCs and is approved
-         * as per NIST Special Publication 800-52 Revision 1.
-         */
-        GUARD(s2n_hash_update(&conn->handshake.md5, data->data, data->size));
-    }
-
-    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1)) {
-        GUARD(s2n_hash_update(&conn->handshake.sha1, data->data, data->size));
-    }
-
-    const uint8_t md5_sha1_required = (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5) &&
-                                       s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1));
-
-    if (md5_sha1_required) {
-        /* The MD5_SHA1 hash can still be used for TLS 1.0 and 1.1 in FIPS mode for 
-         * the handshake hashes. This will only be used for the signature check in the
-         * CertificateVerify message and the PRF. NIST SP 800-52r1 approves use
-         * of MD5_SHA1 for these use cases (see footnotes 15 and 20, and section
-         * 3.3.2) */
-        GUARD(s2n_hash_update(&conn->handshake.md5_sha1, data->data, data->size));
-    }
-
-    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA224)) {
-        GUARD(s2n_hash_update(&conn->handshake.sha224, data->data, data->size));
-    }
-
-    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA256)) {
-        GUARD(s2n_hash_update(&conn->handshake.sha256, data->data, data->size));
-    }
-
-    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA384)) {
-        GUARD(s2n_hash_update(&conn->handshake.sha384, data->data, data->size));
-    }
-
-    if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA512)) {
-        GUARD(s2n_hash_update(&conn->handshake.sha512, data->data, data->size));
-    }
-
-    return 0;
-}
-
-/* this hook runs before hashes are updated */
-static int s2n_conn_pre_handshake_hashes_update(struct s2n_connection *conn)
-{
-    if (conn->actual_protocol_version < S2N_TLS13) {
-        return 0;
-    }
-
-    /* Right now this function is only concerned with CLIENT_FINISHED */
-    if (s2n_conn_get_current_message_type(conn) != CLIENT_FINISHED) {
-        return 0;
-    }
-
-    /* This runs before handshake update because application secrets uses only
-     * handshake hashes up to Server finished. This handler works in both
-     * read and write modes.
-     */
-    GUARD(s2n_tls13_handle_application_secrets(conn));
-
-    return 0;
-}
-
-/* this hook runs after hashes are updated */
-static int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
-{
-    if (conn->actual_protocol_version < S2N_TLS13) {
-        return 0;
-    }
-
-    struct s2n_blob client_seq = {.data = conn->secure.client_sequence_number,.size = sizeof(conn->secure.client_sequence_number) };
-    struct s2n_blob server_seq = {.data = conn->secure.server_sequence_number,.size = sizeof(conn->secure.server_sequence_number) };
-
-    switch(s2n_conn_get_current_message_type(conn)) {
-    case SERVER_HELLO:
-        GUARD(s2n_tls13_handle_handshake_secrets(conn));
-        GUARD(s2n_blob_zero(&client_seq));
-        GUARD(s2n_blob_zero(&server_seq));
-        conn->server = &conn->secure;
-        conn->client = &conn->secure;
-        GUARD(s2n_stuffer_wipe(&conn->alert_in));
-        break;
-    case CLIENT_FINISHED:
-        /* Reset sequence numbers for Application Data */
-        GUARD(s2n_blob_zero(&client_seq));
-        GUARD(s2n_blob_zero(&server_seq));
-        break;
-    default:
-        break;
-    }
-    return 0;
-}
-
 /* Writing is relatively straight forward, simply write each message out as a record,
  * we may fragment a message across multiple records, but we never coalesce multiple
  * messages into single records. 
@@ -743,11 +681,11 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
      */
     if (s2n_stuffer_is_wiped(&conn->handshake.io)) {
         if (record_type == TLS_HANDSHAKE) {
-            GUARD(s2n_handshake_write_header(conn, ACTIVE_STATE(conn).message_type));
+            GUARD(s2n_handshake_write_header(&conn->handshake.io, ACTIVE_STATE(conn).message_type));
         }
         GUARD(ACTIVE_STATE(conn).handler[conn->mode] (conn));
         if (record_type == TLS_HANDSHAKE) {
-            GUARD(s2n_handshake_finish_header(conn));
+            GUARD(s2n_handshake_finish_header(&conn->handshake.io));
         }
     }
 
