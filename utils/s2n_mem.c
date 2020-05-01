@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#define _BSD_SOURCE 1
+#define  _DEFAULT_SOURCE 1
 #include <features.h>
 
 #include <stdint.h>
