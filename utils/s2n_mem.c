@@ -13,6 +13,9 @@
  * permissions and limitations under the License.
  */
 
+#define _BSD_SOURCE 1
+#include <features.h>
+
 #include <stdint.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -88,7 +91,7 @@ static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *a
 
 #ifdef MADV_DONTDUMP
     if (madvise(*ptr, *allocated, MADV_DONTDUMP) != 0) {
-        GUARD(s2n_free_impl(*ptr, *allocated));
+        GUARD(s2n_mem_free_no_mlock_impl(*ptr, *allocated));
         S2N_ERROR(S2N_ERR_MADVISE);
     }
 #endif
