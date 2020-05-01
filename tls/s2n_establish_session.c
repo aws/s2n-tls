@@ -40,10 +40,6 @@ int s2n_establish_session(struct s2n_connection *conn)
         conn->handshake.client_hello_received = 1;
     }
 
-    /* Next negotiate session security parameters. These could be generated, or retrieved from a cache
-     * based on the client's session id. This step uses data obtained from the CLIENT_HELLO message,
-     * which is why we process it here.
-     * This function won't block, it will fail and set s2n_errno accordingly. */
     GUARD(s2n_conn_set_handshake_type(conn));
 
     if (conn->client_hello_version != S2N_SSLv2)

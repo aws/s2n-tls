@@ -18,7 +18,7 @@
 
 #include "tls/s2n_handshake_io.c"
 
-#define MAX_STATE_TYPE (SERVER_CERT_VERIFY + 1)
+#define MAX_STATE_TYPE (APPLICATION_DATA + 1)
 
 struct state {
     const char *name;

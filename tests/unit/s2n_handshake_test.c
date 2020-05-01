@@ -30,7 +30,7 @@
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
-#include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
@@ -84,24 +84,27 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
 }
 
 int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config *client_config,
-        struct s2n_cert_chain_and_key *expected_cert_chain, s2n_signature_algorithm expected_sig_alg)
-{
-    const struct s2n_cipher_preferences *cipher_preferences;
+        struct s2n_cert_chain_and_key *expected_cert_chain, s2n_signature_algorithm expected_sig_alg) {
+    const struct s2n_security_policy *security_policy = NULL;
 
-    cipher_preferences = server_config->cipher_preferences;
-    notnull_check(cipher_preferences);
+    security_policy = server_config->security_policy;
+    notnull_check(security_policy);
 
     if (s2n_is_in_fips_mode()) {
         /* Override default client config ciphers when in FIPS mode to ensure all FIPS
          * default ciphers are tested.
          */
-        client_config->cipher_preferences = cipher_preferences;
-        notnull_check(client_config->cipher_preferences);
+        client_config->security_policy = security_policy;
+        notnull_check(client_config->security_policy);
     }
+
+    const struct s2n_cipher_preferences *cipher_preferences = security_policy->cipher_preferences;
+    notnull_check(cipher_preferences);
 
     /* Verify that a handshake succeeds for every available cipher in the default list. For unavailable ciphers,
      * make sure that we fail the handshake. */
     for (int cipher_idx = 0; cipher_idx < cipher_preferences->count; cipher_idx++) {
+        struct s2n_security_policy server_security_policy;
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
@@ -115,13 +118,15 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
             expect_failure = 1;
         }
 
-        /* Craft a cipher preference with a cipher_idx cipher
-           NOTE: Its safe to use memcpy as the address of server_cipher_preferences
-           will never be NULL */
-        memcpy(&server_cipher_preferences, cipher_preferences, sizeof(server_cipher_preferences));
+        /* Craft a cipher preference with a cipher_idx cipher */
+        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         server_cipher_preferences.suites = &expected_cipher;
-        server_conn->cipher_pref_override = &server_cipher_preferences;
+
+        EXPECT_MEMCPY_SUCCESS(&server_security_policy, security_policy, sizeof(server_security_policy));
+        server_security_policy.cipher_preferences = &server_cipher_preferences;
+
+        server_conn->security_policy_override = &server_security_policy;
 
         /* Create nonblocking pipes */
         struct s2n_test_piped_io piped_io;

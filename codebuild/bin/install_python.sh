@@ -17,8 +17,8 @@
 set -e
 
 if [ "$#" -ne 3 ]; then
-	echo "install_python.sh libcrypto_root build_dir install_dir"
-	exit 1
+    echo "install_python.sh libcrypto_root build_dir install_dir"
+    exit 1
 fi
 
 LIBCRYPTO_ROOT=$1

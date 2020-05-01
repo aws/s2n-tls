@@ -153,3 +153,13 @@ int test_count;
 
 /* Ensures fuzz test input length is greater than or equal to the minimum needed for the test */
 #define S2N_FUZZ_ENSURE_MIN_LEN( len , min ) do {if ( (len) < (min) ) return 0;} while (0)
+
+#define EXPECT_MEMCPY_SUCCESS(d, s, n)                                         \
+    do {                                                                       \
+        __typeof(n) __tmp_n = (n);                                             \
+        if (__tmp_n) {                                                         \
+            if (memcpy((d), (s), (__tmp_n)) == NULL) {                         \
+                FAIL_MSG(#d "is NULL, memcpy() failed");                       \
+            }                                                                  \
+        }                                                                      \
+    } while (0)

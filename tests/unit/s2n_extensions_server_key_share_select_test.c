@@ -48,8 +48,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-        /* Commented out until hello retry is implemented in issue #1607.
-        EXPECT_FALSE(s2n_server_requires_retry(server_conn)); */
+        EXPECT_FALSE(s2n_is_hello_retry_required(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
@@ -69,8 +68,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-        /* Commented out until hello retry is implemented in issue #1607.
-        EXPECT_FALSE(s2n_server_requires_retry(server_conn)); */
+        EXPECT_FALSE(s2n_is_hello_retry_required(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
     }
 
@@ -88,13 +86,11 @@ int main(int argc, char **argv)
             EXPECT_NULL(server_conn->secure.client_ecc_evp_params[i].evp_pkey);
             EXPECT_NULL(server_conn->secure.client_ecc_evp_params[i].negotiated_curve);
         }
-        /* Commented out until hello retry request is implemented in issue #1607.
-        EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn)); */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn), S2N_ERR_BAD_KEY_SHARE);
+        EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
 
         EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
-        /* Commented out until hello retry is implemented in issue #1607.
-        EXPECT_TRUE(s2n_server_requires_retry(server_conn)); */
+
+        EXPECT_EQUAL(s2n_is_hello_retry_required(server_conn), 1);
         EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
     }
 
@@ -118,8 +114,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
 
         EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[1]);
-        /* Commented out until hello retry is implemented in issue #1607.
-        EXPECT_FALSE(s2n_server_requires_retry(server_conn)); */
+        EXPECT_FALSE(s2n_is_hello_retry_required(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
     }
 
@@ -139,8 +134,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
 
         EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
-        /* Commented out until hello retry is implemented in issue #1607.
-        EXPECT_FALSE(s2n_server_requires_retry(server_conn)); */
+        EXPECT_FALSE(s2n_is_hello_retry_required(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
     } 
 
