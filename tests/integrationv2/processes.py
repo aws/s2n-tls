@@ -1,12 +1,12 @@
-import os
 import io
-import time
-from time import monotonic as _time
-import threading
+import os
 import select
 import selectors
 import subprocess
+import threading
+
 from common import Results, TimeoutException
+from time import monotonic as _time
 
 
 _PopenSelector = selectors.PollSelector
@@ -33,16 +33,31 @@ class _processCommunicator(object):
     framework. We rely on sleeps and waits, and still hit hard to debug deadlocks from
     time to time.
     """
-    def __init__(self, proc, ready_to_send):
+    def __init__(self, proc):
         self.proc = proc
-        self.ready_to_send = ready_to_send
+        self.ready_to_send = None
+        self.wait_for_marker = None
 
-        # If the process times out, the caller can call communicate() once more
-        # to pick up any data remaining in stdout/stderr. We have to track that
-        # with a _communication_started flag
+        # If the process times out, communicate() is called once more to pick
+        # up any data remaining in stdout/stderr. This flags lets us know if
+        # we need to do initial setup on the file descriptors, or if it was done
+        # during the initial call.
         self._communication_started = False
 
-    def communicate(self, input_data=None, timeout=None):
+    def wait_for(self, wait_for_marker, timeout=None):
+        self.wait_for_marker = wait_for_marker
+        stdout = None
+        stderr = None
+
+        try:
+            stdout, stderr = self._communicate(None, timeout)
+        finally:
+            self._communication_started = True
+
+        return (stdout, stderr)
+
+    def communicate(self, input_data=None, ready_to_send=None, wait_for_marker=None, timeout=None):
+        self.ready_to_send = ready_to_send
         stdout = None
         stderr = None
 
@@ -73,17 +88,15 @@ class _processCommunicator(object):
         # The process' stdout and stderr are stored in a map, with two variable
         # pointing to the file objects. This allows us to include stdout/stderr
         # data in a timeout exception.
-        stdout = None
-        stderr = None
-
         if not self._communication_started:
             self._fileobj2output = {}
             if self.proc.stdout:
                 self._fileobj2output[self.proc.stdout] = []
-                stdout = self._fileobj2output[self.proc.stdout]
             if self.proc.stderr:
                 self._fileobj2output[self.proc.stderr] = []
-                stderr = self._fileobj2output[self.proc.stderr]
+
+        stdout = self._fileobj2output[self.proc.stdout]
+        stderr = self._fileobj2output[self.proc.stderr]
 
         # Data destined for stdin is stored in a memoryview and the offset
         # will be used incase multiple writes are needed.
@@ -148,10 +161,15 @@ class _processCommunicator(object):
                         # register STDIN to receive events. If there is no data to send,
                         # just mark input_send as true so we can close out STDIN.
                         if self.ready_to_send is not None and self.ready_to_send in str(data):
-                            if self.proc.stdin and input:
+                            if self.proc.stdin and input_data:
                                 selector.register(self.proc.stdin, selectors.EVENT_WRITE)
                             else:
                                 input_data_sent = True
+
+                        if self.wait_for_marker is not None and self.wait_for_marker in str(data):
+                            selector.unregister(self.proc.stdout)
+                            selector.unregister(self.proc.stderr)
+                            return None, None
 
                 # If we have finished sending all our input, and have received the
                 # ready-to-send marker, we can close out stdin.
@@ -192,7 +210,6 @@ class _processCommunicator(object):
                     stderr=b''.join(stderr_seq) if stderr_seq else None)
 
 
-
 class ManagedProcess(threading.Thread):
     """
     A ManagedProcess is a thread that monitors a subprocess.
@@ -201,7 +218,7 @@ class ManagedProcess(threading.Thread):
     The stdin/stdout/stderr and exist code a monitored and results
     are made available to the caller.
     """
-    def __init__(self, cmd_line, provider_set_ready_condition, ready_to_send=None, timeout=5, data_source=None):
+    def __init__(self, cmd_line, provider_set_ready_condition, wait_for_marker=None, ready_to_send=None, timeout=5, data_source=None):
         threading.Thread.__init__(self)
         self.cmd_line = cmd_line
         self.timeout = timeout
@@ -212,7 +229,7 @@ class ManagedProcess(threading.Thread):
         self.provider_set_ready_condition = provider_set_ready_condition
 
         # Note: use this to set the ready condition correctly
-        self.ready_to_test = None
+        self.ready_to_test = wait_for_marker
 
         # We always need some data for stdin, otherwise .communicate() won't setup the input
         # descriptor for the process. This causes some SSL providers to close the connection
@@ -227,13 +244,15 @@ class ManagedProcess(threading.Thread):
         with self.results_condition:
             try:
                 proc = subprocess.Popen(self.cmd_line, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+                self.proc = proc
             except Exception as ex:
                 self.results = Results(None, None, None, ex)
                 raise ex
 
+            communicator = _processCommunicator(proc)
             if self.ready_to_test is not None:
                 # We can read stdout here looking for a ready marker
-                pass
+                communicator.wait_for(self.ready_to_test, timeout=self.timeout)
 
             self.provider_set_ready_condition()
 
@@ -241,8 +260,7 @@ class ManagedProcess(threading.Thread):
             proc_results = None
 
             try:
-                communicator = _processCommunicator(proc, self.ready_to_send)
-                proc_results = communicator.communicate(input_data=self.data_source, timeout=self.timeout)
+                proc_results = communicator.communicate(input_data=self.data_source, ready_to_send=self.ready_to_send, timeout=self.timeout)
                 self.results = Results(proc_results[0], proc_results[1], proc.returncode, None)
             except subprocess.TimeoutExpired as ex:
                 proc.kill()
