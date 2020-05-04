@@ -13,9 +13,10 @@
 # permissions and limitations under the License.
 
 set -e
-
-for i in $(find . -name '*.h' -or -name '*.c' -or -name '*.cpp'); do
-        clang-format-9 --verbose -i "$i" ;
+CLANG_NINE=$(which clang-format-9)
+CLANG_VER=${CLANG_NINE:-clang-format}
+for i in $(find . -not -path "./test-deps/*" -name '*.h' -or -name '*.c' -or -name '*.cpp'); do
+        $CLANG_VER --verbose -i "$i" ;
 done
 
 if [[ `git status --porcelain` ]]; then
