@@ -62,10 +62,14 @@ int main(int argc, char **argv)
         /* For TLS1.2 */
         if (!s2n_is_in_fips_mode()) {
             struct s2n_connection *conn;
+            const struct s2n_security_policy *security_policy;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
-            EXPECT_EQUAL(conn->config->security_policy, default_security_policy);
+
+            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+            EXPECT_NOT_NULL(security_policy);
+            EXPECT_EQUAL(security_policy, default_security_policy);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -74,10 +78,14 @@ int main(int argc, char **argv)
         {
             EXPECT_SUCCESS(s2n_enable_tls13());
             struct s2n_connection *conn;
+            const struct s2n_security_policy *security_policy;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
-            EXPECT_EQUAL(conn->config->security_policy, tls13_security_policy);
+
+            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+            EXPECT_NOT_NULL(security_policy);
+            EXPECT_EQUAL(security_policy, tls13_security_policy);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_disable_tls13());
@@ -86,10 +94,14 @@ int main(int argc, char **argv)
         /* For fips */
         if (s2n_is_in_fips_mode()) {
             struct s2n_connection *conn;
+            const struct s2n_security_policy *security_policy;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
-            EXPECT_EQUAL(conn->config->security_policy, fips_security_policy);
+
+            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+            EXPECT_NOT_NULL(security_policy);
+            EXPECT_EQUAL(security_policy, fips_security_policy);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_disable_tls13());

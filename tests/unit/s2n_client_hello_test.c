@@ -190,10 +190,12 @@ int main(int argc, char **argv)
         {
             /* TLS 1.3 client cipher preference uses TLS13 version */
             struct s2n_connection *conn;
+            const struct s2n_security_policy *security_policy;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20200207"));
-            EXPECT_TRUE(s2n_security_policy_supports_tls13(config->security_policy));
+            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+            EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS13);
