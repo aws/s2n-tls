@@ -14,7 +14,7 @@
 
 set -e
 
-for i in $(find ./lib ./libcrypto-build ./tls ./utils -name '*.h' -or -name '*.c' -or -name '*.cpp'); do
+for i in $(find . -name '*.h' -or -name '*.c' -or -name '*.cpp'); do
         clang-format-9 --verbose -i "$i" ;
 done
 
