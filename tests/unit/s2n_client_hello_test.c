@@ -227,11 +227,15 @@ int main(int argc, char **argv)
         {
             /* TLS 1.3 client cipher preference uses TLS13 version */
             struct s2n_connection *client_conn, *server_conn;
+            const struct s2n_security_policy *security_policy;
+
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
-            EXPECT_TRUE(s2n_security_policy_supports_tls13(config->security_policy));
+
+            GUARD(s2n_connection_get_security_policy(client_conn, &security_policy));
+            EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
 
@@ -248,7 +252,6 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
 
-            const struct s2n_security_policy *security_policy;
             GUARD(s2n_connection_get_security_policy(server_conn, &security_policy));
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 

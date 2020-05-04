@@ -61,17 +61,22 @@ int main(int argc, char **argv)
     /* s2n_supported_sig_schemes_count & s2n_supported_sig_scheme_list_size */
     {
         struct s2n_config *config = s2n_config_new();
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        s2n_connection_set_config(conn, config);
+
+        const struct s2n_security_policy *security_policy = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+
         struct s2n_security_policy test_security_policy = {
-            .minimum_protocol_version = config->security_policy->minimum_protocol_version,
-            .cipher_preferences = config->security_policy->cipher_preferences,
-            .kem_preferences = config->security_policy->kem_preferences,
+            .minimum_protocol_version = security_policy->minimum_protocol_version,
+            .cipher_preferences = security_policy->cipher_preferences,
+            .kem_preferences = security_policy->kem_preferences,
             .signature_preferences = &test_preferences,
         };
 
         config->security_policy = &test_security_policy;
-
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-        s2n_connection_set_config(conn, config);
 
         /* Test: if all signatures supported, count all signatures */
         {
@@ -95,17 +100,22 @@ int main(int argc, char **argv)
     /* s2n_send_supported_sig_scheme_list */
     {
         struct s2n_config *config = s2n_config_new();
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        s2n_connection_set_config(conn, config);
+
+        const struct s2n_security_policy *security_policy = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+
         struct s2n_security_policy test_security_policy = {
-            .minimum_protocol_version = config->security_policy->minimum_protocol_version,
-            .cipher_preferences = config->security_policy->cipher_preferences,
-            .kem_preferences = config->security_policy->kem_preferences,
+            .minimum_protocol_version = security_policy->minimum_protocol_version,
+            .cipher_preferences = security_policy->cipher_preferences,
+            .kem_preferences = security_policy->kem_preferences,
             .signature_preferences = &test_preferences,
         };
 
         config->security_policy = &test_security_policy;
-
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-        s2n_connection_set_config(conn, config);
 
         struct s2n_stuffer result;
         s2n_stuffer_growable_alloc(&result, STUFFER_SIZE);
@@ -175,17 +185,22 @@ int main(int argc, char **argv)
     /* s2n_get_and_validate_negotiated_signature_scheme */
     {
         struct s2n_config *config = s2n_config_new();
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        s2n_connection_set_config(conn, config);
+
+        const struct s2n_security_policy *security_policy = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+
         struct s2n_security_policy test_security_policy = {
-            .minimum_protocol_version = config->security_policy->minimum_protocol_version,
-            .cipher_preferences = config->security_policy->cipher_preferences,
-            .kem_preferences = config->security_policy->kem_preferences,
+            .minimum_protocol_version = security_policy->minimum_protocol_version,
+            .cipher_preferences = security_policy->cipher_preferences,
+            .kem_preferences = security_policy->kem_preferences,
             .signature_preferences = &test_preferences,
         };
 
         config->security_policy = &test_security_policy;
-
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-        s2n_connection_set_config(conn, config);
 
         struct s2n_stuffer choice;
         s2n_stuffer_growable_alloc(&choice, STUFFER_SIZE);
@@ -255,16 +270,22 @@ int main(int argc, char **argv)
         };
 
         struct s2n_config *config = s2n_config_new();
-        struct s2n_security_policy test_security_policy = {
-            .minimum_protocol_version = config->security_policy->minimum_protocol_version,
-            .cipher_preferences = config->security_policy->cipher_preferences,
-            .kem_preferences = config->security_policy->kem_preferences,
-            .signature_preferences = &dup_test_preferences,
-        };
-        config->security_policy = &test_security_policy;
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         s2n_connection_set_config(conn, config);
+
+        const struct s2n_security_policy *security_policy = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+
+        struct s2n_security_policy test_security_policy = {
+            .minimum_protocol_version = security_policy->minimum_protocol_version,
+            .cipher_preferences = security_policy->cipher_preferences,
+            .kem_preferences = security_policy->kem_preferences,
+            .signature_preferences = &dup_test_preferences,
+        };
+
+        config->security_policy = &test_security_policy;
 
         struct s2n_stuffer choice;
         s2n_stuffer_growable_alloc(&choice, STUFFER_SIZE);
@@ -293,18 +314,22 @@ int main(int argc, char **argv)
         struct s2n_config *config = s2n_config_new();
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert_chain));
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        const struct s2n_security_policy *security_policy = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+
         struct s2n_security_policy test_security_policy = {
-            .minimum_protocol_version = config->security_policy->minimum_protocol_version,
-            .cipher_preferences = config->security_policy->cipher_preferences,
-            .kem_preferences = config->security_policy->kem_preferences,
+            .minimum_protocol_version = security_policy->minimum_protocol_version,
+            .cipher_preferences = security_policy->cipher_preferences,
+            .kem_preferences = security_policy->kem_preferences,
             .signature_preferences = &test_preferences,
         };
 
         config->security_policy = &test_security_policy;
-
-
-        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
         struct s2n_signature_scheme result;
 
@@ -333,18 +358,22 @@ int main(int argc, char **argv)
         struct s2n_config *config = s2n_config_new();
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert_chain));
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        const struct s2n_security_policy *security_policy = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+
         struct s2n_security_policy test_security_policy = {
-            .minimum_protocol_version = config->security_policy->minimum_protocol_version,
-            .cipher_preferences = config->security_policy->cipher_preferences,
-            .kem_preferences = config->security_policy->kem_preferences,
+            .minimum_protocol_version = security_policy->minimum_protocol_version,
+            .cipher_preferences = security_policy->cipher_preferences,
+            .kem_preferences = security_policy->kem_preferences,
             .signature_preferences = &test_preferences,
         };
 
         config->security_policy = &test_security_policy;
-
-
-        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
         struct s2n_signature_scheme result;
 
@@ -506,19 +535,24 @@ int main(int argc, char **argv)
 
         struct s2n_config *config = s2n_config_new();
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
-        struct s2n_security_policy test_security_policy = {
-            .minimum_protocol_version = config->security_policy->minimum_protocol_version,
-            .cipher_preferences = config->security_policy->cipher_preferences,
-            .kem_preferences = config->security_policy->kem_preferences,
-            .signature_preferences = &pss_test_preferences,
-        };
-
-        config->security_policy = &test_security_policy;
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
         conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        const struct s2n_security_policy *security_policy = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+
+        struct s2n_security_policy test_security_policy = {
+            .minimum_protocol_version = security_policy->minimum_protocol_version,
+            .cipher_preferences = security_policy->cipher_preferences,
+            .kem_preferences = security_policy->kem_preferences,
+            .signature_preferences = &pss_test_preferences,
+        };
+
+        config->security_policy = &test_security_policy;
 
         /* Do not offer PSS signatures schemes if unsupported:
          * s2n_send_supported_sig_scheme_list + PSS */
