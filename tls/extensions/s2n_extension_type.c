@@ -99,13 +99,12 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
 
     GUARD(s2n_stuffer_write_uint16(out, extension_type->iana_value));
 
-    struct s2n_stuffer size_stuffer = *out;
-    GUARD(s2n_stuffer_skip_write(out, TLS_EXTENSION_DATA_LENGTH_BYTES));
+    s2n_stuffer_cursor_t extension_start_cursor;
+    GUARD(s2n_stuffer_start_vector(out, &extension_start_cursor, TLS_EXTENSION_DATA_LENGTH_BYTES));
 
     GUARD(extension_type->send(conn, out));
 
-    GUARD(s2n_stuffer_write_uint16(&size_stuffer,
-            s2n_stuffer_data_available(out) - s2n_stuffer_data_available(&size_stuffer) - TLS_EXTENSION_DATA_LENGTH_BYTES));
+    GUARD(s2n_stuffer_end_vector(out, extension_start_cursor, TLS_EXTENSION_DATA_LENGTH_BYTES));
 
     /* Set request bit flag */
     if (!extension_type->is_response) {

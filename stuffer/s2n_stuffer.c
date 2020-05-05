@@ -409,6 +409,60 @@ int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, const uint64_t u)
     return 0;
 }
 
+int s2n_stuffer_start_vector(struct s2n_stuffer *stuffer, s2n_stuffer_cursor_t *vector_cursor, const uint8_t bytes_for_length)
+{
+    S2N_ERROR_IF(bytes_for_length == 0, S2N_ERR_UNIMPLEMENTED);
+    S2N_ERROR_IF(bytes_for_length > 4 && bytes_for_length != 8, S2N_ERR_UNIMPLEMENTED);
+    notnull_check(vector_cursor);
+
+    *vector_cursor = stuffer->write_cursor;
+    GUARD(s2n_stuffer_skip_write(stuffer, bytes_for_length));
+    memset_check(stuffer->blob.data + *vector_cursor, 0, bytes_for_length);
+    return 0;
+}
+
+int s2n_stuffer_end_vector(struct s2n_stuffer *stuffer, const s2n_stuffer_cursor_t vector_cursor, const uint8_t bytes_for_length)
+{
+    notnull_check(stuffer);
+
+    const s2n_stuffer_cursor_t current_write_cursor = stuffer->write_cursor;
+    stuffer->write_cursor = vector_cursor;
+    if (!s2n_stuffer_is_valid(stuffer)) {
+        stuffer->write_cursor = current_write_cursor;
+        S2N_ERROR(S2N_ERR_SAFETY);
+    }
+
+    uint32_t length_value = current_write_cursor - vector_cursor - bytes_for_length;
+    switch(bytes_for_length) {
+        case 1:
+            S2N_ERROR_IF(length_value > UINT8_MAX, S2N_ERR_SIZE_MISMATCH);
+            GUARD(s2n_stuffer_write_uint8(stuffer, length_value));
+            break;
+        case 2:
+            S2N_ERROR_IF(length_value > UINT16_MAX, S2N_ERR_SIZE_MISMATCH);
+            GUARD(s2n_stuffer_write_uint16(stuffer, length_value));
+            break;
+        case 3:
+            S2N_ERROR_IF(length_value > 0xFFFFFF, S2N_ERR_SIZE_MISMATCH);
+            GUARD(s2n_stuffer_write_uint24(stuffer, length_value));
+            break;
+        case 4:
+            S2N_ERROR_IF(length_value > UINT32_MAX, S2N_ERR_SIZE_MISMATCH);
+            GUARD(s2n_stuffer_write_uint32(stuffer, length_value));
+            break;
+        case 8:
+            S2N_ERROR_IF(length_value > UINT64_MAX, S2N_ERR_SIZE_MISMATCH);
+            GUARD(s2n_stuffer_write_uint64(stuffer, length_value));
+            break;
+        default:
+            stuffer->write_cursor = current_write_cursor;
+            S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+            break;
+    }
+    stuffer->write_cursor = current_write_cursor;
+    return 0;
+}
+
 static int s2n_stuffer_copy_impl(struct s2n_stuffer *from, struct s2n_stuffer *to, const uint32_t len)
 {
     GUARD(s2n_stuffer_skip_read(from, len));
@@ -441,8 +495,8 @@ int s2n_stuffer_reserve_space(struct s2n_stuffer *stuffer, uint32_t n)
  * restore the old value of the stuffer */
 int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, const uint32_t len)
 {
-    const uint32_t orig_read_cursor = from->read_cursor;
-    const uint32_t orig_write_cursor = to->write_cursor;
+    const s2n_stuffer_cursor_t orig_read_cursor = from->read_cursor;
+    const s2n_stuffer_cursor_t orig_write_cursor = to->write_cursor;
 
     if (s2n_stuffer_copy_impl(from, to, len) < 0) {
 	from->read_cursor = orig_read_cursor;

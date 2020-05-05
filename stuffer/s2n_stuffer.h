@@ -21,14 +21,15 @@
 
 #include "utils/s2n_blob.h"
 
+typedef uint32_t s2n_stuffer_cursor_t;
 struct s2n_stuffer {
     /* The data for the s2n_stuffer */
     struct s2n_blob blob;
 
     /* Cursors to the current read/write position in the s2n_stuffer */
-    uint32_t read_cursor;
-    uint32_t write_cursor;
-    uint32_t high_water_mark;
+    s2n_stuffer_cursor_t read_cursor;
+    s2n_stuffer_cursor_t write_cursor;
+    s2n_stuffer_cursor_t high_water_mark;
 
     /* Was this stuffer alloc()'d ? */
     unsigned int alloced:1;
@@ -96,6 +97,10 @@ extern int s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, const uint16_t 
 extern int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, const uint32_t u);
 extern int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, const uint32_t u);
 extern int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, const uint64_t u);
+
+/* Write vector lengths in network order */
+extern int s2n_stuffer_start_vector(struct s2n_stuffer *stuffer, s2n_stuffer_cursor_t *vector_cursor, const uint8_t bytes_for_length);
+extern int s2n_stuffer_end_vector(struct s2n_stuffer *stuffer, const s2n_stuffer_cursor_t vector_cursor, const uint8_t bytes_for_length);
 
 /* Copy one stuffer to another */
 extern int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, uint32_t len);

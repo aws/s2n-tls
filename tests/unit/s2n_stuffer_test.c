@@ -200,5 +200,176 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(s2n_stuffer_data_available(&reserve_test_stuffer), 0);
     EXPECT_SUCCESS(s2n_stuffer_free(&reserve_test_stuffer));
 
+    EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+
+    /* Test writing network-order vector lengths */
+    {
+        s2n_stuffer_cursor_t vector_cursor;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+        uint64_t actual_length = 0;
+        const uint64_t expected_length = 10;
+
+        /* Test unsupported lengths */
+        uint8_t invalid_lengths[] = { -1, 0, 5, 7, 9 };
+        for (int i = 0; i < s2n_array_len(invalid_lengths); i++) {
+            /* Try to allocate space for an unsupported length */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_start_vector(&stuffer, &vector_cursor, invalid_lengths[i]), S2N_ERR_UNIMPLEMENTED);
+
+            /* Try to write an unsupported length */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_end_vector(&stuffer, stuffer.write_cursor, invalid_lengths[i]), S2N_ERR_UNIMPLEMENTED);
+        }
+
+        /* Test supported lengths */
+        typedef int (*generic_read_func_t)(struct s2n_stuffer *stuffer, void *value);
+        struct {
+            uint8_t length;
+            uint64_t max_length_value;
+            generic_read_func_t read_func;
+        } valid_lengths[] = {
+            { 1, UINT8_MAX,     (generic_read_func_t) s2n_stuffer_read_uint8 },
+            { 2, UINT16_MAX,    (generic_read_func_t) s2n_stuffer_read_uint16 },
+            { 3, 0xFFFFFF,      (generic_read_func_t) s2n_stuffer_read_uint24 },
+            { 4, UINT32_MAX,    (generic_read_func_t) s2n_stuffer_read_uint32 },
+            { 8, UINT64_MAX,    (generic_read_func_t) s2n_stuffer_read_uint64 }
+        };
+        for (int i = 0; i < s2n_array_len(valid_lengths); i++) {
+
+            /* Test zero length value */
+            {
+                EXPECT_SUCCESS(s2n_stuffer_rewrite(&stuffer));
+
+                EXPECT_SUCCESS(s2n_stuffer_start_vector(&stuffer, &vector_cursor, valid_lengths[i].length));
+
+                EXPECT_SUCCESS(s2n_stuffer_end_vector(&stuffer, vector_cursor, valid_lengths[i].length));
+                EXPECT_SUCCESS(valid_lengths[i].read_func(&stuffer, &actual_length));
+                EXPECT_EQUAL(actual_length, 0);
+            }
+
+            /* Test small, known length value. Verify no data overriden. */
+            {
+                uint32_t actual_data, expected_data = 0x12ab34cd;
+                EXPECT_SUCCESS(s2n_stuffer_rewrite(&stuffer));
+
+                EXPECT_SUCCESS(s2n_stuffer_start_vector(&stuffer, &vector_cursor, valid_lengths[i].length));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint32(&stuffer, expected_data));
+
+                EXPECT_SUCCESS(s2n_stuffer_end_vector(&stuffer, vector_cursor, valid_lengths[i].length));
+                EXPECT_SUCCESS(valid_lengths[i].read_func(&stuffer, &actual_length));
+                EXPECT_EQUAL(actual_length, sizeof(expected_data));
+
+                EXPECT_SUCCESS(s2n_stuffer_read_uint32(&stuffer, &actual_data));
+                EXPECT_EQUAL(actual_data, expected_data);
+            }
+
+            /* The stuffer can't handle enough data to test max values for lengths of 4 bytes or higher. */
+            if (valid_lengths[i].length < 4) {
+                /* Test max length value */
+                {
+                    EXPECT_SUCCESS(s2n_stuffer_rewrite(&stuffer));
+
+                    EXPECT_SUCCESS(s2n_stuffer_start_vector(&stuffer, &vector_cursor, valid_lengths[i].length));
+                    EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, valid_lengths[i].max_length_value));
+
+                    EXPECT_SUCCESS(s2n_stuffer_end_vector(&stuffer, vector_cursor, valid_lengths[i].length));
+                    EXPECT_SUCCESS(valid_lengths[i].read_func(&stuffer, &actual_length));
+                    EXPECT_EQUAL(actual_length, valid_lengths[i].max_length_value);
+                }
+
+                /* Test length value too long for requested space */
+                {
+                    EXPECT_SUCCESS(s2n_stuffer_rewrite(&stuffer));
+
+                    EXPECT_SUCCESS(s2n_stuffer_start_vector(&stuffer, &vector_cursor, valid_lengths[i].length));
+                    EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, valid_lengths[i].max_length_value + 1));
+
+                    EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_end_vector(&stuffer, vector_cursor, valid_lengths[i].length),
+                            S2N_ERR_SIZE_MISMATCH);
+                }
+            }
+
+            /* Test chained writes */
+            {
+                /* Write multiple vectors with extra data before and after */
+                uint8_t before_length = 5, first_vector_length = 10, between_length = 3,
+                        second_vector_length = 7, after_length = 3;
+
+                EXPECT_SUCCESS(s2n_stuffer_rewrite(&stuffer));
+                EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, before_length));
+                EXPECT_SUCCESS(s2n_stuffer_start_vector(&stuffer, &vector_cursor, valid_lengths[i].length));
+                EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, first_vector_length));
+                EXPECT_SUCCESS(s2n_stuffer_end_vector(&stuffer, vector_cursor, valid_lengths[i].length));
+                EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, between_length));
+                EXPECT_SUCCESS(s2n_stuffer_start_vector(&stuffer, &vector_cursor, valid_lengths[i].length));
+                EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, second_vector_length));
+                EXPECT_SUCCESS(s2n_stuffer_end_vector(&stuffer, vector_cursor, valid_lengths[i].length));
+                EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, after_length));
+                EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), before_length + first_vector_length
+                        + between_length + second_vector_length + after_length + (valid_lengths[i].length * 2));
+
+                /* Read everything back, verifying correct length values */
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, before_length));
+                EXPECT_SUCCESS(valid_lengths[i].read_func(&stuffer, &actual_length));
+                EXPECT_EQUAL(actual_length, first_vector_length);
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, first_vector_length));
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, between_length));
+                EXPECT_SUCCESS(valid_lengths[i].read_func(&stuffer, &actual_length));
+                EXPECT_EQUAL(actual_length, second_vector_length);
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, second_vector_length));
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, after_length));
+                EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+            }
+        }
+
+        /* Test writing after resize / realloc */
+        {
+            /* Reset allocated memory for stuffer */
+            EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+            EXPECT_SUCCESS(s2n_stuffer_start_vector(&stuffer, &vector_cursor, sizeof(actual_length)));
+
+            uint8_t *data_before_resize = stuffer.blob.data;
+            EXPECT_SUCCESS(s2n_stuffer_resize(&stuffer, UINT16_MAX));
+            EXPECT_NOT_EQUAL(data_before_resize, stuffer.blob.data);
+
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, expected_length));
+            EXPECT_SUCCESS(s2n_stuffer_end_vector(&stuffer, vector_cursor, sizeof(actual_length)));
+
+            EXPECT_SUCCESS(s2n_stuffer_read_uint64(&stuffer, &actual_length));
+            EXPECT_EQUAL(actual_length, expected_length);
+        }
+
+        /* Test writing after read cursor passes vector start */
+        {
+            EXPECT_SUCCESS(s2n_stuffer_rewrite(&stuffer));
+
+            EXPECT_SUCCESS(s2n_stuffer_start_vector(&stuffer, &vector_cursor, sizeof(actual_length)));
+
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, expected_length));
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, expected_length));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_end_vector(&stuffer, vector_cursor, sizeof(actual_length)),
+                    S2N_ERR_SAFETY);
+        }
+
+        /* Test that length value is always zero before the length is written */
+        {
+            EXPECT_SUCCESS(s2n_stuffer_rewrite(&stuffer));
+
+            uint8_t fill_value = 0xFF;
+            memset(stuffer.blob.data, fill_value, stuffer.blob.size);
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, sizeof(fill_value)));
+            EXPECT_SUCCESS(s2n_stuffer_start_vector(&stuffer, &vector_cursor, sizeof(fill_value)));
+
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, (uint8_t*) &actual_length));
+            EXPECT_EQUAL(actual_length, fill_value);
+
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, (uint8_t*) &actual_length));
+            EXPECT_EQUAL(actual_length, 0);
+        }
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+    }
+
     END_TEST();
 }
