@@ -145,7 +145,7 @@ static int s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite, struct
             security_policy->kem_preferences->count, &chosen_kem));
     }
 
-    conn->secure.s2n_kem_keys.negotiated_kem = chosen_kem;
+    conn->secure.kem_params.kem = chosen_kem;
     return 0;
 }
 

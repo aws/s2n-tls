@@ -147,7 +147,6 @@ int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
 {
     struct s2n_kem_raw_server_params *kem_data = &raw_server_data->kem_data;
     struct s2n_stuffer *in = &conn->handshake.io;
-    kem_public_key_size key_length;
 
     /* Keep a copy to the start of the whole structure for the signature check */
     data_to_verify->data = s2n_stuffer_raw_read(in, 0);
@@ -158,14 +157,14 @@ int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
     notnull_check(kem_data->kem_name.data);
     kem_data->kem_name.size = 2;
 
-    GUARD(s2n_stuffer_read_uint16(in, &key_length));
-    S2N_ERROR_IF(key_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
+    struct s2n_kem_params kem_params = { 0 };
+    GUARD(s2n_get_kem_from_extension_id(&(kem_data->kem_name), &(kem_params.kem)));
+    GUARD(s2n_kem_recv_public_key(in, &kem_params));
 
-    kem_data->raw_public_key.data = s2n_stuffer_raw_read(in, key_length);
-    notnull_check(kem_data->raw_public_key.data);
-    kem_data->raw_public_key.size = key_length;
+    kem_data->raw_public_key.data = kem_params.public_key.data;
+    kem_data->raw_public_key.size = kem_params.public_key.size;
 
-    data_to_verify->size = sizeof(kem_extension_size) + sizeof(kem_public_key_size) + key_length;
+    data_to_verify->size = sizeof(kem_extension_size) + sizeof(kem_public_key_size) + kem_data->raw_public_key.size;
     return 0;
 }
 
@@ -181,11 +180,11 @@ int s2n_kem_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_k
     const struct s2n_kem *match = NULL;
     S2N_ERROR_IF(s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, &kem_data->kem_name, security_policy->kem_preferences->kems, 
                  security_policy->kem_preferences->count, &match) != 0, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-    conn->secure.s2n_kem_keys.negotiated_kem = match;
+    conn->secure.kem_params.kem = match;
 
-    S2N_ERROR_IF(kem_data->raw_public_key.size != conn->secure.s2n_kem_keys.negotiated_kem->public_key_length, S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(kem_data->raw_public_key.size != conn->secure.kem_params.kem->public_key_length, S2N_ERR_BAD_MESSAGE);
 
-    s2n_dup(&kem_data->raw_public_key, &conn->secure.s2n_kem_keys.public_key);
+    GUARD(s2n_dup(&kem_data->raw_public_key, &conn->secure.kem_params.public_key));
     return 0;
 }
 
@@ -283,23 +282,15 @@ int s2n_dhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_t
 int s2n_kem_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
-    const struct s2n_kem *kem = conn->secure.s2n_kem_keys.negotiated_kem;
+    const struct s2n_kem *kem = conn->secure.kem_params.kem;
 
     data_to_sign->data = s2n_stuffer_raw_write(out, 0);
     notnull_check(data_to_sign->data);
 
     GUARD(s2n_stuffer_write_uint16(out, kem->kem_extension_id));
-    GUARD(s2n_stuffer_write_uint16(out, kem->public_key_length));
+    GUARD(s2n_kem_send_public_key(out, &(conn->secure.kem_params)));
 
-    /* The public key is not needed after this method, write it straight to the stuffer */
-    struct s2n_blob *public_key = &conn->secure.s2n_kem_keys.public_key;
-    public_key->data = s2n_stuffer_raw_write(out, kem->public_key_length);
-    notnull_check(public_key->data);
-    public_key->size = kem->public_key_length;
-
-    GUARD(s2n_kem_generate_keypair(&conn->secure.s2n_kem_keys));
-
-    data_to_sign->size = sizeof(kem_extension_size) + sizeof(kem_public_key_size) +  public_key->size;
+    data_to_sign->size = sizeof(kem_extension_size) + sizeof(kem_public_key_size) +  kem->public_key_length;
     return 0;
 }
 

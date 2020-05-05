@@ -58,11 +58,11 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *se
     GUARD(s2n_find_security_policy_from_version(security_policy_version, &security_policy));
     GUARD_NONNULL(security_policy);
 
-    client_conn->secure.s2n_kem_keys.negotiated_kem = negotiated_kem;
+    client_conn->secure.kem_params.kem = negotiated_kem;
     client_conn->secure.cipher_suite = cipher_suite;
     client_conn->security_policy_override = security_policy;
 
-    server_conn->secure.s2n_kem_keys.negotiated_kem = negotiated_kem;
+    server_conn->secure.kem_params.kem = negotiated_kem;
     server_conn->secure.cipher_suite = cipher_suite;
     server_conn->security_policy_override = security_policy;
 
@@ -73,7 +73,7 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *se
     const uint32_t KEM_PUBLIC_KEY_MESSAGE_SIZE = (*negotiated_kem).public_key_length + 4;
     eq_check(data_to_sign.size, KEM_PUBLIC_KEY_MESSAGE_SIZE);
 
-    eq_check((*negotiated_kem).private_key_length, server_conn->secure.s2n_kem_keys.private_key.size);
+    eq_check((*negotiated_kem).private_key_length, server_conn->secure.kem_params.private_key.size);
     struct s2n_blob server_key_message = {.size = KEM_PUBLIC_KEY_MESSAGE_SIZE, .data = s2n_stuffer_raw_read(&server_conn->handshake.io,
             KEM_PUBLIC_KEY_MESSAGE_SIZE)};
     GUARD_NONNULL(server_key_message.data);
@@ -95,7 +95,7 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *se
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
-    eq_check((*negotiated_kem).public_key_length, client_conn->secure.s2n_kem_keys.public_key.size);
+    eq_check((*negotiated_kem).public_key_length, client_conn->secure.kem_params.public_key.size);
 
     /* Part 3: Client calls send_key. The additional 2 bytes are for the ciphertext length sent over the wire */
     const uint32_t KEM_CIPHERTEXT_MESSAGE_SIZE = (*negotiated_kem).ciphertext_length + 2;
@@ -130,7 +130,7 @@ static int assert_kex_fips_checks(struct s2n_cipher_suite *cipher_suite, const c
     const struct s2n_security_policy *security_policy = NULL;
     GUARD(s2n_find_security_policy_from_version(security_policy_version, &security_policy));
     GUARD_NONNULL(security_policy);
-    server_conn->secure.s2n_kem_keys.negotiated_kem = negotiated_kem;
+    server_conn->secure.kem_params.kem = negotiated_kem;
     server_conn->secure.cipher_suite = cipher_suite;
     server_conn->security_policy_override = security_policy;
 

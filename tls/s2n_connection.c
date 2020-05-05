@@ -255,8 +255,8 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->current_user_data_consumed = 0;
     conn->initial.cipher_suite = &s2n_null_cipher_suite;
     conn->secure.cipher_suite = &s2n_null_cipher_suite;
-    conn->initial.s2n_kem_keys.negotiated_kem = NULL;
-    conn->secure.s2n_kem_keys.negotiated_kem = NULL;
+    conn->initial.kem_params.kem = NULL;
+    conn->secure.kem_params.kem = NULL;
     conn->server = &conn->initial;
     conn->client = &conn->initial;
     conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
@@ -295,7 +295,7 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     for (int i=0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
         GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
     }
-    GUARD(s2n_kem_free(&conn->secure.s2n_kem_keys));
+    GUARD(s2n_kem_free(&conn->secure.kem_params));
     GUARD(s2n_free(&conn->secure.client_cert_chain));
     GUARD(s2n_free(&conn->ct_response));
 
@@ -906,11 +906,11 @@ const char *s2n_connection_get_kem_name(struct s2n_connection *conn)
 {
     notnull_check_ptr(conn);
 
-    if (!conn->secure.s2n_kem_keys.negotiated_kem) {
+    if (!conn->secure.kem_params.kem) {
         return "NONE";
     }
 
-    return conn->secure.s2n_kem_keys.negotiated_kem->name;
+    return conn->secure.kem_params.kem->name;
 }
 
 int s2n_connection_get_client_protocol_version(struct s2n_connection *conn)

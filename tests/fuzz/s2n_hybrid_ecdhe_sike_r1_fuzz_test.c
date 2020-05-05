@@ -35,7 +35,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_security_policies.h"
 
-static struct s2n_kem_keypair server_kem_keys = {.negotiated_kem = &s2n_sike_p503_r1};
+static struct s2n_kem_params server_kem_params = {.kem = &s2n_sike_p503_r1};
 
 /* Setup the connection in a state for a fuzz test run, s2n_client_key_recv modifies the state of the connection
  * along the way and gets cleaned up at the end of each fuzz test.
@@ -54,11 +54,11 @@ static int setup_connection(struct s2n_connection *server_conn)
 
     server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
     server_conn->secure.server_ecc_evp_params.evp_pkey = NULL;
-    server_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_p503_r1;
+    server_conn->secure.kem_params.kem = &s2n_sike_p503_r1;
     server_conn->secure.cipher_suite = &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384;
     server_conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
 
-    GUARD(s2n_dup(&server_kem_keys.private_key, &server_conn->secure.s2n_kem_keys.private_key));
+    GUARD(s2n_dup(&server_kem_params.private_key, &server_conn->secure.kem_params.private_key));
     GUARD(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.server_ecc_evp_params));
 
     return 0;
@@ -67,7 +67,7 @@ static int setup_connection(struct s2n_connection *server_conn)
 static void s2n_fuzz_atexit()
 {
     s2n_cleanup();
-    s2n_kem_free(&server_kem_keys);
+    s2n_kem_free(&server_kem_params);
 }
 
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
@@ -75,9 +75,9 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     GUARD(s2n_init());
     GUARD_STRICT(atexit(s2n_fuzz_atexit));
 
-    struct s2n_blob *public_key = &server_kem_keys.public_key;
+    struct s2n_blob *public_key = &server_kem_params.public_key;
     GUARD(s2n_alloc(public_key, SIKE_P503_R1_PUBLIC_KEY_BYTES));
-    GUARD(s2n_kem_generate_keypair(&server_kem_keys));
+    GUARD(s2n_kem_generate_keypair(&server_kem_params));
     GUARD(s2n_free(public_key));
 
     return 0;
