@@ -89,7 +89,7 @@ static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *a
     S2N_ERROR_IF(posix_memalign(ptr, page_size, allocate) != 0, S2N_ERR_ALLOC);
     *allocated = allocate;
 
-#ifdef MADV_DONTDUMP
+#if define(MADV_DONTDUMPO && !define(S2N_ADDRESS_SANITIZER)
     if (madvise(*ptr, *allocated, MADV_DONTDUMP) != 0) {
         GUARD(s2n_mem_free_no_mlock_impl(*ptr, *allocated));
         S2N_ERROR(S2N_ERR_MADVISE);
