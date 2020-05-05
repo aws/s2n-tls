@@ -17,7 +17,7 @@ def managed_process():
     def _fn(provider_class: Provider, options: ProviderOptions, timeout=5):
         provider = provider_class(options)
         cmd_line = provider.get_cmd_line()
-        p = ManagedProcess(cmd_line, provider.set_provider_ready, timeout)
+        p = ManagedProcess(cmd_line, provider.set_provider_ready, ready_to_send=provider.ready_to_send_marker, data_source=options.data_to_send, timeout=timeout)
 
         processes.append(p)
         with p.ready_condition:
