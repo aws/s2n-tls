@@ -16,10 +16,12 @@ def test_s2n_server_happy_path(managed_process, cipher, curve, provider):
     host = "localhost"
     port = next(available_ports)
 
-    # S2ND can receive large amounts of data because all the data is
+    # s2nd can receive large amounts of data because all the data is
     # echo'd to stdout unmodified. This lets us compare received to
     # expected easily.
-    random_bytes = data_bytes(16384)
+    # The downside here is that, should the test fail, all 4 mbs will
+    # be dumped in the exception.
+    random_bytes = data_bytes(4194304)
     client_options = ProviderOptions(
         mode="client",
         host="localhost",
