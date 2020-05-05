@@ -21,7 +21,7 @@
 
 void s2n_stuffer_wipe_n_harness() {
   struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-  int n;
+  uint32_t n;
 
   __CPROVER_assume( s2n_stuffer_is_valid(stuffer) );
 
