@@ -155,8 +155,8 @@ int s2n_test_client_auth_message_by_message(bool no_cert)
     EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
     EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
-    EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "20190801"));
-    EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "20190801"));
+    EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
+    EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
 
     /* Client sends ClientHello */
     EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), CLIENT_HELLO);

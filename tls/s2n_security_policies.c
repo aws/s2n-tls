@@ -30,6 +30,11 @@ const struct s2n_security_policy security_policy_20190801 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20190801,
     .kem_preferences = &kem_preferences_null,
+    /* The discrepancy in the date exists because the signature preferences
+     * were named when cipher preferences and signature preferences were
+     * tracked separately, and we chose to keep the cipher preference
+     * name because customers use it.
+     */
     .signature_preferences = &s2n_signature_preferences_20200207,
 };
 

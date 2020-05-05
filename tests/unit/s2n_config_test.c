@@ -68,7 +68,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
 
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
             EXPECT_EQUAL(security_policy, default_security_policy);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -84,7 +83,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
 
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
             EXPECT_EQUAL(security_policy, tls13_security_policy);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -100,7 +98,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
 
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
             EXPECT_EQUAL(security_policy, fips_security_policy);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));

@@ -193,7 +193,7 @@ int main(int argc, char **argv)
             const struct s2n_security_policy *security_policy;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20200207"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
             EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
