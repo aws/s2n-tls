@@ -109,7 +109,7 @@ int main()
 
     /* Test s2n_extension_recv */
     {
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
 
         /* null check tests */
         {
@@ -166,7 +166,7 @@ int main()
         /* null check tests */
         {
             struct s2n_connection conn = { 0 };
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
 
             EXPECT_FAILURE(s2n_extension_send(NULL, &conn, &stuffer));
             EXPECT_FAILURE(s2n_extension_send(&test_extension_type, NULL, &stuffer));
@@ -183,7 +183,7 @@ int main()
         /* request extension */
         {
             struct s2n_connection conn = { 0 };
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             s2n_stuffer_alloc(&stuffer, S2N_TEST_DATA_LEN * 2);
 
             s2n_extension_type request_extension_type = test_extension_type;
@@ -210,7 +210,7 @@ int main()
         /* response extension */
         {
             struct s2n_connection conn = { 0 };
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             s2n_stuffer_alloc(&stuffer, S2N_TEST_DATA_LEN * 2);
 
             s2n_extension_type response_extension_type = test_extension_type;
@@ -243,7 +243,7 @@ int main()
         /* "should_send" returns false */
         {
             struct s2n_connection conn = { 0 };
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
 
             s2n_extension_type extension_type_with_never_send = test_extension_type;
             extension_type_with_never_send.should_send = s2n_extension_never_send;
@@ -256,7 +256,7 @@ int main()
         /* "send" errors */
         {
             struct s2n_connection conn = { 0 };
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             s2n_stuffer_alloc(&stuffer, S2N_TEST_DATA_LEN);
 
             s2n_extension_type extension_type_with_failure = test_extension_type;
