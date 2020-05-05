@@ -52,13 +52,14 @@ class S2N(Provider):
     ]
 
     def __init__(self, options: ProviderOptions):
+        self.ready_to_send_marker = None
         Provider.__init__(self, options)
 
     def setup_client(self, options: ProviderOptions):
         """
         Using the passed ProviderOptions, create a command line.
         """
-        cmd_line = ['s2nc']
+        cmd_line = ['s2nc', '-e']
         if options.cipher is not None:
             if options.cipher in S2N.default_tls13:
                 cmd_line.extend(['-c', 'default_tls13'])
@@ -72,6 +73,8 @@ class S2N(Provider):
             cmd_line.append('--tls13')
         cmd_line.extend([options.host, options.port])
 
+        self.ready_to_send_marker = 'Cipher negotiated:'
+
         # Clients are always ready to connect
         self.set_provider_ready()
 
@@ -81,7 +84,9 @@ class S2N(Provider):
         """
         Using the passed ProviderOptions, create a command line.
         """
-        cmd_line = ['s2nd', '-X', '--negotiate']
+        self.ready_to_send_marker = 'Cipher negotiated:'
+
+        cmd_line = ['s2nd', '-X']
         if options.cipher is not None:
             if options.cipher in S2N.default_tls13:
                 cmd_line.extend(['-c', 'default_tls13'])
@@ -102,9 +107,11 @@ class S2N(Provider):
 
 class OpenSSL(Provider):
     def __init__(self, options: ProviderOptions):
+        self.ready_to_send_marker = None
         Provider.__init__(self, options)
 
     def setup_client(self, options: ProviderOptions):
+        self.ready_to_send_marker = 'Verify return code'
         cmd_line = ['openssl', 's_client']
         cmd_line.extend(['-connect', '{}:{}'.format(options.host, options.port)])
 
@@ -163,12 +170,14 @@ class OpenSSL(Provider):
 
 class BoringSSL(Provider):
     def __init__(self, options: ProviderOptions):
+        self.ready_to_send_marker = None
         Provider.__init__(self, options)
 
     def setup_server(self, options: ProviderOptions):
         pytest.skip('BoringSSL does not support server mode at this time')
 
     def setup_client(self, options: ProviderOptions):
+        self.ready_to_send_marker = 'Cert issuer:'
         cmd_line = ['bssl', 's_client']
         cmd_line.extend(['-connect', '{}:{}'.format(options.host, options.port)])
         if options.cert is not None:

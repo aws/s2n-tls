@@ -121,7 +121,7 @@ int echo(struct s2n_connection *conn, int sockfd)
         while ((p = poll(readers, 2, -1)) > 0) {
             char buffer[10240];
             int bytes_read, bytes_written;
-    
+
             if (readers[0].revents & POLLIN) {
                 do {
                     bytes_read = s2n_recv(conn, buffer, 10240, &blocked);
@@ -139,6 +139,7 @@ int echo(struct s2n_connection *conn, int sockfd)
                     }
                 } while (blocked);
             }
+
             if (readers[1].revents & POLLIN) {
                 int bytes_available;
                 if (ioctl(STDIN_FILENO, FIONREAD, &bytes_available) < 0) {
@@ -147,21 +148,21 @@ int echo(struct s2n_connection *conn, int sockfd)
                 if (bytes_available > sizeof(buffer)) {
                     bytes_available = sizeof(buffer);
                 }
-    
+
                 /* Read as many bytes as we think we can */
-    	    do {
-    	        bytes_read = read(STDIN_FILENO, buffer, bytes_available);
-    	        if(bytes_read < 0 && errno != EINTR){
-    	            fprintf(stderr, "Error reading from stdin\n");
-    	            exit(1);
-    	        }
-    	    } while (bytes_read < 0);
-    
+                do {
+                    bytes_read = read(STDIN_FILENO, buffer, bytes_available);
+                    if (bytes_read < 0 && errno != EINTR){
+                        fprintf(stderr, "Error reading from stdin\n");
+                        exit(1);
+                    }
+                } while (bytes_read < 0);
+
                 if (bytes_read == 0) {
                     /* Exit on EOF */
                     return 0;
                 }
-    
+
                 char *buf_ptr = buffer;
                 do {
                     bytes_written = s2n_send(conn, buf_ptr, bytes_available, &blocked);
@@ -169,15 +170,17 @@ int echo(struct s2n_connection *conn, int sockfd)
                         fprintf(stderr, "Error writing to connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
                         exit(1);
                     }
-    
+
                     bytes_available -= bytes_written;
                     buf_ptr += bytes_written;
                 } while (bytes_available || blocked);
             }
+
             if (readers[1].revents & POLLHUP) {
                 /* The stdin pipe hanged up, and we've handled all read from it above */
                 return 0;
             }
+
             if (readers[0].revents & (POLLERR | POLLHUP | POLLNVAL)) {
                 fprintf(stderr, "Error polling from socket: err=%d hup=%d nval=%d\n",
                         (readers[0].revents & POLLERR ) ? 1 : 0,
@@ -185,6 +188,7 @@ int echo(struct s2n_connection *conn, int sockfd)
                         (readers[0].revents & POLLNVAL ) ? 1 : 0);
                 S2N_ERROR(S2N_ERR_POLLING_FROM_SOCKET);
             }
+
             if (readers[1].revents & (POLLERR | POLLNVAL)) {
                 fprintf(stderr, "Error polling from socket: err=%d nval=%d\n",
                         (readers[1].revents & POLLERR ) ? 1 : 0,

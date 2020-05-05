@@ -275,8 +275,8 @@ extern __thread const char *s2n_debug_str;
  * Violations of the function contracts are undefined behaviour.
  */
 #ifdef CBMC
-#    define S2N_MEM_IS_READABLE(base, len) __CPROVER_r_ok((base), (len))
-#    define S2N_MEM_IS_WRITABLE(base, len) __CPROVER_w_ok((base), (len))
+#    define S2N_MEM_IS_READABLE(base, len) (((len) == 0) || __CPROVER_r_ok((base), (len)))
+#    define S2N_MEM_IS_WRITABLE(base, len) (((len) == 0) || __CPROVER_w_ok((base), (len)))
 #else
 /* the C runtime does not give a way to check these properties,
  * but we can at least check that the pointer is valid */

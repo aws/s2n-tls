@@ -1,4 +1,25 @@
 import subprocess
+import string
+
+
+def data_bytes(n_bytes):
+    """
+    Generate bytes to send over the TLS connection.
+    These bytes purposefully fall outside of the ascii range
+    to prevent triggering "connected commands" present in
+    some SSL clients.
+    """
+    byte_array = [0] * n_bytes
+    allowed = [i for i in range(128, 255)]
+
+    j = 0
+    for i in range(n_bytes):
+        byte_array[i] = allowed[j]
+        j += 1
+        if j > 126:
+            j = 0
+
+    return bytes(byte_array)
 
 
 class TimeoutException(subprocess.SubprocessError):
@@ -78,6 +99,7 @@ class ProviderOptions(object):
             cert=None,
             use_session_ticket=False,
             insecure=False,
+            data_to_send=None,
             tls13=False):
 
         # Client or server
@@ -109,3 +131,6 @@ class ProviderOptions(object):
 
         # Boolean whether to use TLS1.3
         self.tls13 = tls13
+
+        # This data will be sent to the peer
+        self.data_to_send = data_to_send
