@@ -30,7 +30,11 @@
 #include "tls/s2n_resume.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
+<<<<<<< HEAD
 #include "tls/s2n_post_handshake.h"
+=======
+#include "tls/s2n_key_update.h"
+>>>>>>> Added KeyUpdate receive capabilities
 
 #include "stuffer/s2n_stuffer.h"
 

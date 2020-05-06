@@ -30,10 +30,14 @@
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
 #include "tls/s2n_key_update.h"
+<<<<<<< HEAD
 #include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_security_policies.h"
 
+=======
+#include "stuffer/s2n_stuffer.h"
+>>>>>>> Added KeyUpdate receive capabilities
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
