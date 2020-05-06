@@ -14,6 +14,7 @@
  */
 
 #include "api/s2n.h"
+#include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include <assert.h>
 #include <cbmc_proof/proof_allocators.h>
@@ -31,7 +32,7 @@ void s2n_stuffer_raw_read_harness() {
     void *result = s2n_stuffer_raw_read(stuffer, size);
     if (result) {
         assert(stuffer->tainted == 1);
-        assert(__CPROVER_r_ok(result, size));
+        assert(S2N_MEM_IS_READABLE(result, size));
         assert(stuffer->read_cursor == old_stuffer.read_cursor + size);
     } else {
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
