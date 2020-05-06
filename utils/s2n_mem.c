@@ -90,10 +90,12 @@ static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *a
     *allocated = allocate;
 
 #if defined(MADV_DONTDUMP) && !defined(S2N_ADDRESS_SANITIZER)
+#if 0
     if (madvise(*ptr, *allocated, MADV_DONTDUMP) != 0) {
         GUARD(s2n_mem_free_no_mlock_impl(*ptr, *allocated));
         S2N_ERROR(S2N_ERR_MADVISE);
     }
+#endif
 #endif
 
     if (mlock(*ptr, *allocated) != 0) {
