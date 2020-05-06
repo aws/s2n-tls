@@ -60,6 +60,10 @@ else
 	endif
 endif
 
+ifdef FUZZ_TIMEOUT_SEC
+	DEFAULT_CFLAGS += -DS2N_FUZZ_TESTING=1
+endif
+
 # Add a flag to disable stack protector for alternative libcs without
 # libssp.
 ifneq ($(NO_STACK_PROTECTOR), 1)
