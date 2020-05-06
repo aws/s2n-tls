@@ -185,7 +185,6 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
     if (use_tls13) {
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
-        EXPECT_SUCCESS(s2n_config_set_signature_preferences(config, "default_tls13"));
     }
 
     /* Get some random data to send/receive */
