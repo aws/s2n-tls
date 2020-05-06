@@ -50,7 +50,7 @@ static int s2n_test_expected_handler(struct s2n_connection* conn)
 }
 
 static int s2n_setup_handler_to_expect(message_type_t expected, uint8_t direction) {
-    for (int i = 0; i < sizeof(tls13_state_machine) / sizeof(struct s2n_handshake_action); i++) {
+    for (int i = 0; i < s2n_array_len(tls13_state_machine); i++) {
         tls13_state_machine[i].handler[0] = s2n_test_handler;
         tls13_state_machine[i].handler[1] = s2n_test_handler;
     }
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
     }
 
     /* Use handler stubs to avoid errors in handler implementation */
-    for (int i = 0; i < sizeof(tls13_state_machine) / sizeof(struct s2n_handshake_action); i++) {
+    for (int i = 0; i < s2n_array_len(tls13_state_machine); i++) {
         tls13_state_machine[i].handler[0] = s2n_test_handler;
         tls13_state_machine[i].handler[1] = s2n_test_handler;
     }
@@ -394,12 +394,40 @@ int main(int argc, char **argv)
 
         conn->handshake.handshake_type = test_handshake_type;
 
-        for (int i=0; i < sizeof(expected) / sizeof(char *); i++) {
+        for (int i = 0; i < s2n_array_len(expected); i++) {
             conn->handshake.message_number = i;
             EXPECT_STRING_EQUAL(expected[i], s2n_connection_get_last_message_name(conn));
         }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test: TLS 1.3 message types are all properly printed for client auth */
+    {
+        uint32_t test_handshake_type = NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH;
+        const char* expected[] = { "CLIENT_HELLO",
+            "SERVER_HELLO", "SERVER_CHANGE_CIPHER_SPEC", "ENCRYPTED_EXTENSIONS", "SERVER_CERT_REQ", "SERVER_CERT", "SERVER_CERT_VERIFY", "SERVER_FINISHED",
+            "CLIENT_CHANGE_CIPHER_SPEC", "CLIENT_CERT", "CLIENT_CERT_VERIFY", "CLIENT_FINISHED",
+            "APPLICATION_DATA" };
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        conn->actual_protocol_version = S2N_TLS13;
+
+        conn->handshake.handshake_type = test_handshake_type;
+
+        for (int i = 0; i < s2n_array_len(expected); i++) {
+            conn->handshake.message_number = i;
+            EXPECT_STRING_EQUAL(expected[i], s2n_connection_get_last_message_name(conn));
+        }
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test: Make sure not to miss out populating any message names */
+    {
+        for (int i = CLIENT_HELLO; i <= APPLICATION_DATA; i++) {
+            EXPECT_NOT_NULL(message_names[i]);
+        }
     }
 
     END_TEST();
