@@ -21,7 +21,10 @@ At the moment these tests are expected fail, as TLS13 is incomplete.
 import argparse
 import os
 import sys
+import uuid
+import time
 
+from common.s2n_test_common import wait_for_output
 from common.s2n_test_openssl import run_openssl_connection_test
 from common.s2n_test_scenario import get_scenarios, Mode, Cipher, Version, Curve
 from common.s2n_test_reporting import Result, Status
@@ -47,7 +50,27 @@ def verify_hrr_random_data(server, client):
 
     return result
 
+def key_update_recv(server, client):
+  
+    result = Result()
+    result.status = Status.PASSED
+    '''
+    openssl_msg = "weenie"
+    if client.args[0] == "openssl":
+        client.stdin.write(("k\n\n").encode("utf-8"))
+        client.stdin.flush()
+        
+        time.sleep(1)
+        client.stdin.write((openssl_msg + "\n\n").encode("utf-8"))
+        client.stdin.flush()
+    
+        if wait_for_output(server, openssl_msg, 100):
+            result.status = Status.PASSED
+    '''
+         
+    return result
 
+    
 def main():
     parser = argparse.ArgumentParser(description='Runs TLS1.3 minimal handshake integration tests against Openssl')
     parser.add_argument('host', help='The host to connect to')
@@ -64,6 +87,9 @@ def main():
     print("\n\tRunning TLS1.3 HRR tests with openssl: %s" % os.popen('openssl version').read())
     failed += run_openssl_connection_test(get_scenarios(host, port, versions=[Version.TLS13], s2n_modes=[Mode.server], ciphers=Cipher.all(),
                                                         peer_flags=['-msg', '-curves', 'X448:P-256']), test_func=verify_hrr_random_data)
+    print("\n\tRunning TLS1.3 key update tests with openssl: %s" % os.popen('openssl version').read())
+    failed += run_openssl_connection_test([get_scenarios(host, port, versions=[Version.TLS13], s2n_modes=[Mode.server], ciphers=Cipher.all())[0]],
+                                                         test_func=key_update_recv)
 
     return failed
 

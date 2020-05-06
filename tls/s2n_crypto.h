@@ -24,6 +24,7 @@
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_pkey.h"
 #include "crypto/s2n_signature.h"
+#include "crypto/s2n_tls13_keys.h"
 #include "crypto/s2n_dhe.h"
 #include "crypto/s2n_ecc_evp.h"
 
@@ -93,7 +94,8 @@ struct s2n_crypto_parameters {
     uint8_t server_random[S2N_TLS_RANDOM_DATA_LEN];
     uint8_t client_implicit_iv[S2N_TLS_MAX_IV_LEN];
     uint8_t server_implicit_iv[S2N_TLS_MAX_IV_LEN];
-
+    uint8_t client_app_secret[S2N_TLS13_SECRET_MAX_LEN];
+    uint8_t server_app_secret[S2N_TLS13_SECRET_MAX_LEN];
     struct s2n_hash_state signature_hash;
     struct s2n_hmac_state client_record_mac;
     struct s2n_hmac_state server_record_mac;

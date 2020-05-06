@@ -30,6 +30,7 @@
 #include "tls/s2n_resume.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_key_update.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -179,7 +180,9 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
                 GUARD(s2n_process_alert_fragment(conn));
                 GUARD(s2n_flush(conn, blocked));
             }
-
+            if (record_type == TLS_HANDSHAKE) {
+                GUARD(s2n_post_handshake_recv(conn));
+            }
             GUARD(s2n_stuffer_wipe(&conn->header_in));
             GUARD(s2n_stuffer_wipe(&conn->in));
             conn->in_status = ENCRYPTED;

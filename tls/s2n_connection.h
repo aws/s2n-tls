@@ -30,6 +30,8 @@
 #include "tls/s2n_prf.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
+#include "tls/s2n_key_update.h"
+#include "stuffer/s2n_stuffer.h"
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
@@ -297,6 +299,9 @@ struct s2n_connection {
 
     /* Cookie extension data */
     struct s2n_stuffer cookie_stuffer;
+
+    /* Key update data */
+    uint8_t key_update_pending;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);

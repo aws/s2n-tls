@@ -38,6 +38,7 @@ def get_error(process, line_limit=10):
 def wait_for_output(process, marker, line_limit=10):
     for count in range(line_limit):
         line = process.stdout.readline().decode("utf-8")
+        print(line)
         if marker in line:
             return True
     return False
