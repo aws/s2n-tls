@@ -191,6 +191,9 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
 
     if (b->size) {
         memcpy_check(new_memory.data, b->data, b->size);
+    }
+
+    if (b->allocated) {
         GUARD(s2n_free(b));
     }
 
