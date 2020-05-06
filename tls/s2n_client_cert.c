@@ -30,6 +30,12 @@
 
 int s2n_client_cert_recv(struct s2n_connection *conn)
 {
+    if (conn->actual_protocol_version == S2N_TLS13) {
+        uint8_t certificate_request_context_len;
+        GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &certificate_request_context_len));
+        S2N_ERROR_IF(certificate_request_context_len != 0,S2N_ERR_BAD_MESSAGE);
+    }
+
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_blob client_cert_chain = {0};
 
@@ -69,6 +75,18 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
 int s2n_client_cert_send(struct s2n_connection *conn)
 {
     struct s2n_cert_chain_and_key *chain_and_key = conn->handshake_params.our_chain_and_key;
+
+    if (conn->actual_protocol_version == S2N_TLS13) {
+        /* If this message is in response to a CertificateRequest, the value of
+         * certificate_request_context in that message.
+         * https://tools.ietf.org/html/rfc8446#section-4.4.2
+         *
+         * This field SHALL be zero length unless used for the post-handshake authentication
+         * https://tools.ietf.org/html/rfc8446#section-4.3.2
+         */
+        uint8_t certificate_request_context_len = 0;
+        GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, certificate_request_context_len));
+    }
 
     if (chain_and_key == NULL) {
         GUARD(s2n_conn_set_handshake_no_client_cert(conn));
