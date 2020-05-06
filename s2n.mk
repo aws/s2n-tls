@@ -53,7 +53,6 @@ FUZZ_CFLAGS = -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,le
 #                !!! NOT COMPATIBLE WITH S2N_COVERAGE !!!
 ifdef FUZZ_COVERAGE
 	FUZZ_CFLAGS += -fprofile-instr-generate -fcoverage-mapping
-	DEFAULT_CFLAGS += ${FUZZ_CFLAGS}
 else
 	ifdef S2N_COVERAGE
 		DEFAULT_CFLAGS += ${COVERAGE_CFLAGS}
