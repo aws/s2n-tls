@@ -14,7 +14,9 @@
  */
 
 #define  _DEFAULT_SOURCE 1
+#if !defined(__APPLE__)
 #include <features.h>
+#endif
 
 #include <stdint.h>
 #include <unistd.h>
