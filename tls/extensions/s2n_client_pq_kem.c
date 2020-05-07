@@ -26,17 +26,15 @@
 
 int s2n_extensions_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffer *out, uint16_t pq_kem_list_size)
 {
+    notnull_check(conn);
     GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_PQ_KEM_PARAMETERS));
     /* Overall extension length */
     GUARD(s2n_stuffer_write_uint16(out, 2 + pq_kem_list_size));
     /* Length of parameters in bytes */
     GUARD(s2n_stuffer_write_uint16(out, pq_kem_list_size));
-
-    const struct s2n_security_policy *security_policy = NULL;
-    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
-    notnull_check(security_policy);
     /* Each supported kem id is 2 bytes */
-    const struct s2n_kem_preferences *kem_preferences = security_policy->kem_preferences;
+    const struct s2n_kem_preferences *kem_preferences = NULL;
+    GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
     notnull_check(kem_preferences);
     for (int i = 0; i < kem_preferences->count; i++) {
         GUARD(s2n_stuffer_write_uint16(out, kem_preferences->kems[i]->kem_extension_id));

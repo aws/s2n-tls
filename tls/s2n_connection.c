@@ -771,6 +771,21 @@ int s2n_connection_get_security_policy(struct s2n_connection *conn, const struct
     return 0;
 }
 
+int s2n_connection_get_kem_preferences(struct s2n_connection *conn, const struct s2n_kem_preferences **kem_preferences)
+{
+    notnull_check(conn);
+    notnull_check(kem_preferences);
+
+    if (conn->security_policy_override != NULL) {
+        *kem_preferences = conn->security_policy_override->kem_preferences;
+    } else {
+        *kem_preferences = conn->config->security_policy->kem_preferences;
+    }
+
+    return 0;
+}
+
+
 int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct s2n_blob **protocol_preferences)
 {
     notnull_check(conn);

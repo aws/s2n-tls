@@ -174,13 +174,14 @@ int s2n_kem_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_k
     struct s2n_kem_raw_server_params *kem_data = &raw_server_data->kem_data;
 
     /* Check that the server's requested kem is supported by the client */
-    const struct s2n_security_policy *security_policy = NULL;
-    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    const struct s2n_kem_preferences *kem_preferences = NULL;
+    GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
+    notnull_check(kem_preferences);
 
     const struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
     const struct s2n_kem *match = NULL;
-    S2N_ERROR_IF(s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, &kem_data->kem_name, security_policy->kem_preferences->kems, 
-                 security_policy->kem_preferences->count, &match) != 0, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+    S2N_ERROR_IF(s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, &kem_data->kem_name, kem_preferences->kems, 
+                 kem_preferences->count, &match) != 0, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     conn->secure.kem_params.kem = match;
 
     S2N_ERROR_IF(kem_data->raw_public_key.size != conn->secure.kem_params.kem->public_key_length, S2N_ERR_BAD_MESSAGE);
