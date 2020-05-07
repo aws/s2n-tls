@@ -29,6 +29,16 @@ struct s2n_security_policy {
     const struct s2n_ecc_preferences *ecc_preferences;
 };
 
+struct s2n_security_policy_selection {
+    const char *version;
+    const struct s2n_security_policy *security_policy;
+    unsigned ecc_extension_required:1;
+    unsigned pq_kem_extension_required:1;
+    unsigned supports_tls13:1;
+};
+
+extern struct s2n_security_policy_selection security_policy_selection[];
+
 extern const struct s2n_security_policy security_policy_20140601;
 extern const struct s2n_security_policy security_policy_20141001;
 extern const struct s2n_security_policy security_policy_20150202;
@@ -42,6 +52,7 @@ extern const struct s2n_security_policy security_policy_20170328;
 extern const struct s2n_security_policy security_policy_20170405;
 extern const struct s2n_security_policy security_policy_20170718;
 extern const struct s2n_security_policy security_policy_20190214;
+extern const struct s2n_security_policy security_policy_20190801;
 extern const struct s2n_security_policy security_policy_test_all;
 
 extern const struct s2n_security_policy security_policy_test_all_tls12;

@@ -443,13 +443,7 @@ const struct s2n_security_policy security_policy_null = {
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
-struct {
-    const char *version;
-    const struct s2n_security_policy *security_policy;
-    unsigned ecc_extension_required:1;
-    unsigned pq_kem_extension_required:1;
-    unsigned supports_tls13:1;
-} security_policy_selection[] = {
+struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="default", .security_policy=&security_policy_20170210, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="default_tls13", .security_policy=&security_policy_20190801, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="default_fips", .security_policy=&security_policy_20170405, .ecc_extension_required=0, .pq_kem_extension_required=0 },
