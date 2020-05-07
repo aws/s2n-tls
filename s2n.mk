@@ -1,7 +1,3 @@
-#
-# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License").
 # You may not use this file except in compliance with the License.
 # A copy of the License is located at
 #
@@ -64,6 +60,10 @@ else
 	endif
 endif
 
+ifdef FUZZ_TIMEOUT_SEC
+	DEFAULT_CFLAGS += -DS2N_FUZZ_TESTING=1
+endif
+
 # Add a flag to disable stack protector for alternative libcs without
 # libssp.
 ifneq ($(NO_STACK_PROTECTOR), 1)
@@ -109,7 +109,7 @@ endif
 DEBUG_CFLAGS = -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls
 
 ifdef S2N_ADDRESS_SANITIZER
-	CFLAGS += -fsanitize=address -fuse-ld=gold ${DEBUG_CFLAGS}
+	CFLAGS += -fsanitize=address -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1 ${DEBUG_CFLAGS}
 endif
 
 ifdef S2N_DEBUG
