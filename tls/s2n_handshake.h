@@ -127,6 +127,7 @@ struct s2n_handshake {
     struct s2n_hash_state prf_sha1_hash_copy;
     /*Used for TLS 1.2 PRF */
     struct s2n_hash_state prf_tls12_hash_copy;
+    struct s2n_hash_state server_finished_copy;
 
     /* Hash algorithms required for this handshake. The set of required hashes can be reduced as session parameters are
      * negotiated, i.e. cipher suite and protocol version.

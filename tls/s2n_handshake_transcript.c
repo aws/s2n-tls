@@ -36,6 +36,9 @@ int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
     struct s2n_blob client_seq = {.data = conn->secure.client_sequence_number,.size = sizeof(conn->secure.client_sequence_number) };
     struct s2n_blob server_seq = {.data = conn->secure.server_sequence_number,.size = sizeof(conn->secure.server_sequence_number) };
 
+    s2n_tls13_connection_keys(keys, conn);
+    struct s2n_hash_state hash_state = {0};
+
     switch(s2n_conn_get_current_message_type(conn)) {
     case HELLO_RETRY_MSG:
         /* If we are sending a retry request, we didn't decide on a key share. There are no secrets to handle. */
@@ -47,6 +50,10 @@ int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
         conn->server = &conn->secure;
         conn->client = &conn->secure;
         GUARD(s2n_stuffer_wipe(&conn->alert_in));
+        break;
+    case SERVER_FINISHED:
+        GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
+        GUARD(s2n_hash_copy(&conn->handshake.server_finished_copy, &hash_state));
         break;
     case CLIENT_FINISHED:
         /* Reset sequence numbers for Application Data */
