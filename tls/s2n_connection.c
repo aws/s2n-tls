@@ -785,6 +785,20 @@ int s2n_connection_get_kem_preferences(struct s2n_connection *conn, const struct
     return 0;
 }
 
+int s2n_connection_get_signature_preferences(struct s2n_connection *conn, const struct s2n_signature_preferences **signature_preferences)
+{
+    notnull_check(conn);
+    notnull_check(signature_preferences);
+
+    if (conn->security_policy_override != NULL) {
+        *signature_preferences = conn->security_policy_override->signature_preferences;
+    } else {
+        *signature_preferences = conn->config->security_policy->signature_preferences;
+    }
+
+    return 0;
+
+}
 
 int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct s2n_blob **protocol_preferences)
 {
