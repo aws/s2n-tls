@@ -51,7 +51,6 @@ struct s2n_config {
     s2n_clock_time_nanoseconds monotonic_clock;
 
     const struct s2n_security_policy *security_policy;
-    const struct s2n_ecc_preferences *ecc_preferences;
 
     void *sys_clock_ctx;
     void *monotonic_clock_ctx;

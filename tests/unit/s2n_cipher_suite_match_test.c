@@ -22,8 +22,7 @@
 #include "crypto/s2n_fips.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_cipher_preferences.h"
-#include "tls/s2n_ecc_preferences.h"
+#include "tls/s2n_security_policies.h"
 
 int main(int argc, char **argv)
 {
@@ -223,9 +222,13 @@ int main(int argc, char **argv)
 
         /* TEST RSA cipher chosen when ECDSA cipher is at top */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority"));
-        EXPECT_SUCCESS(s2n_config_set_ecc_preferences(conn->config, "default"));
-        const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-        EXPECT_NOT_NULL(ecc_pref);
+
+        const struct s2n_security_policy *security_policy = NULL;
+        const struct s2n_ecc_preferences *ecc_pref = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+
         /* Assume default for negotiated curve. */
         /* Shouldn't be necessary unless the test fails, but we want the failure to be obvious. */
         conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
@@ -281,8 +284,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
 
-        ecc_pref = conn->config->ecc_preferences;
-        
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+
         /* TEST ECDSA */
         s2n_connection_set_cipher_preferences(conn, "test_all_ecdsa");
         const uint8_t expected_ecdsa_wire_choice[] = { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 };
@@ -416,7 +421,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert));
         /* Override auto-chosen defaults with only RSA cert default. ECDSA still loaded, but not default. */
         EXPECT_SUCCESS(s2n_config_set_cert_chain_and_key_defaults(server_config, &rsa_cert, 1));
-        ecc_pref = server_config->ecc_preferences;
 
         /* Client sends RSA and ECDSA ciphers, server prioritizes ECDSA, ECDSA + RSA cert is configured,
          * only RSA is default. Expect default RSA used instead of previous test that expects ECDSA for this case. */

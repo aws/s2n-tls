@@ -535,23 +535,6 @@ underlying encrpyt/decrypt functions are not available in older versions.
 3. Prefer encryption ciphers in the following order: AES128, AES256, ChaCha20, 3DES, RC4.
 4. Prefer record authentication modes in the following order: GCM, Poly1305, SHA256, SHA1, MD5.
 
-### s2n\_config\_set\_ecc\_preferences
-
-```c
-int s2n_config_set_ecc_preferences(struct s2n_config *config,
-                                      const char *version);
-```
-
-**s2n_config_set_ecc_preferences** sets the list of acceptable ecc curves in descending order of preference.
-
-The "default" version behaves as in **s2n_config_set_cipher_preferences**. Numbered versions are fixed and will never change. The currently supported versions are:
-
-| version | definition |
-|----------|-----------
-|"default" | Currently "20140601".
-|"20200310" | Curves x25519, secp256r1, and secp384r1. 
-|"20140601" | Curves secp256r1 and secp384r1. 
-
 ### s2n\_config\_add\_cert\_chain\_and\_key
 
 ```c

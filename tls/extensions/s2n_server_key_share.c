@@ -17,7 +17,7 @@
 #include "tls/extensions/s2n_server_key_share.h"
 
 #include "tls/s2n_client_extensions.h"
-#include "tls/s2n_ecc_preferences.h"
+#include "tls/s2n_security_policies.h"
 
 #include "utils/s2n_safety.h"
 #include "tls/s2n_tls13.h"
@@ -28,8 +28,12 @@
 int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn)
 {
     notnull_check(conn);
-    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-    notnull_check(ecc_pref);
+
+    const struct s2n_security_policy *security_policy = NULL;
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    notnull_check(security_policy);
+    notnull_check(ecc_pref = security_policy->ecc_preferences);
 
     /* If we are responding to a retry request then we don't have a valid
      * curve from the client. Just return 0 so a selected group will be
@@ -67,9 +71,14 @@ int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn)
  */
 int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
 {
-    notnull_check(conn->config);
-    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-    notnull_check(ecc_pref);
+    notnull_check(conn);
+
+    const struct s2n_security_policy *security_policy = NULL;
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    notnull_check(security_policy);
+    notnull_check(ecc_pref = security_policy->ecc_preferences);
+
     for (uint32_t i = 0; i < ecc_pref->count; i++) {
         /* Checks supported group and keyshare have both been sent */
         if (conn->secure.client_ecc_evp_params[i].negotiated_curve &&
@@ -161,9 +170,12 @@ int s2n_extensions_server_key_share_recv(struct s2n_connection *conn, struct s2n
 {
     notnull_check(conn);
     notnull_check(extension);
-    notnull_check(conn->config);
-    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-    notnull_check(ecc_pref);
+
+    const struct s2n_security_policy *security_policy = NULL;
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    notnull_check(security_policy);
+    notnull_check(ecc_pref = security_policy->ecc_preferences);
 
     uint16_t named_group, share_size;
 

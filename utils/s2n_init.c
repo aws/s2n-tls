@@ -16,8 +16,6 @@
 
 #include "error/s2n_errno.h"
 
-#include "tls/s2n_cipher_preferences.h"
-#include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_client_extensions.h"
@@ -44,7 +42,6 @@ int s2n_init(void)
     GUARD(s2n_rand_init());
     GUARD(s2n_cipher_suites_init());
     GUARD(s2n_security_policies_init());
-    GUARD(s2n_ecc_preferences_init());
     GUARD(s2n_config_defaults_init());
     GUARD(s2n_extension_type_init());
     

@@ -33,7 +33,6 @@
 #include "tls/s2n_client_extensions.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_connection_evp_digests.h"
-#include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_prf.h"

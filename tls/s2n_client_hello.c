@@ -36,7 +36,7 @@
 #include "tls/s2n_client_extensions.h"
 #include "tls/s2n_tls_digest_preferences.h"
 #include "tls/extensions/s2n_server_key_share.h"
-#include "tls/s2n_ecc_preferences.h"
+#include "tls/s2n_security_policies.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -164,6 +164,7 @@ int s2n_collect_client_hello(struct s2n_connection *conn, struct s2n_stuffer *so
 
 static int s2n_parse_client_hello(struct s2n_connection *conn)
 {
+    notnull_check(conn);
     GUARD(s2n_collect_client_hello(conn, &conn->handshake.io));
 
     if (conn->client_hello_version == S2N_SSLv2) {
@@ -205,9 +206,11 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     GUARD(s2n_stuffer_read_uint8(in, &num_compression_methods));
     GUARD(s2n_stuffer_skip_read(in, num_compression_methods));
 
-    notnull_check(conn->config);
-    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-    notnull_check(ecc_pref);
+    const struct s2n_security_policy *security_policy = NULL;
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    notnull_check(security_policy);
+    notnull_check(ecc_pref = security_policy->ecc_preferences);
 
     /* This is going to be our default if the client has no preference. */
     conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
