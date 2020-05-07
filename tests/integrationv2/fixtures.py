@@ -6,7 +6,8 @@ import time
 
 from processes import ManagedProcess
 from providers import Provider
-from common import ProviderOptions
+from common import ProviderOptions, Protocols
+from configuration import TLS13_CURVES, TLS13_CIPHERSUITES
 
 
 @pytest.fixture
@@ -26,8 +27,8 @@ def managed_process():
         cmd_line = provider.get_cmd_line()
         p = ManagedProcess(cmd_line,
                 provider.set_provider_ready,
-                wait_for_marker=provider.ready_to_test,
-                ready_to_send=provider.ready_to_send_marker,
+                wait_for_marker=provider.ready_to_test_marker,
+                ready_to_send=provider.ready_to_send_input_marker,
                 data_source=options.data_to_send,
                 timeout=timeout)
 
@@ -35,6 +36,7 @@ def managed_process():
         with p.ready_condition:
             p.start()
             with provider._provider_ready_condition:
+                # Don't continue processing until the provider has indicated it is ready.
                 provider._provider_ready_condition.wait_for(provider.is_provider_ready, timeout)
         return p
 

@@ -1,3 +1,4 @@
+import time
 import os
 import select
 import selectors
@@ -44,6 +45,10 @@ class _processCommunicator(object):
         self._communication_started = False
 
     def wait_for(self, wait_for_marker, timeout=None):
+        """
+        Wait for a specific marker in stdout.
+        If the marker is not seen, a timeout will be raised.
+        """
         self.wait_for_marker = wait_for_marker
         stdout = None
         stderr = None
@@ -55,8 +60,16 @@ class _processCommunicator(object):
 
         return (stdout, stderr)
 
-    def communicate(self, input_data=None, ready_to_send=None, wait_for_marker=None, timeout=None):
+    def communicate(self, input_data=None, ready_to_send=None, timeout=None):
+        """
+        Communicates with the managed process. If ready_to_send is set, input_data will not be sent
+        until the marker is seen.
+
+        This method acts very similar to the Popen.communicate method. The only difference is the
+        ready_to_send marker.
+        """
         self.ready_to_send = ready_to_send
+        self.wait_for_marker = None
         stdout = None
         stderr = None
 
@@ -76,7 +89,7 @@ class _processCommunicator(object):
             * STDIN is only closed after all registered events have been processed (including
               pending stdout/stderr events, allowing more data to be stored).
         """
-        if self.proc.stdin:
+        if input_data is not None and self.proc.stdin:
             # Flush stdio buffer.  This might block, if the user has
             # been writing to .stdin in an uncontrolled fashion.
             try:
@@ -173,6 +186,7 @@ class _processCommunicator(object):
                 # If we have finished sending all our input, and have received the
                 # ready-to-send marker, we can close out stdin.
                 if self.proc.stdin and input_data_sent:
+                    input_data_sent = None
                     self.proc.stdin.close()
 
         self.proc.wait(timeout=self._remaining_time(endtime))
@@ -219,23 +233,30 @@ class ManagedProcess(threading.Thread):
     """
     def __init__(self, cmd_line, provider_set_ready_condition, wait_for_marker=None, ready_to_send=None, timeout=5, data_source=None):
         threading.Thread.__init__(self)
+
+        # Command line to execute in the subprocess
         self.cmd_line = cmd_line
+
+        # Total time to wait until killing the subprocess
         self.timeout = timeout
+
+        # Condition variable indicating when results are ready to be collected
         self.results_condition = threading.Condition()
-        self.ready_condition = threading.Condition()
         self.results = None
+
+        # Condition variable indicating when this subprocess has been launched successfully
+        self.ready_condition = threading.Condition()
         self.process_ready = False
         self.provider_set_ready_condition = provider_set_ready_condition
 
-        # Note: use this to set the ready condition correctly
+        # Indicates the process has completed some initial setup and is ready for testing
         self.ready_to_test = wait_for_marker
 
-        # We always need some data for stdin, otherwise .communicate() won't setup the input
-        # descriptor for the process. This causes some SSL providers to close the connection
-        # immediately upon creation.
         self.data_source = None
         self.ready_to_send = None
         if data_source is not None:
+            # If no data source is provided, then we never need to
+            # set the ready_to_send marker.
             self.data_source = data_source
             self.ready_to_send = ready_to_send
 
@@ -249,15 +270,15 @@ class ManagedProcess(threading.Thread):
                 raise ex
 
             communicator = _processCommunicator(proc)
+
             if self.ready_to_test is not None:
-                # We can read stdout here looking for a ready marker
+                # Some processes won't be ready until they have emitted some string in stdout.
                 communicator.wait_for(self.ready_to_test, timeout=self.timeout)
 
+            # Let any threads waiting on process launch proceed
             self.provider_set_ready_condition()
 
-            # Result should be available to the whole scope
             proc_results = None
-
             try:
                 proc_results = communicator.communicate(input_data=self.data_source, ready_to_send=self.ready_to_send, timeout=self.timeout)
                 self.results = Results(proc_results[0], proc_results[1], proc.returncode, None)
@@ -269,15 +290,15 @@ class ManagedProcess(threading.Thread):
                 proc_results = communicator.communicate()
                 self.results = Results(proc_results[0], proc_results[1], proc.returncode, wrapped_ex)
             except Exception as ex:
-                self.results = Results(None, None, None, ex)
+                self.results = Results(proc_results[0], proc_results[1], proc.returncode, ex)
                 raise ex
             finally:
                 # This data is dumped to stdout so we capture this
                 # information no matter where a test fails.
                 print("Command line: {}".format(" ".join(self.cmd_line)))
-                print(f"Exit code: {proc.returncode}")
-                print(f"Stdout: {proc_results[0]}")
-                print(f"Stderr: {proc_results[1]}")
+                print("Exit code: {}".format(proc.returncode))
+                print("Stdout: {}".format(proc_results[0]))
+                print("Stderr: {}".format(proc_results[1]))
 
     def _process_ready(self):
         """Condition variable predicate"""

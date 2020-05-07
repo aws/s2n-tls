@@ -1,5 +1,35 @@
 import subprocess
 import string
+import threading
+
+
+def invalid_test_parameters(*args, **kwargs):
+    """
+    Determine if the parameters chosen for a test makes sense.
+    This function returns True or False, indicating whether a
+    test should be "deselected" based on the arguments.
+    """
+    protocol = kwargs.get('protocol')
+    certificate = kwargs.get('certificate')
+    cipher = kwargs.get('cipher')
+    curve = kwargs.get('curve')
+
+    if protocol == Protocols.TLS13:
+        # TLS1.3 should work with all our certs
+        return False
+
+    if protocol != Protocols.TLS13:
+        if certificate is not None and 'ecdsa' in certificate.cert:
+            # Other protocols don't support the ecdsa cert
+            return True
+
+        if cipher in TLS13_CIPHERSUITES:
+            return True
+
+        if curve in TLS13_CURVES:
+            return True
+
+    return False
 
 
 def data_bytes(n_bytes):
@@ -60,6 +90,15 @@ class Ciphersuites(object):
     TLS_AES_256_GCM_384 = "TLS_AES_256_GCM_384"
 
 
+class Protocols(object):
+    """
+    """
+    TLS13 = "TLS1.3"
+    TLS12 = "TLS1.2"
+    TLS11 = "TLS1.1"
+    TLS10 = "TLS1.0"
+
+
 class Results(object):
     """
     An instance of this object will be returned to the test by a managed_process'
@@ -100,7 +139,7 @@ class ProviderOptions(object):
             use_session_ticket=False,
             insecure=False,
             data_to_send=None,
-            tls13=False):
+            protocol=None):
 
         # Client or server
         self.mode = mode
@@ -129,8 +168,57 @@ class ProviderOptions(object):
         # Boolean whether to allow insecure certificates
         self.insecure = insecure
 
-        # Boolean whether to use TLS1.3
-        self.tls13 = tls13
+        # Which protocol to use with this provider
+        self.protocol = protocol
 
         # This data will be sent to the peer
         self.data_to_send = data_to_send
+
+
+class AvailablePorts():
+    """
+    This iterator will atomically return the next number.
+    This is useful when running multiple tests in parallel
+    that all need unique port numbers.
+    """
+
+    def __init__(self, low=8000, high=20000):
+        self.ports = iter(range(low, high))
+        self.lock = threading.Lock()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        with self.lock:
+            return next(self.ports)
+
+
+# Singleton port provider allowing multiple tests to obtain unique port numbers
+available_ports = AvailablePorts()
+
+
+# Common ciphersuites
+TLS_CIPHERSUITES = [
+    Ciphersuites.TLS_AES_128_GCM_256,
+    Ciphersuites.TLS_AES_256_GCM_384
+]
+
+
+# TLS1.3 specific ciphersuites
+TLS13_CIPHERSUITES = [
+    Ciphersuites.TLS_CHACHA20_POLY1305_SHA256
+]
+
+
+# Common curves
+TLS_CURVES = [
+    Curves.P256,
+    Curves.P384
+]
+
+
+# TLS1.3 specific curves
+TLS13_CURVES = [
+    Curves.X25519,
+]
