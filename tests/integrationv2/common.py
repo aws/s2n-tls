@@ -100,6 +100,9 @@ class ProviderOptions(object):
             use_session_ticket=False,
             insecure=False,
             data_to_send=None,
+            use_client_auth=False,
+            client_key_file=None,
+            client_certificate_file=None,
             tls13=False):
 
         # Client or server
@@ -134,3 +137,8 @@ class ProviderOptions(object):
 
         # This data will be sent to the peer
         self.data_to_send = data_to_send
+
+        # Parameters to configure client authentication
+        self.use_client_auth = use_client_auth
+        self.client_certificate_file = client_certificate_file
+        self.client_key_file = client_key_file

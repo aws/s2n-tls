@@ -20,7 +20,7 @@ CURVES = [
 
 
 # List of providers that will be tested.
-PROVIDERS = [S2N, OpenSSL, BoringSSL]
+PROVIDERS = [S2N, OpenSSL]
 
 
 class AvailablePorts():
