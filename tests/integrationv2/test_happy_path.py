@@ -1,18 +1,20 @@
 import copy
-import os
 import pytest
-import time
 
-from configuration import available_ports, CIPHERSUITES, CURVES, PROVIDERS
-from common import ProviderOptions, data_bytes
+from configuration import available_ports, ALL_TEST_CIPHERS, ALL_CURVES, ALL_CERTS, PROVIDERS, PROTOCOLS
+from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
-from providers import S2N
+from providers import Provider, S2N
+from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version
 
 
-@pytest.mark.parametrize("cipher", CIPHERSUITES)
-@pytest.mark.parametrize("curve", CURVES)
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", PROVIDERS)
-def test_s2n_server_happy_path(managed_process, cipher, curve, provider):
+@pytest.mark.parametrize("curve", ALL_CURVES)
+@pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", ALL_CERTS, ids=get_parameter_name)
+def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protocol, certificate):
     host = "localhost"
     port = next(available_ports)
 
@@ -21,22 +23,22 @@ def test_s2n_server_happy_path(managed_process, cipher, curve, provider):
     # expected easily.
     # The downside here is that, should the test fail, all 4 mbs will
     # be dumped in the exception.
-    random_bytes = data_bytes(4194304)
+    random_bytes = data_bytes(4096)
     client_options = ProviderOptions(
-        mode="client",
+        mode=Provider.ClientMode,
         host="localhost",
         port=port,
         cipher=cipher,
         curve=curve,
         data_to_send=random_bytes,
         insecure=True,
-        tls13=True)
+        protocol=protocol)
 
     server_options = copy.copy(client_options)
     server_options.data_to_send = None
-    server_options.mode = "server"
-    server_options.key = "../pems/ecdsa_p384_pkcs1_key.pem"
-    server_options.cert = "../pems/ecdsa_p384_pkcs1_cert.pem"
+    server_options.mode = Provider.ServerMode
+    server_options.key = certificate.key
+    server_options.cert = certificate.cert
 
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.
@@ -50,19 +52,23 @@ def test_s2n_server_happy_path(managed_process, cipher, curve, provider):
         assert results.exception is None
         assert results.exit_code == 0
 
+    expected_version = get_expected_s2n_version(protocol, provider)
+
     # The server is always S2N in this test, so we can examine
     # the stdout reliably.
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
-        assert b"Actual protocol version: 34" in results.stdout
+        assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) in results.stdout
         assert random_bytes in results.stdout
 
 
-@pytest.mark.parametrize("cipher", CIPHERSUITES)
-@pytest.mark.parametrize("curve", CURVES)
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", PROVIDERS)
-def test_s2n_client_happy_path(managed_process, cipher, curve, provider):
+@pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", ALL_CERTS, ids=get_parameter_name)
+def test_s2n_client_happy_path(managed_process, cipher, provider, protocol, certificate):
     host = "localhost"
     port = next(available_ports)
 
@@ -73,31 +79,33 @@ def test_s2n_client_happy_path(managed_process, cipher, curve, provider):
     # send less data, rather than lose debug information.
     random_bytes = data_bytes(4096)
     client_options = ProviderOptions(
-        mode="client",
+        mode=Provider.ClientMode,
         host="localhost",
         port=port,
         cipher=cipher,
         data_to_send=random_bytes,
         insecure=True,
-        tls13=True)
+        protocol=protocol)
 
     server_options = copy.copy(client_options)
     server_options.data_to_send = None
-    server_options.mode = "server"
-    server_options.key = "../pems/ecdsa_p384_pkcs1_key.pem"
-    server_options.cert = "../pems/ecdsa_p384_pkcs1_cert.pem"
+    server_options.mode = Provider.ServerMode
+    server_options.key = certificate.key
+    server_options.cert = certificate.cert
 
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.
     server = managed_process(provider, server_options, timeout=5)
     client = managed_process(S2N, client_options, timeout=5)
 
+    expected_version = get_expected_s2n_version(protocol, provider)
+
     # The client is always S2N in this test, so we can examine
     # the stdout reliably.
     for results in client.get_results():
         assert results.exception is None
         assert results.exit_code == 0
-        assert b"Actual protocol version: 34" in results.stdout
+        assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) in results.stdout
 
     # The server will be one of all supported providers. We
     # just want to make sure there was no exception and that

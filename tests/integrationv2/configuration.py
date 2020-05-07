@@ -1,21 +1,20 @@
 import threading
-from contextlib import contextmanager
-from common import Ciphersuites, Curves
+
+from common import Cert, Ciphers, Curves, Protocols, AvailablePorts, TLS_CURVES, TLS13_CURVES
 from providers import S2N, OpenSSL, BoringSSL
 
 
-# List of ciphersuites that will be tested.
-CIPHERSUITES = [
-    Ciphersuites.TLS_CHACHA20_POLY1305_SHA256,
-    Ciphersuites.TLS_AES_128_GCM_256,
-    Ciphersuites.TLS_AES_256_GCM_384
-]
+# The boolean configuration will let a test run for True and False
+# for some value. For example, using the insecure flag.
+BOOLEAN = [True, False]
 
 
-# List of curves that will be tested.
-CURVES = [
-    Curves.P256,
-    Curves.P384
+# List of all protocols to be tested
+PROTOCOLS = [
+    Protocols.TLS13,
+    Protocols.TLS12,
+    Protocols.TLS11,
+    Protocols.TLS10,
 ]
 
 
@@ -27,22 +26,69 @@ PROVIDERS = [S2N, OpenSSL]
 TLS13 = [True, False]
 
 
-class AvailablePorts():
-    """
-    NOTE: This is not where this belongs, refactor needed.
-    An iterator that atomically returns the next available port.
-    """
-
-    def __init__(self):
-        self.ports = iter(range(8000, 9000))
-        self.lock = threading.Lock()
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        with self.lock:
-            return next(self.ports)
+# List of all curves that will be tested.
+ALL_CURVES = TLS13_CURVES[:]
+ALL_CURVES.extend(TLS_CURVES)
+ALL_CURVES.append(None)
 
 
+ALL_CERTS = [
+    # PKCS1 will only work with older OpenSSL versions
+    # Cert("RSA_2048_PKCS1", "rsa_2048_pkcs1"),
+    Cert("RSA_1024_SHA256", "rsa_1024_sha256_client"),
+    Cert("RSA_1024_SHA384", "rsa_1024_sha384_client"),
+    Cert("RSA_1024_SHA512", "rsa_1024_sha512_client"),
+    Cert("RSA_2048_SHA256", "rsa_2048_sha256_client"),
+    Cert("RSA_2048_SHA384", "rsa_2048_sha384_client"),
+    Cert("RSA_2048_SHA512", "rsa_2048_sha512_client"),
+    Cert("RSA_3072_SHA256", "rsa_3072_sha256_client"),
+    Cert("RSA_3072_SHA384", "rsa_3072_sha384_client"),
+    Cert("RSA_3072_SHA512", "rsa_3072_sha512_client"),
+    Cert("RSA_4096_SHA256", "rsa_4096_sha256_client"),
+    Cert("RSA_4096_SHA384", "rsa_4096_sha384_client"),
+    Cert("RSA_4096_SHA512", "rsa_4096_sha512_client"),
+    Cert("ECDSA_256", "ecdsa_p256_pkcs1"),
+    Cert("ECDSA_384", "ecdsa_p384_pkcs1"),
+]
+
+
+ALL_TEST_CIPHERS = [
+    Ciphers.RC4_MD5,
+    Ciphers.RC4_SHA,
+    Ciphers.DES_CBC3_SHA,
+    Ciphers.DHE_RSA_DES_CBC3_SHA,
+    Ciphers.AES128_SHA,
+    Ciphers.DHE_RSA_AES128_SHA,
+    Ciphers.AES256_SHA,
+    Ciphers.DHE_RSA_AES256_SHA,
+    Ciphers.AES128_SHA256,
+    Ciphers.AES256_SHA256,
+    Ciphers.DHE_RSA_AES128_SHA256,
+    Ciphers.DHE_RSA_AES256_SHA256,
+    Ciphers.AES128_GCM_SHA256,
+    Ciphers.AES256_GCM_SHA384,
+    Ciphers.DHE_RSA_AES128_GCM_SHA256,
+    Ciphers.DHE_RSA_AES256_GCM_SHA384,
+    Ciphers.ECDHE_ECDSA_AES128_GCM_SHA256,
+    Ciphers.ECDHE_ECDSA_AES256_GCM_SHA384,
+    Ciphers.ECDHE_RSA_DES_CBC3_SHA,
+    Ciphers.ECDHE_RSA_AES128_SHA,
+    Ciphers.ECDHE_RSA_AES256_SHA,
+    Ciphers.ECDHE_RSA_RC4_SHA,
+    Ciphers.ECDHE_RSA_AES128_SHA256,
+    Ciphers.ECDHE_RSA_AES256_SHA384,
+    Ciphers.ECDHE_RSA_AES128_GCM_SHA256,
+    Ciphers.ECDHE_RSA_AES256_GCM_SHA384,
+    Ciphers.ECDHE_RSA_CHACHA20_POLY1305,
+    Ciphers.ECDHE_ECDSA_CHACHA20_POLY1305,
+    Ciphers.DHE_RSA_CHACHA20_POLY1305,
+    Ciphers.CHACHA20_POLY1305_SHA256,
+]
+
+
+# List of providers that will be tested.
+PROVIDERS = [S2N, OpenSSL]
+
+
+# List of ports available to tests.
 available_ports = AvailablePorts()
