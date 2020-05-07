@@ -18,10 +18,6 @@
 
 set -ex
 
-apt-key list
-sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 6B05F25D762E3157
-apt-key list
-
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
 sudo apt-get update -o Acquire::CompressionTypes::Order::=gz
 

@@ -28,6 +28,11 @@ fi
 DOWNLOAD_DIR=$1
 INSTALL_DIR=$2
 
+if [ -x "$INSTALL_DIR/bin/saw" ]; then
+	echo "Saw already installed at $INSTALL_DIR/bin/saw";
+	exit 0;
+fi
+
 mkdir -p "$DOWNLOAD_DIR"
 cd "$DOWNLOAD_DIR"
 
