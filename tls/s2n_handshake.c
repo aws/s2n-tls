@@ -236,7 +236,9 @@ static int s2n_find_cert_matches(struct s2n_map *domain_name_to_cert_map,
         uint8_t *match_exists)
 {
     struct s2n_blob map_value;
-    if (s2n_map_lookup(domain_name_to_cert_map, dns_name, &map_value) == 1) {
+    bool key_found = false;
+    GUARD_AS_POSIX(s2n_map_lookup(domain_name_to_cert_map, dns_name, &map_value, &key_found));
+    if (key_found) {
         struct certs_by_type *value = (void *) map_value.data;
         for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
             matches[i] = value->certs[i];
