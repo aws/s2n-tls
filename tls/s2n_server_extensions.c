@@ -57,10 +57,10 @@ int s2n_server_extensions_send_size(struct s2n_connection *conn)
 
     GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_server_name_send_size(conn), total_size);
     GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_alpn_send_size(conn), total_size);
-    GUARD_UINT16_AND_INCREMENT(s2n_server_renegotiation_info_ext_size(conn), total_size);
+    total_size += s2n_server_renegotiation_info_ext_size(conn);
     GUARD_UINT16_AND_INCREMENT(s2n_kex_server_extension_size(conn->secure.cipher_suite->key_exchange_alg, conn), total_size);
     GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_max_fragment_length_send_size(conn), total_size);
-    GUARD_UINT16_AND_INCREMENT(s2n_server_session_ticket_ext_size(conn), total_size);
+    total_size += s2n_server_session_ticket_ext_size(conn);
     GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_status_request_send_size(conn), total_size);
     GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_sct_list_send_size(conn), total_size);
 
@@ -74,7 +74,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (total_size == 0) {
         return 0;
     }
-    inclusive_range_check(0, total_size, 65535);
+    GUARD_UINT16(total_size);
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
 

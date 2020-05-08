@@ -21,9 +21,13 @@
 
 /* Guards against errors and non uint16s, then increments size */
 #define GUARD_UINT16_AND_INCREMENT( x, size ) do { \
+    GUARD_UINT16(x); \
+    size += x; \
+} while (0)
+
+#define GUARD_UINT16( x ) do { \
     GUARD(x); \
     lte_check(x, 65535); \
-    size += x; \
 } while (0)
 
 int s2n_certificate_extensions_parse(struct s2n_connection *conn, struct s2n_blob *extensions);
