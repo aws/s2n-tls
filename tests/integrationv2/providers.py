@@ -1,5 +1,4 @@
 import pytest
-import time
 import threading
 from common import ProviderOptions, Ciphersuites, Curves
 
@@ -11,6 +10,8 @@ class Provider(object):
     """
 
     def __init__(self, options: ProviderOptions):
+        self.ready_to_send_marker = None
+        self.ready_to_test = None
         self._provider_ready_condition = threading.Condition()
         self._provider_ready = False
 
@@ -36,7 +37,45 @@ class Provider(object):
         return self._provider_ready is True
 
     def set_provider_ready(self):
-        self._provider_ready = True
+        with self._provider_ready_condition:
+            self._provider_ready = True
+            self._provider_ready_condition.notify()
+
+
+class Tcpdump(Provider):
+    """
+    TcpDump is used by the dynamic record test. It only needs to watch
+    a handful of packets before it can exit.
+
+    This class still follows the provider setup, but all values are hardcoded
+    because this isn't expected to be used outside of the dynamic record test.
+    """
+    def __init__(self, options: ProviderOptions):
+        Provider.__init__(self, options)
+
+    def setup_client(self, options: ProviderOptions):
+        self.ready_to_test = 'listening on lo'
+        tcpdump_filter = f"dst port {options.port}"
+
+        cmd_line = ["tcpdump",
+            # Line buffer the output
+            "-l",
+
+            # Only read 12 packets before exiting. This is enough to find a large
+            # packet, and still exit before the timeout.
+            "-c", "12",
+
+            # Watch the loopback device
+            "-i", "lo",
+
+            # Don't resolve IP addresses
+            "-n",
+
+            # Set the buffer size to 1k
+            "-B", "1024",
+            tcpdump_filter]
+
+        return cmd_line
 
 
 class S2N(Provider):
