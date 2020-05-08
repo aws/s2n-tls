@@ -337,6 +337,9 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(kem_params.public_key.data, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH);
         EXPECT_EQUAL(kem_params.shared_secret.size, 0);
         EXPECT_NULL(kem_params.shared_secret.data);
+
+        /* This free would normally happen in s2n_connection_free() */
+        EXPECT_SUCCESS(s2n_kem_free(&kem_params));
     }
     {
         /* Failure cases for s2n_kem_send_public_key() */
@@ -380,6 +383,9 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(kem_params.public_key.data, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH);
         EXPECT_EQUAL(kem_params.private_key.size, 0);
         EXPECT_NULL(kem_params.private_key.data);
+
+        /* This free would normally happen in s2n_connection_free() */
+        EXPECT_SUCCESS(s2n_kem_free(&kem_params));
     }
     {
         /* Failure cases for s2n_kem_send_ciphertext() */
@@ -423,6 +429,9 @@ int main(int argc, char **argv)
 
         EXPECT_EQUAL(kem_params.shared_secret.size, TEST_SHARED_SECRET_LENGTH);
         EXPECT_BYTEARRAY_EQUAL(kem_params.shared_secret.data, TEST_SHARED_SECRET, TEST_SHARED_SECRET_LENGTH);
+
+        /* This free would normally happen in s2n_connection_free() */
+        EXPECT_SUCCESS(s2n_kem_free(&kem_params));
     }
     {
         /* Failure cases for s2n_kem_recv_ciphertext() */
