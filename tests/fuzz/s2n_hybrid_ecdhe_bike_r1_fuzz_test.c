@@ -46,11 +46,9 @@ static int setup_connection(struct s2n_connection *server_conn)
 {
     server_conn->actual_protocol_version = S2N_TLS12;
 
-    const struct s2n_security_policy *security_policy = NULL;
     const struct s2n_ecc_preferences *ecc_preferences = NULL;
-    GUARD(s2n_connection_get_security_policy(server_conn, &security_policy));
-    notnull_check(security_policy);
-    notnull_check(ecc_preferences = security_policy->ecc_preferences);
+    GUARD(s2n_connection_get_ecc_preferences(server_conn, &ecc_preferences));
+    notnull_check(ecc_preferences);
 
     server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
     server_conn->secure.server_ecc_evp_params.evp_pkey = NULL;

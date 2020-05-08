@@ -31,6 +31,7 @@
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
 #include "tls/s2n_kem_preferences.h"
+#include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_security_policies.h"
 
 #include "crypto/s2n_hash.h"
@@ -315,6 +316,7 @@ int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const str
 int s2n_connection_get_security_policy(struct s2n_connection *conn, const struct s2n_security_policy **security_policy);
 int s2n_connection_get_kem_preferences(struct s2n_connection *conn, const struct s2n_kem_preferences **kem_preferences);
 int s2n_connection_get_signature_preferences(struct s2n_connection *conn, const struct s2n_signature_preferences **signature_preferences);
+int s2n_connection_get_ecc_preferences(struct s2n_connection *conn, const struct s2n_ecc_preferences **ecc_preferences);
 int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct s2n_blob **protocol_preferences);
 int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
 int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_cert_auth_type);

@@ -527,6 +527,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     notnull_check(&config->security_policy->cipher_preferences);
     notnull_check(&config->security_policy->kem_preferences);
     notnull_check(&config->security_policy->signature_preferences);
+    notnull_check(&config->security_policy->ecc_preferences);
     return 0;
 }
 
@@ -536,6 +537,7 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
     notnull_check(&conn->security_policy_override->cipher_preferences);
     notnull_check(&conn->security_policy_override->kem_preferences);
     notnull_check(&conn->security_policy_override->signature_preferences);
+    notnull_check(&conn->security_policy_override->ecc_preferences);
     return 0;
 }
 

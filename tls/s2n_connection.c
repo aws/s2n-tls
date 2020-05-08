@@ -800,6 +800,21 @@ int s2n_connection_get_signature_preferences(struct s2n_connection *conn, const 
 
 }
 
+int s2n_connection_get_ecc_preferences(struct s2n_connection *conn, const struct s2n_ecc_preferences **ecc_preferences)
+{
+    notnull_check(conn);
+    notnull_check(ecc_preferences);
+
+    if (conn->security_policy_override != NULL) {
+        *ecc_preferences = conn->security_policy_override->ecc_preferences;
+    } else {
+        *ecc_preferences = conn->config->security_policy->ecc_preferences;
+    }
+
+    return 0;
+
+}
+
 int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct s2n_blob **protocol_preferences)
 {
     notnull_check(conn);

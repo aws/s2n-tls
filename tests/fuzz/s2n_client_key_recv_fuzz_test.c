@@ -197,11 +197,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 
     server_conn->handshake_params.our_chain_and_key = cert;
 
-    const struct s2n_security_policy *security_policy = NULL;
     const struct s2n_ecc_preferences *ecc_preferences = NULL;
-    GUARD(s2n_connection_get_security_policy(server_conn, &security_policy));
-    notnull_check(security_policy);
-    notnull_check(ecc_preferences = security_policy->ecc_preferences);
+    GUARD(s2n_connection_get_ecc_preferences(server_conn, &ecc_preferences));
+    notnull_check(ecc_preferences);
     
     if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_ecdhe_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
         server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];

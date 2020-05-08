@@ -38,11 +38,9 @@ int main(int argc, char **argv)
          */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
-        const struct s2n_security_policy *security_policy = NULL;
         const struct s2n_ecc_preferences *ecc_pref = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
-        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);;
+        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
+        EXPECT_NOT_NULL(ecc_pref);;
 
         uint8_t data[2] = {0};
         EXPECT_SUCCESS(s2n_blob_init(&iana_ids, data, sizeof(data)));
@@ -69,11 +67,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_blob_init(&iana_ids, data, sizeof(data)));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
-        const struct s2n_security_policy *security_policy = NULL;
         const struct s2n_ecc_preferences *ecc_pref = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
-        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
+        EXPECT_NOT_NULL(ecc_pref);
 
         EXPECT_SUCCESS(s2n_parse_client_supported_groups_list(server_conn, &iana_ids, server_conn->secure.mutually_supported_groups));
 
@@ -89,11 +85,9 @@ int main(int argc, char **argv)
         */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
-        const struct s2n_security_policy *security_policy = NULL;
         const struct s2n_ecc_preferences *ecc_pref = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
-        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
+        EXPECT_NOT_NULL(ecc_pref);
 
         uint8_t data[6] = {0};
         EXPECT_SUCCESS(s2n_blob_init(&iana_ids, data, sizeof(data)));

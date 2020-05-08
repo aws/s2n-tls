@@ -33,11 +33,9 @@ int main(int argc, char **argv)
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
         EXPECT_NOT_NULL(server_conn->config);
 
-        const struct s2n_security_policy *security_policy = NULL;
         const struct s2n_ecc_preferences *ecc_pref = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
-        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
+        EXPECT_NOT_NULL(ecc_pref);
 
         for (int i = 0; i < ecc_pref->count; i++) {
             EXPECT_NULL(server_conn->secure.mutually_supported_groups[i]);
@@ -56,11 +54,9 @@ int main(int argc, char **argv)
          */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
-        const struct s2n_security_policy *security_policy = NULL;
         const struct s2n_ecc_preferences *ecc_pref = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
-        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
+        EXPECT_NOT_NULL(ecc_pref);
 
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
         server_conn->secure.mutually_supported_groups[1] = ecc_pref->ecc_curves[1];
@@ -80,11 +76,9 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
 
-        const struct s2n_security_policy *security_policy = NULL;
         const struct s2n_ecc_preferences *ecc_pref = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
-        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
+        EXPECT_NOT_NULL(ecc_pref);
 
         for (int i = 0; i < ecc_pref->count; i++) {
             server_conn->secure.mutually_supported_groups[i] = ecc_pref->ecc_curves[i];
