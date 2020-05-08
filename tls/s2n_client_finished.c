@@ -70,7 +70,7 @@ int s2n_tls13_client_finished_recv(struct s2n_connection *conn) {
     /* get tls13 keys */
     s2n_tls13_connection_keys(keys, conn);
 
-    /* get transcribe hash */
+    /* get transcript hash */
     struct s2n_hash_state hash_state = {0};
     GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
 
@@ -91,7 +91,7 @@ int s2n_tls13_client_finished_send(struct s2n_connection *conn) {
     /* get tls13 keys */
     s2n_tls13_connection_keys(keys, conn);
 
-    /* get transcribe hash */
+    /* get transcript hash */
     struct s2n_hash_state hash_state = {0};
     GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
 

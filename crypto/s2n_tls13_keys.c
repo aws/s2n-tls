@@ -267,16 +267,16 @@ int s2n_tls13_derive_finished_key(struct s2n_tls13_keys *keys, struct s2n_blob *
 int s2n_tls13_calculate_finished_mac(struct s2n_tls13_keys *keys, struct s2n_blob *finished_key, struct s2n_hash_state *hash_state, struct s2n_blob *finished_verify)
 {
     /* Set up a blob to contain hash */
-    s2n_tls13_key_blob(transcribe_hash, keys->size);
+    s2n_tls13_key_blob(transcript_hash, keys->size);
 
     /* Make a copy of the hash state */
     struct s2n_hash_state hash_state_copy;
     GUARD(s2n_hash_new(&hash_state_copy));
     GUARD(s2n_hash_copy(&hash_state_copy, hash_state));
-    GUARD(s2n_hash_digest(&hash_state_copy, transcribe_hash.data, transcribe_hash.size));
+    GUARD(s2n_hash_digest(&hash_state_copy, transcript_hash.data, transcript_hash.size));
     GUARD(s2n_hash_free(&hash_state_copy));
 
-    GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, finished_key, &transcribe_hash, finished_verify));
+    GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, finished_key, &transcript_hash, finished_verify));
 
     return 0;
 }
