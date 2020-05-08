@@ -304,7 +304,7 @@ int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_
     GUARD(s2n_stuffer_write_uint16(out, kem->public_key_length));
 
     struct s2n_blob *public_key = &(kem_params->public_key);
-    /* Public key will get written to *out */
+    /* Public key will get written directly to *out */
     public_key->data = s2n_stuffer_raw_write(out, kem->public_key_length);
     notnull_check(public_key->data);
     public_key->size = kem->public_key_length;
