@@ -193,14 +193,12 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
 
     if (mode == S2N_CLIENT) {
         old_key = &conn->secure.client_key;
-        old_app_secret.data = conn->secure.client_app_secret;
-        old_app_secret.size = keys.size;
+        GUARD(s2n_blob_init(&old_app_secret, conn->secure.client_app_secret, keys.size));
         sequence_number.data = conn->secure.client_sequence_number;
         sequence_number.size = sizeof(conn->secure.client_sequence_number);
     } else {
         old_key = &conn->secure.server_key;
-        old_app_secret.data = conn->secure.client_app_secret;
-        old_app_secret.size = keys.size;
+        GUARD(s2n_blob_init(&old_app_secret, conn->secure.server_app_secret, keys.size));
         sequence_number.data = conn->secure.server_sequence_number;
         sequence_number.size = sizeof(conn->secure.server_sequence_number);
     }

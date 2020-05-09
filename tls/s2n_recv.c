@@ -142,7 +142,6 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
     if (conn->closed) {
         return 0;
     }
-
     *blocked = S2N_BLOCKED_ON_READ;
 
     while (size && !conn->closed) {

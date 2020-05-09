@@ -24,7 +24,7 @@ import sys
 import uuid
 import time
 
-from common.s2n_test_common import wait_for_output
+from common.s2n_test_common import wait_for_output, get_error
 from common.s2n_test_openssl import run_openssl_connection_test
 from common.s2n_test_scenario import get_scenarios, Mode, Cipher, Version, Curve
 from common.s2n_test_reporting import Result, Status
@@ -54,20 +54,18 @@ def key_update_recv(server, client):
   
     result = Result()
     result.status = Status.PASSED
-    '''
-    openssl_msg = "weenie"
+    openssl_msg = "Message:" + str(uuid.uuid4())
     if client.args[0] == "openssl":
         client.stdin.write(("k\n\n").encode("utf-8"))
         client.stdin.flush()
-        
         time.sleep(1)
         client.stdin.write((openssl_msg + "\n\n").encode("utf-8"))
         client.stdin.flush()
-    
-        if wait_for_output(server, openssl_msg, 100):
+
+        # Openssl prints out KEYUPDATE to stderr when it has been sent.
+        if wait_for_output(server, openssl_msg, 100) and "KEYUPDATE\n" in get_error(client, 7):
             result.status = Status.PASSED
-    '''
-         
+
     return result
 
     
@@ -88,7 +86,7 @@ def main():
     failed += run_openssl_connection_test(get_scenarios(host, port, versions=[Version.TLS13], s2n_modes=[Mode.server], ciphers=Cipher.all(),
                                                         peer_flags=['-msg', '-curves', 'X448:P-256']), test_func=verify_hrr_random_data)
     print("\n\tRunning TLS1.3 key update tests with openssl: %s" % os.popen('openssl version').read())
-    failed += run_openssl_connection_test([get_scenarios(host, port, versions=[Version.TLS13], s2n_modes=[Mode.server], ciphers=Cipher.all())[0]],
+    failed += run_openssl_connection_test(get_scenarios(host, port, versions=[Version.TLS13], s2n_modes=[Mode.server], ciphers=Cipher.all()),
                                                          test_func=key_update_recv)
 
     return failed

@@ -37,7 +37,6 @@ int s2n_key_update_recv(struct s2n_connection *conn)
             S2N_ERR_BAD_MESSAGE);
 
     conn->key_update_pending = key_update_request;
-    printf("KEY UPDATE RECEIVED");
     /* Update peer's key since a key_update was received */
     if (conn->mode == S2N_CLIENT){
         s2n_update_application_traffic_keys(conn, S2N_SERVER, 1);
