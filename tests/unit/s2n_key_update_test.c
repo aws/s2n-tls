@@ -15,7 +15,6 @@
 
 #include "s2n_test.h"
 
-<<<<<<< HEAD
 #include "testlib/s2n_testlib.h"
 
 #include "tls/s2n_key_update.h"
@@ -63,33 +62,6 @@ int main(int argc, char **argv)
         /* Check the new secret is what was expected */
         S2N_BLOB_EXPECT_EQUAL(application_secret_stuffer.blob, updated_application_secret); 
         EXPECT_SUCCESS(s2n_connection_free(conn)); 
-=======
-#include "tls/s2n_key_update.h"
-#include "tls/s2n_connection.h"
-
-#include "utils/s2n_safety.h"
-#include "tls/s2n_tls13_handshake.h"
-
-int main(int argc, char **argv)
-{
-    BEGIN_TEST();
-
-    /* This test creates a decrypted key update message and checks to make sure that
-     *  it has been successfully processed.
-     */
-    {
-        struct s2n_connection *conn;
-
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-
-        conn->actual_protocol_version = S2N_TLS13;
-
-        /*EXPECT_SUCCESS(s2n_create_key_update_message(&conn->in)); 
-
-        EXPECT_SUCCESS(s2n_tls13_update_application_traffic_keys(conn, S2N_CLIENT, 1)); */
-
-        EXPECT_SUCCESS(s2n_connection_free(conn));
->>>>>>> Added KeyUpdate receive capabilities
 
     }
     END_TEST();
