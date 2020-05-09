@@ -264,6 +264,7 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
     conn->handshake.handshake_type = INITIAL;
     conn->handshake.message_number = 0;
+    conn->handshake.paused = 0;
     conn->verify_host_fn = NULL;
     conn->verify_host_fn_overridden = 0;
     conn->data_for_verify_host = NULL;

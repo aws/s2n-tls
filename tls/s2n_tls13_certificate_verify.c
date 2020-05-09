@@ -16,6 +16,7 @@
 #include "crypto/s2n_hash.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_async_pkey.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_tls13_certificate_verify.h"
 #include "tls/s2n_connection.h"
@@ -47,58 +48,54 @@ const uint8_t S2N_CLIENT_CERT_VERIFY_CONTEXT[] = {0x54, 0x4c, 0x53, 0x20, 0x31, 
         0x66, 0x69, 0x63, 0x61, 0x74, 0x65, 0x56, 0x65, 0x72, 0x69, 0x66, 0x79, 0x00};
 
 
-static int s2n_tls13_write_cert_verify_signature(struct s2n_connection *conn, struct s2n_stuffer *out, struct s2n_signature_scheme *chosen_sig_scheme);
+static int s2n_tls13_write_cert_verify_signature(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_sig_scheme);
+static int s2n_tls13_write_signature(struct s2n_connection *conn, struct s2n_blob *signature);
 static int s2n_tls13_generate_unsigned_cert_verify_content(struct s2n_connection *conn, struct s2n_stuffer *unsigned_content, s2n_mode mode);
 static int s2n_tls13_cert_read_and_verify_signature(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_sig_scheme);
 static uint8_t s2n_tls13_cert_verify_header_length(s2n_mode mode);
 
 int s2n_tls13_cert_verify_send(struct s2n_connection *conn)
 {
-    struct s2n_stuffer *out = &conn->handshake.io;
+    S2N_ASYNC_PKEY_GUARD(conn);
 
     if (conn->mode == S2N_SERVER) {
-        /* Write the SignatureScheme out */
-        GUARD(s2n_stuffer_write_uint16(out, conn->secure.conn_sig_scheme.iana_value));
-
         /* Write digital signature */
-        GUARD(s2n_tls13_write_cert_verify_signature(conn, out, &conn->secure.conn_sig_scheme));
+        GUARD(s2n_tls13_write_cert_verify_signature(conn, &conn->secure.conn_sig_scheme));
     } else {
-        /* Write the SignatureScheme out */
-        GUARD(s2n_stuffer_write_uint16(out, conn->secure.client_cert_sig_scheme.iana_value));
-
         /* Write digital signature */
-        GUARD(s2n_tls13_write_cert_verify_signature(conn, out, &conn->secure.client_cert_sig_scheme));
+        GUARD(s2n_tls13_write_cert_verify_signature(conn, &conn->secure.client_cert_sig_scheme));
     }
+
 
     return 0;
 }
 
-int s2n_tls13_write_cert_verify_signature(struct s2n_connection *conn, struct s2n_stuffer *out, struct s2n_signature_scheme *chosen_sig_scheme)
+int s2n_tls13_write_cert_verify_signature(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_sig_scheme)
 {
     notnull_check(conn->handshake_params.our_chain_and_key);
-    const struct s2n_pkey *pkey = conn->handshake_params.our_chain_and_key->private_key;
 
-    DEFER_CLEANUP(struct s2n_blob signed_content = {0}, s2n_free);
+    /* Write the SignatureScheme out */
+    struct s2n_stuffer *out = &conn->handshake.io;
+    GUARD(s2n_stuffer_write_uint16(out, chosen_sig_scheme->iana_value));
+
     DEFER_CLEANUP(struct s2n_hash_state message_hash = {0}, s2n_hash_free);
-    DEFER_CLEANUP(struct s2n_stuffer unsigned_content = {0}, s2n_stuffer_free);
     GUARD(s2n_hash_new(&message_hash));
     GUARD(s2n_hash_init(&message_hash, chosen_sig_scheme->hash_alg));
 
-    uint32_t maximum_signature_length = s2n_pkey_size(pkey);
-    GUARD(s2n_alloc(&signed_content, maximum_signature_length));
-    signed_content.size = maximum_signature_length;
-
-    if (conn->mode == S2N_CLIENT) {
-        GUARD(s2n_tls13_generate_unsigned_cert_verify_content(conn, &unsigned_content, S2N_CLIENT));
-    } else {
-        GUARD(s2n_tls13_generate_unsigned_cert_verify_content(conn, &unsigned_content, S2N_SERVER));
-    }
+    DEFER_CLEANUP(struct s2n_stuffer unsigned_content = {0}, s2n_stuffer_free);
+    GUARD(s2n_tls13_generate_unsigned_cert_verify_content(conn, &unsigned_content, conn->mode));
 
     GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data, s2n_stuffer_data_available(&unsigned_content)));
-    GUARD(s2n_pkey_sign(pkey, chosen_sig_scheme->sig_alg, &message_hash, &signed_content));
 
-    GUARD(s2n_stuffer_write_uint16(out, signed_content.size));
-    GUARD(s2n_stuffer_write_bytes(out, signed_content.data, signed_content.size));
+    S2N_ASYNC_PKEY_SIGN(conn, chosen_sig_scheme->sig_alg, &message_hash, s2n_tls13_write_signature);
+}
+
+int s2n_tls13_write_signature(struct s2n_connection *conn, struct s2n_blob *signature)
+{
+    struct s2n_stuffer *out = &conn->handshake.io;
+
+    GUARD(s2n_stuffer_write_uint16(out, signature->size));
+    GUARD(s2n_stuffer_write_bytes(out, signature->data, signature->size));
 
     return 0;
 }

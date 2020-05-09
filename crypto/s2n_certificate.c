@@ -509,3 +509,9 @@ s2n_pkey_type s2n_cert_chain_and_key_get_pkey_type(struct s2n_cert_chain_and_key
 {
     return chain_and_key->cert_chain->head->pkey_type;
 }
+
+s2n_cert_private_key *s2n_cert_chain_and_key_get_key(struct s2n_cert_chain_and_key *chain_and_key)
+{
+    notnull_check_ptr(chain_and_key);
+    return chain_and_key->private_key;
+}

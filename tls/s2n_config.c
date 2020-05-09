@@ -121,6 +121,7 @@ static int s2n_config_init(struct s2n_config *config)
     config->max_verify_cert_chain_depth = 0;
     config->max_verify_cert_chain_depth_set = 0;
     config->cert_tiebreak_cb = NULL;
+    config->async_pkey_cb = NULL;
 
     GUARD(s2n_config_setup_default(config));
     if (s2n_is_tls13_enabled()) {
@@ -486,6 +487,15 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct
             config->default_certs_by_type.certs[cert_type] = cert_key_pair;
         }
     }
+
+    return 0;
+}
+
+int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey_fn fn)
+{
+    notnull_check(config);
+
+    config->async_pkey_cb = fn;
 
     return 0;
 }

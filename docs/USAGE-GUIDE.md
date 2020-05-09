@@ -842,6 +842,15 @@ int s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *chain_and_key)
 
 **s2n_cert_chain_and_key_set_ctx** returns a previously set context pointer or NULL if no context was set.
 
+### s2n\_cert\_chain\_and\_key\_get\_key
+
+```c
+extern s2n_cert_private_key *s2n_cert_chain_and_key_get_key(struct s2n_cert_chain_and_key *cert_and_key);
+```
+
+**s2n_cert_chain_and_key_get_key** returns a private key from
+**s2n_cert_chain_and_key** object.
+
 ## Client Auth Related calls
 Client Auth Related API's are not recommended for normal users. Use of these API's is discouraged.
 
@@ -1372,6 +1381,71 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *n
 
 **s2n_config_add_ticket_crypto_key** adds session ticket key on the server side. It would be ideal to add new keys after every (encrypt_decrypt_key_lifetime_in_nanos/2) nanos because
 this will allow for gradual and linear transition of a key from encrypt-decrypt state to decrypt-only state.
+
+### Asynchronous private key operations related calls
+
+When s2n is used in non-blocking mode, this set of functions allows user
+to move execution of CPU-heavy private key operations out of the main
+event loop, preventing **s2n_negotiate** blocking the loop for a few
+milliseconds each time the private key operation needs to be performed.
+
+To enable asynchronous private key operations user need to provide a
+callback function **s2n_async_pkey_fn** to
+**s2n_config_set_async_pkey_callback** call. This function will be
+executed each time operation on private key needs to be performed with
+**op** object representing this operation. From this function the user
+can spawn the thread with **op** object to perform through
+**s2n_async_pkey_perform_op** call and immediately return from the
+function without waiting for thread to complete. The **s2n_negotate**
+will fail with **S2N_ERR_T_BLOCKED** error type and **s2n_blocked_status**
+**S2N_BLOCKED_ON_APPLICATION_INPUT**, and will keep giving the same
+error until the **op** is performed on the spawned thread and consumed
+by connection. Once the spawned thread finishes performing the **op**,
+the **s2n_connection_consume_async_op** needs to be called in the main
+event loop thread for connection to consume it. After that the user needs
+to call **s2n_negotiate** to proceed with handshake.
+
+```c
+typedef int (*s2n_async_pkey_fn)(struct s2n_connection *conn, struct s2n_async_pkey_op *op);
+extern int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey_fn fn);
+extern int s2n_async_pkey_perform_op(struct s2n_async_pkey_op *op, s2n_cert_private_key *key);
+extern int s2n_connection_consume_async_op(struct s2n_connection *conn, struct s2n_async_pkey_op *op);
+extern int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
+```
+
+- **op** is an opaque object representing private key operation which
+needs to be performed.
+- **key** is a private key used for operation.
+
+**s2n_async_pkey_fn** is invoked every time some action involving
+private key is required. The **conn** provides a pointer to connection
+which triggered this action. The **op** is an operation which needs to be
+performed through **s2n_async_pkey_perform_op** call and consumed by
+**conn** through **s2n_connection_consume_async_op** call after the
+callback was complete.
+
+**s2n_config_set_async_pkey_callback** sets up the callback to invoke
+for asynchronous private key operations and enables asynchronous mode.
+When it is used **s2n_negotiate** will error out with **S2N_ERR_T_BLOCKED**
+error type and **s2n_blocked_status** **S2N_BLOCKED_ON_APPLICATION_INPUT**
+each time the callback was invoked and won't proceed until
+**s2n_connection_consume_async_op** is called on the connection and
+associated **op** object.
+
+**s2n_async_pkey_perform_op** performs the **op** allowing it to be used
+to resume the handshake through **s2n_connection_consume_async_op**
+call. This function can be called only once and is safe to call from a
+different thread. To get the private key **key** the caller can use
+**s2n_connection_get_selected_cert** and **s2n_cert_chain_and_key_get_key**
+calls.
+
+**s2n_connection_consume_async_op** will consume the **op** after it was
+performed through **s2n_async_pkey_perform_op** call. It will release
+the memory for **op** if call succeeds. The caller will need to call
+**s2n_negotiate** again in order to proceed with TLS handshake.
+
+**s2n_async_pkey_op_free** releases the **op**. Should not be used if
+**op** was consumed by **s2n_connection_consume_async_op** call.
 
 ### s2n\_connection\_free\_handshake
 

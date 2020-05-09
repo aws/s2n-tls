@@ -18,6 +18,8 @@
 
 #include "error/s2n_errno.h"
 
+#include "tls/s2n_async_pkey.h"
+#include "tls/s2n_handshake.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
@@ -37,6 +39,9 @@
 
 typedef int s2n_kex_client_key_method(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);
 typedef void *s2n_stuffer_action(struct s2n_stuffer *stuffer, uint32_t data_len);
+
+static int s2n_rsa_client_key_recv_complete(struct s2n_connection *conn, int rsa_failed, struct s2n_blob *shared_key);
+
 static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob *combined_shared_key,
         s2n_kex_client_key_method kex_method, uint32_t *cursor, s2n_stuffer_action stuffer_action)
 {
@@ -74,7 +79,7 @@ static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob
     return 0;
 }
 
-static int calculate_keys(struct s2n_connection *conn, struct s2n_blob *shared_key)
+static int s2n_calculate_keys(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
     /* Turn the pre-master secret into a master secret */
     GUARD(s2n_kex_tls_prf(conn->secure.cipher_suite->key_exchange_alg, conn, shared_key));
@@ -94,6 +99,12 @@ static int calculate_keys(struct s2n_connection *conn, struct s2n_blob *shared_k
 
 int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
+    /* Set shared_key before async guard to pass the proper shared_key to the caller upon asyc completion */
+    shared_key->data = conn->secure.rsa_premaster_secret;
+    shared_key->size = S2N_TLS_SECRET_LEN;
+
+    S2N_ASYNC_PKEY_GUARD(conn);
+
     struct s2n_stuffer *in = &conn->handshake.io;
     uint8_t client_hello_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
     uint16_t length;
@@ -115,9 +126,6 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
     client_hello_protocol_version[1] = legacy_client_hello_protocol_version % 10;
 
     /* Decrypt the pre-master secret */
-    shared_key->data = conn->secure.rsa_premaster_secret;
-    shared_key->size = S2N_TLS_SECRET_LEN;
-
     struct s2n_blob encrypted = {.size = length, .data = s2n_stuffer_raw_read(in, length)};
     notnull_check(encrypted.data);
     gt_check(encrypted.size, 0);
@@ -127,11 +135,31 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
     conn->secure.rsa_premaster_secret[0] = client_hello_protocol_version[0];
     conn->secure.rsa_premaster_secret[1] = client_hello_protocol_version[1];
 
+    S2N_ASYNC_PKEY_DECRYPT(conn, &encrypted, shared_key, s2n_rsa_client_key_recv_complete);
+}
+
+int s2n_rsa_client_key_recv_complete(struct s2n_connection *conn, int rsa_failed, struct s2n_blob *decrypted)
+{
+    S2N_ERROR_IF(decrypted->size != S2N_TLS_SECRET_LEN, S2N_ERR_SIZE_MISMATCH);
+
+    /* Avoid copying the same buffer for the case where async pkey is not used */
+    if (conn->secure.rsa_premaster_secret != decrypted->data) {
+        /* Copy (maybe) decrypted data into shared key */
+        memcpy_check(conn->secure.rsa_premaster_secret, decrypted->data, S2N_TLS_SECRET_LEN);
+    }
+
+    /* Get client hello protocol version for comparison with decrypted data */
+    uint8_t legacy_client_hello_protocol_version = get_client_hello_protocol_version(conn);
+    uint8_t client_hello_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    client_hello_protocol_version[0] = legacy_client_hello_protocol_version / 10;
+    client_hello_protocol_version[1] = legacy_client_hello_protocol_version % 10;
+
     /* Set rsa_failed to 1 if s2n_pkey_decrypt returns anything other than zero */
-    conn->handshake.rsa_failed = !!s2n_pkey_decrypt(conn->handshake_params.our_chain_and_key->private_key, &encrypted, shared_key);
+    conn->handshake.rsa_failed = !!rsa_failed;
 
     /* Set rsa_failed to 1, if it isn't already, if the protocol version isn't what we expect */
-    conn->handshake.rsa_failed |= !s2n_constant_time_equals(client_hello_protocol_version, shared_key->data, S2N_TLS_PROTOCOL_VERSION_LEN);
+    conn->handshake.rsa_failed |= !s2n_constant_time_equals(client_hello_protocol_version,
+            conn->secure.rsa_premaster_secret, S2N_TLS_PROTOCOL_VERSION_LEN);
 
     return 0;
 }
@@ -195,11 +223,13 @@ int s2n_hybrid_client_key_recv(struct s2n_connection *conn, struct s2n_blob *com
 int s2n_client_key_recv(struct s2n_connection *conn)
 {
     const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
+
     struct s2n_blob shared_key = {0};
 
     GUARD(s2n_kex_client_key_recv(key_exchange, conn, &shared_key));
 
-    GUARD(calculate_keys(conn, &shared_key));
+    GUARD(s2n_calculate_keys(conn, &shared_key));
+
     return 0;
 }
 
@@ -302,6 +332,6 @@ int s2n_client_key_send(struct s2n_connection *conn)
 
     GUARD(s2n_kex_client_key_send(key_exchange, conn, &shared_key));
 
-    GUARD(calculate_keys(conn, &shared_key));
+    GUARD(s2n_calculate_keys(conn, &shared_key));
     return 0;
 }

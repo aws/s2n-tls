@@ -71,6 +71,13 @@ typedef enum {
     APPLICATION_DATA,
 } message_type_t;
 
+typedef enum {
+    S2N_ASYNC_NOT_INVOKED = 0,
+    S2N_ASYNC_INVOKING,
+    S2N_ASYNC_INVOKED_WAITING,
+    S2N_ASYNC_INVOKED_COMPLETE,
+} s2n_async_state;
+
 struct s2n_handshake_parameters {
     /* Signature/hash algorithm pairs offered by the client in the signature_algorithms extension */
     struct s2n_sig_scheme_list client_sig_hash_algs;
@@ -138,12 +145,6 @@ struct s2n_handshake {
     uint8_t server_finished[S2N_TLS_SECRET_LEN];
     uint8_t client_finished[S2N_TLS_SECRET_LEN];
 
-    /* Indicates the CLIENT_HELLO message has been completely received */
-    unsigned client_hello_received:1;
-
-    /* Indicates the handshake blocked while trying to read or write data, and has been paused */
-    unsigned paused:1;
-
     /* Handshake type is a bitset, with the following
        bit positions */
     uint32_t handshake_type;
@@ -183,8 +184,16 @@ struct s2n_handshake {
     /* Which handshake message number are we processing */
     int message_number;
 
+    s2n_async_state async_state;
+
+    /* Indicates the CLIENT_HELLO message has been completely received */
+    unsigned client_hello_received:1;
+
+    /* Indicates the handshake blocked while trying to read or write data, and has been paused */
+    unsigned paused:1;
+
     /* Set to 1 if the RSA verification failed */
-    uint8_t rsa_failed;
+    unsigned rsa_failed:1;
 };
 
 extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
