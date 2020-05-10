@@ -335,11 +335,6 @@ int s2n_cpu_supports_rdrand()
  */
 int s2n_get_rdrand_data(struct s2n_blob *out)
 {
-    /* Use XKCDrng */
-    memset(out->data, 4, out->size);
-
-    return 0;
-#if 0
 
 #if defined(__x86_64__) || defined(__i386__)
     int space_remaining = 0;
@@ -435,7 +430,5 @@ int s2n_get_rdrand_data(struct s2n_blob *out)
     return 0;
 #else
     S2N_ERROR(S2N_ERR_UNSUPPORTED_CPU);
-#endif
-
 #endif
 }
