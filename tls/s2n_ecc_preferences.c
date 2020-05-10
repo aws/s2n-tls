@@ -43,17 +43,6 @@ const struct s2n_ecc_preferences s2n_ecc_preferences_20200310 = {
         .ecc_curves = s2n_ecc_pref_list_20200310,
 };
 
-static struct {
-    const char *version;
-    const struct s2n_ecc_preferences *preferences;
-} selection[] = {
-        {.version = "default", .preferences = &s2n_ecc_preferences_20140601 },
-        {.version = "default_tls13", .preferences = &s2n_ecc_preferences_20200310 },
-        {.version = "20200310", .preferences = &s2n_ecc_preferences_20200310 },
-        {.version = "20140601", .preferences = &s2n_ecc_preferences_20140601 },
-        {.version = NULL, .preferences = NULL }, /* Sentinel */
-};
-
 /* Checks if the ecc_curves present in s2n_ecc_preferences list is a subset of s2n_all_supported_curves_list
  * maintained in s2n_ecc_evp.c */
 int s2n_check_ecc_preferences_curves_list(const struct s2n_ecc_preferences *ecc_preferences) {
@@ -75,33 +64,3 @@ int s2n_check_ecc_preferences_curves_list(const struct s2n_ecc_preferences *ecc_
     return S2N_SUCCESS;
 }
 
-int s2n_ecc_preferences_init()
-{
-    for (int i = 0; selection[i].version != NULL; i++) {
-        const struct s2n_ecc_preferences *preferences = selection[i].preferences;
-        GUARD(s2n_check_ecc_preferences_curves_list(preferences));
-    }
-
-    return S2N_SUCCESS;
-}
-
-static int s2n_find_ecc_pref_from_version(const char *version, const struct s2n_ecc_preferences **ecc_preferences)
-{
-    notnull_check(version);
-    notnull_check(ecc_preferences);
-
-    for (int i = 0; selection[i].version != NULL; i++) {
-        if (!strcasecmp(version, selection[i].version)) {
-            *ecc_preferences = selection[i].preferences;
-            return S2N_SUCCESS;
-        }
-    }
-
-    S2N_ERROR(S2N_ERR_INVALID_ECC_PREFERENCES);
-}
-
-int s2n_config_set_ecc_preferences(struct s2n_config *config, const char *version)
-{
-    GUARD(s2n_find_ecc_pref_from_version(version, &config->ecc_preferences));
-    return S2N_SUCCESS;
-}

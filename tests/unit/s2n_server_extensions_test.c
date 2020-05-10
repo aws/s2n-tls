@@ -24,7 +24,7 @@
 #include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/s2n_cipher_preferences.h"
-#include "tls/s2n_ecc_preferences.h"
+#include "tls/s2n_security_policies.h"
 
 #include "utils/s2n_safety.h"
 
@@ -41,7 +41,12 @@ const uint8_t MIN_TLS13_EXTENSION_SIZE = ( 32 * 2 ) + 1 + 8 + 6; /* expanded fro
 static int configure_tls13_connection(struct s2n_connection *conn)
 {
     conn->actual_protocol_version = S2N_TLS13;
-    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
+    const struct s2n_security_policy *security_policy = NULL;
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+    EXPECT_NOT_NULL(security_policy);
+    EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+
     conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
     conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
     EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
@@ -274,9 +279,13 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            EXPECT_NOT_NULL(conn->config);
-            const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-            EXPECT_NOT_NULL(ecc_pref);
+
+            const struct s2n_security_policy *security_policy = NULL;
+            const struct s2n_ecc_preferences *ecc_pref = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+            EXPECT_NOT_NULL(security_policy);
+            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
@@ -319,9 +328,13 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            EXPECT_NOT_NULL(conn->config);
-            const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-            EXPECT_NOT_NULL(ecc_pref);
+
+            const struct s2n_security_policy *security_policy = NULL;
+            const struct s2n_ecc_preferences *ecc_pref = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+            EXPECT_NOT_NULL(security_policy);
+            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             /* secure renegotiation is requested */
@@ -363,9 +376,13 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            EXPECT_NOT_NULL(conn->config);
-            const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-            EXPECT_NOT_NULL(ecc_pref);
+
+            const struct s2n_security_policy *security_policy = NULL;
+            const struct s2n_ecc_preferences *ecc_pref = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+            EXPECT_NOT_NULL(security_policy);
+            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
@@ -422,13 +439,17 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            EXPECT_NOT_NULL(conn->config);
-            const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-            EXPECT_NOT_NULL(ecc_pref);
+
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all_tls13"));
+
+            const struct s2n_security_policy *security_policy = NULL;
+            const struct s2n_ecc_preferences *ecc_pref = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+            EXPECT_NOT_NULL(security_policy);
+            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
-            s2n_connection_set_cipher_preferences(conn, "test_all_tls13");
             /* Test that s2n_server_extensions_send() only works when protocol version is TLS13 */
             conn->client_protocol_version = S2N_TLS13;
             conn->actual_protocol_version = S2N_TLS13;

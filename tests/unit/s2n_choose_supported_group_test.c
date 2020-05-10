@@ -17,7 +17,7 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/extensions/s2n_client_supported_groups.h"
-#include "tls/s2n_ecc_preferences.h"
+#include "tls/s2n_security_policies.h"
 
 int main(int argc, char **argv) 
 {
@@ -32,8 +32,13 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
         EXPECT_NOT_NULL(server_conn->config);
-        const struct s2n_ecc_preferences *ecc_pref = server_conn->config->ecc_preferences;
-        EXPECT_NOT_NULL(ecc_pref);
+
+        const struct s2n_security_policy *security_policy = NULL;
+        const struct s2n_ecc_preferences *ecc_pref = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+
         for (int i = 0; i < ecc_pref->count; i++) {
             EXPECT_NULL(server_conn->secure.mutually_supported_groups[i]);
         }
@@ -50,9 +55,13 @@ int main(int argc, char **argv)
          * match.
          */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_NOT_NULL(server_conn->config);
-        const struct s2n_ecc_preferences *ecc_pref = server_conn->config->ecc_preferences;
-        EXPECT_NOT_NULL(ecc_pref);
+
+        const struct s2n_security_policy *security_policy = NULL;
+        const struct s2n_ecc_preferences *ecc_pref = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
         server_conn->secure.mutually_supported_groups[1] = ecc_pref->ecc_curves[1];
 
@@ -70,9 +79,13 @@ int main(int argc, char **argv)
          */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-        EXPECT_NOT_NULL(server_conn->config);
-        const struct s2n_ecc_preferences *ecc_pref = server_conn->config->ecc_preferences;
-        EXPECT_NOT_NULL(ecc_pref);
+
+        const struct s2n_security_policy *security_policy = NULL;
+        const struct s2n_ecc_preferences *ecc_pref = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+
         for (int i = 0; i < ecc_pref->count; i++) {
             server_conn->secure.mutually_supported_groups[i] = ecc_pref->ecc_curves[i];
         }

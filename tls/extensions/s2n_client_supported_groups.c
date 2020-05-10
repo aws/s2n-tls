@@ -19,15 +19,19 @@
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-#include "tls/s2n_ecc_preferences.h"
+#include "tls/s2n_security_policies.h"
 
 #include "utils/s2n_safety.h"
 
 int s2n_extensions_client_supported_groups_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     notnull_check(conn);
-    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-    notnull_check(ecc_pref);
+
+    const struct s2n_security_policy *security_policy = NULL;
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    notnull_check(security_policy);
+    notnull_check(ecc_pref = security_policy->ecc_preferences);
 
     GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SUPPORTED_GROUPS));
     /* size of extension, 2 byte iana ids */
@@ -74,9 +78,13 @@ int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct s2n_stu
 }
 
 int s2n_parse_client_supported_groups_list(struct s2n_connection *conn, struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **supported_groups) {
-    notnull_check(conn->config);
-    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-    notnull_check(ecc_pref);
+    notnull_check(conn);
+
+    const struct s2n_security_policy *security_policy = NULL;
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    notnull_check(security_policy);
+    notnull_check(ecc_pref = security_policy->ecc_preferences);
 
     struct s2n_stuffer iana_ids_in = {0};
 
@@ -98,9 +106,13 @@ int s2n_parse_client_supported_groups_list(struct s2n_connection *conn, struct s
 
 int s2n_choose_supported_group(struct s2n_connection *conn, const struct s2n_ecc_named_curve **group_options, struct s2n_ecc_evp_params *chosen_group)
  {
-    notnull_check(conn->config);
-    const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-    notnull_check(ecc_pref);
+    notnull_check(conn);
+
+    const struct s2n_security_policy *security_policy = NULL;
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    notnull_check(security_policy);
+    notnull_check(ecc_pref = security_policy->ecc_preferences);
 
     for (int i = 0; i < ecc_pref->count; i++) {
         if (group_options[i]) {

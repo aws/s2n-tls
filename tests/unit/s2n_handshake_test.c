@@ -291,6 +291,7 @@ int main(int argc, char **argv)
             .cipher_preferences = server_config->security_policy->cipher_preferences,
             .kem_preferences = server_config->security_policy->kem_preferences,
             .signature_preferences = &sig_prefs,
+            .ecc_preferences = server_config->security_policy->ecc_preferences,
         };
 
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));

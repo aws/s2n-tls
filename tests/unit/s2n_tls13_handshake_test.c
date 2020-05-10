@@ -31,7 +31,7 @@
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/extensions/s2n_client_key_share.h"
-#include "tls/s2n_ecc_preferences.h"
+#include "tls/s2n_security_policies.h"
 #include "utils/s2n_safety.h"
 
 /* Just to get access to the static functions / variables we need to test */
@@ -52,8 +52,12 @@ int main(int argc, char **argv)
 
         client_conn->actual_protocol_version = S2N_TLS13;
         server_conn->actual_protocol_version = S2N_TLS13;
-        
-        const struct s2n_ecc_preferences *server_ecc_preferences = server_conn->config->ecc_preferences;
+
+        const struct s2n_security_policy *security_policy = NULL;
+        const struct s2n_ecc_preferences *server_ecc_preferences = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+        EXPECT_NOT_NULL(server_ecc_preferences = security_policy->ecc_preferences);
 
         struct s2n_stuffer client_hello_key_share;
         struct s2n_stuffer server_hello_key_share;
@@ -282,9 +286,12 @@ int main(int argc, char **argv)
             for (int i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
-                EXPECT_NOT_NULL(conn->config);
-                const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-                EXPECT_NOT_NULL(ecc_pref);
+
+                const struct s2n_security_policy *security_policy = NULL;
+                const struct s2n_ecc_preferences *ecc_pref = NULL;
+                EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+                EXPECT_NOT_NULL(security_policy);
+                EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
 
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
@@ -332,9 +339,12 @@ int main(int argc, char **argv)
             for (int i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
-                EXPECT_NOT_NULL(conn->config);
-                const struct s2n_ecc_preferences *ecc_pref = conn->config->ecc_preferences;
-                EXPECT_NOT_NULL(ecc_pref);
+
+                const struct s2n_security_policy *security_policy = NULL;
+                const struct s2n_ecc_preferences *ecc_pref = NULL;
+                EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+                EXPECT_NOT_NULL(security_policy);
+                EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
 
                 conn->actual_protocol_version = S2N_TLS12;
                 conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
