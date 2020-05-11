@@ -23,6 +23,10 @@ CURVES = [
 PROVIDERS = [S2N, OpenSSL]
 
 
+# List of binary TLS13 settings
+TLS13 = [True, False]
+
+
 class AvailablePorts():
     """
     NOTE: This is not where this belongs, refactor needed.

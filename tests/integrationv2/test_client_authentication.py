@@ -3,7 +3,7 @@ import os
 import pytest
 import time
 
-from configuration import available_ports, CIPHERSUITES, CURVES, PROVIDERS
+from configuration import available_ports, CIPHERSUITES, CURVES, PROVIDERS, TLS13
 from common import ProviderOptions, data_bytes
 from fixtures import managed_process
 from providers import S2N, OpenSSL
@@ -11,7 +11,8 @@ from providers import S2N, OpenSSL
 
 @pytest.mark.parametrize("cipher", CIPHERSUITES)
 @pytest.mark.parametrize("curve", CURVES)
-def test_client_auth_with_s2n_server(managed_process, cipher, curve):
+@pytest.mark.parametrize("tls13", TLS13)
+def test_client_auth_with_s2n_server(managed_process, cipher, curve, tls13):
     host = "localhost"
     port = next(available_ports)
 
@@ -27,7 +28,7 @@ def test_client_auth_with_s2n_server(managed_process, cipher, curve):
         client_key_file='../pems/rsa_1024_sha256_client_key.pem',
         client_certificate_file='../pems/rsa_1024_sha256_client_cert.pem',
         insecure=False,
-        tls13=False)
+        tls13=tls13)
 
     server_options = copy.copy(client_options)
     server_options.data_to_send = None
@@ -49,13 +50,17 @@ def test_client_auth_with_s2n_server(managed_process, cipher, curve):
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
-        assert b"Actual protocol version: 33" in results.stdout
+        if tls13:
+            assert b"Actual protocol version: 34" in results.stdout
+        else:
+            assert b"Actual protocol version: 33" in results.stdout
         assert random_bytes in results.stdout
 
 
 @pytest.mark.parametrize("cipher", CIPHERSUITES)
 @pytest.mark.parametrize("curve", CURVES)
-def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, cipher, curve):
+@pytest.mark.parametrize("tls13", TLS13)
+def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, cipher, curve, tls13):
     host = "localhost"
     port = next(available_ports)
 
@@ -70,7 +75,7 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, ci
         client_key_file='../pems/rsa_1024_sha256_client_key.pem',
         client_certificate_file='../pems/rsa_1024_sha256_client_cert.pem',
         insecure=False,
-        tls13=False)
+        tls13=tls13)
 
     server_options = copy.copy(client_options)
     server_options.data_to_send = None
@@ -88,7 +93,10 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, ci
     # OpenSSL should return 1 because the connection failed
     for results in client.get_results():
         assert results.exception is None
-        assert results.exit_code == 1
+        if tls13:
+            assert results.exit_code == 104
+        else:
+            assert results.exit_code == 1
 
     # S2N should tell us that mutual authentication failed
     for results in server.get_results():
