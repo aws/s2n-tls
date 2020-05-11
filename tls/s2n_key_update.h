@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#pragma once
+
 #include "tls/s2n_connection.h"
 
 #define S2N_KEY_UPDATE 24
