@@ -1,6 +1,11 @@
 _Please note that while we are transitioning from travis-ci to AWS CodeBuild, some tests are run on each platform. Non-AWS contributors will temporarily be unable to see CodeBuild results. We apologize for the inconvenience._
 
+<<<<<<< HEAD
 ### **Description of changes**: 
+=======
+### Description of changes: 
+
+>>>>>>> Minor fix
 Describe s2n’s current behavior and how your code changes that behavior. If there are no issues this pr is resolving, explain why this change is necessary.
 ### Call-outs:
 
