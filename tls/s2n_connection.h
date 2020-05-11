@@ -301,7 +301,7 @@ struct s2n_connection {
     struct s2n_stuffer cookie_stuffer;
 
     /* Key update data */
-    uint8_t key_update_pending;
+    unsigned key_update_pending:1;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);

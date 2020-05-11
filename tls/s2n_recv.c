@@ -175,12 +175,14 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
         S2N_ERROR_IF(isSSLv2, S2N_ERR_BAD_MESSAGE);
 
         if (record_type != TLS_APPLICATION_DATA) {
-            if (record_type == TLS_ALERT) {
-                GUARD(s2n_process_alert_fragment(conn));
-                GUARD(s2n_flush(conn, blocked));
-            }
-            if (record_type == TLS_HANDSHAKE) {
-                GUARD(s2n_post_handshake_recv(conn));
+            switch (record_type)
+            {
+                case TLS_ALERT:
+                    GUARD(s2n_process_alert_fragment(conn));
+                    GUARD(s2n_flush(conn, blocked));
+                    break;
+                case TLS_HANDSHAKE:
+                    GUARD(s2n_post_handshake_recv(conn));
             }
             GUARD(s2n_stuffer_wipe(&conn->header_in));
             GUARD(s2n_stuffer_wipe(&conn->in));

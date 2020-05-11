@@ -27,6 +27,7 @@ const uint8_t S2N_KEY_UPDATE_REQUESTED = 1;
 
 int s2n_key_update_recv(struct s2n_connection *conn)
 {
+    notnull_check(conn);
     uint32_t key_update_length;
     uint8_t key_update_request;
 
@@ -39,9 +40,9 @@ int s2n_key_update_recv(struct s2n_connection *conn)
     conn->key_update_pending = key_update_request;
     /* Update peer's key since a key_update was received */
     if (conn->mode == S2N_CLIENT){
-        s2n_update_application_traffic_keys(conn, S2N_SERVER, 1);
+        GUARD(s2n_update_application_traffic_keys(conn, S2N_SERVER, 1));
     } else {
-        s2n_update_application_traffic_keys(conn, S2N_CLIENT, 1);
+        GUARD(s2n_update_application_traffic_keys(conn, S2N_CLIENT, 1));
     }
 
     return 0;
@@ -60,7 +61,7 @@ int s2n_post_handshake_recv(struct s2n_connection *conn)
     
     GUARD(s2n_stuffer_read_uint8(&conn->in, &post_handshake_id));
     if (post_handshake_id == S2N_KEY_UPDATE) {
-        s2n_key_update_recv(conn);
+        GUARD(s2n_key_update_recv(conn));
     }
     return 0;
 }
