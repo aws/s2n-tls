@@ -54,7 +54,7 @@ int s2n_send_server_renegotiation_info_ext(struct s2n_connection *conn, struct s
     return 0;
 }
 
-uint16_t s2n_server_renegotiation_info_ext_size(struct s2n_connection *conn)
+int s2n_server_renegotiation_info_ext_size(struct s2n_connection *conn)
 {
     if (s2n_server_can_send_secure_renegotiation(conn)) {
         /* 2 for ext type, 2 for extension length, 1 for value of 0 */

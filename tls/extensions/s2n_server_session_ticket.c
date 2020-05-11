@@ -40,7 +40,7 @@ int s2n_send_server_session_ticket_ext(struct s2n_connection *conn, struct s2n_s
     return 0;
 }
 
-uint16_t s2n_server_session_ticket_ext_size(struct s2n_connection *conn)
+int s2n_server_session_ticket_ext_size(struct s2n_connection *conn)
 {
     if (s2n_server_can_send_nst(conn)) {
         /* 2 for extension type. 2 for extension length of 0 */

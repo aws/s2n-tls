@@ -74,7 +74,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     if (total_size == 0) {
         return 0;
     }
-    inclusive_range_check(0, total_size, 65535);
+    GUARD_UINT16(total_size);
 
     GUARD(s2n_stuffer_write_uint16(out, total_size));
 

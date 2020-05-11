@@ -17,4 +17,4 @@
 
 int s2n_recv_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *extension);
 int s2n_send_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *out);
-uint16_t s2n_server_renegotiation_info_ext_size(struct s2n_connection *conn);
+int s2n_server_renegotiation_info_ext_size(struct s2n_connection *conn);
