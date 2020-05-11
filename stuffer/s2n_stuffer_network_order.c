@@ -27,9 +27,8 @@ static int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, uint32_t
     GUARD(s2n_stuffer_skip_write(stuffer, length));
     uint8_t *data = stuffer->blob.data + stuffer->write_cursor - length;
 
-    uint8_t shift;
     for (int i = 0; i < length; i++) {
-        shift = (length - i - 1) * 8;
+        uint8_t shift = (length - i - 1) * 8;
         data[i] = (input >> (shift)) & 0xFF;
     }
 
