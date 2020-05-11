@@ -25,6 +25,7 @@
 #define MESSAGE_HASH_HEADER_LENGTH  4
 
 static int s2n_tls13_conn_copy_server_finished_hash(struct s2n_connection *conn) {
+    notnull_check(conn);
     s2n_tls13_connection_keys(keys, conn);
     struct s2n_hash_state hash_state = {0};
 
