@@ -207,6 +207,9 @@ int s2n_tls13_derive_application_secrets(struct s2n_tls13_keys *keys, struct s2n
     notnull_check(client_secret);
     notnull_check(server_secret);
 
+    /* Sanity check that input hash is of expected type */
+    S2N_ERROR_IF(keys->hash_algorithm != hashes->alg, S2N_ERR_HASH_INVALID_ALGORITHM);
+
     s2n_tls13_key_blob(empty_key, keys->size);
     GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &keys->derive_secret, &empty_key, &keys->extract_secret));
 
