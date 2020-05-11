@@ -184,6 +184,8 @@ int s2n_tls13_handle_application_secrets(struct s2n_connection *conn)
 
 int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mode, int received)
 {
+    notnull_check(conn);
+    
     /* get tls13 key context */
     s2n_tls13_connection_keys(keys, conn);
 
