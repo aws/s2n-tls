@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-<<<<<<< HEAD
 #pragma once
 
 #include "tls/s2n_connection.h"
@@ -24,11 +23,3 @@ typedef enum {
 } keyupdate_status;
 
 int s2n_key_update_recv(struct s2n_connection *conn);
-=======
-#include "tls/s2n_connection.h"
-
-#define S2N_KEY_UPDATE 24
-
-int s2n_key_update_recv(struct s2n_connection *conn);
-int s2n_post_handshake_recv(struct s2n_connection *conn);
->>>>>>> Added KeyUpdate receive capabilities
