@@ -37,9 +37,9 @@
 /* Just to get access to the static functions / variables we need to test */
 #include "tls/s2n_handshake_io.c"
 #include "tls/s2n_tls13_handshake.c"
+#include "tls/s2n_handshake_transcript.c"
 
 static int s2n_tls13_conn_copy_server_finished_hash(struct s2n_connection *conn);
-#include "tls/s2n_handshake_transcript.c"
 
 int main(int argc, char **argv)
 {
