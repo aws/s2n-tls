@@ -34,7 +34,7 @@ bitcode :
 	${MAKE} -C tests/saw bitcode
 
 .PHONY : bc
-bc: 
+bc:
 	${MAKE} -C crypto bc
 	${MAKE} -C stuffer bc
 	${MAKE} -C tls bc
@@ -57,7 +57,7 @@ bike_r2_bc: bc
 	${MAKE} -C pq-crypto bike_r2_bc
 
 .PHONY : saw
-saw : bc 
+saw : bc
 	$(MAKE) -C tests/saw
 
 include s2n.mk
@@ -96,7 +96,7 @@ fuzz : fuzz-osx
 endif
 
 .PHONY : fuzz-osx
-fuzz-osx : 
+fuzz-osx :
 	@echo "\033[33;1mSKIPPED\033[0m Fuzzing is not supported on \"$$(uname -mprs)\" at this time."
 
 .PHONY : fuzz-linux
@@ -148,6 +148,13 @@ indent:
 
 .PHONY : pre_commit_check
 pre_commit_check: all indent clean
+
+# TODO use awslabs instead
+DEV_IMAGE ?= camshaft/s2n-dev
+DEV_VERSION ?= ubuntu_18.04_openssl-1.1.1_gcc9
+
+dev:
+	@docker run -it --rm --ulimit memlock=-1 -v `pwd`:/home/s2n-dev/s2n $(DEV_IMAGE):$(DEV_VERSION)
 
 .PHONY : clean
 clean:
