@@ -22,9 +22,8 @@ import argparse
 import os
 import sys
 import uuid
-import time
 
-from common.s2n_test_common import wait_for_output, get_error
+from common.s2n_test_common import wait_for_output
 from common.s2n_test_openssl import run_openssl_connection_test
 from common.s2n_test_scenario import get_scenarios, Mode, Cipher, Version, Curve
 from common.s2n_test_reporting import Result, Status
@@ -49,33 +48,27 @@ def verify_hrr_random_data(server, client):
             break
 
     return result
-
-def write_key_update_and_msg(process, msg):
-    process.stdin.write(("k\n\n").encode("utf-8"))
-    process.stdin.flush()
-    time.sleep(0.1)
-    process.stdin.write((msg + "\n\n").encode("utf-8"))
-    process.stdin.flush()
-
+    
 def key_update_recv(server, client):
     '''
-    This test checks that a key update can be processed by s2n. It runs in a loop 
-    that executes three times, to prove that s2n can process several key updates in
-    a row.
+    This test checks that a key update can be processed by s2n. It runs three times to prove that s2n can
+    process several key updates in a row.
     '''
     result = Result()
     result.status = Status.PASSED
-    line_limit = 7
     for i in range(3):
-        # Openssl s_client varies the amount of print statements outputted depending on if a handshake just finished 
-        if i > 0: line_limit = 1
         msg = "Message:" + str(uuid.uuid4())
-        write_key_update_and_msg(client, msg)
-        # Openssl prints out KEYUPDATE to stderr when it has been sent.
-        if not (wait_for_output(server, msg, 100)) or not ("KEYUPDATE\n" in get_error(client, line_limit)):
+        client.stdin.write(("k\n\n").encode("utf-8"))
+        client.stdin.flush()
+        line = ''
+        # Confirm that the keyupdate was sent
+        while('KEYUPDATE' not in line):
+            line = client.stderr.readline().decode("utf-8")
+        client.stdin.write((msg + "\n\n").encode("utf-8"))
+        client.stdin.flush()
+        if not (wait_for_output(server, msg, 100)):
             result.status = Status.FAILED
-            break
-    
+            break    
     return result
 
     
