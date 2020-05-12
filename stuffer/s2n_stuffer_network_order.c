@@ -17,6 +17,7 @@
 
 #include "stuffer/s2n_stuffer.h"
 
+#include "utils/s2n_annotations.h"
 #include "utils/s2n_safety.h"
 
 #define SIZEOF_UINT24 3
