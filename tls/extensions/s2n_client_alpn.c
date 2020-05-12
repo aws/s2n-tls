@@ -17,26 +17,46 @@
 #include <stdint.h>
 
 #include "tls/extensions/s2n_client_alpn.h"
+
+#include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 
 #include "utils/s2n_safety.h"
 
-int s2n_extensions_client_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_client_alpn_should_send(struct s2n_connection *conn);
+static int s2n_client_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+
+const s2n_extension_type s2n_client_alpn_extension = {
+    .iana_value = TLS_EXTENSION_ALPN,
+    .is_response = false,
+    .send = s2n_client_alpn_send,
+    .recv = s2n_client_alpn_recv,
+    .should_send = s2n_client_alpn_should_send,
+    .if_missing = s2n_extension_noop_if_missing,
+};
+
+static int s2n_client_alpn_should_send(struct s2n_connection *conn)
+{
+    struct s2n_blob *client_app_protocols;
+
+    return s2n_connection_get_protocol_preferences(conn, &client_app_protocols) == S2N_SUCCESS
+            && client_app_protocols->size != 0;
+}
+
+static int s2n_client_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     struct s2n_blob *client_app_protocols;
     GUARD(s2n_connection_get_protocol_preferences(conn, &client_app_protocols));
-    uint16_t application_protocols_len = client_app_protocols->size;
 
-    GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_ALPN));
-    GUARD(s2n_stuffer_write_uint16(out, application_protocols_len + 2));
-    GUARD(s2n_stuffer_write_uint16(out, application_protocols_len));
+    GUARD(s2n_stuffer_write_uint16(out, client_app_protocols->size));
     GUARD(s2n_stuffer_write(out, client_app_protocols));
 
     return 0;
 }
 
-int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint16_t size_of_all;
     struct s2n_stuffer client_protos = {0};
@@ -93,4 +113,16 @@ int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extens
         GUARD(s2n_stuffer_reread(&client_protos));
     }
     return 0;
+}
+
+/* Old-style extension functions -- remove after extensions refactor is complete */
+
+int s2n_extensions_client_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    return s2n_extension_send(&s2n_client_alpn_extension, conn, out);
+}
+
+int s2n_recv_client_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    return s2n_extension_recv(&s2n_client_alpn_extension, conn, extension);
 }
