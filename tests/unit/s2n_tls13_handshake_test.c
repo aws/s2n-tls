@@ -37,6 +37,9 @@
 /* Just to get access to the static functions / variables we need to test */
 #include "tls/s2n_handshake_io.c"
 #include "tls/s2n_tls13_handshake.c"
+#include "tls/s2n_handshake_transcript.c"
+
+static int s2n_tls13_conn_copy_server_finished_hash(struct s2n_connection *conn);
 
 int main(int argc, char **argv)
 {
@@ -165,6 +168,10 @@ int main(int argc, char **argv)
         S2N_STUFFER_READ_EXPECT_EQUAL(&server_conn->in, 0xCAFED00D, uint32);
         S2N_STUFFER_READ_EXPECT_EQUAL(&server_conn->in, TLS_APPLICATION_DATA, uint8);
 
+        /* populating server finished hash is now a requirement for s2n_tls13_handle_application_secrets */
+        EXPECT_SUCCESS(s2n_tls13_conn_copy_server_finished_hash(server_conn));
+        EXPECT_SUCCESS(s2n_tls13_conn_copy_server_finished_hash(client_conn));
+
         EXPECT_SUCCESS(s2n_tls13_handle_application_secrets(server_conn));
         EXPECT_SUCCESS(s2n_tls13_handle_application_secrets(client_conn));
 
@@ -228,6 +235,8 @@ int main(int argc, char **argv)
 
                 conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
                 conn->handshake.message_number = i;
+
+                EXPECT_SUCCESS(s2n_tls13_conn_copy_server_finished_hash(conn));
 
                 /* trigger s2n_conn_pre_handshake_hashes_update */
                 EXPECT_SUCCESS(s2n_conn_pre_handshake_hashes_update(conn));

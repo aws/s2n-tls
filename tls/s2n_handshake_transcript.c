@@ -24,6 +24,17 @@
 /* Length of the synthetic message header */
 #define MESSAGE_HASH_HEADER_LENGTH  4
 
+static int s2n_tls13_conn_copy_server_finished_hash(struct s2n_connection *conn) {
+    notnull_check(conn);
+    s2n_tls13_connection_keys(keys, conn);
+    struct s2n_hash_state hash_state = {0};
+
+    GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
+    GUARD(s2n_hash_copy(&conn->handshake.server_finished_copy, &hash_state));
+
+    return 0;
+}
+
 /* this hook runs after hashes are updated */
 int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
 {
@@ -47,6 +58,9 @@ int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
         conn->server = &conn->secure;
         conn->client = &conn->secure;
         GUARD(s2n_stuffer_wipe(&conn->alert_in));
+        break;
+    case SERVER_FINISHED:
+        GUARD(s2n_tls13_conn_copy_server_finished_hash(conn));
         break;
     case CLIENT_FINISHED:
         /* Reset sequence numbers for Application Data */

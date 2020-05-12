@@ -160,9 +160,10 @@ int s2n_tls13_handle_application_secrets(struct s2n_connection *conn)
     s2n_stack_blob(client_app_secret, keys.size, S2N_TLS13_SECRET_MAX_LEN);
     s2n_stack_blob(server_app_secret, keys.size, S2N_TLS13_SECRET_MAX_LEN);
 
-    struct s2n_hash_state hash_state = {0};
-    GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
-    GUARD(s2n_tls13_derive_application_secrets(&keys, &hash_state, &client_app_secret, &server_app_secret));
+    /* use frozen hashes during the server finished state */
+    struct s2n_hash_state *hash_state;
+    GUARD_NONNULL(hash_state = &conn->handshake.server_finished_copy);
+    GUARD(s2n_tls13_derive_application_secrets(&keys, hash_state, &client_app_secret, &server_app_secret));
 
     s2n_tls13_key_blob(s_app_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
     struct s2n_blob s_app_iv = { .data = conn->secure.server_implicit_iv, .size = S2N_TLS13_FIXED_IV_LEN };

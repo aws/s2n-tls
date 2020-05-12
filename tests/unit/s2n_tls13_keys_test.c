@@ -188,7 +188,7 @@ int main(int argc, char **argv)
     s2n_tls13_key_blob(client_application_secret, secrets.size);
     s2n_tls13_key_blob(server_application_secret, secrets.size);
 
-    /* Update handshake transcribe hashes */
+    /* Update handshake transcript hashes */
     EXPECT_SUCCESS(s2n_hash_update(&hash_state, encrypted_extensions.data, encrypted_extensions.size));
     EXPECT_SUCCESS(s2n_hash_update(&hash_state, certificate.data, certificate.size));
     EXPECT_SUCCESS(s2n_hash_update(&hash_state, certificate_verify.data, certificate_verify.size));

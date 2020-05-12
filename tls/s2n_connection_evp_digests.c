@@ -48,6 +48,7 @@ int s2n_connection_save_hash_state(struct s2n_connection_hash_handles *hash_hand
     hash_handles->prf_md5_hash_copy = conn->handshake.prf_md5_hash_copy.digest.high_level;
     hash_handles->prf_sha1_hash_copy = conn->handshake.prf_sha1_hash_copy.digest.high_level;
     hash_handles->prf_tls12_hash_copy = conn->handshake.prf_tls12_hash_copy.digest.high_level;
+    hash_handles->server_finished_copy = conn->handshake.server_finished_copy.digest.high_level;
 
     /* Preserve only the handlers for SSLv3 PRF hash state pointers to avoid re-allocation */
     hash_handles->prf_md5 = conn->prf_space.ssl3.md5.digest.high_level;
@@ -108,6 +109,7 @@ int s2n_connection_restore_hash_state(struct s2n_connection *conn, struct s2n_co
     conn->handshake.prf_md5_hash_copy.digest.high_level = hash_handles->prf_md5_hash_copy;
     conn->handshake.prf_sha1_hash_copy.digest.high_level = hash_handles->prf_sha1_hash_copy;
     conn->handshake.prf_tls12_hash_copy.digest.high_level = hash_handles->prf_tls12_hash_copy;
+    conn->handshake.server_finished_copy.digest.high_level = hash_handles->server_finished_copy;
 
     /* Restore s2n_connection handlers for SSLv3 PRF hash states */
     conn->prf_space.ssl3.md5.digest.high_level = hash_handles->prf_md5;
