@@ -94,6 +94,8 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, ci
     for results in client.get_results():
         assert results.exception is None
         if tls13:
+            # exit code 104 is connection reset by peer
+            # the cert does not match so the server errors and closes the connection
             assert results.exit_code == 104
         else:
             assert results.exit_code == 1
