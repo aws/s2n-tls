@@ -70,7 +70,7 @@ static int s2n_client_supported_versions_send(struct s2n_connection *conn, struc
         GUARD(s2n_stuffer_write_uint8(out, i % 10));
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_extensions_client_supported_versions_process(struct s2n_connection *conn, struct s2n_stuffer *extension) {
@@ -116,7 +116,7 @@ static int s2n_extensions_client_supported_versions_process(struct s2n_connectio
 
     S2N_ERROR_IF(conn->actual_protocol_version == s2n_unknown_protocol_version, S2N_ERR_UNKNOWN_PROTOCOL_VERSION);
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_client_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
@@ -129,7 +129,7 @@ static int s2n_client_supported_versions_recv(struct s2n_connection *conn, struc
         s2n_queue_reader_unsupported_protocol_version_alert(conn);
         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
     }
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* Old-style extension functions -- remove after extensions refactor is complete */
