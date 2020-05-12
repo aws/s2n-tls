@@ -17,9 +17,4 @@
 
 #include "tls/s2n_connection.h"
 
-enum {
-    sending=0,
-    receiving
-};
-
-int s2n_key_update_recv(struct s2n_connection *conn);
+int s2n_post_handshake_recv(struct s2n_connection *conn);
