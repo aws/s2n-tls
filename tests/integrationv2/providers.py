@@ -55,7 +55,7 @@ class Tcpdump(Provider):
 
     def setup_client(self, options: ProviderOptions):
         self.ready_to_test = 'listening on lo'
-        tcpdump_filter = f"dst port {options.port}"
+        tcpdump_filter = "dst port {}".format(options.port)
 
         cmd_line = ["tcpdump",
             # Line buffer the output
