@@ -75,7 +75,7 @@ class Cert():
         return self.name
 
 ALL_CERTS = [
-    #Cert("RSA_2048", "rsa_2048_pkcs1"),
+    Cert("RSA_2048", "rsa_2048_pkcs1"),
     Cert("ECDSA_256", "ecdsa_p256_pkcs1"),
     Cert("ECDSA_384", "ecdsa_p384_pkcs1"),
 ]
