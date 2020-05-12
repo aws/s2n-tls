@@ -18,4 +18,8 @@
 #include "tls/s2n_connection.h"
 #include "stuffer/s2n_stuffer.h"
 
-extern int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension);
+extern const s2n_extension_type s2n_client_renegotiation_info_extension;
+
+/* Old-style extension functions -- remove after extensions refactor is complete */
+
+int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension);

@@ -21,7 +21,18 @@
 
 #include "utils/s2n_safety.h"
 
-int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static int s2n_client_renegotiation_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+
+const s2n_extension_type s2n_client_renegotiation_info_extension = {
+    .iana_value = TLS_EXTENSION_RENEGOTIATION_INFO,
+    .is_response = false,
+    .send = s2n_extension_send_unimplemented,
+    .recv = s2n_client_renegotiation_recv,
+    .should_send = s2n_extension_never_send,
+    .if_missing = s2n_extension_noop_if_missing,
+};
+
+static int s2n_client_renegotiation_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     /* RFC5746 Section 3.2: The renegotiated_connection field is of zero length for the initial handshake. */
     uint8_t renegotiated_connection_len;
@@ -30,4 +41,11 @@ int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_s
 
     conn->secure_renegotiation = 1;
     return 0;
+}
+
+/* Old-style extension functions -- remove after extensions refactor is complete */
+
+int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    return s2n_extension_recv(&s2n_client_renegotiation_info_extension, conn, extension);
 }
