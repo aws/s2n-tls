@@ -1,5 +1,7 @@
 ### CodeBuild script info
 
+TESTING
+
 #### Design
 
 - How does CodeBuild decide what to install/test ?
