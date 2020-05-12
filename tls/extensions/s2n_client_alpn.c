@@ -53,7 +53,7 @@ static int s2n_client_alpn_send(struct s2n_connection *conn, struct s2n_stuffer 
     GUARD(s2n_stuffer_write_uint16(out, client_app_protocols->size));
     GUARD(s2n_stuffer_write(out, client_app_protocols));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
@@ -67,13 +67,13 @@ static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer 
 
     if (!server_app_protocols->size) {
         /* No protocols configured, nothing to do */
-        return 0;
+        return S2N_SUCCESS;
     }
 
     GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
     if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all < 3) {
         /* Malformed length, ignore the extension */
-        return 0;
+        return S2N_SUCCESS;
     }
 
     struct s2n_blob client_app_protocols = { 0 };
@@ -105,14 +105,14 @@ static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer 
                 if (memcmp(client_protocol, server_protocol, client_length) == 0) {
                     memcpy_check(conn->application_protocol, client_protocol, client_length);
                     conn->application_protocol[client_length] = '\0';
-                    return 0;
+                    return S2N_SUCCESS;
                 }
             }
         }
 
         GUARD(s2n_stuffer_reread(&client_protos));
     }
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* Old-style extension functions -- remove after extensions refactor is complete */

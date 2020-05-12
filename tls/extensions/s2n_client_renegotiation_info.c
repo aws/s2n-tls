@@ -40,7 +40,7 @@ static int s2n_client_renegotiation_recv(struct s2n_connection *conn, struct s2n
     S2N_ERROR_IF(s2n_stuffer_data_available(extension) || renegotiated_connection_len, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
 
     conn->secure_renegotiation = 1;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* Old-style extension functions -- remove after extensions refactor is complete */

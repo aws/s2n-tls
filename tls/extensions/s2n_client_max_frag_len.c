@@ -48,18 +48,18 @@ static int s2n_client_max_frag_len_send(struct s2n_connection *conn, struct s2n_
 static int s2n_client_max_frag_len_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     if (!conn->config->accept_mfl) {
-        return 0;
+        return S2N_SUCCESS;
     }
 
     uint8_t mfl_code;
     GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
     if (mfl_code > S2N_TLS_MAX_FRAG_LEN_4096 || mfl_code_to_length[mfl_code] > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH) {
-        return 0;
+        return S2N_SUCCESS;
     }
 
     conn->mfl_code = mfl_code;
     conn->max_outgoing_fragment_length = mfl_code_to_length[mfl_code];
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* Old-style extension functions -- remove after extensions refactor is complete */

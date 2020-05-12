@@ -55,7 +55,7 @@ static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffe
         GUARD(s2n_stuffer_write_uint16(out, kem_preferences->kems[i]->kem_extension_id));
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_client_pq_kem_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
@@ -66,14 +66,14 @@ static int s2n_client_pq_kem_recv(struct s2n_connection *conn, struct s2n_stuffe
     GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
     if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all % sizeof(kem_extension_size)) {
         /* Malformed length, ignore the extension */
-        return 0;
+        return S2N_SUCCESS;
     }
 
     proposed_kems->size = size_of_all;
     proposed_kems->data = s2n_stuffer_raw_read(extension, proposed_kems->size);
     notnull_check(proposed_kems->data);
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* Old-style extension functions -- remove after extensions refactor is complete */
