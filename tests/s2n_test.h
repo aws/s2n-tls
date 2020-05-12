@@ -24,6 +24,7 @@
 
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
+#include "utils/s2n_result.h"
 
 int test_count;
 
@@ -120,6 +121,7 @@ int test_count;
         EXPECT_NOT_NULL(s2n_debug_str); \
         RESET_ERRNO(); \
     } while(0)
+#define EXPECT_RESULT_ERROR( function_call )  EXPECT_TRUE( s2n_result_is_error(function_call) )
 
 #define EXPECT_FAILURE_WITH_ERRNO_NO_RESET( function_call, err ) \
     do { \
@@ -135,6 +137,7 @@ int test_count;
     } while(0)
 
 #define EXPECT_SUCCESS( function_call )  EXPECT_NOT_EQUAL( (function_call) ,  -1 )
+#define EXPECT_RESULT_OK( function_call )  EXPECT_TRUE( s2n_result_is_ok(function_call) )
 
 #define EXPECT_BYTEARRAY_EQUAL( p1, p2, l ) EXPECT_EQUAL( memcmp( (p1), (p2), (l) ), 0 )
 #define EXPECT_BYTEARRAY_NOT_EQUAL( p1, p2, l ) EXPECT_NOT_EQUAL( memcmp( (p1), (p2), (l) ), 0 )

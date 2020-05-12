@@ -73,7 +73,7 @@ static int s2n_config_setup_default(struct s2n_config *config)
 
 static int s2n_config_setup_tls13(struct s2n_config *config)
 {
-    GUARD(s2n_config_set_cipher_preferences(config, "default_tls13"));    
+    GUARD(s2n_config_set_cipher_preferences(config, "default_tls13"));
     return S2N_SUCCESS;
 }
 
@@ -130,7 +130,7 @@ static int s2n_config_init(struct s2n_config *config)
     }
 
     notnull_check(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
-    GUARD(s2n_map_complete(config->domain_name_to_cert_map));
+    GUARD_AS_POSIX(s2n_map_complete(config->domain_name_to_cert_map));
     memset(&config->default_certs_by_type, 0, sizeof(struct certs_by_type));
     config->default_certs_are_explicit = 0;
 
@@ -149,7 +149,7 @@ static int s2n_config_cleanup(struct s2n_config *config)
     GUARD(s2n_config_free_cert_chain_and_key(config));
     GUARD(s2n_config_free_dhparams(config));
     GUARD(s2n_free(&config->application_protocols));
-    GUARD(s2n_map_free(config->domain_name_to_cert_map));
+    GUARD_AS_POSIX(s2n_map_free(config->domain_name_to_cert_map));
 
     return 0;
 }
@@ -163,17 +163,19 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
     if (name->size == 0) {
         return 0;
     }
-    struct s2n_blob s2n_map_value = { 0 };
     s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
-    if (s2n_map_lookup(domain_name_to_cert_map, name, &s2n_map_value) == 0) {
+    struct s2n_blob s2n_map_value = { 0 };
+    bool key_found = false;
+    GUARD_AS_POSIX(s2n_map_lookup(domain_name_to_cert_map, name, &s2n_map_value, &key_found));
+    if (!key_found) {
         struct certs_by_type value = {{ 0 }};
         value.certs[cert_type] = cert_key_pair;
         s2n_map_value.data = (uint8_t *) &value;
         s2n_map_value.size = sizeof(struct certs_by_type);
 
-        GUARD(s2n_map_unlock(domain_name_to_cert_map));
-        GUARD(s2n_map_add(domain_name_to_cert_map, name, &s2n_map_value));
-        GUARD(s2n_map_complete(domain_name_to_cert_map));
+        GUARD_AS_POSIX(s2n_map_unlock(domain_name_to_cert_map));
+        GUARD_AS_POSIX(s2n_map_add(domain_name_to_cert_map, name, &s2n_map_value));
+        GUARD_AS_POSIX(s2n_map_complete(domain_name_to_cert_map));
     } else {
         struct certs_by_type *value = (void *) s2n_map_value.data;;
         if (value->certs[cert_type] == NULL) {
