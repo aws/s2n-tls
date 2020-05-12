@@ -23,7 +23,7 @@ import os
 import sys
 import uuid
 
-from common.s2n_test_common import wait_for_output, get_error
+from common.s2n_test_common import wait_for_output
 from common.s2n_test_openssl import run_openssl_connection_test
 from common.s2n_test_scenario import get_scenarios, Mode, Cipher, Version, Curve
 from common.s2n_test_reporting import Result, Status
