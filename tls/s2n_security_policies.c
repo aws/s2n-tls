@@ -439,8 +439,8 @@ const struct s2n_security_policy security_policy_null = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_null,
     .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .signature_preferences = &s2n_signature_preferences_null,
+    .ecc_preferences = &s2n_ecc_preferences_null,
 };
 
 struct s2n_security_policy_selection security_policy_selection[] = {

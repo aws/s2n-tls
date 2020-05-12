@@ -754,7 +754,7 @@ int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const str
     } else if (conn->config->security_policy != NULL) {
         *cipher_preferences = conn->config->security_policy->cipher_preferences;
     } else {
-        S2N_ERROR(S2N_ERR_INVALID_SECURITY_POLICY);
+        S2N_ERROR(S2N_ERR_INVALID_CIPHER_PREFERENCES);
     }
 
     notnull_check(*cipher_preferences);
@@ -790,7 +790,7 @@ int s2n_connection_get_kem_preferences(struct s2n_connection *conn, const struct
     } else if (conn->config->security_policy != NULL) {
         *kem_preferences = conn->config->security_policy->kem_preferences;
     } else {
-        S2N_ERROR(S2N_ERR_INVALID_SECURITY_POLICY);
+        S2N_ERROR(S2N_ERR_INVALID_KEM_PREFERENCES);
     }
 
     notnull_check(*kem_preferences);
@@ -808,7 +808,7 @@ int s2n_connection_get_signature_preferences(struct s2n_connection *conn, const 
     } else if (conn->config->security_policy != NULL) {
         *signature_preferences = conn->config->security_policy->signature_preferences;
     } else {
-        S2N_ERROR(S2N_ERR_INVALID_SECURITY_POLICY);
+        S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHMS_PREFERENCES);
     }
 
     notnull_check(*signature_preferences);
@@ -827,7 +827,7 @@ int s2n_connection_get_ecc_preferences(struct s2n_connection *conn, const struct
     } else if (conn->config->security_policy != NULL) {
         *ecc_preferences = conn->config->security_policy->ecc_preferences;
     } else {
-        S2N_ERROR(S2N_ERR_INVALID_SECURITY_POLICY);
+        S2N_ERROR(S2N_ERR_INVALID_ECC_PREFERENCES);
     }
 
     notnull_check(*ecc_preferences);

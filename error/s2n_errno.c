@@ -218,6 +218,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_UNSUPPORTED_EXTENSION, "Illegal use of a known, supported extension") \
     ERR_ENTRY(S2N_ERR_MISSING_EXTENSION, "Mandatory extension not received") \
     ERR_ENTRY(S2N_ERR_INVALID_SECURITY_POLICY, "Invalid security policy") \
+    ERR_ENTRY(S2N_ERR_INVALID_KEM_PREFERENCES, "Invalid kem preferences version") \
     
 #define ERR_STR_CASE(ERR, str) case ERR: return str;
 #define ERR_NAME_CASE(ERR, str) case ERR: return #ERR;
