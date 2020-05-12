@@ -19,7 +19,6 @@ General flow of the CodeBuild Test Projects
         - codebuild/install_openssl_1_1_1.sh
         - codebuild/install_openssl_1_0_2.sh
         - codebuild/install_openssl_1_0_2_fips.sh
-        - codebuild/install_cppcheck.sh
         - codebuild/install_libressl.sh
         - codebuild/install_python.sh
         - codebuild/install_gnutls.sh
@@ -28,7 +27,6 @@ General flow of the CodeBuild Test Projects
         - codebuild/install_sslyze.sh
     - codebuild/s2n_codebuild.sh
         - codebuild/s2n_override_paths.sh
-        - codebuild/run_cppcheck.sh
         - codebuild/copyright_mistake_scanner.sh
         - codebuild/run_kwstyle.sh
         - codebuild/cpp_style_comment_linter.sh
