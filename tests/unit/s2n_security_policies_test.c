@@ -16,7 +16,6 @@
 #include "s2n_test.h"
 
 #include "tls/s2n_security_policies.h"
-#include "tls/s2n_security_policies.c"
 
 int main(int argc, char **argv)
 {
@@ -44,13 +43,13 @@ int main(int argc, char **argv)
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("test_all", &security_policy));
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
-        EXPECT_TRUE(s2n_pq_kem_is_extension_required(security_policy));
 #if !defined(S2N_NO_PQ)
-        EXPECT_EQUAL(4, security_policy->kem_preferences->count);
         EXPECT_TRUE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_EQUAL(4, security_policy->kem_preferences->count);
         EXPECT_NOT_NULL(security_policy->kem_preferences->kems);
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r2r1);
 #else
+        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_EQUAL(0, security_policy->kem_preferences->count);
         EXPECT_NULL(security_policy->kem_preferences->kems);
 #endif
@@ -96,17 +95,10 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r2r1);
 #else
         security_policy = NULL;
-        EXPECT_FAILURE(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2019-06", &security_policy));
-        EXPECT_EQUAL(preferences, NULL);
-
-        EXPECT_FAILURE(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2019-11", &security_policy));
-        EXPECT_EQUAL(preferences, NULL);
-
-        EXPECT_FAILURE(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &security_policy));
-        EXPECT_EQUAL(preferences, NULL);
-
-        EXPECT_FAILURE(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2020-02", &security_policy));
-        EXPECT_EQUAL(preferences, NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2019-06", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2019-11", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2020-02", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
 #endif
 
         security_policy = NULL;
