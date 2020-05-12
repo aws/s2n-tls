@@ -209,7 +209,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     }
 
     if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_kem_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
-        server_conn->secure.s2n_kem_keys.negotiated_kem = &s2n_sike_p503_r1;
+        server_conn->secure.kem_params.kem = &s2n_sike_p503_r1;
     }
 
     /* Run Test

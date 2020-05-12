@@ -28,11 +28,11 @@
 /* This fuzz test uses the first private key from tests/unit/kats/bike_r2.kat, the valid ciphertext generated with the
  * public key was copied to corpus/s2n_bike_r2_fuzz_test/valid_ciphertext */
 
-static struct s2n_kem_keypair server_kem_keys = {.negotiated_kem = &s2n_bike1_l1_r2};
+static struct s2n_kem_params server_kem_params = {.kem = &s2n_bike1_l1_r2};
 
 static void s2n_fuzz_atexit()
 {
-    s2n_free(&server_kem_keys.private_key);
+    s2n_free(&server_kem_params.private_key);
     s2n_cleanup();
 }
 
@@ -41,11 +41,11 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     GUARD(s2n_init());
     GUARD_STRICT(atexit(s2n_fuzz_atexit));
 
-    GUARD(s2n_alloc(&server_kem_keys.private_key, s2n_bike1_l1_r2.private_key_length));
+    GUARD(s2n_alloc(&server_kem_params.private_key, s2n_bike1_l1_r2.private_key_length));
 
     FILE *kat_file = fopen(RSP_FILE_NAME, "r");
     notnull_check(kat_file);
-    GUARD(ReadHex(kat_file, server_kem_keys.private_key.data, s2n_bike1_l1_r2.private_key_length, "sk = "));
+    GUARD(ReadHex(kat_file, server_kem_params.private_key.data, s2n_bike1_l1_r2.private_key_length, "sk = "));
 
     fclose(kat_file);
 
@@ -62,7 +62,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     memcpy_check(ciphertext.data, buf, len);
 
     /* Run the test, don't use GUARD since the memory needs to be cleaned up and decapsulate will most likely fail */
-    s2n_kem_decapsulate(&server_kem_keys, &server_shared_secret, &ciphertext);
+    s2n_kem_decapsulate(&server_kem_params, &server_shared_secret, &ciphertext);
 
     GUARD(s2n_free(&ciphertext));
 

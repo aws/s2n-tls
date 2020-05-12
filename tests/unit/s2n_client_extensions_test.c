@@ -115,7 +115,7 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
     GUARD(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
     GUARD(s2n_config_set_cipher_preferences(server_config, cipher_pref_version));
     GUARD(s2n_connection_set_config(server_conn, server_config));
-    server_conn->secure.s2n_kem_keys.negotiated_kem = NULL;
+    server_conn->secure.kem_params.kem = NULL;
 
     /* Send the client hello */
     eq_check(write(piped_io->client_write, record_header, record_header_len),record_header_len);
@@ -132,8 +132,8 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
 
     int negotiated_kem_id;
 
-    if (server_conn->secure.s2n_kem_keys.negotiated_kem != NULL) {
-        negotiated_kem_id = server_conn->secure.s2n_kem_keys.negotiated_kem->kem_extension_id;
+    if (server_conn->secure.kem_params.kem != NULL) {
+        negotiated_kem_id = server_conn->secure.kem_params.kem->kem_extension_id;
     } else {
         negotiated_kem_id = -1;
     }

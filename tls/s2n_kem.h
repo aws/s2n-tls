@@ -53,12 +53,12 @@ extern const struct s2n_kem s2n_sike_p434_r2;
 
 #endif
 
-extern int s2n_kem_generate_keypair(struct s2n_kem_keypair *kem_keys);
+extern int s2n_kem_generate_keypair(struct s2n_kem_params *kem_params);
 
-extern int s2n_kem_encapsulate(const struct s2n_kem_keypair *kem_keys, struct s2n_blob *shared_secret,
+extern int s2n_kem_encapsulate(const struct s2n_kem_params *kem_params, struct s2n_blob *shared_secret,
                                struct s2n_blob *ciphertext);
 
-extern int s2n_kem_decapsulate(const struct s2n_kem_keypair *kem_params, struct s2n_blob *shared_secret,
+extern int s2n_kem_decapsulate(const struct s2n_kem_params *kem_params, struct s2n_blob *shared_secret,
                                const struct s2n_blob *ciphertext);
 
 extern int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], struct s2n_blob *client_kem_ids,
@@ -68,6 +68,6 @@ extern int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_C
 extern int s2n_choose_kem_without_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_kem *server_kem_pref_list[],
                                         const uint8_t num_server_supported_kems, const struct s2n_kem **chosen_kem);
 
-extern int s2n_kem_free(struct s2n_kem_keypair *kem_keys);
+extern int s2n_kem_free(struct s2n_kem_params *kem_params);
 
 extern int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_iana_to_kem **supported_params);

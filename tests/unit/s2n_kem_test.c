@@ -106,8 +106,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(sizeof(kem_ciphertext_key_size), 2);
     }
     {
-        struct s2n_kem_keypair server_kem_keypair = { 0 };
-        server_kem_keypair.negotiated_kem = &s2n_test_kem;
+        struct s2n_kem_params server_kem_keypair = { 0 };
+        server_kem_keypair.kem = &s2n_test_kem;
         EXPECT_SUCCESS(s2n_alloc(&server_kem_keypair.public_key, TEST_PUBLIC_KEY_LENGTH));
         EXPECT_SUCCESS(s2n_kem_generate_keypair(&server_kem_keypair));
         EXPECT_EQUAL(TEST_PUBLIC_KEY_LENGTH, server_kem_keypair.public_key.size);
@@ -115,8 +115,8 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(TEST_PUBLIC_KEY, server_kem_keypair.public_key.data, TEST_PUBLIC_KEY_LENGTH);
         EXPECT_BYTEARRAY_EQUAL(TEST_PRIVATE_KEY, server_kem_keypair.private_key.data, TEST_PRIVATE_KEY_LENGTH);
 
-        struct s2n_kem_keypair client_kem_keypair = { 0 };
-        client_kem_keypair.negotiated_kem = &s2n_test_kem;
+        struct s2n_kem_params client_kem_keypair = { 0 };
+        client_kem_keypair.kem = &s2n_test_kem;
         /* This would be handled by client/server key exchange methods which isn't being tested */
         GUARD(s2n_alloc(&client_kem_keypair.public_key, TEST_PUBLIC_KEY_LENGTH));
         memset(client_kem_keypair.public_key.data, TEST_PUBLIC_KEY_LENGTH, TEST_PUBLIC_KEY_LENGTH);
