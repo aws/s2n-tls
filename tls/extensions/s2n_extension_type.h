@@ -30,6 +30,7 @@
  * The +1 is necessary to handle any remainder left over when dividing. */
 #define S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN   ((S2N_SUPPORTED_EXTENSIONS_COUNT / sizeof(char)) + 1)
 
+struct s2n_connection;
 typedef struct {
     uint16_t iana_value;
     unsigned is_response:1;
