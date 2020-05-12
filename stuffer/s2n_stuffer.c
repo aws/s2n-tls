@@ -23,12 +23,6 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 
-/* Using a non-zero value 
- * (a) makes wiped data easy to see in the debugger
- * (b) makes use of wiped data obvious since this is unlikely to be a valid bit pattern
- */
-#define S2N_WIPE_PATTERN 'w'
-
 bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer)
 {
     /* Note that we do not assert any properties on the alloced, growable, and tainted fields,
@@ -302,113 +296,6 @@ int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec* io
     return 0;
 }
 
-int s2n_stuffer_read_uint8(struct s2n_stuffer *stuffer, uint8_t * u)
-{
-    GUARD(s2n_stuffer_read_bytes(stuffer, u, 1));
-
-    return 0;
-}
-
-int s2n_stuffer_write_uint8(struct s2n_stuffer *stuffer, const uint8_t u)
-{
-    GUARD(s2n_stuffer_write_bytes(stuffer, &u, 1));
-
-    return 0;
-}
-
-int s2n_stuffer_read_uint16(struct s2n_stuffer *stuffer, uint16_t * u)
-{
-    uint8_t data[2];
-
-    GUARD(s2n_stuffer_read_bytes(stuffer, data, sizeof(data)));
-
-    *u = data[0] << 8;
-    *u |= data[1];
-
-    return 0;
-}
-
-int s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, const uint16_t u)
-{
-    uint8_t data[2] = { u >> 8, u & 0xff };
-
-    GUARD(s2n_stuffer_write_bytes(stuffer, data, sizeof(data)));
-
-    return 0;
-}
-
-int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t * u)
-{
-    uint8_t data[3];
-
-    GUARD(s2n_stuffer_read_bytes(stuffer, data, sizeof(data)));
-
-    *u = data[0] << 16;
-    *u |= data[1] << 8;
-    *u |= data[2];
-
-    return 0;
-}
-
-int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, const uint32_t u)
-{
-    uint8_t data[3] = { u >> 16, u >> 8, u & 0xff };
-
-    GUARD(s2n_stuffer_write_bytes(stuffer, data, sizeof(data)));
-
-    return 0;
-}
-
-int s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t * u)
-{
-    uint8_t data[4];
-
-    GUARD(s2n_stuffer_read_bytes(stuffer, data, sizeof(data)));
-
-    *u = ((uint32_t) data[0]) << 24;
-    *u |= data[1] << 16;
-    *u |= data[2] << 8;
-    *u |= data[3];
-
-    return 0;
-}
-
-int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, const uint32_t u)
-{
-    uint8_t data[4] = { u >> 24, u >> 16, u >> 8, u & 0xff };
-
-    GUARD(s2n_stuffer_write_bytes(stuffer, data, sizeof(data)));
-
-    return 0;
-}
-
-int s2n_stuffer_read_uint64(struct s2n_stuffer *stuffer, uint64_t * u)
-{
-    uint8_t data[8];
-
-    GUARD(s2n_stuffer_read_bytes(stuffer, data, sizeof(data)));
-
-    *u = ((uint64_t) data[0]) << 56;
-    *u |= ((uint64_t) data[1]) << 48;
-    *u |= ((uint64_t) data[2]) << 40;
-    *u |= ((uint64_t) data[3]) << 32;
-    *u |= ((uint64_t) data[4]) << 24;
-    *u |= ((uint64_t) data[5]) << 16;
-    *u |= ((uint64_t) data[6]) << 8;
-    *u |= data[7];
-
-    return 0;
-}
-
-int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, const uint64_t u)
-{
-    uint8_t data[8] = { u >> 56, u >> 48, u >> 40, u >> 32, u >> 24, u >> 16, u >> 8, u & 0xff };
-
-    GUARD(s2n_stuffer_write_bytes(stuffer, data, sizeof(data)));
-
-    return 0;
-}
-
 static int s2n_stuffer_copy_impl(struct s2n_stuffer *from, struct s2n_stuffer *to, const uint32_t len)
 {
     GUARD(s2n_stuffer_skip_read(from, len));
@@ -435,7 +322,6 @@ int s2n_stuffer_reserve_space(struct s2n_stuffer *stuffer, uint32_t n)
     return S2N_SUCCESS;
 }
 
-
 /* Copies "len" bytes from "from" to "to".
  * If the copy cannot succeed (i.e. there are either not enough bytes available, or there is not enough space to write them
  * restore the old value of the stuffer */
@@ -445,9 +331,9 @@ int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, const uin
     const uint32_t orig_write_cursor = to->write_cursor;
 
     if (s2n_stuffer_copy_impl(from, to, len) < 0) {
-	from->read_cursor = orig_read_cursor;
-	to->write_cursor = orig_write_cursor;
-	S2N_ERROR_PRESERVE_ERRNO();
+        from->read_cursor = orig_read_cursor;
+        to->write_cursor = orig_write_cursor;
+        S2N_ERROR_PRESERVE_ERRNO();
     }
 
     return 0;

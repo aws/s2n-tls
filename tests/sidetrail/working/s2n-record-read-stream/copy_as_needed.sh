@@ -37,6 +37,7 @@ cp ../stubs/s2n_errno.c error/
 
 mkdir -p stuffer
 cp $S2N_BASE/stuffer/s2n_stuffer.c stuffer/
+cp $S2N_BASE/stuffer/s2n_stuffer_network_order.c stuffer/
 
 mkdir -p tls
 #add invariants etc needed for the proof to the s2n_cbc code

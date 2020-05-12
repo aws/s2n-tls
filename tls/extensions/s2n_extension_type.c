@@ -97,15 +97,18 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
         return S2N_SUCCESS;
     }
 
+    /* Write extension type */
     GUARD(s2n_stuffer_write_uint16(out, extension_type->iana_value));
 
-    struct s2n_stuffer size_stuffer = *out;
-    GUARD(s2n_stuffer_skip_write(out, TLS_EXTENSION_DATA_LENGTH_BYTES));
+    /* Reserve space for extension size */
+    struct s2n_stuffer_reservation extension_size_bytes;
+    GUARD(s2n_stuffer_reserve_uint16(out, &extension_size_bytes));
 
+    /* Write extension data */
     GUARD(extension_type->send(conn, out));
 
-    GUARD(s2n_stuffer_write_uint16(&size_stuffer,
-            s2n_stuffer_data_available(out) - s2n_stuffer_data_available(&size_stuffer) - TLS_EXTENSION_DATA_LENGTH_BYTES));
+    /* Record extension size */
+    GUARD(s2n_stuffer_write_vector_size(extension_size_bytes));
 
     /* Set request bit flag */
     if (!extension_type->is_response) {

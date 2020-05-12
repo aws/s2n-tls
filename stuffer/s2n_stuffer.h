@@ -21,6 +21,12 @@
 
 #include "utils/s2n_blob.h"
 
+/* Using a non-zero value
+ * (a) makes wiped data easy to see in the debugger
+ * (b) makes use of wiped data obvious since this is unlikely to be a valid bit pattern
+ */
+#define S2N_WIPE_PATTERN 'w'
+
 struct s2n_stuffer {
     /* The data for the s2n_stuffer */
     struct s2n_blob blob;
@@ -36,7 +42,9 @@ struct s2n_stuffer {
     /* Is this stuffer growable? */
     unsigned int growable:1;
 
-    /* A growable stuffer can also be temporarily tainted */
+    /* Can this stuffer be safely resized?
+     * A growable stuffer can be temporarily tainted by a raw read/write,
+     * preventing it from resizing. */
     unsigned int tainted:1;
 };
 
@@ -96,6 +104,17 @@ extern int s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, const uint16_t 
 extern int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, const uint32_t u);
 extern int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, const uint32_t u);
 extern int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, const uint64_t u);
+
+/* Allocate space now for network order integers that will be written later.
+ * These are primarily intended to handle the vector type defined in the RFC:
+ * https://tools.ietf.org/html/rfc8446#section-3.4 */
+struct s2n_stuffer_reservation {
+    struct s2n_stuffer *stuffer;
+    uint32_t write_cursor;
+    uint8_t length;
+};
+extern int s2n_stuffer_reserve_uint16(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
+extern int s2n_stuffer_write_vector_size(struct s2n_stuffer_reservation reservation);
 
 /* Copy one stuffer to another */
 extern int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, uint32_t len);
