@@ -148,19 +148,19 @@ int s2n_extension_recv_unimplemented(struct s2n_connection *conn, struct s2n_stu
     S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
 }
 
-int s2n_extension_always_send(struct s2n_connection *conn)
+bool s2n_extension_always_send(struct s2n_connection *conn)
 {
     return true;
 }
 
-int s2n_extension_never_send(struct s2n_connection *conn)
+bool s2n_extension_never_send(struct s2n_connection *conn)
 {
     return false;
 }
 
-int s2n_extension_send_if_tls13_enabled(struct s2n_connection *conn)
+bool s2n_extension_send_if_tls13_connection(struct s2n_connection *conn)
 {
-    return s2n_is_tls13_enabled();
+    return s2n_connection_get_protocol_version(conn) == S2N_TLS13;
 }
 
 int s2n_extension_error_if_missing(struct s2n_connection *conn)

@@ -46,7 +46,7 @@ const s2n_extension_type s2n_server_supported_versions_extension = {
     .is_response = true,
     .send = s2n_server_supported_versions_send,
     .recv = s2n_server_supported_versions_recv,
-    .should_send = s2n_extension_send_if_tls13_enabled,
+    .should_send = s2n_extension_send_if_tls13_connection,
     .if_missing = s2n_extension_noop_if_missing,
 };
 
@@ -75,7 +75,7 @@ static int s2n_extensions_server_supported_versions_process(struct s2n_connectio
 
     conn->server_protocol_version = server_version;
     
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_server_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *in)

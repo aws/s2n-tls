@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_tls_parameters.h"
 
@@ -36,7 +38,7 @@ typedef struct {
     int (*recv) (struct s2n_connection *conn, struct s2n_stuffer *in);
 
     /* Returns true or false to indicate whether the extension should be sent */
-    int (*should_send) (struct s2n_connection *conn);
+    bool (*should_send) (struct s2n_connection *conn);
 
     /* Handler called if an extension is not received */
     int (*if_missing) (struct s2n_connection *conn);
@@ -76,9 +78,9 @@ int s2n_extension_send_unimplemented(struct s2n_connection *conn, struct s2n_stu
 int s2n_extension_recv_unimplemented(struct s2n_connection *conn, struct s2n_stuffer *in);
 
 /* Common implementations for should_send */
-int s2n_extension_always_send(struct s2n_connection *conn);
-int s2n_extension_never_send(struct s2n_connection *conn);
-int s2n_extension_send_if_tls13_enabled(struct s2n_connection *conn);
+bool s2n_extension_always_send(struct s2n_connection *conn);
+bool s2n_extension_never_send(struct s2n_connection *conn);
+bool s2n_extension_send_if_tls13_connection(struct s2n_connection *conn);
 
 /* Common implementations for if_missing */
 int s2n_extension_error_if_missing(struct s2n_connection *conn);
