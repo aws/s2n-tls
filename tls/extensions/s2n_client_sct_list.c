@@ -22,7 +22,7 @@
 
 #include "utils/s2n_safety.h"
 
-static int s2n_client_sct_list_should_send(struct s2n_connection *conn);
+static bool s2n_client_sct_list_should_send(struct s2n_connection *conn);
 static int s2n_client_sct_list_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_client_sct_list_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
@@ -35,7 +35,7 @@ const s2n_extension_type s2n_client_sct_list_extension = {
     .if_missing = s2n_extension_noop_if_missing,
 };
 
-static int s2n_client_sct_list_should_send(struct s2n_connection *conn)
+static bool s2n_client_sct_list_should_send(struct s2n_connection *conn)
 {
     return conn->config->ct_type != S2N_CT_SUPPORT_NONE;
 }

@@ -24,7 +24,7 @@
 
 #include "utils/s2n_safety.h"
 
-static int s2n_client_pq_kem_should_send(struct s2n_connection *conn);
+static bool s2n_client_pq_kem_should_send(struct s2n_connection *conn);
 static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_client_pq_kem_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
@@ -37,7 +37,7 @@ const s2n_extension_type s2n_client_pq_kem_extension = {
     .if_missing = s2n_extension_noop_if_missing,
 };
 
-static int s2n_client_pq_kem_should_send(struct s2n_connection *conn)
+static bool s2n_client_pq_kem_should_send(struct s2n_connection *conn)
 {
     const struct s2n_security_policy *security_policy;
     return s2n_connection_get_security_policy(conn, &security_policy) == S2N_SUCCESS
