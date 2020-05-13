@@ -79,14 +79,15 @@ int main(int argc, char **argv)
     /* Test that legacy_version_field is set correct for TLS 1.3 Server Hello Send */
     {
         EXPECT_SUCCESS(s2n_enable_tls13());
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
+        const struct s2n_ecc_preferences *ecc_preferences = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
 
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
         EXPECT_NOT_NULL(conn->config);
-        const struct s2n_ecc_preferences *ecc_preferences = config->security_policy->ecc_preferences;
+        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
         EXPECT_NOT_NULL(ecc_preferences);
         /* configure these parameters so server hello can be sent */
         conn->actual_protocol_version = S2N_TLS13;

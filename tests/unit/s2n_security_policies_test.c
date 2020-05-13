@@ -248,6 +248,15 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
         EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
 
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "null"));
+        EXPECT_EQUAL(config->security_policy, &security_policy_null);
+        EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_null);
+        EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
+        EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_null);
+        EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_null);
+
+        EXPECT_FAILURE(s2n_config_set_cipher_preferences(config, NULL));
+
         EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "notathing"),
                 S2N_ERR_INVALID_SECURITY_POLICY);
 

@@ -439,8 +439,8 @@ const struct s2n_security_policy security_policy_null = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_null,
     .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .signature_preferences = &s2n_signature_preferences_null,
+    .ecc_preferences = &s2n_ecc_preferences_null,
 };
 
 struct s2n_security_policy_selection security_policy_selection[] = {
@@ -527,6 +527,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     notnull_check(&config->security_policy->cipher_preferences);
     notnull_check(&config->security_policy->kem_preferences);
     notnull_check(&config->security_policy->signature_preferences);
+    notnull_check(&config->security_policy->ecc_preferences);
     return 0;
 }
 
@@ -536,6 +537,7 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
     notnull_check(&conn->security_policy_override->cipher_preferences);
     notnull_check(&conn->security_policy_override->kem_preferences);
     notnull_check(&conn->security_policy_override->signature_preferences);
+    notnull_check(&conn->security_policy_override->ecc_preferences);
     return 0;
 }
 

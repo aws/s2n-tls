@@ -98,6 +98,8 @@ extern const struct s2n_security_policy security_policy_20190120;
 extern const struct s2n_security_policy security_policy_20190121;
 extern const struct s2n_security_policy security_policy_20190122;
 
+extern const struct s2n_security_policy security_policy_null;
+
 int s2n_security_policies_init();
 int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);

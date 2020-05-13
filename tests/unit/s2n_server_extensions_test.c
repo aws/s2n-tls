@@ -41,11 +41,10 @@ const uint8_t MIN_TLS13_EXTENSION_SIZE = ( 32 * 2 ) + 1 + 8 + 6; /* expanded fro
 static int configure_tls13_connection(struct s2n_connection *conn)
 {
     conn->actual_protocol_version = S2N_TLS13;
-    const struct s2n_security_policy *security_policy = NULL;
+
     const struct s2n_ecc_preferences *ecc_pref = NULL;
-    EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-    EXPECT_NOT_NULL(security_policy);
-    EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+    EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    EXPECT_NOT_NULL(ecc_pref);
 
     conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
     conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
@@ -282,11 +281,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_ecc_preferences *ecc_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
-            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
 
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
@@ -332,11 +329,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_ecc_preferences *ecc_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
-            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
 
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
@@ -381,11 +376,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_ecc_preferences *ecc_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
-            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
 
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
@@ -447,11 +440,9 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all_tls13"));
 
-            const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_ecc_preferences *ecc_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
-            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
