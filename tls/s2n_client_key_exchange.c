@@ -160,13 +160,18 @@ int s2n_ecdhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shar
 
 int s2n_kem_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
-    /* s2n_kem_decapsulate() write the KEM shared secret directly to
-     * conn->secure.kem_params. The argument struct s2n_blob *shared_key
-     * is not used in this function. However, the calling function
-     * likely expects *shared_key to point to the shared secret, so we
-     * assert that it points to the correct place. */
+    /* s2n_kem_decapsulate() writes the KEM shared secret directly to
+     * conn->secure.kem_params. However, the calling function
+     * likely expects *shared_key to point to the shared secret. We 
+     * can't reassign *shared_key to point to kem_params.shared_secret,
+     * because that would require us to take struct s2n_blob **shared_key
+     * as the argument, but we can't (easily) change the function signature
+     * because it has to be consistent with what is defined in s2n_kex.
+     *
+     * So, we assert that the caller already has *shared_key pointing
+     * to kem_params.shared_secret. */
     notnull_check(shared_key);
-    eq_check(shared_key, &(conn->secure.kem_params.shared_secret));
+    S2N_ERROR_IF(shared_key != &(conn->secure.kem_params.shared_secret), S2N_ERR_SAFETY);
 
     struct s2n_stuffer *in = &conn->handshake.io;
     kem_ciphertext_key_size ciphertext_length;
@@ -258,13 +263,18 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
 
 int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
-    /* s2n_kem_encapsulate() write the KEM shared secret directly to
-     * conn->secure.kem_params. The argument struct s2n_blob *shared_key
-     * is not used in this function. However, the calling function
-     * likely expects *shared_key to point to the shared secret, so we
-     * assert that it points to the correct place. */
+    /* s2n_kem_encapsulate() writes the KEM shared secret directly to
+     * conn->secure.kem_params. However, the calling function
+     * likely expects *shared_key to point to the shared secret. We
+     * can't reassign *shared_key to point to kem_params.shared_secret,
+     * because that would require us to take struct s2n_blob **shared_key
+     * as the argument, but we can't (easily) change the function signature
+     * because it has to be consistent with what is defined in s2n_kex.
+     *
+     * So, we assert that the caller already has *shared_key pointing
+     * to kem_params.shared_secret. */
     notnull_check(shared_key);
-    eq_check(shared_key, &(conn->secure.kem_params.shared_secret));
+    S2N_ERROR_IF(shared_key != &(conn->secure.kem_params.shared_secret), S2N_ERR_SAFETY);
 
     struct s2n_stuffer *out = &conn->handshake.io;
     const struct s2n_kem *kem = conn->secure.kem_params.kem;
