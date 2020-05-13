@@ -9,7 +9,7 @@ from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("cipher", [cipher for cipher in ALL_TEST_CIPHERS if cipher.name is not 'DHE_RSA_CHACHA20_POLY1305'], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", PROVIDERS)
 @pytest.mark.parametrize("curve", ALL_CURVES)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
