@@ -30,7 +30,7 @@ const s2n_extension_type s2n_server_key_share_extension = {
     .is_response = false,
     .send = s2n_server_key_share_send,
     .recv = s2n_server_key_share_recv,
-    .should_send = s2n_extension_send_if_tls13_enabled,
+    .should_send = s2n_extension_send_if_tls13_connection,
     .if_missing = s2n_extension_noop_if_missing,
 };
 
