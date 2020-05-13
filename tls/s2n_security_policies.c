@@ -439,17 +439,11 @@ const struct s2n_security_policy security_policy_null = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_null,
     .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .signature_preferences = &s2n_signature_preferences_null,
+    .ecc_preferences = &s2n_ecc_preferences_null,
 };
 
-struct {
-    const char *version;
-    const struct s2n_security_policy *security_policy;
-    unsigned ecc_extension_required:1;
-    unsigned pq_kem_extension_required:1;
-    unsigned supports_tls13:1;
-} security_policy_selection[] = {
+struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="default", .security_policy=&security_policy_20170210, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="default_tls13", .security_policy=&security_policy_20190801, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="default_fips", .security_policy=&security_policy_20170405, .ecc_extension_required=0, .pq_kem_extension_required=0 },
@@ -533,6 +527,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     notnull_check(&config->security_policy->cipher_preferences);
     notnull_check(&config->security_policy->kem_preferences);
     notnull_check(&config->security_policy->signature_preferences);
+    notnull_check(&config->security_policy->ecc_preferences);
     return 0;
 }
 
@@ -542,6 +537,7 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
     notnull_check(&conn->security_policy_override->cipher_preferences);
     notnull_check(&conn->security_policy_override->kem_preferences);
     notnull_check(&conn->security_policy_override->signature_preferences);
+    notnull_check(&conn->security_policy_override->ecc_preferences);
     return 0;
 }
 

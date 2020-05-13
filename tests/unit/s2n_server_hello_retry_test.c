@@ -74,6 +74,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(server_conn));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
@@ -382,11 +383,9 @@ int main(int argc, char **argv)
         /* Before sending the second message, clear out the existing keys.
          * Otherwise we will leak memory in this test. */
 
-        const struct s2n_security_policy *security_policy = NULL;
         const struct s2n_ecc_preferences *ecc_pref = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(client_conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
-        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(client_conn, &ecc_pref));
+        EXPECT_NOT_NULL(ecc_pref);
 
         for (int i=0; i<ecc_pref->count; i++) {
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_conn->secure.client_ecc_evp_params[i]));

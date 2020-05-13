@@ -43,6 +43,11 @@ const struct s2n_ecc_preferences s2n_ecc_preferences_20200310 = {
         .ecc_curves = s2n_ecc_pref_list_20200310,
 };
 
+const struct s2n_ecc_preferences s2n_ecc_preferences_null = {
+        .count = 0,
+        .ecc_curves = NULL,
+};
+
 /* Checks if the ecc_curves present in s2n_ecc_preferences list is a subset of s2n_all_supported_curves_list
  * maintained in s2n_ecc_evp.c */
 int s2n_check_ecc_preferences_curves_list(const struct s2n_ecc_preferences *ecc_preferences) {

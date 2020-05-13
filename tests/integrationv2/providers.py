@@ -55,7 +55,7 @@ class Tcpdump(Provider):
 
     def setup_client(self, options: ProviderOptions):
         self.ready_to_test = 'listening on lo'
-        tcpdump_filter = f"dst port {options.port}"
+        tcpdump_filter = "dst port {}".format(options.port)
 
         cmd_line = ["tcpdump",
             # Line buffer the output
@@ -125,7 +125,7 @@ class S2N(Provider):
         """
         self.ready_to_send_marker = 'Cipher negotiated:'
 
-        cmd_line = ['s2nd', '-X']
+        cmd_line = ['s2nd', '-X', '--self-service-blinding']
         if options.cipher is not None:
             if options.cipher in S2N.default_tls13:
                 cmd_line.extend(['-c', 'default_tls13'])
@@ -139,6 +139,10 @@ class S2N(Provider):
             cmd_line.append('--insecure')
         if options.tls13 is True:
             cmd_line.append('--tls13')
+        if options.use_client_auth is True:
+            cmd_line.append('-m')
+            cmd_line.extend(['-t', options.client_certificate_file])
+
         cmd_line.extend([options.host, options.port])
 
         return cmd_line
@@ -172,6 +176,9 @@ class OpenSSL(Provider):
                 cmd_line.extend(['-ciphersuites', 'TLS_AES_256_GCM_SHA384'])
         if options.curve is not None:
             cmd_line.extend(['-curves', options.curve])
+        if options.use_client_auth is True:
+            cmd_line.extend(['-key', options.client_key_file])
+            cmd_line.extend(['-cert', options.client_certificate_file])
 
         # Clients are always ready to connect
         self.set_provider_ready()

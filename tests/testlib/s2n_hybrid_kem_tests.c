@@ -47,14 +47,12 @@ int setup_connection(struct s2n_connection *conn, const struct s2n_kem *kem, str
     S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     conn->actual_protocol_version = S2N_TLS12;
 
-    const struct s2n_security_policy *security_policy = NULL;
     const struct s2n_ecc_preferences *ecc_preferences = NULL;
-    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
-    GUARD_NONNULL(security_policy);
-    GUARD_NONNULL(ecc_preferences = security_policy->ecc_preferences);
+    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
+    GUARD_NONNULL(ecc_preferences);
 
     conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
-    conn->secure.s2n_kem_keys.negotiated_kem = kem;
+    conn->secure.kem_params.kem = kem;
     conn->secure.cipher_suite = cipher_suite;
     conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
     GUARD(s2n_connection_set_cipher_preferences(conn, cipher_pref_version));

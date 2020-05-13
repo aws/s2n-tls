@@ -74,6 +74,7 @@ int main(int argc, char **argv)
             .cipher_preferences = security_policy->cipher_preferences,
             .kem_preferences = security_policy->kem_preferences,
             .signature_preferences = &test_preferences,
+            .ecc_preferences = security_policy->ecc_preferences,
         };
 
         config->security_policy = &test_security_policy;
@@ -113,6 +114,7 @@ int main(int argc, char **argv)
             .cipher_preferences = security_policy->cipher_preferences,
             .kem_preferences = security_policy->kem_preferences,
             .signature_preferences = &test_preferences,
+            .ecc_preferences = security_policy->ecc_preferences,
         };
 
         config->security_policy = &test_security_policy;
@@ -198,6 +200,7 @@ int main(int argc, char **argv)
             .cipher_preferences = security_policy->cipher_preferences,
             .kem_preferences = security_policy->kem_preferences,
             .signature_preferences = &test_preferences,
+            .ecc_preferences = security_policy->ecc_preferences,
         };
 
         config->security_policy = &test_security_policy;
@@ -283,6 +286,7 @@ int main(int argc, char **argv)
             .cipher_preferences = security_policy->cipher_preferences,
             .kem_preferences = security_policy->kem_preferences,
             .signature_preferences = &dup_test_preferences,
+            .ecc_preferences = security_policy->ecc_preferences,
         };
 
         config->security_policy = &test_security_policy;
@@ -327,6 +331,7 @@ int main(int argc, char **argv)
             .cipher_preferences = security_policy->cipher_preferences,
             .kem_preferences = security_policy->kem_preferences,
             .signature_preferences = &test_preferences,
+            .ecc_preferences = security_policy->ecc_preferences,
         };
 
         config->security_policy = &test_security_policy;
@@ -371,6 +376,7 @@ int main(int argc, char **argv)
             .cipher_preferences = security_policy->cipher_preferences,
             .kem_preferences = security_policy->kem_preferences,
             .signature_preferences = &test_preferences,
+            .ecc_preferences = security_policy->ecc_preferences,
         };
 
         config->security_policy = &test_security_policy;
@@ -550,6 +556,7 @@ int main(int argc, char **argv)
             .cipher_preferences = security_policy->cipher_preferences,
             .kem_preferences = security_policy->kem_preferences,
             .signature_preferences = &pss_test_preferences,
+            .ecc_preferences = security_policy->ecc_preferences,
         };
 
         config->security_policy = &test_security_policy;

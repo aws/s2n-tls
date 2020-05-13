@@ -80,11 +80,9 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_extensions_client_key_share_send(conn, &key_share_extension));
 
-            const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_ecc_preferences *ecc_preferences = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
-            EXPECT_NOT_NULL(ecc_preferences = security_policy->ecc_preferences);
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
+            EXPECT_NOT_NULL(ecc_preferences);
 
             for (int i = 0; i < ecc_preferences->count; i++) {
                 struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
@@ -121,11 +119,9 @@ int main(int argc, char **argv)
             uint16_t actual_key_shares_size = s2n_stuffer_data_available(&key_share_extension);
             EXPECT_EQUAL(key_shares_size, actual_key_shares_size);
 
-            const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_ecc_preferences *ecc_preferences = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
-            EXPECT_NOT_NULL(ecc_preferences = security_policy->ecc_preferences);
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
+            EXPECT_NOT_NULL(ecc_preferences);
 
             /* should contain every supported curve, in order, with their sizes */
             for (int i = 0; i < ecc_preferences->count; i++) {
@@ -152,11 +148,9 @@ int main(int argc, char **argv)
             /* Explicitly set the ecc_preferences list to contain the curves p-256 and p-384 */
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(conn->config, "20140601"));
 
-            const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_ecc_preferences *ecc_preferences = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
-            EXPECT_NOT_NULL(ecc_preferences = security_policy->ecc_preferences);
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
+            EXPECT_NOT_NULL(ecc_preferences);
 
             /* x25519 is present in s2n_all_supported_curves_list but not in the "default" list */
             const struct s2n_ecc_named_curve *test_curve = &s2n_ecc_curve_x25519;
@@ -192,11 +186,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, 4));
             EXPECT_SUCCESS(s2n_extensions_client_key_share_recv(server_conn, &key_share_extension));
 
-            const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_ecc_preferences *ecc_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
-            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
 
             /* should read all data */
             EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), 0);
@@ -226,11 +218,9 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(conn)));
 
-            const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_ecc_preferences *ecc_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
-            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&key_share_extension, ecc_pref->ecc_curves[0]->share_size * 10));
             EXPECT_SUCCESS(s2n_write_named_curve(&key_share_extension, ecc_pref->ecc_curves[0]));
@@ -248,11 +238,9 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(conn)));
 
-            const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_ecc_preferences *ecc_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
-            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
 
             /* Write curve with huge length */
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);
@@ -273,11 +261,9 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(conn)));
 
-            const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_ecc_preferences *ecc_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
-            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
 
             /* Write only first curve */
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);
@@ -313,11 +299,9 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(server_conn)));
 
-            const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_ecc_preferences *ecc_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
-            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&key_share_extension, 0));
 
@@ -341,11 +325,9 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(conn)));
 
-            const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_ecc_preferences *ecc_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
-            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
 
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);
 
@@ -382,11 +364,9 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(conn)));
 
-            const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_ecc_preferences *ecc_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
-            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
 
             /* Write supported curve, but with a different curve's size */
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);
@@ -419,11 +399,9 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(server_conn)));
 
-            const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_ecc_preferences *ecc_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
-            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
 
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);
 
@@ -461,11 +439,9 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_stuffer_alloc(&key_share_extension, s2n_extensions_client_key_share_size(conn)));
 
-            const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_ecc_preferences *ecc_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_NOT_NULL(security_policy);
-            EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
 
             /* Write first curve */
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);
@@ -506,11 +482,9 @@ int main(int argc, char **argv)
                 /* Explicitly set the ecc_preferences list to contain the curves p-256 and p-384 */
                 EXPECT_SUCCESS(s2n_config_set_cipher_preferences(conn->config, "20140601"));
 
-                const struct s2n_security_policy *security_policy = NULL;
                 const struct s2n_ecc_preferences *ecc_pref = NULL;
-                EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-                EXPECT_NOT_NULL(security_policy);
-                EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+                EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+                EXPECT_NOT_NULL(ecc_pref);
 
                 /* x25519 is present in s2n_all_supported_curves_list but not in the "default" list */
                 const struct s2n_ecc_named_curve *test_curve = &s2n_ecc_curve_x25519;

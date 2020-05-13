@@ -174,18 +174,19 @@ int s2n_kem_server_key_recv_parse_data(struct s2n_connection *conn, struct s2n_k
     struct s2n_kem_raw_server_params *kem_data = &raw_server_data->kem_data;
 
     /* Check that the server's requested kem is supported by the client */
-    const struct s2n_security_policy *security_policy = NULL;
-    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    const struct s2n_kem_preferences *kem_preferences = NULL;
+    GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
+    notnull_check(kem_preferences);
 
     const struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
     const struct s2n_kem *match = NULL;
-    S2N_ERROR_IF(s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, &kem_data->kem_name, security_policy->kem_preferences->kems, 
-                 security_policy->kem_preferences->count, &match) != 0, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-    conn->secure.s2n_kem_keys.negotiated_kem = match;
+    S2N_ERROR_IF(s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, &kem_data->kem_name, kem_preferences->kems, 
+                 kem_preferences->count, &match) != 0, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+    conn->secure.kem_params.kem = match;
 
-    S2N_ERROR_IF(kem_data->raw_public_key.size != conn->secure.s2n_kem_keys.negotiated_kem->public_key_length, S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(kem_data->raw_public_key.size != conn->secure.kem_params.kem->public_key_length, S2N_ERR_BAD_MESSAGE);
 
-    s2n_dup(&kem_data->raw_public_key, &conn->secure.s2n_kem_keys.public_key);
+    s2n_dup(&kem_data->raw_public_key, &conn->secure.kem_params.public_key);
     return 0;
 }
 
@@ -283,7 +284,7 @@ int s2n_dhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_t
 int s2n_kem_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
-    const struct s2n_kem *kem = conn->secure.s2n_kem_keys.negotiated_kem;
+    const struct s2n_kem *kem = conn->secure.kem_params.kem;
 
     data_to_sign->data = s2n_stuffer_raw_write(out, 0);
     notnull_check(data_to_sign->data);
@@ -292,12 +293,12 @@ int s2n_kem_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_t
     GUARD(s2n_stuffer_write_uint16(out, kem->public_key_length));
 
     /* The public key is not needed after this method, write it straight to the stuffer */
-    struct s2n_blob *public_key = &conn->secure.s2n_kem_keys.public_key;
+    struct s2n_blob *public_key = &conn->secure.kem_params.public_key;
     public_key->data = s2n_stuffer_raw_write(out, kem->public_key_length);
     notnull_check(public_key->data);
     public_key->size = kem->public_key_length;
 
-    GUARD(s2n_kem_generate_keypair(&conn->secure.s2n_kem_keys));
+    GUARD(s2n_kem_generate_keypair(&conn->secure.kem_params));
 
     data_to_sign->size = sizeof(kem_extension_size) + sizeof(kem_public_key_size) +  public_key->size;
     return 0;

@@ -206,11 +206,9 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     GUARD(s2n_stuffer_read_uint8(in, &num_compression_methods));
     GUARD(s2n_stuffer_skip_read(in, num_compression_methods));
 
-    const struct s2n_security_policy *security_policy = NULL;
     const struct s2n_ecc_preferences *ecc_pref = NULL;
-    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
-    notnull_check(security_policy);
-    notnull_check(ecc_pref = security_policy->ecc_preferences);
+    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    notnull_check(ecc_pref);
 
     /* This is going to be our default if the client has no preference. */
     conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];

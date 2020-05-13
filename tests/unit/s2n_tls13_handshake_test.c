@@ -56,11 +56,9 @@ int main(int argc, char **argv)
         client_conn->actual_protocol_version = S2N_TLS13;
         server_conn->actual_protocol_version = S2N_TLS13;
 
-        const struct s2n_security_policy *security_policy = NULL;
         const struct s2n_ecc_preferences *server_ecc_preferences = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(server_conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
-        EXPECT_NOT_NULL(server_ecc_preferences = security_policy->ecc_preferences);
+        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &server_ecc_preferences));
+        EXPECT_NOT_NULL(server_ecc_preferences);
 
         struct s2n_stuffer client_hello_key_share;
         struct s2n_stuffer server_hello_key_share;
@@ -296,11 +294,9 @@ int main(int argc, char **argv)
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
 
-                const struct s2n_security_policy *security_policy = NULL;
                 const struct s2n_ecc_preferences *ecc_pref = NULL;
-                EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-                EXPECT_NOT_NULL(security_policy);
-                EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+                EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+                EXPECT_NOT_NULL(ecc_pref);
 
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
@@ -349,11 +345,9 @@ int main(int argc, char **argv)
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
 
-                const struct s2n_security_policy *security_policy = NULL;
                 const struct s2n_ecc_preferences *ecc_pref = NULL;
-                EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-                EXPECT_NOT_NULL(security_policy);
-                EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+                EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+                EXPECT_NOT_NULL(ecc_pref);
 
                 conn->actual_protocol_version = S2N_TLS12;
                 conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;

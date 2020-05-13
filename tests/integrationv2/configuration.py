@@ -20,7 +20,11 @@ CURVES = [
 
 
 # List of providers that will be tested.
-PROVIDERS = [S2N, OpenSSL, BoringSSL]
+PROVIDERS = [S2N, OpenSSL]
+
+
+# List of binary TLS13 settings
+TLS13 = [True, False]
 
 
 class AvailablePorts():

@@ -257,8 +257,8 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->current_user_data_consumed = 0;
     conn->initial.cipher_suite = &s2n_null_cipher_suite;
     conn->secure.cipher_suite = &s2n_null_cipher_suite;
-    conn->initial.s2n_kem_keys.negotiated_kem = NULL;
-    conn->secure.s2n_kem_keys.negotiated_kem = NULL;
+    conn->initial.kem_params.kem = NULL;
+    conn->secure.kem_params.kem = NULL;
     conn->server = &conn->initial;
     conn->client = &conn->initial;
     conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
@@ -297,7 +297,7 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     for (int i=0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
         GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
     }
-    GUARD(s2n_kem_free(&conn->secure.s2n_kem_keys));
+    GUARD(s2n_kem_free(&conn->secure.kem_params));
     GUARD(s2n_free(&conn->secure.client_cert_chain));
     GUARD(s2n_free(&conn->ct_response));
 
@@ -746,29 +746,93 @@ int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **
 int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const struct s2n_cipher_preferences **cipher_preferences)
 {
     notnull_check(conn);
+    notnull_check(conn->config);
     notnull_check(cipher_preferences);
 
     if (conn->security_policy_override != NULL) {
         *cipher_preferences = conn->security_policy_override->cipher_preferences;
-    } else {
+    } else if (conn->config->security_policy != NULL) {
         *cipher_preferences = conn->config->security_policy->cipher_preferences;
+    } else {
+        S2N_ERROR(S2N_ERR_INVALID_CIPHER_PREFERENCES);
     }
 
+    notnull_check(*cipher_preferences);
     return 0;
 }
 
 int s2n_connection_get_security_policy(struct s2n_connection *conn, const struct s2n_security_policy **security_policy)
 {
     notnull_check(conn);
+    notnull_check(conn->config);
     notnull_check(security_policy);
 
     if (conn->security_policy_override != NULL) {
         *security_policy = conn->security_policy_override;
-    } else {
+    } else if (conn->config->security_policy != NULL) {
         *security_policy = conn->config->security_policy;
+    } else {
+        S2N_ERROR(S2N_ERR_INVALID_SECURITY_POLICY);
     }
 
+    notnull_check(*security_policy);
     return 0;
+}
+
+int s2n_connection_get_kem_preferences(struct s2n_connection *conn, const struct s2n_kem_preferences **kem_preferences)
+{
+    notnull_check(conn);
+    notnull_check(conn->config);
+    notnull_check(kem_preferences);
+
+    if (conn->security_policy_override != NULL) {
+        *kem_preferences = conn->security_policy_override->kem_preferences;
+    } else if (conn->config->security_policy != NULL) {
+        *kem_preferences = conn->config->security_policy->kem_preferences;
+    } else {
+        S2N_ERROR(S2N_ERR_INVALID_KEM_PREFERENCES);
+    }
+
+    notnull_check(*kem_preferences);
+    return 0;
+}
+
+int s2n_connection_get_signature_preferences(struct s2n_connection *conn, const struct s2n_signature_preferences **signature_preferences)
+{
+    notnull_check(conn);
+    notnull_check(conn->config);
+    notnull_check(signature_preferences);
+
+    if (conn->security_policy_override != NULL) {
+        *signature_preferences = conn->security_policy_override->signature_preferences;
+    } else if (conn->config->security_policy != NULL) {
+        *signature_preferences = conn->config->security_policy->signature_preferences;
+    } else {
+        S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHMS_PREFERENCES);
+    }
+
+    notnull_check(*signature_preferences);
+    return 0;
+
+}
+
+int s2n_connection_get_ecc_preferences(struct s2n_connection *conn, const struct s2n_ecc_preferences **ecc_preferences)
+{
+    notnull_check(conn);
+    notnull_check(conn->config);
+    notnull_check(ecc_preferences);
+
+    if (conn->security_policy_override != NULL) {
+        *ecc_preferences = conn->security_policy_override->ecc_preferences;
+    } else if (conn->config->security_policy != NULL) {
+        *ecc_preferences = conn->config->security_policy->ecc_preferences;
+    } else {
+        S2N_ERROR(S2N_ERR_INVALID_ECC_PREFERENCES);
+    }
+
+    notnull_check(*ecc_preferences);
+    return 0;
+
 }
 
 int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct s2n_blob **protocol_preferences)
@@ -911,11 +975,11 @@ const char *s2n_connection_get_kem_name(struct s2n_connection *conn)
 {
     notnull_check_ptr(conn);
 
-    if (!conn->secure.s2n_kem_keys.negotiated_kem) {
+    if (!conn->secure.kem_params.kem) {
         return "NONE";
     }
 
-    return conn->secure.s2n_kem_keys.negotiated_kem->name;
+    return conn->secure.kem_params.kem->name;
 }
 
 int s2n_connection_get_client_protocol_version(struct s2n_connection *conn)
@@ -1221,5 +1285,20 @@ struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2n_conne
 {
     notnull_check_ptr(conn);
     return conn->handshake_params.our_chain_and_key;
+}
+
+uint8_t s2n_connection_get_protocol_version(struct s2n_connection *conn)
+{
+    if (conn->actual_protocol_version != S2N_UNKNOWN_PROTOCOL_VERSION) {
+        return conn->actual_protocol_version;
+    }
+
+    if (conn->mode == S2N_CLIENT) {
+        return conn->client_protocol_version;
+    } else if (conn->mode == S2N_SERVER) {
+        return conn->server_protocol_version;
+    }
+
+    return S2N_UNKNOWN_PROTOCOL_VERSION;
 }
 

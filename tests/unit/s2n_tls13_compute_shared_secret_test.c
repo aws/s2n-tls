@@ -38,11 +38,9 @@ int main(int argc, char **argv) {
 
         client_conn->actual_protocol_version = S2N_TLS13;
 
-        const struct s2n_security_policy *security_policy = NULL;
         const struct s2n_ecc_preferences *ecc_pref = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(client_conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
-        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(client_conn, &ecc_pref));
+        EXPECT_NOT_NULL(ecc_pref);
 
         /* Select curve and generate key for client */
         client_conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
@@ -65,11 +63,9 @@ int main(int argc, char **argv) {
 
         client_conn->actual_protocol_version = S2N_TLS13;
 
-        const struct s2n_security_policy *security_policy = NULL;
         const struct s2n_ecc_preferences *ecc_pref = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(client_conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
-        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(client_conn, &ecc_pref));
+        EXPECT_NOT_NULL(ecc_pref);
 
         /* Select curve and generate key for client */
         client_conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
@@ -91,11 +87,9 @@ int main(int argc, char **argv) {
     {
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
-        const struct s2n_security_policy *security_policy = NULL;
         const struct s2n_ecc_preferences *ecc_pref = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(client_conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
-        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(client_conn, &ecc_pref));
+        EXPECT_NOT_NULL(ecc_pref);
 
         client_conn->actual_protocol_version = S2N_TLS13;
 

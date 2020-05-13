@@ -81,17 +81,17 @@ static int s2n_check_ecdhe(const struct s2n_cipher_suite *cipher_suite, struct s
 
 static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
+    notnull_check(conn);
     /* There is no support for PQ KEMs while in FIPS mode */
     if (s2n_is_in_fips_mode()) {
         return 0;
     }
 
-    const struct s2n_security_policy *server_security_policy = NULL;
-    /* If the cipher preferences have no supported KEMs, return false. */
-    if (s2n_connection_get_security_policy(conn, &server_security_policy) != 0) {
-        return 0;
-    }
-    if (server_security_policy->kem_preferences->count == 0) {
+    const struct s2n_kem_preferences *kem_preferences = NULL;
+    GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
+    notnull_check(kem_preferences);
+
+    if (kem_preferences->count == 0) {
         return 0;
     }
 
@@ -108,15 +108,15 @@ static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n
     const struct s2n_kem *chosen_kem = NULL;
     if (client_kem_pref_list == NULL || client_kem_pref_list->data == NULL) {
         /* If the client did not send a PQ KEM extension, then the server can pick its preferred parameter */
-        if (s2n_choose_kem_without_peer_pref_list(cipher_suite->iana_value, server_security_policy->kem_preferences->kems,
-                server_security_policy->kem_preferences->count, &chosen_kem)
+        if (s2n_choose_kem_without_peer_pref_list(cipher_suite->iana_value, kem_preferences->kems,
+                kem_preferences->count, &chosen_kem)
             != 0) {
             return 0;
         }
     } else {
         /* If the client did send a PQ KEM extension, then the server must find a mutually supported parameter. */
-        if (s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, client_kem_pref_list, server_security_policy->kem_preferences->kems,
-                server_security_policy->kem_preferences->count, &chosen_kem)
+        if (s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, client_kem_pref_list, kem_preferences->kems,
+                kem_preferences->count, &chosen_kem)
             != 0) {
             return 0;
         }
@@ -127,25 +127,27 @@ static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n
 
 static int s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
+    notnull_check(conn);
     /* There is no support for PQ KEMs while in FIPS mode */
     S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
 
-    const struct s2n_security_policy *security_policy = NULL;
-    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    const struct s2n_kem_preferences *kem_preferences = NULL;
+    GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
+    notnull_check(kem_preferences);
 
     struct s2n_blob *proposed_kems = &(conn->secure.client_pq_kem_extension);
     const struct s2n_kem *chosen_kem = NULL;
     if (proposed_kems == NULL || proposed_kems->data == NULL) {
         /* If the client did not send a PQ KEM extension, then the server can pick its preferred parameter */
-        GUARD(s2n_choose_kem_without_peer_pref_list(cipher_suite->iana_value, security_policy->kem_preferences->kems,
-            security_policy->kem_preferences->count, &chosen_kem));
+        GUARD(s2n_choose_kem_without_peer_pref_list(cipher_suite->iana_value, kem_preferences->kems,
+            kem_preferences->count, &chosen_kem));
     } else {
         /* If the client did send a PQ KEM extension, then the server must find a mutually supported parameter. */
-        GUARD(s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, proposed_kems, security_policy->kem_preferences->kems,
-            security_policy->kem_preferences->count, &chosen_kem));
+        GUARD(s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, proposed_kems, kem_preferences->kems,
+            kem_preferences->count, &chosen_kem));
     }
 
-    conn->secure.s2n_kem_keys.negotiated_kem = chosen_kem;
+    conn->secure.kem_params.kem = chosen_kem;
     return 0;
 }
 

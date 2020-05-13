@@ -27,11 +27,9 @@ int s2n_extensions_client_supported_groups_send(struct s2n_connection *conn, str
 {
     notnull_check(conn);
 
-    const struct s2n_security_policy *security_policy = NULL;
     const struct s2n_ecc_preferences *ecc_pref = NULL;
-    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
-    notnull_check(security_policy);
-    notnull_check(ecc_pref = security_policy->ecc_preferences);
+    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    notnull_check(ecc_pref);
 
     GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SUPPORTED_GROUPS));
     /* size of extension, 2 byte iana ids */
@@ -80,11 +78,9 @@ int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct s2n_stu
 int s2n_parse_client_supported_groups_list(struct s2n_connection *conn, struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **supported_groups) {
     notnull_check(conn);
 
-    const struct s2n_security_policy *security_policy = NULL;
     const struct s2n_ecc_preferences *ecc_pref = NULL;
-    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
-    notnull_check(security_policy);
-    notnull_check(ecc_pref = security_policy->ecc_preferences);
+    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    notnull_check(ecc_pref);
 
     struct s2n_stuffer iana_ids_in = {0};
 
@@ -108,11 +104,9 @@ int s2n_choose_supported_group(struct s2n_connection *conn, const struct s2n_ecc
  {
     notnull_check(conn);
 
-    const struct s2n_security_policy *security_policy = NULL;
     const struct s2n_ecc_preferences *ecc_pref = NULL;
-    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
-    notnull_check(security_policy);
-    notnull_check(ecc_pref = security_policy->ecc_preferences);
+    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    notnull_check(ecc_pref);
 
     for (int i = 0; i < ecc_pref->count; i++) {
         if (group_options[i]) {

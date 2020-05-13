@@ -275,9 +275,9 @@ class ManagedProcess(threading.Thread):
                 # This data is dumped to stdout so we capture this
                 # information no matter where a test fails.
                 print("Command line: {}".format(" ".join(self.cmd_line)))
-                print(f"Exit code: {proc.returncode}")
-                print(f"Stdout: {proc_results[0]}")
-                print(f"Stderr: {proc_results[1]}")
+                print("Exit code: {}".format(proc.returncode))
+                print("Stdout: {}".format(proc_results[0]))
+                print("Stderr: {}".format(proc_results[1]))
 
     def _process_ready(self):
         """Condition variable predicate"""

@@ -223,11 +223,9 @@ int main(int argc, char **argv)
         /* TEST RSA cipher chosen when ECDSA cipher is at top */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority"));
 
-        const struct s2n_security_policy *security_policy = NULL;
         const struct s2n_ecc_preferences *ecc_pref = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
-        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+        EXPECT_NOT_NULL(ecc_pref);
 
         /* Assume default for negotiated curve. */
         /* Shouldn't be necessary unless the test fails, but we want the failure to be obvious. */
@@ -284,9 +282,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
 
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
-        EXPECT_NOT_NULL(ecc_pref = security_policy->ecc_preferences);
+        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+        EXPECT_NOT_NULL(ecc_pref);
 
         /* TEST ECDSA */
         s2n_connection_set_cipher_preferences(conn, "test_all_ecdsa");
