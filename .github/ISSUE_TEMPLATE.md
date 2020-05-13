@@ -7,16 +7,18 @@ A description of the possible solution in terms of S2N architecture. Highlight a
 
 * **Does this change what S2N sends over the wire?** If yes, explain.
 * **Does this change any public APIs?** If yes, explain.
+* **Which versions of TLS will this impact?**
 ### Requirements / Acceptance Criteria:
 
  What must a solution address in order to solve the problem? How do we know the solution is complete?
 
 * **RFC links:** Links to relevant RFC(s)
 * **Related Issues:** Link any relevant issues
+* **Will the Usage Guide or other documentation need to be updated?**
 * **Testing:** How will this change be tested? Call out new integration tests, functional tests, or particularly interesting/important unit tests.
-- [ ] **Will this change trigger SAW changes?** Changes to the state machine, the s2n_handshake_io code that controls state transitions, the DRBG, or the corking/uncorking logic could trigger SAW failures.
-- [ ] **Should this change should be fuzz tested?** Will it handle untrusted input? Create a separate issue to track the fuzzing work.
-- [ ] **Will the Usage Guide or other documentation need to be updated?**
+  * **Will this change trigger SAW changes?** Changes to the state machine, the s2n_handshake_io code that controls state transitions, the DRBG, or the corking/uncorking logic could trigger SAW failures.
+  * **Should this change be fuzz tested?** Will it handle untrusted input? Create a separate issue to track the fuzzing work.
+
 ### Out of scope: 
 
 Is there anything the solution will intentionally NOT address?
