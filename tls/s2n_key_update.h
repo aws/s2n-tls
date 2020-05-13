@@ -23,3 +23,5 @@ typedef enum {
 } keyupdate_status;
 
 int s2n_key_update_recv(struct s2n_connection *conn);
+int s2n_key_update_send(struct s2n_connection *conn);
+int s2n_check_key_limits(struct s2n_connection *conn, ssize_t size); 

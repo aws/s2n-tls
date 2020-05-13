@@ -18,6 +18,7 @@
 #include "testlib/s2n_testlib.h"
 
 #include "tls/s2n_key_update.h"
+#include "tls/s2n_post_handshake.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_cipher_suites.h"
@@ -45,25 +46,40 @@ int main(int argc, char **argv)
      * is the same one that is produced by openssl when starting with the same application secret. 
      */
     { 
-        struct s2n_connection *conn;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        conn->actual_protocol_version = S2N_TLS13;
-        conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        struct s2n_connection *server_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS13;
+        server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
         /* Store application secret */
-        struct s2n_stuffer application_secret_stuffer = {0};
-        struct s2n_blob application_secret_blob = {0};
-        EXPECT_SUCCESS(s2n_blob_init(&application_secret_blob, conn->secure.client_app_secret, sizeof(conn->secure.client_app_secret)));
-        EXPECT_SUCCESS(s2n_stuffer_init(&application_secret_stuffer, &application_secret_blob));
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&application_secret_stuffer, application_secret.data, application_secret.size));
+        struct s2n_stuffer server_application_secret_stuffer = {0};
+        struct s2n_blob server_application_secret_blob = {0};
+        EXPECT_SUCCESS(s2n_blob_init(&server_application_secret_blob, server_conn->secure.server_app_secret, sizeof(server_conn->secure.client_app_secret)));
+        EXPECT_SUCCESS(s2n_stuffer_init(&server_application_secret_stuffer, &server_application_secret_blob));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_application_secret_stuffer, application_secret.data, application_secret.size));
 
-        EXPECT_SUCCESS(s2n_update_application_traffic_keys(conn, S2N_CLIENT, RECEIVING));
-
+        EXPECT_SUCCESS(s2n_update_application_traffic_keys(server_conn, S2N_SERVER, SENDING));
+        
         /* Check the new secret is what was expected */
-        S2N_BLOB_EXPECT_EQUAL(application_secret_stuffer.blob, updated_application_secret); 
-        EXPECT_SUCCESS(s2n_connection_free(conn)); 
+        S2N_BLOB_EXPECT_EQUAL(server_application_secret_stuffer.blob, updated_application_secret); 
 
+        EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
     }
+
+    /* This test checks that a key update is triggered once a specific number of bytes have been encrypted by
+     * an application key.
+     */
+    {
+        struct s2n_connection *server_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_EQUAL(server_conn->key_update_pending, 0);
+        uint8_t data_size = 1;
+        server_conn->encrypted_bytes_out = S2N_TLS13_MAXIMUM_BYTES_TO_ENCRYPT;
+        EXPECT_SUCCESS(s2n_check_key_limits(server_conn, data_size));
+        EXPECT_EQUAL(server_conn->key_update_pending, 1);
+        EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
+    }
+
     END_TEST();
 }
 

@@ -29,7 +29,6 @@ from common.s2n_test_scenario import get_scenarios, Mode, Cipher, Version, Curve
 from common.s2n_test_reporting import Result, Status
 import common.s2n_test_common as util
 
-
 def verify_hrr_random_data(server, client):
     """
     This callback verifies a HelloRetryRequest was sent from the S2N
@@ -60,30 +59,40 @@ def verify_hrr_random_data(server, client):
 
     return result
 
-
-def key_update_recv(server, client):
+def key_update_test(server, client):
     '''
-    This test checks that a key update can be processed by s2n. It runs three times to prove that s2n can
-    process several key updates in a row.
+    This test proves that both server and client traffic keys can be successfully updated 
+    in a conversation between Openssl and s2n. It runs three times to confirm that multiple
+    keyupdates can be performed in a row. 
     '''
     result = Result()
     result.status = Status.PASSED
     for i in range(3):
-        msg = "Message:" + str(uuid.uuid4())
-        client.stdin.write(("k\n\n").encode("utf-8"))
+        openssl_msg = "Message:" + str(uuid.uuid4())
+        s2n_msg = "Message:" + str(uuid.uuid4())
+        # 'K' triggers Openssl to send a KeyUpdate message
+        client.stdin.write(("K\n\n").encode("utf-8"))
         client.stdin.flush()
-        line = ''
         # Confirm that the keyupdate was sent
+        line = ''
         while('KEYUPDATE' not in line):
             line = client.stderr.readline().decode("utf-8")
-        client.stdin.write((msg + "\n\n").encode("utf-8"))
-        client.stdin.flush()
-        if not (wait_for_output(server, msg, 100)):
+        client.stdin.write((openssl_msg + "\n\n").encode("utf-8"))
+        client.stdin.flush()    
+        # Confirm that s2n can decrypt msg with an updated key
+        if not (wait_for_output(server, openssl_msg, 100)):
             result.status = Status.FAILED
-            break    
+            return result  
+        # Write a mesage to trigger s2n to send a KeyUpdate back to openssl
+        server.stdin.write((s2n_msg + "\n\n").encode("utf-8"))
+        server.stdin.flush()        
+        # Confirm that openssl can decrypt msg with an updated key
+        if not (wait_for_output(client, s2n_msg, 100)):
+            result.status = Status.FAILED
+            return result
+        
     return result
 
-    
 def main():
     parser = argparse.ArgumentParser(description='Runs TLS1.3 minimal handshake integration tests against Openssl')
     parser.add_argument('host', help='The host to connect to')
@@ -102,7 +111,7 @@ def main():
                                                         peer_flags=['-msg', '-curves', 'X448:P-256']), test_func=verify_hrr_random_data)
     print("\n\tRunning TLS1.3 key update tests with openssl: %s" % os.popen('openssl version').read())
     failed += run_openssl_connection_test(get_scenarios(host, port, versions=[Version.TLS13], s2n_modes=[Mode.server], ciphers=Cipher.all()),
-                                                         test_func=key_update_recv)
+                                                         test_func=key_update_test)
 
     return failed
 

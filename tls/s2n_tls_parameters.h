@@ -203,6 +203,14 @@
 /* Max encryption overhead is 255 for AEAD padding */
 #define S2N_TLS13_MAXIMUM_RECORD_LENGTH   (S2N_TLS13_MAXIMUM_FRAGMENT_LENGTH + S2N_TLS_RECORD_HEADER_LENGTH + 255)
 
+/* From RFC: https://tools.ietf.org/html/rfc8446#section-5.5
+ * For AES-GCM, up to 2^24.5 full-size records (about 24 million) may be
+ * encrypted on a given connection while keeping a safety margin of
+ * approximately 2^-57 for Authenticated Encryption (AE) security. 
+ */
+#define S2N_TLS13_MAXIMUM_RECORD_NUMBER 23726566L
+#define S2N_TLS13_MAXIMUM_BYTES_TO_ENCRYPT (S2N_TLS13_MAXIMUM_FRAGMENT_LENGTH * S2N_TLS13_MAXIMUM_RECORD_NUMBER)
+
 /* The maximum size of an SSL2 message is 2^14 - 1, as neither of the first two
  * bits in the length field are usable. Per;
  * http://www-archive.mozilla.org/projects/security/pki/nss/ssl/draft02.html

@@ -15,6 +15,7 @@
 
 #include <stdint.h>
 #include <sys/param.h>
+#include <math.h>
 
 #include "error/s2n_errno.h"
 
@@ -22,6 +23,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_crypto.h"
+#include "tls/s2n_key_update.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -408,8 +410,9 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         conn->client = current_client_crypto;
         conn->server = current_server_crypto;
     }
-
+    conn->encrypted_bytes_out += encrypted_length;
     conn->wire_bytes_out += actual_fragment_length + S2N_TLS_RECORD_HEADER_LENGTH;
+
     return data_bytes_to_take;
 }
 

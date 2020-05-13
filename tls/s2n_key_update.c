@@ -18,11 +18,17 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_key_update.h"
 #include "tls/s2n_tls13_handshake.h"
+#include "tls/s2n_record.h"
 
 #include "utils/s2n_safety.h"
 
+#define S2N_KEY_UPDATE_MESSAGE_SIZE 5
+
+const uint8_t S2N_KEY_UPDATE_LENGTH = 1;
 const uint8_t S2N_KEY_UPDATE_NOT_REQUESTED = 0;
 const uint8_t S2N_KEY_UPDATE_REQUESTED = 1;
+
+int s2n_key_update_write(struct s2n_connection *conn, struct s2n_blob *out);
 
 int s2n_key_update_recv(struct s2n_connection *conn)
 {
@@ -38,6 +44,44 @@ int s2n_key_update_recv(struct s2n_connection *conn)
     } else {
         GUARD(s2n_update_application_traffic_keys(conn, S2N_CLIENT, RECEIVING));
     }
-
-    return 0;
+    return S2N_SUCCESS;
 }
+
+int s2n_key_update_send(struct s2n_connection *conn) 
+{
+    notnull_check(conn);
+    uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE];
+    struct s2n_blob key_update_blob = {0};
+    GUARD(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
+    /* Write key update message */
+    GUARD(s2n_key_update_write(conn, &key_update_blob));
+    /* Encrypt the message */
+    GUARD(s2n_record_write(conn, TLS_HANDSHAKE,  &key_update_blob));
+    /* Update encryption key */
+    GUARD(s2n_update_application_traffic_keys(conn, conn->mode, SENDING));
+    conn->key_update_pending = 0;
+    conn->encrypted_bytes_out = 0;
+    return S2N_SUCCESS;
+}
+
+int s2n_key_update_write(struct s2n_connection *conn, struct s2n_blob *out) 
+{
+    notnull_check(conn);
+    struct s2n_stuffer key_update_stuffer = {0};
+    GUARD(s2n_stuffer_init(&key_update_stuffer, out));
+    GUARD(s2n_stuffer_write_uint8(&key_update_stuffer, TLS_KEY_UPDATE));
+    GUARD(s2n_stuffer_write_uint24(&key_update_stuffer, S2N_KEY_UPDATE_LENGTH));
+    /* s2n currently does not require peers to update their encryption keys. */
+    GUARD(s2n_stuffer_write_uint8(&key_update_stuffer, S2N_KEY_UPDATE_NOT_REQUESTED));
+    return S2N_SUCCESS;
+}
+
+int s2n_check_key_limits(struct s2n_connection *conn, ssize_t size) 
+{
+    notnull_check(conn);
+    if (conn->encrypted_bytes_out + size >= S2N_TLS13_MAXIMUM_BYTES_TO_ENCRYPT) {
+        conn->key_update_pending = 1;
+    }
+    return S2N_SUCCESS;
+}
+
