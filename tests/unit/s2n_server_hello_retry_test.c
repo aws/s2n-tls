@@ -74,6 +74,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(server_conn));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());

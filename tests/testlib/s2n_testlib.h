@@ -56,6 +56,7 @@ int s2n_fd_set_blocking(int fd);
 int s2n_fd_set_non_blocking(int fd);
 
 int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn);
+int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn);
 
 #define S2N_MAX_TEST_PEM_SIZE 4096
 

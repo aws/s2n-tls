@@ -18,6 +18,7 @@
 #include "tls/extensions/s2n_extension_type.h"
 #include "utils/s2n_bitmap.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 
 #define S2N_TEST_DATA_LEN 20
 
@@ -59,8 +60,16 @@ int main()
         EXPECT_FAILURE_WITH_ERRNO(s2n_extension_recv_unimplemented(NULL, NULL), S2N_ERR_UNIMPLEMENTED);
 
         /* Test common implementations for should_send */
-        EXPECT_TRUE(s2n_extension_always_send(NULL));
-        EXPECT_FALSE(s2n_extension_never_send(NULL));
+        {
+            EXPECT_TRUE(s2n_extension_always_send(NULL));
+            EXPECT_FALSE(s2n_extension_never_send(NULL));
+
+            struct s2n_connection conn = { 0 };
+            conn.actual_protocol_version = S2N_TLS12;
+            EXPECT_FALSE(s2n_extension_send_if_tls13_connection(&conn));
+            conn.actual_protocol_version = S2N_TLS13;
+            EXPECT_TRUE(s2n_extension_send_if_tls13_connection(&conn));
+        }
 
         /* Test common implementations for if_missing */
         EXPECT_FAILURE_WITH_ERRNO(s2n_extension_error_if_missing(NULL), S2N_ERR_MISSING_EXTENSION);
