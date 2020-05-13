@@ -54,7 +54,7 @@ int setup_connection(struct s2n_connection *conn, const struct s2n_kem *kem, str
     GUARD_NONNULL(ecc_preferences = security_policy->ecc_preferences);
 
     conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
-    conn->secure.s2n_kem_keys.negotiated_kem = kem;
+    conn->secure.kem_params.kem = kem;
     conn->secure.cipher_suite = cipher_suite;
     conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
     GUARD(s2n_connection_set_cipher_preferences(conn, cipher_pref_version));

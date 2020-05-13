@@ -59,8 +59,8 @@
 /* RFC 5246 7.4.1.2 */
 #define S2N_TLS_SESSION_ID_MAX_LEN     32
 
-struct s2n_kem_keypair {
-    const struct s2n_kem *negotiated_kem;
+struct s2n_kem_params {
+    const struct s2n_kem *kem;
     struct s2n_blob public_key;
     struct s2n_blob private_key;
 };
@@ -72,7 +72,7 @@ struct s2n_crypto_parameters {
     struct s2n_ecc_evp_params server_ecc_evp_params;
     const struct s2n_ecc_named_curve * mutually_supported_groups[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT];
     struct s2n_ecc_evp_params client_ecc_evp_params[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT];
-    struct s2n_kem_keypair s2n_kem_keys;
+    struct s2n_kem_params kem_params;
     struct s2n_blob client_key_exchange_message;
     struct s2n_blob client_pq_kem_extension;
 

@@ -110,57 +110,57 @@ const struct s2n_iana_to_kem *kem_mapping = NULL;
 
 #endif
 
-int s2n_kem_generate_keypair(struct s2n_kem_keypair *kem_keys)
+int s2n_kem_generate_keypair(struct s2n_kem_params *kem_params)
 {
-    notnull_check(kem_keys);
-    const struct s2n_kem *kem = kem_keys->negotiated_kem;
+    notnull_check(kem_params);
+    const struct s2n_kem *kem = kem_params->kem;
     notnull_check(kem->generate_keypair);
 
-    eq_check(kem_keys->public_key.size, kem->public_key_length);
-    notnull_check(kem_keys->public_key.data);
+    eq_check(kem_params->public_key.size, kem->public_key_length);
+    notnull_check(kem_params->public_key.data);
 
     /* The private key is needed for client_key_recv and must be saved */
-    GUARD(s2n_alloc(&kem_keys->private_key, kem->private_key_length));
+    GUARD(s2n_alloc(&kem_params->private_key, kem->private_key_length));
 
-    GUARD(kem->generate_keypair(kem_keys->public_key.data, kem_keys->private_key.data));
+    GUARD(kem->generate_keypair(kem_params->public_key.data, kem_params->private_key.data));
     return 0;
 }
 
-int s2n_kem_encapsulate(const struct s2n_kem_keypair *kem_keys, struct s2n_blob *shared_secret,
+int s2n_kem_encapsulate(const struct s2n_kem_params *kem_params, struct s2n_blob *shared_secret,
                         struct s2n_blob *ciphertext)
 {
-    notnull_check(kem_keys);
-    const struct s2n_kem *kem = kem_keys->negotiated_kem;
+    notnull_check(kem_params);
+    const struct s2n_kem *kem = kem_params->kem;
     notnull_check(kem->encapsulate);
 
-    eq_check(kem_keys->public_key.size, kem->public_key_length);
-    notnull_check(kem_keys->public_key.data);
+    eq_check(kem_params->public_key.size, kem->public_key_length);
+    notnull_check(kem_params->public_key.data);
 
     eq_check(ciphertext->size, kem->ciphertext_length);
     notnull_check(ciphertext->data);
 
     GUARD(s2n_alloc(shared_secret, kem->shared_secret_key_length));
 
-    GUARD(kem->encapsulate(ciphertext->data, shared_secret->data, kem_keys->public_key.data));
+    GUARD(kem->encapsulate(ciphertext->data, shared_secret->data, kem_params->public_key.data));
     return 0;
 }
 
-int s2n_kem_decapsulate(const struct s2n_kem_keypair *kem_keys, struct s2n_blob *shared_secret,
+int s2n_kem_decapsulate(const struct s2n_kem_params *kem_params, struct s2n_blob *shared_secret,
                         const struct s2n_blob *ciphertext)
 {
-    notnull_check(kem_keys);
-    const struct s2n_kem *kem = kem_keys->negotiated_kem;
+    notnull_check(kem_params);
+    const struct s2n_kem *kem = kem_params->kem;
     notnull_check(kem->decapsulate);
 
-    eq_check(kem_keys->private_key.size, kem->private_key_length);
-    notnull_check(kem_keys->private_key.data);
+    eq_check(kem_params->private_key.size, kem->private_key_length);
+    notnull_check(kem_params->private_key.data);
 
     eq_check(ciphertext->size, kem->ciphertext_length);
     notnull_check(ciphertext->data);
 
-    GUARD(s2n_alloc(shared_secret, kem_keys->negotiated_kem->shared_secret_key_length));
+    GUARD(s2n_alloc(shared_secret, kem_params->kem->shared_secret_key_length));
 
-    GUARD(kem->decapsulate(shared_secret->data, ciphertext->data, kem_keys->private_key.data));
+    GUARD(kem->decapsulate(shared_secret->data, ciphertext->data, kem_params->private_key.data));
     return 0;
 }
 
@@ -230,15 +230,15 @@ int s2n_choose_kem_without_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHE
     S2N_ERROR(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 }
 
-int s2n_kem_free(struct s2n_kem_keypair *kem_keys)
+int s2n_kem_free(struct s2n_kem_params *kem_params)
 {
-    if (kem_keys != NULL){
-        GUARD(s2n_blob_zero(&kem_keys->private_key));
-        if (kem_keys->private_key.allocated) {
-            GUARD(s2n_free(&kem_keys->private_key));
+    if (kem_params != NULL){
+        GUARD(s2n_blob_zero(&kem_params->private_key));
+        if (kem_params->private_key.allocated) {
+            GUARD(s2n_free(&kem_params->private_key));
         }
-        if (kem_keys->public_key.allocated) {
-            GUARD(s2n_free(&kem_keys->public_key));
+        if (kem_params->public_key.allocated) {
+            GUARD(s2n_free(&kem_params->public_key));
         }
     }
     return 0;
