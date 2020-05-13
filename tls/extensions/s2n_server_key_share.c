@@ -71,12 +71,6 @@ static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stu
     notnull_check(conn);
     notnull_check(extension);
 
-    /* If this is a HelloRetryRequest, we won't have a key share. We just have the selected group.
-     * Exit early so a proper keyshare can be generated. */
-    if (s2n_is_hello_retry_required(conn)) {
-        return 0;
-    }
-
     uint16_t named_group;
     S2N_ERROR_IF(s2n_stuffer_data_available(extension) < sizeof(named_group), S2N_ERR_BAD_KEY_SHARE);
     GUARD(s2n_stuffer_read_uint16(extension, &named_group));
@@ -94,6 +88,12 @@ static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stu
     }
 
     S2N_ERROR_IF(supported_curve_index < 0, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+
+    /* If this is a HelloRetryRequest, we won't have a key share. We just have the selected group.
+     * Exit early so a proper keyshare can be generated. */
+    if (s2n_is_hello_retry_required(conn)) {
+        return 0;
+    }
 
     /* Key share not sent by client */
     S2N_ERROR_IF(conn->secure.client_ecc_evp_params[supported_curve_index].evp_pkey == NULL, S2N_ERR_BAD_KEY_SHARE);

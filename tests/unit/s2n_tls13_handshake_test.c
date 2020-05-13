@@ -44,6 +44,7 @@ static int s2n_tls13_conn_copy_server_finished_hash(struct s2n_connection *conn)
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_enable_tls13());
 
     /* Test: TLS 1.3 key and secrets generation is symmetrical */
     {
@@ -392,8 +393,6 @@ int main(int argc, char **argv)
 
     /* Test: Handshake self-talks using s2n_handshake_write_io and s2n_handshake_read_io */
     {
-        EXPECT_SUCCESS(s2n_enable_tls13());
-
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
 
