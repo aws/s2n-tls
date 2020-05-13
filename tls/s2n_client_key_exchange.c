@@ -56,18 +56,20 @@ static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob
     DEFER_CLEANUP(struct s2n_blob shared_key_0 = {0}, s2n_free);
     GUARD(kex_method(hybrid_kex_0, conn, &shared_key_0));
 
-    DEFER_CLEANUP(struct s2n_blob shared_key_1 = {0}, s2n_free);
-    GUARD(kex_method(hybrid_kex_1, conn, &shared_key_1));
+    struct s2n_blob *shared_key_1 = &(conn->secure.kem_params.shared_secret);
+    GUARD(kex_method(hybrid_kex_1, conn, shared_key_1));
 
     const uint32_t end_cursor = *cursor;
     gte_check(end_cursor, start_cursor);
     client_key_exchange_message->size = end_cursor - start_cursor;
 
-    GUARD(s2n_alloc(combined_shared_key, shared_key_0.size + shared_key_1.size));
+    GUARD(s2n_alloc(combined_shared_key, shared_key_0.size + shared_key_1->size));
     struct s2n_stuffer stuffer_combiner = {0};
     GUARD(s2n_stuffer_init(&stuffer_combiner, combined_shared_key));
     GUARD(s2n_stuffer_write(&stuffer_combiner, &shared_key_0));
-    GUARD(s2n_stuffer_write(&stuffer_combiner, &shared_key_1));
+    GUARD(s2n_stuffer_write(&stuffer_combiner, shared_key_1));
+
+    GUARD(s2n_kem_free(&conn->secure.kem_params));
 
     return 0;
 }
@@ -158,6 +160,14 @@ int s2n_ecdhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shar
 
 int s2n_kem_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
+    /* s2n_kem_decapsulate() write the KEM shared secret directly to
+     * conn->secure.kem_params. The argument struct s2n_blob *shared_key
+     * is not used in this function. However, the calling function
+     * likely expects *shared_key to point to the shared secret, so we
+     * assert that it points to the correct place. */
+    notnull_check(shared_key);
+    eq_check(shared_key, &(conn->secure.kem_params.shared_secret));
+
     struct s2n_stuffer *in = &conn->handshake.io;
     kem_ciphertext_key_size ciphertext_length;
 
@@ -166,10 +176,8 @@ int s2n_kem_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
 
     const struct s2n_blob ciphertext = {.size = ciphertext_length, .data = s2n_stuffer_raw_read(in, ciphertext_length)};
     notnull_check(ciphertext.data);
-
     GUARD(s2n_kem_decapsulate(&conn->secure.kem_params, &ciphertext));
-    GUARD(s2n_dup(&(conn->secure.kem_params.shared_secret), shared_key));
-    GUARD(s2n_kem_free(&conn->secure.kem_params));
+
     return 0;
 }
 
@@ -250,6 +258,14 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
 
 int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
+    /* s2n_kem_encapsulate() write the KEM shared secret directly to
+     * conn->secure.kem_params. The argument struct s2n_blob *shared_key
+     * is not used in this function. However, the calling function
+     * likely expects *shared_key to point to the shared secret, so we
+     * assert that it points to the correct place. */
+    notnull_check(shared_key);
+    eq_check(shared_key, &(conn->secure.kem_params.shared_secret));
+
     struct s2n_stuffer *out = &conn->handshake.io;
     const struct s2n_kem *kem = conn->secure.kem_params.kem;
 
@@ -258,10 +274,8 @@ int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
     /* The ciphertext is not needed after this method, write it straight to the stuffer */
     struct s2n_blob ciphertext = {.data = s2n_stuffer_raw_write(out, kem->ciphertext_length), .size = kem->ciphertext_length};
     notnull_check(ciphertext.data);
-
     GUARD(s2n_kem_encapsulate(&conn->secure.kem_params, &ciphertext));
-    GUARD(s2n_dup(&(conn->secure.kem_params.shared_secret), shared_key));
-    GUARD(s2n_kem_free(&conn->secure.kem_params));
+
     return 0;
 }
 
