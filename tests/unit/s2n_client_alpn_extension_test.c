@@ -21,12 +21,11 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    const char *protocols[] = { "protocol1", "protocol2", "protocol2" };
+    const char *protocols[] = { "protocol1", "protocol2", "protocol3" };
     const uint8_t protocols_count = s2n_array_len(protocols);
 
     struct s2n_connection *conn;
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-    EXPECT_NULL(s2n_get_application_protocol(conn));
 
     /* Test should_send */
     {
