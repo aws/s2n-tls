@@ -19,8 +19,8 @@ set -ex
 # Install missing test dependencies. If the install directory already exists, cached artifacts will be used
 # for that dependency.
 
-if [[ ! -d test-deps ]]; then 
-    mkdir test-deps ; 
+if [[ ! -d test-deps ]]; then
+    mkdir test-deps ;
 fi
 
 #Install & Run shell check before installing dependencies
