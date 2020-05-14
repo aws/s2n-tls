@@ -45,12 +45,6 @@ int main(int argc, char *argv[])
         struct s2n_blob compare_blob;
         EXPECT_SUCCESS(s2n_blob_init(&compare_blob, cookie_data_compare, COOKIE_TEST_SIZE));
 
-        /* Test that cookies are not implemented until HelloRetryRequests are available */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_client_cookie_recv(NULL, NULL), S2N_ERR_UNIMPLEMENTED);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_client_cookie_send(NULL, NULL), S2N_ERR_UNIMPLEMENTED);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_cookie_recv(NULL, NULL), S2N_ERR_UNIMPLEMENTED);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_cookie_send(NULL, NULL), S2N_ERR_UNIMPLEMENTED);
-
         /* Test that we can send and receive a cookie extension */
         {
             struct s2n_connection *conn;
