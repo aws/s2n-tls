@@ -35,6 +35,7 @@
 #define S2N_ERR_T_INTERNAL_START (S2N_ERR_T_INTERNAL << S2N_ERR_NUM_VALUE_BITS)
 #define S2N_ERR_T_USAGE_START (S2N_ERR_T_USAGE << S2N_ERR_NUM_VALUE_BITS)
 
+/* clang-format off */
 /* Order of values in this enum is important. New error values should be placed at the end of their respective category.
  * For example, a new TLS protocol related error belongs in the S2N_ERR_T_PROTO category. It should be placed
  * immediately before S2N_ERR_T_INTERNAL_START(the first value of he next category).
@@ -303,3 +304,5 @@ extern int s2n_calculate_stacktrace(void);
 extern int s2n_print_stacktrace(FILE *fptr);
 extern int s2n_free_stacktrace(void);
 extern int s2n_get_stacktrace(struct s2n_stacktrace *trace);
+
+/* clang-format on */

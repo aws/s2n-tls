@@ -24,6 +24,7 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 
+/* clang-format off */
 /* TLS 1.3 cipher suites, in order of preference.
  * Can be added to other ciphers suite lists to enable
  * TLS1.3 compatibility. */
@@ -899,3 +900,5 @@ const struct s2n_cipher_preferences cipher_preferences_kms_fips_tls_1_2_2018_10 
     .count = s2n_array_len(cipher_suites_kms_fips_tls_1_2_2018_10),
     .suites = cipher_suites_kms_fips_tls_1_2_2018_10,
 };
+
+/* clang-format on */

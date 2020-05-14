@@ -39,7 +39,7 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_str.h"
 
-
+/* clang-format off */
 struct s2n_handshake_action {
     uint8_t record_type;
     uint8_t message_type;
@@ -50,7 +50,6 @@ struct s2n_handshake_action {
 /* Client and Server handlers for each message type we support.  
  * See http://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-7 for the list of handshake message types
  */
-// clang-format off
 static struct s2n_handshake_action state_machine[] = {
     /* message_type_t           = {Record type   Message type     Writer S2N_SERVER                S2N_CLIENT }  */
     [CLIENT_HELLO]              = {TLS_HANDSHAKE, TLS_CLIENT_HELLO, 'C', {s2n_establish_session, s2n_client_hello_send}},
@@ -405,7 +404,7 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
     },
 
 };
-// clang-format on
+/* clang-format on */
 
 #define MAX_HANDSHAKE_TYPE_LEN 128
 static char handshake_type_str[S2N_HANDSHAKES_COUNT][MAX_HANDSHAKE_TYPE_LEN] = {0};
