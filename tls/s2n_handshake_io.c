@@ -39,7 +39,7 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_str.h"
 
-
+/* clang-format off */
 struct s2n_handshake_action {
     uint8_t record_type;
     uint8_t message_type;
@@ -404,6 +404,7 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
     },
 
 };
+/* clang-format on */
 
 #define MAX_HANDSHAKE_TYPE_LEN 128
 static char handshake_type_str[S2N_HANDSHAKES_COUNT][MAX_HANDSHAKE_TYPE_LEN] = {0};

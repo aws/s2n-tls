@@ -38,6 +38,7 @@ static const char *no_such_error = "Internal s2n error";
  * Define error entries with descriptions in this macro once
  * to generate code in next 2 following functions.
  */
+/* clang-format off */
 #define ERR_ENTRIES(ERR_ENTRY) \
     ERR_ENTRY(S2N_ERR_OK, "no error") \
     ERR_ENTRY(S2N_ERR_IO, "underlying I/O operation failed, check system errno") \
@@ -219,7 +220,8 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_MISSING_EXTENSION, "Mandatory extension not received") \
     ERR_ENTRY(S2N_ERR_INVALID_SECURITY_POLICY, "Invalid security policy") \
     ERR_ENTRY(S2N_ERR_INVALID_KEM_PREFERENCES, "Invalid kem preferences version") \
-    
+
+/* clang-format on */
 #define ERR_STR_CASE(ERR, str) case ERR: return str;
 #define ERR_NAME_CASE(ERR, str) case ERR: return #ERR;
 
