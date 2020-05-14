@@ -80,12 +80,6 @@
 #include <stdbool.h>
 #include "s2n_result.h"
 
-/* used to signal a successful function return */
-const s2n_result S2N_RESULT_OK = { S2N_SUCCESS };
-
-/* used to signal an error while executing a function */
-const s2n_result S2N_RESULT_ERROR = { S2N_FAILURE };
-
 /* returns true when the result is S2N_RESULT_OK */
 bool s2n_result_is_ok(s2n_result result)
 {

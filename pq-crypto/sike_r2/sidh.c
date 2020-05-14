@@ -5,6 +5,7 @@
 *********************************************************************************************/
 
 #include "../pq_random.h"
+#include "utils/s2n_safety.h"
 
 static void init_basis(const digit_t *gen, f2elm_t *XP, f2elm_t *XQ, f2elm_t *XR) { // Initialization of basis points
 
@@ -16,16 +17,18 @@ static void init_basis(const digit_t *gen, f2elm_t *XP, f2elm_t *XQ, f2elm_t *XR
 	fpcopy(gen + 5 * NWORDS_FIELD, XR->e[1]);
 }
 
-void random_mod_order_A(unsigned char *random_digits) { // Generation of Alice's secret key
-	                                                    // Outputs random value in [0, 2^eA - 1]
-    get_random_bytes(random_digits, SECRETKEY_A_BYTES);
-	random_digits[SECRETKEY_A_BYTES - 1] &= MASK_ALICE; // Masking last byte
+int random_mod_order_A(unsigned char *random_digits) { // Generation of Alice's secret key
+                                                        // Outputs random value in [0, 2^eA - 1]
+    GUARD_AS_POSIX(get_random_bytes(random_digits, SECRETKEY_A_BYTES));
+    random_digits[SECRETKEY_A_BYTES - 1] &= MASK_ALICE; // Masking last byte
+    return 0;
 }
 
-void random_mod_order_B(unsigned char *random_digits) { // Generation of Bob's secret key
-	                                                    // Outputs random value in [0, 2^Floor(Log(2, oB)) - 1]
-    get_random_bytes(random_digits, SECRETKEY_B_BYTES);
-	random_digits[SECRETKEY_B_BYTES - 1] &= MASK_BOB; // Masking last byte
+int random_mod_order_B(unsigned char *random_digits) { // Generation of Bob's secret key
+                                                        // Outputs random value in [0, 2^Floor(Log(2, oB)) - 1]
+    GUARD_AS_POSIX(get_random_bytes(random_digits, SECRETKEY_B_BYTES));
+    random_digits[SECRETKEY_B_BYTES - 1] &= MASK_BOB; // Masking last byte
+    return 0;
 }
 
 int EphemeralKeyGeneration_A(const digit_t *PrivateKeyA, unsigned char *PublicKeyA) { // Alice's ephemeral public key generation

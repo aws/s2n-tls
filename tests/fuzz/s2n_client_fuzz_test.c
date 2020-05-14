@@ -178,7 +178,7 @@ static void s2n_server_fuzz_atexit()
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
     GUARD(s2n_init());
-    GUARD_STRICT(atexit(s2n_server_fuzz_atexit));
+    GUARD_POSIX_STRICT(atexit(s2n_server_fuzz_atexit));
 
     /* Set up Server Config */
     notnull_check(client_config = s2n_config_new());

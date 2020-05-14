@@ -35,11 +35,11 @@
 
 // Generation of Alice's secret key
 // Outputs random value in [0, 2^216 - 1] to be used as Alice's private key
-void oqs_kem_sidh_p434_random_mod_order_A(unsigned char *random_digits);
+int oqs_kem_sidh_p434_random_mod_order_A(unsigned char *random_digits);
 
 // Generation of Bob's secret key
 // Outputs random value in [0, 2^Floor(Log(2,3^137)) - 1] to be used as Bob's private key
-void oqs_kem_sidh_p434_random_mod_order_B(unsigned char *random_digits);
+int oqs_kem_sidh_p434_random_mod_order_B(unsigned char *random_digits);
 
 // Alice's ephemeral public key generation
 // Input:  a private key PrivateKeyA in the range [0, 2^216 - 1], stored in 27 bytes.

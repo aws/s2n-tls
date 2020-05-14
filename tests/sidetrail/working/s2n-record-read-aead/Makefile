@@ -17,6 +17,7 @@ extras += tls/s2n_aead.c
 extras += tls/s2n_cbc.c
 extras += tls/s2n_record_read_aead.c
 extras += utils/s2n_blob.c
+extras += utils/s2n_ensure.c
 extras += utils/s2n_mem.c
 extras += utils/s2n_safety.c
 goals  += s2n_record_parse_wrapper@s2n_record_read_wrapper.c

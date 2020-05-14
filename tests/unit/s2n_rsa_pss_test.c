@@ -26,8 +26,10 @@
 
 int s2n_flip_random_bit(struct s2n_blob *blob) {
     /* Flip a random bit in the blob */
-    int64_t byte_flip_pos = s2n_public_random(blob->size);
-    int64_t bit_flip_pos =  s2n_public_random(8);
+    uint64_t byte_flip_pos;
+    GUARD_AS_POSIX(s2n_public_random(blob->size, &byte_flip_pos));
+    uint64_t bit_flip_pos;
+    GUARD_AS_POSIX(s2n_public_random(8, &bit_flip_pos));
 
     uint8_t mask = 0x01 << (uint8_t)bit_flip_pos;
     blob->data[byte_flip_pos] ^= mask;
@@ -156,7 +158,7 @@ int main(int argc, char **argv)
 
             /* Generate a random blob to sign and verify */
             s2n_stack_blob(random_msg, RSA_PSS_SIGN_VERIFY_RANDOM_BLOB_SIZE, RSA_PSS_SIGN_VERIFY_RANDOM_BLOB_SIZE);
-            EXPECT_SUCCESS(s2n_get_private_random_data(&random_msg));
+            EXPECT_OK(s2n_get_private_random_data(&random_msg));
 
             /* Sign/Verify API's only accept Hashes, so hash our Random Data */
             DEFER_CLEANUP(struct s2n_hash_state sign_hash = {0}, s2n_hash_free);
@@ -244,7 +246,7 @@ int main(int argc, char **argv)
 
             /* Generate a random blob to sign and verify */
             s2n_stack_blob(random_msg, RSA_PSS_SIGN_VERIFY_RANDOM_BLOB_SIZE, RSA_PSS_SIGN_VERIFY_RANDOM_BLOB_SIZE);
-            EXPECT_SUCCESS(s2n_get_private_random_data(&random_msg));
+            EXPECT_OK(s2n_get_private_random_data(&random_msg));
 
             /* Sign/Verify API's only accept Hashes, so hash our Random Data */
             DEFER_CLEANUP(struct s2n_hash_state sign_hash = {0}, s2n_hash_free);
@@ -313,7 +315,7 @@ int main(int argc, char **argv)
 
             /* Generate a random blob to sign and verify */
             s2n_stack_blob(random_msg, RSA_PSS_SIGN_VERIFY_RANDOM_BLOB_SIZE, RSA_PSS_SIGN_VERIFY_RANDOM_BLOB_SIZE);
-            EXPECT_SUCCESS(s2n_get_private_random_data(&random_msg));
+            EXPECT_OK(s2n_get_private_random_data(&random_msg));
 
             /* Sign/Verify API's only accept Hashes, so hash our Random Data */
             DEFER_CLEANUP(struct s2n_hash_state sign_hash = {0}, s2n_hash_free);

@@ -25,7 +25,7 @@
 
 #include "../tls/extensions/s2n_certificate_extensions.h"
 #include "crypto/s2n_certificate.h"
-#include "utils/s2n_array.h"
+#include "utils/s2n_vec.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
@@ -73,15 +73,15 @@ int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, st
     } while (s2n_stuffer_data_available(chain_in_stuffer));
 
     GUARD(s2n_stuffer_free(&cert_out_stuffer));
-    
+
     /* Leftover data at this point means one of two things:
      * A bug in s2n's PEM parsing OR a malformed PEM in the user's chain.
      * Be conservative and fail instead of using a partial chain.
      */
     S2N_ERROR_IF(s2n_stuffer_data_available(chain_in_stuffer) > 0, S2N_ERR_INVALID_PEM);
-    
+
     cert_chain_out->chain_size = chain_size;
-    
+
     return 0;
 }
 
@@ -168,12 +168,12 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
     GUARD_PTR(s2n_pkey_zero_init(chain_and_key->private_key));
     memset(&chain_and_key->ocsp_status, 0, sizeof(chain_and_key->ocsp_status));
     memset(&chain_and_key->sct_list, 0, sizeof(chain_and_key->sct_list));
-    chain_and_key->cn_names = s2n_array_new(sizeof(struct s2n_blob));
+    chain_and_key->cn_names = s2n_vec_new(sizeof(struct s2n_blob));
     if (!chain_and_key->cn_names) {
         return NULL;
     }
 
-    chain_and_key->san_names = s2n_array_new(sizeof(struct s2n_blob));
+    chain_and_key->san_names = s2n_vec_new(sizeof(struct s2n_blob));
     if (!chain_and_key->san_names) {
         return NULL;
     }
@@ -204,7 +204,8 @@ int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_ke
             /* Decoding isn't necessary here since a DNS SAN name is ASCII(type V_ASN1_IA5STRING) */
             unsigned char *san_str = san_name->d.dNSName->data;
             const size_t san_str_len = san_name->d.dNSName->length;
-            struct s2n_blob *san_blob = s2n_array_pushback(chain_and_key->san_names);
+            struct s2n_blob *san_blob = NULL;
+            GUARD_AS_POSIX(s2n_vec_pushback(chain_and_key->san_names, (void **)&san_blob));
             if (!san_blob) {
                 GENERAL_NAMES_free(san_names);
                 S2N_ERROR(S2N_ERR_NULL_SANS);
@@ -268,7 +269,8 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
             /* We still need to free memory here see https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-7521 */
             OPENSSL_free(utf8_str);
         } else {
-            struct s2n_blob *cn_name = s2n_array_pushback(chain_and_key->cn_names);
+            struct s2n_blob *cn_name = NULL;
+            GUARD_AS_POSIX(s2n_vec_pushback(chain_and_key->cn_names, (void **)&cn_name));
             if (cn_name == NULL) {
                 OPENSSL_free(utf8_str);
                 S2N_ERROR(S2N_ERR_NULL_CN_NAME);
@@ -358,21 +360,27 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
         GUARD(s2n_free_object((uint8_t **)&cert_and_key->private_key, sizeof(s2n_cert_private_key)));
     }
 
+    uint32_t len = 0;
+
     if (cert_and_key->san_names) {
-        for (int i = 0; i < s2n_array_num_elements(cert_and_key->san_names); i++) {
-            struct s2n_blob *san_name = s2n_array_get(cert_and_key->san_names, i);
+        GUARD_AS_POSIX(s2n_vec_len(cert_and_key->san_names, &len));
+        for (int i = 0; i < len; i++) {
+            struct s2n_blob *san_name = NULL;
+            GUARD_AS_POSIX(s2n_vec_get(cert_and_key->san_names, i, (void **)&san_name));
             GUARD(s2n_free(san_name));
         }
-        GUARD(s2n_array_free(cert_and_key->san_names));
+        GUARD_AS_POSIX(s2n_vec_free(cert_and_key->san_names));
         cert_and_key->san_names = NULL;
     }
 
     if (cert_and_key->cn_names) {
-        for (int i = 0; i < s2n_array_num_elements(cert_and_key->cn_names); i++) {
-            struct s2n_blob *cn_name = s2n_array_get(cert_and_key->cn_names, i);
+        GUARD_AS_POSIX(s2n_vec_len(cert_and_key->cn_names, &len));
+        for (int i = 0; i < len; i++) {
+            struct s2n_blob *cn_name = NULL;
+            GUARD_AS_POSIX(s2n_vec_get(cert_and_key->cn_names, i, (void **)&cn_name));
             GUARD(s2n_free(cn_name));
         }
-        GUARD(s2n_array_free(cert_and_key->cn_names));
+        GUARD_AS_POSIX(s2n_vec_free(cert_and_key->cn_names));
         cert_and_key->cn_names = NULL;
     }
 
@@ -439,9 +447,12 @@ int s2n_send_empty_cert_chain(struct s2n_stuffer *out)
 
 static int s2n_does_cert_san_match_hostname(const struct s2n_cert_chain_and_key *chain_and_key, const struct s2n_blob *dns_name)
 {
-    struct s2n_array *san_names = chain_and_key->san_names;
-    for (int i = 0; i < s2n_array_num_elements(san_names); i++) {
-        struct s2n_blob *san_name = s2n_array_get(san_names, i);
+    struct s2n_vec *san_names = chain_and_key->san_names;
+    uint32_t len = 0;
+    GUARD_AS_POSIX(s2n_vec_len(san_names, &len));
+    for (int i = 0; i < len; i++) {
+        struct s2n_blob *san_name = NULL;
+        GUARD_AS_POSIX(s2n_vec_get(san_names, i, (void **)&san_name));
         if ((dns_name->size == san_name->size) && (strncasecmp((const char *) dns_name->data, (const char *) san_name->data, dns_name->size) == 0)) {
             return 1;
         }
@@ -452,9 +463,12 @@ static int s2n_does_cert_san_match_hostname(const struct s2n_cert_chain_and_key 
 
 static int s2n_does_cert_cn_match_hostname(const struct s2n_cert_chain_and_key *chain_and_key, const struct s2n_blob *dns_name)
 {
-    struct s2n_array *cn_names = chain_and_key->cn_names;
-    for (int i = 0; i < s2n_array_num_elements(cn_names); i++) {
-        struct s2n_blob *cn_name = s2n_array_get(cn_names, i);
+    struct s2n_vec *cn_names = chain_and_key->cn_names;
+    uint32_t len = 0;
+    GUARD_AS_POSIX(s2n_vec_len(cn_names, &len));
+    for (int i = 0; i < len; i++) {
+        struct s2n_blob *cn_name = NULL;
+        GUARD_AS_POSIX(s2n_vec_get(cn_names, i, (void **)&cn_name));
         if ((dns_name->size == cn_name->size) && (strncasecmp((const char *) dns_name->data, (const char *) cn_name->data, dns_name->size) == 0)) {
             return 1;
         }
@@ -465,7 +479,9 @@ static int s2n_does_cert_cn_match_hostname(const struct s2n_cert_chain_and_key *
 
 int s2n_cert_chain_and_key_matches_dns_name(const struct s2n_cert_chain_and_key *chain_and_key, const struct s2n_blob *dns_name)
 {
-    if (s2n_array_num_elements(chain_and_key->san_names) > 0) {
+    uint32_t len = 0;
+    GUARD_AS_POSIX(s2n_vec_len(chain_and_key->san_names, &len));
+    if (len > 0) {
         if (s2n_does_cert_san_match_hostname(chain_and_key, dns_name)) {
             return 1;
         }

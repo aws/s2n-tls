@@ -40,22 +40,22 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_monotonic_clock(config, mock_clock, &mock_time));
 
     mock_time = 0;
-    EXPECT_SUCCESS(s2n_timer_start(config, &timer));
+    EXPECT_OK(s2n_timer_start(config, &timer));
 
     mock_time = 10;
-    EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &nanoseconds));
+    EXPECT_OK(s2n_timer_reset(config, &timer, &nanoseconds));
     EXPECT_EQUAL(nanoseconds, 10);
 
     mock_time = 20;
-    EXPECT_SUCCESS(s2n_timer_elapsed(config, &timer, &nanoseconds));
+    EXPECT_OK(s2n_timer_elapsed(config, &timer, &nanoseconds));
     EXPECT_EQUAL(nanoseconds, 10);
 
     mock_time = 30;
-    EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &nanoseconds));
+    EXPECT_OK(s2n_timer_reset(config, &timer, &nanoseconds));
     EXPECT_EQUAL(nanoseconds, 20);
 
     mock_time = 40;
-    EXPECT_SUCCESS(s2n_timer_elapsed(config, &timer, &nanoseconds));
+    EXPECT_OK(s2n_timer_elapsed(config, &timer, &nanoseconds));
     EXPECT_EQUAL(nanoseconds, 10);
     EXPECT_EQUAL(mock_time, 40); /* Work-around for cppcheck complaining that mock_time is never read after being set */
 

@@ -23,7 +23,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 
-#include "utils/s2n_array.h"
+#include "utils/s2n_vec.h"
 
 
 /* Establishing a session requires reading the CLIENT_HELLO message and then generating security parameters.

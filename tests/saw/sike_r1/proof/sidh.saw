@@ -34,6 +34,7 @@ let random_mod_order_B_spec = do {
     crucible_execute_func [random_digits_p];
     random <- crucible_fresh_var "random" (llvm_array SECRETKEY_B_BYTES char_t);
     crucible_points_to random_digits_p (tm random);
+    crucible_return (crucible_term {{ 0:[32] }});
 };
 
 let ephemeralKeyGeneration_A_spec = do {

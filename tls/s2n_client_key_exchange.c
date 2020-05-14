@@ -121,7 +121,7 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
     gt_check(encrypted.size, 0);
 
     /* First: use a random pre-master secret */
-    GUARD(s2n_get_private_random_data(shared_key));
+    GUARD_AS_POSIX(s2n_get_private_random_data(shared_key));
     conn->secure.rsa_premaster_secret[0] = client_hello_protocol_version[0];
     conn->secure.rsa_premaster_secret[1] = client_hello_protocol_version[1];
 
@@ -220,7 +220,7 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
     shared_key->data = conn->secure.rsa_premaster_secret;
     shared_key->size = S2N_TLS_SECRET_LEN;
 
-    GUARD(s2n_get_private_random_data(shared_key));
+    GUARD_AS_POSIX(s2n_get_private_random_data(shared_key));
 
     /* Over-write the first two bytes with the client hello version, per RFC2246/RFC4346/RFC5246 7.4.7.1.
      * The latest version supported by client (as seen from the the client hello version) are <= TLS1.2

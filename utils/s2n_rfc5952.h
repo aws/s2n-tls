@@ -1,4 +1,4 @@
-#pragma once    
+#pragma once
 /*
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -14,10 +14,11 @@
  */
 
 #include "utils/s2n_blob.h"
+#include "utils/s2n_result.h"
 
 /**
  * Converts a binary representation of an ip address into its canonical string
  * representation. Returns 0 on success and -1 on failure.
- */ 
-extern int s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst);
+ */
+extern S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst);
 

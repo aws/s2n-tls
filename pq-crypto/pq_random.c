@@ -14,9 +14,10 @@
  */
 
 #include "utils/s2n_random.h"
+#include "utils/s2n_result.h"
 #include "pq_utils.h"
 
-int get_random_bytes(OUT unsigned char *buffer, unsigned int num_bytes)
+S2N_RESULT get_random_bytes(OUT unsigned char *buffer, unsigned int num_bytes)
 {
     struct s2n_blob out = {.data = buffer,.size = num_bytes };
     return s2n_get_private_random_data(&out);

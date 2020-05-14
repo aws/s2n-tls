@@ -135,7 +135,7 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
 
     if (conn->dynamic_record_timeout_threshold > 0) {
         uint64_t elapsed;
-        GUARD(s2n_timer_elapsed(conn->config, &conn->write_timer, &elapsed));
+        GUARD_AS_POSIX(s2n_timer_elapsed(conn->config, &conn->write_timer, &elapsed));
         /* Reset record size back to a single segment after threshold seconds of inactivity */
         if (elapsed - conn->last_write_elapsed > (uint64_t) conn->dynamic_record_timeout_threshold * 1000000000) {
             conn->active_application_bytes_consumed = 0;
@@ -148,13 +148,13 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
         ssize_t to_write = MIN(total_size - conn->current_user_data_consumed, max_payload_size);
 
         /* If dynamic record size is enabled,
-         * use small TLS records that fit into a single TCP segment for the threshold bytes of data     
+         * use small TLS records that fit into a single TCP segment for the threshold bytes of data
          */
         if (conn->active_application_bytes_consumed < (uint64_t) conn->dynamic_record_resize_threshold) {
             int min_payload_size = s2n_record_min_write_payload_size(conn);
             GUARD(min_payload_size);
             if (min_payload_size < to_write) {
-                to_write = min_payload_size; 
+                to_write = min_payload_size;
             }
         }
 
@@ -170,7 +170,7 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
 
         /* Write and encrypt the record */
         GUARD(s2n_stuffer_rewrite(&conn->out));
-        GUARD(s2n_record_writev(conn, TLS_APPLICATION_DATA, bufs, count, 
+        GUARD(s2n_record_writev(conn, TLS_APPLICATION_DATA, bufs, count,
             conn->current_user_data_consumed + offs, to_write));
         conn->current_user_data_consumed += to_write;
         conn->active_application_bytes_consumed += to_write;

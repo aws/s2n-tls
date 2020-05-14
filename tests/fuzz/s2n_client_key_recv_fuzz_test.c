@@ -141,7 +141,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 
     /* One time Diffie-Hellman negotiation to speed along fuzz tests*/
     GUARD(s2n_init());
-    GUARD_STRICT(atexit(s2n_fuzz_atexit));
+    GUARD_POSIX_STRICT(atexit(s2n_fuzz_atexit));
 
     cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
     private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
@@ -200,7 +200,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     const struct s2n_ecc_preferences *ecc_preferences = NULL;
     GUARD(s2n_connection_get_ecc_preferences(server_conn, &ecc_preferences));
     notnull_check(ecc_preferences);
-    
+
     if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_ecdhe_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
         server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
         s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.server_ecc_evp_params);

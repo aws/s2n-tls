@@ -32,7 +32,7 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status * more)
     }
 
     uint64_t elapsed;
-    GUARD(s2n_timer_elapsed(conn->config, &conn->write_timer, &elapsed));
+    GUARD_AS_POSIX(s2n_timer_elapsed(conn->config, &conn->write_timer, &elapsed));
     S2N_ERROR_IF(elapsed < conn->delay, S2N_ERR_SHUTDOWN_PAUSED);
 
     /* Queue our close notify, once. Use warning level so clients don't give up */

@@ -20,6 +20,7 @@ DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c
 DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
 DEPENDENCIES += $(SRCDIR)/stuffer/s2n_stuffer.c
 DEPENDENCIES += $(SRCDIR)/utils/s2n_blob.c
+DEPENDENCIES += $(SRCDIR)/utils/s2n_ensure.c
 
 ENTRY = s2n_stuffer_raw_read_harness
 

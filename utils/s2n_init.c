@@ -37,14 +37,14 @@ unsigned long s2n_get_openssl_version(void)
 
 int s2n_init(void)
 {
-    GUARD(s2n_fips_init());
-    GUARD(s2n_mem_init());
-    GUARD(s2n_rand_init());
-    GUARD(s2n_cipher_suites_init());
-    GUARD(s2n_security_policies_init());
-    GUARD(s2n_config_defaults_init());
-    GUARD(s2n_extension_type_init());
-    
+    GUARD_POSIX(s2n_fips_init());
+    GUARD_POSIX(s2n_mem_init());
+    GUARD_AS_POSIX(s2n_rand_init());
+    GUARD_POSIX(s2n_cipher_suites_init());
+    GUARD_POSIX(s2n_security_policies_init());
+    GUARD_POSIX(s2n_config_defaults_init());
+    GUARD_POSIX(s2n_extension_type_init());
+
     S2N_ERROR_IF(atexit(s2n_cleanup_atexit) != 0, S2N_ERR_ATEXIT);
 
     if (getenv("S2N_PRINT_STACKTRACE")) {
@@ -58,15 +58,24 @@ int s2n_cleanup(void)
 {
     /* s2n_cleanup is supposed to be called from each thread before exiting,
      * so ensure that whatever clean ups we have here are thread safe */
-    GUARD(s2n_rand_cleanup_thread());
+    GUARD_AS_POSIX(s2n_rand_cleanup_thread());
     return 0;
+}
+
+static bool s2n_cleanup_atexit_impl(void)
+{
+    /* all of these should run, regardless of result, but the
+     * values to need to be consumed to prevent warnings */
+    bool a = s2n_result_is_ok(s2n_rand_cleanup_thread());
+    bool b = s2n_result_is_ok(s2n_rand_cleanup());
+    bool c = s2n_mem_cleanup() == 0;
+    s2n_wipe_static_configs();
+
+    return a && b && c;
 }
 
 static void s2n_cleanup_atexit(void)
 {
-    s2n_rand_cleanup_thread();
-    s2n_rand_cleanup();
-    s2n_mem_cleanup();
-    s2n_wipe_static_configs();
+    s2n_cleanup_atexit_impl();
 }
 

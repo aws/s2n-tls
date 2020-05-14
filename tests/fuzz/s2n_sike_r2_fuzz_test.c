@@ -43,7 +43,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
     GUARD(s2n_init());
     GUARD(s2n_stuffer_alloc_ro_from_hex_string(&private_key_stuffer, valid_private_key));
-    GUARD_STRICT(atexit(s2n_fuzz_atexit));
+    GUARD_POSIX_STRICT(atexit(s2n_fuzz_atexit));
 
     server_kem_params.private_key.size = s2n_sike_p434_r2.private_key_length;
     server_kem_params.private_key.data = s2n_stuffer_raw_read(&private_key_stuffer, s2n_sike_p434_r2.public_key_length);

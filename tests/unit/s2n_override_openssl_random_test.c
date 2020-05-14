@@ -67,10 +67,10 @@ const char expected_dhe_key_hex_2[] = "0100cb5fa155609f350a0f07e340ef7dc854e38d9
                                       "3d9f00f19b37d2";
 
 struct s2n_stuffer test_entropy;
-int s2n_entropy_generator(struct s2n_blob *blob)
+S2N_RESULT s2n_entropy_generator(struct s2n_blob *blob)
 {
-    GUARD(s2n_stuffer_read(&test_entropy, blob));
-    return 0;
+    GUARD_AS_RESULT(s2n_stuffer_read(&test_entropy, blob));
+    return S2N_RESULT_OK;
 }
 
 int main(int argc, char **argv)
@@ -79,12 +79,14 @@ int main(int argc, char **argv)
     struct s2n_dh_params dh_params;
     struct s2n_blob b;
     char *dhparams_pem;
+    uint64_t bytes_used = 0;
 
     BEGIN_TEST();
 
     EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_EQUAL(s2n_get_private_random_bytes_used(), 0);
+    EXPECT_OK(s2n_get_private_random_bytes_used(&bytes_used));
+    EXPECT_EQUAL(bytes_used, 0);
 
     /* Parse the DH params */
     b.data = (uint8_t *) dhparams_pem;
@@ -98,9 +100,10 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_pkcs3_to_dh_params(&dh_params, &b));
 
     EXPECT_SUCCESS(s2n_dh_generate_ephemeral_key(&dh_params));
-    
+
     /* Verify that our DRBG is called and that over-riding works */
-    EXPECT_NOT_EQUAL(s2n_get_private_random_bytes_used(), 0);
+    EXPECT_OK(s2n_get_private_random_bytes_used(&bytes_used));
+    EXPECT_NOT_EQUAL(bytes_used, 0);
 
     /* Setup for the second test */
     EXPECT_SUCCESS(s2n_dh_params_free(&dh_params));
@@ -111,9 +114,10 @@ int main(int argc, char **argv)
     struct s2n_drbg drbg = {.entropy_generator = &s2n_entropy_generator};
     s2n_stack_blob(personalization_string, 32, 32);
     EXPECT_SUCCESS(s2n_drbg_instantiate(&drbg, &personalization_string, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
-    EXPECT_SUCCESS(s2n_set_private_drbg_for_test(drbg));
+    EXPECT_OK(s2n_set_private_drbg_for_test(drbg));
     /* Verify we switched to a new DRBG */
-    EXPECT_EQUAL(s2n_get_private_random_bytes_used(), 0);
+    EXPECT_OK(s2n_get_private_random_bytes_used(&bytes_used));
+    EXPECT_EQUAL(bytes_used, 0);
 
     DEFER_CLEANUP(struct s2n_stuffer out_stuffer = {0}, s2n_stuffer_free);
     struct s2n_blob out_blob = {0};
@@ -121,7 +125,8 @@ int main(int argc, char **argv)
     GUARD(s2n_dh_generate_ephemeral_key(&dh_params));
     GUARD(s2n_dh_params_to_p_g_Ys(&dh_params, &out_stuffer, &out_blob));
 
-    EXPECT_EQUAL(s2n_get_private_random_bytes_used(), 304);
+    EXPECT_OK(s2n_get_private_random_bytes_used(&bytes_used));
+    EXPECT_EQUAL(bytes_used, 304);
 
     DEFER_CLEANUP(struct s2n_stuffer dhe_key_1_stuffer = {0}, s2n_stuffer_free);
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&dhe_key_1_stuffer, expected_dhe_key_hex_1));

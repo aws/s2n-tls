@@ -88,7 +88,7 @@ static int s2n_rsa_pss_validate_sign_verify_match(const struct s2n_pkey *pub, co
 {
     /* Generate a random blob to sign and verify */
     s2n_stack_blob(random_data, RSA_PSS_SIGN_VERIFY_RANDOM_BLOB_SIZE, RSA_PSS_SIGN_VERIFY_RANDOM_BLOB_SIZE);
-    GUARD(s2n_get_private_random_data(&random_data));
+    GUARD_AS_POSIX(s2n_get_private_random_data(&random_data));
 
     /* Sign/Verify API's only accept Hashes, so hash our Random Data */
     DEFER_CLEANUP(struct s2n_hash_state sign_hash = {0}, s2n_hash_free);

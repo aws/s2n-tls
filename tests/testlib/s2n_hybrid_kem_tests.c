@@ -34,11 +34,11 @@
  * secret can be checked against the expected values in RSP_FILE_NAME. */
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
 struct s2n_blob hybrid_kat_entropy_blob = {0};
-int s2n_entropy_generator(struct s2n_blob *blob)
+S2N_RESULT s2n_entropy_generator(struct s2n_blob *blob)
 {
-    eq_check(blob->size, hybrid_kat_entropy_blob.size);
+    ENSURE_EQ(blob->size, hybrid_kat_entropy_blob.size);
     blob->data = hybrid_kat_entropy_blob.data;
-    return 0;
+    return S2N_RESULT_OK;
 }
 #endif
 
@@ -128,7 +128,7 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
     struct s2n_drbg drbg = {.entropy_generator = &s2n_entropy_generator};
     s2n_stack_blob(personalization_string, 32, 32);
     GUARD(s2n_drbg_instantiate(&drbg, &personalization_string, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
-    GUARD(s2n_set_private_drbg_for_test(drbg));
+    GUARD_AS_POSIX(s2n_set_private_drbg_for_test(drbg));
 #endif
 
     /* Part 2 server sends key first */

@@ -2,7 +2,7 @@
 * Supersingular Isogeny Key Encapsulation Library
 *
 * Abstract: supersingular isogeny key encapsulation (SIKE) protocol
-*********************************************************************************************/ 
+*********************************************************************************************/
 
 #include "sike_r1_kem.h"
 
@@ -10,6 +10,7 @@
 #include "P503_internal_r1.h"
 #include "fips202_r1.h"
 #include "pq-crypto/pq_random.h"
+#include "utils/s2n_safety.h"
 
 int SIKE_P503_r1_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 { // SIKE's key generation
@@ -17,10 +18,10 @@ int SIKE_P503_r1_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
   //          public key pk (SIKE_P503_R1_PUBLIC_KEY_BYTES bytes)
 
     digit_t _sk[SECRETKEY_B_BYTES/sizeof(digit_t)];
-    
+
     // Generate lower portion of secret key sk <- s||SK
-    get_random_bytes(sk, MSG_BYTES);
-    random_mod_order_B((unsigned char*)_sk);
+    GUARD_AS_POSIX(get_random_bytes(sk, MSG_BYTES));
+    GUARD(random_mod_order_B((unsigned char*)_sk));
 
     // Generate public key pk
     EphemeralKeyGeneration_B(_sk, pk);
@@ -50,8 +51,8 @@ int SIKE_P503_r1_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsi
     unsigned char temp[SIKE_P503_R1_CIPHERTEXT_BYTES+MSG_BYTES];
     unsigned int i;
 
-    // Generate ephemeralsk <- G(m||pk) mod oA 
-    get_random_bytes(temp, MSG_BYTES);
+    // Generate ephemeralsk <- G(m||pk) mod oA
+    GUARD_AS_POSIX(get_random_bytes(temp, MSG_BYTES));
     memcpy(&temp[MSG_BYTES], pk, SIKE_P503_R1_PUBLIC_KEY_BYTES);
     cshake256_simple(ephemeralsk.b, SECRETKEY_A_BYTES, G, temp, SIKE_P503_R1_PUBLIC_KEY_BYTES+MSG_BYTES);
     ephemeralsk.b[SECRETKEY_A_BYTES - 1] &= MASK_ALICE;
@@ -89,7 +90,7 @@ int SIKE_P503_r1_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, cons
     unsigned int i;
 
     digit_t _sk[SECRETKEY_B_BYTES/sizeof(digit_t)];
-	
+
 	memcpy(_sk, sk + MSG_BYTES, SECRETKEY_B_BYTES);
 
     // Decrypt
@@ -101,7 +102,7 @@ int SIKE_P503_r1_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, cons
     memcpy(&temp[MSG_BYTES], &sk[MSG_BYTES + SECRETKEY_B_BYTES], SIKE_P503_R1_PUBLIC_KEY_BYTES);
     cshake256_simple(ephemeralsk_.b, SECRETKEY_A_BYTES, G, temp, SIKE_P503_R1_PUBLIC_KEY_BYTES+MSG_BYTES);
     ephemeralsk_.b[SECRETKEY_A_BYTES - 1] &= MASK_ALICE;
-    
+
     // Generate shared secret ss <- H(m||ct) or output ss <- H(s||ct)
     EphemeralKeyGeneration_A(ephemeralsk_.d, c0_);
     if (memcmp(c0_, ct, SIKE_P503_R1_PUBLIC_KEY_BYTES) != 0) {

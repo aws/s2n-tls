@@ -48,7 +48,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 #endif
 
     GUARD(s2n_init());
-    GUARD_STRICT(atexit(s2n_fuzz_atexit));
+    GUARD_POSIX_STRICT(atexit(s2n_fuzz_atexit));
     GUARD(s2n_enable_tls13());
     return 0;
 }
@@ -74,7 +74,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     const struct s2n_ecc_preferences *ecc_preferences = NULL;
     GUARD(s2n_connection_get_ecc_preferences(client_conn, &ecc_preferences));
     notnull_check(ecc_preferences);
-    
+
     /* Generate ephemeral keys for all supported curves */
     for (int i = 0; i < ecc_preferences->count; i++) {
         client_conn->secure.client_ecc_evp_params[i].negotiated_curve = ecc_preferences->ecc_curves[i];

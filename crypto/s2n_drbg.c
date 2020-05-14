@@ -114,9 +114,9 @@ static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
     s2n_stack_blob(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
 
     if (drbg->entropy_generator) {
-        GUARD(drbg->entropy_generator(&blob));
+        GUARD_AS_POSIX(drbg->entropy_generator(&blob));
     } else {
-        GUARD(s2n_get_urandom_data(&blob));
+        GUARD_AS_POSIX(s2n_get_urandom_data(&blob));
     }
 
     for (int i = 0; i < ps->size; i++) {
@@ -219,8 +219,10 @@ int s2n_drbg_wipe(struct s2n_drbg *drbg)
     return 0;
 }
 
-int s2n_drbg_bytes_used(struct s2n_drbg *drbg)
+int s2n_drbg_bytes_used(struct s2n_drbg *drbg, uint64_t *bytes_used)
 {
     notnull_check(drbg);
-    return drbg->bytes_used;
+    notnull_check(bytes_used);
+    *bytes_used = drbg->bytes_used;
+    return 0;
 }

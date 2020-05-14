@@ -16,6 +16,7 @@
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_openssl_x509.h"
 #include "utils/s2n_asn1_time.h"
+#include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_rfc5952.h"
 #include "tls/s2n_config.h"
@@ -214,19 +215,19 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
             const unsigned char *ip_addr = current_name->d.iPAddress->data;
             size_t ip_addr_len = (size_t)current_name->d.iPAddress->length;
 
-            int parse_err = -1;
-            s2n_stack_blob(address, INET6_ADDRSTRLEN + 1, INET6_ADDRSTRLEN + 1); 
+            s2n_result parse_result = S2N_RESULT_ERROR;
+            s2n_stack_blob(address, INET6_ADDRSTRLEN + 1, INET6_ADDRSTRLEN + 1);
             if (ip_addr_len == 4) {
-                parse_err = s2n_inet_ntop(AF_INET, ip_addr, &address);                
+                parse_result = s2n_inet_ntop(AF_INET, ip_addr, &address);
             } else if (ip_addr_len == 16) {
-                parse_err = s2n_inet_ntop(AF_INET6, ip_addr, &address);
+                parse_result = s2n_inet_ntop(AF_INET6, ip_addr, &address);
             }
 
             /* strlen should be safe here since we made sure we were null terminated AND that inet_ntop succeeded */
-            if (!parse_err) {
+            if (s2n_result_is_ok(parse_result)) {
                 verified = conn->verify_host_fn(
-                               (const char *)address.data, 
-                               strlen((const char *)address.data), 
+                               (const char *)address.data,
+                               strlen((const char *)address.data),
                                conn->data_for_verify_host);
             }
         }
@@ -251,9 +252,9 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
                     char peer_cn[255];
                     static size_t peer_cn_size = sizeof(peer_cn);
                     memset_check(&peer_cn, 0, peer_cn_size);
-                    
+
                     /* X520CommonName allows the following ANSI string types per RFC 5280 Appendix A.1 */
-                    if (ASN1_STRING_type(common_name) == V_ASN1_TELETEXSTRING || 
+                    if (ASN1_STRING_type(common_name) == V_ASN1_TELETEXSTRING ||
                         ASN1_STRING_type(common_name) == V_ASN1_PRINTABLESTRING ||
                         ASN1_STRING_type(common_name) == V_ASN1_UNIVERSALSTRING ||
                         ASN1_STRING_type(common_name) == V_ASN1_UTF8STRING ||
@@ -352,7 +353,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
                 extensions.size = certificate_extensions_length;
                 extensions.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, extensions.size);
                 notnull_check(extensions.data);
-                
+
                 /* RFC 8446: if an extension applies to the entire chain, it SHOULD be included in the first CertificateEntry */
                 if (certificate_count == 0) {
                     GUARD(s2n_certificate_extensions_parse(conn, &extensions));
@@ -503,13 +504,13 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
                                               &thisupd, &nextupd);
 
         uint64_t this_update = 0;
-        int thisupd_err = s2n_asn1_time_to_nano_since_epoch_ticks((const char *) thisupd->data,
+        s2n_result thisupd_result = s2n_asn1_time_to_nano_since_epoch_ticks((const char *) thisupd->data,
                                                                   (uint32_t) thisupd->length, &this_update);
 
         uint64_t next_update = 0;
-        int nextupd_err = 0;
+        s2n_result nextupd_result = S2N_RESULT_OK;
         if (nextupd) {
-            nextupd_err = s2n_asn1_time_to_nano_since_epoch_ticks((const char *) nextupd->data,
+            nextupd_result = s2n_asn1_time_to_nano_since_epoch_ticks((const char *) nextupd->data,
                                                                   (uint32_t) nextupd->length, &next_update);
         } else {
             next_update = this_update + DEFAULT_OCSP_NEXT_UPDATE_PERIOD;
@@ -518,7 +519,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
         uint64_t current_time = 0;
         int current_time_err = conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time);
 
-        if (thisupd_err || nextupd_err || current_time_err) {
+        if (s2n_result_is_error(thisupd_result) || s2n_result_is_error(nextupd_result) || current_time_err) {
             ret_val = S2N_CERT_ERR_UNTRUSTED;
             goto clean_up;
         }

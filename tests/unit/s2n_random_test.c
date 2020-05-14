@@ -28,9 +28,9 @@ void *thread_safety_tester(void *slot)
     intptr_t slotnum = (intptr_t) slot;
     struct s2n_blob blob = {.data = thread_data[slotnum], .size = 100 };
 
-    s2n_get_public_random_data(&blob);
+    EXPECT_OK(s2n_get_public_random_data(&blob));
 
-    s2n_rand_cleanup_thread();
+    EXPECT_OK(s2n_rand_cleanup_thread());
 
     return NULL;
 }
@@ -40,7 +40,7 @@ void process_safety_tester(int write_fd)
     uint8_t pad[100];
 
     struct s2n_blob blob = {.data = pad, .size = 100 };
-    s2n_get_public_random_data(&blob);
+    EXPECT_OK(s2n_get_public_random_data(&blob));
 
     /* Write the data we got to our pipe */
     if (write(write_fd, pad, 100) != 100) {
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 
     /* Get one byte of data, to make sure the pool is (almost) full */
     blob.size = 1;
-    EXPECT_SUCCESS(s2n_get_public_random_data(&blob));
+    EXPECT_OK(s2n_get_public_random_data(&blob));
 
     /* Create two threads and have them each grab 100 bytes */
     EXPECT_SUCCESS(pthread_create(&threads[0], NULL, thread_safety_tester, (void *)0));
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 
     /* Confirm that their data differs from the parent thread */
     blob.size = 100;
-    EXPECT_SUCCESS(s2n_get_public_random_data(&blob));
+    EXPECT_OK(s2n_get_public_random_data(&blob));
     EXPECT_NOT_EQUAL(memcmp(thread_data[0], data, 100), 0);
     EXPECT_NOT_EQUAL(memcmp(thread_data[1], data, 100), 0);
 
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 
     /* Get 100 bytes here in the parent process */
     blob.size = 100;
-    EXPECT_SUCCESS(s2n_get_public_random_data(&blob));
+    EXPECT_OK(s2n_get_public_random_data(&blob));
 
     /* Confirm they differ */
     EXPECT_NOT_EQUAL(memcmp(child_data, data, 100), 0);
@@ -120,9 +120,9 @@ int main(int argc, char **argv)
      * differ
      */
     blob.data = child_data;
-    EXPECT_SUCCESS(s2n_get_public_random_data(&blob));
+    EXPECT_OK(s2n_get_public_random_data(&blob));
     blob.data = data;
-    EXPECT_SUCCESS(s2n_get_public_random_data(&blob));
+    EXPECT_OK(s2n_get_public_random_data(&blob));
     EXPECT_NOT_EQUAL(memcmp(child_data, data, 100), 0);
 
     /* Try to fetch a volume of randomly generated data, every size between 1 and 5120
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
     memset(trailing_zeros, 0, sizeof(trailing_zeros));
     for (int i = 0; i < 5120; i++) {
         blob.size = i;
-        EXPECT_SUCCESS(s2n_get_public_random_data(&blob));
+        EXPECT_OK(s2n_get_public_random_data(&blob));
 
         if (i >= 64) {
             /* Set the run counts to 0 */
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 
             /* Apply 8 monobit tests to the data. Basically, we're
              * looking for successive runs where a given bit is set.
-             * If a run exists with any particular bit 64 times in 
+             * If a run exists with any particular bit 64 times in
              * a row, then the data doesn't look randomly generated.
              */
             for (int j = 0; j < i; j++) {
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
     memset(trailing_zeros, 0, sizeof(trailing_zeros));
     for (int i = 0; i < 5120; i++) {
         blob.size = i;
-        EXPECT_SUCCESS(s2n_get_private_random_data(&blob));
+        EXPECT_OK(s2n_get_private_random_data(&blob));
 
         if (i >= 64) {
             /* Set the run counts to 0 */
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
 
             /* Apply 8 monobit tests to the data. Basically, we're
              * looking for successive runs where a given bit is set.
-             * If a run exists with any particular bit 64 times in 
+             * If a run exists with any particular bit 64 times in
              * a row, then the data doesn't look randomly generated.
              */
             for (int j = 0; j < i; j++) {
@@ -221,7 +221,7 @@ int main(int argc, char **argv)
     memset(trailing_zeros, 0, sizeof(trailing_zeros));
     for (int i = 0; i < 5120; i++) {
         blob.size = i;
-        EXPECT_SUCCESS(s2n_get_urandom_data(&blob));
+        EXPECT_OK(s2n_get_urandom_data(&blob));
 
         if (i >= 64) {
             /* Set the run counts to 0 */
@@ -229,7 +229,7 @@ int main(int argc, char **argv)
 
             /* Apply 8 monobit tests to the data. Basically, we're
              * looking for successive runs where a given bit is set.
-             * If a run exists with any particular bit 64 times in 
+             * If a run exists with any particular bit 64 times in
              * a row, then the data doesn't look randomly generated.
              */
             for (int j = 0; j < i; j++) {
@@ -266,7 +266,7 @@ int main(int argc, char **argv)
         memset(trailing_zeros, 0, sizeof(trailing_zeros));
         for (int i = 0; i < 5120; i++) {
             blob.size = i;
-            EXPECT_SUCCESS(s2n_get_urandom_data(&blob));
+            EXPECT_OK(s2n_get_urandom_data(&blob));
 
             if (i >= 64) {
                 /* Set the run counts to 0 */
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
 
                 /* Apply 8 monobit tests to the data. Basically, we're
                  * looking for successive runs where a given bit is set.
-                 * If a run exists with any particular bit 64 times in 
+                 * If a run exists with any particular bit 64 times in
                  * a row, then the data doesn't look randomly generated.
                  */
                 for (int j = 0; j < i; j++) {

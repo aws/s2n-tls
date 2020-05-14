@@ -21,6 +21,7 @@ DEPENDENCIES += $(HELPERDIR)/source/cbmc_utils.c
 DEPENDENCIES += $(SRCDIR)/stuffer/s2n_stuffer.c
 DEPENDENCIES += $(SRCDIR)/utils/s2n_mem.c
 DEPENDENCIES += $(SRCDIR)/utils/s2n_blob.c
+DEPENDENCIES += $(SRCDIR)/utils/s2n_ensure.c
 
 ENTRY = s2n_stuffer_free_harness
 

@@ -202,14 +202,22 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
 
 static int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
-    if (s2n_array_num_elements(cert_key_pair->san_names) == 0) {
-        for (int i = 0; i < s2n_array_num_elements(cert_key_pair->cn_names); i++) {
-            struct s2n_blob *cn_name = s2n_array_get(cert_key_pair->cn_names, i);
+
+    uint32_t cn_len = 0;
+    GUARD_AS_POSIX(s2n_vec_len(cert_key_pair->san_names, &cn_len));
+    uint32_t san_len = 0;
+    GUARD_AS_POSIX(s2n_vec_len(cert_key_pair->san_names, &san_len));
+
+    if (san_len == 0) {
+        for (int i = 0; i < cn_len; i++) {
+            struct s2n_blob *cn_name = NULL;
+            GUARD_AS_POSIX(s2n_vec_get(cert_key_pair->cn_names, i, (void **)&cn_name));
             GUARD(s2n_config_update_domain_name_to_cert_map(config, cn_name, cert_key_pair));
         }
     } else {
-        for (int i = 0; i < s2n_array_num_elements(cert_key_pair->san_names); i++) {
-            struct s2n_blob *san_name = s2n_array_get(cert_key_pair->san_names, i);
+        for (int i = 0; i < san_len; i++) {
+            struct s2n_blob *san_name = NULL;
+            GUARD_AS_POSIX(s2n_vec_get(cert_key_pair->san_names, i, (void **)&san_name));
             GUARD(s2n_config_update_domain_name_to_cert_map(config, san_name, cert_key_pair));
         }
     }
@@ -305,11 +313,11 @@ int s2n_config_init_session_ticket_keys(struct s2n_config *config)
 int s2n_config_free_session_ticket_keys(struct s2n_config *config)
 {
     if (config->ticket_keys != NULL) {
-        GUARD(s2n_set_free_p(&config->ticket_keys));
+        GUARD_AS_POSIX(s2n_set_free_p(&config->ticket_keys));
     }
 
     if (config->ticket_key_hashes != NULL) {
-        GUARD(s2n_set_free_p(&config->ticket_key_hashes));
+        GUARD_AS_POSIX(s2n_set_free_p(&config->ticket_key_hashes));
     }
 
     return 0;
@@ -730,7 +738,9 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
 
     S2N_ERROR_IF(key_len == 0, S2N_ERR_INVALID_TICKET_KEY_LENGTH);
 
-    S2N_ERROR_IF(s2n_set_size(config->ticket_keys) >= S2N_MAX_TICKET_KEYS, S2N_ERR_TICKET_KEY_LIMIT);
+    uint32_t ticket_keys_len = 0;
+    GUARD_AS_POSIX(s2n_set_len(config->ticket_keys, &ticket_keys_len));
+    S2N_ERROR_IF(ticket_keys_len >= S2N_MAX_TICKET_KEYS, S2N_ERR_TICKET_KEY_LIMIT);
 
     S2N_ERROR_IF(name_len == 0 || name_len > S2N_TICKET_KEY_NAME_LEN || s2n_find_ticket_key(config, name), S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
 
@@ -758,13 +768,14 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     GUARD(s2n_hash_update(&hash, out_key.data, out_key.size));
     GUARD(s2n_hash_digest(&hash, hash_output, SHA_DIGEST_LENGTH));
 
-    if (s2n_set_size(config->ticket_key_hashes) >= S2N_MAX_TICKET_KEY_HASHES) {
-        GUARD(s2n_set_free_p(&config->ticket_key_hashes));
+    GUARD_AS_POSIX(s2n_set_len(config->ticket_keys, &ticket_keys_len));
+    if (ticket_keys_len >= S2N_MAX_TICKET_KEY_HASHES) {
+        GUARD_AS_POSIX(s2n_set_free_p(&config->ticket_key_hashes));
         notnull_check(config->ticket_key_hashes = s2n_set_new(SHA_DIGEST_LENGTH, s2n_verify_unique_ticket_key_comparator));
     }
 
     /* Insert hash key into a sorted array at known index */
-    GUARD(s2n_set_add(config->ticket_key_hashes, hash_output));
+    GUARD_AS_POSIX(s2n_set_add(config->ticket_key_hashes, hash_output));
 
     memcpy_check(session_ticket_key->key_name, name, S2N_TICKET_KEY_NAME_LEN);
     memcpy_check(session_ticket_key->aes_key, out_key.data, S2N_AES256_KEY_LEN);

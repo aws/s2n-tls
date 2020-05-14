@@ -52,7 +52,7 @@ static S2N_RESULT s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
     struct s2n_blob mem = {0};
     struct s2n_map tmp = {0};
 
-    S2N_ERROR_RESULT_IF(map->immutable, S2N_ERR_MAP_IMMUTABLE);
+    ENSURE(!map->immutable, S2N_ERR_MAP_IMMUTABLE);
 
     GUARD_AS_RESULT(s2n_alloc(&mem, (capacity * sizeof(struct s2n_map_entry))));
     GUARD_AS_RESULT(s2n_blob_zero(&mem));
@@ -93,7 +93,7 @@ struct s2n_map *s2n_map_new_with_initial_capacity(uint32_t capacity)
     struct s2n_blob mem = {0};
     struct s2n_map *map;
 
-    GUARD_PTR(s2n_alloc(&mem, sizeof(struct s2n_map)));
+    GUARD_POSIX_PTR(s2n_alloc(&mem, sizeof(struct s2n_map)));
 
     map = (void *) mem.data;
     map->capacity = 0;
@@ -101,8 +101,8 @@ struct s2n_map *s2n_map_new_with_initial_capacity(uint32_t capacity)
     map->immutable = 0;
     map->table = NULL;
 
-    GUARD_PTR(s2n_hash_new(&map->sha256));
-    GUARD_PTR(s2n_hash_init(&map->sha256, S2N_HASH_SHA256));
+    GUARD_POSIX_PTR(s2n_hash_new(&map->sha256));
+    GUARD_POSIX_PTR(s2n_hash_init(&map->sha256, S2N_HASH_SHA256));
 
     GUARD_RESULT_PTR(s2n_map_embiggen(map, capacity));
 
@@ -111,7 +111,7 @@ struct s2n_map *s2n_map_new_with_initial_capacity(uint32_t capacity)
 
 S2N_RESULT s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value)
 {
-    S2N_ERROR_RESULT_IF(map->immutable, S2N_ERR_MAP_IMMUTABLE);
+    ENSURE(!map->immutable, S2N_ERR_MAP_IMMUTABLE);
 
     if (map->capacity < (map->size * 2)) {
         /* Embiggen the map */
@@ -131,7 +131,7 @@ S2N_RESULT s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blo
         }
 
         /* We found a duplicate key */
-        S2N_ERROR_RESULT(S2N_ERR_MAP_DUPLICATE);
+        BAIL(S2N_ERR_MAP_DUPLICATE);
     }
 
     GUARD_AS_RESULT(s2n_dup(key, &map->table[slot].key));
@@ -143,7 +143,7 @@ S2N_RESULT s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blo
 
 S2N_RESULT s2n_map_put(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value)
 {
-    S2N_ERROR_RESULT_IF(map->immutable, S2N_ERR_MAP_IMMUTABLE);
+    ENSURE(!map->immutable, S2N_ERR_MAP_IMMUTABLE);
 
     if (map->capacity < (map->size * 2)) {
         /* Embiggen the map */
@@ -192,7 +192,7 @@ S2N_RESULT s2n_map_unlock(struct s2n_map *map)
 
 S2N_RESULT s2n_map_lookup(struct s2n_map *map, struct s2n_blob *key, struct s2n_blob *value, bool *key_found)
 {
-    S2N_ERROR_RESULT_IF(!map->immutable, S2N_ERR_MAP_MUTABLE);
+    ENSURE(map->immutable, S2N_ERR_MAP_MUTABLE);
 
     uint32_t slot;
     GUARD_RESULT(s2n_map_slot(map, key, &slot));

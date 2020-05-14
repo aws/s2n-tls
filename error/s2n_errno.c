@@ -156,11 +156,12 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_SEND_STUFFER_TO_CONN, "Error sending stuffer to connection") \
     ERR_ENTRY(S2N_ERR_PRECONDITION_VIOLATION, "Precondition violation") \
     ERR_ENTRY(S2N_ERR_INTEGER_OVERFLOW, "Integer overflow violation") \
-    ERR_ENTRY(S2N_ERR_ARRAY_INDEX_OOB, "Array index out of bounds") \
+    ERR_ENTRY(S2N_ERR_VEC_INDEX_OOB, "Vec index out of bounds") \
     ERR_ENTRY(S2N_ERR_FREE_STATIC_BLOB, "Cannot free a static blob") \
     ERR_ENTRY(S2N_ERR_RESIZE_STATIC_BLOB, "Cannot resize a static blob") \
     ERR_ENTRY(S2N_ERR_NO_AVAILABLE_BORINGSSL_API, "BoringSSL does not support this API") \
     ERR_ENTRY(S2N_ERR_RECORD_LENGTH_TOO_LARGE, "Record length exceeds protocol version maximum") \
+    ERR_ENTRY(S2N_ERR_SET_DUPLICATE_VALUE, "Set already contains the provided value") \
     ERR_ENTRY(S2N_ERR_NO_ALERT, "No Alert present") \
     ERR_ENTRY(S2N_ERR_CLIENT_MODE, "operation not allowed in client mode") \
     ERR_ENTRY(S2N_ERR_CLIENT_MODE_DISABLED, "client connections not allowed") \
