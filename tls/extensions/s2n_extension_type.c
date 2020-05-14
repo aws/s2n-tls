@@ -163,7 +163,7 @@ bool s2n_extension_never_send(struct s2n_connection *conn)
 
 bool s2n_extension_send_if_tls13_connection(struct s2n_connection *conn)
 {
-    return s2n_connection_get_protocol_version(conn) == S2N_TLS13;
+    return s2n_connection_get_protocol_version(conn) >= S2N_TLS13;
 }
 
 int s2n_extension_error_if_missing(struct s2n_connection *conn)

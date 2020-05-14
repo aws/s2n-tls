@@ -38,25 +38,32 @@ int main(int argc, char **argv)
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
+    /* Test should_send */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+
+        conn->actual_protocol_version = S2N_TLS10;
+        EXPECT_FALSE(s2n_client_signature_algorithms_extension.should_send(conn));
+
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_TRUE(s2n_client_signature_algorithms_extension.should_send(conn));
+
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_TRUE(s2n_client_signature_algorithms_extension.should_send(conn));
+
+        s2n_connection_free(conn);
+    }
+
     /* Test that recv can parse send */
     {
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
 
         struct s2n_stuffer io;
-        s2n_stuffer_alloc(&io, s2n_extensions_client_signature_algorithms_size(client_conn));
+        s2n_stuffer_growable_alloc(&io, 0);
 
-        EXPECT_SUCCESS(s2n_extensions_client_signature_algorithms_send(client_conn, &io));
-
-        uint16_t extension_type;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&io, &extension_type));
-        EXPECT_EQUAL(extension_type, TLS_EXTENSION_SIGNATURE_ALGORITHMS);
-
-        uint16_t extension_size;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&io, &extension_size));
-        EXPECT_EQUAL(extension_size, s2n_stuffer_data_available(&io));
-
-        EXPECT_SUCCESS(s2n_extensions_client_signature_algorithms_recv(server_conn, &io));
+        EXPECT_SUCCESS(s2n_client_signature_algorithms_extension.send(client_conn, &io));
+        EXPECT_SUCCESS(s2n_client_signature_algorithms_extension.recv(server_conn, &io));
         EXPECT_EQUAL(s2n_stuffer_data_available(&io), 0);
 
         EXPECT_EQUAL(server_conn->handshake_params.client_sig_hash_algs.len,
