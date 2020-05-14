@@ -164,6 +164,14 @@ int main(int argc, char **argv)
 
     /* Test s2n_client_key_share_extension.recv */
     {
+        /* Test that s2n_client_key_share_extension.recv is a no-op
+         * if tls1.3 not enabled */
+        {
+            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_client_key_share_extension.recv(NULL, NULL));
+            EXPECT_SUCCESS(s2n_enable_tls13());
+        }
+
         /* Test that s2n_client_key_share_extension.recv can read and parse
          * the result of s2n_client_key_share_extension.send */
         {

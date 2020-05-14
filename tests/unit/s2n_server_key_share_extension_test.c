@@ -380,13 +380,10 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(conn->config);
 
-        /* x25519 is supported, but not present in all curve preference lists */
+        /* x25519 is supported by s2n, but NOT included in the 20140601 ecc_preferences list */
         const struct s2n_ecc_named_curve *test_curve = &s2n_ecc_curve_x25519;
-
-        /* Explicitly set the ecc_preferences list to NOT contain x25519 */
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(conn->config, "20140601"));
 
-        /* Fails because curve is supported by s2n, but not supported by ecc preferences */
         conn->secure.server_ecc_evp_params.negotiated_curve = test_curve;
         conn->secure.client_ecc_evp_params[0].negotiated_curve = test_curve;
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.send(conn, &conn->handshake.io),
@@ -402,20 +399,25 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         struct s2n_stuffer *extension_stuffer = &conn->handshake.io;
 
-        /* x25519 is supported, but not present in all curve preference lists */
+        /* x25519 is supported by s2n, but NOT included in the 20140601 ecc_preferences list */
         const struct s2n_ecc_named_curve *test_curve = &s2n_ecc_curve_x25519;
-
-        /* Explicitly set the ecc_preferences list to NOT contain x25519 */
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(conn->config, "20140601"));
 
         /* Write the iana id of x25519 as the group */
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(extension_stuffer, test_curve->iana_id));
 
-        /* Fails because curve is supported by s2n, but not supported by ecc preferences */
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.recv(conn, extension_stuffer),
                 S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test that s2n_server_key_share_extension.recv is a no-op
+     * if tls1.3 not enabled */
+    {
+        EXPECT_SUCCESS(s2n_disable_tls13());
+        EXPECT_SUCCESS(s2n_server_key_share_extension.recv(NULL, NULL));
+        EXPECT_SUCCESS(s2n_enable_tls13());
     }
 
     END_TEST();

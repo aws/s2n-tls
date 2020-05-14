@@ -68,6 +68,10 @@ static int s2n_server_key_share_send(struct s2n_connection *conn, struct s2n_stu
  */
 static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
+    if (!s2n_is_tls13_enabled()) {
+        return S2N_SUCCESS;
+    }
+
     notnull_check(conn);
     notnull_check(extension);
 
