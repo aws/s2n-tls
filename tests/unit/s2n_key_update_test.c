@@ -57,7 +57,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_init(&application_secret_stuffer, &application_secret_blob));
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&application_secret_stuffer, application_secret.data, application_secret.size));
 
-        EXPECT_SUCCESS(s2n_update_application_traffic_keys(conn, S2N_CLIENT, 1));
+        EXPECT_SUCCESS(s2n_update_application_traffic_keys(conn, S2N_CLIENT, RECEIVING));
 
         /* Check the new secret is what was expected */
         S2N_BLOB_EXPECT_EQUAL(application_secret_stuffer.blob, updated_application_secret); 

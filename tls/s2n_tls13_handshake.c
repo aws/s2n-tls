@@ -178,7 +178,7 @@ int s2n_tls13_handle_application_secrets(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mode, int received)
+int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mode, keyupdate_status status)
 {
     notnull_check(conn);
     
@@ -212,7 +212,7 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
 
     /* Derives next generation of traffic key */
     GUARD(s2n_tls13_derive_traffic_keys(&keys, &app_secret_update, &app_key, &app_iv));
-    if (received) {
+    if (status) {
         GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(old_key, &app_key));
     } else {
         GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(old_key, &app_key));

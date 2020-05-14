@@ -17,9 +17,9 @@
 
 #include "tls/s2n_connection.h"
 
-enum {
-    sending=0,
-    receiving
-};
+typedef enum {
+    SENDING=0,
+    RECEIVING
+} keyupdate_status;
 
 int s2n_key_update_recv(struct s2n_connection *conn);

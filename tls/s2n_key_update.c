@@ -34,9 +34,9 @@ int s2n_key_update_recv(struct s2n_connection *conn)
     conn->key_update_pending = key_update_request;
     /* Update peer's key since a key_update was received */
     if (conn->mode == S2N_CLIENT){
-        GUARD(s2n_update_application_traffic_keys(conn, S2N_SERVER, receiving));
+        GUARD(s2n_update_application_traffic_keys(conn, S2N_SERVER, RECEIVING));
     } else {
-        GUARD(s2n_update_application_traffic_keys(conn, S2N_CLIENT, receiving));
+        GUARD(s2n_update_application_traffic_keys(conn, S2N_CLIENT, RECEIVING));
     }
 
     return 0;

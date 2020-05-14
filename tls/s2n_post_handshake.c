@@ -36,5 +36,6 @@ int s2n_post_handshake_recv(struct s2n_connection *conn)
     if (post_handshake_id == TLS_KEY_UPDATE) {
         GUARD(s2n_key_update_recv(conn));
     }
+    GUARD(s2n_stuffer_wipe(&conn->handshake.io));
     return 0;
 }
