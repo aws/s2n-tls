@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 
         char *server_name_data;
         EXPECT_NOT_NULL(server_name_data = s2n_stuffer_raw_read(&stuffer, server_name_size));
-        EXPECT_STRING_EQUAL(server_name_data, test_server_name);
+        EXPECT_BYTEARRAY_EQUAL(server_name_data, test_server_name, strlen(test_server_name));
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
