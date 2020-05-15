@@ -22,44 +22,48 @@
 
 #include "tls/extensions/s2n_server_alpn.h"
 
+static bool s2n_alpn_should_send(struct s2n_connection *conn);
+static int s2n_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+static int s2n_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
-/* Precalculate size of extension */
-int s2n_server_extensions_alpn_send_size(struct s2n_connection *conn)
+const s2n_extension_type s2n_server_alpn_extension = {
+    .iana_value = TLS_EXTENSION_ALPN,
+    .is_response = true,
+    .send = s2n_alpn_send,
+    .recv = s2n_alpn_recv,
+    .should_send = s2n_alpn_should_send,
+    .if_missing = s2n_extension_noop_if_missing,
+};
+
+static bool s2n_alpn_should_send(struct s2n_connection *conn)
 {
-    const uint8_t application_protocol_len = strlen(conn->application_protocol);
-
-    if (!application_protocol_len) {
-        return 0;
-    }
-
-    return 3 * sizeof(uint16_t) + 1 * sizeof(uint8_t) + application_protocol_len;
+    return conn && strlen(conn->application_protocol) > 0;
 }
 
-/* Write ALPN extension */
-int s2n_server_extensions_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
+    notnull_check(conn);
     const uint8_t application_protocol_len = strlen(conn->application_protocol);
 
-    if (!application_protocol_len) {
-        return 0;
-    }
+    /* Size of protocol name list */
+    GUARD(s2n_stuffer_write_uint16(out, application_protocol_len + sizeof(uint8_t)));
 
-    GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_ALPN));
-    GUARD(s2n_stuffer_write_uint16(out, application_protocol_len + 3));
-    GUARD(s2n_stuffer_write_uint16(out, application_protocol_len + 1));
+    /* Single entry in protocol name list */
     GUARD(s2n_stuffer_write_uint8(out, application_protocol_len));
     GUARD(s2n_stuffer_write_bytes(out, (uint8_t *) conn->application_protocol, application_protocol_len));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
-int s2n_recv_server_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static int s2n_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
+    notnull_check(conn);
+
     uint16_t size_of_all;
     GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
     if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all < 3) {
         /* ignore invalid extension size */
-        return 0;
+        return S2N_SUCCESS;
     }
 
     uint8_t protocol_len;
@@ -72,5 +76,28 @@ int s2n_recv_server_alpn(struct s2n_connection *conn, struct s2n_stuffer *extens
     memcpy_check(conn->application_protocol, protocol, protocol_len);
     conn->application_protocol[protocol_len] = '\0';
 
-    return 0;
+    return S2N_SUCCESS;
+}
+
+/* Old-style extension functions -- remove after extensions refactor is complete */
+
+int s2n_server_extensions_alpn_send_size(struct s2n_connection *conn)
+{
+    const uint8_t application_protocol_len = strlen(conn->application_protocol);
+
+    if (!application_protocol_len) {
+        return 0;
+    }
+
+    return 3 * sizeof(uint16_t) + 1 * sizeof(uint8_t) + application_protocol_len;
+}
+
+int s2n_server_extensions_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    return s2n_extension_send(&s2n_server_alpn_extension, conn, out);
+}
+
+int s2n_recv_server_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    return s2n_extension_recv(&s2n_server_alpn_extension, conn, extension);
 }
