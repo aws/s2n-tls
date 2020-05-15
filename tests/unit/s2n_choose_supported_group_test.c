@@ -19,6 +19,9 @@
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/s2n_security_policies.h"
 
+int s2n_choose_supported_group(struct s2n_connection *conn, const struct s2n_ecc_named_curve **group_options,
+        struct s2n_ecc_evp_params *chosen_group);
+
 int main(int argc, char **argv) 
 {
     struct s2n_connection *server_conn;

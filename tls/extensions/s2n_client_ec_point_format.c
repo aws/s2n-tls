@@ -16,17 +16,48 @@
 #include <sys/param.h>
 #include <stdint.h>
 
+#include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/extensions/s2n_client_ec_point_format.h"
 #include "tls/s2n_tls.h"
 
 #include "utils/s2n_safety.h"
 
-int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static int s2n_client_ec_point_format_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+static int s2n_client_ec_point_format_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+
+const s2n_extension_type s2n_client_ec_point_format_extension = {
+    .iana_value = TLS_EXTENSION_EC_POINT_FORMATS,
+    .is_response = false,
+    .send = s2n_client_ec_point_format_send,
+    .recv = s2n_client_ec_point_format_recv,
+    .should_send = s2n_extension_should_send_if_ecc_enabled,
+    .if_missing = s2n_extension_noop_if_missing,
+};
+
+static int s2n_client_ec_point_format_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    /* Point format list len. We only support one. */
+    GUARD(s2n_stuffer_write_uint8(out, 1));
+
+    /* Only allow uncompressed format */
+    GUARD(s2n_stuffer_write_uint8(out, TLS_EC_POINT_FORMAT_UNCOMPRESSED));
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_client_ec_point_format_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     /**
      * Only uncompressed points are supported by the server and the client must include it in
      * the extension. Just skip the extension.
      */
     conn->ec_point_formats = 1;
-    return 0;
+    return S2N_SUCCESS;
+}
+
+/* Old-style extension functions -- remove after extensions refactor is complete */
+
+int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    return s2n_extension_recv(&s2n_client_ec_point_format_extension, conn, extension);
 }
