@@ -16,14 +16,13 @@
 
 #pragma once
 
+#include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_connection.h"
 #include "stuffer/s2n_stuffer.h"
 
-/* Return the length of cookie data in the connection */
+extern const s2n_extension_type s2n_server_cookie_extension;
+
+/* Old-style extension functions -- remove after extensions refactor is complete */
 int s2n_extensions_cookie_size(struct s2n_connection *conn);
-
-/* Write the connection's cookie data to the output stuffer */
 int s2n_extensions_cookie_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-
-/* Read cookie data out of the received extension, and save it in the connection */
 int s2n_extensions_cookie_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);

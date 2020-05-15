@@ -26,86 +26,148 @@
 
 #include "utils/s2n_safety.h"
 
-#define EXTENSION_LEN       2
-#define EXTENSION_DATA_LEN  2
-#define COOKIE_SIZE_LEN     2
-#define COOKIE_TEST_SIZE    16
+const uint8_t test_cookie_data[] =
+    { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5 };
+const uint8_t test_cookie_size = s2n_array_len(test_cookie_data);
 
 int main(int argc, char *argv[])
 {
     BEGIN_TEST();
 
+    EXPECT_SUCCESS(s2n_enable_tls13());
+
+    /* Test should_send */
     {
-        EXPECT_SUCCESS(s2n_enable_tls13());
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-        struct s2n_config *config;
-        EXPECT_NOT_NULL(config = s2n_config_new());
+        /* TLS1.2 and no cookie data: should not send */
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->cookie_stuffer));
+        EXPECT_FALSE(s2n_server_cookie_extension.should_send(conn));
 
-        uint8_t cookie_data_compare[COOKIE_TEST_SIZE] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5 };
-        struct s2n_blob compare_blob;
-        EXPECT_SUCCESS(s2n_blob_init(&compare_blob, cookie_data_compare, COOKIE_TEST_SIZE));
+        /* TLS1.2 and cookie data: should not send */
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->cookie_stuffer, 0));
+        EXPECT_FALSE(s2n_server_cookie_extension.should_send(conn));
 
-        /* Test that we can send and receive a cookie extension */
+        /* TLS1.3 and no cookie data: should not send */
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->cookie_stuffer));
+        EXPECT_FALSE(s2n_server_cookie_extension.should_send(conn));
+
+        /* TLS1.3 and cookie data: should send */
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->cookie_stuffer, 0));
+        EXPECT_TRUE(s2n_server_cookie_extension.should_send(conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test send */
+    {
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+        struct s2n_stuffer stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->cookie_stuffer, test_cookie_data, test_cookie_size));
+        EXPECT_SUCCESS(s2n_server_cookie_extension.send(conn, &stuffer));
+
+        uint16_t cookie_size;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &cookie_size));
+        EXPECT_EQUAL(cookie_size, s2n_stuffer_data_available(&stuffer));
+        EXPECT_EQUAL(cookie_size, test_cookie_size);
+
+        uint8_t cookie_data[cookie_size];
+        EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, cookie_data, cookie_size));
+        EXPECT_BYTEARRAY_EQUAL(cookie_data, test_cookie_data, test_cookie_size);
+
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+
+        /* Sending the extension should wipe the cookie stuffer */
+        EXPECT_EQUAL(s2n_stuffer_data_available(&conn->cookie_stuffer), 0);
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test recv */
+    {
+        struct s2n_connection *server_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
+        /* Should accept extension written by send */
         {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_conn->cookie_stuffer,
+                    test_cookie_data, test_cookie_size));
 
-            /* Initialize the connection's cookie data with a default value.
-             * The server will send this value in the cookie extension. */
-            EXPECT_SUCCESS(s2n_stuffer_resize(&conn->cookie_stuffer, COOKIE_TEST_SIZE));
-            EXPECT_SUCCESS(s2n_stuffer_write(&conn->cookie_stuffer, &compare_blob));
+            struct s2n_connection *client_conn;
+            EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->cookie_stuffer), 0);
 
-            /* Initialize the extension stuff which will be written to */
-            struct s2n_blob out_blob;
-            struct s2n_stuffer out_stuffer;
-            uint8_t extension_out[EXTENSION_LEN + EXTENSION_DATA_LEN + COOKIE_SIZE_LEN + COOKIE_TEST_SIZE] = { 0 };
+            struct s2n_stuffer stuffer;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-            /* Send the extension and verify the expected number of bytes were written */
-            EXPECT_SUCCESS(s2n_blob_init(&out_blob, extension_out, sizeof(extension_out)));
-            EXPECT_SUCCESS(s2n_stuffer_init(&out_stuffer, &out_blob));
-            EXPECT_SUCCESS(s2n_extensions_cookie_send(conn, &out_stuffer));
-            S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(&out_stuffer, EXTENSION_LEN + EXTENSION_DATA_LEN + COOKIE_SIZE_LEN + COOKIE_TEST_SIZE);
+            EXPECT_SUCCESS(s2n_server_cookie_extension.send(server_conn, &stuffer));
 
-            /* Reset the extension stuffer and cookie data */
-            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->cookie_stuffer));
-            EXPECT_SUCCESS(s2n_stuffer_reread(&out_stuffer));
-            EXPECT_SUCCESS(s2n_stuffer_skip_read(&out_stuffer, EXTENSION_LEN));
-            EXPECT_SUCCESS(s2n_stuffer_skip_read(&out_stuffer, EXTENSION_DATA_LEN));
+            EXPECT_SUCCESS(s2n_server_cookie_extension.recv(client_conn, &stuffer));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->cookie_stuffer), test_cookie_size);
+            EXPECT_BYTEARRAY_EQUAL(client_conn->cookie_stuffer.blob.data,
+                    test_cookie_data, test_cookie_size);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
 
-            /* Verify we can receive the extension and the cookie_data is set correctly */
-            EXPECT_SUCCESS(s2n_extensions_cookie_recv(conn, &out_stuffer));
-            S2N_BLOB_EXPECT_EQUAL(conn->cookie_stuffer.blob, compare_blob);
-            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
         }
 
-        /* Test that cookies with incorrect size fields don't get processed */
+        /* Should do nothing if tls1.3 not enabled */
         {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_conn->cookie_stuffer,
+                    test_cookie_data, test_cookie_size));
 
-            /* Initialize the extension stuff which will be written to */
-            struct s2n_blob out_blob;
-            struct s2n_stuffer out_stuffer;
-            uint8_t extension_out[EXTENSION_LEN + EXTENSION_DATA_LEN + COOKIE_SIZE_LEN + COOKIE_TEST_SIZE] = { 0 };
+            struct s2n_connection *client_conn;
+            EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->cookie_stuffer), 0);
 
-            EXPECT_SUCCESS(s2n_blob_init(&out_blob, extension_out, sizeof(extension_out)));
-            EXPECT_SUCCESS(s2n_stuffer_init(&out_stuffer, &out_blob));
+            struct s2n_stuffer stuffer;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-            /* This cookie says it has 3 bytes, but only has 2 bytes */
-            uint8_t bad_size[5] = { TLS_EXTENSION_COOKIE, 0x00, 0x03, 0x00, 0x00 };
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&out_stuffer, bad_size, sizeof(bad_size)));
+            EXPECT_SUCCESS(s2n_server_cookie_extension.send(server_conn, &stuffer));
 
-            /* The receive should succeed, but since the extension was corrupted it 
-             * should not be saved to the connection. */
-            EXPECT_SUCCESS(s2n_extensions_cookie_recv(conn, &out_stuffer));
-            EXPECT_EQUAL(s2n_extensions_cookie_size(conn), 0);
-            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_server_cookie_extension.recv(client_conn, &stuffer));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->cookie_stuffer), 0);
+
+            EXPECT_SUCCESS(s2n_enable_tls13());
+            EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
         }
 
-        EXPECT_SUCCESS(s2n_config_free(config));
-        EXPECT_SUCCESS(s2n_disable_tls13());
+        /* Should do nothing if cookie size wrong */
+        {
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_conn->cookie_stuffer,
+                    test_cookie_data, test_cookie_size));
+
+            struct s2n_connection *client_conn;
+            EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->cookie_stuffer), 0);
+
+            struct s2n_stuffer stuffer;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+            EXPECT_SUCCESS(s2n_server_cookie_extension.send(server_conn, &stuffer));
+            EXPECT_SUCCESS(s2n_stuffer_wipe_n(&stuffer, 1));
+
+            EXPECT_SUCCESS(s2n_server_cookie_extension.recv(client_conn, &stuffer));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->cookie_stuffer), 0);
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        }
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
     END_TEST();
