@@ -33,8 +33,11 @@ int s2n_post_handshake_recv(struct s2n_connection *conn)
     GUARD(s2n_stuffer_read_uint8(&conn->in, &post_handshake_id));
     GUARD(s2n_stuffer_read_uint24(&conn->in, &message_length));
     GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, message_length));
-    if (post_handshake_id == TLS_KEY_UPDATE) {
+    switch (post_handshake_id) 
+    {
+        case TLS_KEY_UPDATE:
         GUARD(s2n_key_update_recv(conn));
+        break;
     }
     GUARD(s2n_stuffer_wipe(&conn->handshake.io));
     return 0;
