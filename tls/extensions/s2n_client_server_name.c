@@ -39,7 +39,7 @@ const s2n_extension_type s2n_client_server_name_extension = {
 
 static bool s2n_client_server_name_should_send(struct s2n_connection *conn)
 {
-    return strlen(conn->server_name) > 0;
+    return conn && strlen(conn->server_name) > 0;
 }
 
 static int s2n_client_server_name_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -60,6 +60,8 @@ static int s2n_client_server_name_send(struct s2n_connection *conn, struct s2n_s
 
 static int s2n_client_server_name_check(struct s2n_connection *conn, struct s2n_stuffer *extension, uint16_t *server_name_len)
 {
+    notnull_check(conn);
+
     uint16_t size_of_all;
     GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
     lte_check(size_of_all, s2n_stuffer_data_available(extension));
@@ -77,6 +79,8 @@ static int s2n_client_server_name_check(struct s2n_connection *conn, struct s2n_
 
 static int s2n_client_server_name_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
+    notnull_check(conn);
+
     /* Exit early if we've already parsed the server name */
     if (conn->server_name[0]) {
         return S2N_SUCCESS;

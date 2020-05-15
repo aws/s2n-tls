@@ -35,7 +35,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_set_server_name(conn, ""));
         EXPECT_FALSE(s2n_client_server_name_extension.should_send(conn));
 
-        /* server_name set -> send! */
+        /* server_name set -> send */
         EXPECT_SUCCESS(s2n_set_server_name(conn, test_server_name));
         EXPECT_TRUE(s2n_client_server_name_extension.should_send(conn));
 
@@ -70,6 +70,8 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_name_data = s2n_stuffer_raw_read(&stuffer, server_name_size));
         EXPECT_BYTEARRAY_EQUAL(server_name_data, test_server_name, strlen(test_server_name));
 
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
@@ -89,6 +91,31 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_server_name_extension.send(client_conn, &stuffer));
 
         EXPECT_STRING_EQUAL(server_conn->server_name, "");
+        EXPECT_SUCCESS(s2n_client_server_name_extension.recv(server_conn, &stuffer));
+        EXPECT_STRING_EQUAL(server_conn->server_name, test_server_name);
+
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* recv - server name already set */
+    {
+        struct s2n_connection *client_conn;
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+
+        struct s2n_connection *server_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
+
+        struct s2n_stuffer stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+        EXPECT_SUCCESS(s2n_set_server_name(client_conn, "DIFFERENT SERVER NAME"));
+        EXPECT_SUCCESS(s2n_client_server_name_extension.send(client_conn, &stuffer));
+
+        EXPECT_SUCCESS(s2n_set_server_name(server_conn, test_server_name));
         EXPECT_SUCCESS(s2n_client_server_name_extension.recv(server_conn, &stuffer));
         EXPECT_STRING_EQUAL(server_conn->server_name, test_server_name);
 
