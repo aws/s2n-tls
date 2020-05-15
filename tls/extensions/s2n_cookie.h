@@ -27,9 +27,3 @@ int s2n_extensions_cookie_send(struct s2n_connection *conn, struct s2n_stuffer *
 
 /* Read cookie data out of the received extension, and save it in the connection */
 int s2n_extensions_cookie_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
-
-/* Functions specific to the server/client side cookie operations */
-int s2n_extensions_server_cookie_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-int s2n_extensions_server_cookie_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
-int s2n_extensions_client_cookie_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-int s2n_extensions_client_cookie_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
