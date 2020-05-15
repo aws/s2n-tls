@@ -673,6 +673,27 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2016 =
     .suites = cipher_suites_cloudfront_tls_1_0_2016,
 };
 
+struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_0_2020[] = {
+    S2N_TLS13_CIPHER_SUITES_20190801,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha
+};
+
+const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2020 = {
+    .count = s2n_array_len(cipher_suites_cloudfront_tls_1_0_2020),
+    .suites = cipher_suites_cloudfront_tls_1_0_2020,
+};
+
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_1_2016[] = {
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
