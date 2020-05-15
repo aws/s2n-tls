@@ -42,6 +42,7 @@
 #define TLS_FINISHED                  20
 #define TLS_SERVER_CERT_STATUS        22
 #define TLS_SERVER_SESSION_LOOKUP     23
+#define TLS_KEY_UPDATE                24
 #define TLS_MESSAGE_HASH             254
 
 /* This is the list of message types that we support */
