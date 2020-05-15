@@ -31,15 +31,18 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-        /* status request should be sent by default */
+        /* status request should NOT be sent by default */
         EXPECT_FALSE(s2n_client_status_request_extension.should_send(conn));
 
         /* status request should be sent if ocsp requested */
-        conn->config->status_request_type = S2N_STATUS_REQUEST_OCSP;
+        config->status_request_type = S2N_STATUS_REQUEST_OCSP;
         EXPECT_TRUE(s2n_client_status_request_extension.should_send(conn));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
+
+    /* Enable status requests */
+    config->status_request_type = S2N_STATUS_REQUEST_OCSP;
 
     /* Test send */
     {
