@@ -26,53 +26,66 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
+static int s2n_test_enable_extension(struct s2n_connection *conn)
+{
+    EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(conn->config, true));
+    conn->session_ticket_status = S2N_NEW_TICKET;
+    conn->actual_protocol_version = S2N_TLS12;
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    struct s2n_config *config;
-    EXPECT_NOT_NULL(config = s2n_config_new());
+    /* Test should_send */
+    {
+        struct s2n_config *config;
+        EXPECT_NOT_NULL(config = s2n_config_new());
+
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        /* By default, do not send */
+        EXPECT_FALSE(s2n_server_session_ticket_extension.should_send(conn));
+
+        /* If all prerequisites met, send */
+        EXPECT_SUCCESS(s2n_test_enable_extension(conn));
+        EXPECT_TRUE(s2n_server_session_ticket_extension.should_send(conn));
+
+        /* If tickets not enabled, do not send */
+        EXPECT_SUCCESS(s2n_test_enable_extension(conn));
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, false));
+        EXPECT_FALSE(s2n_server_session_ticket_extension.should_send(conn));
+
+        /* If ticket not new, do not send */
+        EXPECT_SUCCESS(s2n_test_enable_extension(conn));
+        conn->session_ticket_status = S2N_DECRYPT_TICKET;
+        EXPECT_FALSE(s2n_server_session_ticket_extension.should_send(conn));
+
+        /* If protocol version too high, do not send */
+        EXPECT_SUCCESS(s2n_test_enable_extension(conn));
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_FALSE(s2n_server_session_ticket_extension.should_send(conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
 
     /* Test server_session_ticket send and recv */
     {
-        struct s2n_connection *server_conn, *client_conn;
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-        
-        /* Zero length extension expected as conn cannot send ext */
-        EXPECT_EQUAL(0, s2n_server_session_ticket_ext_size(server_conn));
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-        /* Set connection to be able to send extension and verify size */
-        uint16_t expected_ext_length = 4;
+        EXPECT_SUCCESS(s2n_server_session_ticket_extension.send(conn, NULL));
 
-        server_conn->actual_protocol_version = S2N_TLS12;
-        server_conn->config->use_tickets = 1;
-        server_conn->session_ticket_status = S2N_NEW_TICKET;
-        EXPECT_EQUAL(expected_ext_length, s2n_server_session_ticket_ext_size(server_conn));
+        EXPECT_EQUAL(conn->session_ticket_status, S2N_NO_TICKET);
+        EXPECT_SUCCESS(s2n_server_session_ticket_extension.recv(conn, NULL));
+        EXPECT_EQUAL(conn->session_ticket_status, S2N_NEW_TICKET);
 
-        struct s2n_stuffer extension;
-        s2n_stuffer_alloc(&extension, s2n_server_session_ticket_ext_size(server_conn));
-
-        EXPECT_SUCCESS(s2n_send_server_session_ticket_ext(server_conn, &extension));
-        EXPECT_EQUAL(s2n_stuffer_data_available(&extension), s2n_server_session_ticket_ext_size(server_conn));
-
-        uint16_t extension_type, extension_length;
-        s2n_stuffer_read_uint16(&extension, &extension_type);
-        s2n_stuffer_read_uint16(&extension, &extension_length);
-        EXPECT_EQUAL(extension_type, TLS_EXTENSION_SESSION_TICKET);
-        EXPECT_EQUAL(extension_length, 0);
-
-        EXPECT_SUCCESS(s2n_recv_server_session_ticket_ext(client_conn, &extension));
-        EXPECT_EQUAL(client_conn->session_ticket_status, S2N_NEW_TICKET);
-
-        EXPECT_SUCCESS(s2n_stuffer_free(&extension));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
-
-    EXPECT_SUCCESS(s2n_config_free(config));
 
     END_TEST();
     return 0;
