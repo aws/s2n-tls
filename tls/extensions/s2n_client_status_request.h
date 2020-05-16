@@ -15,8 +15,12 @@
 
 #pragma once
 
+#include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_connection.h"
 #include "stuffer/s2n_stuffer.h"
 
+extern const s2n_extension_type s2n_client_status_request_extension;
+
+/* Old-style extension functions -- remove after extensions refactor is complete */
 extern int s2n_extensions_client_status_request_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 extern int s2n_recv_client_status_request(struct s2n_connection *conn, struct s2n_stuffer *extension);

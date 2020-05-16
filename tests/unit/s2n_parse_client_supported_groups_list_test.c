@@ -21,6 +21,9 @@
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/s2n_security_policies.h"
 
+int s2n_parse_client_supported_groups_list(struct s2n_connection *conn, struct s2n_blob *iana_ids,
+        const struct s2n_ecc_named_curve **supported_groups);
+
 int main(int argc, char **argv)
 {
     struct s2n_connection *server_conn;
