@@ -372,6 +372,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(server_conn));
 
         s2n_stack_blob(sct_list, SCT_LIST_SIZE, SCT_LIST_SIZE);
         s2n_stack_blob(raw, RAW_CERT_SIZE, RAW_CERT_SIZE);
@@ -460,6 +461,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(server_conn));
 
         s2n_stack_blob(ocsp_status, OCSP_SIZE, OCSP_SIZE);
         s2n_stack_blob(sct_list, SCT_LIST_SIZE, SCT_LIST_SIZE);
