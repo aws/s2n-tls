@@ -59,7 +59,7 @@ const char tls13_cert_invalid_ext_hex[] =
 /* with single extension sent */
 /* server can send empty status request extension from https://tools.ietf.org/html/rfc8446#section-4.4.2.1 */
 const char tls13_cert_single_ext_hex[] =
-    "000001b90001b03082" /* without 0b0001b9 header */
+    "000001ba0001b03082" /* without 0b0001b9 header */
     "01ac30820115a003020102020102300d06092a8648"
     "86f70d01010b0500300e310c300a06035504031303"
     "727361301e170d3136303733303031323335395a17"
@@ -80,7 +80,7 @@ const char tls13_cert_single_ext_hex[] =
     "5156726096fd335e5e67f2dbf102702e608ccae6be"
     "c1fc63a42a99be5c3eb7107c3c54e9b9eb2bd5203b"
     "1c3b84e0a8b2f759409ba3eac9d91d402dcc0cc8f8"
-    "961229ac9187b42b4de1000400050000";
+    "961229ac9187b42b4de100050005000100";
 
 
 int main(int argc, char **argv)
@@ -239,10 +239,11 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(client_conn));
 
         S2N_BLOB_FROM_HEX(tls13_cert, tls13_cert_single_ext_hex);
         EXPECT_SUCCESS(s2n_stuffer_write(&client_conn->handshake.io, &tls13_cert));
-        EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->handshake.io), 445);
+        EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->handshake.io), 446);
 
         client_conn->x509_validator.skip_cert_validation = 1;
         EXPECT_SUCCESS(s2n_server_cert_recv(client_conn));
@@ -280,6 +281,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(server_conn));
 
         s2n_stack_blob(ocsp_status, OCSP_SIZE, OCSP_SIZE);
         s2n_stack_blob(raw, RAW_CERT_SIZE, RAW_CERT_SIZE);
@@ -347,6 +349,7 @@ int main(int argc, char **argv)
         /* The current behaviour does not send OCSP stapling in client mode */
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(client_conn));
         client_conn->status_type = S2N_STATUS_REQUEST_OCSP;
         client_conn->handshake_params.our_chain_and_key = &chain_and_key;
 

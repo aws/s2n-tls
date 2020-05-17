@@ -23,6 +23,65 @@
 
 #define U24_SIZE 3
 
+/* In TLS 1.3, a response to a Status Request extension is sent as an extension with
+ * status request as well as the OCSP response. This contrasts to TLS 1.2 where
+ * the OCSP response is sent in the Certificate Status handshake message */
+
+static bool s2n_tls13_server_status_request_should_send(struct s2n_connection *conn);
+
+const s2n_extension_type s2n_tls13_server_status_request_extension = {
+    .iana_value = TLS_EXTENSION_STATUS_REQUEST,
+    .is_response = true,
+    .send = s2n_server_certificate_status_send,
+    .recv = s2n_server_certificate_status_parse,
+    .should_send = s2n_tls13_server_status_request_should_send,
+    .if_missing = s2n_extension_noop_if_missing,
+};
+
+static bool s2n_tls13_server_status_request_should_send(struct s2n_connection *conn)
+{
+    return s2n_server_can_send_ocsp(conn);
+}
+
+int s2n_server_certificate_status_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    notnull_check(conn);
+    struct s2n_blob *ocsp_status = &conn->handshake_params.our_chain_and_key->ocsp_status;
+    notnull_check(ocsp_status);
+
+    GUARD(s2n_stuffer_write_uint8(out, (uint8_t) S2N_STATUS_REQUEST_OCSP));
+    GUARD(s2n_stuffer_write_uint24(out, ocsp_status->size));
+    GUARD(s2n_stuffer_write(out, ocsp_status));
+
+    return 0;
+}
+
+int s2n_server_certificate_status_parse(struct s2n_connection *conn, struct s2n_stuffer *in)
+{
+    notnull_check(conn);
+
+    uint8_t type;
+    GUARD(s2n_stuffer_read_uint8(in, &type));
+    if (type != S2N_STATUS_REQUEST_OCSP ) {
+        /* We only support OCSP */
+        return S2N_SUCCESS;
+    }
+
+    uint32_t status_size;
+    GUARD(s2n_stuffer_read_uint24(in, &status_size));
+    lte_check(status_size, s2n_stuffer_data_available(in));
+
+    GUARD(s2n_realloc(&conn->status_response, status_size));
+    GUARD(s2n_stuffer_read_bytes(in, conn->status_response.data, status_size));
+
+    GUARD(s2n_x509_validator_validate_cert_stapled_ocsp_response(
+            &conn->x509_validator, conn, conn->status_response.data, conn->status_response.size));
+
+    return S2N_SUCCESS;
+}
+
+/* Old-style extension functions -- remove after extensions refactor is complete */
+
 static int s2n_server_certificate_status_send_size(struct s2n_connection *conn)
 {
     notnull_check(conn);
@@ -45,42 +104,15 @@ int s2n_tls13_ocsp_extension_send_size(struct s2n_connection *conn)
     return 0;
 }
 
-/* In TLS 1.3, a response to a Status Request extension is sent as an extension with
- * status request as well as the OCSP response. This contrasts to TLS 1.2 where
- * the OCSP response is sent in the Certificate Status handshake message */
 int s2n_tls13_ocsp_extension_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    notnull_check(conn);
-    if (s2n_server_can_send_ocsp(conn)) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_STATUS_REQUEST));
-        GUARD(s2n_stuffer_write_uint16(out, s2n_server_certificate_status_send_size(conn)));
-        GUARD(s2n_server_certificate_status_send(conn, out));
-    }
-
-    return 0;
+    return s2n_extension_send(&s2n_tls13_server_status_request_extension, conn, out);
 }
 
-int s2n_server_certificate_status_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+int s2n_tls13_ocsp_extension_recv(struct s2n_connection *conn, struct s2n_blob *extension)
 {
-    notnull_check(conn);
-    if (s2n_server_can_send_ocsp(conn)) {
-        struct s2n_blob *ocsp_status = &conn->handshake_params.our_chain_and_key->ocsp_status; 
-
-        GUARD(s2n_stuffer_write_uint8(out, (uint8_t) S2N_STATUS_REQUEST_OCSP));
-        GUARD(s2n_stuffer_write_uint24(out, ocsp_status->size));
-        GUARD(s2n_stuffer_write(out, ocsp_status));
-    }
-
-    return 0;
-}
-
-int s2n_server_certificate_status_parse(struct s2n_connection *conn, struct s2n_blob *status)
-{
-    notnull_check(conn);
-    GUARD(s2n_realloc(&conn->status_response, status->size));
-    memcpy_check(conn->status_response.data, status->data, status->size);
-    conn->status_response.size = status->size;
-
-    return s2n_x509_validator_validate_cert_stapled_ocsp_response(&conn->x509_validator, conn,
-                                                                      conn->status_response.data, conn->status_response.size);
+    struct s2n_stuffer in;
+    GUARD(s2n_stuffer_init(&in, extension));
+    GUARD(s2n_stuffer_write(&in, extension));
+    return s2n_extension_recv(&s2n_tls13_server_status_request_extension, conn, &in);
 }
