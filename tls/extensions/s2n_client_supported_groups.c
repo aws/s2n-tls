@@ -16,8 +16,9 @@
 #include <sys/param.h>
 #include <stdint.h>
 
-#include "tls/extensions/s2n_client_ec_point_format.h"
 #include "tls/extensions/s2n_client_supported_groups.h"
+#include "tls/extensions/s2n_ec_point_format.h"
+
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_security_policies.h"
