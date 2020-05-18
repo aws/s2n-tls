@@ -36,13 +36,13 @@ static bool s2n_server_name_should_send(struct s2n_connection *conn)
     return conn && conn->server_name_used && !s2n_connection_is_session_resumed(conn);
 }
 
-int s2n_server_name_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_server_name_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     /* Write nothing. The extension just needs to exist. */
     return S2N_SUCCESS;
 }
 
-int s2n_server_name_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static int s2n_server_name_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     notnull_check(conn);
     /* Read nothing. The extension just needs to exist. */

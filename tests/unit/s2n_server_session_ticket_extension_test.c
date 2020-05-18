@@ -64,6 +64,11 @@ int main(int argc, char **argv)
         conn->session_ticket_status = S2N_DECRYPT_TICKET;
         EXPECT_FALSE(s2n_server_session_ticket_extension.should_send(conn));
 
+        /* If no ticket, do not send */
+        EXPECT_SUCCESS(s2n_test_enable_extension(conn));
+        conn->session_ticket_status = S2N_NO_TICKET;
+        EXPECT_FALSE(s2n_server_session_ticket_extension.should_send(conn));
+
         /* If protocol version too high, do not send */
         EXPECT_SUCCESS(s2n_test_enable_extension(conn));
         conn->actual_protocol_version = S2N_TLS13;

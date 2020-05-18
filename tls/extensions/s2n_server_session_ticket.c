@@ -38,13 +38,13 @@ static bool s2n_session_ticket_should_send(struct s2n_connection *conn)
     return s2n_server_sending_nst(conn) && s2n_connection_get_protocol_version(conn) < S2N_TLS13;
 }
 
-int s2n_session_ticket_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_session_ticket_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     /* Write nothing. The extension just needs to exist. */
     return S2N_SUCCESS;
 }
 
-int s2n_session_ticket_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static int s2n_session_ticket_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     /* Read nothing. The extension just needs to exist. */
     notnull_check(conn);
