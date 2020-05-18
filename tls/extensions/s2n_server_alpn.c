@@ -68,6 +68,7 @@ static int s2n_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer *extens
 
     uint8_t protocol_len;
     GUARD(s2n_stuffer_read_uint8(extension, &protocol_len));
+    lt_check(protocol_len, s2n_array_len(conn->application_protocol));
 
     uint8_t *protocol = s2n_stuffer_raw_read(extension, protocol_len);
     notnull_check(protocol);

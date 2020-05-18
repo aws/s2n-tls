@@ -51,9 +51,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_server_alpn_extension.send(conn, &stuffer));
 
         /* Should have correct total size */
-        uint16_t total_size;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &total_size));
-        EXPECT_EQUAL(total_size, s2n_stuffer_data_available(&stuffer));
+        uint16_t protocol_name_list_size;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &protocol_name_list_size));
+        EXPECT_EQUAL(protocol_name_list_size, s2n_stuffer_data_available(&stuffer));
 
         /* Should have correct protocol name size */
         uint8_t protocol_name_size;

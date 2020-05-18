@@ -39,7 +39,7 @@ const s2n_extension_type s2n_server_max_fragment_length_extension = {
 
 static bool s2n_max_fragment_length_should_send(struct s2n_connection *conn)
 {
-    return conn && conn->mfl_code;
+    return conn && conn->mfl_code != S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
 }
 
 static int s2n_max_fragment_length_send(struct s2n_connection *conn, struct s2n_stuffer *out)
