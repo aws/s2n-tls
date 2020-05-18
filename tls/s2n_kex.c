@@ -179,7 +179,7 @@ static int s2n_get_server_hybrid_extensions_size(const struct s2n_connection *co
     return s2n_kex_server_extension_size(hybrid_kex_0, conn) + s2n_kex_server_extension_size(hybrid_kex_1, conn);
 }
 
-static const struct s2n_kex s2n_kem = {
+const struct s2n_kex s2n_kem = {
     .is_ephemeral = 1,
     .get_server_extension_size = &s2n_get_no_extension_size,
     .write_server_extensions = &s2n_write_no_extension,
@@ -323,4 +323,17 @@ int s2n_kex_tls_prf(const struct s2n_kex *kex, struct s2n_connection *conn, stru
 {
     notnull_check(kex->prf);
     return kex->prf(conn, premaster_secret);
+}
+
+bool s2n_kex_includes(const struct s2n_kex *kex, const struct s2n_kex *query)
+{
+    if (kex == query) {
+        return true;
+    }
+
+    if (kex == NULL || query == NULL) {
+        return false;
+    }
+
+    return query == kex->hybrid[0] || query == kex->hybrid[1];
 }

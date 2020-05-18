@@ -35,6 +35,7 @@ struct s2n_kex {
     int (*prf)(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
 };
 
+extern const struct s2n_kex s2n_kem;
 extern const struct s2n_kex s2n_rsa;
 extern const struct s2n_kex s2n_dhe;
 extern const struct s2n_kex s2n_ecdhe;
@@ -54,3 +55,5 @@ extern int s2n_kex_client_key_recv(const struct s2n_kex *kex, struct s2n_connect
 extern int s2n_kex_client_key_send(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);
 
 extern int s2n_kex_tls_prf(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *premaster_secret);
+
+bool s2n_kex_includes(const struct s2n_kex *kex, const struct s2n_kex *query);
