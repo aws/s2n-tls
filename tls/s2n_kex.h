@@ -23,8 +23,6 @@ struct s2n_kex {
     uint8_t is_ephemeral;
     const struct s2n_kex *hybrid[2];
 
-    int (*get_server_extension_size)(const struct s2n_connection *conn);
-    int (*write_server_extensions)(const struct s2n_connection *conn, struct s2n_stuffer *out);
     int (*connection_supported)(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn);
     int (*configure_connection)(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn);
     int (*server_key_recv_read_data)(struct s2n_connection *conn, struct s2n_blob *data_to_verify, struct s2n_kex_raw_server_data *kex_data);
@@ -41,8 +39,6 @@ extern const struct s2n_kex s2n_dhe;
 extern const struct s2n_kex s2n_ecdhe;
 extern const struct s2n_kex s2n_hybrid_ecdhe_kem;
 
-extern int s2n_kex_server_extension_size(const struct s2n_kex *kex, const struct s2n_connection *conn);
-extern int s2n_kex_write_server_extension(const struct s2n_kex *kex, const struct s2n_connection *conn, struct s2n_stuffer *out);
 extern int s2n_kex_supported(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn);
 extern int s2n_configure_kex(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn);
 extern int s2n_kex_is_ephemeral(const struct s2n_kex *kex);
