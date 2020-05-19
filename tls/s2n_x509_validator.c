@@ -366,7 +366,6 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         X509_STORE_CTX_set_time(ctx, 0, current_time);
 
         op_code = X509_verify_cert(ctx);
-        printf("\n Error code: %s\n", X509_verify_cert_error_string(X509_STORE_CTX_get_error(ctx)));
 
         S2N_ERROR_IF(op_code <= 0, S2N_CERT_ERR_UNTRUSTED);
     }
