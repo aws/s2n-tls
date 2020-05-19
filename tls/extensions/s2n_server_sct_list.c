@@ -21,6 +21,52 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+static bool s2n_server_sct_list_should_send(struct s2n_connection *conn);
+static int s2n_server_sct_list_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+static int s2n_server_sct_list_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+
+const s2n_extension_type s2n_server_sct_list_extension = {
+    .iana_value = TLS_EXTENSION_SCT_LIST,
+    .is_response = true,
+    .send = s2n_server_sct_list_send,
+    .recv = s2n_server_sct_list_recv,
+    .should_send = s2n_server_sct_list_should_send,
+    .if_missing = s2n_extension_noop_if_missing,
+};
+
+static bool s2n_server_sct_list_should_send(struct s2n_connection *conn)
+{
+    return s2n_server_can_send_sct_list(conn);
+}
+
+int s2n_server_sct_list_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    notnull_check(conn);
+    struct s2n_blob *sct_list = &conn->handshake_params.our_chain_and_key->sct_list;
+
+    notnull_check(sct_list);
+    GUARD(s2n_stuffer_write(out, sct_list));
+
+    return S2N_SUCCESS;
+}
+
+int s2n_server_sct_list_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    notnull_check(conn);
+
+    struct s2n_blob sct_list;
+    GUARD(s2n_blob_init(&sct_list,
+            s2n_stuffer_raw_read(extension, s2n_stuffer_data_available(extension)),
+            s2n_stuffer_data_available(extension)));
+    notnull_check(sct_list.data);
+
+    GUARD(s2n_dup(&sct_list, &conn->ct_response));
+
+    return S2N_SUCCESS;
+}
+
+/* Old-style extension functions -- remove after extensions refactor is complete */
+
 int s2n_server_extensions_sct_list_send_size(struct s2n_connection *conn)
 {
     if (s2n_server_can_send_sct_list(conn)) {
@@ -31,31 +77,12 @@ int s2n_server_extensions_sct_list_send_size(struct s2n_connection *conn)
     return 0;
 }
 
-/* Write Signed Certificate Timestamp extension */
 int s2n_server_extensions_sct_list_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    notnull_check(conn);
-
-    if (s2n_server_can_send_sct_list(conn)) {
-        struct s2n_blob *sct_list = &conn->handshake_params.our_chain_and_key->sct_list;
-
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SCT_LIST));
-        GUARD(s2n_stuffer_write_uint16(out, sct_list->size));
-        GUARD(s2n_stuffer_write(out, sct_list));
-    }
-
-    return 0;
+    return s2n_extension_send(&s2n_server_sct_list_extension, conn, out);
 }
 
 int s2n_recv_server_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    struct s2n_blob sct_list = { .data = NULL, .size = 0 };
-
-    sct_list.size = s2n_stuffer_data_available(extension);
-    sct_list.data = s2n_stuffer_raw_read(extension, sct_list.size);
-    notnull_check(sct_list.data);
-
-    GUARD(s2n_dup(&sct_list, &conn->ct_response));
-
-    return 0;
+    return s2n_extension_recv(&s2n_server_sct_list_extension, conn, extension);
 }
