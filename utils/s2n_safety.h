@@ -36,29 +36,14 @@
 #define BAIL( x )                                    do { _S2N_ERROR( ( x ) ); return S2N_RESULT_ERROR; } while (0)
 
 /**
- * If the condition is `true`, the global `errno` will be set and return with a `S2N_RESULT_ERROR`
- */
-#define BAIL_IF( condition , error )                 __S2N_ENSURE(!(condition), BAIL(error))
-
-/**
  * Sets the global `errno` and returns with a POSIX error (`-1`)
  */
 #define BAIL_POSIX( x )                              do { _S2N_ERROR( ( x ) ); return S2N_FAILURE; } while (0)
 
 /**
- * If the condition is `true`, the global `errno` will be set and return with a POSIX error (`-1`)
- */
-#define BAIL_POSIX_IF( condition , error )           __S2N_ENSURE(!(condition), BAIL_POSIX(error))
-
-/**
  * Sets the global `errno` and returns with a `NULL` pointer value
  */
 #define BAIL_PTR( x )                                do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
-
-/**
- * If the condition is `true`, the global `errno` will be set and return with a `NULL` pointer value
- */
-#define BAIL_PTR_IF( condition , error )             __S2N_ENSURE(!(condition), BAIL_PTR(error))
 
 /**
  * Ensures the `condition` is `true`, otherwise the function will `BAIL` with an `error`
