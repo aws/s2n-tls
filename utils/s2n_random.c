@@ -55,7 +55,10 @@
 /* One second in nanoseconds */
 #define ONE_S  INT64_C(1000000000)
 
-static int entropy_fd = -1;
+/* Placeholder value for an uninitialized entropy file descriptor */
+#define UNINITIALIZED_ENTROPY_FD -1
+
+static int entropy_fd = UNINITIALIZED_ENTROPY_FD;
 
 static __thread struct s2n_drbg per_thread_private_drbg = {0};
 static __thread struct s2n_drbg per_thread_public_drbg = {0};
@@ -124,6 +127,8 @@ S2N_RESULT s2n_get_private_random_bytes_used(uint64_t *bytes_used)
 
 S2N_RESULT s2n_get_urandom_data(struct s2n_blob *blob)
 {
+    ENSURE(entropy_fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
+
     uint32_t n = blob->size;
     uint8_t *data = blob->data;
     struct timespec sleep_time = {.tv_sec = 0, .tv_nsec = 0 };
@@ -239,7 +244,7 @@ S2N_RESULT s2n_rand_init(void)
 {
   OPEN:
     entropy_fd = open(ENTROPY_SOURCE, O_RDONLY);
-    if (entropy_fd == -1) {
+    if (entropy_fd == S2N_FAILURE) {
         if (errno == EINTR) {
             goto OPEN;
         }
@@ -249,10 +254,10 @@ S2N_RESULT s2n_rand_init(void)
     zero_if_forked_ptr = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
     ENSURE(zero_if_forked_ptr != MAP_FAILED, S2N_ERR_OPEN_RANDOM);
 
-    ENSURE(minherit(zero_if_forked_ptr, sizeof(int), MAP_INHERIT_ZERO) != -1, S2N_ERR_OPEN_RANDOM);
+    ENSURE(minherit(zero_if_forked_ptr, sizeof(int), MAP_INHERIT_ZERO) != S2N_FAILURE, S2N_ERR_OPEN_RANDOM);
 #else
 
-    ENSURE(pthread_atfork(NULL, NULL, s2n_on_fork) == 0, S2N_ERR_OPEN_RANDOM);
+    ENSURE(pthread_atfork(NULL, NULL, s2n_on_fork) == S2N_SUCCESS, S2N_ERR_OPEN_RANDOM);
 #endif
 
     GUARD_RESULT(s2n_defend_if_forked());
@@ -283,10 +288,10 @@ S2N_RESULT s2n_rand_init(void)
 
 S2N_RESULT s2n_rand_cleanup(void)
 {
-    ENSURE(entropy_fd != -1, S2N_ERR_NOT_INITIALIZED);
+    ENSURE(entropy_fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
 
     GUARD_AS_RESULT(close(entropy_fd));
-    entropy_fd = -1;
+    entropy_fd = UNINITIALIZED_ENTROPY_FD;
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Cleanup our rand ENGINE in libcrypto */

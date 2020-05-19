@@ -31,77 +31,77 @@
  */
 
 /**
- * Sets the global errno and returns with a `S2N_RESULT_ERROR`
+ * Sets the global `errno` and returns with a `S2N_RESULT_ERROR`
  */
 #define BAIL( x )                                    do { _S2N_ERROR( ( x ) ); return S2N_RESULT_ERROR; } while (0)
 
 /**
- * If the condition is true, the global errno will be set and return with a `S2N_RESULT_ERROR`
+ * If the condition is `true`, the global `errno` will be set and return with a `S2N_RESULT_ERROR`
  */
 #define BAIL_IF( condition , error )                 __S2N_ENSURE(!(condition), BAIL(error))
 
 /**
- * Sets the global errno and returns with a POSIX error (-1)
+ * Sets the global `errno` and returns with a POSIX error (`-1`)
  */
 #define BAIL_POSIX( x )                              do { _S2N_ERROR( ( x ) ); return S2N_FAILURE; } while (0)
 
 /**
- * If the condition is true, the global errno will be set and return with a POSIX error (-1)
+ * If the condition is `true`, the global `errno` will be set and return with a POSIX error (`-1`)
  */
 #define BAIL_POSIX_IF( condition , error )           __S2N_ENSURE(!(condition), BAIL_POSIX(error))
 
 /**
- * Sets the global errno and returns with a NULL pointer value
+ * Sets the global `errno` and returns with a `NULL` pointer value
  */
 #define BAIL_PTR( x )                                do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
 
 /**
- * If the condition is true, the global errno will be set and return with a NULL pointer value
+ * If the condition is `true`, the global `errno` will be set and return with a `NULL` pointer value
  */
 #define BAIL_PTR_IF( condition , error )             __S2N_ENSURE(!(condition), BAIL_PTR(error))
 
 /**
- * Ensures the `condition` is true, otherwise the function will `BAIL` with an `error`
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL` with an `error`
  */
 #define ENSURE( condition , error )                  __S2N_ENSURE((condition), BAIL(error))
 
 /**
- * Ensures the `result` is OK, otherwise the function will BAIL with an `error`
+ * Ensures the `result` is OK, otherwise the function will `BAIL` with an `error`
  */
 #define ENSURE_OK( result , error )                  __S2N_ENSURE(s2n_result_is_ok(result), BAIL(error))
 
 /**
- * Ensures `n` is greater than or equal to `min`, otherwise the function will BAIL with a `S2N_ERR_SAFETY` error
+ * Ensures `n` is greater than or equal to `min`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define ENSURE_GTE( n , min )                        ENSURE((n) >= (min), S2N_ERR_SAFETY)
 
 /**
- * Ensures `n` is less than or equal to `max`, otherwise the function will BAIL with a `S2N_ERR_SAFETY` error
+ * Ensures `n` is less than or equal to `max`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define ENSURE_LTE( n , max )                        ENSURE((n) <= (max), S2N_ERR_SAFETY)
 
 /**
- * Ensures `n` is greater than `min`, otherwise the function will BAIL with a `S2N_ERR_SAFETY` error
+ * Ensures `n` is greater than `min`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define ENSURE_GT( n , min )                         ENSURE((n) > (min), S2N_ERR_SAFETY)
 
 /**
- * Ensures `n` is less than `min`, otherwise the function will BAIL with a `S2N_ERR_SAFETY` error
+ * Ensures `n` is less than `min`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define ENSURE_LT( n , max )                         ENSURE((n) < (max), S2N_ERR_SAFETY)
 
 /**
- * Ensures `a` is equal to `b`, otherwise the function will BAIL with a `S2N_ERR_SAFETY` error
+ * Ensures `a` is equal to `b`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define ENSURE_EQ( a , b )                           ENSURE((a) == (b), S2N_ERR_SAFETY)
 
 /**
- * Ensures `a` is not equal to `b`, otherwise the function will BAIL with a `S2N_ERR_SAFETY` error
+ * Ensures `a` is not equal to `b`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
  */
 #define ENSURE_NE( a , b )                           ENSURE((a) != (b), S2N_ERR_SAFETY)
 
 /**
- * Ensures `x` is not `NULL`, otherwise the function will BAIL with a `S2N_ERR_NULL` error
+ * Ensures `x` is not `NULL`, otherwise the function will `BAIL` with a `S2N_ERR_NULL` error
  */
 #define ENSURE_NONNULL( x )                          ENSURE(!((x) == NULL), S2N_ERR_NULL)
 
@@ -126,7 +126,7 @@
   } while(0)
 
 /**
- * Ensures the `condition` is true, otherwise the function will `BAIL_POSIX` with an `error`
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with an `error`
  */
 #define ENSURE_POSIX( condition , error )           __S2N_ENSURE((condition), BAIL_POSIX(error))
 
@@ -136,7 +136,7 @@
 #define ENSURE_POSIX_NONNULL( x )                   ENSURE_POSIX(!((x) == NULL), S2N_ERR_NULL)
 
 /**
- * Ensures the `condition` is true, otherwise the function will `BAIL_PTR` with an `error`
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL_PTR` with an `error`
  */
 #define ENSURE_PTR( condition , error )             __S2N_ENSURE((condition), BAIL_PTR(error))
 
@@ -226,7 +226,7 @@
 #define GUARD_POSIX( x )                            __S2N_ENSURE((x) >= 0, return S2N_FAILURE)
 
 /**
- * Ensures `x` is strictly not a POSIX error (-1), otherwise goto `label`
+ * Ensures `x` is strictly not a POSIX error (`-1`), otherwise goto `label`
  */
 #define GUARD_POSIX_STRICT( x )                     __S2N_ENSURE((x) == 0, return S2N_FAILURE)
 
@@ -241,7 +241,7 @@
 #define GUARD_POSIX_PTR( x )                        __S2N_ENSURE((x) >= 0, return NULL)
 
 /**
- * Ensures `x` is not `NULL`, otherwise the function will return a POSIX error (-1)
+ * Ensures `x` is not `NULL`, otherwise the function will return a POSIX error (`-1`)
  */
 #define GUARD_POSIX_NONNULL( x )                    __S2N_ENSURE(!((x) == NULL), return S2N_FAILURE)
 
@@ -257,7 +257,7 @@
 #define GUARD_AS_RESULT( x )                        __S2N_ENSURE((x) >= 0, return S2N_RESULT_ERROR)
 
 /**
- * Ensures `x` is OK, otherwise the function will return a POSIX error (-1)
+ * Ensures `x` is OK, otherwise the function will return a POSIX error (`-1`)
  */
 #define GUARD_AS_POSIX( x )                         __S2N_ENSURE(s2n_result_is_ok(x), return S2N_FAILURE)
 
@@ -271,7 +271,7 @@
  */
 #define CHECKED_MEMSET( d , c , n )                 __S2N_ENSURE_SAFE_MEMSET((d), (c), (n), ENSURE_NONNULL)
 
-/* Returns true if s2n is in unit test mode, false otherwise */
+/* Returns `true` if s2n is in unit test mode, `false` otherwise */
 bool s2n_in_unit_test();
 
 /* Sets whether s2n is in unit test mode */
@@ -299,7 +299,9 @@ extern int s2n_constant_time_copy_or_dont(uint8_t * dst, const uint8_t * src, ui
  * Always returns zero. */
 extern int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t * dst, const uint8_t * src, uint32_t srclen, uint32_t expectlen);
 
-/* Runs _thecleanup function on _thealloc once _thealloc went out of scope */
+/**
+ * Runs _thecleanup function on _thealloc once _thealloc went out of scope
+ */
 #define DEFER_CLEANUP(_thealloc, _thecleanup) \
    __attribute__((cleanup(_thecleanup))) _thealloc
 
@@ -331,7 +333,7 @@ extern int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out);
  * NOTE: This will be removed once everything is using s2n_result
  */
 
-/* NULL check a pointer */
+/* `NULL` check a pointer */
 
 /* Note: this macro is replaced by ENSURE_POSIX_NONNULL */
 #define notnull_check( ptr )                        ENSURE_POSIX_NONNULL(ptr)
