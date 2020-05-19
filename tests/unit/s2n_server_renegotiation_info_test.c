@@ -50,7 +50,7 @@ int main(int argc, char **argv)
         conn->secure_renegotiation = true;
         EXPECT_FALSE(s2n_server_renegotiation_info_extension.should_send(conn));
 
-        /* TLS1.2 and secure renegotiation enabled -> send! */
+        /* TLS1.2 and secure renegotiation enabled -> send */
         conn->actual_protocol_version = S2N_TLS12;
         conn->secure_renegotiation = true;
         EXPECT_TRUE(s2n_server_renegotiation_info_extension.should_send(conn));
