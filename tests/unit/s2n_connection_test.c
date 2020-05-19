@@ -38,6 +38,9 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_set_test_protocol_versions(server_conn));
 
+        /* Handle null */
+        EXPECT_EQUAL(s2n_connection_get_protocol_version(NULL), S2N_UNKNOWN_PROTOCOL_VERSION);
+
         /* Return actual if set */
         EXPECT_EQUAL(s2n_connection_get_protocol_version(client_conn), actual_version);
         EXPECT_EQUAL(s2n_connection_get_protocol_version(server_conn), actual_version);
