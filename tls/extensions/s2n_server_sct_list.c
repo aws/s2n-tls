@@ -52,10 +52,12 @@ int s2n_server_sct_list_send(struct s2n_connection *conn, struct s2n_stuffer *ou
 
 int s2n_server_sct_list_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    struct s2n_blob sct_list = { .data = NULL, .size = 0 };
+    notnull_check(conn);
 
-    sct_list.size = s2n_stuffer_data_available(extension);
-    sct_list.data = s2n_stuffer_raw_read(extension, sct_list.size);
+    struct s2n_blob sct_list;
+    GUARD(s2n_blob_init(&sct_list,
+            s2n_stuffer_raw_read(extension, s2n_stuffer_data_available(extension)),
+            s2n_stuffer_data_available(extension)));
     notnull_check(sct_list.data);
 
     GUARD(s2n_dup(&sct_list, &conn->ct_response));

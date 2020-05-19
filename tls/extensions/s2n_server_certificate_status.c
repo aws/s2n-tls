@@ -33,7 +33,7 @@ const s2n_extension_type s2n_tls13_server_status_request_extension = {
     .iana_value = TLS_EXTENSION_STATUS_REQUEST,
     .is_response = true,
     .send = s2n_server_certificate_status_send,
-    .recv = s2n_server_certificate_status_parse,
+    .recv = s2n_server_certificate_status_recv,
     .should_send = s2n_tls13_server_status_request_should_send,
     .if_missing = s2n_extension_noop_if_missing,
 };
@@ -53,16 +53,16 @@ int s2n_server_certificate_status_send(struct s2n_connection *conn, struct s2n_s
     GUARD(s2n_stuffer_write_uint24(out, ocsp_status->size));
     GUARD(s2n_stuffer_write(out, ocsp_status));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
-int s2n_server_certificate_status_parse(struct s2n_connection *conn, struct s2n_stuffer *in)
+int s2n_server_certificate_status_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
 {
     notnull_check(conn);
 
     uint8_t type;
     GUARD(s2n_stuffer_read_uint8(in, &type));
-    if (type != S2N_STATUS_REQUEST_OCSP ) {
+    if (type != S2N_STATUS_REQUEST_OCSP) {
         /* We only support OCSP */
         return S2N_SUCCESS;
     }

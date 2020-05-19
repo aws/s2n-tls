@@ -36,5 +36,5 @@ int s2n_server_status_send(struct s2n_connection *conn)
 
 int s2n_server_status_recv(struct s2n_connection *conn)
 {
-    return s2n_server_certificate_status_parse(conn, &conn->handshake.io);
+    return s2n_server_certificate_status_recv(conn, &conn->handshake.io);
 }

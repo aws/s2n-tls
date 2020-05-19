@@ -22,7 +22,7 @@
 extern const s2n_extension_type s2n_tls13_server_status_request_extension;
 
 int s2n_server_certificate_status_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-int s2n_server_certificate_status_parse(struct s2n_connection *conn, struct s2n_stuffer *in);
+int s2n_server_certificate_status_recv(struct s2n_connection *conn, struct s2n_stuffer *in);
 
 /* Old-style extension functions -- remove after extensions refactor is complete */
 int s2n_tls13_ocsp_extension_send_size(struct s2n_connection *conn);
