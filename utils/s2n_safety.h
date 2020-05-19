@@ -25,6 +25,9 @@
 #include "utils/s2n_ensure.h"
 #include "utils/s2n_result.h"
 
+/* Success signal value for OpenSSL functions */
+#define _OSSL_SUCCESS 1
+
 /**
  * The goal of s2n_safety is to provide helpers to perform common
  * checks, which help with code readability.
@@ -88,7 +91,7 @@
 /**
  * Ensures `x` is not `NULL`, otherwise the function will `BAIL` with a `S2N_ERR_NULL` error
  */
-#define ENSURE_NONNULL( x )                          ENSURE(!((x) == NULL), S2N_ERR_NULL)
+#define ENSURE_NONNULL( x )                          ENSURE((x) != NULL, S2N_ERR_NULL)
 
 /**
  * Ensures `min <= n <= max`
@@ -118,7 +121,7 @@
 /**
  * Ensures `x` is not `NULL`, otherwise the function will `BAIL_POSIX` with an `error`
  */
-#define ENSURE_POSIX_NONNULL( x )                   ENSURE_POSIX(!((x) == NULL), S2N_ERR_NULL)
+#define ENSURE_POSIX_NONNULL( x )                   ENSURE_POSIX((x) != NULL, S2N_ERR_NULL)
 
 /**
  * Ensures the `condition` is `true`, otherwise the function will `BAIL_PTR` with an `error`
@@ -128,7 +131,7 @@
 /**
  * Ensures `x` is not `NULL`, otherwise the function will `BAIL_PTR` with an `error`
  */
-#define ENSURE_PTR_NONNULL( x )                     ENSURE_PTR(!((x) == NULL), S2N_ERR_NULL)
+#define ENSURE_PTR_NONNULL( x )                     ENSURE_PTR((x) != NULL, S2N_ERR_NULL)
 
 /**
  * Ensures `x` is not an error, otherwise the function will return an error signal
@@ -163,14 +166,14 @@
  *
  * Note: this currently accepts POSIX error signals but will transition to accept s2n_result
  */
-#define GUARD_NONNULL_GOTO( x , label )             __S2N_ENSURE(!((x) == NULL), goto label)
+#define GUARD_NONNULL_GOTO( x , label )             __S2N_ENSURE((x) != NULL, goto label)
 
 /**
  * Ensures `x` is not `NULL`, otherwise the function will return `NULL`
  *
  * Note: this currently accepts POSIX error signals but will transition to accept s2n_result
  */
-#define GUARD_NONNULL_PTR( x )                      __S2N_ENSURE(!((x) == NULL), return NULL)
+#define GUARD_NONNULL_PTR( x )                      __S2N_ENSURE((x) != NULL, return NULL)
 
 /**
  * Ensures `x` is not a OpenSSL error, otherwise the function will return an error signal
@@ -197,49 +200,49 @@
 /**
  * Ensures `x` is not `NULL`, otherwise the function will return an `S2N_RESULT_ERROR`
  */
-#define GUARD_RESULT_NONNULL( x )                   __S2N_ENSURE(!((x) == NULL), return S2N_RESULT_ERROR)
+#define GUARD_RESULT_NONNULL( x )                   __S2N_ENSURE((x) != NULL, return S2N_RESULT_ERROR)
 
 /**
  * Ensures `x` is not a OpenSSL error, otherwise the function will `BAIL` with `error`
  */
 /* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
-#define GUARD_RESULT_OSSL( x , error )              ENSURE((x) == 1, error)
+#define GUARD_RESULT_OSSL( x , error )              ENSURE((x) == _OSSL_SUCCESS, error)
 
 /**
  * Ensures `x` is not a POSIX error, otherwise return a POSIX error
  */
-#define GUARD_POSIX( x )                            __S2N_ENSURE((x) >= 0, return S2N_FAILURE)
+#define GUARD_POSIX( x )                            __S2N_ENSURE((x) >= S2N_SUCCESS, return S2N_FAILURE)
 
 /**
  * Ensures `x` is strictly not a POSIX error (`-1`), otherwise goto `label`
  */
-#define GUARD_POSIX_STRICT( x )                     __S2N_ENSURE((x) == 0, return S2N_FAILURE)
+#define GUARD_POSIX_STRICT( x )                     __S2N_ENSURE((x) == S2N_SUCCESS, return S2N_FAILURE)
 
 /**
  * Ensures `x` is not a POSIX error, otherwise goto `label`
  */
-#define GUARD_POSIX_GOTO( x , label )               __S2N_ENSURE((x) >= 0, goto label)
+#define GUARD_POSIX_GOTO( x , label )               __S2N_ENSURE((x) >= S2N_SUCCESS, goto label)
 
 /**
  * Ensures `x` is not a POSIX error, otherwise the function will return `NULL`
  */
-#define GUARD_POSIX_PTR( x )                        __S2N_ENSURE((x) >= 0, return NULL)
+#define GUARD_POSIX_PTR( x )                        __S2N_ENSURE((x) >= S2N_SUCCESS, return NULL)
 
 /**
  * Ensures `x` is not `NULL`, otherwise the function will return a POSIX error (`-1`)
  */
-#define GUARD_POSIX_NONNULL( x )                    __S2N_ENSURE(!((x) == NULL), return S2N_FAILURE)
+#define GUARD_POSIX_NONNULL( x )                    __S2N_ENSURE((x) != NULL, return S2N_FAILURE)
 
 /**
  * Ensures `x` is not a OpenSSL error, otherwise the function will `BAIL` with `error`
  */
 /* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
-#define GUARD_POSIX_OSSL( x , error )               ENSURE_POSIX((x) == 1, error)
+#define GUARD_POSIX_OSSL( x , error )               ENSURE_POSIX((x) == _OSSL_SUCCESS, error)
 
 /**
  * Ensures `x` is not a POSIX error, otherwise the function will return a `S2N_RESULT_ERROR`
  */
-#define GUARD_AS_RESULT( x )                        __S2N_ENSURE((x) >= 0, return S2N_RESULT_ERROR)
+#define GUARD_AS_RESULT( x )                        __S2N_ENSURE((x) >= S2N_SUCCESS, return S2N_RESULT_ERROR)
 
 /**
  * Ensures `x` is OK, otherwise the function will return a POSIX error (`-1`)
