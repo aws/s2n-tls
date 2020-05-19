@@ -154,6 +154,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(client_conn));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         client_conn->actual_protocol_version = S2N_TLS13;;
 

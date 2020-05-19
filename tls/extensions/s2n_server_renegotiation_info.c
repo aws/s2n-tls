@@ -24,10 +24,32 @@
 #include "tls/s2n_tls.h"
 #include "tls/extensions/s2n_server_renegotiation_info.h"
 
-#define s2n_server_can_send_secure_renegotiation(conn) ((conn)->secure_renegotiation && \
-        (conn)->actual_protocol_version < S2N_TLS13)
+static bool s2n_renegotiation_info_should_send(struct s2n_connection *conn);
+static int s2n_renegotiation_info_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+static int s2n_renegotiation_info_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
-int s2n_recv_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *extension)
+const s2n_extension_type s2n_server_renegotiation_info_extension = {
+    .iana_value = TLS_EXTENSION_RENEGOTIATION_INFO,
+    .is_response = false,
+    .send = s2n_renegotiation_info_send,
+    .recv = s2n_renegotiation_info_recv,
+    .should_send = s2n_renegotiation_info_should_send,
+    .if_missing = s2n_extension_noop_if_missing,
+};
+
+static bool s2n_renegotiation_info_should_send(struct s2n_connection *conn)
+{
+    return conn && conn->secure_renegotiation && s2n_connection_get_protocol_version(conn) < S2N_TLS13;
+}
+
+static int s2n_renegotiation_info_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    /* renegotiated_connection length. Zero since we don't support renegotiation. */
+    GUARD(s2n_stuffer_write_uint8(out, 0));
+    return S2N_SUCCESS;
+}
+
+static int s2n_renegotiation_info_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     /* RFC5746 Section 3.4: The client MUST then verify that the length of
      * the "renegotiated_connection" field is zero, and if it is not, MUST
@@ -37,26 +59,26 @@ int s2n_recv_server_renegotiation_info_ext(struct s2n_connection *conn, struct s
     S2N_ERROR_IF(s2n_stuffer_data_available(extension), S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
     S2N_ERROR_IF(renegotiated_connection_len, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
 
+    notnull_check(conn);
     conn->secure_renegotiation = 1;
-    return 0;
+    return S2N_SUCCESS;
+}
+
+/* Old-style extension functions -- remove after extensions refactor is complete */
+
+int s2n_recv_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    return s2n_extension_recv(&s2n_server_renegotiation_info_extension, conn, extension);
 }
 
 int s2n_send_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    if (s2n_server_can_send_secure_renegotiation(conn)) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_RENEGOTIATION_INFO));
-        /* renegotiation_info length */
-        GUARD(s2n_stuffer_write_uint16(out, 1));
-        /* renegotiated_connection length. Zero since we don't support renegotiation. */
-        GUARD(s2n_stuffer_write_uint8(out, 0));
-    }
-
-    return 0;
+    return s2n_extension_send(&s2n_server_renegotiation_info_extension, conn, out);
 }
 
 int s2n_server_renegotiation_info_ext_size(struct s2n_connection *conn)
 {
-    if (s2n_server_can_send_secure_renegotiation(conn)) {
+    if (s2n_renegotiation_info_should_send(conn)) {
         /* 2 for ext type, 2 for extension length, 1 for value of 0 */
         return 5;
     }
