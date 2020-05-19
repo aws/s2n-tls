@@ -67,6 +67,10 @@ void usage()
     fprintf(stderr, "    Directory containing hashed trusted certs. If neither -f or -d are specified. System defaults will be used.\n");
     fprintf(stderr, "  -i,--insecure\n");
     fprintf(stderr, "    Turns off certification validation altogether.\n");
+    fprintf(stderr, "  --cert [file path]\n");
+    fprintf(stderr, "    Path to a PEM encoded certificate. Optional. Will only be used for client auth\n");
+    fprintf(stderr, "  --key [file path]\n");
+    fprintf(stderr, "    Path to a PEM encoded private key that matches cert. Will only be used for client auth\n");
     fprintf(stderr, "  -r,--reconnect\n");
     fprintf(stderr, "    Drop and re-make the connection using Session ticket. If session ticket is disabled, then re-make the connection using Session-ID \n");
     fprintf(stderr, "  -T,--no-session-ticket \n");
@@ -102,6 +106,51 @@ static uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, v
 extern void print_s2n_error(const char *app_error);
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
+
+/* Caller is expected to free the memory returned. */
+static char *load_file_to_cstring(const char *path)
+{
+    FILE *pem_file = fopen(path, "rb");
+    if (!pem_file) {
+       fprintf(stderr, "Failed to open file %s: '%s'\n", path, strerror(errno));
+       return NULL;
+    }
+
+    /* Make sure we can fit the pem into the output buffer */
+    if (fseek(pem_file, 0, SEEK_END) < 0) {
+        fprintf(stderr, "Failed calling fseek: '%s'\n", strerror(errno));
+        fclose(pem_file);
+        return NULL;
+    }
+
+    const long int pem_file_size = ftell(pem_file);
+    if (pem_file_size < 0) {
+        fprintf(stderr, "Failed calling ftell: '%s'\n", strerror(errno));
+        fclose(pem_file);
+        return NULL;
+    }
+
+    rewind(pem_file);
+
+    char *pem_out = malloc(pem_file_size + 1);
+    if (pem_out == NULL) {
+        fprintf(stderr, "Failed allocating memory\n");
+        fclose(pem_file);
+        return NULL;
+    }
+
+    if (fread(pem_out, sizeof(char), pem_file_size, pem_file) < pem_file_size) {
+        fprintf(stderr, "Failed reading file: '%s'\n", strerror(errno));
+        free(pem_out);
+        fclose(pem_file);
+        return NULL;
+    }
+
+    pem_out[pem_file_size] = '\0';
+    fclose(pem_file);
+
+    return pem_out;
+}
 
 static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs, s2n_status_request_type type,
     struct verify_data *unsafe_verify_data, const char *host, const char *alpn_protocols, uint16_t mfl_value) {
@@ -221,6 +270,10 @@ int main(int argc, char *const *argv)
     const char *server_name = NULL;
     const char *ca_file = NULL;
     const char *ca_dir = NULL;
+    const char *client_cert = NULL;
+    const char *client_key = NULL;
+    bool client_cert_input = false;
+    bool client_key_input = false;
     uint16_t mfl_value = 0;
     uint8_t insecure = 0;
     int reconnect = 0;
@@ -247,6 +300,8 @@ int main(int argc, char *const *argv)
         {"mfl", required_argument, 0, 'm'},
         {"ca-file", required_argument, 0, 'f'},
         {"ca-dir", required_argument, 0, 'd'},
+        {"cert", required_argument, 0, 'l'},
+        {"key", required_argument, 0, 'k'},
         {"insecure", no_argument, 0, 'i'},
         {"reconnect", no_argument, 0, 'r'},
         {"no-session-ticket", no_argument, 0, 'T'},
@@ -258,7 +313,7 @@ int main(int argc, char *const *argv)
 
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:D:t:irTC", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:l:k:D:t:irTC", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -292,6 +347,14 @@ int main(int argc, char *const *argv)
             break;
         case 'd':
             ca_dir = optarg;
+            break;
+        case 'l':
+            client_cert = load_file_to_cstring(optarg);
+            client_cert_input = true;
+            break;
+        case 'k':
+            client_key = load_file_to_cstring(optarg);
+            client_key_input = true;
             break;
         case 'i':
             insecure = 1;
@@ -384,6 +447,16 @@ int main(int argc, char *const *argv)
 
         struct s2n_config *config = s2n_config_new();
         setup_s2n_config(config, cipher_prefs, type, &unsafe_verify_data, host, alpn_protocols, mfl_value);
+
+        if (client_cert_input != client_key_input) {
+            print_s2n_error("Client cert/key pair must be given.");
+        }
+
+        if (client_cert_input) {
+            struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new();
+            GUARD_EXIT(s2n_cert_chain_and_key_load_pem(chain_and_key, client_cert, client_key), "Error getting certificate/key");
+            GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key), "Error setting certificate/key");
+        }
 
         if (ca_file || ca_dir) {
             if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {

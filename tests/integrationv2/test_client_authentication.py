@@ -171,3 +171,57 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, provider, 
         assert results.exception is None
         assert results.exit_code == 0
         assert random_bytes in results.stdout
+
+
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", [cipher for cipher in ALL_TEST_CIPHERS if 'ECDSA' not in cipher.name], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [OpenSSL])
+@pytest.mark.parametrize("curve", ALL_CURVES)
+@pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", ALL_CERTS, ids=get_parameter_name)
+def test_client_auth_with_s2n_client_with_cert(managed_process, cipher, provider, curve, protocol, certificate):
+    host = "localhost"
+    port = next(available_ports)
+
+    # NOTE: Currently do not support different signature schemes for client and server
+    if 'ecdsa' in certificate.cert:
+        pytest.skip("Skipping known failure, do not support different sig schemes for client and server")
+    if protocol != Protocols.TLS13:
+        pytest.skip("Skipping non-TLS 1.3 client_auth tests")
+
+    random_bytes = data_bytes(64)
+    client_options = ProviderOptions(
+        mode=Provider.ClientMode,
+        host="localhost",
+        port=port,
+        cipher=cipher,
+        curve=curve,
+        data_to_send=random_bytes,
+        use_client_auth=True,
+        client_key_file=certificate.key,
+        client_certificate_file=certificate.cert,
+        client_trust_store= "../pems/rsa_2048_sha256_wildcard_cert.pem",
+        insecure=False,
+        protocol=protocol)
+
+    server_options = copy.copy(client_options)
+    server_options.data_to_send = None
+    server_options.mode = Provider.ServerMode
+    server_options.key = "../pems/rsa_2048_sha256_wildcard_key.pem"
+    server_options.cert = "../pems/rsa_2048_sha256_wildcard_cert.pem"
+
+    # Passing the type of client and server as a parameter will
+    # allow us to use a fixture to enumerate all possibilities.
+    server = managed_process(OpenSSL, server_options, timeout=5)
+    client = managed_process(S2N, client_options, timeout=5)
+
+    # The client should connect and return without error
+    for results in client.get_results():
+        assert results.exception is None
+        assert results.exit_code == 0
+        
+    # Openssl should indicate the procotol version in a successful connection.
+    for results in server.get_results():
+        assert results.exception is None
+        assert results.exit_code == 0
+        assert random_bytes in results.stdout
