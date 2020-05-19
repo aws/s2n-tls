@@ -32,6 +32,8 @@
 #include "crypto/s2n_rsa.h"
 #include "crypto/s2n_pkey.h"
 
+#define STDIO_BUFSIZE  10240
+
 void print_s2n_error(const char *app_error)
 {
     fprintf(stderr, "[%d] %s: '%s' : '%s'\n", getpid(), app_error, s2n_strerror(s2n_errno, "EN"),
@@ -119,12 +121,13 @@ int echo(struct s2n_connection *conn, int sockfd)
     s2n_blocked_status blocked;
     do {
         while ((p = poll(readers, 2, -1)) > 0) {
-            char buffer[10240];
-            int bytes_read, bytes_written;
+            char buffer[STDIO_BUFSIZE];
+            ssize_t bytes_read = 0;
+            ssize_t bytes_written = 0;
 
             if (readers[0].revents & POLLIN) {
                 do {
-                    bytes_read = s2n_recv(conn, buffer, 10240, &blocked);
+                    bytes_read = s2n_recv(conn, buffer, STDIO_BUFSIZE, &blocked);
                     if (bytes_read == 0) {
                         return 0;
                     }
@@ -141,39 +144,47 @@ int echo(struct s2n_connection *conn, int sockfd)
             }
 
             if (readers[1].revents & POLLIN) {
-                int bytes_available;
+                size_t bytes_available = 0;
+
                 if (ioctl(STDIN_FILENO, FIONREAD, &bytes_available) < 0) {
                     bytes_available = 1;
                 }
-                if (bytes_available > sizeof(buffer)) {
-                    bytes_available = sizeof(buffer);
-                }
 
-                /* Read as many bytes as we think we can */
                 do {
-                    bytes_read = read(STDIN_FILENO, buffer, bytes_available);
+                    /* We can only read as much data as we have space for. So it may
+                     * take a couple loops to empty stdin. */
+                    size_t bytes_to_read = bytes_available;
+                    if (bytes_available > sizeof(buffer)) {
+                        bytes_to_read = sizeof(buffer);
+                    }
+
+                    bytes_read = read(STDIN_FILENO, buffer, bytes_to_read);
                     if (bytes_read < 0 && errno != EINTR){
                         fprintf(stderr, "Error reading from stdin\n");
                         exit(1);
                     }
-                } while (bytes_read < 0);
-
-                if (bytes_read == 0) {
-                    /* Exit on EOF */
-                    return 0;
-                }
-
-                char *buf_ptr = buffer;
-                do {
-                    bytes_written = s2n_send(conn, buf_ptr, bytes_available, &blocked);
-                    if (bytes_written < 0) {
-                        fprintf(stderr, "Error writing to connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-                        exit(1);
+                    if (bytes_read == 0) {
+                        fprintf(stderr, "Exiting on stdin EOF\n");
+                        return 0;
                     }
+                    bytes_available -= bytes_read;
 
-                    bytes_available -= bytes_written;
-                    buf_ptr += bytes_written;
+                    /* We may not be able to write all the data we read in one shot, so
+                     * keep sending until we have cleared our buffer. */
+                    char *buf_ptr = buffer;
+                    do {
+                        bytes_written = s2n_send(conn, buf_ptr, bytes_read, &blocked);
+                        if (bytes_written < 0) {
+                            fprintf(stderr, "Error writing to connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+                            exit(1);
+                        }
+
+                        bytes_read -= bytes_written;
+                        buf_ptr += bytes_written;
+                    } while (bytes_read > 0);
+
                 } while (bytes_available || blocked);
+
             }
 
             if (readers[1].revents & POLLHUP) {
