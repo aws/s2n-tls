@@ -204,7 +204,7 @@ static int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, s
 {
 
     uint32_t cn_len = 0;
-    GUARD_AS_POSIX(s2n_vec_len(cert_key_pair->san_names, &cn_len));
+    GUARD_AS_POSIX(s2n_vec_len(cert_key_pair->cn_names, &cn_len));
     uint32_t san_len = 0;
     GUARD_AS_POSIX(s2n_vec_len(cert_key_pair->san_names, &san_len));
 

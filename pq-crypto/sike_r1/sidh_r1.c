@@ -66,7 +66,7 @@ int random_mod_order_B(unsigned char* random_digits)
     GUARD_AS_POSIX(get_random_bytes(random_digits, nbytes));
     random_digits[nbytes-1] &= MASK_BOB;     // Masking last byte
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 
@@ -135,7 +135,7 @@ int EphemeralKeyGeneration_A(const digit_t* PrivateKeyA, unsigned char* PublicKe
     fp2_encode(&phiQ->X, PublicKeyA + FP2_ENCODED_BYTES);
     fp2_encode(&phiR->X, PublicKeyA + 2*FP2_ENCODED_BYTES);
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 
@@ -205,7 +205,7 @@ int EphemeralKeyGeneration_B(const digit_t* PrivateKeyB, unsigned char* PublicKe
     fp2_encode(&phiQ->X, PublicKeyB + FP2_ENCODED_BYTES);
     fp2_encode(&phiR->X, PublicKeyB + 2*FP2_ENCODED_BYTES);
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 
@@ -265,7 +265,7 @@ int EphemeralSecretAgreement_A(const digit_t* PrivateKeyA, const unsigned char* 
     j_inv(A24plus, C24, jinv);
     fp2_encode(jinv, SharedSecretA);    // Format shared secret
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 
@@ -325,5 +325,5 @@ int EphemeralSecretAgreement_B(const digit_t* PrivateKeyB, const unsigned char* 
     j_inv(A, A24plus, jinv);
     fp2_encode(jinv, SharedSecretB);    // Format shared secret
 
-    return 0;
+    return S2N_SUCCESS;
 }
