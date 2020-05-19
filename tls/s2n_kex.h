@@ -52,4 +52,4 @@ extern int s2n_kex_client_key_send(const struct s2n_kex *kex, struct s2n_connect
 
 extern int s2n_kex_tls_prf(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *premaster_secret);
 
-bool s2n_kex_includes(const struct s2n_kex *kex, const struct s2n_kex *query);
+extern bool s2n_kex_includes(const struct s2n_kex *kex, const struct s2n_kex *query);

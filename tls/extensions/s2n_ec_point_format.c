@@ -77,7 +77,10 @@ static int s2n_ec_point_format_recv(struct s2n_connection *conn, struct s2n_stuf
 int s2n_server_ecc_point_format_extension_size(struct s2n_connection *conn)
 {
     if (s2n_server_ec_point_format_extension.should_send(conn) && s2n_server_can_send_ec_point_formats(conn)) {
-        return 6;
+        return sizeof(uint16_t)     /* extension type */
+                + sizeof(uint16_t)  /* extension size */
+                + sizeof(uint8_t)   /* point list size */
+                + sizeof(uint8_t);  /* point */
     }
     return 0;
 }
