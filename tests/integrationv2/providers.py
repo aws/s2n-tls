@@ -126,6 +126,11 @@ class S2N(Provider):
 
         cmd_line.extend(['-c', 'test_all'])
 
+        if options.client_key_file:
+            cmd_line.extend(['--key', options.client_key_file])
+        if options.client_certificate_file:
+            cmd_line.extend(['--cert', options.client_certificate_file])
+
         cmd_line.extend([options.host, options.port])
 
         # Clients are always ready to connect
