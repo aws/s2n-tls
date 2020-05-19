@@ -141,7 +141,7 @@ int s2n_client_hello_free_parsed_extensions(struct s2n_client_hello *client_hell
 {
     notnull_check(client_hello);
     if (client_hello->parsed_extensions != NULL) {
-        GUARD_AS_POSIX(s2n_vec_free_p(&client_hello->parsed_extensions));
+        GUARD_AS_POSIX(s2n_array_free_p(&client_hello->parsed_extensions));
     }
     return 0;
 }
@@ -244,7 +244,7 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
     }
 
     if (ch->parsed_extensions == NULL) {
-        notnull_check(ch->parsed_extensions = s2n_vec_new(sizeof(struct s2n_client_hello_parsed_extension)));
+        notnull_check(ch->parsed_extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension)));
     }
 
     struct s2n_stuffer in = {0};
@@ -274,7 +274,7 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
         }
 
         struct s2n_client_hello_parsed_extension *parsed_extension = NULL;
-        GUARD_AS_POSIX(s2n_vec_pushback(ch->parsed_extensions, (void **)&parsed_extension));
+        GUARD_AS_POSIX(s2n_array_pushback(ch->parsed_extensions, (void **)&parsed_extension));
         notnull_check(parsed_extension);
 
         parsed_extension->extension_type = ext_type;
@@ -286,7 +286,7 @@ static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
 
     /* Sort extensions by extension type */
     uint32_t parsed_extensions_len = 0;
-    GUARD_AS_POSIX(s2n_vec_len(ch->parsed_extensions, &parsed_extensions_len));
+    GUARD_AS_POSIX(s2n_array_num_elements(ch->parsed_extensions, &parsed_extensions_len));
     qsort(ch->parsed_extensions->mem.data, parsed_extensions_len, ch->parsed_extensions->element_size, s2n_parsed_extensions_compare);
 
     return 0;
@@ -309,7 +309,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
 
     if (client_hello->parsed_extensions != NULL) {
         uint32_t parsed_extensions_len = 0;
-        GUARD_AS_POSIX(s2n_vec_len(client_hello->parsed_extensions, &parsed_extensions_len));
+        GUARD_AS_POSIX(s2n_array_num_elements(client_hello->parsed_extensions, &parsed_extensions_len));
         if (parsed_extensions_len > 0) {
             GUARD(s2n_client_extensions_recv(conn, client_hello->parsed_extensions));
         }
@@ -522,7 +522,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_client_hello_get_parsed_extension(struct s2n_vec *parsed_extensions, s2n_tls_extension_type extension_type,
+int s2n_client_hello_get_parsed_extension(struct s2n_array *parsed_extensions, s2n_tls_extension_type extension_type,
         struct s2n_client_hello_parsed_extension *parsed_extension)
 {
     notnull_check(parsed_extensions);
@@ -531,7 +531,7 @@ int s2n_client_hello_get_parsed_extension(struct s2n_vec *parsed_extensions, s2n
     search.extension_type = extension_type;
 
     uint32_t parsed_extensions_len = 0;
-    GUARD_AS_POSIX(s2n_vec_len(parsed_extensions, &parsed_extensions_len));
+    GUARD_AS_POSIX(s2n_array_num_elements(parsed_extensions, &parsed_extensions_len));
     struct s2n_client_hello_parsed_extension *result_extension = bsearch(&search, parsed_extensions->mem.data, parsed_extensions_len,
             parsed_extensions->element_size, s2n_parsed_extensions_compare);
 

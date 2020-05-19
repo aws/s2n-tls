@@ -17,7 +17,7 @@
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_set.h"
-#include "utils/s2n_vec.h"
+#include "utils/s2n_array.h"
 
 #define S2N_INITIAL_SET_SIZE 16
 
@@ -28,11 +28,11 @@ static S2N_RESULT s2n_set_binary_search(struct s2n_set *set, void *element, uint
     ENSURE_NONNULL(set);
     ENSURE_NONNULL(element);
     ENSURE_NONNULL(out);
-    struct s2n_vec *vec = set->data;
+    struct s2n_array *array = set->data;
     int (*comparator)(const void*, const void*) = set->comparator;
 
     uint32_t len = 0;
-    GUARD_RESULT(s2n_vec_len(vec, &len));
+    GUARD_RESULT(s2n_array_num_elements(array, &len));
 
     if (len == 0) {
         *out = 0;
@@ -45,9 +45,9 @@ static S2N_RESULT s2n_set_binary_search(struct s2n_set *set, void *element, uint
 
     while (low <= top) {
         int64_t mid = low + ((top - low) / 2);
-        void* vec_element = NULL;
-        GUARD_RESULT(s2n_vec_get(vec, mid, &vec_element));
-        int m = comparator(vec_element, element);
+        void* array_element = NULL;
+        GUARD_RESULT(s2n_array_get(array, mid, &array_element));
+        int m = comparator(array_element, element);
 
         /* the element is already in the set */
         if (m == 0) {
@@ -71,7 +71,7 @@ struct s2n_set *s2n_set_new(size_t element_size, int (*comparator)(const void*, 
     struct s2n_blob mem = {0};
     GUARD_POSIX_PTR(s2n_alloc(&mem, sizeof(struct s2n_set)));
     struct s2n_set *set = (void *) mem.data;
-    *set = (struct s2n_set) {.data = s2n_vec_new(element_size), .comparator = comparator};
+    *set = (struct s2n_set) {.data = s2n_array_new(element_size), .comparator = comparator};
     if(set->data == NULL) {
         GUARD_POSIX_PTR(s2n_free(&mem));
         return NULL;
@@ -83,7 +83,7 @@ S2N_RESULT s2n_set_add(struct s2n_set *set, void *element)
 {
     uint32_t index = 0;
     GUARD_RESULT(s2n_set_binary_search(set, element, &index));
-    GUARD_RESULT(s2n_vec_insert_and_copy(set->data, index, element));
+    GUARD_RESULT(s2n_array_insert_and_copy(set->data, index, element));
 
     return S2N_RESULT_OK;
 }
@@ -93,14 +93,14 @@ S2N_RESULT s2n_set_get(struct s2n_set *set, uint32_t index, void **element)
     ENSURE_NONNULL(set);
     ENSURE_NONNULL(element);
 
-    GUARD_RESULT(s2n_vec_get(set->data, index, element));
+    GUARD_RESULT(s2n_array_get(set->data, index, element));
 
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_set_remove(struct s2n_set *set, uint32_t index)
 {
-    GUARD_RESULT(s2n_vec_remove(set->data, index));
+    GUARD_RESULT(s2n_array_remove(set->data, index));
 
     return S2N_RESULT_OK;
 }
@@ -111,7 +111,7 @@ S2N_RESULT s2n_set_free_p(struct s2n_set **pset)
     struct s2n_set *set = *pset;
 
     ENSURE_NONNULL(set);
-    GUARD_RESULT(s2n_vec_free(set->data));
+    GUARD_RESULT(s2n_array_free(set->data));
     GUARD_AS_RESULT(s2n_free_object((uint8_t **)pset, sizeof(struct s2n_set)));
 
     return S2N_RESULT_OK;
@@ -130,7 +130,7 @@ S2N_RESULT s2n_set_len(struct s2n_set *set, uint32_t *len)
     ENSURE_NONNULL(set);
     ENSURE_NONNULL(len);
 
-    GUARD_RESULT(s2n_vec_len(set->data, len));
+    GUARD_RESULT(s2n_array_num_elements(set->data, len));
 
     return S2N_RESULT_OK;
 }

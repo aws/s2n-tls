@@ -46,11 +46,11 @@ struct s2n_cert_chain_and_key {
      * with the server_name extension. We ignore non-DNS SANs here since the
      * server_name extension only supports DNS.
      */
-    struct s2n_vec *san_names;
+    struct s2n_array *san_names;
     /* CommonName values from the leaf certificate's Subject to match with the
      * server_name extension. Decoded as UTF8.
      */
-    struct s2n_vec *cn_names;
+    struct s2n_array *cn_names;
     /* Application defined data related to this cert. */
     void *context;
 };

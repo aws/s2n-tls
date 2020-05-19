@@ -26,7 +26,7 @@
 #include "tls/s2n_tls.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_vec.h"
+#include "utils/s2n_array.h"
 
 /* RFC's that define below values:
  *  - https://tools.ietf.org/html/rfc5246#section-7.4.4

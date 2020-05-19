@@ -19,13 +19,13 @@
 #include <string.h>
 
 #include "utils/s2n_blob.h"
-#include "utils/s2n_vec.h"
+#include "utils/s2n_array.h"
 
 struct s2n_client_hello_parsed_extension {
 	uint16_t extension_type;
 	struct s2n_blob extension;
 };
 
-extern int s2n_client_hello_get_parsed_extension(struct s2n_vec *parsed_extensions, s2n_tls_extension_type extension_type,
+extern int s2n_client_hello_get_parsed_extension(struct s2n_array *parsed_extensions, s2n_tls_extension_type extension_type,
         struct s2n_client_hello_parsed_extension *parsed_extension);
 extern void s2n_register_extension(uint16_t ext_type);

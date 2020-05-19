@@ -16,10 +16,10 @@
 
 #include <s2n.h>
 #include "utils/s2n_result.h"
-#include "utils/s2n_vec.h"
+#include "utils/s2n_array.h"
 
 struct s2n_set {
-  struct s2n_vec *data;
+  struct s2n_array *data;
   int (*comparator)(const void*, const void*);
 };
 
