@@ -78,6 +78,11 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *se
             KEM_PUBLIC_KEY_MESSAGE_SIZE)};
     GUARD_NONNULL(server_key_message.data);
 
+    /* The KEM public key should get written directly to the server's handshake IO; kem_params.public_key
+     * should point to NULL */
+    eq_check(NULL, server_conn->secure.kem_params.public_key.data);
+    eq_check(0, server_conn->secure.kem_params.public_key.size);
+
     /* Part 1.1: feed that to the client */
     GUARD(s2n_stuffer_write(&client_conn->handshake.io, &server_key_message));
 
