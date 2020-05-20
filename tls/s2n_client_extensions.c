@@ -38,8 +38,8 @@
 #include "extensions/s2n_client_sct_list.h"
 #include "extensions/s2n_client_supported_groups.h"
 #include "extensions/s2n_client_pq_kem.h"
-#include "extensions/s2n_client_ec_point_format.h"
 #include "extensions/s2n_client_renegotiation_info.h"
+#include "extensions/s2n_ec_point_format.h"
 
 #include "stuffer/s2n_stuffer.h"
 

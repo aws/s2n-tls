@@ -568,11 +568,11 @@ int s2n_security_policies_init()
             S2N_ERROR_IF(s2n_is_valid_tls13_cipher(cipher->iana_value) ^
                 (cipher->minimum_required_tls_version >= S2N_TLS13), S2N_ERR_INVALID_SECURITY_POLICY);
 
-            if (cipher->key_exchange_alg == &s2n_ecdhe || cipher->key_exchange_alg == &s2n_hybrid_ecdhe_kem) {
+            if (s2n_kex_includes(cipher->key_exchange_alg, &s2n_ecdhe)) {
                 security_policy_selection[i].ecc_extension_required = 1;
             }
 
-            if (cipher->key_exchange_alg == &s2n_hybrid_ecdhe_kem) {
+            if (s2n_kex_includes(cipher->key_exchange_alg, &s2n_kem)) {
                 security_policy_selection[i].pq_kem_extension_required = 1;
             }
         }

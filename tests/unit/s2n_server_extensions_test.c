@@ -23,6 +23,7 @@
 #include "tls/s2n_tls13.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/extensions/s2n_server_key_share.h"
+#include "tls/extensions/s2n_ec_point_format.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_security_policies.h"
 
@@ -486,6 +487,40 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
+    /* Test ec_point_format extension */
+    {
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+        conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha;
+
+        struct s2n_stuffer stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+        conn->ec_point_formats = false;
+        EXPECT_SUCCESS(s2n_server_extensions_send(conn, &stuffer));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+
+        conn->ec_point_formats = true;
+        EXPECT_SUCCESS(s2n_server_extensions_send(conn, &stuffer));
+        EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+
+        uint16_t extensions_size;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &extensions_size));
+        EXPECT_EQUAL(extensions_size, s2n_stuffer_data_available(&stuffer));
+        EXPECT_EQUAL(extensions_size, s2n_server_ecc_point_format_extension_size(conn));
+        EXPECT_NOT_EQUAL(extensions_size, 0);
+
+        struct s2n_blob extension_data;
+        EXPECT_SUCCESS(s2n_blob_init(&extension_data,
+                s2n_stuffer_raw_read(&stuffer, extensions_size), extensions_size));
+        EXPECT_SUCCESS(s2n_server_extensions_recv(conn, &extension_data));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));

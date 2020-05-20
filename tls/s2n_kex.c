@@ -24,46 +24,6 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-static int s2n_get_server_ecc_extension_size(const struct s2n_connection *conn)
-{
-    if (s2n_server_can_send_ec_point_formats(conn)) {
-        return 6;
-    } else {
-        return 0;
-    }
-}
-
-static int s2n_get_no_extension_size(const struct s2n_connection *conn)
-{
-    return 0;
-}
-
-/* Write the Supported Points Format extension.
- * RFC 4492 section 5.2 states that the absence of this extension in the Server Hello
- * is equivalent to allowing only the uncompressed point format. Let's send the
- * extension in case clients(Openssl 1.0.0) don't honor the implied behavior.
- */
-static int s2n_write_server_ecc_extension(const struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    if (s2n_server_can_send_ec_point_formats(conn)) {
-        GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_EC_POINT_FORMATS));
-        /* Total extension length */
-        GUARD(s2n_stuffer_write_uint16(out, 2));
-        /* Format list length */
-        GUARD(s2n_stuffer_write_uint8(out, 1));
-        /* Only uncompressed format is supported. Interoperability shouldn't be an issue:
-         * RFC 4492 Section 5.1.2: Implementations must support it for all of their curves.
-         */
-        GUARD(s2n_stuffer_write_uint8(out, TLS_EC_FORMAT_UNCOMPRESSED));
-    }
-    return 0;
-}
-
-static int s2n_write_no_extension(const struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return 0;
-}
-
 static int s2n_check_rsa_key(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
     return s2n_get_compatible_cert_chain_and_key(conn, S2N_PKEY_TYPE_RSA) != NULL;
@@ -161,28 +121,8 @@ static int s2n_check_hybrid_echde_kem(const struct s2n_cipher_suite *cipher_suit
     return s2n_check_ecdhe(cipher_suite, conn) && s2n_check_kem(cipher_suite, conn);
 }
 
-static int s2n_write_server_hybrid_extensions(const struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
-    const struct s2n_kex *hybrid_kex_0 = kex->hybrid[0];
-    const struct s2n_kex *hybrid_kex_1 = kex->hybrid[1];
-    GUARD(s2n_kex_write_server_extension(hybrid_kex_0, conn, out));
-    GUARD(s2n_kex_write_server_extension(hybrid_kex_1, conn, out));
-    return 0;
-}
-
-static int s2n_get_server_hybrid_extensions_size(const struct s2n_connection *conn)
-{
-    const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
-    const struct s2n_kex *hybrid_kex_0 = kex->hybrid[0];
-    const struct s2n_kex *hybrid_kex_1 = kex->hybrid[1];
-    return s2n_kex_server_extension_size(hybrid_kex_0, conn) + s2n_kex_server_extension_size(hybrid_kex_1, conn);
-}
-
-static const struct s2n_kex s2n_kem = {
+const struct s2n_kex s2n_kem = {
     .is_ephemeral = 1,
-    .get_server_extension_size = &s2n_get_no_extension_size,
-    .write_server_extensions = &s2n_write_no_extension,
     .connection_supported = &s2n_check_kem,
     .configure_connection = &s2n_configure_kem,
     .server_key_recv_read_data = &s2n_kem_server_key_recv_read_data,
@@ -194,8 +134,6 @@ static const struct s2n_kex s2n_kem = {
 
 const struct s2n_kex s2n_rsa = {
     .is_ephemeral = 0,
-    .get_server_extension_size = &s2n_get_no_extension_size,
-    .write_server_extensions = &s2n_write_no_extension,
     .connection_supported = &s2n_check_rsa_key,
     .configure_connection = &s2n_no_op_configure,
     .server_key_recv_read_data = NULL,
@@ -208,8 +146,6 @@ const struct s2n_kex s2n_rsa = {
 
 const struct s2n_kex s2n_dhe = {
     .is_ephemeral = 1,
-    .get_server_extension_size = &s2n_get_no_extension_size,
-    .write_server_extensions = &s2n_write_no_extension,
     .connection_supported = &s2n_check_dhe,
     .configure_connection = &s2n_no_op_configure,
     .server_key_recv_read_data = &s2n_dhe_server_key_recv_read_data,
@@ -222,8 +158,6 @@ const struct s2n_kex s2n_dhe = {
 
 const struct s2n_kex s2n_ecdhe = {
     .is_ephemeral = 1,
-    .get_server_extension_size = &s2n_get_server_ecc_extension_size,
-    .write_server_extensions = &s2n_write_server_ecc_extension,
     .connection_supported = &s2n_check_ecdhe,
     .configure_connection = &s2n_no_op_configure,
     .server_key_recv_read_data = &s2n_ecdhe_server_key_recv_read_data,
@@ -237,8 +171,6 @@ const struct s2n_kex s2n_ecdhe = {
 const struct s2n_kex s2n_hybrid_ecdhe_kem = {
     .is_ephemeral = 1,
     .hybrid = { &s2n_ecdhe, &s2n_kem },
-    .get_server_extension_size = &s2n_get_server_hybrid_extensions_size,
-    .write_server_extensions = &s2n_write_server_hybrid_extensions,
     .connection_supported = &s2n_check_hybrid_echde_kem,
     .configure_connection = &s2n_configure_kem,
     .server_key_recv_read_data = &s2n_hybrid_server_key_recv_read_data,
@@ -248,28 +180,6 @@ const struct s2n_kex s2n_hybrid_ecdhe_kem = {
     .client_key_send = &s2n_hybrid_client_key_send,
     .prf = &s2n_hybrid_prf_master_secret,
 };
-
-int s2n_kex_server_extension_size(const struct s2n_kex *kex, const struct s2n_connection *conn)
-{
-    if (s2n_server_can_send_kex(conn)) {
-        notnull_check(kex);
-        notnull_check(kex->get_server_extension_size);
-        return kex->get_server_extension_size(conn);
-    }
-
-    return 0;
-}
-
-int s2n_kex_write_server_extension(const struct s2n_kex *kex, const struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    if (s2n_server_can_send_kex(conn)) {
-        notnull_check(kex);
-        notnull_check(kex->write_server_extensions);
-        return kex->write_server_extensions(conn, out);
-    }
-
-    return 0;
-}
 
 int s2n_kex_supported(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
@@ -323,4 +233,17 @@ int s2n_kex_tls_prf(const struct s2n_kex *kex, struct s2n_connection *conn, stru
 {
     notnull_check(kex->prf);
     return kex->prf(conn, premaster_secret);
+}
+
+bool s2n_kex_includes(const struct s2n_kex *kex, const struct s2n_kex *query)
+{
+    if (kex == query) {
+        return true;
+    }
+
+    if (kex == NULL || query == NULL) {
+        return false;
+    }
+
+    return query == kex->hybrid[0] || query == kex->hybrid[1];
 }
