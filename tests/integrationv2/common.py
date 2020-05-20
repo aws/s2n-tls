@@ -265,6 +265,8 @@ class ProviderOptions(object):
             client_certificate_file=None,
             extra_flags=None,
             client_trust_store=None,
+            reconnects_before_exit=None,
+            reconnect=None,
             protocol=None):
 
         # Client or server
@@ -306,4 +308,11 @@ class ProviderOptions(object):
         self.client_trust_store = client_trust_store
         self.client_key_file = client_key_file
 
+        # Reconnects on the server side (includes first connection)
+        self.reconnects_before_exit = reconnects_before_exit
+
+        # Tell the client to reconnect
+        self.reconnect = reconnect
+
+        # Extra flags to pass to the provider
         self.extra_flags = extra_flags

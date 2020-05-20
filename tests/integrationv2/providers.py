@@ -121,6 +121,13 @@ class S2N(Provider):
             cmd_line.append('--insecure')
         elif options.client_trust_store is not None:
             cmd_line.extend(['-f', options.client_trust_store])
+        else:
+            if options.cert is not None:
+                cmd_line.extend(['-f', options.cert])
+
+        if options.reconnect is True:
+            cmd_line.append('-r')
+
         if options.protocol == Protocols.TLS13:
             cmd_line.append('--tls13')
 
@@ -159,6 +166,12 @@ class S2N(Provider):
         if options.use_client_auth is True:
             cmd_line.append('-m')
             cmd_line.extend(['-t', options.client_certificate_file])
+
+        if options.reconnects_before_exit is not None:
+            cmd_line.append('--max-conns={}'.format(options.reconnects_before_exit))
+
+        if options.extra_flags is not None:
+            cmd_line.extend(options.extra_flags)
 
         cmd_line.extend([options.host, options.port])
 
@@ -226,6 +239,12 @@ class OpenSSL(Provider):
             cmd_line.extend(['-key', options.client_key_file])
             cmd_line.extend(['-cert', options.client_certificate_file])
 
+        if options.reconnect is True:
+            cmd_line.append('-reconnect')
+
+        if options.extra_flags is not None:
+            cmd_line.extend(options.extra_flags)
+
         # Clients are always ready to connect
         self.set_provider_ready()
 
@@ -238,8 +257,12 @@ class OpenSSL(Provider):
         cmd_line = ['openssl', 's_server']
         cmd_line.extend(['-accept', '{}:{}'.format(options.host, options.port)])
 
-        # Exit after the first connection
-        cmd_line.extend(['-naccept', '1'])
+        if options.reconnects_before_exit is not None:
+            # If the user request a specific reconnection count, set it here
+            cmd_line.extend(['-naccept', str(options.reconnects_before_exit)])
+        else:
+            # Exit after the first connection by default
+            cmd_line.extend(['-naccept', '1'])
 
         # Additional debugging that will be captured incase of failure
         cmd_line.extend(['-debug', '-tlsextdebug'])
