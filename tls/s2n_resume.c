@@ -323,7 +323,7 @@ int s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config)
     uint32_t ticket_keys_len = 0;
     GUARD_AS_POSIX(s2n_set_len(config->ticket_keys, &ticket_keys_len));
 
-    for (int i = ticket_keys_len - 1; i >= 0; i--) {
+    for (uint32_t i = ticket_keys_len - 1; i >= 0; i--) {
         GUARD_AS_POSIX(s2n_set_get(config->ticket_keys, i, (void **)&ticket_key));
         uint64_t key_intro_time = ticket_key->intro_timestamp;
 
@@ -405,7 +405,7 @@ struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *con
     uint32_t ticket_keys_len = 0;
     GUARD_RESULT_PTR(s2n_set_len(config->ticket_keys, &ticket_keys_len));
 
-    for (int i = ticket_keys_len - 1; i >= 0; i--) {
+    for (uint32_t i = ticket_keys_len - 1; i >= 0; i--) {
         GUARD_RESULT_PTR(s2n_set_get(config->ticket_keys, i, (void **)&ticket_key));
         uint64_t key_intro_time = ticket_key->intro_timestamp;
 
@@ -445,7 +445,7 @@ struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint
     uint32_t ticket_keys_len = 0;
     GUARD_RESULT_PTR(s2n_set_len(config->ticket_keys, &ticket_keys_len));
 
-    for (int i = 0; i < ticket_keys_len; i++) {
+    for (uint32_t i = 0; i < ticket_keys_len; i++) {
         GUARD_RESULT_PTR(s2n_set_get(config->ticket_keys, i, (void **)&ticket_key));
 
         if (memcmp(ticket_key->key_name, name, S2N_TICKET_KEY_NAME_LEN) == 0) {
@@ -680,7 +680,7 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
     uint32_t ticket_keys_len = 0;
     GUARD_AS_POSIX(s2n_set_len(config->ticket_keys, &ticket_keys_len));
 
-    for (int i = 0; i < ticket_keys_len; i++) {
+    for (uint32_t i = 0; i < ticket_keys_len; i++) {
         GUARD_AS_POSIX(s2n_set_get(config->ticket_keys, i, (void **)&ticket_key));
         if (now >= ticket_key->intro_timestamp +
                    config->encrypt_decrypt_key_lifetime_in_nanos + config->decrypt_key_lifetime_in_nanos) {

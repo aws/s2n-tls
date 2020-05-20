@@ -55,7 +55,7 @@ as input, and the output is connection state.
 ```c
 /* An idiomatic s2n function generally has:
  *
- *  A s2n_result return value. This is used to signal success or error.
+ *  An s2n_result return value. This is used to signal success or error.
  *  An input, often a struct.
  *  An output, often a struct.
  */

@@ -171,7 +171,7 @@ int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *pa
 {
     uint32_t parsed_extensions_len = 0;
     GUARD_AS_POSIX(s2n_array_num_elements(parsed_extensions, &parsed_extensions_len));
-    for (int i = 0; i < parsed_extensions_len; i++) {
+    for (uint32_t i = 0; i < parsed_extensions_len; i++) {
         struct s2n_client_hello_parsed_extension *parsed_extension = NULL;
         GUARD_AS_POSIX(s2n_array_get(parsed_extensions, i, (void **)&parsed_extension));
         notnull_check(parsed_extension);

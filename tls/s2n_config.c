@@ -209,13 +209,13 @@ static int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, s
     GUARD_AS_POSIX(s2n_array_num_elements(cert_key_pair->san_names, &san_len));
 
     if (san_len == 0) {
-        for (int i = 0; i < cn_len; i++) {
+        for (uint32_t i = 0; i < cn_len; i++) {
             struct s2n_blob *cn_name = NULL;
             GUARD_AS_POSIX(s2n_array_get(cert_key_pair->cn_names, i, (void **)&cn_name));
             GUARD(s2n_config_update_domain_name_to_cert_map(config, cn_name, cert_key_pair));
         }
     } else {
-        for (int i = 0; i < san_len; i++) {
+        for (uint32_t i = 0; i < san_len; i++) {
             struct s2n_blob *san_name = NULL;
             GUARD_AS_POSIX(s2n_array_get(cert_key_pair->san_names, i, (void **)&san_name));
             GUARD(s2n_config_update_domain_name_to_cert_map(config, san_name, cert_key_pair));
