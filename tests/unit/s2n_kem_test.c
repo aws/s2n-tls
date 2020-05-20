@@ -353,6 +353,296 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(0, kem_params.shared_secret.size);
         EXPECT_EQUAL(0, kem_params.shared_secret.allocated);
     }
+    {
+        /* Happy case for s2n_kem_send_public_key() */
+        struct s2n_kem_params kem_params = { .kem = &s2n_test_kem };
+
+        DEFER_CLEANUP(struct s2n_blob io_blob = {0}, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&io_blob, TEST_PUBLIC_KEY_LENGTH + 2));
+        struct s2n_stuffer io_stuffer = {0};
+        EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer, &io_blob));
+
+        EXPECT_SUCCESS(s2n_kem_send_public_key(&io_stuffer, &kem_params));
+
+        /* {0, 2} = length of public key to follow
+         * {2, 2} = test public key */
+        const uint8_t expected_output[] = { 0, 2, 2, 2 };
+        EXPECT_BYTEARRAY_EQUAL(io_stuffer.blob.data, expected_output, TEST_PUBLIC_KEY_LENGTH + 2);
+
+        EXPECT_EQUAL(kem_params.private_key.size, TEST_PRIVATE_KEY_LENGTH);
+        EXPECT_BYTEARRAY_EQUAL(kem_params.private_key.data, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH);
+        EXPECT_EQUAL(kem_params.public_key.size, 0);
+        EXPECT_NULL(kem_params.public_key.data);
+        EXPECT_EQUAL(kem_params.shared_secret.size, 0);
+        EXPECT_NULL(kem_params.shared_secret.data);
+
+        /* The private key gets alloc'ed in s2n_kem_generate_keypair().
+         * Nothing else should have been alloc'ed. */
+        EXPECT_EQUAL(0, kem_params.public_key.allocated);
+        EXPECT_EQUAL(0, kem_params.shared_secret.allocated);
+        EXPECT_NOT_EQUAL(0, kem_params.private_key.allocated);
+        EXPECT_SUCCESS(s2n_kem_free(&kem_params));
+    }
+    {
+        /* Failure cases for s2n_kem_send_public_key() */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_send_public_key(NULL, NULL), S2N_ERR_NULL);
+
+        DEFER_CLEANUP(struct s2n_blob io_blob = { 0 }, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&io_blob, 1));
+        struct s2n_stuffer io_stuffer = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer, &io_blob));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_send_public_key(&io_stuffer, NULL), S2N_ERR_NULL);
+
+        struct s2n_kem_params kem_params = { 0 };
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_send_public_key(&io_stuffer, &kem_params), S2N_ERR_NULL);
+    }
+    {
+        /* Happy case for s2n_kem_send_ciphertext() */
+        struct s2n_kem_params kem_params = { .kem = &s2n_test_kem };
+
+        DEFER_CLEANUP(struct s2n_blob io_blob = { 0 }, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&io_blob, TEST_CIPHERTEXT_LENGTH + 2));
+        struct s2n_stuffer io_stuffer = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer, &io_blob));
+
+        EXPECT_SUCCESS(s2n_alloc(&(kem_params.public_key), TEST_PUBLIC_KEY_LENGTH));
+        memcpy_check(kem_params.public_key.data, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH);
+
+        EXPECT_SUCCESS(s2n_kem_send_ciphertext(&io_stuffer, &kem_params));
+
+        /* {0, 5} = length of ciphertext to follow
+         * {5, 5, 5, 5, 5} = test ciphertext */
+        const uint8_t expected_output[] = { 0, 5, 5, 5, 5, 5, 5 };
+        EXPECT_BYTEARRAY_EQUAL(io_stuffer.blob.data, expected_output, TEST_CIPHERTEXT_LENGTH + 2);
+
+        EXPECT_EQUAL(kem_params.shared_secret.size, TEST_SHARED_SECRET_LENGTH);
+        EXPECT_BYTEARRAY_EQUAL(kem_params.shared_secret.data, TEST_SHARED_SECRET, TEST_SHARED_SECRET_LENGTH);
+        EXPECT_EQUAL(kem_params.public_key.size, TEST_PUBLIC_KEY_LENGTH);
+        EXPECT_BYTEARRAY_EQUAL(kem_params.public_key.data, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH);
+        EXPECT_EQUAL(kem_params.private_key.size, 0);
+        EXPECT_NULL(kem_params.private_key.data);
+
+        /* We alloc'ed the public key previously in the test; the shared secret was
+         * alloc'ed in Encaps; the private key should not have been alloc'ed */
+        EXPECT_EQUAL(0, kem_params.private_key.allocated);
+        EXPECT_NOT_EQUAL(0, kem_params.public_key.allocated);
+        EXPECT_NOT_EQUAL(0, kem_params.public_key.allocated);
+        EXPECT_SUCCESS(s2n_kem_free(&kem_params));
+    }
+    {
+        /* Failure cases for s2n_kem_send_ciphertext() */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_send_ciphertext(NULL, NULL), S2N_ERR_NULL);
+
+        DEFER_CLEANUP(struct s2n_blob io_blob = {0}, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&io_blob, 1));
+        struct s2n_stuffer io_stuffer = {0};
+        EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer, &io_blob));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_send_ciphertext(&io_stuffer, NULL), S2N_ERR_NULL);
+
+        struct s2n_kem_params kem_params = {0};
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_send_ciphertext(&io_stuffer, &kem_params), S2N_ERR_NULL);
+
+        kem_params.kem = &s2n_test_kem;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_send_ciphertext(&io_stuffer, &kem_params), S2N_ERR_NULL);
+    }
+    {
+        /* Happy case for s2n_kem_recv_ciphertext() */
+        struct s2n_kem_params kem_params = { .kem = &s2n_test_kem };
+
+        DEFER_CLEANUP(struct s2n_blob io_blob = {0}, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&io_blob, TEST_CIPHERTEXT_LENGTH + 2));
+        struct s2n_stuffer io_stuffer = {0};
+        EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer, &io_blob));
+
+        s2n_alloc(&(kem_params.private_key), TEST_PRIVATE_KEY_LENGTH);
+        memcpy_check(kem_params.private_key.data, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH);
+
+        /* {0, 5} = length of ciphertext to follow
+         * {5, 5, 5, 5, 5} = test ciphertext */
+        uint8_t input[] = {0, 5, 5, 5, 5, 5, 5};
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&io_stuffer, input, TEST_CIPHERTEXT_LENGTH + 2));
+        EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer));
+
+        EXPECT_SUCCESS(s2n_kem_recv_ciphertext(&io_stuffer, &kem_params));
+
+        EXPECT_EQUAL(kem_params.shared_secret.size, TEST_SHARED_SECRET_LENGTH);
+        EXPECT_BYTEARRAY_EQUAL(kem_params.shared_secret.data, TEST_SHARED_SECRET, TEST_SHARED_SECRET_LENGTH);
+        EXPECT_EQUAL(0, kem_params.public_key.size);
+        EXPECT_NULL(kem_params.public_key.data);
+
+        /* We alloc'ed the private key previously in the test; the shared secret was
+         * alloc'ed in Decaps; the public key should not have been alloc'ed */
+        EXPECT_EQUAL(0, kem_params.public_key.allocated);
+        EXPECT_NOT_EQUAL(0, kem_params.private_key.allocated);
+        EXPECT_NOT_EQUAL(0, kem_params.shared_secret.allocated);
+        EXPECT_SUCCESS(s2n_kem_free(&kem_params));
+    }
+    {
+        /* Failure cases for s2n_kem_recv_ciphertext() */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_ciphertext(NULL, NULL), S2N_ERR_NULL);
+
+        DEFER_CLEANUP(struct s2n_blob io_blob = { 0 }, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&io_blob, 1));
+        struct s2n_stuffer io_stuffer = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer, &io_blob));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_ciphertext(&io_stuffer, NULL), S2N_ERR_NULL);
+
+        struct s2n_kem_params kem_params = { 0 };
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_ciphertext(&io_stuffer, &kem_params), S2N_ERR_NULL);
+
+        kem_params.kem = &s2n_test_kem;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_ciphertext(&io_stuffer, &kem_params), S2N_ERR_NULL);
+
+        /* Not enough data available in the stuffer to read the ciphertext length */
+        EXPECT_SUCCESS(s2n_alloc(&(kem_params.private_key), TEST_PRIVATE_KEY_LENGTH));
+        memcpy_check(kem_params.private_key.data, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH);
+        uint8_t bad_ct_input_1[] = { 5 };
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&io_stuffer, bad_ct_input_1, 1));
+        EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_ciphertext(&io_stuffer, &kem_params), S2N_ERR_BAD_MESSAGE);
+
+        /* The given ciphertext length is larger than the remaining data in the stuffer */
+        DEFER_CLEANUP(struct s2n_blob io_blob_2 = { 0 }, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&io_blob_2, TEST_CIPHERTEXT_LENGTH + 2));
+        struct s2n_stuffer io_stuffer_2 = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer_2, &io_blob_2));
+        uint8_t bad_ct_input_2[] = { 0, 5, 5 };
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&io_stuffer_2, bad_ct_input_2, 3));
+        EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer_2));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_ciphertext(&io_stuffer_2, &kem_params), S2N_ERR_BAD_MESSAGE);
+
+        /* The given ciphertext length doesn't match the KEM's actual ciphertext length */
+        DEFER_CLEANUP(struct s2n_blob io_blob_3 = { 0 }, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&io_blob_3, TEST_CIPHERTEXT_LENGTH + 2));
+        struct s2n_stuffer io_stuffer_3 = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer_3, &io_blob_3));
+        uint8_t bad_ct_input_3[] = { 0, 2, 2, 2 };
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&io_stuffer_3, bad_ct_input_3, 4));
+        EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer_3));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_ciphertext(&io_stuffer_3, &kem_params), S2N_ERR_BAD_MESSAGE);
+
+        /* We alloc'ed the private key previously in the test; our failure cases for
+         * s2n_kem_recv_ciphertext() never reached a point where we alloc'ed anything else */
+        EXPECT_NOT_EQUAL(0, kem_params.private_key.allocated);
+        EXPECT_EQUAL(0, kem_params.public_key.allocated);
+        EXPECT_EQUAL(0, kem_params.shared_secret.allocated);
+        EXPECT_SUCCESS(s2n_kem_free(&kem_params));
+    }
+    {
+        /* Happy case for s2n_kem_recv_public_key() */
+        struct s2n_kem_params kem_params = { .kem = &s2n_test_kem };
+
+        DEFER_CLEANUP(struct s2n_blob io_blob = {0}, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&io_blob, TEST_PUBLIC_KEY_LENGTH + 2));
+        struct s2n_stuffer io_stuffer = {0};
+        EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer, &io_blob));
+
+        /* {0, 2} = length of public key to follow
+         * {2, 2} = test public key */
+        const uint8_t input[] = {0, 2, 2, 2};
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&io_stuffer, input, TEST_PUBLIC_KEY_LENGTH + 2));
+        EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer));
+
+        EXPECT_SUCCESS(s2n_kem_recv_public_key(&io_stuffer, &kem_params));
+
+        /* s2n_kem_recv_public_key() should alloc kem_params->public_key and nothing else */
+        EXPECT_EQUAL(kem_params.public_key.size, TEST_PUBLIC_KEY_LENGTH);
+        EXPECT_NOT_EQUAL(0, kem_params.public_key.allocated);
+        EXPECT_BYTEARRAY_EQUAL(kem_params.public_key.data, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH);
+        EXPECT_EQUAL(0, kem_params.shared_secret.allocated);
+        EXPECT_EQUAL(0, kem_params.private_key.allocated);
+        EXPECT_SUCCESS(s2n_kem_free(&kem_params));
+    }
+    {
+        /* Failure cases for s2n_kem_recv_public_key() */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_public_key(NULL, NULL), S2N_ERR_NULL);
+
+        DEFER_CLEANUP(struct s2n_blob io_blob = {0}, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&io_blob, 1));
+        struct s2n_stuffer io_stuffer = {0};
+        EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer, &io_blob));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_public_key(&io_stuffer, NULL), S2N_ERR_NULL);
+
+        struct s2n_kem_params kem_params = {0};
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_public_key(&io_stuffer, &kem_params), S2N_ERR_NULL);
+
+        kem_params.kem = &s2n_test_kem;
+
+        /* Not enough data available in the stuffer to read the public key length */
+        uint8_t bad_pk_input_1[] = { 2 };
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&io_stuffer, bad_pk_input_1, 1));
+        EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_public_key(&io_stuffer, &kem_params), S2N_ERR_BAD_MESSAGE);
+
+        /* The given public key length is larger than the remaining data in the stuffer */
+        DEFER_CLEANUP(struct s2n_blob io_blob_2 = {0}, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&io_blob_2, TEST_PUBLIC_KEY_LENGTH + 2));
+        struct s2n_stuffer io_stuffer_2 = {0};
+        EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer_2, &io_blob_2));
+        uint8_t bad_pk_input_2[] = {0, 2, 2 };
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&io_stuffer_2, bad_pk_input_2, 3));
+        EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer_2));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_public_key(&io_stuffer_2, &kem_params), S2N_ERR_BAD_MESSAGE);
+
+        /* The given public key length doesn't match the KEM's actual public key length */
+        DEFER_CLEANUP(struct s2n_blob io_blob_3 = {0}, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&io_blob_3, 5));
+        struct s2n_stuffer io_stuffer_3 = {0};
+        EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer_3, &io_blob_3));
+        uint8_t bad_pk_input_3[] = {0, 3, 3, 3, 3};
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&io_stuffer_3, bad_pk_input_3, 5));
+        EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer_3));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_public_key(&io_stuffer_3, &kem_params), S2N_ERR_BAD_MESSAGE);
+    }
+    {
+        /* Happy case(s) for s2n_get_kem_from_extension_id() */
+
+        /* The kem_extensions and kems arrays should be kept in sync with each other */
+        uint8_t kem_extensions[4][2] = {
+                {0, 1},  /* TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1 */
+                {0, 13}, /* TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2 */
+                {0, 10}, /* TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1 */
+                {0, 19}, /* TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2 */
+        };
+        const struct s2n_kem *kems[] = {
+                &s2n_bike1_l1_r1,
+                &s2n_bike1_l1_r2,
+                &s2n_sike_p503_r1,
+                &s2n_sike_p434_r2,
+        };
+
+        for (int i = 0; i < 4; i++) {
+            uint8_t *extension_id_bytes = kem_extensions[i]; /* TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2 */
+            struct s2n_blob kem_id = {.data = extension_id_bytes, .size = 2};
+            const struct s2n_kem *returned_kem = NULL;
+
+            EXPECT_SUCCESS(s2n_get_kem_from_extension_id(&kem_id, &returned_kem));
+            EXPECT_NOT_NULL(returned_kem);
+            EXPECT_EQUAL(kems[i], returned_kem);
+        }
+    }
+    {
+        /* Failure cases for s2n_get_kem_from_extension_id() */
+        const struct s2n_kem *returned_kem = NULL;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(NULL, &returned_kem), S2N_ERR_NULL);
+
+        struct s2n_blob kem_id = { 0 };
+        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(&kem_id, &returned_kem), S2N_ERR_NULL);
+
+        uint8_t bad_kem_id[] = { 0, 1, 1 };
+        kem_id.data = bad_kem_id;
+        kem_id.size = 3;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(&kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+
+        uint8_t non_existant_kem_id[] = { 255, 255 };
+        kem_id.data = non_existant_kem_id;
+        kem_id.size = 2;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(&kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+    }
 
 #endif
 

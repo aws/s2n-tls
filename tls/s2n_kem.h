@@ -67,3 +67,8 @@ extern int s2n_choose_kem_without_peer_pref_list(const uint8_t iana_value[S2N_TL
 extern int s2n_kem_free(struct s2n_kem_params *kem_params);
 
 extern int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_iana_to_kem **supported_params);
+extern int s2n_get_kem_from_extension_id(struct s2n_blob *client_kem_ids, const struct s2n_kem **kem);
+extern int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_params);
+extern int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
+extern int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_params);
+extern int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
