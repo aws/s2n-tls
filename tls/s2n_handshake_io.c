@@ -1007,7 +1007,7 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
      * The handler will know how to continue, so we should call the handler right away.
      * We aren't going to read more handshake data yet because the current message has
      * not finished processing. */
-    s2n_errno = S2N_ERR_T_OK;
+    s2n_errno = S2N_ERR_OK;
     const int r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
 
     if (r < 0) {
@@ -1047,7 +1047,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
     }
 
     while (ACTIVE_STATE(conn).writer != 'B') {
-        s2n_errno = S2N_ERR_T_OK;
+        s2n_errno = S2N_ERR_OK;
 
         /* Flush any pending I/O or alert messages */
         GUARD(s2n_flush(conn, blocked));
