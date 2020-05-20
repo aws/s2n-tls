@@ -466,7 +466,7 @@ static int s2n_does_cert_cn_match_hostname(const struct s2n_cert_chain_and_key *
     struct s2n_array *cn_names = chain_and_key->cn_names;
     uint32_t len = 0;
     GUARD_AS_POSIX(s2n_array_num_elements(cn_names, &len));
-    for (int i = 0; i < len; i++) {
+    for (uint32_t i = 0; i < len; i++) {
         struct s2n_blob *cn_name = NULL;
         GUARD_AS_POSIX(s2n_array_get(cn_names, i, (void **)&cn_name));
         if ((dns_name->size == cn_name->size) && (strncasecmp((const char *) dns_name->data, (const char *) cn_name->data, dns_name->size) == 0)) {

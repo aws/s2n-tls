@@ -323,8 +323,9 @@ int s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config)
     uint32_t ticket_keys_len = 0;
     GUARD_AS_POSIX(s2n_set_len(config->ticket_keys, &ticket_keys_len));
 
-    for (uint32_t i = ticket_keys_len - 1; i >= 0; i--) {
-        GUARD_AS_POSIX(s2n_set_get(config->ticket_keys, i, (void **)&ticket_key));
+    for (uint32_t i = ticket_keys_len; i > 0; i--) {
+        uint32_t idx = i - 1;
+        GUARD_AS_POSIX(s2n_set_get(config->ticket_keys, idx, (void **)&ticket_key));
         uint64_t key_intro_time = ticket_key->intro_timestamp;
 
         if (key_intro_time < now
@@ -405,13 +406,14 @@ struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *con
     uint32_t ticket_keys_len = 0;
     GUARD_RESULT_PTR(s2n_set_len(config->ticket_keys, &ticket_keys_len));
 
-    for (uint32_t i = ticket_keys_len - 1; i >= 0; i--) {
-        GUARD_RESULT_PTR(s2n_set_get(config->ticket_keys, i, (void **)&ticket_key));
+    for (uint32_t i = ticket_keys_len; i > 0; i--) {
+        uint32_t idx = i - 1;
+        GUARD_RESULT_PTR(s2n_set_get(config->ticket_keys, idx, (void **)&ticket_key));
         uint64_t key_intro_time = ticket_key->intro_timestamp;
 
         if (key_intro_time < now
                 && now < key_intro_time + config->encrypt_decrypt_key_lifetime_in_nanos) {
-            encrypt_decrypt_keys_index[num_encrypt_decrypt_keys] = i;
+            encrypt_decrypt_keys_index[num_encrypt_decrypt_keys] = idx;
             num_encrypt_decrypt_keys++;
         }
     }
