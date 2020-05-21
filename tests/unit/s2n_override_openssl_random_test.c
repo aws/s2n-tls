@@ -111,13 +111,7 @@ int main(int argc, char **argv)
 
     /* Set s2n_random to use a new fixed DRBG to test that other known answer tests with s2n_random and OpenSSL are deterministic */
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&test_entropy, reference_entropy_hex));
-    struct s2n_drbg drbg = {.entropy_generator = &s2n_entropy_generator};
-    s2n_stack_blob(personalization_string, 32, 32);
-    EXPECT_SUCCESS(s2n_drbg_instantiate(&drbg, &personalization_string, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
-    EXPECT_OK(s2n_set_private_drbg_for_test(drbg));
-    /* Verify we switched to a new DRBG */
-    EXPECT_OK(s2n_get_private_random_bytes_used(&bytes_used));
-    EXPECT_EQUAL(bytes_used, 0);
+    EXPECT_SUCCESS(s2n_unsafe_drbg_reseed(test_entropy.blob.data, test_entropy.blob.size));
 
     DEFER_CLEANUP(struct s2n_stuffer out_stuffer = {0}, s2n_stuffer_free);
     struct s2n_blob out_blob = {0};
