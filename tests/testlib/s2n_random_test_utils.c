@@ -21,8 +21,6 @@
 #include "crypto/s2n_drbg.h"
 #include "tests/testlib/s2n_testlib.h"
 
-#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
-
 static uint8_t seed_buffer[S2N_DRBG_MAX_SEED_SIZE] = { 0 };
 
 S2N_RESULT s2n_fixed_entropy_generator(struct s2n_blob *blob)
@@ -48,12 +46,3 @@ int s2n_unsafe_drbg_reseed(uint8_t *seed, uint8_t seed_size)
 
     return S2N_SUCCESS;
 }
-
-#else
-
-int s2n_unsafe_drbg_reseed(uint8_t *seed, uint8_t seed_size)
-{
-    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
-}
-
-#endif
