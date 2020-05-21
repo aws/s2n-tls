@@ -47,7 +47,7 @@ struct s2n_handshake_action {
     int (*handler[2]) (struct s2n_connection * conn);
 };
 
-/* Client and Server handlers for each message type we support.  
+/* Client and Server handlers for each message type we support.
  * See http://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-7 for the list of handshake message types
  */
 static struct s2n_handshake_action state_machine[] = {
@@ -499,7 +499,7 @@ int s2n_generate_new_client_session_id(struct s2n_connection *conn)
         struct s2n_blob session_id = { .data = conn->session_id, .size = S2N_TLS_SESSION_ID_MAX_LEN };
 
         /* Generate a new session id */
-        GUARD(s2n_get_public_random_data(&session_id));
+        GUARD_AS_POSIX(s2n_get_public_random_data(&session_id));
         conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
     }
 
@@ -573,7 +573,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
      * Client sent in the ClientHello. */
     if (conn->actual_protocol_version <= S2N_TLS12 && conn->mode == S2N_SERVER && s2n_allowed_to_cache_connection(conn)) {
         int r = s2n_resume_from_cache(conn);
-        if (r == S2N_SUCCESS || (r < 0 && ERR_IS_BLOCKING(s2n_errno))) {
+        if (r == S2N_SUCCESS || (r < 0 && S2N_ERROR_IS_BLOCKING(s2n_errno))) {
             return r;
         }
     }
@@ -632,7 +632,7 @@ int s2n_conn_clear_handshake_read_block(struct s2n_connection *conn)
 const char *s2n_connection_get_last_message_name(struct s2n_connection *conn)
 {
     notnull_check_ptr(conn);
-    
+
     return message_names[ACTIVE_MESSAGE(conn)];
 }
 
@@ -669,7 +669,7 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
 
 /* Writing is relatively straight forward, simply write each message out as a record,
  * we may fragment a message across multiple records, but we never coalesce multiple
- * messages into single records. 
+ * messages into single records.
  * Precondition: secure outbound I/O has already been flushed
  */
 static int s2n_handshake_write_io(struct s2n_connection *conn)
@@ -736,7 +736,7 @@ static int s2n_read_full_handshake_message(struct s2n_connection *conn, uint8_t 
     uint32_t current_handshake_data = s2n_stuffer_data_available(&conn->handshake.io);
     if (current_handshake_data < TLS_HANDSHAKE_HEADER_LENGTH) {
         /* The message may be so badly fragmented that we don't even read the full header, take
-         * what we can and then continue to the next record read iteration. 
+         * what we can and then continue to the next record read iteration.
          */
         if (s2n_stuffer_data_available(&conn->in) < (TLS_HANDSHAKE_HEADER_LENGTH - current_handshake_data)) {
             GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, s2n_stuffer_data_available(&conn->in)));
@@ -765,7 +765,7 @@ static int s2n_read_full_handshake_message(struct s2n_connection *conn, uint8_t 
 
     /* We don't have the whole message, so we'll need to go again */
     GUARD(s2n_stuffer_reread(&conn->handshake.io));
- 
+
     return 1;
 }
 
@@ -916,7 +916,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
 
     /* Record is a handshake message */
     S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_BAD_MESSAGE);
-    
+
     while (s2n_stuffer_data_available(&conn->in)) {
         int r;
         uint8_t actual_handshake_message_type;
@@ -925,7 +925,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         /* Do we need more data? This happens for message fragmentation */
         if (r == 1) {
             /* Break out of this inner loop, but since we're not changing the state, the
-             * outer loop in s2n_handshake_io() will read another record. 
+             * outer loop in s2n_handshake_io() will read another record.
              */
             GUARD(s2n_stuffer_wipe(&conn->header_in));
             GUARD(s2n_stuffer_wipe(&conn->in));
@@ -1007,7 +1007,7 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
 
     if (r < 0) {
         /* If the handler is still waiting for data, return control to the caller. */
-        if (ERR_IS_BLOCKING(s2n_errno)) {
+        if (S2N_ERROR_IS_BLOCKING(s2n_errno)) {
             S2N_ERROR_PRESERVE_ERRNO();
         }
 
@@ -1079,7 +1079,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
             if (r < 0) {
                 /* One blocking condition is waiting on the session resumption cache. */
                 /* So we don't want to delete anything if we are blocked. */
-                if (!ERR_IS_BLOCKING(s2n_errno) && conn->session_id_len) {
+                if (!S2N_ERROR_IS_BLOCKING(s2n_errno) && conn->session_id_len) {
                     s2n_try_delete_session_cache(conn);
                 }
 

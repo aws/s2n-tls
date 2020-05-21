@@ -52,7 +52,7 @@ static void s2n_cert_req_recv_fuzz_atexit()
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
     GUARD(s2n_init());
-    GUARD_STRICT(atexit(s2n_cert_req_recv_fuzz_atexit));
+    GUARD_POSIX_STRICT(atexit(s2n_cert_req_recv_fuzz_atexit));
 
     /* Initialize test chain and key */
     cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE);

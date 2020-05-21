@@ -10,6 +10,7 @@
 
 #include "aes_ctr_prf.h"
 #include "pq-crypto/pq_random.h"
+#include "utils/s2n_result.h"
 #include "utilities.h"
 
 typedef enum
@@ -21,8 +22,7 @@ typedef enum
 _INLINE_ ret_t
 get_seeds(OUT seeds_t *seeds)
 {
-  // pq-random uses 0 for success and negative values for failure
-  if(get_random_bytes(seeds->seed[0].raw, sizeof(seeds_t)) == 0)
+  if(s2n_result_is_ok(get_random_bytes(seeds->seed[0].raw, sizeof(seeds_t))))
   {
     return SUCCESS;
   }

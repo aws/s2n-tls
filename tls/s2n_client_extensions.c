@@ -51,7 +51,7 @@
 int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     notnull_check(conn);
-    
+
     uint16_t total_size = 0;
     uint16_t pq_kem_list_size = 0;
 
@@ -95,7 +95,7 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     bool ecc_extension_required = s2n_ecc_is_extension_required(security_policy);
     if (ecc_extension_required) {
         /* Write ECC extensions: Supported Curves and Supported Point Formats */
-        total_size += (5 * sizeof(uint16_t) + 2 * sizeof(uint8_t)) + ecc_pref->count * 2; 
+        total_size += (5 * sizeof(uint16_t) + 2 * sizeof(uint8_t)) + ecc_pref->count * 2;
     }
 
     bool pq_kem_extension_required = s2n_pq_kem_is_extension_required(security_policy);
@@ -169,8 +169,11 @@ int s2n_client_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 
 int s2n_client_extensions_recv(struct s2n_connection *conn, struct s2n_array *parsed_extensions)
 {
-    for (int i = 0; i < parsed_extensions->num_of_elements; i++) {
-        struct s2n_client_hello_parsed_extension *parsed_extension = s2n_array_get(parsed_extensions, i);
+    uint32_t parsed_extensions_len = 0;
+    GUARD_AS_POSIX(s2n_array_num_elements(parsed_extensions, &parsed_extensions_len));
+    for (uint32_t i = 0; i < parsed_extensions_len; i++) {
+        struct s2n_client_hello_parsed_extension *parsed_extension = NULL;
+        GUARD_AS_POSIX(s2n_array_get(parsed_extensions, i, (void **)&parsed_extension));
         notnull_check(parsed_extension);
 
         struct s2n_stuffer extension = {0};

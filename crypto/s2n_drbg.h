@@ -19,6 +19,7 @@
 
 #include "crypto/s2n_hash.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_result.h"
 
 #define S2N_DRBG_BLOCK_SIZE 16
 #define S2N_DRBG_MAX_KEY_SIZE 32
@@ -33,7 +34,7 @@
 struct s2n_drbg {
     /* Track how many bytes have been used */
     uint64_t bytes_used;
-    
+
     EVP_CIPHER_CTX *ctx;
 
     /* The current DRBG 'value' */
@@ -44,7 +45,7 @@ struct s2n_drbg {
      * ONLY for the s2n_drbg_test case to use, so that known entropy data can
      * fed to the DRBG test vectors.
      */
-    int (*entropy_generator) (struct s2n_blob *);
+    S2N_RESULT (*entropy_generator) (struct s2n_blob *);
 
     /* Also used only by the unit tests: which generation of the DRBG is this.
      * This number is incremented every time we reseed.
@@ -77,4 +78,4 @@ typedef enum {S2N_AES_128_CTR_NO_DF_PR, S2N_AES_256_CTR_NO_DF_PR, S2N_DANGEROUS_
 extern int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string, const s2n_drbg_mode mode);
 extern int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *returned_bits);
 extern int s2n_drbg_wipe(struct s2n_drbg *drbg);
-extern int s2n_drbg_bytes_used(struct s2n_drbg *drbg);
+extern int s2n_drbg_bytes_used(struct s2n_drbg *drbg, uint64_t *bytes_used);

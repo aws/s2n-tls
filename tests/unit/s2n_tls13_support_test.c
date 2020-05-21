@@ -65,7 +65,7 @@ int main(int argc, char **argv)
         struct s2n_array *extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension));
         for (int i=0; i < s2n_array_len(tls13_extensions); i++) {
             struct s2n_client_hello_parsed_extension *extension;
-            EXPECT_NOT_NULL(extension = s2n_array_pushback(extensions));
+            EXPECT_OK(s2n_array_pushback(extensions, (void **)&extension));
 
             extension->extension = extension_data.blob;
             extension->extension_type = tls13_extensions[i];
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension_data));
-        EXPECT_SUCCESS(s2n_array_free(extensions));
+        EXPECT_OK(s2n_array_free(extensions));
     }
 
     EXPECT_SUCCESS(s2n_enable_tls13());
@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 
         struct s2n_array *extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension));
         struct s2n_client_hello_parsed_extension *extension;
-        EXPECT_NOT_NULL(extension = s2n_array_pushback(extensions));
+        EXPECT_OK(s2n_array_pushback(extensions, (void **)&extension));
 
         /* Protocol version is required for key share extension parsing */
         server_conn->actual_protocol_version = S2N_TLS13;
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension_data));
-        EXPECT_SUCCESS(s2n_array_free(extensions));
+        EXPECT_OK(s2n_array_free(extensions));
     }
 
     EXPECT_SUCCESS(s2n_disable_tls13());

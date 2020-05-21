@@ -46,7 +46,7 @@ static int s2n_rsa_modulus_check(RSA *rsa)
     return 0;
 }
 
-static int s2n_rsa_encrypted_size(const struct s2n_pkey *key) 
+static int s2n_rsa_encrypted_size(const struct s2n_pkey *key)
 {
     const struct s2n_rsa_key *rsa_key = &key->key.rsa_key;
     notnull_check(rsa_key->rsa);
@@ -105,7 +105,7 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
     S2N_ERROR_IF(expected_size > sizeof(intermediate), S2N_ERR_NOMEM);
     S2N_ERROR_IF(out->size > sizeof(intermediate), S2N_ERR_NOMEM);
 
-    GUARD(s2n_get_urandom_data(out));
+    GUARD_AS_POSIX(s2n_get_urandom_data(out));
 
     const s2n_rsa_private_key *key = &priv->key.rsa_key;
     int r = RSA_private_decrypt(in->size, (unsigned char *)in->data, intermediate, key->rsa, RSA_NO_PADDING);
@@ -147,7 +147,7 @@ static int s2n_rsa_key_free(struct s2n_pkey *pkey)
 
     RSA_free(rsa_key->rsa);
     rsa_key->rsa = NULL;
-    
+
     return 0;
 }
 
@@ -162,7 +162,7 @@ int s2n_evp_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *evp_pu
 {
     RSA *rsa = EVP_PKEY_get1_RSA(evp_public_key);
     S2N_ERROR_IF(rsa == NULL, S2N_ERR_DECODE_CERTIFICATE);
-    
+
     rsa_key->rsa = rsa;
     return 0;
 }
@@ -171,7 +171,7 @@ int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *evp_
 {
     RSA *rsa = EVP_PKEY_get1_RSA(evp_private_key);
     S2N_ERROR_IF(rsa == NULL, S2N_ERR_DECODE_PRIVATE_KEY);
-    
+
     rsa_key->rsa = rsa;
     return 0;
 }

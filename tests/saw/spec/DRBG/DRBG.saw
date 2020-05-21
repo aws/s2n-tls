@@ -54,6 +54,7 @@ let blocksize = 16; // blocklen / 8
 let keysize = 16; // keylen / 8
 let seedsize = 32;
 
+let bool = llvm_int 1;
 let i8 = llvm_int 8;
 let i32 = llvm_int 32;
 let i64 = llvm_int 64;
@@ -236,7 +237,7 @@ let get_urandom_spec = do {
 
 let supports_rdrand_spec = do {
     crucible_execute_func [];
-    r <- crucible_fresh_var "supports_rdrand" i32;
+    r <- crucible_fresh_var "supports_rdrand" bool;
     crucible_return (tm r);
 };
 
@@ -328,8 +329,10 @@ let generate_spec = do {
 
 let bytes_used_spec = do {
     (sp, keyp, s) <- drbg_state "drbg";
-    crucible_execute_func [sp];
-    crucible_return (tm {{ drop s.bytes_used : [32] }});
+    bytes_used <- alloc_init i64 (tm {{ 0 : [64] }});
+    crucible_execute_func [sp, bytes_used];
+    crucible_points_to bytes_used (tm {{ s.bytes_used }});
+    crucible_return (tm {{ 0 : [32] }});
 };
 
 ////////////////////////////////////////////////////////////////////////////////

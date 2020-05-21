@@ -82,7 +82,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_new(&check_mac));
 
     EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, fixed_iv.data, fixed_iv.size));
-    EXPECT_SUCCESS(s2n_get_urandom_data(&r));
+    EXPECT_OK(s2n_get_urandom_data(&r));
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
     /* Peer and we are in sync */
@@ -195,10 +195,10 @@ int main(int argc, char **argv)
         EXPECT_MEMCPY_SUCCESS(conn->server->client_sequence_number, original_seq_num, 8);
 
         /* Deliberately corrupt a byte of the output and check that the record
-         * won't parse 
+         * won't parse
          */
-        uint32_t byte_to_corrupt;
-        EXPECT_SUCCESS(byte_to_corrupt = s2n_public_random(fragment_length));
+        uint64_t byte_to_corrupt;
+        EXPECT_OK(s2n_public_random(fragment_length, &byte_to_corrupt));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         EXPECT_SUCCESS(s2n_stuffer_reread(&conn->out));

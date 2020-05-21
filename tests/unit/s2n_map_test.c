@@ -37,7 +37,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 1234));
     key.data = (void *) keystr;
     key.size = strlen(keystr) + 1;
-    EXPECT_RESULT_ERROR(s2n_map_lookup(empty, &key, &val, &key_found));
+    EXPECT_ERROR(s2n_map_lookup(empty, &key, &val, &key_found));
 
     EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", 1234));
     val.data = (void *) valstr;
@@ -45,19 +45,19 @@ int main(int argc, char **argv)
 
     /* Try to add/put key with zero-size data. Expect failures */
     key.size = 0;
-    EXPECT_RESULT_ERROR(s2n_map_add(empty, &key, &val));
-    EXPECT_RESULT_ERROR(s2n_map_put(empty, &key, &val));
+    EXPECT_ERROR(s2n_map_add(empty, &key, &val));
+    EXPECT_ERROR(s2n_map_put(empty, &key, &val));
     key.size = strlen(keystr) + 1;
 
     /* Make the empty map complete */
-    EXPECT_RESULT_OK(s2n_map_complete(empty));
+    EXPECT_OK(s2n_map_complete(empty));
 
     /* Lookup and expect no result */
-    EXPECT_RESULT_OK(s2n_map_lookup(empty, &key, &val, &key_found));
+    EXPECT_OK(s2n_map_lookup(empty, &key, &val, &key_found));
     EXPECT_EQUAL(key_found, false);
 
     /* Done with the empty map */
-    EXPECT_RESULT_OK(s2n_map_free(empty));
+    EXPECT_OK(s2n_map_free(empty));
 
     /* Expect failure since initial map size is zero */
     EXPECT_NULL(map = s2n_map_new_with_initial_capacity(0));
@@ -75,7 +75,7 @@ int main(int argc, char **argv)
         val.data = (void *) valstr;
         val.size = strlen(valstr) + 1;
 
-        EXPECT_RESULT_OK(s2n_map_add(map, &key, &val));
+        EXPECT_OK(s2n_map_add(map, &key, &val));
     }
 
     /* Try adding some duplicates */
@@ -88,7 +88,7 @@ int main(int argc, char **argv)
         val.data = (void *) valstr;
         val.size = strlen(valstr) + 1;
 
-        EXPECT_RESULT_ERROR(s2n_map_add(map, &key, &val));
+        EXPECT_ERROR(s2n_map_add(map, &key, &val));
     }
 
     /* Try replacing some entries */
@@ -101,15 +101,15 @@ int main(int argc, char **argv)
         val.data = (void *) valstr;
         val.size = strlen(valstr) + 1;
 
-        EXPECT_RESULT_OK(s2n_map_put(map, &key, &val));
+        EXPECT_OK(s2n_map_put(map, &key, &val));
     }
 
     /* Try a lookup before the map is complete: should fail */
     EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 1));
-    EXPECT_RESULT_ERROR(s2n_map_lookup(map, &key, &val, &key_found));
+    EXPECT_ERROR(s2n_map_lookup(map, &key, &val, &key_found));
 
     /* Make the map complete */
-    EXPECT_RESULT_OK(s2n_map_complete(map));
+    EXPECT_OK(s2n_map_complete(map));
 
     /* Make sure that add-after-complete fails */
     EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 8193));
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
     val.data = (void *) valstr;
     val.size = strlen(valstr) + 1;
 
-    EXPECT_RESULT_ERROR(s2n_map_add(map, &key, &val));
+    EXPECT_ERROR(s2n_map_add(map, &key, &val));
 
     /* Check for equivalence */
     for (int i = 0; i < 8192; i++) {
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
         key.data = (void *) keystr;
         key.size = strlen(keystr) + 1;
 
-        EXPECT_RESULT_OK(s2n_map_lookup(map, &key, &val, &key_found));
+        EXPECT_OK(s2n_map_lookup(map, &key, &val, &key_found));
         EXPECT_EQUAL(key_found, true);
 
         EXPECT_SUCCESS(memcmp(val.data, valstr, strlen(valstr) + 1));
@@ -148,11 +148,11 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 8193));
     key.data = (void *) keystr;
     key.size = strlen(keystr) + 1;
-    EXPECT_RESULT_OK(s2n_map_lookup(map, &key, &val, &key_found));
+    EXPECT_OK(s2n_map_lookup(map, &key, &val, &key_found));
     EXPECT_EQUAL(key_found, false);
 
     /* Make the map mutable */
-    EXPECT_RESULT_OK(s2n_map_unlock(map));
+    EXPECT_OK(s2n_map_unlock(map));
     /* Make sure that add-after-unlock succeeds */
     EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 8193));
     EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", 8193));
@@ -162,17 +162,17 @@ int main(int argc, char **argv)
     val.data = (void *) valstr;
     val.size = strlen(valstr) + 1;
 
-    EXPECT_RESULT_OK(s2n_map_add(map, &key, &val));
+    EXPECT_OK(s2n_map_add(map, &key, &val));
 
     /* Complete the map again */
-    EXPECT_RESULT_OK(s2n_map_complete(map));
+    EXPECT_OK(s2n_map_complete(map));
 
     /* Check the element added after map unlock */
-    EXPECT_RESULT_OK(s2n_map_lookup(map, &key, &val, &key_found));
+    EXPECT_OK(s2n_map_lookup(map, &key, &val, &key_found));
     EXPECT_EQUAL(key_found, true);
     EXPECT_SUCCESS(memcmp(val.data, valstr, strlen(valstr) + 1));
 
-    EXPECT_RESULT_OK(s2n_map_free(map));
+    EXPECT_OK(s2n_map_free(map));
 
     END_TEST();
 }

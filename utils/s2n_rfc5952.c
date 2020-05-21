@@ -20,17 +20,18 @@
 #include <error/s2n_errno.h>
 
 #include "s2n_rfc5952.h"
+#include "utils/s2n_safety.h"
 
 static uint8_t dec[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 static uint8_t hex[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
-int s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
+S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
 {
     const uint8_t *bytes = addr;
     uint8_t *cursor = dst->data;
 
     if (af == AF_INET) {
-        S2N_ERROR_IF(dst->size < sizeof("111.222.333.444"), S2N_ERR_SIZE_MISMATCH);
+        ENSURE(dst->size >= sizeof("111.222.333.444"), S2N_ERR_SIZE_MISMATCH);
 
         for (int i = 0; i < 4; i++) {
             if (bytes[i] / 100) {
@@ -45,11 +46,11 @@ int s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
 
         *--cursor = '\0';
 
-        return 0;
+        return S2N_RESULT_OK;
     }
 
     if (af == AF_INET6) {
-        S2N_ERROR_IF(dst->size < sizeof("1111:2222:3333:4444:5555:6666:7777:8888"), S2N_ERR_SIZE_MISMATCH);
+        ENSURE(dst->size >= sizeof("1111:2222:3333:4444:5555:6666:7777:8888"), S2N_ERR_SIZE_MISMATCH);
 
         /* See Section 4 of RFC5952 for the rules we are going to follow here
          *
@@ -127,8 +128,8 @@ int s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
 
         *--cursor = '\0';
 
-        return 0;
+        return S2N_RESULT_OK;
     }
 
-    S2N_ERROR(S2N_ERR_INVALID_ARGUMENT);
+    BAIL(S2N_ERR_INVALID_ARGUMENT);
 }

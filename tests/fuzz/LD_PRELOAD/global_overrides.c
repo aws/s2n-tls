@@ -31,7 +31,7 @@ int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob) {
      * This function should generate non-zero values since this function may be called repeatedly at startup until a
      * non-zero value is generated.
      */
-    GUARD(s2n_get_urandom_data(blob));
+    GUARD_AS_POSIX(s2n_get_urandom_data(blob));
     drbg->bytes_used += blob->size;
     return 0;
 }
@@ -53,7 +53,7 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len)
     return orig_s2n_stuffer_send_to_fd(stuffer, wfd, len);
 }
 
-int s2n_get_urandom_data(struct s2n_blob *blob){
+S2N_RESULT s2n_get_urandom_data(struct s2n_blob *blob){
 
     /* If fuzzing, only generate "fake" random numbers in order to ensure that fuzz tests are deterministic and repeatable.
      * This function should generate non-zero values since this function may be called repeatedly at startup until a
@@ -62,5 +62,5 @@ int s2n_get_urandom_data(struct s2n_blob *blob){
     for(int i=0; i < blob->size; i++){
        blob->data[i] = 4; /* Fake RNG. Chosen by fair dice roll. https://xkcd.com/221/ */
     }
-    return 0;
+    return S2N_RESULT_OK;
 }

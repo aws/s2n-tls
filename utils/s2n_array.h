@@ -16,29 +16,26 @@
 
 #include <s2n.h>
 #include "utils/s2n_blob.h"
+#include "utils/s2n_result.h"
 
 struct s2n_array {
     /* Pointer to elements in array */
     struct s2n_blob mem;
 
     /* The total number of elements currently in the array. */
-    uint32_t num_of_elements;
-
-    /* The total capacity of the array, in number of elements. */
-    uint32_t capacity;
+    uint32_t len;
 
     /* The size of each element in the array */
     size_t element_size;
 };
 
-#define s2n_array_num_elements( a )   ((a)->num_of_elements)
-#define S2N_ELEMENT_ALREADY_IN_ARRAY -1
-
 extern struct s2n_array *s2n_array_new(size_t element_size);
-extern void *s2n_array_pushback(struct s2n_array *array);
-extern void *s2n_array_get(struct s2n_array *array, uint32_t index);
-extern void *s2n_array_insert(struct s2n_array *array, uint32_t index);
-extern int s2n_array_remove(struct s2n_array *array, uint32_t index);
-extern int s2n_array_free_p(struct s2n_array **parray);
-extern int s2n_array_free(struct s2n_array *array);
-extern int s2n_array_insert_and_copy(struct s2n_array *array, void* element, uint32_t index);
+extern S2N_RESULT s2n_array_pushback(struct s2n_array *array, void **element);
+extern S2N_RESULT s2n_array_get(struct s2n_array *array, uint32_t index, void **element);
+extern S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **element);
+extern S2N_RESULT s2n_array_insert_and_copy(struct s2n_array *array, uint32_t index, void *element);
+extern S2N_RESULT s2n_array_num_elements(struct s2n_array *array, uint32_t *len);
+extern S2N_RESULT s2n_array_capacity(struct s2n_array *array, uint32_t *capacity);
+extern S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t index);
+extern S2N_RESULT s2n_array_free_p(struct s2n_array **parray);
+extern S2N_RESULT s2n_array_free(struct s2n_array *array);

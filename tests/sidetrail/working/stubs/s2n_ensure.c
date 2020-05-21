@@ -1,4 +1,3 @@
-#pragma once
 /*
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -11,14 +10,19 @@
  * or in the "license" file accompanying this file. This file is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
  * express or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
  */
 
-#include "utils/s2n_blob.h"
-#include "utils/s2n_result.h"
+#include "s2n_annotations.h"
+#include "s2n_safety.h"
+#include "sidetrail.h"
 
-/**
- * Converts a binary representation of an ip address into its canonical string
- * representation. Returns 0 on success and -1 on failure.
- */
-extern S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst);
-
+void* s2n_sidetrail_memset(void* ptr, int value, size_t num)
+{
+    uint8_t* p = (uint8_t*)(ptr);
+    __VERIFIER_assert(num >= 0);
+    for (int i = 0; i < num; ++i) {
+        S2N_INVARIENT(i <= num);
+        p[i] = value;
+    }
+}

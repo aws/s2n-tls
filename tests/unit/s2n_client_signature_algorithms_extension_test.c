@@ -91,7 +91,8 @@ int main(int argc, char **argv)
         }
 
         struct s2n_array *parsed_extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension));
-        struct s2n_client_hello_parsed_extension *parsed_named_group_extension = s2n_array_pushback(parsed_extensions);
+        struct s2n_client_hello_parsed_extension *parsed_named_group_extension = NULL;
+        EXPECT_OK(s2n_array_pushback(parsed_extensions, (void **)&parsed_named_group_extension));
         parsed_named_group_extension->extension_type = TLS_EXTENSION_SIGNATURE_ALGORITHMS;
         parsed_named_group_extension->extension = signature_algorithms_extension.blob;
 
@@ -103,7 +104,7 @@ int main(int argc, char **argv)
                                 &conn->secure.conn_sig_scheme));
 
         EXPECT_SUCCESS(s2n_stuffer_free(&signature_algorithms_extension));
-        EXPECT_SUCCESS(s2n_array_free(parsed_extensions));
+        EXPECT_OK(s2n_array_free(parsed_extensions));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
@@ -125,7 +126,8 @@ int main(int argc, char **argv)
         }
 
         struct s2n_array *parsed_extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension));
-        struct s2n_client_hello_parsed_extension *parsed_named_group_extension = s2n_array_pushback(parsed_extensions);
+        struct s2n_client_hello_parsed_extension *parsed_named_group_extension = NULL;
+        EXPECT_OK(s2n_array_pushback(parsed_extensions, (void **)&parsed_named_group_extension));
         parsed_named_group_extension->extension_type = TLS_EXTENSION_SIGNATURE_ALGORITHMS;
         parsed_named_group_extension->extension = signature_algorithms_extension.blob;
 
@@ -137,7 +139,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->secure.conn_sig_scheme.iana_value, TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA384);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&signature_algorithms_extension));
-        EXPECT_SUCCESS(s2n_array_free(parsed_extensions));
+        EXPECT_OK(s2n_array_free(parsed_extensions));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 

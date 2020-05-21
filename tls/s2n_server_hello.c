@@ -251,7 +251,7 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     struct s2n_blob rand_data = {0};
     GUARD(s2n_blob_init(&rand_data, s2n_stuffer_raw_write(&server_random, S2N_TLS_RANDOM_DATA_LEN), S2N_TLS_RANDOM_DATA_LEN));
     notnull_check(rand_data.data);
-    GUARD(s2n_get_public_random_data(&rand_data));
+    GUARD_AS_POSIX(s2n_get_public_random_data(&rand_data));
 
     /* Add a downgrade detection mechanism if required */
     GUARD(s2n_server_add_downgrade_mechanism(conn));

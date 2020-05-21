@@ -336,25 +336,25 @@ const char nist_aes256_no_pr_reference_returned_bits_hex[] =
 "8bf9c263c12a19c50525fb70cfe56980b26957e5c295f7546244ce6b7b1b90b24ce3cffc5536e96d973b192a77f878eb5e6987e1055475a0abd00312d7a65dd3";
 
 /* This function over-rides the s2n internal copy of the same function */
-int nist_fake_128_urandom_data(struct s2n_blob *blob)
+S2N_RESULT nist_fake_128_urandom_data(struct s2n_blob *blob)
 {
-    GUARD(s2n_stuffer_read(&nist_aes128_reference_entropy, blob));
-    return 0;
+    GUARD_AS_RESULT(s2n_stuffer_read(&nist_aes128_reference_entropy, blob));
+    return S2N_RESULT_OK;
 }
 
-int nist_fake_256_urandom_data(struct s2n_blob *blob)
+S2N_RESULT nist_fake_256_urandom_data(struct s2n_blob *blob)
 {
-    GUARD(s2n_stuffer_read(&nist_aes256_reference_entropy, blob));
-    return 0;
+    GUARD_AS_RESULT(s2n_stuffer_read(&nist_aes256_reference_entropy, blob));
+    return S2N_RESULT_OK;
 }
 
-int nist_fake_256_no_pr_urandom_data(struct s2n_blob *blob)
+S2N_RESULT nist_fake_256_no_pr_urandom_data(struct s2n_blob *blob)
 {
-    GUARD(s2n_stuffer_read(&nist_aes256_no_pr_reference_entropy, blob));
-    return 0;
+    GUARD_AS_RESULT(s2n_stuffer_read(&nist_aes256_no_pr_reference_entropy, blob));
+    return S2N_RESULT_OK;
 }
 
-int check_drgb_version(s2n_drbg_mode mode, int (*generator)(struct s2n_blob *), int personalization_size,
+int check_drgb_version(s2n_drbg_mode mode, s2n_result (*generator)(struct s2n_blob *), int personalization_size,
         const char personalization_hex[], const char reference_values_hex[], const char returned_bits_hex[]) {
 
     DEFER_CLEANUP(struct s2n_stuffer personalization = {0}, s2n_stuffer_free);
@@ -460,35 +460,35 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(config = s2n_config_new());
 
     /* Use the AES128 DRBG for 32MB of data */
-    EXPECT_SUCCESS(s2n_timer_start(config, &timer));
+    EXPECT_OK(s2n_timer_start(config, &timer));
     for (int i = 0; i < 500000; i++) {
         EXPECT_SUCCESS(s2n_drbg_generate(&aes128_drbg, &blob));
     }
-    EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &aes128_drbg_nanoseconds));
+    EXPECT_OK(s2n_timer_reset(config, &timer, &aes128_drbg_nanoseconds));
     EXPECT_EQUAL(aes128_drbg.generation, 500001);
 
     /* Use the AES256 DRBG with prediction resistance for 32MB of data */
-    EXPECT_SUCCESS(s2n_timer_start(config, &timer));
+    EXPECT_OK(s2n_timer_start(config, &timer));
     for (int i = 0; i < 500000; i++) {
         EXPECT_SUCCESS(s2n_drbg_generate(&aes256_pr_drbg, &blob));
     }
-    EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &aes256_pr_drbg_nanoseconds));
+    EXPECT_OK(s2n_timer_reset(config, &timer, &aes256_pr_drbg_nanoseconds));
     EXPECT_EQUAL(aes256_pr_drbg.generation, 500001);
 
     /* Use the AES256 DRBG without prediction resistance for 32MB of data */
-    EXPECT_SUCCESS(s2n_timer_start(config, &timer));
+    EXPECT_OK(s2n_timer_start(config, &timer));
     for (int i = 0; i < 500000; i++) {
         EXPECT_SUCCESS(s2n_drbg_generate(&aes256_no_pr_drbg, &blob));
     }
-    EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &aes256_no_pr_drbg_nanoseconds));
+    EXPECT_OK(s2n_timer_reset(config, &timer, &aes256_no_pr_drbg_nanoseconds));
     EXPECT_EQUAL(aes256_no_pr_drbg.generation, 1);
 
     /* Use urandom for 32MB of data */
-    EXPECT_SUCCESS(s2n_timer_start(config, &timer));
+    EXPECT_OK(s2n_timer_start(config, &timer));
     for (int i = 0; i < 500000; i++) {
-        EXPECT_SUCCESS(s2n_get_urandom_data(&blob));
+        EXPECT_OK(s2n_get_urandom_data(&blob));
     }
-    EXPECT_SUCCESS(s2n_timer_reset(config, &timer, &urandom_nanoseconds));
+    EXPECT_OK(s2n_timer_reset(config, &timer, &urandom_nanoseconds));
 
     /* NOTE: s2n_random_test also includes monobit tests for this DRBG */
     /* the DRBG state is 128 bytes, test that we can get more than that */

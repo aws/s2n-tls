@@ -121,7 +121,7 @@ int main(int argc, char **argv)
 
     /* Generate a random blob of data */
     s2n_stack_blob(random_msg, RANDOM_BLOB_SIZE, RANDOM_BLOB_SIZE);
-    EXPECT_SUCCESS(s2n_get_private_random_data(&random_msg));
+    EXPECT_OK(s2n_get_private_random_data(&random_msg));
 
     /* If RSA_PSS not supported, cannot sign/verify with PSS */
     {

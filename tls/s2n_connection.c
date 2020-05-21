@@ -223,7 +223,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->handshake.io, 0));
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->client_hello.raw_message, 0));
     GUARD_PTR(s2n_connection_wipe(conn));
-    GUARD_PTR(s2n_timer_start(conn->config, &conn->write_timer));
+    GUARD_RESULT_PTR(s2n_timer_start(conn->config, &conn->write_timer));
 
     /* Initialize the cookie stuffer with zero length. If a cookie extension
      * is received, the stuffer will be resized according to the cookie length */
@@ -1126,7 +1126,8 @@ uint64_t s2n_connection_get_delay(struct s2n_connection *conn)
     }
 
     uint64_t elapsed;
-    GUARD(s2n_timer_elapsed(conn->config, &conn->write_timer, &elapsed));
+    /* This will cast -1 to max uint64_t */
+    GUARD_AS_POSIX(s2n_timer_elapsed(conn->config, &conn->write_timer, &elapsed));
 
     if (elapsed > conn->delay) {
         return 0;
@@ -1145,10 +1146,13 @@ int s2n_connection_kill(struct s2n_connection *conn)
     int64_t min = TEN_S, max = 3 * TEN_S;
 
     /* Keep track of the delay so that it can be enforced */
-    conn->delay = min + s2n_public_random(max - min);
+    uint64_t rand_delay = 0;
+    GUARD_AS_POSIX(s2n_public_random(max - min, &rand_delay));
+
+    conn->delay = min + rand_delay;
 
     /* Restart the write timer */
-    GUARD(s2n_timer_start(conn->config, &conn->write_timer));
+    GUARD_AS_POSIX(s2n_timer_start(conn->config, &conn->write_timer));
 
     if (conn->blinding == S2N_BUILT_IN_BLINDING) {
         struct timespec sleep_time = {.tv_sec = conn->delay / ONE_S,.tv_nsec = conn->delay % ONE_S };

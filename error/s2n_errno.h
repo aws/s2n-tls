@@ -189,6 +189,7 @@ typedef enum {
     S2N_ERR_RESIZE_STATIC_BLOB,
     S2N_ERR_NO_AVAILABLE_BORINGSSL_API,
     S2N_ERR_RECORD_LENGTH_TOO_LARGE,
+    S2N_ERR_SET_DUPLICATE_VALUE,
     S2N_ERR_T_INTERNAL_END,
 
     /* S2N_ERR_T_USAGE */
@@ -260,6 +261,7 @@ extern __thread const char *s2n_debug_str;
 #define S2N_ERROR_PTR( x )  do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
 #define S2N_ERROR_IF( cond , x ) do { if ( cond ) { S2N_ERROR( x ); }} while (0)
 #define S2N_ERROR_IF_PTR( cond , x ) do { if ( cond ) { S2N_ERROR_PTR( x ); }} while (0)
+#define S2N_ERROR_IS_BLOCKING( x )    ( (x) == S2N_ERR_BLOCKED || (x) == S2N_CALLBACK_BLOCKED )
 
 #ifdef __TIMING_CONTRACTS__
 #    define S2N_PRECONDITION( cond ) (void) 0

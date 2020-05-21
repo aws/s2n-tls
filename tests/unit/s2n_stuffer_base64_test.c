@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     struct s2n_blob r = {.data = pad, .size = sizeof(pad)};
 
     BEGIN_TEST();
-    
+
 
     /* Create a 100 byte stuffer */
     EXPECT_SUCCESS(s2n_stuffer_alloc(&stuffer, 1000));
@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 
         /* Get i bytes of random data */
         r.size = i;
-        EXPECT_SUCCESS(s2n_get_urandom_data(&r));
+        EXPECT_OK(s2n_get_urandom_data(&r));
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&entropy, pad, i));
 
         /* Write i bytes  it, base64 encoded */

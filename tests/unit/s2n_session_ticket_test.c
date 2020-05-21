@@ -53,6 +53,8 @@ int main(int argc, char **argv)
     struct s2n_config *client_config;
     struct s2n_config *server_config;
     uint64_t now;
+    struct s2n_ticket_key *ticket_key;
+    uint32_t ticket_keys_len = 0;
 
     size_t serialized_session_state_length = 0;
     uint8_t s2n_state_with_session_id = S2N_STATE_WITH_SESSION_ID;
@@ -472,8 +474,10 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
 
         /* Verify that the server has only the unexpired key */
-        EXPECT_BYTEARRAY_EQUAL(s2n_set_get(server_config->ticket_keys, 0), ticket_key_name2, strlen((char *)ticket_key_name2));
-        EXPECT_EQUAL(s2n_set_size(server_config->ticket_keys), 1);
+        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 0, (void **)&ticket_key));
+        EXPECT_BYTEARRAY_EQUAL(ticket_key->key_name, ticket_key_name2, strlen((char *)ticket_key_name2));
+        EXPECT_OK(s2n_set_len(server_config->ticket_keys, &ticket_keys_len));
+        EXPECT_EQUAL(ticket_keys_len, 1);
 
         /* Verify that the client received NST */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
@@ -622,7 +626,6 @@ int main(int argc, char **argv)
 
         /* Try adding the same key, but with a different name */
         EXPECT_EQUAL(-1, s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key1, sizeof(ticket_key1), 0));
-        EXPECT_EQUAL(s2n_errno, S2N_ELEMENT_ALREADY_IN_ARRAY);
 
         /* Try adding a different key, but with the same name */
         EXPECT_EQUAL(-1, s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key2, sizeof(ticket_key2), 0));
@@ -653,16 +656,17 @@ int main(int argc, char **argv)
 
         /* Try adding the expired keys */
         EXPECT_EQUAL(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, strlen((char *)ticket_key_name2), ticket_key2, sizeof(ticket_key2), 0), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ELEMENT_ALREADY_IN_ARRAY);
         EXPECT_EQUAL(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key1, sizeof(ticket_key1), 0), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ELEMENT_ALREADY_IN_ARRAY);
 
         /* Verify that the config has only one unexpired key */
-        EXPECT_BYTEARRAY_EQUAL(s2n_set_get(server_config->ticket_keys, 0), ticket_key_name3, strlen((char *)ticket_key_name3));
-        EXPECT_EQUAL(s2n_set_size(server_config->ticket_keys), 1);
+        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 0, (void **)&ticket_key));
+        EXPECT_BYTEARRAY_EQUAL(ticket_key->key_name, ticket_key_name3, strlen((char *)ticket_key_name3));
+        EXPECT_OK(s2n_set_len(server_config->ticket_keys, &ticket_keys_len));
+        EXPECT_EQUAL(ticket_keys_len, 1);
 
         /* Verify that the total number of key hashes is three */
-        EXPECT_EQUAL(s2n_set_size(server_config->ticket_key_hashes), 3);
+        EXPECT_OK(s2n_set_len(server_config->ticket_key_hashes, &ticket_keys_len));
+        EXPECT_EQUAL(ticket_keys_len, 3);
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
     }
@@ -902,9 +906,12 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name2, strlen((char *)ticket_key_name2));
 
         /* Verify that the keys are stored from oldest to newest */
-        EXPECT_BYTEARRAY_EQUAL(((struct s2n_ticket_key *)s2n_set_get(server_config->ticket_keys, 0))->key_name, ticket_key_name2, strlen((char *)ticket_key_name2));
-        EXPECT_BYTEARRAY_EQUAL(((struct s2n_ticket_key *)s2n_set_get(server_config->ticket_keys, 1))->key_name, ticket_key_name1, strlen((char *)ticket_key_name1));
-        EXPECT_BYTEARRAY_EQUAL(((struct s2n_ticket_key *)s2n_set_get(server_config->ticket_keys, 2))->key_name, ticket_key_name3, strlen((char *)ticket_key_name3));
+        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 0, (void **)&ticket_key));
+        EXPECT_BYTEARRAY_EQUAL(ticket_key->key_name, ticket_key_name2, strlen((char *)ticket_key_name2));
+        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 1, (void **)&ticket_key));
+        EXPECT_BYTEARRAY_EQUAL(ticket_key->key_name, ticket_key_name1, strlen((char *)ticket_key_name1));
+        EXPECT_OK(s2n_set_get(server_config->ticket_keys, 2, (void **)&ticket_key));
+        EXPECT_BYTEARRAY_EQUAL(ticket_key->key_name, ticket_key_name3, strlen((char *)ticket_key_name3));
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 

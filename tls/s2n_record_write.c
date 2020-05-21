@@ -328,7 +328,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
 
         /* For TLS1.1/1.2; write the IV with random data */
         if (conn->actual_protocol_version > S2N_TLS10) {
-            GUARD(s2n_get_public_random_data(&iv));
+            GUARD_AS_POSIX(s2n_get_public_random_data(&iv));
             GUARD(s2n_stuffer_write(&conn->out, &iv));
         }
     }

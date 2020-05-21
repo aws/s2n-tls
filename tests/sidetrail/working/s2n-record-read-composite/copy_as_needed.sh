@@ -13,7 +13,7 @@
 # permissions and limitations under the License.
 #
 
-set -x 
+set -x
 set -e
 
 BASEDIR=$(pwd)
@@ -50,8 +50,8 @@ mkdir -p utils
 cp $S2N_BASE/utils/s2n_safety.c utils/
 cp $S2N_BASE/utils/s2n_safety.h utils/
 cp ../stubs/s2n_mem.c utils/
-patch -p5 < ../patches/safety1.patch
-patch -p5 < ../patches/safety2.patch
+patch -p5 < ../patches/safety.patch
 
 cp ../stubs/s2n_annotations.h utils/
-
+cp ../stubs/s2n_ensure.h utils/
+cp ../stubs/s2n_ensure.c utils/

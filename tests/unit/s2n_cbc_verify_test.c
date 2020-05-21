@@ -63,7 +63,7 @@ static void summarize(uint64_t *list, int n, uint64_t *count, uint64_t *avg, uin
     }
 
     *avg = low;
-        
+
     int64_t hi = p75 + (iqr * 1.5);
     /* Ignore overflow as we have plenty of room at the top */
 
@@ -72,7 +72,7 @@ static void summarize(uint64_t *list, int n, uint64_t *count, uint64_t *avg, uin
     uint64_t sum_squares = 0;
     uint64_t min = 0xFFFFFFFF;
     uint64_t max = 0;
-    
+
     for (int i = 0; i < n; i++) {
         int64_t value = list[ i ];
 
@@ -86,7 +86,7 @@ static void summarize(uint64_t *list, int n, uint64_t *count, uint64_t *avg, uin
         sum_squares += value * value;
 
         if (value < min) {
-            min = value; 
+            min = value;
         }
         if (value > max) {
             max = value;
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_new(&record_mac));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    EXPECT_SUCCESS(s2n_get_urandom_data(&r));
+    EXPECT_OK(s2n_get_urandom_data(&r));
 
     /* Emulate TLS1.2 */
     conn->actual_protocol_version = S2N_TLS12;
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
 
         /* Start out with zero byte padding */
         fragment[i - 1] = 0;
-        
+
         struct s2n_blob decrypted = {0};
         s2n_blob_init(&decrypted, fragment, i);
 
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
 
             timings[ t ] = (after - before);
         }
-        
+
         uint64_t mac_median, mac_avg, mac_stddev, mac_variance, mac_count;
         summarize(timings, 10001, &mac_count, &mac_avg, &mac_median, &mac_stddev, &mac_variance);
 
@@ -227,7 +227,7 @@ int main(int argc, char **argv)
 
         if ((int64_t) mac_median < lo || (int64_t) mac_median > hi) {
             printf("\n\nRecord size: %d\nGood Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n"
-                   "Bad Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n\n", 
+                   "Bad Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n\n",
                     i, good_median, good_avg, good_stddev, mac_median, mac_avg, mac_stddev);
             FAIL();
         }
@@ -260,7 +260,7 @@ int main(int argc, char **argv)
 
             timings[ t ] = (after - before);
         }
-        
+
         uint64_t pad_median, pad_avg, pad_stddev, pad_variance, pad_count;
         summarize(timings, 10001, &pad_count, &pad_avg, &pad_median, &pad_stddev, &pad_variance);
 
@@ -270,11 +270,11 @@ int main(int argc, char **argv)
 
         if ((int64_t) pad_median < lo || (int64_t) pad_median > hi) {
             printf("\n\nRecord size: %d\nGood Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n"
-                   "Bad Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n\n", 
+                   "Bad Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n\n",
                     i, good_median, good_avg, good_stddev, pad_median, pad_avg, pad_stddev);
             FAIL();
         }
- 
+
         /* Use a more sensitive 0.5 sigma test for the MAC error from the padding error. This is the
          * the difference that attackers can exploit.
          */
@@ -283,7 +283,7 @@ int main(int argc, char **argv)
 
         if ((int64_t) pad_median < lo || (int64_t) pad_median > hi) {
             printf("\n\nRecord size: %d\nMAC Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n"
-                   "PAD Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n\n", 
+                   "PAD Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n\n",
                     i, mac_median, mac_avg, mac_stddev, pad_median, pad_avg, pad_stddev);
             FAIL();
         }

@@ -155,7 +155,8 @@ int main()
 
         /* Create a properly parsed client hello extension using the stuffer's blob */
         struct s2n_array *parsed_extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension));
-        struct s2n_client_hello_parsed_extension *parsed_named_group_extension = s2n_array_pushback(parsed_extensions);
+        struct s2n_client_hello_parsed_extension *parsed_named_group_extension = NULL;
+        EXPECT_OK(s2n_array_pushback(parsed_extensions, (void **)&parsed_named_group_extension));
         parsed_named_group_extension->extension_type = TLS_EXTENSION_SUPPORTED_GROUPS;
         parsed_named_group_extension->extension = supported_groups_extension.blob;
 
@@ -166,7 +167,7 @@ int main()
         EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&supported_groups_extension));
-        EXPECT_SUCCESS(s2n_array_free(parsed_extensions));
+        EXPECT_OK(s2n_array_free(parsed_extensions));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 

@@ -16,7 +16,7 @@
 #pragma once
 
 #include <stdint.h>
-#include <stdbool.h> 
+#include <stdbool.h>
 
 #include "tls/s2n_connection.h"
 
