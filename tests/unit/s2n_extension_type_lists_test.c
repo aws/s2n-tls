@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 
         /* Can retrieve the same list for tls1.2 and tls1.3 */
         {
-            s2n_extension_type_list *default_list, *tls13_list;
+            s2n_extension_type_list *default_list = NULL, *tls13_list = NULL;
 
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_extension_type_list_get(LIST_TYPE_SAME_IN_TLS13, conn, &default_list));
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 
         /* Can retrieve different lists for tls1.2 and tls1.3 */
         {
-            s2n_extension_type_list *default_list, *tls13_list;
+            s2n_extension_type_list *default_list = NULL, *tls13_list = NULL;
 
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_extension_type_list_get(LIST_TYPE_DIFFERENT_IN_TLS13, conn, &default_list));
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
 
         /* Retrieves default list when protocol version earlier than tls1.2 */
         {
-            s2n_extension_type_list *default_list, *tls10_list;
+            s2n_extension_type_list *default_list = NULL, *tls10_list = NULL;
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_extension_type_list_get(LIST_TYPE_DIFFERENT_IN_TLS13, conn, &default_list));
             EXPECT_NOT_EMPTY_LIST(default_list);
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 
         /* Can retrieve an empty list */
         {
-            s2n_extension_type_list *empty_list;
+            s2n_extension_type_list *empty_list = NULL;
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_extension_type_list_get(LIST_TYPE_EMPTY_IN_TLS12, conn, &empty_list));
             EXPECT_NOT_NULL(empty_list);
