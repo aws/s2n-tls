@@ -1,4 +1,3 @@
-from configuration import TLS13_CURVES
 from common import Protocols
 from providers import S2N
 
@@ -44,28 +43,17 @@ def invalid_test_parameters(*args, **kwargs):
     if cipher.openssl1_1_1 is False:
         return True
 
-    # If the provider doesn't support the cipher, don't test
-    if provider is not None and cipher not in provider.supported_ciphers:
-        return True
-
-    # Only test ecdsa ciphers if we are using an ecdsa certificate
-    if 'ECDSA' in cipher.name and 'ecdsa' not in certificate.cert:
-        return True
-
-    if protocol == Protocols.TLS13:
-        # TLS1.3 should work with all our certs
-        return False
-
-    if protocol != Protocols.TLS13:
-
-        # Only test the curves when using TLS13
-        if curve is not None:
+    # If we are using a cipher that depends on a specific certificate algorithm
+    # deselect the test of the wrong certificate is used.
+    if certificate is not None:
+        if cipher is not None and certificate.compatible_with_cipher(cipher) is False:
             return True
 
-        if certificate is not None and 'ecdsa' in certificate.cert and 'ECDSA' not in cipher.name:
+        if curve is not None and certificate.compatible_with_curve(curve) is False:
             return True
 
-        if curve in TLS13_CURVES:
+    # Prevent situations like using X25519 with TLS1.2
+    if curve is not None and protocol is not None and curve.min_protocol > protocol:
             return True
 
     return False

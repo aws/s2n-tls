@@ -4,7 +4,7 @@ import pytest
 import subprocess
 import time
 
-from configuration import available_ports, ALL_TEST_CIPHERS, ALL_CURVES, ALL_CERTS, PROVIDERS, PROTOCOLS
+from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROVIDERS, PROTOCOLS
 from common import ProviderOptions, data_bytes, Protocols
 from fixtures import managed_process, custom_mtu
 from providers import Provider, S2N, OpenSSL, Tcpdump
@@ -40,10 +40,10 @@ def find_fragmented_packet(results):
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
-@pytest.mark.parametrize("curve", ALL_CURVES)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES)
 @pytest.mark.parametrize("provider", [OpenSSL])
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 def test_s2n_client_dynamic_record(custom_mtu, managed_process, cipher, curve, provider, protocol, certificate):
     host = "localhost"
     port = next(available_ports)
