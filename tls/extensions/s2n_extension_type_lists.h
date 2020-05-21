@@ -23,6 +23,7 @@ typedef enum {
     S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS,
     S2N_EXTENSION_LIST_CERT_REQ,
     S2N_EXTENSION_LIST_CERTIFICATE,
+    S2N_EXTENSION_LIST_IDS_COUNT,
 } s2n_extension_list_id;
 
 typedef struct {
@@ -30,5 +31,5 @@ typedef struct {
     const uint8_t count;
 } s2n_extension_type_list;
 
-int s2n_extension_type_list_get(s2n_extension_list_id list_type, struct s2n_connection *conn,
-        const s2n_extension_type_list **extension_type_list);
+int s2n_extension_type_list_get(s2n_extension_list_id list_type, const struct s2n_connection *conn,
+        s2n_extension_type_list **extension_type_list);

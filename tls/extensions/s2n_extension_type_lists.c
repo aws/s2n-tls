@@ -94,46 +94,46 @@ static const s2n_extension_type *const certificate_extensions[] = {
 };
 
 #define S2N_EXTENSION_LIST(list) { .extension_types = (list), .count = s2n_array_len(list) }
-
-static const s2n_extension_type_list empty_extension_type_list = { .extension_types = NULL, .count = 0 };
+#define S2N_EMPTY_EXTENSION_LIST { .extension_types = NULL, .count = 0 }
 
 static struct {
-    const s2n_extension_type_list tls12_list;
-    const s2n_extension_type_list tls13_list; /* TLS1.3 moved some extensions to different extension lists */
+    s2n_extension_type_list default_list;
+    s2n_extension_type_list tls13_list; /* TLS1.3 moved some extensions to different extension lists */
 } extension_lists[] = {
         [S2N_EXTENSION_LIST_CLIENT_HELLO] = {
-                .tls12_list = S2N_EXTENSION_LIST(client_hello_extensions),
+                .default_list = S2N_EXTENSION_LIST(client_hello_extensions),
                 .tls13_list = S2N_EXTENSION_LIST(client_hello_extensions),
         },
         [S2N_EXTENSION_LIST_SERVER_HELLO] = {
-                .tls12_list = S2N_EXTENSION_LIST(tls12_server_hello_extensions),
+                .default_list = S2N_EXTENSION_LIST(tls12_server_hello_extensions),
                 .tls13_list = S2N_EXTENSION_LIST(tls13_server_hello_extensions),
         },
         [S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS] = {
+                .default_list = S2N_EMPTY_EXTENSION_LIST,
                 .tls13_list = S2N_EXTENSION_LIST(encrypted_extensions),
         },
         [S2N_EXTENSION_LIST_CERT_REQ] = {
+                .default_list = S2N_EMPTY_EXTENSION_LIST,
                 .tls13_list = S2N_EXTENSION_LIST(cert_req_extensions),
         },
         [S2N_EXTENSION_LIST_CERTIFICATE] = {
+                .default_list = S2N_EMPTY_EXTENSION_LIST,
                 .tls13_list = S2N_EXTENSION_LIST(certificate_extensions),
         },
 };
 
-int s2n_extension_type_list_get(s2n_extension_list_id list_type, struct s2n_connection *conn,
-        const s2n_extension_type_list **extension_list)
+int s2n_extension_type_list_get(s2n_extension_list_id list_type, const struct s2n_connection *conn,
+        s2n_extension_type_list **extension_list)
 {
     notnull_check(extension_list);
+    notnull_check(conn);
     lt_check(list_type, s2n_array_len(extension_lists));
 
     if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13) {
         *extension_list = &extension_lists[list_type].tls13_list;
     } else {
-        *extension_list = &extension_lists[list_type].tls12_list;
+        *extension_list = &extension_lists[list_type].default_list;
     }
 
-    if (*extension_list == NULL) {
-        *extension_list = &empty_extension_type_list;
-    }
     return S2N_SUCCESS;
 }
