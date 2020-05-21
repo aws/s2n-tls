@@ -27,24 +27,14 @@
 
 int s2n_server_status_send(struct s2n_connection *conn)
 {
-    GUARD(s2n_server_certificate_status_send(conn, &conn->handshake.io));
+    if (s2n_server_can_send_ocsp(conn)) {
+        GUARD(s2n_server_certificate_status_send(conn, &conn->handshake.io));
+    }
 
     return 0;
 }
 
 int s2n_server_status_recv(struct s2n_connection *conn)
 {
-    uint8_t type;
-    struct s2n_blob status = {.data = NULL,.size = 0 };
-
-    GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &type));
-    GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, &status.size));
-    status.data = s2n_stuffer_raw_read(&conn->handshake.io, status.size);
-    notnull_check(status.data);
-
-    if (type == S2N_STATUS_REQUEST_OCSP) {
-        GUARD(s2n_server_certificate_status_parse(conn, &status));
-    }
-
-    return 0;
+    return s2n_server_certificate_status_recv(conn, &conn->handshake.io);
 }

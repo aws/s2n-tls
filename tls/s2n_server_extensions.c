@@ -27,6 +27,7 @@
 
 #include "tls/extensions/s2n_certificate_extensions.h"
 #include "tls/extensions/s2n_cookie.h"
+#include "tls/extensions/s2n_ec_point_format.h"
 #include "tls/extensions/s2n_server_renegotiation_info.h"
 #include "tls/extensions/s2n_server_alpn.h"
 #include "tls/extensions/s2n_server_status_request.h"
@@ -58,7 +59,7 @@ int s2n_server_extensions_send_size(struct s2n_connection *conn)
     GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_server_name_send_size(conn), total_size);
     GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_alpn_send_size(conn), total_size);
     GUARD_UINT16_AND_INCREMENT(s2n_server_renegotiation_info_ext_size(conn), total_size);
-    GUARD_UINT16_AND_INCREMENT(s2n_kex_server_extension_size(conn->secure.cipher_suite->key_exchange_alg, conn), total_size);
+    GUARD_UINT16_AND_INCREMENT(s2n_server_ecc_point_format_extension_size(conn), total_size);
     GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_max_fragment_length_send_size(conn), total_size);
     GUARD_UINT16_AND_INCREMENT(s2n_server_session_ticket_ext_size(conn), total_size);
     GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_status_request_send_size(conn), total_size);
@@ -98,7 +99,7 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
     GUARD(s2n_server_extensions_server_name_send(conn, out));
 
     /* Write kex extension */
-    GUARD(s2n_kex_write_server_extension(conn->secure.cipher_suite->key_exchange_alg, conn, out));
+    GUARD(s2n_extension_send(&s2n_server_ec_point_format_extension, conn, out));
     
     /* Write the renegotiation_info extension */
     GUARD(s2n_send_server_renegotiation_info_ext(conn, out));

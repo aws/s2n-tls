@@ -104,6 +104,3 @@ extern uint16_t mfl_code_to_length[5];
 
 #define s2n_server_sending_nst(conn) ((conn)->config->use_tickets && \
         (conn)->session_ticket_status == S2N_NEW_TICKET)
-
-#define s2n_server_can_send_kex(conn) \
-    ((conn)->secure.cipher_suite->key_exchange_alg)

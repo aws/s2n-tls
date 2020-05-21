@@ -66,7 +66,7 @@ int s2n_certificate_extensions_parse(struct s2n_connection *conn, struct s2n_blo
             }
             break;
         case TLS_EXTENSION_STATUS_REQUEST:
-            GUARD(s2n_server_certificate_status_parse(conn, &ext));
+            GUARD(s2n_tls13_ocsp_extension_recv(conn, &ext));
             break;
         /* Error on known extensions that are not supposed to appear in EE
          * https://tools.ietf.org/html/rfc8446#page-37

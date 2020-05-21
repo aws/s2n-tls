@@ -13,46 +13,6 @@ class Provider(object):
     ClientMode = "client"
     ServerMode = "server"
 
-    # These are the ciphers that we will test, and the parameters S2N needs in order to
-    # test them. Other providers may need to override this list if they have different
-    # names for the ciphers.
-    supported_ciphers = {
-        Ciphers.CHACHA20_POLY1305_SHA256: 'test_all_tls13',
-        Ciphers.ECDHE_RSA_CHACHA20_POLY1305: 'test_all',
-        Ciphers.ECDHE_ECDSA_CHACHA20_POLY1305: 'test_all',
-        Ciphers.DHE_RSA_CHACHA20_POLY1305: 'test_all',
-
-        Ciphers.DHE_RSA_AES128_SHA: 'test_all',
-        Ciphers.DHE_RSA_AES256_SHA: 'test_all',
-        Ciphers.DHE_RSA_AES128_SHA256: 'test_all',
-        Ciphers.DHE_RSA_AES256_SHA256: 'test_all',
-        Ciphers.DHE_RSA_AES128_GCM_SHA256: 'test_all',
-        Ciphers.DHE_RSA_AES256_GCM_SHA384: 'test_all',
-        Ciphers.DHE_RSA_CHACHA20_POLY1305: 'test_all',
-
-        Ciphers.AES128_GCM_SHA256: 'test_all_tls13',
-        Ciphers.AES256_GCM_SHA384: 'test_all_tls13',
-        Ciphers.AES128_SHA256: 'test_all',
-        Ciphers.AES256_SHA256: 'test_all',
-        Ciphers.AES128_SHA: 'test_all',
-        Ciphers.AES256_SHA: 'test_all',
-
-        Ciphers.ECDHE_ECDSA_AES128_GCM_SHA256: 'test_all',
-        Ciphers.ECDHE_ECDSA_AES256_GCM_SHA384: 'test_all',
-        Ciphers.ECDHE_ECDSA_AES128_SHA256: 'test_all',
-        Ciphers.ECDHE_ECDSA_AES256_SHA384: 'test_all',
-        Ciphers.ECDHE_ECDSA_AES128_SHA: 'test_all',
-        Ciphers.ECDHE_ECDSA_AES256_SHA: 'test_all',
-
-        Ciphers.ECDHE_RSA_AES128_GCM_SHA256: 'test_all',
-        Ciphers.ECDHE_RSA_AES256_GCM_SHA384: 'test_all',
-        Ciphers.ECDHE_RSA_DES_CBC3_SHA: 'test_all',
-        Ciphers.ECDHE_RSA_AES128_SHA: 'test_all',
-        Ciphers.ECDHE_RSA_AES256_SHA: 'test_all',
-        Ciphers.ECDHE_RSA_AES128_SHA256: 'test_all',
-        Ciphers.ECDHE_RSA_AES256_SHA384: 'test_all',
-    }
-
     def __init__(self, options: ProviderOptions):
         # If the test should wait for a specific output message before beginning,
         # put that message in ready_to_test_marker
@@ -165,9 +125,8 @@ class S2N(Provider):
 
         if options.protocol == Protocols.TLS13:
             cmd_line.append('--tls13')
-            cmd_line.extend(['-c', 'test_all_tls13'])
-        else:
-            cmd_line.extend(['-c', 'test_all'])
+
+        cmd_line.extend(['-c', 'test_all'])
 
         cmd_line.extend([options.host, options.port])
 
@@ -192,9 +151,8 @@ class S2N(Provider):
 
         if options.protocol == Protocols.TLS13:
             cmd_line.append('--tls13')
-            cmd_line.extend(['-c', 'test_all_tls13'])
-        else:
-            cmd_line.extend(['-c', 'test_all'])
+
+        cmd_line.extend(['-c', 'test_all'])
         if options.use_client_auth is True:
             cmd_line.append('-m')
             cmd_line.extend(['-t', options.client_certificate_file])
@@ -206,42 +164,6 @@ class S2N(Provider):
 
 class OpenSSL(Provider):
 
-    supported_ciphers = {
-        Ciphers.CHACHA20_POLY1305_SHA256: 'TLS_CHACHA20_POLY1305_SHA256',
-
-        Ciphers.DHE_RSA_CHACHA20_POLY1305: 'DHE-RSA-CHACHA20-POLY1305',
-        Ciphers.DHE_RSA_AES128_SHA: 'DHE-RSA-AES128-SHA',
-        Ciphers.DHE_RSA_AES256_SHA: 'DHE-RSA-AES128-SHA',
-        Ciphers.DHE_RSA_AES128_SHA256: 'DHE-RSA-AES128-SHA256',
-        Ciphers.DHE_RSA_AES256_SHA256: 'DHE-RSA-AES256-SHA256',
-        Ciphers.DHE_RSA_AES128_GCM_SHA256: 'DHE-RSA-AES128-GCM-SHA256',
-        Ciphers.DHE_RSA_AES256_GCM_SHA384: 'DHE-RSA-AES256-GCM-SHA384',
-
-        Ciphers.AES128_GCM_SHA256: 'TLS_AES_128_GCM_SHA256',
-        Ciphers.AES256_GCM_SHA384: 'TLS_AES_256_GCM_SHA384',
-        Ciphers.AES128_SHA256: 'AES128-SHA256',
-        Ciphers.AES256_SHA256: 'AES256-SHA256',
-        Ciphers.AES128_SHA: 'AES128-SHA',
-        Ciphers.AES256_SHA: 'AES256-SHA',
-
-        Ciphers.ECDHE_ECDSA_AES128_GCM_SHA256: 'ECDHE-ECDSA-AES128-GCM-SHA256',
-        Ciphers.ECDHE_ECDSA_AES256_GCM_SHA384: 'ECDHE-ECDSA-AES256-GCM-SHA384',
-        Ciphers.ECDHE_ECDSA_AES128_SHA256: 'ECDHE-ECDSA-AES128-SHA256',
-        Ciphers.ECDHE_ECDSA_AES256_SHA384: 'ECDHE-ECDSA-AES256-SHA384',
-        Ciphers.ECDHE_ECDSA_AES128_SHA: 'ECDHE-ECDSA-AES128-SHA',
-        Ciphers.ECDHE_ECDSA_AES256_SHA: 'ECDHE-ECDSA-AES256-SHA',
-        Ciphers.ECDHE_ECDSA_CHACHA20_POLY1305: 'ECDHE-ECDSA-CHACHA20-POLY1305',
-
-        Ciphers.ECDHE_RSA_AES128_GCM_SHA256: 'ECDHE-RSA-AES128-GCM-SHA256',
-        Ciphers.ECDHE_RSA_AES256_GCM_SHA384: 'ECDHE-RSA-AES256-GCM-SHA384',
-        Ciphers.ECDHE_RSA_CHACHA20_POLY1305: 'ECDHE-RSA-CHACHA20-POLY1305',
-        Ciphers.ECDHE_RSA_DES_CBC3_SHA: 'ECDHE-RSA-DES-CBC3-SHA',
-        Ciphers.ECDHE_RSA_AES128_SHA: 'ECDHE-RSA-AES128-SHA',
-        Ciphers.ECDHE_RSA_AES256_SHA: 'ECDHE-RSA-AES256-SHA',
-        Ciphers.ECDHE_RSA_AES128_SHA256: 'ECDHE-RSA-AES128-SHA256',
-        Ciphers.ECDHE_RSA_AES256_SHA384: 'ECDHE-RSA-AES256-SHA384',
-    }
-
     def __init__(self, options: ProviderOptions):
         self.ready_to_send_input_marker = None
         Provider.__init__(self, options)
@@ -251,13 +173,16 @@ class OpenSSL(Provider):
 
         # Prior to TLS13 the -cipher flag is used
         if cipher.min_version == Protocols.TLS13:
+            supported_ciphers = {
+                Ciphers.AES128_GCM_SHA256: 'TLS_AES_128_GCM_SHA256',
+                Ciphers.AES256_GCM_SHA384: 'TLS_AES_256_GCM_SHA384',
+                Ciphers.CHACHA20_POLY1305_SHA256: 'TLS_CHACHA20_POLY1305_SHA256',
+            }
+
             cmdline.append('-ciphersuites')
+            cmdline.append(supported_ciphers[cipher])
         else:
             cmdline.append('-cipher')
-
-        if cipher in OpenSSL.supported_ciphers:
-            cmdline.append(OpenSSL.supported_ciphers[cipher])
-        else:
             cmdline.append(cipher.name.replace("_", "-"))
 
         return cmdline
@@ -292,7 +217,8 @@ class OpenSSL(Provider):
             cmd_line.extend(self.cipher_to_cmdline(options.protocol, options.cipher))
 
         if options.curve is not None:
-            cmd_line.extend(['-curves', options.curve])
+            cmd_line.extend(['-curves', str(options.curve)])
+
         if options.use_client_auth is True:
             cmd_line.extend(['-key', options.client_key_file])
             cmd_line.extend(['-cert', options.client_certificate_file])
@@ -305,10 +231,6 @@ class OpenSSL(Provider):
     def setup_server(self, options: ProviderOptions):
         # s_server prints this message before it is ready to send/receive data
         self.ready_to_test_marker = 'ACCEPT'
-
-        # NOTE: At this time I can't get S2N to connect when the server uses this cipher
-        if options.cipher == Ciphers.DHE_RSA_CHACHA20_POLY1305:
-            pytest.skip('S2N can not connect to a server using DHE_RSA_CHACHA20_POLY1305')
 
         cmd_line = ['openssl', 's_server']
         cmd_line.extend(['-accept', '{}:{}'.format(options.host, options.port)])
@@ -337,9 +259,11 @@ class OpenSSL(Provider):
 
         if options.cipher is not None:
             cmd_line.extend(self.cipher_to_cmdline(options.protocol, options.cipher))
+            if options.cipher.parameters is not None:
+                cmd_line.extend(['-dhparam', options.cipher.parameters])
 
         if options.curve is not None:
-            cmd_line.extend(['-curves', options.curve])
+            cmd_line.extend(['-curves', str(options.curve)])
 
         return cmd_line
 

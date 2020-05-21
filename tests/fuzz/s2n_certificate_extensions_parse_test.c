@@ -14,7 +14,7 @@
  */
 
 /* Target Functions: s2n_certificate_extensions_parse
-                     s2n_recv_server_sct_list s2n_server_certificate_status_parse
+                     s2n_recv_server_sct_list s2n_server_certificate_status_recv
                      s2n_x509_validator_validate_cert_stapled_ocsp_response */
 
 #include <stdint.h>

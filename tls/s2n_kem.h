@@ -54,12 +54,8 @@ extern const struct s2n_kem s2n_sike_p434_r2;
 #endif
 
 extern int s2n_kem_generate_keypair(struct s2n_kem_params *kem_params);
-
-extern int s2n_kem_encapsulate(const struct s2n_kem_params *kem_params, struct s2n_blob *shared_secret,
-                               struct s2n_blob *ciphertext);
-
-extern int s2n_kem_decapsulate(const struct s2n_kem_params *kem_params, struct s2n_blob *shared_secret,
-                               const struct s2n_blob *ciphertext);
+extern int s2n_kem_encapsulate(struct s2n_kem_params *kem_params, struct s2n_blob *ciphertext);
+extern int s2n_kem_decapsulate(struct s2n_kem_params *kem_params, const struct s2n_blob *ciphertext);
 
 extern int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], struct s2n_blob *client_kem_ids,
                                       const struct s2n_kem *server_kem_pref_list[], const uint8_t num_server_supported_kems,

@@ -3,8 +3,8 @@ import os
 import pytest
 import time
 
-from configuration import available_ports, ALL_TEST_CIPHERS, ALL_CURVES, ALL_CERTS, PROVIDERS, PROTOCOLS
-from common import ProviderOptions, Protocols, data_bytes
+from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROVIDERS, PROTOCOLS
+from common import Certificates, ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version
@@ -13,9 +13,9 @@ from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", [cipher for cipher in ALL_TEST_CIPHERS if 'ECDSA' not in cipher.name], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
-@pytest.mark.parametrize("curve", ALL_CURVES)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 def test_client_auth_with_s2n_server(managed_process, cipher, provider, curve, protocol, certificate):
     host = "localhost"
     port = next(available_ports)
@@ -67,9 +67,9 @@ def test_client_auth_with_s2n_server(managed_process, cipher, provider, curve, p
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", [cipher for cipher in ALL_TEST_CIPHERS if 'ECDSA' not in cipher.name], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
-@pytest.mark.parametrize("curve", ALL_CURVES)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, cipher, provider, curve, protocol, certificate):
     host = "localhost"
     port = next(available_ports)
@@ -84,18 +84,17 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, ci
         use_client_auth=True,
         client_key_file=certificate.key,
         client_certificate_file=certificate.cert,
-        #client_key_file='../pems/rsa_1024_sha256_client_key.pem',
-        #client_certificate_file='../pems/rsa_1024_sha256_client_cert.pem',
         insecure=False,
         protocol=protocol)
 
     server_options = copy.copy(client_options)
     server_options.data_to_send = None
     server_options.mode = Provider.ServerMode
-    server_options.key = "../pems/rsa_2048_sha256_wildcard_key.pem"
-    server_options.cert = "../pems/rsa_2048_sha256_wildcard_cert.pem"
+    server_options.key = Certificates.RSA_2048_SHA256_WILDCARD.key
+    server_options.cert = Certificates.RSA_2048_SHA256_WILDCARD.cert
+
     # Tell the server to expect the wrong certificate
-    server_options.client_certificate_file='../pems/rsa_2048_sha256_wildcard_cert.pem'
+    server_options.client_certificate_file=Certificates.RSA_2048_SHA256_WILDCARD.cert
 
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.

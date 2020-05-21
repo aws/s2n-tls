@@ -74,6 +74,7 @@ int main(int argc, char **argv)
         const uint8_t ENCRYPTED_EXTENSIONS_HEADER_SIZE = 2;
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(server_conn));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
         server_conn->actual_protocol_version = S2N_TLS13;
         EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), 0);
@@ -130,6 +131,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(client_conn));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         client_conn->actual_protocol_version = S2N_TLS13;
 
@@ -152,6 +154,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(client_conn));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         client_conn->actual_protocol_version = S2N_TLS13;;
 

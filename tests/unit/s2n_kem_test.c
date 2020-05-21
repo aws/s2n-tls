@@ -25,13 +25,13 @@
 #include "crypto/s2n_fips.h"
 
 #define TEST_PUBLIC_KEY_LENGTH 2
-const char TEST_PUBLIC_KEY[] = { 2, 2 };
+const uint8_t TEST_PUBLIC_KEY[] = { 2, 2 };
 #define TEST_PRIVATE_KEY_LENGTH 3
-const char TEST_PRIVATE_KEY[] = { 3, 3, 3 };
+const uint8_t TEST_PRIVATE_KEY[] = { 3, 3, 3 };
 #define TEST_SHARED_SECRET_LENGTH 4
-const char TEST_SHARED_SECRET[] = { 4, 4, 4, 4 };
+const uint8_t TEST_SHARED_SECRET[] = { 4, 4, 4, 4 };
 #define TEST_CIPHERTEXT_LENGTH 5
-const char TEST_CIPHERTEXT[] = { 5, 5, 5, 5, 5 };
+const uint8_t TEST_CIPHERTEXT[] = { 5, 5, 5, 5, 5 };
 
 static const uint8_t bike_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 };
 static const uint8_t sike_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 };
@@ -106,38 +106,51 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(sizeof(kem_ciphertext_key_size), 2);
     }
     {
-        struct s2n_kem_params server_kem_keypair = { 0 };
-        server_kem_keypair.kem = &s2n_test_kem;
-        EXPECT_SUCCESS(s2n_alloc(&server_kem_keypair.public_key, TEST_PUBLIC_KEY_LENGTH));
-        EXPECT_SUCCESS(s2n_kem_generate_keypair(&server_kem_keypair));
-        EXPECT_EQUAL(TEST_PUBLIC_KEY_LENGTH, server_kem_keypair.public_key.size);
-        EXPECT_EQUAL(TEST_PRIVATE_KEY_LENGTH, server_kem_keypair.private_key.size);
-        EXPECT_BYTEARRAY_EQUAL(TEST_PUBLIC_KEY, server_kem_keypair.public_key.data, TEST_PUBLIC_KEY_LENGTH);
-        EXPECT_BYTEARRAY_EQUAL(TEST_PRIVATE_KEY, server_kem_keypair.private_key.data, TEST_PRIVATE_KEY_LENGTH);
+        struct s2n_kem_params server_kem_params = { 0 };
+        server_kem_params.kem = &s2n_test_kem;
+        EXPECT_SUCCESS(s2n_alloc(&server_kem_params.public_key, TEST_PUBLIC_KEY_LENGTH));
+        EXPECT_SUCCESS(s2n_kem_generate_keypair(&server_kem_params));
+        EXPECT_EQUAL(TEST_PUBLIC_KEY_LENGTH, server_kem_params.public_key.size);
+        EXPECT_EQUAL(TEST_PRIVATE_KEY_LENGTH, server_kem_params.private_key.size);
+        EXPECT_BYTEARRAY_EQUAL(TEST_PUBLIC_KEY, server_kem_params.public_key.data, TEST_PUBLIC_KEY_LENGTH);
+        EXPECT_BYTEARRAY_EQUAL(TEST_PRIVATE_KEY, server_kem_params.private_key.data, TEST_PRIVATE_KEY_LENGTH);
+        /* KeyGen shouldn't modify the shared secret */
+        EXPECT_EQUAL(0, server_kem_params.shared_secret.size);
+        EXPECT_EQUAL(0, server_kem_params.shared_secret.allocated);
+        EXPECT_NULL(server_kem_params.shared_secret.data);
 
-        struct s2n_kem_params client_kem_keypair = { 0 };
-        client_kem_keypair.kem = &s2n_test_kem;
+        struct s2n_kem_params client_kem_params = { 0 };
+        client_kem_params.kem = &s2n_test_kem;
         /* This would be handled by client/server key exchange methods which isn't being tested */
-        GUARD(s2n_alloc(&client_kem_keypair.public_key, TEST_PUBLIC_KEY_LENGTH));
-        memset(client_kem_keypair.public_key.data, TEST_PUBLIC_KEY_LENGTH, TEST_PUBLIC_KEY_LENGTH);
+        GUARD(s2n_alloc(&client_kem_params.public_key, TEST_PUBLIC_KEY_LENGTH));
+        memset(client_kem_params.public_key.data, TEST_PUBLIC_KEY_LENGTH, TEST_PUBLIC_KEY_LENGTH);
 
-        DEFER_CLEANUP(struct s2n_blob client_shared_secret = { 0 }, s2n_free);
         DEFER_CLEANUP(struct s2n_blob ciphertext = { 0 }, s2n_free);
         GUARD(s2n_alloc(&ciphertext, TEST_CIPHERTEXT_LENGTH));
 
-        EXPECT_SUCCESS(s2n_kem_encapsulate(&client_kem_keypair, &client_shared_secret, &ciphertext));
-        EXPECT_EQUAL(TEST_SHARED_SECRET_LENGTH, client_shared_secret.size);
+        EXPECT_SUCCESS(s2n_kem_encapsulate(&client_kem_params, &ciphertext));
+        EXPECT_EQUAL(TEST_SHARED_SECRET_LENGTH, client_kem_params.shared_secret.size);
         EXPECT_EQUAL(TEST_CIPHERTEXT_LENGTH, ciphertext.size);
-        EXPECT_BYTEARRAY_EQUAL(TEST_SHARED_SECRET, client_shared_secret.data, TEST_SHARED_SECRET_LENGTH);
+        EXPECT_BYTEARRAY_EQUAL(TEST_SHARED_SECRET, client_kem_params.shared_secret.data, TEST_SHARED_SECRET_LENGTH);
         EXPECT_BYTEARRAY_EQUAL(TEST_CIPHERTEXT, ciphertext.data, TEST_CIPHERTEXT_LENGTH);
+        /* Encaps shouldn't modify the public or private keys */
+        EXPECT_EQUAL(TEST_PUBLIC_KEY_LENGTH, client_kem_params.public_key.size);
+        EXPECT_BYTEARRAY_EQUAL(TEST_PUBLIC_KEY, client_kem_params.public_key.data, TEST_PUBLIC_KEY_LENGTH);
+        EXPECT_EQUAL(0, client_kem_params.private_key.size);
+        EXPECT_EQUAL(0, client_kem_params.private_key.allocated);
+        EXPECT_NULL(client_kem_params.private_key.data);
 
-        DEFER_CLEANUP(struct s2n_blob server_shared_secret = { 0 }, s2n_free);
-        EXPECT_SUCCESS(s2n_kem_decapsulate(&server_kem_keypair, &server_shared_secret, &ciphertext));
-        EXPECT_EQUAL(TEST_SHARED_SECRET_LENGTH, server_shared_secret.size);
-        EXPECT_BYTEARRAY_EQUAL(TEST_SHARED_SECRET, server_shared_secret.data, TEST_SHARED_SECRET_LENGTH);
+        EXPECT_SUCCESS(s2n_kem_decapsulate(&server_kem_params, &ciphertext));
+        EXPECT_EQUAL(TEST_SHARED_SECRET_LENGTH, server_kem_params.shared_secret.size);
+        EXPECT_BYTEARRAY_EQUAL(TEST_SHARED_SECRET, server_kem_params.shared_secret.data, TEST_SHARED_SECRET_LENGTH);
+        /* Decaps shouldn't modify the public or private keys */
+        EXPECT_EQUAL(TEST_PUBLIC_KEY_LENGTH, server_kem_params.public_key.size);
+        EXPECT_BYTEARRAY_EQUAL(TEST_PUBLIC_KEY, server_kem_params.public_key.data, TEST_PUBLIC_KEY_LENGTH);
+        EXPECT_EQUAL(TEST_PRIVATE_KEY_LENGTH, server_kem_params.private_key.size);
+        EXPECT_BYTEARRAY_EQUAL(TEST_PRIVATE_KEY, server_kem_params.private_key.data, TEST_PRIVATE_KEY_LENGTH);
 
-        EXPECT_SUCCESS(s2n_kem_free(&server_kem_keypair));
-        EXPECT_SUCCESS(s2n_kem_free(&client_kem_keypair));
+        EXPECT_SUCCESS(s2n_kem_free(&server_kem_params));
+        EXPECT_SUCCESS(s2n_kem_free(&client_kem_params));
     }
     {
         /* The order of the client kem list should always be ignored; the server chooses based on the
@@ -301,6 +314,44 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(compatible_params->kem_count, 2);
         EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_sike_p503_r1.kem_extension_id);
         EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_sike_p434_r2.kem_extension_id);
+    }
+    {
+        /* Tests for s2n_kem_free() */
+        EXPECT_SUCCESS(s2n_kem_free(NULL));
+
+        struct s2n_kem_params kem_params = { 0 };
+        EXPECT_SUCCESS(s2n_kem_free(&kem_params));
+
+        EXPECT_SUCCESS(s2n_alloc(&(kem_params.private_key), TEST_PRIVATE_KEY_LENGTH));
+        struct s2n_stuffer private_key_stuffer = {0};
+        EXPECT_SUCCESS(s2n_stuffer_init(&private_key_stuffer, &(kem_params.private_key)));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&private_key_stuffer, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH));
+
+        EXPECT_SUCCESS(s2n_alloc(&(kem_params.public_key), TEST_PUBLIC_KEY_LENGTH));
+        struct s2n_stuffer public_key_stuffer = {0};
+        EXPECT_SUCCESS(s2n_stuffer_init(&public_key_stuffer, &(kem_params.public_key)));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&public_key_stuffer, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH));
+
+        EXPECT_SUCCESS(s2n_alloc(&(kem_params.shared_secret), TEST_SHARED_SECRET_LENGTH));
+        struct s2n_stuffer shared_secret_stuffer = {0};
+        EXPECT_SUCCESS(s2n_stuffer_init(&shared_secret_stuffer, &(kem_params.shared_secret)));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&shared_secret_stuffer, TEST_SHARED_SECRET, TEST_SHARED_SECRET_LENGTH));
+
+        EXPECT_NOT_EQUAL(0, kem_params.private_key.allocated);
+        EXPECT_NOT_EQUAL(0, kem_params.public_key.allocated);
+        EXPECT_NOT_EQUAL(0, kem_params.shared_secret.allocated);
+
+        EXPECT_SUCCESS(s2n_kem_free(&kem_params));
+
+        EXPECT_NULL(kem_params.private_key.data);
+        EXPECT_EQUAL(0, kem_params.private_key.size);
+        EXPECT_EQUAL(0, kem_params.private_key.allocated);
+        EXPECT_NULL(kem_params.public_key.data);
+        EXPECT_EQUAL(0, kem_params.public_key.size);
+        EXPECT_EQUAL(0, kem_params.public_key.allocated);
+        EXPECT_NULL(kem_params.shared_secret.data);
+        EXPECT_EQUAL(0, kem_params.shared_secret.size);
+        EXPECT_EQUAL(0, kem_params.shared_secret.allocated);
     }
 
 #endif

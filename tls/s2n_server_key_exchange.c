@@ -292,7 +292,8 @@ int s2n_kem_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_t
     GUARD(s2n_stuffer_write_uint16(out, kem->kem_extension_id));
     GUARD(s2n_stuffer_write_uint16(out, kem->public_key_length));
 
-    /* The public key is not needed after this method, write it straight to the stuffer */
+    /* Initialize the connection's KEM public key to point to the *out stuffer
+     * so that generate_keypair writes the public key directly to *out */
     struct s2n_blob *public_key = &conn->secure.kem_params.public_key;
     public_key->data = s2n_stuffer_raw_write(out, kem->public_key_length);
     notnull_check(public_key->data);
@@ -301,6 +302,12 @@ int s2n_kem_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_t
     GUARD(s2n_kem_generate_keypair(&conn->secure.kem_params));
 
     data_to_sign->size = sizeof(kem_extension_size) + sizeof(kem_public_key_size) +  public_key->size;
+
+    /* Now that we've written the public key to *out, we don't want public_key.data to
+     * point to *out anymore, otherwise calling s2n_kem_free() later will zero-ize
+     * parts of the handshake IO. */
+    conn->secure.kem_params.public_key.data = NULL;
+    conn->secure.kem_params.public_key.size = 0;
     return 0;
 }
 

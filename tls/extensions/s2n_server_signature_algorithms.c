@@ -23,6 +23,24 @@
 
 #include "utils/s2n_safety.h"
 
+static int s2n_signature_algorithms_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+
+const s2n_extension_type s2n_server_signature_algorithms_extension = {
+    .iana_value = TLS_EXTENSION_SIGNATURE_ALGORITHMS,
+    .is_response = false,
+    .send = s2n_send_supported_sig_scheme_list,
+    .recv = s2n_signature_algorithms_recv,
+    .should_send = s2n_extension_always_send,
+    .if_missing = s2n_extension_error_if_missing,
+};
+
+static int s2n_signature_algorithms_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    return s2n_recv_supported_sig_scheme_list(extension, &conn->handshake_params.server_sig_hash_algs);
+}
+
+/* Old-style extension functions -- remove after extensions refactor is complete */
+
 int s2n_extensions_server_signature_algorithms_size(struct s2n_connection *conn)
 {
     /* extra 6 = 2 from extension type, 2 from extension size, 2 from list length */
@@ -31,20 +49,10 @@ int s2n_extensions_server_signature_algorithms_size(struct s2n_connection *conn)
 
 int s2n_extensions_server_signature_algorithms_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    /* The extension header */
-    GUARD(s2n_stuffer_write_uint16(out, TLS_EXTENSION_SIGNATURE_ALGORITHMS));
-
-    const uint16_t total_size = s2n_extensions_server_signature_algorithms_size(conn);
-    /* Subtract 4 to account for the extension type (2) and extension size (2) fields */
-    const uint16_t extension_size = total_size - 4;
-
-    GUARD(s2n_stuffer_write_uint16(out, extension_size));
-    GUARD(s2n_send_supported_sig_scheme_list(conn, out));
-
-    return 0;
+    return s2n_extension_send(&s2n_server_signature_algorithms_extension, conn, out);
 }
 
 int s2n_extensions_server_signature_algorithms_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    return s2n_recv_supported_sig_scheme_list(extension, &conn->handshake_params.server_sig_hash_algs);
+    return s2n_extension_recv(&s2n_server_signature_algorithms_extension, conn, extension);
 }

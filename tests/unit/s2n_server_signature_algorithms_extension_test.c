@@ -41,17 +41,9 @@ int main(int argc, char **argv)
 
         struct s2n_stuffer io;
         s2n_stuffer_alloc(&io, s2n_extensions_server_signature_algorithms_size(server_conn));
-        EXPECT_SUCCESS(s2n_extensions_server_signature_algorithms_send(server_conn, &io));
+        EXPECT_SUCCESS(s2n_server_signature_algorithms_extension.send(server_conn, &io));
 
-        uint16_t extension_type;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&io, &extension_type));
-        EXPECT_EQUAL(extension_type, TLS_EXTENSION_SIGNATURE_ALGORITHMS);
-
-        uint16_t extension_size;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&io, &extension_size));
-        EXPECT_EQUAL(extension_size, s2n_stuffer_data_available(&io));
-
-        EXPECT_SUCCESS(s2n_extensions_server_signature_algorithms_recv(client_conn, &io));
+        EXPECT_SUCCESS(s2n_server_signature_algorithms_extension.recv(client_conn, &io));
         EXPECT_EQUAL(s2n_stuffer_data_available(&io), 0);
 
         EXPECT_EQUAL(client_conn->handshake_params.server_sig_hash_algs.len, s2n_supported_sig_schemes_count(server_conn));

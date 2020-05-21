@@ -25,7 +25,7 @@ def data_bytes(n_bytes):
     return bytes(byte_array)
 
 
-class AvailablePorts():
+class AvailablePorts(object):
     """
     This iterator will atomically return the next number.
     This is useful when running multiple tests in parallel
@@ -57,14 +57,51 @@ class TimeoutException(subprocess.SubprocessError):
         return "{} {}".format(self.exception, cmd)
 
 
-class Cert():
+class Cert(object):
     def __init__(self, name, prefix, location=TEST_CERT_DIRECTORY):
         self.name = name
         self.cert = location + prefix + "_cert.pem"
         self.key = location + prefix + "_key.pem"
+        self.algorithm = 'ANY'
+
+        if 'ECDSA' in name:
+            self.algorithm = 'EC'
+        elif 'RSA' in name:
+            self.algorithm = 'RSA'
+
+    def compatible_with_cipher(self, cipher):
+        return (self.algorithm == cipher.algorithm) or (cipher.algorithm == 'ANY')
+
+    def compatible_with_curve(self, curve):
+        if self.algorithm != 'EC':
+            return True
+
+        return curve.name[:-3] == self.name[:-3]
 
     def __str__(self):
         return self.name
+
+
+class Certificates(object):
+    """
+    When referencing certificates, use these values.
+    """
+    RSA_1024_SHA256 = Cert("RSA_1024_SHA256", "rsa_1024_sha256_client")
+    RSA_1024_SHA384 = Cert("RSA_1024_SHA384", "rsa_1024_sha384_client")
+    RSA_1024_SHA512 = Cert("RSA_1024_SHA512", "rsa_1024_sha512_client")
+    RSA_2048_SHA256 = Cert("RSA_2048_SHA256", "rsa_2048_sha256_client")
+    RSA_2048_SHA384 = Cert("RSA_2048_SHA384", "rsa_2048_sha384_client")
+    RSA_2048_SHA512 = Cert("RSA_2048_SHA512", "rsa_2048_sha512_client")
+    RSA_3072_SHA256 = Cert("RSA_3072_SHA256", "rsa_3072_sha256_client")
+    RSA_3072_SHA384 = Cert("RSA_3072_SHA384", "rsa_3072_sha384_client")
+    RSA_3072_SHA512 = Cert("RSA_3072_SHA512", "rsa_3072_sha512_client")
+    RSA_4096_SHA256 = Cert("RSA_4096_SHA256", "rsa_4096_sha256_client")
+    RSA_4096_SHA384 = Cert("RSA_4096_SHA384", "rsa_4096_sha384_client")
+    RSA_4096_SHA512 = Cert("RSA_4096_SHA512", "rsa_4096_sha512_client")
+    ECDSA_256 = Cert("ECDSA_256", "ecdsa_p256_pkcs1")
+    ECDSA_384 = Cert("ECDSA_384", "ecdsa_p384_pkcs1")
+
+    RSA_2048_SHA256_WILDCARD = Cert("RSA_2048_SHA256_WILDCARD", "rsa_2048_sha256_wildcard")
 
 
 class Protocol(object):
@@ -88,6 +125,10 @@ class Protocol(object):
 class Protocols(object):
     """
     When referencing protocols, use these protocol values.
+    The first argument is the human readable name. The second
+    argument is the S2N value. It is used for comparing
+    protocols. Since this is hardcoded in S2N, it is not
+    expected to change.
     """
     TLS13 = Protocol("TLS1.3", 34)
     TLS12 = Protocol("TLS1.2", 33)
@@ -97,11 +138,18 @@ class Protocols(object):
 
 
 class Cipher(object):
-    def __init__(self, name, min_version, openssl1_1_1, fips):
+    def __init__(self, name, min_version, openssl1_1_1, fips, parameters=None):
         self.name = name
         self.min_version = min_version
         self.openssl1_1_1 = openssl1_1_1
         self.fips = fips
+        self.parameters = parameters
+        self.algorithm = 'ANY'
+
+        if 'ECDSA' in name:
+            self.algorithm = 'EC'
+        elif 'RSA' in name:
+            self.algorithm = 'RSA'
 
     def __eq__(self, other):
         return self.name == other
@@ -118,13 +166,13 @@ class Ciphers(object):
     When referencing ciphers, use these class values.
     """
     DHE_RSA_DES_CBC3_SHA = Cipher("DHE_RSA_DES_CBC3_SHA", Protocols.SSLv3, False, False)
-    DHE_RSA_AES128_SHA = Cipher("DHE_RSA_AES128_SHA", Protocols.SSLv3, True, False)
-    DHE_RSA_AES256_SHA = Cipher("DHE_RSA_AES256_SHA", Protocols.SSLv3, True, False)
-    DHE_RSA_AES128_SHA256 = Cipher("DHE_RSA_AES128_SHA256", Protocols.TLS12, True, True)
-    DHE_RSA_AES256_SHA256 = Cipher("DHE_RSA_AES256_SHA256", Protocols.TLS12, True, True)
-    DHE_RSA_AES128_GCM_SHA256 = Cipher("DHE_RSA_AES128_GCM_SHA256", Protocols.TLS12, True, True)
-    DHE_RSA_AES256_GCM_SHA384 = Cipher("DHE_RSA_AES256_GCM_SHA384", Protocols.TLS12, True, True)
-    DHE_RSA_CHACHA20_POLY1305 = Cipher("DHE_RSA_CHACHA20_POLY1305", Protocols.TLS12, True, False)
+    DHE_RSA_AES128_SHA = Cipher("DHE_RSA_AES128_SHA", Protocols.SSLv3, True, False, TEST_CERT_DIRECTORY + 'dhparams_2048.pem')
+    DHE_RSA_AES256_SHA = Cipher("DHE_RSA_AES256_SHA", Protocols.SSLv3, True, False, TEST_CERT_DIRECTORY + 'dhparams_2048.pem')
+    DHE_RSA_AES128_SHA256 = Cipher("DHE_RSA_AES128_SHA256", Protocols.TLS12, True, True, TEST_CERT_DIRECTORY + 'dhparams_2048.pem')
+    DHE_RSA_AES256_SHA256 = Cipher("DHE_RSA_AES256_SHA256", Protocols.TLS12, True, True, TEST_CERT_DIRECTORY + 'dhparams_2048.pem')
+    DHE_RSA_AES128_GCM_SHA256 = Cipher("DHE_RSA_AES128_GCM_SHA256", Protocols.TLS12, True, True, TEST_CERT_DIRECTORY + 'dhparams_2048.pem')
+    DHE_RSA_AES256_GCM_SHA384 = Cipher("DHE_RSA_AES256_GCM_SHA384", Protocols.TLS12, True, True, TEST_CERT_DIRECTORY + 'dhparams_2048.pem')
+    DHE_RSA_CHACHA20_POLY1305 = Cipher("DHE_RSA_CHACHA20_POLY1305", Protocols.TLS12, True, False, TEST_CERT_DIRECTORY + 'dhparams_2048.pem')
 
     AES128_SHA = Cipher("AES128_SHA", Protocols.SSLv3, True, True)
     AES256_SHA = Cipher("AES256_SHA", Protocols.SSLv3, True, True)
@@ -153,14 +201,23 @@ class Ciphers(object):
     CHACHA20_POLY1305_SHA256 = Cipher("CHACHA20_POLY1305_SHA256", Protocols.TLS13, True, False)
 
 
+class Curve(object):
+    def __init__(self, name, min_protocol=Protocols.SSLv3):
+        self.name = name
+        self.min_protocol = min_protocol
+
+    def __str__(self):
+        return self.name
+
+
 class Curves(object):
     """
     When referencing curves, use these class values.
     Don't hardcode curve names.
     """
-    X25519 = "X25519"
-    P256 = "P-256"
-    P384 = "P-384"
+    X25519 = Curve("X25519", Protocols.TLS13)
+    P256 = Curve("P-256")
+    P384 = Curve("P-384")
 
 
 class Results(object):
@@ -206,6 +263,7 @@ class ProviderOptions(object):
             use_client_auth=False,
             client_key_file=None,
             client_certificate_file=None,
+            extra_flags=None,
             protocol=None):
 
         # Client or server
@@ -246,14 +304,4 @@ class ProviderOptions(object):
         self.client_certificate_file = client_certificate_file
         self.client_key_file = client_key_file
 
-# Common curves
-TLS_CURVES = [
-    Curves.P256,
-    Curves.P384
-]
-
-
-# TLS1.3 specific curves
-TLS13_CURVES = [
-    Curves.X25519,
-]
+        self.extra_flags = extra_flags

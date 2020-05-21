@@ -78,6 +78,11 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *se
             KEM_PUBLIC_KEY_MESSAGE_SIZE)};
     GUARD_NONNULL(server_key_message.data);
 
+    /* The KEM public key should get written directly to the server's handshake IO; kem_params.public_key
+     * should point to NULL */
+    eq_check(NULL, server_conn->secure.kem_params.public_key.data);
+    eq_check(0, server_conn->secure.kem_params.public_key.size);
+
     /* Part 1.1: feed that to the client */
     GUARD(s2n_stuffer_write(&client_conn->handshake.io, &server_key_message));
 
@@ -99,8 +104,8 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *se
 
     /* Part 3: Client calls send_key. The additional 2 bytes are for the ciphertext length sent over the wire */
     const uint32_t KEM_CIPHERTEXT_MESSAGE_SIZE = (*negotiated_kem).ciphertext_length + 2;
-    DEFER_CLEANUP(struct s2n_blob client_shared_key = {0}, s2n_free);
-    GUARD(s2n_kem_client_key_send(client_conn, &client_shared_key));
+    struct s2n_blob *client_shared_key = &(client_conn->secure.kem_params.shared_secret);
+    GUARD(s2n_kem_client_key_send(client_conn, client_shared_key));
     struct s2n_blob client_key_message = {.size = KEM_CIPHERTEXT_MESSAGE_SIZE, .data = s2n_stuffer_raw_read(&client_conn->handshake.io,
             KEM_CIPHERTEXT_MESSAGE_SIZE)};
     GUARD_NONNULL(client_key_message.data);
@@ -109,9 +114,9 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *se
     GUARD(s2n_stuffer_write(&server_conn->handshake.io, &client_key_message));
 
     /* Part 4: Call client key recv */
-    DEFER_CLEANUP(struct s2n_blob server_shared_key = {0}, s2n_free);
-    GUARD(s2n_kem_client_key_recv(server_conn, &server_shared_key));
-    eq_check(memcmp(client_shared_key.data, server_shared_key.data, (*negotiated_kem).shared_secret_key_length), 0);
+    struct s2n_blob *server_shared_key = &(server_conn->secure.kem_params.shared_secret);
+    GUARD(s2n_kem_client_key_recv(server_conn, server_shared_key));
+    eq_check(memcmp(client_shared_key->data, server_shared_key->data, (*negotiated_kem).shared_secret_key_length), 0);
 
     GUARD(s2n_connection_free(client_conn));
     GUARD(s2n_connection_free(server_conn));

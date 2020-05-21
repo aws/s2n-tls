@@ -126,8 +126,7 @@ int s2n_kem_generate_keypair(struct s2n_kem_params *kem_params)
     return 0;
 }
 
-int s2n_kem_encapsulate(const struct s2n_kem_params *kem_params, struct s2n_blob *shared_secret,
-                        struct s2n_blob *ciphertext)
+int s2n_kem_encapsulate(struct s2n_kem_params *kem_params, struct s2n_blob *ciphertext)
 {
     notnull_check(kem_params);
     const struct s2n_kem *kem = kem_params->kem;
@@ -139,14 +138,14 @@ int s2n_kem_encapsulate(const struct s2n_kem_params *kem_params, struct s2n_blob
     eq_check(ciphertext->size, kem->ciphertext_length);
     notnull_check(ciphertext->data);
 
-    GUARD(s2n_alloc(shared_secret, kem->shared_secret_key_length));
+    /* Need to save the shared secret for key derivation */
+    GUARD(s2n_alloc(&(kem_params->shared_secret), kem->shared_secret_key_length));
 
-    GUARD(kem->encapsulate(ciphertext->data, shared_secret->data, kem_params->public_key.data));
+    GUARD(kem->encapsulate(ciphertext->data, kem_params->shared_secret.data, kem_params->public_key.data));
     return 0;
 }
 
-int s2n_kem_decapsulate(const struct s2n_kem_params *kem_params, struct s2n_blob *shared_secret,
-                        const struct s2n_blob *ciphertext)
+int s2n_kem_decapsulate(struct s2n_kem_params *kem_params, const struct s2n_blob *ciphertext)
 {
     notnull_check(kem_params);
     const struct s2n_kem *kem = kem_params->kem;
@@ -158,9 +157,10 @@ int s2n_kem_decapsulate(const struct s2n_kem_params *kem_params, struct s2n_blob
     eq_check(ciphertext->size, kem->ciphertext_length);
     notnull_check(ciphertext->data);
 
-    GUARD(s2n_alloc(shared_secret, kem_params->kem->shared_secret_key_length));
+    /* Need to save the shared secret for key derivation */
+    GUARD(s2n_alloc(&(kem_params->shared_secret), kem->shared_secret_key_length));
 
-    GUARD(kem->decapsulate(shared_secret->data, ciphertext->data, kem_params->private_key.data));
+    GUARD(kem->decapsulate(kem_params->shared_secret.data, ciphertext->data, kem_params->private_key.data));
     return 0;
 }
 
@@ -233,13 +233,9 @@ int s2n_choose_kem_without_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHE
 int s2n_kem_free(struct s2n_kem_params *kem_params)
 {
     if (kem_params != NULL){
-        GUARD(s2n_blob_zero(&kem_params->private_key));
-        if (kem_params->private_key.allocated) {
-            GUARD(s2n_free(&kem_params->private_key));
-        }
-        if (kem_params->public_key.allocated) {
-            GUARD(s2n_free(&kem_params->public_key));
-        }
+        GUARD(s2n_blob_zeroize_free(&kem_params->private_key));
+        GUARD(s2n_blob_zeroize_free(&kem_params->public_key));
+        GUARD(s2n_blob_zeroize_free(&kem_params->shared_secret));
     }
     return 0;
 }

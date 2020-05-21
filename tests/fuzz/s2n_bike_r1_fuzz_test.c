@@ -32,7 +32,7 @@ static struct s2n_kem_params server_kem_params = {.kem = &s2n_bike1_l1_r1};
 
 static void s2n_fuzz_atexit()
 {
-    s2n_free(&server_kem_params.private_key);
+    s2n_kem_free(&server_kem_params);
     s2n_cleanup();
 }
 
@@ -54,7 +54,6 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
-    struct s2n_blob server_shared_secret = {0};
     struct s2n_blob ciphertext = {0};
     GUARD(s2n_alloc(&ciphertext, len));
 
@@ -62,13 +61,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     memcpy_check(ciphertext.data, buf, len);
 
     /* Run the test, don't use GUARD since the memory needs to be cleaned up and decapsulate will most likely fail */
-    s2n_kem_decapsulate(&server_kem_params, &server_shared_secret, &ciphertext);
+    s2n_kem_decapsulate(&server_kem_params, &ciphertext);
 
     GUARD(s2n_free(&ciphertext));
 
     /* The above s2n_kem_decapsulate could fail before ever allocating the server_shared_secret */
-    if (server_shared_secret.allocated) {
-        GUARD(s2n_free(&server_shared_secret));
+    if (server_kem_params.shared_secret.allocated) {
+        GUARD(s2n_free(&(server_kem_params.shared_secret)));
     }
     return 0;
 }

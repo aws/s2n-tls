@@ -270,3 +270,14 @@ int s2n_free(struct s2n_blob *b)
 
     return S2N_SUCCESS;
 }
+
+int s2n_blob_zeroize_free(struct s2n_blob *b) {
+    S2N_ERROR_IF(initialized == false, S2N_ERR_NOT_INITIALIZED);
+    notnull_check(b);
+
+    GUARD(s2n_blob_zero(b));
+    if (b->allocated) {
+        GUARD(s2n_free(b));
+    }
+    return S2N_SUCCESS;
+}

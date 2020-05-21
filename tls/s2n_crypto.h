@@ -64,6 +64,7 @@ struct s2n_kem_params {
     const struct s2n_kem *kem;
     struct s2n_blob public_key;
     struct s2n_blob private_key;
+    struct s2n_blob shared_secret;
 };
 
 struct s2n_crypto_parameters {

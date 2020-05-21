@@ -1,6 +1,4 @@
-import threading
-
-from common import Cert, Ciphers, Curves, Protocols, AvailablePorts, TLS_CURVES, TLS13_CURVES
+from common import Certificates, Ciphers, Curves, Protocols, AvailablePorts
 from providers import S2N, OpenSSL, BoringSSL
 
 
@@ -27,31 +25,33 @@ TLS13 = [True, False]
 
 
 # List of all curves that will be tested.
-ALL_CURVES = TLS13_CURVES[:]
-ALL_CURVES.extend(TLS_CURVES)
-ALL_CURVES.append(None)
-
-
-ALL_CERTS = [
-    # PKCS1 will only work with older OpenSSL versions
-    # Cert("RSA_2048_PKCS1", "rsa_2048_pkcs1"),
-    Cert("RSA_1024_SHA256", "rsa_1024_sha256_client"),
-    Cert("RSA_1024_SHA384", "rsa_1024_sha384_client"),
-    Cert("RSA_1024_SHA512", "rsa_1024_sha512_client"),
-    Cert("RSA_2048_SHA256", "rsa_2048_sha256_client"),
-    Cert("RSA_2048_SHA384", "rsa_2048_sha384_client"),
-    Cert("RSA_2048_SHA512", "rsa_2048_sha512_client"),
-    Cert("RSA_3072_SHA256", "rsa_3072_sha256_client"),
-    Cert("RSA_3072_SHA384", "rsa_3072_sha384_client"),
-    Cert("RSA_3072_SHA512", "rsa_3072_sha512_client"),
-    Cert("RSA_4096_SHA256", "rsa_4096_sha256_client"),
-    Cert("RSA_4096_SHA384", "rsa_4096_sha384_client"),
-    Cert("RSA_4096_SHA512", "rsa_4096_sha512_client"),
-    Cert("ECDSA_256", "ecdsa_p256_pkcs1"),
-    Cert("ECDSA_384", "ecdsa_p384_pkcs1"),
+ALL_TEST_CURVES = [
+    Curves.X25519,
+    Curves.P256,
+    Curves.P384,
 ]
 
 
+# List of all certificates that will be tested.
+ALL_TEST_CERTS = [
+    Certificates.RSA_1024_SHA256,
+    Certificates.RSA_1024_SHA384,
+    Certificates.RSA_1024_SHA512,
+    Certificates.RSA_2048_SHA256,
+    Certificates.RSA_2048_SHA384,
+    Certificates.RSA_2048_SHA512,
+    Certificates.RSA_3072_SHA256,
+    Certificates.RSA_3072_SHA384,
+    Certificates.RSA_3072_SHA512,
+    Certificates.RSA_4096_SHA256,
+    Certificates.RSA_4096_SHA384,
+    Certificates.RSA_4096_SHA512,
+    Certificates.ECDSA_256,
+    Certificates.ECDSA_384,
+]
+
+
+# List of all ciphers that will be tested.
 ALL_TEST_CIPHERS = [
     Ciphers.DHE_RSA_AES128_SHA,
     Ciphers.DHE_RSA_AES256_SHA,
