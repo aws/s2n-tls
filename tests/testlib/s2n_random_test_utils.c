@@ -34,6 +34,8 @@ static struct s2n_drbg fixed_drbg = { .entropy_generator = &s2n_fixed_entropy_ge
 
 int s2n_unsafe_drbg_reseed(uint8_t *seed, uint8_t seed_size)
 {
+    S2N_ERROR_IF(!s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+
     memset(seed_buffer, 0, S2N_DRBG_MAX_SEED_SIZE);
     memcpy_check(seed_buffer, seed, MIN(seed_size, S2N_DRBG_MAX_SEED_SIZE));
 
