@@ -31,12 +31,14 @@ fi
 
 # Download and Install Openssl 1.1.1
 if [[ ("$S2N_LIBCRYPTO" == "openssl-1.1.1") || ("$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ) ]]; then
-    mkdir -p "$OPENSSL_1_1_1_INSTALL_DIR"||true
-    codebuild/bin/install_openssl_1_1_1.sh "$(mktemp -d)" "$OPENSSL_1_1_1_INSTALL_DIR" "$OS_NAME" > /dev/null ;
+    if [[ ! -x "$OPENSSL_1_1_1_INSTALL_DIR/bin/openssl" ]]; then
+      mkdir -p "$OPENSSL_1_1_1_INSTALL_DIR"||true
+      codebuild/bin/install_openssl_1_1_1.sh "$(mktemp -d)" "$OPENSSL_1_1_1_INSTALL_DIR" "$OS_NAME" > /dev/null ;
+    fi
 fi
 
 # Download and Install Openssl 1.0.2
-if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2" ]]; then
+if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2" && ! -d "$OPENSSL_1_0_2_INSTALL_DIR" ]]; then
     mkdir -p "$OPENSSL_1_0_2_INSTALL_DIR"||true
     codebuild/bin/install_openssl_1_0_2.sh "$(mktemp -d)" "$OPENSSL_1_0_2_INSTALL_DIR" "$OS_NAME" > /dev/null ;
 fi
@@ -45,40 +47,34 @@ fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2-fips" ]] && [[ ! -d "$OPENSSL_1_0_2_FIPS_INSTALL_DIR" ]]; then
     codebuild/bin/install_openssl_1_0_2_fips.sh "$(mktemp -d)" "$OPENSSL_1_0_2_FIPS_INSTALL_DIR" "$OS_NAME" ; fi
 
-# Download and Install CppCheck
-if [[ "$BUILD_S2N" == "true" ]]; then
-    mkdir -p "$CPPCHECK_INSTALL_DIR"||true
-    codebuild/bin/install_cppcheck.sh "$CPPCHECK_INSTALL_DIR" > /dev/null ;
-fi
-
 # Download and Install LibreSSL
-if [[ "$S2N_LIBCRYPTO" == "libressl" ]]; then
+if [[ "$S2N_LIBCRYPTO" == "libressl" && ! -d "$LIBRESSL_INSTALL_DIR" ]]; then
     mkdir -p "$LIBRESSL_INSTALL_DIR"||true
     codebuild/bin/install_libressl.sh "$(mktemp -d)" "$LIBRESSL_INSTALL_DIR" > /dev/null ;
 fi
 
 # Download and Install BoringSSL
-if [[ "$S2N_LIBCRYPTO" == "boringssl" ]]; then
+if [[ "$S2N_LIBCRYPTO" == "boringssl" && ! -d "$BORINGSSL_INSTALL_DIR" ]]; then
     codebuild/bin/install_boringssl.sh "$(mktemp -d)" "$BORINGSSL_INSTALL_DIR" > /dev/null ;
 fi
 
 if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
     # Install tox if running on Ubuntu(only supported Linux at this time)
-    if [[ "$OS_NAME" == "linux" ]]; then
+    if [[ "$OS_NAME" == "linux" && ! -x `which tox` ]]; then
         apt-get -y install tox
     fi
 
-    # Install python linked with the latest Openssl for integration tests
-    mkdir -p "$PYTHON_INSTALL_DIR"||true
-    codebuild/bin/install_python.sh "$OPENSSL_1_1_1_INSTALL_DIR" "$(mktemp -d)" "$PYTHON_INSTALL_DIR" > /dev/null ;
+    if [[ ! -x "$OPENSSL_0_9_8_INSTALL_DIR/bin/openssl" ]]; then
+      # Download and Install Openssl 0.9.8
+      mkdir -p "$OPENSSL_0_9_8_INSTALL_DIR"||true
+      codebuild/bin/install_openssl_0_9_8.sh "$(mktemp -d)" "$OPENSSL_0_9_8_INSTALL_DIR" "$OS_NAME" > /dev/null ;
+    fi
 
-    # Download and Install Openssl 0.9.8
-    mkdir -p "$OPENSSL_0_9_8_INSTALL_DIR"||true
-    codebuild/bin/install_openssl_0_9_8.sh "$(mktemp -d)" "$OPENSSL_0_9_8_INSTALL_DIR" "$OS_NAME" > /dev/null ;
-
-    # Download and Install GnuTLS for integration tests
-    mkdir -p "$GNUTLS_INSTALL_DIR"||true
-    codebuild/bin/install_gnutls.sh "$(mktemp -d)" "$GNUTLS_INSTALL_DIR" "$OS_NAME" > /dev/null ;
+    if [[ ! -x "$GNUTLS_INSTALL_DIR/bin/gnutls-cli" ]]; then
+      # Download and Install GnuTLS for integration tests
+      mkdir -p "$GNUTLS_INSTALL_DIR"||true
+      codebuild/bin/install_gnutls.sh "$(mktemp -d)" "$GNUTLS_INSTALL_DIR" "$OS_NAME" > /dev/null ;
+    fi
 
     # Install SSLyze for all Integration Tests
     codebuild/bin/install_sslyze.sh
