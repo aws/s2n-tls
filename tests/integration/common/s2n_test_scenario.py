@@ -223,7 +223,6 @@ def scenario_runner(test_func, scenario):
     return runner
 
 def run_scenarios(test_func, scenarios):
-    failed = 0
     threadpool = __create_thread_pool()
     results = {}
 
@@ -239,12 +238,13 @@ def run_scenarios(test_func, scenarios):
     # get results, applying a 5 seconds limit for each task
     results.update((k, v.get(5000)) for k,v in results.items())
 
+    failed = 0
     print("\tScenarios ran. Reprinting failed tasks if any...")
     # Sort the results so that failures appear at the end
     sorted_results = sorted(results.items(), key=lambda x: not x[1].is_success())
     for scenario, result in sorted_results:
         if not result.is_success():
-            fail += 1
+            failed += 1
             print("%s %s" % (str(scenario), str(result).rstrip()))
 
     print("\tDone")

@@ -103,8 +103,8 @@ int main(int argc, char **argv)
         total += 2 + s2n_extensions_server_supported_versions_size(server_conn)
                 + s2n_extensions_server_key_share_send_size(server_conn);
 
-        EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
         EXPECT_EQUAL(s2n_is_hello_retry_required(server_conn), 1);
+        EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
 
         EXPECT_EQUAL(s2n_stuffer_data_available(server_stuffer), total);
 
@@ -140,9 +140,8 @@ int main(int argc, char **argv)
 
         s2n_set_connection_hello_retry_flags(conn);
 
-        EXPECT_SUCCESS(s2n_server_hello_retry_send(conn));
-
         EXPECT_EQUAL(s2n_is_hello_retry_required(conn), 1);
+        EXPECT_SUCCESS(s2n_server_hello_retry_send(conn));
 
         EXPECT_SUCCESS(s2n_config_free(conf));
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -251,7 +250,11 @@ int main(int argc, char **argv)
         /* Setup the client to receive a HelloRetryRequest */
         memcpy_check(client_conn->secure.server_random, hello_retry_request_random_test_buffer, S2N_TLS_RANDOM_DATA_LEN);
         client_conn->server_protocol_version = S2N_TLS13;
+
+        /* Setup the handshake type and message number to simulate a condition where a HelloRetry should be sent */
+        client_conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
         EXPECT_SUCCESS(s2n_set_hello_retry_required(client_conn));
+        client_conn->handshake.message_number = 1;
 
         /* Parse the key share */
         EXPECT_SUCCESS(s2n_extensions_server_key_share_recv(client_conn, extension_stuffer));
