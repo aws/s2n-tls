@@ -21,6 +21,7 @@
 : "${GCC_VERSION:=NONE}"
 : "${LATEST_CLANG:=false}"
 : "${TESTS:=integration}"
+: "${S2N_COVERAGE:=false}"
 
 # Setup the cache directory paths.
 # Set Env Variables with defaults if they aren't already set

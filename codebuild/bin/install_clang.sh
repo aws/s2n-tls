@@ -13,7 +13,7 @@
 # permissions and limitations under the License.
 #
 
-set -e
+set -ex
 
 usage() {
 	echo "install_clang.sh download_dir install_dir os_name"
@@ -28,15 +28,26 @@ CLANG_DOWNLOAD_DIR=$1
 CLANG_INSTALL_DIR=$2
 PLATFORM=$3
 
+if [[ -d "$CLANG_DOWNLOAD_DIR" ]]; then
+	rm -rf "$CLANG_DOWNLOAD_DIR"
+fi
 mkdir -p "$CLANG_DOWNLOAD_DIR"
 cd "$CLANG_DOWNLOAD_DIR"
 
+# The Certificate used by chromium.googlesource.com is not in the default CA
+# list supported by git/curl on Ubuntu/AL2, but the certificate is in the
+# ca-certificates.crt file in Ubuntu/AL2, so set this env variable so that it is
+# picked up by git.
 if [ "$PLATFORM" == "linux" ]; then
-	# The Certificate used by chromium.googlesource.com is not in the default CA
-	# list supported by git/curl on Ubuntu, but the certificate is in the
-	# ca-certificates.crt file in Ubuntu, so set this env variable so that it is
-	# picked up by git.
-	export SSL_CERT_FILE=/usr/lib/ssl/certs/ca-certificates.crt
+	if [[ -f "/etc/system-release" ]]; then
+		#TODO: if we're going to co-mingle AL2, we need a global flag/function todo the following.
+		grep -q 'Amazon Linux release 2' /etc/system-release
+		if [ "$?" == 0 ]; then
+			export SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt
+		else
+			export SSL_CERT_FILE=/usr/lib/ssl/certs/ca-certificates.crt
+		fi
+	fi
 fi
 
 export GIT_CURL_VERBOSE=1

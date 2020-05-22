@@ -23,3 +23,12 @@ services:
       context: ./
       dockerfile: ./ubuntu/Dockerfile
     image: ${REPOSITORY_URI}:ubuntu_18.04_openssl-1.1.1_gcc9
+  amazonlinux_2_openssl-1.1.1_gcc9:
+    build:
+      args:
+        AL_VERSION: 2
+        OPENSSL_VERSION: openssl-1.1.1
+        GCC_VERSION: 9
+      context: ./
+      dockerfile: ./al2/Dockerfile
+    image: ${REPOSITORY_URI}:amazonlinux_2_openssl-1.1.1_gcc9
