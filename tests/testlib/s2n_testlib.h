@@ -58,6 +58,8 @@ int s2n_fd_set_non_blocking(int fd);
 int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn);
 int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn);
 
+int s2n_unsafe_set_drbg_seed(const struct s2n_blob *seed);
+
 #define S2N_MAX_TEST_PEM_SIZE 4096
 
 /* These paths assume that the unit tests are run from inside the unit/ directory.
