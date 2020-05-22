@@ -321,9 +321,7 @@ int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     const struct s2n_kem *kem = kem_params->kem;
     kem_public_key_size public_key_length;
 
-    S2N_ERROR_IF(s2n_stuffer_data_available(in) < sizeof(kem_public_key_size), S2N_ERR_BAD_MESSAGE);
     GUARD(s2n_stuffer_read_uint16(in, &public_key_length));
-    S2N_ERROR_IF(public_key_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
     S2N_ERROR_IF(public_key_length != kem->public_key_length, S2N_ERR_BAD_MESSAGE);
 
     /* Alloc memory for the public key; the peer receiving it will need it
@@ -363,9 +361,7 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     const struct s2n_kem *kem = kem_params->kem;
     kem_ciphertext_key_size ciphertext_length;
 
-    S2N_ERROR_IF(s2n_stuffer_data_available(in) < sizeof(kem_ciphertext_key_size), S2N_ERR_BAD_MESSAGE);
     GUARD(s2n_stuffer_read_uint16(in, &ciphertext_length));
-    S2N_ERROR_IF(ciphertext_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
     S2N_ERROR_IF(ciphertext_length != kem->ciphertext_length, S2N_ERR_BAD_MESSAGE);
 
     const struct s2n_blob ciphertext = {.data = s2n_stuffer_raw_read(in, ciphertext_length), .size = ciphertext_length};

@@ -496,25 +496,9 @@ int main(int argc, char **argv)
         kem_params.kem = &s2n_test_kem;
         EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_ciphertext(&io_stuffer, &kem_params), S2N_ERR_NULL);
 
-        /* Not enough data available in the stuffer to read the ciphertext length */
+        /* The given ciphertext length doesn't match the KEM's actual ciphertext length */
         EXPECT_SUCCESS(s2n_alloc(&(kem_params.private_key), TEST_PRIVATE_KEY_LENGTH));
         memcpy_check(kem_params.private_key.data, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH);
-        uint8_t bad_ct_input_1[] = { 5 };
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&io_stuffer, bad_ct_input_1, 1));
-        EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_ciphertext(&io_stuffer, &kem_params), S2N_ERR_BAD_MESSAGE);
-
-        /* The given ciphertext length is larger than the remaining data in the stuffer */
-        DEFER_CLEANUP(struct s2n_blob io_blob_2 = { 0 }, s2n_free);
-        EXPECT_SUCCESS(s2n_alloc(&io_blob_2, TEST_CIPHERTEXT_LENGTH + 2));
-        struct s2n_stuffer io_stuffer_2 = { 0 };
-        EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer_2, &io_blob_2));
-        uint8_t bad_ct_input_2[] = { 0, 5, 5 };
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&io_stuffer_2, bad_ct_input_2, 3));
-        EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer_2));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_ciphertext(&io_stuffer_2, &kem_params), S2N_ERR_BAD_MESSAGE);
-
-        /* The given ciphertext length doesn't match the KEM's actual ciphertext length */
         DEFER_CLEANUP(struct s2n_blob io_blob_3 = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&io_blob_3, TEST_CIPHERTEXT_LENGTH + 2));
         struct s2n_stuffer io_stuffer_3 = { 0 };
@@ -571,22 +555,6 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_public_key(&io_stuffer, &kem_params), S2N_ERR_NULL);
 
         kem_params.kem = &s2n_test_kem;
-
-        /* Not enough data available in the stuffer to read the public key length */
-        uint8_t bad_pk_input_1[] = { 2 };
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&io_stuffer, bad_pk_input_1, 1));
-        EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_public_key(&io_stuffer, &kem_params), S2N_ERR_BAD_MESSAGE);
-
-        /* The given public key length is larger than the remaining data in the stuffer */
-        DEFER_CLEANUP(struct s2n_blob io_blob_2 = {0}, s2n_free);
-        EXPECT_SUCCESS(s2n_alloc(&io_blob_2, TEST_PUBLIC_KEY_LENGTH + 2));
-        struct s2n_stuffer io_stuffer_2 = {0};
-        EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer_2, &io_blob_2));
-        uint8_t bad_pk_input_2[] = {0, 2, 2 };
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&io_stuffer_2, bad_pk_input_2, 3));
-        EXPECT_SUCCESS(s2n_stuffer_reread(&io_stuffer_2));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_kem_recv_public_key(&io_stuffer_2, &kem_params), S2N_ERR_BAD_MESSAGE);
 
         /* The given public key length doesn't match the KEM's actual public key length */
         DEFER_CLEANUP(struct s2n_blob io_blob_3 = {0}, s2n_free);
