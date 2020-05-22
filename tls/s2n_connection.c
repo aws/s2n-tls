@@ -1291,18 +1291,18 @@ struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2n_conne
     return conn->handshake_params.our_chain_and_key;
 }
 
-uint8_t s2n_connection_get_protocol_version(struct s2n_connection *conn)
+uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn)
 {
+    if (conn == NULL) {
+        return S2N_UNKNOWN_PROTOCOL_VERSION;
+    }
+
     if (conn->actual_protocol_version != S2N_UNKNOWN_PROTOCOL_VERSION) {
         return conn->actual_protocol_version;
     }
 
     if (conn->mode == S2N_CLIENT) {
         return conn->client_protocol_version;
-    } else if (conn->mode == S2N_SERVER) {
-        return conn->server_protocol_version;
     }
-
-    return S2N_UNKNOWN_PROTOCOL_VERSION;
+    return conn->server_protocol_version;
 }
-

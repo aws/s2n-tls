@@ -326,4 +326,4 @@ int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct 
 int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type cert_auth_type);
 int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_cert_auth_type);
 int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
-uint8_t s2n_connection_get_protocol_version(struct s2n_connection *conn);
+uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn);
