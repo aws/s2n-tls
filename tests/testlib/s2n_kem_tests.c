@@ -60,7 +60,10 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name)
 
         /* Set the NIST rng to the same state the response file was created with */
         GUARD(ReadHex(kat_file, kat_entropy_buff, SEED_LENGTH, "seed = "));
-        GUARD(s2n_unsafe_drbg_reseed(kat_entropy_buff, SEED_LENGTH));
+
+        struct s2n_blob seed;
+        GUARD(s2n_blob_init(&seed, kat_entropy_buff, SEED_LENGTH));
+        GUARD(s2n_unsafe_set_drbg_seed(&seed));
 
         /* Generate the public/private key pair */
         GUARD(kem->generate_keypair(pk, sk));

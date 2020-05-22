@@ -32,12 +32,12 @@ S2N_RESULT s2n_fixed_entropy_generator(struct s2n_blob *blob)
 
 static struct s2n_drbg fixed_drbg = { .entropy_generator = &s2n_fixed_entropy_generator };
 
-int s2n_unsafe_drbg_reseed(uint8_t *seed, uint8_t seed_size)
+int s2n_unsafe_set_drbg_seed(const struct s2n_blob *seed)
 {
     S2N_ERROR_IF(!s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
-    memset(seed_buffer, 0, S2N_DRBG_MAX_SEED_SIZE);
-    memcpy_check(seed_buffer, seed, MIN(seed_size, S2N_DRBG_MAX_SEED_SIZE));
+    memset_check((uint8_t*) seed_buffer, 0, sizeof(seed_buffer));
+    memcpy_check(seed_buffer, seed->data, MIN(seed->size, S2N_DRBG_MAX_SEED_SIZE));
 
     uint8_t data[48] = { 0 };
     struct s2n_blob ps;

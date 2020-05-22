@@ -113,7 +113,7 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
     GUARD_NONNULL(kat_file);
     GUARD(s2n_alloc(&hybrid_kat_entropy_blob, 48));
     GUARD(ReadHex(kat_file, hybrid_kat_entropy_blob.data, 48, "seed = "));
-    GUARD(s2n_unsafe_drbg_reseed(hybrid_kat_entropy_blob.data, hybrid_kat_entropy_blob.size));
+    GUARD(s2n_unsafe_set_drbg_seed(&hybrid_kat_entropy_blob));
 #endif
 
     /* Part 2 server sends key first */
