@@ -24,7 +24,18 @@
 
 int s2n_extension_list_send(s2n_extension_list_id list_type, struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+    s2n_extension_type_list *extension_type_list;
+    GUARD(s2n_extension_type_list_get(list_type, &extension_type_list));
+
+    struct s2n_stuffer_reservation total_extensions_size;
+    GUARD(s2n_stuffer_reserve_uint16(out, &total_extensions_size));
+
+    for (int i = 0; i < extension_type_list->count; i++) {
+        GUARD(s2n_extension_send(extension_type_list->extension_types[i], conn, out));
+    }
+
+    GUARD(s2n_stuffer_write_vector_size(total_extensions_size));
+    return S2N_SUCCESS;
 }
 
 int s2n_extension_list_recv(s2n_extension_list_id list_type, struct s2n_connection *conn, struct s2n_stuffer *in)
