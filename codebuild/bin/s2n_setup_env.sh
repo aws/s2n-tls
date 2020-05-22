@@ -21,6 +21,8 @@
 : "${GCC_VERSION:=NONE}"
 : "${LATEST_CLANG:=false}"
 : "${TESTS:=integration}"
+: "${S2N_COVERAGE:=false}"
+: "${LD_LIBRARY_PATH:=NONE}"
 
 # Setup the cache directory paths.
 # Set Env Variables with defaults if they aren't already set
@@ -48,8 +50,30 @@
 : "${GB_INSTALL_DIR:=$TEST_DEPS_DIR/gb}"
 : "${FUZZ_TIMEOUT_SEC:=10}"
 
-# OS_NAME
+  # Set some environment vars for OS, Distro and architecture.
+  # Standardized as part of systemd http://0pointer.de/blog/projects/os-release
+  # Samples:
+  #  OS_NAME = "linux"
+  #  DISTRO="ubuntu"
+  #  VERSION_ID = "18.04"
+  #  VERSION_CODENAME = "bionic"
+  if [[ -f "/etc/os-release" ]]; then
+    # AL2 doesn't provide a codename.
+     . /etc/os-release
+    export DISTRO=$(echo "$NAME"|tr "[:upper:]" "[:lower:]")
+    export VERSION_ID=${VERSION_ID:-"unknown"}
+    export VERSION_CODENAME=${VERSION_CODENAME:-"unknown"}
+  elif [[ -x "/usr/bin/sw_vers" ]]; then
+    export DISTRO="apple"
+    export VERSION_ID=$(sw_vers -productVersion|sed 's/:[[:space:]]*/=/g')
+    export VERSION_CODENAME="unknown"  # not queriable via CLI
+  else
+    export DISTRO="unknown"
+    export VERSION_ID="unknown"
+    export VERSION_CODENAME="unknown"
+  fi
 export OS_NAME=$(uname -s|tr "[:upper:]" "[:lower:]")
+export ARCH=$(uname -m)
 
 # Export all Env Variables
 export S2N_LIBCRYPTO
@@ -85,8 +109,8 @@ export S2N_CORKED_IO
 
 # S2N_COVERAGE should not be used with fuzz tests, use FUZZ_COVERAGE instead
 if [[ "$S2N_COVERAGE" == "true" && "$TESTS" == "fuzz" ]]; then
-    unset S2N_COVERAGE
-    export FUZZ_COVERAGE=true
+    export S2N_COVERAGE="false"
+    export FUZZ_COVERAGE="true"
 fi
 
 # Select the libcrypto to build s2n against. If this is unset, default to the latest stable version(Openssl 1.1.1)

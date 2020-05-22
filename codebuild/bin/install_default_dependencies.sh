@@ -64,9 +64,23 @@ if [[ "$S2N_LIBCRYPTO" == "awslc" && ! -d "$AWSLC_INSTALL_DIR" ]]; then
 fi
 
 if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
-    # Install tox if running on Ubuntu(only supported Linux at this time)
-    if [[ "$OS_NAME" == "linux" && ! -x `which tox` ]]; then
-        apt-get -y install tox
+    # Install tox
+    if [[ ! -x `which tox` ]]; then
+        case "$DISTRO" in
+        "ubuntu")
+          apt-get -y install tox
+          ;;
+        "redhat"|"fedora"|"centos"|"amazon linux")
+          yum install -y python3-pip
+          python3 -m pip install --user tox          ;;
+        "apple")
+          brew install python@3
+          python3 -m pip install --user tox          ;;
+        *)
+          echo "Unkown platform $DISTRO trying to install tox on $OS_NAME $ARCH"
+          exit 1
+          ;;
+        esac
     fi
 
     if [[ ! -x "$OPENSSL_0_9_8_INSTALL_DIR/bin/openssl" ]]; then
@@ -78,7 +92,7 @@ if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "A
     if [[ ! -x "$GNUTLS_INSTALL_DIR/bin/gnutls-cli" ]]; then
       # Download and Install GnuTLS for integration tests
       mkdir -p "$GNUTLS_INSTALL_DIR"||true
-      codebuild/bin/install_gnutls.sh "$(mktemp -d)" "$GNUTLS_INSTALL_DIR" "$OS_NAME" > /dev/null ;
+      codebuild/bin/install_gnutls.sh "$(mktemp -d)" "$GNUTLS_INSTALL_DIR" > /dev/null ;
     fi
 
     if [[ ! -x "$OQS_OPENSSL_1_1_1_INSTALL_DIR/bin/openssl" ]]; then
@@ -87,8 +101,11 @@ if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "A
       codebuild/bin/install_oqs_openssl_1_1_1.sh "$(mktemp -d)" "$OQS_OPENSSL_1_1_1_INSTALL_DIR" "$OS_NAME" > /dev/null ;
     fi
 
-    # Install SSLyze for all Integration Tests
-    codebuild/bin/install_sslyze.sh
+    # Install SSLyze for all Integration Tests on Ubuntu.
+    # There is a nassl dependancy issue preventing this from working on on AL2 ARM (others?).
+    if [[ "$DISTRO" == "ubuntu" && "$S2N_NO_SSLYZE" != "true" ]]; then
+        codebuild/bin/install_sslyze.sh
+    fi
 fi
 
 # Install SAW, Z3, and Yices for formal verification
@@ -100,16 +117,28 @@ if [[ "$SAW" == "true" || "$TESTS" == "ALL" ]]; then
     codebuild/bin/install_z3_yices.sh "$(mktemp -d)" "$Z3_INSTALL_DIR" > /dev/null ;
 fi
 
-if [[ "$TESTS" == "benchmark" || "$TESTS" == "ALL" ]]; then
-    # Install tox if running on Ubuntu(only supported Linux at this time)
-    if [[ "$OS_NAME" == "linux" && ! -x `which cmake` ]]; then
+if [[ ! -x `which cmake` ]]; then
+    case "$DISTRO" in
+    "ubuntu")
         apt-get -y install cmake
-    fi
+        ;;
+    "redhat"|"fedora"|"centos"|"amazon linux")
+        yum install -y cmake3
+        update-alternatives --install /usr/bin/cmake cmake /usr/bin/cmake3 30
+        ;;
+    "apple")
+        brew install cmake
+        ;;
+    *)
+        echo "Unknown platform for cmake."
+        ;;
+    esac
+fi
 
+if [[ "$TESTS" == "benchmark" || "$TESTS" == "ALL" ]]; then
     if [[ ! -x "$GB_INSTALL_DIR/lib/libbenchmark.a" ]]; then
         mkdir -p "$GB_INSTALL_DIR"||true
         codebuild/bin/install_googlebenchmark.sh "$(mktemp -d)" "$GB_INSTALL_DIR" "$OS_NAME" > /dev/null ;
     fi
 fi
-
 

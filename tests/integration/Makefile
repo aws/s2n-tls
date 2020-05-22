@@ -34,10 +34,16 @@ endif
 
 .PHONY : all
 ifdef S2N_NO_PQ
-all: tls13 client_endpoints dynamic_record old_s_client s_client s_server gnutls_cli gnutls_serv sslyze
+TESTS = tls13 client_endpoints dynamic_record old_s_client s_client s_server gnutls_cli gnutls_serv
 else
-all: tls13 client_endpoints dynamic_record old_s_client s_client s_server gnutls_cli gnutls_serv sslyze pq_handshake
+TESTS = tls13 client_endpoints dynamic_record old_s_client s_client s_server gnutls_cli gnutls_serv pq_handshake
 endif
+
+ifneq (S2N_NO_SSLYZE, "true")
+TESTS += sslyze
+endif
+
+all: $(TESTS)
 
 tls13:
 	( \
