@@ -20,6 +20,15 @@
 #define S2N_SIZE_OF_EXTENSION_DATA_SIZE     2
 #define S2N_SIZE_OF_COOKIE_DATA_SIZE        2
 
+const s2n_extension_type s2n_client_cookie_extension = {
+    .iana_value = TLS_EXTENSION_COOKIE,
+    .is_response = true,
+    .send = s2n_extension_send_noop,
+    .recv = s2n_extension_recv_noop,
+    .should_send = s2n_extension_never_send,
+    .if_missing = s2n_extension_noop_if_missing,
+};
+
 static bool s2n_cookie_should_send(struct s2n_connection *conn);
 static int s2n_cookie_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_cookie_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);

@@ -58,6 +58,7 @@ static const s2n_extension_type *const client_hello_extensions[] = {
         &s2n_client_ec_point_format_extension,
         &s2n_client_pq_kem_extension,
         &s2n_client_renegotiation_info_extension,
+        &s2n_client_cookie_extension,
 };
 
 static const s2n_extension_type *const tls12_server_hello_extensions[] = {
