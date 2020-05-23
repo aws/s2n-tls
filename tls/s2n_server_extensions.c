@@ -52,7 +52,7 @@ int s2n_server_extensions_send_size(struct s2n_connection *conn)
     if (is_tls13_conn) {
         GUARD_UINT16_AND_INCREMENT(s2n_extensions_server_supported_versions_size(conn), total_size);
         GUARD_UINT16_AND_INCREMENT(s2n_extensions_server_key_share_send_size(conn), total_size);
-
+        GUARD_UINT16_AND_INCREMENT(s2n_extensions_cookie_size(conn), total_size);
         return total_size;
     }
 
