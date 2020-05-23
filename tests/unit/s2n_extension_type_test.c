@@ -55,9 +55,11 @@ int main()
     {
         /* Test common implementations for send */
         EXPECT_FAILURE_WITH_ERRNO(s2n_extension_send_unimplemented(NULL, NULL), S2N_ERR_UNIMPLEMENTED);
+        EXPECT_SUCCESS(s2n_extension_send_noop(NULL, NULL));
 
         /* Test common implementations for recv */
         EXPECT_FAILURE_WITH_ERRNO(s2n_extension_recv_unimplemented(NULL, NULL), S2N_ERR_UNIMPLEMENTED);
+        EXPECT_SUCCESS(s2n_extension_recv_noop(NULL, NULL));
 
         /* Test common implementations for should_send */
         {
