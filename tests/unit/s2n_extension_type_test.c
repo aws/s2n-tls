@@ -295,5 +295,60 @@ int main()
         }
     }
 
+    /* Test s2n_extension_is_missing */
+    {
+        /* null check tests */
+        {
+            struct s2n_connection conn = { 0 };
+
+            EXPECT_FAILURE(s2n_extension_is_missing(NULL, &conn));
+            EXPECT_FAILURE(s2n_extension_is_missing(&test_extension_type, NULL));
+
+            s2n_extension_type extension_type_with_null_if_missing = test_extension_type;
+            extension_type_with_null_if_missing.if_missing = NULL;
+            EXPECT_FAILURE(s2n_extension_is_missing(&extension_type_with_null_if_missing, &conn));
+        }
+
+        /* Test no-op if_missing */
+        {
+            struct s2n_connection conn = { 0 };
+
+            s2n_extension_type extension_type_with_noop_if_missing = test_extension_type;
+            extension_type_with_noop_if_missing.if_missing = s2n_extension_noop_if_missing;
+
+            extension_type_with_noop_if_missing.is_response = false;
+            EXPECT_SUCCESS(s2n_extension_is_missing(&extension_type_with_noop_if_missing, &conn));
+
+            extension_type_with_noop_if_missing.is_response = true;
+            EXPECT_SUCCESS(s2n_extension_is_missing(&extension_type_with_noop_if_missing, &conn));
+
+            S2N_CBIT_SET(conn.extension_requests_sent, test_extension_id);
+            EXPECT_SUCCESS(s2n_extension_is_missing(&extension_type_with_noop_if_missing, &conn));
+        }
+
+        /* Test error if_missing */
+        {
+            struct s2n_connection conn = { 0 };
+
+            s2n_extension_type extension_type_with_error_if_missing = test_extension_type;
+            extension_type_with_error_if_missing.if_missing = s2n_extension_error_if_missing;
+
+            /* Should fail for a request */
+            extension_type_with_error_if_missing.is_response = false;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_extension_is_missing(&extension_type_with_error_if_missing, &conn),
+                    S2N_ERR_MISSING_EXTENSION);
+
+            /* Should succeed for a response without a corresponding request.
+             * We don't expect to receive the response, so it isn't considered missing. */
+            extension_type_with_error_if_missing.is_response = true;
+            EXPECT_SUCCESS(s2n_extension_is_missing(&extension_type_with_error_if_missing, &conn));
+
+            /* Should fail for a response with a corresponding request */
+            S2N_CBIT_SET(conn.extension_requests_sent, test_extension_id);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_extension_is_missing(&extension_type_with_error_if_missing, &conn),
+                    S2N_ERR_MISSING_EXTENSION);
+        }
+    }
+
     END_TEST();
 }
