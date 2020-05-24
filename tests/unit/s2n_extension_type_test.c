@@ -98,6 +98,20 @@ int main()
         }
     }
 
+    /* Test s2n_extension_supported_iana_value_to_id */
+    {
+        s2n_extension_type_id id = s2n_unsupported_extension;
+
+        /* Supported extension id returned */
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(s2n_supported_extensions[5], &id));
+        EXPECT_EQUAL(id, 5);
+
+        /* Fail on unsupported iana value
+         * 15 == heartbeat, which s2n will probably never support :) */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_extension_supported_iana_value_to_id(15, &id),
+                S2N_ERR_UNRECOGNIZED_EXTENSION);
+    }
+
     /* Test bitfield behavior */
     {
         s2n_extension_bitfield test_bitfield = { 0 };
