@@ -37,6 +37,21 @@ static int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, uint32_t
     return S2N_SUCCESS;
 }
 
+int s2n_stuffer_reserve(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation, uint8_t length)
+{
+    notnull_check(stuffer);
+    notnull_check(reservation);
+
+    reservation->stuffer = stuffer;
+    reservation->write_cursor = stuffer->write_cursor;
+    reservation->length = length;
+
+    GUARD(s2n_stuffer_skip_write(stuffer, reservation->length));
+    memset_check(stuffer->blob.data + reservation->write_cursor, S2N_WIPE_PATTERN, reservation->length);
+
+    return S2N_SUCCESS;
+}
+
 int s2n_stuffer_read_uint8(struct s2n_stuffer *stuffer, uint8_t * u)
 {
     GUARD(s2n_stuffer_read_bytes(stuffer, u, 1));
@@ -70,17 +85,7 @@ int s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, const uint16_t u)
 
 int s2n_stuffer_reserve_uint16(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation)
 {
-    notnull_check(stuffer);
-    notnull_check(reservation);
-
-    reservation->stuffer = stuffer;
-    reservation->write_cursor = stuffer->write_cursor;
-    reservation->length = sizeof(uint16_t);
-
-    GUARD(s2n_stuffer_skip_write(stuffer, reservation->length));
-    memset_check(stuffer->blob.data + reservation->write_cursor, S2N_WIPE_PATTERN, reservation->length);
-
-    return S2N_SUCCESS;
+    return s2n_stuffer_reserve(stuffer, reservation, sizeof(uint16_t));
 }
 
 int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t * u)
@@ -99,6 +104,11 @@ int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t * u)
 int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, const uint32_t u)
 {
     return s2n_stuffer_write_network_order(stuffer, u, SIZEOF_UINT24);
+}
+
+int s2n_stuffer_reserve_uint24(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation)
+{
+    return s2n_stuffer_reserve(stuffer, reservation, SIZEOF_UINT24);
 }
 
 int s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t * u)

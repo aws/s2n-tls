@@ -21,6 +21,8 @@
 
 #include "stuffer/s2n_stuffer_network_order.c"
 
+#define SIZEOF_UINT24 3
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -147,6 +149,53 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(actual_bytes, expected_bytes, sizeof(uint16_t));
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, actual_bytes, sizeof(uint16_t)));
             EXPECT_BYTEARRAY_EQUAL(actual_bytes, expected_bytes, sizeof(uint16_t));
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &actual_value));
+            EXPECT_EQUAL(actual_value, data_after);
+        }
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+    }
+
+    /* s2n_stuffer_reserve_uint24 */
+    {
+        uint16_t actual_value;
+        struct s2n_stuffer_reservation reservation = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+        /* Null checks */
+        EXPECT_FAILURE(s2n_stuffer_reserve_uint24(NULL, &reservation));
+        EXPECT_FAILURE(s2n_stuffer_reserve_uint24(&stuffer, NULL));
+
+        /* Happy case: successfully reserves space for a uint24_t */
+        {
+            /* Write some data. We want to verify it isn't overwritten. */
+            uint16_t data_before = 5;
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, data_before));
+
+            /* Reserve uint24 */
+            EXPECT_SUCCESS(s2n_stuffer_reserve_uint24(&stuffer, &reservation));
+            EXPECT_EQUAL(reservation.stuffer, &stuffer);
+            EXPECT_EQUAL(reservation.write_cursor, sizeof(uint16_t));
+            EXPECT_EQUAL(reservation.length, SIZEOF_UINT24);
+
+            /* Reserve uint24 again */
+            EXPECT_SUCCESS(s2n_stuffer_reserve_uint24(&stuffer, &reservation));
+            EXPECT_EQUAL(reservation.stuffer, &stuffer);
+            EXPECT_EQUAL(reservation.write_cursor, sizeof(uint16_t) + SIZEOF_UINT24);
+            EXPECT_EQUAL(reservation.length, SIZEOF_UINT24);
+
+            /* Write some more data. We want to verify it isn't overwritten. */
+            uint16_t data_after = -1;
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, data_after));
+
+            /* Make sure expected values read back */
+            uint8_t actual_bytes[SIZEOF_UINT24], expected_bytes[] = { S2N_WIPE_PATTERN, S2N_WIPE_PATTERN, S2N_WIPE_PATTERN };
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &actual_value));
+            EXPECT_EQUAL(actual_value, data_before);
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, actual_bytes, SIZEOF_UINT24));
+            EXPECT_BYTEARRAY_EQUAL(actual_bytes, expected_bytes, SIZEOF_UINT24);
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, actual_bytes, SIZEOF_UINT24));
+            EXPECT_BYTEARRAY_EQUAL(actual_bytes, expected_bytes, SIZEOF_UINT24);
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &actual_value));
             EXPECT_EQUAL(actual_value, data_after);
         }
