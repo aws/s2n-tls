@@ -17,7 +17,6 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_x509_validator.h"
-#include "tls/extensions/s2n_certificate_extensions.h"
 #include "tls/extensions/s2n_server_certificate_status.h"
 #include "utils/s2n_safety.h"
 
@@ -84,7 +83,6 @@ int s2n_server_certificate_status_recv(struct s2n_connection *conn, struct s2n_s
 
 static int s2n_server_certificate_status_send_size(struct s2n_connection *conn)
 {
-    notnull_check(conn);
     if (s2n_server_can_send_ocsp(conn)) {
         return sizeof(uint8_t) + U24_SIZE + conn->handshake_params.our_chain_and_key->ocsp_status.size;
     }
@@ -97,7 +95,7 @@ int s2n_tls13_ocsp_extension_send_size(struct s2n_connection *conn)
     notnull_check(conn);
     if (s2n_server_can_send_ocsp(conn)) {
         uint16_t size = 2 * sizeof(uint16_t);
-        GUARD_UINT16_AND_INCREMENT(s2n_server_certificate_status_send_size(conn), size);
+        size += s2n_server_certificate_status_send_size(conn);
         return size;
     }
 

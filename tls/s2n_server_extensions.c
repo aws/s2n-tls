@@ -25,7 +25,6 @@
 #include "tls/s2n_kex.h"
 #include "tls/s2n_cipher_suites.h"
 
-#include "tls/extensions/s2n_certificate_extensions.h"
 #include "tls/extensions/s2n_cookie.h"
 #include "tls/extensions/s2n_ec_point_format.h"
 #include "tls/extensions/s2n_server_renegotiation_info.h"
@@ -42,6 +41,17 @@
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
+
+/* Guards against errors and non uint16s, then increments size */
+#define GUARD_UINT16_AND_INCREMENT( x, size ) do { \
+    GUARD_UINT16(x); \
+    size += x; \
+} while (0)
+
+#define GUARD_UINT16( x ) do { \
+    GUARD(x); \
+    lte_check(x, 65535); \
+} while (0)
 
 /* compute size server extensions send requires */
 int s2n_server_extensions_send_size(struct s2n_connection *conn)

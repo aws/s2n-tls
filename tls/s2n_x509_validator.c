@@ -19,9 +19,9 @@
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_rfc5952.h"
+#include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
-#include "extensions/s2n_certificate_extensions.h"
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -343,21 +343,12 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
         /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
         if (conn->actual_protocol_version == S2N_TLS13) {
-            uint16_t certificate_extensions_length = 0;
-            S2N_ERROR_IF(2 > s2n_stuffer_data_available(&cert_chain_in_stuffer), S2N_ERR_BAD_MESSAGE);
-            GUARD(s2n_stuffer_read_uint16(&cert_chain_in_stuffer, &certificate_extensions_length));
-            S2N_ERROR_IF(certificate_extensions_length > s2n_stuffer_data_available(&cert_chain_in_stuffer), S2N_ERR_BAD_MESSAGE);
+            s2n_parsed_extensions_list parsed_extensions_list = { 0 };
+            GUARD(s2n_extension_list_parse(&cert_chain_in_stuffer, &parsed_extensions_list));
 
-            if (certificate_extensions_length > 0) {
-                struct s2n_blob extensions = {0};
-                extensions.size = certificate_extensions_length;
-                extensions.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, extensions.size);
-                notnull_check(extensions.data);
-
-                /* RFC 8446: if an extension applies to the entire chain, it SHOULD be included in the first CertificateEntry */
-                if (certificate_count == 0) {
-                    GUARD(s2n_certificate_extensions_parse(conn, &extensions));
-                }
+            /* RFC 8446: if an extension applies to the entire chain, it SHOULD be included in the first CertificateEntry */
+            if (certificate_count == 0) {
+                GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &parsed_extensions_list));
             }
         }
 
