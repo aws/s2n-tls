@@ -26,6 +26,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_alerts.h"
+#include "tls/s2n_server_extensions.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_security_policies.h"
@@ -98,7 +99,6 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     struct s2n_stuffer *in = &conn->handshake.io;
     uint8_t compression_method;
     uint8_t session_id_len;
-    uint16_t extensions_size;
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
     uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN];
 
@@ -115,17 +115,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     GUARD(s2n_stuffer_read_uint8(in, &compression_method));
     S2N_ERROR_IF(compression_method != S2N_TLS_COMPRESSION_METHOD_NULL, S2N_ERR_BAD_MESSAGE);
 
-    if (s2n_stuffer_data_available(in) >= 2) {
-        GUARD(s2n_stuffer_read_uint16(in, &extensions_size));
-
-        S2N_ERROR_IF(extensions_size > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
-
-        struct s2n_blob extensions = {0};
-        GUARD(s2n_blob_init(&extensions, s2n_stuffer_raw_read(in, extensions_size), extensions_size));
-        notnull_check(extensions.data);
-
-        GUARD(s2n_server_extensions_recv(conn, &extensions));
-    }
+    GUARD(s2n_server_extensions_recv(conn, in));
 
     if (conn->server_protocol_version >= S2N_TLS13) {
         S2N_ERROR_IF(session_id_len != conn->session_id_len || memcmp(session_id, conn->session_id, session_id_len), S2N_ERR_BAD_MESSAGE);

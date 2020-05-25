@@ -16,8 +16,8 @@
 
 #include "error/s2n_errno.h"
 #include "utils/s2n_blob.h"
-#include "tls/extensions/s2n_cookie.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_server_extensions.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
