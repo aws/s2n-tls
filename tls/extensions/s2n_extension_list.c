@@ -22,7 +22,7 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 
-#define s2n_parsed_extension_is_valid(parsed_extension) ((parsed_extension)->extension.data != NULL)
+#define s2n_parsed_extension_is_empty(parsed_extension) ((parsed_extension)->extension.data == NULL)
 
 static const s2n_parsed_extension empty_parsed_extensions[S2N_PARSED_EXTENSIONS_COUNT] = { 0 };
 
@@ -45,7 +45,7 @@ static int s2n_extension_process_impl(const s2n_extension_type *extension_type, 
     notnull_check(extension_type);
     notnull_check(parsed_extensions);
 
-    if (!s2n_parsed_extension_is_valid(&parsed_extensions[extension_id])) {
+    if (s2n_parsed_extension_is_empty(&parsed_extensions[extension_id])) {
         GUARD(s2n_extension_is_missing(extension_type, conn));
         return S2N_SUCCESS;
     }
