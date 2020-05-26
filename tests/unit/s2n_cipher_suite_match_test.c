@@ -40,7 +40,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(conn->config, cert_chain, private_key));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all"));
+
+        uint16_t expected_count = S2N_CIPHER_SUITE_COUNT;
+        if (s2n_is_in_fips_mode()) {
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all_fips"));
+            expected_count = S2N_FIPS_CIPHER_SUITE_COUNT;
+        } else {
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all"));
+        }
 
         count = 0;
         for (int i = 0; i < 0xffff; i++) {
@@ -52,7 +59,7 @@ int main(int argc, char **argv)
             }
         }
 
-        EXPECT_EQUAL(count, S2N_CIPHER_SUITE_COUNT);
+        EXPECT_EQUAL(count, expected_count);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         free(private_key);
