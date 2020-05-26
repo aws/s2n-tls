@@ -59,6 +59,7 @@ static const uint16_t s2n_supported_extensions[] = {
     TLS_EXTENSION_SESSION_TICKET,
     TLS_EXTENSION_SUPPORTED_VERSIONS,
     TLS_EXTENSION_KEY_SHARE,
+    TLS_EXTENSION_COOKIE,
 };
 
 typedef char s2n_extension_bitfield[S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN];
@@ -74,9 +75,11 @@ int s2n_extension_type_init();
 
 /* Common implementations for send */
 int s2n_extension_send_unimplemented(struct s2n_connection *conn, struct s2n_stuffer *out);
+int s2n_extension_send_noop(struct s2n_connection *conn, struct s2n_stuffer *out);
 
 /* Common implementations for recv */
 int s2n_extension_recv_unimplemented(struct s2n_connection *conn, struct s2n_stuffer *in);
+int s2n_extension_recv_noop(struct s2n_connection *conn, struct s2n_stuffer *out);
 
 /* Common implementations for should_send */
 bool s2n_extension_always_send(struct s2n_connection *conn);

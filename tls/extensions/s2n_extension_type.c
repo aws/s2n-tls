@@ -151,6 +151,16 @@ int s2n_extension_recv_unimplemented(struct s2n_connection *conn, struct s2n_stu
     S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
 }
 
+int s2n_extension_send_noop(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    return S2N_SUCCESS;
+}
+
+int s2n_extension_recv_noop(struct s2n_connection *conn, struct s2n_stuffer *in)
+{
+    return S2N_SUCCESS;
+}
+
 bool s2n_extension_always_send(struct s2n_connection *conn)
 {
     return true;

@@ -40,7 +40,7 @@ const s2n_extension_type s2n_server_ec_point_format_extension = {
     .iana_value = TLS_EXTENSION_EC_POINT_FORMATS,
     .is_response = true,
     .send = s2n_ec_point_format_send,
-    .recv = s2n_ec_point_format_recv,
+    .recv = s2n_extension_recv_noop,
     .should_send = s2n_server_ec_point_format_should_send,
     .if_missing = s2n_extension_noop_if_missing,
 };

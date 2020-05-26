@@ -21,13 +21,12 @@
 #include "tls/extensions/s2n_server_session_ticket.h"
 
 static bool s2n_session_ticket_should_send(struct s2n_connection *conn);
-static int s2n_session_ticket_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_session_ticket_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 const s2n_extension_type s2n_server_session_ticket_extension = {
     .iana_value = TLS_EXTENSION_SESSION_TICKET,
     .is_response = true,
-    .send = s2n_session_ticket_send,
+    .send = s2n_extension_send_noop,
     .recv = s2n_session_ticket_recv,
     .should_send = s2n_session_ticket_should_send,
     .if_missing = s2n_extension_noop_if_missing,
@@ -36,12 +35,6 @@ const s2n_extension_type s2n_server_session_ticket_extension = {
 static bool s2n_session_ticket_should_send(struct s2n_connection *conn)
 {
     return s2n_server_sending_nst(conn) && s2n_connection_get_protocol_version(conn) < S2N_TLS13;
-}
-
-static int s2n_session_ticket_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    /* Write nothing. The extension just needs to exist. */
-    return S2N_SUCCESS;
 }
 
 static int s2n_session_ticket_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
