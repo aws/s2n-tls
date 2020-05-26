@@ -103,8 +103,9 @@ int main()
         s2n_extension_type_id id = s2n_unsupported_extension;
 
         /* Supported extension id returned */
-        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(s2n_supported_extensions[5], &id));
-        EXPECT_EQUAL(id, 5);
+        const uint16_t supported_extension_id = 5;
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(s2n_supported_extensions[supported_extension_id], &id));
+        EXPECT_EQUAL(id, supported_extension_id);
 
         /* Fail on unsupported iana value
          * 15 == heartbeat, which s2n will probably never support :) */
