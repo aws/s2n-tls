@@ -100,6 +100,21 @@ int main()
         }
     }
 
+    /* Test s2n_extension_supported_iana_value_to_id */
+    {
+        s2n_extension_type_id id = s2n_unsupported_extension;
+
+        /* Supported extension id returned */
+        const uint16_t supported_extension_id = 5;
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(s2n_supported_extensions[supported_extension_id], &id));
+        EXPECT_EQUAL(id, supported_extension_id);
+
+        /* Fail on unsupported iana value
+         * 15 == heartbeat, which s2n will probably never support :) */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_extension_supported_iana_value_to_id(15, &id),
+                S2N_ERR_UNRECOGNIZED_EXTENSION);
+    }
+
     /* Test bitfield behavior */
     {
         s2n_extension_bitfield test_bitfield = { 0 };

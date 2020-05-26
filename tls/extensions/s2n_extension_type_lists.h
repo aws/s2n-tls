@@ -15,21 +15,12 @@
 
 #pragma once
 
+#include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_extension_type.h"
-
-typedef enum {
-    S2N_EXTENSION_LIST_CLIENT_HELLO = 0,
-    S2N_EXTENSION_LIST_SERVER_HELLO,
-    S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS,
-    S2N_EXTENSION_LIST_CERT_REQ,
-    S2N_EXTENSION_LIST_CERTIFICATE,
-    S2N_EXTENSION_LIST_IDS_COUNT,
-} s2n_extension_list_id;
 
 typedef struct {
     const s2n_extension_type *const *extension_types;
     const uint8_t count;
 } s2n_extension_type_list;
 
-int s2n_extension_type_list_get(s2n_extension_list_id list_type, const struct s2n_connection *conn,
-        s2n_extension_type_list **extension_type_list);
+int s2n_extension_type_list_get(s2n_extension_list_id list_type, s2n_extension_type_list **extension_type_list);

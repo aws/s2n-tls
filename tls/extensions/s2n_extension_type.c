@@ -75,9 +75,13 @@ s2n_extension_type_id s2n_extension_iana_value_to_id(const uint16_t iana_value)
     return s2n_unsupported_extension;
 }
 
-static s2n_extension_type_id s2n_extension_type_get_id(const s2n_extension_type *extension_type)
+int s2n_extension_supported_iana_value_to_id(const uint16_t iana_value, s2n_extension_type_id *internal_id)
 {
-    return s2n_extension_iana_value_to_id(extension_type->iana_value);
+    notnull_check(internal_id);
+
+    *internal_id = s2n_extension_iana_value_to_id(iana_value);
+    S2N_ERROR_IF(*internal_id == s2n_unsupported_extension, S2N_ERR_UNRECOGNIZED_EXTENSION);
+    return S2N_SUCCESS;
 }
 
 int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -87,9 +91,12 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
     notnull_check(extension_type->send);
     notnull_check(conn);
 
+    s2n_extension_type_id extension_id;
+    GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
+
     /* Do not send response if request not received. */
     if (extension_type->is_response &&
-            !S2N_CBIT_TEST(conn->extension_requests_received, s2n_extension_type_get_id(extension_type))) {
+            !S2N_CBIT_TEST(conn->extension_requests_received, extension_id)) {
         return S2N_SUCCESS;
     }
 
@@ -113,7 +120,7 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
 
     /* Set request bit flag */
     if (!extension_type->is_response) {
-        S2N_CBIT_SET(conn->extension_requests_sent, s2n_extension_type_get_id(extension_type));
+        S2N_CBIT_SET(conn->extension_requests_sent, extension_id);
     }
 
     return S2N_SUCCESS;
@@ -125,9 +132,12 @@ int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_conn
     notnull_check(extension_type->recv);
     notnull_check(conn);
 
+    s2n_extension_type_id extension_id;
+    GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
+
     /* Do not accept a response if we did not send a request */
     if(extension_type->is_response &&
-            !S2N_CBIT_TEST(conn->extension_requests_sent, s2n_extension_type_get_id(extension_type))) {
+            !S2N_CBIT_TEST(conn->extension_requests_sent, extension_id)) {
         S2N_ERROR(S2N_ERR_UNSUPPORTED_EXTENSION);
     }
 
@@ -135,7 +145,7 @@ int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_conn
 
     /* Set request bit flag */
     if (!extension_type->is_response) {
-        S2N_CBIT_SET(conn->extension_requests_received, s2n_extension_type_get_id(extension_type));
+        S2N_CBIT_SET(conn->extension_requests_received, extension_id);
     }
 
     return S2N_SUCCESS;
