@@ -38,8 +38,13 @@
 #endif
 
 /* Kept up-to-date by s2n_cipher_suite_match_test */
-#define S2N_CIPHER_SUITE_COUNT          (36 + S2N_PQ_CIPHER_SUITE_COUNT)
+#ifdef OPENSSL_IS_BORINGSSL
+    #define S2N_CIPHER_SUITE_COUNT          (32 + S2N_PQ_CIPHER_SUITE_COUNT)
+#else
+    #define S2N_CIPHER_SUITE_COUNT          (36 + S2N_PQ_CIPHER_SUITE_COUNT)
+#endif
 #define S2N_FIPS_CIPHER_SUITE_COUNT     (17 + S2N_PQ_CIPHER_SUITE_COUNT)
+
 
 /* Record algorithm flags that can be OR'ed */
 #define S2N_TLS12_AES_GCM_AEAD_NONCE     0x01
