@@ -62,8 +62,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(protocol_name_size, test_protocol_name_size);
 
         /* Should have correct protocol name */
-        uint8_t protocol_name[protocol_name_size];
-        EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, protocol_name, protocol_name_size));
+        uint8_t *protocol_name;
+        EXPECT_NOT_NULL(protocol_name = s2n_stuffer_raw_read(&stuffer, protocol_name_size));
         EXPECT_BYTEARRAY_EQUAL(protocol_name, test_protocol_name, test_protocol_name_size);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));

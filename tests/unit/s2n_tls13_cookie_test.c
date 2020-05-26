@@ -80,8 +80,8 @@ int main(int argc, char *argv[])
         EXPECT_EQUAL(cookie_size, s2n_stuffer_data_available(&stuffer));
         EXPECT_EQUAL(cookie_size, test_cookie_size);
 
-        uint8_t cookie_data[cookie_size];
-        EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, cookie_data, cookie_size));
+        uint8_t *cookie_data;
+        EXPECT_NOT_NULL(cookie_data = s2n_stuffer_raw_read(&stuffer, cookie_size));
         EXPECT_BYTEARRAY_EQUAL(cookie_data, test_cookie_data, test_cookie_size);
 
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
