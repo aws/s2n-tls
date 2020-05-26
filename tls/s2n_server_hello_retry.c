@@ -37,7 +37,6 @@ static int s2n_conn_reset_retry_values(struct s2n_connection *conn)
     notnull_check(conn);
 
     /* Reset handshake values */
-    conn->handshake.handshake_type = INITIAL | HELLO_RETRY_REQUEST;
     conn->handshake.client_hello_received = 0;
 
     /* Reset client hello state */

@@ -41,14 +41,26 @@ def verify_hrr_random_data(server, client):
 
     # Start of HRR random data which will be printed in the
     # client process output
+    marker_found = False
+    hello_count = 0
+    finished_count = 0
     marker = b"cf 21 ad 74 e5 9a 61 11 be 1d"
+
     for line in client.stdout:
         if marker in line:
+            marker_found = True
+        if b'ClientHello' in line:
+            hello_count += 1
+        if b'], Finished' in line:
+            finished_count += 1
+        if marker_found and hello_count == 2 and finished_count == 2:
             result.status = Status.PASSED
             break
 
+
     return result
-    
+
+
 def key_update_recv(server, client):
     '''
     This test checks that a key update can be processed by s2n. It runs three times to prove that s2n can

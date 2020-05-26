@@ -518,6 +518,11 @@ int s2n_set_hello_retry_required(struct s2n_connection *conn)
  * A retry is only possible after the first ClientHello (HELLO_RETRY_MSG). */
 bool s2n_is_hello_retry_required(struct s2n_connection *conn)
 {
+    return ACTIVE_MESSAGE(conn) == HELLO_RETRY_MSG;
+}
+
+bool s2n_is_hello_retry_handshake(struct s2n_connection *conn)
+{
     return conn->handshake.handshake_type & HELLO_RETRY_REQUEST;
 }
 
