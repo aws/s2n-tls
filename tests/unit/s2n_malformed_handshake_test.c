@@ -240,7 +240,6 @@ int main(int argc, char **argv)
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
     EXPECT_NOT_NULL(config = s2n_config_new());
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 

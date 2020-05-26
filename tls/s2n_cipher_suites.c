@@ -1061,17 +1061,17 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     S2N_ERROR_IF(conn->secure.cipher_suite == NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
     /* Verify the cipher was part of the originally offered list */
-    const struct s2n_security_policy *security_policy;
-    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    const struct s2n_cipher_preferences *cipher_prefs;
+    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_prefs));
 
     uint8_t found = 0;
 
-    for (int i = 0; i < security_policy->cipher_preferences->count; i++ ) {
+    for (int i = 0; i < cipher_prefs->count; i++ ) {
         /* The client sends all "available" ciphers in the preference list to the server.
            The server must pick one of the ciphers offered by the client. */
-        if (security_policy->cipher_preferences->suites[i]->available) {
+        if (cipher_prefs->suites[i]->available) {
             const uint8_t *server_iana_value = conn->secure.cipher_suite->iana_value;
-            const uint8_t *client_iana_value = security_policy->cipher_preferences->suites[i]->iana_value;
+            const uint8_t *client_iana_value = cipher_prefs->suites[i]->iana_value;
 
             if (memcmp(server_iana_value, client_iana_value, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
                 found = 1;

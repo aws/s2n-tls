@@ -134,7 +134,6 @@ int main(int argc, char **argv)
             + COMPRESSION_METHOD_SIZE;
 
         server_conn->actual_protocol_version = S2N_TLS12;
-        /* The server must provide a cipher which is in the client's preference list */
         server_conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256;
 
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
@@ -157,19 +156,11 @@ int main(int argc, char **argv)
 
     /* Test Server Hello Recv with invalid cipher */
     {
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
-
         struct s2n_connection *server_conn;
         struct s2n_connection *client_conn;
 
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-
-        EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         struct s2n_stuffer *server_stuffer = &server_conn->handshake.io;
 
@@ -186,7 +177,6 @@ int main(int argc, char **argv)
         server_conn->secure.cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
 
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
-        EXPECT_EQUAL(s2n_stuffer_data_available(server_stuffer), total);
 
         /* Copy server stuffer to client stuffer */
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io, total));
@@ -194,8 +184,6 @@ int main(int argc, char **argv)
         /* The client should fail the handshake because an invalid cipher was offered */
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn), S2N_ERR_CIPHER_NOT_SUPPORTED);
 
-        EXPECT_SUCCESS(s2n_config_free(client_config));
-        EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
@@ -400,7 +388,6 @@ int main(int argc, char **argv)
         /* the client only support TLS1.2 */
         EXPECT_SUCCESS(s2n_enable_tls13());
         server_conn->actual_protocol_version = S2N_TLS12;
-        /* The server must provide a cipher which is in the client's preference list */
         server_conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256;
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
         EXPECT_SUCCESS(s2n_disable_tls13());
@@ -434,7 +421,6 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        //EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         /* The client will request TLS1.3 */
@@ -452,7 +438,7 @@ int main(int argc, char **argv)
         /* The server will respond with TLS1.2 */
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->actual_protocol_version = S2N_TLS12;
-        /* The server must provide a cipher which is in the client's preference list */
+
         server_conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256;
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
         EXPECT_EQUAL(s2n_stuffer_data_available(server_stuffer), total);
@@ -504,7 +490,7 @@ int main(int argc, char **argv)
         /* the client only support TLS1.2 */
         EXPECT_SUCCESS(s2n_enable_tls13());
         server_conn->actual_protocol_version = S2N_TLS12;
-        /* The server must provide a cipher which is in the client's preference list */
+
         server_conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256;
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
         EXPECT_SUCCESS(s2n_disable_tls13());
