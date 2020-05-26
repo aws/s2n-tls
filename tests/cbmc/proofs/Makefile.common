@@ -253,7 +253,7 @@ logs/property.xml: $(ENTRY_GOTO).goto
 	$(call DO_CBMC,$(CBMCFLAGS) --show-properties --xml-ui,$<,$@)
 
 logs/coverage.xml: $(ENTRY_GOTO).goto
-	$(call DO_CBMC,$(CBMC_UNWINDSET) --cover location --xml-ui,$<,$@)
+	$(call DO_CBMC,--unwind 1 $(CBMC_UNWINDSET) --cover location --xml-ui,$<,$@)
 
 cbmc: logs/cbmc.log
 
