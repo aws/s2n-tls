@@ -77,6 +77,8 @@ s2n_extension_type_id s2n_extension_iana_value_to_id(const uint16_t iana_value)
 
 int s2n_extension_supported_iana_value_to_id(const uint16_t iana_value, s2n_extension_type_id *internal_id)
 {
+    notnull_check(internal_id);
+
     *internal_id = s2n_extension_iana_value_to_id(iana_value);
     S2N_ERROR_IF(*internal_id == s2n_unsupported_extension, S2N_ERR_UNRECOGNIZED_EXTENSION);
     return S2N_SUCCESS;
