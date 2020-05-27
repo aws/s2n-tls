@@ -23,6 +23,7 @@
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
+#include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
@@ -68,7 +69,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     /* Run Test
      * Do not use GUARD macro here since the connection memory hasn't been freed.
      */
-    s2n_encrypted_extensions_recv(client_conn);
+    s2n_extension_list_recv(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS, client_conn, &client_conn->handshake.io);
 
     /* Cleanup */
     GUARD(s2n_connection_free(client_conn));
