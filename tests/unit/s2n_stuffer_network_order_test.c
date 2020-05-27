@@ -19,9 +19,10 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
 
-#include "stuffer/s2n_stuffer_network_order.c"
-
 #define SIZEOF_UINT24 3
+
+int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, uint32_t input, uint8_t length);
+int s2n_stuffer_write_reservation(struct s2n_stuffer_reservation reservation, uint32_t u);
 
 int main(int argc, char **argv)
 {

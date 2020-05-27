@@ -443,7 +443,7 @@ int main(int argc, char **argv)
         cert2.raw = raw;
 
         cert_chain.chain_size = cert1.raw.size + SIZEOF_UINT24
-                                + cert2.raw.size + SIZEOF_UINT24;;
+                                + cert2.raw.size + SIZEOF_UINT24;
         chain_and_key.cert_chain = &cert_chain;
         cert_chain.head = &cert1;
         cert1.next = &cert2;
@@ -526,7 +526,7 @@ int main(int argc, char **argv)
         cert2.raw = raw;
 
         cert_chain.chain_size = cert1.raw.size + SIZEOF_UINT24
-                                + cert2.raw.size + SIZEOF_UINT24;;
+                                + cert2.raw.size + SIZEOF_UINT24;
         chain_and_key.cert_chain = &cert_chain;
         cert_chain.head = &cert1;
         cert1.next = &cert2;

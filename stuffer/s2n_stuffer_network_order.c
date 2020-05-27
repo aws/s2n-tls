@@ -22,7 +22,7 @@
 
 #define SIZEOF_UINT24 3
 
-static int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, uint32_t input, uint8_t length)
+int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, uint32_t input, uint8_t length)
 {
     notnull_check(stuffer);
     GUARD(s2n_stuffer_skip_write(stuffer, length));
@@ -180,7 +180,7 @@ static int s2n_stuffer_write_reservation_impl(struct s2n_stuffer_reservation res
     return S2N_SUCCESS;
 }
 
-static int s2n_stuffer_write_reservation(struct s2n_stuffer_reservation reservation, uint32_t u)
+int s2n_stuffer_write_reservation(struct s2n_stuffer_reservation reservation, uint32_t u)
 {
     notnull_check(reservation.stuffer);
 
