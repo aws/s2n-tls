@@ -41,14 +41,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(conn->config, cert_chain, private_key));
 
-        uint16_t expected_count = S2N_CIPHER_SUITE_COUNT;
-        if (s2n_is_in_fips_mode()) {
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all_fips"));
-            expected_count = S2N_FIPS_CIPHER_SUITE_COUNT;
-        } else {
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all"));
-        }
-
         count = 0;
         for (int i = 0; i < 0xffff; i++) {
             wire[0] = (i >> 8);
@@ -59,7 +51,7 @@ int main(int argc, char **argv)
             }
         }
 
-        EXPECT_EQUAL(count, expected_count);
+        EXPECT_EQUAL(count, S2N_CIPHER_SUITE_COUNT);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         free(private_key);
@@ -593,50 +585,6 @@ int main(int argc, char **argv)
             conn->client_protocol_version = S2N_TLS13;
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, invalid_cipher_pref, invalid_cipher_count), S2N_ERR_CIPHER_NOT_SUPPORTED);
-            EXPECT_SUCCESS(s2n_connection_wipe(conn));
-            EXPECT_SUCCESS(s2n_disable_tls13());
-        }
-
-        /* Test that the client allows the server to select ciphers that were offered in ClientHello */
-        {
-            EXPECT_SUCCESS(s2n_enable_tls13());
-            conn->client_protocol_version = S2N_TLS13;
-            conn->actual_protocol_version = S2N_TLS13;
-            conn->server_protocol_version = S2N_TLS13;
-
-            /* The client will offer the default tls13 ciphersuites */
-            s2n_connection_set_cipher_preferences(conn, "default_tls13");
-
-            /* The server will send a TLS13 cipher over the wire */
-            uint8_t valid_wire_ciphers[] = {
-                TLS_AES_128_GCM_SHA256
-            };
-
-            /* We expect to succeed because the cipher was offered by the client */
-            EXPECT_SUCCESS(s2n_set_cipher_as_client(conn, valid_wire_ciphers));
-
-            EXPECT_SUCCESS(s2n_connection_wipe(conn));
-            EXPECT_SUCCESS(s2n_disable_tls13());
-        }
-
-        /* Test that the client rejects a cipher that was not originally offered in ClientHello */
-        {
-            EXPECT_SUCCESS(s2n_enable_tls13());
-            conn->client_protocol_version = S2N_TLS13;
-            conn->actual_protocol_version = S2N_TLS13;
-            conn->server_protocol_version = S2N_TLS13;
-
-            /* The client will offer the default tls13 ciphersuites */
-            s2n_connection_set_cipher_preferences(conn, "default_tls13");
-
-            /* The server will send a TLS12 cipher over the wire */
-            uint8_t invalid_wire_ciphers[] = {
-                TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-            };
-
-            /* We expect to fail because the cipher was not offered by the client */
-            EXPECT_SUCCESS(s2n_set_cipher_as_client(conn, invalid_wire_ciphers));
-
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_disable_tls13());
         }
