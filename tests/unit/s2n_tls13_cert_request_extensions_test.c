@@ -43,7 +43,7 @@ int main(int argc, char **argv)
         /* write total extension length */
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&client_conn->handshake.io, 0));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_req_recv(client_conn), S2N_ERR_BAD_MESSAGE);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_req_recv(client_conn), S2N_ERR_MISSING_EXTENSION);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
@@ -96,6 +96,20 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
+    /* Test correct extension (sig_alg) */
+    {
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        conn->actual_protocol_version = S2N_TLS13;
+
+        EXPECT_EQUAL(conn->handshake_params.server_sig_hash_algs.len, 0);
+        EXPECT_SUCCESS(s2n_tls13_cert_req_send(conn));
+        EXPECT_SUCCESS(s2n_tls13_cert_req_recv(conn));
+        EXPECT_NOT_EQUAL(conn->handshake_params.server_sig_hash_algs.len, 0);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
     /* Test correct extension (sig alg) with wrong length */
     {
         struct s2n_connection *client_conn;
@@ -142,7 +156,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_extensions_server_signature_algorithms_send(client_conn, &client_conn->handshake.io));
         EXPECT_SUCCESS(s2n_extensions_server_signature_algorithms_send(client_conn, &client_conn->handshake.io));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_req_recv(client_conn), S2N_ERR_BAD_MESSAGE);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_req_recv(client_conn), S2N_ERR_DUPLICATE_EXTENSION);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }

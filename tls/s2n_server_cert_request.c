@@ -17,7 +17,7 @@
 
 #include "crypto/s2n_certificate.h"
 #include "error/s2n_errno.h"
-#include "extensions/s2n_server_certificate_request_extensions.h"
+#include "extensions/s2n_extension_list.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_config.h"
@@ -104,24 +104,15 @@ int s2n_tls13_cert_req_recv(struct s2n_connection *conn)
 
     /* read request context length */
     uint8_t request_context_length;
-    uint16_t extensions_length;
     GUARD(s2n_stuffer_read_uint8(in, &request_context_length));
     /* RFC 8446: This field SHALL be zero length unless used for the post-handshake authentication */
     S2N_ERROR_IF(request_context_length != 0, S2N_ERR_BAD_MESSAGE);
-    GUARD(s2n_stuffer_read_uint16(in, &extensions_length));
-    S2N_ERROR_IF(s2n_stuffer_data_available(in) < extensions_length, S2N_ERR_BAD_MESSAGE);
 
-    /* read and parse extensions */
-    struct s2n_blob extensions = {0};
-    extensions.size = extensions_length;
-    extensions.data = s2n_stuffer_raw_read(in, extensions.size);
-    notnull_check(extensions.data);
-
-    GUARD(s2n_server_certificate_request_extensions_recv(conn, &extensions));
+    GUARD(s2n_extension_list_recv(S2N_EXTENSION_LIST_CERT_REQ, conn, in));
 
     GUARD(s2n_set_cert_chain_as_client(conn));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_cert_req_recv(struct s2n_connection *conn)
@@ -159,12 +150,10 @@ int s2n_tls13_cert_req_send(struct s2n_connection *conn)
 
     /* Write 0 length request context https://tools.ietf.org/html/rfc8446#section-4.3.2 */
     GUARD(s2n_stuffer_write_uint8(out, 0));
-    /* write total extension length */
-    GUARD(s2n_stuffer_write_uint16(out, s2n_server_certificate_request_extensions_size(conn)));
-    /* write extensions */
-    GUARD(s2n_server_certificate_request_extensions_send(conn, out));
 
-    return 0;
+    GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_CERT_REQ, conn, out));
+
+    return S2N_SUCCESS;
 }
 
 int s2n_cert_req_send(struct s2n_connection *conn)
