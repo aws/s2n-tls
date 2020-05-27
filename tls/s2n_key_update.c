@@ -82,7 +82,7 @@ int s2n_key_update_write(struct s2n_connection *conn, struct s2n_blob *out)
 int s2n_check_key_limits(struct s2n_connection *conn, ssize_t size) 
 {
     notnull_check(conn);
-    if (conn->secure.cipher_suite->record_alg->encryption_limit) {
+    if (conn->secure.cipher_suite->record_alg->encryption_limit > 0) {
         if (conn->encrypted_bytes_out + size >= conn->secure.cipher_suite->record_alg->encryption_limit) {
             conn->key_update_pending = 1;
         }
