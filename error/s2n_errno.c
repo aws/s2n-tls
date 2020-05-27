@@ -222,6 +222,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_DUPLICATE_EXTENSION, "Extension block contains two or more extensions of the same type") \
     ERR_ENTRY(S2N_ERR_INVALID_SECURITY_POLICY, "Invalid security policy") \
     ERR_ENTRY(S2N_ERR_INVALID_KEM_PREFERENCES, "Invalid kem preferences version") \
+    ERR_ENTRY(S2N_ERR_INVALID_PARSED_EXTENSIONS, "Invalid parsed extension data") \
 
 /* clang-format on */
 #define ERR_STR_CASE(ERR, str) case ERR: return str;

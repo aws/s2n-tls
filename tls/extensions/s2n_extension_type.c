@@ -151,6 +151,26 @@ int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_conn
     return S2N_SUCCESS;
 }
 
+int s2n_extension_is_missing(const s2n_extension_type *extension_type, struct s2n_connection *conn)
+{
+    notnull_check(extension_type);
+    notnull_check(extension_type->if_missing);
+    notnull_check(conn);
+
+    s2n_extension_type_id extension_id;
+    GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
+
+    /* Do not consider an extension missing if we did not send a request */
+    if(extension_type->is_response &&
+            !S2N_CBIT_TEST(conn->extension_requests_sent, extension_id)) {
+        return S2N_SUCCESS;
+    }
+
+    GUARD(extension_type->if_missing(conn));
+
+    return S2N_SUCCESS;
+}
+
 int s2n_extension_send_unimplemented(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
