@@ -620,15 +620,15 @@ int main(int argc, char **argv)
             conn->server_protocol_version = S2N_TLS13;
 
             /* The client will offer the default tls13 ciphersuites */
-            s2n_connection_set_cipher_preferences(conn, "default_tls13");
+            s2n_connection_set_cipher_preferences(conn, "test_all_tls13");
 
             /* The server will send a TLS12 cipher over the wire */
             uint8_t invalid_wire_ciphers[] = {
-                TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+                TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
             };
 
             /* We expect to fail because the cipher was not offered by the client */
-            EXPECT_SUCCESS(s2n_set_cipher_as_client(conn, invalid_wire_ciphers));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_client(conn, invalid_wire_ciphers), S2N_ERR_CIPHER_NOT_SUPPORTED);
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_disable_tls13());
