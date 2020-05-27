@@ -47,20 +47,23 @@ int s2n_key_update_recv(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-int s2n_key_update_send(struct s2n_connection *conn) 
+int s2n_key_update_send(struct s2n_connection *conn, ssize_t size) 
 {
     notnull_check(conn);
-    uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE];
-    struct s2n_blob key_update_blob = {0};
-    GUARD(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
-    /* Write key update message */
-    GUARD(s2n_key_update_write(conn, &key_update_blob));
-    /* Encrypt the message */
-    GUARD(s2n_record_write(conn, TLS_HANDSHAKE,  &key_update_blob));
-    /* Update encryption key */
-    GUARD(s2n_update_application_traffic_keys(conn, conn->mode, SENDING));
-    conn->key_update_pending = 0;
-    conn->encrypted_bytes_out = 0;
+    GUARD(s2n_check_key_limits(conn, size));
+    if (conn->key_update_pending) {
+        uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE];
+        struct s2n_blob key_update_blob = {0};
+        GUARD(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
+        /* Write key update message */
+        GUARD(s2n_key_update_write(conn, &key_update_blob));
+        /* Encrypt the message */
+        GUARD(s2n_record_write(conn, TLS_HANDSHAKE,  &key_update_blob));
+        /* Update encryption key */
+        GUARD(s2n_update_application_traffic_keys(conn, conn->mode, SENDING));
+        conn->key_update_pending = 0;
+        conn->encrypted_bytes_out = 0;
+    }
     return S2N_SUCCESS;
 }
 
@@ -79,8 +82,10 @@ int s2n_key_update_write(struct s2n_connection *conn, struct s2n_blob *out)
 int s2n_check_key_limits(struct s2n_connection *conn, ssize_t size) 
 {
     notnull_check(conn);
-    if (conn->encrypted_bytes_out + size >= S2N_TLS13_MAXIMUM_BYTES_TO_ENCRYPT) {
-        conn->key_update_pending = 1;
+    if (conn->secure.cipher_suite->record_alg->encryption_limit) {
+        if (conn->encrypted_bytes_out + size >= conn->secure.cipher_suite->record_alg->encryption_limit) {
+            conn->key_update_pending = 1;
+        }
     }
     return S2N_SUCCESS;
 }

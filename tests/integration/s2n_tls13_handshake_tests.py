@@ -28,6 +28,7 @@ from common.s2n_test_openssl import run_openssl_connection_test
 from common.s2n_test_scenario import get_scenarios, Mode, Cipher, Version, Curve
 from common.s2n_test_reporting import Result, Status
 import common.s2n_test_common as util
+import time
 
 def verify_hrr_random_data(server, client):
     """
@@ -59,38 +60,45 @@ def verify_hrr_random_data(server, client):
 
     return result
 
+def send_and_receive(client, server, key_update_request):
+    openssl_msg = "Message:" + str(uuid.uuid4())
+    s2n_msg = "Message:" + str(uuid.uuid4())
+    # Trigger Openssl to send a KeyUpdate message
+    client.stdin.write((key_update_request + "\n\n").encode("utf-8"))
+    client.stdin.flush()
+    # Confirm that the KeyUpdate was sent
+    time.sleep(0.01)
+    if not wait_for_output(client.stderr, 'KEYUPDATE', 100):
+        return False
+    client.stdin.write((openssl_msg + "\n\n").encode("utf-8"))
+    client.stdin.flush()    
+    # Confirm that s2n can decrypt msg
+    if not (wait_for_output(server.stdout, openssl_msg, 100)):
+        return False  
+    # Write a message from s2n
+    server.stdin.write((s2n_msg + "\n\n").encode("utf-8"))
+    server.stdin.flush()        
+    # Confirm that openssl can decrypt msg
+    if not (wait_for_output(client.stdout, s2n_msg, 100)):
+        return False
+    
+    return True
+
 def key_update_test(server, client):
     '''
-    This test proves that both server and client traffic keys can be successfully updated 
-    in a conversation between Openssl and s2n. It runs three times to confirm that multiple
-    keyupdates can be performed in a row. 
+    This test proves that both a s2n server and an Openssl client can continue to encrypt and decrypt 
+    messages after a key update. It tests both update_not_requested
+    and update_requested functionality described in RFC:
+    https://tools.ietf.org/html/rfc8446#section-4.6.3 
     '''
     result = Result()
     result.status = Status.PASSED
-    for i in range(3):
-        openssl_msg = "Message:" + str(uuid.uuid4())
-        s2n_msg = "Message:" + str(uuid.uuid4())
-        # 'K' triggers Openssl to send a KeyUpdate message
-        client.stdin.write(("K\n\n").encode("utf-8"))
-        client.stdin.flush()
-        # Confirm that the keyupdate was sent
-        line = ''
-        while('KEYUPDATE' not in line):
-            line = client.stderr.readline().decode("utf-8")
-        client.stdin.write((openssl_msg + "\n\n").encode("utf-8"))
-        client.stdin.flush()    
-        # Confirm that s2n can decrypt msg with an updated key
-        if not (wait_for_output(server, openssl_msg, 100)):
-            result.status = Status.FAILED
-            return result  
-        # Write a mesage to trigger s2n to send a KeyUpdate back to openssl
-        server.stdin.write((s2n_msg + "\n\n").encode("utf-8"))
-        server.stdin.flush()        
-        # Confirm that openssl can decrypt msg with an updated key
-        if not (wait_for_output(client, s2n_msg, 100)):
-            result.status = Status.FAILED
-            return result
-        
+    if not send_and_receive(client, server, 'K'):
+        result.status = Status.FAILED
+        return result
+    if not send_and_receive(client, server, 'k'):
+        result.status = Status.FAILED
+        return result
     return result
 
 def main():

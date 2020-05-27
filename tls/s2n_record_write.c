@@ -15,7 +15,6 @@
 
 #include <stdint.h>
 #include <sys/param.h>
-#include <math.h>
 
 #include "error/s2n_errno.h"
 
@@ -23,7 +22,6 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_crypto.h"
-#include "tls/s2n_key_update.h"
 
 #include "stuffer/s2n_stuffer.h"
 

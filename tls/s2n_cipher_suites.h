@@ -60,6 +60,7 @@ struct s2n_record_algorithm {
     const struct s2n_cipher *cipher;
     s2n_hmac_algorithm hmac_alg;
     uint32_t flags;
+    uint64_t encryption_limit;
 };
 
 /* Verbose names to avoid confusion with s2n_cipher. Exposed for unit tests */

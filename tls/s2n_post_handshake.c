@@ -17,7 +17,7 @@
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_key_update.h"
-
+#include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
 /* TLS 1.3 introducted several post handshake messages. This function currently only 
@@ -46,17 +46,11 @@ int s2n_post_handshake_recv(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-int s2n_post_handshake_send(struct s2n_connection *conn, int post_handshake_id)
+int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blocked, ssize_t size)
 {
     notnull_check(conn);
-    switch (post_handshake_id) 
-    {
-        case TLS_KEY_UPDATE:
-        GUARD(s2n_key_update_send(conn));
-        break;
-        default:
-        /* Ignore all other messages */
-        break;
-    }
+    GUARD(s2n_key_update_send(conn, size));
+    GUARD(s2n_flush(conn, blocked));
+    GUARD(s2n_stuffer_rewrite(&conn->out));
     return S2N_SUCCESS;
 }

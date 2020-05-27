@@ -35,9 +35,9 @@ def get_error(process, line_limit=10):
     return error
 
 
-def wait_for_output(process, marker, line_limit=10):
+def wait_for_output(output, marker, line_limit=10):
     for count in range(line_limit):
-        line = process.stdout.readline().decode("utf-8")
+        line = output.readline().decode("utf-8")
         if marker in line:
             return True
     return False
@@ -58,14 +58,14 @@ def basic_write_test(server, client):
     server.stdin.write((server_msg + "\n\n").encode("utf-8"))
     server.stdin.flush()
 
-    if not wait_for_output(client, server_msg, line_limit=200):
+    if not wait_for_output(client.stdout, server_msg, line_limit=200):
         return Result("Failed to write '%s' from server to client" % (server_msg))
 
     client_msg = "Message:" + str(uuid.uuid4())
     client.stdin.write((client_msg + "\n\n").encode("utf-8"))
     client.stdin.flush()
 
-    if not wait_for_output(server, client_msg, line_limit=200):
+    if not wait_for_output(server.stdout, client_msg, line_limit=200):
         return Result("Failed to write %s from client to server" % (client_msg))
 
     return Result()
@@ -164,7 +164,7 @@ def get_s2n(scenario):
     s2n_cmd = get_s2n_cmd(scenario)
     s2n = get_process(s2n_cmd)
 
-    if not wait_for_output(s2n, S2N_SIGNALS[scenario.s2n_mode]):
+    if not wait_for_output(s2n.stdout, S2N_SIGNALS[scenario.s2n_mode]):
         raise AssertionError("s2n %s: %s" % (scenario.s2n_mode, get_error(s2n)))
 
     return s2n

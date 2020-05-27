@@ -66,12 +66,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
     }
 
-    /* This test checks that a key update is triggered once a specific number of bytes have been encrypted by
+    /* This test checks that a key update is triggered once the maximum number of bytes have been encrypted by
      * an application key.
      */
     {
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS13;
+        server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
         EXPECT_EQUAL(server_conn->key_update_pending, 0);
         uint8_t data_size = 1;
         server_conn->encrypted_bytes_out = S2N_TLS13_MAXIMUM_BYTES_TO_ENCRYPT;
@@ -79,6 +81,22 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->key_update_pending, 1);
         EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
     }
+
+    /* This test checks that a key update is triggered if more than the maximum number of bytes have been encrypted.
+     */
+    {
+        struct s2n_connection *server_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS13;
+        server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        EXPECT_EQUAL(server_conn->key_update_pending, 0);
+        uint8_t data_size = 1;
+        server_conn->encrypted_bytes_out = S2N_TLS13_MAXIMUM_BYTES_TO_ENCRYPT + 1;
+        EXPECT_SUCCESS(s2n_check_key_limits(server_conn, data_size));
+        EXPECT_EQUAL(server_conn->key_update_pending, 1);
+        EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
+    }
+
 
     END_TEST();
 }
