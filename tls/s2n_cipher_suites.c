@@ -1054,9 +1054,33 @@ struct s2n_cipher_suite *s2n_cipher_suite_from_wire(const uint8_t cipher_suite[S
 
 int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN])
 {
+    notnull_check(conn);
+
     /* See if the cipher is one we support */
     conn->secure.cipher_suite = s2n_cipher_suite_from_wire(wire);
     S2N_ERROR_IF(conn->secure.cipher_suite == NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
+
+    /* Verify the cipher was part of the originally offered list */
+    const struct s2n_cipher_preferences *cipher_prefs;
+    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_prefs));
+
+    uint8_t found = 0;
+
+    for (int i = 0; i < cipher_prefs->count; i++ ) {
+        /* The client sends all "available" ciphers in the preference list to the server.
+           The server must pick one of the ciphers offered by the client. */
+        if (cipher_prefs->suites[i]->available) {
+            const uint8_t *server_iana_value = conn->secure.cipher_suite->iana_value;
+            const uint8_t *client_iana_value = cipher_prefs->suites[i]->iana_value;
+
+            if (memcmp(server_iana_value, client_iana_value, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
+                found = 1;
+                break;
+            }
+        }
+    }
+
+    S2N_ERROR_IF(found != 1, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
     /* For SSLv3 use SSLv3-specific ciphers */
     if (conn->actual_protocol_version == S2N_SSLv3) {

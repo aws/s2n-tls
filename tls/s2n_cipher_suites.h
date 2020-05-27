@@ -37,7 +37,8 @@
 #define S2N_PQ_CIPHER_SUITE_COUNT       0
 #endif
 
-#define S2N_CIPHER_SUITE_COUNT          (36 + S2N_PQ_CIPHER_SUITE_COUNT) /* Kept up-to-date by s2n_cipher_suite_match_test */
+/* Kept up-to-date by s2n_cipher_suite_match_test */
+#define S2N_CIPHER_SUITE_COUNT          (36 + S2N_PQ_CIPHER_SUITE_COUNT)
 
 
 /* Record algorithm flags that can be OR'ed */
