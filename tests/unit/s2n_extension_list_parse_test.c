@@ -44,6 +44,7 @@ const s2n_extension_type test_extension = {
         .send = s2n_extension_send_test_data,
         .recv = s2n_extension_recv_unimplemented,
         .should_send = s2n_extension_always_send,
+        .if_missing = s2n_extension_noop_if_missing,
 };
 
 const s2n_parsed_extension empty_parsed_extensions[S2N_PARSED_EXTENSIONS_COUNT] = { 0 };
