@@ -23,7 +23,7 @@
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 
-#include "tls/s2n_tls.h"
+#include "tls/s2n_server_extensions.h"
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -76,7 +76,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     /* Run Test
      * Do not use GUARD macro here since the connection memory hasn't been freed.
      */
-    s2n_server_extensions_recv(client_conn, &(fuzz_stuffer.blob));
+    s2n_server_extensions_recv(client_conn, &fuzz_stuffer);
 
     /* Cleanup */
     GUARD(s2n_connection_free(client_conn));
