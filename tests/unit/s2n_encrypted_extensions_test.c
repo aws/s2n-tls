@@ -38,6 +38,8 @@ int main(int argc, char **argv)
     struct s2n_config *config;
     EXPECT_NOT_NULL(config = s2n_config_new());
 
+    const uint8_t ENCRYPTED_EXTENSIONS_HEADER_SIZE = 2;
+
     /* Server successfully sends empty encrypted extension */
     {
         struct s2n_connection *server_conn;
@@ -53,7 +55,7 @@ int main(int argc, char **argv)
         /* Send success because encrypted extensions requires TLS 1.3 */
         server_conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_encrypted_extensions_send(server_conn));
-        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), 0);
+        EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->handshake.io), ENCRYPTED_EXTENSIONS_HEADER_SIZE);
 
         /* Check that size and data in server_conn->handshake.io are correct */
         struct s2n_stuffer *server_out = &server_conn->handshake.io;
@@ -71,13 +73,12 @@ int main(int argc, char **argv)
 
     /* Test that server sends Encrypted Extensions  */
     {
-        const uint8_t ENCRYPTED_EXTENSIONS_HEADER_SIZE = 2;
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(server_conn));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
         server_conn->actual_protocol_version = S2N_TLS13;
-        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), 0);
+        EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->handshake.io), 0);
 
         struct s2n_stuffer *extension_stuffer = &server_conn->handshake.io;
 
@@ -86,41 +87,42 @@ int main(int argc, char **argv)
         const uint8_t EMPTY_SERVER_NAME_EXT_SIZE = 4;
 
         EXPECT_EQUAL(s2n_server_extensions_server_name_send_size(server_conn), EMPTY_SERVER_NAME_EXT_SIZE);
-        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), EMPTY_SERVER_NAME_EXT_SIZE);
         EXPECT_SUCCESS(s2n_encrypted_extensions_send(server_conn));
         S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(extension_stuffer, EMPTY_SERVER_NAME_EXT_SIZE + ENCRYPTED_EXTENSIONS_HEADER_SIZE);
+
         /* Reset and check */
         server_conn->server_name_used = 0;
-        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), 0);
+        EXPECT_SUCCESS(s2n_encrypted_extensions_send(server_conn));
+        S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(extension_stuffer, ENCRYPTED_EXTENSIONS_HEADER_SIZE);
 
         /* Max Fragment Length Extension (MFL) Extension */
         const uint8_t MFL_EXT_SIZE = 2 + 2 + 1;
         server_conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
         EXPECT_EQUAL(s2n_server_extensions_max_fragment_length_send_size(server_conn), MFL_EXT_SIZE);
-        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), MFL_EXT_SIZE);
         EXPECT_SUCCESS(s2n_encrypted_extensions_send(server_conn));
         S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(extension_stuffer, MFL_EXT_SIZE + ENCRYPTED_EXTENSIONS_HEADER_SIZE);
+
         /* Reset and check */
         server_conn->mfl_code = 0;
-        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), 0);
+        EXPECT_SUCCESS(s2n_encrypted_extensions_send(server_conn));
+        S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(extension_stuffer, ENCRYPTED_EXTENSIONS_HEADER_SIZE);
 
         /* Application Protocol (ALPN) Extension */
         strcpy(server_conn->application_protocol, "h2");
         const uint8_t application_protocol_len = strlen(server_conn->application_protocol);
         const uint8_t ALPN_LEN = 7 + application_protocol_len;
 
-        EXPECT_EQUAL(s2n_server_extensions_alpn_send_size(server_conn), ALPN_LEN);
-        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), ALPN_LEN);
         EXPECT_SUCCESS(s2n_encrypted_extensions_send(server_conn));
         S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(extension_stuffer, ALPN_LEN + ENCRYPTED_EXTENSIONS_HEADER_SIZE);
+
         /* Reset and check */
         strcpy(server_conn->application_protocol, "");
-        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), 0);
+        EXPECT_SUCCESS(s2n_encrypted_extensions_send(server_conn));
+        S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(extension_stuffer, ENCRYPTED_EXTENSIONS_HEADER_SIZE);
 
         /* Test a combination of 2 encrypted extensions sent */
         server_conn->server_name_used = 1;
         server_conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
-        EXPECT_EQUAL(s2n_encrypted_extensions_send_size(server_conn), EMPTY_SERVER_NAME_EXT_SIZE + MFL_EXT_SIZE);
         EXPECT_SUCCESS(s2n_encrypted_extensions_send(server_conn));
         S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(extension_stuffer, EMPTY_SERVER_NAME_EXT_SIZE + MFL_EXT_SIZE + ENCRYPTED_EXTENSIONS_HEADER_SIZE);
 
