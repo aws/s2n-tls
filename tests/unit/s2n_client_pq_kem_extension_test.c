@@ -22,6 +22,8 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+#if !defined(S2N_NO_PQ)
+
     const char *pq_security_policy = "KMS-PQ-TLS-1-0-2020-02";
     const struct s2n_security_policy *security_policy;
     EXPECT_SUCCESS(s2n_find_security_policy_from_version(pq_security_policy, &security_policy));
@@ -109,6 +111,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
+
+#endif
 
     END_TEST();
 }

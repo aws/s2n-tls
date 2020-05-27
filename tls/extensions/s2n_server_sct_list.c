@@ -55,9 +55,10 @@ int s2n_server_sct_list_recv(struct s2n_connection *conn, struct s2n_stuffer *ex
     notnull_check(conn);
 
     struct s2n_blob sct_list;
+    size_t data_available = s2n_stuffer_data_available(extension);
     GUARD(s2n_blob_init(&sct_list,
-            s2n_stuffer_raw_read(extension, s2n_stuffer_data_available(extension)),
-            s2n_stuffer_data_available(extension)));
+            s2n_stuffer_raw_read(extension, data_available),
+            data_available));
     notnull_check(sct_list.data);
 
     GUARD(s2n_dup(&sct_list, &conn->ct_response));

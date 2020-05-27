@@ -43,6 +43,8 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+#if !defined(S2N_NO_PQ)
+
     if (s2n_is_in_fips_mode()) {
         /* There is no support for PQ KEMs while in FIPS mode */
         END_TEST();
@@ -124,6 +126,8 @@ int main(int argc, char **argv)
     if (FindMarker(kat_file, "count = ") == 0) {
         FAIL_MSG("Found unexpected test vectors in the KAT file. Has the KAT file been changed? Did you update NUM_TEST_VECTORS?");
     }
+
+#endif
 
     END_TEST();
 }
