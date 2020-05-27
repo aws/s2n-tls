@@ -349,6 +349,7 @@ extern int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out);
   } while (0)
 
 #define memcpy_check( d , s , n )                   __S2N_ENSURE_SAFE_MEMCPY((d), (s), (n), GUARD_POSIX_NONNULL)
+/* This will fail to build if d is an array. Cast the array to a pointer first! */
 #define memset_check( d , c , n )                   __S2N_ENSURE_SAFE_MEMSET((d), (c), (n), ENSURE_POSIX_NONNULL)
 
 /* END COMPATIBILITY LAYER */

@@ -39,6 +39,7 @@
 
 #define S2N_CIPHER_SUITE_COUNT          (36 + S2N_PQ_CIPHER_SUITE_COUNT) /* Kept up-to-date by s2n_cipher_suite_match_test */
 
+
 /* Record algorithm flags that can be OR'ed */
 #define S2N_TLS12_AES_GCM_AEAD_NONCE     0x01
 #define S2N_TLS12_CHACHA_POLY_AEAD_NONCE 0x02
