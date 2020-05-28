@@ -16,6 +16,7 @@
 
 #include <s2n.h>
 
+#include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
@@ -203,8 +204,8 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
     GUARD(s2n_blob_init(&entry, data, S2N_TICKET_SIZE_IN_BYTES));
     uint64_t size = entry.size;
     int result = conn->config->cache_retrieve(conn, conn->config->cache_retrieve_data, conn->session_id, conn->session_id_len, entry.data, &size);
-    if (S2N_ERROR_IS_BLOCKING(result)) {
-        S2N_ERROR(result);
+    if (result == S2N_CALLBACK_BLOCKED) {
+        S2N_ERROR(S2N_ERR_ASYNC_BLOCKED);
     }
     GUARD(result);
 

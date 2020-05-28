@@ -826,9 +826,8 @@ static int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
             case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
                 conn->closed = 1;
                 break;
-            case S2N_CALLBACK_BLOCKED:
-                /* Fallthrough */
             case S2N_ERR_BLOCKED:
+            case S2N_ERR_ASYNC_BLOCKED:
                 /* A blocking condition is retryable, so we should return without killing the connection. */
                 S2N_ERROR_PRESERVE_ERRNO();
                 break;
@@ -976,9 +975,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
                 case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
                     conn->closed = 1;
                     break;
-                case S2N_CALLBACK_BLOCKED:
-                    /* Fallthrough */
                 case S2N_ERR_BLOCKED:
+                case S2N_ERR_ASYNC_BLOCKED:
                     /* A blocking condition is retryable, so we should return without killing the connection. */
                     S2N_ERROR_PRESERVE_ERRNO();
                     break;
@@ -1091,7 +1089,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
                     }
                 }
 
-                if (s2n_errno == S2N_CALLBACK_BLOCKED) {
+                if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
                     *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
                 }
 
@@ -1108,7 +1106,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
                     s2n_try_delete_session_cache(conn);
                 }
 
-                if (s2n_errno == S2N_CALLBACK_BLOCKED) {
+                if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
                     *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
                 }
 
