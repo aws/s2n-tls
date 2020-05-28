@@ -13,186 +13,60 @@
  * permissions and limitations under the License.
  */
 
-#include <stdint.h>
-#include <string.h>
+#include "tls/s2n_server_extensions.h"
 
-#include "error/s2n_errno.h"
-
-#include "tls/s2n_tls_parameters.h"
-#include "tls/s2n_connection.h"
-#include "tls/s2n_tls.h"
-#include "tls/s2n_tls13.h"
-#include "tls/s2n_kex.h"
-#include "tls/s2n_cipher_suites.h"
-
-#include "tls/extensions/s2n_cookie.h"
-#include "tls/extensions/s2n_ec_point_format.h"
-#include "tls/extensions/s2n_server_renegotiation_info.h"
-#include "tls/extensions/s2n_server_alpn.h"
-#include "tls/extensions/s2n_server_status_request.h"
-#include "tls/extensions/s2n_server_sct_list.h"
-#include "tls/extensions/s2n_server_max_fragment_length.h"
-#include "tls/extensions/s2n_server_session_ticket.h"
-#include "tls/extensions/s2n_server_server_name.h"
+#include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
-#include "tls/extensions/s2n_server_key_share.h"
-
+#include "tls/s2n_connection.h"
 #include "stuffer/s2n_stuffer.h"
-
 #include "utils/s2n_safety.h"
-#include "utils/s2n_blob.h"
 
-/* Guards against errors and non uint16s, then increments size */
-#define GUARD_UINT16_AND_INCREMENT( x, size ) do { \
-    GUARD_UINT16(x); \
-    size += x; \
-} while (0)
 
-#define GUARD_UINT16( x ) do { \
-    GUARD(x); \
-    lte_check(x, 65535); \
-} while (0)
-
-/* compute size server extensions send requires */
-int s2n_server_extensions_send_size(struct s2n_connection *conn)
-{
-    int total_size = 0;
-    const bool is_tls13_conn = conn->actual_protocol_version == S2N_TLS13;
-
-    if (is_tls13_conn) {
-        GUARD_UINT16_AND_INCREMENT(s2n_extensions_server_supported_versions_size(conn), total_size);
-        GUARD_UINT16_AND_INCREMENT(s2n_extensions_server_key_share_send_size(conn), total_size);
-        GUARD_UINT16_AND_INCREMENT(s2n_extensions_cookie_size(conn), total_size);
-        return total_size;
-    }
-
-    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_server_name_send_size(conn), total_size);
-    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_alpn_send_size(conn), total_size);
-    GUARD_UINT16_AND_INCREMENT(s2n_server_renegotiation_info_ext_size(conn), total_size);
-    GUARD_UINT16_AND_INCREMENT(s2n_server_ecc_point_format_extension_size(conn), total_size);
-    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_max_fragment_length_send_size(conn), total_size);
-    GUARD_UINT16_AND_INCREMENT(s2n_server_session_ticket_ext_size(conn), total_size);
-    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_status_request_send_size(conn), total_size);
-    GUARD_UINT16_AND_INCREMENT(s2n_server_extensions_sct_list_send_size(conn), total_size);
-
-    return total_size;
-}
+/* An empty list will just contain the uint16_t list size */
+#define S2N_EMPTY_EXTENSION_LIST_SIZE sizeof(uint16_t)
 
 int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    int total_size = s2n_server_extensions_send_size(conn);
+    uint32_t data_available_before_extensions = s2n_stuffer_data_available(out);
 
-    if (total_size == 0) {
-        return 0;
-    }
-    GUARD_UINT16(total_size);
-
-    GUARD(s2n_stuffer_write_uint16(out, total_size));
-
-    const bool is_tls13_conn = conn->actual_protocol_version == S2N_TLS13;
-
-    /* TLS 1.3 ServerHello extensions */
-    if (is_tls13_conn) {
-        /* Write supported versions extension */
-        GUARD(s2n_extensions_server_supported_versions_send(conn, out));
-        /* Write key share extension */
-        GUARD(s2n_extensions_server_key_share_send(conn, out));
-        /* Write cookie extension */
-        GUARD(s2n_extensions_cookie_send(conn, out));
-
-        return 0;
+    if (conn->actual_protocol_version >= S2N_TLS13) {
+        GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_SERVER_HELLO_TLS13, conn, out));
+    } else {
+        GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_SERVER_HELLO_DEFAULT, conn, out));
     }
 
-    /* TLS 1.2 Extensions */
+    /* The ServerHello extension list size (uint16_t) is NOT written if the list is empty.
+     * This is to support older clients written before extensions existed that might fail
+     * on any unexpected bytes at the end of the ServerHello.
+     *
+     * This behavior is outlined in the TLS1.2 RFC: https://tools.ietf.org/html/rfc5246#appendix-A.4.1
+     *
+     * This behavior does not affect TLS1.3, which always requires at least the supported_version extension
+     * so will never produce an empty list.
+     */
+    if(s2n_stuffer_data_available(out) - data_available_before_extensions == S2N_EMPTY_EXTENSION_LIST_SIZE) {
+        GUARD(s2n_stuffer_wipe_n(out, S2N_EMPTY_EXTENSION_LIST_SIZE));
+    }
 
-    /* Write server name extension */
-    GUARD(s2n_server_extensions_server_name_send(conn, out));
-
-    /* Write kex extension */
-    GUARD(s2n_extension_send(&s2n_server_ec_point_format_extension, conn, out));
-    
-    /* Write the renegotiation_info extension */
-    GUARD(s2n_send_server_renegotiation_info_ext(conn, out));
-
-    /* Write ALPN extension */
-    GUARD(s2n_server_extensions_alpn_send(conn, out));
-
-    /* Write OCSP extension */
-    GUARD(s2n_server_extensions_status_request_send(conn, out));
-
-    /* Write Signed Certificate Timestamp extension */
-    GUARD(s2n_server_extensions_sct_list_send(conn, out));
-
-    /* Write max fragment length extension */
-    GUARD(s2n_server_extensions_max_fragment_length_send(conn, out));
-
-    /* Write session ticket extension */
-    GUARD(s2n_send_server_session_ticket_ext(conn, out));
-
-    return 0;
+    return S2N_SUCCESS;
 }
 
-int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_blob *extensions)
+int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
 {
-    struct s2n_stuffer in = {0};
+    s2n_parsed_extensions_list parsed_extension_list = { 0 };
+    GUARD(s2n_extension_list_parse(in, &parsed_extension_list));
 
-    GUARD(s2n_stuffer_init(&in, extensions));
-    GUARD(s2n_stuffer_write(&in, extensions));
+    /* Process supported_versions first so that we know which extensions list to use.
+     * - If the supported_versions extension exists, then it will set server_protocol_version.
+     * - If the supported_versions extension does not exist, then the server_protocol_version will remain
+     *   unknown and we will use the default list of allowed extension types. */
+    GUARD(s2n_extension_process(&s2n_server_supported_versions_extension, conn, &parsed_extension_list));
 
-    while (s2n_stuffer_data_available(&in)) {
-        struct s2n_blob ext = {0};
-        uint16_t extension_type, extension_size;
-        struct s2n_stuffer extension = {0};
-
-        GUARD(s2n_stuffer_read_uint16(&in, &extension_type));
-        GUARD(s2n_stuffer_read_uint16(&in, &extension_size));
-
-        ext.size = extension_size;
-        ext.data = s2n_stuffer_raw_read(&in, ext.size);
-        notnull_check(ext.data);
-
-        GUARD(s2n_stuffer_init(&extension, &ext));
-        GUARD(s2n_stuffer_write(&extension, &ext));
-
-        switch (extension_type) {
-        case TLS_EXTENSION_SERVER_NAME:
-            GUARD(s2n_recv_server_server_name(conn, &extension));
-            break;
-        case TLS_EXTENSION_RENEGOTIATION_INFO:
-            GUARD(s2n_recv_server_renegotiation_info_ext(conn, &extension));
-            break;
-        case TLS_EXTENSION_ALPN:
-            GUARD(s2n_recv_server_alpn(conn, &extension));
-            break;
-        case TLS_EXTENSION_STATUS_REQUEST:
-            GUARD(s2n_recv_server_status_request(conn, &extension));
-            break;
-        case TLS_EXTENSION_SCT_LIST:
-            GUARD(s2n_recv_server_sct_list(conn, &extension));
-            break;
-        case TLS_EXTENSION_MAX_FRAG_LEN:
-            GUARD(s2n_recv_server_max_fragment_length(conn, &extension));
-            break;
-        case TLS_EXTENSION_SESSION_TICKET:
-            GUARD(s2n_recv_server_session_ticket_ext(conn, &extension));
-            break;
-        case TLS_EXTENSION_SUPPORTED_VERSIONS:
-            if (s2n_is_tls13_enabled()) {
-                GUARD(s2n_extensions_server_supported_versions_recv(conn, &extension));
-            }
-            break;
-        case TLS_EXTENSION_KEY_SHARE:
-            if (s2n_is_tls13_enabled()) {
-                GUARD(s2n_extensions_server_key_share_recv(conn, &extension));
-            }
-            break;
-        case TLS_EXTENSION_COOKIE:
-            if (s2n_is_tls13_enabled()) {
-                GUARD(s2n_extensions_cookie_recv(conn, &extension));
-            }
-            break;
-        }
+    if (conn->server_protocol_version >= S2N_TLS13) {
+        GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_SERVER_HELLO_TLS13, conn, &parsed_extension_list));
+    } else {
+        GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_SERVER_HELLO_DEFAULT, conn, &parsed_extension_list));
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
