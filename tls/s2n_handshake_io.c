@@ -1003,20 +1003,29 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
 
 static int s2n_handle_retry_state(struct s2n_connection *conn)
 {
-    /* If we were blocked reading a record, then the handler is waiting on external data.
-     * The handler will know how to continue, so we should call the handler right away.
-     * We aren't going to read more handshake data yet because the current message has
-     * not finished processing. */
+    /* If we were blocked reading or writing a record, then the handler is waiting on
+     * external data. The handler will know how to continue, so we should call the
+     * handler right away. We aren't going to read more handshake data yet or proceed
+     * to the next handler because the current message has not finished processing. */
     s2n_errno = S2N_ERR_OK;
     const int r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
 
-    if (r < 0) {
+    if (r < 0 && S2N_ERROR_IS_BLOCKING(s2n_errno)) {
         /* If the handler is still waiting for data, return control to the caller. */
-        if (S2N_ERROR_IS_BLOCKING(s2n_errno)) {
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
+        S2N_ERROR_PRESERVE_ERRNO();
+    }
 
-        /* Otherwise there is some other problem and we should kill the connection. */
+    char this = conn->mode == S2N_CLIENT ? 'C' : 'S';
+
+    if (ACTIVE_STATE(conn).writer != this) {
+        /* We're done parsing the record, reset everything */
+        GUARD(s2n_stuffer_wipe(&conn->header_in));
+        GUARD(s2n_stuffer_wipe(&conn->in));
+        conn->in_status = ENCRYPTED;
+    }
+
+    if (r < 0) {
+        /* There is some other problem and we should kill the connection. */
         if (conn->session_id_len) {
             s2n_try_delete_session_cache(conn);
         }
@@ -1025,13 +1034,17 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
-    /* The handler completed successfully, we are done with this record. */
-    /* Advance the state machine and wipe the record. */
-    GUARD(s2n_advance_message(conn));
-
-    GUARD(s2n_stuffer_wipe(&conn->header_in));
-    GUARD(s2n_stuffer_wipe(&conn->in));
-    conn->in_status = ENCRYPTED;
+    if (ACTIVE_STATE(conn).writer == this) {
+        /* If we're the writer and handler just finished, update the record header if
+         * needed and let the s2n_handshake_write_io write the data to the socket */
+        if (EXPECTED_RECORD_TYPE(conn) == TLS_HANDSHAKE) {
+            GUARD(s2n_handshake_finish_header(&conn->handshake.io));
+        }
+    } else {
+        /* The handler completed successfully, we are done with this record. */
+        /* Advance the state machine and wipe the record. */
+        GUARD(s2n_advance_message(conn));
+    }
 
     return 0;
 }
@@ -1060,22 +1073,31 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
 
         if (ACTIVE_STATE(conn).writer == this) {
             *blocked = S2N_BLOCKED_ON_WRITE;
-            if (s2n_handshake_write_io(conn) < 0 && s2n_errno != S2N_ERR_BLOCKED) {
-                /* Non-retryable write error. The peer might have sent an alert. Try and read it. */
-                const int write_errno = errno;
-                const int write_s2n_errno = s2n_errno;
-                const char *write_s2n_debug_str = s2n_debug_str;
+            int r = s2n_handshake_write_io(conn);
+            if (r < 0) {
+                if (!S2N_ERROR_IS_BLOCKING(s2n_errno)) {
+                    /* Non-retryable write error. The peer might have sent an alert. Try and read it. */
+                    const int write_errno = errno;
+                    const int write_s2n_errno = s2n_errno;
+                    const char *write_s2n_debug_str = s2n_debug_str;
 
-                if (s2n_handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
-                    /* s2n_handshake_read_io has set s2n_errno */
-                    S2N_ERROR_PRESERVE_ERRNO();
-                } else {
-                    /* Let the write error take precedence if we didn't read an alert. */
-                    errno = write_errno;
-                    s2n_errno = write_s2n_errno;
-                    s2n_debug_str = write_s2n_debug_str;
-                    S2N_ERROR_PRESERVE_ERRNO();
+                    if (s2n_handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
+                        /* s2n_handshake_read_io has set s2n_errno */
+                        S2N_ERROR_PRESERVE_ERRNO();
+                    } else {
+                        /* Let the write error take precedence if we didn't read an alert. */
+                        errno = write_errno;
+                        s2n_errno = write_s2n_errno;
+                        s2n_debug_str = write_s2n_debug_str;
+                        S2N_ERROR_PRESERVE_ERRNO();
+                    }
                 }
+
+                if (s2n_errno == S2N_CALLBACK_BLOCKED) {
+                    *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
+                }
+
+                S2N_ERROR_PRESERVE_ERRNO();
             }
         } else {
             *blocked = S2N_BLOCKED_ON_READ;

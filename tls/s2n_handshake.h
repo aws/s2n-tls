@@ -141,7 +141,7 @@ struct s2n_handshake {
     /* Indicates the CLIENT_HELLO message has been completely received */
     unsigned client_hello_received:1;
 
-    /* Indicates the handshake blocked while trying to read data, and has been paused */
+    /* Indicates the handshake blocked while trying to read or write data, and has been paused */
     unsigned paused:1;
 
     /* Handshake type is a bitset, with the following
