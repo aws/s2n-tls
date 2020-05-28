@@ -20,7 +20,6 @@
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_client_extensions.h"
 #include "tls/s2n_tls.h"
 
 #include "stuffer/s2n_stuffer.h"
@@ -153,21 +152,13 @@ int main()
             GUARD(s2n_stuffer_write_uint16(&supported_groups_extension, unsupported_curves[i].iana_id));
         }
 
-        /* Create a properly parsed client hello extension using the stuffer's blob */
-        struct s2n_array *parsed_extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension));
-        struct s2n_client_hello_parsed_extension *parsed_named_group_extension = NULL;
-        EXPECT_OK(s2n_array_pushback(parsed_extensions, (void **)&parsed_named_group_extension));
-        parsed_named_group_extension->extension_type = TLS_EXTENSION_SUPPORTED_GROUPS;
-        parsed_named_group_extension->extension = supported_groups_extension.blob;
-
         /* Force a bad value for the negotiated curve so we know extension was parsed and the curve was set to NULL */
         struct s2n_ecc_named_curve invalid_curve = { 0 };
         conn->secure.server_ecc_evp_params.negotiated_curve = &invalid_curve;
-        EXPECT_SUCCESS(s2n_client_extensions_recv(conn, parsed_extensions));
+        EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(conn, &supported_groups_extension));
         EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&supported_groups_extension));
-        EXPECT_OK(s2n_array_free(parsed_extensions));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 

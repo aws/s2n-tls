@@ -21,7 +21,6 @@
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/extensions/s2n_client_signature_algorithms.h"
-#include "tls/s2n_client_extensions.h"
 #include "tls/s2n_tls.h"
 
 #include "stuffer/s2n_stuffer.h"
@@ -74,8 +73,8 @@ int main(int argc, char **argv)
         s2n_connection_free(server_conn);
     }
 
+    /* Test that unknown TLS_EXTENSION_SIGNATURE_ALGORITHMS values are ignored and negotiation fails */
     {
-        /* Test that unknown TLS_EXTENSION_SIGNATURE_ALGORITHMS values are ignored and negotiation fails */
         struct s2n_sig_scheme_list sig_hash_algs = {
             .iana_list = { 0xFF01, 0xFFFF },
             .len = 2,
@@ -90,26 +89,19 @@ int main(int argc, char **argv)
             GUARD(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.iana_list[i]));
         }
 
-        struct s2n_array *parsed_extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension));
-        struct s2n_client_hello_parsed_extension *parsed_named_group_extension = NULL;
-        EXPECT_OK(s2n_array_pushback(parsed_extensions, (void **)&parsed_named_group_extension));
-        parsed_named_group_extension->extension_type = TLS_EXTENSION_SIGNATURE_ALGORITHMS;
-        parsed_named_group_extension->extension = signature_algorithms_extension.blob;
-
         /* If only unknown algorithms are offered, expect choosing a scheme to fail for TLS1.3 */
         conn->actual_protocol_version = S2N_TLS13;
-        EXPECT_SUCCESS(s2n_client_extensions_recv(conn, parsed_extensions));
+        EXPECT_SUCCESS(s2n_client_signature_algorithms_extension.recv(conn, &signature_algorithms_extension));
         EXPECT_EQUAL(conn->handshake_params.client_sig_hash_algs.len, sig_hash_algs.len);
         EXPECT_FAILURE(s2n_choose_sig_scheme_from_peer_preference_list(conn, &conn->handshake_params.client_sig_hash_algs,
                                 &conn->secure.conn_sig_scheme));
 
         EXPECT_SUCCESS(s2n_stuffer_free(&signature_algorithms_extension));
-        EXPECT_OK(s2n_array_free(parsed_extensions));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
+    /* Test that a valid algorithm is chosen when it is offered among unknown algorithms */
     {
-        /* Test that a valid algorithm is chosen when it is offered among unknown algorithms */
         struct s2n_sig_scheme_list sig_hash_algs = {
             .iana_list = { 0xFF01, 0xFFFF, TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA384 },
             .len = 3,
@@ -125,21 +117,14 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.iana_list[i]));
         }
 
-        struct s2n_array *parsed_extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension));
-        struct s2n_client_hello_parsed_extension *parsed_named_group_extension = NULL;
-        EXPECT_OK(s2n_array_pushback(parsed_extensions, (void **)&parsed_named_group_extension));
-        parsed_named_group_extension->extension_type = TLS_EXTENSION_SIGNATURE_ALGORITHMS;
-        parsed_named_group_extension->extension = signature_algorithms_extension.blob;
-
         /* If a valid algorithm is offered among unknown algorithms, the valid one should be chosen */
-        EXPECT_SUCCESS(s2n_client_extensions_recv(conn, parsed_extensions));
+        EXPECT_SUCCESS(s2n_client_signature_algorithms_extension.recv(conn, &signature_algorithms_extension));
         EXPECT_EQUAL(conn->handshake_params.client_sig_hash_algs.len, sig_hash_algs.len);
         EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &conn->handshake_params.client_sig_hash_algs,
                                 &conn->secure.conn_sig_scheme));
         EXPECT_EQUAL(conn->secure.conn_sig_scheme.iana_value, TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA384);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&signature_algorithms_extension));
-        EXPECT_OK(s2n_array_free(parsed_extensions));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
