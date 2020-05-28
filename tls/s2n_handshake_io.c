@@ -1015,7 +1015,7 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
-    char this = conn->mode == S2N_CLIENT ? 'C' : 'S';
+    const char this = conn->mode == S2N_CLIENT ? 'C' : 'S';
 
     if (ACTIVE_STATE(conn).writer != this) {
         /* We're done parsing the record, reset everything */
@@ -1041,8 +1041,8 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
             GUARD(s2n_handshake_finish_header(&conn->handshake.io));
         }
     } else {
-        /* The handler completed successfully, we are done with this record. */
-        /* Advance the state machine and wipe the record. */
+        /* The read handler processed the record successfully, we are done with this
+         * record. Advance the state machine. */
         GUARD(s2n_advance_message(conn));
     }
 
@@ -1073,7 +1073,8 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
 
         if (ACTIVE_STATE(conn).writer == this) {
             *blocked = S2N_BLOCKED_ON_WRITE;
-            int r = s2n_handshake_write_io(conn);
+            const int r = s2n_handshake_write_io(conn);
+
             if (r < 0) {
                 if (!S2N_ERROR_IS_BLOCKING(s2n_errno)) {
                     /* Non-retryable write error. The peer might have sent an alert. Try and read it. */
@@ -1101,7 +1102,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
             }
         } else {
             *blocked = S2N_BLOCKED_ON_READ;
-            int r = s2n_handshake_read_io(conn);
+            const int r = s2n_handshake_read_io(conn);
 
             if (r < 0) {
                 /* One blocking condition is waiting on the session resumption cache. */
