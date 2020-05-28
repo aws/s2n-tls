@@ -22,10 +22,9 @@
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 
-#include "tls/extensions/s2n_certificate_extensions.h"
-
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
+#include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
@@ -141,16 +140,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     client_conn->actual_protocol_version = TLS_VERSIONS[(randval & 0x07) % s2n_array_len(TLS_VERSIONS)];
     client_conn->client_protocol_version = TLS_VERSIONS[((randval >> 3) & 0x07) % s2n_array_len(TLS_VERSIONS)];
 
-    /* Use remainder of input for fuzzing target */
-    uint8_t ocsp_data[len - 1];
-    GUARD(s2n_stuffer_read_bytes(&fuzz_stuffer, ocsp_data, len - 1));
-    struct s2n_blob fuzz_blob = {0};
-    GUARD(s2n_blob_init(&fuzz_blob, ocsp_data, len - 1));
-
     /* Run Test
      * Do not use GUARD macro here since the connection memory hasn't been freed.
      */
-    s2n_certificate_extensions_parse(client_conn, &fuzz_blob);
+    s2n_extension_list_recv(S2N_EXTENSION_LIST_CERTIFICATE, client_conn, &fuzz_stuffer);
 
     /* Cleanup */
     GUARD(s2n_connection_free(client_conn));

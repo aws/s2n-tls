@@ -114,6 +114,7 @@ struct s2n_stuffer_reservation {
     uint8_t length;
 };
 extern int s2n_stuffer_reserve_uint16(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
+extern int s2n_stuffer_reserve_uint24(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
 extern int s2n_stuffer_write_vector_size(struct s2n_stuffer_reservation reservation);
 
 /* Copy one stuffer to another */

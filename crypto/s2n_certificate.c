@@ -23,11 +23,13 @@
 #include <string.h>
 #include <strings.h>
 
-#include "../tls/extensions/s2n_certificate_extensions.h"
 #include "crypto/s2n_certificate.h"
 #include "utils/s2n_array.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
+
+#include "tls/extensions/s2n_extension_list.h"
+#include "tls/s2n_connection.h"
 
 int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type)
 {
@@ -400,17 +402,9 @@ int s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out, st
     notnull_check(chain);
     struct s2n_cert *cur_cert = chain->head;
     notnull_check(cur_cert);
-    uint32_t cert_chain_size = chain->chain_size;
 
-    /* Certificate extensions are enabled for TLS 1.3 */
-    bool certificate_extensions = conn->actual_protocol_version >= S2N_TLS13;
-
-    if (certificate_extensions) {
-        /* find additional certificate extensions size */
-        cert_chain_size += s2n_certificate_total_extensions_size(conn, chain_and_key);
-    }
-
-    GUARD(s2n_stuffer_write_uint24(out, cert_chain_size));
+    struct s2n_stuffer_reservation cert_chain_size;
+    GUARD(s2n_stuffer_reserve_uint24(out, &cert_chain_size));
 
     /* Send certs and extensions (in TLS 1.3) */
     bool first_entry = true;
@@ -424,16 +418,18 @@ int s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out, st
          * the first CertificateEntry.
          * While the spec allow extensions to be included in other certificate
          * entries, only the first matter to use here */
-        if (certificate_extensions) {
+        if (conn->actual_protocol_version >= S2N_TLS13) {
             if (first_entry) {
-                GUARD(s2n_certificate_extensions_send(conn, out, chain_and_key));
+                GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, conn, out));
                 first_entry = false;
             } else {
-                GUARD(s2n_certificate_extensions_send_empty(out));
+                GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_EMPTY, conn, out));
             }
         }
         cur_cert = cur_cert->next;
     }
+
+    GUARD(s2n_stuffer_write_vector_size(cert_chain_size));
 
     return 0;
 }
