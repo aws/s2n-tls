@@ -36,138 +36,138 @@ const struct s2n_record_algorithm s2n_record_alg_null = {
     .cipher = &s2n_null_cipher,
     .hmac_alg = S2N_HMAC_NONE,
     .flags = 0,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_rc4_md5 = {
     .cipher = &s2n_rc4,
     .hmac_alg = S2N_HMAC_MD5,
     .flags = 0,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_rc4_sslv3_md5 = {
     .cipher = &s2n_rc4,
     .hmac_alg = S2N_HMAC_SSLv3_MD5,
     .flags = 0,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_rc4_sha = {
     .cipher = &s2n_rc4,
     .hmac_alg = S2N_HMAC_SHA1,
     .flags = 0,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_rc4_sslv3_sha = {
     .cipher = &s2n_rc4,
     .hmac_alg = S2N_HMAC_SSLv3_SHA1,
     .flags = 0,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_3des_sha = {
     .cipher = &s2n_3des,
     .hmac_alg = S2N_HMAC_SHA1,
     .flags = 0,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_3des_sslv3_sha = {
     .cipher = &s2n_3des,
     .hmac_alg = S2N_HMAC_SSLv3_SHA1,
     .flags = 0,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_aes128_sha = {
     .cipher = &s2n_aes128,
     .hmac_alg = S2N_HMAC_SHA1,
     .flags = 0,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_aes128_sslv3_sha = {
     .cipher = &s2n_aes128,
     .hmac_alg = S2N_HMAC_SSLv3_SHA1,
     .flags = 0,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_aes128_sha_composite = {
     .cipher = &s2n_aes128_sha,
     .hmac_alg = S2N_HMAC_NONE,
     .flags = 0,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_aes128_sha256 = {
     .cipher = &s2n_aes128,
     .hmac_alg = S2N_HMAC_SHA256,
     .flags = 0,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_aes128_sha256_composite = {
     .cipher = &s2n_aes128_sha256,
     .hmac_alg = S2N_HMAC_NONE,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_aes256_sha = {
     .cipher = &s2n_aes256,
     .hmac_alg = S2N_HMAC_SHA1,
     .flags = 0,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_aes256_sslv3_sha = {
     .cipher = &s2n_aes256,
     .hmac_alg = S2N_HMAC_SSLv3_SHA1,
     .flags = 0,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_aes256_sha_composite = {
     .cipher = &s2n_aes256_sha,
     .hmac_alg = S2N_HMAC_NONE,
     .flags = 0,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_aes256_sha256 = {
     .cipher = &s2n_aes256,
     .hmac_alg = S2N_HMAC_SHA256,
     .flags = 0,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_aes256_sha256_composite = {
     .cipher = &s2n_aes256_sha256,
     .hmac_alg = S2N_HMAC_NONE,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_aes256_sha384 = {
     .cipher = &s2n_aes256,
     .hmac_alg = S2N_HMAC_SHA384,
     .flags = 0,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_aes128_gcm = {
     .cipher = &s2n_aes128_gcm,
     .hmac_alg = S2N_HMAC_NONE,
     .flags = S2N_TLS12_AES_GCM_AEAD_NONCE,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_aes256_gcm = {
     .cipher = &s2n_aes256_gcm,
     .hmac_alg = S2N_HMAC_NONE,
     .flags = S2N_TLS12_AES_GCM_AEAD_NONCE,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 const struct s2n_record_algorithm s2n_record_alg_chacha20_poly1305 = {
@@ -177,7 +177,7 @@ const struct s2n_record_algorithm s2n_record_alg_chacha20_poly1305 = {
      * Give it a distinct 1.2 nonce value in case this changes.
      */
     .flags = S2N_TLS12_CHACHA_POLY_AEAD_NONCE,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 /* TLS 1.3 Record Algorithms */
@@ -200,7 +200,7 @@ const struct s2n_record_algorithm s2n_tls13_record_alg_chacha20_poly1305 = {
     .hmac_alg = S2N_HMAC_NONE,
     /* this mirrors s2n_record_alg_chacha20_poly1305 with the exception of TLS 1.3 nonce flag */
     .flags = S2N_TLS13_RECORD_AEAD_NONCE,
-    .encryption_limit = 0,
+    .encryption_limit = UINT64_MAX,
 };
 
 /*********************

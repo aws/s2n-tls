@@ -44,7 +44,7 @@ int s2n_key_update_recv(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-int s2n_key_update_send(struct s2n_connection *conn, ssize_t size) 
+int s2n_key_update_send(struct s2n_connection *conn, size_t size) 
 {
     notnull_check(conn);
 
@@ -63,7 +63,7 @@ int s2n_key_update_send(struct s2n_connection *conn, ssize_t size)
 
         /* Update encryption key */
         GUARD(s2n_update_application_traffic_keys(conn, conn->mode, SENDING));
-        conn->key_update_pending = 0;
+        conn->key_update_pending = false;
         conn->encrypted_bytes_out = 0;
     }
 
@@ -85,16 +85,16 @@ int s2n_key_update_write(struct s2n_blob *out)
     return S2N_SUCCESS;
 }
 
-int s2n_check_key_limits(struct s2n_connection *conn, ssize_t size) 
+int s2n_check_key_limits(struct s2n_connection *conn, size_t size) 
 {
     notnull_check(conn);
 
     const struct s2n_record_algorithm *record_alg = conn->secure.cipher_suite->record_alg;
     notnull_check(record_alg);
 
-    if (record_alg->encryption_limit > 0) {
+    if (record_alg->encryption_limit < UINT64_MAX) {
         if (conn->encrypted_bytes_out + size >= record_alg->encryption_limit) {
-            conn->key_update_pending = 1;
+            conn->key_update_pending = true;
         }
     }
 

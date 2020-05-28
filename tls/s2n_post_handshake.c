@@ -48,7 +48,7 @@ int s2n_post_handshake_recv(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blocked, ssize_t size)
+int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blocked, size_t size)
 {
     notnull_check(conn);
 

@@ -33,8 +33,6 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
-#define TLS13_CONTENT_TYPE_LENGTH 1
-
 extern uint8_t s2n_unknown_protocol_version;
 
 /* How much overhead does the IV, MAC, TAG and padding bytes introduce ? */

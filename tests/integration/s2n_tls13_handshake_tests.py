@@ -60,7 +60,7 @@ def verify_hrr_random_data(server, client):
 
     return result
 
-def send_and_receive(client, server, key_update_request):
+def key_update_send_and_receive(client, server, key_update_request):
     openssl_msg = "Message:" + str(uuid.uuid4())
     s2n_msg = "Message:" + str(uuid.uuid4())
 
@@ -102,12 +102,12 @@ def key_update_test(server, client):
     result.status = Status.PASSED
 
     # 'K' triggers an update_requested message from Openssl
-    if not send_and_receive(client, server, 'K'):
+    if not key_update_send_and_receive(client, server, 'K'):
         result.status = Status.FAILED
         return result
 
     # 'k' triggers an update_not_requested message from Openssl
-    if not send_and_receive(client, server, 'k'):
+    if not key_update_send_and_receive(client, server, 'k'):
         result.status = Status.FAILED
         return result
     return result

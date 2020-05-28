@@ -148,7 +148,7 @@ int main(int argc, char **argv)
         "860c06edc07858ee8e78f0e7428c58ed"
         "d6b43f2ca3e6e95f02ed063cf0e1cad8");
 
-    /* KeyUpdate Vectors from Openssl s_client implemenation of KeyUpdate. The ciphersuite
+    /* KeyUpdate Vectors from Openssl s_client implementation of KeyUpdate. The ciphersuite
       * that produced this secret was s2n_tls13_aes_256_gcm_sha384.
       */
 
