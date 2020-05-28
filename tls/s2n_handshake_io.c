@@ -686,7 +686,7 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
      * Check wiped instead of s2n_stuffer_data_available to differentiate between the initial call
      * to s2n_handshake_write_io and a repeated call after an EWOULDBLOCK.
      */
-    int handshake_io_wiped = s2n_stuffer_is_wiped(&conn->handshake.io);
+    const bool handshake_io_wiped = s2n_stuffer_is_wiped(&conn->handshake.io);
     if (handshake_io_wiped && record_type == TLS_HANDSHAKE) {
         GUARD(s2n_handshake_write_header(&conn->handshake.io, ACTIVE_STATE(conn).message_type));
     }
@@ -1058,8 +1058,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
 
         if (ACTIVE_STATE(conn).writer == this) {
             *blocked = S2N_BLOCKED_ON_WRITE;
-            int r = s2n_handshake_write_io(conn);
-            if (r < 0) {
+            if (s2n_handshake_write_io(conn) < 0) {
                 if (s2n_errno == S2N_CALLBACK_BLOCKED) {
                     *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
                     S2N_ERROR_PRESERVE_ERRNO();
@@ -1088,9 +1087,8 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
                 GUARD(s2n_handle_retry_state(conn));
             } else {
                 *blocked = S2N_BLOCKED_ON_READ;
-                int r = s2n_handshake_read_io(conn);
 
-                if (r < 0) {
+                if (s2n_handshake_read_io(conn) < 0) {
                     /* One blocking condition is waiting on the session resumption cache. */
                     /* So we don't want to delete anything if we are blocked. */
                     if (!S2N_ERROR_IS_BLOCKING(s2n_errno) && conn->session_id_len) {
