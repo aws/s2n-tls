@@ -71,6 +71,8 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         conn->actual_protocol_version = S2N_TLS13;
         conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        /* Manually set the record alg since we don't call cipher_suite_init anywhere */
+        conn->secure.cipher_suite->record_alg = conn->secure.cipher_suite->all_record_algs[0];
         EXPECT_EQUAL(conn->key_update_pending, 0);
         conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT;
 
@@ -89,6 +91,8 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         conn->actual_protocol_version = S2N_TLS13;
         conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        /* Manually set the record alg since we don't call cipher_suite_init anywhere */
+        conn->secure.cipher_suite->record_alg = conn->secure.cipher_suite->all_record_algs[0];
         EXPECT_EQUAL(conn->key_update_pending, 0);
         conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT + 1;
 
@@ -107,6 +111,8 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         conn->actual_protocol_version = S2N_TLS13;
         conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        /* Manually set the record alg since we don't call cipher_suite_init anywhere */
+        conn->secure.cipher_suite->record_alg = conn->secure.cipher_suite->all_record_algs[0];
         EXPECT_EQUAL(conn->key_update_pending, 0);
         conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT - 5;
 
@@ -125,6 +131,8 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         conn->actual_protocol_version = S2N_TLS13;
         conn->secure.cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
+        /* Manually set the record alg since we don't call cipher_suite_init anywhere */
+        conn->secure.cipher_suite->record_alg = conn->secure.cipher_suite->all_record_algs[0];
         EXPECT_EQUAL(conn->key_update_pending, 0);
         conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT;
 
