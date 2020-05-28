@@ -54,6 +54,37 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
 
+    /* Test s2n_client_hello_get_extension_by_id */
+    {
+        /* Test with invalid parsed extensions */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+            s2n_tls_extension_type test_extension_type = S2N_EXTENSION_SERVER_NAME;
+
+            s2n_extension_type_id test_extension_type_id;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(test_extension_type, &test_extension_type_id));
+
+            uint8_t data[] = "data";
+            s2n_parsed_extension *parsed_extension = &conn->client_hello.extensions.parsed_extensions[test_extension_type_id];
+            parsed_extension->extension_type = test_extension_type;
+            parsed_extension->extension.data = data;
+            parsed_extension->extension.size = sizeof(data);
+
+            /* Succeeds with correct extension type */
+            EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(&conn->client_hello,
+                    test_extension_type, data, sizeof(data)), sizeof(data));
+
+            /* Fails with wrong extension type */
+            parsed_extension->extension_type = test_extension_type + 1;
+            EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(&conn->client_hello,
+                    test_extension_type, data, sizeof(data)), 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
+
     /* Test setting cert chain on recv */
     {
         s2n_enable_tls13();

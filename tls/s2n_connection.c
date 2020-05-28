@@ -30,7 +30,6 @@
 #include "tls/extensions/s2n_client_server_name.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_client_extensions.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_connection_evp_digests.h"
 #include "tls/s2n_handshake.h"
@@ -567,9 +566,6 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
     GUARD(s2n_free(&conn->application_protocols_overridden));
     GUARD(s2n_stuffer_free(&conn->cookie_stuffer));
 
-    /* Remove parsed extensions array from client_hello */
-    GUARD(s2n_client_hello_free_parsed_extensions(&conn->client_hello));
-
     return 0;
 }
 
@@ -617,9 +613,6 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     GUARD(s2n_free(&conn->client_ticket));
     GUARD(s2n_free(&conn->status_response));
     GUARD(s2n_free(&conn->application_protocols_overridden));
-
-    /* Remove parsed extensions array from client_hello */
-    GUARD(s2n_client_hello_free_parsed_extensions(&conn->client_hello));
 
     /* Allocate memory for handling handshakes */
     GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_LARGE_RECORD_LENGTH));
@@ -1059,16 +1052,7 @@ const char *s2n_get_server_name(struct s2n_connection *conn)
         return conn->server_name;
     }
 
-    /* server name is not yet obtained from client hello, get it now */
-    struct s2n_client_hello_parsed_extension parsed_extension = {0};
-
-    GUARD_PTR(s2n_client_hello_get_parsed_extension(conn->client_hello.parsed_extensions, S2N_EXTENSION_SERVER_NAME, &parsed_extension));
-
-    struct s2n_stuffer extension = {0};
-    GUARD_PTR(s2n_stuffer_init(&extension, &parsed_extension.extension));
-    GUARD_PTR(s2n_stuffer_write(&extension, &parsed_extension.extension));
-
-    GUARD_PTR(s2n_parse_client_hello_server_name(conn, &extension));
+    GUARD_PTR(s2n_extension_process(&s2n_client_server_name_extension, conn, &conn->client_hello.extensions));
 
     if (!conn->server_name[0]) {
         return NULL;

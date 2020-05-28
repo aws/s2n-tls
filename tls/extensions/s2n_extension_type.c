@@ -17,7 +17,6 @@
 
 #include "error/s2n_errno.h"
 #include "tls/extensions/s2n_extension_type.h"
-#include "tls/s2n_client_extensions.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_bitmap.h"
@@ -45,10 +44,6 @@ int s2n_extension_type_init()
         if (iana_value < S2N_MAX_INDEXED_EXTENSION_IANA) {
             s2n_extension_ianas_to_ids[iana_value] = i;
         }
-
-        /* This is needed to support the ClientHello's current method
-         * of skipping unknown extensions when parsing. */
-        s2n_register_extension(iana_value);
     }
 
     return S2N_SUCCESS;
