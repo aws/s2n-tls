@@ -37,9 +37,9 @@ bool s2n_blob_is_valid(const struct s2n_blob* b)
 int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size)
 {
     notnull_check(b);
-    if(size != 0) { notnull_check(data); }
+    S2N_PRECONDITION(S2N_MEM_IS_READABLE(data,size));
     *b = (struct s2n_blob) {.data = data, .size = size, .allocated = 0, .growable = 0};
-    ENSURE_POSTCONDITION(s2n_blob_is_valid(b));
+    ENSURE_POSIX_POSTCONDITION(s2n_blob_is_valid(b));
     return S2N_SUCCESS;
 }
 
