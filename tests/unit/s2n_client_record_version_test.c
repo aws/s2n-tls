@@ -95,7 +95,7 @@ int main(int argc, char **argv)
 
         /* Send the client hello */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_BLOCKED);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Read ClientHello s2n wrote */
@@ -142,7 +142,7 @@ int main(int argc, char **argv)
 
         /* Verify that we proceed with handshake */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_BLOCKED);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Verify that protocol versions are TLS1.2 now */
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 
         /* Now lets shutdown the connection and verify that alert is sent in record with protocol version TLS1.2 */
         EXPECT_EQUAL(s2n_shutdown(client_conn, &client_blocked), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_BLOCKED);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Receive the next record from client and ensure that record protocol version is TLS1.2 */
@@ -227,7 +227,7 @@ int main(int argc, char **argv)
 
         /* Send the client hello */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_BLOCKED);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Read ClientHello s2n wrote */
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
 
         /* Verify that we proceed with handshake */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_BLOCKED);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Verify that protocol versions are SSLv3 with the exeption of client which supports TLS1.2 */
@@ -284,7 +284,7 @@ int main(int argc, char **argv)
 
         /* Now lets shutdown the connection and verify that alert is sent in record with protocol version SSLv3 */
         EXPECT_EQUAL(s2n_shutdown(client_conn, &client_blocked), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_BLOCKED);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Receive the next record from client and ensure that record protocol version is SSLv3 */

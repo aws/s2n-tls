@@ -826,7 +826,7 @@ static int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
             case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
                 conn->closed = 1;
                 break;
-            case S2N_ERR_BLOCKED:
+            case S2N_ERR_IO_BLOCKED:
             case S2N_ERR_ASYNC_BLOCKED:
                 /* A blocking condition is retryable, so we should return without killing the connection. */
                 S2N_ERROR_PRESERVE_ERRNO();
@@ -975,7 +975,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
                 case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
                     conn->closed = 1;
                     break;
-                case S2N_ERR_BLOCKED:
+                case S2N_ERR_IO_BLOCKED:
                 case S2N_ERR_ASYNC_BLOCKED:
                     /* A blocking condition is retryable, so we should return without killing the connection. */
                     S2N_ERROR_PRESERVE_ERRNO();

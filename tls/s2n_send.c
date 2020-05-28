@@ -44,7 +44,7 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * blocked)
         w = s2n_connection_send_stuffer(&conn->out, conn, s2n_stuffer_data_available(&conn->out));
         if (w < 0) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                S2N_ERROR(S2N_ERR_BLOCKED);
+                S2N_ERROR(S2N_ERR_IO_BLOCKED);
             }
             S2N_ERROR(S2N_ERR_IO);
         }
@@ -177,7 +177,7 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
 
         /* Send it */
         if (s2n_flush(conn, blocked) < 0) {
-            if (s2n_errno == S2N_ERR_BLOCKED && user_data_sent > 0) {
+            if (s2n_errno == S2N_ERR_IO_BLOCKED && user_data_sent > 0) {
                 /* We successfully sent >0 user bytes on the wire, but not the full requested payload
                  * because we became blocked on I/O. Acknowledge the data sent. */
 
