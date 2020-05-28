@@ -157,7 +157,15 @@ int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
     notnull_check(kem_data->kem_name.data);
     kem_data->kem_name.size = 2;
 
-    GUARD(s2n_get_kem_from_extension_id(&(kem_data->kem_name), &(conn->secure.kem_params.kem)));
+    struct s2n_stuffer kem_id_stuffer = { 0 };
+    uint8_t kem_id_arr[2];
+    kem_extension_size kem_id;
+    struct s2n_blob kem_id_blob = { .data = kem_id_arr, .size = s2n_array_len(kem_id_arr) };
+    GUARD(s2n_stuffer_init(&kem_id_stuffer, &kem_id_blob));
+    GUARD(s2n_stuffer_write(&kem_id_stuffer, &(kem_data->kem_name)));
+    GUARD(s2n_stuffer_read_uint16(&kem_id_stuffer, &kem_id));
+
+    GUARD(s2n_get_kem_from_extension_id(kem_id, &(conn->secure.kem_params.kem)));
     GUARD(s2n_kem_recv_public_key(in, &(conn->secure.kem_params)));
 
     kem_data->raw_public_key.data = conn->secure.kem_params.public_key.data;

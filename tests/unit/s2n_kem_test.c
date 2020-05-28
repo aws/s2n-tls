@@ -570,12 +570,13 @@ int main(int argc, char **argv)
         /* Happy case(s) for s2n_get_kem_from_extension_id() */
 
         /* The kem_extensions and kems arrays should be kept in sync with each other */
-        uint8_t kem_extensions[4][2] = {
-                {0, 1},  /* TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1 */
-                {0, 13}, /* TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2 */
-                {0, 10}, /* TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1 */
-                {0, 19}, /* TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2 */
+        kem_extension_size kem_extensions[] = {
+                TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1,
+                TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2,
+                TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1,
+                TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2
         };
+
         const struct s2n_kem *kems[] = {
                 &s2n_bike1_l1_r1,
                 &s2n_bike1_l1_r2,
@@ -584,11 +585,10 @@ int main(int argc, char **argv)
         };
 
         for (int i = 0; i < 4; i++) {
-            uint8_t *extension_id_bytes = kem_extensions[i]; /* TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2 */
-            struct s2n_blob kem_id = {.data = extension_id_bytes, .size = 2};
+            kem_extension_size kem_id = kem_extensions[i];
             const struct s2n_kem *returned_kem = NULL;
 
-            EXPECT_SUCCESS(s2n_get_kem_from_extension_id(&kem_id, &returned_kem));
+            EXPECT_SUCCESS(s2n_get_kem_from_extension_id(kem_id, &returned_kem));
             EXPECT_NOT_NULL(returned_kem);
             EXPECT_EQUAL(kems[i], returned_kem);
         }
@@ -596,20 +596,8 @@ int main(int argc, char **argv)
     {
         /* Failure cases for s2n_get_kem_from_extension_id() */
         const struct s2n_kem *returned_kem = NULL;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(NULL, &returned_kem), S2N_ERR_NULL);
-
-        struct s2n_blob kem_id = { 0 };
-        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(&kem_id, &returned_kem), S2N_ERR_NULL);
-
-        uint8_t bad_kem_id[] = { 0, 1, 1 };
-        kem_id.data = bad_kem_id;
-        kem_id.size = 3;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(&kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-
-        uint8_t non_existant_kem_id[] = { 255, 255 };
-        kem_id.data = non_existant_kem_id;
-        kem_id.size = 2;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(&kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        kem_extension_size non_existant_kem_id = 65535;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(non_existant_kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     }
 
 #endif

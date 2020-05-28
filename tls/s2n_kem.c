@@ -255,27 +255,16 @@ int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], 
     S2N_ERROR(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 }
 
-int s2n_get_kem_from_extension_id(struct s2n_blob *kem_id, const struct s2n_kem **kem) {
+int s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_kem **kem) {
     /* cppcheck-suppress knownConditionTrueFalse */
     S2N_ERROR_IF(kem_mapping == NULL, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-
-    notnull_check(kem_id);
-    notnull_check(kem_id->data);
-    S2N_ERROR_IF(kem_id->size != 2, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-
-    struct s2n_stuffer kem_id_stuffer = {0};
-    GUARD(s2n_stuffer_init(&kem_id_stuffer, kem_id));
-    GUARD(s2n_stuffer_write(&kem_id_stuffer, kem_id));
-
-    kem_extension_size kem_extension_id;
-    GUARD(s2n_stuffer_read_uint16(&kem_id_stuffer, &kem_extension_id));
 
     for (int i = 0; i < s2n_array_len(kem_mapping); i++) {
         const struct s2n_iana_to_kem *iana_to_kem = &kem_mapping[i];
 
         for (int j = 0; j < iana_to_kem->kem_count; j++) {
             const struct s2n_kem *candidate_kem = iana_to_kem->kems[j];
-            if (candidate_kem->kem_extension_id == kem_extension_id) {
+            if (candidate_kem->kem_extension_id == kem_id) {
                 *kem = candidate_kem;
                 return S2N_SUCCESS;
             }
