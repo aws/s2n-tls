@@ -100,6 +100,7 @@ CBMCFLAGS += --float-overflow-check
 CBMCFLAGS += --nan-check
 CBMCFLAGS += --pointer-check
 CBMCFLAGS += --pointer-overflow-check
+CBMCFLAGS += --pointer-primitive-check
 CBMCFLAGS += --signed-overflow-check
 CBMCFLAGS += --undefined-shift-check
 CBMCFLAGS += --unsigned-overflow-check
