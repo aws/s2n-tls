@@ -13,14 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/s2n_tls.h"
 #include "tls/extensions/s2n_server_key_share.h"
 
-#include "tls/s2n_client_extensions.h"
 #include "tls/s2n_security_policies.h"
+#include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 
 #include "utils/s2n_safety.h"
-#include "tls/s2n_tls13.h"
 
 static int s2n_server_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);

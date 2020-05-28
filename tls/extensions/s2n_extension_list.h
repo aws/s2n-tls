@@ -17,7 +17,6 @@
 
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_extension_type.h"
-#include "tls/s2n_connection.h"
 
 #define S2N_PARSED_EXTENSIONS_COUNT S2N_SUPPORTED_EXTENSIONS_COUNT
 
