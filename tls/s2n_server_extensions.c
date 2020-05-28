@@ -41,11 +41,11 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
      *
      * This behavior is outlined in the TLS1.2 RFC: https://tools.ietf.org/html/rfc5246#appendix-A.4.1
      *
-     * We COULD write the size if using TLS1.3, but let's prefer consistency and avoid
-     * altering existing behavior.
+     * This behavior does not affect TLS1.3, which always requires at least the supported_version extension
+     * so will never produce an empty list.
      */
     if(s2n_stuffer_data_available(out) - data_available_before_extensions == S2N_EMPTY_EXTENSION_LIST_SIZE) {
-        GUARD(s2n_stuffer_wipe_n(out, sizeof(uint16_t)));
+        GUARD(s2n_stuffer_wipe_n(out, S2N_EMPTY_EXTENSION_LIST_SIZE));
     }
 
     return S2N_SUCCESS;
@@ -56,7 +56,10 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_stuffer *
     s2n_parsed_extensions_list parsed_extension_list = { 0 };
     GUARD(s2n_extension_list_parse(in, &parsed_extension_list));
 
-    /* Process supported_versions first so that we know which extensions list to use */
+    /* Process supported_versions first so that we know which extensions list to use.
+     * - If the supported_versions extension exists, then it will set server_protocol_version.
+     * - If the supported_versions extension does not exist, then the server_protocol_version will remain
+     *   unknown and we will use the default list of allowed extension types. */
     GUARD(s2n_extension_process(&s2n_server_supported_versions_extension, conn, &parsed_extension_list));
 
     if (conn->server_protocol_version >= S2N_TLS13) {
