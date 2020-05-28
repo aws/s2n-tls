@@ -53,3 +53,12 @@ This directory contains the following subdirectories:
 - `include` contains the `.h` files needed by proofs
 - `source` contains functions useful in multiple CBMC proofs
 - `stubs` contains stubs for functions which are modelled by CBMC
+
+OpenSSL Stubs
+-------------
+
+To reduce verification complexity, CBMC uses an abstract representation of the OpenSSL, which covers its essential behavior with additional checks.
+Our stubs remove all the verification-irrelevant code from OpenSSL while adding function contracts (i.e., pre- and post-conditions) to all OpenSSL function calls.
+The purpose of the verification is to check whether a given program uses correctly OpenSSL without hitting a bogus state.
+We had to do a similar thing when verifying the [AWS Encryption SDK for C](https://github.com/aws/aws-encryption-sdk-c/tree/master/.cbmc-batch/include/openssl).
+All OpenSSL stubs are under `include\openssl` and `source\openssl`.
