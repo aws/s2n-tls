@@ -63,22 +63,29 @@ def verify_hrr_random_data(server, client):
 def send_and_receive(client, server, key_update_request):
     openssl_msg = "Message:" + str(uuid.uuid4())
     s2n_msg = "Message:" + str(uuid.uuid4())
+
     # Trigger Openssl to send a KeyUpdate message
     client.stdin.write((key_update_request + "\n\n").encode("utf-8"))
     client.stdin.flush()
+
     # Confirm that the KeyUpdate was sent
     time.sleep(0.01)
     if not wait_for_output(client.stderr, 'KEYUPDATE', 100):
         return False
+
+    # Write a message from Openssl
     client.stdin.write((openssl_msg + "\n\n").encode("utf-8"))
-    client.stdin.flush()    
+    client.stdin.flush()
+
     # Confirm that s2n can decrypt msg
     if not (wait_for_output(server.stdout, openssl_msg, 100)):
         return False  
+
     # Write a message from s2n
     server.stdin.write((s2n_msg + "\n\n").encode("utf-8"))
-    server.stdin.flush()        
-    # Confirm that openssl can decrypt msg
+    server.stdin.flush()
+
+    # Confirm that Openssl can decrypt msg
     if not (wait_for_output(client.stdout, s2n_msg, 100)):
         return False
     
@@ -93,9 +100,13 @@ def key_update_test(server, client):
     '''
     result = Result()
     result.status = Status.PASSED
+
+    # 'K' triggers an update_requested message from Openssl
     if not send_and_receive(client, server, 'K'):
         result.status = Status.FAILED
         return result
+
+    # 'k' triggers an update_not_requested message from Openssl
     if not send_and_receive(client, server, 'k'):
         result.status = Status.FAILED
         return result

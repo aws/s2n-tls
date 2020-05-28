@@ -26,93 +26,126 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+int s2n_key_update_write(struct s2n_blob *out);
+
 int main(int argc, char **argv)
 {
-     /* KeyUpdate Vectors from Openssl s_client implemenation of KeyUpdate. The ciphersuite
-      * that produced this secret was s2n_tls13_aes_256_gcm_sha384. 
-      */
-    
-    S2N_BLOB_FROM_HEX(application_secret,
-        "4bc28934ddd802b00f479e14a72d7725dab45d32b3b145f29"
-        "e4c5b56677560eb5236b168c71c5c75aa52f3e20ee89bfb"); 
-        
-    S2N_BLOB_FROM_HEX(updated_application_secret,
-        "ee85dd54781bd4d8a100589a9fe6ac9a3797b811e977f549cd"
-        "531be2441d7c63e2b9729d145c11d84af35957727565a4");
 
     BEGIN_TEST();
 
-    /* This test checks the new secret produced by the s2n_tls13_update_application_traffic_keys
-     * is the same one that is produced by openssl when starting with the same application secret. 
-     */
-    { 
-        struct s2n_connection *server_conn;
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        server_conn->actual_protocol_version = S2N_TLS13;
-        server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+     /* This test checks the s2n_key_update_write function correctly writes an update_not_requested message as
+      * s2n does not currently require peers to update their keys.
+      */
+    {
+        uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE];
+        struct s2n_blob key_update_blob = {0};
+        struct s2n_stuffer key_update_stuffer = {0};
+        EXPECT_SUCCESS(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
+        EXPECT_SUCCESS(s2n_stuffer_init(&key_update_stuffer, &key_update_blob));
 
-        /* Store application secret */
-        struct s2n_stuffer server_application_secret_stuffer = {0};
-        struct s2n_blob server_application_secret_blob = {0};
-        EXPECT_SUCCESS(s2n_blob_init(&server_application_secret_blob, server_conn->secure.server_app_secret, sizeof(server_conn->secure.client_app_secret)));
-        EXPECT_SUCCESS(s2n_stuffer_init(&server_application_secret_stuffer, &server_application_secret_blob));
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_application_secret_stuffer, application_secret.data, application_secret.size));
+        /* Write key update message */
+        EXPECT_SUCCESS(s2n_key_update_write(&key_update_blob));
 
-        EXPECT_SUCCESS(s2n_update_application_traffic_keys(server_conn, S2N_SERVER, SENDING));
-        
-        /* Check the new secret is what was expected */
-        S2N_BLOB_EXPECT_EQUAL(server_application_secret_stuffer.blob, updated_application_secret); 
+        /* Move stuffer write cursor to correct position */
+        EXPECT_SUCCESS(s2n_stuffer_skip_write(&key_update_stuffer, S2N_KEY_UPDATE_MESSAGE_SIZE));
 
-        EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
+        uint8_t post_handshake_id;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(&key_update_stuffer, &post_handshake_id));
+        EXPECT_EQUAL(post_handshake_id, TLS_KEY_UPDATE);
+
+        uint32_t request_length;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint24(&key_update_stuffer, &request_length));
+        EXPECT_EQUAL(request_length, S2N_KEY_UPDATE_LENGTH);
+
+        uint8_t key_update_request;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(&key_update_stuffer, &key_update_request));
+        EXPECT_EQUAL(key_update_request, S2N_KEY_UPDATE_NOT_REQUESTED);
     }
 
-    /* This test checks that a key update is triggered once the maximum number of bytes have been encrypted by
-     * an application key.
+    /* This test checks in the s2n_check_key_limits method that a key update is triggered once the maximum number of 
+     * bytes have been encrypted by an application key.
      */
     {
-        struct s2n_connection *server_conn;
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        server_conn->actual_protocol_version = S2N_TLS13;
-        server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-        EXPECT_EQUAL(server_conn->key_update_pending, 0);
+        struct s2n_connection *conn;
         uint8_t data_size = 1;
-        server_conn->encrypted_bytes_out = S2N_TLS13_MAXIMUM_BYTES_TO_ENCRYPT;
-        EXPECT_SUCCESS(s2n_check_key_limits(server_conn, data_size));
-        EXPECT_EQUAL(server_conn->key_update_pending, 1);
-        EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->actual_protocol_version = S2N_TLS13;
+        conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        EXPECT_EQUAL(conn->key_update_pending, 0);
+        conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT;
+
+        EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
+        EXPECT_EQUAL(conn->key_update_pending, 1);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn)); 
     }
 
-    /* This test checks that a key update is triggered if more than the maximum number of bytes have been encrypted.
+    /* This test checks that a key update is triggered in the s2n_check_key_limits function if more than the 
+     * maximum number of bytes have been encrypted.
      */
     {
-        struct s2n_connection *server_conn;
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        server_conn->actual_protocol_version = S2N_TLS13;
-        server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-        EXPECT_EQUAL(server_conn->key_update_pending, 0);
+        struct s2n_connection *conn;
         uint8_t data_size = 1;
-        server_conn->encrypted_bytes_out = S2N_TLS13_MAXIMUM_BYTES_TO_ENCRYPT + 1;
-        EXPECT_SUCCESS(s2n_check_key_limits(server_conn, data_size));
-        EXPECT_EQUAL(server_conn->key_update_pending, 1);
-        EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->actual_protocol_version = S2N_TLS13;
+        conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        EXPECT_EQUAL(conn->key_update_pending, 0);
+        conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT + 1;
+
+        EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
+        EXPECT_EQUAL(conn->key_update_pending, 1);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn)); 
     }
 
-    /* This test checks that a key update is not triggered if the maximum number of bytes have not been encrypted by
-     * an application key.
+    /* This test checks that a key update is not triggered in the s2n_check_key_limits function if the 
+     * maximum number of bytes have not been encrypted by an application key.
      */
     {
-        struct s2n_connection *server_conn;
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        server_conn->actual_protocol_version = S2N_TLS13;
-        server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-        EXPECT_EQUAL(server_conn->key_update_pending, 0);
+        struct s2n_connection *conn;
         uint8_t data_size = 1;
-        server_conn->encrypted_bytes_out = S2N_TLS13_MAXIMUM_BYTES_TO_ENCRYPT - 5;
-        EXPECT_SUCCESS(s2n_check_key_limits(server_conn, data_size));
-        EXPECT_EQUAL(server_conn->key_update_pending, 0);
-        EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->actual_protocol_version = S2N_TLS13;
+        conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        EXPECT_EQUAL(conn->key_update_pending, 0);
+        conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT - 5;
+
+        EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
+        EXPECT_EQUAL(conn->key_update_pending, 0);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn)); 
     }
 
+    /* This test checks that a key update is not triggered in the s2n_check_key_limits function if the cipher suite 
+     * is not aes_gcm. 
+     */
+    {
+        struct s2n_connection *conn;
+        uint8_t data_size = 1;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        conn->actual_protocol_version = S2N_TLS13;
+        conn->secure.cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
+        EXPECT_EQUAL(conn->key_update_pending, 0);
+        conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT;
+
+        EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
+        EXPECT_EQUAL(conn->key_update_pending, 0);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test s2n_key_update_recv function when it receives an invalid value for the key update request
+     * (e.g. neither update_requested nor update_not_requested).
+     * */
+    {
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        /* Write invalid value for key update request type */
+        GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, 3));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_recv(conn), S2N_ERR_BAD_MESSAGE);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
 
     END_TEST();
 }

@@ -17,6 +17,11 @@
 
 #include "tls/s2n_connection.h"
 
+#define S2N_KEY_UPDATE_MESSAGE_SIZE  5
+#define S2N_KEY_UPDATE_LENGTH        1
+#define S2N_KEY_UPDATE_NOT_REQUESTED 0
+#define S2N_KEY_UPDATE_REQUESTED     1
+
 typedef enum {
     SENDING=0,
     RECEIVING

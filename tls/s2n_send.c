@@ -170,6 +170,8 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
         }
     
         GUARD(s2n_stuffer_rewrite(&conn->out));
+
+        /* Check if encryption key limit has been reached */
         GUARD(s2n_post_handshake_send(conn, blocked, to_write));
     
         /* Write and encrypt the record */

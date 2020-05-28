@@ -27,6 +27,7 @@
 int s2n_post_handshake_recv(struct s2n_connection *conn) 
 {
     notnull_check(conn);
+
     uint8_t post_handshake_id;
     uint32_t message_length;
     S2N_ERROR_IF(conn->actual_protocol_version != S2N_TLS13, S2N_ERR_BAD_MESSAGE);
@@ -36,21 +37,24 @@ int s2n_post_handshake_recv(struct s2n_connection *conn)
     switch (post_handshake_id) 
     {
         case TLS_KEY_UPDATE:
-        GUARD(s2n_key_update_recv(conn));
-        break;
+            GUARD(s2n_key_update_recv(conn));
+            break;
         default:
-        /* Ignore all other messages */
-        break;
+            /* Ignore all other messages */
+            break;
     }
     GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+
     return S2N_SUCCESS;
 }
 
 int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blocked, ssize_t size)
 {
     notnull_check(conn);
+
     GUARD(s2n_key_update_send(conn, size));
     GUARD(s2n_flush(conn, blocked));
     GUARD(s2n_stuffer_rewrite(&conn->out));
+
     return S2N_SUCCESS;
 }

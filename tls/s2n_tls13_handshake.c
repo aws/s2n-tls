@@ -229,5 +229,6 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
     struct s2n_stuffer old_secret_stuffer = {0};
     GUARD(s2n_stuffer_init(&old_secret_stuffer, &old_app_secret));
     GUARD(s2n_stuffer_write_bytes(&old_secret_stuffer, app_secret_update.data, keys.size));
-    return 0;
+
+    return S2N_SUCCESS;
 }
