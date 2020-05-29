@@ -94,26 +94,6 @@
 #define ENSURE_NONNULL( x )                          ENSURE((x) != NULL, S2N_ERR_NULL)
 
 /**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
- */
-#    define PRECONDITION( condition )                 ENSURE((condition), S2N_ERR_PRECONDITION_VIOLATION)
-
-/**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
- */
-#    define POSTCONDITION( condition )                ENSURE((condition), S2N_ERR_POSTCONDITION_VIOLATION)
-
-/**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with a `S2N_ERR_SAFETY` error
- */
-#    define PRECONDITION_POSIX( condition )           ENSURE_POSIX((condition), S2N_ERR_PRECONDITION_VIOLATION)
-
-/**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with a `S2N_ERR_SAFETY` error
- */
-#    define POSTCONDITION_POSIX( condition )          ENSURE_POSIX((condition), S2N_ERR_POSTCONDITION_VIOLATION)
-
-/**
  * Ensures `min <= n <= max`
  */
 #define ENSURE_INCLUSIVE_RANGE( min , n , max )      \
@@ -152,6 +132,26 @@
  * Ensures `x` is not `NULL`, otherwise the function will `BAIL_PTR` with an `error`
  */
 #define ENSURE_PTR_NONNULL( x )                     ENSURE_PTR((x) != NULL, S2N_ERR_NULL)
+
+/**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
+ */
+#define PRECONDITION( condition )                 ENSURE((condition), S2N_ERR_PRECONDITION_VIOLATION)
+
+/**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
+ */
+#define POSTCONDITION( condition )                ENSURE((condition), S2N_ERR_POSTCONDITION_VIOLATION)
+
+/**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with a `S2N_ERR_SAFETY` error
+ */
+#define PRECONDITION_POSIX( condition )           ENSURE_POSIX((condition), S2N_ERR_PRECONDITION_VIOLATION)
+
+/**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with a `S2N_ERR_SAFETY` error
+ */
+#define POSTCONDITION_POSIX( condition )          ENSURE_POSIX((condition), S2N_ERR_POSTCONDITION_VIOLATION)
 
 /**
  * Ensures `x` is not an error, otherwise the function will return an error signal
