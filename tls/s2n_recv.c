@@ -67,7 +67,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
             S2N_ERROR(S2N_ERR_CLOSED);
         } else if (r < 0) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                S2N_ERROR(S2N_ERR_BLOCKED);
+                S2N_ERROR(S2N_ERR_IO_BLOCKED);
             }
             S2N_ERROR(S2N_ERR_IO);
         }
@@ -106,7 +106,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
             S2N_ERROR(S2N_ERR_CLOSED);
         } else if (r < 0) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                S2N_ERROR(S2N_ERR_BLOCKED);
+                S2N_ERROR(S2N_ERR_IO_BLOCKED);
             }
             S2N_ERROR(S2N_ERR_IO);
         }
@@ -159,13 +159,13 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
             }
 
             /* Don't propagate the error if we already read some bytes */
-            if (s2n_errno == S2N_ERR_BLOCKED && bytes_read) {
+            if (s2n_errno == S2N_ERR_IO_BLOCKED && bytes_read) {
                 s2n_errno = S2N_ERR_OK;
                 return bytes_read;
             }
 
             /* If we get here, it's an error condition */
-            if (s2n_errno != S2N_ERR_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
+            if (s2n_errno != S2N_ERR_IO_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
                 conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
             }
 

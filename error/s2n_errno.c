@@ -43,7 +43,8 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_OK, "no error") \
     ERR_ENTRY(S2N_ERR_IO, "underlying I/O operation failed, check system errno") \
     ERR_ENTRY(S2N_ERR_CLOSED, "connection is closed") \
-    ERR_ENTRY(S2N_ERR_BLOCKED, "underlying I/O operation would block") \
+    ERR_ENTRY(S2N_ERR_IO_BLOCKED, "underlying I/O operation would block") \
+    ERR_ENTRY(S2N_ERR_ASYNC_BLOCKED, "blocked on external async function invocation") \
     ERR_ENTRY(S2N_ERR_ALERT, "TLS alert received") \
     ERR_ENTRY(S2N_ERR_ENCRYPT, "error encrypting data") \
     ERR_ENTRY(S2N_ERR_DECRYPT, "error decrypting data") \

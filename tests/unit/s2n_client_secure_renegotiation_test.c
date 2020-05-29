@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 
         /* Send the client hello */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_BLOCKED);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Write the server hello */
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 
         /* Verify that we proceed with handshake */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_BLOCKED);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Secure renegotiation is set */
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
 
         /* Send the client hello */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_BLOCKED);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Write the server hello */
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
 
         /* Verify that we proceed with handshake */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_BLOCKED);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Secure renegotiation is not set, as server doesn't support it */
@@ -261,7 +261,7 @@ int main(int argc, char **argv)
 
         /* Send the client hello */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_BLOCKED);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Write the server hello */

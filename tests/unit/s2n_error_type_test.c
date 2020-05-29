@@ -31,7 +31,7 @@ int main(void)
 	EXPECT_EQUAL(S2N_ERR_T_IO, s2n_error_get_type(s2n_errno));
 	s2n_errno = S2N_ERR_CLOSED;
 	EXPECT_EQUAL(S2N_ERR_T_CLOSED, s2n_error_get_type(s2n_errno));
-	s2n_errno = S2N_ERR_BLOCKED;
+	s2n_errno = S2N_ERR_IO_BLOCKED;
 	EXPECT_EQUAL(S2N_ERR_T_BLOCKED, s2n_error_get_type(s2n_errno));
 	s2n_errno = S2N_ERR_ALERT;
 	EXPECT_EQUAL(S2N_ERR_T_ALERT, s2n_error_get_type(s2n_errno));
