@@ -118,24 +118,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn)); 
     }
 
-    /* This test checks that a key update is not triggered in the s2n_check_key_limits function if the cipher suite 
-     * is not aes_gcm. 
-     */
-    {
-        struct s2n_connection *conn;
-        uint8_t data_size = 1;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        conn->actual_protocol_version = S2N_TLS13;
-        conn->secure.cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
-        EXPECT_EQUAL(conn->key_update_pending, 0);
-        conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT;
-
-        EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
-        EXPECT_EQUAL(conn->key_update_pending, 0);
-
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
-
     /* Test s2n_key_update_recv function when it receives an invalid value for the key update request
      * (e.g. neither update_requested nor update_not_requested).
      * */
