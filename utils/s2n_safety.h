@@ -96,12 +96,22 @@
 /**
  * Ensures the `condition` is `true`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
  */
-#define ENSURE_POSTCONDITION( condition )            ENSURE((condition), S2N_ERR_SAFETY)
+#    define PRECONDITION( condition )                 ENSURE((condition), S2N_ERR_PRECONDITION_VIOLATION)
+
+/**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
+ */
+#    define POSTCONDITION( condition )                ENSURE((condition), S2N_ERR_POSTCONDITION_VIOLATION)
 
 /**
  * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with a `S2N_ERR_SAFETY` error
  */
-#define ENSURE_POSIX_POSTCONDITION( condition )            ENSURE_POSIX((condition), S2N_ERR_SAFETY)
+#    define PRECONDITION_POSIX( condition )           ENSURE_POSIX((condition), S2N_ERR_PRECONDITION_VIOLATION)
+
+/**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with a `S2N_ERR_SAFETY` error
+ */
+#    define POSTCONDITION_POSIX( condition )          ENSURE_POSIX((condition), S2N_ERR_POSTCONDITION_VIOLATION)
 
 /**
  * Ensures `min <= n <= max`
