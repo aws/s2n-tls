@@ -94,12 +94,12 @@ static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stu
 
 static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    if (!s2n_is_tls13_enabled()) {
-        return S2N_SUCCESS;
-    }
-
     notnull_check(conn);
     notnull_check(extension);
+
+    if (!s2n_is_tls13_enabled() || conn->actual_protocol_version < S2N_TLS13) {
+        return S2N_SUCCESS;
+    }
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));

@@ -91,6 +91,27 @@ int main()
         EXPECT_FAILURE(s2n_extension_list_parse(&stuffer, NULL));
     }
 
+    /* Test that parse clears existing parsed_extensions */
+    {
+        s2n_parsed_extensions_list parsed_extension_list = { 0 };
+        struct s2n_stuffer stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1));
+
+        parsed_extension_list.parsed_extensions[0].extension_type = 0xFF;
+        parsed_extension_list.parsed_extensions[S2N_PARSED_EXTENSIONS_COUNT - 1].extension_type = 0xFF;
+        EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(parsed_extension_list);
+
+        EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
+
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+        EXPECT_PARSED_EXTENSION_LIST_EMPTY(parsed_extension_list);
+
+        EXPECT_EQUAL(parsed_extension_list.raw.data, stuffer.blob.data);
+        EXPECT_EQUAL(parsed_extension_list.raw.size, 0);
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+    }
+
     /* Test parse empty extension list - no extension list size */
     {
         s2n_parsed_extensions_list parsed_extension_list = { 0 };

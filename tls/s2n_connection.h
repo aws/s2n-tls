@@ -22,7 +22,6 @@
 
 #include "stuffer/s2n_stuffer.h"
 
-#include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_client_hello.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_crypto.h"

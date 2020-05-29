@@ -164,7 +164,7 @@ int main(int argc, char **argv)
     /* Create nonblocking pipes */
     struct s2n_test_piped_io piped_io;
     EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
-    
+
     /* Client doesn't use the server name extension. */
     {
         struct s2n_connection *client_conn;
@@ -482,7 +482,7 @@ int main(int argc, char **argv)
         /* Verify that we fail for duplicated extension type Bad Message */
         EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
         s2n_negotiate(server_conn, &server_blocked);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_BAD_MESSAGE);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_DUPLICATE_EXTENSION);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         

@@ -18,7 +18,6 @@
 
 #include "tls/s2n_cipher_suites.h"
 #include "tls/extensions/s2n_extension_type.h"
-#include "tls/s2n_client_extensions.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/extensions/s2n_client_key_share.h"
 

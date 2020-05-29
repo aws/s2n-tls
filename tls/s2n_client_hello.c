@@ -24,6 +24,8 @@
 
 #include "crypto/s2n_hash.h"
 
+#include "tls/extensions/s2n_extension_list.h"
+#include "tls/extensions/s2n_server_key_share.h"
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_security_policies.h"
@@ -33,9 +35,7 @@
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls.h"
-#include "tls/s2n_client_extensions.h"
 #include "tls/s2n_tls_digest_preferences.h"
-#include "tls/extensions/s2n_server_key_share.h"
 #include "tls/s2n_security_policies.h"
 
 #include "stuffer/s2n_stuffer.h"
@@ -43,14 +43,6 @@
 #include "utils/s2n_bitmap.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
-
-typedef char s2n_tls_extension_mask[8192];
-
-static s2n_tls_extension_mask s2n_suported_extensions = { 0 };
-
-void s2n_register_extension(uint16_t ext_type) {
-    S2N_CBIT_SET(s2n_suported_extensions, ext_type);
-}
 
 struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn) {
     if (conn->client_hello.parsed != 1) {
@@ -106,18 +98,18 @@ ssize_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t 
 ssize_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch) {
     notnull_check(ch);
 
-    return ch->extensions.size;
+    return ch->extensions.raw.size;
 }
 
 ssize_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)
 {
     notnull_check(ch);
     notnull_check(out);
-    notnull_check(ch->extensions.data);
+    notnull_check(ch->extensions.raw.data);
 
-    uint32_t len = min_size(&ch->extensions, max_length);
+    uint32_t len = min_size(&ch->extensions.raw, max_length);
 
-    memcpy_check(out, &ch->extensions.data, len);
+    memcpy_check(out, &ch->extensions.raw.data, len);
 
     return len;
 }
@@ -127,22 +119,12 @@ int s2n_client_hello_free(struct s2n_client_hello *client_hello)
     notnull_check(client_hello);
 
     GUARD(s2n_stuffer_free(&client_hello->raw_message));
-    GUARD(s2n_client_hello_free_parsed_extensions(client_hello));
 
-    /* These pointed to data in the raw_message stuffer,
+    /* These point to data in the raw_message stuffer,
        so we don't need to free them */
     client_hello->cipher_suites.data = NULL;
-    client_hello->extensions.data = NULL;
+    client_hello->extensions.raw.data = NULL;
 
-    return 0;
-}
-
-int s2n_client_hello_free_parsed_extensions(struct s2n_client_hello *client_hello)
-{
-    notnull_check(client_hello);
-    if (client_hello->parsed_extensions != NULL) {
-        GUARD_AS_POSIX(s2n_array_free_p(&client_hello->parsed_extensions));
-    }
     return 0;
 }
 
@@ -213,81 +195,7 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     /* This is going to be our default if the client has no preference. */
     conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
 
-    uint16_t extensions_length = 0;
-    if (s2n_stuffer_data_available(in) >= 2) {
-        /* Read extensions if they are present */
-        GUARD(s2n_stuffer_read_uint16(in, &extensions_length));
-
-        S2N_ERROR_IF(extensions_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
-
-        client_hello->extensions.size = extensions_length;
-        client_hello->extensions.data = s2n_stuffer_raw_read(in, extensions_length);
-        notnull_check(client_hello->extensions.data);
-    }
-
-    return 0;
-}
-
-static int s2n_parsed_extensions_compare(const void *p, const void *q)
-{
-    const struct s2n_client_hello_parsed_extension *left = (const struct s2n_client_hello_parsed_extension *) p;
-    const struct s2n_client_hello_parsed_extension *right = (const struct s2n_client_hello_parsed_extension *) q;
-
-    return (int)left->extension_type - (int)right->extension_type;
-}
-
-static int s2n_populate_client_hello_extensions(struct s2n_client_hello *ch)
-{
-    if (ch->extensions.size == 0) {
-        /* Client hello with no extensions, might be SSLv3, exit early */
-        return 0;
-    }
-
-    if (ch->parsed_extensions == NULL) {
-        notnull_check(ch->parsed_extensions = s2n_array_new(sizeof(struct s2n_client_hello_parsed_extension)));
-    }
-
-    struct s2n_stuffer in = {0};
-
-    GUARD(s2n_stuffer_init(&in, &ch->extensions));
-    GUARD(s2n_stuffer_write(&in, &ch->extensions));
-
-    static __thread s2n_tls_extension_mask parsed_extensions_mask;
-    memset(parsed_extensions_mask, 0, sizeof(s2n_tls_extension_mask));
-
-    while (s2n_stuffer_data_available(&in)) {
-        uint16_t ext_size, ext_type;
-
-        GUARD(s2n_stuffer_read_uint16(&in, &ext_type));
-        GUARD(s2n_stuffer_read_uint16(&in, &ext_size));
-
-        lte_check(ext_size, s2n_stuffer_data_available(&in));
-
-        /* fail early if we encountered a duplicate extension */
-        S2N_ERROR_IF(S2N_CBIT_TEST(parsed_extensions_mask, ext_type), S2N_ERR_BAD_MESSAGE);
-        S2N_CBIT_SET(parsed_extensions_mask, ext_type);
-
-        /* Skip invalid/unknown extensions */
-        if (!S2N_CBIT_TEST(s2n_suported_extensions, ext_type)) {
-            s2n_stuffer_skip_read(&in, ext_size);
-            continue;
-        }
-
-        struct s2n_client_hello_parsed_extension *parsed_extension = NULL;
-        GUARD_AS_POSIX(s2n_array_pushback(ch->parsed_extensions, (void **)&parsed_extension));
-        notnull_check(parsed_extension);
-
-        parsed_extension->extension_type = ext_type;
-        parsed_extension->extension.size = ext_size;
-
-        parsed_extension->extension.data = s2n_stuffer_raw_read(&in, ext_size);
-        notnull_check(parsed_extension->extension.data);
-    }
-
-    /* Sort extensions by extension type */
-    uint32_t parsed_extensions_len = 0;
-    GUARD_AS_POSIX(s2n_array_num_elements(ch->parsed_extensions, &parsed_extensions_len));
-    qsort(ch->parsed_extensions->mem.data, parsed_extensions_len, ch->parsed_extensions->element_size, s2n_parsed_extensions_compare);
+    GUARD(s2n_extension_list_parse(in, &conn->client_hello.extensions));
 
     return 0;
 }
@@ -307,13 +215,11 @@ int s2n_process_client_hello(struct s2n_connection *conn)
         conn->actual_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
     }
 
-    if (client_hello->parsed_extensions != NULL) {
-        uint32_t parsed_extensions_len = 0;
-        GUARD_AS_POSIX(s2n_array_num_elements(client_hello->parsed_extensions, &parsed_extensions_len));
-        if (parsed_extensions_len > 0) {
-            GUARD(s2n_client_extensions_recv(conn, client_hello->parsed_extensions));
-        }
-    }
+    /* s2n_extension_list_process clears the parsed extensions as it processes them.
+     * To keep the version in client_hello intact for the extension retrieval APIs, process a copy instead.
+     */
+    s2n_parsed_extensions_list copy_of_parsed_extensions = conn->client_hello.extensions;
+    GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_CLIENT_HELLO, conn, &copy_of_parsed_extensions));
 
     /* After parsing extensions, select a curve and corresponding keyshare to use */
     if (conn->actual_protocol_version >= S2N_TLS13) {
@@ -351,8 +257,6 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 {
     /* Parse client hello */
     GUARD(s2n_parse_client_hello(conn));
-
-    GUARD(s2n_populate_client_hello_extensions(&conn->client_hello));
 
     /* If the CLIENT_HELLO has already been parsed, then we should not call
      * the client_hello_cb a second time. */
@@ -459,7 +363,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     GUARD(s2n_stuffer_write_uint8(out, 0));
 
     /* Write the extensions */
-    GUARD(s2n_client_extensions_send(conn, out));
+    GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_CLIENT_HELLO, conn, out));
 
     return 0;
 }
@@ -522,53 +426,46 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_client_hello_get_parsed_extension(struct s2n_array *parsed_extensions, s2n_tls_extension_type extension_type,
-        struct s2n_client_hello_parsed_extension *parsed_extension)
+static int s2n_client_hello_get_parsed_extension(s2n_tls_extension_type extension_type,
+        s2n_parsed_extensions_list *parsed_extension_list, s2n_parsed_extension **parsed_extension)
 {
-    notnull_check(parsed_extensions);
+    notnull_check(parsed_extension_list);
+    notnull_check(parsed_extension);
 
-    struct s2n_client_hello_parsed_extension search = {0};
-    search.extension_type = extension_type;
+    s2n_extension_type_id extension_type_id;
+    GUARD(s2n_extension_supported_iana_value_to_id(extension_type, &extension_type_id));
 
-    uint32_t parsed_extensions_len = 0;
-    GUARD_AS_POSIX(s2n_array_num_elements(parsed_extensions, &parsed_extensions_len));
-    struct s2n_client_hello_parsed_extension *result_extension = bsearch(&search, parsed_extensions->mem.data, parsed_extensions_len,
-            parsed_extensions->element_size, s2n_parsed_extensions_compare);
+    s2n_parsed_extension *found_parsed_extension = &parsed_extension_list->parsed_extensions[extension_type_id];
+    notnull_check(found_parsed_extension->extension.data);
+    ENSURE_POSIX(found_parsed_extension->extension_type == extension_type, S2N_ERR_INVALID_PARSED_EXTENSIONS);
 
-    notnull_check(result_extension);
-
-    parsed_extension->extension_type = result_extension->extension_type;
-    parsed_extension->extension = result_extension->extension;
-    return 0;
+    *parsed_extension = found_parsed_extension;
+    return S2N_SUCCESS;
 }
 
 ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type)
 {
     notnull_check(ch);
-    notnull_check(ch->parsed_extensions);
 
-    struct s2n_client_hello_parsed_extension parsed_extension = {0};
-
-    if (s2n_client_hello_get_parsed_extension(ch->parsed_extensions, extension_type, &parsed_extension)) {
+    s2n_parsed_extension *parsed_extension = NULL;
+    if (s2n_client_hello_get_parsed_extension(extension_type, &ch->extensions, &parsed_extension) != S2N_SUCCESS) {
         return 0;
     }
 
-    return parsed_extension.extension.size;
+    return parsed_extension->extension.size;
 }
 
 ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length)
 {
     notnull_check(ch);
     notnull_check(out);
-    notnull_check(ch->parsed_extensions);
 
-    struct s2n_client_hello_parsed_extension parsed_extension = {0};
-
-    if (s2n_client_hello_get_parsed_extension(ch->parsed_extensions, extension_type, &parsed_extension)) {
+    s2n_parsed_extension *parsed_extension = NULL;
+    if (s2n_client_hello_get_parsed_extension(extension_type, &ch->extensions, &parsed_extension) != S2N_SUCCESS) {
         return 0;
     }
 
-    uint32_t len = min_size(&parsed_extension.extension, max_length);
-    memcpy_check(out, parsed_extension.extension.data, len);
+    uint32_t len = min_size(&parsed_extension->extension, max_length);
+    memcpy_check(out, parsed_extension->extension.data, len);
     return len;
 }

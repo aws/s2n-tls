@@ -54,6 +54,37 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
 
+    /* Test s2n_client_hello_get_extension_by_id */
+    {
+        /* Test with invalid parsed extensions */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+            s2n_tls_extension_type test_extension_type = S2N_EXTENSION_SERVER_NAME;
+
+            s2n_extension_type_id test_extension_type_id;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(test_extension_type, &test_extension_type_id));
+
+            uint8_t data[] = "data";
+            s2n_parsed_extension *parsed_extension = &conn->client_hello.extensions.parsed_extensions[test_extension_type_id];
+            parsed_extension->extension_type = test_extension_type;
+            parsed_extension->extension.data = data;
+            parsed_extension->extension.size = sizeof(data);
+
+            /* Succeeds with correct extension type */
+            EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(&conn->client_hello,
+                    test_extension_type, data, sizeof(data)), sizeof(data));
+
+            /* Fails with wrong extension type */
+            parsed_extension->extension_type = test_extension_type + 1;
+            EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(&conn->client_hello,
+                    test_extension_type, data, sizeof(data)), 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
+
     /* Test setting cert chain on recv */
     {
         s2n_enable_tls13();
@@ -346,7 +377,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_client_hello_get_cipher_suites_length(client_hello), sizeof(expected_cs));
 
         /* Verify collected extensions size correct */
-        EXPECT_EQUAL(client_hello->extensions.size, 0);
+        EXPECT_EQUAL(client_hello->extensions.raw.size, 0);
 
         /* Verify s2n_client_hello_get_extensions_length correct */
         EXPECT_EQUAL(s2n_client_hello_get_extensions_length(client_hello), 0);
@@ -374,11 +405,8 @@ int main(int argc, char **argv)
         /* Verify the s2n blobs referencing cipher_suites and extensions have cleared */
         EXPECT_EQUAL(client_hello->cipher_suites.size, 0);
         EXPECT_NULL(client_hello->cipher_suites.data);
-        EXPECT_EQUAL(client_hello->extensions.size, 0);
-        EXPECT_NULL(client_hello->extensions.data);
-
-        /* Verify parsed extesions array in client hello is cleared */
-        EXPECT_NULL(client_hello->parsed_extensions);
+        EXPECT_EQUAL(client_hello->extensions.raw.size, 0);
+        EXPECT_NULL(client_hello->extensions.raw.data);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
@@ -576,10 +604,10 @@ int main(int argc, char **argv)
         cs_out = NULL;
 
         /* Verify collected extensions size correct */
-        EXPECT_EQUAL(client_hello->extensions.size, client_extensions_len);
+        EXPECT_EQUAL(client_hello->extensions.raw.size, client_extensions_len);
 
         /* Verify collected extensions correct */
-        EXPECT_SUCCESS(memcmp(client_hello->extensions.data, client_extensions, client_extensions_len));
+        EXPECT_SUCCESS(memcmp(client_hello->extensions.raw.data, client_extensions, client_extensions_len));
 
         /* Verify s2n_client_hello_get_extensions_length correct */
         EXPECT_EQUAL(s2n_client_hello_get_extensions_length(client_hello), client_extensions_len);
@@ -588,7 +616,7 @@ int main(int argc, char **argv)
         uint8_t *extensions_out;
 
         /* Verify s2n_client_hello_get_extensions retrieves the full cipher_suites when its len <= max_len */
-        EXPECT_TRUE(client_hello->extensions.size < S2N_LARGE_RECORD_LENGTH);
+        EXPECT_TRUE(client_hello->extensions.raw.size < S2N_LARGE_RECORD_LENGTH);
         EXPECT_NOT_NULL(extensions_out = malloc(S2N_LARGE_RECORD_LENGTH));
         EXPECT_EQUAL(client_extensions_len, s2n_client_hello_get_extensions(client_hello, extensions_out, S2N_LARGE_RECORD_LENGTH));
         EXPECT_SUCCESS(memcmp(extensions_out, client_extensions, client_extensions_len));
@@ -601,7 +629,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(extensions_out = malloc(max_len));
         EXPECT_EQUAL(max_len, s2n_client_hello_get_extensions(client_hello, extensions_out, max_len));
-        EXPECT_SUCCESS(memcmp(extensions_out, client_hello->extensions.data, max_len));
+        EXPECT_SUCCESS(memcmp(extensions_out, client_hello->extensions.raw.data, max_len));
         free(extensions_out);
         extensions_out = NULL;
 
@@ -651,11 +679,8 @@ int main(int argc, char **argv)
         /* Verify the s2n blobs referencing cipher_suites and extensions have cleared */
         EXPECT_EQUAL(client_hello->cipher_suites.size, 0);
         EXPECT_NULL(client_hello->cipher_suites.data);
-        EXPECT_EQUAL(client_hello->extensions.size, 0);
-        EXPECT_NULL(client_hello->extensions.data);
-
-        /* Verify parsed extesions array in client hello is cleared */
-        EXPECT_NULL(client_hello->parsed_extensions);
+        EXPECT_EQUAL(client_hello->extensions.raw.size, 0);
+        EXPECT_NULL(client_hello->extensions.raw.data);
 
         /* Verify the connection is successfully reused after connection_wipe */
 
