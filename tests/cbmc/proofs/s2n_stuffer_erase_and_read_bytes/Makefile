@@ -13,7 +13,7 @@
 
 ###########
 #Use the default set of CBMC flags
-CBMCFLAGS +=
+CHECKFLAGS +=
 
 DEPENDENCIES += $(HELPERDIR)/source/cbmc_utils.c
 DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c

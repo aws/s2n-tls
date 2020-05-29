@@ -14,7 +14,7 @@
 ################################################################
 # This Makefile is the base makefile for CBMC proofs in this repository
 # Consumers of this makefile are expected to set the relevant variables
-# e.g. ENTRY, CBMCFLAGS, UNWINDSET etc
+# e.g. ENTRY, CHECKFLAGS, UNWINDSET etc
 # and then include this makefile.  To see how to use this makefile, take a look
 # at any of the existing proofs in this repository.
 #
@@ -92,19 +92,22 @@ LOG_FROM_ENTRY = $(LOGDIR)/$(notdir $(1:.goto=.log))
 LOG_FROM_GOTO = $(patsubst $(GOTODIR)%,$(LOGDIR)%,$(1:.goto=.log))
 
 ################################################################
-# Default CBMC flags
-CBMCFLAGS += --bounds-check
-CBMCFLAGS += --conversion-check
-CBMCFLAGS += --div-by-zero-check
-CBMCFLAGS += --float-overflow-check
-CBMCFLAGS += --nan-check
-CBMCFLAGS += --pointer-check
-CBMCFLAGS += --pointer-overflow-check
-CBMCFLAGS += --signed-overflow-check
-CBMCFLAGS += --undefined-shift-check
-CBMCFLAGS += --unsigned-overflow-check
+# CBMC flags used when performing safety checks
+CHECKFLAGS += --bounds-check
+CHECKFLAGS += --conversion-check
+CHECKFLAGS += --div-by-zero-check
+CHECKFLAGS += --float-overflow-check
+CHECKFLAGS += --nan-check
+CHECKFLAGS += --pointer-check
+CHECKFLAGS += --pointer-overflow-check
+CHECKFLAGS += --signed-overflow-check
+CHECKFLAGS += --undefined-shift-check
+CHECKFLAGS += --unsigned-overflow-check
+CHECKFLAGS += --unwinding-assertions
+
+################################################################
+# CBMC flags used for all CBMC invocations, even coverage checking
 CBMCFLAGS += --unwind 1
-CBMCFLAGS += --unwinding-assertions
 
 ################################################################
 # Verbosity
@@ -247,13 +250,15 @@ goto: $(ENTRY_GOTO).goto
 ################################################################
 # Targets to run the analysis commands
 logs/cbmc.log: $(ENTRY_GOTO).goto
-	$(call DO_CBMC,$(CBMCFLAGS) --trace,$<,$@)
+	$(call DO_CBMC,$(CBMCFLAGS) $(CHECKFLAGS) --trace,$<,$@)
 
 logs/property.xml: $(ENTRY_GOTO).goto
-	$(call DO_CBMC,$(CBMCFLAGS) --show-properties --xml-ui,$<,$@)
+	$(call DO_CBMC,$(CBMCFLAGS) $(CHECKFLAGS) --show-properties --xml-ui,$<,$@)
 
+# CHECKFLAGS intentionally omitted here---no need to perform safety
+# checks when computing coverage
 logs/coverage.xml: $(ENTRY_GOTO).goto
-	$(call DO_CBMC,$(filter-out --unwinding-assertions,$(CBMCFLAGS)) --cover location --xml-ui,$<,$@)
+	$(call DO_CBMC,$(CBMCFLAGS)               --cover location --xml-ui,$<,$@)
 
 cbmc: logs/cbmc.log
 

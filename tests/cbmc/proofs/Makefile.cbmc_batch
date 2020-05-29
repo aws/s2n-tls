@@ -21,7 +21,7 @@ BATCHFLAGS ?= \
 	--batchpkg $(BATCHPKG) \
 	--blddir $(SRCDIR) \
 	--bucket $(BUCKET) \
-	--cbmcflags $(call encode_options,$(CBMCFLAGS)) \
+	--cbmcflags $(call encode_options,$(CHECKFLAGS)) \
 	--cbmcpkg $(CBMCPKG) \
 	--coverage-memory $(COVMEM) \
 	--goto gotos/$(ENTRY).goto \
@@ -53,7 +53,7 @@ endef
 $(ENTRY).yaml: 
 	echo 'batchpkg: $(BATCHPKG)' > $@
 	echo 'build: true' >> $@
-	echo 'cbmcflags: $(call yaml_encode_options,$(CBMCFLAGS))' >> $@
+	echo 'cbmcflags: $(call yaml_encode_options,$(CHECKFLAGS) $(CBMCFLAGS))' >> $@
 	echo 'cbmcpkg: $(CBMCPKG)' >> $@
 	echo 'coverage_memory: $(COVMEM)' >> $@
 	echo 'expected: "SUCCESSFUL"' >> $@
@@ -65,7 +65,7 @@ $(ENTRY).yaml:
 batch-yaml: $(ENTRY).yaml Makefile
 
 cbmc-batch.yaml: 
-	echo 'cbmcflags: $(strip $(call yaml_encode_options,$(CBMCFLAGS)))' > $@
+	echo 'cbmcflags: $(strip $(call yaml_encode_options,$(CHECKFLAGS) $(CBMCFLAGS)))' > $@
 	echo 'expected: "SUCCESSFUL"' >> $@
 	echo 'goto: gotos/$(ENTRY).goto' >> $@
 	echo 'jobos: ubuntu16' >> $@
