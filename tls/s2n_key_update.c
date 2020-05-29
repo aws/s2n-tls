@@ -24,12 +24,12 @@
 
 int s2n_key_update_write(struct s2n_blob *out);
 
-int s2n_key_update_recv(struct s2n_connection *conn)
+int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request)
 {
     notnull_check(conn);
 
     uint8_t key_update_request;
-    GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &key_update_request));
+    GUARD(s2n_stuffer_read_uint8(request, &key_update_request));
     S2N_ERROR_IF(key_update_request != S2N_KEY_UPDATE_NOT_REQUESTED && key_update_request != S2N_KEY_UPDATE_REQUESTED,
             S2N_ERR_BAD_MESSAGE);
     conn->key_update_pending = key_update_request;
@@ -88,14 +88,11 @@ int s2n_key_update_write(struct s2n_blob *out)
 int s2n_check_key_limits(struct s2n_connection *conn, size_t size) 
 {
     notnull_check(conn);
+    notnull_check(conn->secure.cipher_suite);
+    notnull_check(conn->secure.cipher_suite->record_alg);
 
-    const struct s2n_record_algorithm *record_alg = conn->secure.cipher_suite->record_alg;
-    notnull_check(record_alg);
-
-    if (record_alg->encryption_limit < UINT64_MAX) {
-        if (conn->encrypted_bytes_out + size >= record_alg->encryption_limit) {
-            conn->key_update_pending = true;
-        }
+    if (conn->encrypted_bytes_out + size > conn->secure.cipher_suite->record_alg->encryption_limit) {
+        conn->key_update_pending = true;
     }
 
     return S2N_SUCCESS;

@@ -19,14 +19,17 @@
 
 #define S2N_KEY_UPDATE_MESSAGE_SIZE  5
 #define S2N_KEY_UPDATE_LENGTH        1
-#define S2N_KEY_UPDATE_NOT_REQUESTED 0
-#define S2N_KEY_UPDATE_REQUESTED     1
 
 typedef enum {
     SENDING=0,
     RECEIVING
 } keyupdate_status;
 
-int s2n_key_update_recv(struct s2n_connection *conn);
+typedef enum {
+    S2N_KEY_UPDATE_NOT_REQUESTED=0,
+    S2N_KEY_UPDATE_REQUESTED
+} keyupdate_request;
+
+int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request);
 int s2n_key_update_send(struct s2n_connection *conn, size_t size);
 int s2n_check_key_limits(struct s2n_connection *conn, size_t size); 

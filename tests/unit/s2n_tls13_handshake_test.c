@@ -144,14 +144,9 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->out), 9);
         EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->out));
         client_conn->client = &client_conn->secure;
-        uint8_t expected_encrypted_bytes_out;
-        uint8_t mac_digest_size;
-        EXPECT_SUCCESS(s2n_hmac_digest_size(client_conn->client->client_record_mac.alg, &mac_digest_size));
-        expected_encrypted_bytes_out = client_conn->encrypted_bytes_out + mac_digest_size +  TLS13_CONTENT_TYPE_LENGTH + 
-            client_conn->client->cipher_suite->record_alg->cipher->io.aead.tag_size + cafefood_from_client.size;
+
         /* let client write a message to server */
         EXPECT_SUCCESS(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &cafefood_from_client));
-        EXPECT_EQUAL(client_conn->encrypted_bytes_out, expected_encrypted_bytes_out);
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->out), 26);
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->header_in, 5));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->in, s2n_stuffer_data_available(&client_conn->out)));
@@ -191,12 +186,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->out));
 
-        EXPECT_SUCCESS(s2n_hmac_digest_size(server_conn->server->server_record_mac.alg, &mac_digest_size));
-        expected_encrypted_bytes_out = server_conn->encrypted_bytes_out + mac_digest_size +  TLS13_CONTENT_TYPE_LENGTH + 
-            server_conn->server->cipher_suite->record_alg->cipher->io.aead.tag_size + deadbeef_from_server.size;
         EXPECT_SUCCESS(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &deadbeef_from_server));
         EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->out), 26);
-        EXPECT_EQUAL(server_conn->encrypted_bytes_out, expected_encrypted_bytes_out);
 
         /* test that client decrypts deadbeef correctly with application data */
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->out, &client_conn->header_in, 5));
@@ -206,12 +197,8 @@ int main(int argc, char **argv)
         S2N_STUFFER_READ_EXPECT_EQUAL(&client_conn->in, TLS_APPLICATION_DATA, uint8);
 
         /* let client write an application message to server */
-        EXPECT_SUCCESS(s2n_hmac_digest_size(client_conn->client->client_record_mac.alg, &mac_digest_size));
-        expected_encrypted_bytes_out = client_conn->encrypted_bytes_out + mac_digest_size +  TLS13_CONTENT_TYPE_LENGTH + 
-            client_conn->client->cipher_suite->record_alg->cipher->io.aead.tag_size + cafefood_from_client.size;
         EXPECT_SUCCESS(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &cafefood_from_client));
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->out), 26);
-        EXPECT_EQUAL(server_conn->encrypted_bytes_out, expected_encrypted_bytes_out);
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->header_in, 5));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->in, s2n_stuffer_data_available(&client_conn->out)));
 
