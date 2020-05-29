@@ -98,6 +98,9 @@ int main(int argc, char **argv)
     }
 
     /* Clean up */
+    EXPECT_SUCCESS(s2n_stuffer_free(&client_to_server));
+    EXPECT_SUCCESS(s2n_stuffer_free(&server_to_client));
+    
     EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
     END_TEST();
