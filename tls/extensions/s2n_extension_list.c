@@ -104,10 +104,6 @@ int s2n_extension_list_process(s2n_extension_list_id list_type, struct s2n_conne
                 conn, parsed_extension_list));
     }
 
-    /* If we did not process an extension, than that extension is not allowed on this message type. */
-    ENSURE_POSIX(memcmp(parsed_extension_list->parsed_extensions, empty_parsed_extensions, sizeof(empty_parsed_extensions)) == 0,
-            S2N_ERR_UNSUPPORTED_EXTENSION);
-
     return S2N_SUCCESS;
 }
 
