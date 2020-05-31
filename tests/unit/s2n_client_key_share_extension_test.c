@@ -130,6 +130,99 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
         
+        /* Test that s2n_client_key_share_extension.send sends empty client key share list when
+         * s2n_connection_set_keyshare_by_group_for_testing is called with IANA_ID = 0 */
+        {
+            struct s2n_stuffer key_share_extension;
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+            /* Force the client to send an empty list of keyshares */
+            uint16_t iana_value = 0;
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, iana_value));
+
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
+
+            EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
+
+            const struct s2n_ecc_preferences *ecc_preferences = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
+            EXPECT_NOT_NULL(ecc_preferences);
+
+            for (size_t i = 0; i < ecc_preferences->count; i++) {
+                struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
+                EXPECT_EQUAL(ecc_evp_params->negotiated_curve, ecc_preferences->ecc_curves[i]);
+                EXPECT_NULL(ecc_evp_params->evp_pkey);
+            }
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Test that s2n_client_key_share_extension.send sends client key share list with keyshare present only for curve p-256 */
+        {
+            struct s2n_stuffer key_share_extension;
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+            /* Force the client to send only p-256 keyshare in keyshare list */
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, TLS_EC_CURVE_SECP_256_R1));
+
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
+
+            EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
+
+            const struct s2n_ecc_preferences *ecc_preferences = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
+            EXPECT_NOT_NULL(ecc_preferences);
+
+            for (size_t i = 0; i < ecc_preferences->count; i++) {
+                struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
+                EXPECT_EQUAL(ecc_evp_params->negotiated_curve, ecc_preferences->ecc_curves[i]);
+                if (ecc_evp_params->negotiated_curve->iana_id == TLS_EC_CURVE_SECP_256_R1) {
+                    EXPECT_NOT_NULL(ecc_evp_params->evp_pkey);
+                } else {
+                    EXPECT_NULL(ecc_evp_params->evp_pkey);
+                }
+            }
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Test that s2n_client_key_share_extension.send sends client key share list with a keyshare present only for curve p-256 and p-384 */
+        {
+            struct s2n_stuffer key_share_extension;
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+            /* Force the client to send only p-256  and p-384 keyshares in keyshare list */
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, TLS_EC_CURVE_SECP_256_R1));
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, TLS_EC_CURVE_SECP_384_R1));
+
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
+
+            EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
+
+            const struct s2n_ecc_preferences *ecc_preferences = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
+            EXPECT_NOT_NULL(ecc_preferences);
+
+            for (size_t i = 0; i < ecc_preferences->count; i++) {
+                struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
+                EXPECT_EQUAL(ecc_evp_params->negotiated_curve, ecc_preferences->ecc_curves[i]);
+                if (ecc_evp_params->negotiated_curve->iana_id == TLS_EC_CURVE_SECP_256_R1 || 
+                     ecc_evp_params->negotiated_curve->iana_id == TLS_EC_CURVE_SECP_384_R1) {
+                    EXPECT_NOT_NULL(ecc_evp_params->evp_pkey);
+                } else {
+                    EXPECT_NULL(ecc_evp_params->evp_pkey);
+                }
+            }
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
         /* Test s2n_client_key_share_extension.send for a supported curve present in s2n_all_supported_curves_list,
          * but not present in the ecc_preferences list selected */
         if (s2n_is_evp_apis_supported()) {
