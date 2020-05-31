@@ -174,6 +174,8 @@ int main(int argc, char **argv)
             "default_tls13",
             "test_all",
             "test_all_tls13",
+            "20190801",
+            "20190802"
         };
         for (size_t i = 0; i < s2n_array_len(tls13_security_policy_strings); i++) {
             security_policy = NULL;
