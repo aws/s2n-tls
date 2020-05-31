@@ -178,6 +178,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn->security_policy_override = NULL;
     conn->ticket_lifetime_hint = 0;
     conn->session_ticket_status = S2N_NO_TICKET;
+    conn->preferred_key_shares = 0;
 
     /* Allocate the fixed-size stuffers */
     blob = (struct s2n_blob) {0};
@@ -267,6 +268,7 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->verify_host_fn = NULL;
     conn->verify_host_fn_overridden = 0;
     conn->data_for_verify_host = NULL;
+    conn->preferred_key_shares = 0;
     s2n_connection_set_config(conn, config);
 
     return 0;
@@ -1289,4 +1291,28 @@ uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn)
         return conn->client_protocol_version;
     }
     return conn->server_protocol_version;
+}
+
+int s2n_connection_set_keyshare_by_group_for_testing(struct s2n_connection *conn, uint16_t iana_id)
+{
+    S2N_ERROR_IF(!S2N_IN_TEST, S2N_ERR_NOT_IN_TEST);
+    notnull_check(conn);
+
+    if (iana_id == 0) {
+        conn->preferred_key_shares |= 1;
+        return 0;
+    }
+
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    notnull_check(ecc_pref);
+
+    for (size_t i = 0; i < ecc_pref->count; i++) {
+                if (ecc_pref->ecc_curves[i]->iana_id == iana_id) {
+            conn->preferred_key_shares |= ( 1 << ( i + 1 ));
+            return 0;
+        }
+    }
+
+    S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 }

@@ -305,6 +305,14 @@ struct s2n_connection {
 
     /* Key update data */
     unsigned key_update_pending:1;
+
+    /* Bitmap to represent preferred list of keyshare for client to generate and send keyshares in the ClientHello message.
+     * The least significant bit (lsb), if set, indicates that the client must send an empty keyshare list.
+     * Each bit value in the bitmap indiciates the corresponding curve in the ecc_preferences list for which a key share needs to be generated.
+     * The order of the curves represented in the bitmap is obtained from the security_policy->ecc_preferences.
+     * Setting and manipulating this value requires security_policy to be configured prior.
+     * */
+    uint8_t preferred_key_shares;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);
@@ -327,3 +335,5 @@ int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_au
 int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_cert_auth_type);
 int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
 uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn);
+/* IANA_ID = 0 is RESERVED and is used to represent sending a list of empty keyshares */
+int s2n_connection_set_keyshare_by_group_for_testing(struct s2n_connection *conn, uint16_t iana_id);
