@@ -445,7 +445,7 @@ int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_e
     /* Set the point as the public key */
     int success = EC_KEY_set_public_key(ec_key, point);
 
-    GUARD_OSSL(EVP_PKEY_set1_EC_KEY(ecc_evp_params->evp_pkey,ec_key), S2N_ERR_ECDHE_SERIALIZING);
+    GUARD_OSSL(EVP_PKEY_set1_EC_KEY(ecc_evp_params->evp_pkey, ec_key), S2N_ERR_ECDHE_SERIALIZING);
 
     /* EC_KEY_set_public_key returns 1 on success, 0 on failure */
     S2N_ERROR_IF(success == 0, S2N_ERR_BAD_MESSAGE);

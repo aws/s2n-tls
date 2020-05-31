@@ -56,6 +56,7 @@ int s2n_fd_set_blocking(int fd);
 int s2n_fd_set_non_blocking(int fd);
 
 int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn);
+int s2n_set_connection_server_hello_flags(struct s2n_connection *conn);
 int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn);
 
 int s2n_unsafe_set_drbg_seed(const struct s2n_blob *seed);

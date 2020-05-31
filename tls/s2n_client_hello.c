@@ -194,6 +194,7 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
 
     /* This is going to be our default if the client has no preference. */
     conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+    conn->secure.server_ecc_evp_params.evp_pkey = NULL;
 
     GUARD(s2n_extension_list_parse(in, &conn->client_hello.extensions));
 

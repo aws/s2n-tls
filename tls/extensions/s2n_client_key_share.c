@@ -101,10 +101,48 @@ static int s2n_generate_preferred_key_shares(struct s2n_connection *conn, struct
     return S2N_SUCCESS;
 }
 
+static int s2n_send_hrr_keyshare(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    const struct s2n_ecc_named_curve *named_curve = NULL;
+    struct s2n_ecc_evp_params *ecc_evp_params = NULL;
+
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    notnull_check(ecc_pref);
+
+    /* Our original key shares weren't succesful, so clear the old list of keyshares */
+    for (int i = 0; i < ecc_pref->count; i++) {
+        if (&conn->secure.client_ecc_evp_params[i] != NULL) {
+            GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
+            conn->secure.client_ecc_evp_params[i].negotiated_curve = NULL;
+        }
+    }
+
+    /* Generate the keyshare for the server negotiated curve */
+    ecc_evp_params = &conn->secure.client_ecc_evp_params[0];
+    named_curve = conn->secure.server_ecc_evp_params.negotiated_curve;
+    notnull_check(named_curve);
+
+    ecc_evp_params->negotiated_curve = named_curve;
+    ecc_evp_params->evp_pkey = NULL;
+    GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
+
+    return S2N_SUCCESS;
+}
+
 static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     notnull_check(conn);
     notnull_check(conn->config);
+
+    /* From https://tools.ietf.org/html/rfc8446#section-4.1.2
+     * If a "key_share" extension was supplied in the HelloRetryRequest,
+     * replace the list of shares with a list containing a single
+     * KeyShareEntry from the indicated group.*/
+    if (s2n_check_if_hrr_random(conn)) {
+        GUARD(s2n_send_hrr_keyshare(conn, out));
+        return S2N_SUCCESS;
+    }
 
     GUARD(s2n_generate_preferred_key_shares(conn, out));
     return S2N_SUCCESS;
@@ -210,7 +248,7 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
     /* If there was no matching key share then we received an empty key share extension
      * or we didn't match a keyshare with a supported group. We should send a retry. */
     if (match == 0) {
-        GUARD(s2n_set_hello_retry_required(conn));
+        GUARD(s2n_set_hello_retry_handshake(conn));
     }
 
     return S2N_SUCCESS;

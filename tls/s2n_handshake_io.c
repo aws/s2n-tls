@@ -507,7 +507,7 @@ int s2n_generate_new_client_session_id(struct s2n_connection *conn)
 }
 
 /* Lets the server flag whether a HelloRetryRequest is needed while processing extensions */
-int s2n_set_hello_retry_required(struct s2n_connection *conn)
+int s2n_set_hello_retry_handshake(struct s2n_connection *conn)
 {
     conn->handshake.handshake_type |= HELLO_RETRY_REQUEST;
 
@@ -516,7 +516,7 @@ int s2n_set_hello_retry_required(struct s2n_connection *conn)
 
 /* Lets the server determine whether a HelloRetryRequest should be sent.
  * A retry is only possible after the first ClientHello (HELLO_RETRY_MSG). */
-bool s2n_is_hello_retry_required(struct s2n_connection *conn)
+bool s2n_is_hello_retry_message(struct s2n_connection *conn)
 {
     return ACTIVE_MESSAGE(conn) == HELLO_RETRY_MSG;
 }

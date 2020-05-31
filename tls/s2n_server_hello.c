@@ -105,6 +105,14 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     GUARD(s2n_stuffer_read_bytes(in, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
+    /* If the client receives a second HelloRetryRequest in the same connection, it MUST send an error. */
+    if (s2n_check_if_hrr_random(conn)) {
+        if (conn->handshake.handshake_type & HELLO_RETRY_REQUEST) {
+            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+        }
+        GUARD(s2n_set_hello_retry_handshake(conn));
+    }
+
     GUARD(s2n_stuffer_read_uint8(in, &session_id_len));
     S2N_ERROR_IF(session_id_len > S2N_TLS_SESSION_ID_MAX_LEN, S2N_ERR_BAD_MESSAGE);
     GUARD(s2n_stuffer_read_bytes(in, session_id, session_id_len));
