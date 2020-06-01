@@ -104,9 +104,18 @@ int s2n_extension_list_process(s2n_extension_list_id list_type, struct s2n_conne
                 conn, parsed_extension_list));
     }
 
-    /* If we did not process an extension, than that extension is not allowed on this message type. */
-    ENSURE_POSIX(memcmp(parsed_extension_list->parsed_extensions, empty_parsed_extensions, sizeof(empty_parsed_extensions)) == 0,
-            S2N_ERR_UNSUPPORTED_EXTENSION);
+    /* If parsed_extension_list.parsed_extensions is not completely wiped at this point,
+     * then we have received an extension not allowed on this message type.
+     *
+     * According to the RFC, we should alert and close the connection.
+     * From https://tools.ietf.org/html/rfc8446#section-4.2:
+     *    If an implementation receives an extension which it recognizes and which is not
+     *    specified for the message in which it appears, it MUST abort the handshake with an
+     *    "illegal_parameter" alert.
+     *
+     * However, to be more tolerant of non-compliant peers, we will just ignore and not
+     * process the illegal extensions, treating them as if they are unsupported.
+     */
 
     return S2N_SUCCESS;
 }

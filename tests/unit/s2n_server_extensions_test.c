@@ -550,9 +550,10 @@ int main(int argc, char **argv)
                     server_conn, &stuffer));
             EXPECT_SUCCESS(s2n_stuffer_write_vector_size(extension_list_size));
 
+            EXPECT_EQUAL(client_conn->status_type, S2N_STATUS_REQUEST_NONE);
             EXPECT_EQUAL(client_conn->server_protocol_version, S2N_UNKNOWN_PROTOCOL_VERSION);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_server_extensions_recv(client_conn, &stuffer),
-                    S2N_ERR_UNSUPPORTED_EXTENSION);
+            EXPECT_SUCCESS(s2n_server_extensions_recv(client_conn, &stuffer));
+            EXPECT_EQUAL(client_conn->status_type, S2N_STATUS_REQUEST_NONE);
             EXPECT_EQUAL(client_conn->server_protocol_version, S2N_TLS13);
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
