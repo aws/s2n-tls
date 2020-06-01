@@ -103,8 +103,12 @@ int main(int argc, char **argv)
         
         /* Verify key update happened */
         EXPECT_BYTEARRAY_NOT_EQUAL(server_conn->secure.server_app_secret, client_conn->secure.server_app_secret, S2N_TLS13_SECRET_MAX_LEN);
-        EXPECT_TRUE(server_conn->encrypted_bytes_out < S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT);
 
+        /* Verify encrypted_bytes_out is being counted correctly */
+        uint8_t expected_encrypted_bytes_out = sizeof(message) +
+            server_conn->secure.cipher_suite->record_alg->cipher->io.aead.tag_size + TLS13_CONTENT_TYPE_LENGTH;
+        EXPECT_EQUAL(server_conn->encrypted_bytes_out, expected_encrypted_bytes_out);
+        
         /* Receive keyupdate message */
         uint8_t data[100];
         EXPECT_SUCCESS(s2n_recv(client_conn, data, sizeof(message), &blocked));

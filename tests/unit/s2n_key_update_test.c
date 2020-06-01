@@ -64,97 +64,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(key_update_request, S2N_KEY_UPDATE_NOT_REQUESTED);
         }
     }
-    /* s2n_check_key_limits */
-    {
-        /* Key update NOT triggered when encrypted bytes exactly matches encryption limit */
-        {
-            struct s2n_connection *conn;
-            uint8_t data_size = 1;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            EXPECT_EQUAL(conn->key_update_pending, 0);
-            conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT - data_size;
-
-            EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
-            EXPECT_EQUAL(conn->key_update_pending, 0);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn)); 
-        }
-
-        /* Key update is triggered when encrypted bytes exceeds encryption limit */
-        {
-            struct s2n_connection *conn;
-            uint8_t data_size = 1;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-
-            EXPECT_EQUAL(conn->key_update_pending, 0);
-            conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT + 1;
-
-            EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
-            EXPECT_EQUAL(conn->key_update_pending, 1);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn)); 
-        }
-
-        /* Key update NOT triggered when encrypted bytes are below encryption limit */
-        {
-            struct s2n_connection *conn;
-            uint8_t data_size = 1;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            
-            EXPECT_EQUAL(conn->key_update_pending, 0);
-            conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT - 5;
-
-            EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
-            EXPECT_EQUAL(conn->key_update_pending, 0);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn)); 
-        }
-
-        /* Key update NOT triggered when cipher suite does not have encryption limit */
-        {
-            struct s2n_connection *conn;
-            uint8_t data_size = 1;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            conn->actual_protocol_version = S2N_TLS13;
-            /* Setting cipher suite to suite that does not have an encryption limit */
-            conn->secure.cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
-            
-            EXPECT_EQUAL(conn->key_update_pending, 0);
-            conn->encrypted_bytes_out = UINT64_MAX;
-
-            EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
-            EXPECT_EQUAL(conn->key_update_pending, 0);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn)); 
-        }
-
-        /* Key update NOT triggered when cipher suite does not have encryption limit and
-         * when encrypted_bytes_out exactly equals UINT64_MAX
-         */
-        {
-            struct s2n_connection *conn;
-            uint8_t data_size = 1;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            conn->actual_protocol_version = S2N_TLS13;
-            /* Setting cipher suite to suite that does not have an encryption limit */
-            conn->secure.cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
-            
-            EXPECT_EQUAL(conn->key_update_pending, 0);
-            conn->encrypted_bytes_out = UINT64_MAX - data_size;
-
-            EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
-            EXPECT_EQUAL(conn->key_update_pending, 0);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn)); 
-        }
-    }
-
     /* s2n_key_update_recv */
     {
         /* Key update message received contains invalid key update request */
@@ -283,5 +192,97 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
         }
     }
+    /* s2n_check_key_limits */
+    {
+        /* Key update NOT triggered when encrypted bytes exactly matches encryption limit */
+        {
+            struct s2n_connection *conn;
+            uint8_t data_size = 1;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            EXPECT_EQUAL(conn->key_update_pending, 0);
+            conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT - data_size;
+
+            EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
+            EXPECT_EQUAL(conn->key_update_pending, 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn)); 
+        }
+
+        /* Key update is triggered when encrypted bytes exceeds encryption limit */
+        {
+            struct s2n_connection *conn;
+            uint8_t data_size = 1;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+
+            EXPECT_EQUAL(conn->key_update_pending, 0);
+            conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT + 1;
+
+            EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
+            EXPECT_EQUAL(conn->key_update_pending, 1);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn)); 
+        }
+
+        /* Key update NOT triggered when encrypted bytes are below encryption limit */
+        {
+            struct s2n_connection *conn;
+            uint8_t data_size = 1;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            
+            EXPECT_EQUAL(conn->key_update_pending, 0);
+            conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT - 5;
+
+            EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
+            EXPECT_EQUAL(conn->key_update_pending, 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn)); 
+        }
+
+        /* Key update NOT triggered when cipher suite does not have encryption limit */
+        /* Skip test if libcrypto doesn't support the cipher */
+        if (s2n_chacha20_poly1305.is_available()) {
+            struct s2n_connection *conn;
+            uint8_t data_size = 1;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            conn->actual_protocol_version = S2N_TLS13;
+            /* Setting cipher suite to suite that does not have an encryption limit */
+            conn->secure.cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
+            
+            EXPECT_EQUAL(conn->key_update_pending, 0);
+            conn->encrypted_bytes_out = UINT64_MAX;
+
+            EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
+            EXPECT_EQUAL(conn->key_update_pending, 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn)); 
+        }
+
+        /* Key update NOT triggered when cipher suite does not have encryption limit and
+         * when encrypted_bytes_out exactly equals UINT64_MAX
+         */
+        if (s2n_chacha20_poly1305.is_available()) {
+            struct s2n_connection *conn;
+            uint8_t data_size = 1;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            conn->actual_protocol_version = S2N_TLS13;
+            /* Setting cipher suite to suite that does not have an encryption limit */
+            conn->secure.cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
+            
+            EXPECT_EQUAL(conn->key_update_pending, 0);
+            conn->encrypted_bytes_out = UINT64_MAX - data_size;
+
+            EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
+            EXPECT_EQUAL(conn->key_update_pending, 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn)); 
+        }
+    }
+
     END_TEST();
 }
