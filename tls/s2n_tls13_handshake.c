@@ -188,17 +188,18 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
     struct s2n_session_key *old_key;
     struct s2n_blob old_app_secret;
     struct s2n_blob sequence_number;
+    struct s2n_blob app_iv;
 
     if (mode == S2N_CLIENT) {
         old_key = &conn->secure.client_key;
         GUARD(s2n_blob_init(&old_app_secret, conn->secure.client_app_secret, keys.size));
-        sequence_number.data = conn->secure.client_sequence_number;
-        sequence_number.size = sizeof(conn->secure.client_sequence_number);
+        GUARD(s2n_blob_init(&sequence_number, conn->secure.client_sequence_number, sizeof(conn->secure.client_sequence_number)));
+        GUARD(s2n_blob_init(&app_iv, conn->secure.client_implicit_iv, S2N_TLS13_FIXED_IV_LEN));
     } else {
         old_key = &conn->secure.server_key;
         GUARD(s2n_blob_init(&old_app_secret, conn->secure.server_app_secret, keys.size));
-        sequence_number.data = conn->secure.server_sequence_number;
-        sequence_number.size = sizeof(conn->secure.server_sequence_number);
+        GUARD(s2n_blob_init(&sequence_number, conn->secure.server_sequence_number, sizeof(conn->secure.server_sequence_number)));
+        GUARD(s2n_blob_init(&app_iv, conn->secure.server_implicit_iv, S2N_TLS13_FIXED_IV_LEN));  
     }
 
     /* Produce new application secret */
@@ -208,7 +209,6 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
     GUARD(s2n_tls13_update_application_traffic_secret(&keys, &old_app_secret, &app_secret_update));
 
     s2n_tls13_key_blob(app_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
-    struct s2n_blob app_iv = { .data = conn->secure.client_implicit_iv, .size = S2N_TLS13_FIXED_IV_LEN };
 
     /* Derives next generation of traffic key */
     GUARD(s2n_tls13_derive_traffic_keys(&keys, &app_secret_update, &app_key, &app_iv));
@@ -229,5 +229,6 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
     struct s2n_stuffer old_secret_stuffer = {0};
     GUARD(s2n_stuffer_init(&old_secret_stuffer, &old_app_secret));
     GUARD(s2n_stuffer_write_bytes(&old_secret_stuffer, app_secret_update.data, keys.size));
-    return 0;
+
+    return S2N_SUCCESS;
 }

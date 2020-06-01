@@ -19,6 +19,8 @@
 
 #include "s2n_connection.h"
 
+#define TLS13_CONTENT_TYPE_LENGTH 1
+
 extern int s2n_record_max_write_payload_size(struct s2n_connection *conn);
 extern int s2n_record_min_write_payload_size(struct s2n_connection *conn);
 extern int s2n_record_rounded_write_payload_size(struct s2n_connection *conn, uint16_t size_without_overhead);
