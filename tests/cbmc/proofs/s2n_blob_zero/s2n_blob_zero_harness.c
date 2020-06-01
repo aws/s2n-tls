@@ -24,13 +24,14 @@ void s2n_blob_zero_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
-    __CPROVER_assume( s2n_blob_is_valid( blob ) );
+    __CPROVER_assume(s2n_blob_is_valid(blob));
 
     /* Operation under verification. */
-    if( s2n_blob_zero( blob ) == S2N_SUCCESS ) {
+    if(s2n_blob_zero(blob) == S2N_SUCCESS)
+    {
         size_t index;
         __CPROVER_assume(index < blob->size);
         assert(blob->data[index] == 0);
     }
-    assert( s2n_blob_is_valid( blob ) );
+    assert(s2n_blob_is_valid(blob));
 }
