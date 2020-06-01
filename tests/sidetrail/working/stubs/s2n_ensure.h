@@ -27,6 +27,8 @@ void *s2n_sidetrail_memset(void * ptr, int value, size_t num);
 
 #define __S2N_ENSURE( cond, action )                       __VERIFIER_assume((cond))
 
+#define __S2N_ENSURE_CONDITION( cond, action )             (void) 0
+
 #define __S2N_ENSURE_SAFE_MEMCPY( d , s , n , guard )      do { memcpy((d), (s), (n)); } while(0)
 
 #define __S2N_ENSURE_SAFE_MEMSET( d , c , n , guard )      \

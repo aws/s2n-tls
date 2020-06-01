@@ -80,7 +80,7 @@ DO_GOTO_INSTRUMENT = $(call DO_AND_LOG_COMMAND,$(GOTO_INSTRUMENT),$(CBMC_VERBOSI
 #1: flags, 2: source, 3: logfile
 DO_CBMC =  $(call DO_AND_LOG_IGNORING_ERROR_10,$(CBMC),$(CBMC_VERBOSITY) $(1) $(2), $(3))
 
-#1: message 2: source 3: dest 
+#1: message 2: source 3: dest
 DO_NOOP_COPY = cp $(2) $(3); echo $(1) | tee $(call LOG_FROM_ENTRY,$(3))
 
 
@@ -133,7 +133,7 @@ CBMCFLAGS += $(CBMC_UNWINDSET)
 
 ################################################################
 # Set C compiler defines
-CBMC_OBJECT_BITS ?= 6
+CBMC_OBJECT_BITS ?= 8
 CBMCFLAGS +=  --object-bits $(CBMC_OBJECT_BITS)
 DEFINES += -DCBMC_OBJECT_BITS=$(CBMC_OBJECT_BITS)
 DEFINES += -DCBMC=1
@@ -148,13 +148,13 @@ INC += -I$(SRCDIR)/api
 
 ################################################################
 # Enables costly checks (e.g. ones that contain loops)
-# Whether a proof needs these checks should be decided on a proof by proof basis.  
+# Whether a proof needs these checks should be decided on a proof by proof basis.
 # Checks can be enabled by setting AWS_DEEP_CHECKS to 1 in the makefile of the proof that requires them
 AWS_DEEP_CHECKS ?= 0
 DEFINES += -DAWS_DEEP_CHECKS=$(AWS_DEEP_CHECKS)
 
 ################################################################
-# Remove function bodies that are not used in the proofs. 
+# Remove function bodies that are not used in the proofs.
 # Removing the function from the goto program helps CBMC's
 # function pointer analysis
 
