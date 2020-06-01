@@ -324,8 +324,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->handshake.io), 447);
 
         client_conn->x509_validator.skip_cert_validation = 1;
-        /* Verified it fails inside of extension parsing, but the error is masked by cert_untrusted */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_server_cert_recv(client_conn), S2N_ERR_CERT_UNTRUSTED);
+        /* Verified it succeeds */
+        EXPECT_SUCCESS(s2n_server_cert_recv(client_conn));
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->handshake.io), 0);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
