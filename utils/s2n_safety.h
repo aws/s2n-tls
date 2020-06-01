@@ -134,24 +134,24 @@
 #define ENSURE_PTR_NONNULL( x )                     ENSURE_PTR((x) != NULL, S2N_ERR_NULL)
 
 /**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL` with a `S2N_ERR_PRECONDITION_VIOLATION` error
  */
-#define PRECONDITION( condition )                 ENSURE((condition), S2N_ERR_PRECONDITION_VIOLATION)
+#define PRECONDITION( condition )                   __S2N_ENSURE_CONDITION((condition), BAIL(S2N_ERR_PRECONDITION_VIOLATION))
 
 /**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL` with a `S2N_ERR_POSTCONDITION_VIOLATION` error
  */
-#define POSTCONDITION( condition )                ENSURE((condition), S2N_ERR_POSTCONDITION_VIOLATION)
+#define POSTCONDITION( condition )                  __S2N_ENSURE_CONDITION((condition), BAIL(S2N_ERR_POSTCONDITION_VIOLATION))
 
 /**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with a `S2N_ERR_SAFETY` error
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with a `S2N_ERR_PRECONDITION_VIOLATION` error
  */
-#define PRECONDITION_POSIX( condition )           ENSURE_POSIX((condition), S2N_ERR_PRECONDITION_VIOLATION)
+#define PRECONDITION_POSIX( condition )             __S2N_ENSURE_CONDITION((condition), BAIL_POSIX(S2N_ERR_PRECONDITION_VIOLATION))
 
 /**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with a `S2N_ERR_SAFETY` error
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with a `S2N_ERR_POSTCONDITION_VIOLATION` error
  */
-#define POSTCONDITION_POSIX( condition )          ENSURE_POSIX((condition), S2N_ERR_POSTCONDITION_VIOLATION)
+#define POSTCONDITION_POSIX( condition )            __S2N_ENSURE_CONDITION((condition), BAIL_POSIX(S2N_ERR_POSTCONDITION_VIOLATION))
 
 /**
  * Ensures `x` is not an error, otherwise the function will return an error signal
