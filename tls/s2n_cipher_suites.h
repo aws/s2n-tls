@@ -46,6 +46,15 @@
 #define S2N_TLS12_CHACHA_POLY_AEAD_NONCE 0x02
 #define S2N_TLS13_RECORD_AEAD_NONCE      0x04
 
+/* From RFC: https://tools.ietf.org/html/rfc8446#section-5.5
+ * For AES-GCM, up to 2^24.5 full-size records (about 24 million) may be
+ * encrypted on a given connection while keeping a safety margin of
+ * approximately 2^-57 for Authenticated Encryption (AE) security.
+ * S2N_TLS13_MAXIMUM_RECORD_NUMBER is 2^24.5 rounded down to the nearest whole number.
+ */
+#define S2N_TLS13_MAXIMUM_RECORD_NUMBER            23726566L
+#define S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT (S2N_TLS13_MAXIMUM_FRAGMENT_LENGTH * S2N_TLS13_MAXIMUM_RECORD_NUMBER)
+
 typedef enum {
     S2N_AUTHENTICATION_RSA = 0,
     S2N_AUTHENTICATION_ECDSA,
@@ -60,6 +69,7 @@ struct s2n_record_algorithm {
     const struct s2n_cipher *cipher;
     s2n_hmac_algorithm hmac_alg;
     uint32_t flags;
+    uint64_t encryption_limit;
 };
 
 /* Verbose names to avoid confusion with s2n_cipher. Exposed for unit tests */

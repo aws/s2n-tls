@@ -24,6 +24,8 @@
 #include "crypto/s2n_hkdf.h"
 #include "crypto/s2n_tls13_keys.h"
 
+#include "tls/s2n_tls13_handshake.h"
+
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
@@ -146,6 +148,18 @@ int main(int argc, char **argv)
         "860c06edc07858ee8e78f0e7428c58ed"
         "d6b43f2ca3e6e95f02ed063cf0e1cad8");
 
+    /* KeyUpdate Vectors from Openssl s_client implementation of KeyUpdate. The ciphersuite
+      * that produced this secret was s2n_tls13_aes_256_gcm_sha384.
+      */
+
+    S2N_BLOB_FROM_HEX(application_secret,
+        "4bc28934ddd802b00f479e14a72d7725dab45d32b3b145f29"
+        "e4c5b56677560eb5236b168c71c5c75aa52f3e20ee89bfb");
+
+    S2N_BLOB_FROM_HEX(updated_application_secret,
+        "ee85dd54781bd4d8a100589a9fe6ac9a3797b811e977f549cd"
+        "531be2441d7c63e2b9729d145c11d84af35957727565a4");
+
     BEGIN_TEST();
 
     DEFER_CLEANUP(struct s2n_tls13_keys secrets = {0}, s2n_tls13_keys_free);
@@ -239,6 +253,29 @@ int main(int argc, char **argv)
 
     S2N_BLOB_EXPECT_EQUAL(expect_handshake_traffic_server_key, handshake_traffic_server_key);
     S2N_BLOB_EXPECT_EQUAL(expect_handshake_traffic_server_iv, handshake_traffic_server_iv);
+
+    /* This test checks the new secret produced by the s2n_tls13_update_application_traffic_secret
+     * is the same one that is produced by openssl when starting with the same application secret.
+     */
+    {
+        struct s2n_connection *server_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS13;
+        server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+
+        /* get tls13 key context */
+        s2n_tls13_connection_keys(keys, server_conn);
+
+        s2n_stack_blob(app_secret_update, keys.size, S2N_TLS13_SECRET_MAX_LEN);
+
+        /* Derives next generation of traffic secret */
+        EXPECT_SUCCESS(s2n_tls13_update_application_traffic_secret(&keys, &application_secret, &app_secret_update));
+
+        /* Check the new secret is what was expected */
+        S2N_BLOB_EXPECT_EQUAL(app_secret_update, updated_application_secret);
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
 
     END_TEST();
 }

@@ -22,6 +22,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_post_handshake.h"
 #include "tls/s2n_record.h"
 
 #include "stuffer/s2n_stuffer.h"
@@ -167,10 +168,13 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
                 cbcHackUsed = 1;
             }
         }
-
-        /* Write and encrypt the record */
+    
         GUARD(s2n_stuffer_rewrite(&conn->out));
-        GUARD(s2n_record_writev(conn, TLS_APPLICATION_DATA, bufs, count,
+
+        GUARD(s2n_post_handshake_send(conn, blocked, to_write));
+    
+        /* Write and encrypt the record */
+        GUARD(s2n_record_writev(conn, TLS_APPLICATION_DATA, bufs, count, 
             conn->current_user_data_consumed + offs, to_write));
         conn->current_user_data_consumed += to_write;
         conn->active_application_bytes_consumed += to_write;
