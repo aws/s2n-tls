@@ -27,7 +27,7 @@ void s2n_blob_zero_harness()
     __CPROVER_assume(s2n_blob_is_valid(blob));
 
     /* Operation under verification. */
-    if(s2n_blob_zero(blob) == S2N_SUCCESS)
+    if(s2n_blob_zero(blob) == S2N_SUCCESS && blob->size != 0)
     {
         size_t index;
         __CPROVER_assume(index < blob->size);
