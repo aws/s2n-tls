@@ -104,9 +104,15 @@ const struct s2n_iana_to_kem kem_mapping[2] = {
 
 #else
 
-/* Compiler warns that zero-length arrays are undefined according to the C standard. So make kem_mapping NULL if
- * Post Quantum ciphers are disabled, and have s2n_cipher_suite_to_kem() detect NULL and treat it as zero-length. */
-const struct s2n_iana_to_kem *kem_mapping = NULL;
+/* Compiler warns that zero-length arrays are undefined according to the C standard. Instead, a
+   single NULL KEM mapping with a 0 count will be detected and treated as 0 length. */
+const struct s2n_iana_to_kem kem_mapping[1] = {
+        {
+            .iana_value = { TLS_NULL_WITH_NULL_NULL },
+            .kems = NULL,
+            .kem_count = 0,
+        }
+};
 
 #endif
 
@@ -243,7 +249,7 @@ int s2n_kem_free(struct s2n_kem_params *kem_params)
 int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_iana_to_kem **compatible_params)
 {
     /* cppcheck-suppress knownConditionTrueFalse */
-    S2N_ERROR_IF(kem_mapping == NULL, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+    S2N_ERROR_IF(kem_mapping[0].kem_count == 0, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
     for (int i = 0; i < s2n_array_len(kem_mapping); i++) {
         const struct s2n_iana_to_kem *candidate = &kem_mapping[i];
@@ -257,7 +263,7 @@ int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], 
 
 int s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_kem **kem) {
     /* cppcheck-suppress knownConditionTrueFalse */
-    S2N_ERROR_IF(kem_mapping == NULL, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+    S2N_ERROR_IF(kem_mapping[0].kem_count == 0, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
     for (int i = 0; i < s2n_array_len(kem_mapping); i++) {
         const struct s2n_iana_to_kem *iana_to_kem = &kem_mapping[i];

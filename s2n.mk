@@ -79,6 +79,11 @@ ifdef S2N_TEST_IN_FIPS_MODE
     DEFAULT_CFLAGS += -DS2N_TEST_IN_FIPS_MODE
 endif
 
+# Don't compile PQ related source code
+ifdef S2N_NO_PQ
+	DEFAULT_CFLAGS += -DS2N_NO_PQ
+endif
+
 # Force the usage of generic C code for PQ crypto, even if the optimized assembly could be used
 ifdef S2N_NO_PQ_ASM
 	DEFAULT_CFLAGS += -DS2N_NO_PQ_ASM

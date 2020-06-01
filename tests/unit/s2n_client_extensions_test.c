@@ -63,6 +63,7 @@ static uint8_t sct_list[] = {
 
 extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 
+#if !defined(S2N_NO_PQ)
 /* Helper function to allow us to easily repeat the PQ extension test for many scenarios.
  * If the KEM negotiation is expected to fail (because of e.g. a client/server extension
  * mismatch), pass in expected_kem_id = -1. The tests should always EXPECT_SUCCESS when
@@ -149,6 +150,7 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
     
     return 0;
 }
+#endif
 
 int main(int argc, char **argv)
 {
