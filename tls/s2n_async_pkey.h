@@ -28,23 +28,24 @@ struct s2n_async_pkey_op;
  * continue. If async operation is invoking or was invoked, but yet to be complete, we error out of the handler to let
  * s2n_handle_retry_state try again. If async operation was complete we clear the state and let s2n_handle_retry_state
  * proceed to the next handler */
-#define S2N_ASYNC_PKEY_GUARD(conn)                                     \
-    do {                                                               \
-        notnull_check(conn);                                           \
-        switch (conn->handshake.async_state) {                         \
-            case S2N_ASYNC_NOT_INVOKED:                                \
-                break;                                                 \
-                                                                       \
-            case S2N_ASYNC_INVOKING_CALLBACK:                          \
-            case S2N_ASYNC_INVOKED_WAITING:                            \
-                S2N_ERROR(S2N_ERR_ASYNC_BLOCKED);                      \
-                                                                       \
-            case S2N_ASYNC_INVOKED_COMPLETE:                           \
-                /* clean up state and return a success from handler */ \
-                conn->handshake.async_state = S2N_ASYNC_NOT_INVOKED;   \
-                GUARD(s2n_conn_clear_handshake_read_block(conn));      \
-                return 0;                                              \
-        }                                                              \
+#define S2N_ASYNC_PKEY_GUARD(conn)                                         \
+    do {                                                                   \
+        __typeof(conn) __tmp_conn = (conn);                                \
+        notnull_check(__tmp_conn);                                         \
+        switch (conn->handshake.async_state) {                             \
+            case S2N_ASYNC_NOT_INVOKED:                                    \
+                break;                                                     \
+                                                                           \
+            case S2N_ASYNC_INVOKING_CALLBACK:                              \
+            case S2N_ASYNC_INVOKED_WAITING:                                \
+                S2N_ERROR(S2N_ERR_ASYNC_BLOCKED);                          \
+                                                                           \
+            case S2N_ASYNC_INVOKED_COMPLETE:                               \
+                /* clean up state and return a success from handler */     \
+                __tmp_conn->handshake.async_state = S2N_ASYNC_NOT_INVOKED; \
+                GUARD(s2n_conn_clear_handshake_read_block(__tmp_conn));    \
+                return 0;                                                  \
+        }                                                                  \
     } while (0)
 
 /* Macros for safe exection of async sign/decrypt.
