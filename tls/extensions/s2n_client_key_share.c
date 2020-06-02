@@ -85,16 +85,9 @@ static int s2n_generate_preferred_key_shares(struct s2n_connection *conn, struct
         ecc_evp_params->evp_pkey = NULL;
         /* If lsb is set, skip keyshare generation for all curve */
         if (empty_keyshares) {
-            GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->iana_id));
-            GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->share_size));
-            uint8_t *data = s2n_stuffer_raw_write(out, ecc_evp_params->negotiated_curve->share_size);
-            memset(data, 0, ecc_evp_params->negotiated_curve->share_size);
+            GUARD(s2n_stuffer_write_uint16(out, 0));
         } else if (GENERATE_KEYSHARE_FOR_CURVE_SET(preferred_key_shares)) { /* If bit other than lsb is set, generate keyshare for the corresponding curve */
             GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
-        } else { /* If bit not set, skip keyshare generation for the corresponding curve */
-            GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->iana_id));
-            GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->share_size));
-            GUARD(s2n_stuffer_skip_write(out, ecc_evp_params->negotiated_curve->share_size));
         }
     }
 
@@ -186,16 +179,6 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
 
         GUARD(s2n_ecc_evp_read_params_point(extension, share_size, &point_blob));
 
-        uint8_t *zeroes = NULL;
-        zeroes = malloc(point_blob.size);
-        memset(zeroes, 0, point_blob.size);
-
-        /* Ignore curves with no keyshare */
-        if (!memcmp(point_blob.data, zeroes, point_blob.size)) {
-            free(zeroes);
-            continue;
-        }
-
         conn->secure.client_ecc_evp_params[supported_curve_index].negotiated_curve = supported_curve;
         if (s2n_ecc_evp_parse_params_point(&point_blob, &conn->secure.client_ecc_evp_params[supported_curve_index]) < 0) {
             /* Ignore curves with points we can't parse */
@@ -204,7 +187,6 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
         } else {
             match = 1;
         }
-        free(zeroes);
     }
 
     /* If there was no matching key share then we received an empty key share extension
