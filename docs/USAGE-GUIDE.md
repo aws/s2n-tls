@@ -1396,7 +1396,7 @@ executed each time operation on private key needs to be performed with
 **op** object representing this operation. From this function the user
 can spawn the thread with **op** object to perform through
 **s2n_async_pkey_perform_op** call and immediately return from the
-function without waiting for thread to complete. The **s2n_negotate**
+function without waiting for thread to complete. The **s2n_negotiate**
 will fail with **S2N_ERR_T_BLOCKED** error type and **s2n_blocked_status**
 **S2N_BLOCKED_ON_APPLICATION_INPUT**, and will keep giving the same
 error until the **op** is performed on the spawned thread and consumed
