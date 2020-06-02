@@ -845,10 +845,10 @@ int s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *chain_and_key)
 ### s2n\_cert\_chain\_and\_key\_get\_key
 
 ```c
-extern s2n_cert_private_key *s2n_cert_chain_and_key_get_key(struct s2n_cert_chain_and_key *cert_and_key);
+extern s2n_cert_private_key *s2n_cert_chain_and_key_get_private_key(struct s2n_cert_chain_and_key *cert_and_key);
 ```
 
-**s2n_cert_chain_and_key_get_key** returns a private key from
+**s2n_cert_chain_and_key_get_private_key** returns a private key from
 **s2n_cert_chain_and_key** object.
 
 ## Client Auth Related calls

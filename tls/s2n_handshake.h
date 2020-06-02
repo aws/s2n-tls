@@ -73,7 +73,7 @@ typedef enum {
 
 typedef enum {
     S2N_ASYNC_NOT_INVOKED = 0,
-    S2N_ASYNC_INVOKING,
+    S2N_ASYNC_INVOKING_CALLBACK,
     S2N_ASYNC_INVOKED_WAITING,
     S2N_ASYNC_INVOKED_COMPLETE,
 } s2n_async_state;

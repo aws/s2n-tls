@@ -129,7 +129,7 @@ extern int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_
 extern int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key);
 extern int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *cert_and_key, void *ctx);
 extern void *s2n_cert_chain_and_key_get_ctx(struct s2n_cert_chain_and_key *cert_and_key);
-extern s2n_cert_private_key *s2n_cert_chain_and_key_get_key(struct s2n_cert_chain_and_key *cert_and_key);
+extern s2n_cert_private_key *s2n_cert_chain_and_key_get_private_key(struct s2n_cert_chain_and_key *cert_and_key);
 
 typedef struct s2n_cert_chain_and_key* (*s2n_cert_tiebreak_callback) (struct s2n_cert_chain_and_key *cert1, struct s2n_cert_chain_and_key *cert2, uint8_t *name, uint32_t name_len);
 extern int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_tiebreak_callback cert_tiebreak_cb);

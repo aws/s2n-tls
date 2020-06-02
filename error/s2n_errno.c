@@ -164,7 +164,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_RECORD_LENGTH_TOO_LARGE, "Record length exceeds protocol version maximum") \
     ERR_ENTRY(S2N_ERR_SET_DUPLICATE_VALUE, "Set already contains the provided value") \
     ERR_ENTRY(S2N_ERR_ASYNC_CALLBACK_FAILED, "Callback associated with async private keys function has failed") \
-    ERR_ENTRY(S2N_ERR_ASYNC_MORE_THAN_ONE, "Cannot execute more than async pkey operation at the same time") \
+    ERR_ENTRY(S2N_ERR_ASYNC_MORE_THAN_ONE, "Only one asynchronous operation can be in-progress at the same time") \
     ERR_ENTRY(S2N_ERR_NO_ALERT, "No Alert present") \
     ERR_ENTRY(S2N_ERR_CLIENT_MODE, "operation not allowed in client mode") \
     ERR_ENTRY(S2N_ERR_CLIENT_MODE_DISABLED, "client connections not allowed") \
@@ -228,7 +228,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_INVALID_PARSED_EXTENSIONS, "Invalid parsed extension data") \
     ERR_ENTRY(S2N_ERR_ASYNC_ALREADY_PERFORMED, "Async operation was already performed, cannot perfom it again") \
     ERR_ENTRY(S2N_ERR_ASYNC_NOT_PERFORMED, "Async operation is not performed, cannot apply its result") \
-    ERR_ENTRY(S2N_ERR_ASYNC_WRONG_CONNECTION, "Async private key operation can only be consumed by connection which originated it") \
+    ERR_ENTRY(S2N_ERR_ASYNC_WRONG_CONNECTION, "Async private key operation can only be consumed by connection which initiated it") \
     ERR_ENTRY(S2N_ERR_ASYNC_APPLY_WHILE_INVOKING, "Async private key operation cannot consumed inside async pkey callback") \
     ERR_ENTRY(S2N_ERR_ASYNC_ALREADY_APPLIED, "Async operation was already applied to connection, cannot apply it again") \
 

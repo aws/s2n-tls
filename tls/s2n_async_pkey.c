@@ -44,7 +44,7 @@ struct s2n_async_pkey_op {
     s2n_async_pkey_op_type type;
     struct s2n_connection *conn;
     unsigned               complete : 1;
-    unsigned               applied  : 1;
+    unsigned               applied : 1;
     union {
         struct s2n_async_pkey_decrypt_data decrypt;
         struct s2n_async_pkey_sign_data    sign;
@@ -97,7 +97,7 @@ static const struct s2n_async_pkey_op_actions *s2n_async_get_actions(s2n_async_p
 }
 
 int s2n_async_pkey_decrypt(struct s2n_connection *conn, struct s2n_blob *encrypted, struct s2n_blob *init_decrypted,
-                      s2n_async_pkey_decrypt_complete on_complete)
+                           s2n_async_pkey_decrypt_complete on_complete)
 {
     notnull_check(conn);
     notnull_check(encrypted);
@@ -133,7 +133,7 @@ int s2n_async_pkey_decrypt_async(struct s2n_connection *conn, struct s2n_blob *e
 
     /* Block the handshake and set async state to invoking to block async states */
     GUARD(s2n_conn_set_handshake_read_block(conn));
-    conn->handshake.async_state = S2N_ASYNC_INVOKING;
+    conn->handshake.async_state = S2N_ASYNC_INVOKING_CALLBACK;
 
     /* async_pkey will own the op, clean the mem blob to avoid freeing op */
     GUARD(s2n_blob_init(&mem, NULL, 0));
@@ -159,7 +159,7 @@ int s2n_async_pkey_decrypt_sync(struct s2n_connection *conn, struct s2n_blob *en
 }
 
 int s2n_async_pkey_sign(struct s2n_connection *conn, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
-                   s2n_async_pkey_sign_complete on_complete)
+                        s2n_async_pkey_sign_complete on_complete)
 {
     notnull_check(conn);
     notnull_check(digest);
@@ -196,7 +196,7 @@ int s2n_async_pkey_sign_async(struct s2n_connection *conn, s2n_signature_algorit
 
     /* Block the handshake and set async state to invoking to block async states */
     GUARD(s2n_conn_set_handshake_read_block(conn));
-    conn->handshake.async_state = S2N_ASYNC_INVOKING;
+    conn->handshake.async_state = S2N_ASYNC_INVOKING_CALLBACK;
 
     /* async_pkey will own the op, clean the mem blob to avoid freeing op */
     GUARD(s2n_blob_init(&mem, NULL, 0));
@@ -251,7 +251,7 @@ int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection 
      * protections in cases if caller frees connection object and then tries to resume
      * the connection. */
     S2N_ERROR_IF(op->conn != conn, S2N_ERR_ASYNC_WRONG_CONNECTION);
-    S2N_ERROR_IF(conn->handshake.async_state == S2N_ASYNC_INVOKING, S2N_ERR_ASYNC_APPLY_WHILE_INVOKING);
+    S2N_ERROR_IF(conn->handshake.async_state == S2N_ASYNC_INVOKING_CALLBACK, S2N_ERR_ASYNC_APPLY_WHILE_INVOKING);
     S2N_ERROR_IF(conn->handshake.async_state != S2N_ASYNC_INVOKED_WAITING, S2N_ERR_ASYNC_WRONG_CONNECTION);
 
     const struct s2n_async_pkey_op_actions *actions = s2n_async_get_actions(op->type);
@@ -259,7 +259,7 @@ int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection 
 
     GUARD(actions->apply(op, conn));
 
-    op->applied = 1;
+    op->applied                 = 1;
     conn->handshake.async_state = S2N_ASYNC_INVOKED_COMPLETE;
 
     /* Free up the decrypt/sign structs to avoid storing secrets for too long */
@@ -274,9 +274,7 @@ int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op)
     notnull_check(actions);
 
     /* If applied the decrypt/sign structs were released in apply call */
-    if (!op->applied) {
-        GUARD(actions->free(op));
-    }
+    if (!op->applied) { GUARD(actions->free(op)); }
 
     GUARD(s2n_free_object(( uint8_t ** )&op, sizeof(struct s2n_async_pkey_op)));
 

@@ -30,11 +30,12 @@ struct s2n_async_pkey_op;
  * proceed to the next handler */
 #define S2N_ASYNC_PKEY_GUARD(conn)                                     \
     do {                                                               \
+        notnull_check(conn);                                           \
         switch (conn->handshake.async_state) {                         \
             case S2N_ASYNC_NOT_INVOKED:                                \
                 break;                                                 \
                                                                        \
-            case S2N_ASYNC_INVOKING:                                   \
+            case S2N_ASYNC_INVOKING_CALLBACK:                          \
             case S2N_ASYNC_INVOKED_WAITING:                            \
                 S2N_ERROR(S2N_ERR_ASYNC_BLOCKED);                      \
                                                                        \
@@ -46,7 +47,7 @@ struct s2n_async_pkey_op;
         }                                                              \
     } while (0)
 
-/* Macroses for safe exection of async sign/decrypt.
+/* Macros for safe exection of async sign/decrypt.
  *
  * When operation is done asynchronously, we drop to s2n_negotiate loop with S2N_ERR_ASYNC_BLOCKED error and do not
  * perform any of the operations to follow after s2n_async* call. To enforce that there are no operations after the

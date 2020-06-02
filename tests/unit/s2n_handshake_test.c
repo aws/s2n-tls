@@ -64,7 +64,7 @@ static int handle_async(struct s2n_connection *server_conn)
     struct s2n_cert_chain_and_key *chain_and_key = s2n_connection_get_selected_cert(server_conn);
     EXPECT_NOT_NULL(chain_and_key);
 
-    s2n_cert_private_key *pkey = s2n_cert_chain_and_key_get_key(chain_and_key);
+    s2n_cert_private_key *pkey = s2n_cert_chain_and_key_get_private_key(chain_and_key);
     EXPECT_NOT_NULL(pkey);
 
     /* Test that we can perform pkey operation only once */

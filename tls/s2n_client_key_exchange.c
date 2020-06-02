@@ -99,7 +99,8 @@ static int s2n_calculate_keys(struct s2n_connection *conn, struct s2n_blob *shar
 
 int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
-    /* Set shared_key before async guard to pass the proper shared_key to the caller upon asyc completion */
+    /* Set shared_key before async guard to pass the proper shared_key to the caller upon async completion */
+    notnull_check(shared_key);
     shared_key->data = conn->secure.rsa_premaster_secret;
     shared_key->size = S2N_TLS_SECRET_LEN;
 
@@ -223,13 +224,11 @@ int s2n_hybrid_client_key_recv(struct s2n_connection *conn, struct s2n_blob *com
 int s2n_client_key_recv(struct s2n_connection *conn)
 {
     const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
-
     struct s2n_blob shared_key = {0};
 
     GUARD(s2n_kex_client_key_recv(key_exchange, conn, &shared_key));
 
     GUARD(s2n_calculate_keys(conn, &shared_key));
-
     return 0;
 }
 
