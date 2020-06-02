@@ -30,3 +30,6 @@
       return -1;             \
     }                        \
   } while (0)
+
+
+char *load_file_to_cstring(const char *path);

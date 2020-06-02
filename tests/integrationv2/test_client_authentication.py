@@ -121,19 +121,16 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, ci
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", [cipher for cipher in ALL_TEST_CIPHERS if 'ECDSA' not in cipher.name], ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [OpenSSL])
-@pytest.mark.parametrize("curve", ALL_CURVES)
-@pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_CERTS, ids=get_parameter_name)
-def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, provider, curve, protocol, certificate):
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, curve, protocol, certificate):
     host = "localhost"
     port = next(available_ports)
 
     # NOTE: Currently do not support different signature schemes for client and server
     if 'ecdsa' in certificate.cert:
         pytest.skip("Skipping known failure, do not support different sig schemes for client and server")
-    if protocol != Protocols.TLS13:
-        pytest.skip("Skipping non-TLS 1.3 client_auth tests")
 
     random_bytes = data_bytes(64)
     client_options = ProviderOptions(
@@ -144,8 +141,6 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, provider, 
         curve=curve,
         data_to_send=random_bytes,
         use_client_auth=True,
-        client_key_file=certificate.key,
-        client_certificate_file=certificate.cert,
         client_trust_store= "../pems/rsa_2048_sha256_wildcard_cert.pem",
         insecure=False,
         protocol=protocol)
@@ -171,23 +166,21 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, provider, 
         assert results.exception is None
         assert results.exit_code == 0
         assert random_bytes in results.stdout
+        assert bytes("SSL_accept:SSLv3/TLS read client certificate\nSSL_accept:SSLv3/TLS read finished".encode('utf-8')) in results.stderr
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", [cipher for cipher in ALL_TEST_CIPHERS if 'ECDSA' not in cipher.name], ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [OpenSSL])
-@pytest.mark.parametrize("curve", ALL_CURVES)
-@pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_CERTS, ids=get_parameter_name)
-def test_client_auth_with_s2n_client_with_cert(managed_process, cipher, provider, curve, protocol, certificate):
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+def test_client_auth_with_s2n_client_with_cert(managed_process, cipher, curve, protocol, certificate):
     host = "localhost"
     port = next(available_ports)
 
     # NOTE: Currently do not support different signature schemes for client and server
     if 'ecdsa' in certificate.cert:
         pytest.skip("Skipping known failure, do not support different sig schemes for client and server")
-    if protocol != Protocols.TLS13:
-        pytest.skip("Skipping non-TLS 1.3 client_auth tests")
 
     random_bytes = data_bytes(64)
     client_options = ProviderOptions(
@@ -225,3 +218,4 @@ def test_client_auth_with_s2n_client_with_cert(managed_process, cipher, provider
         assert results.exception is None
         assert results.exit_code == 0
         assert random_bytes in results.stdout
+        assert bytes("SSL_accept:SSLv3/TLS read client certificate\nSSL_accept:SSLv3/TLS read certificate verify\nSSL_accept:SSLv3/TLS read finished".encode('utf-8')) in results.stderr

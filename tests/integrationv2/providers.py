@@ -244,6 +244,8 @@ class OpenSSL(Provider):
         # Additional debugging that will be captured incase of failure
         cmd_line.extend(['-debug', '-tlsextdebug'])
 
+        cmd_line.append('-state')
+
         if options.cert is not None:
             cmd_line.extend(['-cert', options.cert])
         if options.key is not None:
