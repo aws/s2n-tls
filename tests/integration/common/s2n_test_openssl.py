@@ -67,7 +67,7 @@ def get_openssl(scenario):
     openssl_cmd = get_openssl_cmd(scenario)
     openssl = util.get_process(openssl_cmd)
     
-    if not util.wait_for_output(openssl, OPENSSL_SIGNALS[scenario.s2n_mode.other()]):
+    if not util.wait_for_output(openssl.stdout, OPENSSL_SIGNALS[scenario.s2n_mode.other()]):
         raise AssertionError("openssl %s: %s" % (scenario.s2n_mode.other(), util.get_error(openssl)))
 
     # Openssl outputs the success signal BEFORE binding the socket, so wait a little
