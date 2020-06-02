@@ -23,6 +23,8 @@
 #include "tls/s2n_tls13.h"
 
 #define TLS_EC_CURVE_ECDH_X448 30
+#define S2N_GENERATE_EMPTY_KEY_SHARE_LIST(preferred_key_shares) (preferred_key_shares & 1)
+#define S2N_GENERATE_KEY_SHARE_FOR_SELECTED_GROUP(preferred_key_shares, i) ((preferred_key_shares >> i) & 1)
 
 int main(int argc, char **argv)
 {
@@ -56,15 +58,14 @@ int main(int argc, char **argv)
          * Default security policy has ecc_preferences in the following order: p-256, p-384 */
         EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, TLS_EC_CURVE_SECP_256_R1));
         /* lsb is not set */
-        EXPECT_FALSE(conn->preferred_key_shares & 1);
+        EXPECT_FALSE(S2N_GENERATE_EMPTY_KEY_SHARE_LIST(conn->preferred_key_shares));
         /* Bitmap value for p-256 set is 00000010 */
-        EXPECT_TRUE((conn->preferred_key_shares >> 1) & 1);
+        EXPECT_TRUE(S2N_GENERATE_KEY_SHARE_FOR_SELECTED_GROUP(conn->preferred_key_shares, 1));
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
     /* Test success for setting multiple preferred keyshares: x25519 and p-384 */
-    if (s2n_is_evp_apis_supported())
-    {
+    if (s2n_is_evp_apis_supported()) {
         EXPECT_SUCCESS(s2n_enable_tls13());
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -75,13 +76,13 @@ int main(int argc, char **argv)
         /* Default security policy for TLS1.3 has ecc_preferences in the following order: x25519, p-256, p-384.*/
         EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, TLS_EC_CURVE_ECDH_X25519));
         /* lsb is not set */
-        EXPECT_FALSE(conn->preferred_key_shares & 1);
+        EXPECT_FALSE(S2N_GENERATE_EMPTY_KEY_SHARE_LIST(conn->preferred_key_shares));
         /* Bitmap value for x25519 set is 00000010 */
-        EXPECT_TRUE((conn->preferred_key_shares >> 1) & 1);
+        EXPECT_TRUE(S2N_GENERATE_KEY_SHARE_FOR_SELECTED_GROUP(conn->preferred_key_shares, 1));
         EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, TLS_EC_CURVE_SECP_384_R1));
         /* Bitmap value for p-384 and x25519 set is 00001010 */
-        EXPECT_FALSE((conn->preferred_key_shares >> 2) & 1);
-        EXPECT_TRUE((conn->preferred_key_shares >> 3) & 1);
+        EXPECT_FALSE(S2N_GENERATE_KEY_SHARE_FOR_SELECTED_GROUP(conn->preferred_key_shares, 2));
+        EXPECT_TRUE(S2N_GENERATE_KEY_SHARE_FOR_SELECTED_GROUP(conn->preferred_key_shares, 3));
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_disable_tls13());
@@ -92,11 +93,11 @@ int main(int argc, char **argv)
         /* Default security policy has ecc_preferences in the following order: p-256, p-384 */
         EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, TLS_EC_CURVE_SECP_256_R1));
         /* lsb is not set */
-        EXPECT_FALSE(conn->preferred_key_shares & 1);
+        EXPECT_FALSE(S2N_GENERATE_EMPTY_KEY_SHARE_LIST(conn->preferred_key_shares));
         /* Bitmap value for p-256 set is 00000010 */
-        EXPECT_TRUE((conn->preferred_key_shares >> 1) & 1);
+        EXPECT_TRUE(S2N_GENERATE_KEY_SHARE_FOR_SELECTED_GROUP(conn->preferred_key_shares, 1));
         EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, TLS_EC_CURVE_SECP_256_R1));
-        EXPECT_TRUE((conn->preferred_key_shares >> 1) & 1);
+        EXPECT_TRUE(S2N_GENERATE_KEY_SHARE_FOR_SELECTED_GROUP(conn->preferred_key_shares, 1));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
     /* Test sending keyshares for all curves in default security policy->ecc_preferences: p-256, p-384*/
@@ -106,12 +107,12 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, TLS_EC_CURVE_SECP_256_R1));
         /* lsb is not set */
-        EXPECT_FALSE(conn->preferred_key_shares & 1);
+        EXPECT_FALSE(S2N_GENERATE_EMPTY_KEY_SHARE_LIST(conn->preferred_key_shares));
         /* Bitmap value for p-256 set is 00000010 */
-        EXPECT_TRUE((conn->preferred_key_shares >> 1) & 1);
+        EXPECT_TRUE(S2N_GENERATE_KEY_SHARE_FOR_SELECTED_GROUP(conn->preferred_key_shares, 1));
         EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, TLS_EC_CURVE_SECP_384_R1));
         /* Bitmap value for p-256 and p-384 set is 00000110 */
-        EXPECT_TRUE((conn->preferred_key_shares >> 2) & 1);
+        EXPECT_TRUE(S2N_GENERATE_KEY_SHARE_FOR_SELECTED_GROUP(conn->preferred_key_shares, 2));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
     /* Test sending keyshare for curve not supported: IANA value for Curve x448 is 30 */

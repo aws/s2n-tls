@@ -52,6 +52,9 @@
 #include "utils/s2n_socket.h"
 #include "utils/s2n_timer.h"
 
+#define S2N_GENERATE_EMPTY_KEY_SHARE_LIST(keyshares) (keyshares |= 1)
+#define S2N_GENERATE_KEY_SHARE_FOR_SELECTED_GROUP(keyshares, i) (keyshares |= ( 1 << ( i + 1 )))
+
 static int s2n_connection_new_hashes(struct s2n_connection *conn)
 {
     /* Allocate long-term memory for the Connection's hash states */
@@ -268,7 +271,6 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->verify_host_fn = NULL;
     conn->verify_host_fn_overridden = 0;
     conn->data_for_verify_host = NULL;
-    conn->preferred_key_shares = 0;
     s2n_connection_set_config(conn, config);
 
     return 0;
@@ -1295,12 +1297,12 @@ uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn)
 
 int s2n_connection_set_keyshare_by_group_for_testing(struct s2n_connection *conn, uint16_t iana_id)
 {
-    S2N_ERROR_IF(!S2N_IN_TEST, S2N_ERR_NOT_IN_TEST);
+    ENSURE_POSIX(S2N_IN_TEST, S2N_ERR_NOT_IN_TEST);
     notnull_check(conn);
 
     if (iana_id == 0) {
-        conn->preferred_key_shares |= 1;
-        return 0;
+        S2N_GENERATE_EMPTY_KEY_SHARE_LIST(conn->preferred_key_shares);
+        return S2N_SUCCESS;
     }
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -1308,9 +1310,9 @@ int s2n_connection_set_keyshare_by_group_for_testing(struct s2n_connection *conn
     notnull_check(ecc_pref);
 
     for (size_t i = 0; i < ecc_pref->count; i++) {
-                if (ecc_pref->ecc_curves[i]->iana_id == iana_id) {
-            conn->preferred_key_shares |= ( 1 << ( i + 1 ));
-            return 0;
+        if (ecc_pref->ecc_curves[i]->iana_id == iana_id) {
+            S2N_GENERATE_KEY_SHARE_FOR_SELECTED_GROUP(conn->preferred_key_shares, i);
+            return S2N_SUCCESS;
         }
     }
 
