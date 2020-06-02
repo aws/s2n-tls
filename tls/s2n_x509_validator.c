@@ -303,9 +303,8 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
         struct s2n_blob asn1cert = {0};
         asn1cert.size = certificate_size;
-        notnull_check(&cert_chain_in_stuffer);
         asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
-        S2N_ERROR_IF(asn1cert.data == NULL, S2N_ERR_CERT_UNTRUSTED);
+        notnull_check(asn1cert.data);
 
         const uint8_t *data = asn1cert.data;
 
