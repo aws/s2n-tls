@@ -279,8 +279,8 @@ struct s2n_async_pkey_op;
 
 typedef int (*s2n_async_pkey_fn)(struct s2n_connection *conn, struct s2n_async_pkey_op *op);
 extern int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey_fn fn);
-extern int s2n_async_pkey_perform_op(struct s2n_async_pkey_op *op, s2n_cert_private_key *key);
-extern int s2n_connection_consume_async_op(struct s2n_connection *conn, struct s2n_async_pkey_op *op);
+extern int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *key);
+extern int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn);
 extern int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
 
 #ifdef __cplusplus

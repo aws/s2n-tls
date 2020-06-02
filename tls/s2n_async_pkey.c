@@ -44,6 +44,7 @@ struct s2n_async_pkey_op {
     s2n_async_pkey_op_type type;
     struct s2n_connection *conn;
     unsigned               complete : 1;
+    unsigned               applied  : 1;
     union {
         struct s2n_async_pkey_decrypt_data decrypt;
         struct s2n_async_pkey_sign_data    sign;
@@ -225,7 +226,7 @@ int s2n_async_pkey_sign_sync(struct s2n_connection *conn, s2n_signature_algorith
     return 0;
 }
 
-int s2n_async_pkey_perform_op(struct s2n_async_pkey_op *op, s2n_cert_private_key *key)
+int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *key)
 {
     notnull_check(op);
     S2N_ERROR_IF(op->complete, S2N_ERR_ASYNC_ALREADY_PERFORMED);
@@ -244,6 +245,7 @@ int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection 
 {
     notnull_check(op);
     S2N_ERROR_IF(!op->complete, S2N_ERR_ASYNC_NOT_PERFORMED);
+    S2N_ERROR_IF(op->applied, S2N_ERR_ASYNC_ALREADY_APPLIED);
     /* We could have just used op->conn and removed a conn argument, but we want caller
      * to be explicit about connection it wants to resume. Plus this gives more
      * protections in cases if caller frees connection object and then tries to resume
@@ -257,7 +259,11 @@ int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection 
 
     GUARD(actions->apply(op, conn));
 
+    op->applied = 1;
     conn->handshake.async_state = S2N_ASYNC_INVOKED_COMPLETE;
+
+    /* Free up the decrypt/sign structs to avoid storing secrets for too long */
+    GUARD(actions->free(op));
 
     return 0;
 }
@@ -267,7 +273,10 @@ int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op)
     const struct s2n_async_pkey_op_actions *actions = s2n_async_get_actions(op->type);
     notnull_check(actions);
 
-    GUARD(actions->free(op));
+    /* If applied the decrypt/sign structs were released in apply call */
+    if (!op->applied) {
+        GUARD(actions->free(op));
+    }
 
     GUARD(s2n_free_object(( uint8_t ** )&op, sizeof(struct s2n_async_pkey_op)));
 

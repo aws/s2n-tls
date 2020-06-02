@@ -56,8 +56,8 @@ static int handle_async(struct s2n_connection *server_conn)
     /* Check that we have pkey_op */
     EXPECT_NOT_NULL(pkey_op);
 
-    /* Test that not performed pkey can't be consumed */
-    EXPECT_FAILURE_WITH_ERRNO(s2n_connection_consume_async_op(server_conn, pkey_op),
+    /* Test that not performed pkey can't be applied */
+    EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(pkey_op, server_conn),
                               S2N_ERR_ASYNC_NOT_PERFORMED);
 
     /* Extract pkey */
@@ -68,19 +68,25 @@ static int handle_async(struct s2n_connection *server_conn)
     EXPECT_NOT_NULL(pkey);
 
     /* Test that we can perform pkey operation only once */
-    EXPECT_SUCCESS(s2n_async_pkey_perform_op(pkey_op, pkey));
-    EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_perform_op(pkey_op, pkey), S2N_ERR_ASYNC_ALREADY_PERFORMED);
+    EXPECT_SUCCESS(s2n_async_pkey_op_perform(pkey_op, pkey));
+    EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_perform(pkey_op, pkey), S2N_ERR_ASYNC_ALREADY_PERFORMED);
 
-    /* Test that pkey op can't be consumed by connection other than original one */
+    /* Test that pkey op can't be applied to connection other than original one */
     struct s2n_connection *server_conn2 = s2n_connection_new(S2N_SERVER);
     EXPECT_NOT_NULL(server_conn2);
-    EXPECT_FAILURE_WITH_ERRNO(s2n_connection_consume_async_op(server_conn2, pkey_op),
+    EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(pkey_op, server_conn2),
                               S2N_ERR_ASYNC_WRONG_CONNECTION);
     EXPECT_SUCCESS(s2n_connection_free(server_conn2));
 
-    /* Test that pkey op can be cosumed by original connection */
-    EXPECT_SUCCESS(s2n_connection_consume_async_op(server_conn, pkey_op));
-    /* op was consumed by connection, set it to NULL */
+    /* Test that pkey op can be applied to original connection */
+    EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, server_conn));
+
+    /* Test that pkey op can't be applied to original connection more than once */
+    EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(pkey_op, server_conn),
+                              S2N_ERR_ASYNC_ALREADY_APPLIED);
+
+    /* Free the pkey op */
+    EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
     pkey_op = NULL;
 
     async_pkey_op_performed++;

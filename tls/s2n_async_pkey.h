@@ -58,7 +58,7 @@ struct s2n_async_pkey_op;
 #define S2N_ASYNC_PKEY_SIGN(conn, sig_alg, digest, on_complete) \
     return s2n_async_pkey_sign(conn, sig_alg, digest, on_complete);
 
-int s2n_async_pkey_perform_op(struct s2n_async_pkey_op *op, s2n_cert_private_key *key);
+int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *key);
 int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn);
 int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
 
