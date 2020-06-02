@@ -28,7 +28,7 @@ ifeq ($(S2N_CORKED_IO),true)
 	HANDSHAKE_TEST_PARAMS:=--use_corked_io $(HANDSHAKE_TEST_PARAMS)
 endif
 
-.PHONY : al
+.PHONY : all
 ifdef S2N_NO_PQ
 all: tls13 client_endpoints dynamic_record old_s_client s_client s_server gnutls_cli gnutls_serv sslyze
 else
