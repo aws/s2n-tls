@@ -31,6 +31,8 @@
 #include "utils/s2n_safety.h"
 
 #define S2N_SIZE_OF_CLIENT_SHARE_SIZE   2
+#define S2N_SECP256R1_SHARE_SIZE 65
+#define S2N_SECP384R1_SHARE_SIZE 97
 
 #define S2N_PREPARE_DATA_LENGTH( stuffer )   \
     EXPECT_SUCCESS(s2n_stuffer_skip_write(stuffer, S2N_SIZE_OF_CLIENT_SHARE_SIZE))
@@ -145,15 +147,13 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
 
-            const struct s2n_ecc_preferences *ecc_preferences = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
-            EXPECT_NOT_NULL(ecc_preferences);
+            uint16_t key_shares_size;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &key_shares_size));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), key_shares_size);
 
-            for (size_t i = 0; i < ecc_preferences->count; i++) {
-                struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
-                EXPECT_EQUAL(ecc_evp_params->negotiated_curve, ecc_preferences->ecc_curves[i]);
-                EXPECT_NULL(ecc_evp_params->evp_pkey);
-            }
+            uint16_t size;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &size));
+            EXPECT_EQUAL(size, 0);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -172,19 +172,23 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
 
-            const struct s2n_ecc_preferences *ecc_preferences = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
-            EXPECT_NOT_NULL(ecc_preferences);
+            uint16_t key_shares_size;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &key_shares_size));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), key_shares_size);
 
-            for (size_t i = 0; i < ecc_preferences->count; i++) {
-                struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
-                EXPECT_EQUAL(ecc_evp_params->negotiated_curve, ecc_preferences->ecc_curves[i]);
-                if (ecc_evp_params->negotiated_curve->iana_id == TLS_EC_CURVE_SECP_256_R1) {
-                    EXPECT_NOT_NULL(ecc_evp_params->evp_pkey);
-                } else {
-                    EXPECT_NULL(ecc_evp_params->evp_pkey);
-                }
-            }
+            /* should contain only curve p-256 with its sizes */
+            uint32_t bytes_processed = 0;
+            EXPECT_EQUAL(key_shares_size, S2N_SECP256R1_SHARE_SIZE + S2N_SIZE_OF_NAMED_GROUP + S2N_SIZE_OF_KEY_SHARE_SIZE);
+
+            uint16_t iana_value, share_size;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &iana_value));
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &share_size));
+            bytes_processed += share_size + S2N_SIZE_OF_NAMED_GROUP + S2N_SIZE_OF_KEY_SHARE_SIZE;
+
+            EXPECT_EQUAL(iana_value, TLS_EC_CURVE_SECP_256_R1);
+            EXPECT_EQUAL(share_size, S2N_SECP256R1_SHARE_SIZE);
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, share_size));
+            EXPECT_EQUAL(bytes_processed, key_shares_size);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -196,7 +200,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            /* Force the client to send only p-256  and p-384 keyshares in keyshare list */
+            /* Force the client to send only p-256 and p-384 keyshares in keyshare list */
             EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, TLS_EC_CURVE_SECP_256_R1));
             EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, TLS_EC_CURVE_SECP_384_R1));
 
@@ -204,20 +208,35 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
 
-            const struct s2n_ecc_preferences *ecc_preferences = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
-            EXPECT_NOT_NULL(ecc_preferences);
+            uint16_t key_shares_size;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &key_shares_size));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), key_shares_size);
 
-            for (size_t i = 0; i < ecc_preferences->count; i++) {
-                struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
-                EXPECT_EQUAL(ecc_evp_params->negotiated_curve, ecc_preferences->ecc_curves[i]);
-                if (ecc_evp_params->negotiated_curve->iana_id == TLS_EC_CURVE_SECP_256_R1 || 
-                     ecc_evp_params->negotiated_curve->iana_id == TLS_EC_CURVE_SECP_384_R1) {
-                    EXPECT_NOT_NULL(ecc_evp_params->evp_pkey);
-                } else {
-                    EXPECT_NULL(ecc_evp_params->evp_pkey);
-                }
-            }
+            /* should contain only curve p-256 and curve p-384 with its sizes */
+            uint32_t bytes_processed = 0;
+            EXPECT_EQUAL(key_shares_size, S2N_SECP256R1_SHARE_SIZE + S2N_SECP384R1_SHARE_SIZE
+                                              + (2 * (S2N_SIZE_OF_NAMED_GROUP + S2N_SIZE_OF_KEY_SHARE_SIZE)));
+
+            uint16_t iana_value, share_size;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &iana_value));
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &share_size));
+            bytes_processed += share_size + S2N_SIZE_OF_NAMED_GROUP + S2N_SIZE_OF_KEY_SHARE_SIZE;
+
+            EXPECT_EQUAL(iana_value, TLS_EC_CURVE_SECP_256_R1);
+            EXPECT_EQUAL(share_size, S2N_SECP256R1_SHARE_SIZE);
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, share_size));
+
+            EXPECT_TRUE(bytes_processed < key_shares_size);
+
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &iana_value));
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &share_size));
+            bytes_processed += share_size + S2N_SIZE_OF_NAMED_GROUP + S2N_SIZE_OF_KEY_SHARE_SIZE;
+
+            EXPECT_EQUAL(iana_value, TLS_EC_CURVE_SECP_384_R1);
+            EXPECT_EQUAL(share_size, S2N_SECP384R1_SHARE_SIZE);
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, share_size));
+
+            EXPECT_EQUAL(bytes_processed, key_shares_size);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
