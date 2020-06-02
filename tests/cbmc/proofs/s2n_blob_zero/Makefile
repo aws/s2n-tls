@@ -11,11 +11,14 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Expected runtime is 10 seconds.
+
 CBMCFLAGS +=
 
 DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c
 DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
 DEPENDENCIES += $(SRCDIR)/utils/s2n_blob.c
+DEPENDENCIES += $(SRCDIR)/utils/s2n_ensure.c
 
 ENTRY = s2n_blob_zero_harness
 

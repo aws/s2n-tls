@@ -15,6 +15,7 @@
 
 #include <string.h>
 #include <ctype.h>
+#include <sys/param.h>
 
 #include "error/s2n_errno.h"
 
@@ -44,7 +45,9 @@ int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size)
 
 int s2n_blob_zero(struct s2n_blob *b)
 {
-    memset_check(b->data, 0, b->size);
+    PRECONDITION_POSIX(s2n_blob_is_valid(b));
+    memset_check(b->data, 0, MAX(b->allocated, b->size));
+    POSTCONDITION_POSIX(s2n_blob_is_valid(b));
     return S2N_SUCCESS;
 }
 
