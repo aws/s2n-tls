@@ -190,6 +190,7 @@ int s2n_async_pkey_sign_async(struct s2n_connection *conn, s2n_signature_algorit
     sign->on_complete                     = on_complete;
     sign->sig_alg                         = sig_alg;
 
+    GUARD(s2n_hash_new(&sign->digest));
     GUARD(s2n_hash_copy(&sign->digest, digest));
 
     /* Block the handshake and set async state to invoking to block async states */
