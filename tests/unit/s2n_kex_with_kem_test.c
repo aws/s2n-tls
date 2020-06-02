@@ -27,6 +27,7 @@
 
 #include "utils/s2n_safety.h"
 
+#if !defined(S2N_NO_PQ)
 static struct s2n_kex s2n_test_kem_kex = {
         .server_key_recv_read_data = &s2n_kem_server_key_recv_read_data,
         .server_key_recv_parse_data = &s2n_kem_server_key_recv_parse_data,
@@ -153,6 +154,7 @@ static int assert_kex_fips_checks(struct s2n_cipher_suite *cipher_suite, const c
 
     return ret_val;
 }
+#endif
 
 int main(int argc, char **argv)
 {

@@ -36,9 +36,25 @@ well_known_endpoints = [
     {"endpoint": "twitter.com"},
     {"endpoint": "wikipedia.org"},
     {"endpoint": "yahoo.com"},
-    {"endpoint": "kms.us-east-1.amazonaws.com", "cipher_preference_version": "KMS-PQ-TLS-1-0-2019-06", "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384"},
-    {"endpoint": "kms.us-east-1.amazonaws.com", "cipher_preference_version": "PQ-SIKE-TEST-TLS-1-0-2019-11", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384"}
 ]
+
+if os.getenv("S2N_NO_PQ") is None:
+    # If PQ was compiled into S2N, test the PQ preferences against KMS
+    pq_endpoints = [
+        {
+            "endpoint": "kms.us-east-1.amazonaws.com",
+            "cipher_preference_version": "KMS-PQ-TLS-1-0-2019-06",
+            "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384"
+        },
+        {
+            "endpoint": "kms.us-east-1.amazonaws.com",
+            "cipher_preference_version": "PQ-SIKE-TEST-TLS-1-0-2019-11",
+            "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384"
+        }
+    ]
+
+    well_known_endpoints.extend(pq_endpoints)
+
 
 # Make an exception to allow failure (if CI is having issues)
 allowed_endpoints_failures = [

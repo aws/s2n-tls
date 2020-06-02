@@ -33,6 +33,8 @@ const uint8_t TEST_SHARED_SECRET[] = { 4, 4, 4, 4 };
 #define TEST_CIPHERTEXT_LENGTH 5
 const uint8_t TEST_CIPHERTEXT[] = { 5, 5, 5, 5, 5 };
 
+#if !defined(S2N_NO_PQ)
+
 static const uint8_t bike_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 };
 static const uint8_t sike_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 };
 static const uint8_t classic_ecdhe_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA };
@@ -86,6 +88,8 @@ static int check_client_server_agreed_kem(const uint8_t iana_value[S2N_TLS_CIPHE
 
     return 0;
 }
+
+#endif
 
 int main(int argc, char **argv)
 {
