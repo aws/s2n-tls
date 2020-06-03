@@ -45,8 +45,8 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     cert_chain.data = s2n_stuffer_raw_read(&conn->handshake.io, size_of_all_certificates);
     notnull_check(cert_chain.data);
 
-    S2N_ERROR_IF(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn, cert_chain.data,
-                         cert_chain.size, &actual_cert_pkey_type, &public_key) != S2N_CERT_OK, S2N_ERR_CERT_UNTRUSTED);
+    GUARD(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn, cert_chain.data,
+                         cert_chain.size, &actual_cert_pkey_type, &public_key));
 
     GUARD(s2n_is_cert_type_valid_for_auth(conn, actual_cert_pkey_type));
     GUARD(s2n_pkey_setup_for_type(&public_key, actual_cert_pkey_type));
