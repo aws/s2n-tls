@@ -121,6 +121,11 @@ ifdef S2N_DEBUG
 	CFLAGS += ${DEBUG_CFLAGS}
 endif
 
+# Prints more information when running tests
+ifdef S2N_TEST_DEBUG
+	DEFAULT_CFLAGS += -DS2N_TEST_DEBUG
+endif
+
 LLVM_GCOV_MARKER_FILE=${COVERAGE_DIR}/use-llvm-gcov.tmp
 
 ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
