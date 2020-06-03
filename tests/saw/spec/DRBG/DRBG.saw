@@ -99,6 +99,8 @@ let alloc_blob n = do {
     datap <- alloc_bytes n;
     crucible_points_to (crucible_field p "data") datap;
     crucible_points_to (crucible_field p "size") (tm {{ `n : [32] }});
+    crucible_points_to (crucible_field p "allocated") (tm {{ 0 : [32] }});
+    crucible_points_to (crucible_field p "growable") (tm {{ 0 : [8] }});
     return (p, datap);
 };
 
