@@ -13,22 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "error/s2n_errno.h"
-
 #include "stuffer/s2n_stuffer.h"
-
 #include "utils/s2n_safety.h"
 
 int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, int rfd, uint32_t len)
 {
-
     /* Make sure we have enough space to write */
     GUARD(s2n_stuffer_skip_write(stuffer, len));
 
@@ -57,7 +54,7 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len)
     int w = 0;
     do {
         w = write(wfd, stuffer->blob.data + stuffer->read_cursor, len);
-        S2N_ERROR_IF (w < 0 && errno != EINTR, S2N_ERR_WRITE);
+        S2N_ERROR_IF(w < 0 && errno != EINTR, S2N_ERR_WRITE);
     } while (w < 0);
 
     stuffer->read_cursor += w;
@@ -67,7 +64,7 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len)
 
 int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)
 {
-    struct stat st = {0};
+    struct stat st = { 0 };
 
     S2N_ERROR_IF(fstat(rfd, &st) < 0, S2N_ERR_FSTAT);
 

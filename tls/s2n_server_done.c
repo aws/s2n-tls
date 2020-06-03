@@ -16,11 +16,9 @@
 #include <stdint.h>
 
 #include "error/s2n_errno.h"
-
+#include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-
-#include "stuffer/s2n_stuffer.h"
 
 int s2n_server_done_recv(struct s2n_connection *conn)
 {
@@ -29,7 +27,4 @@ int s2n_server_done_recv(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_server_done_send(struct s2n_connection *conn)
-{
-    return 0;
-}
+int s2n_server_done_send(struct s2n_connection *conn) { return 0; }

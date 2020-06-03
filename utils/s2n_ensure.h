@@ -27,27 +27,30 @@
 /**
  * Ensures `cond` is true, otherwise `action` will be performed
  */
-#define __S2N_ENSURE( cond, action ) do {if ( !(cond) ) { action; }} while (0)
+#define __S2N_ENSURE(cond, action) \
+    do {                           \
+        if (!(cond)) { action; }   \
+    } while (0)
 
-#define __S2N_ENSURE_CONDITION( cond, action ) __S2N_ENSURE( cond, action )
+#define __S2N_ENSURE_CONDITION(cond, action) __S2N_ENSURE(cond, action)
 
-#define __S2N_ENSURE_SAFE_MEMCPY( d , s , n , guard )                            \
-  do {                                                                           \
-    __typeof( n ) __tmp_n = ( n );                                               \
-    if ( __tmp_n ) {                                                             \
-      void *r = s2n_ensure_memcpy_trace( (d), (s) , (__tmp_n), _S2N_DEBUG_LINE); \
-      guard(r);                                                                  \
-    }                                                                            \
-  } while(0)
+#define __S2N_ENSURE_SAFE_MEMCPY(d, s, n, guard)                                     \
+    do {                                                                             \
+        __typeof(n) __tmp_n = (n);                                                   \
+        if (__tmp_n) {                                                               \
+            void *r = s2n_ensure_memcpy_trace((d), (s), (__tmp_n), _S2N_DEBUG_LINE); \
+            guard(r);                                                                \
+        }                                                                            \
+    } while (0)
 
-#define __S2N_ENSURE_SAFE_MEMSET( d , c , n , guard )                            \
-  do {                                                                           \
-    __typeof( n ) __tmp_n = ( n );                                               \
-    if ( __tmp_n ) {                                                             \
-      __typeof( d ) __tmp_d = ( d );                                             \
-      guard( __tmp_d );                                                          \
-      memset( __tmp_d, (c), __tmp_n);                                            \
-    }                                                                            \
-  } while(0)
+#define __S2N_ENSURE_SAFE_MEMSET(d, c, n, guard) \
+    do {                                         \
+        __typeof(n) __tmp_n = (n);               \
+        if (__tmp_n) {                           \
+            __typeof(d) __tmp_d = (d);           \
+            guard(__tmp_d);                      \
+            memset(__tmp_d, (c), __tmp_n);       \
+        }                                        \
+    } while (0)
 
-extern void* s2n_ensure_memcpy_trace(void *restrict to, const void *restrict from, size_t size, const char *debug_str);
+extern void *s2n_ensure_memcpy_trace(void *restrict to, const void *restrict from, size_t size, const char *debug_str);

@@ -15,9 +15,9 @@
 
 #include <s2n.h>
 #include <stdlib.h>
-#include "s2n_test.h"
 
 #include "crypto/s2n_fips.h"
+#include "s2n_test.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_security_policies.h"
@@ -26,7 +26,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    
+
     const struct s2n_security_policy *default_security_policy, *tls13_security_policy, *fips_security_policy;
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &tls13_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_fips", &fips_security_policy));
@@ -34,12 +34,12 @@ int main(int argc, char **argv)
 
     /* Test default TLS1.2 */
     if (!s2n_is_in_fips_mode()) {
-        struct s2n_connection *conn = NULL;
-        const struct s2n_cipher_preferences *cipher_preferences = NULL;
-        const struct s2n_security_policy *security_policy = NULL;
-        const struct s2n_kem_preferences *kem_preferences = NULL;
+        struct s2n_connection *                 conn                  = NULL;
+        const struct s2n_cipher_preferences *   cipher_preferences    = NULL;
+        const struct s2n_security_policy *      security_policy       = NULL;
+        const struct s2n_kem_preferences *      kem_preferences       = NULL;
         const struct s2n_signature_preferences *signature_preferences = NULL;
-        const struct s2n_ecc_preferences *ecc_preferences = NULL;
+        const struct s2n_ecc_preferences *      ecc_preferences       = NULL;
 
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NULL(conn->security_policy_override);
@@ -88,12 +88,12 @@ int main(int argc, char **argv)
     /* Test TLS1.3 */
     {
         EXPECT_SUCCESS(s2n_enable_tls13());
-        struct s2n_connection *conn = NULL;
-        const struct s2n_cipher_preferences *cipher_preferences = NULL;
-        const struct s2n_security_policy *security_policy = NULL;
-        const struct s2n_kem_preferences *kem_preferences = NULL;
+        struct s2n_connection *                 conn                  = NULL;
+        const struct s2n_cipher_preferences *   cipher_preferences    = NULL;
+        const struct s2n_security_policy *      security_policy       = NULL;
+        const struct s2n_kem_preferences *      kem_preferences       = NULL;
         const struct s2n_signature_preferences *signature_preferences = NULL;
-        const struct s2n_ecc_preferences *ecc_preferences = NULL;
+        const struct s2n_ecc_preferences *      ecc_preferences       = NULL;
 
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NULL(conn->security_policy_override);
@@ -143,12 +143,12 @@ int main(int argc, char **argv)
     /* Test default fips */
 
     if (s2n_is_in_fips_mode()) {
-        struct s2n_connection *conn = NULL;
-        const struct s2n_cipher_preferences *cipher_preferences = NULL;
-        const struct s2n_security_policy *security_policy = NULL;
-        const struct s2n_kem_preferences *kem_preferences = NULL;
+        struct s2n_connection *                 conn                  = NULL;
+        const struct s2n_cipher_preferences *   cipher_preferences    = NULL;
+        const struct s2n_security_policy *      security_policy       = NULL;
+        const struct s2n_kem_preferences *      kem_preferences       = NULL;
         const struct s2n_signature_preferences *signature_preferences = NULL;
-        const struct s2n_ecc_preferences *ecc_preferences = NULL;
+        const struct s2n_ecc_preferences *      ecc_preferences       = NULL;
 
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NULL(conn->security_policy_override);
@@ -196,12 +196,12 @@ int main(int argc, char **argv)
 
     /* Test for NULL */
     {
-        struct s2n_connection *conn = NULL;
-        const struct s2n_cipher_preferences *cipher_preferences = NULL;
-        const struct s2n_security_policy *security_policy = NULL;
-        const struct s2n_kem_preferences *kem_preferences = NULL;
+        struct s2n_connection *                 conn                  = NULL;
+        const struct s2n_cipher_preferences *   cipher_preferences    = NULL;
+        const struct s2n_security_policy *      security_policy       = NULL;
+        const struct s2n_kem_preferences *      kem_preferences       = NULL;
         const struct s2n_signature_preferences *signature_preferences = NULL;
-        const struct s2n_ecc_preferences *ecc_preferences = NULL;
+        const struct s2n_ecc_preferences *      ecc_preferences       = NULL;
 
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NULL(conn->security_policy_override);
@@ -229,12 +229,12 @@ int main(int argc, char **argv)
 
     /* Test Error Case */
     {
-        struct s2n_connection *conn = NULL;
-        const struct s2n_cipher_preferences *cipher_preferences = NULL;
-        const struct s2n_security_policy *security_policy = NULL;
-        const struct s2n_kem_preferences *kem_preferences = NULL;
+        struct s2n_connection *                 conn                  = NULL;
+        const struct s2n_cipher_preferences *   cipher_preferences    = NULL;
+        const struct s2n_security_policy *      security_policy       = NULL;
+        const struct s2n_kem_preferences *      kem_preferences       = NULL;
         const struct s2n_signature_preferences *signature_preferences = NULL;
-        const struct s2n_ecc_preferences *ecc_preferences = NULL;
+        const struct s2n_ecc_preferences *      ecc_preferences       = NULL;
 
         EXPECT_FAILURE(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
         EXPECT_FAILURE(s2n_connection_get_security_policy(conn, &security_policy));
@@ -248,11 +248,16 @@ int main(int argc, char **argv)
 
         conn->config->security_policy = NULL;
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_cipher_preferences(conn, &cipher_preferences), S2N_ERR_INVALID_CIPHER_PREFERENCES);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_security_policy(conn, &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_kem_preferences(conn, &kem_preferences), S2N_ERR_INVALID_KEM_PREFERENCES);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_signature_preferences(conn, &signature_preferences), S2N_ERR_INVALID_SIGNATURE_ALGORITHMS_PREFERENCES);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_ecc_preferences(conn, &ecc_preferences), S2N_ERR_INVALID_ECC_PREFERENCES);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_cipher_preferences(conn, &cipher_preferences),
+                                  S2N_ERR_INVALID_CIPHER_PREFERENCES);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_security_policy(conn, &security_policy),
+                                  S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_kem_preferences(conn, &kem_preferences),
+                                  S2N_ERR_INVALID_KEM_PREFERENCES);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_signature_preferences(conn, &signature_preferences),
+                                  S2N_ERR_INVALID_SIGNATURE_ALGORITHMS_PREFERENCES);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_ecc_preferences(conn, &ecc_preferences),
+                                  S2N_ERR_INVALID_ECC_PREFERENCES);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }

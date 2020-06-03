@@ -13,16 +13,16 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-#include <stdint.h>
-
 #include "tls/extensions/s2n_client_supported_versions.h"
+
+#include <stdint.h>
+#include <sys/param.h>
+
 #include "tls/extensions/s2n_supported_versions.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-
 #include "utils/s2n_safety.h"
 
 /**
@@ -48,12 +48,12 @@ static int s2n_client_supported_versions_send(struct s2n_connection *conn, struc
 static int s2n_client_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *in);
 
 const s2n_extension_type s2n_client_supported_versions_extension = {
-    .iana_value = TLS_EXTENSION_SUPPORTED_VERSIONS,
+    .iana_value  = TLS_EXTENSION_SUPPORTED_VERSIONS,
     .is_response = false,
-    .send = s2n_client_supported_versions_send,
-    .recv = s2n_client_supported_versions_recv,
+    .send        = s2n_client_supported_versions_send,
+    .recv        = s2n_client_supported_versions_recv,
     .should_send = s2n_extension_send_if_tls13_connection,
-    .if_missing = s2n_extension_noop_if_missing,
+    .if_missing  = s2n_extension_noop_if_missing,
 };
 
 static int s2n_client_supported_versions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -73,7 +73,8 @@ static int s2n_client_supported_versions_send(struct s2n_connection *conn, struc
     return S2N_SUCCESS;
 }
 
-static int s2n_extensions_client_supported_versions_process(struct s2n_connection *conn, struct s2n_stuffer *extension) {
+static int s2n_extensions_client_supported_versions_process(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
     uint8_t highest_supported_version = conn->server_protocol_version;
     uint8_t minimum_supported_version;
     GUARD(s2n_connection_get_minimum_supported_version(conn, &minimum_supported_version));
@@ -87,27 +88,21 @@ static int s2n_extensions_client_supported_versions_process(struct s2n_connectio
     conn->actual_protocol_version = s2n_unknown_protocol_version;
 
     for (int i = 0; i < size_of_version_list; i += S2N_TLS_PROTOCOL_VERSION_LEN) {
-        uint8_t client_version_parts[S2N_TLS_PROTOCOL_VERSION_LEN];
+        uint8_t client_version_parts[ S2N_TLS_PROTOCOL_VERSION_LEN ];
         GUARD(s2n_stuffer_read_bytes(extension, client_version_parts, S2N_TLS_PROTOCOL_VERSION_LEN));
 
         /* If the client version is outside of our supported versions, then ignore the value.
          * S2N does not support SSLv2 except for upgrading connections. Since this extension is
          * a TLS1.3 extension, we will skip any SSLv2 values. */
-        if (client_version_parts[0] != 3 || client_version_parts[1] > 4) {
-            continue;
-        }
+        if (client_version_parts[ 0 ] != 3 || client_version_parts[ 1 ] > 4) { continue; }
 
-        uint16_t client_version = (client_version_parts[0] * 10) + client_version_parts[1];
+        uint16_t client_version = (client_version_parts[ 0 ] * 10) + client_version_parts[ 1 ];
 
         conn->client_protocol_version = MAX(client_version, conn->client_protocol_version);
 
-        if (client_version > highest_supported_version) {
-            continue;
-        }
+        if (client_version > highest_supported_version) { continue; }
 
-        if (client_version < minimum_supported_version) {
-            continue;
-        }
+        if (client_version < minimum_supported_version) { continue; }
 
         /* We ignore the client's preferred order and instead choose
          * the highest version that both client and server support. */
@@ -121,9 +116,7 @@ static int s2n_extensions_client_supported_versions_process(struct s2n_connectio
 
 static int s2n_client_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
 {
-    if (!s2n_is_tls13_enabled()) {
-        return S2N_SUCCESS;
-    }
+    if (!s2n_is_tls13_enabled()) { return S2N_SUCCESS; }
 
     if (s2n_extensions_client_supported_versions_process(conn, in) < 0) {
         s2n_queue_reader_unsupported_protocol_version_alert(conn);
@@ -134,7 +127,8 @@ static int s2n_client_supported_versions_recv(struct s2n_connection *conn, struc
 
 /* Old-style extension functions -- remove after extensions refactor is complete */
 
-int s2n_extensions_client_supported_versions_size(struct s2n_connection *conn) {
+int s2n_extensions_client_supported_versions_size(struct s2n_connection *conn)
+{
     uint8_t minimum_supported_version;
     GUARD(s2n_connection_get_minimum_supported_version(conn, &minimum_supported_version));
     uint8_t highest_supported_version = conn->client_protocol_version;
@@ -144,10 +138,12 @@ int s2n_extensions_client_supported_versions_size(struct s2n_connection *conn) {
     return version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN + 5;
 }
 
-int s2n_extensions_client_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *extension) {
+int s2n_extensions_client_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
     return s2n_extension_recv(&s2n_client_supported_versions_extension, conn, extension);
 }
 
-int s2n_extensions_client_supported_versions_send(struct s2n_connection *conn, struct s2n_stuffer *out) {
+int s2n_extensions_client_supported_versions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
     return s2n_extension_send(&s2n_client_supported_versions_extension, conn, out);
 }

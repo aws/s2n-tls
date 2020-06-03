@@ -13,25 +13,22 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include "tls/s2n_handshake.h"
 
-#include "testlib/s2n_testlib.h"
-
-#include <unistd.h>
-#include <stdint.h>
-#include <fcntl.h>
 #include <errno.h>
-#include <stdlib.h>
-
+#include <fcntl.h>
 #include <s2n.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_rsa_pss.h"
-
-#include "tls/s2n_connection.h"
-#include "tls/s2n_handshake.h"
-#include "tls/s2n_security_policies.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_connection.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 
@@ -43,19 +40,16 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
     int tries = 0;
     do {
         int client_rc = s2n_negotiate(client_conn, &client_blocked);
-        if (!(client_rc == 0 || (client_blocked && s2n_errno == S2N_ERR_IO_BLOCKED))) {
-            return -1;
-        }
+        if (!(client_rc == 0 || (client_blocked && s2n_errno == S2N_ERR_IO_BLOCKED))) { return -1; }
 
         int server_rc = s2n_negotiate(server_conn, &server_blocked);
-        if (!(server_rc == 0 || (server_blocked && s2n_errno == S2N_ERR_IO_BLOCKED) || server_blocked == S2N_BLOCKED_ON_APPLICATION_INPUT)) {
+        if (!(server_rc == 0 || (server_blocked && s2n_errno == S2N_ERR_IO_BLOCKED)
+              || server_blocked == S2N_BLOCKED_ON_APPLICATION_INPUT)) {
             return -1;
         }
 
         tries += 1;
-        if (tries == 5) {
-            return -1;
-        }
+        if (tries == 5) { return -1; }
     } while (client_blocked || server_blocked);
 
     uint8_t server_shutdown = 0;
@@ -84,7 +78,9 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
 }
 
 int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config *client_config,
-        struct s2n_cert_chain_and_key *expected_cert_chain, s2n_signature_algorithm expected_sig_alg) {
+                            struct s2n_cert_chain_and_key *expected_cert_chain,
+                            s2n_signature_algorithm        expected_sig_alg)
+{
     const struct s2n_security_policy *security_policy = NULL;
 
     security_policy = server_config->security_policy;
@@ -104,23 +100,21 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
     /* Verify that a handshake succeeds for every available cipher in the default list. For unavailable ciphers,
      * make sure that we fail the handshake. */
     for (int cipher_idx = 0; cipher_idx < cipher_preferences->count; cipher_idx++) {
-        struct s2n_security_policy server_security_policy;
+        struct s2n_security_policy    server_security_policy;
         struct s2n_cipher_preferences server_cipher_preferences;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *       client_conn;
+        struct s2n_connection *       server_conn;
         server_conn = s2n_connection_new(S2N_SERVER);
         notnull_check(server_conn);
-        struct s2n_cipher_suite *expected_cipher = cipher_preferences->suites[cipher_idx];
-        uint8_t expect_failure = 0;
+        struct s2n_cipher_suite *expected_cipher = cipher_preferences->suites[ cipher_idx ];
+        uint8_t                  expect_failure  = 0;
 
         /* Expect failure if the libcrypto we're building with can't support the cipher */
-        if (!expected_cipher->available) {
-            expect_failure = 1;
-        }
+        if (!expected_cipher->available) { expect_failure = 1; }
 
         /* Craft a cipher preference with a cipher_idx cipher */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, cipher_preferences, sizeof(server_cipher_preferences));
-        server_cipher_preferences.count = 1;
+        server_cipher_preferences.count  = 1;
         server_cipher_preferences.suites = &expected_cipher;
 
         EXPECT_MEMCPY_SUCCESS(&server_security_policy, security_policy, sizeof(server_security_policy));
@@ -174,7 +168,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    char dhparams_pem[S2N_MAX_TEST_PEM_SIZE];
+    char dhparams_pem[ S2N_MAX_TEST_PEM_SIZE ];
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
 
     /*  Test: RSA cert */
@@ -182,8 +176,8 @@ int main(int argc, char **argv)
         struct s2n_config *server_config, *client_config;
 
         struct s2n_cert_chain_and_key *chain_and_key;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(
+            s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
@@ -194,8 +188,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
-        EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config,
-                chain_and_key, S2N_SIGNATURE_RSA));
+        EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config, chain_and_key, S2N_SIGNATURE_RSA));
 
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -210,8 +203,8 @@ int main(int argc, char **argv)
             struct s2n_config *server_config, *client_config;
 
             struct s2n_cert_chain_and_key *chain_and_key;
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                    S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN,
+                                                           S2N_DEFAULT_TEST_PRIVATE_KEY));
 
             EXPECT_NOT_NULL(server_config = s2n_config_new());
             /* Configures server with maximum version 1.2 with only RSA key exchange ciphersuites */
@@ -226,8 +219,7 @@ int main(int argc, char **argv)
 
             /* RSA encrypted premaster secret key exchange requires client versions
             * to be set and read correctly, this test covers the behavior with a 1.3 client */
-            EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config,
-                    chain_and_key, S2N_SIGNATURE_RSA));
+            EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config, chain_and_key, S2N_SIGNATURE_RSA));
 
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
             EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -241,8 +233,8 @@ int main(int argc, char **argv)
         struct s2n_config *server_config, *client_config;
 
         struct s2n_cert_chain_and_key *chain_and_key;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+        EXPECT_SUCCESS(
+            s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all_ecdsa"));
@@ -255,8 +247,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_ECDSA_P384_PKCS1_CERT_CHAIN, NULL));
 
-        EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config,
-                chain_and_key, S2N_SIGNATURE_ECDSA));
+        EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config, chain_and_key, S2N_SIGNATURE_ECDSA));
 
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -264,34 +255,33 @@ int main(int argc, char **argv)
     }
 
     /*  Test: RSA cert with RSA PSS signatures */
-    if (s2n_is_rsa_pss_signing_supported())
-    {
-        const struct s2n_signature_scheme* const rsa_pss_rsae_sig_schemes[] = {
-                /* RSA PSS */
-                &s2n_rsa_pss_rsae_sha256,
-                &s2n_rsa_pss_rsae_sha384,
-                &s2n_rsa_pss_rsae_sha512,
+    if (s2n_is_rsa_pss_signing_supported()) {
+        const struct s2n_signature_scheme *const rsa_pss_rsae_sig_schemes[] = {
+            /* RSA PSS */
+            &s2n_rsa_pss_rsae_sha256,
+            &s2n_rsa_pss_rsae_sha384,
+            &s2n_rsa_pss_rsae_sha512,
         };
 
         struct s2n_signature_preferences sig_prefs = {
-            .count = 3,
+            .count             = 3,
             .signature_schemes = rsa_pss_rsae_sig_schemes,
         };
 
         struct s2n_config *server_config, *client_config;
 
         struct s2n_cert_chain_and_key *chain_and_key;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(
+            s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
 
         struct s2n_security_policy security_policy = {
             .minimum_protocol_version = server_config->security_policy->minimum_protocol_version,
-            .cipher_preferences = server_config->security_policy->cipher_preferences,
-            .kem_preferences = server_config->security_policy->kem_preferences,
-            .signature_preferences = &sig_prefs,
-            .ecc_preferences = server_config->security_policy->ecc_preferences,
+            .cipher_preferences       = server_config->security_policy->cipher_preferences,
+            .kem_preferences          = server_config->security_policy->kem_preferences,
+            .signature_preferences    = &sig_prefs,
+            .ecc_preferences          = server_config->security_policy->ecc_preferences,
         };
 
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
@@ -299,15 +289,15 @@ int main(int argc, char **argv)
         server_config->security_policy = &security_policy;
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        client_config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
-        client_config->check_ocsp = 0;
+        client_config->client_cert_auth_type   = S2N_CERT_AUTH_NONE;
+        client_config->check_ocsp              = 0;
         client_config->disable_x509_validation = 1;
-        client_config->security_policy = &security_policy;
+        client_config->security_policy         = &security_policy;
 
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
-        EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config,
-                chain_and_key, S2N_SIGNATURE_RSA_PSS_RSAE));
+        EXPECT_SUCCESS(
+            test_cipher_preferences(server_config, client_config, chain_and_key, S2N_SIGNATURE_RSA_PSS_RSAE));
 
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -315,15 +305,14 @@ int main(int argc, char **argv)
     }
 
     /*  Test: RSA_PSS cert with RSA_PSS signatures */
-    if (s2n_is_rsa_pss_certs_supported())
-    {
+    if (s2n_is_rsa_pss_certs_supported()) {
         s2n_enable_tls13();
 
         struct s2n_config *server_config, *client_config;
 
         struct s2n_cert_chain_and_key *chain_and_key;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                S2N_RSA_PSS_2048_SHA256_LEAF_CERT, S2N_RSA_PSS_2048_SHA256_LEAF_KEY));
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_RSA_PSS_2048_SHA256_LEAF_CERT,
+                                                       S2N_RSA_PSS_2048_SHA256_LEAF_KEY));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20200207"));
@@ -331,12 +320,11 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20200207"));
-        client_config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
-        client_config->check_ocsp = 0;
+        client_config->client_cert_auth_type   = S2N_CERT_AUTH_NONE;
+        client_config->check_ocsp              = 0;
         client_config->disable_x509_validation = 1;
 
-        EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config,
-                chain_and_key, S2N_SIGNATURE_RSA_PSS_PSS));
+        EXPECT_SUCCESS(test_cipher_preferences(server_config, client_config, chain_and_key, S2N_SIGNATURE_RSA_PSS_PSS));
 
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -348,4 +336,3 @@ int main(int argc, char **argv)
     END_TEST();
     return 0;
 }
-

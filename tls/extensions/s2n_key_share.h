@@ -16,13 +16,13 @@
 #pragma once
 
 #include "crypto/s2n_ecc_evp.h"
-#include "tls/s2n_connection.h"
 #include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_connection.h"
 
-#define S2N_SIZE_OF_EXTENSION_TYPE          2
-#define S2N_SIZE_OF_EXTENSION_DATA_SIZE     2
-#define S2N_SIZE_OF_CLIENT_SHARES_SIZE      2
-#define S2N_SIZE_OF_NAMED_GROUP             2
-#define S2N_SIZE_OF_KEY_SHARE_SIZE          2
+#define S2N_SIZE_OF_EXTENSION_TYPE 2
+#define S2N_SIZE_OF_EXTENSION_DATA_SIZE 2
+#define S2N_SIZE_OF_CLIENT_SHARES_SIZE 2
+#define S2N_SIZE_OF_NAMED_GROUP 2
+#define S2N_SIZE_OF_KEY_SHARE_SIZE 2
 
 extern int s2n_ecdhe_parameters_send(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out);

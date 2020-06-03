@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
 #include "pq-crypto/sike_r2/sike_r2_kem.h"
+#include "s2n_test.h"
 
 int main(int argc, char **argv)
 {
@@ -22,11 +22,11 @@ int main(int argc, char **argv)
 
 #if !defined(S2N_NO_PQ)
 
-    unsigned char pub_key[SIKE_P434_R2_PUBLIC_KEY_BYTES] = {0};
-    unsigned char priv_key[SIKE_P434_R2_SECRET_KEY_BYTES] = {0};
-    unsigned char c_shared_secret[SIKE_P434_R2_SHARED_SECRET_BYTES];
-    unsigned char s_shared_secret[SIKE_P434_R2_SHARED_SECRET_BYTES];
-    unsigned char ciphertext[SIKE_P434_R2_CIPHERTEXT_BYTES];
+    unsigned char pub_key[ SIKE_P434_R2_PUBLIC_KEY_BYTES ]  = { 0 };
+    unsigned char priv_key[ SIKE_P434_R2_SECRET_KEY_BYTES ] = { 0 };
+    unsigned char c_shared_secret[ SIKE_P434_R2_SHARED_SECRET_BYTES ];
+    unsigned char s_shared_secret[ SIKE_P434_R2_SHARED_SECRET_BYTES ];
+    unsigned char ciphertext[ SIKE_P434_R2_CIPHERTEXT_BYTES ];
 
     EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_keypair(pub_key, priv_key));
     EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_enc(ciphertext, c_shared_secret, pub_key));

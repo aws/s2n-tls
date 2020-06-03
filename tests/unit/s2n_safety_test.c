@@ -13,36 +13,34 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include "utils/s2n_safety.h"
 
-#define CHECK_OVF_0(fn, type, a, b)             \
-  do {                                          \
-    type result_val;                            \
-    EXPECT_FAILURE(fn((a), (b), &result_val));  \
-  } while (0)
+#include "s2n_test.h"
 
+#define CHECK_OVF_0(fn, type, a, b)                \
+    do {                                           \
+        type result_val;                           \
+        EXPECT_FAILURE(fn((a), (b), &result_val)); \
+    } while (0)
 
-#define CHECK_OVF(fn, type, a, b)               \
-  do {                                          \
-    CHECK_OVF_0(fn, type, a, b);                \
-    CHECK_OVF_0(fn, type, b, a);                \
-  } while (0)
+#define CHECK_OVF(fn, type, a, b)    \
+    do {                             \
+        CHECK_OVF_0(fn, type, a, b); \
+        CHECK_OVF_0(fn, type, b, a); \
+    } while (0)
 
-#define CHECK_NO_OVF_0(fn, type, a, b, r)       \
-  do {                                          \
-    type result_val;                            \
-    EXPECT_SUCCESS(fn((a), (b), &result_val));  \
-    EXPECT_EQUAL(result_val,(r));               \
-  } while (0)
+#define CHECK_NO_OVF_0(fn, type, a, b, r)          \
+    do {                                           \
+        type result_val;                           \
+        EXPECT_SUCCESS(fn((a), (b), &result_val)); \
+        EXPECT_EQUAL(result_val, (r));             \
+    } while (0)
 
-#define CHECK_NO_OVF(fn, type, a, b, r)         \
-  do {                                          \
-    CHECK_NO_OVF_0(fn, type, a, b, r);          \
-    CHECK_NO_OVF_0(fn, type, b, a, r);          \
-  } while (0)
-
+#define CHECK_NO_OVF(fn, type, a, b, r)    \
+    do {                                   \
+        CHECK_NO_OVF_0(fn, type, a, b, r); \
+        CHECK_NO_OVF_0(fn, type, b, a, r); \
+    } while (0)
 
 static int failure_gte()
 {
@@ -120,8 +118,8 @@ static int failure_notnull()
 
 static int success_memcpy()
 {
-    char dst[1024];
-    char src[1024] = {0};
+    char dst[ 1024 ];
+    char src[ 1024 ] = { 0 };
 
     memcpy_check(dst, src, 1024);
 
@@ -130,7 +128,7 @@ static int success_memcpy()
 
 static int failure_memcpy()
 {
-    char src[1024];
+    char  src[ 1024 ];
     char *ptr = NULL;
 
     memcpy_check(ptr, src, 1024);
@@ -199,8 +197,8 @@ static int failure_exclusive_range_eq_low()
 static int success_ct_pkcs1()
 {
     uint8_t pkcs1_data[] = { 0x00, 0x02, 0x80, 0x08, 0x0c, 0x00, 0xab, 0xcd, 0xef, 0x00 };
-    uint8_t outbuf[] = { 0x11, 0x22, 0x33, 0x44 };
-    uint8_t expected[] = { 0xab, 0xcd, 0xef, 0x00 };
+    uint8_t outbuf[]     = { 0x11, 0x22, 0x33, 0x44 };
+    uint8_t expected[]   = { 0xab, 0xcd, 0xef, 0x00 };
 
     s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data, sizeof(pkcs1_data), sizeof(outbuf));
 
@@ -210,48 +208,39 @@ static int success_ct_pkcs1()
 static int success_ct_pkcs1_negative()
 {
     uint8_t pkcs1_data_too_long[] = { 0x00, 0x02, 0x80, 0x0f, 0x00, 0x10, 0xab, 0xcd, 0xef, 0x00 };
-    uint8_t outbuf[] = { 0x11, 0x22, 0x33, 0x44 };
-    uint8_t expected[] = { 0x11, 0x22, 0x33, 0x44 };
+    uint8_t outbuf[]              = { 0x11, 0x22, 0x33, 0x44 };
+    uint8_t expected[]            = { 0x11, 0x22, 0x33, 0x44 };
 
     s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data_too_long, sizeof(pkcs1_data_too_long), sizeof(outbuf));
-    if (memcmp(outbuf, expected, sizeof(expected))) {
-        return -1;
-    }
+    if (memcmp(outbuf, expected, sizeof(expected))) { return -1; }
 
     uint8_t pkcs1_data_too_short[] = { 0x00, 0x02, 0x80, 0x01, 0x02, 0x07, 0x00, 0xcd, 0xef, 0x00 };
 
     s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data_too_short, sizeof(pkcs1_data_too_short), sizeof(outbuf));
-    if (memcmp(outbuf, expected, sizeof(expected))) {
-        return -1;
-    }
+    if (memcmp(outbuf, expected, sizeof(expected))) { return -1; }
 
     uint8_t pkcs1_data_zeroes_in_pad[] = { 0x00, 0x02, 0x80, 0x00, 0x0c, 0x00, 0xab, 0xcd, 0xef, 0x00 };
-    s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data_zeroes_in_pad, sizeof(pkcs1_data_zeroes_in_pad), sizeof(outbuf));
-    if (memcmp(outbuf, expected, sizeof(expected))) {
-        return -1;
-    }
+    s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data_zeroes_in_pad, sizeof(pkcs1_data_zeroes_in_pad),
+                                          sizeof(outbuf));
+    if (memcmp(outbuf, expected, sizeof(expected))) { return -1; }
 
     uint8_t pkcs1_data_zeroes_in_pad2[] = { 0x00, 0x02, 0x80, 0x11, 0x00, 0x00, 0xab, 0xcd, 0xef, 0x00 };
-    s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data_zeroes_in_pad2, sizeof(pkcs1_data_zeroes_in_pad2), sizeof(outbuf));
-    if (memcmp(outbuf, expected, sizeof(expected))) {
-        return -1;
-    }
+    s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data_zeroes_in_pad2, sizeof(pkcs1_data_zeroes_in_pad2),
+                                          sizeof(outbuf));
+    if (memcmp(outbuf, expected, sizeof(expected))) { return -1; }
 
     uint8_t pkcs1_data_bad_prefix1[] = { 0x01, 0x02, 0x80, 0x08, 0x0c, 0x00, 0xab, 0xcd, 0xef, 0x00 };
-    s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data_bad_prefix1, sizeof(pkcs1_data_bad_prefix1), sizeof(outbuf));
-    if (memcmp(outbuf, expected, sizeof(expected))) {
-        return -1;
-    }
+    s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data_bad_prefix1, sizeof(pkcs1_data_bad_prefix1),
+                                          sizeof(outbuf));
+    if (memcmp(outbuf, expected, sizeof(expected))) { return -1; }
 
     uint8_t pkcs1_data_bad_prefix2[] = { 0x00, 0x12, 0x80, 0x08, 0x0c, 0x00, 0xab, 0xcd, 0xef, 0x00 };
-    s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data_bad_prefix2, sizeof(pkcs1_data_bad_prefix2), sizeof(outbuf));
-    if (memcmp(outbuf, expected, sizeof(expected))) {
-        return -1;
-    }
+    s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data_bad_prefix2, sizeof(pkcs1_data_bad_prefix2),
+                                          sizeof(outbuf));
+    if (memcmp(outbuf, expected, sizeof(expected))) { return -1; }
 
     return 0;
 }
-
 
 int main(int argc, char **argv)
 {
@@ -281,11 +270,11 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(success_ct_pkcs1());
     EXPECT_SUCCESS(success_ct_pkcs1_negative());
 
-    uint8_t a[4] = { 1, 2, 3, 4 };
-    uint8_t b[4] = { 1, 2, 3, 4 };
-    uint8_t c[4] = { 5, 6, 7, 8 };
-    uint8_t d[4] = { 5, 6, 7, 8 };
-    uint8_t e[4] = { 1, 2, 3, 4 };
+    uint8_t a[ 4 ] = { 1, 2, 3, 4 };
+    uint8_t b[ 4 ] = { 1, 2, 3, 4 };
+    uint8_t c[ 4 ] = { 5, 6, 7, 8 };
+    uint8_t d[ 4 ] = { 5, 6, 7, 8 };
+    uint8_t e[ 4 ] = { 1, 2, 3, 4 };
 
     EXPECT_EQUAL(s2n_constant_time_equals(a, b, sizeof(a)), 1);
     EXPECT_EQUAL(s2n_constant_time_equals(a, c, sizeof(a)), 0);
@@ -299,21 +288,19 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_constant_time_equals(b, e, sizeof(a)), 1);
     }
 
-    uint8_t x[1];
-    uint8_t y[1];
+    uint8_t x[ 1 ];
+    uint8_t y[ 1 ];
 
     for (int i = 0; i < 256; i++) {
         for (int j = 0; j < 256; j++) {
-           x[0] = i;
-           y[0] = j;
+            x[ 0 ] = i;
+            y[ 0 ] = j;
 
-           int expected = 0;
+            int expected = 0;
 
-           if (i == j) {
-                expected = 1;
-           }
+            if (i == j) { expected = 1; }
 
-           EXPECT_EQUAL(s2n_constant_time_equals(x, y, sizeof(x)), expected);
+            EXPECT_EQUAL(s2n_constant_time_equals(x, y, sizeof(x)), expected);
         }
     }
 
@@ -360,7 +347,7 @@ int main(int argc, char **argv)
 
     EXPECT_FAILURE(s2n_align_to(UINT32_MAX - 4000, 4096, &result));
     EXPECT_FAILURE(s2n_align_to(UINT32_MAX, 4096, &result));
-    const uint32_t HALF_MAX = UINT32_MAX / 2;
+    const uint32_t HALF_MAX   = UINT32_MAX / 2;
     const uint32_t ACTUAL_MAX = UINT32_MAX;
 
     CHECK_NO_OVF(s2n_add_overflow, uint32_t, 0, 0, 0);

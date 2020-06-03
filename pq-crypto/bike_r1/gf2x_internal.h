@@ -10,22 +10,13 @@
 
 #include "types.h"
 
-EXTERNC void
-karatzuba_add1(OUT uint64_t *res,
-               IN const uint64_t *a,
-               IN const uint64_t *b,
-               IN uint64_t        n_half,
-               IN uint64_t *alah);
+EXTERNC void karatzuba_add1(OUT uint64_t *res, IN const uint64_t *a, IN const uint64_t *b, IN uint64_t n_half,
+                            IN uint64_t *alah);
 
-EXTERNC void
-karatzuba_add2(OUT uint64_t *res1,
-               OUT uint64_t *res2,
-               IN const uint64_t *res,
-               IN const uint64_t *tmp,
-               IN uint64_t        n_half);
+EXTERNC void karatzuba_add2(OUT uint64_t *res1, OUT uint64_t *res2, IN const uint64_t *res, IN const uint64_t *tmp,
+                            IN uint64_t n_half);
 
-EXTERNC void
-red(uint64_t *res);
+EXTERNC void red(uint64_t *res);
 
 void
 

@@ -15,10 +15,9 @@
 
 #pragma once
 
-#include "tls/s2n_connection.h"
 #include "stuffer/s2n_stuffer.h"
-
 #include "tls/extensions/s2n_key_share.h"
+#include "tls/s2n_connection.h"
 
 extern const s2n_extension_type s2n_server_key_share_extension;
 

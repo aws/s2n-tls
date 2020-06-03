@@ -20,13 +20,14 @@
 
 #pragma once
 
-#include "types.h"
 #include <stdlib.h>
+
+#include "types.h"
 
 #define NUM_OF_BLOCKS_IN_MB 4ULL
 
-#define SLICE_REM       111ULL
-#define MAX_MB_SLICES   8ULL
+#define SLICE_REM 111ULL
+#define MAX_MB_SLICES 8ULL
 #define HASH_BLOCK_SIZE 128ULL
 
 typedef sha384_hash_t sha_hash_t;

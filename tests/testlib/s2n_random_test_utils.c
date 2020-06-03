@@ -15,13 +15,13 @@
 
 #include <sys/param.h>
 
+#include "crypto/s2n_drbg.h"
+#include "tests/testlib/s2n_testlib.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
-#include "crypto/s2n_drbg.h"
-#include "tests/testlib/s2n_testlib.h"
 
-static uint8_t seed_buffer[S2N_DRBG_MAX_SEED_SIZE] = { 0 };
+static uint8_t seed_buffer[ S2N_DRBG_MAX_SEED_SIZE ] = { 0 };
 
 S2N_RESULT s2n_fixed_entropy_generator(struct s2n_blob *blob)
 {
@@ -36,10 +36,10 @@ int s2n_unsafe_set_drbg_seed(const struct s2n_blob *seed)
 {
     S2N_ERROR_IF(!s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
-    memset_check((uint8_t*) seed_buffer, 0, sizeof(seed_buffer));
+    memset_check(( uint8_t * )seed_buffer, 0, sizeof(seed_buffer));
     memcpy_check(seed_buffer, seed->data, MIN(seed->size, S2N_DRBG_MAX_SEED_SIZE));
 
-    uint8_t data[48] = { 0 };
+    uint8_t         data[ 48 ] = { 0 };
     struct s2n_blob ps;
     GUARD(s2n_blob_init(&ps, data, sizeof(data)));
 

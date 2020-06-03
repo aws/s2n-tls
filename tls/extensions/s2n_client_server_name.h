@@ -15,9 +15,9 @@
 
 #pragma once
 
+#include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_connection.h"
-#include "stuffer/s2n_stuffer.h"
 
 extern const s2n_extension_type s2n_client_server_name_extension;
 

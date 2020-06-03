@@ -18,14 +18,14 @@
 #include "tls/s2n_crypto.h"
 
 /* from RFC: https://tools.ietf.org/html/rfc8446#section-4.1.3*/
-extern uint8_t hello_retry_req_random[S2N_TLS_RANDOM_DATA_LEN];
+extern uint8_t hello_retry_req_random[ S2N_TLS_RANDOM_DATA_LEN ];
 
-int s2n_is_tls13_supported();
-int s2n_is_tls13_enabled();
-int s2n_enable_tls13();
-int s2n_disable_tls13();
-bool s2n_is_valid_tls13_cipher(const uint8_t version[2]);
+int  s2n_is_tls13_supported();
+int  s2n_is_tls13_enabled();
+int  s2n_enable_tls13();
+int  s2n_disable_tls13();
+bool s2n_is_valid_tls13_cipher(const uint8_t version[ 2 ]);
 
 bool s2n_is_hello_retry_required(struct s2n_connection *conn);
 bool s2n_is_hello_retry_handshake(struct s2n_connection *conn);
-int s2n_set_hello_retry_required(struct s2n_connection *conn);
+int  s2n_set_hello_retry_required(struct s2n_connection *conn);

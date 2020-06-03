@@ -13,11 +13,12 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_ecc_preferences.h"
+
 #include <s2n.h>
 
-#include "tls/s2n_ecc_preferences.h"
-#include "tls/s2n_connection.h"
 #include "crypto/s2n_ecc_evp.h"
+#include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
 const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_20140601[] = {
@@ -34,38 +35,36 @@ const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_20200310[] = {
 };
 
 const struct s2n_ecc_preferences s2n_ecc_preferences_20140601 = {
-        .count = s2n_array_len(s2n_ecc_pref_list_20140601),
-        .ecc_curves = s2n_ecc_pref_list_20140601,
+    .count      = s2n_array_len(s2n_ecc_pref_list_20140601),
+    .ecc_curves = s2n_ecc_pref_list_20140601,
 };
 
 const struct s2n_ecc_preferences s2n_ecc_preferences_20200310 = {
-        .count = s2n_array_len(s2n_ecc_pref_list_20200310),
-        .ecc_curves = s2n_ecc_pref_list_20200310,
+    .count      = s2n_array_len(s2n_ecc_pref_list_20200310),
+    .ecc_curves = s2n_ecc_pref_list_20200310,
 };
 
 const struct s2n_ecc_preferences s2n_ecc_preferences_null = {
-        .count = 0,
-        .ecc_curves = NULL,
+    .count      = 0,
+    .ecc_curves = NULL,
 };
 
 /* Checks if the ecc_curves present in s2n_ecc_preferences list is a subset of s2n_all_supported_curves_list
  * maintained in s2n_ecc_evp.c */
-int s2n_check_ecc_preferences_curves_list(const struct s2n_ecc_preferences *ecc_preferences) {
+int s2n_check_ecc_preferences_curves_list(const struct s2n_ecc_preferences *ecc_preferences)
+{
     int check = 1;
     for (int i = 0; i < ecc_preferences->count; i++) {
-        const struct s2n_ecc_named_curve *named_curve = ecc_preferences->ecc_curves[i];
-        int curve_found = 0;
+        const struct s2n_ecc_named_curve *named_curve = ecc_preferences->ecc_curves[ i ];
+        int                               curve_found = 0;
         for (int j = 0; j < s2n_all_supported_curves_list_len; j++) {
-            if (named_curve->iana_id == s2n_all_supported_curves_list[j]->iana_id) {
+            if (named_curve->iana_id == s2n_all_supported_curves_list[ j ]->iana_id) {
                 curve_found = 1;
-                break; 
+                break;
             }
         }
-        check *= curve_found; 
-        if (check == 0) {
-            S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
-        }
+        check *= curve_found;
+        if (check == 0) { S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE); }
     }
     return S2N_SUCCESS;
 }
-

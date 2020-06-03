@@ -25,4 +25,4 @@ int SIKE_P434_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN
 // Return 0 for success and !0 for failures.
 int SIKE_P434_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
 
-#endif // SIKE_R2_KEM_H
+#endif  // SIKE_R2_KEM_H

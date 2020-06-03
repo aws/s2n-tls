@@ -13,34 +13,30 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
+#include <fcntl.h>
+#include <s2n.h>
+#include <signal.h>
+#include <stdint.h>
 #include <sys/poll.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <signal.h>
-#include <stdint.h>
-#include <fcntl.h>
 
-#include <s2n.h>
-
-#include "utils/s2n_random.h"
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "utils/s2n_random.h"
 
 #define MAX_BUF_SIZE 10000
 
 int mock_client(struct s2n_test_piped_io *piped_io)
 {
     struct s2n_connection *conn;
-    struct s2n_config *client_config;
-    s2n_blocked_status blocked;
-    int result = 0;
+    struct s2n_config *    client_config;
+    s2n_blocked_status     blocked;
+    int                    result = 0;
 
-    conn = s2n_connection_new(S2N_CLIENT);
+    conn          = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(conn, client_config);
@@ -49,9 +45,7 @@ int mock_client(struct s2n_test_piped_io *piped_io)
     s2n_connection_set_piped_io(conn, piped_io);
 
     result = s2n_negotiate(conn, &blocked);
-    if (result < 0) {
-        _exit(1);
-    }
+    if (result < 0) { _exit(1); }
 
     s2n_shutdown(conn, &blocked);
     s2n_connection_free(conn);
@@ -70,16 +64,16 @@ int mock_client(struct s2n_test_piped_io *piped_io)
  */
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn;
-    struct s2n_config *config;
-    s2n_blocked_status blocked;
-    int status;
-    pid_t pid;
-    char *cert_chain_pem;
-    char *private_key_pem;
-    char *dhparams_pem;
+    struct s2n_connection *        conn;
+    struct s2n_config *            config;
+    s2n_blocked_status             blocked;
+    int                            status;
+    pid_t                          pid;
+    char *                         cert_chain_pem;
+    char *                         private_key_pem;
+    char *                         dhparams_pem;
     struct s2n_cert_chain_and_key *chain_and_key;
-    struct s2n_stuffer in, out;
+    struct s2n_stuffer             in, out;
 
     BEGIN_TEST();
 
@@ -132,7 +126,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
     EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&in, &out, conn));
-    
+
     /* Make our pipes non-blocking */
     EXPECT_SUCCESS(s2n_fd_set_non_blocking(piped_io.server_read));
     EXPECT_SUCCESS(s2n_fd_set_non_blocking(piped_io.server_write));
@@ -143,29 +137,27 @@ int main(int argc, char **argv)
 
         ret = s2n_negotiate(conn, &blocked);
         EXPECT_TRUE(ret == 0 || (blocked && (errno == EAGAIN || errno == EWOULDBLOCK)));
-        
+
         /* check to see if we need to copy more over from the pipes to the buffers
          * to continue the handshake
          */
         s2n_stuffer_recv_from_fd(&in, piped_io.server_read, MAX_BUF_SIZE);
         s2n_stuffer_send_to_fd(&out, piped_io.server_write, s2n_stuffer_data_available(&out));
     } while (blocked);
-   
+
     /* Shutdown after negotiating */
-    uint8_t server_shutdown=0;
+    uint8_t server_shutdown = 0;
     do {
         int ret;
-        
+
         ret = s2n_shutdown(conn, &blocked);
         EXPECT_TRUE(ret == 0 || (blocked && (errno == EAGAIN || errno == EWOULDBLOCK)));
-        if (ret == 0) {
-            server_shutdown = 1;
-        }
+        if (ret == 0) { server_shutdown = 1; }
 
         s2n_stuffer_recv_from_fd(&in, piped_io.server_read, MAX_BUF_SIZE);
         s2n_stuffer_send_to_fd(&out, piped_io.server_write, s2n_stuffer_data_available(&out));
     } while (!server_shutdown);
-    
+
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     /* Clean up */
@@ -186,4 +178,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-

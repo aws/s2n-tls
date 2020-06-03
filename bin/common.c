@@ -13,18 +13,18 @@
  * permissions and limitations under the License.
  */
 
+#include <errno.h>
+#include <getopt.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <getopt.h>
-#include <errno.h>
 
 char *load_file_to_cstring(const char *path)
 {
     FILE *pem_file = fopen(path, "rb");
     if (!pem_file) {
-       fprintf(stderr, "Failed to open file %s: '%s'\n", path, strerror(errno));
-       return NULL;
+        fprintf(stderr, "Failed to open file %s: '%s'\n", path, strerror(errno));
+        return NULL;
     }
 
     /* Make sure we can fit the pem into the output buffer */
@@ -57,7 +57,7 @@ char *load_file_to_cstring(const char *path)
         return NULL;
     }
 
-    pem_out[pem_file_size] = '\0';
+    pem_out[ pem_file_size ] = '\0';
     fclose(pem_file);
 
     return pem_out;

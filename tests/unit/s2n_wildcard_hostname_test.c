@@ -13,17 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include <string.h>
-#include <stdio.h>
-
 #include <s2n.h>
-
-#include "testlib/s2n_testlib.h"
+#include <stdio.h>
+#include <string.h>
 
 #include "crypto/s2n_certificate.h"
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "utils/s2n_safety.h"
 
 struct wildcardify_test_case {
@@ -32,14 +28,14 @@ struct wildcardify_test_case {
 };
 
 struct wildcardify_test_case wildcardify_test_cases[] = {
-    { .hostname = "foo.bar.com" ,    .output = "*.bar.com" },
-    { .hostname = "localhost" ,      .output = NULL },
-    { .hostname = "one.com" ,        .output = "*.com" },
-    { .hostname = "foo*.bar*.com*" , .output= "*.bar*.com*" },
-    { .hostname = "foo.bar.com." ,   .output = "*.bar.com." },
-    { .hostname = "*.a.c" ,          .output = "*.a.c" },
-    { .hostname = "*" ,              .output = NULL },
-    { .hostname = "foo.",            .output = "*." },
+    { .hostname = "foo.bar.com", .output = "*.bar.com" },
+    { .hostname = "localhost", .output = NULL },
+    { .hostname = "one.com", .output = "*.com" },
+    { .hostname = "foo*.bar*.com*", .output = "*.bar*.com*" },
+    { .hostname = "foo.bar.com.", .output = "*.bar.com." },
+    { .hostname = "*.a.c", .output = "*.a.c" },
+    { .hostname = "*", .output = NULL },
+    { .hostname = "foo.", .output = "*." },
 };
 
 int main(int argc, char **argv)
@@ -48,10 +44,10 @@ int main(int argc, char **argv)
 
     const int num_wildcardify_tests = s2n_array_len(wildcardify_test_cases);
     for (int i = 0; i < num_wildcardify_tests; i++) {
-        const char *hostname = wildcardify_test_cases[i].hostname;
-        struct s2n_blob hostname_blob = { .data = (uint8_t *) (uintptr_t) hostname , .size = strlen(hostname) };
-        uint8_t output[S2N_MAX_SERVER_NAME] = { 0 };
-        struct s2n_blob output_blob = { .data = (uint8_t *) (uintptr_t) output, .size = sizeof(output) };
+        const char *       hostname      = wildcardify_test_cases[ i ].hostname;
+        struct s2n_blob    hostname_blob = { .data = ( uint8_t * )( uintptr_t )hostname, .size = strlen(hostname) };
+        uint8_t            output[ S2N_MAX_SERVER_NAME ] = { 0 };
+        struct s2n_blob    output_blob = { .data = ( uint8_t * )( uintptr_t )output, .size = sizeof(output) };
         struct s2n_stuffer hostname_stuffer;
         struct s2n_stuffer output_stuffer;
         EXPECT_SUCCESS(s2n_stuffer_init(&hostname_stuffer, &hostname_blob));
@@ -60,8 +56,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_create_wildcard_hostname(&hostname_stuffer, &output_stuffer));
 
         /* Make sure the wildcard generated matches the output we expect. */
-        const uint32_t wildcard_len = s2n_stuffer_data_available(&output_stuffer);
-        const char *expected_output = wildcardify_test_cases[i].output;
+        const uint32_t wildcard_len    = s2n_stuffer_data_available(&output_stuffer);
+        const char *   expected_output = wildcardify_test_cases[ i ].output;
         if (wildcard_len > 0) {
             EXPECT_EQUAL(wildcard_len, strlen(expected_output));
             EXPECT_SUCCESS(memcmp(output, expected_output, wildcard_len));

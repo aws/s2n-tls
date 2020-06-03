@@ -13,26 +13,26 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-#include <stdint.h>
-
 #include "tls/extensions/s2n_client_max_frag_len.h"
+
+#include <stdint.h>
+#include <sys/param.h>
+
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-
 #include "utils/s2n_safety.h"
 
 static bool s2n_client_max_frag_len_should_send(struct s2n_connection *conn);
-static int s2n_client_max_frag_len_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-static int s2n_client_max_frag_len_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int  s2n_client_max_frag_len_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+static int  s2n_client_max_frag_len_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 const s2n_extension_type s2n_client_max_frag_len_extension = {
-    .iana_value = TLS_EXTENSION_MAX_FRAG_LEN,
+    .iana_value  = TLS_EXTENSION_MAX_FRAG_LEN,
     .is_response = false,
-    .send = s2n_client_max_frag_len_send,
-    .recv = s2n_client_max_frag_len_recv,
+    .send        = s2n_client_max_frag_len_send,
+    .recv        = s2n_client_max_frag_len_recv,
     .should_send = s2n_client_max_frag_len_should_send,
-    .if_missing = s2n_extension_noop_if_missing,
+    .if_missing  = s2n_extension_noop_if_missing,
 };
 
 static bool s2n_client_max_frag_len_should_send(struct s2n_connection *conn)
@@ -47,18 +47,16 @@ static int s2n_client_max_frag_len_send(struct s2n_connection *conn, struct s2n_
 
 static int s2n_client_max_frag_len_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    if (!conn->config->accept_mfl) {
-        return S2N_SUCCESS;
-    }
+    if (!conn->config->accept_mfl) { return S2N_SUCCESS; }
 
     uint8_t mfl_code;
     GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
-    if (mfl_code > S2N_TLS_MAX_FRAG_LEN_4096 || mfl_code_to_length[mfl_code] > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH) {
+    if (mfl_code > S2N_TLS_MAX_FRAG_LEN_4096 || mfl_code_to_length[ mfl_code ] > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH) {
         return S2N_SUCCESS;
     }
 
-    conn->mfl_code = mfl_code;
-    conn->max_outgoing_fragment_length = mfl_code_to_length[mfl_code];
+    conn->mfl_code                     = mfl_code;
+    conn->max_outgoing_fragment_length = mfl_code_to_length[ mfl_code ];
     return S2N_SUCCESS;
 }
 

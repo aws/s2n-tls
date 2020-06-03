@@ -17,17 +17,18 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <openssl/crypto.h>
+#include <openssl/err.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <openssl/crypto.h>
-#include <openssl/err.h>
-
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
@@ -37,28 +38,22 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
-
 struct host_verify_data {
     const char *name;
-    uint8_t found_name;
-    uint8_t callback_invoked;
+    uint8_t     found_name;
+    uint8_t     callback_invoked;
 };
 
 static uint8_t verify_host_accept_everything(const char *host_name, size_t host_name_len, void *data)
 {
-    struct host_verify_data *verify_data = (struct host_verify_data *) data;
-    verify_data->callback_invoked = 1;
+    struct host_verify_data *verify_data = ( struct host_verify_data * )data;
+    verify_data->callback_invoked        = 1;
     return 1;
 }
 
-static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12, S2N_TLS13};
+static const uint8_t TLS_VERSIONS[] = { S2N_TLS10, S2N_TLS11, S2N_TLS12, S2N_TLS13 };
 
-static void s2n_fuzz_atexit()
-{
-    s2n_cleanup();
-}
+static void s2n_fuzz_atexit() { s2n_cleanup(); }
 
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
@@ -77,9 +72,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     S2N_FUZZ_ENSURE_MIN_LEN(len, 1);
 
     /* Setup */
-    struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+    struct host_verify_data     verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
     struct s2n_x509_trust_store trust_store;
-    struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+    struct s2n_connection *     server_conn = s2n_connection_new(S2N_SERVER);
     notnull_check(server_conn);
     GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
 
@@ -90,14 +85,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     uint8_t randval = 0;
     GUARD(s2n_stuffer_read_uint8(&server_conn->handshake.io, &randval));
 
-    if(randval % 2) {
+    if (randval % 2) {
         GUARD(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
         GUARD(s2n_connection_set_verify_host_callback(server_conn, verify_host_accept_everything, &verify_data));
     }
 
     GUARD(s2n_x509_validator_init(&server_conn->x509_validator, &trust_store, 1));
     server_conn->x509_validator.skip_cert_validation = (randval >> 1) % 2;
-    server_conn->actual_protocol_version = TLS_VERSIONS[((randval >> 4) & 0x0f) % s2n_array_len(TLS_VERSIONS)];
+    server_conn->actual_protocol_version = TLS_VERSIONS[ ((randval >> 4) & 0x0f) % s2n_array_len(TLS_VERSIONS) ];
 
     /* Run Test
      * Do not use GUARD macro here since the connection memory hasn't been freed.

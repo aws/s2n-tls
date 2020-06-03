@@ -13,54 +13,46 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include <s2n.h>
-
-#include <stdlib.h>
 #include <fcntl.h>
-
-#include "testlib/s2n_testlib.h"
+#include <s2n.h>
+#include <stdlib.h>
 
 #include "crypto/s2n_fips.h"
-#include "tls/s2n_security_policies.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_security_policies.h"
 
 static const int MAX_TRIES = 100;
 
 static int try_handshake(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
 {
-    int tries = 0;
+    int                tries = 0;
     s2n_blocked_status client_blocked;
     s2n_blocked_status server_blocked;
     do {
         int rc;
         rc = s2n_negotiate(client_conn, &client_blocked);
-        if (rc != 0 && (client_blocked && errno != EAGAIN)) {
-            return -1;
-        }
+        if (rc != 0 && (client_blocked && errno != EAGAIN)) { return -1; }
         rc = s2n_negotiate(server_conn, &server_blocked);
-        if (rc != 0 && (server_blocked && errno != EAGAIN)) {
-            return -1;
-        }
+        if (rc != 0 && (server_blocked && errno != EAGAIN)) { return -1; }
 
         tries += 1;
-        if (tries >= MAX_TRIES) {
-            return -1;
-        }
+        if (tries >= MAX_TRIES) { return -1; }
     } while (client_blocked || server_blocked);
     return 0;
 }
 
 int main(int argc, char **argv)
 {
-    struct s2n_config *client_config;
-    struct s2n_config *server_config;
-    const struct s2n_security_policy *default_security_policy;
+    struct s2n_config *                  client_config;
+    struct s2n_config *                  server_config;
+    const struct s2n_security_policy *   default_security_policy;
     const struct s2n_cipher_preferences *default_cipher_preferences;
-    char *cert_chain_pem;
-    char *private_key_pem;
-    char *dhparams_pem;
-    struct s2n_cert_chain_and_key *chain_and_key;
+    char *                               cert_chain_pem;
+    char *                               private_key_pem;
+    char *                               dhparams_pem;
+    struct s2n_cert_chain_and_key *      chain_and_key;
 
     BEGIN_TEST();
 
@@ -80,7 +72,6 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(default_security_policy = server_config->security_policy);
     EXPECT_NOT_NULL(default_cipher_preferences = default_security_policy->cipher_preferences);
 
-
     /*
      * Test optional client auth using **s2n_config_set_client_auth_type** with a valid client cert provided.
      */
@@ -97,14 +88,15 @@ int main(int argc, char **argv)
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_security_policy->cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
-        struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_security_policy    security_policy;
+        struct s2n_connection *       client_conn;
+        struct s2n_connection *       server_conn;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
-        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
-        server_cipher_preferences.count = 1;
-        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
+        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences,
+                              sizeof(server_cipher_preferences));
+        server_cipher_preferences.count     = 1;
+        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[ cipher_idx ];
 
         if (!cur_cipher->available) {
             /* Skip ciphers that aren't supported with the linked libcrypto. */
@@ -112,7 +104,7 @@ int main(int argc, char **argv)
         }
 
         server_cipher_preferences.suites = &cur_cipher;
-        
+
         EXPECT_MEMCPY_SUCCESS(&security_policy, default_security_policy, sizeof(security_policy));
         security_policy.cipher_preferences = &server_cipher_preferences;
 
@@ -161,14 +153,15 @@ int main(int argc, char **argv)
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
-        struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_security_policy    security_policy;
+        struct s2n_connection *       client_conn;
+        struct s2n_connection *       server_conn;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
-        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
-        server_cipher_preferences.count = 1;
-        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
+        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences,
+                              sizeof(server_cipher_preferences));
+        server_cipher_preferences.count     = 1;
+        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[ cipher_idx ];
 
         if (!cur_cipher->available) {
             /* Skip ciphers that aren't supported with the linked libcrypto. */
@@ -209,7 +202,6 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_config_free(client_config));
 
-
     /*
      * Test optional client auth using **s2n_config_set_client_auth_type** with no client cert provided.
      */
@@ -225,14 +217,15 @@ int main(int argc, char **argv)
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
-        struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_security_policy    security_policy;
+        struct s2n_connection *       client_conn;
+        struct s2n_connection *       server_conn;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
-        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
-        server_cipher_preferences.count = 1;
-        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
+        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences,
+                              sizeof(server_cipher_preferences));
+        server_cipher_preferences.count     = 1;
+        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[ cipher_idx ];
 
         if (!cur_cipher->available) {
             /* Skip ciphers that aren't supported with the linked libcrypto. */
@@ -270,9 +263,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
     }
-    
-    EXPECT_SUCCESS(s2n_config_free(client_config));
 
+    EXPECT_SUCCESS(s2n_config_free(client_config));
 
     /*
      * Test optional client auth using **s2n_connection_set_client_auth_type** with a valid client cert provided.
@@ -290,14 +282,15 @@ int main(int argc, char **argv)
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
-        struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_security_policy    security_policy;
+        struct s2n_connection *       client_conn;
+        struct s2n_connection *       server_conn;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
-        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
-        server_cipher_preferences.count = 1;
-        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
+        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences,
+                              sizeof(server_cipher_preferences));
+        server_cipher_preferences.count     = 1;
+        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[ cipher_idx ];
 
         if (!cur_cipher->available) {
             /* Skip ciphers that aren't supported with the linked libcrypto. */
@@ -344,7 +337,6 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_config_free(client_config));
 
-
     /*
      * Test optional client auth using **s2n_connection_set_client_auth_type** with no client cert provided.
      */
@@ -360,14 +352,15 @@ int main(int argc, char **argv)
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
-        struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_security_policy    security_policy;
+        struct s2n_connection *       client_conn;
+        struct s2n_connection *       server_conn;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
-        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
-        server_cipher_preferences.count = 1;
-        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
+        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences,
+                              sizeof(server_cipher_preferences));
+        server_cipher_preferences.count     = 1;
+        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[ cipher_idx ];
 
         if (!cur_cipher->available) {
             /* Skip ciphers that aren't supported with the linked libcrypto. */
@@ -414,7 +407,6 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_config_free(client_config));
 
-
     /*
      * Test optional client auth using **s2n_config_set_client_auth_type** with an incorrect client
      * cert provided fails negotiation, allowing the user to fatally kill the handshake if they want.
@@ -438,14 +430,15 @@ int main(int argc, char **argv)
     /* Verify that a handshake fails for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
-        struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_security_policy    security_policy;
+        struct s2n_connection *       client_conn;
+        struct s2n_connection *       server_conn;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
-        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
-        server_cipher_preferences.count = 1;
-        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
+        EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences,
+                              sizeof(server_cipher_preferences));
+        server_cipher_preferences.count     = 1;
+        struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[ cipher_idx ];
 
         if (!cur_cipher->available) {
             /* Skip ciphers that aren't supported with the linked libcrypto. */
@@ -453,7 +446,7 @@ int main(int argc, char **argv)
         }
 
         server_cipher_preferences.suites = &cur_cipher;
-        
+
         EXPECT_MEMCPY_SUCCESS(&security_policy, default_security_policy, sizeof(security_policy));
         security_policy.cipher_preferences = &server_cipher_preferences;
 
@@ -484,7 +477,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
     }
-    
+
     EXPECT_SUCCESS(s2n_config_free(client_config));
 
     EXPECT_SUCCESS(s2n_config_free(server_config));

@@ -15,15 +15,13 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-#include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/extensions/s2n_server_key_share.h"
-
-#include "tls/s2n_tls.h"
-#include "tls/s2n_tls13.h"
+#include "tls/extensions/s2n_server_supported_versions.h"
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 
 int main(int argc, char **argv)
 {
@@ -93,21 +91,28 @@ int main(int argc, char **argv)
 
     /* Test s2n_is_valid_tls13_cipher() */
     {
-        uint8_t value[2] = { 0x13, 0x01 };
+        uint8_t value[ 2 ] = { 0x13, 0x01 };
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x02;
+        value[ 0 ] = 0x13;
+        value[ 1 ] = 0x02;
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x03;
+        value[ 0 ] = 0x13;
+        value[ 1 ] = 0x03;
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x04;
+        value[ 0 ] = 0x13;
+        value[ 1 ] = 0x04;
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x05;
+        value[ 0 ] = 0x13;
+        value[ 1 ] = 0x05;
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x06;
+        value[ 0 ] = 0x13;
+        value[ 1 ] = 0x06;
         EXPECT_FALSE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x00;
+        value[ 0 ] = 0x13;
+        value[ 1 ] = 0x00;
         EXPECT_FALSE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x12; value[1] = 0x01;
+        value[ 0 ] = 0x12;
+        value[ 1 ] = 0x01;
         EXPECT_FALSE(s2n_is_valid_tls13_cipher(value));
 
         EXPECT_FALSE(s2n_is_valid_tls13_cipher(s2n_dhe_rsa_with_3des_ede_cbc_sha.iana_value));
@@ -119,8 +124,8 @@ int main(int argc, char **argv)
     /* Server does not parse new TLS 1.3 extensions unless TLS 1.3 enabled */
     {
         const s2n_extension_type *tls13_extensions[] = {
-                &s2n_server_supported_versions_extension,
-                &s2n_server_key_share_extension,
+            &s2n_server_supported_versions_extension,
+            &s2n_server_key_share_extension,
         };
 
         struct s2n_connection *server_conn;
@@ -135,24 +140,24 @@ int main(int argc, char **argv)
         server_conn->actual_protocol_version = S2N_TLS13;
 
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        for (int i=0; i < s2n_array_len(tls13_extensions); i++) {
+        for (int i = 0; i < s2n_array_len(tls13_extensions); i++) {
             s2n_extension_type_id extension_id;
-            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(tls13_extensions[i]->iana_value, &extension_id));
-            s2n_parsed_extension *parsed_extension = &parsed_extension_list.parsed_extensions[extension_id];
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(tls13_extensions[ i ]->iana_value, &extension_id));
+            s2n_parsed_extension *parsed_extension = &parsed_extension_list.parsed_extensions[ extension_id ];
 
             /* Create parsed extension */
-            parsed_extension->extension = extension_data.blob;
-            parsed_extension->extension_type = tls13_extensions[i]->iana_value;
+            parsed_extension->extension      = extension_data.blob;
+            parsed_extension->extension_type = tls13_extensions[ i ]->iana_value;
 
             EXPECT_SUCCESS(s2n_disable_tls13());
-            EXPECT_SUCCESS(s2n_extension_process(tls13_extensions[i], server_conn, &parsed_extension_list));
+            EXPECT_SUCCESS(s2n_extension_process(tls13_extensions[ i ], server_conn, &parsed_extension_list));
 
             /* Create parsed extension again, because s2n_extension_process cleared the last one */
-            parsed_extension->extension = extension_data.blob;
-            parsed_extension->extension_type = tls13_extensions[i]->iana_value;
+            parsed_extension->extension      = extension_data.blob;
+            parsed_extension->extension_type = tls13_extensions[ i ]->iana_value;
 
             EXPECT_SUCCESS(s2n_enable_tls13());
-            EXPECT_FAILURE(s2n_extension_process(tls13_extensions[i], server_conn, &parsed_extension_list));
+            EXPECT_FAILURE(s2n_extension_process(tls13_extensions[ i ], server_conn, &parsed_extension_list));
         }
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));

@@ -17,20 +17,19 @@
                      s2n_recv_server_sct_list s2n_server_certificate_status_recv
                      s2n_x509_validator_validate_cert_stapled_ocsp_response */
 
-#include <stdint.h>
-
 #include <openssl/crypto.h>
 #include <openssl/err.h>
+#include <stdint.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-#include "utils/s2n_safety.h"
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls13.h"
+#include "utils/s2n_safety.h"
 
 static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out_stuffer, const char *pem_data)
 {
@@ -42,11 +41,11 @@ static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out
     uint32_t chain_size = 0;
     do {
         s2n_stuffer_certificate_from_pem(&chain_in_stuffer, &cert_stuffer);
-        uint32_t cert_len = s2n_stuffer_data_available(&cert_stuffer);
+        uint32_t cert_len      = s2n_stuffer_data_available(&cert_stuffer);
         uint8_t *raw_cert_data = s2n_stuffer_raw_read(&cert_stuffer, cert_len);
 
         if (cert_len) {
-            struct s2n_blob cert_data = {.data = raw_cert_data, .size = cert_len};
+            struct s2n_blob cert_data = { .data = raw_cert_data, .size = cert_len };
             chain_size += cert_data.size + 3;
             s2n_stuffer_write_uint24(chain_out_stuffer, cert_data.size);
             s2n_stuffer_write(chain_out_stuffer, &cert_data);
@@ -60,24 +59,21 @@ static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out
 
 struct host_verify_data {
     const char *name;
-    uint8_t found_name;
-    uint8_t callback_invoked;
+    uint8_t     found_name;
+    uint8_t     callback_invoked;
 };
 
 static uint8_t verify_host_accept_everything(const char *host_name, size_t host_name_len, void *data)
 {
-    struct host_verify_data *verify_data = (struct host_verify_data *) data;
-    verify_data->callback_invoked = 1;
+    struct host_verify_data *verify_data = ( struct host_verify_data * )data;
+    verify_data->callback_invoked        = 1;
     return 1;
 }
 
 /* This test is for TLS versions 1.3 and up only */
-static const uint8_t TLS_VERSIONS[] = {S2N_TLS13};
+static const uint8_t TLS_VERSIONS[] = { S2N_TLS13 };
 
-static void s2n_fuzz_atexit()
-{
-    s2n_cleanup();
-}
+static void s2n_fuzz_atexit() { s2n_cleanup(); }
 
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
@@ -97,7 +93,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     S2N_FUZZ_ENSURE_MIN_LEN(len, 1);
 
     /* Setup */
-    struct s2n_stuffer fuzz_stuffer = {0};
+    struct s2n_stuffer fuzz_stuffer = { 0 };
     GUARD(s2n_stuffer_alloc(&fuzz_stuffer, len));
     GUARD(s2n_stuffer_write_bytes(&fuzz_stuffer, buf, len));
 
@@ -116,29 +112,31 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     if ((randval >> 6) % 2 && OPENSSL_VERSION_NUMBER >= 0x10101000L) {
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
         GUARD(s2n_connection_set_verify_host_callback(client_conn, verify_host_accept_everything, &verify_data));
-        char cert_chain[S2N_MAX_TEST_PEM_SIZE];
+        char cert_chain[ S2N_MAX_TEST_PEM_SIZE ];
         GUARD(s2n_read_test_pem(S2N_OCSP_CA_CERT, cert_chain, S2N_MAX_TEST_PEM_SIZE));
         GUARD(s2n_x509_trust_store_add_pem(client_conn->x509_validator.trust_store, cert_chain));
-        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        GUARD(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        uint8_t cert_chain_pem[ S2N_MAX_TEST_PEM_SIZE ];
+        GUARD(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, ( char * )cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
-        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
-        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
+        uint32_t        chain_len  = write_pem_file_to_stuffer_as_chain(&chain_stuffer, ( const char * )cert_chain_pem);
+        uint8_t *       chain_data = s2n_stuffer_raw_read(&chain_stuffer, ( uint32_t )chain_len);
         struct s2n_pkey public_key_out;
         GUARD(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type;
 
         /* Add cert to chain twice to reach codepaths that need 2+ certs */
-        GUARD(s2n_x509_validator_validate_cert_chain(&client_conn->x509_validator, client_conn, chain_data, chain_len, &pkey_type, &public_key_out));
+        GUARD(s2n_x509_validator_validate_cert_chain(&client_conn->x509_validator, client_conn, chain_data, chain_len,
+                                                     &pkey_type, &public_key_out));
         GUARD(s2n_pkey_free(&public_key_out));
         GUARD(s2n_pkey_zero_init(&public_key_out));
-        GUARD(s2n_x509_validator_validate_cert_chain(&client_conn->x509_validator, client_conn, chain_data, chain_len, &pkey_type, &public_key_out));
+        GUARD(s2n_x509_validator_validate_cert_chain(&client_conn->x509_validator, client_conn, chain_data, chain_len,
+                                                     &pkey_type, &public_key_out));
         GUARD(s2n_stuffer_free(&chain_stuffer));
         GUARD(s2n_pkey_free(&public_key_out));
     }
 
-    client_conn->actual_protocol_version = TLS_VERSIONS[(randval & 0x07) % s2n_array_len(TLS_VERSIONS)];
-    client_conn->client_protocol_version = TLS_VERSIONS[((randval >> 3) & 0x07) % s2n_array_len(TLS_VERSIONS)];
+    client_conn->actual_protocol_version = TLS_VERSIONS[ (randval & 0x07) % s2n_array_len(TLS_VERSIONS) ];
+    client_conn->client_protocol_version = TLS_VERSIONS[ ((randval >> 3) & 0x07) % s2n_array_len(TLS_VERSIONS) ];
 
     /* Run Test
      * Do not use GUARD macro here since the connection memory hasn't been freed.

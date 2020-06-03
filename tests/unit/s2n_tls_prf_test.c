@@ -13,15 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include <string.h>
-#include <stdio.h>
-
 #include <s2n.h>
+#include <stdio.h>
+#include <string.h>
 
-#include "testlib/s2n_testlib.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_prf.h"
 
 /*
@@ -34,18 +32,20 @@
  */
 int main(int argc, char **argv)
 {
-    uint8_t master_secret_hex_pad[96];
-    char premaster_secret_hex_in[] = "0301bebf2a5707c7bda6bfe5a8971a351a9ebd019de412212da021fd802e03f49f231d4e959c7352679f892f9d7f9748";
+    uint8_t master_secret_hex_pad[ 96 ];
+    char    premaster_secret_hex_in[] =
+        "0301bebf2a5707c7bda6bfe5a8971a351a9ebd019de412212da021fd802e03f49f231d4e959c7352679f892f9d7f9748";
     char client_random_hex_in[] = "537eefc1e720b311ff8483d057ae750a3667af9d5b496cc0d2edfb0dd309a286";
     char server_random_hex_in[] = "537eefc29f337c5eedacd00a1889b031261701872d666a74fa999dc13bcd8821";
-    char master_secret_hex_in[] = "c8c610686237cd024a2d8e0391f61a8a4464c2c9576ea2b5ccf3af68139ec07c6a1720097063de968f2341f77b837120";
+    char master_secret_hex_in[] =
+        "c8c610686237cd024a2d8e0391f61a8a4464c2c9576ea2b5ccf3af68139ec07c6a1720097063de968f2341f77b837120";
 
     struct s2n_stuffer client_random_in;
     struct s2n_stuffer server_random_in;
     struct s2n_stuffer premaster_secret_in;
     struct s2n_stuffer master_secret_hex_out;
-    struct s2n_blob master_secret = {.data = master_secret_hex_pad,.size = sizeof(master_secret_hex_pad) };
-    struct s2n_blob pms;
+    struct s2n_blob    master_secret = { .data = master_secret_hex_pad, .size = sizeof(master_secret_hex_pad) };
+    struct s2n_blob    pms;
 
     struct s2n_connection *conn;
 
@@ -66,17 +66,17 @@ int main(int argc, char **argv)
     for (int i = 0; i < 48; i++) {
         uint8_t c;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&premaster_secret_in, &c));
-        conn->secure.rsa_premaster_secret[i] = c;
+        conn->secure.rsa_premaster_secret[ i ] = c;
     }
     for (int i = 0; i < 32; i++) {
         uint8_t c;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&client_random_in, &c));
-        conn->secure.client_random[i] = c;
+        conn->secure.client_random[ i ] = c;
     }
     for (int i = 0; i < 32; i++) {
         uint8_t c;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&server_random_in, &c));
-        conn->secure.server_random[i] = c;
+        conn->secure.server_random[ i ] = c;
     }
 
     pms.data = conn->secure.rsa_premaster_secret;
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 
     /* Convert the master secret to hex */
     for (int i = 0; i < 48; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&master_secret_hex_out, conn->secure.master_secret[i]));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&master_secret_hex_out, conn->secure.master_secret[ i ]));
     }
 
     EXPECT_EQUAL(memcmp(master_secret_hex_pad, master_secret_hex_in, sizeof(master_secret_hex_pad)), 0);

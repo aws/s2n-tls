@@ -13,15 +13,16 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_tls13_certificate_verify.h"
+
+#include <stdint.h>
+
 #include "crypto/s2n_hash.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_tls13_handshake.h"
-#include "tls/s2n_tls13_certificate_verify.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_tls13_handshake.h"
 #include "utils/s2n_safety.h"
-
-#include <stdint.h>
 
 /**
   * Specified in https://tools.ietf.org/html/rfc8446#section-4.4.3
@@ -33,23 +34,28 @@
  **/
 
 /* 64 'space' characters (0x20) */
-const uint8_t S2N_CERT_VERIFY_PREFIX[] = {0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
-      0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
-      0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
-      0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20};
+const uint8_t S2N_CERT_VERIFY_PREFIX[] = { 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+                                           0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+                                           0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+                                           0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+                                           0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20 };
 /* 'TLS 1.3, server CertificateVerify' with 0x00 separator */
-const uint8_t S2N_SERVER_CERT_VERIFY_CONTEXT[] = {0x54, 0x4c, 0x53, 0x20, 0x31, 0x2e, 0x33,
-        0x2c, 0x20, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x20, 0x43, 0x65, 0x72, 0x74, 0x69,
-        0x66, 0x69, 0x63, 0x61, 0x74, 0x65, 0x56, 0x65, 0x72, 0x69, 0x66, 0x79, 0x00};
+const uint8_t S2N_SERVER_CERT_VERIFY_CONTEXT[] = { 0x54, 0x4c, 0x53, 0x20, 0x31, 0x2e, 0x33, 0x2c, 0x20,
+                                                   0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x20, 0x43, 0x65,
+                                                   0x72, 0x74, 0x69, 0x66, 0x69, 0x63, 0x61, 0x74, 0x65,
+                                                   0x56, 0x65, 0x72, 0x69, 0x66, 0x79, 0x00 };
 /* 'TLS 1.3, client CertificateVerify' with 0x00 separator */
-const uint8_t S2N_CLIENT_CERT_VERIFY_CONTEXT[] = {0x54, 0x4c, 0x53, 0x20, 0x31, 0x2e, 0x33,
-        0x2c, 0x20, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x20, 0x43, 0x65, 0x72, 0x74, 0x69,
-        0x66, 0x69, 0x63, 0x61, 0x74, 0x65, 0x56, 0x65, 0x72, 0x69, 0x66, 0x79, 0x00};
+const uint8_t S2N_CLIENT_CERT_VERIFY_CONTEXT[] = { 0x54, 0x4c, 0x53, 0x20, 0x31, 0x2e, 0x33, 0x2c, 0x20,
+                                                   0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x20, 0x43, 0x65,
+                                                   0x72, 0x74, 0x69, 0x66, 0x69, 0x63, 0x61, 0x74, 0x65,
+                                                   0x56, 0x65, 0x72, 0x69, 0x66, 0x79, 0x00 };
 
-
-static int s2n_tls13_write_cert_verify_signature(struct s2n_connection *conn, struct s2n_stuffer *out, struct s2n_signature_scheme *chosen_sig_scheme);
-static int s2n_tls13_generate_unsigned_cert_verify_content(struct s2n_connection *conn, struct s2n_stuffer *unsigned_content, s2n_mode mode);
-static int s2n_tls13_cert_read_and_verify_signature(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_sig_scheme);
+static int     s2n_tls13_write_cert_verify_signature(struct s2n_connection *conn, struct s2n_stuffer *out,
+                                                     struct s2n_signature_scheme *chosen_sig_scheme);
+static int     s2n_tls13_generate_unsigned_cert_verify_content(struct s2n_connection *conn,
+                                                               struct s2n_stuffer *unsigned_content, s2n_mode mode);
+static int     s2n_tls13_cert_read_and_verify_signature(struct s2n_connection *      conn,
+                                                        struct s2n_signature_scheme *chosen_sig_scheme);
 static uint8_t s2n_tls13_cert_verify_header_length(s2n_mode mode);
 
 int s2n_tls13_cert_verify_send(struct s2n_connection *conn)
@@ -73,14 +79,15 @@ int s2n_tls13_cert_verify_send(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_tls13_write_cert_verify_signature(struct s2n_connection *conn, struct s2n_stuffer *out, struct s2n_signature_scheme *chosen_sig_scheme)
+int s2n_tls13_write_cert_verify_signature(struct s2n_connection *conn, struct s2n_stuffer *out,
+                                          struct s2n_signature_scheme *chosen_sig_scheme)
 {
     notnull_check(conn->handshake_params.our_chain_and_key);
     const struct s2n_pkey *pkey = conn->handshake_params.our_chain_and_key->private_key;
 
-    DEFER_CLEANUP(struct s2n_blob signed_content = {0}, s2n_free);
-    DEFER_CLEANUP(struct s2n_hash_state message_hash = {0}, s2n_hash_free);
-    DEFER_CLEANUP(struct s2n_stuffer unsigned_content = {0}, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_blob signed_content = { 0 }, s2n_free);
+    DEFER_CLEANUP(struct s2n_hash_state message_hash = { 0 }, s2n_hash_free);
+    DEFER_CLEANUP(struct s2n_stuffer unsigned_content = { 0 }, s2n_stuffer_free);
     GUARD(s2n_hash_new(&message_hash));
     GUARD(s2n_hash_init(&message_hash, chosen_sig_scheme->hash_alg));
 
@@ -103,13 +110,14 @@ int s2n_tls13_write_cert_verify_signature(struct s2n_connection *conn, struct s2
     return 0;
 }
 
-int s2n_tls13_generate_unsigned_cert_verify_content(struct s2n_connection *conn, struct s2n_stuffer *unsigned_content, s2n_mode mode)
+int s2n_tls13_generate_unsigned_cert_verify_content(struct s2n_connection *conn, struct s2n_stuffer *unsigned_content,
+                                                    s2n_mode mode)
 {
     s2n_tls13_connection_keys(tls13_ctx, conn);
 
     struct s2n_hash_state handshake_hash, hash_copy;
-    uint8_t hash_digest_length = tls13_ctx.size;
-    uint8_t digest_out[S2N_MAX_DIGEST_LEN];
+    uint8_t               hash_digest_length = tls13_ctx.size;
+    uint8_t               digest_out[ S2N_MAX_DIGEST_LEN ];
 
     /* Get current handshake hash */
     GUARD(s2n_handshake_get_hash_state(conn, tls13_ctx.hash_algorithm, &handshake_hash));
@@ -125,9 +133,11 @@ int s2n_tls13_generate_unsigned_cert_verify_content(struct s2n_connection *conn,
     GUARD(s2n_stuffer_write_bytes(unsigned_content, S2N_CERT_VERIFY_PREFIX, sizeof(S2N_CERT_VERIFY_PREFIX)));
 
     if (mode == S2N_CLIENT) {
-        GUARD(s2n_stuffer_write_bytes(unsigned_content, S2N_CLIENT_CERT_VERIFY_CONTEXT, sizeof(S2N_CLIENT_CERT_VERIFY_CONTEXT)));
+        GUARD(s2n_stuffer_write_bytes(unsigned_content, S2N_CLIENT_CERT_VERIFY_CONTEXT,
+                                      sizeof(S2N_CLIENT_CERT_VERIFY_CONTEXT)));
     } else {
-        GUARD(s2n_stuffer_write_bytes(unsigned_content, S2N_SERVER_CERT_VERIFY_CONTEXT, sizeof(S2N_SERVER_CERT_VERIFY_CONTEXT)));
+        GUARD(s2n_stuffer_write_bytes(unsigned_content, S2N_SERVER_CERT_VERIFY_CONTEXT,
+                                      sizeof(S2N_SERVER_CERT_VERIFY_CONTEXT)));
     }
 
     GUARD(s2n_stuffer_write_bytes(unsigned_content, digest_out, hash_digest_length));
@@ -137,9 +147,7 @@ int s2n_tls13_generate_unsigned_cert_verify_content(struct s2n_connection *conn,
 
 uint8_t s2n_tls13_cert_verify_header_length(s2n_mode mode)
 {
-    if (mode == S2N_CLIENT) {
-        return sizeof(S2N_CERT_VERIFY_PREFIX) + sizeof(S2N_CLIENT_CERT_VERIFY_CONTEXT);
-    }
+    if (mode == S2N_CLIENT) { return sizeof(S2N_CERT_VERIFY_PREFIX) + sizeof(S2N_CLIENT_CERT_VERIFY_CONTEXT); }
     return sizeof(S2N_CERT_VERIFY_PREFIX) + sizeof(S2N_SERVER_CERT_VERIFY_CONTEXT);
 }
 
@@ -147,13 +155,15 @@ int s2n_tls13_cert_verify_recv(struct s2n_connection *conn)
 {
     if (conn->mode == S2N_SERVER) {
         /* Read the algorithm and update sig_scheme */
-        GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, &conn->handshake.io, &conn->secure.client_cert_sig_scheme));
+        GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, &conn->handshake.io,
+                                                               &conn->secure.client_cert_sig_scheme));
 
         /* Read the rest of the signature and verify */
         GUARD(s2n_tls13_cert_read_and_verify_signature(conn, &conn->secure.client_cert_sig_scheme));
     } else {
         /* Read the algorithm and update sig_scheme */
-        GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, &conn->handshake.io, &conn->secure.conn_sig_scheme));
+        GUARD(
+            s2n_get_and_validate_negotiated_signature_scheme(conn, &conn->handshake.io, &conn->secure.conn_sig_scheme));
 
         /* Read the rest of the signature and verify */
         GUARD(s2n_tls13_cert_read_and_verify_signature(conn, &conn->secure.conn_sig_scheme));
@@ -162,12 +172,13 @@ int s2n_tls13_cert_verify_recv(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_tls13_cert_read_and_verify_signature(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_sig_scheme)
+int s2n_tls13_cert_read_and_verify_signature(struct s2n_connection *      conn,
+                                             struct s2n_signature_scheme *chosen_sig_scheme)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
-    DEFER_CLEANUP(struct s2n_blob signed_content = {0}, s2n_free);
-    DEFER_CLEANUP(struct s2n_stuffer unsigned_content = {0}, s2n_stuffer_free);
-    DEFER_CLEANUP(struct s2n_hash_state message_hash = {0}, s2n_hash_free);
+    DEFER_CLEANUP(struct s2n_blob signed_content = { 0 }, s2n_free);
+    DEFER_CLEANUP(struct s2n_stuffer unsigned_content = { 0 }, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_hash_state message_hash = { 0 }, s2n_hash_free);
     GUARD(s2n_hash_new(&message_hash));
 
     /* Get signature size */
@@ -191,9 +202,11 @@ int s2n_tls13_cert_read_and_verify_signature(struct s2n_connection *conn, struct
     GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data, s2n_stuffer_data_available(&unsigned_content)));
 
     if (conn->mode == S2N_CLIENT) {
-        GUARD(s2n_pkey_verify(&conn->secure.server_public_key, chosen_sig_scheme->sig_alg, &message_hash, &signed_content));
+        GUARD(s2n_pkey_verify(&conn->secure.server_public_key, chosen_sig_scheme->sig_alg, &message_hash,
+                              &signed_content));
     } else {
-        GUARD(s2n_pkey_verify(&conn->secure.client_public_key, chosen_sig_scheme->sig_alg, &message_hash, &signed_content));
+        GUARD(s2n_pkey_verify(&conn->secure.client_public_key, chosen_sig_scheme->sig_alg, &message_hash,
+                              &signed_content));
     }
 
     return 0;

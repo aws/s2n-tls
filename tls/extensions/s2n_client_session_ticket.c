@@ -13,33 +13,30 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-#include <stdint.h>
-
 #include "tls/extensions/s2n_client_session_ticket.h"
+
+#include <stdint.h>
+#include <sys/param.h>
+
+#include "tls/s2n_resume.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-#include "tls/s2n_resume.h"
-
 #include "utils/s2n_safety.h"
 
 static bool s2n_client_session_ticket_should_send(struct s2n_connection *conn);
-static int s2n_client_session_ticket_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-static int s2n_client_session_ticket_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int  s2n_client_session_ticket_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+static int  s2n_client_session_ticket_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 const s2n_extension_type s2n_client_session_ticket_extension = {
-    .iana_value = TLS_EXTENSION_SESSION_TICKET,
+    .iana_value  = TLS_EXTENSION_SESSION_TICKET,
     .is_response = false,
-    .send = s2n_client_session_ticket_send,
-    .recv = s2n_client_session_ticket_recv,
+    .send        = s2n_client_session_ticket_send,
+    .recv        = s2n_client_session_ticket_recv,
     .should_send = s2n_client_session_ticket_should_send,
-    .if_missing = s2n_extension_noop_if_missing,
+    .if_missing  = s2n_extension_noop_if_missing,
 };
 
-static bool s2n_client_session_ticket_should_send(struct s2n_connection *conn)
-{
-    return conn->config->use_tickets;
-}
+static bool s2n_client_session_ticket_should_send(struct s2n_connection *conn) { return conn->config->use_tickets; }
 
 static int s2n_client_session_ticket_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -55,9 +52,7 @@ static int s2n_client_session_ticket_recv(struct s2n_connection *conn, struct s2
     }
 
     /* s2n server does not support session ticket with CLIENT_AUTH enabled */
-    if (s2n_connection_is_client_auth_enabled(conn) > 0) {
-        return S2N_SUCCESS;
-    }
+    if (s2n_connection_is_client_auth_enabled(conn) > 0) { return S2N_SUCCESS; }
 
     if (s2n_stuffer_data_available(extension) == S2N_TICKET_SIZE_IN_BYTES) {
         conn->session_ticket_status = S2N_DECRYPT_TICKET;

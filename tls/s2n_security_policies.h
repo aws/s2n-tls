@@ -16,25 +16,26 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_signature_scheme.h"
-#include "tls/s2n_ecc_preferences.h"
 
 struct s2n_security_policy {
-    uint8_t minimum_protocol_version;
-    const struct s2n_cipher_preferences *cipher_preferences;
-    const struct s2n_kem_preferences *kem_preferences;
+    uint8_t                                 minimum_protocol_version;
+    const struct s2n_cipher_preferences *   cipher_preferences;
+    const struct s2n_kem_preferences *      kem_preferences;
     const struct s2n_signature_preferences *signature_preferences;
-    const struct s2n_ecc_preferences *ecc_preferences;
+    const struct s2n_ecc_preferences *      ecc_preferences;
 };
 
 struct s2n_security_policy_selection {
-    const char *version;
+    const char *                      version;
     const struct s2n_security_policy *security_policy;
-    unsigned ecc_extension_required:1;
-    unsigned pq_kem_extension_required:1;
-    unsigned supports_tls13:1;
+    unsigned                          ecc_extension_required : 1;
+    unsigned                          pq_kem_extension_required : 1;
+    unsigned                          supports_tls13 : 1;
 };
 
 extern struct s2n_security_policy_selection security_policy_selection[];
@@ -101,10 +102,10 @@ extern const struct s2n_security_policy security_policy_20190122;
 
 extern const struct s2n_security_policy security_policy_null;
 
-int s2n_security_policies_init();
-int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
-int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
+int  s2n_security_policies_init();
+int  s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
+int  s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
 bool s2n_ecc_is_extension_required(const struct s2n_security_policy *security_policy);
 bool s2n_pq_kem_is_extension_required(const struct s2n_security_policy *security_policy);
 bool s2n_security_policy_supports_tls13(const struct s2n_security_policy *security_policy);
-int s2n_find_security_policy_from_version(const char *version, const struct s2n_security_policy **security_policy);
+int  s2n_find_security_policy_from_version(const char *version, const struct s2n_security_policy **security_policy);

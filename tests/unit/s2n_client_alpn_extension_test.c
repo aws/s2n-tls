@@ -14,14 +14,13 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_client_alpn.h"
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    const char *protocols[] = { "protocol1", "protocol2", "protocol3" };
+    const char *  protocols[]     = { "protocol1", "protocol2", "protocol3" };
     const uint8_t protocols_count = s2n_array_len(protocols);
 
     /* Test should_send */
@@ -56,7 +55,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(actual_size, conn->application_protocols_overridden.size);
 
         /* Should have correct data */
-        uint8_t actual_data[256];
+        uint8_t actual_data[ 256 ];
         EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, actual_data, actual_size));
         EXPECT_BYTEARRAY_EQUAL(actual_data, conn->application_protocols_overridden.data, actual_size);
 
@@ -78,7 +77,7 @@ int main(int argc, char **argv)
         EXPECT_NULL(s2n_get_application_protocol(conn));
         EXPECT_SUCCESS(s2n_client_alpn_extension.recv(conn, &stuffer));
         EXPECT_NOT_NULL(s2n_get_application_protocol(conn));
-        EXPECT_STRING_EQUAL(s2n_get_application_protocol(conn), protocols[0]);
+        EXPECT_STRING_EQUAL(s2n_get_application_protocol(conn), protocols[ 0 ]);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));

@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_client_max_frag_len.h"
 #include "tls/s2n_tls.h"
 
@@ -139,7 +138,7 @@ int main(int argc, char **argv)
         /* Accept valid mfl code */
         EXPECT_SUCCESS(s2n_client_max_frag_len_extension.recv(conn, &stuffer));
         EXPECT_EQUAL(conn->mfl_code, S2N_TLS_MAX_FRAG_LEN_512);
-        EXPECT_EQUAL(conn->max_outgoing_fragment_length, mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_512]);
+        EXPECT_EQUAL(conn->max_outgoing_fragment_length, mfl_code_to_length[ S2N_TLS_MAX_FRAG_LEN_512 ]);
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));

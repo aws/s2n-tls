@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include "tls/s2n_security_policies.h"
+
+#include "s2n_test.h"
 
 int main(int argc, char **argv)
 {
@@ -95,10 +95,16 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r2r1);
 #else
         security_policy = NULL;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2019-06", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2019-11", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2020-02", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2019-06", &security_policy),
+                                  S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(
+            s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2019-11", &security_policy),
+            S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(
+            s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &security_policy),
+            S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2020-02", &security_policy),
+                                  S2N_ERR_INVALID_SECURITY_POLICY);
 #endif
 
         security_policy = NULL;
@@ -110,7 +116,7 @@ int main(int argc, char **argv)
     }
 
     {
-        char tls12_only_security_policy_strings[][255] = {
+        char tls12_only_security_policy_strings[][ 255 ] = {
             "default",
             "default_fips",
             "ELBSecurityPolicy-TLS-1-0-2015-04",
@@ -166,20 +172,16 @@ int main(int argc, char **argv)
 
         for (size_t i = 0; i < s2n_array_len(tls12_only_security_policy_strings); i++) {
             security_policy = NULL;
-            EXPECT_SUCCESS(s2n_find_security_policy_from_version(tls12_only_security_policy_strings[i], &security_policy));
+            EXPECT_SUCCESS(
+                s2n_find_security_policy_from_version(tls12_only_security_policy_strings[ i ], &security_policy));
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
         }
 
-        char tls13_security_policy_strings[][255] = {
-            "default_tls13",
-            "test_all",
-            "test_all_tls13",
-            "20190801",
-            "20190802"
-        };
+        char tls13_security_policy_strings[][ 255 ] = { "default_tls13", "test_all", "test_all_tls13", "20190801",
+                                                        "20190802" };
         for (size_t i = 0; i < s2n_array_len(tls13_security_policy_strings); i++) {
             security_policy = NULL;
-            EXPECT_SUCCESS(s2n_find_security_policy_from_version(tls13_security_policy_strings[i], &security_policy));
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version(tls13_security_policy_strings[ i ], &security_policy));
             EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
         }
     }
@@ -199,19 +201,19 @@ int main(int argc, char **argv)
         };
 
         const struct s2n_cipher_preferences fake_cipher_preference = {
-            .count = 1,
+            .count  = 1,
             .suites = fake_suites,
         };
 
         const struct s2n_kem_preferences fake_kem_preference = {
             .count = 1,
-            .kems = NULL,
+            .kems  = NULL,
         };
 
         const struct s2n_security_policy fake_security_policy = {
             .minimum_protocol_version = S2N_TLS10,
-            .cipher_preferences = &fake_cipher_preference,
-            .kem_preferences = &fake_kem_preference,
+            .cipher_preferences       = &fake_cipher_preference,
+            .kem_preferences          = &fake_kem_preference,
         };
 
         security_policy = &fake_security_policy;
@@ -260,7 +262,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_config_set_cipher_preferences(config, NULL));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "notathing"),
-                S2N_ERR_INVALID_SECURITY_POLICY);
+                                  S2N_ERR_INVALID_SECURITY_POLICY);
 
         s2n_config_free(config);
     }
@@ -303,7 +305,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "notathing"),
-                S2N_ERR_INVALID_SECURITY_POLICY);
+                                  S2N_ERR_INVALID_SECURITY_POLICY);
 
         s2n_config_free(config);
         s2n_connection_free(conn);
@@ -311,13 +313,14 @@ int main(int argc, char **argv)
 
     /* All signature preferences are valid */
     {
-        for (int i = 0; security_policy_selection[i].version != NULL; i++) {
-            security_policy = security_policy_selection[i].security_policy;
+        for (int i = 0; security_policy_selection[ i ].version != NULL; i++) {
+            security_policy = security_policy_selection[ i ].security_policy;
             EXPECT_NOT_NULL(security_policy);
             EXPECT_NOT_NULL(security_policy->signature_preferences);
 
             for (int j = 0; j < security_policy->signature_preferences->count; j++) {
-                const struct s2n_signature_scheme *scheme = security_policy->signature_preferences->signature_schemes[j];
+                const struct s2n_signature_scheme *scheme =
+                    security_policy->signature_preferences->signature_schemes[ j ];
 
                 EXPECT_NOT_NULL(scheme);
 
@@ -330,9 +333,7 @@ int main(int argc, char **argv)
                 if (max_version == S2N_UNKNOWN_PROTOCOL_VERSION || max_version >= S2N_TLS13) {
                     EXPECT_NOT_EQUAL(scheme->hash_alg, S2N_HASH_SHA1);
                     EXPECT_NOT_EQUAL(scheme->sig_alg, S2N_SIGNATURE_RSA);
-                    if (scheme->sig_alg == S2N_SIGNATURE_ECDSA) {
-                        EXPECT_NOT_NULL(scheme->signature_curve);
-                    }
+                    if (scheme->sig_alg == S2N_SIGNATURE_ECDSA) { EXPECT_NOT_NULL(scheme->signature_curve); }
                 }
 
                 /* If scheme will be used for pre-tls1.3 */
@@ -343,14 +344,11 @@ int main(int argc, char **argv)
             }
         }
     }
-    
+
     /* Failure case when s2n_ecc_preference lists contains a curve not present in s2n_all_supported_curves_list */
     {
         const struct s2n_ecc_named_curve test_curve = {
-            .iana_id = 12345, 
-            .libcrypto_nid = 0, 
-            .name = "test_curve", 
-            .share_size = 0
+            .iana_id = 12345, .libcrypto_nid = 0, .name = "test_curve", .share_size = 0
         };
 
         const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_test[] = {
@@ -358,7 +356,7 @@ int main(int argc, char **argv)
         };
 
         const struct s2n_ecc_preferences s2n_ecc_preferences_new_list = {
-            .count = s2n_array_len(s2n_ecc_pref_list_test),
+            .count      = s2n_array_len(s2n_ecc_pref_list_test),
             .ecc_curves = s2n_ecc_pref_list_test,
         };
 

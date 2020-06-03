@@ -15,33 +15,32 @@
 
 #pragma once
 
+#include <openssl/x509.h>
+#include <s2n.h>
 #include <stdint.h>
 
-#include <openssl/x509.h>
-
-#include <s2n.h>
 #include "crypto/s2n_pkey.h"
 #include "stuffer/s2n_stuffer.h"
 
 #define S2N_CERT_TYPE_COUNT S2N_PKEY_TYPE_SENTINEL
 
 struct s2n_cert {
-    s2n_pkey_type pkey_type;
+    s2n_pkey_type       pkey_type;
     s2n_cert_public_key public_key;
-    struct s2n_blob raw;
-    struct s2n_cert *next;
+    struct s2n_blob     raw;
+    struct s2n_cert *   next;
 };
 
 struct s2n_cert_chain {
-    uint32_t chain_size;
+    uint32_t         chain_size;
     struct s2n_cert *head;
 };
 
 struct s2n_cert_chain_and_key {
     struct s2n_cert_chain *cert_chain;
-    s2n_cert_private_key *private_key;
-    struct s2n_blob ocsp_status;
-    struct s2n_blob sct_list;
+    s2n_cert_private_key * private_key;
+    struct s2n_blob        ocsp_status;
+    struct s2n_blob        sct_list;
     /* DNS type SubjectAlternative names from the leaf certificate to match
      * with the server_name extension. We ignore non-DNS SANs here since the
      * server_name extension only supports DNS.
@@ -56,18 +55,22 @@ struct s2n_cert_chain_and_key {
 };
 
 struct certs_by_type {
-    struct s2n_cert_chain_and_key *certs[S2N_CERT_TYPE_COUNT];
+    struct s2n_cert_chain_and_key *certs[ S2N_CERT_TYPE_COUNT ];
 };
 
-int s2n_cert_chain_and_key_set_ocsp_data(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
-int s2n_cert_chain_and_key_set_sct_list(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length);
+int s2n_cert_chain_and_key_set_ocsp_data(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data,
+                                         uint32_t length);
+int s2n_cert_chain_and_key_set_sct_list(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data,
+                                        uint32_t length);
 /* Exposed for fuzzing */
 int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert);
 int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert);
-int s2n_cert_chain_and_key_matches_dns_name(const struct s2n_cert_chain_and_key *chain_and_key, const struct s2n_blob *dns_name);
+int s2n_cert_chain_and_key_matches_dns_name(const struct s2n_cert_chain_and_key *chain_and_key,
+                                            const struct s2n_blob *              dns_name);
 
 int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type);
-int s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain_and_key);
+int s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out,
+                        struct s2n_cert_chain_and_key *chain_and_key);
 int s2n_send_empty_cert_chain(struct s2n_stuffer *out);
 int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, struct s2n_stuffer *chain_in_stuffer);
 int s2n_cert_chain_and_key_set_cert_chain(struct s2n_cert_chain_and_key *cert_and_key, const char *cert_chain_pem);

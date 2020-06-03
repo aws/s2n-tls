@@ -19,16 +19,16 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <openssl/crypto.h>
+#include <openssl/err.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <openssl/crypto.h>
-#include <openssl/err.h>
-
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
@@ -37,7 +37,6 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_safety.h"
-#include "s2n_test.h"
 
 static char certificate_chain[] =
     "-----BEGIN CERTIFICATE-----\n"
@@ -140,13 +139,11 @@ static int MAX_NEGOTIATION_ATTEMPTS = 10;
 int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
 {
     struct s2n_stuffer *in_buf;
-    int n_read, n_avail;
+    int                 n_read, n_avail;
 
-    if (buf == NULL) {
-        return 0;
-    }
+    if (buf == NULL) { return 0; }
 
-    in_buf = (struct s2n_stuffer *) io_context;
+    in_buf = ( struct s2n_stuffer * )io_context;
     if (in_buf == NULL) {
         errno = EINVAL;
         return -1;
@@ -154,7 +151,7 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
 
     /* read the number of bytes requested or less if it isn't available */
     n_avail = s2n_stuffer_data_available(in_buf);
-    n_read = (len < n_avail) ? len : n_avail;
+    n_read  = (len < n_avail) ? len : n_avail;
 
     if (n_read == 0) {
         errno = EAGAIN;
@@ -165,10 +162,7 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
     return n_read;
 }
 
-int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
-{
-    return len;
-}
+int buffer_write(void *io_context, const uint8_t *buf, uint32_t len) { return len; }
 
 static struct s2n_config *server_config;
 
@@ -199,7 +193,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
     S2N_FUZZ_ENSURE_MIN_LEN(len, S2N_TLS_RECORD_HEADER_LENGTH);
 
-    struct s2n_stuffer in = {0};
+    struct s2n_stuffer in = { 0 };
     GUARD(s2n_stuffer_alloc(&in, len));
     GUARD(s2n_stuffer_write_bytes(&in, buf, len));
 
@@ -214,12 +208,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     server_conn->delay = 0;
 
     /* Let Server receive data and attempt Negotiation */
-    int num_attempted_negotiations = 0;
+    int                num_attempted_negotiations = 0;
     s2n_blocked_status server_blocked;
     do {
         s2n_negotiate(server_conn, &server_blocked);
         num_attempted_negotiations += 1;
-    } while(!server_blocked && num_attempted_negotiations < MAX_NEGOTIATION_ATTEMPTS);
+    } while (!server_blocked && num_attempted_negotiations < MAX_NEGOTIATION_ATTEMPTS);
 
     /* Clean up */
 

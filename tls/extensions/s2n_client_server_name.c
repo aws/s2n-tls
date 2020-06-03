@@ -13,28 +13,28 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-#include <stdint.h>
-
 #include "tls/extensions/s2n_client_server_name.h"
+
+#include <stdint.h>
+#include <sys/param.h>
+
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-
 #include "utils/s2n_safety.h"
 
 #define S2N_NAME_TYPE_HOST_NAME 0
 
 static bool s2n_client_server_name_should_send(struct s2n_connection *conn);
-static int s2n_client_server_name_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-static int s2n_client_server_name_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int  s2n_client_server_name_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+static int  s2n_client_server_name_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 const s2n_extension_type s2n_client_server_name_extension = {
-    .iana_value = TLS_EXTENSION_SERVER_NAME,
+    .iana_value  = TLS_EXTENSION_SERVER_NAME,
     .is_response = false,
-    .send = s2n_client_server_name_send,
-    .recv = s2n_client_server_name_recv,
+    .send        = s2n_client_server_name_send,
+    .recv        = s2n_client_server_name_recv,
     .should_send = s2n_client_server_name_should_send,
-    .if_missing = s2n_extension_noop_if_missing,
+    .if_missing  = s2n_extension_noop_if_missing,
 };
 
 static bool s2n_client_server_name_should_send(struct s2n_connection *conn)
@@ -52,13 +52,14 @@ static int s2n_client_server_name_send(struct s2n_connection *conn, struct s2n_s
     GUARD(s2n_stuffer_write_uint8(out, S2N_NAME_TYPE_HOST_NAME));
 
     GUARD(s2n_stuffer_write_uint16(out, strlen(conn->server_name)));
-    GUARD(s2n_stuffer_write_bytes(out, (const uint8_t *) conn->server_name, strlen(conn->server_name)));
+    GUARD(s2n_stuffer_write_bytes(out, ( const uint8_t * )conn->server_name, strlen(conn->server_name)));
 
     GUARD(s2n_stuffer_write_vector_size(server_name_list_size));
     return S2N_SUCCESS;
 }
 
-static int s2n_client_server_name_check(struct s2n_connection *conn, struct s2n_stuffer *extension, uint16_t *server_name_len)
+static int s2n_client_server_name_check(struct s2n_connection *conn, struct s2n_stuffer *extension,
+                                        uint16_t *server_name_len)
 {
     notnull_check(conn);
 
@@ -82,15 +83,11 @@ static int s2n_client_server_name_recv(struct s2n_connection *conn, struct s2n_s
     notnull_check(conn);
 
     /* Exit early if we've already parsed the server name */
-    if (conn->server_name[0]) {
-        return S2N_SUCCESS;
-    }
+    if (conn->server_name[ 0 ]) { return S2N_SUCCESS; }
 
     /* Ignore if malformed. We just won't use the server name. */
     uint16_t server_name_len;
-    if (s2n_client_server_name_check(conn, extension, &server_name_len) != S2N_SUCCESS) {
-        return S2N_SUCCESS;
-    }
+    if (s2n_client_server_name_check(conn, extension, &server_name_len) != S2N_SUCCESS) { return S2N_SUCCESS; }
 
     uint8_t *server_name;
     notnull_check(server_name = s2n_stuffer_raw_read(extension, server_name_len));

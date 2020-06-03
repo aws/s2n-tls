@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <stdio.h>
+#include "s2n_rfc5952.h"
 
 #include <error/s2n_errno.h>
+#include <stdio.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
-#include "s2n_rfc5952.h"
 #include "utils/s2n_safety.h"
 
 static uint8_t dec[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
@@ -27,20 +27,16 @@ static uint8_t hex[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 
 
 S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
 {
-    const uint8_t *bytes = addr;
-    uint8_t *cursor = dst->data;
+    const uint8_t *bytes  = addr;
+    uint8_t *      cursor = dst->data;
 
     if (af == AF_INET) {
         ENSURE(dst->size >= sizeof("111.222.333.444"), S2N_ERR_SIZE_MISMATCH);
 
         for (int i = 0; i < 4; i++) {
-            if (bytes[i] / 100) {
-                *cursor++ = dec[bytes[i] / 100];
-            }
-            if (bytes[i] >= 10) {
-                *cursor++ = dec[(bytes[i] % 100) / 10];
-            }
-            *cursor++ = dec[(bytes[i] % 10)];
+            if (bytes[ i ] / 100) { *cursor++ = dec[ bytes[ i ] / 100 ]; }
+            if (bytes[ i ] >= 10) { *cursor++ = dec[ (bytes[ i ] % 100) / 10 ]; }
+            *cursor++ = dec[ (bytes[ i ] % 10) ];
             *cursor++ = '.';
         }
 
@@ -63,9 +59,9 @@ S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
          *   5/ Print the remaining 16-bit fields in lowercase hex, no leading zeroes
          */
 
-        uint16_t octets[8];
+        uint16_t octets[ 8 ];
 
-        int longest_run_start = 0;
+        int longest_run_start  = 0;
         int longest_run_length = 0;
         int current_run_length = 0;
 
@@ -73,54 +69,39 @@ S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
 
         /* Find the longest run of zeroes */
         for (int i = 0; i < 8; i++) {
-            octets[i] = (bytes[i * 2] << 8) + bytes[(i * 2) + 1];
+            octets[ i ] = (bytes[ i * 2 ] << 8) + bytes[ (i * 2) + 1 ];
 
-            if (octets[i]) {
+            if (octets[ i ]) {
                 current_run_length = 0;
-            }
-            else {
+            } else {
                 current_run_length++;
             }
 
             if (current_run_length > longest_run_length) {
                 longest_run_length = current_run_length;
-                longest_run_start = (i - current_run_length) + 1;
+                longest_run_start  = (i - current_run_length) + 1;
             }
         }
 
-
         for (int i = 0; i < 8; i++) {
             if (i == longest_run_start && longest_run_length > 1) {
+                if (i == 0) { *cursor++ = ':'; }
 
-                if (i == 0) {
-                    *cursor++ = ':';
-                }
-
-                if (longest_run_length == 8) {
-                    *cursor++ = ':';
-                }
+                if (longest_run_length == 8) { *cursor++ = ':'; }
 
                 i += longest_run_length - 1;
 
-            }
-            else {
-                uint8_t nibbles[4] = { (octets[i] & 0xF000) >> 12,
-                                       (octets[i] & 0x0F00) >> 8,
-                                       (octets[i] & 0x00F0) >> 4,
-                                       (octets[i] & 0x000F) };
+            } else {
+                uint8_t nibbles[ 4 ] = { (octets[ i ] & 0xF000) >> 12, (octets[ i ] & 0x0F00) >> 8,
+                                         (octets[ i ] & 0x00F0) >> 4, (octets[ i ] & 0x000F) };
 
                 /* Skip up to three leading zeroes */
                 int j;
                 for (j = 0; j < 3; j++) {
-                    if (nibbles[j]) {
-                        break;
-                    }
+                    if (nibbles[ j ]) { break; }
                 }
 
-                for (; j < 4; j++) {
-                    *cursor++ = hex[ nibbles[j] ];
-                }
-
+                for (; j < 4; j++) { *cursor++ = hex[ nibbles[ j ] ]; }
             }
 
             *cursor++ = ':';

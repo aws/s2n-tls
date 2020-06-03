@@ -13,22 +13,17 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
 #include <s2n.h>
 
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/extensions/s2n_cookie.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-
-#include "tls/extensions/s2n_cookie.h"
-
 #include "utils/s2n_safety.h"
 
-const uint8_t test_cookie_data[] =
-    { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5 };
-const uint8_t test_cookie_size = s2n_array_len(test_cookie_data);
+const uint8_t test_cookie_data[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5 };
+const uint8_t test_cookie_size   = s2n_array_len(test_cookie_data);
 
 int main(int argc, char *argv[])
 {
@@ -100,8 +95,7 @@ int main(int argc, char *argv[])
 
         /* Should accept extension written by send */
         {
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_conn->cookie_stuffer,
-                    test_cookie_data, test_cookie_size));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_conn->cookie_stuffer, test_cookie_data, test_cookie_size));
 
             struct s2n_connection *client_conn;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_SERVER));
@@ -114,8 +108,7 @@ int main(int argc, char *argv[])
 
             EXPECT_SUCCESS(s2n_server_cookie_extension.recv(client_conn, &stuffer));
             EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->cookie_stuffer), test_cookie_size);
-            EXPECT_BYTEARRAY_EQUAL(client_conn->cookie_stuffer.blob.data,
-                    test_cookie_data, test_cookie_size);
+            EXPECT_BYTEARRAY_EQUAL(client_conn->cookie_stuffer.blob.data, test_cookie_data, test_cookie_size);
             EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -124,8 +117,7 @@ int main(int argc, char *argv[])
 
         /* Should do nothing if tls1.3 not enabled */
         {
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_conn->cookie_stuffer,
-                    test_cookie_data, test_cookie_size));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_conn->cookie_stuffer, test_cookie_data, test_cookie_size));
 
             struct s2n_connection *client_conn;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_SERVER));
@@ -147,8 +139,7 @@ int main(int argc, char *argv[])
 
         /* Should do nothing if cookie size wrong */
         {
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_conn->cookie_stuffer,
-                    test_cookie_data, test_cookie_size));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_conn->cookie_stuffer, test_cookie_data, test_cookie_size));
 
             struct s2n_connection *client_conn;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_SERVER));

@@ -13,28 +13,27 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-#include <stdint.h>
-
 #include "tls/extensions/s2n_client_alpn.h"
+
+#include <stdint.h>
+#include <sys/param.h>
 
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-
 #include "utils/s2n_safety.h"
 
 static bool s2n_client_alpn_should_send(struct s2n_connection *conn);
-static int s2n_client_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int  s2n_client_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+static int  s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 const s2n_extension_type s2n_client_alpn_extension = {
-    .iana_value = TLS_EXTENSION_ALPN,
+    .iana_value  = TLS_EXTENSION_ALPN,
     .is_response = false,
-    .send = s2n_client_alpn_send,
-    .recv = s2n_client_alpn_recv,
+    .send        = s2n_client_alpn_send,
+    .recv        = s2n_client_alpn_recv,
     .should_send = s2n_client_alpn_should_send,
-    .if_missing = s2n_extension_noop_if_missing,
+    .if_missing  = s2n_extension_noop_if_missing,
 };
 
 static bool s2n_client_alpn_should_send(struct s2n_connection *conn)
@@ -42,7 +41,7 @@ static bool s2n_client_alpn_should_send(struct s2n_connection *conn)
     struct s2n_blob *client_app_protocols;
 
     return s2n_connection_get_protocol_preferences(conn, &client_app_protocols) == S2N_SUCCESS
-            && client_app_protocols->size != 0 && client_app_protocols->data != NULL;
+           && client_app_protocols->size != 0 && client_app_protocols->data != NULL;
 }
 
 static int s2n_client_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -59,9 +58,9 @@ static int s2n_client_alpn_send(struct s2n_connection *conn, struct s2n_stuffer 
 
 static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    uint16_t size_of_all;
-    struct s2n_stuffer client_protos = {0};
-    struct s2n_stuffer server_protos = {0};
+    uint16_t           size_of_all;
+    struct s2n_stuffer client_protos = { 0 };
+    struct s2n_stuffer server_protos = { 0 };
 
     struct s2n_blob *server_app_protocols;
     GUARD(s2n_connection_get_protocol_preferences(conn, &server_app_protocols));
@@ -78,8 +77,8 @@ static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer 
     }
 
     struct s2n_blob client_app_protocols = { 0 };
-    client_app_protocols.size = size_of_all;
-    client_app_protocols.data = s2n_stuffer_raw_read(extension, size_of_all);
+    client_app_protocols.size            = size_of_all;
+    client_app_protocols.data            = s2n_stuffer_raw_read(extension, size_of_all);
     notnull_check(client_app_protocols.data);
 
     /* Find a matching protocol */
@@ -90,7 +89,7 @@ static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer 
 
     while (s2n_stuffer_data_available(&server_protos)) {
         uint8_t length;
-        uint8_t server_protocol[255];
+        uint8_t server_protocol[ 255 ];
         GUARD(s2n_stuffer_read_uint8(&server_protos, &length));
         GUARD(s2n_stuffer_read_bytes(&server_protos, server_protocol, length));
 
@@ -101,11 +100,11 @@ static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer 
             if (client_length != length) {
                 GUARD(s2n_stuffer_skip_read(&client_protos, client_length));
             } else {
-                uint8_t client_protocol[255];
+                uint8_t client_protocol[ 255 ];
                 GUARD(s2n_stuffer_read_bytes(&client_protos, client_protocol, client_length));
                 if (memcmp(client_protocol, server_protocol, client_length) == 0) {
                     memcpy_check(conn->application_protocol, client_protocol, client_length);
-                    conn->application_protocol[client_length] = '\0';
+                    conn->application_protocol[ client_length ] = '\0';
                     return S2N_SUCCESS;
                 }
             }

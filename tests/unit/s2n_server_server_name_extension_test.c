@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_server_server_name.h"
 
 #define S2N_TEST_RESUMPTION_HANDSHAKE (NEGOTIATED)
@@ -36,22 +35,22 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_server_server_name_extension.should_send(conn));
 
         /* server_name not used and resumption handshake -> do not send */
-        conn->server_name_used = false;
+        conn->server_name_used         = false;
         conn->handshake.handshake_type = S2N_TEST_RESUMPTION_HANDSHAKE;
         EXPECT_FALSE(s2n_server_server_name_extension.should_send(conn));
 
         /* server_name used and resumption handshake -> do not send */
-        conn->server_name_used = true;
+        conn->server_name_used         = true;
         conn->handshake.handshake_type = S2N_TEST_RESUMPTION_HANDSHAKE;
         EXPECT_FALSE(s2n_server_server_name_extension.should_send(conn));
 
         /* server_name not used and not resumption handshake -> do not send */
-        conn->server_name_used = false;
+        conn->server_name_used         = false;
         conn->handshake.handshake_type = S2N_TEST_NOT_RESUMPTION_HANDSHAKE;
         EXPECT_FALSE(s2n_server_server_name_extension.should_send(conn));
 
         /* server_name used and not resumption handshake -> send */
-        conn->server_name_used = true;
+        conn->server_name_used         = true;
         conn->handshake.handshake_type = S2N_TEST_NOT_RESUMPTION_HANDSHAKE;
         EXPECT_TRUE(s2n_server_server_name_extension.should_send(conn));
 

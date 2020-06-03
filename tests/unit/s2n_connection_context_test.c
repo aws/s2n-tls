@@ -13,14 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include <stdlib.h>
 #include <s2n.h>
+#include <stdlib.h>
+
+#include "s2n_test.h"
 
 int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
-    int ctx;
+    int                    ctx;
 
     struct s2n_connection *conn_null = NULL;
 

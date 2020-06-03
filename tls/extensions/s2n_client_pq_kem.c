@@ -13,35 +13,35 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_client_pq_kem.h"
+
 #include <stdint.h>
 #include <sys/param.h>
 
-#include "tls/extensions/s2n_client_pq_kem.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-
 #include "utils/s2n_safety.h"
 
 static bool s2n_client_pq_kem_should_send(struct s2n_connection *conn);
-static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-static int s2n_client_pq_kem_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int  s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+static int  s2n_client_pq_kem_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 const s2n_extension_type s2n_client_pq_kem_extension = {
-    .iana_value = TLS_EXTENSION_PQ_KEM_PARAMETERS,
+    .iana_value  = TLS_EXTENSION_PQ_KEM_PARAMETERS,
     .is_response = false,
-    .send = s2n_client_pq_kem_send,
-    .recv = s2n_client_pq_kem_recv,
+    .send        = s2n_client_pq_kem_send,
+    .recv        = s2n_client_pq_kem_recv,
     .should_send = s2n_client_pq_kem_should_send,
-    .if_missing = s2n_extension_noop_if_missing,
+    .if_missing  = s2n_extension_noop_if_missing,
 };
 
 static bool s2n_client_pq_kem_should_send(struct s2n_connection *conn)
 {
     const struct s2n_security_policy *security_policy;
     return s2n_connection_get_security_policy(conn, &security_policy) == S2N_SUCCESS
-            && s2n_pq_kem_is_extension_required(security_policy);
+           && s2n_pq_kem_is_extension_required(security_policy);
 }
 
 static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -52,7 +52,7 @@ static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffe
 
     GUARD(s2n_stuffer_write_uint16(out, kem_preferences->count * sizeof(kem_extension_size)));
     for (int i = 0; i < kem_preferences->count; i++) {
-        GUARD(s2n_stuffer_write_uint16(out, kem_preferences->kems[i]->kem_extension_id));
+        GUARD(s2n_stuffer_write_uint16(out, kem_preferences->kems[ i ]->kem_extension_id));
     }
 
     return S2N_SUCCESS;
@@ -60,7 +60,7 @@ static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffe
 
 static int s2n_client_pq_kem_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    uint16_t size_of_all;
+    uint16_t         size_of_all;
     struct s2n_blob *proposed_kems = &conn->secure.client_pq_kem_extension;
 
     GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));

@@ -27,7 +27,9 @@
 #include <unistd.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
@@ -35,10 +37,8 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_safety.h"
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
 
-static char *cert_chain, *private_key;
+static char *                  cert_chain, *private_key;
 struct s2n_cert_chain_and_key *default_cert;
 
 static void s2n_cert_req_recv_fuzz_atexit()
@@ -68,7 +68,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     return 0;
 }
 
-static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
+static const uint8_t TLS_VERSIONS[] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
 
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 {
@@ -87,7 +87,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     /* Pull a byte off the libfuzzer input and use it to set parameters */
     uint8_t randval = 0;
     GUARD(s2n_stuffer_read_uint8(&client_conn->handshake.io, &randval));
-    client_conn->actual_protocol_version = TLS_VERSIONS[randval % s2n_array_len(TLS_VERSIONS)];
+    client_conn->actual_protocol_version = TLS_VERSIONS[ randval % s2n_array_len(TLS_VERSIONS) ];
 
     /* Run Test
      * Do not use GUARD macro here since the connection memory hasn't been freed.

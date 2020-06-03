@@ -12,14 +12,15 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+#include "utils/s2n_array.h"
+
 #include "s2n_test.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_array.h"
 
 struct array_element {
-    int first;
+    int  first;
     char second;
 };
 
@@ -28,16 +29,16 @@ struct array_element {
 int main(int argc, char **argv)
 {
     struct s2n_array *array;
-    int element_size = sizeof(struct array_element);
-    uint32_t len = 0;
-    uint32_t capacity = 0;
+    int               element_size = sizeof(struct array_element);
+    uint32_t          len          = 0;
+    uint32_t          capacity     = 0;
 
     BEGIN_TEST();
-    struct array_element elements[NUM_OF_ELEMENTS] = {0};
+    struct array_element elements[ NUM_OF_ELEMENTS ] = { 0 };
 
     for (int i = 0; i < NUM_OF_ELEMENTS; i++) {
-        elements[i].first = i;
-        elements[i].second = 'a' + i;
+        elements[ i ].first  = i;
+        elements[ i ].second = 'a' + i;
     }
 
     /* Verify add and get elements with null array */
@@ -58,10 +59,10 @@ int main(int argc, char **argv)
 
     /* Add an element */
     struct array_element *element = NULL;
-    EXPECT_OK(s2n_array_pushback(array, (void **)&element));
+    EXPECT_OK(s2n_array_pushback(array, ( void ** )&element));
     EXPECT_NOT_NULL(element);
-    element->first = elements[0].first;
-    element->second = elements[0].second;
+    element->first  = elements[ 0 ].first;
+    element->second = elements[ 0 ].second;
 
     /* Validate array parameters */
     EXPECT_OK(s2n_array_capacity(array, &capacity));
@@ -71,23 +72,23 @@ int main(int argc, char **argv)
 
     /* Get first element */
     struct array_element *first_element = NULL;
-    EXPECT_OK(s2n_array_get(array, 0, (void **)&first_element));
+    EXPECT_OK(s2n_array_get(array, 0, ( void ** )&first_element));
     EXPECT_NOT_NULL(first_element);
-    EXPECT_EQUAL(first_element->first, elements[0].first);
-    EXPECT_EQUAL(first_element->second, elements[0].second);
+    EXPECT_EQUAL(first_element->first, elements[ 0 ].first);
+    EXPECT_EQUAL(first_element->second, elements[ 0 ].second);
 
     /* Get second element */
     struct array_element *second_element = NULL;
-    EXPECT_ERROR(s2n_array_get(array, 1, (void **)&second_element));
+    EXPECT_ERROR(s2n_array_get(array, 1, ( void ** )&second_element));
     EXPECT_NULL(second_element);
 
     /* Add more than 16 elements */
     for (int i = 1; i < NUM_OF_ELEMENTS; i++) {
         struct array_element *elem = NULL;
-        EXPECT_OK(s2n_array_pushback(array, (void **)&elem));
+        EXPECT_OK(s2n_array_pushback(array, ( void ** )&elem));
         EXPECT_NOT_NULL(elem);
-        elem->first = elements[i].first;
-        elem->second = elements[i].second;
+        elem->first  = elements[ i ].first;
+        elem->second = elements[ i ].second;
     }
 
     /* Validate array parameters again */
@@ -100,10 +101,11 @@ int main(int argc, char **argv)
 
     /* Insert element at given index */
     struct array_element *insert_element = NULL;
-    EXPECT_OK(s2n_array_insert(array, 16, (void **)&insert_element));
+    EXPECT_OK(s2n_array_insert(array, 16, ( void ** )&insert_element));
     EXPECT_NOT_NULL(insert_element);
-    insert_element->first = 20;
-    insert_element->second = 'a' + 20;;
+    insert_element->first  = 20;
+    insert_element->second = 'a' + 20;
+    ;
 
     /* Validate array parameters */
     EXPECT_OK(s2n_array_capacity(array, &capacity));
@@ -113,17 +115,17 @@ int main(int argc, char **argv)
 
     /* Get the inserted element */
     struct array_element *inserted_element = NULL;
-    EXPECT_OK(s2n_array_get(array, 16, (void **)&inserted_element));
+    EXPECT_OK(s2n_array_get(array, 16, ( void ** )&inserted_element));
     EXPECT_NOT_NULL(inserted_element);
     EXPECT_EQUAL(inserted_element->first, insert_element->first);
     EXPECT_EQUAL(inserted_element->second, insert_element->second);
 
     /* Get the element after the inserted element */
     struct array_element *after_inserted_element = NULL;
-    EXPECT_OK(s2n_array_get(array, 17, (void **)&after_inserted_element));
+    EXPECT_OK(s2n_array_get(array, 17, ( void ** )&after_inserted_element));
     EXPECT_NOT_NULL(after_inserted_element);
-    EXPECT_EQUAL(after_inserted_element->first, elements[16].first);
-    EXPECT_EQUAL(after_inserted_element->second, elements[16].second);
+    EXPECT_EQUAL(after_inserted_element->first, elements[ 16 ].first);
+    EXPECT_EQUAL(after_inserted_element->second, elements[ 16 ].second);
 
     /* Delete element from given index */
     EXPECT_OK(s2n_array_remove(array, 0));
@@ -136,9 +138,9 @@ int main(int argc, char **argv)
 
     /* Get the current element at the deleted index */
     struct array_element *after_removed_element = NULL;
-    EXPECT_OK(s2n_array_get(array, 0, (void **)&after_removed_element));
-    EXPECT_EQUAL(after_removed_element->first, elements[1].first);
-    EXPECT_EQUAL(after_removed_element->second, elements[1].second);
+    EXPECT_OK(s2n_array_get(array, 0, ( void ** )&after_removed_element));
+    EXPECT_EQUAL(after_removed_element->first, elements[ 1 ].first);
+    EXPECT_EQUAL(after_removed_element->second, elements[ 1 ].second);
 
     /* Done with the array, make sure it can be freed */
     EXPECT_OK(s2n_array_free(array));

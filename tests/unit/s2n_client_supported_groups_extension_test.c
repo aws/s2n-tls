@@ -13,16 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <stdint.h>
 
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-
-#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
 int main()
@@ -63,7 +61,7 @@ int main()
         uint16_t curve_id;
         for (int i = 0; i < ecc_pref->count; i++) {
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &curve_id));
-            EXPECT_EQUAL(curve_id, ecc_pref->ecc_curves[i]->iana_id);
+            EXPECT_EQUAL(curve_id, ecc_pref->ecc_curves[ i ]->iana_id);
         }
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -85,7 +83,7 @@ int main()
 
         EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
         EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(conn, &stuffer));
-        EXPECT_EQUAL(conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
+        EXPECT_EQUAL(conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[ 0 ]);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -137,11 +135,11 @@ int main()
 
     {
         /* Test that unknown TLS_EXTENSION_SUPPORTED_GROUPS values are ignored */
-        struct s2n_ecc_named_curve unsupported_curves[2] = {
-                { .iana_id = 0x0, .libcrypto_nid = 0, .name = 0x0, .share_size = 0 },
-                { .iana_id = 0xFF01, .libcrypto_nid = 0, .name = 0x0, .share_size = 0 },
+        struct s2n_ecc_named_curve unsupported_curves[ 2 ] = {
+            { .iana_id = 0x0, .libcrypto_nid = 0, .name = 0x0, .share_size = 0 },
+            { .iana_id = 0xFF01, .libcrypto_nid = 0, .name = 0x0, .share_size = 0 },
         };
-        int ec_curves_count = s2n_array_len(unsupported_curves);
+        int                    ec_curves_count = s2n_array_len(unsupported_curves);
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
@@ -149,11 +147,11 @@ int main()
         EXPECT_SUCCESS(s2n_stuffer_alloc(&supported_groups_extension, 2 + ec_curves_count * 2));
         GUARD(s2n_stuffer_write_uint16(&supported_groups_extension, ec_curves_count * 2));
         for (int i = 0; i < ec_curves_count; i++) {
-            GUARD(s2n_stuffer_write_uint16(&supported_groups_extension, unsupported_curves[i].iana_id));
+            GUARD(s2n_stuffer_write_uint16(&supported_groups_extension, unsupported_curves[ i ].iana_id));
         }
 
         /* Force a bad value for the negotiated curve so we know extension was parsed and the curve was set to NULL */
-        struct s2n_ecc_named_curve invalid_curve = { 0 };
+        struct s2n_ecc_named_curve invalid_curve            = { 0 };
         conn->secure.server_ecc_evp_params.negotiated_curve = &invalid_curve;
         EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(conn, &supported_groups_extension));
         EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);

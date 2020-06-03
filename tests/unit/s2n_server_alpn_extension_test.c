@@ -14,14 +14,13 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_server_alpn.h"
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    const char *test_protocol_name = "chosen_protocol";
+    const char *  test_protocol_name      = "chosen_protocol";
     const uint8_t test_protocol_name_size = strlen(test_protocol_name);
 
     /* Test should_send */

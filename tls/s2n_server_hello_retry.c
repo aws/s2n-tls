@@ -15,22 +15,22 @@
 #include <stdbool.h>
 
 #include "error/s2n_errno.h"
-#include "utils/s2n_blob.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_server_extensions.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
+#include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
 /* From RFC5246 7.4.1.2. */
 #define S2N_TLS_COMPRESSION_METHOD_NULL 0
 
 /* from RFC: https://tools.ietf.org/html/rfc8446#section-4.1.3*/
-uint8_t hello_retry_req_random[S2N_TLS_RANDOM_DATA_LEN] = {
-    0xCF, 0x21, 0xAD, 0x74, 0xE5, 0x9A, 0x61, 0x11, 0xBE, 0x1D, 0x8C, 0x02, 0x1E, 0x65, 0xB8, 0x91,
-    0xC2, 0xA2, 0x11, 0x16, 0x7A, 0xBB, 0x8C, 0x5E, 0x07, 0x9E, 0x09, 0xE2, 0xC8, 0xA8, 0x33, 0x9C
-};
+uint8_t hello_retry_req_random[ S2N_TLS_RANDOM_DATA_LEN ] = { 0xCF, 0x21, 0xAD, 0x74, 0xE5, 0x9A, 0x61, 0x11,
+                                                              0xBE, 0x1D, 0x8C, 0x02, 0x1E, 0x65, 0xB8, 0x91,
+                                                              0xC2, 0xA2, 0x11, 0x16, 0x7A, 0xBB, 0x8C, 0x5E,
+                                                              0x07, 0x9E, 0x09, 0xE2, 0xC8, 0xA8, 0x33, 0x9C };
 
 static int s2n_conn_reset_retry_values(struct s2n_connection *conn)
 {
@@ -66,7 +66,4 @@ int s2n_server_hello_retry_send(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_server_hello_retry_recv(struct s2n_connection *conn)
-{
-    S2N_ERROR(S2N_ERR_BAD_MESSAGE);
-}
+int s2n_server_hello_retry_recv(struct s2n_connection *conn) { S2N_ERROR(S2N_ERR_BAD_MESSAGE); }

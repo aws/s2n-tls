@@ -16,12 +16,15 @@
 
 #include "tls/s2n_tls_parameters.h"
 
-#define sig_alg_check(a, b)  do { if ( (a) != (b) ) { S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM); } } while(0)
+#define sig_alg_check(a, b)                                                 \
+    do {                                                                    \
+        if ((a) != (b)) { S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_ALGORITHM); } \
+    } while (0)
 
 typedef enum {
     S2N_SIGNATURE_ANONYMOUS = TLS_SIGNATURE_ALGORITHM_ANONYMOUS,
-    S2N_SIGNATURE_RSA = TLS_SIGNATURE_ALGORITHM_RSA,
-    S2N_SIGNATURE_ECDSA = TLS_SIGNATURE_ALGORITHM_ECDSA,
+    S2N_SIGNATURE_RSA       = TLS_SIGNATURE_ALGORITHM_RSA,
+    S2N_SIGNATURE_ECDSA     = TLS_SIGNATURE_ALGORITHM_ECDSA,
 
     /* Use Private Range for RSA PSS */
     S2N_SIGNATURE_RSA_PSS_RSAE = TLS_SIGNATURE_ALGORITHM_PRIVATE,

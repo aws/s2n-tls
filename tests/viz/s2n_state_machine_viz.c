@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "tls/s2n_handshake_io.c"
 
@@ -22,13 +22,14 @@
 
 struct state {
     const char *name;
-    int children[MAX_STATE_TYPE];
+    int         children[ MAX_STATE_TYPE ];
 };
 
-int traverse_handshakes(message_type_t hs_table[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_LENGTH], const char *version, const char *destination)
+int traverse_handshakes(message_type_t hs_table[ S2N_HANDSHAKES_COUNT ][ S2N_MAX_HANDSHAKE_LENGTH ],
+                        const char *version, const char *destination)
 {
-    FILE *out;
-    char cmd[255];
+    FILE *      out;
+    char        cmd[ 255 ];
     const char *dot = "dot -Tsvg > %s";
     snprintf(cmd, sizeof(cmd), dot, destination);
 
@@ -38,42 +39,40 @@ int traverse_handshakes(message_type_t hs_table[S2N_HANDSHAKES_COUNT][S2N_MAX_HA
         return 1;
     }
 
-    struct state states[MAX_STATE_TYPE] = { 0 };
+    struct state states[ MAX_STATE_TYPE ] = { 0 };
 
     /* generate struct for all states */
     struct state initial = { .name = "INITIAL" };
 
     for (int i = CLIENT_HELLO; i < MAX_STATE_TYPE; i++) {
-        struct state node = { .name = message_names[i] };
-        states[i] = node;
+        struct state node = { .name = message_names[ i ] };
+        states[ i ]       = node;
     }
 
     /* traverse handshakes */
     for (int i = 0; i < S2N_HANDSHAKES_COUNT; i++) {
         /* to detect client_hello from empty 0-init value, we check for the following value */
-        if (!hs_table[i][1])
-            continue;
+        if (!hs_table[ i ][ 1 ]) continue;
 
         for (int j = 0; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
-            message_type_t msg = hs_table[i][j];
-            if (j > 0 && !msg)
-                continue;
+            message_type_t msg = hs_table[ i ][ j ];
+            if (j > 0 && !msg) continue;
 
             /* register oneself as parent's child */
             if (j == 0) {
-                initial.children[msg] = 1;
+                initial.children[ msg ] = 1;
             } else {
-                states[hs_table[i][j - 1]].children[msg] = 1;
+                states[ hs_table[ i ][ j - 1 ] ].children[ msg ] = 1;
             }
         }
     }
 
-    /* find associated descendents of this node */
-    #define print_children(state) \
-        for (int c = 0; c < MAX_STATE_TYPE; c++) { \
-            if (!state.children[c]) continue; \
-            fprintf(out, "    %s -> %s\n", state.name, states[c].name); \
-        }
+/* find associated descendents of this node */
+#define print_children(state)                                         \
+    for (int c = 0; c < MAX_STATE_TYPE; c++) {                        \
+        if (!state.children[ c ]) continue;                           \
+        fprintf(out, "    %s -> %s\n", state.name, states[ c ].name); \
+    }
 
     /* produce dot format header */
     fprintf(out, "digraph G {\n");
@@ -84,9 +83,7 @@ int traverse_handshakes(message_type_t hs_table[S2N_HANDSHAKES_COUNT][S2N_MAX_HA
     print_children(initial);
 
     /* iterate thru all possible nodes */
-    for (int i = CLIENT_HELLO; i < MAX_STATE_TYPE; i++) {
-        print_children(states[i]);
-    }
+    for (int i = CLIENT_HELLO; i < MAX_STATE_TYPE; i++) { print_children(states[ i ]); }
 
     /* produce dot format footer */
     fprintf(out, "    INITIAL [shape=diamond];\n");

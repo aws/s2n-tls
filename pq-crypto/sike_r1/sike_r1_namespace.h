@@ -57,4 +57,4 @@
 #define fp2_encode fp2_encode_r1
 #define fp2_decode fp2_decode_r1
 
-#endif // SIKE_R1_NAMESPACE_H
+#endif  // SIKE_R1_NAMESPACE_H

@@ -13,15 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
-#include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_record.h"
-
+#include <s2n.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-#include <s2n.h>
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_record.h"
 
 int main(int argc, char **argv)
 {
@@ -29,13 +28,13 @@ int main(int argc, char **argv)
 
     uint8_t record_type;
 
-   /* In tls13 the true record type is inserted in the last byte of the encrypted payload. This
+    /* In tls13 the true record type is inserted in the last byte of the encrypted payload. This
     * test creates a fake unencrypted payload and checks that the helper function
     * s2n_tls13_parse_record_type() correctly parses the type.
     */
     {
-        uint16_t plaintext = 0xdaf3;
-        struct s2n_stuffer plaintext_stuffer = {0};
+        uint16_t           plaintext         = 0xdaf3;
+        struct s2n_stuffer plaintext_stuffer = { 0 };
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&plaintext_stuffer, sizeof(plaintext)));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&plaintext_stuffer, plaintext));
@@ -49,7 +48,7 @@ int main(int argc, char **argv)
 
     /* Test for failure when stuffer is completely empty */
     {
-        struct s2n_stuffer empty_stuffer = {0};
+        struct s2n_stuffer empty_stuffer = { 0 };
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&empty_stuffer, 0));
         EXPECT_FAILURE(s2n_tls13_parse_record_type(&empty_stuffer, &record_type));
@@ -57,8 +56,8 @@ int main(int argc, char **argv)
 
     /* Test for case where there is a record type in the stuffer but no content */
     {
-        uint16_t plaintext = 0xf3;
-        struct s2n_stuffer plaintext_stuffer = {0};
+        uint16_t           plaintext         = 0xf3;
+        struct s2n_stuffer plaintext_stuffer = { 0 };
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&plaintext_stuffer, sizeof(plaintext)));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&plaintext_stuffer, plaintext));
@@ -142,11 +141,11 @@ int main(int argc, char **argv)
         }
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH + 1);
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_parse_record_type(&stuffer, &record_type), S2N_ERR_MAX_INNER_PLAINTEXT_SIZE);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_parse_record_type(&stuffer, &record_type),
+                                  S2N_ERR_MAX_INNER_PLAINTEXT_SIZE);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
     }
 
     END_TEST();
 }
-

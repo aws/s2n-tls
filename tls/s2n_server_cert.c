@@ -16,11 +16,9 @@
 #include <s2n.h>
 
 #include "error/s2n_errno.h"
-
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_tls.h"
-
 #include "utils/s2n_safety.h"
 
 int s2n_server_cert_recv(struct s2n_connection *conn)
@@ -34,19 +32,21 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     uint32_t size_of_all_certificates;
     GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, &size_of_all_certificates));
 
-    S2N_ERROR_IF(size_of_all_certificates > s2n_stuffer_data_available(&conn->handshake.io) || size_of_all_certificates < 3, S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(
+        size_of_all_certificates > s2n_stuffer_data_available(&conn->handshake.io) || size_of_all_certificates < 3,
+        S2N_ERR_BAD_MESSAGE);
 
     s2n_cert_public_key public_key;
     GUARD(s2n_pkey_zero_init(&public_key));
 
-    s2n_pkey_type actual_cert_pkey_type;
-    struct s2n_blob cert_chain = {0};
-    cert_chain.size = size_of_all_certificates;
-    cert_chain.data = s2n_stuffer_raw_read(&conn->handshake.io, size_of_all_certificates);
+    s2n_pkey_type   actual_cert_pkey_type;
+    struct s2n_blob cert_chain = { 0 };
+    cert_chain.size            = size_of_all_certificates;
+    cert_chain.data            = s2n_stuffer_raw_read(&conn->handshake.io, size_of_all_certificates);
     notnull_check(cert_chain.data);
 
-    GUARD(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn, cert_chain.data,
-                         cert_chain.size, &actual_cert_pkey_type, &public_key));
+    GUARD(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn, cert_chain.data, cert_chain.size,
+                                                 &actual_cert_pkey_type, &public_key));
 
     GUARD(s2n_is_cert_type_valid_for_auth(conn, actual_cert_pkey_type));
     GUARD(s2n_pkey_setup_for_type(&public_key, actual_cert_pkey_type));

@@ -18,59 +18,57 @@
                      s2n_rsa_client_key_recv s2n_dhe_client_key_recv
                      s2n_ecdhe_client_key_recv s2n_kem_client_key_recv */
 
-#include <stdint.h>
-
 #include <openssl/crypto.h>
 #include <openssl/err.h>
-
-#include "tls/s2n_kem.h"
-#include "tls/s2n_client_key_exchange.h"
-#include "tls/s2n_kex.h"
-#include "tls/s2n_security_policies.h"
+#include <stdint.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_client_key_exchange.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_kem.h"
+#include "tls/s2n_kex.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
 
-static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
+static const uint8_t TLS_VERSIONS[] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
 
 /* Connection setup variables */
-char *cert_chain_pem;
-char *private_key_pem;
-char *dhparams_pem;
-struct s2n_config *config;
+char *                         cert_chain_pem;
+char *                         private_key_pem;
+char *                         dhparams_pem;
+struct s2n_config *            config;
 struct s2n_cert_chain_and_key *chain_and_key;
 struct s2n_cert_chain_and_key *cert;
-struct s2n_cipher_suite **test_suites;
-int num_suites;
+struct s2n_cipher_suite **     test_suites;
+int                            num_suites;
 
 /* HARDCODED LIST OF SUPPORTED CIPHER SUITES TAKEN FROM tls/s2n_cipher_suites.c */
 static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
-    &s2n_rsa_with_rc4_128_md5,                      /* 0x00,0x04 */
-    &s2n_rsa_with_rc4_128_sha,                      /* 0x00,0x05 */
-    &s2n_rsa_with_3des_ede_cbc_sha,                 /* 0x00,0x0A */
-    &s2n_dhe_rsa_with_3des_ede_cbc_sha,             /* 0x00,0x16 */
-    &s2n_rsa_with_aes_128_cbc_sha,                  /* 0x00,0x2F */
-    &s2n_dhe_rsa_with_aes_128_cbc_sha,              /* 0x00,0x33 */
-    &s2n_rsa_with_aes_256_cbc_sha,                  /* 0x00,0x35 */
-    &s2n_dhe_rsa_with_aes_256_cbc_sha,              /* 0x00,0x39 */
-    &s2n_rsa_with_aes_128_cbc_sha256,               /* 0x00,0x3C */
-    &s2n_rsa_with_aes_256_cbc_sha256,               /* 0x00,0x3D */
-    &s2n_dhe_rsa_with_aes_128_cbc_sha256,           /* 0x00,0x67 */
-    &s2n_dhe_rsa_with_aes_256_cbc_sha256,           /* 0x00,0x6B */
-    &s2n_rsa_with_aes_128_gcm_sha256,               /* 0x00,0x9C */
-    &s2n_rsa_with_aes_256_gcm_sha384,               /* 0x00,0x9D */
-    &s2n_dhe_rsa_with_aes_128_gcm_sha256,           /* 0x00,0x9E */
-    &s2n_dhe_rsa_with_aes_256_gcm_sha384,           /* 0x00,0x9F */
+    &s2n_rsa_with_rc4_128_md5,            /* 0x00,0x04 */
+    &s2n_rsa_with_rc4_128_sha,            /* 0x00,0x05 */
+    &s2n_rsa_with_3des_ede_cbc_sha,       /* 0x00,0x0A */
+    &s2n_dhe_rsa_with_3des_ede_cbc_sha,   /* 0x00,0x16 */
+    &s2n_rsa_with_aes_128_cbc_sha,        /* 0x00,0x2F */
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,    /* 0x00,0x33 */
+    &s2n_rsa_with_aes_256_cbc_sha,        /* 0x00,0x35 */
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,    /* 0x00,0x39 */
+    &s2n_rsa_with_aes_128_cbc_sha256,     /* 0x00,0x3C */
+    &s2n_rsa_with_aes_256_cbc_sha256,     /* 0x00,0x3D */
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256, /* 0x00,0x67 */
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256, /* 0x00,0x6B */
+    &s2n_rsa_with_aes_128_gcm_sha256,     /* 0x00,0x9C */
+    &s2n_rsa_with_aes_256_gcm_sha384,     /* 0x00,0x9D */
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256, /* 0x00,0x9E */
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384, /* 0x00,0x9F */
 
-    &s2n_tls13_aes_128_gcm_sha256,                  /* 0x13,0x01 */
-    &s2n_tls13_aes_256_gcm_sha384,                  /* 0x13,0x02 */
-    &s2n_tls13_chacha20_poly1305_sha256,            /* 0x13,0x03 */
+    &s2n_tls13_aes_128_gcm_sha256,       /* 0x13,0x01 */
+    &s2n_tls13_aes_256_gcm_sha384,       /* 0x13,0x02 */
+    &s2n_tls13_chacha20_poly1305_sha256, /* 0x13,0x03 */
 
     &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,          /* 0xC0,0x09 */
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,          /* 0xC0,0x0A */
@@ -94,25 +92,25 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
 };
 
 static struct s2n_cipher_suite *s2n_all_fips_cipher_suites[] = {
-    &s2n_rsa_with_3des_ede_cbc_sha,                /* 0x00,0x0A */
-    &s2n_rsa_with_aes_128_cbc_sha,                 /* 0x00,0x2F */
-    &s2n_rsa_with_aes_256_cbc_sha,                 /* 0x00,0x35 */
-    &s2n_rsa_with_aes_128_cbc_sha256,              /* 0x00,0x3C */
-    &s2n_rsa_with_aes_256_cbc_sha256,              /* 0x00,0x3D */
-    &s2n_dhe_rsa_with_aes_128_cbc_sha256,          /* 0x00,0x67 */
-    &s2n_dhe_rsa_with_aes_256_cbc_sha256,          /* 0x00,0x6B */
-    &s2n_rsa_with_aes_128_gcm_sha256,              /* 0x00,0x9C */
-    &s2n_rsa_with_aes_256_gcm_sha384,              /* 0x00,0x9D */
-    &s2n_dhe_rsa_with_aes_128_gcm_sha256,          /* 0x00,0x9E */
-    &s2n_dhe_rsa_with_aes_256_gcm_sha384,          /* 0x00,0x9F */
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,      /* 0xC0,0x23 */
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,      /* 0xC0,0x24 */
-    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,        /* 0xC0,0x27 */
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,        /* 0xC0,0x28 */
-    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,      /* 0xC0,0x2B */
-    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,      /* 0xC0,0x2C */
-    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,        /* 0xC0,0x2F */
-    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,        /* 0xC0,0x30 */
+    &s2n_rsa_with_3des_ede_cbc_sha,           /* 0x00,0x0A */
+    &s2n_rsa_with_aes_128_cbc_sha,            /* 0x00,0x2F */
+    &s2n_rsa_with_aes_256_cbc_sha,            /* 0x00,0x35 */
+    &s2n_rsa_with_aes_128_cbc_sha256,         /* 0x00,0x3C */
+    &s2n_rsa_with_aes_256_cbc_sha256,         /* 0x00,0x3D */
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,     /* 0x00,0x67 */
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,     /* 0x00,0x6B */
+    &s2n_rsa_with_aes_128_gcm_sha256,         /* 0x00,0x9C */
+    &s2n_rsa_with_aes_256_gcm_sha384,         /* 0x00,0x9D */
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,     /* 0x00,0x9E */
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,     /* 0x00,0x9F */
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256, /* 0xC0,0x23 */
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384, /* 0xC0,0x24 */
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,   /* 0xC0,0x27 */
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,   /* 0xC0,0x28 */
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256, /* 0xC0,0x2B */
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384, /* 0xC0,0x2C */
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,   /* 0xC0,0x2F */
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,   /* 0xC0,0x30 */
 };
 
 static void s2n_fuzz_atexit()
@@ -133,19 +131,19 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 #ifdef S2N_TEST_IN_FIPS_MODE
     S2N_TEST_ENTER_FIPS_MODE();
     test_suites = s2n_all_fips_cipher_suites;
-    num_suites = s2n_array_len(s2n_all_fips_cipher_suites);
+    num_suites  = s2n_array_len(s2n_all_fips_cipher_suites);
 #else
     test_suites = s2n_all_cipher_suites;
-    num_suites = s2n_array_len(s2n_all_cipher_suites);
+    num_suites  = s2n_array_len(s2n_all_cipher_suites);
 #endif
 
     /* One time Diffie-Hellman negotiation to speed along fuzz tests*/
     GUARD(s2n_init());
     GUARD_POSIX_STRICT(atexit(s2n_fuzz_atexit));
 
-    cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
+    cert_chain_pem  = malloc(S2N_MAX_TEST_PEM_SIZE);
     private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
-    dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
+    dhparams_pem    = malloc(S2N_MAX_TEST_PEM_SIZE);
 
     notnull_check(cert_chain_pem);
     notnull_check(private_key_pem);
@@ -155,7 +153,7 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE);
     s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE);
 
-    config = s2n_config_new();
+    config        = s2n_config_new();
     chain_and_key = s2n_cert_chain_and_key_new();
 
     notnull_check(config);
@@ -184,10 +182,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     /* Read bytes from the libfuzzer input and use them to set parameters */
     uint8_t randval = 0;
     GUARD(s2n_stuffer_read_uint8(&server_conn->handshake.io, &randval));
-    server_conn->server_protocol_version = TLS_VERSIONS[randval % s2n_array_len(TLS_VERSIONS)];
+    server_conn->server_protocol_version = TLS_VERSIONS[ randval % s2n_array_len(TLS_VERSIONS) ];
 
     GUARD(s2n_stuffer_read_uint8(&server_conn->handshake.io, &randval));
-    server_conn->secure.cipher_suite = test_suites[randval % num_suites];
+    server_conn->secure.cipher_suite = test_suites[ randval % num_suites ];
 
     /* Skip incompatible TLS 1.3 cipher suites */
     if (server_conn->secure.cipher_suite->key_exchange_alg == NULL) {
@@ -201,12 +199,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     GUARD(s2n_connection_get_ecc_preferences(server_conn, &ecc_preferences));
     notnull_check(ecc_preferences);
 
-    if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_ecdhe_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+    if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_ecdhe_client_key_recv
+        || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[ 0 ];
         s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.server_ecc_evp_params);
     }
 
-    if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_kem_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
+    if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_kem_client_key_recv
+        || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
         server_conn->secure.kem_params.kem = &s2n_sike_p503_r1;
     }
 

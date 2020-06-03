@@ -17,12 +17,12 @@
 #include "s2n_safety.h"
 #include "sidetrail.h"
 
-void* s2n_sidetrail_memset(void* ptr, int value, size_t num)
+void *s2n_sidetrail_memset(void *ptr, int value, size_t num)
 {
-    uint8_t* p = (uint8_t*)(ptr);
+    uint8_t *p = ( uint8_t * )(ptr);
     __VERIFIER_assert(num >= 0);
     for (int i = 0; i < num; ++i) {
         S2N_INVARIENT(i <= num);
-        p[i] = value;
+        p[ i ] = value;
     }
 }

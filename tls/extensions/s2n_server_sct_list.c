@@ -13,31 +13,28 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_server_sct_list.h"
+
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-#include "tls/extensions/s2n_server_sct_list.h"
-
-#include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
 
 static bool s2n_server_sct_list_should_send(struct s2n_connection *conn);
-static int s2n_server_sct_list_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-static int s2n_server_sct_list_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int  s2n_server_sct_list_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+static int  s2n_server_sct_list_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 const s2n_extension_type s2n_server_sct_list_extension = {
-    .iana_value = TLS_EXTENSION_SCT_LIST,
+    .iana_value  = TLS_EXTENSION_SCT_LIST,
     .is_response = true,
-    .send = s2n_server_sct_list_send,
-    .recv = s2n_server_sct_list_recv,
+    .send        = s2n_server_sct_list_send,
+    .recv        = s2n_server_sct_list_recv,
     .should_send = s2n_server_sct_list_should_send,
-    .if_missing = s2n_extension_noop_if_missing,
+    .if_missing  = s2n_extension_noop_if_missing,
 };
 
-static bool s2n_server_sct_list_should_send(struct s2n_connection *conn)
-{
-    return s2n_server_can_send_sct_list(conn);
-}
+static bool s2n_server_sct_list_should_send(struct s2n_connection *conn) { return s2n_server_can_send_sct_list(conn); }
 
 int s2n_server_sct_list_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
@@ -55,10 +52,8 @@ int s2n_server_sct_list_recv(struct s2n_connection *conn, struct s2n_stuffer *ex
     notnull_check(conn);
 
     struct s2n_blob sct_list;
-    size_t data_available = s2n_stuffer_data_available(extension);
-    GUARD(s2n_blob_init(&sct_list,
-            s2n_stuffer_raw_read(extension, data_available),
-            data_available));
+    size_t          data_available = s2n_stuffer_data_available(extension);
+    GUARD(s2n_blob_init(&sct_list, s2n_stuffer_raw_read(extension, data_available), data_available));
     notnull_check(sct_list.data);
 
     GUARD(s2n_dup(&sct_list, &conn->ct_response));
@@ -71,8 +66,7 @@ int s2n_server_sct_list_recv(struct s2n_connection *conn, struct s2n_stuffer *ex
 int s2n_server_extensions_sct_list_send_size(struct s2n_connection *conn)
 {
     if (s2n_server_can_send_sct_list(conn)) {
-        return 2 * sizeof(uint16_t) +
-            conn->handshake_params.our_chain_and_key->sct_list.size;
+        return 2 * sizeof(uint16_t) + conn->handshake_params.our_chain_and_key->sct_list.size;
     }
 
     return 0;

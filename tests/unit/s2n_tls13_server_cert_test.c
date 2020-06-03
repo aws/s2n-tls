@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include <string.h>
-#include <stdio.h>
 #include <s2n.h>
+#include <stdio.h>
+#include <string.h>
 
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls.h"
@@ -82,9 +81,7 @@ const char tls13_cert_hex[] =
    2. Cert chain length (0001b5)
    3. Cert length (0001b0)
  */
-const char tls13_cert_chain_header_hex[] =
-     "000001b50001b0";
-
+const char tls13_cert_chain_header_hex[] = "000001b50001b0";
 
 int main(int argc, char **argv)
 {
@@ -125,23 +122,23 @@ int main(int argc, char **argv)
         strcpy(tls13_cert_chain_hex, tls13_cert_chain_header_hex);
         strcat(tls13_cert_chain_hex, tls13_cert_hex);
         /* convert certificate chain hex to bytes*/
-        struct s2n_blob tls13_cert = {0};
-        EXPECT_SUCCESS(s2n_alloc(&tls13_cert, strlen(tls13_cert_chain_hex) / 2 ));
+        struct s2n_blob tls13_cert = { 0 };
+        EXPECT_SUCCESS(s2n_alloc(&tls13_cert, strlen(tls13_cert_chain_hex) / 2));
         GUARD(s2n_hex_string_to_bytes(tls13_cert_chain_hex, &tls13_cert));
 
         S2N_BLOB_FROM_HEX(tls13_cert_chain, tls13_cert_hex);
 
         struct s2n_connection *conn;
-        uint8_t certificate_request_context_len;
+        uint8_t                certificate_request_context_len;
 
-        struct s2n_cert cert = {.raw = tls13_cert_chain,.next = NULL};
+        struct s2n_cert cert = { .raw = tls13_cert_chain, .next = NULL };
         /* .chain_size is size of cert + 3 for the 3 bytes to express the length */
-        struct s2n_cert_chain cert_chain = {.head = &cert, .chain_size = tls13_cert_chain.size + 3};
-        struct s2n_cert_chain_and_key cert_chain_and_key = {.cert_chain = &cert_chain};
+        struct s2n_cert_chain         cert_chain         = { .head = &cert, .chain_size = tls13_cert_chain.size + 3 };
+        struct s2n_cert_chain_and_key cert_chain_and_key = { .cert_chain = &cert_chain };
 
         /* tls13 mode */
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        conn->actual_protocol_version = S2N_TLS13;
+        conn->actual_protocol_version            = S2N_TLS13;
         conn->handshake_params.our_chain_and_key = &cert_chain_and_key;
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS13);
         EXPECT_SUCCESS(s2n_server_cert_send(conn));
@@ -155,7 +152,7 @@ int main(int argc, char **argv)
 
         /* tls12 mode */
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        conn->actual_protocol_version = S2N_TLS12;
+        conn->actual_protocol_version            = S2N_TLS12;
         conn->handshake_params.our_chain_and_key = &cert_chain_and_key;
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
         EXPECT_SUCCESS(s2n_server_cert_send(conn));
@@ -177,21 +174,22 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        server_conn->actual_protocol_version = S2N_TLS13;
-        client_conn->actual_protocol_version = S2N_TLS13;
+        server_conn->actual_protocol_version             = S2N_TLS13;
+        client_conn->actual_protocol_version             = S2N_TLS13;
         client_conn->x509_validator.skip_cert_validation = 1;
 
         S2N_BLOB_FROM_HEX(tls13_cert_chain, tls13_cert_hex);
         S2N_BLOB_FROM_HEX(tls13_cert_message, tls13_cert_message_hex);
 
-        struct s2n_cert cert = {.raw = tls13_cert_chain,.next = NULL};
-        struct s2n_cert_chain cert_chain = {.head = &cert, .chain_size = tls13_cert_chain.size + 3};
-        struct s2n_cert_chain_and_key cert_chain_and_key = {.cert_chain = &cert_chain};
-        server_conn->handshake_params.our_chain_and_key = &cert_chain_and_key;
+        struct s2n_cert               cert               = { .raw = tls13_cert_chain, .next = NULL };
+        struct s2n_cert_chain         cert_chain         = { .head = &cert, .chain_size = tls13_cert_chain.size + 3 };
+        struct s2n_cert_chain_and_key cert_chain_and_key = { .cert_chain = &cert_chain };
+        server_conn->handshake_params.our_chain_and_key  = &cert_chain_and_key;
 
         EXPECT_SUCCESS(s2n_server_cert_send(server_conn));
         EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->handshake.io), tls13_cert_message.size);
-        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io, s2n_stuffer_data_available(&server_conn->handshake.io)));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
+                                        s2n_stuffer_data_available(&server_conn->handshake.io)));
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->handshake.io), tls13_cert_message.size);
         EXPECT_SUCCESS(s2n_server_cert_recv(client_conn));
 
@@ -200,6 +198,6 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_disable_tls13());
     }
-    
+
     END_TEST();
 }

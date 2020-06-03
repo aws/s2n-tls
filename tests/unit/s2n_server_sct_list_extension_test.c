@@ -15,16 +15,15 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_server_sct_list.h"
 
-const uint8_t sct_list_data[] = "SCT LIST DATA";
+const uint8_t                  sct_list_data[] = "SCT LIST DATA";
 struct s2n_cert_chain_and_key *chain_and_key;
 
 int s2n_test_enable_sending_extension(struct s2n_connection *conn)
 {
-    conn->mode = S2N_SERVER;
-    conn->ct_level_requested = S2N_CT_SUPPORT_REQUEST;
+    conn->mode                               = S2N_SERVER;
+    conn->ct_level_requested                 = S2N_CT_SUPPORT_REQUEST;
     conn->handshake_params.our_chain_and_key = chain_and_key;
     EXPECT_SUCCESS(s2n_cert_chain_and_key_set_sct_list(chain_and_key, sct_list_data, s2n_array_len(sct_list_data)));
     return S2N_SUCCESS;
@@ -34,8 +33,8 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+    EXPECT_SUCCESS(
+        s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     /* should_send */
     {

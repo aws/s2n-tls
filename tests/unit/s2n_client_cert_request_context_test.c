@@ -13,21 +13,20 @@
  * permissions and limitations under the License.
  */
 
-#include <stdint.h>
 #include <s2n.h>
+#include <stdint.h>
 
 #include "s2n_test.h"
-
+#include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-#include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    uint8_t empty_cert_len = 3;
+    uint8_t empty_cert_len          = 3;
     uint8_t certificate_context_len = 1;
 
     /* Test certificate_request_context sent/recv only when TLS 1.3 enabled */
@@ -57,7 +56,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_disable_tls13());
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_config_free(client_config));   
+        EXPECT_SUCCESS(s2n_config_free(client_config));
     }
 
     EXPECT_SUCCESS(s2n_enable_tls13());

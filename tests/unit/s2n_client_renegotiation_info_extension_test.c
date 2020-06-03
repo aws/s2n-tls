@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_client_renegotiation_info.h"
 
 int main(int argc, char **argv)
@@ -32,7 +31,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, 0));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_renegotiation_info_extension.recv(conn, &stuffer),
-                S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+                                  S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
         EXPECT_FALSE(conn->secure_renegotiation);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -50,7 +49,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 1));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_renegotiation_info_extension.recv(conn, &stuffer),
-                S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+                                  S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
         EXPECT_FALSE(conn->secure_renegotiation);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));

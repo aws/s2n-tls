@@ -13,26 +13,26 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-#include <stdint.h>
-
 #include "tls/extensions/s2n_client_status_request.h"
+
+#include <stdint.h>
+#include <sys/param.h>
+
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-
 #include "utils/s2n_safety.h"
 
 static bool s2n_client_status_request_should_send(struct s2n_connection *conn);
-static int s2n_client_status_request_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-static int s2n_client_status_request_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int  s2n_client_status_request_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+static int  s2n_client_status_request_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 const s2n_extension_type s2n_client_status_request_extension = {
-    .iana_value = TLS_EXTENSION_STATUS_REQUEST,
+    .iana_value  = TLS_EXTENSION_STATUS_REQUEST,
     .is_response = false,
-    .send = s2n_client_status_request_send,
-    .recv = s2n_client_status_request_recv,
+    .send        = s2n_client_status_request_send,
+    .recv        = s2n_client_status_request_recv,
     .should_send = s2n_client_status_request_should_send,
-    .if_missing = s2n_extension_noop_if_missing,
+    .if_missing  = s2n_extension_noop_if_missing,
 };
 
 static bool s2n_client_status_request_should_send(struct s2n_connection *conn)
@@ -42,7 +42,7 @@ static bool s2n_client_status_request_should_send(struct s2n_connection *conn)
 
 static int s2n_client_status_request_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    GUARD(s2n_stuffer_write_uint8(out, (uint8_t) conn->config->status_request_type));
+    GUARD(s2n_stuffer_write_uint8(out, ( uint8_t )conn->config->status_request_type));
 
     /* responder_id_list
      *
@@ -69,12 +69,12 @@ static int s2n_client_status_request_recv(struct s2n_connection *conn, struct s2
 
     uint8_t type;
     GUARD(s2n_stuffer_read_uint8(extension, &type));
-    if (type != (uint8_t) S2N_STATUS_REQUEST_OCSP) {
+    if (type != ( uint8_t )S2N_STATUS_REQUEST_OCSP) {
         /* We only support OCSP (type 1), ignore the extension */
         return S2N_SUCCESS;
     }
 
-    conn->status_type = (s2n_status_request_type) type;
+    conn->status_type = ( s2n_status_request_type )type;
     return S2N_SUCCESS;
 }
 

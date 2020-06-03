@@ -13,15 +13,17 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
+#include <cbmc_proof/cbmc_utils.h>
+#include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/proof_allocators.h>
+
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
-#include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
-#include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/cbmc_utils.h>
 
 void s2n_calculate_stacktrace() {}
-int munlock(const void *addr, size_t len) {
+int  munlock(const void *addr, size_t len)
+{
     int rval;
 
     assert(__CPROVER_r_ok(addr, len));
@@ -29,11 +31,10 @@ int munlock(const void *addr, size_t len) {
     return rval;
 }
 
-void s2n_stuffer_free_harness() {
+void s2n_stuffer_free_harness()
+{
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
 
-    if (s2n_stuffer_free(stuffer) == 0) {
-        assert_all_zeroes(stuffer, sizeof(*stuffer));
-    }
+    if (s2n_stuffer_free(stuffer) == 0) { assert_all_zeroes(stuffer, sizeof(*stuffer)); }
 }

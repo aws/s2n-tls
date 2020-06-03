@@ -16,29 +16,24 @@
 /* Target Functions: s2n_extensions_client_key_share_recv s2n_ecc_evp_read_params_point
                      s2n_ecc_evp_parse_params_point  s2n_ecc_evp_params_free */
 
-#include <stdint.h>
-
 #include <openssl/crypto.h>
 #include <openssl/err.h>
-
-#include "tls/extensions/s2n_client_key_share.h"
+#include <stdint.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/extensions/s2n_client_key_share.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-#include "utils/s2n_safety.h"
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls13.h"
+#include "utils/s2n_safety.h"
 
 /* This test is for TLS versions 1.3 and up only */
-static const uint8_t TLS_VERSIONS[] = {S2N_TLS13};
+static const uint8_t TLS_VERSIONS[] = { S2N_TLS13 };
 
-static void s2n_fuzz_atexit()
-{
-    s2n_cleanup();
-}
+static void s2n_fuzz_atexit() { s2n_cleanup(); }
 
 int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 {
@@ -58,7 +53,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     S2N_FUZZ_ENSURE_MIN_LEN(len, 1);
 
     /* Setup */
-    struct s2n_stuffer fuzz_stuffer = {0};
+    struct s2n_stuffer fuzz_stuffer = { 0 };
     GUARD(s2n_stuffer_alloc(&fuzz_stuffer, len));
     GUARD(s2n_stuffer_write_bytes(&fuzz_stuffer, buf, len));
 
@@ -68,7 +63,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     /* Pull a byte off the libfuzzer input and use it to set parameters */
     uint8_t randval = 0;
     GUARD(s2n_stuffer_read_uint8(&fuzz_stuffer, &randval));
-    server_conn->actual_protocol_version = TLS_VERSIONS[randval % s2n_array_len(TLS_VERSIONS)];
+    server_conn->actual_protocol_version = TLS_VERSIONS[ randval % s2n_array_len(TLS_VERSIONS) ];
 
     /* Run Test
      * Do not use GUARD macro here since the connection memory hasn't been freed.

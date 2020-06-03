@@ -13,15 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include <string.h>
-#include <stdio.h>
 #include <s2n.h>
+#include <stdio.h>
+#include <string.h>
 
-#include "tls/extensions/s2n_server_signature_algorithms.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/extensions/s2n_server_signature_algorithms.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
@@ -40,7 +39,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_tls13_cert_req_send(server_conn));
 
         /* verify output */
-        uint8_t request_context_length;
+        uint8_t  request_context_length;
         uint16_t extensions_length, extension_size, extension_type;
         EXPECT_TRUE(s2n_stuffer_data_available(&server_conn->handshake.io) > 7);
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&server_conn->handshake.io, &request_context_length));
@@ -66,11 +65,13 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_tls13_cert_req_send(server_conn));
         EXPECT_TRUE(s2n_stuffer_data_available(&server_conn->handshake.io) > 0);
-        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io, s2n_stuffer_data_available(&server_conn->handshake.io)));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
+                                        s2n_stuffer_data_available(&server_conn->handshake.io)));
         EXPECT_TRUE(s2n_stuffer_data_available(&client_conn->handshake.io) > 0);
         EXPECT_SUCCESS(s2n_tls13_cert_req_recv(client_conn));
 
-        EXPECT_EQUAL(client_conn->handshake_params.server_sig_hash_algs.len, s2n_supported_sig_schemes_count(server_conn));
+        EXPECT_EQUAL(client_conn->handshake_params.server_sig_hash_algs.len,
+                     s2n_supported_sig_schemes_count(server_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -83,7 +84,8 @@ int main(int argc, char **argv)
         client_conn->actual_protocol_version = S2N_TLS13;
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&client_conn->handshake.io, 2));
-        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&client_conn->handshake.io, s2n_extensions_server_signature_algorithms_size(client_conn)));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&client_conn->handshake.io,
+                                                s2n_extensions_server_signature_algorithms_size(client_conn)));
         EXPECT_SUCCESS(s2n_extensions_server_signature_algorithms_send(client_conn, &client_conn->handshake.io));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_req_recv(client_conn), S2N_ERR_BAD_MESSAGE);

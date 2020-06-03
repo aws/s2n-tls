@@ -14,15 +14,14 @@
  */
 
 #include "error/s2n_errno.h"
-
-#include "utils/s2n_safety.h"
-#include "utils/s2n_mem.h"
-
 #include "tls/s2n_record.h"
+#include "utils/s2n_mem.h"
+#include "utils/s2n_safety.h"
 
 /* Derive the AAD for an AEAD mode cipher suite from the connection state, per
  * RFC 5246 section 6.2.3.3 */
-int s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t * sequence_number, uint8_t content_type, uint16_t record_length, struct s2n_stuffer *ad)
+int s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t *sequence_number, uint8_t content_type,
+                      uint16_t record_length, struct s2n_stuffer *ad)
 {
     /* ad = seq_num || record_type || version || length */
     GUARD(s2n_stuffer_write_bytes(ad, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
@@ -70,8 +69,8 @@ int s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, struct s
     S2N_ERROR_IF(length > (1 << 14) + 256, S2N_ERR_RECORD_LIMIT);
 
     GUARD(s2n_stuffer_write_uint8(additional_data, TLS_APPLICATION_DATA)); /* fixed to 0x17 */
-    GUARD(s2n_stuffer_write_uint8(additional_data, 3)); /* TLS record layer              */
-    GUARD(s2n_stuffer_write_uint8(additional_data, 3)); /* version fixed at 1.2 (0x0303) */
+    GUARD(s2n_stuffer_write_uint8(additional_data, 3));                    /* TLS record layer              */
+    GUARD(s2n_stuffer_write_uint8(additional_data, 3));                    /* version fixed at 1.2 (0x0303) */
     GUARD(s2n_stuffer_write_uint16(additional_data, length));
 
     return 0;

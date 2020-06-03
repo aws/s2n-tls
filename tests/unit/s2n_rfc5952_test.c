@@ -13,18 +13,18 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include "utils/s2n_rfc5952.h"
 
 #include <arpa/inet.h>
 
-#include "utils/s2n_rfc5952.h"
+#include "s2n_test.h"
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    uint8_t ipv4[4];
-    uint8_t ipv6[16];
+    uint8_t ipv4[ 4 ];
+    uint8_t ipv6[ 16 ];
 
     uint8_t ipv4_buf[ sizeof("255.255.255.255") ];
     uint8_t ipv6_buf[ sizeof("1111:2222:3333:4444:5555:6666:7777:8888") ];
@@ -34,48 +34,48 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(inet_pton(AF_INET, "111.222.111.111", ipv4));
     EXPECT_OK(s2n_inet_ntop(AF_INET, ipv4, &ipv4_blob));
-    EXPECT_EQUAL(strcmp("111.222.111.111", (char *) ipv4_buf), 0);
+    EXPECT_EQUAL(strcmp("111.222.111.111", ( char * )ipv4_buf), 0);
 
     EXPECT_SUCCESS(inet_pton(AF_INET, "0.0.0.0", ipv4));
     EXPECT_OK(s2n_inet_ntop(AF_INET, ipv4, &ipv4_blob));
-    EXPECT_EQUAL(strcmp("0.0.0.0", (char *) ipv4_buf), 0);
+    EXPECT_EQUAL(strcmp("0.0.0.0", ( char * )ipv4_buf), 0);
 
     EXPECT_SUCCESS(inet_pton(AF_INET, "100.104.123.1", ipv4));
     EXPECT_OK(s2n_inet_ntop(AF_INET, ipv4, &ipv4_blob));
-    EXPECT_EQUAL(strcmp("100.104.123.1", (char *) ipv4_buf), 0);
+    EXPECT_EQUAL(strcmp("100.104.123.1", ( char * )ipv4_buf), 0);
 
     EXPECT_SUCCESS(inet_pton(AF_INET, "255.255.255.255", ipv4));
     EXPECT_OK(s2n_inet_ntop(AF_INET, ipv4, &ipv4_blob));
-    EXPECT_EQUAL(strcmp("255.255.255.255", (char *) ipv4_buf), 0);
+    EXPECT_EQUAL(strcmp("255.255.255.255", ( char * )ipv4_buf), 0);
 
     EXPECT_SUCCESS(inet_pton(AF_INET6, "2001:db8:0:0:0:0:2:1", ipv6));
     EXPECT_OK(s2n_inet_ntop(AF_INET6, ipv6, &ipv6_blob));
-    EXPECT_EQUAL(strcmp("2001:db8::2:1", (char *) ipv6_buf), 0);
+    EXPECT_EQUAL(strcmp("2001:db8::2:1", ( char * )ipv6_buf), 0);
 
     EXPECT_SUCCESS(inet_pton(AF_INET6, "2001:db8::1", ipv6));
     EXPECT_OK(s2n_inet_ntop(AF_INET6, ipv6, &ipv6_blob));
-    EXPECT_EQUAL(strcmp("2001:db8::1", (char *) ipv6_buf), 0);
+    EXPECT_EQUAL(strcmp("2001:db8::1", ( char * )ipv6_buf), 0);
 
     EXPECT_SUCCESS(inet_pton(AF_INET6, "2001:db8:0:1:1:1:1:1", ipv6));
     EXPECT_OK(s2n_inet_ntop(AF_INET6, ipv6, &ipv6_blob));
-    EXPECT_EQUAL(strcmp("2001:db8:0:1:1:1:1:1", (char *) ipv6_buf), 0);
+    EXPECT_EQUAL(strcmp("2001:db8:0:1:1:1:1:1", ( char * )ipv6_buf), 0);
 
     EXPECT_SUCCESS(inet_pton(AF_INET6, "2001:db8::1:0:0:1", ipv6));
     EXPECT_OK(s2n_inet_ntop(AF_INET6, ipv6, &ipv6_blob));
-    EXPECT_EQUAL(strcmp("2001:db8::1:0:0:1", (char *) ipv6_buf), 0);
+    EXPECT_EQUAL(strcmp("2001:db8::1:0:0:1", ( char * )ipv6_buf), 0);
 
     EXPECT_SUCCESS(inet_pton(AF_INET6, "0:0:0:0:0:0:0:1", ipv6));
     EXPECT_OK(s2n_inet_ntop(AF_INET6, ipv6, &ipv6_blob));
-    EXPECT_EQUAL(strcmp("::1", (char *) ipv6_buf), 0);
+    EXPECT_EQUAL(strcmp("::1", ( char * )ipv6_buf), 0);
 
     EXPECT_SUCCESS(inet_pton(AF_INET6, "0:0:0:0:0:0:0:0", ipv6));
     EXPECT_OK(s2n_inet_ntop(AF_INET6, ipv6, &ipv6_blob));
-    EXPECT_EQUAL(strcmp("::", (char *) ipv6_buf), 0);
+    EXPECT_EQUAL(strcmp("::", ( char * )ipv6_buf), 0);
 
-    /* Prevents build failure on Mac */
-    #ifndef AF_BLUETOOTH
-        #define AF_BLUETOOTH 31
-    #endif
+/* Prevents build failure on Mac */
+#ifndef AF_BLUETOOTH
+#    define AF_BLUETOOTH 31
+#endif
 
     EXPECT_ERROR_WITH_ERRNO(s2n_inet_ntop(AF_BLUETOOTH, ipv6, &ipv6_blob), S2N_ERR_INVALID_ARGUMENT);
     END_TEST();

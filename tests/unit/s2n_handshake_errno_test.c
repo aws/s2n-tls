@@ -13,9 +13,7 @@
  * permissions and limitations under the License.
  */
 
-
 #include <errno.h>
-
 #include <s2n.h>
 
 #include "s2n_test.h"
@@ -40,7 +38,7 @@ int fake_send(void *io_context, const uint8_t *buf, uint32_t len)
 int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
-    s2n_blocked_status blocked;
+    s2n_blocked_status     blocked;
 
     BEGIN_TEST();
 

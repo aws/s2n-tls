@@ -13,23 +13,25 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
+#include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/proof_allocators.h>
+
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
-#include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
-#include <cbmc_proof/make_common_datastructures.h>
 
-void s2n_stuffer_wipe_harness() {
-  struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
+void s2n_stuffer_wipe_harness()
+{
+    struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
 
-  __CPROVER_assume( s2n_stuffer_is_valid(stuffer) );
-  __CPROVER_assume( stuffer->high_water_mark );
+    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(stuffer->high_water_mark);
 
-  if ( s2n_stuffer_wipe(stuffer) == S2N_SUCCESS ){
-    assert( s2n_stuffer_is_valid(stuffer) );
-    assert( stuffer->high_water_mark == 0 );
-    assert( stuffer->tainted == 0 );
-    assert( stuffer->write_cursor == 0 );
-    assert( stuffer->read_cursor == 0);
-  };
+    if (s2n_stuffer_wipe(stuffer) == S2N_SUCCESS) {
+        assert(s2n_stuffer_is_valid(stuffer));
+        assert(stuffer->high_water_mark == 0);
+        assert(stuffer->tainted == 0);
+        assert(stuffer->write_cursor == 0);
+        assert(stuffer->read_cursor == 0);
+    };
 }

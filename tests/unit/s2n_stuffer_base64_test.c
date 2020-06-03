@@ -13,23 +13,22 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include <string.h>
 #include <s2n.h>
+#include <string.h>
 
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_random.h"
 
 int main(int argc, char **argv)
 {
-    char hello_world[] = "Hello world!";
-    uint8_t hello_world_base64[] = "SGVsbG8gd29ybGQhAA==";
+    char               hello_world[]        = "Hello world!";
+    uint8_t            hello_world_base64[] = "SGVsbG8gd29ybGQhAA==";
     struct s2n_stuffer stuffer, known_data, scratch, entropy, mirror;
-    uint8_t pad[50];
-    struct s2n_blob r = {.data = pad, .size = sizeof(pad)};
+    uint8_t            pad[ 50 ];
+    struct s2n_blob    r = { .data = pad, .size = sizeof(pad) };
 
     BEGIN_TEST();
-
 
     /* Create a 100 byte stuffer */
     EXPECT_SUCCESS(s2n_stuffer_alloc(&stuffer, 1000));
@@ -40,7 +39,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_free(&known_data));
 
     /* Check it against the known output */
-    EXPECT_EQUAL(memcmp(stuffer.blob.data, hello_world_base64, strlen((char *)hello_world)), 0);
+    EXPECT_EQUAL(memcmp(stuffer.blob.data, hello_world_base64, strlen(( char * )hello_world)), 0);
 
     /* Check that we can read it again */
     EXPECT_SUCCESS(s2n_stuffer_alloc(&scratch, 50));

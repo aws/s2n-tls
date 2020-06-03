@@ -19,63 +19,76 @@
 // Curve isogeny system "SIDHp434". Base curve: Montgomery curve By^2 = Cx^3 + Ax^2 + Cx defined over GF(p434^2), where A=6, B=1, C=1 and p434 = 2^216*3^137-1
 //
 
-
 // The constants p434, p434p1, and p434x2 have been duplicated in
 // fp_x64_asm.S. If, for any reason, the constants are changed in
 // one file, they should be updated in the other file as well.
-const uint64_t p434[NWORDS64_FIELD] = {0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFDC1767AE2FFFFFF,
-                                              0x7BC65C783158AEA3, 0x6CFC5FD681C52056, 0x0002341F27177344};
-const uint64_t p434p1[NWORDS64_FIELD] = {0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0xFDC1767AE3000000,
-                                                0x7BC65C783158AEA3, 0x6CFC5FD681C52056, 0x0002341F27177344};
-const uint64_t p434x2[NWORDS64_FIELD] = {0xFFFFFFFFFFFFFFFE, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFB82ECF5C5FFFFFF,
-                                                0xF78CB8F062B15D47, 0xD9F8BFAD038A40AC, 0x0004683E4E2EE688};
+const uint64_t p434[ NWORDS64_FIELD ]   = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF,
+                                          0xFDC1767AE2FFFFFF, 0x7BC65C783158AEA3, 0x6CFC5FD681C52056,
+                                          0x0002341F27177344 };
+const uint64_t p434p1[ NWORDS64_FIELD ] = { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+                                            0xFDC1767AE3000000, 0x7BC65C783158AEA3, 0x6CFC5FD681C52056,
+                                            0x0002341F27177344 };
+const uint64_t p434x2[ NWORDS64_FIELD ] = { 0xFFFFFFFFFFFFFFFE, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF,
+                                            0xFB82ECF5C5FFFFFF, 0xF78CB8F062B15D47, 0xD9F8BFAD038A40AC,
+                                            0x0004683E4E2EE688 };
 // Order of Alice's subgroup
-const uint64_t Alice_order[NWORDS64_ORDER] = {0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000001000000};
+const uint64_t Alice_order[ NWORDS64_ORDER ] = { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+                                                 0x0000000001000000 };
 // Order of Bob's subgroup
-const uint64_t Bob_order[NWORDS64_ORDER] = {0x58AEA3FDC1767AE3, 0xC520567BC65C7831, 0x1773446CFC5FD681, 0x0000000002341F27};
+const uint64_t Bob_order[ NWORDS64_ORDER ] = { 0x58AEA3FDC1767AE3, 0xC520567BC65C7831, 0x1773446CFC5FD681,
+                                               0x0000000002341F27 };
 // Alice's generator values {XPA0 + XPA1*i, XQA0 + xQA1*i, XRA0 + XRA1*i} in GF(p434^2), expressed in Montgomery representation
-const uint64_t A_gen[6 * NWORDS64_FIELD] = {0x05ADF455C5C345BF, 0x91935C5CC767AC2B, 0xAFE4E879951F0257, 0x70E792DC89FA27B1,
-                                                   0xF797F526BB48C8CD, 0x2181DB6131AF621F, 0x00000A1C08B1ECC4, // XPA0
-                                                   0x74840EB87CDA7788, 0x2971AA0ECF9F9D0B, 0xCB5732BDF41715D5, 0x8CD8E51F7AACFFAA,
-                                                   0xA7F424730D7E419F, 0xD671EB919A179E8C, 0x0000FFA26C5A924A, // XPA1
-                                                   0xFEC6E64588B7273B, 0xD2A626D74CBBF1C6, 0xF8F58F07A78098C7, 0xE23941F470841B03,
-                                                   0x1B63EDA2045538DD, 0x735CFEB0FFD49215, 0x0001C4CB77542876, // XQA0
-                                                   0xADB0F733C17FFDD6, 0x6AFFBD037DA0A050, 0x680EC43DB144E02F, 0x1E2E5D5FF524E374,
-                                                   0xE2DDA115260E2995, 0xA6E4B552E2EDE508, 0x00018ECCDDF4B53E, // XQA1
-                                                   0x01BA4DB518CD6C7D, 0x2CB0251FE3CC0611, 0x259B0C6949A9121B, 0x60E17AC16D2F82AD,
-                                                   0x3AA41F1CE175D92D, 0x413FBE6A9B9BC4F3, 0x00022A81D8D55643, // XRA0
-                                                   0xB8ADBC70FC82E54A, 0xEF9CDDB0D5FADDED, 0x5820C734C80096A0, 0x7799994BAA96E0E4,
-                                                   0x044961599E379AF8, 0xDB2B94FBF09F27E2, 0x0000B87FC716C0C6}; // XRA1
+const uint64_t A_gen[ 6 * NWORDS64_FIELD ] = {
+    0x05ADF455C5C345BF, 0x91935C5CC767AC2B, 0xAFE4E879951F0257, 0x70E792DC89FA27B1,
+    0xF797F526BB48C8CD, 0x2181DB6131AF621F, 0x00000A1C08B1ECC4,  // XPA0
+    0x74840EB87CDA7788, 0x2971AA0ECF9F9D0B, 0xCB5732BDF41715D5, 0x8CD8E51F7AACFFAA,
+    0xA7F424730D7E419F, 0xD671EB919A179E8C, 0x0000FFA26C5A924A,  // XPA1
+    0xFEC6E64588B7273B, 0xD2A626D74CBBF1C6, 0xF8F58F07A78098C7, 0xE23941F470841B03,
+    0x1B63EDA2045538DD, 0x735CFEB0FFD49215, 0x0001C4CB77542876,  // XQA0
+    0xADB0F733C17FFDD6, 0x6AFFBD037DA0A050, 0x680EC43DB144E02F, 0x1E2E5D5FF524E374,
+    0xE2DDA115260E2995, 0xA6E4B552E2EDE508, 0x00018ECCDDF4B53E,  // XQA1
+    0x01BA4DB518CD6C7D, 0x2CB0251FE3CC0611, 0x259B0C6949A9121B, 0x60E17AC16D2F82AD,
+    0x3AA41F1CE175D92D, 0x413FBE6A9B9BC4F3, 0x00022A81D8D55643,  // XRA0
+    0xB8ADBC70FC82E54A, 0xEF9CDDB0D5FADDED, 0x5820C734C80096A0, 0x7799994BAA96E0E4,
+    0x044961599E379AF8, 0xDB2B94FBF09F27E2, 0x0000B87FC716C0C6
+};  // XRA1
 // Bob's generator values {XPB0, XQB0, XRB0 + XRB1*i} in GF(p434^2), expressed in Montgomery representation
-const uint64_t B_gen[6 * NWORDS64_FIELD] = {0x6E5497556EDD48A3, 0x2A61B501546F1C05, 0xEB919446D049887D, 0x5864A4A69D450C4F,
-                                                   0xB883F276A6490D2B, 0x22CC287022D5F5B9, 0x0001BED4772E551F, // XPB0
-                                                   0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
-                                                   0x0000000000000000, 0x0000000000000000, 0x0000000000000000, // XPB1
-                                                   0xFAE2A3F93D8B6B8E, 0x494871F51700FE1C, 0xEF1A94228413C27C, 0x498FF4A4AF60BD62,
-                                                   0xB00AD2A708267E8A, 0xF4328294E017837F, 0x000034080181D8AE, // XQB0
-                                                   0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
-                                                   0x0000000000000000, 0x0000000000000000, 0x0000000000000000, // XQB1
-                                                   0x283B34FAFEFDC8E4, 0x9208F44977C3E647, 0x7DEAE962816F4E9A, 0x68A2BA8AA262EC9D,
-                                                   0x8176F112EA43F45B, 0x02106D022634F504, 0x00007E8A50F02E37, // XRB0
-                                                   0xB378B7C1DA22CCB1, 0x6D089C99AD1D9230, 0xEBE15711813E2369, 0x2B35A68239D48A53,
-                                                   0x445F6FD138407C93, 0xBEF93B29A3F6B54B, 0x000173FA910377D3}; // XRB1
+const uint64_t B_gen[ 6 * NWORDS64_FIELD ] = {
+    0x6E5497556EDD48A3, 0x2A61B501546F1C05, 0xEB919446D049887D, 0x5864A4A69D450C4F,
+    0xB883F276A6490D2B, 0x22CC287022D5F5B9, 0x0001BED4772E551F,  // XPB0
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000,  // XPB1
+    0xFAE2A3F93D8B6B8E, 0x494871F51700FE1C, 0xEF1A94228413C27C, 0x498FF4A4AF60BD62,
+    0xB00AD2A708267E8A, 0xF4328294E017837F, 0x000034080181D8AE,  // XQB0
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000,  // XQB1
+    0x283B34FAFEFDC8E4, 0x9208F44977C3E647, 0x7DEAE962816F4E9A, 0x68A2BA8AA262EC9D,
+    0x8176F112EA43F45B, 0x02106D022634F504, 0x00007E8A50F02E37,  // XRB0
+    0xB378B7C1DA22CCB1, 0x6D089C99AD1D9230, 0xEBE15711813E2369, 0x2B35A68239D48A53,
+    0x445F6FD138407C93, 0xBEF93B29A3F6B54B, 0x000173FA910377D3
+};  // XRB1
 // Montgomery constant Montgomery_R2 = (2^448)^2 mod p434
-const uint64_t Montgomery_R2[NWORDS64_FIELD] = {0x28E55B65DCD69B30, 0xACEC7367768798C2, 0xAB27973F8311688D, 0x175CC6AF8D6C7C0B,
-                                                       0xABCD92BF2DDE347E, 0x69E16A61C7686D9A, 0x000025A89BCDD12A};
+const uint64_t Montgomery_R2[ NWORDS64_FIELD ] = { 0x28E55B65DCD69B30, 0xACEC7367768798C2, 0xAB27973F8311688D,
+                                                   0x175CC6AF8D6C7C0B, 0xABCD92BF2DDE347E, 0x69E16A61C7686D9A,
+                                                   0x000025A89BCDD12A };
 // Value one in Montgomery representation
-const uint64_t Montgomery_one[NWORDS64_FIELD] = {0x000000000000742C, 0x0000000000000000, 0x0000000000000000, 0xB90FF404FC000000,
-                                                        0xD801A4FB559FACD4, 0xE93254545F77410C, 0x0000ECEEA7BD2EDA};
+const uint64_t Montgomery_one[ NWORDS64_FIELD ] = { 0x000000000000742C, 0x0000000000000000, 0x0000000000000000,
+                                                    0xB90FF404FC000000, 0xD801A4FB559FACD4, 0xE93254545F77410C,
+                                                    0x0000ECEEA7BD2EDA };
 
 // Fixed parameters for isogeny tree computation
-const unsigned int strat_Alice[MAX_Alice - 1] = {
-    48, 28, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 13, 7, 4, 2, 1, 1, 2, 1, 1, 3, 2, 1, 1,
-    1, 1, 5, 4, 2, 1, 1, 2, 1, 1, 2, 1, 1, 1, 21, 12, 7, 4, 2, 1, 1, 2, 1, 1, 3, 2, 1, 1, 1, 1, 5, 3, 2, 1, 1, 1, 1, 2, 1, 1, 1, 9, 5, 3, 2, 1, 1,
-    1, 1, 2, 1, 1, 1, 4, 2, 1, 1, 1, 2, 1, 1};
+const unsigned int strat_Alice[ MAX_Alice - 1 ] = {
+    48, 28, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1,  1,  4, 2, 1, 1, 2, 1, 1, 13, 7, 4,
+    2,  1,  1,  2, 1, 1, 3, 2, 1, 1, 1, 1, 5, 4, 2, 1, 1, 2, 1, 1, 2, 1, 1, 1, 21, 12, 7, 4, 2, 1, 1, 2, 1, 1,  3, 2,
+    1,  1,  1,  1, 5, 3, 2, 1, 1, 1, 1, 2, 1, 1, 1, 9, 5, 3, 2, 1, 1, 1, 1, 2, 1,  1,  1, 4, 2, 1, 1, 1, 2, 1,  1
+};
 
-const unsigned int strat_Bob[MAX_Bob - 1] = {
-    66, 33, 17, 9, 5, 3, 2, 1, 1, 1, 1, 2, 1, 1, 1, 4, 2, 1, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 1,
-    2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 32, 16, 8, 4, 3, 1, 1, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2,
-    1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 16, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1};
+const unsigned int strat_Bob[ MAX_Bob - 1 ] = {
+    66, 33, 17, 9,  5,  3,  2, 1, 1, 1, 1, 2, 1, 1, 1, 4, 2, 1, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 1, 2, 1, 1, 4, 2,
+    1,  1,  2,  1,  1,  16, 8, 4, 2, 1, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1,
+    2,  1,  1,  32, 16, 8,  4, 3, 1, 1, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1,
+    2,  1,  1,  16, 8,  4,  2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1, 8, 4, 2, 1, 1, 2, 1, 1, 4, 2, 1, 1, 2, 1, 1
+};
 
 // Setting up macro defines and including GF(p), GF(p^2), curve, isogeny and kex functions
 #define fpcopy fpcopy434
@@ -110,14 +123,17 @@ const unsigned int strat_Bob[MAX_Bob - 1] = {
 #define EphemeralSecretAgreement_B oqs_kem_sidh_p434_EphemeralSecretAgreement_B
 
 #if !defined(S2N_NO_PQ_ASM)
-void s2n_cpuid(uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx, uint32_t leaf) {
-    __asm__ volatile("xor %%ecx, %%ecx\n"
-                     "cpuid\n"
-                     : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
-                     : "a"(leaf));
+void s2n_cpuid(uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx, uint32_t leaf)
+{
+    __asm__ volatile(
+        "xor %%ecx, %%ecx\n"
+        "cpuid\n"
+        : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
+        : "a"(leaf));
 }
 
-int s2n_check_sike434_r2_asm_compatibility() {
+int s2n_check_sike434_r2_asm_compatibility()
+{
     /*
      * "In assembly language, the CPUID instruction takes no parameters as CPUID implicitly uses the EAX register
      * to determine the main category of information returned. In Intel's more recent terminology, this is called
@@ -131,37 +147,34 @@ int s2n_check_sike434_r2_asm_compatibility() {
     uint32_t leaf = 0;
     s2n_cpuid(&eax, &ebx, &ecx, &edx, leaf);
 
-    if (eax < 7) {
-        return 0;
-    }
+    if (eax < 7) { return 0; }
 
     /*
      * In all cases, we need bmi2 support. The ASM code can be compiled with or without adx support; if it was
      * compiled with adx support, then we must check for adx support at runtime. bmi2 and adx correspond to ebx
      * bits 8 and 19 respectively. See https://en.wikipedia.org/wiki/CPUID#EAX=7,_ECX=0:_Extended_Features
      */
-    eax = 0; ebx = 0; ecx = 0; edx = 0;
+    eax  = 0;
+    ebx  = 0;
+    ecx  = 0;
+    edx  = 0;
     leaf = 7;
     s2n_cpuid(&eax, &ebx, &ecx, &edx, leaf);
 
     /* Check for bmi2 support */
-    if (!(edx & (1U << 8))) {
-        return 0;
-    }
+    if (!(edx & (1U << 8))) { return 0; }
 
-#if defined(_ADX_)
+#    if defined(_ADX_)
     /* Check for adx support */
-    if (!(edx & (1U << 19))) {
-        return 0;
-    }
-#endif /* _ADX_ */
+    if (!(edx & (1U << 19))) { return 0; }
+#    endif /* _ADX_ */
 
     return 1;
 }
 #endif /* S2N_NO_PQ_ASM */
 
+#include "ec_isogeny.c"
 #include "fp.c"
 #include "fpx.c"
-#include "ec_isogeny.c"
 #include "sidh.c"
 #include "sike_r2_kem.c"

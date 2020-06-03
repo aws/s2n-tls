@@ -12,24 +12,25 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+#include "utils/s2n_set.h"
+
+#include "utils/s2n_array.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_set.h"
-#include "utils/s2n_array.h"
 
 #define S2N_INITIAL_SET_SIZE 16
 
 /* Sets "out" to the index at which the element should be inserted.
  * Returns an error if the element already exists */
-static S2N_RESULT s2n_set_binary_search(struct s2n_set *set, void *element, uint32_t* out)
+static S2N_RESULT s2n_set_binary_search(struct s2n_set *set, void *element, uint32_t *out)
 {
     ENSURE_NONNULL(set);
     ENSURE_NONNULL(element);
     ENSURE_NONNULL(out);
-    struct s2n_array *array = set->data;
-    int (*comparator)(const void*, const void*) = set->comparator;
+    struct s2n_array *array                       = set->data;
+    int (*comparator)(const void *, const void *) = set->comparator;
 
     uint32_t len = 0;
     GUARD_RESULT(s2n_array_num_elements(array, &len));
@@ -44,15 +45,13 @@ static S2N_RESULT s2n_set_binary_search(struct s2n_set *set, void *element, uint
     int64_t top = len - 1;
 
     while (low <= top) {
-        int64_t mid = low + ((top - low) / 2);
-        void* array_element = NULL;
+        int64_t mid           = low + ((top - low) / 2);
+        void *  array_element = NULL;
         GUARD_RESULT(s2n_array_get(array, mid, &array_element));
         int m = comparator(array_element, element);
 
         /* the element is already in the set */
-        if (m == 0) {
-            BAIL(S2N_ERR_SET_DUPLICATE_VALUE);
-        }
+        if (m == 0) { BAIL(S2N_ERR_SET_DUPLICATE_VALUE); }
 
         if (m > 0) {
             top = mid - 1;
@@ -65,14 +64,14 @@ static S2N_RESULT s2n_set_binary_search(struct s2n_set *set, void *element, uint
     return S2N_RESULT_OK;
 }
 
-struct s2n_set *s2n_set_new(size_t element_size, int (*comparator)(const void*, const void*))
+struct s2n_set *s2n_set_new(size_t element_size, int (*comparator)(const void *, const void *))
 {
     ENSURE_PTR_NONNULL(comparator);
-    struct s2n_blob mem = {0};
+    struct s2n_blob mem = { 0 };
     GUARD_POSIX_PTR(s2n_alloc(&mem, sizeof(struct s2n_set)));
-    struct s2n_set *set = (void *) mem.data;
-    *set = (struct s2n_set) {.data = s2n_array_new(element_size), .comparator = comparator};
-    if(set->data == NULL) {
+    struct s2n_set *set = ( void * )mem.data;
+    *set                = (struct s2n_set){ .data = s2n_array_new(element_size), .comparator = comparator };
+    if (set->data == NULL) {
         GUARD_POSIX_PTR(s2n_free(&mem));
         return NULL;
     }
@@ -112,10 +111,9 @@ S2N_RESULT s2n_set_free_p(struct s2n_set **pset)
 
     ENSURE_NONNULL(set);
     GUARD_RESULT(s2n_array_free(set->data));
-    GUARD_AS_RESULT(s2n_free_object((uint8_t **)pset, sizeof(struct s2n_set)));
+    GUARD_AS_RESULT(s2n_free_object(( uint8_t ** )pset, sizeof(struct s2n_set)));
 
     return S2N_RESULT_OK;
-
 }
 
 S2N_RESULT s2n_set_free(struct s2n_set *set)
@@ -123,7 +121,6 @@ S2N_RESULT s2n_set_free(struct s2n_set *set)
     ENSURE_NONNULL(set);
     return s2n_set_free_p(&set);
 }
-
 
 S2N_RESULT s2n_set_len(struct s2n_set *set, uint32_t *len)
 {

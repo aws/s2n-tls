@@ -13,20 +13,17 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include <string.h>
-#include <stdio.h>
-
-
 #include <s2n.h>
+#include <stdio.h>
+#include <string.h>
 #include <tls/s2n_cipher_suites.h>
 
+#include "crypto/s2n_fips.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "tests/testlib/s2n_nist_kats.h"
 #include "tls/s2n_prf.h"
 #include "utils/s2n_safety.h"
-#include "tests/testlib/s2n_nist_kats.h"
-#include "crypto/s2n_fips.h"
 
 #define KAT_FILE_NAME "kats/hybrid_prf.kat"
 
@@ -53,10 +50,10 @@ int main(int argc, char **argv)
     FILE *kat_file = fopen(KAT_FILE_NAME, "r");
     EXPECT_NOT_NULL(kat_file);
 
-    uint8_t premaster_classic_secret[PREMASTER_CLASSIC_SECRET_LENGTH];
-    uint8_t client_random[CLIENT_RANDOM_LENGTH];
-    uint8_t server_random[SERVER_RANDOM_LENGTH];
-    uint8_t expected_master_secret[MASTER_SECRET_LENGTH];
+    uint8_t premaster_classic_secret[ PREMASTER_CLASSIC_SECRET_LENGTH ];
+    uint8_t client_random[ CLIENT_RANDOM_LENGTH ];
+    uint8_t server_random[ SERVER_RANDOM_LENGTH ];
+    uint8_t expected_master_secret[ MASTER_SECRET_LENGTH ];
 
     for (uint32_t i = 0; i < NUM_TEST_VECTORS; i++) {
         /* Verify test index */
@@ -72,10 +69,11 @@ int main(int argc, char **argv)
         conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
 
         /* Read test vector from KAT file */
-        uint32_t premaster_kem_secret_length = 0;
+        uint32_t premaster_kem_secret_length        = 0;
         uint32_t client_key_exchange_message_length = 0;
 
-        GUARD(ReadHex(kat_file, premaster_classic_secret, PREMASTER_CLASSIC_SECRET_LENGTH, "premaster_classic_secret = "));
+        GUARD(ReadHex(kat_file, premaster_classic_secret, PREMASTER_CLASSIC_SECRET_LENGTH,
+                      "premaster_classic_secret = "));
 
         GUARD(FindMarker(kat_file, "premaster_kem_secret_length = "));
         gt_check(fscanf(kat_file, "%u", &premaster_kem_secret_length), 0);
@@ -92,17 +90,18 @@ int main(int argc, char **argv)
 
         uint8_t *client_key_exchange_message;
         notnull_check(client_key_exchange_message = malloc(client_key_exchange_message_length));
-        GUARD(ReadHex(kat_file, client_key_exchange_message, client_key_exchange_message_length, "client_key_exchange_message = "));
+        GUARD(ReadHex(kat_file, client_key_exchange_message, client_key_exchange_message_length,
+                      "client_key_exchange_message = "));
 
         GUARD(ReadHex(kat_file, expected_master_secret, MASTER_SECRET_LENGTH, "master_secret = "));
 
-        struct s2n_blob classic_pms = {.data = premaster_classic_secret, .size = PREMASTER_CLASSIC_SECRET_LENGTH};
-        struct s2n_blob kem_pms = {.data = premaster_kem_secret, .size = premaster_kem_secret_length};
+        struct s2n_blob classic_pms = { .data = premaster_classic_secret, .size = PREMASTER_CLASSIC_SECRET_LENGTH };
+        struct s2n_blob kem_pms     = { .data = premaster_kem_secret, .size = premaster_kem_secret_length };
 
         /* In the future the hybrid_kex client_key_send (client side) and client_key_receive (server side) will concatenate the two parts */
-        DEFER_CLEANUP(struct s2n_blob combined_pms = {0}, s2n_free);
+        DEFER_CLEANUP(struct s2n_blob combined_pms = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&combined_pms, classic_pms.size + kem_pms.size));
-        struct s2n_stuffer combined_stuffer = {0};
+        struct s2n_stuffer combined_stuffer = { 0 };
         s2n_stuffer_init(&combined_stuffer, &combined_pms);
         s2n_stuffer_write(&combined_stuffer, &classic_pms);
         s2n_stuffer_write(&combined_stuffer, &kem_pms);
@@ -112,7 +111,8 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_alloc(&conn->secure.client_key_exchange_message, client_key_exchange_message_length));
 
-        EXPECT_MEMCPY_SUCCESS(conn->secure.client_key_exchange_message.data, client_key_exchange_message, client_key_exchange_message_length);
+        EXPECT_MEMCPY_SUCCESS(conn->secure.client_key_exchange_message.data, client_key_exchange_message,
+                              client_key_exchange_message_length);
 
         EXPECT_SUCCESS(s2n_hybrid_prf_master_secret(conn, &combined_pms));
         EXPECT_BYTEARRAY_EQUAL(expected_master_secret, conn->secure.master_secret, S2N_TLS_SECRET_LEN);
@@ -124,7 +124,9 @@ int main(int argc, char **argv)
     }
 
     if (FindMarker(kat_file, "count = ") == 0) {
-        FAIL_MSG("Found unexpected test vectors in the KAT file. Has the KAT file been changed? Did you update NUM_TEST_VECTORS?");
+        FAIL_MSG(
+            "Found unexpected test vectors in the KAT file. Has the KAT file been changed? Did you update "
+            "NUM_TEST_VECTORS?");
     }
 
 #endif

@@ -14,8 +14,8 @@
  */
 
 #include "crypto/s2n_evp.h"
-#include "crypto/s2n_fips.h"
 
+#include "crypto/s2n_fips.h"
 #include "error/s2n_errno.h"
 
 int s2n_digest_allow_md5_for_fips(struct s2n_evp_digest *evp_digest)

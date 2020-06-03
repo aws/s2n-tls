@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include "tls/extensions/s2n_extension_type_lists.h"
+
+#include "s2n_test.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 

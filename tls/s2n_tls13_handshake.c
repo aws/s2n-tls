@@ -14,6 +14,7 @@
  */
 
 #include "tls/s2n_tls13_handshake.h"
+
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_security_policies.h"
 
@@ -30,7 +31,8 @@ int s2n_tls13_mac_verify(struct s2n_tls13_keys *keys, struct s2n_blob *finished_
 /*
  * Initializes the tls13_keys struct
  */
-static int s2n_tls13_keys_init_with_ref(struct s2n_tls13_keys *handshake, s2n_hmac_algorithm alg, uint8_t * extract,  uint8_t * derive)
+static int s2n_tls13_keys_init_with_ref(struct s2n_tls13_keys *handshake, s2n_hmac_algorithm alg, uint8_t *extract,
+                                        uint8_t *derive)
 {
     notnull_check(handshake);
 
@@ -46,7 +48,8 @@ static int s2n_tls13_keys_init_with_ref(struct s2n_tls13_keys *handshake, s2n_hm
 
 int s2n_tls13_keys_from_conn(struct s2n_tls13_keys *keys, struct s2n_connection *conn)
 {
-    GUARD(s2n_tls13_keys_init_with_ref(keys, conn->secure.cipher_suite->prf_alg, conn->secure.rsa_premaster_secret, conn->secure.master_secret));
+    GUARD(s2n_tls13_keys_init_with_ref(keys, conn->secure.cipher_suite->prf_alg, conn->secure.rsa_premaster_secret,
+                                       conn->secure.master_secret));
 
     return 0;
 }
@@ -66,14 +69,14 @@ int s2n_tls13_compute_shared_secret(struct s2n_connection *conn, struct s2n_blob
      * this can be simplified if we get an index or a pointer to a specific key */
     int selection = -1;
     for (int i = 0; i < ecc_preferences->count; i++) {
-        if (server_key->negotiated_curve->iana_id == ecc_preferences->ecc_curves[i]->iana_id) {
+        if (server_key->negotiated_curve->iana_id == ecc_preferences->ecc_curves[ i ]->iana_id) {
             selection = i;
             break;
         }
     }
 
     S2N_ERROR_IF(selection < 0, S2N_ERR_BAD_KEY_SHARE);
-    struct s2n_ecc_evp_params *client_key = &conn->secure.client_ecc_evp_params[selection];
+    struct s2n_ecc_evp_params *client_key = &conn->secure.client_ecc_evp_params[ selection ];
     notnull_check(client_key);
 
     if (conn->mode == S2N_CLIENT) {
@@ -97,7 +100,7 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
     const struct s2n_ecc_preferences *ecc_preferences = NULL;
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
     notnull_check(ecc_preferences);
-    
+
     /* get tls13 key context */
     s2n_tls13_connection_keys(secrets, conn);
 
@@ -112,9 +115,10 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
     s2n_stack_blob(client_hs_secret, secrets.size, S2N_TLS13_SECRET_MAX_LEN);
     s2n_stack_blob(server_hs_secret, secrets.size, S2N_TLS13_SECRET_MAX_LEN);
 
-    struct s2n_hash_state hash_state = {0};
+    struct s2n_hash_state hash_state = { 0 };
     GUARD(s2n_handshake_get_hash_state(conn, secrets.hash_algorithm, &hash_state));
-    GUARD(s2n_tls13_derive_handshake_secrets(&secrets, &shared_secret, &hash_state, &client_hs_secret, &server_hs_secret));
+    GUARD(s2n_tls13_derive_handshake_secrets(&secrets, &shared_secret, &hash_state, &client_hs_secret,
+                                             &server_hs_secret));
 
     /* produce handshake traffic keys and configure record algorithm */
     s2n_tls13_key_blob(server_hs_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
@@ -140,7 +144,7 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
     /* since shared secret has been computed, clean up keys */
     GUARD(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
     for (int i = 0; i < ecc_preferences->count; i++) {
-        GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
+        GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[ i ]));
     }
 
     return 0;
@@ -181,25 +185,27 @@ int s2n_tls13_handle_application_secrets(struct s2n_connection *conn)
 int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mode, keyupdate_status status)
 {
     notnull_check(conn);
-    
+
     /* get tls13 key context */
     s2n_tls13_connection_keys(keys, conn);
 
     struct s2n_session_key *old_key;
-    struct s2n_blob old_app_secret;
-    struct s2n_blob sequence_number;
-    struct s2n_blob app_iv;
+    struct s2n_blob         old_app_secret;
+    struct s2n_blob         sequence_number;
+    struct s2n_blob         app_iv;
 
     if (mode == S2N_CLIENT) {
         old_key = &conn->secure.client_key;
         GUARD(s2n_blob_init(&old_app_secret, conn->secure.client_app_secret, keys.size));
-        GUARD(s2n_blob_init(&sequence_number, conn->secure.client_sequence_number, sizeof(conn->secure.client_sequence_number)));
+        GUARD(s2n_blob_init(&sequence_number, conn->secure.client_sequence_number,
+                            sizeof(conn->secure.client_sequence_number)));
         GUARD(s2n_blob_init(&app_iv, conn->secure.client_implicit_iv, S2N_TLS13_FIXED_IV_LEN));
     } else {
         old_key = &conn->secure.server_key;
         GUARD(s2n_blob_init(&old_app_secret, conn->secure.server_app_secret, keys.size));
-        GUARD(s2n_blob_init(&sequence_number, conn->secure.server_sequence_number, sizeof(conn->secure.server_sequence_number)));
-        GUARD(s2n_blob_init(&app_iv, conn->secure.server_implicit_iv, S2N_TLS13_FIXED_IV_LEN));  
+        GUARD(s2n_blob_init(&sequence_number, conn->secure.server_sequence_number,
+                            sizeof(conn->secure.server_sequence_number)));
+        GUARD(s2n_blob_init(&app_iv, conn->secure.server_implicit_iv, S2N_TLS13_FIXED_IV_LEN));
     }
 
     /* Produce new application secret */
@@ -224,9 +230,9 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
      * MUST use sequence number 0.
      */
     GUARD(s2n_blob_zero(&sequence_number));
-    
+
     /* Save updated secret */
-    struct s2n_stuffer old_secret_stuffer = {0};
+    struct s2n_stuffer old_secret_stuffer = { 0 };
     GUARD(s2n_stuffer_init(&old_secret_stuffer, &old_app_secret));
     GUARD(s2n_stuffer_write_bytes(&old_secret_stuffer, app_secret_update.data, keys.size));
 

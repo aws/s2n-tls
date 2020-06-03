@@ -13,50 +13,46 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-#include <time.h>
+#include "tls/s2n_client_hello.h"
+
 #include <stdint.h>
 #include <stdlib.h>
+#include <sys/param.h>
+#include <time.h>
 
 #include "crypto/s2n_fips.h"
-
-#include "error/s2n_errno.h"
-
 #include "crypto/s2n_hash.h"
-
+#include "error/s2n_errno.h"
+#include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_server_key_share.h"
+#include "tls/s2n_alerts.h"
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_preferences.h"
-#include "tls/s2n_security_policies.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_client_hello.h"
-#include "tls/s2n_alerts.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_digest_preferences.h"
-#include "tls/s2n_security_policies.h"
-
-#include "stuffer/s2n_stuffer.h"
-
 #include "utils/s2n_bitmap.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
-struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn) {
-    if (conn->client_hello.parsed != 1) {
-        return NULL;
-    }
+struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn)
+{
+    if (conn->client_hello.parsed != 1) { return NULL; }
 
     return &conn->client_hello;
 }
 
-static uint32_t min_size(struct s2n_blob *blob, uint32_t max_length) {
+static uint32_t min_size(struct s2n_blob *blob, uint32_t max_length)
+{
     return blob->size < max_length ? blob->size : max_length;
 }
 
-ssize_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch) {
+ssize_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch)
+{
     notnull_check(ch);
 
     return ch->raw_message.blob.size;
@@ -76,7 +72,8 @@ ssize_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *o
     return len;
 }
 
-ssize_t s2n_client_hello_get_cipher_suites_length(struct s2n_client_hello *ch) {
+ssize_t s2n_client_hello_get_cipher_suites_length(struct s2n_client_hello *ch)
+{
     notnull_check(ch);
 
     return ch->cipher_suites.size;
@@ -95,7 +92,8 @@ ssize_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t 
     return len;
 }
 
-ssize_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch) {
+ssize_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch)
+{
     notnull_check(ch);
 
     return ch->extensions.raw.size;
@@ -122,7 +120,7 @@ int s2n_client_hello_free(struct s2n_client_hello *client_hello)
 
     /* These point to data in the raw_message stuffer,
        so we don't need to free them */
-    client_hello->cipher_suites.data = NULL;
+    client_hello->cipher_suites.data  = NULL;
     client_hello->extensions.raw.data = NULL;
 
     return 0;
@@ -156,9 +154,9 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
 
     /* Going forward, we parse the collected client hello */
     struct s2n_client_hello *client_hello = &conn->client_hello;
-    struct s2n_stuffer *in = &client_hello->raw_message;
+    struct s2n_stuffer *     in           = &client_hello->raw_message;
 
-    uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    uint8_t client_protocol_version[ S2N_TLS_PROTOCOL_VERSION_LEN ];
 
     GUARD(s2n_stuffer_read_bytes(in, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     GUARD(s2n_stuffer_erase_and_read_bytes(in, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
@@ -168,10 +166,12 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
      * future versions of TLS. Therefore, we will negotiate down if a client sends
      * an unexpected value above 0x0303.
      */
-    conn->client_protocol_version = MIN((client_protocol_version[0] * 10) + client_protocol_version[1], S2N_TLS12);
-    conn->client_hello_version = conn->client_protocol_version;
+    conn->client_protocol_version = MIN((client_protocol_version[ 0 ] * 10) + client_protocol_version[ 1 ], S2N_TLS12);
+    conn->client_hello_version    = conn->client_protocol_version;
 
-    S2N_ERROR_IF(conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN || conn->session_id_len > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(
+        conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN || conn->session_id_len > s2n_stuffer_data_available(in),
+        S2N_ERR_BAD_MESSAGE);
 
     GUARD(s2n_stuffer_read_bytes(in, conn->session_id, conn->session_id_len));
 
@@ -193,7 +193,7 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     notnull_check(ecc_pref);
 
     /* This is going to be our default if the client has no preference. */
-    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[ 0 ];
 
     GUARD(s2n_extension_list_parse(in, &conn->client_hello.extensions));
 
@@ -222,9 +222,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_CLIENT_HELLO, conn, &copy_of_parsed_extensions));
 
     /* After parsing extensions, select a curve and corresponding keyshare to use */
-    if (conn->actual_protocol_version >= S2N_TLS13) {
-        GUARD(s2n_extensions_server_key_share_select(conn));
-    }
+    if (conn->actual_protocol_version >= S2N_TLS13) { GUARD(s2n_extensions_server_key_share_select(conn)); }
 
     /* for pre TLS 1.3 connections, protocol selection is not done in supported_versions extensions, so do it here */
     if (conn->actual_protocol_version != S2N_TLS13) {
@@ -243,9 +241,8 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
 
     /* And set the signature and hash algorithm used for key exchange signatures */
-    GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn,
-        &conn->handshake_params.client_sig_hash_algs,
-        &conn->secure.conn_sig_scheme));
+    GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn, &conn->handshake_params.client_sig_hash_algs,
+                                                          &conn->secure.conn_sig_scheme));
 
     /* And finally, set the certs specified by the final auth + sig_alg combo. */
     GUARD(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));
@@ -271,15 +268,11 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
                 GUARD(s2n_queue_reader_handshake_failure_alert(conn));
                 S2N_ERROR(S2N_ERR_CANCELLED);
             }
-            if (rc) {
-                conn->server_name_used = 1;
-            }
+            if (rc) { conn->server_name_used = 1; }
         }
     }
 
-    if (conn->client_hello_version != S2N_SSLv2) {
-        GUARD(s2n_process_client_hello(conn));
-    }
+    if (conn->client_hello_version != S2N_SSLv2) { GUARD(s2n_process_client_hello(conn)); }
 
     return 0;
 }
@@ -296,24 +289,24 @@ int s2n_client_hello_send(struct s2n_connection *conn)
         conn->actual_protocol_version = MIN(conn->actual_protocol_version, S2N_TLS12);
     }
 
-    struct s2n_stuffer *out = &conn->handshake.io;
-    struct s2n_stuffer client_random = {0};
-    uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = {0};
+    struct s2n_stuffer *out                                                     = &conn->handshake.io;
+    struct s2n_stuffer  client_random                                           = { 0 };
+    uint8_t             client_protocol_version[ S2N_TLS_PROTOCOL_VERSION_LEN ] = { 0 };
 
-    struct s2n_blob b = {0};
+    struct s2n_blob b = { 0 };
     GUARD(s2n_blob_init(&b, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
     /* Create the client random data */
     GUARD(s2n_stuffer_init(&client_random, &b));
 
-    struct s2n_blob r = {0};
+    struct s2n_blob r = { 0 };
     GUARD(s2n_blob_init(&r, s2n_stuffer_raw_write(&client_random, S2N_TLS_RANDOM_DATA_LEN), S2N_TLS_RANDOM_DATA_LEN));
     notnull_check(r.data);
     GUARD_AS_POSIX(s2n_get_public_random_data(&r));
 
     uint8_t reported_protocol_version = MIN(conn->client_protocol_version, S2N_TLS12);
-    client_protocol_version[0] = reported_protocol_version / 10;
-    client_protocol_version[1] = reported_protocol_version % 10;
-    conn->client_hello_version = reported_protocol_version;
+    client_protocol_version[ 0 ]      = reported_protocol_version / 10;
+    client_protocol_version[ 1 ]      = reported_protocol_version % 10;
+    conn->client_hello_version        = reported_protocol_version;
 
     GUARD(s2n_stuffer_write_bytes(out, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     GUARD(s2n_stuffer_copy(&client_random, out, S2N_TLS_RANDOM_DATA_LEN));
@@ -322,25 +315,21 @@ int s2n_client_hello_send(struct s2n_connection *conn)
      * an empty session id it is because it doesn't support session resumption
      */
     if (conn->session_id_len == 0 && conn->config->use_tickets) {
-        struct s2n_blob session_id = {0};
+        struct s2n_blob session_id = { 0 };
         GUARD(s2n_blob_init(&session_id, conn->session_id, S2N_TLS_SESSION_ID_MAX_LEN));
         GUARD_AS_POSIX(s2n_get_public_random_data(&session_id));
         conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
     }
 
     GUARD(s2n_stuffer_write_uint8(out, conn->session_id_len));
-    if (conn->session_id_len > 0) {
-        GUARD(s2n_stuffer_write_bytes(out, conn->session_id, conn->session_id_len));
-    }
+    if (conn->session_id_len > 0) { GUARD(s2n_stuffer_write_bytes(out, conn->session_id, conn->session_id_len)); }
 
     /* Find the number of available suites in the preference list. Some ciphers may be unavailable if s2n is built
      * with an older libcrypto
      */
     uint16_t num_available_suites = 0;
     for (int i = 0; i < security_policy->cipher_preferences->count; i++) {
-        if (security_policy->cipher_preferences->suites[i]->available) {
-            num_available_suites++;
-        }
+        if (security_policy->cipher_preferences->suites[ i ]->available) { num_available_suites++; }
     }
     /* Include TLS_EMPTY_RENEGOTIATION_INFO_SCSV */
     num_available_suites++;
@@ -349,13 +338,14 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     GUARD(s2n_stuffer_write_uint16(out, num_available_suites * S2N_TLS_CIPHER_SUITE_LEN));
 
     /* Now, write the IANA values every available cipher suite in our list */
-    for (int i = 0; i < security_policy->cipher_preferences->count; i++ ) {
-        if (security_policy->cipher_preferences->suites[i]->available) {
-            GUARD(s2n_stuffer_write_bytes(out, security_policy->cipher_preferences->suites[i]->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
+    for (int i = 0; i < security_policy->cipher_preferences->count; i++) {
+        if (security_policy->cipher_preferences->suites[ i ]->available) {
+            GUARD(s2n_stuffer_write_bytes(out, security_policy->cipher_preferences->suites[ i ]->iana_value,
+                                          S2N_TLS_CIPHER_SUITE_LEN));
         }
     }
     /* Lastly, write TLS_EMPTY_RENEGOTIATION_INFO_SCSV so that server knows it's an initial handshake (RFC5746 Section 3.4) */
-    uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
+    uint8_t renegotiation_info_scsv[ S2N_TLS_CIPHER_SUITE_LEN ] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
     GUARD(s2n_stuffer_write_bytes(out, renegotiation_info_scsv, S2N_TLS_CIPHER_SUITE_LEN));
 
     /* Zero compression methods */
@@ -372,7 +362,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
 {
     struct s2n_client_hello *client_hello = &conn->client_hello;
-    struct s2n_stuffer *in = &client_hello->raw_message;
+    struct s2n_stuffer *     in           = &client_hello->raw_message;
 
     const struct s2n_security_policy *security_policy;
     GUARD(s2n_connection_get_security_policy(conn, &security_policy));
@@ -403,19 +393,20 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     /* Find potential certificate matches before we choose the cipher. */
     GUARD(s2n_conn_find_name_matching_certs(conn));
 
-    GUARD(s2n_set_cipher_as_sslv2_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / S2N_SSLv2_CIPHER_SUITE_LEN));
+    GUARD(s2n_set_cipher_as_sslv2_server(conn, client_hello->cipher_suites.data,
+                                         client_hello->cipher_suites.size / S2N_SSLv2_CIPHER_SUITE_LEN));
     GUARD(s2n_choose_default_sig_scheme(conn, &conn->secure.conn_sig_scheme));
     GUARD(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));
 
     S2N_ERROR_IF(session_id_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
     if (session_id_length > 0 && session_id_length <= S2N_TLS_SESSION_ID_MAX_LEN) {
         GUARD(s2n_stuffer_read_bytes(in, conn->session_id, session_id_length));
-        conn->session_id_len = (uint8_t) session_id_length;
+        conn->session_id_len = ( uint8_t )session_id_length;
     } else {
         GUARD(s2n_stuffer_skip_read(in, session_id_length));
     }
 
-    struct s2n_blob b = {0};
+    struct s2n_blob b = { 0 };
     GUARD(s2n_blob_init(&b, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
 
     b.data += S2N_TLS_RANDOM_DATA_LEN - challenge_length;
@@ -426,8 +417,9 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     return 0;
 }
 
-static int s2n_client_hello_get_parsed_extension(s2n_tls_extension_type extension_type,
-        s2n_parsed_extensions_list *parsed_extension_list, s2n_parsed_extension **parsed_extension)
+static int s2n_client_hello_get_parsed_extension(s2n_tls_extension_type      extension_type,
+                                                 s2n_parsed_extensions_list *parsed_extension_list,
+                                                 s2n_parsed_extension **     parsed_extension)
 {
     notnull_check(parsed_extension_list);
     notnull_check(parsed_extension);
@@ -435,7 +427,7 @@ static int s2n_client_hello_get_parsed_extension(s2n_tls_extension_type extensio
     s2n_extension_type_id extension_type_id;
     GUARD(s2n_extension_supported_iana_value_to_id(extension_type, &extension_type_id));
 
-    s2n_parsed_extension *found_parsed_extension = &parsed_extension_list->parsed_extensions[extension_type_id];
+    s2n_parsed_extension *found_parsed_extension = &parsed_extension_list->parsed_extensions[ extension_type_id ];
     notnull_check(found_parsed_extension->extension.data);
     ENSURE_POSIX(found_parsed_extension->extension_type == extension_type, S2N_ERR_INVALID_PARSED_EXTENSIONS);
 
@@ -455,7 +447,8 @@ ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_t
     return parsed_extension->extension.size;
 }
 
-ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length)
+ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type,
+                                             uint8_t *out, uint32_t max_length)
 {
     notnull_check(ch);
     notnull_check(out);

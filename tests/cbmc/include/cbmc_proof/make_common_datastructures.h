@@ -16,10 +16,11 @@
 #pragma once
 
 #include <cbmc_proof/proof_allocators.h>
+
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 
-void ensure_s2n_blob_has_allocated_fields(struct s2n_blob* blob);
-struct s2n_blob* cbmc_allocate_s2n_blob();
-void ensure_s2n_stuffer_has_allocated_fields(struct s2n_stuffer* stuffer);
-struct s2n_stuffer* cbmc_allocate_s2n_stuffer();
+void                ensure_s2n_blob_has_allocated_fields(struct s2n_blob *blob);
+struct s2n_blob *   cbmc_allocate_s2n_blob();
+void                ensure_s2n_stuffer_has_allocated_fields(struct s2n_stuffer *stuffer);
+struct s2n_stuffer *cbmc_allocate_s2n_stuffer();

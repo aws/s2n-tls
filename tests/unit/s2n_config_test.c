@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_config.h"
+
 #include <s2n.h>
 #include <stdlib.h>
-#include "s2n_test.h"
 
 #include "crypto/s2n_fips.h"
-
-#include "tls/s2n_config.h"
+#include "s2n_test.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
@@ -42,7 +42,8 @@ int main(int argc, char **argv)
 
         /* s2n_config_new() matches s2n_fetch_default_config() */
         EXPECT_EQUAL(default_config->security_policy, config->security_policy);
-        EXPECT_EQUAL(default_config->security_policy->signature_preferences, config->security_policy->signature_preferences);
+        EXPECT_EQUAL(default_config->security_policy->signature_preferences,
+                     config->security_policy->signature_preferences);
         EXPECT_EQUAL(default_config->client_cert_auth_type, config->client_cert_auth_type);
 
         /* Calling s2n_fetch_default_config() repeatedly returns the same object */
@@ -60,7 +61,7 @@ int main(int argc, char **argv)
     {
         /* For TLS1.2 */
         if (!s2n_is_in_fips_mode()) {
-            struct s2n_connection *conn;
+            struct s2n_connection *           conn;
             const struct s2n_security_policy *security_policy;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
@@ -75,7 +76,7 @@ int main(int argc, char **argv)
         /* For TLS1.3 */
         {
             EXPECT_SUCCESS(s2n_enable_tls13());
-            struct s2n_connection *conn;
+            struct s2n_connection *           conn;
             const struct s2n_security_policy *security_policy;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
@@ -90,7 +91,7 @@ int main(int argc, char **argv)
 
         /* For fips */
         if (s2n_is_in_fips_mode()) {
-            struct s2n_connection *conn;
+            struct s2n_connection *           conn;
             const struct s2n_security_policy *security_policy;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 

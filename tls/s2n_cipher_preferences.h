@@ -16,12 +16,13 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_tls13.h"
 
 struct s2n_cipher_preferences {
-    uint8_t count;
+    uint8_t                   count;
     struct s2n_cipher_suite **suites;
 };
 
@@ -89,4 +90,3 @@ extern const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1
 
 extern const struct s2n_cipher_preferences cipher_preferences_kms_fips_tls_1_2_2018_10;
 extern const struct s2n_cipher_preferences cipher_preferences_null;
-

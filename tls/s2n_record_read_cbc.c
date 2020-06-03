@@ -13,35 +13,25 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_sequence.h"
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
-
+#include "crypto/s2n_sequence.h"
 #include "error/s2n_errno.h"
-
 #include "stuffer/s2n_stuffer.h"
-
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_crypto.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_record_read.h"
-
-#include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
 
-int s2n_record_parse_cbc(
-    const struct s2n_cipher_suite *cipher_suite,
-    struct s2n_connection *conn,
-    uint8_t content_type,
-    uint16_t encrypted_length,
-    uint8_t * implicit_iv,
-    struct s2n_hmac_state *mac,
-    uint8_t * sequence_number,
-    struct s2n_session_key *session_key)
+int s2n_record_parse_cbc(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn, uint8_t content_type,
+                         uint16_t encrypted_length, uint8_t *implicit_iv, struct s2n_hmac_state *mac,
+                         uint8_t *sequence_number, struct s2n_session_key *session_key)
 {
-    struct s2n_blob iv = {.data = implicit_iv,.size = cipher_suite->record_alg->cipher->io.cbc.record_iv_size };
-    uint8_t ivpad[S2N_TLS_MAX_IV_LEN];
+    struct s2n_blob iv = { .data = implicit_iv, .size = cipher_suite->record_alg->cipher->io.cbc.record_iv_size };
+    uint8_t         ivpad[ S2N_TLS_MAX_IV_LEN ];
 
     /* Add the header to the HMAC */
     uint8_t *header = s2n_stuffer_raw_read(&conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH);
@@ -56,11 +46,11 @@ int s2n_record_parse_cbc(
         encrypted_length -= iv.size;
     }
 
-    struct s2n_blob en = {.size = encrypted_length,.data = s2n_stuffer_raw_read(&conn->in, encrypted_length) };
+    struct s2n_blob en = { .size = encrypted_length, .data = s2n_stuffer_raw_read(&conn->in, encrypted_length) };
     notnull_check(en.data);
 
     uint16_t payload_length = encrypted_length;
-    uint8_t mac_digest_size;
+    uint8_t  mac_digest_size;
     GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
 
     gte_check(payload_length, mac_digest_size);
@@ -74,23 +64,19 @@ int s2n_record_parse_cbc(
     eq_check(en.size % iv.size, 0);
 
     /* Copy the last encrypted block to be the next IV */
-    if (conn->actual_protocol_version < S2N_TLS11) {
-        memcpy_check(ivpad, en.data + en.size - iv.size, iv.size);
-    }
+    if (conn->actual_protocol_version < S2N_TLS11) { memcpy_check(ivpad, en.data + en.size - iv.size, iv.size); }
 
     GUARD(cipher_suite->record_alg->cipher->io.cbc.decrypt(session_key, &iv, &en, &en));
 
-    if (conn->actual_protocol_version < S2N_TLS11) {
-        memcpy_check(implicit_iv, ivpad, iv.size);
-    }
+    if (conn->actual_protocol_version < S2N_TLS11) { memcpy_check(implicit_iv, ivpad, iv.size); }
 
     /* Subtract the padding length */
     gt_check(en.size, 0);
-    payload_length -= (en.data[en.size - 1] + 1);
+    payload_length -= (en.data[ en.size - 1 ] + 1);
 
     /* Update the MAC */
-    header[3] = (payload_length >> 8);
-    header[4] = payload_length & 0xff;
+    header[ 3 ] = (payload_length >> 8);
+    header[ 4 ] = payload_length & 0xff;
     GUARD(s2n_hmac_reset(mac));
     GUARD(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
 
@@ -101,7 +87,7 @@ int s2n_record_parse_cbc(
         GUARD(s2n_hmac_update(mac, header, S2N_TLS_RECORD_HEADER_LENGTH));
     }
 
-    struct s2n_blob seq = {.data = sequence_number,.size = S2N_TLS_SEQUENCE_NUM_LEN };
+    struct s2n_blob seq = { .data = sequence_number, .size = S2N_TLS_SEQUENCE_NUM_LEN };
     GUARD(s2n_increment_sequence_number(&seq));
 
     /* Padding */

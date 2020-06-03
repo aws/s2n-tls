@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-
 #include "tls/extensions/s2n_client_pq_kem.h"
 #include "tls/s2n_security_policies.h"
 
@@ -24,7 +23,7 @@ int main(int argc, char **argv)
 
 #if !defined(S2N_NO_PQ)
 
-    const char *pq_security_policy = "KMS-PQ-TLS-1-0-2020-02";
+    const char *                      pq_security_policy = "KMS-PQ-TLS-1-0-2020-02";
     const struct s2n_security_policy *security_policy;
     EXPECT_SUCCESS(s2n_find_security_policy_from_version(pq_security_policy, &security_policy));
     const struct s2n_kem_preferences *kem_preferences = security_policy->kem_preferences;
@@ -65,7 +64,7 @@ int main(int argc, char **argv)
         uint16_t actual_id;
         for (int i = 0; i < kem_preferences->count; i++) {
             GUARD(s2n_stuffer_read_uint16(&stuffer, &actual_id));
-            EXPECT_EQUAL(actual_id, kem_preferences->kems[i]->kem_extension_id);
+            EXPECT_EQUAL(actual_id, kem_preferences->kems[ i ]->kem_extension_id);
         }
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));

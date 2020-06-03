@@ -25,11 +25,11 @@
  * For example, each call to nondet_uint8_t() will return a different unconstrained value which can be used
  * in CBMC proofs.
  */
-bool nondet_bool();
-int nondet_int();
-size_t nondet_size_t();
+bool     nondet_bool();
+int      nondet_int();
+size_t   nondet_size_t();
 uint16_t nondet_uint16_t();
 uint32_t nondet_uint32_t();
 uint64_t nondet_uint64_t();
-uint8_t nondet_uint8_t();
-void *nondet_voidp();
+uint8_t  nondet_uint8_t();
+void *   nondet_voidp();

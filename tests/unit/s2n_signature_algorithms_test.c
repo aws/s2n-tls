@@ -13,20 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include <s2n.h>
+#include "tls/s2n_signature_algorithms.h"
 
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
+#include <s2n.h>
 
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_rsa_pss.h"
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_signature_scheme.h"
-#include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_security_policies.h"
+#include "tls/s2n_signature_scheme.h"
 
 #define LENGTH 3
 #define STUFFER_SIZE (LENGTH * TLS_SIGNATURE_SCHEME_LEN + 10)
@@ -36,14 +35,14 @@
 #define TLS13_CIPHER_SUITE &s2n_tls13_aes_128_gcm_sha256
 
 const struct s2n_signature_scheme *const test_signature_schemes[] = {
-        &s2n_ecdsa_secp384r1_sha384,
-        &s2n_rsa_pkcs1_sha256,
-        &s2n_rsa_pkcs1_sha224,
+    &s2n_ecdsa_secp384r1_sha384,
+    &s2n_rsa_pkcs1_sha256,
+    &s2n_rsa_pkcs1_sha224,
 };
 
 const struct s2n_signature_preferences test_preferences = {
-        .count = LENGTH,
-        .signature_schemes = test_signature_schemes,
+    .count             = LENGTH,
+    .signature_schemes = test_signature_schemes,
 };
 
 int main(int argc, char **argv)
@@ -51,12 +50,12 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     struct s2n_cert_chain_and_key *rsa_cert_chain;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
-            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+    EXPECT_SUCCESS(
+        s2n_test_cert_chain_and_key_new(&rsa_cert_chain, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     struct s2n_cert_chain_and_key *ecdsa_cert_chain;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain,
-            S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+    EXPECT_SUCCESS(
+        s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain, S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
 
     /* s2n_supported_sig_schemes_count & s2n_supported_sig_scheme_list_size */
     {
@@ -71,10 +70,10 @@ int main(int argc, char **argv)
 
         struct s2n_security_policy test_security_policy = {
             .minimum_protocol_version = security_policy->minimum_protocol_version,
-            .cipher_preferences = security_policy->cipher_preferences,
-            .kem_preferences = security_policy->kem_preferences,
-            .signature_preferences = &test_preferences,
-            .ecc_preferences = security_policy->ecc_preferences,
+            .cipher_preferences       = security_policy->cipher_preferences,
+            .kem_preferences          = security_policy->kem_preferences,
+            .signature_preferences    = &test_preferences,
+            .ecc_preferences          = security_policy->ecc_preferences,
         };
 
         config->security_policy = &test_security_policy;
@@ -111,10 +110,10 @@ int main(int argc, char **argv)
 
         struct s2n_security_policy test_security_policy = {
             .minimum_protocol_version = security_policy->minimum_protocol_version,
-            .cipher_preferences = security_policy->cipher_preferences,
-            .kem_preferences = security_policy->kem_preferences,
-            .signature_preferences = &test_preferences,
-            .ecc_preferences = security_policy->ecc_preferences,
+            .cipher_preferences       = security_policy->cipher_preferences,
+            .kem_preferences          = security_policy->kem_preferences,
+            .signature_preferences    = &test_preferences,
+            .ecc_preferences          = security_policy->ecc_preferences,
         };
 
         config->security_policy = &test_security_policy;
@@ -136,7 +135,7 @@ int main(int argc, char **argv)
 
             for (int i = 0; i < LENGTH; i++) {
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(&result, &iana_value));
-                EXPECT_EQUAL(iana_value, test_signature_schemes[i]->iana_value);
+                EXPECT_EQUAL(iana_value, test_signature_schemes[ i ]->iana_value);
             }
 
             EXPECT_EQUAL(s2n_stuffer_data_available(&result), 0);
@@ -153,9 +152,9 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(size, s2n_supported_sig_scheme_list_size(conn));
 
             for (int i = 0; i < LENGTH; i++) {
-                if (test_signature_schemes[i] != &s2n_ecdsa_secp384r1_sha384) {
+                if (test_signature_schemes[ i ] != &s2n_ecdsa_secp384r1_sha384) {
                     EXPECT_SUCCESS(s2n_stuffer_read_uint16(&result, &iana_value));
-                    EXPECT_EQUAL(iana_value, test_signature_schemes[i]->iana_value);
+                    EXPECT_EQUAL(iana_value, test_signature_schemes[ i ]->iana_value);
                 }
             }
 
@@ -174,8 +173,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&result), 0);
 
             EXPECT_EQUAL(signatures.len, LENGTH);
-            for (int i=0; i < LENGTH; i++) {
-                EXPECT_EQUAL(signatures.iana_list[i], test_signature_schemes[i]->iana_value);
+            for (int i = 0; i < LENGTH; i++) {
+                EXPECT_EQUAL(signatures.iana_list[ i ], test_signature_schemes[ i ]->iana_value);
             }
         }
 
@@ -197,10 +196,10 @@ int main(int argc, char **argv)
 
         struct s2n_security_policy test_security_policy = {
             .minimum_protocol_version = security_policy->minimum_protocol_version,
-            .cipher_preferences = security_policy->cipher_preferences,
-            .kem_preferences = security_policy->kem_preferences,
-            .signature_preferences = &test_preferences,
-            .ecc_preferences = security_policy->ecc_preferences,
+            .cipher_preferences       = security_policy->cipher_preferences,
+            .kem_preferences          = security_policy->kem_preferences,
+            .signature_preferences    = &test_preferences,
+            .ecc_preferences          = security_policy->ecc_preferences,
         };
 
         config->security_policy = &test_security_policy;
@@ -233,7 +232,7 @@ int main(int argc, char **argv)
             s2n_stuffer_reread(&choice);
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_FAILURE_WITH_ERRNO(s2n_get_and_validate_negotiated_signature_scheme(conn, &choice, &result),
-                    S2N_ERR_INVALID_SIGNATURE_SCHEME);
+                                      S2N_ERR_INVALID_SIGNATURE_SCHEME);
         }
 
         /* Test: don't negotiate invalid signatures (protocol too high) */
@@ -249,7 +248,7 @@ int main(int argc, char **argv)
             s2n_stuffer_reread(&choice);
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_FAILURE_WITH_ERRNO(s2n_get_and_validate_negotiated_signature_scheme(conn, &choice, &result),
-                    S2N_ERR_INVALID_SIGNATURE_SCHEME);
+                                      S2N_ERR_INVALID_SIGNATURE_SCHEME);
         }
 
         s2n_connection_free(conn);
@@ -257,19 +256,18 @@ int main(int argc, char **argv)
         s2n_stuffer_free(&choice);
     }
 
-
     /* Test: choose correct signature for duplicate iana values.
      * Some signature schemes have the same iana, but are different for
      * different protocol versions. */
     {
         const struct s2n_signature_scheme *const dup_test_signature_schemes[] = {
-                &s2n_ecdsa_secp384r1_sha384,
-                &s2n_ecdsa_sha384,
+            &s2n_ecdsa_secp384r1_sha384,
+            &s2n_ecdsa_sha384,
         };
 
         const struct s2n_signature_preferences dup_test_preferences = {
-                .count = 2,
-                .signature_schemes = dup_test_signature_schemes,
+            .count             = 2,
+            .signature_schemes = dup_test_signature_schemes,
         };
 
         struct s2n_config *config = s2n_config_new();
@@ -283,10 +281,10 @@ int main(int argc, char **argv)
 
         struct s2n_security_policy test_security_policy = {
             .minimum_protocol_version = security_policy->minimum_protocol_version,
-            .cipher_preferences = security_policy->cipher_preferences,
-            .kem_preferences = security_policy->kem_preferences,
-            .signature_preferences = &dup_test_preferences,
-            .ecc_preferences = security_policy->ecc_preferences,
+            .cipher_preferences       = security_policy->cipher_preferences,
+            .kem_preferences          = security_policy->kem_preferences,
+            .signature_preferences    = &dup_test_preferences,
+            .ecc_preferences          = security_policy->ecc_preferences,
         };
 
         config->security_policy = &test_security_policy;
@@ -328,28 +326,28 @@ int main(int argc, char **argv)
 
         struct s2n_security_policy test_security_policy = {
             .minimum_protocol_version = security_policy->minimum_protocol_version,
-            .cipher_preferences = security_policy->cipher_preferences,
-            .kem_preferences = security_policy->kem_preferences,
-            .signature_preferences = &test_preferences,
-            .ecc_preferences = security_policy->ecc_preferences,
+            .cipher_preferences       = security_policy->cipher_preferences,
+            .kem_preferences          = security_policy->kem_preferences,
+            .signature_preferences    = &test_preferences,
+            .ecc_preferences          = security_policy->ecc_preferences,
         };
 
         config->security_policy = &test_security_policy;
 
         struct s2n_signature_scheme result;
 
-        conn->secure.cipher_suite = RSA_CIPHER_SUITE;
-        conn->actual_protocol_version = S2N_TLS10;
+        conn->secure.cipher_suite            = RSA_CIPHER_SUITE;
+        conn->actual_protocol_version        = S2N_TLS10;
         struct s2n_signature_scheme expected = (s2n_is_in_fips_mode()) ? s2n_rsa_pkcs1_sha1 : s2n_rsa_pkcs1_md5_sha1;
         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
         EXPECT_EQUAL(result.iana_value, expected.iana_value);
 
-        conn->secure.cipher_suite = ECDSA_CIPHER_SUITE;
+        conn->secure.cipher_suite     = ECDSA_CIPHER_SUITE;
         conn->actual_protocol_version = S2N_TLS10;
         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
         EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
 
-        conn->secure.cipher_suite = RSA_CIPHER_SUITE;
+        conn->secure.cipher_suite     = RSA_CIPHER_SUITE;
         conn->actual_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
         EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha1.iana_value);
@@ -373,10 +371,10 @@ int main(int argc, char **argv)
 
         struct s2n_security_policy test_security_policy = {
             .minimum_protocol_version = security_policy->minimum_protocol_version,
-            .cipher_preferences = security_policy->cipher_preferences,
-            .kem_preferences = security_policy->kem_preferences,
-            .signature_preferences = &test_preferences,
-            .ecc_preferences = security_policy->ecc_preferences,
+            .cipher_preferences       = security_policy->cipher_preferences,
+            .kem_preferences          = security_policy->kem_preferences,
+            .signature_preferences    = &test_preferences,
+            .ecc_preferences          = security_policy->ecc_preferences,
         };
 
         config->security_policy = &test_security_policy;
@@ -385,8 +383,8 @@ int main(int argc, char **argv)
 
         /* Test: no peer list */
         {
-            conn->secure.cipher_suite = ECDSA_CIPHER_SUITE;
-            conn->actual_protocol_version = S2N_TLS10;
+            conn->secure.cipher_suite                  = ECDSA_CIPHER_SUITE;
+            conn->actual_protocol_version              = S2N_TLS10;
             struct s2n_signature_scheme default_scheme = s2n_ecdsa_sha1;
 
             /* Choose default if NULL peer list */
@@ -395,22 +393,22 @@ int main(int argc, char **argv)
 
             /* Choose default if empty peer list */
             struct s2n_sig_scheme_list peer_list = {
-                    .len = 0,
-                    .iana_list = { 0 },
+                .len       = 0,
+                .iana_list = { 0 },
             };
             EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
             EXPECT_EQUAL(result.iana_value, default_scheme.iana_value);
 
             /* TLS1.3 does not allow defaults */
-            conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+            conn->secure.cipher_suite     = TLS13_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_FAILURE_WITH_ERRNO(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result),
-                    S2N_ERR_EMPTY_SIGNATURE_SCHEME);
+                                      S2N_ERR_EMPTY_SIGNATURE_SCHEME);
         }
 
         /* Test: no shared valid signature schemes, using TLS1.3 */
         {
-            conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+            conn->secure.cipher_suite     = TLS13_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS13;
 
             struct s2n_sig_scheme_list peer_list = {
@@ -421,23 +419,24 @@ int main(int argc, char **argv)
             };
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result),
-                    S2N_ERR_INVALID_SIGNATURE_SCHEME);
+                                      S2N_ERR_INVALID_SIGNATURE_SCHEME);
         }
 
         /* Test: no shared valid signature schemes, using TLS1.2 */
         {
-            conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+            conn->secure.cipher_suite     = TLS13_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS12;
 
             /* Peer list contains no signature schemes that we support */
             struct s2n_sig_scheme_list peer_list = {
-                    .len = 1, .iana_list = { 0 },
+                .len       = 1,
+                .iana_list = { 0 },
             };
 
             EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
 
             /* Verify that we did not choose the peer's offered signature scheme */
-            EXPECT_NOT_EQUAL(result.iana_value, peer_list.iana_list[0]);
+            EXPECT_NOT_EQUAL(result.iana_value, peer_list.iana_list[ 0 ]);
 
             /* Verify that we chose the default signature scheme, even though it wasn't in
              * the peer's offered list. This proves that when we share no signature schemes
@@ -450,7 +449,7 @@ int main(int argc, char **argv)
 
         /* Test: choose valid signature from peer list */
         {
-            conn->secure.cipher_suite = RSA_CIPHER_SUITE;
+            conn->secure.cipher_suite     = RSA_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS12;
 
             struct s2n_sig_scheme_list peer_list = {
@@ -472,7 +471,8 @@ int main(int argc, char **argv)
             conn->secure.cipher_suite = RSA_CIPHER_SUITE;
 
             struct s2n_sig_scheme_list peer_list = {
-                    .len = 1, .iana_list = { s2n_rsa_pkcs1_sha224.iana_value },
+                .len       = 1,
+                .iana_list = { s2n_rsa_pkcs1_sha224.iana_value },
             };
 
             conn->actual_protocol_version = S2N_TLS12;
@@ -482,7 +482,7 @@ int main(int argc, char **argv)
 
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_FAILURE_WITH_ERRNO(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result),
-                    S2N_ERR_INVALID_SIGNATURE_SCHEME);
+                                      S2N_ERR_INVALID_SIGNATURE_SCHEME);
         }
 
         s2n_connection_free(conn);
@@ -512,12 +512,10 @@ int main(int argc, char **argv)
              * one should be valid at a time. */
             uint16_t iana, other_iana;
             for (int a = 0; a < signatures.len; a++) {
-                iana = signatures.iana_list[a];
+                iana = signatures.iana_list[ a ];
                 for (int b = 0; b < signatures.len; b++) {
-                    if (a == b) {
-                        continue;
-                    }
-                    other_iana = signatures.iana_list[b];
+                    if (a == b) { continue; }
+                    other_iana = signatures.iana_list[ b ];
                     EXPECT_NOT_EQUAL(iana, other_iana);
                 }
             }
@@ -530,20 +528,20 @@ int main(int argc, char **argv)
     /* Test: libcrypto may not support PSS signatures */
     {
         const struct s2n_signature_scheme *const pss_test_signature_schemes[] = {
-                &s2n_rsa_pss_rsae_sha256,
-                &s2n_rsa_pss_pss_sha256,
+            &s2n_rsa_pss_rsae_sha256,
+            &s2n_rsa_pss_pss_sha256,
         };
 
         const struct s2n_signature_preferences pss_test_preferences = {
-                .count = 2,
-                .signature_schemes = pss_test_signature_schemes,
+            .count             = 2,
+            .signature_schemes = pss_test_signature_schemes,
         };
 
         struct s2n_config *config = s2n_config_new();
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
 
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-        conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+        struct s2n_connection *conn   = s2n_connection_new(S2N_CLIENT);
+        conn->secure.cipher_suite     = TLS13_CIPHER_SUITE;
         conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -553,10 +551,10 @@ int main(int argc, char **argv)
 
         struct s2n_security_policy test_security_policy = {
             .minimum_protocol_version = security_policy->minimum_protocol_version,
-            .cipher_preferences = security_policy->cipher_preferences,
-            .kem_preferences = security_policy->kem_preferences,
-            .signature_preferences = &pss_test_preferences,
-            .ecc_preferences = security_policy->ecc_preferences,
+            .cipher_preferences       = security_policy->cipher_preferences,
+            .kem_preferences          = security_policy->kem_preferences,
+            .signature_preferences    = &pss_test_preferences,
+            .ecc_preferences          = security_policy->ecc_preferences,
         };
 
         config->security_policy = &test_security_policy;
@@ -574,7 +572,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(size, s2n_supported_sig_scheme_list_size(conn));
             if (s2n_is_rsa_pss_certs_supported()) {
                 EXPECT_EQUAL(size, 2 * sizeof(uint16_t));
-            }  else if (s2n_is_rsa_pss_signing_supported()) {
+            } else if (s2n_is_rsa_pss_signing_supported()) {
                 EXPECT_EQUAL(size, 1 * sizeof(uint16_t));
             } else {
                 EXPECT_EQUAL(size, 0);
@@ -597,7 +595,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(result.iana_value, s2n_rsa_pss_rsae_sha256.iana_value);
             } else {
                 EXPECT_FAILURE_WITH_ERRNO(s2n_get_and_validate_negotiated_signature_scheme(conn, &choice, &result),
-                        S2N_ERR_INVALID_SIGNATURE_SCHEME);
+                                          S2N_ERR_INVALID_SIGNATURE_SCHEME);
             }
 
             s2n_stuffer_free(&choice);
@@ -607,7 +605,8 @@ int main(int argc, char **argv)
          * s2n_choose_sig_scheme_from_peer_preference_list + PSS */
         {
             struct s2n_sig_scheme_list peer_list = {
-                    .len = 1, .iana_list = { s2n_rsa_pss_rsae_sha256.iana_value },
+                .len       = 1,
+                .iana_list = { s2n_rsa_pss_rsae_sha256.iana_value },
             };
 
             struct s2n_signature_scheme result;
@@ -617,7 +616,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(result.iana_value, s2n_rsa_pss_rsae_sha256.iana_value);
             } else {
                 EXPECT_FAILURE_WITH_ERRNO(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result),
-                        S2N_ERR_INVALID_SIGNATURE_SCHEME);
+                                          S2N_ERR_INVALID_SIGNATURE_SCHEME);
             }
         }
 

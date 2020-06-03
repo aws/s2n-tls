@@ -13,33 +13,30 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include <string.h>
-#include <stdio.h>
-
 #include <s2n.h>
+#include <stdio.h>
+#include <string.h>
 
-#include "testlib/s2n_testlib.h"
-
-#include "tls/s2n_cipher_suites.h"
-#include "stuffer/s2n_stuffer.h"
 #include "crypto/s2n_cipher.h"
-#include "utils/s2n_random.h"
 #include "crypto/s2n_hmac.h"
-#include "tls/s2n_record.h"
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_prf.h"
+#include "tls/s2n_record.h"
+#include "utils/s2n_random.h"
 
 int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
-    uint8_t mac_key[] = "sample mac key";
-    uint8_t aes128_key[] = "123456789012345";
-    uint8_t aes256_key[] = "1234567890123456789012345678901";
-    struct s2n_blob aes128 = {.data = aes128_key,.size = sizeof(aes128_key) };
-    struct s2n_blob aes256 = {.data = aes256_key,.size = sizeof(aes256_key) };
-    uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
-    struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
+    uint8_t                mac_key[]    = "sample mac key";
+    uint8_t                aes128_key[] = "123456789012345";
+    uint8_t                aes256_key[] = "1234567890123456789012345678901";
+    struct s2n_blob        aes128       = { .data = aes128_key, .size = sizeof(aes128_key) };
+    struct s2n_blob        aes256       = { .data = aes256_key, .size = sizeof(aes256_key) };
+    uint8_t                random_data[ S2N_DEFAULT_FRAGMENT_LENGTH + 1 ];
+    struct s2n_blob        r = { .data = random_data, .size = sizeof(random_data) };
 
     BEGIN_TEST();
 
@@ -54,16 +51,18 @@ int main(int argc, char **argv)
     conn->secure.cipher_suite->record_alg = &s2n_record_alg_aes128_sha;
     EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
     EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
-    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &aes128));
-    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &aes128));
+    EXPECT_SUCCESS(
+        conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &aes128));
+    EXPECT_SUCCESS(
+        conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &aes128));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS11;
 
     int max_aligned_fragment = S2N_DEFAULT_FRAGMENT_LENGTH - (S2N_DEFAULT_FRAGMENT_LENGTH % 16);
     for (int i = 0; i <= max_aligned_fragment + 1; i++) {
-        struct s2n_blob in = {.data = random_data,.size = i };
-        int bytes_written;
+        struct s2n_blob in = { .data = random_data, .size = i };
+        int             bytes_written;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
@@ -75,19 +74,15 @@ int main(int argc, char **argv)
         }
 
         uint16_t predicted_length = bytes_written + 1 + 20 + 16;
-        if (predicted_length % 16) {
-            predicted_length += (16 - (predicted_length % 16));
-        }
-        EXPECT_EQUAL(conn->out.blob.data[0], TLS_APPLICATION_DATA);
-        EXPECT_EQUAL(conn->out.blob.data[1], 3);
-        EXPECT_EQUAL(conn->out.blob.data[2], 2);
-        EXPECT_EQUAL(conn->out.blob.data[3], (predicted_length >> 8) & 0xff);
-        EXPECT_EQUAL(conn->out.blob.data[4], predicted_length & 0xff);
+        if (predicted_length % 16) { predicted_length += (16 - (predicted_length % 16)); }
+        EXPECT_EQUAL(conn->out.blob.data[ 0 ], TLS_APPLICATION_DATA);
+        EXPECT_EQUAL(conn->out.blob.data[ 1 ], 3);
+        EXPECT_EQUAL(conn->out.blob.data[ 2 ], 2);
+        EXPECT_EQUAL(conn->out.blob.data[ 3 ], (predicted_length >> 8) & 0xff);
+        EXPECT_EQUAL(conn->out.blob.data[ 4 ], predicted_length & 0xff);
 
         /* The data should be encrypted */
-        if (bytes_written > 10) {
-            EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + 5, random_data, bytes_written), 0);
-        }
+        if (bytes_written > 10) { EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + 5, random_data, bytes_written), 0); }
 
         /* Copy the encrypted out data to the in data */
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
@@ -95,8 +90,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
-            /* Let's decrypt it */
-        uint8_t content_type;
+        /* Let's decrypt it */
+        uint8_t  content_type;
         uint16_t fragment_length;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
         EXPECT_SUCCESS(s2n_record_parse(conn));
@@ -113,21 +108,23 @@ int main(int argc, char **argv)
 
     /* test the AES256 cipher with a SHA1 hash */
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    conn->server = &conn->secure;
-    conn->client = &conn->secure;
+    conn->server                          = &conn->secure;
+    conn->client                          = &conn->secure;
     conn->secure.cipher_suite->record_alg = &s2n_record_alg_aes256_sha;
     EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
     EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
-    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &aes256));
-    EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &aes256));
+    EXPECT_SUCCESS(
+        conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &aes256));
+    EXPECT_SUCCESS(
+        conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &aes256));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS11;
 
     max_aligned_fragment = S2N_DEFAULT_FRAGMENT_LENGTH - (S2N_DEFAULT_FRAGMENT_LENGTH % 16);
     for (int i = 0; i <= max_aligned_fragment + 1; i++) {
-        struct s2n_blob in = {.data = random_data,.size = i };
-        int bytes_written;
+        struct s2n_blob in = { .data = random_data, .size = i };
+        int             bytes_written;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
@@ -139,28 +136,24 @@ int main(int argc, char **argv)
         }
 
         uint16_t predicted_length = bytes_written + 1 + 20 + 16;
-        if (predicted_length % 16) {
-            predicted_length += (16 - (predicted_length % 16));
-        }
-        EXPECT_EQUAL(conn->out.blob.data[0], TLS_APPLICATION_DATA);
-        EXPECT_EQUAL(conn->out.blob.data[1], 3);
-        EXPECT_EQUAL(conn->out.blob.data[2], 2);
-        EXPECT_EQUAL(conn->out.blob.data[3], (predicted_length >> 8) & 0xff);
-        EXPECT_EQUAL(conn->out.blob.data[4], predicted_length & 0xff);
+        if (predicted_length % 16) { predicted_length += (16 - (predicted_length % 16)); }
+        EXPECT_EQUAL(conn->out.blob.data[ 0 ], TLS_APPLICATION_DATA);
+        EXPECT_EQUAL(conn->out.blob.data[ 1 ], 3);
+        EXPECT_EQUAL(conn->out.blob.data[ 2 ], 2);
+        EXPECT_EQUAL(conn->out.blob.data[ 3 ], (predicted_length >> 8) & 0xff);
+        EXPECT_EQUAL(conn->out.blob.data[ 4 ], predicted_length & 0xff);
 
         /* The data should be encrypted */
-        if (bytes_written > 10) {
-            EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + 5, random_data, bytes_written), 0);
-        }
+        if (bytes_written > 10) { EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + 5, random_data, bytes_written), 0); }
 
         /* Copy the encrypted out data to the in data */
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
-            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
-            /* Let's decrypt it */
-        uint8_t content_type;
+        /* Let's decrypt it */
+        uint8_t  content_type;
         uint16_t fragment_length;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
         EXPECT_SUCCESS(s2n_record_parse(conn));

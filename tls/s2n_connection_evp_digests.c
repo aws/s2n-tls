@@ -37,21 +37,21 @@ int s2n_connection_save_prf_state(struct s2n_connection_prf_handles *prf_handles
 int s2n_connection_save_hash_state(struct s2n_connection_hash_handles *hash_handles, struct s2n_connection *conn)
 {
     /* Preserve only the handlers for handshake hash state pointers to avoid re-allocation */
-    hash_handles->md5 = conn->handshake.md5.digest.high_level;
-    hash_handles->sha1 = conn->handshake.sha1.digest.high_level;
-    hash_handles->sha224 = conn->handshake.sha224.digest.high_level;
-    hash_handles->sha256 = conn->handshake.sha256.digest.high_level;
-    hash_handles->sha384 = conn->handshake.sha384.digest.high_level;
-    hash_handles->sha512 = conn->handshake.sha512.digest.high_level;
-    hash_handles->md5_sha1 = conn->handshake.md5_sha1.digest.high_level;
-    hash_handles->ccv_hash_copy = conn->handshake.ccv_hash_copy.digest.high_level;
-    hash_handles->prf_md5_hash_copy = conn->handshake.prf_md5_hash_copy.digest.high_level;
-    hash_handles->prf_sha1_hash_copy = conn->handshake.prf_sha1_hash_copy.digest.high_level;
-    hash_handles->prf_tls12_hash_copy = conn->handshake.prf_tls12_hash_copy.digest.high_level;
+    hash_handles->md5                  = conn->handshake.md5.digest.high_level;
+    hash_handles->sha1                 = conn->handshake.sha1.digest.high_level;
+    hash_handles->sha224               = conn->handshake.sha224.digest.high_level;
+    hash_handles->sha256               = conn->handshake.sha256.digest.high_level;
+    hash_handles->sha384               = conn->handshake.sha384.digest.high_level;
+    hash_handles->sha512               = conn->handshake.sha512.digest.high_level;
+    hash_handles->md5_sha1             = conn->handshake.md5_sha1.digest.high_level;
+    hash_handles->ccv_hash_copy        = conn->handshake.ccv_hash_copy.digest.high_level;
+    hash_handles->prf_md5_hash_copy    = conn->handshake.prf_md5_hash_copy.digest.high_level;
+    hash_handles->prf_sha1_hash_copy   = conn->handshake.prf_sha1_hash_copy.digest.high_level;
+    hash_handles->prf_tls12_hash_copy  = conn->handshake.prf_tls12_hash_copy.digest.high_level;
     hash_handles->server_finished_copy = conn->handshake.server_finished_copy.digest.high_level;
 
     /* Preserve only the handlers for SSLv3 PRF hash state pointers to avoid re-allocation */
-    hash_handles->prf_md5 = conn->prf_space.ssl3.md5.digest.high_level;
+    hash_handles->prf_md5  = conn->prf_space.ssl3.md5.digest.high_level;
     hash_handles->prf_sha1 = conn->prf_space.ssl3.sha1.digest.high_level;
 
     /* Preserve only the handlers for initial signature hash state pointers to avoid re-allocation */
@@ -98,21 +98,21 @@ int s2n_connection_restore_prf_state(struct s2n_connection *conn, struct s2n_con
 int s2n_connection_restore_hash_state(struct s2n_connection *conn, struct s2n_connection_hash_handles *hash_handles)
 {
     /* Restore s2n_connection handlers for handshake hash states */
-    conn->handshake.md5.digest.high_level = hash_handles->md5;
-    conn->handshake.sha1.digest.high_level = hash_handles->sha1;
-    conn->handshake.sha224.digest.high_level = hash_handles->sha224;
-    conn->handshake.sha256.digest.high_level = hash_handles->sha256;
-    conn->handshake.sha384.digest.high_level = hash_handles->sha384;
-    conn->handshake.sha512.digest.high_level = hash_handles->sha512;
-    conn->handshake.md5_sha1.digest.high_level = hash_handles->md5_sha1;
-    conn->handshake.ccv_hash_copy.digest.high_level = hash_handles->ccv_hash_copy;
-    conn->handshake.prf_md5_hash_copy.digest.high_level = hash_handles->prf_md5_hash_copy;
-    conn->handshake.prf_sha1_hash_copy.digest.high_level = hash_handles->prf_sha1_hash_copy;
-    conn->handshake.prf_tls12_hash_copy.digest.high_level = hash_handles->prf_tls12_hash_copy;
+    conn->handshake.md5.digest.high_level                  = hash_handles->md5;
+    conn->handshake.sha1.digest.high_level                 = hash_handles->sha1;
+    conn->handshake.sha224.digest.high_level               = hash_handles->sha224;
+    conn->handshake.sha256.digest.high_level               = hash_handles->sha256;
+    conn->handshake.sha384.digest.high_level               = hash_handles->sha384;
+    conn->handshake.sha512.digest.high_level               = hash_handles->sha512;
+    conn->handshake.md5_sha1.digest.high_level             = hash_handles->md5_sha1;
+    conn->handshake.ccv_hash_copy.digest.high_level        = hash_handles->ccv_hash_copy;
+    conn->handshake.prf_md5_hash_copy.digest.high_level    = hash_handles->prf_md5_hash_copy;
+    conn->handshake.prf_sha1_hash_copy.digest.high_level   = hash_handles->prf_sha1_hash_copy;
+    conn->handshake.prf_tls12_hash_copy.digest.high_level  = hash_handles->prf_tls12_hash_copy;
     conn->handshake.server_finished_copy.digest.high_level = hash_handles->server_finished_copy;
 
     /* Restore s2n_connection handlers for SSLv3 PRF hash states */
-    conn->prf_space.ssl3.md5.digest.high_level = hash_handles->prf_md5;
+    conn->prf_space.ssl3.md5.digest.high_level  = hash_handles->prf_md5;
     conn->prf_space.ssl3.sha1.digest.high_level = hash_handles->prf_sha1;
 
     /* Restore s2n_connection handlers for initial signature hash states */
@@ -132,7 +132,8 @@ int s2n_connection_restore_hmac_state(struct s2n_connection *conn, struct s2n_co
 {
     GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->initial_client, &conn->initial.client_record_mac));
     GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->initial_server, &conn->initial.server_record_mac));
-    GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->initial_client_copy, &conn->initial.record_mac_copy_workspace));
+    GUARD(
+        s2n_hmac_restore_evp_hash_state(&hmac_handles->initial_client_copy, &conn->initial.record_mac_copy_workspace));
     GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->secure_client, &conn->secure.client_record_mac));
     GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->secure_server, &conn->secure.server_record_mac));
     GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->secure_client_copy, &conn->secure.record_mac_copy_workspace));

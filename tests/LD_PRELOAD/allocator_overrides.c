@@ -23,16 +23,16 @@
 #ifdef RTLD_NEXT
 
 /* if we use glibc, include malloc.h for malloc_usable_size */
-#ifdef __GLIBC__
-#include <malloc.h>
-#define HAVE_MALLOC_USABLE_SIZE
-#endif
+#    ifdef __GLIBC__
+#        include <malloc.h>
+#        define HAVE_MALLOC_USABLE_SIZE
+#    endif
 
 typedef int (*posix_memalign_fn)(void **memptr, size_t alignment, size_t size);
 typedef void *(*realloc_fn)(void *ptr, size_t size);
 
 posix_memalign_fn orig_posix_memalign = NULL;
-realloc_fn orig_realloc = NULL;
+realloc_fn        orig_realloc        = NULL;
 
 int posix_memalign(void **memptr, size_t alignment, size_t size)
 {
@@ -46,7 +46,7 @@ int posix_memalign(void **memptr, size_t alignment, size_t size)
          * function pointers in standard library, despite that it returns
          * void *. Casting function pointer to void ** and dereferencing it
          * allows to bypass compiler warnings. */
-        *(void **) &orig_posix_memalign = dlsym(RTLD_NEXT, "posix_memalign");
+        *( void ** )&orig_posix_memalign = dlsym(RTLD_NEXT, "posix_memalign");
     }
 
     rc = orig_posix_memalign(memptr, alignment, size);
@@ -68,35 +68,32 @@ void *realloc(void *ptr, size_t size)
          * function pointers in standard library, despite that it returns
          * void *. Casting function pointer to void ** and dereferencing it
          * allows to bypass compiler warnings. */
-        *(void **) &orig_realloc = dlsym(RTLD_NEXT, "realloc");
+        *( void ** )&orig_realloc = dlsym(RTLD_NEXT, "realloc");
     }
 
-
-#ifdef HAVE_MALLOC_USABLE_SIZE
+#    ifdef HAVE_MALLOC_USABLE_SIZE
     /* If malloc_usable_size is available, we can get the size of previously
      * allocated buffer, to find out how many new bytes we've allocated.
      * Get the usable size for ptr before we call realloc, because realloc may call
      * free() on the original pointer. */
     size_t ptr_alloc_size = malloc_usable_size(ptr);
-#endif
+#    endif
 
     p = orig_realloc(ptr, size);
 
-#ifdef HAVE_MALLOC_USABLE_SIZE
+#    ifdef HAVE_MALLOC_USABLE_SIZE
     size_t p_alloc_size = malloc_usable_size(p);
 
     /* If call succeeded and we're enlarging memory, fill the extension with
      * non-zero data */
     if (p && p_alloc_size > ptr_alloc_size) {
-        memset((char *) p + ptr_alloc_size, 0xff, p_alloc_size - ptr_alloc_size);
+        memset(( char * )p + ptr_alloc_size, 0xff, p_alloc_size - ptr_alloc_size);
     }
-#else
+#    else
     /* If we're allocating new buffer and the call succeeded, fill the buffer
      * with non-zero data*/
-    if (p && !ptr) {
-        memset(p, 0xff, size);
-    }
-#endif
+    if (p && !ptr) { memset(p, 0xff, size); }
+#    endif
 
     return p;
 }

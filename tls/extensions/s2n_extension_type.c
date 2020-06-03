@@ -13,10 +13,11 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_extension_type.h"
+
 #include <s2n.h>
 
 #include "error/s2n_errno.h"
-#include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_bitmap.h"
@@ -29,21 +30,19 @@
 #define S2N_MAX_INDEXED_EXTENSION_IANA 60
 
 const s2n_extension_type_id s2n_unsupported_extension = S2N_SUPPORTED_EXTENSIONS_COUNT;
-s2n_extension_type_id s2n_extension_ianas_to_ids[S2N_MAX_INDEXED_EXTENSION_IANA];
+s2n_extension_type_id       s2n_extension_ianas_to_ids[ S2N_MAX_INDEXED_EXTENSION_IANA ];
 
 int s2n_extension_type_init()
 {
     /* Initialize to s2n_unsupported_extension */
     for (int i = 0; i < S2N_MAX_INDEXED_EXTENSION_IANA; i++) {
-        s2n_extension_ianas_to_ids[i] = s2n_unsupported_extension;
+        s2n_extension_ianas_to_ids[ i ] = s2n_unsupported_extension;
     }
 
     /* Reverse the mapping */
     for (int i = 0; i < S2N_SUPPORTED_EXTENSIONS_COUNT; i++) {
-        uint16_t iana_value = s2n_supported_extensions[i];
-        if (iana_value < S2N_MAX_INDEXED_EXTENSION_IANA) {
-            s2n_extension_ianas_to_ids[iana_value] = i;
-        }
+        uint16_t iana_value = s2n_supported_extensions[ i ];
+        if (iana_value < S2N_MAX_INDEXED_EXTENSION_IANA) { s2n_extension_ianas_to_ids[ iana_value ] = i; }
     }
 
     return S2N_SUCCESS;
@@ -55,16 +54,12 @@ int s2n_extension_type_init()
 s2n_extension_type_id s2n_extension_iana_value_to_id(const uint16_t iana_value)
 {
     /* Check the lookup table */
-    if (iana_value < S2N_MAX_INDEXED_EXTENSION_IANA) {
-        return s2n_extension_ianas_to_ids[iana_value];
-    }
+    if (iana_value < S2N_MAX_INDEXED_EXTENSION_IANA) { return s2n_extension_ianas_to_ids[ iana_value ]; }
 
     /* Fall back to the full list. We can handle this more
      * efficiently later if our extension list gets long. */
     for (int i = 0; i < S2N_SUPPORTED_EXTENSIONS_COUNT; i++) {
-        if (s2n_supported_extensions[i] == iana_value) {
-            return i;
-        }
+        if (s2n_supported_extensions[ i ] == iana_value) { return i; }
     }
 
     return s2n_unsupported_extension;
@@ -90,15 +85,12 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
     GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     /* Do not send response if request not received. */
-    if (extension_type->is_response &&
-            !S2N_CBIT_TEST(conn->extension_requests_received, extension_id)) {
+    if (extension_type->is_response && !S2N_CBIT_TEST(conn->extension_requests_received, extension_id)) {
         return S2N_SUCCESS;
     }
 
     /* Check if we need to send. Some extensions are only sent if specific conditions are met. */
-    if (!extension_type->should_send(conn)) {
-        return S2N_SUCCESS;
-    }
+    if (!extension_type->should_send(conn)) { return S2N_SUCCESS; }
 
     /* Write extension type */
     GUARD(s2n_stuffer_write_uint16(out, extension_type->iana_value));
@@ -114,9 +106,7 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
     GUARD(s2n_stuffer_write_vector_size(extension_size_bytes));
 
     /* Set request bit flag */
-    if (!extension_type->is_response) {
-        S2N_CBIT_SET(conn->extension_requests_sent, extension_id);
-    }
+    if (!extension_type->is_response) { S2N_CBIT_SET(conn->extension_requests_sent, extension_id); }
 
     return S2N_SUCCESS;
 }
@@ -131,17 +121,14 @@ int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_conn
     GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     /* Do not accept a response if we did not send a request */
-    if(extension_type->is_response &&
-            !S2N_CBIT_TEST(conn->extension_requests_sent, extension_id)) {
+    if (extension_type->is_response && !S2N_CBIT_TEST(conn->extension_requests_sent, extension_id)) {
         S2N_ERROR(S2N_ERR_UNSUPPORTED_EXTENSION);
     }
 
     GUARD(extension_type->recv(conn, in));
 
     /* Set request bit flag */
-    if (!extension_type->is_response) {
-        S2N_CBIT_SET(conn->extension_requests_received, extension_id);
-    }
+    if (!extension_type->is_response) { S2N_CBIT_SET(conn->extension_requests_received, extension_id); }
 
     return S2N_SUCCESS;
 }
@@ -156,8 +143,7 @@ int s2n_extension_is_missing(const s2n_extension_type *extension_type, struct s2
     GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     /* Do not consider an extension missing if we did not send a request */
-    if(extension_type->is_response &&
-            !S2N_CBIT_TEST(conn->extension_requests_sent, extension_id)) {
+    if (extension_type->is_response && !S2N_CBIT_TEST(conn->extension_requests_sent, extension_id)) {
         return S2N_SUCCESS;
     }
 
@@ -176,37 +162,19 @@ int s2n_extension_recv_unimplemented(struct s2n_connection *conn, struct s2n_stu
     S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
 }
 
-int s2n_extension_send_noop(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return S2N_SUCCESS;
-}
+int s2n_extension_send_noop(struct s2n_connection *conn, struct s2n_stuffer *out) { return S2N_SUCCESS; }
 
-int s2n_extension_recv_noop(struct s2n_connection *conn, struct s2n_stuffer *in)
-{
-    return S2N_SUCCESS;
-}
+int s2n_extension_recv_noop(struct s2n_connection *conn, struct s2n_stuffer *in) { return S2N_SUCCESS; }
 
-bool s2n_extension_always_send(struct s2n_connection *conn)
-{
-    return true;
-}
+bool s2n_extension_always_send(struct s2n_connection *conn) { return true; }
 
-bool s2n_extension_never_send(struct s2n_connection *conn)
-{
-    return false;
-}
+bool s2n_extension_never_send(struct s2n_connection *conn) { return false; }
 
 bool s2n_extension_send_if_tls13_connection(struct s2n_connection *conn)
 {
     return s2n_connection_get_protocol_version(conn) >= S2N_TLS13;
 }
 
-int s2n_extension_error_if_missing(struct s2n_connection *conn)
-{
-    S2N_ERROR(S2N_ERR_MISSING_EXTENSION);
-}
+int s2n_extension_error_if_missing(struct s2n_connection *conn) { S2N_ERROR(S2N_ERR_MISSING_EXTENSION); }
 
-int s2n_extension_noop_if_missing(struct s2n_connection *conn)
-{
-    return S2N_SUCCESS;
-}
+int s2n_extension_noop_if_missing(struct s2n_connection *conn) { return S2N_SUCCESS; }

@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
 #include "crypto/s2n_fips.h"
 #include "pq-crypto/sike_r1/sike_r1_kem.h"
+#include "s2n_test.h"
 
 int main(int argc, char **argv)
 {
@@ -23,11 +23,11 @@ int main(int argc, char **argv)
 
 #if !defined(S2N_NO_PQ)
 
-    unsigned char pub_key[SIKE_P503_R1_PUBLIC_KEY_BYTES] = {0};
-    unsigned char priv_key[SIKE_P503_R1_SECRET_KEY_BYTES] = {0};
-    unsigned char c_shared_secret[SIKE_P503_R1_SHARED_SECRET_BYTES];
-    unsigned char s_shared_secret[SIKE_P503_R1_SHARED_SECRET_BYTES];
-    unsigned char ciphertext[SIKE_P503_R1_CIPHERTEXT_BYTES];
+    unsigned char pub_key[ SIKE_P503_R1_PUBLIC_KEY_BYTES ]  = { 0 };
+    unsigned char priv_key[ SIKE_P503_R1_SECRET_KEY_BYTES ] = { 0 };
+    unsigned char c_shared_secret[ SIKE_P503_R1_SHARED_SECRET_BYTES ];
+    unsigned char s_shared_secret[ SIKE_P503_R1_SHARED_SECRET_BYTES ];
+    unsigned char ciphertext[ SIKE_P503_R1_CIPHERTEXT_BYTES ];
 
     if (s2n_is_in_fips_mode()) {
         /* There is no support for PQ KEMs while in FIPS mode */

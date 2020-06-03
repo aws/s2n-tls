@@ -13,24 +13,21 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-
 #include <s2n.h>
+#include <sys/param.h>
 #include <time.h>
 
 #include "error/s2n_errno.h"
-
-#include "tls/s2n_connection.h"
-#include "tls/s2n_alerts.h"
-#include "tls/s2n_tls.h"
-#include "tls/s2n_resume.h"
-
 #include "stuffer/s2n_stuffer.h"
-
-#include "utils/s2n_safety.h"
+#include "tls/s2n_alerts.h"
+#include "tls/s2n_connection.h"
+#include "tls/s2n_resume.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_random.h"
+#include "utils/s2n_safety.h"
 
-int s2n_server_nst_recv(struct s2n_connection *conn) {
+int s2n_server_nst_recv(struct s2n_connection *conn)
+{
     GUARD(s2n_stuffer_read_uint32(&conn->handshake.io, &conn->ticket_lifetime_hint));
 
     uint16_t session_ticket_len;
@@ -47,11 +44,13 @@ int s2n_server_nst_recv(struct s2n_connection *conn) {
 
 int s2n_server_nst_send(struct s2n_connection *conn)
 {
-    uint16_t session_ticket_len = S2N_TICKET_SIZE_IN_BYTES;
-    uint8_t data[S2N_TICKET_SIZE_IN_BYTES];
-    struct s2n_blob entry = { .data = data, .size = sizeof(data) };
+    uint16_t           session_ticket_len = S2N_TICKET_SIZE_IN_BYTES;
+    uint8_t            data[ S2N_TICKET_SIZE_IN_BYTES ];
+    struct s2n_blob    entry = { .data = data, .size = sizeof(data) };
     struct s2n_stuffer to;
-    uint32_t lifetime_hint_in_secs = (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
+    uint32_t           lifetime_hint_in_secs =
+        (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos)
+        / ONE_SEC_IN_NANOS;
 
     /* When server changes it's mind mid handshake send lifetime hint and session ticket length as zero */
     if (!conn->config->use_tickets) {
@@ -61,9 +60,7 @@ int s2n_server_nst_send(struct s2n_connection *conn)
         return 0;
     }
 
-    if (!s2n_server_sending_nst(conn)) {
-        S2N_ERROR(S2N_ERR_SENDING_NST);
-    }
+    if (!s2n_server_sending_nst(conn)) { S2N_ERROR(S2N_ERR_SENDING_NST); }
 
     GUARD(s2n_stuffer_init(&to, &entry));
     GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, lifetime_hint_in_secs));

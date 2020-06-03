@@ -13,21 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
 #include <errno.h>
 #include <fcntl.h>
+#include <s2n.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/param.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <s2n.h>
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
 /* The number of connection pairs to allocate before measuring memory
  * usage. The greater the value, the more accurate the end result. */
@@ -42,15 +40,13 @@
 ssize_t get_vm_data_size()
 {
 #ifdef __linux__
-    long page_size;
+    long    page_size;
     ssize_t size, resident, share, text, lib, data, dt;
 
     page_size = sysconf(_SC_PAGESIZE);
-    if (page_size < 0) {
-        return -1;
-    }
+    if (page_size < 0) { return -1; }
 
-    FILE *status_file = fopen( "/proc/self/statm", "r" );
+    FILE *status_file = fopen("/proc/self/statm", "r");
     if (fscanf(status_file, "%zd %zd %zd %zd %zd %zd %zd", &size, &resident, &share, &text, &lib, &data, &dt) < 7) {
         fclose(status_file);
         return -1;
@@ -78,17 +74,13 @@ int main(int argc, char **argv)
 
     /* Skip the test when running under valgrind or address sanitizer, as those tools
      * impact the memory usage. */
-    if (getenv("S2N_VALGRIND") != NULL || getenv("S2N_ADDRESS_SANITIZER") != NULL) {
-        END_TEST();
-    }
+    if (getenv("S2N_VALGRIND") != NULL || getenv("S2N_ADDRESS_SANITIZER") != NULL) { END_TEST(); }
 
     struct rlimit file_limit;
     EXPECT_SUCCESS(getrlimit(RLIMIT_NOFILE, &file_limit));
     /* 4 fds per connection: {client,server} {write,read} fd
      * and reserve 16 fds for libraries, stdin/stdout/stderr and so on */
-    if (4 * connectionsToUse + 16 > file_limit.rlim_cur) {
-        connectionsToUse = MAX(1, (file_limit.rlim_cur - 16) / 4);
-    }
+    if (4 * connectionsToUse + 16 > file_limit.rlim_cur) { connectionsToUse = MAX(1, (file_limit.rlim_cur - 16) / 4); }
 
     const ssize_t maxAllowedMemDiff = 2 * connectionsToUse * MAX_MEM_PER_CONNECTION;
 
@@ -104,7 +96,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
 
     struct s2n_cert_chain_and_key *chain_and_key;
-    struct s2n_config *server_config;
+    struct s2n_config *            server_config;
     EXPECT_NOT_NULL(server_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
@@ -116,50 +108,49 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(vm_data_initial, -1);
 
     /* Allocate all connections */
-    for (int i = 0; i < connectionsToUse; i++)
-    {
+    for (int i = 0; i < connectionsToUse; i++) {
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
-        clients[i] = client_conn;
+        clients[ i ] = client_conn;
 
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
         EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
-        servers[i] = server_conn;
+        servers[ i ] = server_conn;
     }
 
     ssize_t vm_data_after_allocation = get_vm_data_size();
     EXPECT_NOT_EQUAL(vm_data_after_allocation, -1);
 
     for (int i = 0; i < connectionsToUse; i++) {
-        EXPECT_SUCCESS(s2n_connections_set_piped_io(clients[i], servers[i], &piped_io));
+        EXPECT_SUCCESS(s2n_connections_set_piped_io(clients[ i ], servers[ i ], &piped_io));
 
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(servers[i], clients[i]));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(servers[ i ], clients[ i ]));
     }
 
     ssize_t vm_data_after_handshakes = get_vm_data_size();
     EXPECT_NOT_EQUAL(vm_data_after_handshakes, -1);
 
     for (int i = 0; i < connectionsToUse; i++) {
-        EXPECT_SUCCESS(s2n_connection_free_handshake(servers[i]));
-        EXPECT_SUCCESS(s2n_connection_free_handshake(clients[i]));
+        EXPECT_SUCCESS(s2n_connection_free_handshake(servers[ i ]));
+        EXPECT_SUCCESS(s2n_connection_free_handshake(clients[ i ]));
     }
     ssize_t vm_data_after_free_handshake = get_vm_data_size();
     EXPECT_NOT_EQUAL(vm_data_after_free_handshake, -1);
 
     for (int i = 0; i < connectionsToUse; i++) {
-        EXPECT_SUCCESS(s2n_connection_release_buffers(servers[i]));
-        EXPECT_SUCCESS(s2n_connection_release_buffers(clients[i]));
+        EXPECT_SUCCESS(s2n_connection_release_buffers(servers[ i ]));
+        EXPECT_SUCCESS(s2n_connection_release_buffers(clients[ i ]));
     }
     ssize_t vm_data_after_release_buffers = get_vm_data_size();
     EXPECT_NOT_EQUAL(vm_data_after_release_buffers, -1);
 
     for (int i = 0; i < connectionsToUse; i++) {
-        EXPECT_SUCCESS(s2n_connection_free(clients[i]));
-        EXPECT_SUCCESS(s2n_connection_free(servers[i]));
+        EXPECT_SUCCESS(s2n_connection_free(clients[ i ]));
+        EXPECT_SUCCESS(s2n_connection_free(servers[ i ]));
     }
 
     EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
@@ -190,4 +181,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-

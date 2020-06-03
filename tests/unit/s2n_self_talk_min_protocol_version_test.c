@@ -13,26 +13,23 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
+#include <fcntl.h>
+#include <s2n.h>
+#include <stdint.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <stdint.h>
-#include <fcntl.h>
 
-#include <s2n.h>
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
 int mock_client(struct s2n_test_piped_io *piped_io)
 {
     struct s2n_connection *client_conn;
-    struct s2n_config *client_config;
-    s2n_blocked_status blocked;
-    int result = 0;
+    struct s2n_config *    client_config;
+    s2n_blocked_status     blocked;
+    int                    result = 0;
 
     client_config = s2n_config_new();
     s2n_config_disable_x509_verification(client_config);
@@ -60,13 +57,13 @@ int mock_client(struct s2n_test_piped_io *piped_io)
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn;
-    struct s2n_config *config;
-    s2n_blocked_status blocked;
-    int status;
-    pid_t pid;
-    char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-    char private_key_pem[S2N_MAX_TEST_PEM_SIZE];
+    struct s2n_connection *        conn;
+    struct s2n_config *            config;
+    s2n_blocked_status             blocked;
+    int                            status;
+    pid_t                          pid;
+    char                           cert_chain_pem[ S2N_MAX_TEST_PEM_SIZE ];
+    char                           private_key_pem[ S2N_MAX_TEST_PEM_SIZE ];
     struct s2n_cert_chain_and_key *chain_and_key;
 
     BEGIN_TEST();

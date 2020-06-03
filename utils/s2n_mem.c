@@ -13,23 +13,22 @@
  * permissions and limitations under the License.
  */
 
-#define  _DEFAULT_SOURCE 1
+#define _DEFAULT_SOURCE 1
 #if !defined(__APPLE__)
-#include <features.h>
+#    include <features.h>
 #endif
 
 #include <stdint.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 #include "error/s2n_errno.h"
-
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
-static long page_size = 4096;
+static long page_size   = 4096;
 static bool initialized = false;
 
 static int s2n_mem_init_impl(void);
@@ -39,26 +38,26 @@ static int s2n_mem_free_mlock_impl(void *ptr, uint32_t size);
 static int s2n_mem_malloc_no_mlock_impl(void **ptr, uint32_t requested, uint32_t *allocated);
 static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *allocated);
 
-static s2n_mem_init_callback s2n_mem_init_cb = s2n_mem_init_impl;
+static s2n_mem_init_callback    s2n_mem_init_cb    = s2n_mem_init_impl;
 static s2n_mem_cleanup_callback s2n_mem_cleanup_cb = s2n_mem_cleanup_impl;
-static s2n_mem_malloc_callback s2n_mem_malloc_cb = s2n_mem_malloc_mlock_impl;
-static s2n_mem_free_callback s2n_mem_free_cb = s2n_mem_free_mlock_impl;
+static s2n_mem_malloc_callback  s2n_mem_malloc_cb  = s2n_mem_malloc_mlock_impl;
+static s2n_mem_free_callback    s2n_mem_free_cb    = s2n_mem_free_mlock_impl;
 
 static int s2n_mem_init_impl(void)
 {
     GUARD(page_size = sysconf(_SC_PAGESIZE));
     if (getenv("S2N_DONT_MLOCK")) {
         s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
-        s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;
+        s2n_mem_free_cb   = s2n_mem_free_no_mlock_impl;
     }
     return S2N_SUCCESS;
 }
 
 static int s2n_mem_cleanup_impl(void)
 {
-    page_size = 4096;
+    page_size         = 4096;
     s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
-    s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;
+    s2n_mem_free_cb   = s2n_mem_free_no_mlock_impl;
     return S2N_SUCCESS;
 }
 
@@ -132,10 +131,10 @@ int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_clean
     notnull_check(mem_malloc_callback);
     notnull_check(mem_free_callback);
 
-    s2n_mem_init_cb = mem_init_callback;
+    s2n_mem_init_cb    = mem_init_callback;
     s2n_mem_cleanup_cb = mem_cleanup_callback;
-    s2n_mem_malloc_cb = mem_malloc_callback;
-    s2n_mem_free_cb = mem_free_callback;
+    s2n_mem_malloc_cb  = mem_malloc_callback;
+    s2n_mem_free_cb    = mem_free_callback;
 
     return S2N_SUCCESS;
 }
@@ -144,14 +143,14 @@ int s2n_alloc(struct s2n_blob *b, uint32_t size)
 {
     S2N_ERROR_IF(initialized == false, S2N_ERR_NOT_INITIALIZED);
     notnull_check(b);
-    const struct s2n_blob temp = {0};
-    *b = temp;
+    const struct s2n_blob temp = { 0 };
+    *b                         = temp;
     GUARD(s2n_realloc(b, size));
     return S2N_SUCCESS;
 }
 
 /* A blob is growable if it is either explicitly marked as such, or if it contains no data */
-bool s2n_blob_is_growable(const struct s2n_blob* b)
+bool s2n_blob_is_growable(const struct s2n_blob *b)
 {
     return b && (b->growable || (b->data == NULL && b->size == 0 && b->allocated == 0));
 }
@@ -165,16 +164,13 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
     S2N_ERROR_IF(initialized == false, S2N_ERR_NOT_INITIALIZED);
     notnull_check(b);
     S2N_ERROR_IF(!s2n_blob_is_growable(b), S2N_ERR_RESIZE_STATIC_BLOB);
-    if (size == 0) {
-        return s2n_free(b);
-    }
+    if (size == 0) { return s2n_free(b); }
 
     /* blob already has space for the request */
     if (size <= b->allocated) {
-
         if (size < b->size) {
             /* Zero the existing blob memory before the we release it */
-            struct s2n_blob slice = {0};
+            struct s2n_blob slice = { 0 };
             GUARD(s2n_blob_slice(b, &slice, size, b->size - size));
             GUARD(s2n_blob_zero(&slice));
         }
@@ -183,21 +179,17 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
         return S2N_SUCCESS;
     }
 
-    struct s2n_blob new_memory = {.data = NULL, .size = size, .allocated = 0, .growable = 1};
-    if(s2n_mem_malloc_cb((void **) &new_memory.data, new_memory.size, &new_memory.allocated) != 0) {
+    struct s2n_blob new_memory = { .data = NULL, .size = size, .allocated = 0, .growable = 1 };
+    if (s2n_mem_malloc_cb(( void ** )&new_memory.data, new_memory.size, &new_memory.allocated) != 0) {
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
     S2N_ERROR_IF(new_memory.allocated < new_memory.size, S2N_ERR_ALLOC);
     S2N_ERROR_IF(new_memory.data == NULL, S2N_ERR_ALLOC);
 
-    if (b->size) {
-        memcpy_check(new_memory.data, b->data, b->size);
-    }
+    if (b->size) { memcpy_check(new_memory.data, b->data, b->size); }
 
-    if (b->allocated) {
-        GUARD(s2n_free(b));
-    }
+    if (b->allocated) { GUARD(s2n_free(b)); }
 
     *b = new_memory;
     return S2N_SUCCESS;
@@ -208,10 +200,8 @@ int s2n_free_object(uint8_t **p_data, uint32_t size)
     S2N_ERROR_IF(initialized == false, S2N_ERR_NOT_INITIALIZED);
     notnull_check(p_data);
 
-    if (*p_data == NULL) {
-        return 0;
-    }
-    struct s2n_blob b = {.data = *p_data, .size = size, .growable = 1};
+    if (*p_data == NULL) { return 0; }
+    struct s2n_blob b = { .data = *p_data, .size = size, .growable = 1 };
 
     /* s2n_free() will call free() even if it returns error (for a growable blob).
     ** This makes sure *p_data is not used after free() */
@@ -264,20 +254,19 @@ int s2n_free(struct s2n_blob *b)
 
     GUARD(s2n_mem_free_cb(b->data, b->allocated));
 
-    *b = (struct s2n_blob) {0};
+    *b = (struct s2n_blob){ 0 };
 
     GUARD(zero_rc);
 
     return S2N_SUCCESS;
 }
 
-int s2n_blob_zeroize_free(struct s2n_blob *b) {
+int s2n_blob_zeroize_free(struct s2n_blob *b)
+{
     S2N_ERROR_IF(initialized == false, S2N_ERR_NOT_INITIALIZED);
     notnull_check(b);
 
     GUARD(s2n_blob_zero(b));
-    if (b->allocated) {
-        GUARD(s2n_free(b));
-    }
+    if (b->allocated) { GUARD(s2n_free(b)); }
     return S2N_SUCCESS;
 }

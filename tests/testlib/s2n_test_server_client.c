@@ -17,12 +17,12 @@
 
 int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
 {
-    int server_rc = -1;
-    int client_rc = -1;
+    int                server_rc = -1;
+    int                client_rc = -1;
     s2n_blocked_status server_blocked;
     s2n_blocked_status client_blocked;
-    int server_done = 0;
-    int client_done = 0;
+    int                server_done = 0;
+    int                client_done = 0;
 
     do {
         if (!server_done) {
@@ -49,15 +49,14 @@ int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, str
     return rc;
 }
 
-
 int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
 {
-    int server_rc = -1;
-    int client_rc = -1;
+    int                server_rc = -1;
+    int                client_rc = -1;
     s2n_blocked_status server_blocked;
     s2n_blocked_status client_blocked;
-    int server_done = 0;
-    int client_done = 0;
+    int                server_done = 0;
+    int                client_done = 0;
 
     do {
         if (!server_done) {
@@ -65,7 +64,7 @@ int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, stru
             server_rc = s2n_shutdown(server_conn, &server_blocked);
 
             if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED || client_done) {
-/* Success, fatal error, or the peer is done and we're still blocked. */
+                /* Success, fatal error, or the peer is done and we're still blocked. */
                 server_done = 1;
             }
         }
@@ -74,7 +73,7 @@ int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, stru
             client_rc = s2n_shutdown(client_conn, &client_blocked);
 
             if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED || server_done) {
-/* Success, fatal error, or the peer is done and we're still blocked. */
+                /* Success, fatal error, or the peer is done and we're still blocked. */
                 client_done = 1;
             }
         }

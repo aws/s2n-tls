@@ -15,9 +15,9 @@
 
 #pragma once
 
-#include "utils/s2n_blob.h"
-
 #include <stdint.h>
+
+#include "utils/s2n_blob.h"
 
 int s2n_mem_init(void);
 int s2n_mem_cleanup(void);

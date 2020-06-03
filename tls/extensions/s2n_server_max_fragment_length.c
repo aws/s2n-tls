@@ -13,28 +13,25 @@
  * permissions and limitations under the License.
  */
 
-#include "error/s2n_errno.h"
-
-#include "stuffer/s2n_stuffer.h"
-
-#include "utils/s2n_safety.h"
-
-#include "tls/s2n_tls_parameters.h"
-#include "tls/s2n_connection.h"
-
 #include "tls/extensions/s2n_server_max_fragment_length.h"
 
+#include "error/s2n_errno.h"
+#include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_connection.h"
+#include "tls/s2n_tls_parameters.h"
+#include "utils/s2n_safety.h"
+
 static bool s2n_max_fragment_length_should_send(struct s2n_connection *conn);
-static int s2n_max_fragment_length_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-static int s2n_max_fragment_length_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int  s2n_max_fragment_length_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+static int  s2n_max_fragment_length_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
 const s2n_extension_type s2n_server_max_fragment_length_extension = {
-    .iana_value = TLS_EXTENSION_MAX_FRAG_LEN,
+    .iana_value  = TLS_EXTENSION_MAX_FRAG_LEN,
     .is_response = true,
-    .send = s2n_max_fragment_length_send,
-    .recv = s2n_max_fragment_length_recv,
+    .send        = s2n_max_fragment_length_send,
+    .recv        = s2n_max_fragment_length_recv,
     .should_send = s2n_max_fragment_length_should_send,
-    .if_missing = s2n_extension_noop_if_missing,
+    .if_missing  = s2n_extension_noop_if_missing,
 };
 
 static bool s2n_max_fragment_length_should_send(struct s2n_connection *conn)
@@ -64,9 +61,7 @@ static int s2n_max_fragment_length_recv(struct s2n_connection *conn, struct s2n_
 
 int s2n_server_extensions_max_fragment_length_send_size(struct s2n_connection *conn)
 {
-    if (!conn->mfl_code) {
-        return 0;
-    }
+    if (!conn->mfl_code) { return 0; }
     return 2 * sizeof(uint16_t) + 1 * sizeof(uint8_t);
 }
 

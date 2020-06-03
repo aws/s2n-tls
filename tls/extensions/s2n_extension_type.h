@@ -20,29 +20,29 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_tls_parameters.h"
 
-#define S2N_EXTENSION_TYPE_FIELD_LENGTH     2
-#define S2N_EXTENSION_LENGTH_FIELD_LENGTH   2
+#define S2N_EXTENSION_TYPE_FIELD_LENGTH 2
+#define S2N_EXTENSION_LENGTH_FIELD_LENGTH 2
 
 /* The number of extensions supported by S2N */
-#define S2N_SUPPORTED_EXTENSIONS_COUNT          (sizeof(s2n_supported_extensions) / sizeof(s2n_supported_extensions[0]))
+#define S2N_SUPPORTED_EXTENSIONS_COUNT (sizeof(s2n_supported_extensions) / sizeof(s2n_supported_extensions[ 0 ]))
 
 /* The number of bytes needed to assign 1 bit to every supported extension.
  * The +1 is necessary to handle any remainder left over when dividing. */
-#define S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN   ((S2N_SUPPORTED_EXTENSIONS_COUNT / sizeof(char)) + 1)
+#define S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN ((S2N_SUPPORTED_EXTENSIONS_COUNT / sizeof(char)) + 1)
 
 struct s2n_connection;
 typedef struct {
     uint16_t iana_value;
-    unsigned is_response:1;
+    unsigned is_response : 1;
 
-    int (*send) (struct s2n_connection *conn, struct s2n_stuffer *out);
-    int (*recv) (struct s2n_connection *conn, struct s2n_stuffer *in);
+    int (*send)(struct s2n_connection *conn, struct s2n_stuffer *out);
+    int (*recv)(struct s2n_connection *conn, struct s2n_stuffer *in);
 
     /* Returns true or false to indicate whether the extension should be sent */
-    bool (*should_send) (struct s2n_connection *conn);
+    bool (*should_send)(struct s2n_connection *conn);
 
     /* Handler called if an extension is not received */
-    int (*if_missing) (struct s2n_connection *conn);
+    int (*if_missing)(struct s2n_connection *conn);
 } s2n_extension_type;
 
 static const uint16_t s2n_supported_extensions[] = {
@@ -62,9 +62,9 @@ static const uint16_t s2n_supported_extensions[] = {
     TLS_EXTENSION_COOKIE,
 };
 
-typedef char s2n_extension_bitfield[S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN];
+typedef char s2n_extension_bitfield[ S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN ];
 
-typedef uint8_t s2n_extension_type_id;
+typedef uint8_t                    s2n_extension_type_id;
 extern const s2n_extension_type_id s2n_unsupported_extension;
 
 int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_connection *conn, struct s2n_stuffer *out);

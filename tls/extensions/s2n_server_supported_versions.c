@@ -13,16 +13,16 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-#include <stdint.h>
-
 #include "tls/extensions/s2n_server_supported_versions.h"
+
+#include <stdint.h>
+#include <sys/param.h>
+
 #include "tls/extensions/s2n_supported_versions.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-
 #include "utils/s2n_safety.h"
 
 /**
@@ -42,12 +42,12 @@ static int s2n_server_supported_versions_send(struct s2n_connection *conn, struc
 static int s2n_server_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *in);
 
 const s2n_extension_type s2n_server_supported_versions_extension = {
-    .iana_value = TLS_EXTENSION_SUPPORTED_VERSIONS,
+    .iana_value  = TLS_EXTENSION_SUPPORTED_VERSIONS,
     .is_response = true,
-    .send = s2n_server_supported_versions_send,
-    .recv = s2n_server_supported_versions_recv,
+    .send        = s2n_server_supported_versions_send,
+    .recv        = s2n_server_supported_versions_recv,
     .should_send = s2n_extension_send_if_tls13_connection,
-    .if_missing = s2n_extension_noop_if_missing,
+    .if_missing  = s2n_extension_noop_if_missing,
 };
 
 static int s2n_server_supported_versions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -64,25 +64,23 @@ static int s2n_extensions_server_supported_versions_process(struct s2n_connectio
     uint8_t minimum_supported_version;
     GUARD(s2n_connection_get_minimum_supported_version(conn, &minimum_supported_version));
 
-    uint8_t server_version_parts[S2N_TLS_PROTOCOL_VERSION_LEN];
+    uint8_t server_version_parts[ S2N_TLS_PROTOCOL_VERSION_LEN ];
     GUARD(s2n_stuffer_read_bytes(extension, server_version_parts, S2N_TLS_PROTOCOL_VERSION_LEN));
 
-    uint16_t server_version = (server_version_parts[0] * 10) + server_version_parts[1];
+    uint16_t server_version = (server_version_parts[ 0 ] * 10) + server_version_parts[ 1 ];
 
     gte_check(server_version, S2N_TLS13);
     lte_check(server_version, highest_supported_version);
     gte_check(server_version, minimum_supported_version);
 
     conn->server_protocol_version = server_version;
-    
+
     return S2N_SUCCESS;
 }
 
 static int s2n_server_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
 {
-    if (!s2n_is_tls13_enabled()) {
-        return S2N_SUCCESS;
-    }
+    if (!s2n_is_tls13_enabled()) { return S2N_SUCCESS; }
 
     S2N_ERROR_IF(s2n_extensions_server_supported_versions_process(conn, in) < 0, S2N_ERR_BAD_MESSAGE);
     return S2N_SUCCESS;
@@ -90,10 +88,7 @@ static int s2n_server_supported_versions_recv(struct s2n_connection *conn, struc
 
 /* Old-style extension functions -- remove after extensions refactor is complete */
 
-int s2n_extensions_server_supported_versions_size(struct s2n_connection *conn)
-{
-    return 6;
-}
+int s2n_extensions_server_supported_versions_size(struct s2n_connection *conn) { return 6; }
 
 int s2n_extensions_server_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {

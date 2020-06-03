@@ -13,14 +13,13 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_auth_selection.h"
+
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_ecdsa.h"
 #include "crypto/s2n_signature.h"
-
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_kex.h"
-#include "tls/s2n_auth_selection.h"
-
 #include "utils/s2n_safety.h"
 
 /* This module should contain any logic related to choosing a valid combination of
@@ -42,7 +41,7 @@
 
 static int s2n_get_auth_method_for_cert_type(s2n_pkey_type cert_type, s2n_authentication_method *auth_method)
 {
-    switch(cert_type) {
+    switch (cert_type) {
         case S2N_PKEY_TYPE_RSA:
         case S2N_PKEY_TYPE_RSA_PSS:
             *auth_method = S2N_AUTHENTICATION_RSA;
@@ -59,7 +58,7 @@ static int s2n_get_auth_method_for_cert_type(s2n_pkey_type cert_type, s2n_authen
 
 static int s2n_get_cert_type_for_sig_alg(s2n_signature_algorithm sig_alg, s2n_pkey_type *cert_type)
 {
-    switch(sig_alg) {
+    switch (sig_alg) {
         case S2N_SIGNATURE_RSA_PSS_RSAE:
         case S2N_SIGNATURE_RSA:
             *cert_type = S2N_PKEY_TYPE_RSA;
@@ -134,13 +133,9 @@ static int s2n_certs_exist_for_auth_method(struct s2n_connection *conn, s2n_auth
     for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
         GUARD(s2n_get_auth_method_for_cert_type(i, &auth_method_for_cert_type));
 
-        if (auth_method != S2N_AUTHENTICATION_METHOD_SENTINEL && auth_method != auth_method_for_cert_type) {
-            continue;
-        }
+        if (auth_method != S2N_AUTHENTICATION_METHOD_SENTINEL && auth_method != auth_method_for_cert_type) { continue; }
 
-        if (s2n_get_compatible_cert_chain_and_key(conn, i) != NULL) {
-            return S2N_SUCCESS;
-        }
+        if (s2n_get_compatible_cert_chain_and_key(conn, i) != NULL) { return S2N_SUCCESS; }
     }
     S2N_ERROR(S2N_ERR_CERT_TYPE_UNSUPPORTED);
 }

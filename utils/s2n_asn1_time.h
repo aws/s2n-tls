@@ -21,11 +21,11 @@
 #include "utils/s2n_result.h"
 
 struct parser_args {
-    uint8_t offset_negative;
-    uint8_t local_time_assumed;
-    uint8_t current_digit;
-    long offset_hours;
-    long offset_minutes;
+    uint8_t   offset_negative;
+    uint8_t   local_time_assumed;
+    uint8_t   current_digit;
+    long      offset_hours;
+    long      offset_minutes;
     struct tm time;
 };
 
@@ -34,4 +34,3 @@ struct parser_args {
  * ticks is an output parameter. Returns 0 on success and -1 on failure.
  */
 S2N_RESULT s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len, uint64_t *ticks);
-

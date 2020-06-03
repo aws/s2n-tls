@@ -13,31 +13,28 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include "tls/s2n_tls13_handshake.h"
 
-#include "testlib/s2n_testlib.h"
-
+#include <s2n.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-#include <s2n.h>
-
 #include "crypto/s2n_fips.h"
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/extensions/s2n_client_key_share.h"
+#include "tls/extensions/s2n_server_key_share.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
-#include "tls/s2n_tls13.h"
-#include "tls/s2n_tls13_handshake.h"
-#include "tls/extensions/s2n_server_key_share.h"
-#include "tls/extensions/s2n_client_key_share.h"
 #include "tls/s2n_security_policies.h"
+#include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 
 /* Just to get access to the static functions / variables we need to test */
 #include "tls/s2n_handshake_io.c"
-#include "tls/s2n_tls13_handshake.c"
 #include "tls/s2n_handshake_transcript.c"
+#include "tls/s2n_tls13_handshake.c"
 
 static int s2n_tls13_conn_copy_server_finished_hash(struct s2n_connection *conn);
 
@@ -69,24 +66,29 @@ int main(int argc, char **argv)
         /* Client sends ClientHello key_share */
         EXPECT_SUCCESS(s2n_extensions_client_key_share_send(client_conn, &client_hello_key_share));
         S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, TLS_EXTENSION_KEY_SHARE, uint16);
-        S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, s2n_extensions_client_key_share_size(server_conn)
-            - (S2N_SIZE_OF_EXTENSION_TYPE + S2N_SIZE_OF_EXTENSION_DATA_SIZE), uint16);
+        S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share,
+                                      s2n_extensions_client_key_share_size(server_conn)
+                                          - (S2N_SIZE_OF_EXTENSION_TYPE + S2N_SIZE_OF_EXTENSION_DATA_SIZE),
+                                      uint16);
 
         EXPECT_SUCCESS(s2n_extensions_client_key_share_recv(server_conn, &client_hello_key_share));
 
         /* Server configures the "negotiated_curve" */
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = server_ecc_preferences->ecc_curves[0];
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = server_ecc_preferences->ecc_curves[ 0 ];
 
         /* Server sends ServerHello key_share */
         EXPECT_SUCCESS(s2n_extensions_server_key_share_send(server_conn, &server_hello_key_share));
 
         S2N_STUFFER_READ_EXPECT_EQUAL(&server_hello_key_share, TLS_EXTENSION_KEY_SHARE, uint16);
-        S2N_STUFFER_READ_EXPECT_EQUAL(&server_hello_key_share, s2n_extensions_server_key_share_send_size(server_conn)
-            - (S2N_SIZE_OF_EXTENSION_TYPE + S2N_SIZE_OF_EXTENSION_DATA_SIZE), uint16);
+        S2N_STUFFER_READ_EXPECT_EQUAL(&server_hello_key_share,
+                                      s2n_extensions_server_key_share_send_size(server_conn)
+                                          - (S2N_SIZE_OF_EXTENSION_TYPE + S2N_SIZE_OF_EXTENSION_DATA_SIZE),
+                                      uint16);
         EXPECT_SUCCESS(s2n_extensions_server_key_share_recv(client_conn, &server_hello_key_share));
         EXPECT_EQUAL(s2n_stuffer_data_available(&server_hello_key_share), 0);
 
-        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, client_conn->secure.server_ecc_evp_params.negotiated_curve);
+        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve,
+                     client_conn->secure.server_ecc_evp_params.negotiated_curve);
 
         DEFER_CLEANUP(struct s2n_blob server_shared_secret = { 0 }, s2n_free);
         DEFER_CLEANUP(struct s2n_blob client_shared_secret = { 0 }, s2n_free);
@@ -112,8 +114,10 @@ int main(int argc, char **argv)
         S2N_BLOB_EXPECT_EQUAL(server_secrets.extract_secret, client_secrets.extract_secret);
 
         /* verify that client and server finished secrets match */
-        EXPECT_BYTEARRAY_EQUAL(server_conn->handshake.server_finished, client_conn->handshake.server_finished, server_secrets.size);
-        EXPECT_BYTEARRAY_EQUAL(server_conn->handshake.client_finished, client_conn->handshake.client_finished, client_secrets.size);
+        EXPECT_BYTEARRAY_EQUAL(server_conn->handshake.server_finished, client_conn->handshake.server_finished,
+                               server_secrets.size);
+        EXPECT_BYTEARRAY_EQUAL(server_conn->handshake.client_finished, client_conn->handshake.client_finished,
+                               client_secrets.size);
 
         /* server writes message to client in plaintext */
         S2N_BLOB_FROM_HEX(deadbeef_from_server, "DEADBEEF");
@@ -128,7 +132,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->out), 26);
 
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->out, &client_conn->header_in, 5));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->out, &client_conn->in, s2n_stuffer_data_available(&server_conn->out)));
+        EXPECT_SUCCESS(
+            s2n_stuffer_copy(&server_conn->out, &client_conn->in, s2n_stuffer_data_available(&server_conn->out)));
 
         client_conn->server = &client_conn->secure;
         EXPECT_SUCCESS(s2n_record_parse(client_conn));
@@ -149,7 +154,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &cafefood_from_client));
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->out), 26);
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->header_in, 5));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->in, s2n_stuffer_data_available(&client_conn->out)));
+        EXPECT_SUCCESS(
+            s2n_stuffer_copy(&client_conn->out, &server_conn->in, s2n_stuffer_data_available(&client_conn->out)));
 
         /* if aead payload is parsed as plaintext, it would be of length 21 */
         EXPECT_SUCCESS(s2n_record_parse(server_conn));
@@ -158,7 +164,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->in));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->header_in, 5));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->in, s2n_stuffer_data_available(&client_conn->out)));
+        EXPECT_SUCCESS(
+            s2n_stuffer_copy(&client_conn->out, &server_conn->in, s2n_stuffer_data_available(&client_conn->out)));
 
         /* verify that server decrypts client's msg */
         server_conn->client = &server_conn->secure;
@@ -191,7 +198,8 @@ int main(int argc, char **argv)
 
         /* test that client decrypts deadbeef correctly with application data */
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->out, &client_conn->header_in, 5));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->out, &client_conn->in, s2n_stuffer_data_available(&server_conn->out)));
+        EXPECT_SUCCESS(
+            s2n_stuffer_copy(&server_conn->out, &client_conn->in, s2n_stuffer_data_available(&server_conn->out)));
         EXPECT_SUCCESS(s2n_record_parse(client_conn));
         S2N_STUFFER_READ_EXPECT_EQUAL(&client_conn->in, 0xDEADBEEF, uint32);
         S2N_STUFFER_READ_EXPECT_EQUAL(&client_conn->in, TLS_APPLICATION_DATA, uint8);
@@ -200,7 +208,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &cafefood_from_client));
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->out), 26);
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->header_in, 5));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->in, s2n_stuffer_data_available(&client_conn->out)));
+        EXPECT_SUCCESS(
+            s2n_stuffer_copy(&client_conn->out, &server_conn->in, s2n_stuffer_data_available(&client_conn->out)));
 
         EXPECT_SUCCESS(s2n_record_parse(server_conn));
         EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->in), 5);
@@ -224,10 +233,10 @@ int main(int argc, char **argv)
         for (int m = 0; m < s2n_array_len(modes); m++) {
             for (int i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
                 struct s2n_connection *conn;
-                EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
+                EXPECT_NOT_NULL(conn = s2n_connection_new(modes[ m ]));
 
                 conn->actual_protocol_version = S2N_TLS13;
-                conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+                conn->secure.cipher_suite     = &s2n_tls13_aes_128_gcm_sha256;
 
                 s2n_tls13_connection_keys(client_secrets, conn);
                 S2N_BLOB_EXPECT_EQUAL(empty_secret, client_secrets.extract_secret);
@@ -242,7 +251,8 @@ int main(int argc, char **argv)
 
                 if (s2n_conn_get_current_message_type(conn) == CLIENT_FINISHED) {
                     /* check application secrets get updated in client finished */
-                    EXPECT_BYTEARRAY_NOT_EQUAL(empty_secret.data, client_secrets.extract_secret.data, empty_secret.size);
+                    EXPECT_BYTEARRAY_NOT_EQUAL(empty_secret.data, client_secrets.extract_secret.data,
+                                               empty_secret.size);
                 } else {
                     S2N_BLOB_EXPECT_EQUAL(empty_secret, client_secrets.extract_secret);
                 }
@@ -255,10 +265,10 @@ int main(int argc, char **argv)
         for (int m = 0; m < s2n_array_len(modes); m++) {
             for (int i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
                 struct s2n_connection *conn;
-                EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
+                EXPECT_NOT_NULL(conn = s2n_connection_new(modes[ m ]));
 
                 conn->actual_protocol_version = S2N_TLS12;
-                conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+                conn->secure.cipher_suite     = &s2n_tls13_aes_128_gcm_sha256;
 
                 s2n_tls13_connection_keys(client_secrets, conn);
                 S2N_BLOB_EXPECT_EQUAL(empty_secret, client_secrets.extract_secret);
@@ -293,14 +303,14 @@ int main(int argc, char **argv)
         for (int m = 0; m < s2n_array_len(modes); m++) {
             for (int i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
                 struct s2n_connection *conn;
-                EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
+                EXPECT_NOT_NULL(conn = s2n_connection_new(modes[ m ]));
 
                 const struct s2n_ecc_preferences *ecc_pref = NULL;
                 EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
                 EXPECT_NOT_NULL(ecc_pref);
 
                 conn->actual_protocol_version = S2N_TLS13;
-                conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+                conn->secure.cipher_suite     = &s2n_tls13_aes_128_gcm_sha256;
 
                 s2n_tls13_connection_keys(client_secrets, conn);
                 S2N_BLOB_EXPECT_EQUAL(empty_secret, client_secrets.extract_secret);
@@ -309,26 +319,30 @@ int main(int argc, char **argv)
                 conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
                 conn->handshake.message_number = i;
 
-                conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-                conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+                conn->secure.server_ecc_evp_params.negotiated_curve      = ecc_pref->ecc_curves[ 0 ];
+                conn->secure.client_ecc_evp_params[ 0 ].negotiated_curve = ecc_pref->ecc_curves[ 0 ];
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
-                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[ 0 ]));
 
-                struct s2n_blob client_seq = { .data = conn->secure.client_sequence_number,.size = sizeof(conn->secure.client_sequence_number) };
-                struct s2n_blob server_seq = { .data = conn->secure.server_sequence_number,.size = sizeof(conn->secure.server_sequence_number) };
-                client_seq.data[0] = 1;
-                server_seq.data[0] = 1;
+                struct s2n_blob client_seq = { .data = conn->secure.client_sequence_number,
+                                               .size = sizeof(conn->secure.client_sequence_number) };
+                struct s2n_blob server_seq = { .data = conn->secure.server_sequence_number,
+                                               .size = sizeof(conn->secure.server_sequence_number) };
+                client_seq.data[ 0 ]       = 1;
+                server_seq.data[ 0 ]       = 1;
 
                 EXPECT_SUCCESS(s2n_conn_post_handshake_hashes_update(conn));
 
                 if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO) {
                     /* prove secrets have been updated after ServerHello as they are no longer 0-filled byte arrays */
-                    EXPECT_BYTEARRAY_NOT_EQUAL(empty_secret.data, client_secrets.extract_secret.data, empty_secret.size);
+                    EXPECT_BYTEARRAY_NOT_EQUAL(empty_secret.data, client_secrets.extract_secret.data,
+                                               empty_secret.size);
                 } else {
                     S2N_BLOB_EXPECT_EQUAL(empty_secret, client_secrets.extract_secret);
                 }
 
-                if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO || s2n_conn_get_current_message_type(conn) == CLIENT_FINISHED) {
+                if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO
+                    || s2n_conn_get_current_message_type(conn) == CLIENT_FINISHED) {
                     S2N_BLOB_EXPECT_EQUAL(client_seq, reset_seq);
                     S2N_BLOB_EXPECT_EQUAL(server_seq, reset_seq);
                 } else {
@@ -344,14 +358,14 @@ int main(int argc, char **argv)
         for (int m = 0; m < s2n_array_len(modes); m++) {
             for (int i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
                 struct s2n_connection *conn;
-                EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
+                EXPECT_NOT_NULL(conn = s2n_connection_new(modes[ m ]));
 
                 const struct s2n_ecc_preferences *ecc_pref = NULL;
                 EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
                 EXPECT_NOT_NULL(ecc_pref);
 
                 conn->actual_protocol_version = S2N_TLS12;
-                conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+                conn->secure.cipher_suite     = &s2n_tls13_aes_128_gcm_sha256;
 
                 s2n_tls13_connection_keys(client_secrets, conn);
                 S2N_BLOB_EXPECT_EQUAL(empty_secret, client_secrets.extract_secret);
@@ -360,15 +374,17 @@ int main(int argc, char **argv)
                 conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
                 conn->handshake.message_number = i;
 
-                conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-                conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+                conn->secure.server_ecc_evp_params.negotiated_curve      = ecc_pref->ecc_curves[ 0 ];
+                conn->secure.client_ecc_evp_params[ 0 ].negotiated_curve = ecc_pref->ecc_curves[ 0 ];
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
-                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[ 0 ]));
 
-                struct s2n_blob client_seq = { .data = conn->secure.client_sequence_number,.size = sizeof(conn->secure.client_sequence_number) };
-                struct s2n_blob server_seq = { .data = conn->secure.server_sequence_number,.size = sizeof(conn->secure.server_sequence_number) };
-                client_seq.data[0] = 1;
-                server_seq.data[0] = 1;
+                struct s2n_blob client_seq = { .data = conn->secure.client_sequence_number,
+                                               .size = sizeof(conn->secure.client_sequence_number) };
+                struct s2n_blob server_seq = { .data = conn->secure.server_sequence_number,
+                                               .size = sizeof(conn->secure.server_sequence_number) };
+                client_seq.data[ 0 ]       = 1;
+                server_seq.data[ 0 ]       = 1;
 
                 EXPECT_SUCCESS(s2n_conn_post_handshake_hashes_update(conn));
 
@@ -378,7 +394,8 @@ int main(int argc, char **argv)
                     S2N_BLOB_EXPECT_EQUAL(empty_secret, client_secrets.extract_secret);
                 }
 
-                if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO || s2n_conn_get_current_message_type(conn) == CLIENT_FINISHED) {
+                if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO
+                    || s2n_conn_get_current_message_type(conn) == CLIENT_FINISHED) {
                     S2N_BLOB_EXPECT_EQUAL(client_seq, ref_seq);
                     S2N_BLOB_EXPECT_EQUAL(server_seq, ref_seq);
                 } else {
@@ -401,7 +418,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
 
-        char *cert_chain = NULL;
+        char *cert_chain  = NULL;
         char *private_key = NULL;
         EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -428,7 +445,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
-        struct s2n_blob server_seq = { .data = server_conn->secure.server_sequence_number,.size = sizeof(server_conn->secure.server_sequence_number) };
+        struct s2n_blob server_seq = { .data = server_conn->secure.server_sequence_number,
+                                       .size = sizeof(server_conn->secure.server_sequence_number) };
         S2N_BLOB_FROM_HEX(seq_0, "0000000000000000");
         S2N_BLOB_FROM_HEX(seq_1, "0000000000000001");
 

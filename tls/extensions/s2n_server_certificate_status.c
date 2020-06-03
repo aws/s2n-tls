@@ -13,11 +13,12 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_server_certificate_status.h"
+
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_x509_validator.h"
-#include "tls/extensions/s2n_server_certificate_status.h"
 #include "utils/s2n_safety.h"
 
 #define U24_SIZE 3
@@ -29,12 +30,12 @@
 static bool s2n_tls13_server_status_request_should_send(struct s2n_connection *conn);
 
 const s2n_extension_type s2n_tls13_server_status_request_extension = {
-    .iana_value = TLS_EXTENSION_STATUS_REQUEST,
+    .iana_value  = TLS_EXTENSION_STATUS_REQUEST,
     .is_response = true,
-    .send = s2n_server_certificate_status_send,
-    .recv = s2n_server_certificate_status_recv,
+    .send        = s2n_server_certificate_status_send,
+    .recv        = s2n_server_certificate_status_recv,
     .should_send = s2n_tls13_server_status_request_should_send,
-    .if_missing = s2n_extension_noop_if_missing,
+    .if_missing  = s2n_extension_noop_if_missing,
 };
 
 static bool s2n_tls13_server_status_request_should_send(struct s2n_connection *conn)
@@ -48,7 +49,7 @@ int s2n_server_certificate_status_send(struct s2n_connection *conn, struct s2n_s
     struct s2n_blob *ocsp_status = &conn->handshake_params.our_chain_and_key->ocsp_status;
     notnull_check(ocsp_status);
 
-    GUARD(s2n_stuffer_write_uint8(out, (uint8_t) S2N_STATUS_REQUEST_OCSP));
+    GUARD(s2n_stuffer_write_uint8(out, ( uint8_t )S2N_STATUS_REQUEST_OCSP));
     GUARD(s2n_stuffer_write_uint24(out, ocsp_status->size));
     GUARD(s2n_stuffer_write(out, ocsp_status));
 
@@ -74,7 +75,7 @@ int s2n_server_certificate_status_recv(struct s2n_connection *conn, struct s2n_s
     GUARD(s2n_stuffer_read_bytes(in, conn->status_response.data, status_size));
 
     GUARD(s2n_x509_validator_validate_cert_stapled_ocsp_response(
-            &conn->x509_validator, conn, conn->status_response.data, conn->status_response.size));
+        &conn->x509_validator, conn, conn->status_response.data, conn->status_response.size));
 
     return S2N_SUCCESS;
 }

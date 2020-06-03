@@ -13,24 +13,25 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
 #include "utils/s2n_str.h"
+
+#include "s2n_test.h"
 
 #define BUF_SIZE 10
 
 int main(int argc, char **argv)
 {
-    char buf[BUF_SIZE];
+    char buf[ BUF_SIZE ];
 
     BEGIN_TEST();
 
-    char *p = buf;
-    char *last = buf + BUF_SIZE;
-    const char *hello = "Hello";
-    const char *world = " World!";
+    char *      p             = buf;
+    char *      last          = buf + BUF_SIZE;
+    const char *hello         = "Hello";
+    const char *world         = " World!";
     const char *expect_result = "Hello Wor";
-    const char *hi = " Hi!";
-    const char *hello_hi = "Hello Hi!";
+    const char *hi            = " Hi!";
+    const char *hello_hi      = "Hello Hi!";
 
     p = s2n_strcpy(p, last, hello);
     EXPECT_TRUE(0 == strcmp(buf, hello));
@@ -57,7 +58,7 @@ int main(int argc, char **argv)
 
     /* buf + 1 = last, a NULL terminator should be added */
     *p = 'a';
-    p = s2n_strcpy(p, p + 1, hello);
+    p  = s2n_strcpy(p, p + 1, hello);
     EXPECT_TRUE(0 == strcmp(buf, hello));
 
     /* Normal case, string just fit buf size */

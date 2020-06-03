@@ -13,26 +13,25 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <poll.h>
-#include <netdb.h>
-
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
 #include <errno.h>
-#include <s2n.h>
 #include <error/s2n_errno.h>
+#include <netdb.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
+#include <poll.h>
+#include <s2n.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#include "crypto/s2n_rsa.h"
 #include "crypto/s2n_pkey.h"
+#include "crypto/s2n_rsa.h"
 
-#define STDIO_BUFSIZE  10240
+#define STDIO_BUFSIZE 10240
 
 void print_s2n_error(const char *app_error)
 {
@@ -45,7 +44,8 @@ int negotiate(struct s2n_connection *conn)
     s2n_blocked_status blocked;
     do {
         if (s2n_negotiate(conn, &blocked) < 0) {
-            fprintf(stderr, "Failed to negotiate: '%s'. %s\n", s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"));
+            fprintf(stderr, "Failed to negotiate: '%s'. %s\n", s2n_strerror(s2n_errno, "EN"),
+                    s2n_strerror_debug(s2n_errno, "EN"));
             fprintf(stderr, "Alert: %d\n", s2n_connection_get_alert(conn));
             S2N_ERROR_PRESERVE_ERRNO();
         }
@@ -79,9 +79,7 @@ int negotiate(struct s2n_connection *conn)
     printf("Server protocol version: %d\n", server_protocol_version);
     printf("Actual protocol version: %d\n", actual_protocol_version);
 
-    if (s2n_get_server_name(conn)) {
-        printf("Server name: %s\n", s2n_get_server_name(conn));
-    }
+    if (s2n_get_server_name(conn)) { printf("Server name: %s\n", s2n_get_server_name(conn)); }
 
     if (s2n_get_application_protocol(conn)) {
         printf("Application protocol: %s\n", s2n_get_application_protocol(conn));
@@ -90,49 +88,44 @@ int negotiate(struct s2n_connection *conn)
     printf("Curve: %s\n", s2n_connection_get_curve(conn));
     printf("KEM: %s\n", s2n_connection_get_kem_name(conn));
 
-    uint32_t length;
+    uint32_t       length;
     const uint8_t *status = s2n_connection_get_ocsp_response(conn, &length);
-    if (status && length > 0) {
-        fprintf(stderr, "OCSP response received, length %u\n", length);
-    }
+    if (status && length > 0) { fprintf(stderr, "OCSP response received, length %u\n", length); }
 
     printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
-    if (s2n_connection_is_session_resumed(conn)) {
-        printf("Resumed session\n");
-    }
+    if (s2n_connection_is_session_resumed(conn)) { printf("Resumed session\n"); }
 
     return 0;
 }
 
 int echo(struct s2n_connection *conn, int sockfd)
 {
-    struct pollfd readers[2];
+    struct pollfd readers[ 2 ];
 
-    readers[0].fd = sockfd;
-    readers[0].events = POLLIN;
-    readers[1].fd = STDIN_FILENO;
-    readers[1].events = POLLIN;
+    readers[ 0 ].fd     = sockfd;
+    readers[ 0 ].events = POLLIN;
+    readers[ 1 ].fd     = STDIN_FILENO;
+    readers[ 1 ].events = POLLIN;
 
     /* Reset errno so that we can't inherit the errno == EINTR exit condition. */
     errno = 0;
 
     /* Act as a simple proxy between stdin and the SSL connection */
-    int p;
+    int                p;
     s2n_blocked_status blocked;
     do {
         while ((p = poll(readers, 2, -1)) > 0) {
-            char buffer[STDIO_BUFSIZE];
-            ssize_t bytes_read = 0;
+            char    buffer[ STDIO_BUFSIZE ];
+            ssize_t bytes_read    = 0;
             ssize_t bytes_written = 0;
 
-            if (readers[0].revents & POLLIN) {
+            if (readers[ 0 ].revents & POLLIN) {
                 do {
                     bytes_read = s2n_recv(conn, buffer, STDIO_BUFSIZE, &blocked);
-                    if (bytes_read == 0) {
-                        return 0;
-                    }
+                    if (bytes_read == 0) { return 0; }
                     if (bytes_read < 0) {
-                        fprintf(stderr, "Error reading from connection: '%s' %d\n", s2n_strerror(s2n_errno, "EN"), s2n_connection_get_alert(conn));
+                        fprintf(stderr, "Error reading from connection: '%s' %d\n", s2n_strerror(s2n_errno, "EN"),
+                                s2n_connection_get_alert(conn));
                         exit(1);
                     }
                     bytes_written = write(STDOUT_FILENO, buffer, bytes_read);
@@ -143,23 +136,19 @@ int echo(struct s2n_connection *conn, int sockfd)
                 } while (blocked);
             }
 
-            if (readers[1].revents & POLLIN) {
+            if (readers[ 1 ].revents & POLLIN) {
                 size_t bytes_available = 0;
 
-                if (ioctl(STDIN_FILENO, FIONREAD, &bytes_available) < 0) {
-                    bytes_available = 1;
-                }
+                if (ioctl(STDIN_FILENO, FIONREAD, &bytes_available) < 0) { bytes_available = 1; }
 
                 do {
                     /* We can only read as much data as we have space for. So it may
                      * take a couple loops to empty stdin. */
                     size_t bytes_to_read = bytes_available;
-                    if (bytes_available > sizeof(buffer)) {
-                        bytes_to_read = sizeof(buffer);
-                    }
+                    if (bytes_available > sizeof(buffer)) { bytes_to_read = sizeof(buffer); }
 
                     bytes_read = read(STDIN_FILENO, buffer, bytes_to_read);
-                    if (bytes_read < 0 && errno != EINTR){
+                    if (bytes_read < 0 && errno != EINTR) {
                         fprintf(stderr, "Error reading from stdin\n");
                         exit(1);
                     }
@@ -184,26 +173,23 @@ int echo(struct s2n_connection *conn, int sockfd)
                     } while (bytes_read > 0);
 
                 } while (bytes_available || blocked);
-
             }
 
-            if (readers[1].revents & POLLHUP) {
+            if (readers[ 1 ].revents & POLLHUP) {
                 /* The stdin pipe hanged up, and we've handled all read from it above */
                 return 0;
             }
 
-            if (readers[0].revents & (POLLERR | POLLHUP | POLLNVAL)) {
+            if (readers[ 0 ].revents & (POLLERR | POLLHUP | POLLNVAL)) {
                 fprintf(stderr, "Error polling from socket: err=%d hup=%d nval=%d\n",
-                        (readers[0].revents & POLLERR ) ? 1 : 0,
-                        (readers[0].revents & POLLHUP ) ? 1 : 0,
-                        (readers[0].revents & POLLNVAL ) ? 1 : 0);
+                        (readers[ 0 ].revents & POLLERR) ? 1 : 0, (readers[ 0 ].revents & POLLHUP) ? 1 : 0,
+                        (readers[ 0 ].revents & POLLNVAL) ? 1 : 0);
                 S2N_ERROR(S2N_ERR_POLLING_FROM_SOCKET);
             }
 
-            if (readers[1].revents & (POLLERR | POLLNVAL)) {
-                fprintf(stderr, "Error polling from socket: err=%d nval=%d\n",
-                        (readers[1].revents & POLLERR ) ? 1 : 0,
-                        (readers[1].revents & POLLNVAL ) ? 1 : 0);
+            if (readers[ 1 ].revents & (POLLERR | POLLNVAL)) {
+                fprintf(stderr, "Error polling from socket: err=%d nval=%d\n", (readers[ 1 ].revents & POLLERR) ? 1 : 0,
+                        (readers[ 1 ].revents & POLLNVAL) ? 1 : 0);
                 S2N_ERROR(S2N_ERR_POLLING_FROM_SOCKET);
             }
         }

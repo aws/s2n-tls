@@ -13,13 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include <stdint.h>
 #include <s2n.h>
+#include <stdint.h>
 
 #include "s2n_test.h"
-
-#include "tls/s2n_tls.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
 int main(int argc, char **argv)
@@ -106,7 +105,8 @@ int main(int argc, char **argv)
         /* Magic number 3 is the length of the certificate_length field */
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->handshake.io), 3);
 
-        EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io, s2n_stuffer_data_available(&client_conn->handshake.io)));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                                        s2n_stuffer_data_available(&client_conn->handshake.io)));
         EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->handshake.io), 3);
 
         /* server receives empty cert */

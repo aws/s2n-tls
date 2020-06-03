@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include "utils/s2n_result.h"
 #include "pq_utils.h"
+#include "utils/s2n_result.h"
 
 S2N_RESULT get_random_bytes(OUT unsigned char *buffer, unsigned int num_bytes);

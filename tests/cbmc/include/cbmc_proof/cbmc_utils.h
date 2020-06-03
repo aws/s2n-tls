@@ -17,14 +17,14 @@
 
 #include <cbmc_proof/nondet.h>
 #include <cbmc_proof/proof_allocators.h>
-#include <utils/s2n_blob.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <utils/s2n_blob.h>
 
 #define IMPLIES(a, b) (!(a) || (b))
 
 struct store_byte_from_buffer {
-    size_t index;
+    size_t  index;
     uint8_t byte;
 };
 
@@ -65,7 +65,7 @@ void save_byte_from_array(const uint8_t *const array, const size_t size, struct 
  * structure. Afterwards, one can prove using the assert_byte_from_blob_matches function
  * whether no byte in the blob has changed.
  */
-void save_byte_from_blob(const struct s2n_blob *blob, struct store_byte_from_buffer * storage);
+void save_byte_from_blob(const struct s2n_blob *blob, struct store_byte_from_buffer *storage);
 
 /**
  * Standard stub function to compare two items.

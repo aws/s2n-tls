@@ -29,7 +29,7 @@
 #define S2N_DRBG_GENERATE_LIMIT 8192
 
 /* We reseed after 2^35 bytes have been generated: from NIST SP800-90A 10.2.1 Table 3 */
-#define S2N_DRBG_RESEED_LIMIT   34359738368
+#define S2N_DRBG_RESEED_LIMIT 34359738368
 
 struct s2n_drbg {
     /* Track how many bytes have been used */
@@ -38,14 +38,14 @@ struct s2n_drbg {
     EVP_CIPHER_CTX *ctx;
 
     /* The current DRBG 'value' */
-    uint8_t v[S2N_DRBG_BLOCK_SIZE];
+    uint8_t v[ S2N_DRBG_BLOCK_SIZE ];
 
     /* Function pointer to the entropy generating function. If it's NULL, then
      * s2n_get_urandom_data() will be used. This function pointer is intended
      * ONLY for the s2n_drbg_test case to use, so that known entropy data can
      * fed to the DRBG test vectors.
      */
-    S2N_RESULT (*entropy_generator) (struct s2n_blob *);
+    S2N_RESULT (*entropy_generator)(struct s2n_blob *);
 
     /* Also used only by the unit tests: which generation of the DRBG is this.
      * This number is incremented every time we reseed.
@@ -66,7 +66,11 @@ struct s2n_drbg {
  * S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR is a deterministic random bit generator using AES 256 in counter mode (AES_128_CTR).
  * It does not use a derivation function on the seed and does not have prediction resistance. This should only be used for testing!
  */
-typedef enum {S2N_AES_128_CTR_NO_DF_PR, S2N_AES_256_CTR_NO_DF_PR, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR} s2n_drbg_mode;
+typedef enum {
+    S2N_AES_128_CTR_NO_DF_PR,
+    S2N_AES_256_CTR_NO_DF_PR,
+    S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR
+} s2n_drbg_mode;
 
 /* Per NIST SP 800-90C 6.3
  *
@@ -75,7 +79,8 @@ typedef enum {S2N_AES_128_CTR_NO_DF_PR, S2N_AES_256_CTR_NO_DF_PR, S2N_DANGEROUS_
  *
   * The security strength provided by s2n's DRBG is either 128 or 256 bits depending on the s2n_drbg_mode passed in.
  */
-extern int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string, const s2n_drbg_mode mode);
+extern int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string,
+                                const s2n_drbg_mode mode);
 extern int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *returned_bits);
 extern int s2n_drbg_wipe(struct s2n_drbg *drbg);
 extern int s2n_drbg_bytes_used(struct s2n_drbg *drbg, uint64_t *bytes_used);

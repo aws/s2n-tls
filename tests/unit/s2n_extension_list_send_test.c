@@ -15,10 +15,9 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
+#include "tls/extensions/s2n_client_supported_versions.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_extension_type_lists.h"
-#include "tls/extensions/s2n_client_supported_versions.h"
 
 int main(int argc, char **argv)
 {
@@ -27,8 +26,8 @@ int main(int argc, char **argv)
 
     /* Safety checks */
     {
-        struct s2n_connection conn = { 0 };
-        struct s2n_stuffer stuffer = { 0 };
+        struct s2n_connection conn    = { 0 };
+        struct s2n_stuffer    stuffer = { 0 };
 
         EXPECT_FAILURE(s2n_extension_list_send(0, NULL, &stuffer));
         EXPECT_FAILURE(s2n_extension_list_send(0, &conn, NULL));

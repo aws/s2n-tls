@@ -12,17 +12,14 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-#include "s2n_test.h"
-
 #include "utils/s2n_timer.h"
 
+#include "s2n_test.h"
 #include "tls/s2n_config.h"
-
-
 
 int mock_clock(void *in, uint64_t *out)
 {
-    *out = *(uint64_t *)in;
+    *out = *( uint64_t * )in;
 
     return 0;
 }
@@ -30,9 +27,9 @@ int mock_clock(void *in, uint64_t *out)
 int main(int argc, char **argv)
 {
     struct s2n_config *config;
-    struct s2n_timer timer;
-    uint64_t nanoseconds;
-    uint64_t mock_time;
+    struct s2n_timer   timer;
+    uint64_t           nanoseconds;
+    uint64_t           mock_time;
 
     BEGIN_TEST();
 

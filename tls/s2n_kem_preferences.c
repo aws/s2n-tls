@@ -18,13 +18,13 @@
 #if !defined(S2N_NO_PQ)
 
 /* Extension list for round 1 PQ KEMs, in order of preference */
-const struct s2n_kem *pq_kems_r1[2] = {
+const struct s2n_kem *pq_kems_r1[ 2 ] = {
     &s2n_bike1_l1_r1,
     &s2n_sike_p503_r1,
 };
 
 /* Extension list for round 2 and round 1 PQ KEMs, in order of preference */
-const struct s2n_kem *pq_kems_r2r1[4] = {
+const struct s2n_kem *pq_kems_r2r1[ 4 ] = {
     &s2n_bike1_l1_r2,
     &s2n_sike_p434_r2,
     &s2n_bike1_l1_r1,
@@ -32,13 +32,13 @@ const struct s2n_kem *pq_kems_r2r1[4] = {
 };
 
 /* Extension list for SIKE P503 Round 1 only (for testing) */
-const struct s2n_kem *pq_kems_sike_r1[1] = {
+const struct s2n_kem *pq_kems_sike_r1[ 1 ] = {
     &s2n_sike_p503_r1,
 };
 
 /* Extension list for SIKE P434 Round 2 and SIKE P503 Round 1 only (for testing),
  * in order of preference */
-const struct s2n_kem *pq_kems_sike_r2r1[2] = {
+const struct s2n_kem *pq_kems_sike_r2r1[ 2 ] = {
     &s2n_sike_p434_r2,
     &s2n_sike_p503_r1,
 };
@@ -46,30 +46,30 @@ const struct s2n_kem *pq_kems_sike_r2r1[2] = {
 /* Includes only round 1 PQ KEM params */
 const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2019_06 = {
     .count = s2n_array_len(pq_kems_r1),
-    .kems = pq_kems_r1,
+    .kems  = pq_kems_r1,
 };
 
 /* Includes round 1 and round 2 PQ KEM params. */
 const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_02 = {
     .count = s2n_array_len(pq_kems_r2r1),
-    .kems = pq_kems_r2r1,
+    .kems  = pq_kems_r2r1,
 };
 
 /* Includes only SIKE round 1 (for integration tests) */
 const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2019_11 = {
     .count = s2n_array_len(pq_kems_sike_r1),
-    .kems = pq_kems_sike_r1,
+    .kems  = pq_kems_sike_r1,
 };
 
 /* Includes only SIKE round 1 and round 2 (for integration tests). */
 const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2020_02 = {
     .count = s2n_array_len(pq_kems_sike_r2r1),
-    .kems = pq_kems_sike_r2r1,
+    .kems  = pq_kems_sike_r2r1,
 };
 
 #endif
 
 const struct s2n_kem_preferences kem_preferences_null = {
     .count = 0,
-    .kems = NULL,
+    .kems  = NULL,
 };

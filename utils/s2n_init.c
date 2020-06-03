@@ -13,26 +13,19 @@
  * permissions and limitations under the License.
  */
 #include "crypto/s2n_fips.h"
-
 #include "error/s2n_errno.h"
-
-#include "tls/s2n_cipher_suites.h"
-#include "tls/extensions/s2n_extension_type.h"
-#include "tls/s2n_security_policies.h"
+#include "openssl/opensslv.h"
 #include "tls/extensions/s2n_client_key_share.h"
-
+#include "tls/extensions/s2n_extension_type.h"
+#include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_security_policies.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
-#include "openssl/opensslv.h"
-
 static void s2n_cleanup_atexit(void);
 
-unsigned long s2n_get_openssl_version(void)
-{
-    return OPENSSL_VERSION_NUMBER;
-}
+unsigned long s2n_get_openssl_version(void) { return OPENSSL_VERSION_NUMBER; }
 
 int s2n_init(void)
 {
@@ -46,9 +39,7 @@ int s2n_init(void)
 
     S2N_ERROR_IF(atexit(s2n_cleanup_atexit) != 0, S2N_ERR_ATEXIT);
 
-    if (getenv("S2N_PRINT_STACKTRACE")) {
-      s2n_stack_traces_enabled_set(true);
-    }
+    if (getenv("S2N_PRINT_STACKTRACE")) { s2n_stack_traces_enabled_set(true); }
 
     return 0;
 }
@@ -73,8 +64,4 @@ static bool s2n_cleanup_atexit_impl(void)
     return a && b && c;
 }
 
-static void s2n_cleanup_atexit(void)
-{
-    s2n_cleanup_atexit_impl();
-}
-
+static void s2n_cleanup_atexit(void) { s2n_cleanup_atexit_impl(); }

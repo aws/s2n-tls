@@ -16,8 +16,8 @@
 #pragma once
 
 #include <s2n.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 /*
  * To easily retrieve error types, we split error values into two parts.
  * The upper 6 bits describe the error type and the lower bits describe the value within the category.

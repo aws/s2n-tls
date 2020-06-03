@@ -13,17 +13,16 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include <s2n.h>
+#include <stdint.h>
+#include <unistd.h>
 
+#include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-#include <unistd.h>
-#include <stdint.h>
-
-#include <s2n.h>
-
-#define ZERO_TO_THIRTY_ONE  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, \
-                            0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
+#define ZERO_TO_THIRTY_ONE                                                                                            \
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, \
+        0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
 
 #define INTERNAL_ERROR_ALERT_HEX 0x50
 
@@ -35,59 +34,65 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    uint8_t client_hello_message[] = {
-        /* Protocol version TLS 1.2 */
-        0x03, 0x03,
-        /* Client random */
-        ZERO_TO_THIRTY_ONE,
-        /* SessionID len - 32 bytes */
-        0x20,
-        /* Session ID */
-        ZERO_TO_THIRTY_ONE,
-        /* Cipher suites len */
-        0x00, 0x02,
-        /* Cipher suite - TLS_RSA_WITH_AES_128_CBC_SHA256 */
-        0x00, 0x3C,
-        /* Compression methods len */
-        0x01,
-        /* Compression method - none */
-        0x00,
-        /* Extensions len */
-        0x00, 0x00
+    uint8_t client_hello_message[] = { /* Protocol version TLS 1.2 */
+                                       0x03, 0x03,
+                                       /* Client random */
+                                       ZERO_TO_THIRTY_ONE,
+                                       /* SessionID len - 32 bytes */
+                                       0x20,
+                                       /* Session ID */
+                                       ZERO_TO_THIRTY_ONE,
+                                       /* Cipher suites len */
+                                       0x00, 0x02,
+                                       /* Cipher suite - TLS_RSA_WITH_AES_128_CBC_SHA256 */
+                                       0x00, 0x3C,
+                                       /* Compression methods len */
+                                       0x01,
+                                       /* Compression method - none */
+                                       0x00,
+                                       /* Extensions len */
+                                       0x00, 0x00
     };
-    size_t body_len = sizeof(client_hello_message);
+    size_t  body_len         = sizeof(client_hello_message);
     uint8_t message_header[] = {
         /* Handshake message type CLIENT HELLO */
         0x01,
         /* Body len */
-        (body_len >> 16) & 0xff, (body_len >> 8) & 0xff, (body_len & 0xff),
+        (body_len >> 16) & 0xff,
+        (body_len >> 8) & 0xff,
+        (body_len & 0xff),
     };
-    size_t message_len = sizeof(message_header) + body_len;
+    size_t  message_len     = sizeof(message_header) + body_len;
     uint8_t record_header[] = {
         /* Record type HANDSHAKE */
         0x16,
         /* Protocol version TLS 1.2 */
-        0x03, 0x03,
+        0x03,
+        0x03,
         /* Message len */
-        (message_len >> 8) & 0xff, (message_len & 0xff),
+        (message_len >> 8) & 0xff,
+        (message_len & 0xff),
     };
 
     uint8_t alert_record[] = {
         /* Record type ALERT */
         0x15,
         /* Protocol version TLS 1.2 */
-        0x03, 0x03,
+        0x03,
+        0x03,
         /* Length */
-        0x00, 0x02,
+        0x00,
+        0x02,
         /* Fatal alert "internal_error" */
-        0x02, INTERNAL_ERROR_ALERT_HEX,
+        0x02,
+        INTERNAL_ERROR_ALERT_HEX,
     };
 
-    struct s2n_connection *server_conn;
-    struct s2n_config *server_config;
-    s2n_blocked_status server_blocked;
-    char *cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE);
-    char *private_key = malloc(S2N_MAX_TEST_PEM_SIZE);
+    struct s2n_connection *        server_conn;
+    struct s2n_config *            server_config;
+    s2n_blocked_status             server_blocked;
+    char *                         cert_chain  = malloc(S2N_MAX_TEST_PEM_SIZE);
+    char *                         private_key = malloc(S2N_MAX_TEST_PEM_SIZE);
     struct s2n_cert_chain_and_key *chain_and_key;
 
     struct s2n_test_piped_io piped_io;
@@ -107,7 +112,8 @@ int main(int argc, char **argv)
     /* Send the client hello */
     EXPECT_EQUAL(write(piped_io.client_write, record_header, sizeof(record_header)), sizeof(record_header));
     EXPECT_EQUAL(write(piped_io.client_write, message_header, sizeof(message_header)), sizeof(message_header));
-    EXPECT_EQUAL(write(piped_io.client_write, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
+    EXPECT_EQUAL(write(piped_io.client_write, client_hello_message, sizeof(client_hello_message)),
+                 sizeof(client_hello_message));
 
     /* Send an alert from client to server */
     EXPECT_EQUAL(write(piped_io.client_write, alert_record, sizeof(alert_record)), sizeof(alert_record));

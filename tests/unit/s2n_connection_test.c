@@ -13,17 +13,16 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
-
 #include "tls/s2n_connection.h"
 
-#include "tls/extensions/s2n_extension_list.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_client_server_name.h"
+#include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_tls.h"
 
 const uint8_t actual_version = 1, client_version = 2, server_version = 3;
-static int s2n_set_test_protocol_versions(struct s2n_connection *conn)
+static int    s2n_set_test_protocol_versions(struct s2n_connection *conn)
 {
     conn->actual_protocol_version = actual_version;
     conn->client_protocol_version = client_version;
@@ -31,12 +30,12 @@ static int s2n_set_test_protocol_versions(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-bool s2n_server_name_test_callback_flag = false;
+bool       s2n_server_name_test_callback_flag = false;
 static int s2n_server_name_test_callback(struct s2n_connection *conn, void *ctx)
 {
-    const char* expected_server_name = *(const char**) ctx;
+    const char *expected_server_name = *( const char ** )ctx;
 
-    const char* actual_server_name = NULL;
+    const char *actual_server_name = NULL;
     EXPECT_NOT_NULL(actual_server_name = s2n_get_server_name(conn));
     EXPECT_STRING_EQUAL(actual_server_name, expected_server_name);
 
@@ -50,7 +49,7 @@ int main(int argc, char **argv)
 
     /* s2n_get_server_name */
     {
-        const char* test_server_name = "A server name";
+        const char *test_server_name = "A server name";
 
         /* Safety check */
         EXPECT_NULL(s2n_get_server_name(NULL));
@@ -71,7 +70,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_set_server_name(conn, test_server_name));
 
-            const char* actual_server_name = NULL;
+            const char *actual_server_name = NULL;
             EXPECT_NOT_NULL(actual_server_name = s2n_get_server_name(conn));
             EXPECT_STRING_EQUAL(actual_server_name, test_server_name);
 
@@ -91,10 +90,11 @@ int main(int argc, char **argv)
 
             s2n_extension_type_id extension_id;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SERVER_NAME, &extension_id));
-            server_conn->client_hello.extensions.parsed_extensions[extension_id].extension_type = TLS_EXTENSION_SERVER_NAME;
-            server_conn->client_hello.extensions.parsed_extensions[extension_id].extension = stuffer.blob;
+            server_conn->client_hello.extensions.parsed_extensions[ extension_id ].extension_type =
+                TLS_EXTENSION_SERVER_NAME;
+            server_conn->client_hello.extensions.parsed_extensions[ extension_id ].extension = stuffer.blob;
 
-            const char* actual_server_name = NULL;
+            const char *actual_server_name = NULL;
             EXPECT_NOT_NULL(actual_server_name = s2n_get_server_name(server_conn));
             EXPECT_STRING_EQUAL(actual_server_name, test_server_name);
 
@@ -121,7 +121,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
-                    s2n_stuffer_data_available(&client_conn->handshake.io)));
+                                            s2n_stuffer_data_available(&client_conn->handshake.io)));
 
             /* This function can succeed or fail -- it doesn't affect the test. */
             s2n_client_hello_recv(server_conn);

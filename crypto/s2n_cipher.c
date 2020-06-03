@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include <openssl/evp.h>
-
 #include "crypto/s2n_cipher.h"
+
+#include <openssl/evp.h>
 
 #include "utils/s2n_safety.h"
 

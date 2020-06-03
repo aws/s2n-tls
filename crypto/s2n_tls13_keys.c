@@ -13,18 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include <stdio.h>
-
-#include "error/s2n_errno.h"
-
-#include "stuffer/s2n_stuffer.h"
-
-#include "crypto/s2n_hmac.h"
-#include "crypto/s2n_hkdf.h"
 #include "crypto/s2n_tls13_keys.h"
 
+#include <stdio.h>
+
+#include "crypto/s2n_hkdf.h"
+#include "crypto/s2n_hmac.h"
+#include "error/s2n_errno.h"
+#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_blob.h"
-#include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
@@ -94,7 +91,8 @@ S2N_BLOB_LABEL(s2n_tls13_label_application_traffic_secret_update, "traffic upd")
 static const struct s2n_blob zero_length_blob = { .data = NULL, .size = 0 };
 
 /* Message transcript hash based on selected HMAC algorithm */
-static int s2n_tls13_transcript_message_hash(struct s2n_tls13_keys *keys, const struct s2n_blob *message, struct s2n_blob *message_digest)
+static int s2n_tls13_transcript_message_hash(struct s2n_tls13_keys *keys, const struct s2n_blob *message,
+                                             struct s2n_blob *message_digest)
 {
     notnull_check(keys);
     notnull_check(message);
@@ -130,7 +128,8 @@ int s2n_tls13_keys_init(struct s2n_tls13_keys *keys, s2n_hmac_algorithm alg)
 /*
  * Frees any allocation
  */
-int s2n_tls13_keys_free(struct s2n_tls13_keys *keys) {
+int s2n_tls13_keys_free(struct s2n_tls13_keys *keys)
+{
     notnull_check(keys);
 
     GUARD(s2n_hmac_free(&keys->hmac));
@@ -156,7 +155,7 @@ int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *keys)
     s2n_tls13_key_blob(message_digest, keys->size);
     GUARD(s2n_tls13_transcript_message_hash(keys, &zero_length_blob, &message_digest));
     GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-        &s2n_tls13_label_derived_secret, &message_digest, &keys->derive_secret));
+                                &s2n_tls13_label_derived_secret, &message_digest, &keys->derive_secret));
 
     return 0;
 }
@@ -164,11 +163,9 @@ int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *keys)
 /*
  * Derives handshake secrets
  */
-int s2n_tls13_derive_handshake_secrets(struct s2n_tls13_keys *keys,
-                                        const struct s2n_blob *ecdhe,
-                                        struct s2n_hash_state *client_server_hello_hash,
-                                        struct s2n_blob *client_secret,
-                                        struct s2n_blob *server_secret)
+int s2n_tls13_derive_handshake_secrets(struct s2n_tls13_keys *keys, const struct s2n_blob *ecdhe,
+                                       struct s2n_hash_state *client_server_hello_hash, struct s2n_blob *client_secret,
+                                       struct s2n_blob *server_secret)
 {
     notnull_check(keys);
     notnull_check(ecdhe);
@@ -190,14 +187,14 @@ int s2n_tls13_derive_handshake_secrets(struct s2n_tls13_keys *keys,
 
     /* produce client + server traffic secrets */
     GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-        &s2n_tls13_label_client_handshake_traffic_secret, &message_digest, client_secret));
+                                &s2n_tls13_label_client_handshake_traffic_secret, &message_digest, client_secret));
     GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-        &s2n_tls13_label_server_handshake_traffic_secret, &message_digest, server_secret));
+                                &s2n_tls13_label_server_handshake_traffic_secret, &message_digest, server_secret));
 
     /* derive next secret */
     GUARD(s2n_tls13_transcript_message_hash(keys, &zero_length_blob, &message_digest));
     GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-        &s2n_tls13_label_derived_secret, &message_digest, &keys->derive_secret));
+                                &s2n_tls13_label_derived_secret, &message_digest, &keys->derive_secret));
 
     return 0;
 }
@@ -205,7 +202,8 @@ int s2n_tls13_derive_handshake_secrets(struct s2n_tls13_keys *keys,
 /*
  * Derives application/master secrets
  */
-int s2n_tls13_derive_application_secrets(struct s2n_tls13_keys *keys, struct s2n_hash_state *hashes, struct s2n_blob *client_secret, struct s2n_blob *server_secret)
+int s2n_tls13_derive_application_secrets(struct s2n_tls13_keys *keys, struct s2n_hash_state *hashes,
+                                         struct s2n_blob *client_secret, struct s2n_blob *server_secret)
 {
     notnull_check(keys);
     notnull_check(hashes);
@@ -230,9 +228,9 @@ int s2n_tls13_derive_application_secrets(struct s2n_tls13_keys *keys, struct s2n
 
     /* produce client + server traffic secrets */
     GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-        &s2n_tls13_label_client_application_traffic_secret, &message_digest, client_secret));
+                                &s2n_tls13_label_client_application_traffic_secret, &message_digest, client_secret));
     GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-        &s2n_tls13_label_server_application_traffic_secret, &message_digest, server_secret));
+                                &s2n_tls13_label_server_application_traffic_secret, &message_digest, server_secret));
 
     /* exporter and resumption master secrets can be derived here */
 
@@ -242,17 +240,18 @@ int s2n_tls13_derive_application_secrets(struct s2n_tls13_keys *keys, struct s2n
 /*
  * Derive Traffic Key and IV based on input secret
  */
-int s2n_tls13_derive_traffic_keys(struct s2n_tls13_keys *keys, struct s2n_blob *secret, struct s2n_blob *key, struct s2n_blob *iv)
+int s2n_tls13_derive_traffic_keys(struct s2n_tls13_keys *keys, struct s2n_blob *secret, struct s2n_blob *key,
+                                  struct s2n_blob *iv)
 {
     notnull_check(keys);
     notnull_check(secret);
     notnull_check(key);
     notnull_check(iv);
 
-    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, secret,
-        &s2n_tls13_label_traffic_secret_key, &zero_length_blob, key));
-    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, secret,
-        &s2n_tls13_label_traffic_secret_iv, &zero_length_blob, iv));
+    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, secret, &s2n_tls13_label_traffic_secret_key,
+                                &zero_length_blob, key));
+    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, secret, &s2n_tls13_label_traffic_secret_iv,
+                                &zero_length_blob, iv));
     return 0;
 }
 
@@ -260,9 +259,11 @@ int s2n_tls13_derive_traffic_keys(struct s2n_tls13_keys *keys, struct s2n_blob *
  * Generate finished key for compute finished hashes/MACs
  * https://tools.ietf.org/html/rfc8446#section-4.4.4
  */
-int s2n_tls13_derive_finished_key(struct s2n_tls13_keys *keys, struct s2n_blob *secret_key, struct s2n_blob *output_finish_key)
+int s2n_tls13_derive_finished_key(struct s2n_tls13_keys *keys, struct s2n_blob *secret_key,
+                                  struct s2n_blob *output_finish_key)
 {
-    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, secret_key, &s2n_tls13_label_finished, &zero_length_blob, output_finish_key));
+    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, secret_key, &s2n_tls13_label_finished,
+                                &zero_length_blob, output_finish_key));
 
     return 0;
 }
@@ -272,7 +273,8 @@ int s2n_tls13_derive_finished_key(struct s2n_tls13_keys *keys, struct s2n_blob *
  * with a finished key and hash state
  * https://tools.ietf.org/html/rfc8446#section-4.4.4
  */
-int s2n_tls13_calculate_finished_mac(struct s2n_tls13_keys *keys, struct s2n_blob *finished_key, struct s2n_hash_state *hash_state, struct s2n_blob *finished_verify)
+int s2n_tls13_calculate_finished_mac(struct s2n_tls13_keys *keys, struct s2n_blob *finished_key,
+                                     struct s2n_hash_state *hash_state, struct s2n_blob *finished_verify)
 {
     /* Set up a blob to contain hash */
     s2n_tls13_key_blob(transcript_hash, keys->size);
@@ -292,7 +294,8 @@ int s2n_tls13_calculate_finished_mac(struct s2n_tls13_keys *keys, struct s2n_blo
 /*
  * Derives next generation of traffic secret
  */
-int s2n_tls13_update_application_traffic_secret(struct s2n_tls13_keys *keys, struct s2n_blob *old_secret, struct s2n_blob *new_secret)
+int s2n_tls13_update_application_traffic_secret(struct s2n_tls13_keys *keys, struct s2n_blob *old_secret,
+                                                struct s2n_blob *new_secret)
 {
     notnull_check(keys);
     notnull_check(old_secret);

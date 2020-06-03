@@ -24,7 +24,8 @@
 
 #define RSP_FILE "kats/bike_r1.kat"
 
-int main(int argc, char **argv, char **envp) {
+int main(int argc, char **argv, char **envp)
+{
     BEGIN_TEST();
 
 #if !defined(S2N_NO_PQ)

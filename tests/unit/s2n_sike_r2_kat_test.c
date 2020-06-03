@@ -17,14 +17,15 @@
  * Copyright © 2017 Bassham, Lawrence E (Fed). All rights reserved.
  */
 
+#include "crypto/s2n_fips.h"
 #include "s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_kem.h"
-#include "crypto/s2n_fips.h"
 
 #define RSP_FILE "kats/sike_r2.kat"
 
-int main(int argc, char **argv, char **envp) {
+int main(int argc, char **argv, char **envp)
+{
     BEGIN_TEST();
 
 #if !defined(S2N_NO_PQ)

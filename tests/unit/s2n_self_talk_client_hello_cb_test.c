@@ -13,37 +13,35 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include <fcntl.h>
+#include <s2n.h>
+#include <stdint.h>
+#include <sys/wait.h>
+#include <tls/s2n_connection.h>
+#include <unistd.h>
 
+#include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-#include <sys/wait.h>
-#include <unistd.h>
-#include <stdint.h>
-#include <fcntl.h>
-
-#include <s2n.h>
-#include <tls/s2n_connection.h>
-
 struct client_hello_context {
-    int invoked;
-    int swap_config;
+    int                invoked;
+    int                swap_config;
     struct s2n_config *config;
 };
 
 int mock_client(struct s2n_test_piped_io *piped_io, int expect_failure, int expect_server_name_used)
 {
     struct s2n_connection *conn;
-    struct s2n_config *config;
-    s2n_blocked_status blocked;
-    int result = 0;
-    int rc = 0;
-    const char *protocols[] = { "h2", "http/1.1" };
+    struct s2n_config *    config;
+    s2n_blocked_status     blocked;
+    int                    result      = 0;
+    int                    rc          = 0;
+    const char *           protocols[] = { "h2", "http/1.1" };
 
     /* Give the server a chance to listen */
     sleep(1);
 
-    conn = s2n_connection_new(S2N_CLIENT);
+    conn   = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
     s2n_config_set_protocol_preferences(config, protocols, 2);
     s2n_config_disable_x509_verification(config);
@@ -55,33 +53,25 @@ int mock_client(struct s2n_test_piped_io *piped_io, int expect_failure, int expe
 
     rc = s2n_negotiate(conn, &blocked);
     if (expect_failure) {
-        if (!rc) {
-            result = 1;
-        }
+        if (!rc) { result = 1; }
 
-        if (s2n_connection_get_alert(conn) != 40){
-            result = 2;
-        }
+        if (s2n_connection_get_alert(conn) != 40) { result = 2; }
     } else {
-        char buffer[0xffff];
+        char buffer[ 0xffff ];
 
-        if (conn->server_name_used != expect_server_name_used) {
-            result = 1;
-        }
+        if (conn->server_name_used != expect_server_name_used) { result = 1; }
 
-        if (rc < 0) {
-            result = 2;
-        }
+        if (rc < 0) { result = 2; }
 
         for (int i = 1; i < 0xffff; i += 100) {
             memset(buffer, 33, sizeof(char) * i);
             s2n_send(conn, buffer, i, &blocked);
         }
 
-        int shutdown_rc= -1;
+        int shutdown_rc = -1;
         do {
             shutdown_rc = s2n_shutdown(conn, &blocked);
-        } while(shutdown_rc != 0);
+        } while (shutdown_rc != 0);
     }
 
     s2n_connection_free(conn);
@@ -99,49 +89,41 @@ int mock_client(struct s2n_test_piped_io *piped_io, int expect_failure, int expe
 int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
 {
     struct client_hello_context *client_hello_ctx;
-    struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(conn);
-    const char *sent_server_name = "example.com";
-    const char *received_server_name;
+    struct s2n_client_hello *    client_hello     = s2n_connection_get_client_hello(conn);
+    const char *                 sent_server_name = "example.com";
+    const char *                 received_server_name;
 
-    if (ctx == NULL) {
-        return -1;
-    }
+    if (ctx == NULL) { return -1; }
     client_hello_ctx = ctx;
 
     /* Increment counter to ensure that callback was invoked */
     client_hello_ctx->invoked++;
 
     /* Validate SNI extension */
-    uint8_t expected_server_name[] = {
-            /* Server names len */
-            0x00, 0x0E,
-            /* Server name type - host name */
-            0x00,
-            /* First server name len */
-            0x00, 0x0B,
-            /* First server name, matches sent_server_name */
-            'e', 'x', 'a', 'm', 'p', 'l', 'e', '.', 'c', 'o', 'm'};
+    uint8_t expected_server_name[] = { /* Server names len */
+                                       0x00, 0x0E,
+                                       /* Server name type - host name */
+                                       0x00,
+                                       /* First server name len */
+                                       0x00, 0x0B,
+                                       /* First server name, matches sent_server_name */
+                                       'e', 'x', 'a', 'm', 'p', 'l', 'e', '.', 'c', 'o', 'm'
+    };
 
     /* Get SNI extension from client hello */
     uint32_t len = s2n_client_hello_get_extension_length(client_hello, S2N_EXTENSION_SERVER_NAME);
-    if (len != 16) {
-        return -1;
-    }
+    if (len != 16) { return -1; }
 
-    uint8_t ser_name[16] = {0};
+    uint8_t ser_name[ 16 ] = { 0 };
     if (s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_SERVER_NAME, ser_name, len) <= 0) {
         return -1;
     }
 
     /* Verify correct server name is returned. */
     received_server_name = s2n_get_server_name(conn);
-    if (received_server_name == NULL || strcmp(received_server_name, sent_server_name)) {
-        return -1;
-    }
+    if (received_server_name == NULL || strcmp(received_server_name, sent_server_name)) { return -1; }
 
-    if (memcmp(ser_name, expected_server_name, len) != 0) {
-        return -1;
-    }
+    if (memcmp(ser_name, expected_server_name, len) != 0) { return -1; }
 
     if (client_hello_ctx->swap_config) {
         s2n_connection_set_config(conn, client_hello_ctx->config);
@@ -155,9 +137,7 @@ int client_hello_fail_handshake(struct s2n_connection *conn, void *ctx)
 {
     struct client_hello_context *client_hello_ctx;
 
-    if (ctx == NULL) {
-        return -1;
-    }
+    if (ctx == NULL) { return -1; }
     client_hello_ctx = ctx;
 
     /* Incremet counter to ensure that callback was invoked */
@@ -169,16 +149,16 @@ int client_hello_fail_handshake(struct s2n_connection *conn, void *ctx)
 
 int main(int argc, char **argv)
 {
-    char buffer[0xffff];
-    struct s2n_connection *conn;
-    struct s2n_config *config;
-    struct s2n_config *swap_config;
-    s2n_blocked_status blocked;
-    int status;
-    pid_t pid;
-    struct client_hello_context client_hello_ctx;
-    char *cert_chain_pem;
-    char *private_key_pem;
+    char                           buffer[ 0xffff ];
+    struct s2n_connection *        conn;
+    struct s2n_config *            config;
+    struct s2n_config *            swap_config;
+    s2n_blocked_status             blocked;
+    int                            status;
+    pid_t                          pid;
+    struct client_hello_context    client_hello_ctx;
+    char *                         cert_chain_pem;
+    char *                         private_key_pem;
     struct s2n_cert_chain_and_key *chain_and_key;
 
     BEGIN_TEST();
@@ -204,9 +184,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_protocol_preferences(swap_config, protocols, 1));
 
     /* Prepare context */
-    client_hello_ctx.invoked = 0;
+    client_hello_ctx.invoked     = 0;
     client_hello_ctx.swap_config = 1;
-    client_hello_ctx.config = swap_config;
+    client_hello_ctx.config      = swap_config;
 
     /* Set up the callback to swap config on client hello */
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_swap_config, &client_hello_ctx));
@@ -244,11 +224,11 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(client_hello_ctx.invoked, 1);
 
     /* Expect most preferred negotiated protocol */
-    EXPECT_STRING_EQUAL(s2n_get_application_protocol(conn), protocols[0]);
+    EXPECT_STRING_EQUAL(s2n_get_application_protocol(conn), protocols[ 0 ]);
 
     for (int i = 1; i < 0xffff; i += 100) {
-        char * ptr = buffer;
-        int size = i;
+        char *ptr  = buffer;
+        int   size = i;
 
         do {
             int bytes_read = 0;
@@ -256,11 +236,9 @@ int main(int argc, char **argv)
 
             size -= bytes_read;
             ptr += bytes_read;
-        } while(size);
+        } while (size);
 
-        for (int j = 0; j < i; j++) {
-            EXPECT_EQUAL(buffer[j], 33);
-        }
+        for (int j = 0; j < i; j++) { EXPECT_EQUAL(buffer[ j ], 33); }
     }
 
     EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
@@ -276,9 +254,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     /* Setup ClientHello callback */
-    client_hello_ctx.invoked = 0;
+    client_hello_ctx.invoked     = 0;
     client_hello_ctx.swap_config = 0;
-    client_hello_ctx.config = NULL;
+    client_hello_ctx.config      = NULL;
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_swap_config, &client_hello_ctx));
 
     /* Create a pipe */
@@ -315,8 +293,8 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(client_hello_ctx.invoked, 1);
 
     for (int i = 1; i < 0xffff; i += 100) {
-        char * ptr = buffer;
-        int size = i;
+        char *ptr  = buffer;
+        int   size = i;
 
         do {
             int bytes_read = 0;
@@ -324,11 +302,9 @@ int main(int argc, char **argv)
 
             size -= bytes_read;
             ptr += bytes_read;
-        } while(size);
+        } while (size);
 
-        for (int j = 0; j < i; j++) {
-            EXPECT_EQUAL(buffer[j], 33);
-        }
+        for (int j = 0; j < i; j++) { EXPECT_EQUAL(buffer[ j ], 33); }
     }
 
     EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
@@ -345,9 +321,9 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     /* Setup ClientHello callback */
-    client_hello_ctx.invoked = 0;
+    client_hello_ctx.invoked     = 0;
     client_hello_ctx.swap_config = 0;
-    client_hello_ctx.config = NULL;
+    client_hello_ctx.config      = NULL;
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_fail_handshake, &client_hello_ctx));
 
     /* Create a pipe */

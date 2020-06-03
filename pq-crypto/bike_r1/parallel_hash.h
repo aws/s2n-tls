@@ -36,7 +36,4 @@
 //
 // This function assumes that m is of N_BITS length and that
 // ((la / MAX_MB_SLICES) >= SLICE_REM)
-void
-parallel_hash(OUT sha_hash_t *out_hash,
-              IN const uint8_t *m,
-              IN const uint32_t la);
+void parallel_hash(OUT sha_hash_t *out_hash, IN const uint8_t *m, IN const uint32_t la);

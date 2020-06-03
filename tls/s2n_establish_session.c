@@ -13,18 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include <stdint.h>
 #include <s2n.h>
+#include <stdint.h>
 
 #include "error/s2n_errno.h"
-
 #include "stuffer/s2n_stuffer.h"
-
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-
 #include "utils/s2n_array.h"
-
 
 /* Establishing a session requires reading the CLIENT_HELLO message and then generating security parameters.
  *
@@ -42,8 +38,7 @@ int s2n_establish_session(struct s2n_connection *conn)
 
     GUARD(s2n_conn_set_handshake_type(conn));
 
-    if (conn->client_hello_version != S2N_SSLv2)
-    {
+    if (conn->client_hello_version != S2N_SSLv2) {
         /* We've selected the parameters for the handshake, update the required hashes for this connection */
         GUARD(s2n_conn_update_required_handshake_hashes(conn));
     }
@@ -52,4 +47,3 @@ int s2n_establish_session(struct s2n_connection *conn)
 
     return 0;
 }
-

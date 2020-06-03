@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
 #include "crypto/s2n_fips.h"
 #include "pq-crypto/bike_r2/bike_r2_kem.h"
+#include "s2n_test.h"
 
 int main(int argc, char **argv)
 {
@@ -23,11 +23,11 @@ int main(int argc, char **argv)
 
 #if !defined(S2N_NO_PQ)
 
-    unsigned char publicKey[BIKE1_L1_R2_PUBLIC_KEY_BYTES];
-    unsigned char privateKey[BIKE1_L1_R2_SECRET_KEY_BYTES];
-    unsigned char clientSharedSecretPlaintext[BIKE1_L1_R2_SHARED_SECRET_BYTES];
-    unsigned char serverSharedSecretPlaintext[BIKE1_L1_R2_SHARED_SECRET_BYTES];
-    unsigned char encryptedSecret[BIKE1_L1_R2_CIPHERTEXT_BYTES];
+    unsigned char publicKey[ BIKE1_L1_R2_PUBLIC_KEY_BYTES ];
+    unsigned char privateKey[ BIKE1_L1_R2_SECRET_KEY_BYTES ];
+    unsigned char clientSharedSecretPlaintext[ BIKE1_L1_R2_SHARED_SECRET_BYTES ];
+    unsigned char serverSharedSecretPlaintext[ BIKE1_L1_R2_SHARED_SECRET_BYTES ];
+    unsigned char encryptedSecret[ BIKE1_L1_R2_CIPHERTEXT_BYTES ];
 
     if (s2n_is_in_fips_mode()) {
         /* There is no support for PQ KEMs while in FIPS mode */
@@ -42,4 +42,3 @@ int main(int argc, char **argv)
 #endif
     END_TEST();
 }
-

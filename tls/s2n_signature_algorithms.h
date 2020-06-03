@@ -19,21 +19,21 @@
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_signature.h"
-
 #include "stuffer/s2n_stuffer.h"
 
 struct s2n_connection;
 
 struct s2n_sig_scheme_list {
-    uint16_t iana_list[TLS_SIGNATURE_SCHEME_LIST_MAX_LEN];
-    uint8_t len;
+    uint16_t iana_list[ TLS_SIGNATURE_SCHEME_LIST_MAX_LEN ];
+    uint8_t  len;
 };
 
 int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out);
-int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn, struct s2n_sig_scheme_list *sig_hash_algs,
-                                                            struct s2n_signature_scheme *sig_scheme_out);
+int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *      conn,
+                                                    struct s2n_sig_scheme_list * sig_hash_algs,
+                                                    struct s2n_signature_scheme *sig_scheme_out);
 int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn, struct s2n_stuffer *in,
-                                                            struct s2n_signature_scheme *chosen_sig_scheme);
+                                                     struct s2n_signature_scheme *chosen_sig_scheme);
 
 int s2n_recv_supported_sig_scheme_list(struct s2n_stuffer *in, struct s2n_sig_scheme_list *sig_hash_algs);
 int s2n_send_supported_sig_scheme_list(struct s2n_connection *conn, struct s2n_stuffer *out);
