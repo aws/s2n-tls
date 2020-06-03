@@ -37,14 +37,15 @@ void s2n_stuffer_resize_if_empty_harness() {
 
     /* Save previous state. */
     struct s2n_stuffer old_stuffer = *stuffer;
+    struct store_byte_from_buffer old_byte;
+    save_byte_from_blob(&stuffer->blob, &old_byte);
 
     /* Operation under verification. */
-    if (s2n_stuffer_resize_if_empty(stuffer, size) == S2N_SUCCESS) {
-        if(size != 0 && old_stuffer.blob.data == NULL) {
-            assert(stuffer->blob.growable == 1);
-            assert(stuffer->blob.size == size);
-            assert(stuffer->blob.allocated >= size);
-        }
+    if (s2n_stuffer_resize_if_empty(stuffer, size) == S2N_SUCCESS &&
+        size != 0 && old_stuffer.blob.data == NULL) {
+        assert(stuffer->blob.growable);
+        assert(stuffer->blob.size == size);
+        assert(stuffer->blob.allocated >= size);
     } else {
         assert(stuffer->blob.size == old_stuffer.blob.size);
         assert(stuffer->write_cursor == old_stuffer.write_cursor);
@@ -52,6 +53,7 @@ void s2n_stuffer_resize_if_empty_harness() {
         assert(stuffer->alloced == old_stuffer.alloced);
         assert(stuffer->growable == old_stuffer.growable);
         assert(stuffer->tainted == old_stuffer.tainted);
+        assert_byte_from_blob_matches(&stuffer->blob, &old_byte);
     }
 
     /* Post-conditions. */
