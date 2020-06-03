@@ -17,6 +17,7 @@
 
 #include "tls/s2n_connection.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_result.h"
 
 typedef int (*s2n_async_pkey_sign_complete)(struct s2n_connection *conn, struct s2n_blob *signature);
 typedef int (*s2n_async_pkey_decrypt_complete)(struct s2n_connection *conn, int rsa_failed, struct s2n_blob *decrypted);
@@ -31,14 +32,14 @@ struct s2n_async_pkey_op;
 #define S2N_ASYNC_PKEY_GUARD(conn)                                         \
     do {                                                                   \
         __typeof(conn) __tmp_conn = (conn);                                \
-        notnull_check(__tmp_conn);                                         \
+        GUARD_NONNULL(__tmp_conn);                                         \
         switch (conn->handshake.async_state) {                             \
             case S2N_ASYNC_NOT_INVOKED:                                    \
                 break;                                                     \
                                                                            \
             case S2N_ASYNC_INVOKING_CALLBACK:                              \
             case S2N_ASYNC_INVOKED_WAITING:                                \
-                S2N_ERROR(S2N_ERR_ASYNC_BLOCKED);                          \
+                BAIL_POSIX(S2N_ERR_ASYNC_BLOCKED);                         \
                                                                            \
             case S2N_ASYNC_INVOKED_COMPLETE:                               \
                 /* clean up state and return a success from handler */     \
@@ -55,16 +56,16 @@ struct s2n_async_pkey_op;
  * call, we use a macro which directly returns the result of s2n_async* operation forcing compiler to error out on
  * unreachable code and forcing developer to use on_complete function instead */
 #define S2N_ASYNC_PKEY_DECRYPT(conn, encrypted, init_decrypted, on_complete) \
-    return s2n_async_pkey_decrypt(conn, encrypted, init_decrypted, on_complete);
+    return S2N_RESULT_TO_POSIX(s2n_async_pkey_decrypt(conn, encrypted, init_decrypted, on_complete));
 
 #define S2N_ASYNC_PKEY_SIGN(conn, sig_alg, digest, on_complete) \
-    return s2n_async_pkey_sign(conn, sig_alg, digest, on_complete);
+    return S2N_RESULT_TO_POSIX(s2n_async_pkey_sign(conn, sig_alg, digest, on_complete));
 
 int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *key);
 int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn);
 int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
 
-int s2n_async_pkey_decrypt(struct s2n_connection *conn, struct s2n_blob *encrypted, struct s2n_blob *init_decrypted,
+S2N_RESULT s2n_async_pkey_decrypt(struct s2n_connection *conn, struct s2n_blob *encrypted, struct s2n_blob *init_decrypted,
                            s2n_async_pkey_decrypt_complete on_complete);
-int s2n_async_pkey_sign(struct s2n_connection *conn, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
+S2N_RESULT s2n_async_pkey_sign(struct s2n_connection *conn, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
                         s2n_async_pkey_sign_complete on_complete);
