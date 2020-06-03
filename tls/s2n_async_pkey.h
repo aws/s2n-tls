@@ -20,7 +20,7 @@
 #include "utils/s2n_result.h"
 
 typedef int (*s2n_async_pkey_sign_complete)(struct s2n_connection *conn, struct s2n_blob *signature);
-typedef int (*s2n_async_pkey_decrypt_complete)(struct s2n_connection *conn, int rsa_failed, struct s2n_blob *decrypted);
+typedef int (*s2n_async_pkey_decrypt_complete)(struct s2n_connection *conn, bool rsa_failed, struct s2n_blob *decrypted);
 
 struct s2n_async_pkey_op;
 
@@ -45,7 +45,7 @@ struct s2n_async_pkey_op;
                 /* clean up state and return a success from handler */     \
                 __tmp_conn->handshake.async_state = S2N_ASYNC_NOT_INVOKED; \
                 GUARD(s2n_conn_clear_handshake_read_block(__tmp_conn));    \
-                return 0;                                                  \
+                return S2N_SUCCESS;                                        \
         }                                                                  \
     } while (0)
 

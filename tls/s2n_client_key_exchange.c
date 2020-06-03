@@ -40,7 +40,7 @@
 typedef int s2n_kex_client_key_method(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);
 typedef void *s2n_stuffer_action(struct s2n_stuffer *stuffer, uint32_t data_len);
 
-static int s2n_rsa_client_key_recv_complete(struct s2n_connection *conn, int rsa_failed, struct s2n_blob *shared_key);
+static int s2n_rsa_client_key_recv_complete(struct s2n_connection *conn, bool rsa_failed, struct s2n_blob *shared_key);
 
 static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob *combined_shared_key,
         s2n_kex_client_key_method kex_method, uint32_t *cursor, s2n_stuffer_action stuffer_action)
@@ -139,7 +139,7 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
     S2N_ASYNC_PKEY_DECRYPT(conn, &encrypted, shared_key, s2n_rsa_client_key_recv_complete);
 }
 
-int s2n_rsa_client_key_recv_complete(struct s2n_connection *conn, int rsa_failed, struct s2n_blob *decrypted)
+int s2n_rsa_client_key_recv_complete(struct s2n_connection *conn, bool rsa_failed, struct s2n_blob *decrypted)
 {
     S2N_ERROR_IF(decrypted->size != S2N_TLS_SECRET_LEN, S2N_ERR_SIZE_MISMATCH);
 
@@ -155,10 +155,9 @@ int s2n_rsa_client_key_recv_complete(struct s2n_connection *conn, int rsa_failed
     client_hello_protocol_version[0] = legacy_client_hello_protocol_version / 10;
     client_hello_protocol_version[1] = legacy_client_hello_protocol_version % 10;
 
-    /* Set rsa_failed to 1 if s2n_pkey_decrypt returns anything other than zero */
-    conn->handshake.rsa_failed = !!rsa_failed;
+    conn->handshake.rsa_failed = rsa_failed;
 
-    /* Set rsa_failed to 1, if it isn't already, if the protocol version isn't what we expect */
+    /* Set rsa_failed to true, if it isn't already, if the protocol version isn't what we expect */
     conn->handshake.rsa_failed |= !s2n_constant_time_equals(client_hello_protocol_version,
             conn->secure.rsa_premaster_secret, S2N_TLS_PROTOCOL_VERSION_LEN);
 

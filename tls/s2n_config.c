@@ -497,7 +497,7 @@ int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey
 
     config->async_pkey_cb = fn;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_config_clear_default_certificates(struct s2n_config *config)
