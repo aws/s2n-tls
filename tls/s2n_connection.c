@@ -52,8 +52,8 @@
 #include "utils/s2n_socket.h"
 #include "utils/s2n_timer.h"
 
-#define S2N_GENERATE_EMPTY_KEY_SHARE_LIST(keyshares) (keyshares |= 1)
-#define S2N_GENERATE_KEY_SHARE_FOR_SELECTED_GROUP(keyshares, i) (keyshares |= ( 1 << ( i + 1 )))
+#define S2N_SET_KEY_SHARE_LIST_EMPTY(keyshares) (keyshares |= 1)
+#define S2N_SET_KEY_SHARE_REQUEST(keyshares, i) (keyshares |= ( 1 << ( i + 1 )))
 
 static int s2n_connection_new_hashes(struct s2n_connection *conn)
 {
@@ -181,7 +181,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     conn->security_policy_override = NULL;
     conn->ticket_lifetime_hint = 0;
     conn->session_ticket_status = S2N_NO_TICKET;
-    conn->preferred_key_shares = 0;
 
     /* Allocate the fixed-size stuffers */
     blob = (struct s2n_blob) {0};
@@ -1301,7 +1300,7 @@ int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn,
     notnull_check(conn);
 
     if (!strcmp(curve_name, "none")) {
-        S2N_GENERATE_EMPTY_KEY_SHARE_LIST(conn->preferred_key_shares);
+        S2N_SET_KEY_SHARE_LIST_EMPTY(conn->preferred_key_shares);
         return S2N_SUCCESS;
     }
 
@@ -1311,7 +1310,7 @@ int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn,
 
     for (size_t i = 0; i < ecc_pref->count; i++) {
         if (!strcmp(ecc_pref->ecc_curves[i]->name, curve_name)) {
-            S2N_GENERATE_KEY_SHARE_FOR_SELECTED_GROUP(conn->preferred_key_shares, i);
+            S2N_SET_KEY_SHARE_REQUEST(conn->preferred_key_shares, i);
             return S2N_SUCCESS;
         }
     }

@@ -37,6 +37,8 @@
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 
+#define S2N_MAX_ECC_CURVE_NAME_LENGTH 10
+
 void usage()
 {
     fprintf(stderr, "usage: s2nc [options] host [port]\n");
@@ -85,10 +87,10 @@ void usage()
     fprintf(stderr, "  --tls13\n");
     fprintf(stderr, "    Turn on experimental TLS1.3 support.\n");
     fprintf(stderr, "  -K ,--keyshares\n");
-    fprintf(stderr, "    Colon separated list of curve names. \ 
-                         The client will generate keyshares only for the curve names present in the ecc_preferences list configured in the security_policy. \
-                         The curves currently supported by s2n are: `x25519`, `secp256r1` and `secp384r1`. Note that `none` represents a list of empty keyshares. \
-                         By default, the client will generate keyshares for all curves present in the ecc_preferences list.\n");
+    fprintf(stderr, "    Colon separated list of curve names.\n"
+                    "    The client will generate keyshares only for the curve names present in the ecc_preferences list configured in the security_policy.\n"
+                    "    The curves currently supported by s2n are: `x25519`, `secp256r1` and `secp384r1`. Note that `none` represents a list of empty keyshares.\n"
+                    "    By default, the client will generate keyshares for all curves present in the ecc_preferences list.\n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -251,7 +253,7 @@ int main(int argc, char *const *argv)
     int use_corked_io = 0;
     int use_tls13 = 0;
     int keyshares_count = 0;
-    char keyshares[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT][10];
+    char keyshares[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT][S2N_MAX_ECC_CURVE_NAME_LENGTH];
     char *input = NULL;
     char *token = NULL;
 

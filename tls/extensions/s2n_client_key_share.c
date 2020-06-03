@@ -22,8 +22,8 @@
 #include "utils/s2n_safety.h"
 #include "tls/s2n_tls13.h"
 
-#define S2N_GENERATE_EMPTY_KEY_SHARE_LIST(preferred_key_shares) (preferred_key_shares & 1)
-#define S2N_GENERATE_KEY_SHARE_FOR_SELECTED_GROUP(preferred_key_shares, i) ((preferred_key_shares >> (i + 1)) & 1)
+#define S2N_IS_KEY_SHARE_LIST_EMPTY(preferred_key_shares) (preferred_key_shares & 1)
+#define S2N_IS_KEY_SHARE_REQUESTED(preferred_key_shares, i) ((preferred_key_shares >> (i + 1)) & 1)
 #define S2N_GENERATE_KEYSHARES_ALL_CURVES 254
 /**
  * Specified in https://tools.ietf.org/html/rfc8446#section-4.2.8
@@ -73,7 +73,7 @@ static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s
     notnull_check(ecc_pref);
 
     /* If lsb is set, skip keyshare generation for all curve */
-    if (S2N_GENERATE_EMPTY_KEY_SHARE_LIST(preferred_key_shares)) {
+    if (S2N_IS_KEY_SHARE_LIST_EMPTY(preferred_key_shares)) {
         return S2N_SUCCESS;
     }
 
@@ -90,7 +90,7 @@ static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s
         ecc_evp_params->negotiated_curve = named_curve;
         ecc_evp_params->evp_pkey = NULL;
         /* If a bit in the bitmap (minus the lsb) is set, generate keyshare for the corresponding curve */
-        if (S2N_GENERATE_KEY_SHARE_FOR_SELECTED_GROUP(preferred_key_shares, i)) {
+        if (S2N_IS_KEY_SHARE_REQUESTED(preferred_key_shares, i)) {
             GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
         }
     }
