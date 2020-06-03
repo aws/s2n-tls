@@ -172,16 +172,14 @@ int main(int argc, char **argv)
     free(clients);
     free(servers);
 
-#if 0
-    fprintf(stdout, "\n");
-    fprintf(stdout, "VmData initial:              %10zu\n", vm_data_initial);
-    fprintf(stdout, "VmData after allocations:    %10zu\n", vm_data_after_allocation);
-    fprintf(stdout, "VmData after handshakes:     %10zu\n", vm_data_after_handshakes);
-    fprintf(stdout, "VmData after free handshake: %10zu\n", vm_data_after_free_handshake);
-    fprintf(stdout, "VmData after release:        %10zu\n", vm_data_after_release_buffers);
-    fprintf(stdout, "Max VmData diff allowed:     %10zu\n", maxAllowedMemDiff);
-    fprintf(stdout, "Number of connections used:  %10zu\n", connectionsToUse);
-#endif
+    TEST_DEBUG_PRINT("\n");
+    TEST_DEBUG_PRINT("VmData initial:              %10zd\n", vm_data_initial);
+    TEST_DEBUG_PRINT("VmData after allocations:    %10zd\n", vm_data_after_allocation);
+    TEST_DEBUG_PRINT("VmData after handshakes:     %10zd\n", vm_data_after_handshakes);
+    TEST_DEBUG_PRINT("VmData after free handshake: %10zd\n", vm_data_after_free_handshake);
+    TEST_DEBUG_PRINT("VmData after release:        %10zd\n", vm_data_after_release_buffers);
+    TEST_DEBUG_PRINT("Max VmData diff allowed:     %10zd\n", maxAllowedMemDiff);
+    TEST_DEBUG_PRINT("Number of connections used:  %10zu\n", connectionsToUse);
 
     EXPECT_TRUE(vm_data_after_allocation - vm_data_initial < maxAllowedMemDiff);
     EXPECT_TRUE(vm_data_after_handshakes - vm_data_initial < maxAllowedMemDiff);
