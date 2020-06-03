@@ -99,8 +99,8 @@ int s2n_stuffer_resize_if_empty(struct s2n_stuffer *stuffer, const uint32_t size
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     if (stuffer->blob.data == NULL) {
-        S2N_ERROR_IF(stuffer->tainted == 1, S2N_ERR_RESIZE_TAINTED_STUFFER);
-        S2N_ERROR_IF(stuffer->growable == 0, S2N_ERR_RESIZE_STATIC_STUFFER);
+        ENSURE_POSIX(!stuffer->tainted, S2N_ERR_RESIZE_TAINTED_STUFFER);
+        ENSURE_POSIX(stuffer->growable, S2N_ERR_RESIZE_STATIC_STUFFER);
         GUARD(s2n_realloc(&stuffer->blob, size));
     }
     POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
