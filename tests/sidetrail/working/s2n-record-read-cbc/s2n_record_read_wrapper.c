@@ -72,7 +72,7 @@ int s2n_record_parse_wrapper(int *xor_pad,
 			     uint8_t content_type
 )
 {
-  __VERIFIER_ASSERT_MAX_LEAKAGE(100);
+  __VERIFIER_ASSERT_MAX_LEAKAGE(1);
   __VERIFIER_assume(encrypted_length > 0);
   __VERIFIER_assume(padding_length >= 0);
   __VERIFIER_assume(padding_length < 256);
