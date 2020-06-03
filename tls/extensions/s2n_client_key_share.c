@@ -24,7 +24,7 @@
 
 #define S2N_IS_KEY_SHARE_LIST_EMPTY(preferred_key_shares) (preferred_key_shares & 1)
 #define S2N_IS_KEY_SHARE_REQUESTED(preferred_key_shares, i) ((preferred_key_shares >> (i + 1)) & 1)
-#define S2N_GENERATE_KEYSHARES_ALL_CURVES 254
+#define S2N_ALL_KEY_SHARES_REQUESTED 254
 /**
  * Specified in https://tools.ietf.org/html/rfc8446#section-4.2.8
  * "The "key_share" extension contains the endpoint's cryptographic parameters."
@@ -81,7 +81,7 @@ static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s
         /* Default behavior is to generate keyshares for all curves.
         * The bitmap to generate keyshares for all curve is 111111110 (254),
         * i.e. all bit values set except lsb which is RESERVED for empty keyshares */
-        preferred_key_shares = S2N_GENERATE_KEYSHARES_ALL_CURVES;
+        preferred_key_shares = S2N_ALL_KEY_SHARES_REQUESTED;
     }
 
     for (size_t i = 0; i < ecc_pref->count; i++) {
