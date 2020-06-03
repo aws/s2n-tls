@@ -264,6 +264,7 @@ class ProviderOptions(object):
             client_key_file=None,
             client_certificate_file=None,
             extra_flags=None,
+            client_trust_store=None,
             protocol=None):
 
         # Client or server
@@ -302,6 +303,7 @@ class ProviderOptions(object):
         # Parameters to configure client authentication
         self.use_client_auth = use_client_auth
         self.client_certificate_file = client_certificate_file
+        self.client_trust_store = client_trust_store
         self.client_key_file = client_key_file
 
         self.extra_flags = extra_flags

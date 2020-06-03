@@ -119,14 +119,17 @@ class S2N(Provider):
 
         if options.insecure is True:
             cmd_line.append('--insecure')
-        else:
-            if options.cert is not None:
-                cmd_line.extend(['-f', options.cert])
-
+        elif options.client_trust_store is not None:
+            cmd_line.extend(['-f', options.client_trust_store])
         if options.protocol == Protocols.TLS13:
             cmd_line.append('--tls13')
 
         cmd_line.extend(['-c', 'test_all'])
+
+        if options.client_key_file:
+            cmd_line.extend(['--key', options.client_key_file])
+        if options.client_certificate_file:
+            cmd_line.extend(['--cert', options.client_certificate_file])
 
         cmd_line.extend([options.host, options.port])
 
@@ -241,6 +244,8 @@ class OpenSSL(Provider):
         # Additional debugging that will be captured incase of failure
         cmd_line.extend(['-debug', '-tlsextdebug'])
 
+        cmd_line.append('-state')
+
         if options.cert is not None:
             cmd_line.extend(['-cert', options.cert])
         if options.key is not None:
@@ -264,6 +269,8 @@ class OpenSSL(Provider):
 
         if options.curve is not None:
             cmd_line.extend(['-curves', str(options.curve)])
+        if options.use_client_auth is True:
+            cmd_line.extend(['-verify', '1'])
 
         return cmd_line
 

@@ -278,20 +278,15 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
                                                                 uint8_t *cert_chain_in, uint32_t cert_chain_len,
                                                                 s2n_pkey_type *pkey_type, struct s2n_pkey *public_key_out) {
 
-    if (!validator->skip_cert_validation && !s2n_x509_trust_store_has_certs(validator->trust_store)) {
-        return S2N_CERT_ERR_UNTRUSTED;
-    }
+    S2N_ERROR_IF(!validator->skip_cert_validation && !s2n_x509_trust_store_has_certs(validator->trust_store), S2N_ERR_CERT_UNTRUSTED);
 
     DEFER_CLEANUP(X509_STORE_CTX *ctx = NULL, X509_STORE_CTX_free_pointer);
 
     struct s2n_blob cert_chain_blob = {.data = cert_chain_in, .size = cert_chain_len};
     DEFER_CLEANUP(struct s2n_stuffer cert_chain_in_stuffer = {0}, s2n_stuffer_free);
-    if (s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob) < 0) {
-        return S2N_CERT_ERR_INVALID;
-    }
-    if (s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob) < 0) {
-        return S2N_CERT_ERR_INVALID;
-    }
+
+    S2N_ERROR_IF(s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob) < 0, S2N_ERR_CERT_UNTRUSTED);
+    S2N_ERROR_IF(s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob) < 0, S2N_ERR_CERT_UNTRUSTED);
 
     uint32_t certificate_count = 0;
 
@@ -303,42 +298,31 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
     while (s2n_stuffer_data_available(&cert_chain_in_stuffer) && certificate_count < validator->max_chain_depth) {
         uint32_t certificate_size = 0;
 
-        if (s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size) < 0) {
-            return S2N_CERT_ERR_INVALID;
-        }
-
-        if (certificate_size == 0 || certificate_size > s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
-            return S2N_CERT_ERR_INVALID;
-        }
+        S2N_ERROR_IF(s2n_stuffer_read_uint24(&cert_chain_in_stuffer, &certificate_size) < 0, S2N_ERR_CERT_UNTRUSTED);
+        S2N_ERROR_IF(certificate_size == 0 || certificate_size > s2n_stuffer_data_available(&cert_chain_in_stuffer), S2N_ERR_CERT_UNTRUSTED);
 
         struct s2n_blob asn1cert = {0};
         asn1cert.size = certificate_size;
         asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
-        if (asn1cert.data == NULL) {
-            return S2N_CERT_ERR_INVALID;
-        }
+        notnull_check(asn1cert.data);
 
         const uint8_t *data = asn1cert.data;
 
         if (!validator->skip_cert_validation) {
             /* the cert is der encoded, just convert it. */
             server_cert = d2i_X509(NULL, &data, asn1cert.size);
-            if (!server_cert) {
-                return S2N_CERT_ERR_INVALID;
-            }
+            S2N_ERROR_IF(!server_cert, S2N_ERR_CERT_UNTRUSTED);
 
             /* add the cert to the chain. */
             if (!sk_X509_push(validator->cert_chain, server_cert)) {
                 X509_free(server_cert);
-                return S2N_CERT_ERR_INVALID;
+                S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
             }
          }
 
         /* Pull the public key from the first certificate */
         if (certificate_count == 0) {
-            if (s2n_asn1der_to_public_key_and_type(&public_key, pkey_type, &asn1cert) < 0) {
-                return S2N_CERT_ERR_INVALID;
-            }
+            S2N_ERROR_IF(s2n_asn1der_to_public_key_and_type(&public_key, pkey_type, &asn1cert) < 0, S2N_ERR_CERT_UNTRUSTED);
         }
 
         /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
@@ -356,34 +340,19 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
     }
 
     /* if this occurred we exceeded validator->max_chain_depth */
-    if (!validator->skip_cert_validation && s2n_stuffer_data_available(&cert_chain_in_stuffer)) {
-        return S2N_CERT_ERR_MAX_CHAIN_DEPTH_EXCEEDED;
-    }
-
-    if (certificate_count < 1) {
-        return S2N_CERT_ERR_INVALID;
-    }
-
+    S2N_ERROR_IF(!validator->skip_cert_validation && s2n_stuffer_data_available(&cert_chain_in_stuffer), S2N_ERR_CERT_UNTRUSTED);
+    S2N_ERROR_IF(certificate_count < 1, S2N_ERR_CERT_UNTRUSTED);
 
     if (!validator->skip_cert_validation) {
         X509 *leaf = sk_X509_value(validator->cert_chain, 0);
-        if (!leaf) {
-            return S2N_CERT_ERR_INVALID;
-        }
-
-        if (conn->verify_host_fn && !s2n_verify_host_information(validator, conn, leaf)) {
-            return S2N_CERT_ERR_UNTRUSTED;
-        }
+        S2N_ERROR_IF(!leaf, S2N_ERR_CERT_UNTRUSTED);
+        S2N_ERROR_IF(conn->verify_host_fn && !s2n_verify_host_information(validator, conn, leaf), S2N_ERR_CERT_UNTRUSTED);
 
         /* now that we have a chain, get the store and check against it. */
         ctx = X509_STORE_CTX_new();
 
-        int op_code = X509_STORE_CTX_init(ctx, validator->trust_store->trust_store, leaf,
-                                          validator->cert_chain);
-
-        if (op_code <= 0) {
-            return S2N_CERT_ERR_INVALID;
-        }
+        int op_code = X509_STORE_CTX_init(ctx, validator->trust_store->trust_store, leaf, validator->cert_chain);
+        S2N_ERROR_IF(op_code <= 0, S2N_ERR_CERT_UNTRUSTED);
 
         X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(ctx);
         X509_VERIFY_PARAM_set_depth(param, validator->max_chain_depth);
@@ -398,9 +367,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
         op_code = X509_verify_cert(ctx);
 
-        if (op_code <= 0) {
-            return S2N_CERT_ERR_UNTRUSTED;
-        }
+        S2N_ERROR_IF(op_code <= 0, S2N_ERR_CERT_UNTRUSTED);
     }
 
 
