@@ -231,10 +231,6 @@ static uint8_t unsafe_verify_host_fn(const char *host_name, size_t host_name_len
     return 1;
 }
 
-extern void print_s2n_error(const char *app_error);
-extern int echo(struct s2n_connection *conn, int sockfd);
-extern int negotiate(struct s2n_connection *conn);
-
 void usage()
 {
     fprintf(stderr, "usage: s2nd [options] host port\n");
@@ -287,6 +283,8 @@ void usage()
     fprintf(stderr, "    Turn on corked io\n");
     fprintf(stderr, "  --tls13\n");
     fprintf(stderr, "    Turn on experimental TLS1.3 support.\n");
+    fprintf(stderr, "  -w --https-server\n");
+    fprintf(stderr, "    Run s2nd in a simple https server mode.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -306,6 +304,8 @@ struct conn_settings {
     unsigned insecure:1;
     unsigned use_corked_io:1;
     unsigned exit_on_close:1;
+    unsigned https_server:1;
+    unsigned https_bench:1;
     const char *ca_dir;
     const char *ca_file;
 };
@@ -359,7 +359,9 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         }
     }
 
-    if (!settings.only_negotiate) {
+    if (settings.https_server) {
+        https(conn, fd);
+    } else if (!settings.only_negotiate) {
         echo(conn, fd);
     }
 
@@ -423,6 +425,8 @@ int main(int argc, char *const *argv)
         {"no-session-ticket", no_argument, 0, 'T'},
         {"corked-io", no_argument, 0, 'C'},
         {"tls13", no_argument, 0, '3'},
+        {"https-server", no_argument, 0, 'w'},
+        {"https-bench", no_argument, 0, 'b'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
@@ -506,6 +510,13 @@ int main(int argc, char *const *argv)
             break;
         case 'X':
             conn_settings.exit_on_close = 1;
+            break;
+        case 'w':
+            fprintf(stdout, "Running s2nd in simple https server mode\n");
+            conn_settings.https_server = 1;
+            break;
+        case 'b':
+            conn_settings.https_bench = 1;
             break;
         case '?':
         default:
