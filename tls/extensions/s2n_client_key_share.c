@@ -60,7 +60,7 @@ const s2n_extension_type s2n_client_key_share_extension = {
     .if_missing = s2n_extension_noop_if_missing,
 };
 
-static int s2n_generate_preferred_key_shares(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     notnull_check(conn);
 
@@ -74,7 +74,6 @@ static int s2n_generate_preferred_key_shares(struct s2n_connection *conn, struct
 
     /* If lsb is set, skip keyshare generation for all curve */
     if (S2N_GENERATE_EMPTY_KEY_SHARE_LIST(preferred_key_shares)) {
-        GUARD(s2n_stuffer_write_uint16(out, 0));
         return S2N_SUCCESS;
     }
 
@@ -96,12 +95,6 @@ static int s2n_generate_preferred_key_shares(struct s2n_connection *conn, struct
         }
     }
 
-    return S2N_SUCCESS;
-}
-
-static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    GUARD(s2n_generate_preferred_key_shares(conn, out));
     return S2N_SUCCESS;
 }
 

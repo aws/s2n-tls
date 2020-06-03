@@ -133,15 +133,14 @@ int main(int argc, char **argv)
         }
         
         /* Test that s2n_client_key_share_extension.send sends empty client key share list when
-         * s2n_connection_set_keyshare_by_group_for_testing is called with IANA_ID = 0 */
+         * s2n_connection_set_keyshare_by_name_for_testing is called with 'none' */
         {
             struct s2n_stuffer key_share_extension;
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             /* Force the client to send an empty list of keyshares */
-            uint16_t iana_value = 0;
-            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, iana_value));
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(conn, "none"));
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
 
@@ -151,9 +150,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &key_shares_size));
             EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), key_shares_size);
 
-            uint16_t size;
-            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &size));
-            EXPECT_EQUAL(size, 0);
+            /* should contain 0 */
+            EXPECT_EQUAL(key_shares_size, 0);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -166,7 +164,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             /* Force the client to send only p-256 keyshare in keyshare list */
-            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, TLS_EC_CURVE_SECP_256_R1));
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(conn, "secp256r1"));
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
 
@@ -201,8 +199,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             /* Force the client to send only p-256 and p-384 keyshares in keyshare list */
-            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, TLS_EC_CURVE_SECP_256_R1));
-            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_group_for_testing(conn, TLS_EC_CURVE_SECP_384_R1));
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(conn, "secp256r1"));
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(conn, "secp384r1"));
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
 

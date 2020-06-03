@@ -1295,12 +1295,12 @@ uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn)
     return conn->server_protocol_version;
 }
 
-int s2n_connection_set_keyshare_by_group_for_testing(struct s2n_connection *conn, uint16_t iana_id)
+int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn, const char* curve_name)
 {
     ENSURE_POSIX(S2N_IN_TEST, S2N_ERR_NOT_IN_TEST);
     notnull_check(conn);
 
-    if (iana_id == 0) {
+    if (!strcmp(curve_name, "none")) {
         S2N_GENERATE_EMPTY_KEY_SHARE_LIST(conn->preferred_key_shares);
         return S2N_SUCCESS;
     }
@@ -1310,7 +1310,7 @@ int s2n_connection_set_keyshare_by_group_for_testing(struct s2n_connection *conn
     notnull_check(ecc_pref);
 
     for (size_t i = 0; i < ecc_pref->count; i++) {
-        if (ecc_pref->ecc_curves[i]->iana_id == iana_id) {
+        if (!strcmp(ecc_pref->ecc_curves[i]->name, curve_name)) {
             S2N_GENERATE_KEY_SHARE_FOR_SELECTED_GROUP(conn->preferred_key_shares, i);
             return S2N_SUCCESS;
         }
