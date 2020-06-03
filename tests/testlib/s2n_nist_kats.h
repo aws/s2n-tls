@@ -32,7 +32,7 @@
 
 static inline int FindMarker(FILE *infile, const char *marker)
 {
-    char line[MAX_MARKER_LEN];
+    int8_t line[MAX_MARKER_LEN];
     uint32_t i, len;
 
     len = (int)strlen(marker);
@@ -48,7 +48,7 @@ static inline int FindMarker(FILE *infile, const char *marker)
     line[len] = '\0';
 
     while ( 1 ) {
-        if ( !strncmp(line, marker, len) ) {
+        if ( !strncmp((char*)line, marker, len) ) {
             return 0;
         }
 

@@ -185,3 +185,12 @@ int test_count;
             }                                                                  \
         }                                                                      \
     } while (0)
+
+#if defined(S2N_TEST_DEBUG)
+#define TEST_DEBUG_PRINT(...)                \
+    do {                                     \
+        (void) fprintf(stderr, __VA_ARGS__); \
+    } while (0)
+#else
+#define TEST_DEBUG_PRINT(...)
+#endif

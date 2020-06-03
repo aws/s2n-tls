@@ -79,6 +79,11 @@ ifdef S2N_TEST_IN_FIPS_MODE
     DEFAULT_CFLAGS += -DS2N_TEST_IN_FIPS_MODE
 endif
 
+# Don't compile PQ related source code
+ifdef S2N_NO_PQ
+	DEFAULT_CFLAGS += -DS2N_NO_PQ
+endif
+
 # Force the usage of generic C code for PQ crypto, even if the optimized assembly could be used
 ifdef S2N_NO_PQ_ASM
 	DEFAULT_CFLAGS += -DS2N_NO_PQ_ASM
@@ -114,6 +119,11 @@ endif
 
 ifdef S2N_DEBUG
 	CFLAGS += ${DEBUG_CFLAGS}
+endif
+
+# Prints more information when running tests
+ifdef S2N_TEST_DEBUG
+	DEFAULT_CFLAGS += -DS2N_TEST_DEBUG
 endif
 
 LLVM_GCOV_MARKER_FILE=${COVERAGE_DIR}/use-llvm-gcov.tmp

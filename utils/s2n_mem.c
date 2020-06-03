@@ -153,7 +153,7 @@ int s2n_alloc(struct s2n_blob *b, uint32_t size)
 /* A blob is growable if it is either explicitly marked as such, or if it contains no data */
 bool s2n_blob_is_growable(const struct s2n_blob* b)
 {
-  return b && (b->growable || (b->data == NULL && b->size == 0 && b->allocated == 0));
+    return b && (b->growable || (b->data == NULL && b->size == 0 && b->allocated == 0));
 }
 
 /* Tries to realloc the requested bytes.

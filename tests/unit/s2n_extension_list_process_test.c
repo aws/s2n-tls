@@ -33,6 +33,8 @@ s2n_parsed_extension empty_parsed_extensions[S2N_PARSED_EXTENSIONS_COUNT] = { 0 
 
 #define EXPECT_PARSED_EXTENSION_LIST_EMPTY(list) \
     EXPECT_BYTEARRAY_EQUAL(list.parsed_extensions, empty_parsed_extensions, sizeof(empty_parsed_extensions))
+#define EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(list) \
+    EXPECT_BYTEARRAY_NOT_EQUAL(list.parsed_extensions, empty_parsed_extensions, sizeof(empty_parsed_extensions))
 
 static int s2n_setup_test_parsed_extension(const s2n_extension_type *extension_type,
         s2n_parsed_extension *parsed_extension, struct s2n_connection *conn, struct s2n_stuffer *stuffer)
@@ -276,7 +278,7 @@ int main()
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* Fails on unexpected parsed_extension */
+        /* Skips on unexpected parsed_extension */
         {
             s2n_parsed_extensions_list parsed_extension_list = { 0 };
 
@@ -287,8 +289,9 @@ int main()
             SET_PARSED_EXTENSION(parsed_extension_list, test_empty_parsed_extension);
 
             conn->server_name_used = false;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_extension_list_process(S2N_EXTENSION_LIST_EMPTY,
-                    conn, &parsed_extension_list), S2N_ERR_UNSUPPORTED_EXTENSION);
+            EXPECT_SUCCESS(s2n_extension_list_process(S2N_EXTENSION_LIST_EMPTY, conn, &parsed_extension_list));
+
+            EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(parsed_extension_list);
             EXPECT_FALSE(conn->server_name_used);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));

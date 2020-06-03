@@ -14,7 +14,7 @@
 ################################################################
 # This Makefile is the base makefile for CBMC proofs in this repository
 # Consumers of this makefile are expected to set the relevant variables
-# e.g. ENTRY, CBMCFLAGS, UNWINDSET etc
+# e.g. ENTRY, CHECKFLAGS, UNWINDSET etc
 # and then include this makefile.  To see how to use this makefile, take a look
 # at any of the existing proofs in this repository.
 #
@@ -80,7 +80,7 @@ DO_GOTO_INSTRUMENT = $(call DO_AND_LOG_COMMAND,$(GOTO_INSTRUMENT),$(CBMC_VERBOSI
 #1: flags, 2: source, 3: logfile
 DO_CBMC =  $(call DO_AND_LOG_IGNORING_ERROR_10,$(CBMC),$(CBMC_VERBOSITY) $(1) $(2), $(3))
 
-#1: message 2: source 3: dest 
+#1: message 2: source 3: dest
 DO_NOOP_COPY = cp $(2) $(3); echo $(1) | tee $(call LOG_FROM_ENTRY,$(3))
 
 
@@ -92,19 +92,22 @@ LOG_FROM_ENTRY = $(LOGDIR)/$(notdir $(1:.goto=.log))
 LOG_FROM_GOTO = $(patsubst $(GOTODIR)%,$(LOGDIR)%,$(1:.goto=.log))
 
 ################################################################
-# Default CBMC flags
-CBMCFLAGS += --bounds-check
-CBMCFLAGS += --conversion-check
-CBMCFLAGS += --div-by-zero-check
-CBMCFLAGS += --float-overflow-check
-CBMCFLAGS += --nan-check
-CBMCFLAGS += --pointer-check
-CBMCFLAGS += --pointer-overflow-check
-CBMCFLAGS += --signed-overflow-check
-CBMCFLAGS += --undefined-shift-check
-CBMCFLAGS += --unsigned-overflow-check
+# CBMC flags used when performing safety checks
+CHECKFLAGS += --bounds-check
+CHECKFLAGS += --conversion-check
+CHECKFLAGS += --div-by-zero-check
+CHECKFLAGS += --float-overflow-check
+CHECKFLAGS += --nan-check
+CHECKFLAGS += --pointer-check
+CHECKFLAGS += --pointer-overflow-check
+CHECKFLAGS += --signed-overflow-check
+CHECKFLAGS += --undefined-shift-check
+CHECKFLAGS += --unsigned-overflow-check
+CHECKFLAGS += --unwinding-assertions
+
+################################################################
+# CBMC flags used for all CBMC invocations, even coverage checking
 CBMCFLAGS += --unwind 1
-CBMCFLAGS += --unwinding-assertions
 
 ################################################################
 # Verbosity
@@ -130,7 +133,7 @@ CBMCFLAGS += $(CBMC_UNWINDSET)
 
 ################################################################
 # Set C compiler defines
-CBMC_OBJECT_BITS ?= 6
+CBMC_OBJECT_BITS ?= 8
 CBMCFLAGS +=  --object-bits $(CBMC_OBJECT_BITS)
 DEFINES += -DCBMC_OBJECT_BITS=$(CBMC_OBJECT_BITS)
 DEFINES += -DCBMC=1
@@ -145,13 +148,13 @@ INC += -I$(SRCDIR)/api
 
 ################################################################
 # Enables costly checks (e.g. ones that contain loops)
-# Whether a proof needs these checks should be decided on a proof by proof basis.  
+# Whether a proof needs these checks should be decided on a proof by proof basis.
 # Checks can be enabled by setting AWS_DEEP_CHECKS to 1 in the makefile of the proof that requires them
 AWS_DEEP_CHECKS ?= 0
 DEFINES += -DAWS_DEEP_CHECKS=$(AWS_DEEP_CHECKS)
 
 ################################################################
-# Remove function bodies that are not used in the proofs. 
+# Remove function bodies that are not used in the proofs.
 # Removing the function from the goto program helps CBMC's
 # function pointer analysis
 
@@ -247,13 +250,15 @@ goto: $(ENTRY_GOTO).goto
 ################################################################
 # Targets to run the analysis commands
 logs/cbmc.log: $(ENTRY_GOTO).goto
-	$(call DO_CBMC,$(CBMCFLAGS) --trace,$<,$@)
+	$(call DO_CBMC,$(CBMCFLAGS) $(CHECKFLAGS) --trace,$<,$@)
 
 logs/property.xml: $(ENTRY_GOTO).goto
-	$(call DO_CBMC,$(CBMCFLAGS) --show-properties --xml-ui,$<,$@)
+	$(call DO_CBMC,$(CBMCFLAGS) $(CHECKFLAGS) --show-properties --xml-ui,$<,$@)
 
+# CHECKFLAGS intentionally omitted here---no need to perform safety
+# checks when computing coverage
 logs/coverage.xml: $(ENTRY_GOTO).goto
-	$(call DO_CBMC,$(filter-out --unwinding-assertions,$(CBMCFLAGS)) --cover location --xml-ui,$<,$@)
+	$(call DO_CBMC,$(CBMCFLAGS)               --cover location --xml-ui,$<,$@)
 
 cbmc: logs/cbmc.log
 

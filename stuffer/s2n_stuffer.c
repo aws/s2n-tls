@@ -27,7 +27,7 @@ bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer)
 {
     /* Note that we do not assert any properties on the alloced, growable, and tainted fields,
      * as all possible combinations of boolean values in those fields are valid */
-    return S2N_OBJECT_PTR_IS_READABLE(stuffer) && 
+    return S2N_OBJECT_PTR_IS_READABLE(stuffer) &&
         s2n_blob_is_valid(&stuffer->blob) &&
         /* <= is valid because we can have a fully written/read stuffer */
         stuffer->high_water_mark <= stuffer->blob.size &&
@@ -37,8 +37,8 @@ bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer)
 
 int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in)
 {
-    S2N_PRECONDITION(S2N_OBJECT_PTR_IS_WRITABLE(stuffer));
-    S2N_PRECONDITION(s2n_blob_is_valid(in));
+    PRECONDITION_POSIX(S2N_OBJECT_PTR_IS_WRITABLE(stuffer));
+    PRECONDITION_POSIX(s2n_blob_is_valid(in));
     stuffer->blob = *in;
     stuffer->read_cursor = 0;
     stuffer->write_cursor = 0;
@@ -123,7 +123,7 @@ int s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size)
 
 int s2n_stuffer_reread(struct s2n_stuffer *stuffer)
 {
-    S2N_PRECONDITION(s2n_stuffer_is_valid(stuffer));
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     stuffer->read_cursor = 0;
     return 0;
 }
@@ -138,7 +138,7 @@ int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
     stuffer->write_cursor -= size;
     memset_check(stuffer->blob.data + stuffer->write_cursor, S2N_WIPE_PATTERN, size);
     stuffer->read_cursor = MIN(stuffer->read_cursor, stuffer->write_cursor);
-    
+
     return 0;
 }
 
@@ -172,7 +172,7 @@ int s2n_stuffer_wipe(struct s2n_stuffer *stuffer)
 
 int s2n_stuffer_skip_read(struct s2n_stuffer *stuffer, uint32_t n)
 {
-    S2N_PRECONDITION(s2n_stuffer_is_valid(stuffer));
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     S2N_ERROR_IF(s2n_stuffer_data_available(stuffer) < n, S2N_ERR_STUFFER_OUT_OF_DATA);
 
     stuffer->read_cursor += n;
@@ -341,7 +341,7 @@ int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, const uin
 
 int s2n_stuffer_extract_blob(struct s2n_stuffer *stuffer, struct s2n_blob *out)
 {
-    S2N_PRECONDITION(s2n_stuffer_is_valid(stuffer));
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     notnull_check(out);
     GUARD(s2n_free(out));
     GUARD(s2n_alloc(out, s2n_stuffer_data_available(stuffer)));

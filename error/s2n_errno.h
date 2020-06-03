@@ -185,6 +185,7 @@ typedef enum {
     S2N_ERR_RECV_STUFFER_FROM_CONN,
     S2N_ERR_SEND_STUFFER_TO_CONN,
     S2N_ERR_PRECONDITION_VIOLATION,
+    S2N_ERR_POSTCONDITION_VIOLATION,
     S2N_ERR_INTEGER_OVERFLOW,
     S2N_ERR_ARRAY_INDEX_OOB,
     S2N_ERR_FREE_STATIC_BLOB,
@@ -272,14 +273,6 @@ extern __thread const char *s2n_debug_str;
 #define S2N_ERROR_IF( cond , x ) do { if ( cond ) { S2N_ERROR( x ); }} while (0)
 #define S2N_ERROR_IF_PTR( cond , x ) do { if ( cond ) { S2N_ERROR_PTR( x ); }} while (0)
 #define S2N_ERROR_IS_BLOCKING( x )    ( s2n_error_get_type(x) == S2N_ERR_T_BLOCKED )
-
-#ifdef __TIMING_CONTRACTS__
-#    define S2N_PRECONDITION( cond ) (void) 0
-#    define S2N_PRECONDITION_PTR( cond ) (void) 0
-#else
-#    define S2N_PRECONDITION( cond ) S2N_ERROR_IF(!(cond), S2N_ERR_PRECONDITION_VIOLATION)
-#    define S2N_PRECONDITION_PTR( cond ) S2N_ERROR_IF_PTR(!(cond), S2N_ERR_PRECONDITION_VIOLATION)
-#endif /* __TIMING_CONTRACTS__ */
 
 /**
  * Define function contracts.

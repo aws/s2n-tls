@@ -189,7 +189,7 @@ int s2n_ecdhe_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shar
 
 int s2n_kem_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
-    /* s2n_kem_decapsulate() writes the KEM shared secret directly to
+    /* s2n_kem_recv_ciphertext() writes the KEM shared secret directly to
      * conn->secure.kem_params. However, the calling function
      * likely expects *shared_key to point to the shared secret. We 
      * can't reassign *shared_key to point to kem_params.shared_secret,
@@ -202,15 +202,7 @@ int s2n_kem_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
     notnull_check(shared_key);
     S2N_ERROR_IF(shared_key != &(conn->secure.kem_params.shared_secret), S2N_ERR_SAFETY);
 
-    struct s2n_stuffer *in = &conn->handshake.io;
-    kem_ciphertext_key_size ciphertext_length;
-
-    GUARD(s2n_stuffer_read_uint16(in, &ciphertext_length));
-    S2N_ERROR_IF(ciphertext_length > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
-
-    const struct s2n_blob ciphertext = {.size = ciphertext_length, .data = s2n_stuffer_raw_read(in, ciphertext_length)};
-    notnull_check(ciphertext.data);
-    GUARD(s2n_kem_decapsulate(&conn->secure.kem_params, &ciphertext));
+    GUARD(s2n_kem_recv_ciphertext(&(conn->handshake.io), &(conn->secure.kem_params)));
 
     return 0;
 }
@@ -292,7 +284,7 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
 
 int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
-    /* s2n_kem_encapsulate() writes the KEM shared secret directly to
+    /* s2n_kem_send_ciphertext() writes the KEM shared secret directly to
      * conn->secure.kem_params. However, the calling function
      * likely expects *shared_key to point to the shared secret. We
      * can't reassign *shared_key to point to kem_params.shared_secret,
@@ -305,15 +297,7 @@ int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
     notnull_check(shared_key);
     S2N_ERROR_IF(shared_key != &(conn->secure.kem_params.shared_secret), S2N_ERR_SAFETY);
 
-    struct s2n_stuffer *out = &conn->handshake.io;
-    const struct s2n_kem *kem = conn->secure.kem_params.kem;
-
-    GUARD(s2n_stuffer_write_uint16(out, kem->ciphertext_length));
-
-    /* The ciphertext is not needed after this method, write it straight to the stuffer */
-    struct s2n_blob ciphertext = {.data = s2n_stuffer_raw_write(out, kem->ciphertext_length), .size = kem->ciphertext_length};
-    notnull_check(ciphertext.data);
-    GUARD(s2n_kem_encapsulate(&conn->secure.kem_params, &ciphertext));
+    GUARD(s2n_kem_send_ciphertext(&(conn->handshake.io), &(conn->secure.kem_params)));
 
     return 0;
 }

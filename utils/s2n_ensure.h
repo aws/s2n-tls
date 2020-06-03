@@ -29,6 +29,8 @@
  */
 #define __S2N_ENSURE( cond, action ) do {if ( !(cond) ) { action; }} while (0)
 
+#define __S2N_ENSURE_CONDITION( cond, action ) __S2N_ENSURE( cond, action )
+
 #define __S2N_ENSURE_SAFE_MEMCPY( d , s , n , guard )                            \
   do {                                                                           \
     __typeof( n ) __tmp_n = ( n );                                               \

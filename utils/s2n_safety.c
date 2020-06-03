@@ -174,10 +174,10 @@ int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out)
 
 int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out)
 {
-    S2N_PRECONDITION(alignment != 0);
+    PRECONDITION_POSIX(alignment != 0);
     if (initial == 0) {
-	*out = 0;
-	return S2N_SUCCESS;
+        *out = 0;
+        return S2N_SUCCESS;
     }
     const uint64_t i = initial;
     const uint64_t a = alignment;
@@ -194,4 +194,3 @@ int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out)
     *out = (uint32_t) result;
     return S2N_SUCCESS;
 }
-

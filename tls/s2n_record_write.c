@@ -33,8 +33,6 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
-#define TLS13_CONTENT_TYPE_LENGTH 1
-
 extern uint8_t s2n_unknown_protocol_version;
 
 /* How much overhead does the IV, MAC, TAG and padding bytes introduce ? */
@@ -408,8 +406,9 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         conn->client = current_client_crypto;
         conn->server = current_server_crypto;
     }
-
+    conn->encrypted_bytes_out += encrypted_length;
     conn->wire_bytes_out += actual_fragment_length + S2N_TLS_RECORD_HEADER_LENGTH;
+
     return data_bytes_to_take;
 }
 

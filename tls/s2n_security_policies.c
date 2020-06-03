@@ -40,6 +40,19 @@ const struct s2n_security_policy security_policy_20190801 = {
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
+const struct s2n_security_policy security_policy_20190802 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_20190801,
+    .kem_preferences = &kem_preferences_null,
+    /* The discrepancy in the date exists because the signature preferences
+     * were named when cipher preferences and signature preferences were
+     * tracked separately, and we chose to keep the cipher preference
+     * name because customers use it.
+     */
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
+};
+
 const struct s2n_security_policy security_policy_20170405 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20170405,
@@ -494,6 +507,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="20190121", .security_policy=&security_policy_20190121, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20190122", .security_policy=&security_policy_20190122, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20190801", .security_policy=&security_policy_20190801, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="20190802", .security_policy=&security_policy_20190802, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20200207", .security_policy=&security_policy_test_all_tls13, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="test_all", .security_policy=&security_policy_test_all, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="test_all_fips", .security_policy=&security_policy_test_all_fips, .ecc_extension_required=0, .pq_kem_extension_required=0 },

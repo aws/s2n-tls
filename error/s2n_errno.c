@@ -156,6 +156,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_RECV_STUFFER_FROM_CONN, "Error receiving stuffer from connection") \
     ERR_ENTRY(S2N_ERR_SEND_STUFFER_TO_CONN, "Error sending stuffer to connection") \
     ERR_ENTRY(S2N_ERR_PRECONDITION_VIOLATION, "Precondition violation") \
+    ERR_ENTRY(S2N_ERR_POSTCONDITION_VIOLATION, "Postcondition violation") \
     ERR_ENTRY(S2N_ERR_INTEGER_OVERFLOW, "Integer overflow violation") \
     ERR_ENTRY(S2N_ERR_ARRAY_INDEX_OOB, "Array index out of bounds") \
     ERR_ENTRY(S2N_ERR_FREE_STATIC_BLOB, "Cannot free a static blob") \
