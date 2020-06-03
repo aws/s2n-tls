@@ -171,10 +171,8 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
             expect_failure = 1;
         }
 
-#if 0
-        fprintf(stderr, "Testing %s in %s mode, expect_failure=%d\n", expected_cipher->name,
+        TEST_DEBUG_PRINT("Testing %s in %s mode, expect_failure=%d\n", expected_cipher->name,
                 test_type == TEST_TYPE_SYNC ? "synchronous" : "asynchronous", expect_failure);
-#endif
 
         struct s2n_security_policy server_security_policy;
         struct s2n_cipher_preferences server_cipher_preferences;
