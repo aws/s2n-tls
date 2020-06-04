@@ -17,6 +17,7 @@
 #include "utils/s2n_blob.h"
 
 #include <assert.h>
+#include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
@@ -29,9 +30,7 @@ void s2n_blob_zero_harness()
     /* Operation under verification. */
     if(s2n_blob_zero(blob) == S2N_SUCCESS && blob->size != 0)
     {
-        size_t index;
-        __CPROVER_assume(index < blob->size);
-        assert(blob->data[index] == 0);
+        assert_all_zeroes(blob->data, blob->size);
     }
     assert(s2n_blob_is_valid(blob));
 }

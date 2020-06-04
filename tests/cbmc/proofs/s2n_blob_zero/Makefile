@@ -15,6 +15,7 @@
 
 CBMCFLAGS +=
 
+DEPENDENCIES += $(HELPERDIR)/source/cbmc_utils.c
 DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c
 DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
 DEPENDENCIES += $(SRCDIR)/utils/s2n_blob.c
