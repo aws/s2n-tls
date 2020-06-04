@@ -38,8 +38,6 @@ static uint8_t verify_host_fn(const char *host_name, size_t host_name_len, void 
     return verify_data->allow;
 }
 
-static const int MAX_TRIES = 100;
-
 int main(int argc, char **argv)
 {
     struct s2n_config *config;
