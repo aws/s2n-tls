@@ -46,11 +46,10 @@ static s2n_mem_free_callback s2n_mem_free_cb = s2n_mem_free_mlock_impl;
 
 static int s2n_mem_init_impl(void)
 {
-/* Avoids spurious alarms over signed to unsigned conversion in (uint32_t)return_value_sysconf. */
-#pragma CPROVER check push
-#pragma CPROVER check disable "conversion"
-    GUARD(page_size = sysconf(_SC_PAGESIZE));
-#pragma CPROVER check pop
+    long sysconf_rc = sysconf(_SC_PAGESIZE);
+    GUARD(sysconf_rc);
+    ENSURE_POSIX(sysconf_rc <= UINT32_MAX, S2N_FAILURE);
+    page_size = (uint32_t)sysconf_rc;
 
     if (getenv("S2N_DONT_MLOCK")) {
         s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
