@@ -106,17 +106,17 @@ drbg = drbg_instantiate (nist_aes128_reference_entropy_hex @ 0) (nist_aes128_ref
 
 test_drbg : [8] -> Bit
 test_drbg n =
-  bits_out == nist_aes128_reference_returned_bits_hex @ n &&
-  drbg1.v == nist_aes128_reference_values_hex @ (3 * n) &&
-  drbg2.v == nist_aes128_reference_values_hex @ (3 * n + 1) &&
+  bits_out == nist_aes128_reference_returned_bits_hex @ n /\
+  drbg1.v == nist_aes128_reference_values_hex @ (3 * n) /\
+  drbg2.v == nist_aes128_reference_values_hex @ (3 * n + 1) /\
   drbg3.v == nist_aes128_reference_values_hex @ (3 * n + 2)
   where
     drbg1 = drbg_instantiate (nist_aes128_reference_entropy_hex @ (3*n))
                              (nist_aes128_reference_personalization_strings_hex @ n)
     ((bits1, drbg2) : ([512], s2n_drbg)) =
-      drbg_generate drbg1 (nist_aes128_reference_entropy_hex @ (3 * n + 1)) True
+      drbg_generate`{blocks=4} drbg1 (nist_aes128_reference_entropy_hex @ (3 * n + 1)) True
     ((bits_out, drbg3) : ([512], s2n_drbg)) =
-      drbg_generate drbg2 (nist_aes128_reference_entropy_hex @ (3 * n + 2)) True
+      drbg_generate`{blocks=4} drbg2 (nist_aes128_reference_entropy_hex @ (3 * n + 2)) True
 
 property drbg_tests_pass =
   ~zero == [ test_drbg n | n <- [0 .. 14] ]
