@@ -40,7 +40,7 @@ endif
 
 DEFAULT_CFLAGS += -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized \
                  -Wshadow  -Wcast-align -Wwrite-strings -fPIC -Wno-missing-braces\
-                 -D_POSIX_C_SOURCE=200809L -O2 -I$(LIBCRYPTO_ROOT)/include/ \
+                 -D_POSIX_C_SOURCE=200809L -I$(LIBCRYPTO_ROOT)/include/ \
                  -I$(S2N_ROOT)/api/ -I$(S2N_ROOT) -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
                  -D_FORTIFY_SOURCE=2 -fgnu89-inline 
 
@@ -118,7 +118,9 @@ ifdef S2N_ADDRESS_SANITIZER
 endif
 
 ifdef S2N_DEBUG
-	CFLAGS += ${DEBUG_CFLAGS}
+	CFLAGS += ${DEBUG_CFLAGS} -O0
+else
+	CFLAGS += -O2
 endif
 
 # Prints more information when running tests
