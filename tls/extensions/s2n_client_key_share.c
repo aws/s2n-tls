@@ -20,7 +20,11 @@
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
+#include "tls/s2n_tls13.h"
 
+#define S2N_IS_KEY_SHARE_LIST_EMPTY(preferred_key_shares) (preferred_key_shares & 1)
+#define S2N_IS_KEY_SHARE_REQUESTED(preferred_key_shares, i) ((preferred_key_shares >> (i + 1)) & 1)
+#define S2N_ALL_KEY_SHARES_REQUESTED 254
 /**
  * Specified in https://tools.ietf.org/html/rfc8446#section-4.2.8
  * "The "key_share" extension contains the endpoint's cryptographic parameters."
@@ -59,22 +63,36 @@ const s2n_extension_type s2n_client_key_share_extension = {
 static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     notnull_check(conn);
-    notnull_check(conn->config);
+
+    uint8_t preferred_key_shares = conn->preferred_key_shares;
+    const struct s2n_ecc_named_curve *named_curve = NULL;
+    struct s2n_ecc_evp_params *ecc_evp_params = NULL;
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     notnull_check(ecc_pref);
 
-    const struct s2n_ecc_named_curve *named_curve = NULL;
-    struct s2n_ecc_evp_params *ecc_evp_params = NULL;
+    /* If lsb is set, skip keyshare generation for all curve */
+    if (S2N_IS_KEY_SHARE_LIST_EMPTY(preferred_key_shares)) {
+        return S2N_SUCCESS;
+    }
 
-    for (uint32_t i = 0; i < ecc_pref->count; i++) {
+    if (!conn->preferred_key_shares) {
+        /* Default behavior is to generate keyshares for all curves.
+        * The bitmap to generate keyshares for all curve is 111111110 (254),
+        * i.e. all bit values set except lsb which is RESERVED for empty keyshares */
+        preferred_key_shares = S2N_ALL_KEY_SHARES_REQUESTED;
+    }
+
+    for (size_t i = 0; i < ecc_pref->count; i++) {
         ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
         named_curve = ecc_pref->ecc_curves[i];
-
         ecc_evp_params->negotiated_curve = named_curve;
         ecc_evp_params->evp_pkey = NULL;
-        GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
+        /* If a bit in the bitmap (minus the lsb) is set, generate keyshare for the corresponding curve */
+        if (S2N_IS_KEY_SHARE_REQUESTED(preferred_key_shares, i)) {
+            GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
+        }
     }
 
     return S2N_SUCCESS;
@@ -128,7 +146,7 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
         bytes_processed += share_size + S2N_SIZE_OF_NAMED_GROUP + S2N_SIZE_OF_KEY_SHARE_SIZE;
 
         supported_curve = NULL;
-        for (uint32_t i = 0; i < ecc_pref->count; i++) {
+        for (size_t i = 0; i < ecc_pref->count; i++) {
             if (named_group == ecc_pref->ecc_curves[i]->iana_id) {
                 supported_curve_index = i;
                 supported_curve = ecc_pref->ecc_curves[i];

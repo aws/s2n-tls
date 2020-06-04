@@ -33,8 +33,11 @@
 #include "common.h"
 #include <error/s2n_errno.h>
 
+#include "tls/s2n_connection.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
+
+#define S2N_MAX_ECC_CURVE_NAME_LENGTH 10
 
 void usage()
 {
@@ -83,6 +86,11 @@ void usage()
     fprintf(stderr, "    Turn on corked io\n");
     fprintf(stderr, "  --tls13\n");
     fprintf(stderr, "    Turn on experimental TLS1.3 support.\n");
+    fprintf(stderr, "  -K ,--keyshares\n");
+    fprintf(stderr, "    Colon separated list of curve names.\n"
+                    "    The client will generate keyshares only for the curve names present in the ecc_preferences list configured in the security_policy.\n"
+                    "    The curves currently supported by s2n are: `x25519`, `secp256r1` and `secp384r1`. Note that `none` represents a list of empty keyshares.\n"
+                    "    By default, the client will generate keyshares for all curves present in the ecc_preferences list.\n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -244,6 +252,10 @@ int main(int argc, char *const *argv)
     int echo_input = 0;
     int use_corked_io = 0;
     int use_tls13 = 0;
+    int keyshares_count = 0;
+    char keyshares[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT][S2N_MAX_ECC_CURVE_NAME_LENGTH];
+    char *input = NULL;
+    char *token = NULL;
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -264,11 +276,12 @@ int main(int argc, char *const *argv)
         {"timeout", required_argument, 0, 't'},
         {"corked-io", no_argument, 0, 'C'},
         {"tls13", no_argument, 0, '3'},
+        {"keyshares", required_argument, 0, 'K'},
     };
 
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:l:k:D:t:irTC", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:l:k:D:t:irTCK:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -287,6 +300,17 @@ int main(int argc, char *const *argv)
             break;
         case 'h':
             usage();
+            break;
+        case 'K':
+            input = optarg;
+            token = strtok(input, ":");
+            while( token != NULL ) {
+                strcpy(keyshares[keyshares_count], token);
+                if (++keyshares_count == S2N_ECC_EVP_SUPPORTED_CURVES_COUNT) {
+                    break;
+                }
+                token = strtok(NULL, ":");
+            }
             break;
         case 'n':
             server_name = optarg;
@@ -443,6 +467,12 @@ int main(int argc, char *const *argv)
 
         if (use_corked_io) {
             GUARD_EXIT(s2n_connection_use_corked_io(conn), "Error setting corked io");
+        }
+
+        for (size_t i = 0; i < keyshares_count; i++) {
+            if (keyshares[i]) {
+                GUARD_EXIT(s2n_connection_set_keyshare_by_name_for_testing(conn, keyshares[i]), "Error setting keyshares to generate");
+            }
         }
 
         /* Update session state in connection if exists */
