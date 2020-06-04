@@ -185,14 +185,14 @@ const struct s2n_record_algorithm s2n_tls13_record_alg_aes128_gcm = {
     .cipher = &s2n_tls13_aes128_gcm,
     .hmac_alg = S2N_HMAC_NONE, /* previously used in 1.2 prf, we do not need this */
     .flags = S2N_TLS13_RECORD_AEAD_NONCE,
-    .encryption_limit = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT,
+    .encryption_limit = S2N_TLS13_AES_GCM_MAXIMUM_RECORD_NUMBER,
 };
 
 const struct s2n_record_algorithm s2n_tls13_record_alg_aes256_gcm = {
     .cipher = &s2n_tls13_aes256_gcm,
     .hmac_alg = S2N_HMAC_NONE,
     .flags = S2N_TLS13_RECORD_AEAD_NONCE,
-    .encryption_limit = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT,
+    .encryption_limit = S2N_TLS13_AES_GCM_MAXIMUM_RECORD_NUMBER,
 };
 
 const struct s2n_record_algorithm s2n_tls13_record_alg_chacha20_poly1305 = {

@@ -27,6 +27,7 @@
 #include "utils/s2n_blob.h"
 
 int s2n_key_update_write(struct s2n_blob *out); 
+int s2n_check_key_limits(struct s2n_connection *conn, struct s2n_blob *sequence_number); 
 
 int main(int argc, char **argv)
 {
@@ -135,16 +136,14 @@ int main(int argc, char **argv)
             client_conn->actual_protocol_version = S2N_TLS13;
             client_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             memcpy_check(client_conn->secure.client_app_secret, application_secret.data, application_secret.size);
-
-            uint8_t data_size = 1;
-            client_conn->secure.client_sequence_number[0] = 1; 
+            uint8_t expected_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = {0};
+   
             client_conn->key_update_pending = true;
 
-            EXPECT_SUCCESS(s2n_key_update_send(client_conn, data_size));
+            EXPECT_SUCCESS(s2n_key_update_send(client_conn));
 
             EXPECT_EQUAL(client_conn->key_update_pending, false);
-            EXPECT_EQUAL(client_conn->secure.client_sequence_number[0], 0);
-            EXPECT_EQUAL(client_conn->encrypted_bytes_out, 0);
+            EXPECT_BYTEARRAY_EQUAL(client_conn->secure.client_sequence_number, expected_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
         }
@@ -156,20 +155,23 @@ int main(int argc, char **argv)
             client_conn->actual_protocol_version = S2N_TLS13;
             client_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             memcpy_check(client_conn->secure.client_app_secret, application_secret.data, application_secret.size);
+            uint8_t expected_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = {0};
 
-            uint8_t data_size = 1;
-            client_conn->secure.client_sequence_number[0] = 1; 
             client_conn->key_update_pending = false;
-            client_conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT;
 
-            EXPECT_SUCCESS(s2n_key_update_send(client_conn, data_size));
+            /* set record number to encryption limit */ 
+            client_conn->secure.client_sequence_number[4] = 1;
+            client_conn->secure.client_sequence_number[5] = 106;
+            client_conn->secure.client_sequence_number[6] = 9;
+            client_conn->secure.client_sequence_number[7] = 229;
+
+            EXPECT_SUCCESS(s2n_key_update_send(client_conn));
 
             EXPECT_EQUAL(client_conn->key_update_pending, false);
-            EXPECT_EQUAL(client_conn->secure.client_sequence_number[0], 0);
-            EXPECT_EQUAL(client_conn->encrypted_bytes_out, 0);
+            EXPECT_BYTEARRAY_EQUAL(client_conn->secure.client_sequence_number, expected_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
             
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        }
+        } 
         /* Key update is not triggered */
         {
             struct s2n_connection *client_conn;
@@ -177,52 +179,65 @@ int main(int argc, char **argv)
             client_conn->actual_protocol_version = S2N_TLS13;
             client_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             memcpy_check(client_conn->secure.client_app_secret, application_secret.data, application_secret.size);
+            uint8_t expected_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = {0};
 
-            uint8_t data_size = 1;
-            client_conn->secure.client_sequence_number[0] = 1; 
+            client_conn->secure.client_sequence_number[7] = 1; 
+            expected_sequence_number[7] = 1;
             client_conn->key_update_pending = false;
-            client_conn->encrypted_bytes_out = 1;
 
-            EXPECT_SUCCESS(s2n_key_update_send(client_conn, data_size));
+            EXPECT_SUCCESS(s2n_key_update_send(client_conn));
 
             EXPECT_EQUAL(client_conn->key_update_pending, false);
-            EXPECT_EQUAL(client_conn->secure.client_sequence_number[0], 1);
-            EXPECT_EQUAL(client_conn->encrypted_bytes_out, 1);
+            EXPECT_BYTEARRAY_EQUAL(client_conn->secure.client_sequence_number, expected_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
             
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        }
+        } 
     }
     /* s2n_check_key_limits */
     {
         /* Key update NOT triggered when encrypted bytes exactly matches encryption limit */
         {
             struct s2n_connection *conn;
-            uint8_t data_size = 1;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            EXPECT_EQUAL(conn->key_update_pending, 0);
-            conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT - data_size;
+            struct s2n_blob sequence_number = {0};
+            EXPECT_SUCCESS(s2n_blob_init(&sequence_number, conn->secure.server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+            EXPECT_EQUAL(conn->key_update_pending, false);
 
-            EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
-            EXPECT_EQUAL(conn->key_update_pending, 0);
+            /* set record number to encryption limit - 1 */
+            conn->secure.server_sequence_number[4] = 1;
+            conn->secure.server_sequence_number[5] = 106;
+            conn->secure.server_sequence_number[6] = 9;
+            conn->secure.server_sequence_number[7] = 228;
+
+            EXPECT_SUCCESS(s2n_check_key_limits(conn, &sequence_number));
+            
+            EXPECT_EQUAL(conn->key_update_pending, false);
 
             EXPECT_SUCCESS(s2n_connection_free(conn)); 
         }
 
-        /* Key update is triggered when encrypted bytes exceeds encryption limit */
+        /* Key update is triggered when record limit exceeds encryption limit */
         {
             struct s2n_connection *conn;
-            uint8_t data_size = 1;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            struct s2n_blob sequence_number = {0};
+            EXPECT_SUCCESS(s2n_blob_init(&sequence_number, conn->secure.server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
 
-            EXPECT_EQUAL(conn->key_update_pending, 0);
-            conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT + 1;
+            EXPECT_EQUAL(conn->key_update_pending, false);
 
-            EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
-            EXPECT_EQUAL(conn->key_update_pending, 1);
+            /* set record number to encryption limit */
+            conn->secure.server_sequence_number[4] = 1;
+            conn->secure.server_sequence_number[5] = 106;
+            conn->secure.server_sequence_number[6] = 9;
+            conn->secure.server_sequence_number[7] = 229;
+
+            EXPECT_SUCCESS(s2n_check_key_limits(conn, &sequence_number));
+
+            EXPECT_EQUAL(conn->key_update_pending, true);
 
             EXPECT_SUCCESS(s2n_connection_free(conn)); 
         }
@@ -230,16 +245,18 @@ int main(int argc, char **argv)
         /* Key update NOT triggered when encrypted bytes are below encryption limit */
         {
             struct s2n_connection *conn;
-            uint8_t data_size = 1;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            
-            EXPECT_EQUAL(conn->key_update_pending, 0);
-            conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT - 5;
+            struct s2n_blob sequence_number = {0};
+            EXPECT_SUCCESS(s2n_blob_init(&sequence_number, conn->secure.server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
 
-            EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
-            EXPECT_EQUAL(conn->key_update_pending, 0);
+            EXPECT_EQUAL(conn->key_update_pending, false);
+            /* set record number to below encryption limit */
+            conn->secure.server_sequence_number[7] = 229;
+
+            EXPECT_SUCCESS(s2n_check_key_limits(conn, &sequence_number));
+            EXPECT_EQUAL(conn->key_update_pending, false);
 
             EXPECT_SUCCESS(s2n_connection_free(conn)); 
         }
@@ -248,37 +265,46 @@ int main(int argc, char **argv)
         /* Skip test if libcrypto doesn't support the cipher */
         if (s2n_chacha20_poly1305.is_available()) {
             struct s2n_connection *conn;
-            uint8_t data_size = 1;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             /* Setting cipher suite to suite that does not have an encryption limit */
             conn->secure.cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
-            
-            EXPECT_EQUAL(conn->key_update_pending, 0);
-            conn->encrypted_bytes_out = UINT64_MAX;
+            struct s2n_blob sequence_number = {0};
+            EXPECT_SUCCESS(s2n_blob_init(&sequence_number, conn->secure.server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
 
-            EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
             EXPECT_EQUAL(conn->key_update_pending, 0);
+            for (int i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
+                conn->secure.server_sequence_number[i] = UINT8_MAX;
+            }
+
+            EXPECT_SUCCESS(s2n_check_key_limits(conn, &sequence_number));
+
+            EXPECT_EQUAL(conn->key_update_pending, false);
 
             EXPECT_SUCCESS(s2n_connection_free(conn)); 
         }
 
         /* Key update NOT triggered when cipher suite does not have encryption limit and
-         * when encrypted_bytes_out exactly equals UINT64_MAX
+         * when record limit exactly equals UINT64_MAX
          */
         if (s2n_chacha20_poly1305.is_available()) {
             struct s2n_connection *conn;
-            uint8_t data_size = 1;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             /* Setting cipher suite to suite that does not have an encryption limit */
             conn->secure.cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
+            struct s2n_blob sequence_number = {0};
+            EXPECT_SUCCESS(s2n_blob_init(&sequence_number, conn->secure.server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
             
             EXPECT_EQUAL(conn->key_update_pending, 0);
-            conn->encrypted_bytes_out = UINT64_MAX - data_size;
+            for (int i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
+                conn->secure.server_sequence_number[i] = UINT8_MAX;
+            }
+            conn->secure.server_sequence_number[7] -= 1;
+            
+            EXPECT_SUCCESS(s2n_check_key_limits(conn, &sequence_number));
 
-            EXPECT_SUCCESS(s2n_check_key_limits(conn, data_size));
-            EXPECT_EQUAL(conn->key_update_pending, 0);
+            EXPECT_EQUAL(conn->key_update_pending, false);
 
             EXPECT_SUCCESS(s2n_connection_free(conn)); 
         }
