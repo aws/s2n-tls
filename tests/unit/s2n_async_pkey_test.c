@@ -13,60 +13,17 @@
  * permissions and limitations under the License.
  */
 
-#include "error/s2n_errno.h"
 #include "s2n_test.h"
 
 #include "testlib/s2n_testlib.h"
 
-#include <unistd.h>
-#include <stdint.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <stdlib.h>
-
 #include <s2n.h>
 
-#include "crypto/s2n_fips.h"
-#include "crypto/s2n_rsa_pss.h"
-
+#include "error/s2n_errno.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_crypto.h"
-#include "tls/s2n_handshake.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
-
-#if 0
-static int handle_async(struct s2n_connection *server_conn)
-{
-    s2n_blocked_status server_blocked;
-
-    /* Check that we have pkey_op */
-    EXPECT_NOT_NULL(pkey_op);
-
-    /* Extract pkey */
-    struct s2n_cert_chain_and_key *chain_and_key = s2n_connection_get_selected_cert(server_conn);
-    EXPECT_NOT_NULL(chain_and_key);
-
-    s2n_cert_private_key *pkey = s2n_cert_chain_and_key_get_private_key(chain_and_key);
-    EXPECT_NOT_NULL(pkey);
-
-    /* Test that we can perform pkey operation */
-    EXPECT_SUCCESS(s2n_async_pkey_op_perform(pkey_op, pkey));
-
-    /* Test that pkey op can be applied to original connection */
-    EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, server_conn));
-
-    /* Free the pkey op */
-    EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
-    pkey_op = NULL;
-
-    async_pkey_op_performed++;
-
-    return 0;
-}
-#endif
 
 struct s2n_async_pkey_op *pkey_op = NULL;
 
@@ -150,27 +107,7 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
         EXPECT_NOT_EQUAL(++tries, 5);
     } while (client_blocked || server_blocked);
 
-    uint8_t server_shutdown = 0;
-    uint8_t client_shutdown = 0;
-    do {
-        if (!server_shutdown) {
-            int server_rc = s2n_shutdown(server_conn, &server_blocked);
-            if (server_rc == 0) {
-                server_shutdown = 1;
-            } else {
-                EXPECT_TRUE(server_blocked);
-            }
-        }
-
-        if (!client_shutdown) {
-            int client_rc = s2n_shutdown(client_conn, &client_blocked);
-            if (client_rc == 0) {
-                client_shutdown = 1;
-            } else if (!client_blocked) {
-                EXPECT_TRUE(client_blocked);
-            }
-        }
-    } while (!server_shutdown || !client_shutdown);
+    GUARD(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
     return S2N_SUCCESS;
 }
