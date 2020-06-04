@@ -15,11 +15,13 @@
 
 #pragma once
 
-#include <cbmc_proof/nondet.h>
-#include <cbmc_proof/proof_allocators.h>
-#include <utils/s2n_blob.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#include <cbmc_proof/nondet.h>
+#include <cbmc_proof/proof_allocators.h>
+#include <stuffer/s2n_stuffer.h>
+#include <utils/s2n_blob.h>
 
 #define IMPLIES(a, b) (!(a) || (b))
 
@@ -27,6 +29,27 @@ struct store_byte_from_buffer {
     size_t index;
     uint8_t byte;
 };
+
+/**
+ * Asserts whether s2n_stuffer's fields are equivalent, except for read_cursor,
+ * which might change after a read operation.
+ */
+ void assert_stuffer_immutable_fields_after_read(const struct s2n_stuffer *lhs,
+                                                 const struct s2n_stuffer *rhs,
+                                                 const struct store_byte_from_buffer *rhs_byte);
+/**
+ * Asserts whether s2n_blob objects are equivalent.
+ */
+ void assert_blob_equivalence(const struct s2n_blob *lhs,
+                              const struct s2n_blob *rhs,
+                              const struct store_byte_from_buffer *rhs_byte);
+
+/**
+ * Asserts whether s2n_stuffer objects are equivalent.
+ */
+ void assert_stuffer_equivalence(const struct s2n_stuffer *lhs,
+                                 const struct s2n_stuffer *rhs,
+                                 const struct store_byte_from_buffer *rhs_byte);
 
 /**
  * Asserts whether all bytes from two arrays of same length match.

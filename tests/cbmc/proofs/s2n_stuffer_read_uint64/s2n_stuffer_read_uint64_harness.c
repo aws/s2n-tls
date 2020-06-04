@@ -28,13 +28,13 @@ void s2n_stuffer_read_uint64_harness() {
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
 
     struct s2n_stuffer old_stuffer = *stuffer;
-    uint64_t dest;
+    uint64_t *dest = can_fail_malloc(sizeof(uint64_t*));
 
     /* Store a byte from the stuffer to compare after the read */
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
-    if (s2n_stuffer_read_uint64(stuffer, &dest) == S2N_SUCCESS) {
+    if (s2n_stuffer_read_uint64(stuffer, dest) == S2N_SUCCESS) {
         assert(stuffer->read_cursor == old_stuffer.read_cursor + sizeof(uint64_t));
         /* If successful, ensure uint was assembled correctly from stuffer */
         assert(((uint64_t) stuffer->blob.data[old_stuffer.read_cursor]) << 56
@@ -44,18 +44,11 @@ void s2n_stuffer_read_uint64_harness() {
              | ((uint64_t) stuffer->blob.data[old_stuffer.read_cursor + 4]) << 24
              | ((uint64_t) stuffer->blob.data[old_stuffer.read_cursor + 5]) << 16
              | ((uint64_t) stuffer->blob.data[old_stuffer.read_cursor + 6]) << 8
-             | ((uint64_t) stuffer->blob.data[old_stuffer.read_cursor + 7]) == dest);
+             | ((uint64_t) stuffer->blob.data[old_stuffer.read_cursor + 7]) == *dest);
     } else {
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
     }
 
-    assert(stuffer->blob.data == old_stuffer.blob.data);
-    assert(stuffer->blob.size == old_stuffer.blob.size);
-    assert(stuffer->write_cursor == old_stuffer.write_cursor);
-    assert(stuffer->high_water_mark == old_stuffer.high_water_mark);
-    assert(stuffer->alloced == old_stuffer.alloced);
-    assert(stuffer->growable == old_stuffer.growable);
-    assert(stuffer->tainted == old_stuffer.tainted);
-    assert_byte_from_blob_matches(&stuffer->blob, &old_byte_from_stuffer);
+    assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
     assert(s2n_stuffer_is_valid(stuffer));
 }
