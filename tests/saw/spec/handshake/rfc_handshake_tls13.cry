@@ -121,12 +121,12 @@ doHandshake params = (foldl doState initialHandshake (take`{n} (stateMachine par
                              then updateHandshake hs action.message
                              else hs
         updateHandshake hs value = {
-            messages = update`{ix=(width n)} hs.messages hs.index value,
+            messages = update hs.messages hs.index value,
             index = hs.index + 1
         }
         initialHandshake = {
             messages = repeat { messageType = applicationData, sender = both },
-            index = zero
+            index = 0:[width n]
         }
 
 /*
