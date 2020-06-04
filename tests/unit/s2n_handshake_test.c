@@ -120,29 +120,8 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
         EXPECT_NOT_EQUAL(++tries, 5);
     } while (client_blocked || server_blocked);
 
-    uint8_t server_shutdown = 0;
-    uint8_t client_shutdown = 0;
-    do {
-        if (!server_shutdown) {
-            int server_rc = s2n_shutdown(server_conn, &server_blocked);
-            if (server_rc == 0) {
-                server_shutdown = 1;
-            } else {
-                EXPECT_TRUE(server_blocked);
-            }
-        }
-
-        if (!client_shutdown) {
-            int client_rc = s2n_shutdown(client_conn, &client_blocked);
-            if (client_rc == 0) {
-                client_shutdown = 1;
-            } else if (!client_blocked) {
-                EXPECT_TRUE(client_blocked);
-            }
-        }
-    } while (!server_shutdown || !client_shutdown);
-
-    return 0;
+    GUARD(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+    return S2N_SUCCESS;
 }
 
 int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config *client_config,

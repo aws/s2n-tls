@@ -25,32 +25,6 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_cipher_suites.h"
 
-static const int MAX_TRIES = 100;
-
-static int try_handshake(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
-{
-    int tries = 0;
-    s2n_blocked_status client_blocked;
-    s2n_blocked_status server_blocked;
-    do {
-        int rc;
-        rc = s2n_negotiate(client_conn, &client_blocked);
-        if (rc != 0 && (client_blocked && errno != EAGAIN)) {
-            return -1;
-        }
-        rc = s2n_negotiate(server_conn, &server_blocked);
-        if (rc != 0 && (server_blocked && errno != EAGAIN)) {
-            return -1;
-        }
-
-        tries += 1;
-        if (tries >= MAX_TRIES) {
-            return -1;
-        }
-    } while (client_blocked || server_blocked);
-    return 0;
-}
-
 int main(int argc, char **argv)
 {
     struct s2n_config *client_config;
@@ -132,7 +106,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Verify the handshake was successful. */
-        EXPECT_SUCCESS(try_handshake(server_conn, client_conn));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that both connections negotiated mutual auth. */
         EXPECT_TRUE(s2n_connection_client_cert_used(server_conn));
@@ -196,7 +170,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Verify the handshake was successful. */
-        EXPECT_SUCCESS(try_handshake(server_conn, client_conn));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that neither connections negotiated mutual auth. */
         EXPECT_FALSE(s2n_connection_client_cert_used(server_conn));
@@ -260,7 +234,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
 
         /* Verify the handshake was successful. */
-        EXPECT_SUCCESS(try_handshake(server_conn, client_conn));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that neither connection negotiated mutual auth. */
         EXPECT_FALSE(s2n_connection_client_cert_used(server_conn));
@@ -331,7 +305,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_OPTIONAL));
 
         /* Verify the handshake was successful. */
-        EXPECT_SUCCESS(try_handshake(server_conn, client_conn));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that both connections negotiated mutual auth. */
         EXPECT_TRUE(s2n_connection_client_cert_used(server_conn));
@@ -401,7 +375,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_OPTIONAL));
 
         /* Verify the handshake was successful. */
-        EXPECT_SUCCESS(try_handshake(server_conn, client_conn));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that neither connection negotiated mutual auth. */
         EXPECT_FALSE(s2n_connection_client_cert_used(server_conn));
@@ -474,7 +448,7 @@ int main(int argc, char **argv)
 
         /* Verify the handshake failed. Blinding is disabled for the failure case to speed up tests. */
         EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
-        EXPECT_FAILURE(try_handshake(server_conn, client_conn));
+        EXPECT_FAILURE(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that neither connection negotiated mutual auth. */
         EXPECT_FALSE(s2n_connection_client_cert_used(server_conn));

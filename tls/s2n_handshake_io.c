@@ -1048,7 +1048,7 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
+int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     notnull_check(conn);
     notnull_check(blocked);
