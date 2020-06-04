@@ -52,7 +52,7 @@
  * approximately 2^-57 for Authenticated Encryption (AE) security.
  * S2N_TLS13_MAXIMUM_RECORD_NUMBER is 2^24.5 rounded down to the nearest whole number.
  */
-#define S2N_TLS13_MAXIMUM_RECORD_NUMBER            23726566L
+#define S2N_TLS13_MAXIMUM_RECORD_NUMBER            ((uint64_t) 23726566)
 #define S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT (S2N_TLS13_MAXIMUM_FRAGMENT_LENGTH * S2N_TLS13_MAXIMUM_RECORD_NUMBER)
 
 typedef enum {
