@@ -204,6 +204,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_INVALID_DYNAMIC_THRESHOLD, "invalid dynamic record threshold") \
     ERR_ENTRY(S2N_ERR_INVALID_ARGUMENT, "invalid argument provided into a function call") \
     ERR_ENTRY(S2N_ERR_NOT_IN_UNIT_TEST, "Illegal configuration, can only be used during unit tests") \
+    ERR_ENTRY(S2N_ERR_NOT_IN_TEST, "Illegal configuration, can only be used during unit or integration tests") \
     ERR_ENTRY(S2N_ERR_UNSUPPORTED_CPU, "Unsupported CPU architecture") \
     ERR_ENTRY(S2N_ERR_SESSION_ID_TOO_SHORT, "Session id is too short") \
     ERR_ENTRY(S2N_ERR_CONNECTION_CACHING_DISALLOWED, "This connection is not allowed to be cached") \
