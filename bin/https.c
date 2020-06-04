@@ -58,7 +58,7 @@ int https(struct s2n_connection *conn, uint32_t bench)
     /* In bench mode, we send some binary output */
     if (bench == 0) return 0;
 
-    fprintf(stdout, "Sending %d bytes...\n", bench);
+    fprintf(stdout, "Sending %u bytes...\n", bench);
 
     uint8_t big_buff[65536] = { 0 };
     uint32_t len = sizeof(big_buff);
