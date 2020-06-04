@@ -19,14 +19,15 @@
 #include <stdio.h>
 
 #define STRING_LEN 1024
-char str[STRING_LEN];
+static char str_buffer[STRING_LEN];
 
-#define REPLY(format, var) sprintf(str, "%s %d\n", format, var);\
-    s2n_send(conn, str, strlen(str), &blocked);
+#define REPLY(...) sprintf(str_buffer, __VA_ARGS__);\
+    s2n_send(conn, str_buffer, strlen(str_buffer), &blocked);
 
-#define REPLY_STR(format, var) sprintf(str, "%s %s\n", format, var);\
-    s2n_send(conn, str, strlen(str), &blocked);
-
+/*
+ * simple https handler that allows https clients to connect
+ * but currently does not do any user parsing
+ */
 int https(struct s2n_connection *conn, bool bench)
 {
     const char header[] = "HTTP/1.1 200 OK\r\n\r\n";
@@ -34,25 +35,25 @@ int https(struct s2n_connection *conn, bool bench)
 
     s2n_blocked_status blocked;
 
-    s2n_send(conn, header, strlen(header), &blocked);
-    s2n_send(conn, response, strlen(response), &blocked);
+    REPLY(header);
+    REPLY(response);
 
-    REPLY("Client hello version: ", s2n_connection_get_client_hello_version(conn));
-    REPLY("Client protocol version: ", s2n_connection_get_client_protocol_version(conn));
-    REPLY("Server protocol version: ", s2n_connection_get_server_protocol_version(conn));
-    REPLY("Actual protocol version: ", s2n_connection_get_actual_protocol_version(conn));
+    REPLY("Client hello version: %d\n", s2n_connection_get_client_hello_version(conn));
+    REPLY("Client protocol version: %d\n", s2n_connection_get_client_protocol_version(conn));
+    REPLY("Server protocol version: %d\n", s2n_connection_get_server_protocol_version(conn));
+    REPLY("Actual protocol version: %d\n", s2n_connection_get_actual_protocol_version(conn));
 
     if (s2n_get_server_name(conn)) {
-        REPLY_STR("Server name: ", s2n_get_server_name(conn));
+        REPLY("Server name: %s\n", s2n_get_server_name(conn));
     }
 
     if (s2n_get_application_protocol(conn)) {
-        REPLY_STR("Application protocol: ", s2n_get_application_protocol(conn));
+        REPLY("Application protocol: %s\n", s2n_get_application_protocol(conn));
     }
 
-    REPLY_STR("Curve: ", s2n_connection_get_curve(conn));
-    REPLY_STR("KEM: ", s2n_connection_get_kem_name(conn));
-    REPLY_STR("Cipher negotiated: ", s2n_connection_get_cipher(conn));
+    REPLY("Curve: %s\n", s2n_connection_get_curve(conn));
+    REPLY("KEM:%s\n ", s2n_connection_get_kem_name(conn));
+    REPLY("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
 
     if (!bench) return 0;
 
@@ -61,7 +62,7 @@ int https(struct s2n_connection *conn, bool bench)
     uint32_t len = sizeof(big_buff);
 
     while (1) {
-        uint16_t i = 0;
+        uint32_t i = 0;
 
         while (i < len) {
             int out = s2n_send(conn, &big_buff[i], len - i, &blocked);
