@@ -35,6 +35,7 @@ int main(int argc, char **argv)
             struct s2n_blob sequence_number = {0};
             
             EXPECT_SUCCESS(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
+            EXPECT_SUCCESS(s2n_blob_zero(&sequence_number));
 
             EXPECT_SUCCESS(s2n_convert_sequence_number(&sequence_number, &output));
 
