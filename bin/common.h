@@ -34,6 +34,6 @@
 extern void print_s2n_error(const char *app_error);
 extern int echo(struct s2n_connection *conn, int sockfd);
 extern int negotiate(struct s2n_connection *conn);
-extern int https(struct s2n_connection *conn, int sockfd);
+extern int https(struct s2n_connection *conn, bool bench);
 
 char *load_file_to_cstring(const char *path);

@@ -29,7 +29,6 @@ char str[STRING_LEN];
 
 int https(struct s2n_connection *conn, bool bench)
 {
-    printf("https\n");
     const char header[] = "HTTP/1.1 200 OK\r\n\r\n";
     const char response[] = "<html><body><h1>Hello from s2n server</h1><pre>";
 
@@ -54,6 +53,26 @@ int https(struct s2n_connection *conn, bool bench)
     REPLY_STR("Curve: ", s2n_connection_get_curve(conn));
     REPLY_STR("KEM: ", s2n_connection_get_kem_name(conn));
     REPLY_STR("Cipher negotiated: ", s2n_connection_get_cipher(conn));
+
+    if (!bench) return 0;
+
+    /* In bench mode, we are getting s2nd to send as much data over the connection as possible */
+    uint8_t big_buff[65536] = { 0 };
+    uint32_t len = sizeof(big_buff);
+
+    while (1) {
+        uint16_t i = 0;
+
+        while (i < len) {
+            int out = s2n_send(conn, &big_buff[i], len - i, &blocked);
+            if (out < 0) {
+                fprintf(stderr, "Error writing to connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+                s2n_print_stacktrace(stdout);
+                return 1;
+            }
+            i += out;
+        }
+    }
 
     return 0;
 }

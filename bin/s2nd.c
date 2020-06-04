@@ -360,7 +360,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
     }
 
     if (settings.https_server) {
-        https(conn, fd);
+        https(conn, settings.https_bench);
     } else if (!settings.only_negotiate) {
         echo(conn, fd);
     }
