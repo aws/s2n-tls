@@ -1392,18 +1392,24 @@ milliseconds each time the private key operation needs to be performed.
 To enable asynchronous private key operations user needs to provide a
 callback function **s2n_async_pkey_fn** to
 **s2n_config_set_async_pkey_callback** call. This function will be
-executed each time operation on private key needs to be performed with
-**op** object representing this operation. From this function the user
-can spawn the thread with **op** object to perform through
-**s2n_async_pkey_op_perform** call and immediately return from the
-function without waiting for thread to complete. The **s2n_negotiate**
-will fail with **S2N_ERR_T_BLOCKED** error type and **s2n_blocked_status**
-**S2N_BLOCKED_ON_APPLICATION_INPUT**, and will keep giving the same
-error until the **op** is performed on the spawned thread and applied to
-connection. Once the spawned thread finishes performing the **op**,
-the **s2n_async_pkey_op_apply** needs to be called in the main
-event loop thread to apply the result to connection. After that the user
-needs to call **s2n_negotiate** to proceed with handshake.
+executed during **s2n_negotiate** call every time operation on private
+key needs to be performed. The argument **op** represents the operation
+to perform. From the callback the user can spawn the thread to perform
+**op** through **s2n_async_pkey_op_perform** call and immediately return
+**S2N_SUCCESS** from the function without waiting for thread to complete.
+The **s2n_negotiate** will return **S2N_FAILURE** with **S2N_ERR_T_BLOCKED**
+error type and **s2n_blocked_status** **S2N_BLOCKED_ON_APPLICATION_INPUT**,
+and will keep giving the same error until the **op** is performed and
+applied to the connection through **s2n_async_pkey_op_apply** call.
+
+Note, it is not safe to call multiple functions on the same **conn** or
+**op** objects from 2 different threads at the same time. Doing so will
+produce undefined behaviour. However it is safe to have a call to
+function involvingi only **conn** at the same time with a call to
+function involving only **op**, as 2 objects are not coupled with each
+other. It is also safe to free **conn** or **op** at any moment with
+respective function calls, with the only exception that **conn** cannot
+be freed inside the **s2n_async_pkey_fn** callback.
 
 ```c
 typedef int (*s2n_async_pkey_fn)(struct s2n_connection *conn, struct s2n_async_pkey_op *op);
@@ -1415,38 +1421,38 @@ extern int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
 
 - **op** is an opaque object representing private key operation which
 needs to be performed.
-- **key** is a private key used for operation.
+- **key** is a private key used for operation, can be extracted from
+  **conn** through **s2n_connection_get_selected_cert** and
+  **s2n_cert_chain_and_key_get_key** calls.
 
 **s2n_async_pkey_fn** is invoked every time some action involving
-private key is required. The **conn** provides a pointer to connection
-which triggered this action. The **op** is an operation which needs to be
-performed through **s2n_async_pkey_op_perform** call and applied to
-**conn** through **s2n_async_pkey_op_apply** call after the
-callback was complete. Once performed and applied the **op** should be
-freed by the caller through **s2n_async_pkey_op_free** call.
+private key is required during **s2n_negotiate**. The **conn** provides
+a pointer to the connection which triggered the callback, the **op** is
+a pointer to an operation to be performed. The callback takes the
+ownership of **op** object and is responsible for freeing the memory for
+it.
 
 **s2n_config_set_async_pkey_callback** sets up the callback to invoke
 for asynchronous private key operations and enables asynchronous mode.
-When it is used **s2n_negotiate** will error out with **S2N_ERR_T_BLOCKED**
-error type and **s2n_blocked_status** **S2N_BLOCKED_ON_APPLICATION_INPUT**
-each time the callback was invoked and won't proceed until
-**s2n_async_pkey_op_apply** is called on the connection and
-associated **op** object.
 
 **s2n_async_pkey_op_perform** performs the **op** allowing it to be used
 to resume the handshake through **s2n_async_pkey_op_apply** call. This
-function can be called only once and is safe to call from a different thread.
-To get the private key **key** the caller can use
-**s2n_connection_get_selected_cert** and **s2n_cert_chain_and_key_get_key**
-calls.
+function can be called only once and any subsequent calls will produce a
+failure. It is safe to call from a different thread, as long as no other
+thread is operating on **op**.
 
-**s2n_async_pkey_op_apply** applies the **op** after it was performed
-through **s2n_async_pkey_op_perform** call to connection. The caller will
-need to call **s2n_negotiate** again in order to proceed with TLS handshake.
+**s2n_async_pkey_op_apply** applies the performed **op** to **conn**
+allowing for the next call to **s2n_negotiate** to proceed through
+handshake. The function will fail if it is called from
+**s2n_async_pkey_fn** callback, or if **op** was not performed through
+**s2n_async_pkey_op_perform** call, or if provided **conn** is different
+from the original **conn** which initiated callback for this **op**. The
+function will succeed only once and any subsequent call will result in
+failure for the same **op**.
 
-**s2n_async_pkey_op_free** frees the memory for **op**. Should be called
-for each of the **op** from callback after all work has been performed
-on the object.
+**s2n_async_pkey_op_free** frees the memory for **op**. Should eventually
+be called for each of the **op** received in **s2n_async_pkey_fn** to
+avoid any memory leaks.
 
 ### s2n\_connection\_free\_handshake
 
