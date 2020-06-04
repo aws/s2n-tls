@@ -37,50 +37,9 @@
 
 static int try_handshake(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
 {
-    s2n_blocked_status server_blocked;
-    s2n_blocked_status client_blocked;
-
-    int tries = 0;
-    do {
-        int client_rc = s2n_negotiate(client_conn, &client_blocked);
-        if (!(client_rc == 0 || (client_blocked && s2n_errno == S2N_ERR_IO_BLOCKED))) {
-            return -1;
-        }
-
-        int server_rc = s2n_negotiate(server_conn, &server_blocked);
-        if (!(server_rc == 0 || (server_blocked && s2n_errno == S2N_ERR_IO_BLOCKED) || server_blocked == S2N_BLOCKED_ON_APPLICATION_INPUT)) {
-            return -1;
-        }
-
-        tries += 1;
-        if (tries == 5) {
-            return -1;
-        }
-    } while (client_blocked || server_blocked);
-
-    uint8_t server_shutdown = 0;
-    uint8_t client_shutdown = 0;
-    do {
-        if (!server_shutdown) {
-            int server_rc = s2n_shutdown(server_conn, &server_blocked);
-            if (server_rc == 0) {
-                server_shutdown = 1;
-            } else if (!(server_blocked && errno == EAGAIN)) {
-                return -1;
-            }
-        }
-
-        if (!client_shutdown) {
-            int client_rc = s2n_shutdown(client_conn, &client_blocked);
-            if (client_rc == 0) {
-                client_shutdown = 1;
-            } else if (!(client_blocked && errno == EAGAIN)) {
-                return -1;
-            }
-        }
-    } while (!server_shutdown || !client_shutdown);
-
-    return 0;
+    GUARD(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+    GUARD(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+    return S2N_SUCCESS;
 }
 
 int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config *client_config,
