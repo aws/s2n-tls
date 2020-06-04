@@ -83,8 +83,6 @@ int main(int argc, char **argv)
         struct s2n_security_policy server_security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        s2n_blocked_status client_blocked;
-        s2n_blocked_status server_blocked;
         struct s2n_stuffer client_to_server;
         struct s2n_stuffer server_to_client;
 
@@ -119,19 +117,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
-        int tries = 0;
-        do {
-            int ret;
-            ret = s2n_negotiate(client_conn, &client_blocked);
-            EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
-            ret = s2n_negotiate(server_conn, &server_blocked);
-            EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
-            tries += 1;
-
-            if (tries >= MAX_TRIES) {
-               FAIL();
-            }
-        } while (client_blocked || server_blocked);
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that both connections negotiated Mutual Auth */
         EXPECT_TRUE(s2n_connection_client_cert_used(server_conn));
@@ -143,7 +129,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&server_to_client));
         EXPECT_SUCCESS(s2n_stuffer_free(&client_to_server));
     }
-
 
     /*
      * Test Mutual Auth using **s2n_config_set_client_auth_type**
@@ -157,8 +142,6 @@ int main(int argc, char **argv)
         struct s2n_security_policy server_security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        s2n_blocked_status client_blocked;
-        s2n_blocked_status server_blocked;
         struct s2n_stuffer client_to_server;
         struct s2n_stuffer server_to_client;
 
@@ -189,19 +172,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
-        int tries = 0;
-        do {
-            int ret;
-            ret = s2n_negotiate(client_conn, &client_blocked);
-            EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
-            ret = s2n_negotiate(server_conn, &server_blocked);
-            EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
-            tries += 1;
-
-            if (tries >= MAX_TRIES) {
-               FAIL();
-            }
-        } while (client_blocked || server_blocked);
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that both connections negotiated Mutual Auth */
         EXPECT_TRUE(s2n_connection_client_cert_used(server_conn));
@@ -226,8 +197,6 @@ int main(int argc, char **argv)
         struct s2n_security_policy server_security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        s2n_blocked_status client_blocked;
-        s2n_blocked_status server_blocked;
         struct s2n_stuffer client_to_server;
         struct s2n_stuffer server_to_client;
 
@@ -263,19 +232,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
-        int tries = 0;
-        do {
-            int ret;
-            ret = s2n_negotiate(client_conn, &client_blocked);
-            EXPECT_TRUE(ret == 0 || (client_blocked && errno == EAGAIN));
-            ret = s2n_negotiate(server_conn, &server_blocked);
-            EXPECT_TRUE(ret == 0 || (server_blocked && errno == EAGAIN));
-            tries += 1;
-
-            if (tries >= MAX_TRIES) {
-               FAIL();
-            }
-        } while (client_blocked || server_blocked);
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that both connections negotiated Mutual Auth */
         EXPECT_TRUE(s2n_connection_client_cert_used(server_conn));
@@ -300,8 +257,6 @@ int main(int argc, char **argv)
         struct s2n_security_policy server_security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        s2n_blocked_status client_blocked;
-        s2n_blocked_status server_blocked;
         struct s2n_stuffer client_to_server;
         struct s2n_stuffer server_to_client;
 
@@ -337,20 +292,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
-        int tries = 0;
-        int failures = 0;
-        do {
-            int client_ret, server_ret;
-            client_ret = s2n_negotiate(client_conn, &client_blocked);
-            server_ret = s2n_negotiate(server_conn, &server_blocked);
-            tries += 1;
+        EXPECT_FAILURE(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-            if (client_ret != 0 || server_ret != 0) {
-               failures ++;
-            }
-        } while ((client_blocked || server_blocked) && tries < MAX_TRIES);
-
-        EXPECT_EQUAL(failures, MAX_TRIES);
         /* Verify that NEITHER connections negotiated Mutual Auth */
         EXPECT_FALSE(s2n_connection_client_cert_used(server_conn));
         EXPECT_FALSE(s2n_connection_client_cert_used(client_conn));
