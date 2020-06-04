@@ -285,6 +285,8 @@ void usage()
     fprintf(stderr, "    Turn on experimental TLS1.3 support.\n");
     fprintf(stderr, "  -w --https-server\n");
     fprintf(stderr, "    Run s2nd in a simple https server mode.\n");
+    fprintf(stderr, "  -b --https-bench <bytes>\n");
+    fprintf(stderr, "    Send number of bytes in https server mode to test throughput.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -305,7 +307,7 @@ struct conn_settings {
     unsigned use_corked_io:1;
     unsigned exit_on_close:1;
     unsigned https_server:1;
-    unsigned https_bench:1;
+    uint32_t https_bench;
     const char *ca_dir;
     const char *ca_file;
 };
@@ -426,7 +428,7 @@ int main(int argc, char *const *argv)
         {"corked-io", no_argument, 0, 'C'},
         {"tls13", no_argument, 0, '3'},
         {"https-server", no_argument, 0, 'w'},
-        {"https-bench", no_argument, 0, 'b'},
+        {"https-bench", required_argument, 0, 'b'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
@@ -516,7 +518,7 @@ int main(int argc, char *const *argv)
             conn_settings.https_server = 1;
             break;
         case 'b':
-            conn_settings.https_bench = 1;
+            conn_settings.https_bench = atoi(optarg);
             break;
         case '?':
         default:

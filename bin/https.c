@@ -28,9 +28,9 @@ static char str_buffer[STRING_LEN];
  * simple https handler that allows https clients to connect
  * but currently does not do any user parsing
  */
-int https(struct s2n_connection *conn, bool bench)
+int https(struct s2n_connection *conn, uint32_t bench)
 {
-    const char header[] = "HTTP/1.1 200 OK\r\n\r\n";
+    const char header[] = "HTTP/1.0 200 OK\r\n\r\n";
     const char response[] = "<html><body><h1>Hello from s2n server</h1><pre>";
 
     s2n_blocked_status blocked;
@@ -55,13 +55,16 @@ int https(struct s2n_connection *conn, bool bench)
     REPLY("KEM:%s\n ", s2n_connection_get_kem_name(conn));
     REPLY("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
 
-    if (!bench) return 0;
+    /* In bench mode, we send some binary output */
+    if (bench == 0) return 0;
 
-    /* In bench mode, we are getting s2nd to send as much data over the connection as possible */
+    fprintf(stdout, "Sending %d bytes...\n", bench);
+
     uint8_t big_buff[65536] = { 0 };
     uint32_t len = sizeof(big_buff);
+    uint32_t bytes_sent = 0;
 
-    while (1) {
+    while (bytes_sent < bench) {
         uint32_t i = 0;
 
         while (i < len) {
@@ -73,7 +76,11 @@ int https(struct s2n_connection *conn, bool bench)
             }
             i += out;
         }
+
+        bytes_sent += i;
     }
+
+    fprintf(stdout, "Done. Closing connection.\n\n");
 
     return 0;
 }
