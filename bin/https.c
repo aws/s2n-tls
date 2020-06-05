@@ -18,11 +18,58 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "error/s2n_errno.h"
+#include "stuffer/s2n_stuffer.h"
+#include "utils/s2n_safety.h"
+
+
 #define STRING_LEN 1024
 static char str_buffer[STRING_LEN];
+static s2n_blocked_status blocked;
 
-#define REPLY(...) sprintf(str_buffer, __VA_ARGS__);\
+#define SEND(...) sprintf(str_buffer, __VA_ARGS__); \
     s2n_send(conn, str_buffer, strlen(str_buffer), &blocked);
+
+#define BUFFER(...) sprintf(str_buffer, __VA_ARGS__); \
+    GUARD(s2n_stuffer_write_bytes(&stuffer, (const uint8_t *)str_buffer, strlen(str_buffer)));
+
+#define FLUSH(left, buffer) { \
+    uint32_t i = 0; \
+    while (i < left) { \
+        int out = s2n_send(conn, &buffer[i], left - i, &blocked); \
+        if (out < 0) { \
+            fprintf(stderr, "Error writing to connection: '%s'\n", s2n_strerror(s2n_errno, "EN")); \
+            s2n_print_stacktrace(stdout); \
+            return 1; \
+        } \
+        i += out; \
+    } \
+}
+
+#define HEADERS(length) \
+    SEND("HTTP/1.1 200 OK\r\n"); \
+    SEND("Content-Length: %u\r\n", length); \
+    SEND("\r\n");
+
+/* In bench mode, we send some binary output */
+int bench_handler(struct s2n_connection *conn, uint32_t bench) {
+    HEADERS(bench);
+    fprintf(stdout, "Sending %u bytes...\n", bench);
+
+    uint8_t big_buff[65536] = { 0 };
+    uint32_t len = sizeof(big_buff);
+    uint32_t bytes_remaining = bench;
+
+    while (bytes_remaining) {
+        uint32_t buffer_remaining = bytes_remaining < len ? bytes_remaining : len;
+        FLUSH(buffer_remaining, big_buff);
+        bytes_remaining -= buffer_remaining;
+    }
+
+    fprintf(stdout, "Done. Closing connection.\n\n");
+
+    return 0;
+}
 
 /*
  * simple https handler that allows https clients to connect
@@ -30,57 +77,39 @@ static char str_buffer[STRING_LEN];
  */
 int https(struct s2n_connection *conn, uint32_t bench)
 {
-    const char header[] = "HTTP/1.0 200 OK\r\n\r\n";
-    const char response[] = "<html><body><h1>Hello from s2n server</h1><pre>";
+    if (bench) {
+        return bench_handler(conn, bench);
+    }
 
-    s2n_blocked_status blocked;
+    DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
+    GUARD(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
-    REPLY(header);
-    REPLY(response);
+    BUFFER("<html><body><h1>Hello from s2n server</h1><pre>");
 
-    REPLY("Client hello version: %d\n", s2n_connection_get_client_hello_version(conn));
-    REPLY("Client protocol version: %d\n", s2n_connection_get_client_protocol_version(conn));
-    REPLY("Server protocol version: %d\n", s2n_connection_get_server_protocol_version(conn));
-    REPLY("Actual protocol version: %d\n", s2n_connection_get_actual_protocol_version(conn));
+    BUFFER("Client hello version: %d\n", s2n_connection_get_client_hello_version(conn));
+    BUFFER("Client protocol version: %d\n", s2n_connection_get_client_protocol_version(conn));
+    BUFFER("Server protocol version: %d\n", s2n_connection_get_server_protocol_version(conn));
+    BUFFER("Actual protocol version: %d\n", s2n_connection_get_actual_protocol_version(conn));
 
     if (s2n_get_server_name(conn)) {
-        REPLY("Server name: %s\n", s2n_get_server_name(conn));
+        BUFFER("Server name: %s\n", s2n_get_server_name(conn));
     }
 
     if (s2n_get_application_protocol(conn)) {
-        REPLY("Application protocol: %s\n", s2n_get_application_protocol(conn));
+        BUFFER("Application protocol: %s\n", s2n_get_application_protocol(conn));
     }
 
-    REPLY("Curve: %s\n", s2n_connection_get_curve(conn));
-    REPLY("KEM:%s\n ", s2n_connection_get_kem_name(conn));
-    REPLY("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
+    BUFFER("Curve: %s\n", s2n_connection_get_curve(conn));
+    BUFFER("KEM: %s\n", s2n_connection_get_kem_name(conn));
+    BUFFER("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
 
-    /* In bench mode, we send some binary output */
-    if (bench == 0) return 0;
+    uint32_t content_length = s2n_stuffer_data_available(&stuffer);
 
-    fprintf(stdout, "Sending %u bytes...\n", bench);
+    uint8_t *content = s2n_stuffer_raw_read(&stuffer, content_length);
+    notnull_check(content);
 
-    uint8_t big_buff[65536] = { 0 };
-    uint32_t len = sizeof(big_buff);
-    uint32_t bytes_sent = 0;
-
-    while (bytes_sent < bench) {
-        uint32_t i = 0;
-
-        while (i < len) {
-            int out = s2n_send(conn, &big_buff[i], len - i, &blocked);
-            if (out < 0) {
-                fprintf(stderr, "Error writing to connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-                s2n_print_stacktrace(stdout);
-                return 1;
-            }
-            i += out;
-        }
-
-        bytes_sent += i;
-    }
-
-    fprintf(stdout, "Done. Closing connection.\n\n");
+    HEADERS(content_length);
+    FLUSH(content_length, content);
 
     return 0;
 }
