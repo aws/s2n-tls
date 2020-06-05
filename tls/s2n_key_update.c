@@ -108,7 +108,7 @@ int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequenc
     if (output + 1 > conn->secure.cipher_suite->record_alg->encryption_limit) {
         conn->key_update_pending = true;
     }
-    
+
     return S2N_SUCCESS;
 }
 

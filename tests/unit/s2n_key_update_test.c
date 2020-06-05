@@ -35,6 +35,9 @@ int main(int argc, char **argv)
     "4bc28934ddd802b00f479e14a72d7725dab45d32b3b145f29"
     "e4c5b56677560eb5236b168c71c5c75aa52f3e20ee89bfb"); 
 
+    /* The maximum record number converted to base 256 */
+    uint8_t max_record_limit[S2N_TLS_SEQUENCE_NUM_LEN] = {0, 0, 0, 0, 1, 106, 9, 229};
+
     BEGIN_TEST();
     /* s2n_key_update_write */
     {
@@ -157,8 +160,6 @@ int main(int argc, char **argv)
             memcpy_check(client_conn->secure.client_app_secret, application_secret.data, application_secret.size);
             uint8_t zeroed_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = {0};
 
-            /* The maximum record number converted to base 256 */
-            uint8_t max_record_limit[S2N_TLS_SEQUENCE_NUM_LEN] = {0, 0, 0, 0, 1, 106, 9, 229};
             client_conn->key_update_pending = false;
 
             for (uint8_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
@@ -203,15 +204,15 @@ int main(int argc, char **argv)
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             struct s2n_blob sequence_number = {0};
             EXPECT_SUCCESS(s2n_blob_init(&sequence_number, conn->secure.server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-
-            /* The maximum record number - 1 converted to base 256 */
-            uint8_t max_record_limit[S2N_TLS_SEQUENCE_NUM_LEN] = {0, 0, 0, 0, 1, 106, 9, 228};
+            
             EXPECT_EQUAL(conn->key_update_pending, false);
 
             for (uint8_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
                 conn->secure.server_sequence_number[i] = max_record_limit[i];
             }
-
+            /* Change sequence number to be exactly record limit - 1 */
+            conn->secure.server_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN - 1] -= 1; 
+            
             EXPECT_SUCCESS(s2n_check_record_limit(conn, &sequence_number));
             
             EXPECT_EQUAL(conn->key_update_pending, false);
@@ -228,8 +229,6 @@ int main(int argc, char **argv)
             struct s2n_blob sequence_number = {0};
             EXPECT_SUCCESS(s2n_blob_init(&sequence_number, conn->secure.server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
             
-            /* The maximum record number converted to base 256 */
-            uint8_t max_record_limit[S2N_TLS_SEQUENCE_NUM_LEN] = {0, 0, 0, 0, 1, 106, 9, 229};
             EXPECT_EQUAL(conn->key_update_pending, false);
 
             for (uint8_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {

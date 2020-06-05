@@ -73,6 +73,9 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_enable_tls13());
 
+    /* The maximum record number converted to base 256 */
+    uint8_t max_record_limit[S2N_TLS_SEQUENCE_NUM_LEN] = {0, 0, 0, 0, 1, 106, 9, 229};
+
     /* s2n_send sends key update if necessary */
     {
         struct s2n_connection *server_conn;
@@ -96,10 +99,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&output, &input, client_conn));
         
         /* Mimic key update send conditions */
-        server_conn->secure.server_sequence_number[4] = 1;
-        server_conn->secure.server_sequence_number[5] = 106;
-        server_conn->secure.server_sequence_number[6] = 9;
-        server_conn->secure.server_sequence_number[7] = 229;
+        for (int i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
+            server_conn->secure.server_sequence_number[i] = max_record_limit[i];
+        }
 
         /* Next message to send will trigger key update message*/
         s2n_blocked_status blocked;
