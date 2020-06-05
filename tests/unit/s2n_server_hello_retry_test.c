@@ -64,22 +64,15 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_enable_tls13());
 
-    /* Send and receive Hello Retry Request messages */
+    /* Send Hello Retry Request messages */
     {
         struct s2n_config *server_config;
-        struct s2n_config *client_config;
-
         struct s2n_connection *server_conn;
-        struct s2n_connection *client_conn;
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(server_conn));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-
-        EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         struct s2n_stuffer *server_stuffer = &server_conn->handshake.io;
 
@@ -91,32 +84,26 @@ int main(int argc, char **argv)
             + COMPRESSION_METHOD_SIZE;
 
         server_conn->actual_protocol_version = S2N_TLS13;
+        server_conn->server_protocol_version = S2N_TLS13;
+        server_conn->client_protocol_version = S2N_TLS13;
         server_conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
         server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         server_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.client_ecc_evp_params[0]));
 
-        s2n_set_connection_hello_retry_flags(server_conn);
+        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn, 1));
 
         /* The client will need a key share extension to properly parse the hello */
         /* Total extension size + size of each extension */
         total += 2 + s2n_extensions_server_supported_versions_size(server_conn)
                 + s2n_extensions_server_key_share_send_size(server_conn);
 
-        EXPECT_EQUAL(s2n_is_hello_retry_required(server_conn), 1);
+        EXPECT_TRUE(s2n_is_hello_retry_message(server_conn));
         EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
 
         EXPECT_EQUAL(s2n_stuffer_data_available(server_stuffer), total);
 
-        /* Copy server stuffer to client stuffer */
-        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io, total));
-
-        /* Test that s2n_server_hello_retry_recv() is unsupported */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(client_conn), S2N_ERR_BAD_MESSAGE);
-
-        EXPECT_SUCCESS(s2n_config_free(client_config));
         EXPECT_SUCCESS(s2n_config_free(server_config));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
@@ -138,9 +125,9 @@ int main(int argc, char **argv)
         conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
 
-        s2n_set_connection_hello_retry_flags(conn);
+        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn, 1));
 
-        EXPECT_EQUAL(s2n_is_hello_retry_required(conn), 1);
+        EXPECT_TRUE(s2n_is_hello_retry_message(conn));
         EXPECT_SUCCESS(s2n_server_hello_retry_send(conn));
 
         EXPECT_SUCCESS(s2n_config_free(conf));
@@ -180,7 +167,7 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(conn), S2N_ERR_BAD_MESSAGE);
 
-        EXPECT_EQUAL(s2n_is_hello_retry_required(conn), 0);
+        EXPECT_FALSE(s2n_is_hello_retry_message(conn));
 
         EXPECT_SUCCESS(s2n_config_free(conf));
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -218,7 +205,7 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(conn), S2N_ERR_BAD_MESSAGE);
 
-        EXPECT_EQUAL(s2n_is_hello_retry_required(conn), 0);
+        EXPECT_FALSE(s2n_is_hello_retry_message(conn));
 
         EXPECT_SUCCESS(s2n_config_free(conf));
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -234,9 +221,12 @@ int main(int argc, char **argv)
 
         struct s2n_stuffer* extension_stuffer = &server_conn->handshake.io;
 
+        memcpy_check(server_conn->secure.server_random, hello_retry_request_random_test_buffer, S2N_TLS_RANDOM_DATA_LEN);
+        server_conn->server_protocol_version = S2N_TLS13;
+        server_conn->client_protocol_version = S2N_TLS13;
         server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         server_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
-        s2n_set_connection_hello_retry_flags(server_conn);
+        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn, 1));
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.client_ecc_evp_params[0]));
         EXPECT_SUCCESS(s2n_extensions_server_key_share_send(server_conn, extension_stuffer));
 
@@ -250,18 +240,16 @@ int main(int argc, char **argv)
         /* Setup the client to receive a HelloRetryRequest */
         memcpy_check(client_conn->secure.server_random, hello_retry_request_random_test_buffer, S2N_TLS_RANDOM_DATA_LEN);
         client_conn->server_protocol_version = S2N_TLS13;
+        client_conn->client_protocol_version = S2N_TLS13;
 
         /* Setup the handshake type and message number to simulate a condition where a HelloRetry should be sent */
-        client_conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
+        client_conn->handshake.handshake_type = NEGOTIATED | HELLO_RETRY_REQUEST | FULL_HANDSHAKE;
         EXPECT_SUCCESS(s2n_set_hello_retry_required(client_conn));
         client_conn->handshake.message_number = 1;
 
         /* Parse the key share */
         EXPECT_SUCCESS(s2n_extensions_server_key_share_recv(client_conn, extension_stuffer));
         EXPECT_EQUAL(s2n_stuffer_data_available(extension_stuffer), 0);
-
-        /* This curve will be NULL even though the extension succeeded */
-        EXPECT_NULL(client_conn->secure.server_ecc_evp_params.negotiated_curve);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
@@ -373,14 +361,23 @@ int main(int argc, char **argv)
         struct client_hello_context client_hello_ctx = {.invocations = 0 };
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(server_config, client_hello_detect_duplicate_calls, &client_hello_ctx));
 
+        /* Force HRR path by sending an empty list of keyshares */
+        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+
         /* Send the first CH message */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
-        EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_conn->handshake.io.blob));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                                        s2n_stuffer_data_available(&client_conn->handshake.io)));
 
         /* Receive the CH and send an HRR, which will execute the HRR code paths */
         EXPECT_EQUAL(client_hello_ctx.invocations, 0);
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
         EXPECT_EQUAL(client_hello_ctx.invocations, 1);
+
+        EXPECT_TRUE(s2n_is_hello_retry_required(server_conn));
+        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn, 1));
+        EXPECT_TRUE(s2n_is_hello_retry_message(server_conn));
+
         EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
 
         /* Before sending the second message, clear out the existing keys.
@@ -394,10 +391,17 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_conn->secure.client_ecc_evp_params[i]));
         }
 
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
+                                        s2n_stuffer_data_available(&server_conn->handshake.io)));
+        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(client_conn, 1));
+        EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
+
         /* Send the second CH message */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->handshake.io));
-        EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_conn->handshake.io.blob));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                                        s2n_stuffer_data_available(&client_conn->handshake.io)));
 
         /* Verify that receiving the second CH message does not execute the callback */
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));

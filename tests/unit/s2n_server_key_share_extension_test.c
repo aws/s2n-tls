@@ -85,6 +85,8 @@ int main(int argc, char **argv)
 
         /* A HelloRetryRequest only requires a Selected Group, not a key share */
         conn->actual_protocol_version = S2N_TLS13;
+        conn->client_protocol_version = S2N_TLS13;
+        conn->server_protocol_version = S2N_TLS13;
         conn->handshake.message_number = 1;
         conn->handshake.handshake_type = NEGOTIATED | HELLO_RETRY_REQUEST | FULL_HANDSHAKE;
         conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];

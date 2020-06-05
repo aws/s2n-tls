@@ -447,8 +447,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_client_key_share_extension.recv(server_conn, &key_share_extension));
 
-            /* should not have initialized any other curves */
-            for (int i = 1; i < ecc_pref->count; i++) {
+            /* should not have initialized any curves */
+            for (size_t i = 0; i < ecc_pref->count; i++) {
                 struct s2n_ecc_evp_params *ecc_evp_params = &server_conn->secure.client_ecc_evp_params[i];
                 EXPECT_NULL(ecc_evp_params->negotiated_curve);
                 EXPECT_NULL(ecc_evp_params->evp_pkey);

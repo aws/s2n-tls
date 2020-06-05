@@ -37,6 +37,10 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
 
+        server_conn->client_protocol_version = S2N_TLS13;
+        server_conn->server_protocol_version = S2N_TLS13;
+        server_conn->actual_protocol_version = S2N_TLS13;
+
         const struct s2n_ecc_preferences *ecc_pref = NULL;
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
         EXPECT_NOT_NULL(ecc_pref);
@@ -50,7 +54,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-        EXPECT_FALSE(s2n_is_hello_retry_required(server_conn));
+        EXPECT_FALSE(s2n_is_hello_retry_message(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
@@ -62,6 +66,10 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
 
+        server_conn->client_protocol_version = S2N_TLS13;
+        server_conn->server_protocol_version = S2N_TLS13;
+        server_conn->actual_protocol_version = S2N_TLS13;
+
         const struct s2n_ecc_preferences *ecc_pref = NULL;
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
         EXPECT_NOT_NULL(ecc_pref);
@@ -72,7 +80,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-        EXPECT_FALSE(s2n_is_hello_retry_required(server_conn));
+        EXPECT_FALSE(s2n_is_hello_retry_message(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
     }
 
@@ -81,6 +89,10 @@ int main(int argc, char **argv)
          * send Hello Retry Request. 
          */ 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
+        server_conn->client_protocol_version = S2N_TLS13;
+        server_conn->server_protocol_version = S2N_TLS13;
+        server_conn->actual_protocol_version = S2N_TLS13;
 
         const struct s2n_ecc_preferences *ecc_pref = NULL;
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
@@ -97,7 +109,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
 
         /* Verify that the handshake type was updated correctly */
-        EXPECT_EQUAL(s2n_is_hello_retry_handshake(server_conn), 1);
+        EXPECT_TRUE(s2n_is_hello_retry_required(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
@@ -107,6 +119,10 @@ int main(int argc, char **argv)
          */ 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
+
+        server_conn->client_protocol_version = S2N_TLS13;
+        server_conn->server_protocol_version = S2N_TLS13;
+        server_conn->actual_protocol_version = S2N_TLS13;
 
         const struct s2n_ecc_preferences *ecc_pref = NULL;
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
@@ -123,7 +139,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
 
         EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[1]);
-        EXPECT_FALSE(s2n_is_hello_retry_required(server_conn));
+        EXPECT_FALSE(s2n_is_hello_retry_message(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
     }
 
@@ -133,6 +149,10 @@ int main(int argc, char **argv)
          */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
+
+        server_conn->client_protocol_version = S2N_TLS13;
+        server_conn->server_protocol_version = S2N_TLS13;
+        server_conn->actual_protocol_version = S2N_TLS13;
 
         const struct s2n_ecc_preferences *ecc_pref = NULL;
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
@@ -145,7 +165,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
 
         EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
-        EXPECT_FALSE(s2n_is_hello_retry_required(server_conn));
+        EXPECT_FALSE(s2n_is_hello_retry_message(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn)); 
     } 
 
