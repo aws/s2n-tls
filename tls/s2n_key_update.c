@@ -25,7 +25,7 @@
 #include "utils/s2n_safety.h"
 
 int s2n_key_update_write(struct s2n_blob *out);
-int s2n_check_key_limits(struct s2n_connection *conn, struct s2n_blob *sequence_number); 
+int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequence_number); 
 
 
 int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request)
@@ -59,7 +59,7 @@ int s2n_key_update_send(struct s2n_connection *conn)
         GUARD(s2n_blob_init(&sequence_number, conn->secure.server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
     }
 
-    GUARD(s2n_check_key_limits(conn, &sequence_number));
+    GUARD(s2n_check_record_limit(conn, &sequence_number));
 
     if (conn->key_update_pending) {
         uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE];
@@ -95,7 +95,7 @@ int s2n_key_update_write(struct s2n_blob *out)
     return S2N_SUCCESS;
 }
 
-int s2n_check_key_limits(struct s2n_connection *conn, struct s2n_blob *sequence_number)
+int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequence_number)
 {
     notnull_check(conn);
     notnull_check(sequence_number);
@@ -103,12 +103,12 @@ int s2n_check_key_limits(struct s2n_connection *conn, struct s2n_blob *sequence_
     notnull_check(conn->secure.cipher_suite->record_alg);
 
     uint64_t output = 0;
-    GUARD(s2n_convert_sequence_number(sequence_number, &output));
+    GUARD(s2n_sequence_number_to_uint64(sequence_number, &output));
 
     if (output + 1 > conn->secure.cipher_suite->record_alg->encryption_limit) {
         conn->key_update_pending = true;
     }
-
+    
     return S2N_SUCCESS;
 }
 

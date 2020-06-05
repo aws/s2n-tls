@@ -41,16 +41,17 @@ int s2n_increment_sequence_number(struct s2n_blob *sequence_number)
     return 0;
 }
 
-int s2n_convert_sequence_number(struct s2n_blob *sequence_number, uint64_t *output)
+int s2n_sequence_number_to_uint64(struct s2n_blob *sequence_number, uint64_t *output)
 {
-    notnull_check(sequence_number);
     
-    int position = S2N_TLS_SEQUENCE_NUM_LEN - 1;
-    /* Each uint8_t can hold 2^8 values */
-    int power = 8;
-    for (int i = 0; i < sequence_number->size; i++) {
-        *output += (uint64_t) sequence_number->data[i] << (position * power);
-        position--;
+    notnull_check(sequence_number);
+    notnull_check(output);
+    uint8_t shift = 0;
+    *output = 0;
+
+    for (int i = sequence_number->size - 1; i >= 0; i--) {
+        *output += (uint64_t) sequence_number->data[i] << shift;
+        shift += 8;
     }
     return S2N_SUCCESS;
 }
