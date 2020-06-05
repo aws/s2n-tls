@@ -31,7 +31,7 @@
     acceptable in DRBG */
 int s2n_increment_drbg_counter(struct s2n_blob *counter)
 {
-    for (size_t i = counter->size - 1; i >= 0; i--) {
+    for (int32_t i = (int32_t)(counter->size - 1); i >= 0; i--) {
         counter->data[i] += 1;
         if (counter->data[i]) {
             break;
