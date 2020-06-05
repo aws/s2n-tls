@@ -24,16 +24,16 @@
 void s2n_blob_init_harness()
 {
     /* Non-deterministic inputs. */
-    struct s2n_blob * blob = can_fail_malloc( sizeof( *blob ) );
+    struct s2n_blob *blob = can_fail_malloc(sizeof(*blob));
     uint32_t size;
-    uint8_t * data = can_fail_malloc( size );
+    uint8_t *data = can_fail_malloc(size);
 
     /* Pre-conditions. */
     __CPROVER_assume(S2N_IMPLIES(size != 0, data != NULL));
 
     /* Operation under verification. */
-    if( s2n_blob_init( blob, data, size ) == S2N_SUCCESS )
+    if(s2n_blob_init(blob, data, size) == S2N_SUCCESS)
     {
-        assert( s2n_blob_is_valid( blob ) );
+        assert(s2n_blob_validate(blob) == S2N_SUCCESS);
     }
 }

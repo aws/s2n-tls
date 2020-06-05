@@ -23,13 +23,13 @@
 void s2n_stuffer_read_harness() {
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
-    __CPROVER_assume(s2n_blob_is_valid(blob));
+    __CPROVER_assume(s2n_stuffer_validate(stuffer) == S2N_SUCCESS);
+    __CPROVER_assume(s2n_blob_validate(blob) == S2N_SUCCESS);
     struct s2n_stuffer old_stuffer = *stuffer;
     struct s2n_blob old_blob = *blob;
     struct store_byte_from_buffer old_byte;
     save_byte_from_blob(&stuffer->blob, &old_byte);
-   
+
     /* int s2n_stuffer_read(struct s2n_stuffer *stuffer, struct s2n_blob *out) */
     if (s2n_stuffer_read(stuffer, blob) == S2N_SUCCESS) {
         assert(stuffer->read_cursor == old_stuffer.read_cursor + old_blob.size);
@@ -51,6 +51,6 @@ void s2n_stuffer_read_harness() {
     assert(blob->size == old_blob.size);
 
     assert_byte_from_blob_matches(&stuffer->blob, &old_byte);
-    assert(s2n_stuffer_is_valid(stuffer));
-    assert(s2n_blob_is_valid(stuffer));
+    assert(s2n_stuffer_validate(stuffer) == S2N_SUCCESS);
+    assert(s2n_blob_validate(stuffer) == S2N_SUCCESS);
 }

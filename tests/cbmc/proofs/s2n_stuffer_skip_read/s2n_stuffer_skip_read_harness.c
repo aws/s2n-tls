@@ -22,12 +22,12 @@
 
 void s2n_stuffer_skip_read_harness() {
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_stuffer_validate(stuffer) == S2N_SUCCESS);
     struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte;
     save_byte_from_blob(&stuffer->blob, &old_byte);
     uint32_t n;
-   
+
     if (s2n_stuffer_skip_read(stuffer, n) == S2N_SUCCESS) {
 	assert(stuffer->read_cursor == old_stuffer.read_cursor + n);
     } else {
@@ -43,5 +43,5 @@ void s2n_stuffer_skip_read_harness() {
     assert(stuffer->growable == old_stuffer.growable);
     assert(stuffer->tainted == old_stuffer.tainted);
     assert_byte_from_blob_matches(&stuffer->blob, &old_byte);
-    assert(s2n_stuffer_is_valid(stuffer));
+    assert(s2n_stuffer_validate(stuffer) == S2N_SUCCESS);
 }

@@ -24,7 +24,7 @@
 void s2n_blob_is_growable_harness() {
     /* Non-deterministic inputs. */
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(S2N_IMPLIES(blob!= NULL, s2n_blob_is_valid(blob)));
+    __CPROVER_assume(S2N_IMPLIES(blob!= NULL, s2n_blob_validate(blob) == S2N_SUCCESS));
 
     /* Operation under verification. */
     if(s2n_blob_is_growable(blob)) {
@@ -35,5 +35,5 @@ void s2n_blob_is_growable_harness() {
     }
 
     /* Post-condition. */
-    if(blob != NULL) assert(s2n_blob_is_valid(blob));
+    if(blob != NULL) assert(s2n_blob_validate(blob) == S2N_SUCCESS);
 }

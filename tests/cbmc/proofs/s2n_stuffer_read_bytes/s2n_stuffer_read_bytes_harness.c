@@ -28,8 +28,8 @@ void s2n_calculate_stacktrace() {}
 void s2n_stuffer_read_bytes_harness() {
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
-    __CPROVER_assume(s2n_blob_is_valid(blob));
+    __CPROVER_assume(s2n_stuffer_validate(stuffer) == S2N_SUCCESS);
+    __CPROVER_assume(s2n_blob_validate(blob) == S2N_SUCCESS);
 
     struct s2n_stuffer old_stuffer = *stuffer;
     struct s2n_blob old_blob = *blob;
@@ -51,6 +51,6 @@ void s2n_stuffer_read_bytes_harness() {
 	    assert(stuffer->read_cursor == old_stuffer.read_cursor);
     }
 
-    assert_byte_from_blob_matches(&stuffer->blob, &old_byte_from_stuffer); 
-    assert(s2n_stuffer_is_valid(stuffer));
+    assert_byte_from_blob_matches(&stuffer->blob, &old_byte_from_stuffer);
+    assert(s2n_stuffer_validate(stuffer) == S2N_SUCCESS);
 }

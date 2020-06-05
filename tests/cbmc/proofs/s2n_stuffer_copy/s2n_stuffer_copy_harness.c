@@ -24,12 +24,12 @@
 
 void s2n_stuffer_copy_harness() {
     struct s2n_stuffer *from = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(from));
+    __CPROVER_assume(s2n_stuffer_validate(from) == S2N_SUCCESS);
     struct s2n_stuffer old_stuffer = *from;
     struct store_byte_from_buffer old_byte;
     save_byte_from_blob(&from->blob, &old_byte);
     struct s2n_stuffer *to = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(to));
+    __CPROVER_assume(s2n_stuffer_validate(to) == S2N_SUCCESS);
     uint32_t length;
 
     s2n_stuffer_copy(from, to, length);
@@ -43,6 +43,6 @@ void s2n_stuffer_copy_harness() {
     assert(from->growable == old_stuffer.growable);
     assert(from->tainted == old_stuffer.tainted);
     assert_byte_from_blob_matches(&from->blob, &old_byte);
-    assert(s2n_stuffer_is_valid(from));
+    assert(s2n_stuffer_validate(from) == S2N_SUCCESS);
 
 }

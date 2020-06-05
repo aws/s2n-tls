@@ -31,7 +31,7 @@ int munlock(const void *addr, size_t len) {
 
 void s2n_stuffer_free_harness() {
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_stuffer_validate(stuffer) == S2N_SUCCESS);
 
     if (s2n_stuffer_free(stuffer) == 0) {
         assert_all_zeroes(stuffer, sizeof(*stuffer));
