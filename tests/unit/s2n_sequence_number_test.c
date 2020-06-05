@@ -64,7 +64,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
             EXPECT_SUCCESS(s2n_blob_zero(&sequence_number));
 
-            for (int i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
+            for (size_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
                 sequence_number.data[i] = UINT8_MAX;
             }
             

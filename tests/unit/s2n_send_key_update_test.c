@@ -99,7 +99,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&output, &input, client_conn));
         
         /* Mimic key update send conditions */
-        for (int i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
+        for (size_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
             server_conn->secure.server_sequence_number[i] = max_record_limit[i];
         }
 

@@ -51,7 +51,7 @@ int s2n_sequence_number_to_uint64(struct s2n_blob *sequence_number, uint64_t *ou
     *output = 0;
 
     for (int i = sequence_number->size - 1; i >= 0; i--) {
-        *output += (uint64_t) sequence_number->data[i] << shift;
+        *output += ((uint64_t) sequence_number->data[i]) << shift;
         shift += SEQUENCE_NUMBER_POWER;
     }
     return S2N_SUCCESS;

@@ -162,7 +162,7 @@ int main(int argc, char **argv)
 
             client_conn->key_update_pending = false;
 
-            for (uint8_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
+            for (size_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
                 client_conn->secure.client_sequence_number[i] = max_record_limit[i];
             }
             
@@ -207,12 +207,12 @@ int main(int argc, char **argv)
             
             EXPECT_EQUAL(conn->key_update_pending, false);
 
-            for (uint8_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
+            for (size_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
                 conn->secure.server_sequence_number[i] = max_record_limit[i];
             }
             /* Change sequence number to be exactly record limit - 1 */
             conn->secure.server_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN - 1] -= 1; 
-            
+
             EXPECT_SUCCESS(s2n_check_record_limit(conn, &sequence_number));
             
             EXPECT_EQUAL(conn->key_update_pending, false);
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
             
             EXPECT_EQUAL(conn->key_update_pending, false);
 
-            for (uint8_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
+            for (size_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
                 conn->secure.server_sequence_number[i] = max_record_limit[i];
             }
 
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
 
             EXPECT_EQUAL(conn->key_update_pending, 0);
 
-            for (int i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
+            for (size_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
                 conn->secure.server_sequence_number[i] = UINT8_MAX;
             }
 
@@ -299,7 +299,7 @@ int main(int argc, char **argv)
             
             EXPECT_EQUAL(conn->key_update_pending, 0);
 
-            for (int i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
+            for (size_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
                 conn->secure.server_sequence_number[i] = UINT8_MAX;
             }
             conn->secure.server_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN - 1] -= 1;
