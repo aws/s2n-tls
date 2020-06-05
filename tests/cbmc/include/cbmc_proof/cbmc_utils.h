@@ -31,25 +31,39 @@ struct store_byte_from_buffer {
 };
 
 /**
- * Asserts whether s2n_stuffer's fields are equivalent, except for read_cursor,
- * which might change after a read operation.
+ * Asserts two s2n_stuffer instances are equivalent, except for read_cursor,
+ * which might change after a read operation. In order to be considered equivalent,
+ * all members (except for read_cursor) from both instances must match, including
+ * all bytes from their underlying blobs (i.e., blob.data field). Prior to using
+ * this function, it is necessary to select a non-deterministic byte from the
+ * rhs s2n_blob instance (use save_byte_from_blob function), so it can properly
+ * assert all bytes from blob.data match.
  */
  void assert_stuffer_immutable_fields_after_read(const struct s2n_stuffer *lhs,
                                                  const struct s2n_stuffer *rhs,
-                                                 const struct store_byte_from_buffer *rhs_byte);
+                                                 const struct store_byte_from_buffer *stored_byte_from_rhs);
+
 /**
- * Asserts whether s2n_blob objects are equivalent.
+ * Asserts two s2n_blob instances are equivalent. In order to be considered equivalent,
+ * all members from both instances must match, including all bytes from their underlying
+ * buffers (i.e., *data field). Prior to using this function, it is necessary to select
+ * a non-deterministic byte from the rhs s2n_blob instance (use save_byte_from_blob function),
+ * so it can properly assert all bytes from *data match.
  */
  void assert_blob_equivalence(const struct s2n_blob *lhs,
                               const struct s2n_blob *rhs,
-                              const struct store_byte_from_buffer *rhs_byte);
+                              const struct store_byte_from_buffer *stored_byte_from_rhs);
 
 /**
- * Asserts whether s2n_stuffer objects are equivalent.
+ * Asserts two s2n_stuffer instances are equivalent. In order to be considered equivalent,
+ * all members from both instances must match, including all bytes from their underlying
+ * blobs (i.e., blob.data field). Prior to using this function, it is necessary to select
+ * a non-deterministic byte from the rhs s2n_blob instance (use save_byte_from_blob function),
+ * so it can properly assert all bytes from blob.data match.
  */
  void assert_stuffer_equivalence(const struct s2n_stuffer *lhs,
                                  const struct s2n_stuffer *rhs,
-                                 const struct store_byte_from_buffer *rhs_byte);
+                                 const struct store_byte_from_buffer *stored_byte_from_rhs);
 
 /**
  * Asserts whether all bytes from two arrays of same length match.

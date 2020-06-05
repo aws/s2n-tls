@@ -44,7 +44,6 @@ void s2n_stuffer_read_uint24_harness() {
     } else {
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
     }
-
     assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
     assert(s2n_stuffer_is_valid(stuffer));
 }
