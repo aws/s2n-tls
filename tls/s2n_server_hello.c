@@ -178,16 +178,16 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     /* Read the message off the wire */
     GUARD(s2n_server_hello_parse(conn));
 
+    conn->actual_protocol_version_established = 1;
+
+    GUARD(s2n_conn_set_handshake_type(conn));
+
     /* If this is a HelloRetryRequest, we don't process the ServerHello.
      * Instead we proceed with retry logic. */
     if (s2n_is_hello_retry_valid(conn)) {
         GUARD(s2n_server_hello_retry_recv(conn));
         return 0;
     }
-
-    conn->actual_protocol_version_established = 1;
-
-    GUARD(s2n_conn_set_handshake_type(conn));
 
     if (IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type)) {
         GUARD(s2n_prf_key_expansion(conn));
