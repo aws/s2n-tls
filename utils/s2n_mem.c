@@ -29,7 +29,7 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
-static long page_size = 4096;
+static uint32_t page_size = 4096;
 static bool initialized = false;
 
 static int s2n_mem_init_impl(void);
@@ -46,7 +46,11 @@ static s2n_mem_free_callback s2n_mem_free_cb = s2n_mem_free_mlock_impl;
 
 static int s2n_mem_init_impl(void)
 {
-    GUARD(page_size = sysconf(_SC_PAGESIZE));
+    long sysconf_rc = sysconf(_SC_PAGESIZE);
+    GUARD(sysconf_rc);
+    ENSURE_POSIX(sysconf_rc <= UINT32_MAX, S2N_FAILURE);
+    page_size = (uint32_t)sysconf_rc;
+
     if (getenv("S2N_DONT_MLOCK")) {
         s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
         s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;

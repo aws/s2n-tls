@@ -26,10 +26,11 @@
 bool s2n_blob_is_valid(const struct s2n_blob* b)
 {
     return S2N_OBJECT_PTR_IS_READABLE(b) &&
+           S2N_IMPLIES(b->data == NULL, b->size == 0) &&
            S2N_IMPLIES(b->growable == 0, b->allocated == 0) &&
-           S2N_IMPLIES(b->growable != 0, S2N_MEM_IS_READABLE(b->data, b->allocated)) &&
            S2N_IMPLIES(b->growable != 0, b->size <= b->allocated) &&
-           S2N_MEM_IS_READABLE(b->data,b->size);
+           S2N_MEM_IS_READABLE(b->data, b->allocated) &&
+           S2N_MEM_IS_READABLE(b->data, b->size);
 }
 
 int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size)
@@ -44,8 +45,7 @@ int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size)
 int s2n_blob_zero(struct s2n_blob *b)
 {
     memset_check(b->data, 0, b->size);
-
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t offset, uint32_t size)
