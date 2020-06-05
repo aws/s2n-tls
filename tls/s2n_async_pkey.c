@@ -58,6 +58,10 @@ struct s2n_async_pkey_op_actions {
     S2N_RESULT (*free)(struct s2n_async_pkey_op *op);
 };
 
+static S2N_RESULT s2n_async_get_actions(s2n_async_pkey_op_type type, const struct s2n_async_pkey_op_actions **actions);
+
+static S2N_RESULT s2n_async_pkey_op_allocate(struct s2n_async_pkey_op **op);
+
 static S2N_RESULT s2n_async_pkey_sign_async(struct s2n_connection *conn, s2n_signature_algorithm sig_alg,
                                             struct s2n_hash_state *digest, s2n_async_pkey_sign_complete on_complete);
 static S2N_RESULT s2n_async_pkey_sign_sync(struct s2n_connection *conn, s2n_signature_algorithm sig_alg,
@@ -86,6 +90,8 @@ static const struct s2n_async_pkey_op_actions s2n_async_pkey_sign_op = { .perfor
                                                                          .apply   = &s2n_async_pkey_sign_apply,
                                                                          .free    = &s2n_async_pkey_sign_free };
 
+DEFINE_POINTER_CLEANUP_FUNC(struct s2n_async_pkey_op *, s2n_async_pkey_op_free);
+
 static S2N_RESULT s2n_async_get_actions(s2n_async_pkey_op_type type, const struct s2n_async_pkey_op_actions **actions)
 {
     ENSURE_NONNULL(actions);
@@ -101,6 +107,24 @@ static S2N_RESULT s2n_async_get_actions(s2n_async_pkey_op_type type, const struc
     }
 
     return S2N_RESULT_ERROR;
+}
+
+static S2N_RESULT s2n_async_pkey_op_allocate(struct s2n_async_pkey_op **op)
+{
+    ENSURE_NONNULL(op);
+    ENSURE(*op == NULL, S2N_ERR_SAFETY);
+
+    /* allocate memory */
+    DEFER_CLEANUP(struct s2n_blob mem = {0}, s2n_free);
+    GUARD_AS_RESULT(s2n_alloc(&mem, sizeof(struct s2n_async_pkey_op)));
+    GUARD_AS_RESULT(s2n_blob_zero(&mem));
+
+    *op = (void *) mem.data;
+    if (s2n_blob_init(&mem, NULL, 0) != S2N_SUCCESS) {
+        *op = NULL;
+        return S2N_RESULT_ERROR;
+    }
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_async_pkey_decrypt(struct s2n_connection *conn, struct s2n_blob *encrypted,
@@ -129,10 +153,8 @@ S2N_RESULT s2n_async_pkey_decrypt_async(struct s2n_connection *conn, struct s2n_
     ENSURE_NONNULL(on_complete);
     ENSURE(conn->handshake.async_state == S2N_ASYNC_NOT_INVOKED, S2N_ERR_ASYNC_MORE_THAN_ONE);
 
-    DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
-    GUARD_AS_RESULT(s2n_alloc(&mem, sizeof(struct s2n_async_pkey_op)));
-    GUARD_AS_RESULT(s2n_blob_zero(&mem));
-    struct s2n_async_pkey_op *op = ( void * )mem.data;
+    DEFER_CLEANUP(struct s2n_async_pkey_op *op = NULL, s2n_async_pkey_op_free_pointer);
+    GUARD_RESULT(s2n_async_pkey_op_allocate(&op));
 
     op->type = S2N_ASYNC_DECRYPT;
     op->conn = conn;
@@ -147,10 +169,11 @@ S2N_RESULT s2n_async_pkey_decrypt_async(struct s2n_connection *conn, struct s2n_
     GUARD_AS_RESULT(s2n_conn_set_handshake_read_block(conn));
     conn->handshake.async_state = S2N_ASYNC_INVOKING_CALLBACK;
 
-    /* async_pkey will own the op, clean the mem blob to avoid freeing op */
-    GUARD_AS_RESULT(s2n_blob_init(&mem, NULL, 0));
+    /* Move op to tmp to avoid DEFER_CLEANUP freeing the op, as it will be owned by callback */
+    struct s2n_async_pkey_op *tmp_op = op;
+    op = NULL;
 
-    ENSURE(conn->config->async_pkey_cb(conn, op) == S2N_SUCCESS, S2N_ERR_ASYNC_CALLBACK_FAILED);
+    ENSURE(conn->config->async_pkey_cb(conn, tmp_op) == S2N_SUCCESS, S2N_ERR_ASYNC_CALLBACK_FAILED);
 
     /* Set state to waiting to allow op to be consumed by connection */
     conn->handshake.async_state = S2N_ASYNC_INVOKED_WAITING;
@@ -199,10 +222,8 @@ S2N_RESULT s2n_async_pkey_sign_async(struct s2n_connection *conn, s2n_signature_
     ENSURE_NONNULL(on_complete);
     ENSURE(conn->handshake.async_state == S2N_ASYNC_NOT_INVOKED, S2N_ERR_ASYNC_MORE_THAN_ONE);
 
-    DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
-    GUARD_AS_RESULT(s2n_alloc(&mem, sizeof(struct s2n_async_pkey_op)));
-    GUARD_AS_RESULT(s2n_blob_zero(&mem));
-    struct s2n_async_pkey_op *op = ( void * )mem.data;
+    DEFER_CLEANUP(struct s2n_async_pkey_op *op = NULL, s2n_async_pkey_op_free_pointer);
+    GUARD_RESULT(s2n_async_pkey_op_allocate(&op));
 
     op->type = S2N_ASYNC_SIGN;
     op->conn = conn;
@@ -218,10 +239,11 @@ S2N_RESULT s2n_async_pkey_sign_async(struct s2n_connection *conn, s2n_signature_
     GUARD_AS_RESULT(s2n_conn_set_handshake_read_block(conn));
     conn->handshake.async_state = S2N_ASYNC_INVOKING_CALLBACK;
 
-    /* async_pkey will own the op, clean the mem blob to avoid freeing op */
-    GUARD_AS_RESULT(s2n_blob_init(&mem, NULL, 0));
+    /* Move op to tmp to avoid DEFER_CLEANUP freeing the op, as it will be owned by callback */
+    struct s2n_async_pkey_op *tmp_op = op;
+    op = NULL;
 
-    ENSURE(conn->config->async_pkey_cb(conn, op) == S2N_SUCCESS, S2N_ERR_ASYNC_CALLBACK_FAILED);
+    ENSURE(conn->config->async_pkey_cb(conn, tmp_op) == S2N_SUCCESS, S2N_ERR_ASYNC_CALLBACK_FAILED);
 
     /* Set state to waiting to allow op to be consumed by connection */
     conn->handshake.async_state = S2N_ASYNC_INVOKED_WAITING;
