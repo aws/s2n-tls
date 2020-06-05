@@ -31,7 +31,7 @@
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_tls13.h"
 
-int mock_client(struct s2n_test_piped_io *piped_io, uint8_t *expected_data, uint32_t size)
+int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32_t size)
 {
     uint8_t *buffer = malloc(size);
     uint8_t *ptr = buffer;
@@ -48,7 +48,7 @@ int mock_client(struct s2n_test_piped_io *piped_io, uint8_t *expected_data, uint
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);
 
-    s2n_connection_set_piped_io(client_conn, piped_io);
+    s2n_connection_set_io_pair(client_conn, io_pair);
 
     result = s2n_negotiate(client_conn, &blocked);
     if (result < 0) {
@@ -86,7 +86,7 @@ int mock_client(struct s2n_test_piped_io *piped_io, uint8_t *expected_data, uint
     return 0;
 }
 
-int mock_client_iov(struct s2n_test_piped_io *piped_io, struct iovec *iov, uint32_t iov_size)
+int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_t iov_size)
 {
     struct s2n_connection *client_conn;
     struct s2n_config *client_config;
@@ -108,7 +108,7 @@ int mock_client_iov(struct s2n_test_piped_io *piped_io, struct iovec *iov, uint3
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);
 
-    s2n_connection_set_piped_io(client_conn, piped_io);
+    s2n_connection_set_io_pair(client_conn, io_pair);
 
     result = s2n_negotiate(client_conn, &blocked);
     if (result < 0) {
@@ -227,25 +227,25 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     }
 
     /* Create a pipe */
-    struct s2n_test_piped_io piped_io;
-    EXPECT_SUCCESS(s2n_piped_io_init(&piped_io));
+    struct s2n_test_io_pair io_pair;
+    EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
     /* Create a child process */
     pid = fork();
     if (pid == 0) {
         /* This is the client process, close the server end of the pipe */
-        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
+        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
         /* Run the client */
-        const int client_rc = !use_iov ? mock_client(&piped_io, blob.data, data_size)
-            : mock_client_iov(&piped_io, iov, iov_size);
+        const int client_rc = !use_iov ? mock_client(&io_pair, blob.data, data_size)
+            : mock_client_iov(&io_pair, iov, iov_size);
 
-        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
         _exit(client_rc);
     }
 
     /* This is the server process, close the client end of the pipe */
-    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_CLIENT));
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -257,7 +257,7 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     }
 
     /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_piped_io(conn, &piped_io));
+    EXPECT_SUCCESS(s2n_connection_set_io_pair(conn, &io_pair));
 
     EXPECT_SUCCESS(s2n_connection_use_corked_io(conn));
 
@@ -268,8 +268,8 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     EXPECT_SUCCESS(kill(pid, SIGSTOP));
 
     /* Make our pipes non-blocking */
-    s2n_fd_set_non_blocking(piped_io.server_read);
-    s2n_fd_set_non_blocking(piped_io.server_write);
+    s2n_fd_set_non_blocking(io_pair.server_read);
+    s2n_fd_set_non_blocking(io_pair.server_write);
 
     /* Try to all 10MB of data, should be enough to fill PIPEBUF, so
        we'll get blocked at some point */
@@ -300,8 +300,8 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     EXPECT_SUCCESS(kill(pid, SIGCONT));
 
     /* Make our sockets blocking again */
-    s2n_fd_set_blocking(piped_io.server_read);
-    s2n_fd_set_blocking(piped_io.server_write);
+    s2n_fd_set_blocking(io_pair.server_read);
+    s2n_fd_set_blocking(io_pair.server_write);
 
     /* Actually send the remaining data */
     while (remaining) {
@@ -329,7 +329,7 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     EXPECT_EQUAL(status, 0);
     EXPECT_SUCCESS(s2n_config_free(config));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
     if (iov) {
         for (int i = 0; i < iov_size; i++) {

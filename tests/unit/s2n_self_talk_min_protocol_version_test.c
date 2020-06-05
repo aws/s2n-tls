@@ -27,7 +27,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
-int mock_client(struct s2n_test_piped_io *piped_io)
+int mock_client(struct s2n_test_io_pair *io_pair)
 {
     struct s2n_connection *client_conn;
     struct s2n_config *client_config;
@@ -44,11 +44,11 @@ int mock_client(struct s2n_test_piped_io *piped_io)
     /* Force TLSv1 on a client so that server will fail handshake */
     client_conn->client_protocol_version = S2N_TLS10;
 
-    s2n_connection_set_piped_io(client_conn, piped_io);
+    s2n_connection_set_io_pair(client_conn, io_pair);
 
     result = s2n_negotiate(client_conn, &blocked);
 
-    s2n_piped_io_close_one_end(piped_io, S2N_CLIENT);
+    s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
     s2n_connection_free(client_conn);
     s2n_config_free(client_config);
 
@@ -82,28 +82,28 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "CloudFront-TLS-1-2-2019"));
 
     /* Create a pipe */
-    struct s2n_test_piped_io piped_io;
-    EXPECT_SUCCESS(s2n_piped_io_init(&piped_io));
+    struct s2n_test_io_pair io_pair;
+    EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
     /* Create a child process */
     pid = fork();
     if (pid == 0) {
         /* This is the client process, close the server end of the pipe */
-        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
+        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
         /* Send the client hello with TLSv1 and validate that we failed handshake */
-        mock_client(&piped_io);
+        mock_client(&io_pair);
     }
 
     /* This is the server process, close the client end of the pipe */
-    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_CLIENT));
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
     EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
 
     /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_piped_io(conn, &piped_io));
+    EXPECT_SUCCESS(s2n_connection_set_io_pair(conn, &io_pair));
 
     /* Negotiate the handshake. */
     EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     /* Close the pipes */
-    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
     /* Clean up */
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);

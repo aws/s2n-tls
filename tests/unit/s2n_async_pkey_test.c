@@ -201,10 +201,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
             /* Create nonblocking pipes */
-            struct s2n_test_piped_io piped_io;
-            EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
-            EXPECT_SUCCESS(s2n_connection_set_piped_io(client_conn, &piped_io));
-            EXPECT_SUCCESS(s2n_connection_set_piped_io(server_conn, &piped_io));
+            struct s2n_test_io_pair io_pair;
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
             EXPECT_FAILURE_WITH_ERRNO(
                     try_handshake(server_conn, client_conn, async_handler_fail), S2N_ERR_ASYNC_CALLBACK_FAILED);
@@ -212,7 +212,7 @@ int main(int argc, char **argv)
             /* Free the data */
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
-            EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
+            EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
             EXPECT_SUCCESS(s2n_config_free(server_config));
             EXPECT_SUCCESS(s2n_config_free(client_config));
         }
@@ -241,17 +241,17 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
             /* Create nonblocking pipes */
-            struct s2n_test_piped_io piped_io;
-            EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
-            EXPECT_SUCCESS(s2n_connection_set_piped_io(client_conn, &piped_io));
-            EXPECT_SUCCESS(s2n_connection_set_piped_io(server_conn, &piped_io));
+            struct s2n_test_io_pair io_pair;
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
             EXPECT_EQUAL(try_handshake(server_conn, client_conn, async_handler_wipe_connection_and_apply), S2N_FAILURE);
 
             /* Free the data */
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
-            EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
+            EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
             EXPECT_SUCCESS(s2n_config_free(server_config));
             EXPECT_SUCCESS(s2n_config_free(client_config));
         }
@@ -280,10 +280,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
             /* Create nonblocking pipes */
-            struct s2n_test_piped_io piped_io;
-            EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
-            EXPECT_SUCCESS(s2n_connection_set_piped_io(client_conn, &piped_io));
-            EXPECT_SUCCESS(s2n_connection_set_piped_io(server_conn, &piped_io));
+            struct s2n_test_io_pair io_pair;
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
             EXPECT_FAILURE_WITH_ERRNO(
                     try_handshake(server_conn, client_conn, async_handler_free_pkey_op), S2N_ERR_ASYNC_BLOCKED);
@@ -291,7 +291,7 @@ int main(int argc, char **argv)
             /* Free the data */
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
-            EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
+            EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
             EXPECT_SUCCESS(s2n_config_free(server_config));
             EXPECT_SUCCESS(s2n_config_free(client_config));
         }

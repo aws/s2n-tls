@@ -76,9 +76,9 @@ int s2n_test_client_auth_negotiation(struct s2n_config *server_config, struct s2
     }
 
     /* Create nonblocking pipes */
-    struct s2n_test_piped_io piped_io;
-    EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
-    EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
+    struct s2n_test_io_pair io_pair;
+    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+    EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
     /* Negotiate handshake */
     EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -95,7 +95,7 @@ int s2n_test_client_auth_negotiation(struct s2n_config *server_config, struct s2
     EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
     EXPECT_SUCCESS(s2n_connection_free(server_conn));
     EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
+    EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
 
     return 0;
 }

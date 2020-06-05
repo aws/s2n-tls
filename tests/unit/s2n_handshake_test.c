@@ -171,13 +171,13 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
         server_conn->security_policy_override = &server_security_policy;
 
         /* Create nonblocking pipes */
-        struct s2n_test_piped_io piped_io;
-        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
-        EXPECT_SUCCESS(s2n_connection_set_piped_io(client_conn, &piped_io));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
-        EXPECT_SUCCESS(s2n_connection_set_piped_io(server_conn, &piped_io));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         /* Reset counters */
@@ -218,7 +218,7 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
 
     return 0;

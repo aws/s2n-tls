@@ -31,7 +31,7 @@ struct client_hello_context {
     struct s2n_config *config;
 };
 
-int mock_client(struct s2n_test_piped_io *piped_io, int expect_failure, int expect_server_name_used)
+int mock_client(struct s2n_test_io_pair *io_pair, int expect_failure, int expect_server_name_used)
 {
     struct s2n_connection *conn;
     struct s2n_config *config;
@@ -49,7 +49,7 @@ int mock_client(struct s2n_test_piped_io *piped_io, int expect_failure, int expe
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
 
-    s2n_connection_set_piped_io(conn, piped_io);
+    s2n_connection_set_io_pair(conn, io_pair);
 
     s2n_set_server_name(conn, "example.com");
 
@@ -91,7 +91,7 @@ int mock_client(struct s2n_test_piped_io *piped_io, int expect_failure, int expe
     sleep(1);
 
     s2n_cleanup();
-    s2n_piped_io_close_one_end(piped_io, S2N_CLIENT);
+    s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
 
     _exit(result);
 }
@@ -212,26 +212,26 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_swap_config, &client_hello_ctx));
 
     /* Create a pipe */
-    struct s2n_test_piped_io piped_io;
-    EXPECT_SUCCESS(s2n_piped_io_init(&piped_io));
+    struct s2n_test_io_pair io_pair;
+    EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
     /* Create a child process */
     pid = fork();
     if (pid == 0) {
         /* This is the client process, close the server end of the pipe */
-        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
+        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
-        mock_client(&piped_io, 0, 1);
+        mock_client(&io_pair, 0, 1);
     }
 
     /* This is the server process, close the client end of the pipe */
-    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_CLIENT));
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_piped_io(conn, &piped_io));
+    EXPECT_SUCCESS(s2n_connection_set_io_pair(conn, &io_pair));
 
     /* Negotiate the handshake. */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
@@ -282,27 +282,27 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_swap_config, &client_hello_ctx));
 
     /* Create a pipe */
-    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
-    EXPECT_SUCCESS(s2n_piped_io_init(&piped_io));
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
+    EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
     /* Create a child process */
     pid = fork();
     if (pid == 0) {
         /* This is the client process, close the server end of the pipe */
-        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
+        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
-        mock_client(&piped_io, 0, 0);
+        mock_client(&io_pair, 0, 0);
     }
 
     /* This is the parent */
     /* This is the server process, close the client end of the pipe */
-    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_CLIENT));
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_piped_io(conn, &piped_io));
+    EXPECT_SUCCESS(s2n_connection_set_io_pair(conn, &io_pair));
 
     /* Negotiate the handshake. */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
@@ -351,20 +351,20 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_fail_handshake, &client_hello_ctx));
 
     /* Create a pipe */
-    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
-    EXPECT_SUCCESS(s2n_piped_io_init(&piped_io));
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
+    EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
     /* Create a child process */
     pid = fork();
     if (pid == 0) {
         /* This is the client process, close the server end of the pipe */
-        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
+        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
-        mock_client(&piped_io, 1, 0);
+        mock_client(&io_pair, 1, 0);
     }
 
     /* This is the server process, close the client end of the pipe */
-    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_CLIENT));
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -375,7 +375,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
 
     /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_piped_io(conn, &piped_io));
+    EXPECT_SUCCESS(s2n_connection_set_io_pair(conn, &io_pair));
 
     /* Negotiate the handshake. */
     EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked), S2N_ERR_CANCELLED);

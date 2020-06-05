@@ -324,22 +324,22 @@ int main(int argc, char **argv)
         int sslv2_client_hello_header_len = sizeof(sslv2_client_hello_header);
 
         /* Create nonblocking pipes */
-        struct s2n_test_piped_io piped_io;
-        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         server_conn->actual_protocol_version = S2N_TLS12;
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_connection_set_piped_io(server_conn, &piped_io));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         /* Send the client hello message */
-        EXPECT_EQUAL(write(piped_io.client_write, sslv2_client_hello_header, sslv2_client_hello_header_len), sslv2_client_hello_header_len);
-        EXPECT_EQUAL(write(piped_io.client_write, sslv2_client_hello, sslv2_client_hello_len), sslv2_client_hello_len);
+        EXPECT_EQUAL(write(io_pair.client_write, sslv2_client_hello_header, sslv2_client_hello_header_len), sslv2_client_hello_header_len);
+        EXPECT_EQUAL(write(io_pair.client_write, sslv2_client_hello, sslv2_client_hello_len), sslv2_client_hello_len);
 
         /* Verify that the sent client hello message is accepted */
         s2n_negotiate(server_conn, &server_blocked);
@@ -411,7 +411,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
-        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
 
     /* Minimal TLS 1.2 client hello. */
@@ -493,14 +493,14 @@ int main(int argc, char **argv)
         EXPECT_MEMCPY_SUCCESS(sent_client_hello + client_hello_prefix_len, client_extensions, client_extensions_len);
 
         /* Create nonblocking pipes */
-        struct s2n_test_piped_io piped_io;
-        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         server_conn->actual_protocol_version = S2N_TLS12;
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_connection_set_piped_io(server_conn, &piped_io));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
@@ -518,9 +518,9 @@ int main(int argc, char **argv)
         ext_data = NULL;
 
         /* Send the client hello message */
-        EXPECT_EQUAL(write(piped_io.client_write, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(piped_io.client_write, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(piped_io.client_write, sent_client_hello, sent_client_hello_len), sent_client_hello_len);
+        EXPECT_EQUAL(write(io_pair.client_write, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(write(io_pair.client_write, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(write(io_pair.client_write, sent_client_hello, sent_client_hello_len), sent_client_hello_len);
 
         /* Verify that the sent client hello message is accepted */
         s2n_negotiate(server_conn, &server_blocked);
@@ -688,7 +688,7 @@ int main(int argc, char **argv)
         server_conn->actual_protocol_version = S2N_TLS12;
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_connection_set_piped_io(server_conn, &piped_io));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
         /* Recreate config */
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -697,9 +697,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
        /* Re-send the client hello message */
-        EXPECT_EQUAL(write(piped_io.client_write, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(piped_io.client_write, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(piped_io.client_write, sent_client_hello, sent_client_hello_len), sent_client_hello_len);
+        EXPECT_EQUAL(write(io_pair.client_write, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(write(io_pair.client_write, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(write(io_pair.client_write, sent_client_hello, sent_client_hello_len), sent_client_hello_len);
 
         /* Verify that the sent client hello message is accepted */
         s2n_negotiate(server_conn, &server_blocked);
@@ -720,7 +720,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
-        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         free(expected_client_hello);
         free(sent_client_hello);
     }
@@ -809,20 +809,20 @@ int main(int argc, char **argv)
         EXPECT_MEMCPY_SUCCESS(sent_client_hello + client_hello_prefix_len, client_extensions, client_extensions_len);
 
         /* Create nonblocking pipes */
-        struct s2n_test_piped_io piped_io;
-        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_piped_io(server_conn, &piped_io));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         /* Send the client hello message */
-        EXPECT_EQUAL(write(piped_io.client_write, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(piped_io.client_write, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(piped_io.client_write, sent_client_hello, sent_client_hello_len), sent_client_hello_len);
+        EXPECT_EQUAL(write(io_pair.client_write, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(write(io_pair.client_write, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(write(io_pair.client_write, sent_client_hello, sent_client_hello_len), sent_client_hello_len);
 
         /* Verify that the sent client hello message is accepted */
         s2n_negotiate(server_conn, &server_blocked);
@@ -831,7 +831,7 @@ int main(int argc, char **argv)
         /* Client sent an invalid legacy protocol version. We should still have negotiate the maximum value(TLS1.2) */
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
 
-        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         s2n_connection_free(server_conn);
         s2n_config_free(server_config);
         free(sent_client_hello);
