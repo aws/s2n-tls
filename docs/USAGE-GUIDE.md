@@ -1392,7 +1392,7 @@ milliseconds each time the private key operation needs to be performed.
 To enable asynchronous private key operations user needs to provide a
 callback function **s2n_async_pkey_fn** to
 **s2n_config_set_async_pkey_callback** call. This function will be
-executed during **s2n_negotiate** call every time operation on private
+executed during **s2n_negotiate** call every time an operation on private
 key needs to be performed. The argument **op** represents the operation
 to perform. From the callback the user can spawn the thread to perform
 **op** through **s2n_async_pkey_op_perform** call and immediately return
@@ -1405,9 +1405,9 @@ applied to the connection through **s2n_async_pkey_op_apply** call.
 Note, it is not safe to call multiple functions on the same **conn** or
 **op** objects from 2 different threads at the same time. Doing so will
 produce undefined behaviour. However it is safe to have a call to
-function involvingi only **conn** at the same time with a call to
-function involving only **op**, as 2 objects are not coupled with each
-other. It is also safe to free **conn** or **op** at any moment with
+function involving only **conn** at the same time with a call to
+function involving only **op**, as those 2 objects are not coupled with
+each other. It is also safe to free **conn** or **op** at any moment with
 respective function calls, with the only exception that **conn** cannot
 be freed inside the **s2n_async_pkey_fn** callback.
 

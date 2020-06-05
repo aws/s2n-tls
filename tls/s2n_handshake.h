@@ -184,6 +184,7 @@ struct s2n_handshake {
     /* Which handshake message number are we processing */
     int message_number;
 
+    /* State of the async pkey operation during handshake */
     s2n_async_state async_state;
 
     /* Indicates the CLIENT_HELLO message has been completely received */
