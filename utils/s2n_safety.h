@@ -94,26 +94,6 @@
 #define ENSURE_NONNULL( x )                          ENSURE((x) != NULL, S2N_ERR_NULL)
 
 /**
- * Ensures `min <= n <= max`
- */
-#define ENSURE_INCLUSIVE_RANGE( min , n , max )      \
-  do {                                               \
-    __typeof( n ) __tmp_n = ( n );                   \
-    ENSURE_GTE(__tmp_n, min);                        \
-    ENSURE_LTE(__tmp_n, max);                        \
-  } while(0)
-
-/**
- * Ensures `min < n < max`
- */
-#define ENSURE_EXCLUSIVE_RANGE( min , n , max )      \
-  do {                                               \
-    __typeof( n ) __tmp_n = ( n );                   \
-    ENSURE_GT(__tmp_n, min);                         \
-    ENSURE_LT(__tmp_n, max);                         \
-  } while(0)
-
-/**
  * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with an `error`
  */
 #define ENSURE_POSIX( condition , error )           __S2N_ENSURE((condition), BAIL_POSIX(error))
@@ -132,6 +112,46 @@
  * Ensures `x` is not `NULL`, otherwise the function will `BAIL_PTR` with an `error`
  */
 #define ENSURE_PTR_NONNULL( x )                     ENSURE_PTR((x) != NULL, S2N_ERR_NULL)
+
+/**
+ * Ensures `x` is a readable reference, otherwise the function will `BAIL` with `S2N_ERR_NULL`
+ */
+#define ENSURE_REF( x )                             ENSURE(S2N_OBJECT_PTR_IS_READABLE(x), S2N_ERR_NULL)
+
+/**
+ * Ensures `x` is a readable reference, otherwise the function will `BAIL_POSIX` with `S2N_ERR_NULL`
+ */
+#define ENSURE_POSIX_REF( x )                       ENSURE_POSIX(S2N_OBJECT_PTR_IS_READABLE(x), S2N_ERR_NULL)
+
+/**
+ * Ensures `x` is a mutable reference, otherwise the function will `BAIL` with `S2N_ERR_NULL`
+ */
+#define ENSURE_MUT( x )                             ENSURE(S2N_OBJECT_PTR_IS_WRITABLE(x), S2N_ERR_NULL)
+
+/**
+ * Ensures `x` is a mutable reference, otherwise the function will `BAIL_POSIX` with `S2N_ERR_NULL`
+ */
+#define ENSURE_POSIX_MUT( x )                       ENSURE_POSIX(S2N_OBJECT_PTR_IS_WRITABLE(x), S2N_ERR_NULL)
+
+/**
+ * Ensures `min <= n <= max`
+ */
+#define ENSURE_INCLUSIVE_RANGE( min , n , max )      \
+  do {                                               \
+    __typeof( n ) __tmp_n = ( n );                   \
+    ENSURE_GTE(__tmp_n, min);                        \
+    ENSURE_LTE(__tmp_n, max);                        \
+  } while(0)
+
+/**
+ * Ensures `min < n < max`
+ */
+#define ENSURE_EXCLUSIVE_RANGE( min , n , max )      \
+  do {                                               \
+    __typeof( n ) __tmp_n = ( n );                   \
+    ENSURE_GT(__tmp_n, min);                         \
+    ENSURE_LT(__tmp_n, max);                         \
+  } while(0)
 
 /**
  * Ensures the `condition` is `true`, otherwise the function will `BAIL` with a `S2N_ERR_PRECONDITION_VIOLATION` error
