@@ -172,7 +172,7 @@ static int length_matches_value_check(uint32_t value, uint8_t length)
 static int s2n_stuffer_write_reservation_impl(struct s2n_stuffer_reservation reservation, uint32_t u)
 {
     reservation.stuffer->write_cursor = reservation.write_cursor;
-    S2N_ERROR_IF(!s2n_stuffer_is_valid(reservation.stuffer), S2N_ERR_PRECONDITION_VIOLATION);
+    GUARD(s2n_stuffer_validate(reservation.stuffer));
 
     GUARD(length_matches_value_check(u, reservation.length));
     GUARD(s2n_stuffer_write_network_order(reservation.stuffer, u, reservation.length));

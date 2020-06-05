@@ -52,7 +52,7 @@ struct s2n_stuffer {
 #define s2n_stuffer_space_remaining( s )  ((s)->blob.size - (s)->write_cursor)
 #define s2n_stuffer_is_wiped( s )         ((s)->high_water_mark == 0)
 /* Check basic validity constraints on the stuffer: e.g. that cursors point within the blob */
-extern bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer);
+extern int s2n_stuffer_validate(const struct s2n_stuffer* stuffer);
 
 /* Initialize and destroying stuffers */
 extern int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in);

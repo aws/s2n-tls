@@ -24,22 +24,22 @@
 
 #include <s2n.h>
 
-bool s2n_blob_is_valid(const struct s2n_blob* b)
+int s2n_blob_validate(const struct s2n_blob* b)
 {
-    return S2N_OBJECT_PTR_IS_READABLE(b) &&
-           S2N_IMPLIES(b->data == NULL, b->size == 0) &&
-           S2N_IMPLIES(b->growable == 0, b->allocated == 0) &&
-           S2N_IMPLIES(b->growable != 0, b->size <= b->allocated) &&
-           S2N_MEM_IS_READABLE(b->data, b->allocated) &&
-           S2N_MEM_IS_READABLE(b->data, b->size);
+    ENSURE_POSIX_REF(b);
+    ENSURE_POSIX(S2N_IMPLIES(b->growable == 0, b->allocated == 0), S2N_FAILURE);
+    ENSURE_POSIX(S2N_IMPLIES(b->growable != 0, S2N_MEM_IS_READABLE(b->data, b->allocated)), S2N_FAILURE);
+    ENSURE_POSIX(S2N_IMPLIES(b->growable != 0, b->size <= b->allocated), S2N_FAILURE);
+    ENSURE_POSIX(S2N_MEM_IS_READABLE(b->data, b->size), S2N_FAILURE);
+    return S2N_SUCCESS;
 }
 
 int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size)
 {
-    notnull_check(b);
-    PRECONDITION_POSIX(S2N_MEM_IS_READABLE(data,size));
+    ENSURE_POSIX_REF(b);
+    GUARD(S2N_MEM_IS_READABLE(data,size));
     *b = (struct s2n_blob) {.data = data, .size = size, .allocated = 0, .growable = 0};
-    POSTCONDITION_POSIX(s2n_blob_is_valid(b));
+    GUARD(s2n_blob_validate(b));
     return S2N_SUCCESS;
 }
 
