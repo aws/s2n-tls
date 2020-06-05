@@ -191,8 +191,9 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     uint32_t data_size = 0;
     DEFER_CLEANUP(struct s2n_blob blob = {0}, s2n_free);
 
-    /* These numbers are chosen so the last payload is 65,536 bytes,
-     * which is needed to validate TLS1.3 record sizing is handled.
+    /* These numbers are chosen so that some of the payload is bigger
+     * than max TLS1.3 record size (2**14 + 1), which is needed to validate
+     * that we handle record sizing correctly.
      *  (see https://github.com/awslabs/s2n/pull/1780).
      *
      * Note that for each iov in the list, the payload size is doubled
@@ -202,8 +203,11 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
      * * 8192 bytes
      * * 16384 bytes
      * * 32768 bytes
-     * * 65536 bytes */
-    int iov_payload_size = 8192, iov_size = 4;
+     * * 65536 bytes
+     * * 131072 bytes
+     * * 262144 bytes
+     * * 524288 bytes */
+    int iov_payload_size = 8192, iov_size = 7;
 
     struct iovec* iov = NULL;
     if (!use_iov) {

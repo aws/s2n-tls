@@ -16,6 +16,8 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
@@ -102,8 +104,8 @@ int s2n_piped_io_init(struct s2n_test_piped_io *piped_io) {
     int server_to_client[2];
     int client_to_server[2];
 
-    GUARD(pipe(server_to_client));
-    GUARD(pipe(client_to_server));
+    GUARD(socketpair(AF_UNIX, SOCK_STREAM, 0, server_to_client));
+    GUARD(socketpair(AF_UNIX, SOCK_STREAM, 0, client_to_server));
 
     piped_io->client_read = server_to_client[0];
     piped_io->client_write = client_to_server[1];
