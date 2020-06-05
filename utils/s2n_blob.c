@@ -62,7 +62,7 @@ int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t of
     slice->growable = 0;
     slice->allocated = 0;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_blob_char_to_lower(struct s2n_blob *b)
@@ -73,7 +73,7 @@ int s2n_blob_char_to_lower(struct s2n_blob *b)
         ptr++;
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* An inverse map from an ascii value to a hexidecimal nibble value
@@ -118,5 +118,5 @@ int s2n_hex_string_to_bytes(const char *str, struct s2n_blob *blob)
         blob->data[i / 2] = high_nibble << 4 | low_nibble;
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
