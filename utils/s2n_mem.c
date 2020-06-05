@@ -215,7 +215,7 @@ int s2n_free_object(uint8_t **p_data, uint32_t size)
     if (*p_data == NULL) {
         return 0;
     }
-    struct s2n_blob b = {.data = *p_data, .size = size, .growable = 1};
+    struct s2n_blob b = {.data = *p_data, .allocated = size, .size = size, .growable = 1};
 
     /* s2n_free() will call free() even if it returns error (for a growable blob).
     ** This makes sure *p_data is not used after free() */
