@@ -161,27 +161,27 @@ int main(int argc, char **argv)
     struct s2n_blob b5 = {.data = 0,.size = 0 };
     EXPECT_FAILURE(s2n_stuffer_init(NULL, &b5));
 
-    /* Check s2n_stuffer_is_valid() function */
-    EXPECT_FALSE(s2n_stuffer_is_valid(NULL));
+    /* Check s2n_stuffer_validate() function */
+    EXPECT_FAILURE(s2n_stuffer_validate(NULL));
     uint8_t valid_blob_array[12];
     struct s2n_blob blob_valid = {.data = valid_blob_array,.size = sizeof(valid_blob_array)};
     struct s2n_blob blob_invalid = {.data = 0,.size = sizeof(valid_blob_array)};
 
     struct s2n_stuffer stuffer_valid;
     EXPECT_SUCCESS(s2n_stuffer_init(&stuffer_valid, &blob_valid));
-    EXPECT_TRUE(s2n_stuffer_is_valid(&stuffer));
+    EXPECT_SUCCESS(s2n_stuffer_validate(&stuffer));
 
     struct s2n_stuffer stuffer_invalid1 = {.blob = blob_invalid};
-    EXPECT_FALSE(s2n_stuffer_is_valid(&stuffer_invalid1));
+    EXPECT_FAILURE(s2n_stuffer_validate(&stuffer_invalid1));
 
     struct s2n_stuffer stuffer_invalid2 = {.blob = blob_valid, .write_cursor = 13};
-    EXPECT_FALSE(s2n_stuffer_is_valid(&stuffer_invalid2));
+    EXPECT_FAILURE(s2n_stuffer_validate(&stuffer_invalid2));
 
     struct s2n_stuffer stuffer_invalid3 = {.blob = blob_valid, .read_cursor = 13};
-    EXPECT_FALSE(s2n_stuffer_is_valid(&stuffer_invalid3));
+    EXPECT_FAILURE(s2n_stuffer_validate(&stuffer_invalid3));
 
     struct s2n_stuffer stuffer_invalid4 = {.blob = blob_valid, .read_cursor = 12, .write_cursor = 1};
-    EXPECT_FALSE(s2n_stuffer_is_valid(&stuffer_invalid4));
+    EXPECT_FAILURE(s2n_stuffer_validate(&stuffer_invalid4));
 
     struct s2n_stuffer reserve_test_stuffer = {0};
     EXPECT_SUCCESS(s2n_stuffer_alloc(&reserve_test_stuffer, 1024));
