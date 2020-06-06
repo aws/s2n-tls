@@ -104,5 +104,8 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
 
     S2N_ERROR_IF(!match, S2N_ERR_BAD_MESSAGE);
 
+    /* Update transcript hash */
+    GUARD(s2n_server_hello_retry_recreate_transcript(conn));
+
     return S2N_SUCCESS;
 }
