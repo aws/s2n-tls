@@ -120,10 +120,10 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
     server_conn->secure.kem_params.kem = NULL;
 
     /* Send the client hello */
-    eq_check(write(io_pair->client_write, record_header, record_header_len),record_header_len);
-    eq_check(write(io_pair->client_write, message_header, message_header_len),message_header_len);
-    eq_check(write(io_pair->client_write, client_hello_message, client_hello_len),client_hello_len);
-    eq_check(write(io_pair->client_write, client_extensions, client_extensions_len),client_extensions_len);
+    eq_check(write(io_pair->client_write, record_header, record_header_len),(int)record_header_len);
+    eq_check(write(io_pair->client_write, message_header, message_header_len),(int)message_header_len);
+    eq_check(write(io_pair->client_write, client_hello_message, client_hello_len),(int)client_hello_len);
+    eq_check(write(io_pair->client_write, client_extensions, client_extensions_len),(int)client_extensions_len);
 
     GUARD(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
     if (s2n_negotiate(server_conn, &server_blocked) == 0) {
@@ -818,7 +818,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, sizeof(server_ocsp_status));
 
-        for (int i = 0; i < sizeof(server_ocsp_status); i++) {
+        for (size_t i = 0; i < sizeof(server_ocsp_status); i++) {
             EXPECT_EQUAL(server_ocsp_reply[i], server_ocsp_status[i]);
         }
 
@@ -876,7 +876,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, sizeof(server_ocsp_status));
 
-        for (int i = 0; i < sizeof(server_ocsp_status); i++) {
+        for (size_t i = 0; i < sizeof(server_ocsp_status); i++) {
             EXPECT_EQUAL(server_ocsp_reply[i], server_ocsp_status[i]);
         }
 

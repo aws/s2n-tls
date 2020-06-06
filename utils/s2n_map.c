@@ -63,7 +63,7 @@ static S2N_RESULT s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
     tmp.immutable = 0;
     tmp.sha256 = map->sha256;
 
-    for (int i = 0; i < map->capacity; i++) {
+    for (size_t i = 0; i < map->capacity; i++) {
         if (map->table[i].key.size) {
             GUARD_RESULT(s2n_map_add(&tmp, &map->table[i].key, &map->table[i].value));
             GUARD_AS_RESULT(s2n_free(&map->table[i].key));
@@ -227,7 +227,7 @@ S2N_RESULT s2n_map_lookup(struct s2n_map *map, struct s2n_blob *key, struct s2n_
 S2N_RESULT s2n_map_free(struct s2n_map *map)
 {
     /* Free the keys and values */
-    for (int i = 0; i < map->capacity; i++) {
+    for (size_t i = 0; i < map->capacity; i++) {
         if (map->table[i].key.size) {
             GUARD_AS_RESULT(s2n_free(&map->table[i].key));
             GUARD_AS_RESULT(s2n_free(&map->table[i].value));

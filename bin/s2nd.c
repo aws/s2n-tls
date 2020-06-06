@@ -196,7 +196,7 @@ int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *
     *value_size = cache[index].value_len;
     memcpy(value, cache[index].value, cache[index].value_len);
 
-    for (int i = 0; i < key_size; i++) {
+    for (size_t i = 0; i < key_size; i++) {
         printf("%02x", ((const uint8_t *)key)[i]);
     }
     printf("\n");

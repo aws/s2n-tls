@@ -87,11 +87,13 @@ static int s2n_rsa_verify(const struct s2n_pkey *pub, s2n_signature_algorithm si
 
 static int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, struct s2n_blob *out)
 {
-    S2N_ERROR_IF(out->size < s2n_rsa_encrypted_size(pub), S2N_ERR_NOMEM);
+    const int rsa_size = s2n_rsa_encrypted_size(pub);
+    GUARD(rsa_size);
+    S2N_ERROR_IF(out->size < (uint32_t)rsa_size, S2N_ERR_NOMEM);
 
     const s2n_rsa_public_key *key = &pub->key.rsa_key;
     int r = RSA_public_encrypt(in->size, (unsigned char *)in->data, (unsigned char *)out->data, key->rsa, RSA_PKCS1_PADDING);
-    S2N_ERROR_IF(r != out->size, S2N_ERR_SIZE_MISMATCH);
+    S2N_ERROR_IF((uint32_t)r != out->size, S2N_ERR_SIZE_MISMATCH);
 
     return 0;
 }
@@ -99,10 +101,10 @@ static int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, stru
 static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, struct s2n_blob *out)
 {
     unsigned char intermediate[4096];
-    const size_t expected_size = s2n_rsa_encrypted_size(priv);
+    const int expected_size = s2n_rsa_encrypted_size(priv);
 
     GUARD(expected_size);
-    S2N_ERROR_IF(expected_size > sizeof(intermediate), S2N_ERR_NOMEM);
+    S2N_ERROR_IF((size_t)expected_size > sizeof(intermediate), S2N_ERR_NOMEM);
     S2N_ERROR_IF(out->size > sizeof(intermediate), S2N_ERR_NOMEM);
 
     GUARD_AS_POSIX(s2n_get_urandom_data(out));

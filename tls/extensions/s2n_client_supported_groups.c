@@ -104,9 +104,9 @@ int s2n_parse_client_supported_groups_list(struct s2n_connection *conn, struct s
     iana_ids->data = s2n_stuffer_raw_write(&iana_ids_in, iana_ids->size);
 
     uint16_t iana_id;
-    for (int i = 0; i < iana_ids->size / sizeof(iana_id); i++) {
+    for (size_t i = 0; i < iana_ids->size / sizeof(iana_id); i++) {
         GUARD(s2n_stuffer_read_uint16(&iana_ids_in, &iana_id));
-        for (int j = 0; j < ecc_pref->count; j++) {
+        for (size_t j = 0; j < ecc_pref->count; j++) {
             const struct s2n_ecc_named_curve *supported_curve = ecc_pref->ecc_curves[j];
             if (supported_curve->iana_id == iana_id) {
                 supported_groups[j] = supported_curve;

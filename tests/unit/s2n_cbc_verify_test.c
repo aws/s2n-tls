@@ -70,8 +70,8 @@ static void summarize(uint64_t *list, int n, uint64_t *count, uint64_t *avg, uin
     *count = 0;
     uint64_t sum = 0;
     uint64_t sum_squares = 0;
-    uint64_t min = 0xFFFFFFFF;
-    uint64_t max = 0;
+    int64_t min = 0xFFFFFFFF;
+    int64_t max = 0;
 
     for (int i = 0; i < n; i++) {
         int64_t value = list[ i ];

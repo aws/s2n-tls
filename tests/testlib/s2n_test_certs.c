@@ -56,7 +56,7 @@ int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size)
         S2N_ERROR(S2N_ERR_NOMEM);
     }
 
-    if (fread(pem_out, sizeof(char), pem_file_size, pem_file) < pem_file_size) {
+    if (fread(pem_out, sizeof(char), pem_file_size, pem_file) < (size_t)pem_file_size) {
         S2N_ERROR(S2N_ERR_IO);
     }
 

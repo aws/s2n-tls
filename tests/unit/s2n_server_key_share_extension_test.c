@@ -285,7 +285,7 @@ int main(int argc, char **argv)
     {
         const struct s2n_ecc_preferences *ecc_pref = NULL;
          /* Shared Secret Size: x25519 (32), p-256 (32), p-384 (48) */
-        int shared_secret_size[3] = { 32, 32, 48 };
+        uint32_t shared_secret_size[3] = { 32, 32, 48 };
         if (!s2n_is_evp_apis_supported()) {
         /* Shared Secret Size: p-256 (32), p-384 (48) */
             shared_secret_size[1] = 48;  

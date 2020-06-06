@@ -39,7 +39,7 @@ else
 endif
 
 DEFAULT_CFLAGS += -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized \
-                 -Wshadow  -Wcast-align -Wwrite-strings -fPIC -Wno-missing-braces\
+                 -Wshadow  -Wcast-align -Wwrite-strings -fPIC -Wno-missing-braces -Wsign-compare \
                  -D_POSIX_C_SOURCE=200809L -O2 -I$(LIBCRYPTO_ROOT)/include/ \
                  -I$(S2N_ROOT)/api/ -I$(S2N_ROOT) -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
                  -D_FORTIFY_SOURCE=2 -fgnu89-inline 

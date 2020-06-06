@@ -252,7 +252,7 @@ int main(int argc, char *const *argv)
     int echo_input = 0;
     int use_corked_io = 0;
     int use_tls13 = 0;
-    int keyshares_count = 0;
+    size_t keyshares_count = 0;
     char keyshares[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT][S2N_MAX_ECC_CURVE_NAME_LENGTH];
     char *input = NULL;
     char *token = NULL;

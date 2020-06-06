@@ -53,12 +53,11 @@ int main(int argc, char **argv)
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-        int key_share_size;
-        EXPECT_SUCCESS(key_share_size = s2n_extensions_client_key_share_size(conn));
+        uint32_t key_share_size = s2n_extensions_client_key_share_size(conn);
+        EXPECT_TRUE(key_share_size > 0);
 
         /* should produce the same result if called twice */
-        int key_share_size_again;
-        EXPECT_SUCCESS(key_share_size_again = s2n_extensions_client_key_share_size(conn));
+        uint32_t key_share_size_again = s2n_extensions_client_key_share_size(conn);
         EXPECT_EQUAL(key_share_size, key_share_size_again);
 
         /* should equal the size of the data written on send */

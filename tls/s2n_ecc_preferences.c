@@ -55,7 +55,7 @@ int s2n_check_ecc_preferences_curves_list(const struct s2n_ecc_preferences *ecc_
     for (int i = 0; i < ecc_preferences->count; i++) {
         const struct s2n_ecc_named_curve *named_curve = ecc_preferences->ecc_curves[i];
         int curve_found = 0;
-        for (int j = 0; j < s2n_all_supported_curves_list_len; j++) {
+        for (size_t j = 0; j < s2n_all_supported_curves_list_len; j++) {
             if (named_curve->iana_id == s2n_all_supported_curves_list[j]->iana_id) {
                 curve_found = 1;
                 break; 

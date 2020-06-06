@@ -31,7 +31,7 @@
     acceptable in DRBG */
 int s2n_increment_drbg_counter(struct s2n_blob *counter)
 {
-    for (int i = counter->size - 1; i >= 0; i--) {
+    for (size_t i = counter->size - 1; i >= 0; i--) {
         counter->data[i] += 1;
         if (counter->data[i]) {
             break;
@@ -60,10 +60,10 @@ static int s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
 
     struct s2n_blob value = {0};
     GUARD(s2n_blob_init(&value, drbg->v, sizeof(drbg->v)));
-    int block_aligned_size = out->size - (out->size % S2N_DRBG_BLOCK_SIZE);
+    uint32_t block_aligned_size = out->size - (out->size % S2N_DRBG_BLOCK_SIZE);
 
     /* Per NIST SP800-90A 10.2.1.2: */
-    for (int i = 0; i < block_aligned_size; i += S2N_DRBG_BLOCK_SIZE) {
+    for (size_t i = 0; i < block_aligned_size; i += S2N_DRBG_BLOCK_SIZE) {
         GUARD(s2n_increment_drbg_counter(&value));
         GUARD(s2n_drbg_block_encrypt(drbg->ctx, drbg->v, out->data + i));
         drbg->bytes_used += S2N_DRBG_BLOCK_SIZE;
@@ -90,12 +90,12 @@ static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data
 
     s2n_stack_blob(temp_blob, s2n_drbg_seed_size(drgb), S2N_DRBG_MAX_SEED_SIZE);
 
-    eq_check(provided_data->size, s2n_drbg_seed_size(drbg));
+    eq_check(provided_data->size, (uint32_t)s2n_drbg_seed_size(drbg));
 
     GUARD(s2n_drbg_bits(drbg, &temp_blob));
 
     /* XOR in the provided data */
-    for (int i = 0; i < provided_data->size; i++) {
+    for (size_t i = 0; i < provided_data->size; i++) {
         temp_blob.data[i] ^= provided_data->data[i];
     }
 
@@ -119,7 +119,7 @@ static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
         GUARD_AS_POSIX(s2n_get_urandom_data(&blob));
     }
 
-    for (int i = 0; i < ps->size; i++) {
+    for (size_t i = 0; i < ps->size; i++) {
         blob.data[i] ^= ps->data[i];
     }
 

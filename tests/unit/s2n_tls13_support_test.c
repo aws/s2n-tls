@@ -135,7 +135,7 @@ int main(int argc, char **argv)
         server_conn->actual_protocol_version = S2N_TLS13;
 
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        for (int i=0; i < s2n_array_len(tls13_extensions); i++) {
+        for (size_t i=0; i < s2n_array_len(tls13_extensions); i++) {
             s2n_extension_type_id extension_id;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(tls13_extensions[i]->iana_value, &extension_id));
             s2n_parsed_extension *parsed_extension = &parsed_extension_list.parsed_extensions[extension_id];

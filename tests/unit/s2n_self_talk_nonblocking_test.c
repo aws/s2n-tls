@@ -71,7 +71,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
         shutdown_rc = s2n_shutdown(client_conn, &blocked);
     } while(shutdown_rc != 0);
 
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         if (buffer[i] != expected_data[i]) {
             return 1;
         }
@@ -92,13 +92,13 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     struct s2n_config *client_config;
     s2n_blocked_status blocked;
     int result = 0;
-    int total_size = 0, i;
+    uint32_t total_size = 0, i;
 
     for (i = 0; i < iov_size; i++) {
         total_size += iov[i].iov_len;
     }
     uint8_t *buffer = malloc(total_size + iov[0].iov_len);
-    int buffer_offs = 0;
+    uint32_t buffer_offs = 0;
 
     /* Give the server a chance to listen */
     sleep(1);

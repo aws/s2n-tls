@@ -117,10 +117,10 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
     }
 
     /* Defensive check against an invalid retry */
-    if (offs) {
+    if (offs > 0) {
         const struct iovec* _bufs = bufs;
         ssize_t _count = count;
-        while (offs >= _bufs->iov_len && _count > 0) {
+        while ((size_t)offs >= _bufs->iov_len && _count > 0) {
             offs -= _bufs->iov_len;
             _bufs++;
             _count--;
@@ -128,7 +128,7 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
         bufs = _bufs;
         count = _count;
     }
-    for (int i = 0; i < count; i++) {
+    for (ssize_t i = 0; i < count; i++) {
         total_size += bufs[i].iov_len;
     }
     total_size -= offs;

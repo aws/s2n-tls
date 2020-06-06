@@ -36,7 +36,7 @@ int s2n_fd_set_non_blocking(int fd) {
 static int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
 {
     struct s2n_stuffer *in_buf;
-    int n_read, n_avail;
+    uint32_t n_read, n_avail;
 
 
     if (buf == NULL) {
@@ -171,7 +171,7 @@ int s2n_io_pair_close_one_end(struct s2n_test_io_pair *io_pair, int mode_to_clos
 
 void s2n_print_connection(struct s2n_connection *conn, const char *marker)
 {
-    int i;
+    uint32_t i;
 
     printf("marker: %s\n", marker);
     printf("HEADER IN Stuffer (write: %d, read: %d, size: %d)\n", conn->header_in.write_cursor, conn->header_in.read_cursor, conn->header_in.blob.size);

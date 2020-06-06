@@ -221,7 +221,7 @@ int main(int argc, char **argv)
         s2n_mode modes[] = { S2N_CLIENT, S2N_SERVER };
 
         /* we ensure this works in both client and server modes */
-        for (int m = 0; m < s2n_array_len(modes); m++) {
+        for (size_t m = 0; m < s2n_array_len(modes); m++) {
             for (int i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
@@ -252,7 +252,7 @@ int main(int argc, char **argv)
         }
 
         /* test that pre tls1.3 code paths are unaffected */
-        for (int m = 0; m < s2n_array_len(modes); m++) {
+        for (size_t m = 0; m < s2n_array_len(modes); m++) {
             for (int i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
@@ -290,7 +290,7 @@ int main(int argc, char **argv)
         s2n_mode modes[] = { S2N_CLIENT, S2N_SERVER };
 
         /* we ensure this works in both client and server modes */
-        for (int m = 0; m < s2n_array_len(modes); m++) {
+        for (size_t m = 0; m < s2n_array_len(modes); m++) {
             for (int i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
@@ -341,7 +341,7 @@ int main(int argc, char **argv)
         }
 
         /* Test pre 1.3 code paths are unaffected */
-        for (int m = 0; m < s2n_array_len(modes); m++) {
+        for (size_t m = 0; m < s2n_array_len(modes); m++) {
             for (int i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));

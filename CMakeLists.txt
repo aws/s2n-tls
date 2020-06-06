@@ -188,7 +188,7 @@ set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
-        -Wno-missing-braces)
+        -Wno-missing-braces -Wsign-compare)
 
 if(S2N_NO_PQ_ASM)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_NO_PQ_ASM)

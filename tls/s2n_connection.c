@@ -1087,11 +1087,14 @@ int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_
     notnull_check(conn);
     notnull_check(session_id);
 
-    int session_id_len = s2n_connection_get_session_id_length(conn);
+    const int session_id_len = s2n_connection_get_session_id_length(conn);
+    GUARD(session_id_len);
 
-    S2N_ERROR_IF(session_id_len > max_length, S2N_ERR_SESSION_ID_TOO_LONG);
+    const size_t session_id_size = session_id_len;
 
-    memcpy_check(session_id, conn->session_id, session_id_len);
+    S2N_ERROR_IF(session_id_size> max_length, S2N_ERR_SESSION_ID_TOO_LONG);
+
+    memcpy_check(session_id, conn->session_id, session_id_size);
 
     return session_id_len;
 }

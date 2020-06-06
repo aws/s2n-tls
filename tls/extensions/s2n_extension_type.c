@@ -34,12 +34,12 @@ s2n_extension_type_id s2n_extension_ianas_to_ids[S2N_MAX_INDEXED_EXTENSION_IANA]
 int s2n_extension_type_init()
 {
     /* Initialize to s2n_unsupported_extension */
-    for (int i = 0; i < S2N_MAX_INDEXED_EXTENSION_IANA; i++) {
+    for (size_t i = 0; i < S2N_MAX_INDEXED_EXTENSION_IANA; i++) {
         s2n_extension_ianas_to_ids[i] = s2n_unsupported_extension;
     }
 
     /* Reverse the mapping */
-    for (int i = 0; i < S2N_SUPPORTED_EXTENSIONS_COUNT; i++) {
+    for (size_t i = 0; i < S2N_SUPPORTED_EXTENSIONS_COUNT; i++) {
         uint16_t iana_value = s2n_supported_extensions[i];
         if (iana_value < S2N_MAX_INDEXED_EXTENSION_IANA) {
             s2n_extension_ianas_to_ids[iana_value] = i;
@@ -61,7 +61,7 @@ s2n_extension_type_id s2n_extension_iana_value_to_id(const uint16_t iana_value)
 
     /* Fall back to the full list. We can handle this more
      * efficiently later if our extension list gets long. */
-    for (int i = 0; i < S2N_SUPPORTED_EXTENSIONS_COUNT; i++) {
+    for (size_t i = 0; i < S2N_SUPPORTED_EXTENSIONS_COUNT; i++) {
         if (s2n_supported_extensions[i] == iana_value) {
             return i;
         }

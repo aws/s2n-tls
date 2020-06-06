@@ -28,14 +28,14 @@ struct array_element {
 int main(int argc, char **argv)
 {
     struct s2n_array *array;
-    int element_size = sizeof(struct array_element);
+    size_t element_size = sizeof(struct array_element);
     uint32_t len = 0;
     uint32_t capacity = 0;
 
     BEGIN_TEST();
     struct array_element elements[NUM_OF_ELEMENTS] = {0};
 
-    for (int i = 0; i < NUM_OF_ELEMENTS; i++) {
+    for (size_t i = 0; i < NUM_OF_ELEMENTS; i++) {
         elements[i].first = i;
         elements[i].second = 'a' + i;
     }

@@ -43,7 +43,7 @@ static int s2n_test_expected_handler(struct s2n_connection* conn)
 }
 
 static int s2n_setup_handler_to_expect(message_type_t expected, uint8_t direction) {
-    for (int i = 0; i < sizeof(tls13_state_machine) / sizeof(struct s2n_handshake_action); i++) {
+    for (size_t i = 0; i < sizeof(tls13_state_machine) / sizeof(struct s2n_handshake_action); i++) {
         tls13_state_machine[i].handler[0] = s2n_test_handler;
         tls13_state_machine[i].handler[1] = s2n_test_handler;
     }
@@ -282,7 +282,7 @@ int main(int argc, char **argv)
 
         conn->handshake.handshake_type = test_handshake_type;
 
-        for (int i=0; i < sizeof(expected) / sizeof(char *); i++) {
+        for (size_t i=0; i < sizeof(expected) / sizeof(char *); i++) {
             conn->handshake.message_number = i;
             EXPECT_STRING_EQUAL(expected[i], s2n_connection_get_last_message_name(conn));
         }

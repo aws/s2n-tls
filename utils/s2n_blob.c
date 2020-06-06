@@ -68,7 +68,7 @@ int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t of
 int s2n_blob_char_to_lower(struct s2n_blob *b)
 {
     uint8_t *ptr = b->data;
-    for (int i = 0; i < b->size; i++ ) {
+    for (size_t i = 0; i < b->size; i++ ) {
         *ptr = tolower(*ptr);
         ptr++;
     }
@@ -108,7 +108,7 @@ int s2n_hex_string_to_bytes(const char *str, struct s2n_blob *blob)
     gte_check(blob->size, len / 2);
     S2N_ERROR_IF(len % 2 != 0, S2N_ERR_INVALID_HEX);
 
-    for (int i = 0; i < len; i += 2) {
+    for (size_t i = 0; i < len; i += 2) {
         uint8_t high_nibble = hex_inverse[(uint8_t) str[i]];
         S2N_ERROR_IF(high_nibble == 255, S2N_ERR_INVALID_HEX);
 

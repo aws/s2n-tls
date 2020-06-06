@@ -467,9 +467,9 @@ int s2n_ecc_evp_find_supported_curve(struct s2n_blob *iana_ids, const struct s2n
 
     GUARD(s2n_stuffer_init(&iana_ids_in, iana_ids));
     GUARD(s2n_stuffer_write(&iana_ids_in, iana_ids));
-    for (int i = 0; i < s2n_all_supported_curves_list_len; i++) {
+    for (size_t i = 0; i < s2n_all_supported_curves_list_len; i++) {
         const struct s2n_ecc_named_curve *supported_curve = s2n_all_supported_curves_list[i];
-        for (int j = 0; j < iana_ids->size / 2; j++) {
+        for (size_t j = 0; j < iana_ids->size / 2; j++) {
             uint16_t iana_id;
             GUARD(s2n_stuffer_read_uint16(&iana_ids_in, &iana_id));
             if (supported_curve->iana_id == iana_id) {

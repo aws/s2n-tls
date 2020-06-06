@@ -73,7 +73,7 @@ int s2n_stuffer_read_expected_str(struct s2n_stuffer *stuffer, const char *expec
 /* Read from stuffer until the target string is found, or until there is no more data. */
 int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char *target)
 {
-    int len = strlen(target);
+    uint32_t len = strlen(target);
     while (s2n_stuffer_data_available(stuffer) >= len) {
         GUARD(s2n_stuffer_skip_to_char(stuffer, target[0]));
         char *actual = s2n_stuffer_raw_read(stuffer, len);

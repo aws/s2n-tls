@@ -251,7 +251,7 @@ int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], 
     /* cppcheck-suppress knownConditionTrueFalse */
     ENSURE_POSIX(kem_mapping[0].kem_count > 0, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
-    for (int i = 0; i < s2n_array_len(kem_mapping); i++) {
+    for (size_t i = 0; i < s2n_array_len(kem_mapping); i++) {
         const struct s2n_iana_to_kem *candidate = &kem_mapping[i];
         if (memcmp(iana_value, candidate->iana_value, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
             *compatible_params = candidate;
@@ -265,7 +265,7 @@ int s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_ke
     /* cppcheck-suppress knownConditionTrueFalse */
     ENSURE_POSIX(kem_mapping[0].kem_count > 0, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
-    for (int i = 0; i < s2n_array_len(kem_mapping); i++) {
+    for (size_t i = 0; i < s2n_array_len(kem_mapping); i++) {
         const struct s2n_iana_to_kem *iana_to_kem = &kem_mapping[i];
 
         for (int j = 0; j < iana_to_kem->kem_count; j++) {

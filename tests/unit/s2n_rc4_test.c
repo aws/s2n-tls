@@ -64,12 +64,12 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_init(&conn->secure.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS11;
 
-    for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
+    for (size_t i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = {.data = random_data,.size = i };
-        int bytes_written;
+        uint32_t bytes_written;
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+        EXPECT_SUCCESS((int)(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in)));
 
         if (i <= S2N_DEFAULT_FRAGMENT_LENGTH - 20) {
             EXPECT_EQUAL(bytes_written, i);
