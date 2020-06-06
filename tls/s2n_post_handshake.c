@@ -57,11 +57,11 @@ int s2n_post_handshake_recv(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blocked, size_t size)
+int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     notnull_check(conn);
 
-    GUARD(s2n_key_update_send(conn, size));
+    GUARD(s2n_key_update_send(conn));
     GUARD(s2n_flush(conn, blocked));
     GUARD(s2n_stuffer_rewrite(&conn->out));
 

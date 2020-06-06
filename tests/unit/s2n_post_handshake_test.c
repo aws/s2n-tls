@@ -111,9 +111,8 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;    
             s2n_blocked_status blocked;
-            uint8_t size = 1; 
 
-            EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked, size));
+            EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
             EXPECT_TRUE(s2n_stuffer_data_available(&conn->out) == 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn)); 
