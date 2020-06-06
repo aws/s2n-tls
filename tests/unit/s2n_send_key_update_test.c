@@ -35,6 +35,7 @@ static int s2n_test_init_encryption(struct s2n_connection *conn)
     struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
     conn->server->cipher_suite = cipher_suite;
     conn->client->cipher_suite = cipher_suite;
+    conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
  
     /* Just some data that's the right length */
     S2N_BLOB_FROM_HEX(key, "0123456789abcdef0123456789abcdef");
@@ -72,6 +73,9 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_enable_tls13());
 
+    /* The maximum record number converted to base 256 */
+    uint8_t max_record_limit[S2N_TLS_SEQUENCE_NUM_LEN] = {0, 0, 0, 0, 1, 106, 9, 229};
+
     /* s2n_send sends key update if necessary */
     {
         struct s2n_connection *server_conn;
@@ -80,8 +84,9 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         server_conn->actual_protocol_version = S2N_TLS13;
         client_conn->actual_protocol_version = S2N_TLS13;
-        server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-        client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+        
+        uint8_t zero_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = {0};
+
         EXPECT_SUCCESS(s2n_test_init_encryption(server_conn));
         EXPECT_SUCCESS(s2n_test_init_encryption(client_conn));
 
@@ -94,7 +99,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&output, &input, client_conn));
         
         /* Mimic key update send conditions */
-        server_conn->encrypted_bytes_out = S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT;
+        for (size_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
+            server_conn->secure.server_sequence_number[i] = max_record_limit[i];
+        }
 
         /* Next message to send will trigger key update message*/
         s2n_blocked_status blocked;
@@ -103,17 +110,14 @@ int main(int argc, char **argv)
         
         /* Verify key update happened */
         EXPECT_BYTEARRAY_NOT_EQUAL(server_conn->secure.server_app_secret, client_conn->secure.server_app_secret, S2N_TLS13_SECRET_MAX_LEN);
-
-        /* Verify encrypted_bytes_out is being counted correctly */
-        uint8_t expected_encrypted_bytes_out = sizeof(message) +
-            server_conn->secure.cipher_suite->record_alg->cipher->io.aead.tag_size + TLS13_CONTENT_TYPE_LENGTH;
-        EXPECT_EQUAL(server_conn->encrypted_bytes_out, expected_encrypted_bytes_out);
+        EXPECT_BYTEARRAY_EQUAL(server_conn->secure.server_sequence_number, zero_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
         
         /* Receive keyupdate message */
         uint8_t data[100];
         EXPECT_SUCCESS(s2n_recv(client_conn, data, sizeof(message), &blocked));
         EXPECT_BYTEARRAY_EQUAL(data, message, sizeof(message));
         EXPECT_BYTEARRAY_EQUAL(client_conn->secure.server_app_secret, server_conn->secure.server_app_secret, S2N_TLS13_SECRET_MAX_LEN);
+        EXPECT_BYTEARRAY_EQUAL(client_conn->secure.server_sequence_number, zero_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
         
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));

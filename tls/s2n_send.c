@@ -171,7 +171,7 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
     
         GUARD(s2n_stuffer_rewrite(&conn->out));
 
-        GUARD(s2n_post_handshake_send(conn, blocked, to_write));
+        GUARD(s2n_post_handshake_send(conn, blocked));
     
         /* Write and encrypt the record */
         GUARD(s2n_record_writev(conn, TLS_APPLICATION_DATA, bufs, count, 

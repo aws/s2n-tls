@@ -406,7 +406,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         conn->client = current_client_crypto;
         conn->server = current_server_crypto;
     }
-    conn->encrypted_bytes_out += encrypted_length;
+
     conn->wire_bytes_out += actual_fragment_length + S2N_TLS_RECORD_HEADER_LENGTH;
 
     return data_bytes_to_take;

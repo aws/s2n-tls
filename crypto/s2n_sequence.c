@@ -15,9 +15,13 @@
 
 #include "crypto/s2n_sequence.h"
 
+#include "tls/s2n_crypto.h"
+
 #include "error/s2n_errno.h"
 
 #include "utils/s2n_blob.h"
+
+#define SEQUENCE_NUMBER_POWER 8
 
 int s2n_increment_sequence_number(struct s2n_blob *sequence_number)
 {
@@ -37,4 +41,18 @@ int s2n_increment_sequence_number(struct s2n_blob *sequence_number)
     }
 
     return 0;
+}
+
+int s2n_sequence_number_to_uint64(struct s2n_blob *sequence_number, uint64_t *output)
+{
+    notnull_check(sequence_number);
+
+    uint8_t shift = 0;
+    *output = 0;
+
+    for (int i = sequence_number->size - 1; i >= 0; i--) {
+        *output += ((uint64_t) sequence_number->data[i]) << shift;
+        shift += SEQUENCE_NUMBER_POWER;
+    }
+    return S2N_SUCCESS;
 }

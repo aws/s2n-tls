@@ -50,10 +50,10 @@
  * For AES-GCM, up to 2^24.5 full-size records (about 24 million) may be
  * encrypted on a given connection while keeping a safety margin of
  * approximately 2^-57 for Authenticated Encryption (AE) security.
- * S2N_TLS13_MAXIMUM_RECORD_NUMBER is 2^24.5 rounded down to the nearest whole number.
+ * S2N_TLS13_MAXIMUM_RECORD_NUMBER is 2^24.5 rounded down to the nearest whole number
+ * minus 1 for the key update message.
  */
-#define S2N_TLS13_MAXIMUM_RECORD_NUMBER            23726566L
-#define S2N_TLS13_AES_GCM_MAXIMUM_BYTES_TO_ENCRYPT (S2N_TLS13_MAXIMUM_FRAGMENT_LENGTH * S2N_TLS13_MAXIMUM_RECORD_NUMBER)
+#define S2N_TLS13_AES_GCM_MAXIMUM_RECORD_NUMBER ((uint64_t) 23726565)
 
 typedef enum {
     S2N_AUTHENTICATION_RSA = 0,
