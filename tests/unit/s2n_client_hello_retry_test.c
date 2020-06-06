@@ -15,7 +15,7 @@
 
 #include "s2n_test.h"
 
-#include "tests/testlib/s2n_testlib.h"
+#include "testlib/s2n_testlib.h"
 
 #include "tls/extensions/s2n_key_share.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
@@ -625,8 +625,8 @@ int main(int argc, char **argv)
         char tls13_private_key[S2N_MAX_TEST_PEM_SIZE] = {0};
     
          /* Create nonblocking pipes */
-        struct s2n_test_piped_io piped_io;
-        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(client_config = s2n_config_new());
@@ -659,7 +659,7 @@ int main(int argc, char **argv)
         /* Generate keyshare only for Curve x25519 */
         EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
 
-        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -671,7 +671,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
-        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
 
     /* Self-Talk test: the client initiates a handshake with an X25519 share.
@@ -690,8 +690,8 @@ int main(int argc, char **argv)
         char tls13_private_key[S2N_MAX_TEST_PEM_SIZE] = {0};
         
         /* Create nonblocking pipes */
-        struct s2n_test_piped_io piped_io;
-        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(client_config = s2n_config_new());
@@ -727,7 +727,7 @@ int main(int argc, char **argv)
         /* Generate keyshare only for Curve x25519 */
         EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "x25519"));
 
-        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -739,7 +739,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
-        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
 
     EXPECT_SUCCESS(s2n_disable_tls13());
