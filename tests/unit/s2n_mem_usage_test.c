@@ -73,8 +73,8 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    struct s2n_test_piped_io piped_io;
-    EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
+    struct s2n_test_io_pair io_pair;
+    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
     /* Skip the test when running under valgrind or address sanitizer, as those tools
      * impact the memory usage. */
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(vm_data_after_allocation, -1);
 
     for (int i = 0; i < connectionsToUse; i++) {
-        EXPECT_SUCCESS(s2n_connections_set_piped_io(clients[i], servers[i], &piped_io));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(clients[ i ], servers[ i ], &io_pair));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(servers[i], clients[i]));
     }
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(servers[i]));
     }
 
-    EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
+    EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_config_free(server_config));
     EXPECT_SUCCESS(s2n_config_free(client_config));

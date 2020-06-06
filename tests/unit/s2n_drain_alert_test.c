@@ -90,11 +90,11 @@ int main(int argc, char **argv)
     char *private_key = malloc(S2N_MAX_TEST_PEM_SIZE);
     struct s2n_cert_chain_and_key *chain_and_key;
 
-    struct s2n_test_piped_io piped_io;
-    EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
+    struct s2n_test_io_pair io_pair;
+    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
     EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-    EXPECT_SUCCESS(s2n_connection_set_piped_io(server_conn, &piped_io));
+    EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
     EXPECT_NOT_NULL(server_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
@@ -105,16 +105,16 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
     /* Send the client hello */
-    EXPECT_EQUAL(write(piped_io.client_write, record_header, sizeof(record_header)), sizeof(record_header));
-    EXPECT_EQUAL(write(piped_io.client_write, message_header, sizeof(message_header)), sizeof(message_header));
-    EXPECT_EQUAL(write(piped_io.client_write, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
+    EXPECT_EQUAL(write(io_pair.client_write, record_header, sizeof(record_header)), sizeof(record_header));
+    EXPECT_EQUAL(write(io_pair.client_write, message_header, sizeof(message_header)), sizeof(message_header));
+    EXPECT_EQUAL(write(io_pair.client_write, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
 
     /* Send an alert from client to server */
-    EXPECT_EQUAL(write(piped_io.client_write, alert_record, sizeof(alert_record)), sizeof(alert_record));
+    EXPECT_EQUAL(write(io_pair.client_write, alert_record, sizeof(alert_record)), sizeof(alert_record));
 
     /* Close the client read/write end */
-    EXPECT_SUCCESS(close(piped_io.client_read));
-    EXPECT_SUCCESS(close(piped_io.client_write));
+    EXPECT_SUCCESS(close(io_pair.client_read));
+    EXPECT_SUCCESS(close(io_pair.client_write));
 
     /* Expect the server to fail due to an incoming alert. We should not fail due to an I/O error(EPIPE). */
     s2n_negotiate(server_conn, &server_blocked);
@@ -127,8 +127,8 @@ int main(int argc, char **argv)
     free(cert_chain);
     free(private_key);
 
-    EXPECT_SUCCESS(close(piped_io.server_read));
-    EXPECT_SUCCESS(close(piped_io.server_write));
+    EXPECT_SUCCESS(close(io_pair.server_read));
+    EXPECT_SUCCESS(close(io_pair.server_write));
 
     END_TEST();
 }

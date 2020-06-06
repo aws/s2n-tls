@@ -35,7 +35,7 @@
 
 static const uint8_t buf_to_send[1023] = { 27 };
 
-int mock_client(struct s2n_test_piped_io *piped_io)
+int mock_client(struct s2n_test_io_pair *io_pair)
 {
     struct s2n_connection *conn;
     struct s2n_config *client_config;
@@ -48,7 +48,7 @@ int mock_client(struct s2n_test_piped_io *piped_io)
     s2n_connection_set_config(conn, client_config);
 
     /* Unlike the server, the client just passes ownership of I/O to s2n */
-    s2n_connection_set_piped_io(conn, piped_io);
+    s2n_connection_set_io_pair(conn, io_pair);
 
     result = s2n_negotiate(conn, &blocked);
     if (result < 0) {
@@ -97,14 +97,14 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     /* Create a pipe */
-    struct s2n_test_piped_io piped_io;
-    EXPECT_SUCCESS(s2n_piped_io_init(&piped_io));
+    struct s2n_test_io_pair io_pair;
+    EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
     /* Create a child process */
     pid = fork();
     if (pid == 0) {
         /* This is the client process, close the server end of the pipe */
-        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
+        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
         /* Free the config */
         EXPECT_SUCCESS(s2n_config_free(config));
@@ -112,18 +112,18 @@ int main(int argc, char **argv)
         free(private_key_pem);
 
         /* Run the client */
-        mock_client(&piped_io);
+        mock_client(&io_pair);
     }
 
     /* This is the server process, close the client end of the pipe */
-    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_CLIENT));
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Make pipes non-blocking */
-    EXPECT_SUCCESS(s2n_fd_set_non_blocking(piped_io.server_read));
-    EXPECT_SUCCESS(s2n_fd_set_non_blocking(piped_io.server_write));
+    EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.server_read));
+    EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.server_write));
 
     /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
@@ -137,14 +137,14 @@ int main(int argc, char **argv)
 
         /* check to see if we need to copy more over from the pipes to the buffers
          * to continue the handshake */
-        s2n_stuffer_recv_from_fd(&in, piped_io.server_read, MAX_BUF_SIZE);
-        s2n_stuffer_send_to_fd(&out, piped_io.server_write, s2n_stuffer_data_available(&out));
+        s2n_stuffer_recv_from_fd(&in, io_pair.server_read, MAX_BUF_SIZE);
+        s2n_stuffer_send_to_fd(&out, io_pair.server_write, s2n_stuffer_data_available(&out));
     } while (blocked);
 
     /* Receive only 100 bytes of the record and try to call s2n_recv */
     n = 0;
     while (n < 100) {
-        ret = s2n_stuffer_recv_from_fd(&in, piped_io.server_read, 100 - n);
+        ret = s2n_stuffer_recv_from_fd(&in, io_pair.server_read, 100 - n);
 
         if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             continue;
@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 
     /* Read the rest of the buffer and expect s2n_recv to succeed */
     do {
-        ret = s2n_stuffer_recv_from_fd(&in, piped_io.server_read, MAX_BUF_SIZE);
+        ret = s2n_stuffer_recv_from_fd(&in, io_pair.server_read, MAX_BUF_SIZE);
 
         if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             continue;
@@ -189,8 +189,8 @@ int main(int argc, char **argv)
             server_shutdown = 1;
         }
 
-        s2n_stuffer_recv_from_fd(&in, piped_io.server_read, MAX_BUF_SIZE);
-        s2n_stuffer_send_to_fd(&out, piped_io.server_write, s2n_stuffer_data_available(&out));
+        s2n_stuffer_recv_from_fd(&in, io_pair.server_read, MAX_BUF_SIZE);
+        s2n_stuffer_send_to_fd(&out, io_pair.server_write, s2n_stuffer_data_available(&out));
     } while (!server_shutdown);
 
     EXPECT_SUCCESS(s2n_connection_free(conn));

@@ -32,9 +32,9 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
         /* Create nonblocking pipes */
-        struct s2n_test_piped_io piped_io;
-        GUARD(s2n_piped_io_init_non_blocking(&piped_io));
-        GUARD(s2n_connection_set_piped_io(server_conn, &piped_io));
+        struct s2n_test_io_pair io_pair;
+        GUARD(s2n_io_pair_init_non_blocking(&io_pair));
+        GUARD(s2n_connection_set_io_pair(server_conn, &io_pair));
 
         /* This should NEVER fail with an error related to blocked IO. */
         EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, NULL), S2N_ERR_NULL);
