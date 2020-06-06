@@ -140,7 +140,7 @@ static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s
      * If a "key_share" extension was supplied in the HelloRetryRequest,
      * replace the list of shares with a list containing a single
      * KeyShareEntry from the indicated group.*/
-    if (s2n_is_hello_retry_required(conn) && s2n_is_hello_retry_valid(conn)) {
+    if (s2n_is_hello_retry_handshake(conn) && s2n_is_hello_retry_valid(conn)) {
         GUARD(s2n_send_hrr_keyshare(conn, out));
         return S2N_SUCCESS;
     }

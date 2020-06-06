@@ -532,7 +532,7 @@ bool s2n_is_hello_retry_message(struct s2n_connection *conn)
     return (ACTIVE_MESSAGE(conn) == HELLO_RETRY_MSG);
 }
 
-bool s2n_is_hello_retry_required(struct s2n_connection *conn)
+bool s2n_is_hello_retry_handshake(struct s2n_connection *conn)
 {
     return conn->handshake.handshake_type & HELLO_RETRY_REQUEST;
 }

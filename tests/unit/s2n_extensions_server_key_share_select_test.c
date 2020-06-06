@@ -109,7 +109,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
 
         /* Verify that the handshake type was updated correctly */
-        EXPECT_TRUE(s2n_is_hello_retry_required(server_conn));
+        EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 

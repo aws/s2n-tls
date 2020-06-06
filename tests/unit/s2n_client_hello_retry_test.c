@@ -458,7 +458,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-        EXPECT_TRUE(s2n_is_hello_retry_required(server_conn));
+        EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
         /* There was no matching key share received with a supported group, we should send a retry */
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn, 1));
         EXPECT_TRUE(s2n_is_hello_retry_message(server_conn));
@@ -475,7 +475,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(client_conn, 1));
         EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
         /* Verify that a Server HelloRetryRequest message was received */
-        EXPECT_TRUE(s2n_is_hello_retry_required(client_conn));
+        EXPECT_TRUE(s2n_is_hello_retry_handshake(client_conn));
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->handshake.io), 0);
 
         /* ClientHello 2 */
@@ -555,7 +555,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
         /* There was no matching key share received, we should send a retry */
-        EXPECT_TRUE(s2n_is_hello_retry_required(server_conn));
+        EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn, 1));
         EXPECT_TRUE(s2n_is_hello_retry_message(server_conn));
 
@@ -576,7 +576,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(client_conn, 1));
         EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
         /* Verify that a Server HelloRetryRequest message was received */
-        EXPECT_TRUE(s2n_is_hello_retry_required(client_conn));
+        EXPECT_TRUE(s2n_is_hello_retry_handshake(client_conn));
 
         /* ClientHello 2 */
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));

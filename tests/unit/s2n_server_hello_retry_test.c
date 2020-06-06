@@ -374,7 +374,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
         EXPECT_EQUAL(client_hello_ctx.invocations, 1);
 
-        EXPECT_TRUE(s2n_is_hello_retry_required(server_conn));
+        EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn, 1));
         EXPECT_TRUE(s2n_is_hello_retry_message(server_conn));
 
