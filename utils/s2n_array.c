@@ -21,7 +21,7 @@
 
 static S2N_RESULT s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
 {
-    ENSURE_NONNULL(array);
+    ENSURE_REF(array);
 
     /* Acquire the memory */
     uint32_t mem_needed;
@@ -54,15 +54,15 @@ struct s2n_array *s2n_array_new(size_t element_size)
 
 S2N_RESULT s2n_array_pushback(struct s2n_array *array, void **element)
 {
-    ENSURE_NONNULL(array);
-    ENSURE_NONNULL(element);
+    ENSURE_REF(array);
+    ENSURE_REF(element);
     return s2n_array_insert(array, array->len, element);
 }
 
 S2N_RESULT s2n_array_get(struct s2n_array *array, uint32_t index, void **element)
 {
-    ENSURE_NONNULL(array);
-    ENSURE_NONNULL(element);
+    ENSURE_REF(array);
+    ENSURE_REF(element);
     ENSURE(index < array->len, S2N_ERR_ARRAY_INDEX_OOB);
     *element = array->mem.data + array->element_size * index;
     return S2N_RESULT_OK;
@@ -78,8 +78,8 @@ S2N_RESULT s2n_array_insert_and_copy(struct s2n_array *array, uint32_t index, vo
 
 S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **element)
 {
-    ENSURE_NONNULL(array);
-    ENSURE_NONNULL(element);
+    ENSURE_REF(array);
+    ENSURE_REF(element);
     /* index == len is ok since we're about to add one element */
     ENSURE(index <= array->len, S2N_ERR_ARRAY_INDEX_OOB);
 
@@ -108,7 +108,7 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **elem
 
 S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t index)
 {
-    ENSURE_NONNULL(array);
+    ENSURE_REF(array);
     ENSURE(index < array->len, S2N_ERR_ARRAY_INDEX_OOB);
 
     /* If the removed element is the last one, no need to move anything.
@@ -130,7 +130,7 @@ S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t index)
 
 S2N_RESULT s2n_array_num_elements(struct s2n_array *array, uint32_t *len)
 {
-    ENSURE_NONNULL(array);
+    ENSURE_REF(array);
 
     *len = array->len;
 
@@ -139,7 +139,7 @@ S2N_RESULT s2n_array_num_elements(struct s2n_array *array, uint32_t *len)
 
 S2N_RESULT s2n_array_capacity(struct s2n_array *array, uint32_t *capacity)
 {
-    ENSURE_NONNULL(array);
+    ENSURE_REF(array);
 
     *capacity = array->mem.size / array->element_size;
 
@@ -148,10 +148,10 @@ S2N_RESULT s2n_array_capacity(struct s2n_array *array, uint32_t *capacity)
 
 S2N_RESULT s2n_array_free_p(struct s2n_array **parray)
 {
-    ENSURE_NONNULL(parray);
+    ENSURE_REF(parray);
     struct s2n_array *array = *parray;
 
-    ENSURE_NONNULL(array);
+    ENSURE_REF(array);
     /* Free the elements */
     GUARD_AS_RESULT(s2n_free(&array->mem));
 

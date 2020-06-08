@@ -94,7 +94,7 @@ DEFINE_POINTER_CLEANUP_FUNC(struct s2n_async_pkey_op *, s2n_async_pkey_op_free);
 
 static S2N_RESULT s2n_async_get_actions(s2n_async_pkey_op_type type, const struct s2n_async_pkey_op_actions **actions)
 {
-    ENSURE_NONNULL(actions);
+    ENSURE_REF(actions);
 
     switch (type) {
         case S2N_ASYNC_DECRYPT:
@@ -111,7 +111,7 @@ static S2N_RESULT s2n_async_get_actions(s2n_async_pkey_op_type type, const struc
 
 static S2N_RESULT s2n_async_pkey_op_allocate(struct s2n_async_pkey_op **op)
 {
-    ENSURE_NONNULL(op);
+    ENSURE_REF(op);
     ENSURE(*op == NULL, S2N_ERR_SAFETY);
 
     /* allocate memory */
@@ -130,10 +130,10 @@ static S2N_RESULT s2n_async_pkey_op_allocate(struct s2n_async_pkey_op **op)
 S2N_RESULT s2n_async_pkey_decrypt(struct s2n_connection *conn, struct s2n_blob *encrypted,
                                   struct s2n_blob *init_decrypted, s2n_async_pkey_decrypt_complete on_complete)
 {
-    ENSURE_NONNULL(conn);
-    ENSURE_NONNULL(encrypted);
-    ENSURE_NONNULL(init_decrypted);
-    ENSURE_NONNULL(on_complete);
+    ENSURE_REF(conn);
+    ENSURE_REF(encrypted);
+    ENSURE_REF(init_decrypted);
+    ENSURE_REF(on_complete);
 
     if (conn->config->async_pkey_cb) {
         GUARD_RESULT(s2n_async_pkey_decrypt_async(conn, encrypted, init_decrypted, on_complete));
@@ -147,10 +147,10 @@ S2N_RESULT s2n_async_pkey_decrypt(struct s2n_connection *conn, struct s2n_blob *
 S2N_RESULT s2n_async_pkey_decrypt_async(struct s2n_connection *conn, struct s2n_blob *encrypted,
                                         struct s2n_blob *init_decrypted, s2n_async_pkey_decrypt_complete on_complete)
 {
-    ENSURE_NONNULL(conn);
-    ENSURE_NONNULL(encrypted);
-    ENSURE_NONNULL(init_decrypted);
-    ENSURE_NONNULL(on_complete);
+    ENSURE_REF(conn);
+    ENSURE_REF(encrypted);
+    ENSURE_REF(init_decrypted);
+    ENSURE_REF(on_complete);
     ENSURE(conn->handshake.async_state == S2N_ASYNC_NOT_INVOKED, S2N_ERR_ASYNC_MORE_THAN_ONE);
 
     DEFER_CLEANUP(struct s2n_async_pkey_op *op = NULL, s2n_async_pkey_op_free_pointer);
@@ -185,10 +185,10 @@ S2N_RESULT s2n_async_pkey_decrypt_async(struct s2n_connection *conn, struct s2n_
 S2N_RESULT s2n_async_pkey_decrypt_sync(struct s2n_connection *conn, struct s2n_blob *encrypted,
                                        struct s2n_blob *init_decrypted, s2n_async_pkey_decrypt_complete on_complete)
 {
-    ENSURE_NONNULL(conn);
-    ENSURE_NONNULL(encrypted);
-    ENSURE_NONNULL(init_decrypted);
-    ENSURE_NONNULL(on_complete);
+    ENSURE_REF(conn);
+    ENSURE_REF(encrypted);
+    ENSURE_REF(init_decrypted);
+    ENSURE_REF(on_complete);
 
     const struct s2n_pkey *pkey = conn->handshake_params.our_chain_and_key->private_key;
 
@@ -201,9 +201,9 @@ S2N_RESULT s2n_async_pkey_decrypt_sync(struct s2n_connection *conn, struct s2n_b
 S2N_RESULT s2n_async_pkey_sign(struct s2n_connection *conn, s2n_signature_algorithm sig_alg,
                                struct s2n_hash_state *digest, s2n_async_pkey_sign_complete on_complete)
 {
-    ENSURE_NONNULL(conn);
-    ENSURE_NONNULL(digest);
-    ENSURE_NONNULL(on_complete);
+    ENSURE_REF(conn);
+    ENSURE_REF(digest);
+    ENSURE_REF(on_complete);
 
     if (conn->config->async_pkey_cb) {
         GUARD_RESULT(s2n_async_pkey_sign_async(conn, sig_alg, digest, on_complete));
@@ -217,9 +217,9 @@ S2N_RESULT s2n_async_pkey_sign(struct s2n_connection *conn, s2n_signature_algori
 S2N_RESULT s2n_async_pkey_sign_async(struct s2n_connection *conn, s2n_signature_algorithm sig_alg,
                                      struct s2n_hash_state *digest, s2n_async_pkey_sign_complete on_complete)
 {
-    ENSURE_NONNULL(conn);
-    ENSURE_NONNULL(digest);
-    ENSURE_NONNULL(on_complete);
+    ENSURE_REF(conn);
+    ENSURE_REF(digest);
+    ENSURE_REF(on_complete);
     ENSURE(conn->handshake.async_state == S2N_ASYNC_NOT_INVOKED, S2N_ERR_ASYNC_MORE_THAN_ONE);
 
     DEFER_CLEANUP(struct s2n_async_pkey_op *op = NULL, s2n_async_pkey_op_free_pointer);
@@ -255,9 +255,9 @@ S2N_RESULT s2n_async_pkey_sign_async(struct s2n_connection *conn, s2n_signature_
 S2N_RESULT s2n_async_pkey_sign_sync(struct s2n_connection *conn, s2n_signature_algorithm sig_alg,
                                     struct s2n_hash_state *digest, s2n_async_pkey_sign_complete on_complete)
 {
-    ENSURE_NONNULL(conn);
-    ENSURE_NONNULL(digest);
-    ENSURE_NONNULL(on_complete);
+    ENSURE_REF(conn);
+    ENSURE_REF(digest);
+    ENSURE_REF(on_complete);
 
     const struct s2n_pkey *pkey = conn->handshake_params.our_chain_and_key->private_key;
     DEFER_CLEANUP(struct s2n_blob signed_content = { 0 }, s2n_free);
@@ -274,8 +274,8 @@ S2N_RESULT s2n_async_pkey_sign_sync(struct s2n_connection *conn, s2n_signature_a
 
 int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *key)
 {
-    ENSURE_POSIX_NONNULL(op);
-    ENSURE_POSIX_NONNULL(key);
+    ENSURE_POSIX_REF(op);
+    ENSURE_POSIX_REF(key);
     ENSURE_POSIX(!op->complete, S2N_ERR_ASYNC_ALREADY_PERFORMED);
 
     const struct s2n_async_pkey_op_actions *actions = NULL;
@@ -290,8 +290,8 @@ int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key
 
 int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn)
 {
-    ENSURE_POSIX_NONNULL(op);
-    ENSURE_POSIX_NONNULL(conn);
+    ENSURE_POSIX_REF(op);
+    ENSURE_POSIX_REF(conn);
     ENSURE_POSIX(op->complete, S2N_ERR_ASYNC_NOT_PERFORMED);
     ENSURE_POSIX(!op->applied, S2N_ERR_ASYNC_ALREADY_APPLIED);
     /* We could have just used op->conn and removed a conn argument, but we want caller
@@ -318,7 +318,7 @@ int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection 
 
 int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op)
 {
-    ENSURE_POSIX_NONNULL(op);
+    ENSURE_POSIX_REF(op);
     const struct s2n_async_pkey_op_actions *actions = NULL;
     GUARD_AS_POSIX(s2n_async_get_actions(op->type, &actions));
 
@@ -332,8 +332,8 @@ int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op)
 
 S2N_RESULT s2n_async_pkey_decrypt_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *pkey)
 {
-    ENSURE_NONNULL(op);
-    ENSURE_NONNULL(pkey);
+    ENSURE_REF(op);
+    ENSURE_REF(pkey);
 
     struct s2n_async_pkey_decrypt_data *decrypt = &op->op.decrypt;
 
@@ -344,8 +344,8 @@ S2N_RESULT s2n_async_pkey_decrypt_perform(struct s2n_async_pkey_op *op, s2n_cert
 
 S2N_RESULT s2n_async_pkey_decrypt_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn)
 {
-    ENSURE_NONNULL(op);
-    ENSURE_NONNULL(conn);
+    ENSURE_REF(op);
+    ENSURE_REF(conn);
 
     struct s2n_async_pkey_decrypt_data *decrypt = &op->op.decrypt;
 
@@ -356,7 +356,7 @@ S2N_RESULT s2n_async_pkey_decrypt_apply(struct s2n_async_pkey_op *op, struct s2n
 
 S2N_RESULT s2n_async_pkey_decrypt_free(struct s2n_async_pkey_op *op)
 {
-    ENSURE_NONNULL(op);
+    ENSURE_REF(op);
 
     struct s2n_async_pkey_decrypt_data *decrypt = &op->op.decrypt;
 
@@ -370,8 +370,8 @@ S2N_RESULT s2n_async_pkey_decrypt_free(struct s2n_async_pkey_op *op)
 
 S2N_RESULT s2n_async_pkey_sign_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *pkey)
 {
-    ENSURE_NONNULL(op);
-    ENSURE_NONNULL(pkey);
+    ENSURE_REF(op);
+    ENSURE_REF(pkey);
 
     struct s2n_async_pkey_sign_data *sign = &op->op.sign;
 
@@ -385,8 +385,8 @@ S2N_RESULT s2n_async_pkey_sign_perform(struct s2n_async_pkey_op *op, s2n_cert_pr
 
 S2N_RESULT s2n_async_pkey_sign_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn)
 {
-    ENSURE_NONNULL(op);
-    ENSURE_NONNULL(conn);
+    ENSURE_REF(op);
+    ENSURE_REF(conn);
 
     struct s2n_async_pkey_sign_data *sign = &op->op.sign;
 
@@ -397,7 +397,7 @@ S2N_RESULT s2n_async_pkey_sign_apply(struct s2n_async_pkey_op *op, struct s2n_co
 
 S2N_RESULT s2n_async_pkey_sign_free(struct s2n_async_pkey_op *op)
 {
-    ENSURE_NONNULL(op);
+    ENSURE_REF(op);
 
     struct s2n_async_pkey_sign_data *sign = &op->op.sign;
 
@@ -406,4 +406,3 @@ S2N_RESULT s2n_async_pkey_sign_free(struct s2n_async_pkey_op *op)
 
     return S2N_RESULT_OK;
 }
-
