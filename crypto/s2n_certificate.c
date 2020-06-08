@@ -512,6 +512,6 @@ s2n_pkey_type s2n_cert_chain_and_key_get_pkey_type(struct s2n_cert_chain_and_key
 
 s2n_cert_private_key *s2n_cert_chain_and_key_get_private_key(struct s2n_cert_chain_and_key *chain_and_key)
 {
-    ENSURE_PTR_NONNULL(chain_and_key);
+    ENSURE_REF_PTR(chain_and_key);
     return chain_and_key->private_key;
 }
