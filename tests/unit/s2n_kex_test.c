@@ -21,6 +21,29 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    /* Test safety checks */
+    {
+        struct s2n_connection conn = { 0 };
+        struct s2n_blob blob = { 0 };
+        struct s2n_kex_raw_server_data test_raw_server_data = { 0 };
+        struct s2n_cipher_suite test_cipher = s2n_rsa_with_rc4_128_md5;
+        struct s2n_cipher_suite test_cipher_with_null_kex = test_cipher;
+        test_cipher_with_null_kex.key_exchange_alg = NULL;
+
+        /* Null cipher suite kex - possible with tls1.3 cipher suites */
+        EXPECT_FAILURE(s2n_configure_kex(NULL, &conn));
+        EXPECT_FAILURE(s2n_configure_kex(&test_cipher_with_null_kex, NULL));
+
+        /* Null kex -- possible with tls1.3 cipher suites */
+        EXPECT_FAILURE(s2n_kex_is_ephemeral(NULL));
+        EXPECT_FAILURE(s2n_kex_server_key_recv_parse_data(NULL, &conn, &test_raw_server_data));
+        EXPECT_FAILURE(s2n_kex_server_key_recv_read_data(NULL, &conn, &blob, &test_raw_server_data));
+        EXPECT_FAILURE(s2n_kex_server_key_send(NULL, &conn, &blob));
+        EXPECT_FAILURE(s2n_kex_client_key_recv(NULL, &conn, &blob));
+        EXPECT_FAILURE(s2n_kex_client_key_send(NULL, &conn, &blob));
+        EXPECT_FAILURE(s2n_kex_tls_prf(NULL, &conn, &blob));
+    }
+
     /* Test s2n_kex_includes */
     {
         /* True if same kex */
