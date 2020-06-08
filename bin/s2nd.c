@@ -305,7 +305,7 @@ struct conn_settings {
     unsigned session_cache:1;
     unsigned insecure:1;
     unsigned use_corked_io:1;
-    unsigned exit_on_close:1;
+    int max_conns;
     const char *ca_dir;
     const char *ca_file;
 };
@@ -401,6 +401,7 @@ int main(int argc, char *const *argv)
     int use_tls13 = 0;
     conn_settings.session_ticket = 1;
     conn_settings.session_cache = 1;
+    conn_settings.max_conns = -1;
 
     struct option long_options[] = {
         {"ciphers", required_argument, NULL, 'c'},
@@ -422,13 +423,14 @@ int main(int argc, char *const *argv)
         {"stk-file", required_argument, 0, 'a'},
         {"no-session-ticket", no_argument, 0, 'T'},
         {"corked-io", no_argument, 0, 'C'},
+        {"max-conns", optional_argument, 0, 'X'},
         {"tls13", no_argument, 0, '3'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -505,7 +507,11 @@ int main(int argc, char *const *argv)
             use_tls13 = 1;
             break;
         case 'X':
-            conn_settings.exit_on_close = 1;
+            if (optarg==NULL) {
+                conn_settings.max_conns = 1;
+            } else {
+                conn_settings.max_conns = atoi(optarg);
+            }
             break;
         case '?':
         default:
@@ -726,9 +732,13 @@ int main(int argc, char *const *argv)
                 exit(rc);
             }
 
-            if (conn_settings.exit_on_close == 1) {
-                GUARD_EXIT(s2n_cleanup(),  "Error running s2n_cleanup()");
-                exit(0);
+            /* If max_conns was set, then exit after it is reached. Otherwise
+             * unlimited connections are allow, so ignore the variable. */
+            if (conn_settings.max_conns > 0) {
+                if (conn_settings.max_conns-- == 1) {
+                    GUARD_EXIT(s2n_cleanup(),  "Error running s2n_cleanup()");
+                    exit(0);
+                }
             }
         } else {
             /* Fork Process, one for the Acceptor (parent), and another for the Handler (child). */
