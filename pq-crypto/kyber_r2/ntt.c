@@ -90,7 +90,7 @@ static int16_t fqmul(int16_t a, int16_t b) {
 *
 * Arguments:   - int16_t poly[256]: pointer to input/output vector of elements of Zq
 **************************************************/
-void PQCLEAN_KYBER512_CLEAN_ntt(int16_t poly[256]) {
+void PQCLEAN_KYBER512_CLEAN_ntt(int16_t polyy[256]) {
     size_t j, k = 1;
     int16_t t, zeta;
 
@@ -98,9 +98,9 @@ void PQCLEAN_KYBER512_CLEAN_ntt(int16_t poly[256]) {
         for (size_t start = 0; start < 256; start = j + len) {
             zeta = PQCLEAN_KYBER512_CLEAN_zetas[k++];
             for (j = start; j < start + len; ++j) {
-                t = fqmul(zeta, poly[j + len]);
-                poly[j + len] = poly[j] - t;
-                poly[j] = poly[j] + t;
+                t = fqmul(zeta, polyy[j + len]);
+                polyy[j + len] = polyy[j] - t;
+                polyy[j] = polyy[j] + t;
             }
         }
     }
@@ -114,7 +114,7 @@ void PQCLEAN_KYBER512_CLEAN_ntt(int16_t poly[256]) {
 *
 * Arguments:   - int16_t poly[256]: pointer to input/output vector of elements of Zq
 **************************************************/
-void PQCLEAN_KYBER512_CLEAN_invntt(int16_t poly[256]) {
+void PQCLEAN_KYBER512_CLEAN_invntt(int16_t polyy[256]) {
     size_t j, k = 0;
     int16_t t, zeta;
 
@@ -122,16 +122,16 @@ void PQCLEAN_KYBER512_CLEAN_invntt(int16_t poly[256]) {
         for (size_t start = 0; start < 256; start = j + len) {
             zeta = PQCLEAN_KYBER512_CLEAN_zetas_inv[k++];
             for (j = start; j < start + len; ++j) {
-                t = poly[j];
-                poly[j]       = PQCLEAN_KYBER512_CLEAN_barrett_reduce(t + poly[j + len]);
-                poly[j + len] = t - poly[j + len];
-                poly[j + len] = fqmul(zeta, poly[j + len]);
+                t = polyy[j];
+                polyy[j]       = PQCLEAN_KYBER512_CLEAN_barrett_reduce(t + polyy[j + len]);
+                polyy[j + len] = t - polyy[j + len];
+                polyy[j + len] = fqmul(zeta, polyy[j + len]);
             }
         }
     }
 
     for (j = 0; j < 256; ++j) {
-        poly[j] = fqmul(poly[j], PQCLEAN_KYBER512_CLEAN_zetas_inv[127]);
+        polyy[j] = fqmul(polyy[j], PQCLEAN_KYBER512_CLEAN_zetas_inv[127]);
     }
 }
 
