@@ -214,6 +214,7 @@ int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out
 int s2n_stuffer_read_bytes(struct s2n_stuffer *stuffer, uint8_t * data, uint32_t size)
 {
     notnull_check(data);
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     GUARD(s2n_stuffer_skip_read(stuffer, size));
     notnull_check(stuffer->blob.data);
     void *ptr = stuffer->blob.data + stuffer->read_cursor - size;
