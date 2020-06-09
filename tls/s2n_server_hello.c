@@ -122,7 +122,6 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         conn->actual_protocol_version = conn->server_protocol_version;
         GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
     } else {
-        uint8_t actual_protocol_version;
         conn->server_protocol_version = (uint8_t)(protocol_version[0] * 10) + protocol_version[1];
 
         S2N_ERROR_IF(s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
@@ -136,8 +135,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
             S2N_ERROR(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
         }
 
-        actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
-
+        uint8_t actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
         /* Use the session state if server sent same session id as client sent in client hello */
         if (session_id_len != 0  && session_id_len == conn->session_id_len
                 && !memcmp(session_id, conn->session_id, session_id_len)) {
