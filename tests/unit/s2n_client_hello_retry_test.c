@@ -232,7 +232,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20190801")); /* contains x25519 */
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20190802")); /* doesnot contain x25519 */
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20190802")); /* does not contain x25519 */
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));

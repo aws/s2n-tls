@@ -341,7 +341,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* For HelloRetryRequests when a keyshare doesnot match, test that s2n_client_key_share_extension.send replaces the list of keyshares,
+        /* For HelloRetryRequests when a keyshare does not match, test that s2n_client_key_share_extension.send replaces the list of keyshares,
          * with a list containing a single KeyShareEntry for the server selected group. */
         if (s2n_is_evp_apis_supported()) {
             struct s2n_connection *conn;
