@@ -15,19 +15,22 @@
 
 #pragma once
 
+#include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/uio.h>
 
 #include "utils/s2n_blob.h"
 
-#define SIZEOF_UINT24 3
-
 /* Using a non-zero value
  * (a) makes wiped data easy to see in the debugger
  * (b) makes use of wiped data obvious since this is unlikely to be a valid bit pattern
  */
 #define S2N_WIPE_PATTERN 'w'
+
+#define SIZEOF_IN_BITS( t ) (sizeof(t) * CHAR_BIT)
+
+#define SIZEOF_UINT24 3
 
 struct s2n_stuffer {
     /* The data for the s2n_stuffer */
