@@ -56,8 +56,9 @@ int s2n_connections_set_io_pair(struct s2n_connection *client, struct s2n_connec
 int s2n_fd_set_blocking(int fd);
 int s2n_fd_set_non_blocking(int fd);
 
-int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn, int message_number);
+int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn);
 int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn);
+int s2n_connection_set_all_protocol_versions_tls13(struct s2n_connection *conn);
 
 int s2n_unsafe_set_drbg_seed(const struct s2n_blob *seed);
 

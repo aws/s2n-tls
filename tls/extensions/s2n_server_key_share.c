@@ -43,7 +43,8 @@ static int s2n_server_key_share_send(struct s2n_connection *conn, struct s2n_stu
 
     /* Retry requests only require the selected named group, not an actual share.
      * https://tools.ietf.org/html/rfc8446#section-4.2.8 */
-    if (s2n_is_hello_retry_message(conn) && s2n_is_hello_retry_valid(conn)) {
+    if (s2n_is_hello_retry_message(conn)) {
+        ENSURE_POSIX(s2n_hello_retry_validate(conn) == S2N_SUCCESS, S2N_ERR_INVALID_HELLO_RETRY);
         notnull_check(conn->secure.server_ecc_evp_params.negotiated_curve);
 
         /* There was a mutually supported group, so that is the group we will select */
@@ -82,23 +83,27 @@ static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stu
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     notnull_check(ecc_pref);
 
-    int supported_curve_index = -1;
-    for (int i = 0; i < ecc_pref->count; i++) {
+    bool has_supported_curve = false;
+    size_t supported_curve_index = 0;
+
+    for (size_t i = 0; i < ecc_pref->count; i++) {
         if (named_group == ecc_pref->ecc_curves[i]->iana_id) {
             supported_curve_index = i;
+            has_supported_curve = true;
             break;
         }
     }
 
-    S2N_ERROR_IF(supported_curve_index < 0, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    ENSURE_POSIX(has_supported_curve, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
-    struct s2n_ecc_evp_params* server_ecc_evp_params = &conn->secure.server_ecc_evp_params;
+    struct s2n_ecc_evp_params *server_ecc_evp_params = &conn->secure.server_ecc_evp_params;
     server_ecc_evp_params->negotiated_curve = ecc_pref->ecc_curves[supported_curve_index];
 
     /* If this is a HelloRetryRequest, we won't have a key share. We just have the selected group.
      * Set the server negotiated curve and exit early so a proper keyshare can be generated. 
      */
-    if (s2n_is_hello_retry_message(conn) && s2n_is_hello_retry_valid(conn)) {
+    if (s2n_is_hello_retry_message(conn)) {
+        ENSURE_POSIX(s2n_hello_retry_validate(conn) == S2N_SUCCESS, S2N_ERR_INVALID_HELLO_RETRY);
         return S2N_SUCCESS;
     }
 
@@ -127,9 +132,10 @@ int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn)
     notnull_check(conn);
 
     /* If we are responding to a retry request then we don't have a valid
-     * curve from the client. Just return 0 so a selected group will be
+     * curve from the client. Just return S2N_SUCCESS so a selected group will be
      * chosen for the key share. */
-    if (s2n_is_hello_retry_message(conn) && s2n_is_hello_retry_valid(conn)) {
+    if (s2n_is_hello_retry_message(conn)) {
+        ENSURE_POSIX(s2n_hello_retry_validate(conn) == S2N_SUCCESS, S2N_ERR_INVALID_HELLO_RETRY);
         return S2N_SUCCESS;
     }
 

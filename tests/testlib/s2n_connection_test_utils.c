@@ -211,13 +211,25 @@ void s2n_print_connection(struct s2n_connection *conn, const char *marker)
     printf("\n");
 }
 
-int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn, int message_number)
+int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn)
 {
-    conn->actual_protocol_version = S2N_TLS13;
-    conn->handshake.message_number = message_number;
+    notnull_check(conn);
+
+    conn->handshake.message_number = 1;
     conn->handshake.handshake_type = NEGOTIATED | HELLO_RETRY_REQUEST | FULL_HANDSHAKE;
 
-    return 0;
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_set_all_protocol_versions_tls13(struct s2n_connection *conn)
+{
+    notnull_check(conn);
+
+    conn->server_protocol_version = S2N_TLS13;
+    conn->client_protocol_version = S2N_TLS13;
+    conn->actual_protocol_version = S2N_TLS13;
+
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn)
