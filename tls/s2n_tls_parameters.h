@@ -63,11 +63,13 @@
  * reflects an upcoming change that will be published in draft-campagna-tls-bike-sike-hybrid-03. */
 #define TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 0xFF, 0x04
 #define TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 0xFF, 0x08
+#define TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384 0xFF, 0x0C
 #define TLS_EXTENSION_PQ_KEM_PARAMETERS 0xFE01
 #define TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1 1
 #define TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2 13
 #define TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1 10
 #define TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2 19
+#define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R2 23
 
 /* From https://tools.ietf.org/html/rfc7507 */
 #define TLS_FALLBACK_SCSV                   0x56, 0x00

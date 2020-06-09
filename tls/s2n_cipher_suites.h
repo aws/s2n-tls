@@ -149,6 +149,7 @@ extern struct s2n_cipher_suite s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256;
 extern struct s2n_cipher_suite s2n_ecdhe_rsa_with_rc4_128_sha;
 extern struct s2n_cipher_suite s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384;
 extern struct s2n_cipher_suite s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384;
+extern struct s2n_cipher_suite s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384;
 extern struct s2n_cipher_suite s2n_tls13_aes_256_gcm_sha384;
 extern struct s2n_cipher_suite s2n_tls13_aes_128_gcm_sha256;
 extern struct s2n_cipher_suite s2n_tls13_chacha20_poly1305_sha256;

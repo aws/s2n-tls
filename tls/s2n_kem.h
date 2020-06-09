@@ -50,6 +50,7 @@ extern const struct s2n_kem s2n_bike1_l1_r1;
 extern const struct s2n_kem s2n_bike1_l1_r2;
 extern const struct s2n_kem s2n_sike_p503_r1;
 extern const struct s2n_kem s2n_sike_p434_r2;
+extern const struct s2n_kem s2n_kyber_512_r2;
 
 #endif
 

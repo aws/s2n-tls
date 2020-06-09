@@ -26,7 +26,7 @@ struct s2n_kem_preferences {
 #if !defined(S2N_NO_PQ)
 
 extern const struct s2n_kem *pq_kems_r1[2];
-extern const struct s2n_kem *pq_kems_r2r1[4];
+extern const struct s2n_kem *pq_kems_r2r1[5];
 extern const struct s2n_kem *pq_kems_sike_r1[1];
 extern const struct s2n_kem *pq_kems_sike_r2r1[2];
 

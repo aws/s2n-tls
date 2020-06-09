@@ -1,0 +1,2531 @@
+Start testing: Jun 04 12:35 EDT
+----------------------------------------------------------
+Unable to find executable: /Users/pkz/s2n/bin/s2n_3des_test
+1/158 Testing: s2n_3des_test
+1/158 Test: s2n_3des_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_3des_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_3des_test" end time: Jun 04 12:35 EDT
+"s2n_3des_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_aead_aes_test
+2/158 Testing: s2n_aead_aes_test
+2/158 Test: s2n_aead_aes_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_aead_aes_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_aead_aes_test" end time: Jun 04 12:35 EDT
+"s2n_aead_aes_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_aead_chacha20_poly1305_test
+3/158 Testing: s2n_aead_chacha20_poly1305_test
+3/158 Test: s2n_aead_chacha20_poly1305_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_aead_chacha20_poly1305_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_aead_chacha20_poly1305_test" end time: Jun 04 12:35 EDT
+"s2n_aead_chacha20_poly1305_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_aes_sha_composite_test
+4/158 Testing: s2n_aes_sha_composite_test
+4/158 Test: s2n_aes_sha_composite_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_aes_sha_composite_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_aes_sha_composite_test" end time: Jun 04 12:35 EDT
+"s2n_aes_sha_composite_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_aes_test
+5/158 Testing: s2n_aes_test
+5/158 Test: s2n_aes_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_aes_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_aes_test" end time: Jun 04 12:35 EDT
+"s2n_aes_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_array_test
+6/158 Testing: s2n_array_test
+6/158 Test: s2n_array_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_array_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_array_test" end time: Jun 04 12:35 EDT
+"s2n_array_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_asn1_time_test
+7/158 Testing: s2n_asn1_time_test
+7/158 Test: s2n_asn1_time_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_asn1_time_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_asn1_time_test" end time: Jun 04 12:35 EDT
+"s2n_asn1_time_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_auth_selection_test
+8/158 Testing: s2n_auth_selection_test
+8/158 Test: s2n_auth_selection_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_auth_selection_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_auth_selection_test" end time: Jun 04 12:35 EDT
+"s2n_auth_selection_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_bike_r1_kat_test
+9/158 Testing: s2n_bike_r1_kat_test
+9/158 Test: s2n_bike_r1_kat_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_bike_r1_kat_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_bike_r1_kat_test" end time: Jun 04 12:35 EDT
+"s2n_bike_r1_kat_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_bike_r1_kem_test
+10/158 Testing: s2n_bike_r1_kem_test
+10/158 Test: s2n_bike_r1_kem_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_bike_r1_kem_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_bike_r1_kem_test" end time: Jun 04 12:35 EDT
+"s2n_bike_r1_kem_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_bike_r2_kat_test
+11/158 Testing: s2n_bike_r2_kat_test
+11/158 Test: s2n_bike_r2_kat_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_bike_r2_kat_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_bike_r2_kat_test" end time: Jun 04 12:35 EDT
+"s2n_bike_r2_kat_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_bike_r2_kem_test
+12/158 Testing: s2n_bike_r2_kem_test
+12/158 Test: s2n_bike_r2_kem_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_bike_r2_kem_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_bike_r2_kem_test" end time: Jun 04 12:35 EDT
+"s2n_bike_r2_kem_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_blob_test
+13/158 Testing: s2n_blob_test
+13/158 Test: s2n_blob_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_blob_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_blob_test" end time: Jun 04 12:35 EDT
+"s2n_blob_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_cbc_verify_test
+14/158 Testing: s2n_cbc_verify_test
+14/158 Test: s2n_cbc_verify_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_cbc_verify_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_cbc_verify_test" end time: Jun 04 12:35 EDT
+"s2n_cbc_verify_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_cert_chain_and_key_test
+15/158 Testing: s2n_cert_chain_and_key_test
+15/158 Test: s2n_cert_chain_and_key_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_cert_chain_and_key_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_cert_chain_and_key_test" end time: Jun 04 12:35 EDT
+"s2n_cert_chain_and_key_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_certificate_extensions_test
+16/158 Testing: s2n_certificate_extensions_test
+16/158 Test: s2n_certificate_extensions_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_certificate_extensions_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_certificate_extensions_test" end time: Jun 04 12:35 EDT
+"s2n_certificate_extensions_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_change_cipher_spec_test
+17/158 Testing: s2n_change_cipher_spec_test
+17/158 Test: s2n_change_cipher_spec_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_change_cipher_spec_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_change_cipher_spec_test" end time: Jun 04 12:35 EDT
+"s2n_change_cipher_spec_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_choose_supported_group_test
+18/158 Testing: s2n_choose_supported_group_test
+18/158 Test: s2n_choose_supported_group_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_choose_supported_group_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_choose_supported_group_test" end time: Jun 04 12:35 EDT
+"s2n_choose_supported_group_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_cipher_suite_match_test
+19/158 Testing: s2n_cipher_suite_match_test
+19/158 Test: s2n_cipher_suite_match_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_cipher_suite_match_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_cipher_suite_match_test" end time: Jun 04 12:35 EDT
+"s2n_cipher_suite_match_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_cleanup_test
+20/158 Testing: s2n_cleanup_test
+20/158 Test: s2n_cleanup_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_cleanup_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_cleanup_test" end time: Jun 04 12:35 EDT
+"s2n_cleanup_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_alpn_extension_test
+21/158 Testing: s2n_client_alpn_extension_test
+21/158 Test: s2n_client_alpn_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_alpn_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_alpn_extension_test" end time: Jun 04 12:35 EDT
+"s2n_client_alpn_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_auth_handshake_test
+22/158 Testing: s2n_client_auth_handshake_test
+22/158 Test: s2n_client_auth_handshake_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_auth_handshake_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_auth_handshake_test" end time: Jun 04 12:35 EDT
+"s2n_client_auth_handshake_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_cert_request_context_test
+23/158 Testing: s2n_client_cert_request_context_test
+23/158 Test: s2n_client_cert_request_context_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_cert_request_context_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_cert_request_context_test" end time: Jun 04 12:35 EDT
+"s2n_client_cert_request_context_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_empty_cert_test
+24/158 Testing: s2n_client_empty_cert_test
+24/158 Test: s2n_client_empty_cert_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_empty_cert_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_empty_cert_test" end time: Jun 04 12:35 EDT
+"s2n_client_empty_cert_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_extensions_test
+25/158 Testing: s2n_client_extensions_test
+25/158 Test: s2n_client_extensions_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_extensions_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_extensions_test" end time: Jun 04 12:35 EDT
+"s2n_client_extensions_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_hello_recv_test
+26/158 Testing: s2n_client_hello_recv_test
+26/158 Test: s2n_client_hello_recv_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_hello_recv_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_hello_recv_test" end time: Jun 04 12:35 EDT
+"s2n_client_hello_recv_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_hello_test
+27/158 Testing: s2n_client_hello_test
+27/158 Test: s2n_client_hello_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_hello_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_hello_test" end time: Jun 04 12:35 EDT
+"s2n_client_hello_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_key_share_extension_test
+28/158 Testing: s2n_client_key_share_extension_test
+28/158 Test: s2n_client_key_share_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_key_share_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_key_share_extension_test" end time: Jun 04 12:35 EDT
+"s2n_client_key_share_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_max_frag_len_extension_test
+29/158 Testing: s2n_client_max_frag_len_extension_test
+29/158 Test: s2n_client_max_frag_len_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_max_frag_len_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_max_frag_len_extension_test" end time: Jun 04 12:35 EDT
+"s2n_client_max_frag_len_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_pq_kem_extension_test
+30/158 Testing: s2n_client_pq_kem_extension_test
+30/158 Test: s2n_client_pq_kem_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_pq_kem_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_pq_kem_extension_test" end time: Jun 04 12:35 EDT
+"s2n_client_pq_kem_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_record_version_test
+31/158 Testing: s2n_client_record_version_test
+31/158 Test: s2n_client_record_version_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_record_version_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_record_version_test" end time: Jun 04 12:35 EDT
+"s2n_client_record_version_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_renegotiation_info_extension_test
+32/158 Testing: s2n_client_renegotiation_info_extension_test
+32/158 Test: s2n_client_renegotiation_info_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_renegotiation_info_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_renegotiation_info_extension_test" end time: Jun 04 12:35 EDT
+"s2n_client_renegotiation_info_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_sct_list_extension_test
+33/158 Testing: s2n_client_sct_list_extension_test
+33/158 Test: s2n_client_sct_list_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_sct_list_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_sct_list_extension_test" end time: Jun 04 12:35 EDT
+"s2n_client_sct_list_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_secure_renegotiation_test
+34/158 Testing: s2n_client_secure_renegotiation_test
+34/158 Test: s2n_client_secure_renegotiation_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_secure_renegotiation_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_secure_renegotiation_test" end time: Jun 04 12:35 EDT
+"s2n_client_secure_renegotiation_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_server_name_extension_test
+35/158 Testing: s2n_client_server_name_extension_test
+35/158 Test: s2n_client_server_name_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_server_name_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_server_name_extension_test" end time: Jun 04 12:35 EDT
+"s2n_client_server_name_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_session_ticket_extension_test
+36/158 Testing: s2n_client_session_ticket_extension_test
+36/158 Test: s2n_client_session_ticket_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_session_ticket_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_session_ticket_extension_test" end time: Jun 04 12:35 EDT
+"s2n_client_session_ticket_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_signature_algorithms_extension_test
+37/158 Testing: s2n_client_signature_algorithms_extension_test
+37/158 Test: s2n_client_signature_algorithms_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_signature_algorithms_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_signature_algorithms_extension_test" end time: Jun 04 12:35 EDT
+"s2n_client_signature_algorithms_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_status_request_extension_test
+38/158 Testing: s2n_client_status_request_extension_test
+38/158 Test: s2n_client_status_request_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_status_request_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_status_request_extension_test" end time: Jun 04 12:35 EDT
+"s2n_client_status_request_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_supported_groups_extension_test
+39/158 Testing: s2n_client_supported_groups_extension_test
+39/158 Test: s2n_client_supported_groups_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_supported_groups_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_supported_groups_extension_test" end time: Jun 04 12:35 EDT
+"s2n_client_supported_groups_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_client_supported_versions_extension_test
+40/158 Testing: s2n_client_supported_versions_extension_test
+40/158 Test: s2n_client_supported_versions_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_client_supported_versions_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_client_supported_versions_extension_test" end time: Jun 04 12:35 EDT
+"s2n_client_supported_versions_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_config_test
+41/158 Testing: s2n_config_test
+41/158 Test: s2n_config_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_config_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_config_test" end time: Jun 04 12:35 EDT
+"s2n_config_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_connection_context_test
+42/158 Testing: s2n_connection_context_test
+42/158 Test: s2n_connection_context_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_connection_context_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_connection_context_test" end time: Jun 04 12:35 EDT
+"s2n_connection_context_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_connection_preferences_test
+43/158 Testing: s2n_connection_preferences_test
+43/158 Test: s2n_connection_preferences_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_connection_preferences_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_connection_preferences_test" end time: Jun 04 12:35 EDT
+"s2n_connection_preferences_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_connection_test
+44/158 Testing: s2n_connection_test
+44/158 Test: s2n_connection_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_connection_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_connection_test" end time: Jun 04 12:35 EDT
+"s2n_connection_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_drain_alert_test
+45/158 Testing: s2n_drain_alert_test
+45/158 Test: s2n_drain_alert_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_drain_alert_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_drain_alert_test" end time: Jun 04 12:35 EDT
+"s2n_drain_alert_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_drbg_test
+46/158 Testing: s2n_drbg_test
+46/158 Test: s2n_drbg_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_drbg_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_drbg_test" end time: Jun 04 12:35 EDT
+"s2n_drbg_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_ecc_evp_test
+47/158 Testing: s2n_ecc_evp_test
+47/158 Test: s2n_ecc_evp_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_ecc_evp_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_ecc_evp_test" end time: Jun 04 12:35 EDT
+"s2n_ecc_evp_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_ecc_point_format_extension_test
+48/158 Testing: s2n_ecc_point_format_extension_test
+48/158 Test: s2n_ecc_point_format_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_ecc_point_format_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_ecc_point_format_extension_test" end time: Jun 04 12:35 EDT
+"s2n_ecc_point_format_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_ecdsa_test
+49/158 Testing: s2n_ecdsa_test
+49/158 Test: s2n_ecdsa_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_ecdsa_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_ecdsa_test" end time: Jun 04 12:35 EDT
+"s2n_ecdsa_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_encrypted_extensions_test
+50/158 Testing: s2n_encrypted_extensions_test
+50/158 Test: s2n_encrypted_extensions_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_encrypted_extensions_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_encrypted_extensions_test" end time: Jun 04 12:35 EDT
+"s2n_encrypted_extensions_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_error_lookup_test
+51/158 Testing: s2n_error_lookup_test
+51/158 Test: s2n_error_lookup_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_error_lookup_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_error_lookup_test" end time: Jun 04 12:35 EDT
+"s2n_error_lookup_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_error_type_test
+52/158 Testing: s2n_error_type_test
+52/158 Test: s2n_error_type_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_error_type_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_error_type_test" end time: Jun 04 12:35 EDT
+"s2n_error_type_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_extension_list_parse_test
+53/158 Testing: s2n_extension_list_parse_test
+53/158 Test: s2n_extension_list_parse_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_extension_list_parse_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_extension_list_parse_test" end time: Jun 04 12:35 EDT
+"s2n_extension_list_parse_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_extension_list_process_test
+54/158 Testing: s2n_extension_list_process_test
+54/158 Test: s2n_extension_list_process_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_extension_list_process_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_extension_list_process_test" end time: Jun 04 12:35 EDT
+"s2n_extension_list_process_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_extension_list_send_test
+55/158 Testing: s2n_extension_list_send_test
+55/158 Test: s2n_extension_list_send_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_extension_list_send_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_extension_list_send_test" end time: Jun 04 12:35 EDT
+"s2n_extension_list_send_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_extension_type_lists_test
+56/158 Testing: s2n_extension_type_lists_test
+56/158 Test: s2n_extension_type_lists_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_extension_type_lists_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_extension_type_lists_test" end time: Jun 04 12:35 EDT
+"s2n_extension_type_lists_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_extension_type_test
+57/158 Testing: s2n_extension_type_test
+57/158 Test: s2n_extension_type_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_extension_type_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_extension_type_test" end time: Jun 04 12:35 EDT
+"s2n_extension_type_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_extensions_server_key_share_select_test
+58/158 Testing: s2n_extensions_server_key_share_select_test
+58/158 Test: s2n_extensions_server_key_share_select_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_extensions_server_key_share_select_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_extensions_server_key_share_select_test" end time: Jun 04 12:35 EDT
+"s2n_extensions_server_key_share_select_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_fragmentation_coalescing_test
+59/158 Testing: s2n_fragmentation_coalescing_test
+59/158 Test: s2n_fragmentation_coalescing_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_fragmentation_coalescing_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_fragmentation_coalescing_test" end time: Jun 04 12:35 EDT
+"s2n_fragmentation_coalescing_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_handshake_errno_test
+60/158 Testing: s2n_handshake_errno_test
+60/158 Test: s2n_handshake_errno_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_handshake_errno_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_handshake_errno_test" end time: Jun 04 12:35 EDT
+"s2n_handshake_errno_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_handshake_test
+61/158 Testing: s2n_handshake_test
+61/158 Test: s2n_handshake_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_handshake_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_handshake_test" end time: Jun 04 12:35 EDT
+"s2n_handshake_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_hash_test
+62/158 Testing: s2n_hash_test
+62/158 Test: s2n_hash_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_hash_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_hash_test" end time: Jun 04 12:35 EDT
+"s2n_hash_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_hkdf_test
+63/158 Testing: s2n_hkdf_test
+63/158 Test: s2n_hkdf_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_hkdf_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_hkdf_test" end time: Jun 04 12:35 EDT
+"s2n_hkdf_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_hmac_test
+64/158 Testing: s2n_hmac_test
+64/158 Test: s2n_hmac_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_hmac_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_hmac_test" end time: Jun 04 12:35 EDT
+"s2n_hmac_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_hybrid_ecdhe_bike_r1_test
+65/158 Testing: s2n_hybrid_ecdhe_bike_r1_test
+65/158 Test: s2n_hybrid_ecdhe_bike_r1_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_hybrid_ecdhe_bike_r1_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_hybrid_ecdhe_bike_r1_test" end time: Jun 04 12:35 EDT
+"s2n_hybrid_ecdhe_bike_r1_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_hybrid_ecdhe_bike_r2_test
+66/158 Testing: s2n_hybrid_ecdhe_bike_r2_test
+66/158 Test: s2n_hybrid_ecdhe_bike_r2_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_hybrid_ecdhe_bike_r2_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_hybrid_ecdhe_bike_r2_test" end time: Jun 04 12:35 EDT
+"s2n_hybrid_ecdhe_bike_r2_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_hybrid_ecdhe_sike_r1_test
+67/158 Testing: s2n_hybrid_ecdhe_sike_r1_test
+67/158 Test: s2n_hybrid_ecdhe_sike_r1_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_hybrid_ecdhe_sike_r1_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_hybrid_ecdhe_sike_r1_test" end time: Jun 04 12:35 EDT
+"s2n_hybrid_ecdhe_sike_r1_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_hybrid_ecdhe_sike_r2_test
+68/158 Testing: s2n_hybrid_ecdhe_sike_r2_test
+68/158 Test: s2n_hybrid_ecdhe_sike_r2_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_hybrid_ecdhe_sike_r2_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_hybrid_ecdhe_sike_r2_test" end time: Jun 04 12:35 EDT
+"s2n_hybrid_ecdhe_sike_r2_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_kem_test
+69/158 Testing: s2n_kem_test
+69/158 Test: s2n_kem_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_kem_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_kem_test" end time: Jun 04 12:35 EDT
+"s2n_kem_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_kex_test
+70/158 Testing: s2n_kex_test
+70/158 Test: s2n_kex_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_kex_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_kex_test" end time: Jun 04 12:35 EDT
+"s2n_kex_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_kex_with_kem_test
+71/158 Testing: s2n_kex_with_kem_test
+71/158 Test: s2n_kex_with_kem_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_kex_with_kem_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_kex_with_kem_test" end time: Jun 04 12:35 EDT
+"s2n_kex_with_kem_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_key_share_extension_test
+72/158 Testing: s2n_key_share_extension_test
+72/158 Test: s2n_key_share_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_key_share_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_key_share_extension_test" end time: Jun 04 12:35 EDT
+"s2n_key_share_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_key_update_test
+73/158 Testing: s2n_key_update_test
+73/158 Test: s2n_key_update_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_key_update_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_key_update_test" end time: Jun 04 12:35 EDT
+"s2n_key_update_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_kyber_r2_kat_test
+74/158 Testing: s2n_kyber_r2_kat_test
+74/158 Test: s2n_kyber_r2_kat_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_kyber_r2_kat_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_kyber_r2_kat_test" end time: Jun 04 12:35 EDT
+"s2n_kyber_r2_kat_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_malformed_handshake_test
+75/158 Testing: s2n_malformed_handshake_test
+75/158 Test: s2n_malformed_handshake_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_malformed_handshake_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_malformed_handshake_test" end time: Jun 04 12:35 EDT
+"s2n_malformed_handshake_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_map_test
+76/158 Testing: s2n_map_test
+76/158 Test: s2n_map_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_map_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_map_test" end time: Jun 04 12:35 EDT
+"s2n_map_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_mem_allocator_test
+77/158 Testing: s2n_mem_allocator_test
+77/158 Test: s2n_mem_allocator_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_mem_allocator_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_mem_allocator_test" end time: Jun 04 12:35 EDT
+"s2n_mem_allocator_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_mem_usage_test
+78/158 Testing: s2n_mem_usage_test
+78/158 Test: s2n_mem_usage_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_mem_usage_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_mem_usage_test" end time: Jun 04 12:35 EDT
+"s2n_mem_usage_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_mutual_auth_test
+79/158 Testing: s2n_mutual_auth_test
+79/158 Test: s2n_mutual_auth_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_mutual_auth_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_mutual_auth_test" end time: Jun 04 12:35 EDT
+"s2n_mutual_auth_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_optional_client_auth_test
+80/158 Testing: s2n_optional_client_auth_test
+80/158 Test: s2n_optional_client_auth_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_optional_client_auth_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_optional_client_auth_test" end time: Jun 04 12:35 EDT
+"s2n_optional_client_auth_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_override_openssl_random_test
+81/158 Testing: s2n_override_openssl_random_test
+81/158 Test: s2n_override_openssl_random_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_override_openssl_random_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_override_openssl_random_test" end time: Jun 04 12:35 EDT
+"s2n_override_openssl_random_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_parse_client_supported_groups_list_test
+82/158 Testing: s2n_parse_client_supported_groups_list_test
+82/158 Test: s2n_parse_client_supported_groups_list_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_parse_client_supported_groups_list_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_parse_client_supported_groups_list_test" end time: Jun 04 12:35 EDT
+"s2n_parse_client_supported_groups_list_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_pem_rsa_dhe_test
+83/158 Testing: s2n_pem_rsa_dhe_test
+83/158 Test: s2n_pem_rsa_dhe_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_pem_rsa_dhe_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_pem_rsa_dhe_test" end time: Jun 04 12:35 EDT
+"s2n_pem_rsa_dhe_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_pem_test
+84/158 Testing: s2n_pem_test
+84/158 Test: s2n_pem_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_pem_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_pem_test" end time: Jun 04 12:35 EDT
+"s2n_pem_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_pq_asm_noop_test
+85/158 Testing: s2n_pq_asm_noop_test
+85/158 Test: s2n_pq_asm_noop_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_pq_asm_noop_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_pq_asm_noop_test" end time: Jun 04 12:35 EDT
+"s2n_pq_asm_noop_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_random_test
+86/158 Testing: s2n_random_test
+86/158 Test: s2n_random_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_random_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_random_test" end time: Jun 04 12:35 EDT
+"s2n_random_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_rc4_test
+87/158 Testing: s2n_rc4_test
+87/158 Test: s2n_rc4_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_rc4_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_rc4_test" end time: Jun 04 12:35 EDT
+"s2n_rc4_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_record_size_test
+88/158 Testing: s2n_record_size_test
+88/158 Test: s2n_record_size_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_record_size_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_record_size_test" end time: Jun 04 12:35 EDT
+"s2n_record_size_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_record_test
+89/158 Testing: s2n_record_test
+89/158 Test: s2n_record_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_record_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_record_test" end time: Jun 04 12:35 EDT
+"s2n_record_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_release_non_empty_buffers_test
+90/158 Testing: s2n_release_non_empty_buffers_test
+90/158 Test: s2n_release_non_empty_buffers_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_release_non_empty_buffers_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_release_non_empty_buffers_test" end time: Jun 04 12:35 EDT
+"s2n_release_non_empty_buffers_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_rfc5952_test
+91/158 Testing: s2n_rfc5952_test
+91/158 Test: s2n_rfc5952_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_rfc5952_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_rfc5952_test" end time: Jun 04 12:35 EDT
+"s2n_rfc5952_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_rsa_pss_rsae_test
+92/158 Testing: s2n_rsa_pss_rsae_test
+92/158 Test: s2n_rsa_pss_rsae_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_rsa_pss_rsae_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_rsa_pss_rsae_test" end time: Jun 04 12:35 EDT
+"s2n_rsa_pss_rsae_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_rsa_pss_test
+93/158 Testing: s2n_rsa_pss_test
+93/158 Test: s2n_rsa_pss_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_rsa_pss_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_rsa_pss_test" end time: Jun 04 12:35 EDT
+"s2n_rsa_pss_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_safety_test
+94/158 Testing: s2n_safety_test
+94/158 Test: s2n_safety_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_safety_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_safety_test" end time: Jun 04 12:35 EDT
+"s2n_safety_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_security_policies_test
+95/158 Testing: s2n_security_policies_test
+95/158 Test: s2n_security_policies_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_security_policies_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_security_policies_test" end time: Jun 04 12:35 EDT
+"s2n_security_policies_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_self_talk_alerts_test
+96/158 Testing: s2n_self_talk_alerts_test
+96/158 Test: s2n_self_talk_alerts_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_self_talk_alerts_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_self_talk_alerts_test" end time: Jun 04 12:35 EDT
+"s2n_self_talk_alerts_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_self_talk_alpn_test
+97/158 Testing: s2n_self_talk_alpn_test
+97/158 Test: s2n_self_talk_alpn_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_self_talk_alpn_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_self_talk_alpn_test" end time: Jun 04 12:35 EDT
+"s2n_self_talk_alpn_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_self_talk_broken_pipe_test
+98/158 Testing: s2n_self_talk_broken_pipe_test
+98/158 Test: s2n_self_talk_broken_pipe_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_self_talk_broken_pipe_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_self_talk_broken_pipe_test" end time: Jun 04 12:35 EDT
+"s2n_self_talk_broken_pipe_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_self_talk_client_hello_cb_test
+99/158 Testing: s2n_self_talk_client_hello_cb_test
+99/158 Test: s2n_self_talk_client_hello_cb_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_self_talk_client_hello_cb_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_self_talk_client_hello_cb_test" end time: Jun 04 12:35 EDT
+"s2n_self_talk_client_hello_cb_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_self_talk_custom_io_test
+100/158 Testing: s2n_self_talk_custom_io_test
+100/158 Test: s2n_self_talk_custom_io_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_self_talk_custom_io_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_self_talk_custom_io_test" end time: Jun 04 12:35 EDT
+"s2n_self_talk_custom_io_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_self_talk_min_protocol_version_test
+101/158 Testing: s2n_self_talk_min_protocol_version_test
+101/158 Test: s2n_self_talk_min_protocol_version_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_self_talk_min_protocol_version_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_self_talk_min_protocol_version_test" end time: Jun 04 12:35 EDT
+"s2n_self_talk_min_protocol_version_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_self_talk_nonblocking_test
+102/158 Testing: s2n_self_talk_nonblocking_test
+102/158 Test: s2n_self_talk_nonblocking_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_self_talk_nonblocking_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_self_talk_nonblocking_test" end time: Jun 04 12:35 EDT
+"s2n_self_talk_nonblocking_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_self_talk_session_id_test
+103/158 Testing: s2n_self_talk_session_id_test
+103/158 Test: s2n_self_talk_session_id_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_self_talk_session_id_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_self_talk_session_id_test" end time: Jun 04 12:35 EDT
+"s2n_self_talk_session_id_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_self_talk_test
+104/158 Testing: s2n_self_talk_test
+104/158 Test: s2n_self_talk_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_self_talk_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_self_talk_test" end time: Jun 04 12:35 EDT
+"s2n_self_talk_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_self_talk_tls13_test
+105/158 Testing: s2n_self_talk_tls13_test
+105/158 Test: s2n_self_talk_tls13_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_self_talk_tls13_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_self_talk_tls13_test" end time: Jun 04 12:35 EDT
+"s2n_self_talk_tls13_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_server_alpn_extension_test
+106/158 Testing: s2n_server_alpn_extension_test
+106/158 Test: s2n_server_alpn_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_server_alpn_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_server_alpn_extension_test" end time: Jun 04 12:35 EDT
+"s2n_server_alpn_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_server_certificate_status_test
+107/158 Testing: s2n_server_certificate_status_test
+107/158 Test: s2n_server_certificate_status_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_server_certificate_status_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_server_certificate_status_test" end time: Jun 04 12:35 EDT
+"s2n_server_certificate_status_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_server_extensions_test
+108/158 Testing: s2n_server_extensions_test
+108/158 Test: s2n_server_extensions_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_server_extensions_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_server_extensions_test" end time: Jun 04 12:35 EDT
+"s2n_server_extensions_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_server_hello_retry_test
+109/158 Testing: s2n_server_hello_retry_test
+109/158 Test: s2n_server_hello_retry_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_server_hello_retry_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_server_hello_retry_test" end time: Jun 04 12:35 EDT
+"s2n_server_hello_retry_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_server_hello_test
+110/158 Testing: s2n_server_hello_test
+110/158 Test: s2n_server_hello_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_server_hello_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_server_hello_test" end time: Jun 04 12:35 EDT
+"s2n_server_hello_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_server_key_share_extension_test
+111/158 Testing: s2n_server_key_share_extension_test
+111/158 Test: s2n_server_key_share_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_server_key_share_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_server_key_share_extension_test" end time: Jun 04 12:35 EDT
+"s2n_server_key_share_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_server_max_frag_len_extension_test
+112/158 Testing: s2n_server_max_frag_len_extension_test
+112/158 Test: s2n_server_max_frag_len_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_server_max_frag_len_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_server_max_frag_len_extension_test" end time: Jun 04 12:35 EDT
+"s2n_server_max_frag_len_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_server_renegotiation_info_test
+113/158 Testing: s2n_server_renegotiation_info_test
+113/158 Test: s2n_server_renegotiation_info_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_server_renegotiation_info_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_server_renegotiation_info_test" end time: Jun 04 12:35 EDT
+"s2n_server_renegotiation_info_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_server_sct_list_extension_test
+114/158 Testing: s2n_server_sct_list_extension_test
+114/158 Test: s2n_server_sct_list_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_server_sct_list_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_server_sct_list_extension_test" end time: Jun 04 12:35 EDT
+"s2n_server_sct_list_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_server_server_name_extension_test
+115/158 Testing: s2n_server_server_name_extension_test
+115/158 Test: s2n_server_server_name_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_server_server_name_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_server_server_name_extension_test" end time: Jun 04 12:35 EDT
+"s2n_server_server_name_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_server_session_ticket_extension_test
+116/158 Testing: s2n_server_session_ticket_extension_test
+116/158 Test: s2n_server_session_ticket_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_server_session_ticket_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_server_session_ticket_extension_test" end time: Jun 04 12:35 EDT
+"s2n_server_session_ticket_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_server_signature_algorithms_extension_test
+117/158 Testing: s2n_server_signature_algorithms_extension_test
+117/158 Test: s2n_server_signature_algorithms_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_server_signature_algorithms_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_server_signature_algorithms_extension_test" end time: Jun 04 12:35 EDT
+"s2n_server_signature_algorithms_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_server_status_request_extension_test
+118/158 Testing: s2n_server_status_request_extension_test
+118/158 Test: s2n_server_status_request_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_server_status_request_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_server_status_request_extension_test" end time: Jun 04 12:35 EDT
+"s2n_server_status_request_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_server_supported_versions_extension_test
+119/158 Testing: s2n_server_supported_versions_extension_test
+119/158 Test: s2n_server_supported_versions_extension_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_server_supported_versions_extension_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_server_supported_versions_extension_test" end time: Jun 04 12:35 EDT
+"s2n_server_supported_versions_extension_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_session_ticket_test
+120/158 Testing: s2n_session_ticket_test
+120/158 Test: s2n_session_ticket_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_session_ticket_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_session_ticket_test" end time: Jun 04 12:35 EDT
+"s2n_session_ticket_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_set_test
+121/158 Testing: s2n_set_test
+121/158 Test: s2n_set_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_set_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_set_test" end time: Jun 04 12:35 EDT
+"s2n_set_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_signature_algorithms_test
+122/158 Testing: s2n_signature_algorithms_test
+122/158 Test: s2n_signature_algorithms_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_signature_algorithms_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_signature_algorithms_test" end time: Jun 04 12:35 EDT
+"s2n_signature_algorithms_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_sike_r1_kat_test
+123/158 Testing: s2n_sike_r1_kat_test
+123/158 Test: s2n_sike_r1_kat_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_sike_r1_kat_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_sike_r1_kat_test" end time: Jun 04 12:35 EDT
+"s2n_sike_r1_kat_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_sike_r1_kem_test
+124/158 Testing: s2n_sike_r1_kem_test
+124/158 Test: s2n_sike_r1_kem_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_sike_r1_kem_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_sike_r1_kem_test" end time: Jun 04 12:35 EDT
+"s2n_sike_r1_kem_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_sike_r2_kat_test
+125/158 Testing: s2n_sike_r2_kat_test
+125/158 Test: s2n_sike_r2_kat_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_sike_r2_kat_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_sike_r2_kat_test" end time: Jun 04 12:35 EDT
+"s2n_sike_r2_kat_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_sike_r2_kem_test
+126/158 Testing: s2n_sike_r2_kem_test
+126/158 Test: s2n_sike_r2_kem_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_sike_r2_kem_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_sike_r2_kem_test" end time: Jun 04 12:35 EDT
+"s2n_sike_r2_kem_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_ssl_prf_test
+127/158 Testing: s2n_ssl_prf_test
+127/158 Test: s2n_ssl_prf_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_ssl_prf_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_ssl_prf_test" end time: Jun 04 12:35 EDT
+"s2n_ssl_prf_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_stacktrace_test
+128/158 Testing: s2n_stacktrace_test
+128/158 Test: s2n_stacktrace_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_stacktrace_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_stacktrace_test" end time: Jun 04 12:35 EDT
+"s2n_stacktrace_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_str_test
+129/158 Testing: s2n_str_test
+129/158 Test: s2n_str_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_str_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_str_test" end time: Jun 04 12:35 EDT
+"s2n_str_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_stuffer_base64_test
+130/158 Testing: s2n_stuffer_base64_test
+130/158 Test: s2n_stuffer_base64_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_stuffer_base64_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_stuffer_base64_test" end time: Jun 04 12:35 EDT
+"s2n_stuffer_base64_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_stuffer_hex_test
+131/158 Testing: s2n_stuffer_hex_test
+131/158 Test: s2n_stuffer_hex_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_stuffer_hex_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_stuffer_hex_test" end time: Jun 04 12:35 EDT
+"s2n_stuffer_hex_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_stuffer_network_order_test
+132/158 Testing: s2n_stuffer_network_order_test
+132/158 Test: s2n_stuffer_network_order_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_stuffer_network_order_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_stuffer_network_order_test" end time: Jun 04 12:35 EDT
+"s2n_stuffer_network_order_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_stuffer_test
+133/158 Testing: s2n_stuffer_test
+133/158 Test: s2n_stuffer_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_stuffer_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_stuffer_test" end time: Jun 04 12:35 EDT
+"s2n_stuffer_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_stuffer_text_test
+134/158 Testing: s2n_stuffer_text_test
+134/158 Test: s2n_stuffer_text_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_stuffer_text_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_stuffer_text_test" end time: Jun 04 12:35 EDT
+"s2n_stuffer_text_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_timer_test
+135/158 Testing: s2n_timer_test
+135/158 Test: s2n_timer_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_timer_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_timer_test" end time: Jun 04 12:35 EDT
+"s2n_timer_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls12_handshake_test
+136/158 Testing: s2n_tls12_handshake_test
+136/158 Test: s2n_tls12_handshake_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls12_handshake_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls12_handshake_test" end time: Jun 04 12:35 EDT
+"s2n_tls12_handshake_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls13_cert_request_extensions_test
+137/158 Testing: s2n_tls13_cert_request_extensions_test
+137/158 Test: s2n_tls13_cert_request_extensions_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls13_cert_request_extensions_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls13_cert_request_extensions_test" end time: Jun 04 12:35 EDT
+"s2n_tls13_cert_request_extensions_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls13_cert_request_test
+138/158 Testing: s2n_tls13_cert_request_test
+138/158 Test: s2n_tls13_cert_request_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls13_cert_request_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls13_cert_request_test" end time: Jun 04 12:35 EDT
+"s2n_tls13_cert_request_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls13_cert_verify_test
+139/158 Testing: s2n_tls13_cert_verify_test
+139/158 Test: s2n_tls13_cert_verify_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls13_cert_verify_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls13_cert_verify_test" end time: Jun 04 12:35 EDT
+"s2n_tls13_cert_verify_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls13_client_finished_test
+140/158 Testing: s2n_tls13_client_finished_test
+140/158 Test: s2n_tls13_client_finished_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls13_client_finished_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls13_client_finished_test" end time: Jun 04 12:35 EDT
+"s2n_tls13_client_finished_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls13_compute_shared_secret_test
+141/158 Testing: s2n_tls13_compute_shared_secret_test
+141/158 Test: s2n_tls13_compute_shared_secret_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls13_compute_shared_secret_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls13_compute_shared_secret_test" end time: Jun 04 12:35 EDT
+"s2n_tls13_compute_shared_secret_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls13_cookie_test
+142/158 Testing: s2n_tls13_cookie_test
+142/158 Test: s2n_tls13_cookie_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls13_cookie_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls13_cookie_test" end time: Jun 04 12:35 EDT
+"s2n_tls13_cookie_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls13_handshake_test
+143/158 Testing: s2n_tls13_handshake_test
+143/158 Test: s2n_tls13_handshake_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls13_handshake_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls13_handshake_test" end time: Jun 04 12:35 EDT
+"s2n_tls13_handshake_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls13_keys_test
+144/158 Testing: s2n_tls13_keys_test
+144/158 Test: s2n_tls13_keys_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls13_keys_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls13_keys_test" end time: Jun 04 12:35 EDT
+"s2n_tls13_keys_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls13_parse_record_type_test
+145/158 Testing: s2n_tls13_parse_record_type_test
+145/158 Test: s2n_tls13_parse_record_type_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls13_parse_record_type_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls13_parse_record_type_test" end time: Jun 04 12:35 EDT
+"s2n_tls13_parse_record_type_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls13_prf_test
+146/158 Testing: s2n_tls13_prf_test
+146/158 Test: s2n_tls13_prf_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls13_prf_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls13_prf_test" end time: Jun 04 12:35 EDT
+"s2n_tls13_prf_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls13_record_aead_test
+147/158 Testing: s2n_tls13_record_aead_test
+147/158 Test: s2n_tls13_record_aead_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls13_record_aead_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls13_record_aead_test" end time: Jun 04 12:35 EDT
+"s2n_tls13_record_aead_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls13_server_cert_test
+148/158 Testing: s2n_tls13_server_cert_test
+148/158 Test: s2n_tls13_server_cert_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls13_server_cert_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls13_server_cert_test" end time: Jun 04 12:35 EDT
+"s2n_tls13_server_cert_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls13_server_finished_test
+149/158 Testing: s2n_tls13_server_finished_test
+149/158 Test: s2n_tls13_server_finished_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls13_server_finished_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls13_server_finished_test" end time: Jun 04 12:35 EDT
+"s2n_tls13_server_finished_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls13_state_machine_handshake_test
+150/158 Testing: s2n_tls13_state_machine_handshake_test
+150/158 Test: s2n_tls13_state_machine_handshake_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls13_state_machine_handshake_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls13_state_machine_handshake_test" end time: Jun 04 12:35 EDT
+"s2n_tls13_state_machine_handshake_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls13_support_test
+151/158 Testing: s2n_tls13_support_test
+151/158 Test: s2n_tls13_support_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls13_support_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls13_support_test" end time: Jun 04 12:35 EDT
+"s2n_tls13_support_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls13_zero_length_payload_test
+152/158 Testing: s2n_tls13_zero_length_payload_test
+152/158 Test: s2n_tls13_zero_length_payload_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls13_zero_length_payload_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls13_zero_length_payload_test" end time: Jun 04 12:35 EDT
+"s2n_tls13_zero_length_payload_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls_hybrid_prf_test
+153/158 Testing: s2n_tls_hybrid_prf_test
+153/158 Test: s2n_tls_hybrid_prf_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls_hybrid_prf_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls_hybrid_prf_test" end time: Jun 04 12:35 EDT
+"s2n_tls_hybrid_prf_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls_prf_test
+154/158 Testing: s2n_tls_prf_test
+154/158 Test: s2n_tls_prf_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls_prf_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls_prf_test" end time: Jun 04 12:35 EDT
+"s2n_tls_prf_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_tls_record_stuffer_test
+155/158 Testing: s2n_tls_record_stuffer_test
+155/158 Test: s2n_tls_record_stuffer_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_tls_record_stuffer_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_tls_record_stuffer_test" end time: Jun 04 12:35 EDT
+"s2n_tls_record_stuffer_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_utils_test
+156/158 Testing: s2n_utils_test
+156/158 Test: s2n_utils_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_utils_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_utils_test" end time: Jun 04 12:35 EDT
+"s2n_utils_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_wildcard_hostname_test
+157/158 Testing: s2n_wildcard_hostname_test
+157/158 Test: s2n_wildcard_hostname_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_wildcard_hostname_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_wildcard_hostname_test" end time: Jun 04 12:35 EDT
+"s2n_wildcard_hostname_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+Unable to find executable: /Users/pkz/s2n/bin/s2n_x509_validator_test
+158/158 Testing: s2n_x509_validator_test
+158/158 Test: s2n_x509_validator_test
+Command: ""
+Directory: /Users/pkz/s2n/tests/unit
+"s2n_x509_validator_test" start time: 
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"s2n_x509_validator_test" end time: Jun 04 12:35 EDT
+"s2n_x509_validator_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Jun 04 12:35 EDT

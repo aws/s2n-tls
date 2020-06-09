@@ -68,6 +68,7 @@ clean_the_dir :
 	${RM} -r sike_r2/*.log
 	${RM} -r bike_r1/*.log
 	${RM} -r bike_r2/*.log
+	${RM} -r kyber_r2/*.log
 	${RM} -r bitcode/*.bc
 
 ###########################################
@@ -137,6 +138,23 @@ bike_r1 : bike_r1_patched_bitcode
 bike_r1/verify_bike_r1.log:
 	@set -o pipefail; \
 	saw bike_r1/verify_bike_r1.saw | tee $@
+
+
+###########################################
+## SIKE Tests
+###########################################
+Kyber: kyber_r2
+
+.PHONY: kyber_r2
+kyber_r2: kyber_r2_patched_bitcode
+	@${MAKE} s2n/lib/libs2n.so
+	@${MAKE} kyber_r2/verify_kyber_r2.log
+
+kyber_r2/verify_kyber_r2.log:
+	@set -o pipefail; \
+	saw kyber_r2/verify_kyber_r2.saw | tee $@
+
+
 
 ###########################################
 ## Failure Tests
@@ -223,6 +241,11 @@ bike_r2_patched_bitcode :
 	${MAKE} clean_the_dir
 	${MAKE} bitcode/bike_r2_llvm.bc
 
+.PHONY : kyber_r2_patched_bitcode
+kyber_r2_patched_bitcode :
+	${MAKE} clean_the_dir
+	${MAKE} bitcode/kyber_r2_llvm.bc
+
 ########################################################
 ## Rules to copy the s2n directory for patching and bulding
 ########################################################
@@ -244,6 +267,10 @@ BIKE_R1_COPY = $(addprefix s2n/pq-crypto/bike_r1/, $(notdir $(BIKE_R1_C)))
 
 BIKE_R2_C = $(wildcard ../../pq-crypto/bike_r2/*.c) $(wildcard ../../pq-crypto/bike_r2/*.h) ../../pq-crypto/bike_r2/Makefile
 BIKE_R2_COPY = $(addprefix s2n/pq-crypto/bike_r2/, $(notdir $(BIKE_R2_C)))
+
+KYBER_R2_C = $(wildcard ../../pq-crypto/kyber_r2/*.c) $(wildcard ../../pq-crypto/kyber_r2/*.h) ../../pq-crypto/kyber_r2/Makefile
+KYBER_R2_COPY = $(addprefix s2n/pq-crypto/kyber_r2/, $(notdir $(KYBER_R2_C)))
+
 
 UTILS_C = $(wildcard ../../utils/*.c) $(wildcard ../../utils/*.h) ../../utils/Makefile
 UTILS_COPY =$(addprefix s2n/utils/, $(notdir $(UTILS_C)))
@@ -284,6 +311,9 @@ s2n/pq-crypto/bike_r1 :
 	mkdir -p $@
 
 s2n/pq-crypto/bike_r2 :
+	mkdir -p $@
+
+s2n/pq-crypto/kyber_r2 :
 	mkdir -p $@
 
 s2n/utils :
@@ -341,7 +371,12 @@ bitcode/bike_r2_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike_r2 s2n/uti
 	${MAKE} -C bitcode bike_r2_llvm.bc
 	${RM} -r s2n
 
-s2n/lib/libs2n.so : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/pq-crypto/sike_r2 s2n/pq-crypto/bike_r1 s2n/pq-crypto/bike_r2 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/lib s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(SIKE_R2_COPY) $(BIKE_R1_COPY) $(BIKE_R2_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY) $(LIB_COPY)
+.PHONY : bitcode/kyber_r2_llvm.bc
+bitcode/kyber_r2_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/kyber_r2 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R2_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY)
+	${MAKE} -C s2n kyber_r2_bc
+	${MAKE} -C bitcode all_llvm.bc
+
+s2n/lib/libs2n.so : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/pq-crypto/sike_r2 s2n/pq-crypto/bike_r1 s2n/pq-crypto/bike_r2 s2n/pq-crypto/kyber_r2 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/lib s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(SIKE_R2_COPY) $(BIKE_R1_COPY) $(BIKE_R2_COPY) $(KYBER_R2_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY) $(LIB_COPY)
 	${MAKE} -C s2n libs NO_STACK_PROTECTOR=1 NO_INLINE=1
 
 s2n/%.h : ../../%.h

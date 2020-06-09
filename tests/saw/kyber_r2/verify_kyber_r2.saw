@@ -1,0 +1,10 @@
+// verify_kyber_r2.saw Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+///////////////////////////////////////////////////////////////////////////////
+// SAW verification script for the top-level funcitons of the KYBER algorithm
+
+let do_prove = true;
+let debug = false;
+
+include "proof/kyber_r2_defs.saw";

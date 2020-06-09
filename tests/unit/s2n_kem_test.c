@@ -35,6 +35,7 @@ const uint8_t TEST_CIPHERTEXT[] = { 5, 5, 5, 5, 5 };
 
 static const uint8_t bike_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 };
 static const uint8_t sike_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 };
+static const uint8_t kyber_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384 };
 static const uint8_t classic_ecdhe_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA };
 
 int s2n_test_generate_keypair(unsigned char *public_key, unsigned char *private_key)
@@ -164,13 +165,16 @@ int main(int argc, char **argv)
                 /* SIKE_P503_R1 */
                 0x00, 0x0a,
                 /* SIKE_P434_R2 */
-                0x00, 0x13
+                0x00, 0x13,
+		/* KYBER_512_R2 */
+                0x00, 0x23
             };
 
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2));
             EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1));
             EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
+	    EXPECT_SUCCESS(check_client_server_agreed_kem(kyber_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R2));
         }
         {
             uint8_t client_kems[] = {
@@ -181,13 +185,16 @@ int main(int argc, char **argv)
                 /* SIKE_P434_R2 */
                 0x00, 0x13,
                 /* BIKE1_L1_R2 */
-                0x00, 0x0d
+                0x00, 0x0d,
+		/* KYBER_512_R2 */
+                0x00, 0x23
             };
 
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1));
             EXPECT_SUCCESS(check_client_server_agreed_kem(bike_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2));
             EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r1, 2, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1));
             EXPECT_SUCCESS(check_client_server_agreed_kem(sike_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2));
+	    EXPECT_SUCCESS(check_client_server_agreed_kem(kyber_iana, client_kems, 4, pq_kems_r2r1, 4, TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R2));
         }
         {
             uint8_t client_kems[] = {
