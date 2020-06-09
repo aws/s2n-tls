@@ -54,6 +54,8 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
+    /* s2n_init() should be idempotent. */
+    EXPECT_SUCCESS(s2n_init());
     EXPECT_FAILURE(requested_bigger_than_max());
     EXPECT_SUCCESS(succesful_stack_blob());
     END_TEST();
