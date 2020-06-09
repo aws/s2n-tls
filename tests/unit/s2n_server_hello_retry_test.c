@@ -79,7 +79,7 @@ int main(int argc, char **argv)
             + S2N_TLS_CIPHER_SUITE_LEN
             + COMPRESSION_METHOD_SIZE;
 
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(server_conn));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
         server_conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
         server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         server_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, conf));
 
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(conn));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
         conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
         conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
@@ -139,7 +139,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(conn, conf));
 
         struct s2n_stuffer *io = &conn->handshake.io;
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(conn));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
 
         /* protocol version */
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS12 / 10));
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(conn, conf));
 
         struct s2n_stuffer *io = &conn->handshake.io;
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(conn));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
 
         /* protocol version */
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, S2N_TLS12 / 10));
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer* extension_stuffer = &server_conn->handshake.io;
 
         memcpy_check(server_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(server_conn));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
         server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         server_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
@@ -233,7 +233,7 @@ int main(int argc, char **argv)
 
         /* Setup the client to receive a HelloRetryRequest */
         memcpy_check(client_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
 
         /* Setup the handshake type and message number to simulate a condition where a HelloRetry should be sent */
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(client_conn));
@@ -356,8 +356,8 @@ int main(int argc, char **argv)
         struct client_hello_context client_hello_ctx = {.invocations = 0 };
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(server_config, client_hello_detect_duplicate_calls, &client_hello_ctx));
 
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(server_conn));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
 
         /* Force HRR path by sending an empty list of keyshares */
         EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
@@ -417,7 +417,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(conn));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
 
         EXPECT_SUCCESS(s2n_set_hello_retry_required(conn));
         EXPECT_TRUE(conn->handshake.handshake_type & HELLO_RETRY_REQUEST);

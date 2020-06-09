@@ -66,8 +66,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(server_conn));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
 
         /* Force the HRR path by sending an empty list of keyshares */
         EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
@@ -177,8 +177,8 @@ int main(int argc, char **argv)
         server_conn->x509_validator.skip_cert_validation = 1;
         client_conn->x509_validator.skip_cert_validation = 1;
 
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(client_conn));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(server_conn));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
 
         /* Generate keyshare only for Curve x25519 */
         EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
@@ -240,8 +240,8 @@ int main(int argc, char **argv)
         server_conn->x509_validator.skip_cert_validation = 1;
         client_conn->x509_validator.skip_cert_validation = 1;
 
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(client_conn));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(server_conn));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
 
         /* Generate keyshare only for Curve x25519 */
         EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "x25519"));
@@ -288,8 +288,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, tls13_chain_and_key));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
 
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(server_conn));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -345,7 +345,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random,
                               S2N_TLS_RANDOM_DATA_LEN);
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(conn));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
 
         EXPECT_SUCCESS(s2n_hello_retry_validate(conn));
 
@@ -392,7 +392,7 @@ int main(int argc, char **argv)
         const uint8_t not_hello_retry_request_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
         EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, not_hello_retry_request_random,
                               S2N_TLS_RANDOM_DATA_LEN);
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions_tls13(conn));
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_hello_retry_validate(conn), S2N_ERR_INVALID_HELLO_RETRY);
 

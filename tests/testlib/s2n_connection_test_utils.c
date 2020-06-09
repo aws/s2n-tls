@@ -221,13 +221,13 @@ int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-int s2n_connection_set_all_protocol_versions_tls13(struct s2n_connection *conn)
+int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_t version)
 {
     notnull_check(conn);
 
-    conn->server_protocol_version = S2N_TLS13;
-    conn->client_protocol_version = S2N_TLS13;
-    conn->actual_protocol_version = S2N_TLS13;
+    conn->server_protocol_version = version;
+    conn->client_protocol_version = version;
+    conn->actual_protocol_version = version;
 
     return S2N_SUCCESS;
 }

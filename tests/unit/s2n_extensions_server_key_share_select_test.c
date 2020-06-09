@@ -37,9 +37,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
 
-        server_conn->client_protocol_version = S2N_TLS13;
-        server_conn->server_protocol_version = S2N_TLS13;
-        server_conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
 
         const struct s2n_ecc_preferences *ecc_pref = NULL;
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
@@ -66,9 +64,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
 
-        server_conn->client_protocol_version = S2N_TLS13;
-        server_conn->server_protocol_version = S2N_TLS13;
-        server_conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
 
         const struct s2n_ecc_preferences *ecc_pref = NULL;
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
@@ -90,9 +86,7 @@ int main(int argc, char **argv)
          */ 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
-        server_conn->client_protocol_version = S2N_TLS13;
-        server_conn->server_protocol_version = S2N_TLS13;
-        server_conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
 
         const struct s2n_ecc_preferences *ecc_pref = NULL;
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
@@ -120,9 +114,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
 
-        server_conn->client_protocol_version = S2N_TLS13;
-        server_conn->server_protocol_version = S2N_TLS13;
-        server_conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
 
         const struct s2n_ecc_preferences *ecc_pref = NULL;
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
@@ -150,9 +142,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
 
-        server_conn->client_protocol_version = S2N_TLS13;
-        server_conn->server_protocol_version = S2N_TLS13;
-        server_conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
 
         const struct s2n_ecc_preferences *ecc_pref = NULL;
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));

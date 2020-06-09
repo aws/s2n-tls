@@ -58,7 +58,7 @@ int s2n_fd_set_non_blocking(int fd);
 
 int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn);
 int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn);
-int s2n_connection_set_all_protocol_versions_tls13(struct s2n_connection *conn);
+int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_t version);
 
 int s2n_unsafe_set_drbg_seed(const struct s2n_blob *seed);
 
