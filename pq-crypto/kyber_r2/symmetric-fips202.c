@@ -59,5 +59,5 @@ void PQCLEAN_KYBER512_CLEAN_shake256_prf(uint8_t *output, size_t outlen, const u
     }
     extkey[i] = nonce;
 
-    shake256(output, outlen, extkey, KYBER_SYMBYTES + 1);
+    shake256_k(output, outlen, extkey, KYBER_SYMBYTES + 1);
 }

@@ -45,7 +45,7 @@ typedef shake128ctx keccak_state;
 
 void shake128_absorb(shake128ctx *state, const uint8_t *input, size_t inlen);
 void shake128_squeezeblocks(uint8_t *output, size_t nblocks, shake128ctx *state);
-void shake256(uint8_t *output, size_t outlen, const uint8_t *input, size_t inlen);
+void shake256_k(uint8_t *output, size_t outlen, const uint8_t *input, size_t inlen);
 void sha3_256(uint8_t *output, const uint8_t *input, size_t inlen);
 void sha3_512(uint8_t *output, const uint8_t *input, size_t inlen);
 void shake128_ctx_release(shake128ctx *state);

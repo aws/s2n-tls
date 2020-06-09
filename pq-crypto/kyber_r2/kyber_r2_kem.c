@@ -52,7 +52,7 @@
 //	return kem;
 //}
 
-int PQCLEAN_KYBER512_CLEAN_crypto_kem_keypair(uint8_t *pk, uint8_t *sk) {
+int KYBER_512_r2_crypto_kem_keypair(uint8_t *pk, uint8_t *sk) {
 	size_t i;
 	PQCLEAN_KYBER512_CLEAN_indcpa_keypair(pk, sk);
 	for (i = 0; i < KYBER_INDCPA_PUBLICKEYBYTES; i++) {
@@ -65,7 +65,7 @@ int PQCLEAN_KYBER512_CLEAN_crypto_kem_keypair(uint8_t *pk, uint8_t *sk) {
 	return 0;
 }
 
-int PQCLEAN_KYBER512_CLEAN_crypto_kem_enc(uint8_t *ct, uint8_t *ss,
+int KYBER_512_r2_crypto_kem_enc(uint8_t *ct, uint8_t *ss,
 		const uint8_t *pk) {
 	unsigned char kr[2 * KYBER_SYMBYTES]; /* Will contain key, coins */
 	unsigned char buf[2 * KYBER_SYMBYTES];
@@ -84,7 +84,7 @@ int PQCLEAN_KYBER512_CLEAN_crypto_kem_enc(uint8_t *ct, uint8_t *ss,
 	return 0;
 }
 
-int PQCLEAN_KYBER512_CLEAN_crypto_kem_dec(uint8_t *ss, const uint8_t *ct,
+int KYBER_512_r2_crypto_kem_dec(uint8_t *ss, const uint8_t *ct,
 		const uint8_t *sk) {
 	size_t i;
 	unsigned char fail;

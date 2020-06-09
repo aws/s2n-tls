@@ -541,7 +541,7 @@ void shake256_ctx_release(shake256ctx *state) {
  *              - const uint8_t *input: pointer to input
  *              - size_t inlen: length of input in bytes
  **************************************************/
-void shake256(uint8_t *output, size_t outlen,
+void shake256_k(uint8_t *output, size_t outlen,
               const uint8_t *input, size_t inlen) {
 	size_t nblocks = outlen / SHAKE256_RATE;
 	uint8_t t[SHAKE256_RATE];

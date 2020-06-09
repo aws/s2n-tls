@@ -22,7 +22,7 @@ void PQCLEAN_KYBER512_CLEAN_shake256_prf(uint8_t *output, size_t outlen, const u
 #define xof_squeezeblocks(OUT, OUTBLOCKS, STATE) PQCLEAN_KYBER512_CLEAN_kyber_shake128_squeezeblocks(OUT, OUTBLOCKS, STATE)
 #define xof_ctx_release(STATE) shake128_ctx_release(STATE)
 #define prf(OUT, OUTBYTES, KEY, NONCE) PQCLEAN_KYBER512_CLEAN_shake256_prf(OUT, OUTBYTES, KEY, NONCE)
-#define kdf(OUT, IN, INBYTES) shake256(OUT, KYBER_SSBYTES, IN, INBYTES)
+#define kdf(OUT, IN, INBYTES) shake256_k(OUT, KYBER_SSBYTES, IN, INBYTES)
 
 #define XOF_BLOCKBYTES 168
 
