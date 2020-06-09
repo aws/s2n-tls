@@ -133,15 +133,10 @@ int main(int argc, char **argv)
     {
         /* When TLS 1.3 NOT supported */
         {
-            struct s2n_config *config;
-            EXPECT_NOT_NULL(config = s2n_config_new());
-            s2n_config_set_session_tickets_onoff(config, 0);
-
-            /* TLS 1.3 cipher suites NOT written by client */
+            /* TLS 1.3 cipher suites NOT written by client by default */
             {
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
                 struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
@@ -162,7 +157,30 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
 
-            EXPECT_SUCCESS(s2n_config_free(config));
+            /* TLS 1.3 cipher suites NOT written by client even if included in security policy */
+            {
+                struct s2n_connection *conn;
+                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
+
+                struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
+
+                EXPECT_SUCCESS(s2n_client_hello_send(conn));
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, LENGTH_TO_CIPHER_LIST));
+
+                uint16_t list_length = 0;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint16(hello_stuffer, &list_length));
+                EXPECT_NOT_EQUAL(list_length, 0);
+
+                uint8_t first_cipher_byte;
+                for (int i = 0; i < list_length; i++) {
+                    EXPECT_SUCCESS(s2n_stuffer_read_uint8(hello_stuffer, &first_cipher_byte));
+                    EXPECT_NOT_EQUAL(first_cipher_byte, 0x13);
+                    EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, 1));
+                }
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
         }
 
         /* When TLS 1.3 supported */

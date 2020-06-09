@@ -290,6 +290,9 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     const struct s2n_security_policy *security_policy;
     GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
+    const struct s2n_cipher_preferences *cipher_preferences = security_policy->cipher_preferences;
+    notnull_check(cipher_preferences);
+
     /* Check whether cipher preference supports TLS 1.3. If it doesn't,
        our highest supported version is S2N_TLS12 */
     if (!s2n_security_policy_supports_tls13(security_policy)) {
@@ -334,16 +337,18 @@ int s2n_client_hello_send(struct s2n_connection *conn)
         GUARD(s2n_stuffer_write_bytes(out, conn->session_id, conn->session_id_len));
     }
 
-    /* Find the number of available suites in the preference list. Some ciphers may be unavailable if s2n is built
-     * with an older libcrypto
+    /* Find the number of available suites in the preference list allowed by this connection.
+     * Some ciphers may be unavailable if s2n is built with an older libcrypto.
      */
     uint16_t num_available_suites = 0;
-    for (int i = 0; i < security_policy->cipher_preferences->count; i++) {
-        if (security_policy->cipher_preferences->suites[i]->available) {
+    for (int i = 0; i < cipher_preferences->count; i++) {
+        if (cipher_preferences->suites[i]->available &&
+                cipher_preferences->suites[i]->minimum_required_tls_version <= conn->client_protocol_version) {
             num_available_suites++;
         }
     }
-    /* Include TLS_EMPTY_RENEGOTIATION_INFO_SCSV */
+
+    /* Include TLS_EMPTY_RENEGOTIATION_INFO_SCSV in the count */
     num_available_suites++;
 
     /* Write size of the list of available ciphers */
@@ -351,10 +356,12 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 
     /* Now, write the IANA values every available cipher suite in our list */
     for (int i = 0; i < security_policy->cipher_preferences->count; i++ ) {
-        if (security_policy->cipher_preferences->suites[i]->available) {
+        if (cipher_preferences->suites[i]->available &&
+                cipher_preferences->suites[i]->minimum_required_tls_version <= conn->client_protocol_version) {
             GUARD(s2n_stuffer_write_bytes(out, security_policy->cipher_preferences->suites[i]->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
         }
     }
+
     /* Lastly, write TLS_EMPTY_RENEGOTIATION_INFO_SCSV so that server knows it's an initial handshake (RFC5746 Section 3.4) */
     uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
     GUARD(s2n_stuffer_write_bytes(out, renegotiation_info_scsv, S2N_TLS_CIPHER_SUITE_LEN));
