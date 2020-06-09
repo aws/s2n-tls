@@ -21,6 +21,8 @@
 
 #include "utils/s2n_blob.h"
 
+#define SIZEOF_UINT24 3
+
 /* Using a non-zero value
  * (a) makes wiped data easy to see in the debugger
  * (b) makes use of wiped data obvious since this is unlikely to be a valid bit pattern
