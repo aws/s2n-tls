@@ -1,4 +1,4 @@
-#include "fips202.h"
+#include "fips202_k.h"
 #include "symmetric.h"
 
 #include <stdlib.h>

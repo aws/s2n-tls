@@ -4,7 +4,7 @@
 #include "params.h"
 
 
-#include "fips202.h"
+#include "fips202_k.h"
 
 #include <stdint.h>
 #include <stddef.h>

@@ -13,10 +13,10 @@
 # permissions and limitations under the License.
 #
 
-SRCS=fips202.c cbd.c polyvec.c reduce.c ntt.c poly.c polyvec.c verify.c sha3_c.c symmetric-fips202.c indcpa.c kyber_r2_kem.c
+SRCS=fips202_k.c cbd.c polyvec.c reduce.c ntt.c poly.c polyvec.c verify.c sha3_c.c symmetric-fips202.c indcpa.c kyber_r2_kem.c
 OBJS=$(SRCS:.c=.o)
 
-BCS_1=fips202.bc cbd.bc polyvec.h reduce.bc ntt.bc poly.bc polyvec.bc verify.bc sha3_c.c symmetric-fips202.bc indcpa.bc kyber_r2_kem.bc
+BCS_1=fips202_k.bc cbd.bc polyvec.h reduce.bc ntt.bc poly.bc polyvec.bc verify.bc sha3_c.c symmetric-fips202.bc indcpa.bc kyber_r2_kem.bc
 BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
 
 .PHONY : all
