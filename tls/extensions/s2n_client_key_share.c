@@ -106,7 +106,7 @@ static int s2n_send_hrr_keyshare(struct s2n_connection *conn, struct s2n_stuffer
     notnull_check(ecc_pref);
 
     server_negotiated_curve = conn->secure.server_ecc_evp_params.negotiated_curve;
-    S2N_ERROR_IF(server_negotiated_curve == NULL, S2N_ERR_BAD_KEY_SHARE);
+    ENSURE_POSIX(server_negotiated_curve != NULL, S2N_ERR_BAD_KEY_SHARE);
 
     bool has_supported_curve = false;
     size_t supported_curve_index = 0;
@@ -142,7 +142,7 @@ static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s
      * replace the list of shares with a list containing a single
      * KeyShareEntry from the indicated group.*/
     if (s2n_is_hello_retry_handshake(conn)) {
-        ENSURE_POSIX(s2n_hello_retry_validate(conn) == S2N_SUCCESS, S2N_ERR_INVALID_HELLO_RETRY);
+        GUARD(s2n_hello_retry_validate(conn));
         GUARD(s2n_send_hrr_keyshare(conn, out));
         return S2N_SUCCESS;
     }

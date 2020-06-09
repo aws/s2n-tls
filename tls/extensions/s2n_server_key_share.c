@@ -44,7 +44,7 @@ static int s2n_server_key_share_send(struct s2n_connection *conn, struct s2n_stu
     /* Retry requests only require the selected named group, not an actual share.
      * https://tools.ietf.org/html/rfc8446#section-4.2.8 */
     if (s2n_is_hello_retry_message(conn)) {
-        ENSURE_POSIX(s2n_hello_retry_validate(conn) == S2N_SUCCESS, S2N_ERR_INVALID_HELLO_RETRY);
+        GUARD(s2n_hello_retry_validate(conn));
         notnull_check(conn->secure.server_ecc_evp_params.negotiated_curve);
 
         /* There was a mutually supported group, so that is the group we will select */
@@ -103,7 +103,7 @@ static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stu
      * Set the server negotiated curve and exit early so a proper keyshare can be generated. 
      */
     if (s2n_is_hello_retry_message(conn)) {
-        ENSURE_POSIX(s2n_hello_retry_validate(conn) == S2N_SUCCESS, S2N_ERR_INVALID_HELLO_RETRY);
+        GUARD(s2n_hello_retry_validate(conn));
         return S2N_SUCCESS;
     }
 
@@ -135,7 +135,7 @@ int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn)
      * curve from the client. Just return S2N_SUCCESS so a selected group will be
      * chosen for the key share. */
     if (s2n_is_hello_retry_message(conn)) {
-        ENSURE_POSIX(s2n_hello_retry_validate(conn) == S2N_SUCCESS, S2N_ERR_INVALID_HELLO_RETRY);
+        GUARD(s2n_hello_retry_validate(conn));
         return S2N_SUCCESS;
     }
 

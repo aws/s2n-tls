@@ -107,9 +107,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
 
     /* If the client receives a second HelloRetryRequest in the same connection, it MUST send an error. */
     if (s2n_hello_retry_validate(conn) == S2N_SUCCESS) {
-        if (s2n_is_hello_retry_handshake(conn)) {
-            S2N_ERROR(S2N_ERR_INVALID_HELLO_RETRY);
-        }
+        ENSURE_POSIX(!s2n_is_hello_retry_handshake(conn), S2N_ERR_INVALID_HELLO_RETRY);
         GUARD(s2n_set_hello_retry_required(conn));
     }
 
