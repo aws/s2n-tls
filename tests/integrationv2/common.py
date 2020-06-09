@@ -200,6 +200,9 @@ class Ciphers(object):
     ECDHE_RSA_CHACHA20_POLY1305 = Cipher("ECDHE_RSA_CHACHA20_POLY1305", Protocols.TLS12, True, False)
     CHACHA20_POLY1305_SHA256 = Cipher("CHACHA20_POLY1305_SHA256", Protocols.TLS13, True, False)
 
+    KMS_PQ_TLS_1_0_2019_06 = Cipher("KMS_PQ_TLS_1_0_2019_06", Protocols.TLS10, False, False)
+    PQ_SIKE_TEST_TLS_1_0_2019_11 = Cipher("PQ_SIKE_TEST_TLS_1_0_2019_11", Protocols.TLS10, False, False)
+
 
 class Curve(object):
     def __init__(self, name, min_protocol=Protocols.SSLv3):

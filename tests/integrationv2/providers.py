@@ -131,7 +131,13 @@ class S2N(Provider):
         if options.protocol == Protocols.TLS13:
             cmd_line.append('--tls13')
 
-        cmd_line.extend(['-c', 'test_all'])
+        if options.cipher is not None:
+            if options.cipher is Ciphers.KMS_PQ_TLS_1_0_2019_06:
+                cmd_line.extend(['-c', 'KMS-PQ-TLS-1-0-2019-06'])
+            elif options.cipher is Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11:
+                cmd_line.extend(['-c', 'PQ-SIKE-TEST-TLS-1-0-2019-11'])
+        else:
+            cmd_line.extend(['-c', 'test_all'])
 
         if options.client_key_file:
             cmd_line.extend(['--key', options.client_key_file])
