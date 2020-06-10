@@ -102,24 +102,24 @@ static const uint8_t hex_inverse[256] = {
 
 /* takes a hex string and writes values in the s2n_blob
  * string needs to a valid hex and blob needs to be large enough */
-int s2n_hex_string_to_bytes(const char *str, struct s2n_blob *blob)
+int s2n_hex_string_to_bytes(const uint8_t *str, struct s2n_blob *blob)
 {
     notnull_check(str);
-    notnull_check(blob);
-    uint32_t len = strlen(str);
+    PRECONDITION_POSIX(s2n_blob_is_valid(blob));
+    uint32_t len = strlen((const char*)str);
     /* protects against overflows */
     gte_check(blob->size, len / 2);
     S2N_ERROR_IF(len % 2 != 0, S2N_ERR_INVALID_HEX);
 
-    for (int i = 0; i < len; i += 2) {
-        uint8_t high_nibble = hex_inverse[(uint8_t) str[i]];
+    for (size_t i = 0; i < len; i += 2) {
+        uint8_t high_nibble = hex_inverse[str[i]];
         S2N_ERROR_IF(high_nibble == 255, S2N_ERR_INVALID_HEX);
 
-        uint8_t low_nibble = hex_inverse[(uint8_t) str[i + 1]];
+        uint8_t low_nibble = hex_inverse[str[i + 1]];
         S2N_ERROR_IF(low_nibble == 255, S2N_ERR_INVALID_HEX);
-
         blob->data[i / 2] = high_nibble << 4 | low_nibble;
     }
 
+    POSTCONDITION_POSIX(s2n_blob_is_valid(blob));
     return S2N_SUCCESS;
 }
