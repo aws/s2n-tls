@@ -89,14 +89,13 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(bytes_used, 0);
 
     /* Parse the DH params */
-    b.data = (uint8_t *) dhparams_pem;
-    b.size = strlen(dhparams_pem) + 1;
+    EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) dhparams_pem, strlen(dhparams_pem) + 1));
     EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_in, b.size));
     EXPECT_SUCCESS(s2n_stuffer_alloc(&dhparams_out, b.size));
     EXPECT_SUCCESS(s2n_stuffer_write(&dhparams_in, &b));
     EXPECT_SUCCESS(s2n_stuffer_dhparams_from_pem(&dhparams_in, &dhparams_out));
-    b.size = s2n_stuffer_data_available(&dhparams_out);
-    b.data = s2n_stuffer_raw_read(&dhparams_out, b.size);
+    uint32_t available_size = s2n_stuffer_data_available(&dhparams_out);
+    EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&dhparams_out, available_size), available_size));
     EXPECT_SUCCESS(s2n_pkcs3_to_dh_params(&dh_params, &b));
 
     EXPECT_SUCCESS(s2n_dh_generate_ephemeral_key(&dh_params));
