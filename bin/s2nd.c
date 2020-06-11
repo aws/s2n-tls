@@ -403,7 +403,7 @@ int main(int argc, char *const *argv)
     int fips_mode = 0;
     int parallelize = 0;
     int use_tls13 = 0;
-    unsigned long int bytes = 0;
+    long int bytes = 0;
     conn_settings.session_ticket = 1;
     conn_settings.session_cache = 1;
     conn_settings.max_conns = -1;
