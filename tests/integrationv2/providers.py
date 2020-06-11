@@ -136,6 +136,8 @@ class S2N(Provider):
                 cmd_line.extend(['-c', 'KMS-PQ-TLS-1-0-2019-06'])
             elif options.cipher is Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11:
                 cmd_line.extend(['-c', 'PQ-SIKE-TEST-TLS-1-0-2019-11'])
+            else:
+                cmd_line.extend(['-c', 'test_all'])
         else:
             cmd_line.extend(['-c', 'test_all'])
 
