@@ -32,7 +32,7 @@ static const uint8_t b64[64] = {
  *
  * b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
  *
- * for i in range(0, 255):
+ * for i in range(0, 256):
  *     if chr(i) in b64:
  *         print str(b64.index(chr(i))) + ", ",
  *      else:
@@ -59,10 +59,10 @@ static const uint8_t b64_inverse[256] = {
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
 };
 
-int s2n_is_base64_char(char c)
+bool s2n_is_base64_char(unsigned char c)
 {
     return (b64_inverse[*((uint8_t*)(&c))] != 255);
 }
