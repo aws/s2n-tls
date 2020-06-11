@@ -90,8 +90,7 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
     GUARD(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
 
     struct s2n_blob temp_blob;
-    temp_blob.data = (uint8_t *) client_chain;
-    temp_blob.size = strlen(client_chain) + 1;
+    GUARD(s2n_blob_init(&temp_blob, (uint8_t *) client_chain, strlen(client_chain) + 1));
     GUARD(s2n_stuffer_write(&certificate_in, &temp_blob));
     GUARD(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
 
