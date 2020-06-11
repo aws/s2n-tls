@@ -22,18 +22,21 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
-
 #define STRING_LEN 1024
 static char str_buffer[STRING_LEN];
 static s2n_blocked_status blocked;
 
-#define SEND(...) sprintf(str_buffer, __VA_ARGS__); \
-    s2n_send(conn, str_buffer, strlen(str_buffer), &blocked);
+#define SEND(...) do { \
+    sprintf(str_buffer, __VA_ARGS__); \
+    GUARD(s2n_send(conn, str_buffer, strlen(str_buffer), &blocked)); \
+} while (0);
 
-#define BUFFER(...) sprintf(str_buffer, __VA_ARGS__); \
-    GUARD(s2n_stuffer_write_bytes(&stuffer, (const uint8_t *)str_buffer, strlen(str_buffer)));
+#define BUFFER(...) do { \
+    sprintf(str_buffer, __VA_ARGS__); \
+    GUARD(s2n_stuffer_write_bytes(&stuffer, (const uint8_t *)str_buffer, strlen(str_buffer))); \
+} while (0);
 
-#define FLUSH(left, buffer) { \
+#define FLUSH(left, buffer) do { \
     uint32_t i = 0; \
     while (i < left) { \
         int out = s2n_send(conn, &buffer[i], left - i, &blocked); \
@@ -44,12 +47,13 @@ static s2n_blocked_status blocked;
         } \
         i += out; \
     } \
-}
+} while (0);
 
-#define HEADERS(length) \
+#define HEADERS(length) do { \
     SEND("HTTP/1.1 200 OK\r\n"); \
     SEND("Content-Length: %u\r\n", length); \
-    SEND("\r\n");
+    SEND("\r\n"); \
+} while (0);
 
 /* In bench mode, we send some binary output */
 int bench_handler(struct s2n_connection *conn, uint32_t bench) {
@@ -102,6 +106,7 @@ int https(struct s2n_connection *conn, uint32_t bench)
     BUFFER("Curve: %s\n", s2n_connection_get_curve(conn));
     BUFFER("KEM: %s\n", s2n_connection_get_kem_name(conn));
     BUFFER("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
+    BUFFER("Session resumption: %s\n", s2n_connection_is_session_resumed(conn) ? "true" : "false");
 
     uint32_t content_length = s2n_stuffer_data_available(&stuffer);
 

@@ -405,6 +405,7 @@ int main(int argc, char *const *argv)
     int use_tls13 = 0;
     conn_settings.session_ticket = 1;
     conn_settings.session_cache = 1;
+    unsigned long int bytes = 0;
 
     struct option long_options[] = {
         {"ciphers", required_argument, NULL, 'c'},
@@ -518,7 +519,10 @@ int main(int argc, char *const *argv)
             conn_settings.https_server = 1;
             break;
         case 'b':
-            conn_settings.https_bench = atoi(optarg);
+            bytes = strtoul(optarg, NULL, 10);
+            if (bytes >= 0) {
+                conn_settings.https_bench = bytes;
+            }
             break;
         case '?':
         default:
