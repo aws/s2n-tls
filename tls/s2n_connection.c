@@ -52,6 +52,9 @@
 #include "utils/s2n_socket.h"
 #include "utils/s2n_timer.h"
 
+#define S2N_SET_KEY_SHARE_LIST_EMPTY(keyshares) (keyshares |= 1)
+#define S2N_SET_KEY_SHARE_REQUEST(keyshares, i) (keyshares |= ( 1 << ( i + 1 )))
+
 static int s2n_connection_new_hashes(struct s2n_connection *conn)
 {
     /* Allocate long-term memory for the Connection's hash states */
@@ -264,6 +267,7 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
     conn->handshake.handshake_type = INITIAL;
     conn->handshake.message_number = 0;
+    conn->handshake.paused = 0;
     conn->verify_host_fn = NULL;
     conn->verify_host_fn_overridden = 0;
     conn->data_for_verify_host = NULL;
@@ -1289,4 +1293,28 @@ uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn)
         return conn->client_protocol_version;
     }
     return conn->server_protocol_version;
+}
+
+int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn, const char* curve_name)
+{
+    ENSURE_POSIX(S2N_IN_TEST, S2N_ERR_NOT_IN_TEST);
+    notnull_check(conn);
+
+    if (!strcmp(curve_name, "none")) {
+        S2N_SET_KEY_SHARE_LIST_EMPTY(conn->preferred_key_shares);
+        return S2N_SUCCESS;
+    }
+
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    notnull_check(ecc_pref);
+
+    for (size_t i = 0; i < ecc_pref->count; i++) {
+        if (!strcmp(ecc_pref->ecc_curves[i]->name, curve_name)) {
+            S2N_SET_KEY_SHARE_REQUEST(conn->preferred_key_shares, i);
+            return S2N_SUCCESS;
+        }
+    }
+
+    S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 }

@@ -17,6 +17,7 @@
 
 #include "error/s2n_errno.h"
 
+#include "tls/s2n_async_pkey.h"
 #include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_kex.h"
@@ -33,8 +34,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 
-static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pkey *priv_key,
-        s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest);
+static int s2n_server_key_send_write_signature(struct s2n_connection *conn, struct s2n_blob *signature);
 
 int s2n_server_key_recv(struct s2n_connection *conn)
 {
@@ -233,6 +233,8 @@ int s2n_hybrid_server_key_recv_parse_data(struct s2n_connection *conn, struct s2
 
 int s2n_server_key_send(struct s2n_connection *conn)
 {
+    S2N_ASYNC_PKEY_GUARD(conn);
+
     struct s2n_hash_state *signature_hash = &conn->secure.signature_hash;
     const struct s2n_kex *key_exchange = conn->secure.cipher_suite->key_exchange_alg;
     struct s2n_stuffer *out = &conn->handshake.io;
@@ -254,10 +256,7 @@ int s2n_server_key_send(struct s2n_connection *conn)
     /* Add KEX specific data to the hash */
     GUARD(s2n_hash_update(signature_hash, data_to_sign.data, data_to_sign.size));
 
-    /* Sign and write the signature */
-    GUARD(s2n_write_signature_blob(out, conn->handshake_params.our_chain_and_key->private_key,
-            conn->secure.conn_sig_scheme.sig_alg, signature_hash));
-    return 0;
+    S2N_ASYNC_PKEY_SIGN(conn, conn->secure.conn_sig_scheme.sig_alg, signature_hash, s2n_server_key_send_write_signature);
 }
 
 int s2n_ecdhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
@@ -325,27 +324,12 @@ int s2n_hybrid_server_key_send(struct s2n_connection *conn, struct s2n_blob *tot
     return 0;
 }
 
-static int s2n_write_signature_blob(struct s2n_stuffer *out, const struct s2n_pkey *priv_key,
-        s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest)
+int s2n_server_key_send_write_signature(struct s2n_connection *conn, struct s2n_blob *signature)
 {
-    struct s2n_blob signature = {0};
-    
-    /* Leave signature length blank for now until we're done signing */
-    uint16_t sig_len = 0;
-    GUARD(s2n_stuffer_write_uint16(out, sig_len));
-    
-    int max_signature_size = s2n_pkey_size(priv_key);
-    signature.size = max_signature_size;
-    signature.data = s2n_stuffer_raw_write(out, signature.size);
-    notnull_check(signature.data);
+    struct s2n_stuffer *out = &conn->handshake.io;
 
-    S2N_ERROR_IF(s2n_pkey_sign(priv_key, sig_alg, digest, &signature) < 0, S2N_ERR_DH_FAILED_SIGNING);
+    GUARD(s2n_stuffer_write_uint16(out, signature->size));
+    GUARD(s2n_stuffer_write_bytes(out, signature->data, signature->size));
 
-    /* Now that the signature has been created, write the actual size that was stored in the signature blob */
-    out->write_cursor -= max_signature_size;
-    out->write_cursor -= 2;
-
-    GUARD(s2n_stuffer_write_uint16(out, signature.size));
-    GUARD(s2n_stuffer_skip_write(out, signature.size));
     return 0;
 }

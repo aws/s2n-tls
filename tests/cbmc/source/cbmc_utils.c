@@ -14,7 +14,60 @@
  */
 
 #include <assert.h>
+
 #include <cbmc_proof/cbmc_utils.h>
+
+void assert_stuffer_immutable_fields_after_read(const struct s2n_stuffer *lhs,
+                                                const struct s2n_stuffer *rhs,
+                                                const struct store_byte_from_buffer *stored_byte_from_rhs) {
+    /* In order to be equivalent, either both are NULL or both are non-NULL */
+    if (lhs == rhs) {
+        return;
+    } else {
+        assert(lhs && rhs);
+    }
+    assert(lhs->write_cursor == rhs->write_cursor);
+    assert(lhs->high_water_mark == rhs->high_water_mark);
+    assert(lhs->alloced == rhs->alloced);
+    assert(lhs->growable == rhs->growable);
+    assert(lhs->tainted == rhs->tainted);
+    assert_blob_equivalence(&lhs->blob, &rhs->blob, stored_byte_from_rhs);
+}
+
+void assert_blob_equivalence(const struct s2n_blob *lhs,
+                             const struct s2n_blob *rhs,
+                             const struct store_byte_from_buffer *stored_byte_from_rhs) {
+    /* In order to be equivalent, either both are NULL or both are non-NULL */
+    if (lhs == rhs) {
+        return;
+    } else {
+        assert(lhs && rhs);
+    }
+    assert(lhs->size == rhs->size);
+    assert(lhs->allocated == rhs->allocated);
+    assert(lhs->growable == rhs->growable);
+    if (lhs->size > 0) {
+        assert_byte_from_blob_matches(lhs, stored_byte_from_rhs);
+    }
+}
+
+void assert_stuffer_equivalence(const struct s2n_stuffer *lhs,
+                                const struct s2n_stuffer *rhs,
+                                const struct store_byte_from_buffer *stored_byte_from_rhs) {
+    /* In order to be equivalent, either both are NULL or both are non-NULL */
+    if (lhs == rhs) {
+        return;
+    } else {
+        assert(lhs && rhs);
+    }
+    assert(lhs->read_cursor == rhs->read_cursor);
+    assert(lhs->write_cursor == rhs->write_cursor);
+    assert(lhs->high_water_mark == rhs->high_water_mark);
+    assert(lhs->alloced == rhs->alloced);
+    assert(lhs->growable == rhs->growable);
+    assert(lhs->tainted == rhs->tainted);
+    assert_blob_equivalence(&lhs->blob, &rhs->blob, stored_byte_from_rhs);
+}
 
 void assert_bytes_match(const uint8_t *const a, const uint8_t *const b, const size_t len) {
     assert(!a == !b);
@@ -45,7 +98,7 @@ void assert_byte_from_buffer_matches(const uint8_t *const buffer, const struct s
 
 void assert_byte_from_blob_matches(const struct s2n_blob *blob, const struct store_byte_from_buffer *const b) {
     if(blob && blob->size) {
-	assert_byte_from_buffer_matches(blob->data, b);
+        assert_byte_from_buffer_matches(blob->data, b);
     }
 }
 

@@ -25,9 +25,9 @@
  * Returns an error if the element already exists */
 static S2N_RESULT s2n_set_binary_search(struct s2n_set *set, void *element, uint32_t* out)
 {
-    ENSURE_NONNULL(set);
-    ENSURE_NONNULL(element);
-    ENSURE_NONNULL(out);
+    ENSURE_REF(set);
+    ENSURE_REF(element);
+    ENSURE_REF(out);
     struct s2n_array *array = set->data;
     int (*comparator)(const void*, const void*) = set->comparator;
 
@@ -67,7 +67,7 @@ static S2N_RESULT s2n_set_binary_search(struct s2n_set *set, void *element, uint
 
 struct s2n_set *s2n_set_new(size_t element_size, int (*comparator)(const void*, const void*))
 {
-    ENSURE_PTR_NONNULL(comparator);
+    ENSURE_REF_PTR(comparator);
     struct s2n_blob mem = {0};
     GUARD_POSIX_PTR(s2n_alloc(&mem, sizeof(struct s2n_set)));
     struct s2n_set *set = (void *) mem.data;
@@ -90,8 +90,8 @@ S2N_RESULT s2n_set_add(struct s2n_set *set, void *element)
 
 S2N_RESULT s2n_set_get(struct s2n_set *set, uint32_t index, void **element)
 {
-    ENSURE_NONNULL(set);
-    ENSURE_NONNULL(element);
+    ENSURE_REF(set);
+    ENSURE_REF(element);
 
     GUARD_RESULT(s2n_array_get(set->data, index, element));
 
@@ -107,10 +107,10 @@ S2N_RESULT s2n_set_remove(struct s2n_set *set, uint32_t index)
 
 S2N_RESULT s2n_set_free_p(struct s2n_set **pset)
 {
-    ENSURE_NONNULL(pset);
+    ENSURE_REF(pset);
     struct s2n_set *set = *pset;
 
-    ENSURE_NONNULL(set);
+    ENSURE_REF(set);
     GUARD_RESULT(s2n_array_free(set->data));
     GUARD_AS_RESULT(s2n_free_object((uint8_t **)pset, sizeof(struct s2n_set)));
 
@@ -120,15 +120,15 @@ S2N_RESULT s2n_set_free_p(struct s2n_set **pset)
 
 S2N_RESULT s2n_set_free(struct s2n_set *set)
 {
-    ENSURE_NONNULL(set);
+    ENSURE_REF(set);
     return s2n_set_free_p(&set);
 }
 
 
 S2N_RESULT s2n_set_len(struct s2n_set *set, uint32_t *len)
 {
-    ENSURE_NONNULL(set);
-    ENSURE_NONNULL(len);
+    ENSURE_REF(set);
+    ENSURE_REF(len);
 
     GUARD_RESULT(s2n_array_num_elements(set->data, len));
 

@@ -1,4 +1,4 @@
-cbmcflags: "--bounds-check;--conversion-check;--div-by-zero-check;--enum-range-check;--float-overflow-check;--nan-check;--pointer-check;--pointer-overflow-check;--pointer-primitive-check;--signed-overflow-check;--undefined-shift-check;--unsigned-overflow-check;--unwind;1;--unwinding-assertions;--object-bits;8"
-expected: "SUCCESSFUL"
-goto: gotos/s2n_blob_is_growable_harness.goto
-jobos: ubuntu16
+:
+  This file marks this directory as containing a CBMC proof. This file
+  is automatically clobbered in CI and replaced with parameters for
+  running the proof.

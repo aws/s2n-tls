@@ -28,7 +28,7 @@
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_tls13.h"
 
-void mock_client(struct s2n_test_piped_io *piped_io)
+void mock_client(struct s2n_test_io_pair *io_pair)
 {
     char buffer[0xffff] = { 0 };
     struct s2n_connection *conn = NULL;
@@ -44,7 +44,7 @@ void mock_client(struct s2n_test_piped_io *piped_io)
     s2n_config_set_cipher_preferences(config, "default_tls13");
     s2n_connection_set_config(conn, config);
 
-    s2n_connection_set_piped_io(conn, piped_io);
+    s2n_connection_set_io_pair(conn, io_pair);
     s2n_connection_prefer_throughput(conn);
 
     s2n_negotiate(conn, &blocked);
@@ -92,7 +92,7 @@ void mock_client(struct s2n_test_piped_io *piped_io)
     /* Give the server a chance to a void a sigpipe */
     sleep(1);
 
-    s2n_piped_io_close_one_end(piped_io, S2N_CLIENT);
+    s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
 
     _exit(0);
 }
@@ -114,21 +114,21 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_enable_tls13());
 
     /* Create a pipe */
-    struct s2n_test_piped_io piped_io;
-    EXPECT_SUCCESS(s2n_piped_io_init(&piped_io));
+    struct s2n_test_io_pair io_pair;
+    EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
     /* Create a child process */
     pid = fork();
     if (pid == 0) {
         /* This is the client process, close the server end of the pipe */
-        EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
+        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
         /* Write the fragmented hello message */
-        mock_client(&piped_io);
+        mock_client(&io_pair);
     }
 
     /* This is the server process, close the client end of the pipe */
-    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_CLIENT));
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_prefer_throughput(conn));
 
     /* Set up the connection to read from the fd */
-    EXPECT_SUCCESS(s2n_connection_set_piped_io(conn, &piped_io));
+    EXPECT_SUCCESS(s2n_connection_set_io_pair(conn, &io_pair));
 
     /* Negotiate the handshake. */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
     /* Clean up */
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
-    EXPECT_SUCCESS(s2n_piped_io_close_one_end(&piped_io, S2N_SERVER));
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 

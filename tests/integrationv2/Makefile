@@ -19,8 +19,6 @@ ifndef S2N_LIBCRYPTO
 	export S2N_LIBCRYPTO="openssl-1.1.1"
 endif
 
-LIBCRYPTO_ROOT:=/home/ubuntu/development/s2n/test-deps/openssl-1.1.1/
-
 HANDSHAKE_TEST_PARAMS:=--libcrypto $(S2N_LIBCRYPTO) $(S2ND_HOST) $(S2ND_PORT)
 
 ifeq ($(S2N_CORKED_IO),true)

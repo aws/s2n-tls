@@ -22,6 +22,7 @@
 
 #include "crypto/s2n_fips.h"
 
+#include "tls/s2n_async_pkey.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
@@ -1047,14 +1048,15 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status * blocked)
+int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
-    errno = 0;
-    s2n_errno = S2N_ERR_OK;
+    notnull_check(conn);
+    notnull_check(blocked);
 
     const char connection_mode = conn->mode == S2N_CLIENT ? 'C' : 'S';
 
     while (ACTIVE_STATE(conn).writer != 'B') {
+        errno = 0;
         s2n_errno = S2N_ERR_OK;
 
         /* Flush any pending I/O or alert messages */

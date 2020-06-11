@@ -200,6 +200,9 @@ class Ciphers(object):
     ECDHE_RSA_CHACHA20_POLY1305 = Cipher("ECDHE_RSA_CHACHA20_POLY1305", Protocols.TLS12, True, False)
     CHACHA20_POLY1305_SHA256 = Cipher("CHACHA20_POLY1305_SHA256", Protocols.TLS13, True, False)
 
+    KMS_PQ_TLS_1_0_2019_06 = Cipher("KMS_PQ_TLS_1_0_2019_06", Protocols.TLS10, False, False)
+    PQ_SIKE_TEST_TLS_1_0_2019_11 = Cipher("PQ_SIKE_TEST_TLS_1_0_2019_11", Protocols.TLS10, False, False)
+
 
 class Curve(object):
     def __init__(self, name, min_protocol=Protocols.SSLv3):
@@ -265,6 +268,8 @@ class ProviderOptions(object):
             client_certificate_file=None,
             extra_flags=None,
             client_trust_store=None,
+            reconnects_before_exit=None,
+            reconnect=None,
             protocol=None):
 
         # Client or server
@@ -306,4 +311,11 @@ class ProviderOptions(object):
         self.client_trust_store = client_trust_store
         self.client_key_file = client_key_file
 
+        # Reconnects on the server side (includes first connection)
+        self.reconnects_before_exit = reconnects_before_exit
+
+        # Tell the client to reconnect
+        self.reconnect = reconnect
+
+        # Extra flags to pass to the provider
         self.extra_flags = extra_flags

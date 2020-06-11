@@ -89,9 +89,39 @@
 #define ENSURE_NE( a , b )                           ENSURE((a) != (b), S2N_ERR_SAFETY)
 
 /**
- * Ensures `x` is not `NULL`, otherwise the function will `BAIL` with a `S2N_ERR_NULL` error
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with an `error`
  */
-#define ENSURE_NONNULL( x )                          ENSURE((x) != NULL, S2N_ERR_NULL)
+#define ENSURE_POSIX( condition , error )           __S2N_ENSURE((condition), BAIL_POSIX(error))
+
+/**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL_PTR` with an `error`
+ */
+#define ENSURE_PTR( condition , error )             __S2N_ENSURE((condition), BAIL_PTR(error))
+
+/**
+ * Ensures `x` is not `NULL`, otherwise the function will `BAIL_PTR` with an `error`
+ */
+#define ENSURE_REF_PTR( x )                         ENSURE_PTR(S2N_OBJECT_PTR_IS_READABLE(x), S2N_ERR_NULL)
+
+/**
+ * Ensures `x` is a readable reference, otherwise the function will `BAIL` with `S2N_ERR_NULL`
+ */
+#define ENSURE_REF( x )                             ENSURE(S2N_OBJECT_PTR_IS_READABLE(x), S2N_ERR_NULL)
+
+/**
+ * Ensures `x` is a readable reference, otherwise the function will `BAIL_POSIX` with `S2N_ERR_NULL`
+ */
+#define ENSURE_POSIX_REF( x )                       ENSURE_POSIX(S2N_OBJECT_PTR_IS_READABLE(x), S2N_ERR_NULL)
+
+/**
+ * Ensures `x` is a mutable reference, otherwise the function will `BAIL` with `S2N_ERR_NULL`
+ */
+#define ENSURE_MUT( x )                             ENSURE(S2N_OBJECT_PTR_IS_WRITABLE(x), S2N_ERR_NULL)
+
+/**
+ * Ensures `x` is a mutable reference, otherwise the function will `BAIL_POSIX` with `S2N_ERR_NULL`
+ */
+#define ENSURE_POSIX_MUT( x )                       ENSURE_POSIX(S2N_OBJECT_PTR_IS_WRITABLE(x), S2N_ERR_NULL)
 
 /**
  * Ensures `min <= n <= max`
@@ -112,26 +142,6 @@
     ENSURE_GT(__tmp_n, min);                         \
     ENSURE_LT(__tmp_n, max);                         \
   } while(0)
-
-/**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with an `error`
- */
-#define ENSURE_POSIX( condition , error )           __S2N_ENSURE((condition), BAIL_POSIX(error))
-
-/**
- * Ensures `x` is not `NULL`, otherwise the function will `BAIL_POSIX` with an `error`
- */
-#define ENSURE_POSIX_NONNULL( x )                   ENSURE_POSIX((x) != NULL, S2N_ERR_NULL)
-
-/**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL_PTR` with an `error`
- */
-#define ENSURE_PTR( condition , error )             __S2N_ENSURE((condition), BAIL_PTR(error))
-
-/**
- * Ensures `x` is not `NULL`, otherwise the function will `BAIL_PTR` with an `error`
- */
-#define ENSURE_PTR_NONNULL( x )                     ENSURE_PTR((x) != NULL, S2N_ERR_NULL)
 
 /**
  * Ensures the `condition` is `true`, otherwise the function will `BAIL` with a `S2N_ERR_PRECONDITION_VIOLATION` error
@@ -277,7 +287,7 @@
 /**
  * Performs a safe memset
  */
-#define CHECKED_MEMSET( d , c , n )                 __S2N_ENSURE_SAFE_MEMSET((d), (c), (n), ENSURE_NONNULL)
+#define CHECKED_MEMSET( d , c , n )                 __S2N_ENSURE_SAFE_MEMSET((d), (c), (n), ENSURE_REF)
 
 /* Returns `true` if s2n is in unit test mode, `false` otherwise */
 bool s2n_in_unit_test();
@@ -343,10 +353,10 @@ extern int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out);
 
 /* `NULL` check a pointer */
 
-/* Note: this macro is replaced by ENSURE_POSIX_NONNULL */
-#define notnull_check( ptr )                        ENSURE_POSIX_NONNULL(ptr)
-/* Note: this macro is replaced by ENSURE_PTR_NONNULL */
-#define notnull_check_ptr( ptr )                    ENSURE_PTR_NONNULL(ptr)
+/* Note: this macro is replaced by ENSURE_POSIX_REF */
+#define notnull_check( ptr )                        ENSURE_POSIX_REF(ptr)
+/* Note: this macro is replaced by ENSURE_REF_PTR */
+#define notnull_check_ptr( ptr )                    ENSURE_REF_PTR(ptr)
 
 /* Range check a number */
 #define gte_check( n , min )                        ENSURE_POSIX((n) >= (min), S2N_ERR_SAFETY)
@@ -370,6 +380,6 @@ extern int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out);
 
 #define memcpy_check( d , s , n )                   __S2N_ENSURE_SAFE_MEMCPY((d), (s), (n), GUARD_POSIX_NONNULL)
 /* This will fail to build if d is an array. Cast the array to a pointer first! */
-#define memset_check( d , c , n )                   __S2N_ENSURE_SAFE_MEMSET((d), (c), (n), ENSURE_POSIX_NONNULL)
+#define memset_check( d , c , n )                   __S2N_ENSURE_SAFE_MEMSET((d), (c), (n), ENSURE_POSIX_REF)
 
 /* END COMPATIBILITY LAYER */

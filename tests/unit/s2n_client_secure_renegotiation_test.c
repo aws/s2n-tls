@@ -94,11 +94,11 @@ int main(int argc, char **argv)
         };
 
         /* Create nonblocking pipes */
-        struct s2n_test_piped_io piped_io;
-        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_connection_set_piped_io(client_conn, &piped_io));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
@@ -109,10 +109,10 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Write the server hello */
-        EXPECT_EQUAL(write(piped_io.server_write, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(piped_io.server_write, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(piped_io.server_write, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
-        EXPECT_EQUAL(write(piped_io.server_write, server_extensions, sizeof(server_extensions)), sizeof(server_extensions));
+        EXPECT_EQUAL(write(io_pair.server_write, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(write(io_pair.server_write, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(write(io_pair.server_write, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
+        EXPECT_EQUAL(write(io_pair.server_write, server_extensions, sizeof(server_extensions)), sizeof(server_extensions));
 
         /* Verify that we proceed with handshake */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
@@ -122,7 +122,7 @@ int main(int argc, char **argv)
         /* Secure renegotiation is set */
         EXPECT_EQUAL(client_conn->secure_renegotiation, 1);
 
-        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
@@ -167,11 +167,11 @@ int main(int argc, char **argv)
         };
 
         /* Create nonblocking pipes */
-        struct s2n_test_piped_io piped_io;
-        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_connection_set_piped_io(client_conn, &piped_io));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
@@ -182,9 +182,9 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Write the server hello */
-        EXPECT_EQUAL(write(piped_io.server_write, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(piped_io.server_write, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(piped_io.server_write, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
+        EXPECT_EQUAL(write(io_pair.server_write, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(write(io_pair.server_write, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(write(io_pair.server_write, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
 
         /* Verify that we proceed with handshake */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
         /* Secure renegotiation is not set, as server doesn't support it */
         EXPECT_EQUAL(client_conn->secure_renegotiation, 0);
 
-        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
@@ -250,11 +250,11 @@ int main(int argc, char **argv)
         };
 
         /* Create nonblocking pipes */
-        struct s2n_test_piped_io piped_io;
-        EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_SUCCESS(s2n_connection_set_piped_io(client_conn, &piped_io));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
@@ -265,17 +265,17 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
 
         /* Write the server hello */
-        EXPECT_EQUAL(write(piped_io.server_write, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(piped_io.server_write, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(piped_io.server_write, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
-        EXPECT_EQUAL(write(piped_io.server_write, server_extensions, sizeof(server_extensions)), sizeof(server_extensions));
+        EXPECT_EQUAL(write(io_pair.server_write, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(write(io_pair.server_write, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(write(io_pair.server_write, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
+        EXPECT_EQUAL(write(io_pair.server_write, server_extensions, sizeof(server_extensions)), sizeof(server_extensions));
 
         /* Verify that we fail for non-empty renegotiated_connection */
         EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
         EXPECT_EQUAL(s2n_errno, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
 
-        EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }

@@ -55,17 +55,17 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_secp384r1 =
 
 #if EVP_APIS_SUPPORTED
 const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {
-    .iana_id = TLS_EC_CURVE_ECDH_X25519, 
-    .libcrypto_nid = NID_X25519, 
-    .name = "x25519", 
+    .iana_id = TLS_EC_CURVE_ECDH_X25519,
+    .libcrypto_nid = NID_X25519,
+    .name = "x25519",
     .share_size = 32
 };
-#else 
+#else
 const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {0};
 #endif
 
-/* All curves that s2n supports. New curves MUST be added here. 
- * This list is a super set of all the curves present in s2n_ecc_preferences list. 
+/* All curves that s2n supports. New curves MUST be added here.
+ * This list is a super set of all the curves present in s2n_ecc_preferences list.
  */
 const struct s2n_ecc_named_curve *const s2n_all_supported_curves_list[] = {
     &s2n_ecc_curve_secp256r1,
@@ -158,7 +158,7 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
     }
 
     size_t shared_secret_size;
-    
+
     DEFER_CLEANUP(EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(own_key, NULL), EVP_PKEY_CTX_free_pointer);
     S2N_ERROR_IF(ctx == NULL, S2N_ERR_ECDHE_SHARED_SECRET);
 
@@ -177,7 +177,7 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
 
 int s2n_ecc_evp_generate_ephemeral_key(struct s2n_ecc_evp_params *ecc_evp_params) {
     notnull_check(ecc_evp_params->negotiated_curve);
-    S2N_ERROR_IF(ecc_evp_params->evp_pkey != NULL, S2N_ERR_ECDHE_GEN_KEY); 
+    S2N_ERROR_IF(ecc_evp_params->evp_pkey != NULL, S2N_ERR_ECDHE_GEN_KEY);
     S2N_ERROR_IF(s2n_ecc_evp_generate_own_key(ecc_evp_params->negotiated_curve, &ecc_evp_params->evp_pkey) != 0,
                  S2N_ERR_ECDHE_GEN_KEY);
     S2N_ERROR_IF(ecc_evp_params->evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
@@ -198,15 +198,15 @@ int s2n_ecc_evp_compute_shared_secret_from_params(struct s2n_ecc_evp_params *pri
     return 0;
 }
 
-int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_evp_params, 
+int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_evp_params,
                                             struct s2n_stuffer *Yc_in, struct s2n_blob *shared_key) {
     notnull_check(ecc_evp_params->negotiated_curve);
-    notnull_check(ecc_evp_params->evp_pkey); 
+    notnull_check(ecc_evp_params->evp_pkey);
     notnull_check(Yc_in);
 
     uint8_t client_public_len;
     struct s2n_blob client_public_blob = {0};
-    
+
     DEFER_CLEANUP(EVP_PKEY *peer_key = EVP_PKEY_new(), EVP_PKEY_free_pointer);
     S2N_ERROR_IF(peer_key == NULL, S2N_ERR_BAD_MESSAGE);
     GUARD(s2n_stuffer_read_uint8(Yc_in, &client_public_len));
@@ -244,17 +244,17 @@ int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_e
 
 }
 
-int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *ecc_evp_params, 
+int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *ecc_evp_params,
                                             struct s2n_stuffer *Yc_out, struct s2n_blob *shared_key) {
 
-    DEFER_CLEANUP(struct s2n_ecc_evp_params client_params = {0}, s2n_ecc_evp_params_free); 
+    DEFER_CLEANUP(struct s2n_ecc_evp_params client_params = {0}, s2n_ecc_evp_params_free);
 
     notnull_check(ecc_evp_params->negotiated_curve);
     client_params.negotiated_curve = ecc_evp_params->negotiated_curve;
     GUARD(s2n_ecc_evp_generate_own_key(client_params.negotiated_curve, &client_params.evp_pkey));
     S2N_ERROR_IF(client_params.evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
 
-    if (s2n_ecc_evp_compute_shared_secret(client_params.evp_pkey, ecc_evp_params->evp_pkey, 
+    if (s2n_ecc_evp_compute_shared_secret(client_params.evp_pkey, ecc_evp_params->evp_pkey,
                                           ecc_evp_params->negotiated_curve->iana_id, shared_key) != S2N_SUCCESS) {
         S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
     }
@@ -265,7 +265,7 @@ int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *ecc_e
         S2N_ERROR(S2N_ERR_ECDHE_SERIALIZING);
     }
     return 0;
-    
+
 }
 
 #if (!EVP_APIS_SUPPORTED)
@@ -352,7 +352,7 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     if (size != ecc_evp_params->negotiated_curve->share_size) {
         OPENSSL_free(encoded_point);
         S2N_ERROR(S2N_ERR_ECDHE_SERIALIZING);
-    } 
+    }
     else {
         point_blob.data = s2n_stuffer_raw_write(out, ecc_evp_params->negotiated_curve->share_size);
         notnull_check(point_blob.data);

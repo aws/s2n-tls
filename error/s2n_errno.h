@@ -194,6 +194,8 @@ typedef enum {
     S2N_ERR_RECORD_LENGTH_TOO_LARGE,
     S2N_ERR_SET_DUPLICATE_VALUE,
     S2N_ERR_INVALID_PARSED_EXTENSIONS,
+    S2N_ERR_ASYNC_CALLBACK_FAILED,
+    S2N_ERR_ASYNC_MORE_THAN_ONE,
     S2N_ERR_T_INTERNAL_END,
 
     /* S2N_ERR_T_USAGE */
@@ -238,6 +240,7 @@ typedef enum {
     S2N_ERR_INVALID_DYNAMIC_THRESHOLD,
     S2N_ERR_INVALID_ARGUMENT,
     S2N_ERR_NOT_IN_UNIT_TEST,
+    S2N_ERR_NOT_IN_TEST,
     S2N_ERR_UNSUPPORTED_CPU,
     S2N_ERR_SESSION_ID_TOO_SHORT,
     S2N_ERR_CONNECTION_CACHING_DISALLOWED,
@@ -248,6 +251,11 @@ typedef enum {
     S2N_ERR_INVALID_ECC_PREFERENCES,
     S2N_ERR_INVALID_SECURITY_POLICY,
     S2N_ERR_INVALID_KEM_PREFERENCES,
+    S2N_ERR_ASYNC_ALREADY_PERFORMED,
+    S2N_ERR_ASYNC_NOT_PERFORMED,
+    S2N_ERR_ASYNC_WRONG_CONNECTION,
+    S2N_ERR_ASYNC_APPLY_WHILE_INVOKING,
+    S2N_ERR_ASYNC_ALREADY_APPLIED,
     S2N_ERR_T_USAGE_END,
 } s2n_error;
 
@@ -275,17 +283,18 @@ extern __thread const char *s2n_debug_str;
  * Violations of the function contracts are undefined behaviour.
  */
 #ifdef CBMC
+#    define S2N_OBJECT_PTR_IS_READABLE(ptr) S2N_MEM_IS_READABLE((ptr), sizeof(*(ptr)))
+#    define S2N_OBJECT_PTR_IS_WRITABLE(ptr) S2N_MEM_IS_WRITABLE((ptr), sizeof(*(ptr)))
 #    define S2N_MEM_IS_READABLE(base, len) (((len) == 0) || __CPROVER_r_ok((base), (len)))
 #    define S2N_MEM_IS_WRITABLE(base, len) (((len) == 0) || __CPROVER_w_ok((base), (len)))
 #else
 /* the C runtime does not give a way to check these properties,
  * but we can at least check that the pointer is valid */
-#    define S2N_MEM_IS_READABLE(base, len) (((len) == 0) || (base))
-#    define S2N_MEM_IS_WRITABLE(base, len) (((len) == 0) || (base))
+#    define S2N_OBJECT_PTR_IS_READABLE(ptr) ((ptr) != NULL)
+#    define S2N_OBJECT_PTR_IS_WRITABLE(ptr) ((ptr) != NULL)
+#    define S2N_MEM_IS_READABLE(base, len) (((len) == 0) || (base) != NULL)
+#    define S2N_MEM_IS_WRITABLE(base, len) (((len) == 0) || (base) != NULL)
 #endif /* CBMC */
-
-#define S2N_OBJECT_PTR_IS_READABLE(ptr) S2N_MEM_IS_READABLE((ptr), sizeof(*(ptr)))
-#define S2N_OBJECT_PTR_IS_WRITABLE(ptr) S2N_MEM_IS_WRITABLE((ptr), sizeof(*(ptr)))
 
 #define S2N_IMPLIES(a, b) (!(a) || (b))
 

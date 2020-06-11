@@ -58,8 +58,8 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    struct s2n_test_piped_io piped_io;
-    EXPECT_SUCCESS(s2n_piped_io_init_non_blocking(&piped_io));
+    struct s2n_test_io_pair io_pair;
+    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
     EXPECT_NOT_NULL(alligator_cert = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(alligator_key = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(server_conn = create_conn(S2N_SERVER, server_config));
         EXPECT_NOT_NULL(client_conn = create_conn(S2N_CLIENT, client_config));
-        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_set_server_name(client_conn, "www.alligator.com"));
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(server_conn = create_conn(S2N_SERVER, server_config));
         EXPECT_NOT_NULL(client_conn = create_conn(S2N_CLIENT, client_config));
-        EXPECT_SUCCESS(s2n_connections_set_piped_io(client_conn, server_conn, &piped_io));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
@@ -139,7 +139,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
     }
 
-    EXPECT_SUCCESS(s2n_piped_io_close(&piped_io));
+    EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     EXPECT_SUCCESS(s2n_config_free(client_config));
 
     free(cert_chain);

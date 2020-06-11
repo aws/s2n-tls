@@ -20,8 +20,6 @@
 #include "utils/s2n_annotations.h"
 #include "utils/s2n_safety.h"
 
-#define SIZEOF_UINT24 3
-
 int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, uint32_t input, uint8_t length)
 {
     notnull_check(stuffer);
@@ -54,28 +52,29 @@ int s2n_stuffer_reserve(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservat
 
 int s2n_stuffer_read_uint8(struct s2n_stuffer *stuffer, uint8_t * u)
 {
-    GUARD(s2n_stuffer_read_bytes(stuffer, u, 1));
+    GUARD(s2n_stuffer_read_bytes(stuffer, u, sizeof(uint8_t)));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_write_uint8(struct s2n_stuffer *stuffer, const uint8_t u)
 {
-    GUARD(s2n_stuffer_write_bytes(stuffer, &u, 1));
+    GUARD(s2n_stuffer_write_bytes(stuffer, &u, sizeof(u)));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_read_uint16(struct s2n_stuffer *stuffer, uint16_t * u)
 {
-    uint8_t data[2];
+    notnull_check(u);
+    uint8_t data[sizeof(uint16_t)];
 
     GUARD(s2n_stuffer_read_bytes(stuffer, data, sizeof(data)));
 
     *u = data[0] << 8;
     *u |= data[1];
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, const uint16_t u)
@@ -90,7 +89,8 @@ int s2n_stuffer_reserve_uint16(struct s2n_stuffer *stuffer, struct s2n_stuffer_r
 
 int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t * u)
 {
-    uint8_t data[3];
+    notnull_check(u);
+    uint8_t data[SIZEOF_UINT24];
 
     GUARD(s2n_stuffer_read_bytes(stuffer, data, sizeof(data)));
 
@@ -98,7 +98,7 @@ int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t * u)
     *u |= data[1] << 8;
     *u |= data[2];
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, const uint32_t u)
@@ -113,7 +113,8 @@ int s2n_stuffer_reserve_uint24(struct s2n_stuffer *stuffer, struct s2n_stuffer_r
 
 int s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t * u)
 {
-    uint8_t data[4];
+    notnull_check(u);
+    uint8_t data[sizeof(uint32_t)];
 
     GUARD(s2n_stuffer_read_bytes(stuffer, data, sizeof(data)));
 
@@ -122,7 +123,7 @@ int s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t * u)
     *u |= data[2] << 8;
     *u |= data[3];
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, const uint32_t u)
@@ -132,7 +133,8 @@ int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, const uint32_t u)
 
 int s2n_stuffer_read_uint64(struct s2n_stuffer *stuffer, uint64_t * u)
 {
-    uint8_t data[8];
+    notnull_check(u);
+    uint8_t data[sizeof(uint64_t)];
 
     GUARD(s2n_stuffer_read_bytes(stuffer, data, sizeof(data)));
 
@@ -145,15 +147,15 @@ int s2n_stuffer_read_uint64(struct s2n_stuffer *stuffer, uint64_t * u)
     *u |= ((uint64_t) data[6]) << 8;
     *u |= data[7];
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, const uint64_t u)
 {
-    GUARD(s2n_stuffer_write_network_order(stuffer, u >> (sizeof(uint32_t) * 8), sizeof(uint32_t)));
+    GUARD(s2n_stuffer_write_network_order(stuffer, u >> SIZEOF_IN_BITS(uint32_t), sizeof(uint32_t)));
     GUARD(s2n_stuffer_write_network_order(stuffer, u & UINT32_MAX, sizeof(uint32_t)));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int length_matches_value_check(uint32_t value, uint8_t length)

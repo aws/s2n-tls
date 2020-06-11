@@ -38,19 +38,20 @@ void s2n_print_connection(struct s2n_connection *conn, const char *marker);
 
 int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer *output, struct s2n_connection *conn);
 
-struct s2n_test_piped_io {
+struct s2n_test_io_pair {
     int client_read;
     int client_write;
     int server_read;
     int server_write;
 };
-int s2n_piped_io_init(struct s2n_test_piped_io *piped_io);
-int s2n_piped_io_init_non_blocking(struct s2n_test_piped_io *piped_io);
-int s2n_piped_io_close(struct s2n_test_piped_io *piped_io);
-int s2n_piped_io_close_one_end(struct s2n_test_piped_io *piped_io, int mode_to_close);
+int s2n_io_pair_init(struct s2n_test_io_pair *io_pair);
+int s2n_io_pair_init_non_blocking(struct s2n_test_io_pair *io_pair);
+int s2n_io_pair_close(struct s2n_test_io_pair *io_pair);
+int s2n_io_pair_close_one_end(struct s2n_test_io_pair *io_pair, int mode_to_close);
 
-int s2n_connection_set_piped_io(struct s2n_connection *conn, struct s2n_test_piped_io* piped_io);
-int s2n_connections_set_piped_io(struct s2n_connection *client, struct s2n_connection *server, struct s2n_test_piped_io* piped_io);
+int s2n_connection_set_io_pair(struct s2n_connection *conn, struct s2n_test_io_pair *io_pair);
+int s2n_connections_set_io_pair(struct s2n_connection *client, struct s2n_connection *server,
+                                struct s2n_test_io_pair *io_pair);
 
 int s2n_fd_set_blocking(int fd);
 int s2n_fd_set_non_blocking(int fd);
