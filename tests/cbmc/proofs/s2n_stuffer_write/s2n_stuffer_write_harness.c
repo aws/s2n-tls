@@ -23,6 +23,7 @@
 #include <cbmc_proof/proof_allocators.h>
 
 void s2n_stuffer_write_harness() {
+    /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
@@ -34,22 +35,24 @@ void s2n_stuffer_write_harness() {
         s2n_mem_init();
     }
 
+    /* Save previous state from stuffer. */
     struct s2n_stuffer old_stuffer = *stuffer;
-    struct s2n_blob old_blob = *blob;
 
-/* There should not be any constraints over size, but that leads to an spurious
+/**
+ * There should not be any constraints over blob.size, but that leads to an spurious
  * unsigned overflow in the following assumption; therefore, we ignore this
- * check here to keep size as non-deterministic as possible.
+ * check here to keep blob.size as non-deterministic as possible.
  */
 #pragma CPROVER check push
 #pragma CPROVER check disable "unsigned-overflow"
-    /* Store a byte from the stuffer that wont be overwritten to compare if the write succeeds. */
     __CPROVER_assume(index < stuffer->blob.size && (index < old_stuffer.write_cursor ||
                                                     index >= old_stuffer.write_cursor + blob->size));
 #pragma CPROVER check pop
+    /* Store a byte from the stuffer that wont be overwritten to compare if the write succeeds. */
     uint8_t untouched_byte = stuffer->blob.data[index];
 
     /* Store a byte from the blob to compare. */
+    struct s2n_blob old_blob = *blob;
     struct store_byte_from_buffer old_byte_from_blob;
     save_byte_from_blob(blob, &old_byte_from_blob);
 
@@ -64,5 +67,5 @@ void s2n_stuffer_write_harness() {
         assert(stuffer->high_water_mark == old_stuffer.high_water_mark);
     }
     assert(stuffer->read_cursor == old_stuffer.read_cursor);
-    assert_byte_from_blob_matches(blob, &old_byte_from_blob);
+    assert_blob_equivalence(blob, &old_blob, &old_byte_from_blob);
 }

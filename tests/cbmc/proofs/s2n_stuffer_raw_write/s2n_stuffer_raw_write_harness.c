@@ -24,6 +24,7 @@
 #include <cbmc_proof/proof_allocators.h>
 
 void s2n_stuffer_raw_write_harness() {
+    /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
     uint32_t data_len;
@@ -33,13 +34,11 @@ void s2n_stuffer_raw_write_harness() {
         s2n_mem_init();
     }
 
+    /* Save previous state from stuffer. */
     struct s2n_stuffer old_stuffer = *stuffer;
+    /* Store a byte from the stuffer to compare. */
     struct store_byte_from_buffer old_byte_from_stuffer;
-
-    /* Store a byte from the stuffer to compare */
-    if (stuffer->blob.size > 0) {
-        save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
-    }
+    save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
     void *retval = s2n_stuffer_raw_write(stuffer, data_len);

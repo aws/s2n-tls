@@ -11,7 +11,7 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Expected runtime is 20 seconds.
+# Expected runtime is 2 minutes.
 
 CBMCFLAGS +=
 

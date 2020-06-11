@@ -23,9 +23,10 @@
 int s2n_stuffer_peek_char(struct s2n_stuffer *s2n_stuffer, char *c)
 {
     int r = s2n_stuffer_read_uint8(s2n_stuffer, (uint8_t *) c);
-    if (r == 0) {
+    if (r == S2N_SUCCESS) {
         s2n_stuffer->read_cursor--;
     }
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(s2n_stuffer));
     return r;
 }
 

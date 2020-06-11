@@ -67,6 +67,7 @@ int main(int argc, char **argv)
     char *private_key_pem;
     char *dhparams_pem;
     struct s2n_cert_chain_and_key *chain_and_key;
+    uint32_t available_size;
 
     BEGIN_TEST();
 
@@ -88,16 +89,13 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
     EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
 
-    b.data = (uint8_t *) leaf_cert_pem;
-    b.size = strlen(leaf_cert_pem) + 1;
+    EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) leaf_cert_pem, strlen(leaf_cert_pem) + 1));
     EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
 
-    b.data = (uint8_t *) private_key_pem;
-    b.size = strlen(private_key_pem) + 1;
+    EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) private_key_pem, strlen(private_key_pem) + 1));
     EXPECT_SUCCESS(s2n_stuffer_write(&rsa_key_in, &b));
 
-    b.data = (uint8_t *) dhparams_pem;
-    b.size = strlen(dhparams_pem) + 1;
+    EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) dhparams_pem, strlen(dhparams_pem) + 1));
     EXPECT_SUCCESS(s2n_stuffer_write(&dhparams_in, &b));
 
     EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
@@ -108,12 +106,12 @@ int main(int argc, char **argv)
     struct s2n_pkey pub_key;
     s2n_pkey_type pkey_type;
 
-    b.size = s2n_stuffer_data_available(&certificate_out);
-    b.data = s2n_stuffer_raw_read(&certificate_out, b.size);
+    available_size = s2n_stuffer_data_available(&certificate_out);
+    EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
     EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&pub_key, &pkey_type, &b));
 
-    b.size = s2n_stuffer_data_available(&rsa_key_out);
-    b.data = s2n_stuffer_raw_read(&rsa_key_out, b.size);
+    available_size = s2n_stuffer_data_available(&rsa_key_out);
+    EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&rsa_key_out, available_size), available_size));
     EXPECT_SUCCESS(s2n_asn1der_to_private_key(&priv_key, &b));
 
     EXPECT_SUCCESS(s2n_pkey_match(&pub_key, &priv_key));
@@ -123,8 +121,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     struct s2n_dh_params dh_params;
-    b.size = s2n_stuffer_data_available(&dhparams_out);
-    b.data = s2n_stuffer_raw_read(&dhparams_out, b.size);
+    available_size = s2n_stuffer_data_available(&dhparams_out);
+    EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&dhparams_out, available_size), available_size));
     EXPECT_SUCCESS(s2n_pkcs3_to_dh_params(&dh_params, &b));
 
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
@@ -135,7 +133,7 @@ int main(int argc, char **argv)
     struct s2n_hash_state tls10_one, tls10_two, tls12_one, tls12_two;
 
     EXPECT_SUCCESS(s2n_alloc(&signature, s2n_pkey_size(&pub_key)));
-    
+
     if (s2n_hash_is_available(S2N_HASH_MD5_SHA1)) {
         /* TLS 1.0 use of RSA with DHE is not permitted when FIPS mode is set */
         EXPECT_SUCCESS(s2n_hash_new(&tls10_one));

@@ -89,11 +89,7 @@ static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *a
     /* Page aligned allocation required for mlock */
     uint32_t allocate;
 
-/* Avoids spurious alarms over signed to unsigned conversion in (uint32_t)page_size. */
-#pragma CPROVER check push
-#pragma CPROVER check disable "conversion"
     GUARD(s2n_align_to(requested, page_size, &allocate));
-#pragma CPROVER check pop
 
     *ptr = NULL;
     S2N_ERROR_IF(posix_memalign(ptr, page_size, allocate) != 0, S2N_ERR_ALLOC);

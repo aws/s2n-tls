@@ -24,17 +24,19 @@
 #include <cbmc_proof/proof_allocators.h>
 
 void s2n_stuffer_write_bytes_harness() {
+    /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
+    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    uint32_t index;
     uint32_t size;
     uint8_t *data = can_fail_malloc(size);
-    uint32_t index;
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
 
     /* Non-deterministically set initialized (in s2n_mem) to true. */
     if(nondet_bool()) {
         s2n_mem_init();
     }
 
+    /* Save previous state from stuffer. */
     struct s2n_stuffer old_stuffer = *stuffer;
 
 /* There should not be any constraints over size, but that leads to an spurious
@@ -43,11 +45,12 @@ void s2n_stuffer_write_bytes_harness() {
  */
 #pragma CPROVER check push
 #pragma CPROVER check disable "unsigned-overflow"
-    /* Store a byte from the stuffer that wont be overwritten to compare if the write succeeds. */
     __CPROVER_assume(index < stuffer->blob.size && (index < old_stuffer.write_cursor || index >= old_stuffer.write_cursor + size));
 #pragma CPROVER check pop
+    /* Store a byte from the stuffer that wont be overwritten to compare if the write succeeds. */
     uint8_t untouched_byte = stuffer->blob.data[index];
 
+    /* Operation under verification. */
     if (s2n_stuffer_write_bytes(stuffer, data, size) == S2N_SUCCESS) {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + size);
         assert(stuffer->blob.data[index] == untouched_byte);

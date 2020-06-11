@@ -24,16 +24,18 @@
 #include <cbmc_proof/proof_allocators.h>
 
 void s2n_stuffer_rewind_read_harness() {
+    /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
     uint32_t size;
 
+    /* Save previous state from stuffer. */
     struct s2n_stuffer old_stuffer = *stuffer;
-
-    /* Store a byte from the stuffer to compare after the read */
+    /* Store a byte from the stuffer to compare after the read. */
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
+    /* Operation under verification. */
     if(s2n_stuffer_rewind_read(stuffer, size) == S2N_SUCCESS) {
         assert(old_stuffer.read_cursor >= size);
         assert(stuffer->read_cursor == old_stuffer.read_cursor - size);
@@ -42,13 +44,6 @@ void s2n_stuffer_rewind_read_harness() {
         assert(old_stuffer.read_cursor < size);
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
     }
-
-    assert(stuffer->blob.data == old_stuffer.blob.data);
-    assert(stuffer->blob.size == old_stuffer.blob.size);
-    assert(stuffer->high_water_mark == old_stuffer.high_water_mark);
-    assert(stuffer->alloced == old_stuffer.alloced);
-    assert(stuffer->growable == old_stuffer.growable);
-    assert(stuffer->tainted == old_stuffer.tainted);
-    assert_byte_from_blob_matches(&stuffer->blob, &old_byte_from_stuffer);
+    assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
     assert(s2n_stuffer_is_valid(stuffer));
 }
