@@ -74,13 +74,17 @@ bool s2n_is_base64_char(unsigned char c)
  */
 int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(out));
     uint8_t pad[4];
     int bytes_this_round = 3;
-    struct s2n_blob o = {.data = pad,.size = sizeof(pad) };
+    struct s2n_blob o;// = {.data = pad,.size = sizeof(pad) };
+    GUARD(s2n_blob_init(&o, pad, sizeof(pad)));
 
     do {
         if (s2n_stuffer_data_available(stuffer) < 4) {
             break;
+            //return S2N_SUCCESS;
         }
 
         GUARD(s2n_stuffer_read(stuffer, &o));
@@ -94,7 +98,7 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
         if (value1 == 255) {
             /* Undo the read */
             stuffer->read_cursor -= 4;
-            return 0;
+            return S2N_SUCCESS;
         }
 
         /* The first two characters can never be '=' and in general
@@ -140,14 +144,15 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
             *ptr = ((value3 << 6) & 0xc0) | (value4 & 0x3f);
             ptr++;
         }
-
     } while (bytes_this_round == 3);
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(in));
     uint8_t outpad[4];
     uint8_t inpad[3];
     struct s2n_blob o = {.data = outpad,.size = sizeof(outpad) };
@@ -206,5 +211,5 @@ int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in
         GUARD(s2n_stuffer_write(stuffer, &o));
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
