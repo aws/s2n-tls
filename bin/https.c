@@ -44,12 +44,12 @@ static int flush(uint32_t left, uint8_t *buffer, struct s2n_connection *conn, s2
         if (out < 0) {
             fprintf(stderr, "Error writing to connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             s2n_print_stacktrace(stdout);
-            return 1;
+            return S2N_FAILURE;
         }
         i += out;
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 #define HEADERS(length) do { \
@@ -119,5 +119,5 @@ int https(struct s2n_connection *conn, uint32_t bench)
     HEADERS(content_length);
     GUARD(flush(content_length, content, conn, &blocked));
 
-    return 0;
+    return S2N_SUCCESS;
 }
