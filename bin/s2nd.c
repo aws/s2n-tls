@@ -389,6 +389,7 @@ int main(int argc, char *const *argv)
     const char *ocsp_response_file_path = NULL;
     const char *session_ticket_key_file_path = NULL;
     const char *cipher_prefs = "default";
+    const char *alpn = NULL;
 
     /* The certificates provided by the user. If there are none provided, we will use the hardcoded default cert.
      * The associated private key for each cert will be at the same index in private_keys. If the user mixes up the
@@ -432,12 +433,13 @@ int main(int argc, char *const *argv)
         {"tls13", no_argument, 0, '3'},
         {"https-server", no_argument, 0, 'w'},
         {"https-bench", required_argument, 0, 'b'},
+        {"alpn", required_argument, 0, 'A'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:A:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -528,6 +530,9 @@ int main(int argc, char *const *argv)
             bytes = strtoul(optarg, NULL, 10);
             GUARD_EXIT(bytes, "https-bench bytes needs to be some positive long value.");
             conn_settings.https_bench = bytes;
+            break;
+        case 'A':
+            alpn = optarg;
             break;
         case '?':
         default:
@@ -736,6 +741,11 @@ int main(int argc, char *const *argv)
         sa.sa_flags = SA_NOCLDWAIT;
         sigemptyset(&sa.sa_mask);
         sigaction(SIGCHLD, &sa, NULL);
+    }
+
+    if (alpn) {
+        const char *protocols[] = { alpn };
+        GUARD_EXIT(s2n_config_set_protocol_preferences(config, protocols, s2n_array_len(protocols)), "Failed to set alpn");
     }
 
     int fd;
