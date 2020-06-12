@@ -1,4 +1,4 @@
-cbmcflags: "--bounds-check;--conversion-check;--div-by-zero-check;--float-overflow-check;--nan-check;--pointer-check;--pointer-overflow-check;--signed-overflow-check;--undefined-shift-check;--unsigned-overflow-check;--unwinding-assertions;--unwind;1;--object-bits;8"
-expected: "SUCCESSFUL"
-goto: gotos/s2n_stuffer_rewind_read_harness.goto
-jobos: ubuntu16
+:
+  This file marks this directory as containing a CBMC proof. This file
+  is automatically clobbered in CI and replaced with parameters for
+  running the proof.
