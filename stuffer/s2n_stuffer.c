@@ -119,9 +119,7 @@ int s2n_stuffer_rewrite(struct s2n_stuffer *stuffer)
 int s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size)
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
-    if(stuffer->read_cursor < size){
-        S2N_ERROR(S2N_ERR_STUFFER_OUT_OF_DATA);
-    }
+    ENSURE_POSIX(stuffer->read_cursor >= size, S2N_ERR_STUFFER_OUT_OF_DATA);
     stuffer->read_cursor -= size;
     POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     return S2N_SUCCESS;
