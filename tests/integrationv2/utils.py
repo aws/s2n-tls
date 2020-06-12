@@ -1,5 +1,5 @@
 from common import Protocols
-from providers import S2N
+from providers import S2N, OpenSSL
 
 
 def get_expected_s2n_version(protocol, provider):
@@ -7,13 +7,26 @@ def get_expected_s2n_version(protocol, provider):
     s2nd and s2nc print a number for the negotiated TLS version.
 
     provider is s2n's peer. If s2n tries to speak to s2n < tls13,
-    tls12 is alway chosen. This is true even when the requested
+    tls12 is always chosen. This is true even when the requested
     protocol is less than tls12.
     """
     if provider == S2N and protocol != Protocols.TLS13:
         version = '33'
     else:
         version = protocol.value
+
+    return version
+
+
+def get_expected_openssl_version(protocol):
+    if protocol == Protocols.TLS13:
+        version = 'TLSv1.3'
+    elif protocol == Protocols.TLS12:
+        version = 'TLSv1.2'
+    elif protocol == Protocols.TLS11:
+        version = 'TLSv1.1'
+    elif protocol == Protocols.TLS10:
+        version = 'TLSv1'
 
     return version
 
@@ -41,7 +54,7 @@ def invalid_test_parameters(*args, **kwargs):
 
         # NOTE: We don't detect the version of OpenSSL at the moment,
         # so we will deselect these tests.
-        if cipher.openssl1_1_1 is False:
+        if provider is not None and provider is OpenSSL and cipher.openssl1_1_1 is False:
             return True
 
     # If we are using a cipher that depends on a specific certificate algorithm

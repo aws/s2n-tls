@@ -15,7 +15,6 @@ from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protocol, certificate):
-    host = "localhost"
     port = next(available_ports)
 
     # s2nd can receive large amounts of data because all the data is
@@ -70,7 +69,6 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protocol, certificate):
-    host = "localhost"
     port = next(available_ports)
 
     # We can only send 4096 bytes here because of the way some servers chunk
