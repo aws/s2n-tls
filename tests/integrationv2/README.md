@@ -1,25 +1,38 @@
 # Quick start
 
-You need to install Tox to help setup your environment. Once tox is installed, run it to setup your
-local environment. Also set your path to access the tox artifacts.
+You must have run through the standard codebuild setup as described in the root README. This will make sure you
+have all the dependencies installed correctly. The integration test dependencies are:
+
+ * s2nc and s2nd (should be in the bin/ directory)
+ * libs2n (should be in the lib/ directory)
+ * openssl (based on the S2N_LIBCRYPTO env var)
+ * tox
+
+## Run all tests
+
+The fastest way to run the integrationv2 tests is to run `make` in the integrationv2 directory.
 
 ```
-$ tox
-py38 create: /home/ubuntu/development/s2n/tests/integrationv2/.tox/py38
-py38 installdeps: pep8, pytest==5.3.5, pytest-xdist
-py38 installed: apipkg==1.5,attrs==19.3.0,execnet==1.7.1,importlib-metadata==1.6.0,more-itertools==8.2.0,packaging==20.3,pep8==1.7.1,pkg-resources==0.0.0,pluggy==0.13.1,py==1.8.1,pyparsing==2.4.7,pytest==5.3.5,pytest-forked==1.1.3,pytest-xdist==1.32.0,six==1.14.0,wcwidth==0.1.9,zipp==3.1.0
-
-$ export PATH=.tox/py38/bin:$PATH
+ubuntu@host:tests/integrationv2/ $ make
 ```
+
+This will automatically setup your PATH and LD_LIBRARY_PATH environment. It will execute `tox` to setup your
+Python environment. Then all the integration tests will be collected and executed.
+
+**Note** If you are running the dynamic record size test you will need to use `sudo`.
+
+## Run one test
 
 You can run the entire test suite using `sudo make`. You need to use `sudo` if you plan on running the dynamic
 record tests.
 
-If you don't want to run everything, you can run individual tests like this:
+If you only want to run a single test, you can set the `TOX_TEST_NAME` environment variable:
 
 ```
-$ pytest -rpfsq test_happy_path.py::test_s2n_server_happy_path
+ubuntu@host:tests/integrationv2$ TOX_TEST_NAME=test_happy_path.py::test_s2n_server_happy_path make
 ```
+
+This will setup your environment correctly, and execute the single test.
 
 # A toy example
 
