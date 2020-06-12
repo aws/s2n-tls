@@ -231,10 +231,6 @@ static uint8_t unsafe_verify_host_fn(const char *host_name, size_t host_name_len
     return 1;
 }
 
-extern void print_s2n_error(const char *app_error);
-extern int echo(struct s2n_connection *conn, int sockfd);
-extern int negotiate(struct s2n_connection *conn);
-
 void usage()
 {
     fprintf(stderr, "usage: s2nd [options] host port\n");
@@ -287,6 +283,10 @@ void usage()
     fprintf(stderr, "    Turn on corked io\n");
     fprintf(stderr, "  --tls13\n");
     fprintf(stderr, "    Turn on experimental TLS1.3 support.\n");
+    fprintf(stderr, "  -w --https-server\n");
+    fprintf(stderr, "    Run s2nd in a simple https server mode.\n");
+    fprintf(stderr, "  -b --https-bench <bytes>\n");
+    fprintf(stderr, "    Send number of bytes in https server mode to test throughput.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -305,6 +305,8 @@ struct conn_settings {
     unsigned session_cache:1;
     unsigned insecure:1;
     unsigned use_corked_io:1;
+    unsigned https_server:1;
+    uint32_t https_bench;
     int max_conns;
     const char *ca_dir;
     const char *ca_file;
@@ -359,7 +361,9 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         }
     }
 
-    if (!settings.only_negotiate) {
+    if (settings.https_server) {
+        https(conn, settings.https_bench);
+    } else if (!settings.only_negotiate) {
         echo(conn, fd);
     }
 
@@ -399,6 +403,7 @@ int main(int argc, char *const *argv)
     int fips_mode = 0;
     int parallelize = 0;
     int use_tls13 = 0;
+    long int bytes = 0;
     conn_settings.session_ticket = 1;
     conn_settings.session_cache = 1;
     conn_settings.max_conns = -1;
@@ -425,12 +430,14 @@ int main(int argc, char *const *argv)
         {"corked-io", no_argument, 0, 'C'},
         {"max-conns", optional_argument, 0, 'X'},
         {"tls13", no_argument, 0, '3'},
+        {"https-server", no_argument, 0, 'w'},
+        {"https-bench", required_argument, 0, 'b'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -507,11 +514,20 @@ int main(int argc, char *const *argv)
             use_tls13 = 1;
             break;
         case 'X':
-            if (optarg==NULL) {
+            if (optarg == NULL) {
                 conn_settings.max_conns = 1;
             } else {
                 conn_settings.max_conns = atoi(optarg);
             }
+            break;
+        case 'w':
+            fprintf(stdout, "Running s2nd in simple https server mode\n");
+            conn_settings.https_server = 1;
+            break;
+        case 'b':
+            bytes = strtoul(optarg, NULL, 10);
+            GUARD_EXIT(bytes, "https-bench bytes needs to be some positive long value.");
+            conn_settings.https_bench = bytes;
             break;
         case '?':
         default:

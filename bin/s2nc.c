@@ -111,10 +111,6 @@ static uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, v
     return (uint8_t)(equals == 0);
 }
 
-extern void print_s2n_error(const char *app_error);
-extern int echo(struct s2n_connection *conn, int sockfd);
-extern int negotiate(struct s2n_connection *conn);
-
 static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs, s2n_status_request_type type,
     struct verify_data *unsafe_verify_data, const char *host, const char *alpn_protocols, uint16_t mfl_value) {
 

@@ -31,5 +31,9 @@
     }                        \
   } while (0)
 
+void print_s2n_error(const char *app_error);
+int echo(struct s2n_connection *conn, int sockfd);
+int negotiate(struct s2n_connection *conn);
+int https(struct s2n_connection *conn, uint32_t bench);
 
 char *load_file_to_cstring(const char *path);
