@@ -155,7 +155,7 @@ extern int s2n_stuffer_certificate_from_pem(struct s2n_stuffer *pem, struct s2n_
 /* Read DH parameters om a PEM encoded stuffer to a PKCS3 encoded one */
 extern int s2n_stuffer_dhparams_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *pkcs3);
 
-extern int s2n_is_base64_char(char c);
+extern bool s2n_is_base64_char(unsigned char c);
 
 /* Copies all valid data from "stuffer" into "out".
  * The old blob "out" pointed to is freed.
