@@ -83,6 +83,8 @@ DO_CBMC =  $(call DO_AND_LOG_IGNORING_ERROR_10,$(CBMC),$(CBMC_VERBOSITY) $(1) $(
 #1: message 2: source 3: dest
 DO_NOOP_COPY = cp $(2) $(3); echo $(1) | tee $(call LOG_FROM_ENTRY,$(3))
 
+# +1 bound
+addone = $(shell echo $$(( $(1) + 1)))
 
 ################################################################
 # Useful macros translating filenames
