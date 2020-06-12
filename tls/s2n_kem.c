@@ -29,7 +29,7 @@
 #include "pq-crypto/sike_r2/sike_r2_kem.h"
 #include "pq-crypto/kyber_r2/kyber_r2_kem.h"
 
-/* The names below come from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-02#section-5.1.6 */
+/* The KEM IDs and names come from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
 const struct s2n_kem s2n_bike1_l1_r1 = {
         .name = "BIKE1r1-Level1",
         .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1,
@@ -92,7 +92,8 @@ const struct s2n_kem s2n_kyber_512_r2 = {
 
 /* These lists should be kept up to date with the above KEMs. Order in the lists
  * does not matter. Adding a KEM to these lists will not automatically enable
- * support for the KEM extension - that must be added via the cipher preferences.*/
+ * support for the KEM extension - that must be added via the cipher preferences.
+ * These lists are applicable only to PQ-TLS 1.2. */
 const struct s2n_kem *bike_kems[] = {
         &s2n_bike1_l1_r1,
         &s2n_bike1_l1_r2
@@ -122,6 +123,24 @@ const struct s2n_iana_to_kem kem_mapping[3] = {
             .kems = kyber_kems,
             .kem_count = s2n_array_len(kyber_kems),
         }
+};
+
+/* Specific assignments of KEM group IDs and names have not yet been
+ * published in an RFC (or draft). For IDs, there is consensus to use
+ * values in the proposed reserved range defined in
+ * https://tools.ietf.org/html/draft-stebila-tls-hybrid-design */
+const struct s2n_kem_group s2n_x25519_sike_p434_r2 = {
+        .name = "x25519_sike-p434-r2",
+        .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2,
+        .curve = &s2n_ecc_curve_x25519,
+        .kem = &s2n_sike_p434_r2,
+};
+
+const struct s2n_kem_group s2n_secp256r1_sike_p434_r2 = {
+        .name = "secp256r1_sike-p434-r2",
+        .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2,
+        .curve = &s2n_ecc_curve_secp256r1,
+        .kem = &s2n_sike_p434_r2,
 };
 
 #else
@@ -260,10 +279,18 @@ int s2n_choose_kem_without_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHE
 
 int s2n_kem_free(struct s2n_kem_params *kem_params)
 {
-    if (kem_params != NULL){
+    if (kem_params != NULL) {
         GUARD(s2n_blob_zeroize_free(&kem_params->private_key));
         GUARD(s2n_blob_zeroize_free(&kem_params->public_key));
         GUARD(s2n_blob_zeroize_free(&kem_params->shared_secret));
+    }
+    return S2N_SUCCESS;
+}
+
+int s2n_kem_group_free(struct s2n_kem_group_params *kem_group_params) {
+    if (kem_group_params != NULL) {
+        GUARD(s2n_kem_free(&kem_group_params->kem_params));
+        GUARD(s2n_ecc_evp_params_free(&kem_group_params->ecc_params));
     }
     return S2N_SUCCESS;
 }

@@ -51,8 +51,7 @@ int s2n_tls13_keys_from_conn(struct s2n_tls13_keys *keys, struct s2n_connection 
     return 0;
 }
 
-int s2n_tls13_compute_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
-{
+int s2n_tls13_compute_ecc_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret) {
     notnull_check(conn);
 
     const struct s2n_ecc_preferences *ecc_preferences = NULL;
@@ -83,6 +82,66 @@ int s2n_tls13_compute_shared_secret(struct s2n_connection *conn, struct s2n_blob
     }
 
     return 0;
+}
+
+int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret) {
+    notnull_check(conn);
+    notnull_check(shared_secret);
+
+    struct s2n_kem_group_params *server_kem_group_params = &conn->secure.server_kem_group_params;
+    notnull_check(server_kem_group_params);
+    struct s2n_ecc_evp_params *server_ecc_params = &server_kem_group_params->ecc_params;
+    notnull_check(server_ecc_params);
+
+    struct s2n_kem_group_params *client_kem_group_params = conn->secure.chosen_client_kem_group_params;
+    notnull_check(client_kem_group_params);
+    struct s2n_ecc_evp_params *client_ecc_params = &client_kem_group_params->ecc_params;
+    notnull_check(client_ecc_params);
+
+    DEFER_CLEANUP(struct s2n_blob ecdhe_shared_secret = { 0 }, s2n_blob_zeroize_free);
+
+    if (conn->mode == S2N_CLIENT) {
+        GUARD(s2n_ecc_evp_compute_shared_secret_from_params(client_ecc_params, server_ecc_params, &ecdhe_shared_secret));
+    } else {
+        GUARD(s2n_ecc_evp_compute_shared_secret_from_params(server_ecc_params, client_ecc_params, &ecdhe_shared_secret));
+    }
+
+    const struct s2n_kem_group *negotiated_kem_group = conn->secure.server_kem_group_params.kem_group;
+    notnull_check(negotiated_kem_group);
+    notnull_check(negotiated_kem_group->kem);
+    uint32_t hybrid_shared_secret_size = ecdhe_shared_secret.size + negotiated_kem_group->kem->shared_secret_key_length;
+
+    struct s2n_kem_params *server_kem_params = &server_kem_group_params->kem_params;
+    notnull_check(server_kem_params);
+    struct s2n_blob *pq_shared_secret = &server_kem_params->shared_secret;
+    notnull_check(pq_shared_secret);
+    notnull_check(pq_shared_secret->data);
+    eq_check(pq_shared_secret->size, negotiated_kem_group->kem->shared_secret_key_length);
+
+    GUARD(s2n_alloc(shared_secret, hybrid_shared_secret_size));
+    struct s2n_stuffer stuffer_combiner = { 0 };
+    GUARD(s2n_stuffer_init(&stuffer_combiner, shared_secret));
+    GUARD(s2n_stuffer_write(&stuffer_combiner, &ecdhe_shared_secret));
+    GUARD(s2n_stuffer_write(&stuffer_combiner, pq_shared_secret));
+
+    /* No longer need PQ shared secret or ECC keys */
+    GUARD(s2n_kem_group_free(server_kem_group_params));
+    GUARD(s2n_kem_group_free(client_kem_group_params));
+
+    return S2N_SUCCESS;
+}
+
+int s2n_tls13_compute_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
+{
+    notnull_check(conn);
+
+    if (conn->secure.server_kem_group_params.kem_group != NULL) {
+        GUARD(s2n_tls13_compute_pq_hybrid_shared_secret(conn, shared_secret));
+    } else {
+        GUARD(s2n_tls13_compute_ecc_shared_secret(conn, shared_secret));
+    }
+
+    return S2N_SUCCESS;
 }
 
 /*

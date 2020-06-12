@@ -19,10 +19,12 @@
 #include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_kex.h"
 #include "tls/s2n_tls_parameters.h"
+#include "tls/extensions/s2n_key_share.h"
 
 #include "utils/s2n_safety.h"
 
 #include "crypto/s2n_fips.h"
+#include "crypto/s2n_ecc_evp.h"
 
 #define TEST_PUBLIC_KEY_LENGTH 2
 const uint8_t TEST_PUBLIC_KEY[] = { 2, 2 };
@@ -38,6 +40,45 @@ const uint8_t TEST_CIPHERTEXT[] = { 5, 5, 5, 5, 5 };
 static const uint8_t bike_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 };
 static const uint8_t sike_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 };
 static const uint8_t classic_ecdhe_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA };
+
+int alloc_test_kem_params(struct s2n_kem_params *kem_params) {
+    GUARD(s2n_alloc(&(kem_params->private_key), TEST_PRIVATE_KEY_LENGTH));
+    struct s2n_stuffer private_key_stuffer = {0};
+    GUARD(s2n_stuffer_init(&private_key_stuffer, &(kem_params->private_key)));
+    GUARD(s2n_stuffer_write_bytes(&private_key_stuffer, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH));
+
+    GUARD(s2n_alloc(&(kem_params->public_key), TEST_PUBLIC_KEY_LENGTH));
+    struct s2n_stuffer public_key_stuffer = {0};
+    GUARD(s2n_stuffer_init(&public_key_stuffer, &(kem_params->public_key)));
+    GUARD(s2n_stuffer_write_bytes(&public_key_stuffer, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH));
+
+    GUARD(s2n_alloc(&(kem_params->shared_secret), TEST_SHARED_SECRET_LENGTH));
+    struct s2n_stuffer shared_secret_stuffer = {0};
+    GUARD(s2n_stuffer_init(&shared_secret_stuffer, &(kem_params->shared_secret)));
+    GUARD(s2n_stuffer_write_bytes(&shared_secret_stuffer, TEST_SHARED_SECRET, TEST_SHARED_SECRET_LENGTH));
+
+    ne_check(0, kem_params->private_key.allocated);
+    ne_check(0, kem_params->public_key.allocated);
+    ne_check(0, kem_params->shared_secret.allocated);
+
+    return S2N_SUCCESS;
+}
+
+int assert_kem_params_free(struct s2n_kem_params *kem_params) {
+    eq_check(NULL, kem_params->private_key.data);
+    eq_check(0, kem_params->private_key.size);
+    eq_check(0, kem_params->private_key.allocated);
+
+    eq_check(NULL, kem_params->public_key.data);
+    eq_check(0, kem_params->public_key.size);
+    eq_check(0, kem_params->public_key.allocated);
+
+    eq_check(NULL, kem_params->shared_secret.data);
+    eq_check(0, kem_params->shared_secret.size);
+    eq_check(0, kem_params->shared_secret.allocated);
+
+    return S2N_SUCCESS;
+}
 
 int s2n_test_generate_keypair(unsigned char *public_key, unsigned char *private_key)
 {
@@ -326,36 +367,31 @@ int main(int argc, char **argv)
         struct s2n_kem_params kem_params = { 0 };
         EXPECT_SUCCESS(s2n_kem_free(&kem_params));
 
-        EXPECT_SUCCESS(s2n_alloc(&(kem_params.private_key), TEST_PRIVATE_KEY_LENGTH));
-        struct s2n_stuffer private_key_stuffer = {0};
-        EXPECT_SUCCESS(s2n_stuffer_init(&private_key_stuffer, &(kem_params.private_key)));
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&private_key_stuffer, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH));
-
-        EXPECT_SUCCESS(s2n_alloc(&(kem_params.public_key), TEST_PUBLIC_KEY_LENGTH));
-        struct s2n_stuffer public_key_stuffer = {0};
-        EXPECT_SUCCESS(s2n_stuffer_init(&public_key_stuffer, &(kem_params.public_key)));
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&public_key_stuffer, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH));
-
-        EXPECT_SUCCESS(s2n_alloc(&(kem_params.shared_secret), TEST_SHARED_SECRET_LENGTH));
-        struct s2n_stuffer shared_secret_stuffer = {0};
-        EXPECT_SUCCESS(s2n_stuffer_init(&shared_secret_stuffer, &(kem_params.shared_secret)));
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&shared_secret_stuffer, TEST_SHARED_SECRET, TEST_SHARED_SECRET_LENGTH));
-
-        EXPECT_NOT_EQUAL(0, kem_params.private_key.allocated);
-        EXPECT_NOT_EQUAL(0, kem_params.public_key.allocated);
-        EXPECT_NOT_EQUAL(0, kem_params.shared_secret.allocated);
-
+        /* Fill kem_params with secrets and ensure that they have been freed */
+        EXPECT_SUCCESS(alloc_test_kem_params(&kem_params));
         EXPECT_SUCCESS(s2n_kem_free(&kem_params));
+        EXPECT_SUCCESS(assert_kem_params_free(&kem_params));
+    }
+    {
+        /* Tests for s2n_kem_group_free() */
+        EXPECT_SUCCESS(s2n_kem_group_free(NULL));
 
-        EXPECT_NULL(kem_params.private_key.data);
-        EXPECT_EQUAL(0, kem_params.private_key.size);
-        EXPECT_EQUAL(0, kem_params.private_key.allocated);
-        EXPECT_NULL(kem_params.public_key.data);
-        EXPECT_EQUAL(0, kem_params.public_key.size);
-        EXPECT_EQUAL(0, kem_params.public_key.allocated);
-        EXPECT_NULL(kem_params.shared_secret.data);
-        EXPECT_EQUAL(0, kem_params.shared_secret.size);
-        EXPECT_EQUAL(0, kem_params.shared_secret.allocated);
+        struct s2n_kem_group_params kem_group_params = { 0 };
+        EXPECT_SUCCESS(s2n_kem_group_free(&kem_group_params));
+
+        /* Fill the kem_group_params with secrets */
+        EXPECT_SUCCESS(alloc_test_kem_params(&kem_group_params.kem_params));
+        struct s2n_stuffer wire;
+        GUARD(s2n_stuffer_growable_alloc(&wire, 1024));
+        kem_group_params.ecc_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+        GUARD(s2n_ecdhe_parameters_send(&kem_group_params.ecc_params, &wire));
+        GUARD(s2n_stuffer_free(&wire));
+        EXPECT_NOT_NULL(kem_group_params.ecc_params.evp_pkey);
+
+        /* Ensure that secrets have been freed */
+        EXPECT_SUCCESS(s2n_kem_group_free(&kem_group_params));
+        EXPECT_SUCCESS(assert_kem_params_free(&kem_group_params.kem_params));
+        EXPECT_NULL(kem_group_params.ecc_params.evp_pkey);
     }
     {
         /* Happy case for s2n_kem_send_public_key() */
