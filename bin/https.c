@@ -29,31 +29,36 @@ static s2n_blocked_status blocked;
 #define SEND(...) do { \
     sprintf(str_buffer, __VA_ARGS__); \
     GUARD(s2n_send(conn, str_buffer, strlen(str_buffer), &blocked)); \
-} while (0);
+} while (0)
 
 #define BUFFER(...) do { \
     sprintf(str_buffer, __VA_ARGS__); \
     GUARD(s2n_stuffer_write_bytes(&stuffer, (const uint8_t *)str_buffer, strlen(str_buffer))); \
-} while (0);
+} while (0)
 
-#define FLUSH(left, buffer) do { \
-    uint32_t i = 0; \
-    while (i < left) { \
-        int out = s2n_send(conn, &buffer[i], left - i, &blocked); \
-        if (out < 0) { \
-            fprintf(stderr, "Error writing to connection: '%s'\n", s2n_strerror(s2n_errno, "EN")); \
-            s2n_print_stacktrace(stdout); \
-            return 1; \
-        } \
-        i += out; \
-    } \
-} while (0);
+#define FLUSH(left, buffer) GUARD(flush(left, buffer, conn, &blocked))
+
+int flush(uint32_t left, const void *buffer, struct s2n_connection *conn, s2n_blocked_status *blocked)
+{
+    uint32_t i = 0;
+    while (i < left) {
+        int out = s2n_send(conn, &buffer[i], left - i, blocked);
+        if (out < 0) {
+            fprintf(stderr, "Error writing to connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+            s2n_print_stacktrace(stdout);
+            return 1;
+        }
+        i += out;
+    }
+
+    return 0;
+}
 
 #define HEADERS(length) do { \
     SEND("HTTP/1.1 200 OK\r\n"); \
     SEND("Content-Length: %u\r\n", length); \
     SEND("\r\n"); \
-} while (0);
+} while (0)
 
 /* In bench mode, we send some binary output */
 int bench_handler(struct s2n_connection *conn, uint32_t bench) {
