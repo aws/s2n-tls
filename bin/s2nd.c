@@ -514,7 +514,7 @@ int main(int argc, char *const *argv)
             use_tls13 = 1;
             break;
         case 'X':
-            if (optarg==NULL) {
+            if (optarg == NULL) {
                 conn_settings.max_conns = 1;
             } else {
                 conn_settings.max_conns = atoi(optarg);
@@ -526,9 +526,8 @@ int main(int argc, char *const *argv)
             break;
         case 'b':
             bytes = strtoul(optarg, NULL, 10);
-            if (bytes >= 0) {
-                conn_settings.https_bench = bytes;
-            }
+            GUARD_EXIT(bytes, "https-bench bytes needs to be some positive long value.");
+            conn_settings.https_bench = bytes;
             break;
         case '?':
         default:
