@@ -36,8 +36,6 @@ static s2n_blocked_status blocked;
     GUARD(s2n_stuffer_write_bytes(&stuffer, (const uint8_t *)str_buffer, strlen(str_buffer))); \
 } while (0)
 
-#define FLUSH(left, buffer) GUARD(flush(left, buffer, conn, &blocked))
-
 static int flush(uint32_t left, uint8_t *buffer, struct s2n_connection *conn, s2n_blocked_status *blocked_status)
 {
     uint32_t i = 0;
@@ -71,7 +69,7 @@ int bench_handler(struct s2n_connection *conn, uint32_t bench) {
 
     while (bytes_remaining) {
         uint32_t buffer_remaining = bytes_remaining < len ? bytes_remaining : len;
-        FLUSH(buffer_remaining, big_buff);
+        GUARD(flush(buffer_remaining, big_buff, conn, &blocked));
         bytes_remaining -= buffer_remaining;
     }
 
@@ -119,7 +117,7 @@ int https(struct s2n_connection *conn, uint32_t bench)
     notnull_check(content);
 
     HEADERS(content_length);
-    FLUSH(content_length, content);
+    GUARD(flush(content_length, content, conn, &blocked));
 
     return 0;
 }
