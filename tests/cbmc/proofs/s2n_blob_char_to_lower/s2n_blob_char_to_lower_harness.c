@@ -34,10 +34,12 @@ void s2n_blob_char_to_lower_harness()
     save_byte_from_blob(blob, &old_byte_from_blob);
 
     /* Operation under verification. */
-    if(s2n_blob_char_to_lower(blob) == S2N_SUCCESS && blob->size != 0) {
-        if(old_byte_from_blob.byte >= 'A' && old_byte_from_blob.byte <= 'Z')
-        {
-            assert(blob->data[old_byte_from_blob.index] == (old_byte_from_blob.byte + ('a' - 'A')));
+    if(s2n_blob_char_to_lower(blob) == S2N_SUCCESS) {
+        if (blob->size != 0){
+            if(old_byte_from_blob.byte >= 'A' && old_byte_from_blob.byte <= 'Z')
+            {
+                assert(blob->data[old_byte_from_blob.index] == (old_byte_from_blob.byte + ('a' - 'A')));
+            }
         }
     }
     /* s2n_blob_char_to_lower will always modify blob->data. */
