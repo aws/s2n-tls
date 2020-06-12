@@ -66,8 +66,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
 
         /* Force the HRR path by sending an empty list of keyshares */
         EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
@@ -177,8 +175,6 @@ int main(int argc, char **argv)
         server_conn->x509_validator.skip_cert_validation = 1;
         client_conn->x509_validator.skip_cert_validation = 1;
 
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
 
         /* Generate keyshare only for Curve x25519 */
         EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
@@ -240,8 +236,6 @@ int main(int argc, char **argv)
         server_conn->x509_validator.skip_cert_validation = 1;
         client_conn->x509_validator.skip_cert_validation = 1;
 
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
 
         /* Generate keyshare only for Curve x25519 */
         EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "x25519"));
@@ -288,8 +282,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, tls13_chain_and_key));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
 
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -337,51 +329,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
     }
 
-    /* Test s2n_hello_retry_validate successfully validates a HelloRetryRequest,
-     * when conn->client_protocol_version and conn->server_protocol_version is set to TLS1.3 version
-     * and the server_random is set to the correct hello retry random value */
-    {
-        struct s2n_connection *conn;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random,
-                              S2N_TLS_RANDOM_DATA_LEN);
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
-
-        EXPECT_SUCCESS(s2n_hello_retry_validate(conn));
-
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
-
-    /* Test s2n_hello_retry_validate raises a S2N_ERR_INVALID_HELLO_RETRY error when
-     * when conn->client_protocol_version is set to a version less than TLS1.3 version */
-    {
-        struct s2n_connection *conn;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random,
-                              S2N_TLS_RANDOM_DATA_LEN);
-        conn->server_protocol_version = S2N_TLS13;
-        conn->client_protocol_version = S2N_TLS12;
-
-        EXPECT_FAILURE_WITH_ERRNO(s2n_hello_retry_validate(conn), S2N_ERR_INVALID_HELLO_RETRY);
-
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
-
-    /* Test s2n_hello_retry_validate raises a S2N_ERR_INVALID_HELLO_RETRY error when
-     * when conn->client_protocol_version is set to a version less than TLS1.3 version */
-    {
-        struct s2n_connection *conn;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random,
-                              S2N_TLS_RANDOM_DATA_LEN);
-        conn->server_protocol_version = S2N_TLS12;
-        conn->client_protocol_version = S2N_TLS13;
-
-        EXPECT_FAILURE_WITH_ERRNO(s2n_hello_retry_validate(conn), S2N_ERR_INVALID_HELLO_RETRY);
-
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
-
     /* Test s2n_hello_retry_validate raises a S2N_ERR_INVALID_HELLO_RETRY error when
      * when conn->secure.server_random is not set to the correct hello retry random value
      * specified in the RFC: https://tools.ietf.org/html/rfc8446#section-4.1.3 */
@@ -392,7 +339,6 @@ int main(int argc, char **argv)
         const uint8_t not_hello_retry_request_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
         EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, not_hello_retry_request_random,
                               S2N_TLS_RANDOM_DATA_LEN);
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_hello_retry_validate(conn), S2N_ERR_INVALID_HELLO_RETRY);
 

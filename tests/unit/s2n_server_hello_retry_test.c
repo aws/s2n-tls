@@ -413,7 +413,7 @@ int main(int argc, char **argv)
     }
 
     /* Test s2n_set_hello_retry_required corectly sets the handshake type to HELLO_RETRY_REQUEST,
-     * when conn->client_protocol_version and conn->server_protocol_version is set to TLS1.3 version */
+     * when conn->actual_protocol_version is set to TLS1.3 version */
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -426,26 +426,11 @@ int main(int argc, char **argv)
     }
 
     /* Test s2n_set_hello_retry_required raises a S2N_ERR_INVALID_HELLO_RETRY error 
-     * when conn->client_protocol_version is less than TLS1.3 */
+     * when conn->actual_protocol_version is less than TLS1.3 */
     {
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        conn->server_protocol_version = S2N_TLS13;
-        conn->client_protocol_version = S2N_TLS12;
-
-        EXPECT_FAILURE_WITH_ERRNO(s2n_set_hello_retry_required(conn), S2N_ERR_INVALID_HELLO_RETRY);
-        EXPECT_FALSE(conn->handshake.handshake_type & HELLO_RETRY_REQUEST);
-
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
-
-    /* Test s2n_set_hello_retry_required raises a S2N_ERR_INVALID_HELLO_RETRY error
-     * when conn->server_protocol_version is less than TLS1.3 */
-    {
-        struct s2n_connection *conn;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        conn->server_protocol_version = S2N_TLS12;
-        conn->client_protocol_version = S2N_TLS13;
+        conn->actual_protocol_version = S2N_TLS12;
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_set_hello_retry_required(conn), S2N_ERR_INVALID_HELLO_RETRY);
         EXPECT_FALSE(conn->handshake.handshake_type & HELLO_RETRY_REQUEST);

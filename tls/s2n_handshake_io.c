@@ -517,9 +517,7 @@ int s2n_set_hello_retry_required(struct s2n_connection *conn)
 {
     notnull_check(conn);
 
-    ENSURE_POSIX(conn->server_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
-    ENSURE_POSIX(conn->client_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
-
+    ENSURE_POSIX(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
     conn->handshake.handshake_type |= HELLO_RETRY_REQUEST;
 
     return S2N_SUCCESS;

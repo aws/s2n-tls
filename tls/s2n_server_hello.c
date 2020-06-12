@@ -106,7 +106,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     GUARD(s2n_stuffer_read_bytes(in, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
     /* If the client receives a second HelloRetryRequest in the same connection, it MUST send an error. */
-    if (s2n_hello_retry_validate(conn) == S2N_SUCCESS) {
+    if ((s2n_hello_retry_validate(conn) == S2N_SUCCESS)) {
         ENSURE_POSIX(!s2n_is_hello_retry_handshake(conn), S2N_ERR_INVALID_HELLO_RETRY);
         GUARD(s2n_set_hello_retry_required(conn));
     }
@@ -166,6 +166,10 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         }
     }
 
+    if ((s2n_hello_retry_validate(conn) == S2N_SUCCESS)) {
+        ENSURE_POSIX(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
+    }
+
     return 0;
 }
 
@@ -182,7 +186,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
     /* If this is a HelloRetryRequest, we don't process the ServerHello.
      * Instead we proceed with retry logic. */
-    if (s2n_hello_retry_validate(conn) == S2N_SUCCESS) {
+    if ((s2n_hello_retry_validate(conn) == S2N_SUCCESS) && (conn->actual_protocol_version >= S2N_TLS13)) {
         GUARD(s2n_server_hello_retry_recv(conn));
         return 0;
     }

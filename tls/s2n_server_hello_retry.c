@@ -36,8 +36,6 @@ int s2n_hello_retry_validate(struct s2n_connection *conn)
 {
     notnull_check(conn);
 
-    ENSURE_POSIX(conn->server_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
-    ENSURE_POSIX(conn->client_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
     ENSURE_POSIX(memcmp(hello_retry_req_random, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN) == 0,
                  S2N_ERR_INVALID_HELLO_RETRY);
 
