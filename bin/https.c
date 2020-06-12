@@ -38,11 +38,11 @@ static s2n_blocked_status blocked;
 
 #define FLUSH(left, buffer) GUARD(flush(left, buffer, conn, &blocked))
 
-int flush(uint32_t left, const void *buffer, struct s2n_connection *conn, s2n_blocked_status *blocked)
+static int flush(uint32_t left, const void *buffer, struct s2n_connection *conn, s2n_blocked_status *blocked_status)
 {
     uint32_t i = 0;
     while (i < left) {
-        int out = s2n_send(conn, &buffer[i], left - i, blocked);
+        int out = s2n_send(conn, buffer + i, left - i, blocked_status);
         if (out < 0) {
             fprintf(stderr, "Error writing to connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
             s2n_print_stacktrace(stdout);
