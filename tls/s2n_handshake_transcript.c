@@ -52,7 +52,9 @@ int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
         /* If we are sending a retry request, we didn't decide on a key share. There are no secrets to handle. */
         break;
     case SERVER_HELLO:
-        GUARD(s2n_tls13_handle_handshake_secrets(conn));
+        if (s2n_hello_retry_validate(conn) != S2N_SUCCESS) {
+            GUARD(s2n_tls13_handle_handshake_secrets(conn));
+        }
         GUARD(s2n_blob_zero(&client_seq));
         GUARD(s2n_blob_zero(&server_seq));
         conn->server = &conn->secure;
