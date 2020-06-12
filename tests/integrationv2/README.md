@@ -19,7 +19,7 @@ ubuntu@host:tests/integrationv2/ $ make
 This will automatically setup your PATH and LD_LIBRARY_PATH environment. It will execute `tox` to setup your
 Python environment. Then all the integration tests will be collected and executed.
 
-*Note* If you are running the dynamic record size test you will need to use `sudo`.
+**Note** If you are running the dynamic record size test you will need to use `sudo`.
 
 ## Run one test
 
