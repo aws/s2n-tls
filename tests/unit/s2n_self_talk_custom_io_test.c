@@ -134,8 +134,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&in, &out, conn));
     
     /* Make our pipes non-blocking */
-    EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.server_read));
-    EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.server_write));
+    EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.server));
+    EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.server));
 
     /* Negotiate the handshake. */
     do {
@@ -147,8 +147,8 @@ int main(int argc, char **argv)
         /* check to see if we need to copy more over from the pipes to the buffers
          * to continue the handshake
          */
-        s2n_stuffer_recv_from_fd(&in, io_pair.server_read, MAX_BUF_SIZE);
-        s2n_stuffer_send_to_fd(&out, io_pair.server_write, s2n_stuffer_data_available(&out));
+        s2n_stuffer_recv_from_fd(&in, io_pair.server, MAX_BUF_SIZE);
+        s2n_stuffer_send_to_fd(&out, io_pair.server, s2n_stuffer_data_available(&out));
     } while (blocked);
    
     /* Shutdown after negotiating */
@@ -162,8 +162,8 @@ int main(int argc, char **argv)
             server_shutdown = 1;
         }
 
-        s2n_stuffer_recv_from_fd(&in, io_pair.server_read, MAX_BUF_SIZE);
-        s2n_stuffer_send_to_fd(&out, io_pair.server_write, s2n_stuffer_data_available(&out));
+        s2n_stuffer_recv_from_fd(&in, io_pair.server, MAX_BUF_SIZE);
+        s2n_stuffer_send_to_fd(&out, io_pair.server, s2n_stuffer_data_available(&out));
     } while (!server_shutdown);
     
     EXPECT_SUCCESS(s2n_connection_free(conn));

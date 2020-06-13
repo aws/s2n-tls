@@ -158,7 +158,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
         /* Set up the callback to send an alert after receiving ClientHello */
-        struct alert_ctx warning_alert = {.write_fd = io_pair.server_write, .invoked = 0, .level = TLS_ALERT_LEVEL_WARNING, .code = TLS_ALERT_UNRECOGNIZED_NAME};
+        struct alert_ctx warning_alert = {.write_fd = io_pair.server, .invoked = 0, .level = TLS_ALERT_LEVEL_WARNING, .code = TLS_ALERT_UNRECOGNIZED_NAME};
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_send_alert, &warning_alert));
 
         /* Create a child process */
@@ -223,7 +223,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
         /* Set up the callback to send an alert after receiving ClientHello */
-        struct alert_ctx fatal_alert = {.write_fd = io_pair.server_write, .invoked = 0, .level = TLS_ALERT_LEVEL_FATAL, .code = TLS_ALERT_UNRECOGNIZED_NAME};
+        struct alert_ctx fatal_alert = {.write_fd = io_pair.server, .invoked = 0, .level = TLS_ALERT_LEVEL_FATAL, .code = TLS_ALERT_UNRECOGNIZED_NAME};
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_send_alert, &fatal_alert));
 
         /* Create a child process */
@@ -269,7 +269,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
         /* Set up the callback to send an alert after receiving ClientHello */
-        struct alert_ctx warning_alert = {.write_fd = io_pair.server_write, .invoked = 0, .level = TLS_ALERT_LEVEL_WARNING, .code = TLS_ALERT_UNRECOGNIZED_NAME};
+        struct alert_ctx warning_alert = {.write_fd = io_pair.server, .invoked = 0, .level = TLS_ALERT_LEVEL_WARNING, .code = TLS_ALERT_UNRECOGNIZED_NAME};
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_send_alert, &warning_alert));
 
         /* Create a child process */

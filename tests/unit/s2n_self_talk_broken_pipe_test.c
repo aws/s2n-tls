@@ -17,6 +17,7 @@
 
 #include "testlib/s2n_testlib.h"
 
+#include <sys/socket.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <time.h>
@@ -62,7 +63,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     }
 
     /* Close client read fd to mock half closed pipe at server side */
-    close(io_pair->client_read);
+    s2n_io_pair_shutdown_one_end(io_pair, S2N_CLIENT, SHUT_RD);
     /* Give server a chance to send data on broken pipe */
     sleep(2);
 
@@ -81,7 +82,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     /* Give the server a chance to avoid a sigpipe */
     sleep(1);
 
-    close(io_pair->client_write);
+    s2n_io_pair_shutdown_one_end(io_pair, S2N_CLIENT, SHUT_WR);
 
     _exit(0);
 }

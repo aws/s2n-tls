@@ -122,8 +122,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Make pipes non-blocking */
-    EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.server_read));
-    EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.server_write));
+    EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.server));
+    EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.server));
 
     /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
@@ -137,14 +137,14 @@ int main(int argc, char **argv)
 
         /* check to see if we need to copy more over from the pipes to the buffers
          * to continue the handshake */
-        s2n_stuffer_recv_from_fd(&in, io_pair.server_read, MAX_BUF_SIZE);
-        s2n_stuffer_send_to_fd(&out, io_pair.server_write, s2n_stuffer_data_available(&out));
+        s2n_stuffer_recv_from_fd(&in, io_pair.server, MAX_BUF_SIZE);
+        s2n_stuffer_send_to_fd(&out, io_pair.server, s2n_stuffer_data_available(&out));
     } while (blocked);
 
     /* Receive only 100 bytes of the record and try to call s2n_recv */
     n = 0;
     while (n < 100) {
-        ret = s2n_stuffer_recv_from_fd(&in, io_pair.server_read, 100 - n);
+        ret = s2n_stuffer_recv_from_fd(&in, io_pair.server, 100 - n);
 
         if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             continue;
@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 
     /* Read the rest of the buffer and expect s2n_recv to succeed */
     do {
-        ret = s2n_stuffer_recv_from_fd(&in, io_pair.server_read, MAX_BUF_SIZE);
+        ret = s2n_stuffer_recv_from_fd(&in, io_pair.server, MAX_BUF_SIZE);
 
         if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             continue;
@@ -189,8 +189,8 @@ int main(int argc, char **argv)
             server_shutdown = 1;
         }
 
-        s2n_stuffer_recv_from_fd(&in, io_pair.server_read, MAX_BUF_SIZE);
-        s2n_stuffer_send_to_fd(&out, io_pair.server_write, s2n_stuffer_data_available(&out));
+        s2n_stuffer_recv_from_fd(&in, io_pair.server, MAX_BUF_SIZE);
+        s2n_stuffer_send_to_fd(&out, io_pair.server, s2n_stuffer_data_available(&out));
     } while (!server_shutdown);
 
     EXPECT_SUCCESS(s2n_connection_free(conn));
