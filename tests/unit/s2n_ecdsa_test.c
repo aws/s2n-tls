@@ -48,12 +48,12 @@ static uint8_t unmatched_private_key[] =
 
 int main(int argc, char **argv)
 {
-    struct s2n_stuffer certificate_in, certificate_out;
-    struct s2n_stuffer ecdsa_key_in, ecdsa_key_out;
-    struct s2n_stuffer unmatched_ecdsa_key_in, unmatched_ecdsa_key_out;
-    struct s2n_blob b;
-    char *cert_chain_pem;
-    char *private_key_pem;
+    struct s2n_stuffer certificate_in = {0}, certificate_out = {0};
+    struct s2n_stuffer ecdsa_key_in = {0}, ecdsa_key_out = {0};
+    struct s2n_stuffer unmatched_ecdsa_key_in = {0}, unmatched_ecdsa_key_out = {0};
+    struct s2n_blob b = {0};
+    char *cert_chain_pem = NULL;
+    char *private_key_pem = NULL;
 
     const int supported_hash_algorithms[] = {
         S2N_HASH_NONE,
@@ -70,8 +70,8 @@ int main(int argc, char **argv)
 
     /* s2n_ecdsa_pkey_matches_curve */
     {
-        struct s2n_ecdsa_key *p256_key, *p384_key;
-        struct s2n_cert_chain_and_key *p256_chain, *p384_chain;
+        struct s2n_ecdsa_key *p256_key = NULL, *p384_key = NULL;
+        struct s2n_cert_chain_and_key *p256_chain = NULL, *p384_chain = NULL;
 
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&p256_chain,
                 S2N_ECDSA_P256_PKCS1_CERT_CHAIN, S2N_ECDSA_P256_PKCS1_KEY));
@@ -102,37 +102,35 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
 
-    b.data = (uint8_t *) cert_chain_pem;
-    b.size = strlen(cert_chain_pem) + 1;
+    EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
     EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
 
-    b.data = (uint8_t *) private_key_pem;
-    b.size = strlen(private_key_pem) + 1;
+    EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) private_key_pem, strlen(private_key_pem) + 1));
     EXPECT_SUCCESS(s2n_stuffer_write(&ecdsa_key_in, &b));
 
-    b.data = unmatched_private_key;
-    b.size = sizeof(unmatched_private_key);
+    EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) unmatched_private_key, sizeof(unmatched_private_key)));
     EXPECT_SUCCESS(s2n_stuffer_write(&unmatched_ecdsa_key_in, &b));
 
     EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
     EXPECT_SUCCESS(s2n_stuffer_private_key_from_pem(&ecdsa_key_in, &ecdsa_key_out));
     EXPECT_SUCCESS(s2n_stuffer_private_key_from_pem(&unmatched_ecdsa_key_in, &unmatched_ecdsa_key_out));
 
-    struct s2n_pkey pub_key;
-    struct s2n_pkey priv_key;
-    struct s2n_pkey unmatched_priv_key;
-    s2n_pkey_type pkey_type;
+    struct s2n_pkey pub_key = {0};
+    struct s2n_pkey priv_key = {0};
+    struct s2n_pkey unmatched_priv_key = {0};
+    s2n_pkey_type pkey_type = {0};
+    uint32_t available_size = 0;
 
-    b.size = s2n_stuffer_data_available(&certificate_out);
-    b.data = s2n_stuffer_raw_read(&certificate_out, b.size);
+    available_size = s2n_stuffer_data_available(&certificate_out);
+    EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
     EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&pub_key, &pkey_type, &b));
 
-    b.size = s2n_stuffer_data_available(&ecdsa_key_out);
-    b.data = s2n_stuffer_raw_read(&ecdsa_key_out, b.size);
+    available_size = s2n_stuffer_data_available(&ecdsa_key_out);
+    EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&ecdsa_key_out, available_size), available_size));
     EXPECT_SUCCESS(s2n_asn1der_to_private_key(&priv_key, &b));
-    
-    b.size = s2n_stuffer_data_available(&unmatched_ecdsa_key_out);
-    b.data = s2n_stuffer_raw_read(&unmatched_ecdsa_key_out, b.size);
+
+    available_size = s2n_stuffer_data_available(&unmatched_ecdsa_key_out);
+    EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&unmatched_ecdsa_key_out, available_size), available_size));
     EXPECT_SUCCESS(s2n_asn1der_to_private_key(&unmatched_priv_key, &b));
 
     /* Verify that the public/private key pair match */
@@ -140,10 +138,10 @@ int main(int argc, char **argv)
 
     /* Try signing and verification with ECDSA */
     uint8_t inputpad[] = "Hello world!";
-    struct s2n_blob signature, bad_signature;
-    struct s2n_hash_state hash_one, hash_two;
+    struct s2n_blob signature = {0}, bad_signature = {0};
+    struct s2n_hash_state hash_one = {0}, hash_two = {0};
     uint32_t maximum_signature_length = s2n_pkey_size(&priv_key);
-    
+
     EXPECT_SUCCESS(s2n_alloc(&signature, maximum_signature_length));
 
     EXPECT_SUCCESS(s2n_hash_new(&hash_one));
@@ -151,7 +149,7 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < s2n_array_len(supported_hash_algorithms); i++) {
         int hash_alg = supported_hash_algorithms[i];
-        
+
         if (!s2n_hash_is_available(hash_alg)) {
             /* Skip hash algorithms that are not available. */
             continue;
@@ -165,10 +163,10 @@ int main(int argc, char **argv)
 
         /* Reset signature size when we compute a new signature */
         signature.size = maximum_signature_length;
-        
+
         EXPECT_SUCCESS(s2n_pkey_sign(&priv_key, S2N_SIGNATURE_ECDSA, &hash_one, &signature));
         EXPECT_SUCCESS(s2n_pkey_verify(&pub_key, S2N_SIGNATURE_ECDSA, &hash_two, &signature));
-        
+
         EXPECT_SUCCESS(s2n_hash_reset(&hash_one));
         EXPECT_SUCCESS(s2n_hash_reset(&hash_two));
     }
@@ -180,17 +178,17 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_pkey_sign(&unmatched_priv_key, S2N_SIGNATURE_ECDSA, &hash_one, &bad_signature));
     EXPECT_FAILURE(s2n_pkey_verify(&pub_key, S2N_SIGNATURE_ECDSA, &hash_two, &bad_signature));
-    
+
     EXPECT_SUCCESS(s2n_free(&signature));
     EXPECT_SUCCESS(s2n_free(&bad_signature));
-    
+
     EXPECT_SUCCESS(s2n_hash_free(&hash_one));
     EXPECT_SUCCESS(s2n_hash_free(&hash_two));
-    
+
     EXPECT_SUCCESS(s2n_pkey_free(&pub_key));
     EXPECT_SUCCESS(s2n_pkey_free(&priv_key));
     EXPECT_SUCCESS(s2n_pkey_free(&unmatched_priv_key));
-    
+
     EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
     EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
     EXPECT_SUCCESS(s2n_stuffer_free(&ecdsa_key_in));
@@ -202,4 +200,3 @@ int main(int argc, char **argv)
 
     END_TEST();
 }
-

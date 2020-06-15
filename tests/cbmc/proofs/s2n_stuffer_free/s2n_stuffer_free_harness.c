@@ -21,13 +21,6 @@
 #include <cbmc_proof/cbmc_utils.h>
 
 void s2n_calculate_stacktrace() {}
-int munlock(const void *addr, size_t len) {
-    int rval;
-
-    assert(__CPROVER_r_ok(addr, len));
-
-    return rval;
-}
 
 void s2n_stuffer_free_harness() {
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
