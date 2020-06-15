@@ -16,7 +16,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "tls/s2n_crypto_parameters.h"
+#include "tls/s2n_crypto_constants.h"
 #include "utils/s2n_blob.h"
 #include "stuffer/s2n_stuffer.h"
 

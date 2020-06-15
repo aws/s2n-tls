@@ -17,7 +17,7 @@
 
 #include "tls/s2n_config.h"
 #include "tls/s2n_signature_scheme.h"
-#include "tls/s2n_crypto_parameters.h"
+#include "tls/s2n_crypto_constants.h"
 #include "tls/s2n_kem.h"
 
 #include "crypto/s2n_certificate.h"
