@@ -58,16 +58,15 @@ static uint8_t unmatched_private_key[] =
 
 int main(int argc, char **argv)
 {
-    struct s2n_stuffer certificate_in, certificate_out;
-    struct s2n_stuffer dhparams_in, dhparams_out;
-    struct s2n_stuffer rsa_key_in, rsa_key_out;
-    struct s2n_blob b;
+    struct s2n_stuffer certificate_in, certificate_out = {0};
+    struct s2n_stuffer dhparams_in, dhparams_out = {0};
+    struct s2n_stuffer rsa_key_in, rsa_key_out = {0};
+    struct s2n_blob b = {0};
     char *leaf_cert_pem;
     char *cert_chain_pem;
     char *private_key_pem;
     char *dhparams_pem;
     struct s2n_cert_chain_and_key *chain_and_key;
-    uint32_t available_size;
 
     BEGIN_TEST();
 
@@ -102,10 +101,11 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_private_key_from_pem(&rsa_key_in, &rsa_key_out));
     EXPECT_SUCCESS(s2n_stuffer_dhparams_from_pem(&dhparams_in, &dhparams_out));
 
-    struct s2n_pkey priv_key;
-    struct s2n_pkey pub_key;
-    s2n_pkey_type pkey_type;
+    struct s2n_pkey priv_key = {0};
+    struct s2n_pkey pub_key = {0};
+    s2n_pkey_type pkey_type = {0};
 
+    uint32_t available_size = 0;
     available_size = s2n_stuffer_data_available(&certificate_out);
     EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
     EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&pub_key, &pkey_type, &b));
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
-    struct s2n_dh_params dh_params;
+    struct s2n_dh_params dh_params = {0};
     available_size = s2n_stuffer_data_available(&dhparams_out);
     EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&dhparams_out, available_size), available_size));
     EXPECT_SUCCESS(s2n_pkcs3_to_dh_params(&dh_params, &b));
@@ -129,8 +129,11 @@ int main(int argc, char **argv)
 
     /* Try signing and verification with RSA */
     uint8_t inputpad[] = "Hello world!";
-    struct s2n_blob signature;
-    struct s2n_hash_state tls10_one, tls10_two, tls12_one, tls12_two;
+    struct s2n_blob signature = {0};
+    struct s2n_hash_state tls10_one = {0};
+    struct s2n_hash_state tls10_two = {0};
+    struct s2n_hash_state tls12_one = {0};
+    struct s2n_hash_state tls12_two = {0};
 
     EXPECT_SUCCESS(s2n_alloc(&signature, s2n_pkey_size(&pub_key)));
 
