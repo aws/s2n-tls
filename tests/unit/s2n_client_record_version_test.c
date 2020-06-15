@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 
         /* we need only first 10 bytes to get to ClientHello protocol version */
         while (buf_occupied < 10) {
-            ssize_t n = read(io_pair.server_read, buf + buf_occupied, sizeof(buf) - buf_occupied);
+            ssize_t n = read(io_pair.server, buf + buf_occupied, sizeof(buf) - buf_occupied);
 
             /* We should be able to read 10 bytes without blocking */
             EXPECT_TRUE(n > 0);
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 
         /* Read the rest of the pipe */
         while (1) {
-            ssize_t n = read(io_pair.server_read, buf, sizeof(buf));
+            ssize_t n = read(io_pair.server, buf, sizeof(buf));
 
             if (n > 0) {
                 continue;
@@ -136,9 +136,9 @@ int main(int argc, char **argv)
         }
 
         /* Write the server hello */
-        EXPECT_EQUAL(write(io_pair.server_write, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(io_pair.server_write, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(io_pair.server_write, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
+        EXPECT_EQUAL(write(io_pair.server, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(write(io_pair.server, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(write(io_pair.server, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
 
         /* Verify that we proceed with handshake */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
         buf_occupied = 0;
         /* We need only first 5 bytes to get to record protocol version */
         while (buf_occupied < 5) {
-            ssize_t n = read(io_pair.server_read, buf + buf_occupied, sizeof(buf) - buf_occupied);
+            ssize_t n = read(io_pair.server, buf + buf_occupied, sizeof(buf) - buf_occupied);
 
             /* We should be able to read 5 bytes without blocking */
             EXPECT_TRUE(n > 0);
@@ -236,7 +236,7 @@ int main(int argc, char **argv)
 
         /* we need only first 10 bytes to get to ClientHello protocol version */
         while (buf_occupied < 10) {
-            ssize_t n = read(io_pair.server_read, buf + buf_occupied, sizeof(buf) - buf_occupied);
+            ssize_t n = read(io_pair.server, buf + buf_occupied, sizeof(buf) - buf_occupied);
 
             /* We should be able to read 10 bytes without blocking */
             EXPECT_TRUE(n > 0);
@@ -255,7 +255,7 @@ int main(int argc, char **argv)
 
         /* Read the rest of the pipe */
         while (1) {
-            ssize_t n = read(io_pair.server_read, buf, sizeof(buf));
+            ssize_t n = read(io_pair.server, buf, sizeof(buf));
 
             if (n > 0) {
                 continue;
@@ -268,9 +268,9 @@ int main(int argc, char **argv)
         }
 
         /* Write the server hello */
-        EXPECT_EQUAL(write(io_pair.server_write, record_header, sizeof(record_header)), sizeof(record_header));
-        EXPECT_EQUAL(write(io_pair.server_write, message_header, sizeof(message_header)), sizeof(message_header));
-        EXPECT_EQUAL(write(io_pair.server_write, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
+        EXPECT_EQUAL(write(io_pair.server, record_header, sizeof(record_header)), sizeof(record_header));
+        EXPECT_EQUAL(write(io_pair.server, message_header, sizeof(message_header)), sizeof(message_header));
+        EXPECT_EQUAL(write(io_pair.server, server_hello_message, sizeof(server_hello_message)), sizeof(server_hello_message));
 
         /* Verify that we proceed with handshake */
         EXPECT_EQUAL(s2n_negotiate(client_conn, &client_blocked), -1);
@@ -291,7 +291,7 @@ int main(int argc, char **argv)
         buf_occupied = 0;
         /* We need only first 5 bytes to get to record protocol version */
         while (buf_occupied < 5) {
-            ssize_t n = read(io_pair.server_read, buf + buf_occupied, sizeof(buf) - buf_occupied);
+            ssize_t n = read(io_pair.server, buf + buf_occupied, sizeof(buf) - buf_occupied);
 
             /* We should be able to read 5 bytes without blocking */
             EXPECT_TRUE(n > 0);

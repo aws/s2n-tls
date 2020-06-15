@@ -102,17 +102,12 @@ int s2n_io_pair_init(struct s2n_test_io_pair *io_pair)
 {
     signal(SIGPIPE, SIG_IGN);
 
-    int server_to_client[2];
-    int client_to_server[2];
+    int socket_pair[2];
 
-    GUARD(socketpair(AF_UNIX, SOCK_STREAM, 0, server_to_client));
-    GUARD(socketpair(AF_UNIX, SOCK_STREAM, 0, client_to_server));
+    GUARD(socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair));
 
-    io_pair->client_read = server_to_client[0];
-    io_pair->client_write = client_to_server[1];
-
-    io_pair->server_read = client_to_server[0];
-    io_pair->server_write = server_to_client[1];
+    io_pair->client = socket_pair[0];
+    io_pair->server = socket_pair[1];
 
     return 0;
 }
@@ -121,10 +116,8 @@ int s2n_io_pair_init_non_blocking(struct s2n_test_io_pair *io_pair)
 {
     GUARD(s2n_io_pair_init(io_pair));
 
-    GUARD(s2n_fd_set_non_blocking(io_pair->client_read));
-    GUARD(s2n_fd_set_non_blocking(io_pair->client_write));
-    GUARD(s2n_fd_set_non_blocking(io_pair->server_read));
-    GUARD(s2n_fd_set_non_blocking(io_pair->server_write));
+    GUARD(s2n_fd_set_non_blocking(io_pair->client));
+    GUARD(s2n_fd_set_non_blocking(io_pair->server));
 
     return 0;
 }
@@ -132,11 +125,9 @@ int s2n_io_pair_init_non_blocking(struct s2n_test_io_pair *io_pair)
 int s2n_connection_set_io_pair(struct s2n_connection *conn, struct s2n_test_io_pair *io_pair)
 {
     if (conn->mode == S2N_CLIENT) {
-        GUARD(s2n_connection_set_read_fd(conn, io_pair->client_read));
-        GUARD(s2n_connection_set_write_fd(conn, io_pair->client_write));
+        GUARD(s2n_connection_set_fd(conn, io_pair->client));
     } else if (conn->mode == S2N_SERVER) {
-        GUARD(s2n_connection_set_read_fd(conn, io_pair->server_read));
-        GUARD(s2n_connection_set_write_fd(conn, io_pair->server_write));
+        GUARD(s2n_connection_set_fd(conn, io_pair->server));
     }
 
     return 0;
@@ -160,11 +151,19 @@ int s2n_io_pair_close(struct s2n_test_io_pair *io_pair)
 int s2n_io_pair_close_one_end(struct s2n_test_io_pair *io_pair, int mode_to_close)
 {
     if (mode_to_close == S2N_CLIENT) {
-        GUARD(close(io_pair->client_read));
-        GUARD(close(io_pair->client_write));
+        GUARD(close(io_pair->client));
     } else if(mode_to_close == S2N_SERVER) {
-        GUARD(close(io_pair->server_read));
-        GUARD(close(io_pair->server_write));
+        GUARD(close(io_pair->server));
+    }
+    return 0;
+}
+
+int s2n_io_pair_shutdown_one_end(struct s2n_test_io_pair *io_pair, int mode_to_close, int how)
+{
+    if (mode_to_close == S2N_CLIENT) {
+        GUARD(shutdown(io_pair->client, how));
+    } else if(mode_to_close == S2N_SERVER) {
+        GUARD(shutdown(io_pair->server, how));
     }
     return 0;
 }
