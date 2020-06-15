@@ -75,10 +75,10 @@ S2N_RESULT s2n_entropy_generator(struct s2n_blob *blob)
 
 int main(int argc, char **argv)
 {
-    struct s2n_stuffer dhparams_in, dhparams_out;
-    struct s2n_dh_params dh_params;
-    struct s2n_blob b;
-    char *dhparams_pem;
+    struct s2n_stuffer dhparams_in = {0}, dhparams_out = {0};
+    struct s2n_dh_params dh_params = {0};
+    struct s2n_blob b = {0};
+    char *dhparams_pem = NULL;
     uint64_t bytes_used = 0;
 
     BEGIN_TEST();

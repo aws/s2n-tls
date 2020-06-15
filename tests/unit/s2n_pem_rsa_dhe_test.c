@@ -58,15 +58,15 @@ static uint8_t unmatched_private_key[] =
 
 int main(int argc, char **argv)
 {
-    struct s2n_stuffer certificate_in, certificate_out = {0};
-    struct s2n_stuffer dhparams_in, dhparams_out = {0};
-    struct s2n_stuffer rsa_key_in, rsa_key_out = {0};
+    struct s2n_stuffer certificate_in = {0}, certificate_out = {0};
+    struct s2n_stuffer dhparams_in = {0}, dhparams_out = {0};
+    struct s2n_stuffer rsa_key_in = {0}, rsa_key_out = {0};
     struct s2n_blob b = {0};
-    char *leaf_cert_pem;
-    char *cert_chain_pem;
-    char *private_key_pem;
-    char *dhparams_pem;
-    struct s2n_cert_chain_and_key *chain_and_key;
+    char *leaf_cert_pem = NULL;
+    char *cert_chain_pem = NULL;
+    char *private_key_pem = NULL;
+    char *dhparams_pem = NULL;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
     BEGIN_TEST();
 
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_pkey_match(&pub_key, &priv_key));
 
-    struct s2n_config *config;
+    struct s2n_config *config = NULL;
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
