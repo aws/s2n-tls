@@ -41,6 +41,8 @@
 
 #define LENGTH_TO_CIPHER_LIST (S2N_TLS_PROTOCOL_VERSION_LEN + S2N_TLS_RANDOM_DATA_LEN + 1)
 
+int s2n_parse_client_hello(struct s2n_connection *conn);
+
 int main(int argc, char **argv)
 {
     struct s2n_cert_chain_and_key *chain_and_key, *ecdsa_chain_and_key;
@@ -835,6 +837,101 @@ int main(int argc, char **argv)
         s2n_connection_free(server_conn);
         s2n_config_free(server_config);
         free(sent_client_hello);
+    }
+    
+     /* s2n_parse_client_hello */
+    {
+        /* s2n will error when parsing an empty cipher suite */
+        {
+            struct s2n_connection *client_conn;
+            struct s2n_connection *server_conn;
+            struct s2n_stuffer *hello_stuffer;
+            struct s2n_config *tls13_config;
+            struct s2n_cert_chain_and_key *tls13_chain_and_key;
+            char *tls13_cert_chain;
+            char *tls13_private_key;
+
+            EXPECT_NOT_NULL(tls13_cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_NOT_NULL(tls13_private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_NOT_NULL(tls13_config = s2n_config_new());
+            EXPECT_NOT_NULL(tls13_chain_and_key = s2n_cert_chain_and_key_new());
+            s2n_config_set_cipher_preferences(tls13_config, "test_all");
+
+            EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
+
+            hello_stuffer = &client_conn->handshake.io;
+
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+
+            uint8_t empty_cipher_suite[S2N_TLS_CIPHER_SUITE_LEN] = {0};
+
+            /* Move write_cursor to cipher_suite position */
+            EXPECT_SUCCESS(s2n_stuffer_rewrite(hello_stuffer));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(hello_stuffer, S2N_TLS_PROTOCOL_VERSION_LEN + S2N_TLS_RANDOM_DATA_LEN + 1));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(hello_stuffer, empty_cipher_suite, S2N_TLS_CIPHER_SUITE_LEN));
+
+            EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &hello_stuffer->blob));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_parse_client_hello(server_conn), S2N_ERR_BAD_MESSAGE);
+
+            s2n_connection_free(server_conn);
+            s2n_connection_free(client_conn);
+            s2n_cert_chain_and_key_free(tls13_chain_and_key);
+            free(tls13_cert_chain);
+            free(tls13_private_key);
+        }
+        
+        /* s2n will error when parsing an empty cipher suite and client is sslv2 */
+        {
+            struct s2n_connection *server_conn;
+            EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
+            struct s2n_config *tls12_config;
+            char *cert_chain;
+            char *private_key;
+
+            EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_NOT_NULL(tls12_config = s2n_config_new());
+            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+            s2n_config_set_cipher_preferences(tls12_config, "test_all_tls12");
+
+
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(tls12_config, chain_and_key));
+
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls12_config));
+
+            /* Record version and protocol version are in the header for SSLv2 */
+            server_conn->client_hello_version = S2N_SSLv2;
+            server_conn->client_protocol_version = S2N_TLS12;
+
+            /* Writing a sslv2 client hello with a length 0 cipher suite list */
+            uint8_t sslv2_client_hello[] = {
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x20,
+                SSLv2_CLIENT_HELLO_CIPHER_SUITES,
+                SSLv2_CLIENT_HELLO_CHALLENGE,
+            };
+
+            struct s2n_blob client_hello = {
+                .data = sslv2_client_hello,
+                .size = sizeof(sslv2_client_hello),
+                .allocated = 0,
+                .growable = 0
+            };
+            EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_hello));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_BAD_MESSAGE);
+
+            s2n_connection_free(server_conn);
+            s2n_config_free(tls12_config);
+            free(cert_chain);
+            free(private_key);
+        }
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
