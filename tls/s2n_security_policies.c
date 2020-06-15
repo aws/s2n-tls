@@ -592,10 +592,10 @@ int s2n_security_policies_init()
         }
 
         if (security_policy_selection[i].pq_kem_extension_required == 1) {
-            S2N_ERROR_IF(kem_preference->count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
+            S2N_ERROR_IF(kem_preference->kem_count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
             S2N_ERROR_IF(kem_preference->kems == NULL, S2N_ERR_INVALID_SECURITY_POLICY);
         } else {
-            S2N_ERROR_IF(kem_preference->count != 0, S2N_ERR_INVALID_SECURITY_POLICY);
+            S2N_ERROR_IF(kem_preference->kem_count != 0, S2N_ERR_INVALID_SECURITY_POLICY);
             S2N_ERROR_IF(kem_preference->kems!= NULL, S2N_ERR_INVALID_SECURITY_POLICY);
         }
     }
