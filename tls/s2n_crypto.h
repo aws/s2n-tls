@@ -18,6 +18,7 @@
 #include "tls/s2n_config.h"
 #include "tls/s2n_signature_scheme.h"
 #include "tls/s2n_crypto_parameters.h"
+#include "tls/s2n_kem.h"
 
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
@@ -28,13 +29,6 @@
 #include "crypto/s2n_tls13_keys.h"
 #include "crypto/s2n_dhe.h"
 #include "crypto/s2n_ecc_evp.h"
-
-struct s2n_kem_params {
-    const struct s2n_kem *kem;
-    struct s2n_blob public_key;
-    struct s2n_blob private_key;
-    struct s2n_blob shared_secret;
-};
 
 struct s2n_crypto_parameters {
     struct s2n_pkey server_public_key;

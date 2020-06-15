@@ -16,8 +16,9 @@
 #pragma once
 
 #include <stdint.h>
-#include "tls/s2n_crypto.h"
+#include "tls/s2n_crypto_parameters.h"
 #include "utils/s2n_blob.h"
+#include "stuffer/s2n_stuffer.h"
 
 typedef uint16_t kem_extension_size;
 typedef uint16_t kem_public_key_size;
@@ -36,6 +37,13 @@ struct s2n_kem {
     int (*generate_keypair)(unsigned char *public_key_out, unsigned char *private_key_out);
     int (*encapsulate)(unsigned char *ciphertext_out, unsigned char *shared_secret_out,  const unsigned char *public_key_in);
     int (*decapsulate)(unsigned char *shared_secret_out, const unsigned char *ciphertext_in, const unsigned char *private_key_in);
+};
+
+struct s2n_kem_params {
+    const struct s2n_kem *kem;
+    struct s2n_blob public_key;
+    struct s2n_blob private_key;
+    struct s2n_blob shared_secret;
 };
 
 struct s2n_iana_to_kem {
