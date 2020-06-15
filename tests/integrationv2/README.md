@@ -105,23 +105,24 @@ providers.
 
 ## s2nd / s2nc
 
-You may have to add a flag to s2nc/s2nd to allow that feature from the command line. If at all possible
-use long options, and use the same option in s2nc as s2nd. This attempts to limit the differences
-between the two. If you are able to setup the option similar to how an OpenSSL derivitive works, that
-will make things easier in the long run. An example of this is '-reconnect' in OpenSSL and '-r' in S2N.
-Both have a hardcoded value of 5 reconnects. The point is to remove logic from the test, and make the
-providers act as similar as possible.
+You may have to add a command line flag to s2nc.c or s2nd.c for your feature. Use long options if
+possible, and use the same option name in both s2nc.c and s2nd.c. If you are able to use an option
+name similar to the OpenSSL name, please do. This reduces complexity across TLS providers.
+
+An example of similar naming is '-reconnect' in OpenSSL and '-r' in S2N. Both have a hardcoded value
+of 5 reconnects. The point is to remove logic from the test, and make the providers act as similar
+as possible.
 
 ## Control the provider from the test
 
-To tell the provider you want to excersize some functionality you can add an option to the ProviderOptions
-object, or you can pass extra_flags data. If multiple providers need to know about your option, choose
-the ProviderOptions method. If your option is specific to one provider, just pass extra_flags.
+If you are testing a feature which is similar across all TLS providers, add an option to the ProviderOptions
+object in `common.py`. If this feature is specific to a single provider, you can use the `extra_flags` option.
 
-For example, during session resumption we need to tell various clients and server to resume a session
-multiple times. To do this we added the 'reconnect' and 'reconnects_before_exit' options to the ProviderOptions
-object. But with dynamic thresholds we simply pass the '-D' argument as an extra flag to s2n.
+For example, to test the session resumption feature we need to tell various clients and servers to resume
+a session multiple times. To do this we added the 'reconnect' and 'reconnects_before_exit' options to the
+ProviderOptions object. But with the dynamic threshold feature we simply pass the '-D' argument as an
+`extra_flag` to s2n.
 
-In each provider that supports client authentication, you need to check if the flag is set, and
-create a command line option for that particular provider. You can also add logic checks, e.g with
-client authenticate the client must have a certificate to send. Otherwise the test will fail.
+In each provider that supports your feature you need to check if the flag is set, and create a command
+line option for that particular provider. You can also add logic checks, e.g with client authentication
+the client must have a certificate to send. Otherwise the test will fail.
