@@ -38,17 +38,13 @@ void s2n_stuffer_write_harness() {
     /* Save previous state from stuffer. */
     struct s2n_stuffer old_stuffer = *stuffer;
 
-/**
- * There should not be any constraints over blob.size, but that leads to an spurious
- * unsigned overflow in the following assumption; therefore, we ignore this
- * check here to keep blob.size as non-deterministic as possible.
- */
-#pragma CPROVER check push
-#pragma CPROVER check disable "unsigned-overflow"
-    __CPROVER_assume(index < stuffer->blob.size && (index < old_stuffer.write_cursor ||
-                                                    index >= old_stuffer.write_cursor + blob->size));
-#pragma CPROVER check pop
     /* Store a byte from the stuffer that wont be overwritten to compare if the write succeeds. */
+    __CPROVER_assume(index < stuffer->blob.size);
+    if(__CPROVER_overflow_plus(old_stuffer.write_cursor, blob->size)) {
+        __CPROVER_assume(index < old_stuffer.write_cursor);
+    } else {
+        __CPROVER_assume(index < old_stuffer.write_cursor || index >= old_stuffer.write_cursor + blob->size);
+    }
     uint8_t untouched_byte = stuffer->blob.data[index];
 
     /* Store a byte from the blob to compare. */
