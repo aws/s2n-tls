@@ -26,7 +26,7 @@
 
 
 int s2n_fd_set_blocking(int fd) {
-    return fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) ^ O_NONBLOCK);
+    return fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) & ~O_NONBLOCK);
 }
 
 int s2n_fd_set_non_blocking(int fd) {
