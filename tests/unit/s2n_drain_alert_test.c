@@ -105,16 +105,15 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
     /* Send the client hello */
-    EXPECT_EQUAL(write(io_pair.client_write, record_header, sizeof(record_header)), sizeof(record_header));
-    EXPECT_EQUAL(write(io_pair.client_write, message_header, sizeof(message_header)), sizeof(message_header));
-    EXPECT_EQUAL(write(io_pair.client_write, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
+    EXPECT_EQUAL(write(io_pair.client, record_header, sizeof(record_header)), sizeof(record_header));
+    EXPECT_EQUAL(write(io_pair.client, message_header, sizeof(message_header)), sizeof(message_header));
+    EXPECT_EQUAL(write(io_pair.client, client_hello_message, sizeof(client_hello_message)), sizeof(client_hello_message));
 
     /* Send an alert from client to server */
-    EXPECT_EQUAL(write(io_pair.client_write, alert_record, sizeof(alert_record)), sizeof(alert_record));
+    EXPECT_EQUAL(write(io_pair.client, alert_record, sizeof(alert_record)), sizeof(alert_record));
 
     /* Close the client read/write end */
-    EXPECT_SUCCESS(close(io_pair.client_read));
-    EXPECT_SUCCESS(close(io_pair.client_write));
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
 
     /* Expect the server to fail due to an incoming alert. We should not fail due to an I/O error(EPIPE). */
     s2n_negotiate(server_conn, &server_blocked);
@@ -127,8 +126,7 @@ int main(int argc, char **argv)
     free(cert_chain);
     free(private_key);
 
-    EXPECT_SUCCESS(close(io_pair.server_read));
-    EXPECT_SUCCESS(close(io_pair.server_write));
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
     END_TEST();
 }

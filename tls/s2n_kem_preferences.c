@@ -45,31 +45,31 @@ const struct s2n_kem *pq_kems_sike_r2r1[2] = {
 
 /* Includes only round 1 PQ KEM params */
 const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2019_06 = {
-    .count = s2n_array_len(pq_kems_r1),
+    .kem_count = s2n_array_len(pq_kems_r1),
     .kems = pq_kems_r1,
 };
 
 /* Includes round 1 and round 2 PQ KEM params. */
 const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_02 = {
-    .count = s2n_array_len(pq_kems_r2r1),
+    .kem_count = s2n_array_len(pq_kems_r2r1),
     .kems = pq_kems_r2r1,
 };
 
 /* Includes only SIKE round 1 (for integration tests) */
 const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2019_11 = {
-    .count = s2n_array_len(pq_kems_sike_r1),
+    .kem_count = s2n_array_len(pq_kems_sike_r1),
     .kems = pq_kems_sike_r1,
 };
 
 /* Includes only SIKE round 1 and round 2 (for integration tests). */
 const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2020_02 = {
-    .count = s2n_array_len(pq_kems_sike_r2r1),
+    .kem_count = s2n_array_len(pq_kems_sike_r2r1),
     .kems = pq_kems_sike_r2r1,
 };
 
 #endif
 
 const struct s2n_kem_preferences kem_preferences_null = {
-    .count = 0,
+    .kem_count = 0,
     .kems = NULL,
 };

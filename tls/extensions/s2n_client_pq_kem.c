@@ -50,8 +50,8 @@ static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffe
     GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
     notnull_check(kem_preferences);
 
-    GUARD(s2n_stuffer_write_uint16(out, kem_preferences->count * sizeof(kem_extension_size)));
-    for (int i = 0; i < kem_preferences->count; i++) {
+    GUARD(s2n_stuffer_write_uint16(out, kem_preferences->kem_count * sizeof(kem_extension_size)));
+    for (int i = 0; i < kem_preferences->kem_count; i++) {
         GUARD(s2n_stuffer_write_uint16(out, kem_preferences->kems[i]->kem_extension_id));
     }
 

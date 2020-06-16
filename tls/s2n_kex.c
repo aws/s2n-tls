@@ -51,7 +51,7 @@ static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n
     GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
     notnull_check(kem_preferences);
 
-    if (kem_preferences->count == 0) {
+    if (kem_preferences->kem_count == 0) {
         return 0;
     }
 
@@ -69,14 +69,14 @@ static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n
     if (client_kem_pref_list == NULL || client_kem_pref_list->data == NULL) {
         /* If the client did not send a PQ KEM extension, then the server can pick its preferred parameter */
         if (s2n_choose_kem_without_peer_pref_list(cipher_suite->iana_value, kem_preferences->kems,
-                kem_preferences->count, &chosen_kem)
+                                                  kem_preferences->kem_count, &chosen_kem)
             != 0) {
             return 0;
         }
     } else {
         /* If the client did send a PQ KEM extension, then the server must find a mutually supported parameter. */
         if (s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, client_kem_pref_list, kem_preferences->kems,
-                kem_preferences->count, &chosen_kem)
+                                               kem_preferences->kem_count, &chosen_kem)
             != 0) {
             return 0;
         }
@@ -100,11 +100,11 @@ static int s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite, struct
     if (proposed_kems == NULL || proposed_kems->data == NULL) {
         /* If the client did not send a PQ KEM extension, then the server can pick its preferred parameter */
         GUARD(s2n_choose_kem_without_peer_pref_list(cipher_suite->iana_value, kem_preferences->kems,
-            kem_preferences->count, &chosen_kem));
+                                                    kem_preferences->kem_count, &chosen_kem));
     } else {
         /* If the client did send a PQ KEM extension, then the server must find a mutually supported parameter. */
         GUARD(s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, proposed_kems, kem_preferences->kems,
-            kem_preferences->count, &chosen_kem));
+                                                 kem_preferences->kem_count, &chosen_kem));
     }
 
     conn->secure.kem_params.kem = chosen_kem;

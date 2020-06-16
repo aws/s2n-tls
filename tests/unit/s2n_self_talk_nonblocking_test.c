@@ -268,8 +268,7 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     EXPECT_SUCCESS(kill(pid, SIGSTOP));
 
     /* Make our pipes non-blocking */
-    s2n_fd_set_non_blocking(io_pair.server_read);
-    s2n_fd_set_non_blocking(io_pair.server_write);
+    s2n_fd_set_non_blocking(io_pair.server);
 
     /* Try to all 10MB of data, should be enough to fill PIPEBUF, so
        we'll get blocked at some point */
@@ -300,8 +299,7 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     EXPECT_SUCCESS(kill(pid, SIGCONT));
 
     /* Make our sockets blocking again */
-    s2n_fd_set_blocking(io_pair.server_read);
-    s2n_fd_set_blocking(io_pair.server_write);
+    s2n_fd_set_blocking(io_pair.server);
 
     /* Actually send the remaining data */
     while (remaining) {

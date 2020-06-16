@@ -59,11 +59,11 @@ int main(int argc, char **argv)
         uint16_t size;
         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &size));
         EXPECT_EQUAL(size, s2n_stuffer_data_available(&stuffer));
-        EXPECT_EQUAL(size, kem_preferences->count * sizeof(kem_extension_size));
+        EXPECT_EQUAL(size, kem_preferences->kem_count * sizeof(kem_extension_size));
 
         /* Should write ids */
         uint16_t actual_id;
-        for (int i = 0; i < kem_preferences->count; i++) {
+        for (int i = 0; i < kem_preferences->kem_count; i++) {
             GUARD(s2n_stuffer_read_uint16(&stuffer, &actual_id));
             EXPECT_EQUAL(actual_id, kem_preferences->kems[i]->kem_extension_id);
         }
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_pq_kem_extension.send(conn, &stuffer));
 
         EXPECT_SUCCESS(s2n_client_pq_kem_extension.recv(conn, &stuffer));
-        EXPECT_EQUAL(conn->secure.client_pq_kem_extension.size, kem_preferences->count * sizeof(kem_extension_size));
+        EXPECT_EQUAL(conn->secure.client_pq_kem_extension.size, kem_preferences->kem_count * sizeof(kem_extension_size));
         EXPECT_NOT_NULL(conn->secure.client_pq_kem_extension.data);
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
 

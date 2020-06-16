@@ -19,7 +19,7 @@
 #include "tls/s2n_kex.h"
 
 struct s2n_kem_preferences {
-    uint8_t count;
+    uint8_t kem_count;
     const struct s2n_kem **kems;
 };
 

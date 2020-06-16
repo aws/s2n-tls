@@ -146,6 +146,9 @@ class S2N(Provider):
         if self.options.client_certificate_file:
             cmd_line.extend(['--cert', self.options.client_certificate_file])
 
+        if self.options.extra_flags is not None:
+            cmd_line.extend(self.options.extra_flags)
+
         cmd_line.extend([self.options.host, self.options.port])
 
         # Clients are always ready to connect
@@ -188,28 +191,52 @@ class S2N(Provider):
 
 class OpenSSL(Provider):
 
+    supported_ciphers = {
+        Ciphers.AES128_GCM_SHA256: 'TLS_AES_128_GCM_SHA256',
+        Ciphers.AES256_GCM_SHA384: 'TLS_AES_256_GCM_SHA384',
+        Ciphers.CHACHA20_POLY1305_SHA256: 'TLS_CHACHA20_POLY1305_SHA256',
+    }
+
     def __init__(self, options: ProviderOptions):
         self.ready_to_send_input_marker = None
         Provider.__init__(self, options)
 
-    def cipher_to_cmdline(self, protocol, cipher):
+    def _join_ciphers(self, ciphers):
+        """
+        Given a list of ciphers, join the names with a ':' like OpenSSL expects
+        """
+        assert type(ciphers) is list
+
+        cipher_list = []
+        for c in ciphers:
+            if c.min_version is Protocols.TLS13:
+                cipher_list.append(OpenSSL.supported_ciphers[c])
+            else:
+                # This replace is only done for ciphers that are not TLS13 specific.
+                # Run `openssl ciphers` to view the inconsistency in naming.
+                cipher_list.append(c.name.replace("_", "-"))
+
+        ciphers = ':'.join(cipher_list)
+
+        return ciphers
+
+    def _cipher_to_cmdline(self, protocol, cipher):
         cmdline = list()
 
-        # Prior to TLS13 the -cipher flag is used
-        if cipher.min_version == Protocols.TLS13:
-            supported_ciphers = {
-                Ciphers.AES128_GCM_SHA256: 'TLS_AES_128_GCM_SHA256',
-                Ciphers.AES256_GCM_SHA384: 'TLS_AES_256_GCM_SHA384',
-                Ciphers.CHACHA20_POLY1305_SHA256: 'TLS_CHACHA20_POLY1305_SHA256',
-            }
+        cmdline.append('-cipher')
 
-            cmdline.append('-ciphersuites')
-            cmdline.append(supported_ciphers[cipher])
+        ciphers = []
+        if type(cipher) is list:
+            ciphers.append(self._join_ciphers(cipher))
         else:
-            cmdline.append('-cipher')
-            cmdline.append(cipher.name.replace("_", "-"))
+            if cipher.min_version == Protocols.TLS13:
+                ciphers.append(OpenSSL.supported_ciphers[cipher])
+            else:
+                # This replace is only done for ciphers that are not TLS13 specific.
+                # Run `openssl ciphers` to view the inconsistency in naming.
+                ciphers.append(cipher.name.replace("_", "-"))
 
-        return cmdline
+        return cmdline + ciphers
 
     def setup_client(self):
         # s_client prints this message before it is ready to send/receive data
@@ -252,6 +279,11 @@ class OpenSSL(Provider):
 
         if self.options.extra_flags is not None:
             cmd_line.extend(self.options.extra_flags)
+
+        if self.options.server_name is not None:
+            cmd_line.extend(['-servername', self.options.server_name])
+            if self.options.verify_hostname is not None:
+                cmd_line.extend(['-verify_hostname', self.options.server_name])
 
         # Clients are always ready to connect
         self.set_provider_ready()
