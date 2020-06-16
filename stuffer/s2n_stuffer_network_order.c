@@ -22,7 +22,6 @@
 
 int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, uint32_t input, uint8_t length)
 {
-    notnull_check(stuffer);
     GUARD(s2n_stuffer_skip_write(stuffer, length));
     uint8_t *data = stuffer->blob.data + stuffer->write_cursor - length;
 
@@ -31,7 +30,7 @@ int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, uint32_t input,
         uint8_t shift = (length - i - 1) * 8;
         data[i] = (input >> (shift)) & 0xFF;
     }
-
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     return S2N_SUCCESS;
 }
 
