@@ -24,7 +24,7 @@
 
 #define S2N_IS_KEY_SHARE_LIST_EMPTY(preferred_key_shares) (preferred_key_shares & 1)
 #define S2N_IS_KEY_SHARE_REQUESTED(preferred_key_shares, i) ((preferred_key_shares >> (i + 1)) & 1)
-#define S2N_ALL_KEY_SHARES_REQUESTED 254
+#define S2N_HIGHEST_PRIORITY_KEY_SHARE_REQUESTED 2
 /**
  * Specified in https://tools.ietf.org/html/rfc8446#section-4.2.8
  * "The "key_share" extension contains the endpoint's cryptographic parameters."
@@ -78,10 +78,9 @@ static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s
     }
 
     if (!conn->preferred_key_shares) {
-        /* Default behavior is to generate keyshares for all curves.
-        * The bitmap to generate keyshares for all curve is 111111110 (254),
-        * i.e. all bit values set except lsb which is RESERVED for empty keyshares */
-        preferred_key_shares = S2N_ALL_KEY_SHARES_REQUESTED;
+       /* Default behavior is to generate keyshares for the highest priority curve in the ecc_preferences list.
+        * The bitmap to generate keyshare for the highest priority curve is 00000010 (2) */ 
+        preferred_key_shares = S2N_HIGHEST_PRIORITY_KEY_SHARE_REQUESTED;
     }
 
     for (size_t i = 0; i < ecc_pref->count; i++) {
@@ -92,6 +91,9 @@ static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s
         /* If a bit in the bitmap (minus the lsb) is set, generate keyshare for the corresponding curve */
         if (S2N_IS_KEY_SHARE_REQUESTED(preferred_key_shares, i)) {
             GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
+            if (preferred_key_shares == S2N_HIGHEST_PRIORITY_KEY_SHARE_REQUESTED) {
+                break;
+            }
         }
     }
 
@@ -200,6 +202,7 @@ uint32_t s2n_extensions_client_key_share_size(struct s2n_connection *conn)
     notnull_check(conn);
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
+    uint8_t preferred_key_shares = conn->preferred_key_shares;
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     notnull_check(ecc_pref);
 
@@ -207,9 +210,20 @@ uint32_t s2n_extensions_client_key_share_size(struct s2n_connection *conn)
             + S2N_SIZE_OF_EXTENSION_DATA_SIZE
             + S2N_SIZE_OF_CLIENT_SHARES_SIZE;
 
+    if (!conn->preferred_key_shares) {
+       /* Default behavior is to generate keyshares for the highest priority curve in the ecc_preferences list.
+        * The bitmap to generate keyshare for the highest priority curve is 00000010 (2) */ 
+        preferred_key_shares = S2N_HIGHEST_PRIORITY_KEY_SHARE_REQUESTED;
+    }
+
     for (uint32_t i = 0; i < ecc_pref->count ; i++) {
-        s2n_client_key_share_extension_size += S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIZE_OF_NAMED_GROUP;
-        s2n_client_key_share_extension_size += ecc_pref->ecc_curves[i]->share_size; 
+        if (S2N_IS_KEY_SHARE_REQUESTED(preferred_key_shares, i)) {
+            s2n_client_key_share_extension_size += S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIZE_OF_NAMED_GROUP;
+            s2n_client_key_share_extension_size += ecc_pref->ecc_curves[i]->share_size; 
+            if (preferred_key_shares == S2N_HIGHEST_PRIORITY_KEY_SHARE_REQUESTED) {
+                break;
+            }
+        }
     }
 
     return s2n_client_key_share_extension_size;

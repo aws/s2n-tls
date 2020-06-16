@@ -302,6 +302,8 @@ int main(int argc, char **argv)
             server_conn->actual_protocol_version = S2N_TLS13;
 
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(server_conn, ecc_pref->ecc_curves[i]->name));
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, ecc_pref->ecc_curves[i]->name));
             EXPECT_NOT_NULL(ecc_pref);
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_hello_key_share, 1024));

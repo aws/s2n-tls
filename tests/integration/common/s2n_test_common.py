@@ -146,6 +146,14 @@ def get_s2n_cmd(scenario):
         s2n_cmd.append("--insecure")
         s2n_cmd.append("--echo")
 
+    if scenario.s2n_mode.is_client():
+        if scenario.curve.name == "X25519":
+            s2n_cmd.extend(["--keyshares", "x25519"])
+        elif scenario.curve.name == "P-256":
+            s2n_cmd.extend(["--keyshares", "secp256r1"])
+        elif scenario.curve.name == "P-384":
+            s2n_cmd.extend(["--keyshares", "secp384r1"])
+
     if scenario.version is Version.TLS13:
         s2n_cmd.append("--tls13")
 

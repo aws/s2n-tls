@@ -149,6 +149,13 @@ class S2N(Provider):
         if self.options.extra_flags is not None:
             cmd_line.extend(self.options.extra_flags)
 
+        if self.options.curve == Curves.X25519:
+            cmd_line.extend(["--keyshares", "x25519"])
+        elif self.options.curve == Curves.P256:
+            cmd_line.extend(["--keyshares", "secp256r1"])
+        elif self.options.curve == Curves.P384:
+            cmd_line.extend(["--keyshares", "secp384r1"])
+
         cmd_line.extend([self.options.host, self.options.port])
 
         # Clients are always ready to connect

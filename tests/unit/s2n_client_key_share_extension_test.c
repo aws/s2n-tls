@@ -88,15 +88,21 @@ int main(int argc, char **argv)
 
             for (int i = 0; i < ecc_preferences->count; i++) {
                 struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
-                EXPECT_EQUAL(ecc_evp_params->negotiated_curve, ecc_preferences->ecc_curves[i]);
-                EXPECT_NOT_NULL(ecc_evp_params->evp_pkey);
+                if (i == 0) {
+                    EXPECT_EQUAL(ecc_evp_params->negotiated_curve, ecc_preferences->ecc_curves[i]);
+                    EXPECT_NOT_NULL(ecc_evp_params->evp_pkey);
+                } else {
+                    EXPECT_NULL(ecc_evp_params->negotiated_curve);
+                    EXPECT_NULL(ecc_evp_params->evp_pkey);
+                }
             }
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* Test that s2n_client_key_share_extension.send writes a well-formed list of key shares */
+        /* Test that s2n_client_key_share_extension.send writes a keyshare for the highest priority 
+         * supported group in the ecc_preferences list */
         {
             struct s2n_stuffer key_share_extension;
             struct s2n_connection *conn;
@@ -104,27 +110,25 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
             EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
 
-            /* should have correct shares size */
-            uint16_t key_shares_size;
-            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &key_shares_size));
-            uint16_t actual_key_shares_size = s2n_stuffer_data_available(&key_share_extension);
-            EXPECT_EQUAL(key_shares_size, actual_key_shares_size);
-            EXPECT_EQUAL(key_shares_size, s2n_stuffer_data_available(&key_share_extension));
-
             const struct s2n_ecc_preferences *ecc_preferences = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
             EXPECT_NOT_NULL(ecc_preferences);
 
-            /* should contain every supported curve, in order, with their sizes */
-            for (int i = 0; i < ecc_preferences->count; i++) {
-                uint16_t iana_value, share_size;
-                EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &iana_value));
-                EXPECT_EQUAL(iana_value, ecc_preferences->ecc_curves[i]->iana_id);
-                EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &share_size));
-                EXPECT_EQUAL(share_size, ecc_preferences->ecc_curves[i]->share_size);
+            uint16_t key_shares_size;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &key_shares_size));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), key_shares_size);
 
-                EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, share_size));
-            }
+            EXPECT_EQUAL(key_shares_size, ecc_preferences->ecc_curves[0]->share_size + S2N_SIZE_OF_NAMED_GROUP + S2N_SIZE_OF_KEY_SHARE_SIZE);
+
+            uint16_t iana_value, share_size;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &iana_value));
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &share_size));
+            uint32_t bytes_processed = share_size + S2N_SIZE_OF_NAMED_GROUP + S2N_SIZE_OF_KEY_SHARE_SIZE;
+
+            EXPECT_EQUAL(iana_value, ecc_preferences->ecc_curves[0]->iana_id);
+            EXPECT_EQUAL(share_size, ecc_preferences->ecc_curves[0]->share_size);
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, share_size));
+            EXPECT_EQUAL(bytes_processed, key_shares_size);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -335,10 +339,14 @@ int main(int argc, char **argv)
             for (int i = 0; i < ecc_pref->count; i++) {
                 server_ecc_evp_params = &server_conn->secure.client_ecc_evp_params[i];
                 client_ecc_evp_params = &client_conn->secure.client_ecc_evp_params[i];
-
-                EXPECT_NOT_NULL(server_ecc_evp_params->negotiated_curve);
-                EXPECT_NOT_NULL(server_ecc_evp_params->evp_pkey);
-                EXPECT_TRUE(s2n_public_ecc_keys_are_equal(server_ecc_evp_params, client_ecc_evp_params));
+                if (i == 0) {
+                    EXPECT_NOT_NULL(server_ecc_evp_params->negotiated_curve);
+                    EXPECT_NOT_NULL(server_ecc_evp_params->evp_pkey);
+                    EXPECT_TRUE(s2n_public_ecc_keys_are_equal(server_ecc_evp_params, client_ecc_evp_params));
+                } else {
+                    EXPECT_NULL(server_ecc_evp_params->negotiated_curve);
+                    EXPECT_NULL(server_ecc_evp_params->evp_pkey);
+                }
             }
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
