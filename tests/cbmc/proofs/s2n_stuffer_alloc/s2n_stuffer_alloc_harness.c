@@ -14,7 +14,6 @@
  */
 
 #include "api/s2n.h"
-#include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
 
@@ -24,9 +23,12 @@
 
 void s2n_stuffer_alloc_harness() {
     /* Non-deterministic inputs. */
-    struct s2n_stuffer *stuffer = nondet_bool() ? cbmc_allocate_s2n_stuffer(): NULL;
-    __CPROVER_assume(S2N_IMPLIES(stuffer != NULL, s2n_stuffer_is_valid(stuffer)));
+    struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
+    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
     uint32_t size;
+
+    /* Save previous state from stuffer. */
+    struct s2n_stuffer old_stuffer = *stuffer;
 
     /* Non-deterministically set initialized (in s2n_mem) to true. */
     if(nondet_bool()) {
@@ -36,8 +38,15 @@ void s2n_stuffer_alloc_harness() {
     /* Operation under verification. */
     if (s2n_stuffer_alloc(stuffer, size) == S2N_SUCCESS) {
         /* Post-conditions. */
-        assert(stuffer->alloced == 1);
+        assert(stuffer->alloced);
         assert(stuffer->blob.size == size);
         assert(s2n_stuffer_is_valid(stuffer));
+    } else {
+        assert(stuffer->read_cursor == old_stuffer.read_cursor);
+        assert(stuffer->write_cursor == old_stuffer.write_cursor);
+        assert(stuffer->high_water_mark == old_stuffer.high_water_mark);
+        assert(stuffer->alloced == old_stuffer.alloced);
+        assert(stuffer->growable == old_stuffer.growable);
+        assert(stuffer->tainted == old_stuffer.tainted);
     }
 }
