@@ -21,6 +21,7 @@
 #include <assert.h>
 
 #include <cbmc_proof/cbmc_utils.h>
+#include <cbmc_proof/endian.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
 
@@ -51,10 +52,7 @@ void s2n_stuffer_write_uint32_harness() {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + sizeof(uint32_t));
         assert(stuffer->blob.data[index] == untouched_byte);
         /* Ensure uint was correctly written to the stuffer */
-        assert(((uint32_t) stuffer->blob.data[old_stuffer.write_cursor]) << 24
-             | ((uint32_t) stuffer->blob.data[old_stuffer.write_cursor + 1]) << 16
-             | ((uint32_t) stuffer->blob.data[old_stuffer.write_cursor + 2]) << 8
-             | ((uint32_t) stuffer->blob.data[old_stuffer.write_cursor + 3]) == src);
+        assert(be32toh(*((uint32_t*)(stuffer->blob.data+old_stuffer.write_cursor))) == src);
         assert(s2n_stuffer_is_valid(stuffer));
     } else {
         assert(stuffer->write_cursor == old_stuffer.write_cursor);

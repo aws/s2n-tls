@@ -21,6 +21,7 @@
 #include <assert.h>
 
 #include <cbmc_proof/cbmc_utils.h>
+#include <cbmc_proof/endian.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
 
@@ -51,14 +52,7 @@ void s2n_stuffer_write_uint64_harness() {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + sizeof(uint64_t));
         assert(stuffer->blob.data[index] == untouched_byte);
         /* Ensure uint was correctly written to the stuffer */
-        assert(((uint64_t) stuffer->blob.data[old_stuffer.write_cursor]) << 56
-             | ((uint64_t) stuffer->blob.data[old_stuffer.write_cursor + 1]) << 48
-             | ((uint64_t) stuffer->blob.data[old_stuffer.write_cursor + 2]) << 40
-             | ((uint64_t) stuffer->blob.data[old_stuffer.write_cursor + 3]) << 32
-             | ((uint64_t) stuffer->blob.data[old_stuffer.write_cursor + 4]) << 24
-             | ((uint64_t) stuffer->blob.data[old_stuffer.write_cursor + 5]) << 16
-             | ((uint64_t) stuffer->blob.data[old_stuffer.write_cursor + 6]) << 8
-             | ((uint64_t) stuffer->blob.data[old_stuffer.write_cursor + 7]) == src);
+        assert(be64toh(*((uint64_t*)(stuffer->blob.data+old_stuffer.write_cursor))) == src);
         assert(s2n_stuffer_is_valid(stuffer));
     }
     assert(stuffer->alloced == old_stuffer.alloced);
