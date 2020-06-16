@@ -11,8 +11,8 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-###########
-#Use the default set of CBMC flags
+# Expected runtime is 20 seconds.
+
 CHECKFLAGS +=
 
 DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c
@@ -20,11 +20,15 @@ DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
 DEPENDENCIES += $(SRCDIR)/stuffer/s2n_stuffer.c
 DEPENDENCIES += $(SRCDIR)/utils/s2n_blob.c
 DEPENDENCIES += $(SRCDIR)/utils/s2n_ensure.c
+DEPENDENCIES += $(SRCDIR)/utils/s2n_mem.c
+DEPENDENCIES += $(SRCDIR)/utils/s2n_safety.c
 
 ENTRY = s2n_stuffer_alloc_harness
 
-#No loops to unwind
+# We abstract these functions because manual inspection demonstrates they are unreachable.
+REMOVE_FUNCTION_BODY += --remove-function-body s2n_blob_slice
+REMOVE_FUNCTION_BODY += --remove-function-body s2n_ensure_memcpy_trace
+
 UNWINDSET +=
-###########
 
 include ../Makefile.common
