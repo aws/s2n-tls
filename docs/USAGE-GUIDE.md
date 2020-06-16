@@ -1074,6 +1074,23 @@ const char *s2n_get_server_name(struct s2n_connection *conn);
 or NULL if none is found. This can be used by a server to determine which server
 name the client is using.
 
+### s2n\_connection\_set\_keyshare\_by\_name
+
+```c
+int s2n_connection_set_keyshare_by_name(struct s2n_connection *conn, const char* curve_name);
+```
+
+**s2n_connection_set_keyshare_by_name** sets the keyshare preference for the connection.
+Note that the keyword `none` represents a list of empty keyshares.
+The `curve_name` must correspond to a supported curve configued in the security_policy->ecc_preferences list.
+Example Usage:
+```c
+s2n_connection_set_keyshare_by_name(conn, "none");
+s2n_connection_set_keyshare_by_name(conn, "x25519");
+s2n_connection_set_keyshare_by_name(conn, "secp256r1");
+s2n_connection_set_keyshare_by_name(conn, "secp384r1");
+```
+
 ### s2n\_connection\_set\_blinding
 
 ```c

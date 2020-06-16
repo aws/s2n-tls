@@ -222,6 +222,7 @@ extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
 extern int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
 extern int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char * const *protocols, int protocol_count);
 extern int s2n_set_server_name(struct s2n_connection *conn, const char *server_name);
+int s2n_connection_set_keyshare_by_name(struct s2n_connection *conn, const char* curve_name);
 extern const char *s2n_get_server_name(struct s2n_connection *conn);
 extern const char *s2n_get_application_protocol(struct s2n_connection *conn);
 extern const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uint32_t *length);
