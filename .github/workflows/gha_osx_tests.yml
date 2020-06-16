@@ -1,0 +1,35 @@
+---
+name: macOS build and test S2n
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - gha_osx
+
+
+jobs:
+  OSX:
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        openssl_version: [openssl@1.1]
+
+    steps:
+      - run: brew install ${{ matrix.openssl_version }}
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Checkout Dependencies
+        uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          .github/install_osx_dependencies.sh
+
+      - name: Test
+        run: |
+          .github/s2n_osx.sh
