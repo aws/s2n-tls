@@ -131,14 +131,14 @@ int main(int argc, char **argv)
         }
         
         /* Test that s2n_client_key_share_extension.send sends empty client key share list when
-         * s2n_connection_set_keyshare_by_name_for_testing is called with 'none' */
+         * s2n_connection_set_keyshare_by_name is called with 'none' */
         {
             struct s2n_stuffer key_share_extension;
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             /* Force the client to send an empty list of keyshares */
-            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(conn, "none"));
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name(conn, "none"));
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
 
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             /* Force the client to send only p-256 keyshare in keyshare list */
-            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(conn, "secp256r1"));
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name(conn, "secp256r1"));
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
 
@@ -197,8 +197,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             /* Force the client to send only p-256 and p-384 keyshares in keyshare list */
-            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(conn, "secp256r1"));
-            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(conn, "secp384r1"));
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name(conn, "secp256r1"));
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name(conn, "secp384r1"));
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
 

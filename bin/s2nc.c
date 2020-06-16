@@ -467,7 +467,7 @@ int main(int argc, char *const *argv)
 
         for (size_t i = 0; i < keyshares_count; i++) {
             if (keyshares[i]) {
-                GUARD_EXIT(s2n_connection_set_keyshare_by_name_for_testing(conn, keyshares[i]), "Error setting keyshares to generate");
+                GUARD_EXIT(s2n_connection_set_keyshare_by_name(conn, keyshares[i]), "Error setting keyshares to generate");
             }
         }
 
