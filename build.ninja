@@ -48,18 +48,6 @@ build install/strip: phony CMakeFiles/install/strip.util
 
 
 #############################################
-# Utility command for install/local
-
-build CMakeFiles/install/local.util: CUSTOM_COMMAND all
-  COMMAND = cd /Users/pkz/s2n && /usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
-  DESC = Installing only the local directory...
-  pool = console
-  restat = 1
-
-build install/local: phony CMakeFiles/install/local.util
-
-
-#############################################
 # Utility command for install
 
 build CMakeFiles/install.util: CUSTOM_COMMAND all
@@ -3245,6 +3233,18 @@ build bin/s2n_client_supported_versions_extension_test: C_EXECUTABLE_LINKER__s2n
   TARGET_FILE = bin/s2n_client_supported_versions_extension_test
   TARGET_PDB = s2n_client_supported_versions_extension_test.dbg
 
+
+#############################################
+# Utility command for install/local
+
+build CMakeFiles/install/local.util: CUSTOM_COMMAND all
+  COMMAND = cd /Users/pkz/s2n && /usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+  DESC = Installing only the local directory...
+  pool = console
+  restat = 1
+
+build install/local: phony CMakeFiles/install/local.util
+
 # =============================================================================
 # Object build statements for EXECUTABLE target s2n_handshake_errno_test
 
@@ -4030,39 +4030,6 @@ build bin/s2n_extensions_server_key_share_select_test: C_EXECUTABLE_LINKER__s2n_
   PRE_LINK = :
   TARGET_FILE = bin/s2n_extensions_server_key_share_select_test
   TARGET_PDB = s2n_extensions_server_key_share_select_test.dbg
-
-# =============================================================================
-# Object build statements for EXECUTABLE target s2n_kyber_r2_kem_test
-
-
-#############################################
-# Order-only phony target for s2n_kyber_r2_kem_test
-
-build cmake_object_order_depends_target_s2n_kyber_r2_kem_test: phony || cmake_object_order_depends_target_s2n cmake_object_order_depends_target_testss2n
-
-build CMakeFiles/s2n_kyber_r2_kem_test.dir/tests/unit/s2n_kyber_r2_kem_test.c.o: C_COMPILER__s2n_kyber_r2_kem_test_Debug tests/unit/s2n_kyber_r2_kem_test.c || cmake_object_order_depends_target_s2n_kyber_r2_kem_test
-  DEP_FILE = CMakeFiles/s2n_kyber_r2_kem_test.dir/tests/unit/s2n_kyber_r2_kem_test.c.o.d
-  FLAGS = -g -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk   -Wno-implicit-function-declaration -D_POSIX_C_SOURCE=200809L -std=gnu99 -DS2N_NO_PQ_ASM -DS2N_HAVE_EXECINFO -fPIC
-  INCLUDES = -Iapi -I. -Itests -I. -isystem /usr/local/Cellar/openssl@1.1/1.1.1g/include
-  OBJECT_DIR = CMakeFiles/s2n_kyber_r2_kem_test.dir
-  OBJECT_FILE_DIR = CMakeFiles/s2n_kyber_r2_kem_test.dir/tests/unit
-
-
-# =============================================================================
-# Link build statements for EXECUTABLE target s2n_kyber_r2_kem_test
-
-
-#############################################
-# Link the executable bin/s2n_kyber_r2_kem_test
-
-build bin/s2n_kyber_r2_kem_test: C_EXECUTABLE_LINKER__s2n_kyber_r2_kem_test_Debug CMakeFiles/s2n_kyber_r2_kem_test.dir/tests/unit/s2n_kyber_r2_kem_test.c.o | lib/libtestss2n.a lib/libs2n.a /usr/local/Cellar/openssl@1.1/1.1.1g/lib/libcrypto.a || lib/libs2n.a lib/libtestss2n.a
-  FLAGS = -g -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk
-  LINK_LIBRARIES = lib/libtestss2n.a  lib/libs2n.a  /usr/local/Cellar/openssl@1.1/1.1.1g/lib/libcrypto.a  -lc  -lm
-  OBJECT_DIR = CMakeFiles/s2n_kyber_r2_kem_test.dir
-  POST_BUILD = :
-  PRE_LINK = :
-  TARGET_FILE = bin/s2n_kyber_r2_kem_test
-  TARGET_PDB = s2n_kyber_r2_kem_test.dbg
 
 # =============================================================================
 # Object build statements for EXECUTABLE target s2n_auth_selection_test
@@ -7535,8 +7502,6 @@ build s2n_key_update_test: phony bin/s2n_key_update_test
 
 build s2n_kyber_r2_kat_test: phony bin/s2n_kyber_r2_kat_test
 
-build s2n_kyber_r2_kem_test: phony bin/s2n_kyber_r2_kem_test
-
 build s2n_malformed_handshake_test: phony bin/s2n_malformed_handshake_test
 
 build s2n_map_test: phony bin/s2n_map_test
@@ -7719,7 +7684,7 @@ build testss2n: phony lib/libtestss2n.a
 #############################################
 # Folder: /Users/pkz/s2n
 
-build all: phony bin/s2n_utils_test bin/s2n_choose_supported_group_test bin/s2nd bin/s2nc bin/s2n_server_hello_test bin/s2n_stuffer_network_order_test bin/s2n_tls13_keys_test bin/s2n_tls_hybrid_prf_test bin/s2n_tls13_support_test bin/s2n_tls13_state_machine_handshake_test bin/s2n_change_cipher_spec_test bin/s2n_self_talk_min_protocol_version_test bin/s2n_tls13_server_cert_test bin/s2n_key_update_test bin/s2n_server_renegotiation_info_test bin/s2n_wildcard_hostname_test bin/s2n_tls13_record_aead_test bin/s2n_tls13_parse_record_type_test bin/s2n_record_test bin/s2n_tls13_handshake_test bin/s2n_tls13_cookie_test bin/s2n_tls13_client_finished_test bin/s2n_tls13_cert_request_test bin/s2n_tls13_cert_request_extensions_test bin/s2n_server_certificate_status_test bin/s2n_tls12_handshake_test bin/s2n_aead_aes_test bin/s2n_stuffer_test bin/s2n_stuffer_base64_test bin/s2n_client_hello_recv_test bin/s2n_str_test bin/s2n_sike_r2_kem_test bin/s2n_signature_algorithms_test bin/s2n_session_ticket_test bin/s2n_pem_rsa_dhe_test bin/s2n_server_status_request_extension_test bin/s2n_server_signature_algorithms_extension_test bin/s2n_server_server_name_extension_test bin/s2n_server_sct_list_extension_test bin/s2n_server_max_frag_len_extension_test bin/s2n_server_extensions_test bin/s2n_server_alpn_extension_test bin/s2n_self_talk_tls13_test bin/s2n_self_talk_nonblocking_test bin/s2n_client_cert_request_context_test bin/s2n_self_talk_custom_io_test bin/s2n_self_talk_broken_pipe_test bin/s2n_server_hello_retry_test bin/s2n_self_talk_alerts_test bin/s2n_safety_test bin/s2n_rfc5952_test bin/s2n_sike_r2_kat_test bin/s2n_record_size_test bin/s2n_rc4_test bin/s2n_pq_asm_noop_test bin/s2n_tls_prf_test bin/s2n_pem_test bin/s2n_mutual_auth_test bin/s2n_mem_usage_test bin/s2n_map_test bin/s2n_key_share_extension_test bin/s2n_security_policies_test bin/s2n_override_openssl_random_test bin/s2n_bike_r1_kem_test bin/s2n_kyber_r2_kat_test bin/s2n_timer_test bin/s2n_hkdf_test bin/s2n_server_session_ticket_extension_test bin/s2n_kex_test bin/s2n_hybrid_ecdhe_sike_r2_test bin/s2n_set_test bin/s2n_tls13_cert_verify_test bin/s2n_hybrid_ecdhe_bike_r2_test bin/s2n_client_alpn_extension_test bin/s2n_tls_record_stuffer_test bin/s2n_tls13_zero_length_payload_test bin/s2n_3des_test bin/s2n_client_signature_algorithms_extension_test bin/s2n_hmac_test bin/s2n_fragmentation_coalescing_test bin/s2n_hash_test bin/s2n_stuffer_hex_test bin/s2n_handshake_test bin/s2n_client_secure_renegotiation_test bin/s2n_extension_list_process_test bin/s2n_extension_list_parse_test bin/s2n_connection_test bin/s2n_ecc_point_format_extension_test bin/s2n_connection_preferences_test bin/s2n_connection_context_test bin/s2n_sike_r1_kem_test bin/s2n_self_talk_session_id_test bin/s2n_optional_client_auth_test bin/s2n_client_supported_versions_extension_test bin/s2n_handshake_errno_test bin/s2n_client_sct_list_extension_test bin/s2n_client_supported_groups_extension_test bin/s2n_error_type_test bin/s2n_hybrid_ecdhe_bike_r1_test bin/s2n_client_renegotiation_info_extension_test bin/s2n_self_talk_client_hello_cb_test bin/s2n_parse_client_supported_groups_list_test bin/s2n_client_pq_kem_extension_test bin/s2n_client_max_frag_len_extension_test bin/s2n_client_key_share_extension_test bin/s2n_certificate_extensions_test bin/s2n_client_empty_cert_test lib/liballocator_overrides.dylib bin/s2n_client_extensions_test bin/s2n_extension_type_lists_test bin/s2n_x509_validator_test bin/s2n_ecc_evp_test bin/s2n_cleanup_test bin/s2n_self_talk_test bin/s2n_cipher_suite_match_test bin/s2n_client_session_ticket_extension_test bin/s2n_extensions_server_key_share_select_test bin/s2n_kyber_r2_kem_test bin/s2n_auth_selection_test bin/s2n_ssl_prf_test bin/s2n_client_auth_handshake_test bin/s2n_cbc_verify_test bin/s2n_bike_r2_kem_test bin/s2n_tls13_prf_test bin/s2n_mem_allocator_test bin/s2n_client_record_version_test bin/s2n_bike_r2_kat_test bin/s2n_error_lookup_test bin/s2n_client_server_name_extension_test bin/s2n_tls13_compute_shared_secret_test bin/s2n_drain_alert_test bin/s2n_tls13_server_finished_test bin/s2n_config_test bin/s2n_asn1_time_test lib/libtestss2n.a bin/s2n_server_supported_versions_extension_test lib/libs2n.a bin/s2n_aead_chacha20_poly1305_test bin/s2n_bike_r1_kat_test bin/s2n_malformed_handshake_test bin/s2n_drbg_test bin/s2n_encrypted_extensions_test bin/s2n_random_test bin/s2n_blob_test bin/s2n_aes_sha_composite_test bin/s2n_cert_chain_and_key_test bin/s2n_sike_r1_kat_test bin/s2n_extension_list_send_test bin/s2n_ecdsa_test bin/s2n_extension_type_test bin/s2n_release_non_empty_buffers_test bin/s2n_server_key_share_extension_test bin/s2n_rsa_pss_test bin/s2n_self_talk_alpn_test bin/s2n_stacktrace_test bin/s2n_client_hello_test bin/s2n_kem_test bin/s2n_rsa_pss_rsae_test bin/s2n_hybrid_ecdhe_sike_r1_test bin/s2n_stuffer_text_test bin/s2n_array_test bin/s2n_client_status_request_extension_test bin/s2n_kex_with_kem_test bin/s2n_aes_test
+build all: phony bin/s2n_utils_test bin/s2n_choose_supported_group_test bin/s2nd bin/s2nc bin/s2n_server_hello_test bin/s2n_stuffer_network_order_test bin/s2n_tls13_keys_test bin/s2n_tls_hybrid_prf_test bin/s2n_tls13_support_test bin/s2n_tls13_state_machine_handshake_test bin/s2n_change_cipher_spec_test bin/s2n_self_talk_min_protocol_version_test bin/s2n_tls13_server_cert_test bin/s2n_key_update_test bin/s2n_server_renegotiation_info_test bin/s2n_wildcard_hostname_test bin/s2n_tls13_record_aead_test bin/s2n_tls13_parse_record_type_test bin/s2n_record_test bin/s2n_tls13_handshake_test bin/s2n_tls13_cookie_test bin/s2n_tls13_client_finished_test bin/s2n_tls13_cert_request_test bin/s2n_tls13_cert_request_extensions_test bin/s2n_server_certificate_status_test bin/s2n_tls12_handshake_test bin/s2n_aead_aes_test bin/s2n_stuffer_test bin/s2n_stuffer_base64_test bin/s2n_client_hello_recv_test bin/s2n_str_test bin/s2n_sike_r2_kem_test bin/s2n_signature_algorithms_test bin/s2n_session_ticket_test bin/s2n_pem_rsa_dhe_test bin/s2n_server_status_request_extension_test bin/s2n_server_signature_algorithms_extension_test bin/s2n_server_server_name_extension_test bin/s2n_server_sct_list_extension_test bin/s2n_server_max_frag_len_extension_test bin/s2n_server_extensions_test bin/s2n_server_alpn_extension_test bin/s2n_self_talk_tls13_test bin/s2n_self_talk_nonblocking_test bin/s2n_client_cert_request_context_test bin/s2n_self_talk_custom_io_test bin/s2n_self_talk_broken_pipe_test bin/s2n_server_hello_retry_test bin/s2n_self_talk_alerts_test bin/s2n_safety_test bin/s2n_rfc5952_test bin/s2n_sike_r2_kat_test bin/s2n_record_size_test bin/s2n_rc4_test bin/s2n_pq_asm_noop_test bin/s2n_tls_prf_test bin/s2n_pem_test bin/s2n_mutual_auth_test bin/s2n_mem_usage_test bin/s2n_map_test bin/s2n_key_share_extension_test bin/s2n_security_policies_test bin/s2n_override_openssl_random_test bin/s2n_bike_r1_kem_test bin/s2n_kyber_r2_kat_test bin/s2n_timer_test bin/s2n_hkdf_test bin/s2n_server_session_ticket_extension_test bin/s2n_kex_test bin/s2n_hybrid_ecdhe_sike_r2_test bin/s2n_set_test bin/s2n_tls13_cert_verify_test bin/s2n_hybrid_ecdhe_bike_r2_test bin/s2n_client_alpn_extension_test bin/s2n_tls_record_stuffer_test bin/s2n_tls13_zero_length_payload_test bin/s2n_3des_test bin/s2n_client_signature_algorithms_extension_test bin/s2n_hmac_test bin/s2n_fragmentation_coalescing_test bin/s2n_hash_test bin/s2n_stuffer_hex_test bin/s2n_handshake_test bin/s2n_client_secure_renegotiation_test bin/s2n_extension_list_process_test bin/s2n_extension_list_parse_test bin/s2n_connection_test bin/s2n_ecc_point_format_extension_test bin/s2n_connection_preferences_test bin/s2n_connection_context_test bin/s2n_sike_r1_kem_test bin/s2n_self_talk_session_id_test bin/s2n_optional_client_auth_test bin/s2n_client_supported_versions_extension_test bin/s2n_handshake_errno_test bin/s2n_client_sct_list_extension_test bin/s2n_client_supported_groups_extension_test bin/s2n_error_type_test bin/s2n_hybrid_ecdhe_bike_r1_test bin/s2n_client_renegotiation_info_extension_test bin/s2n_self_talk_client_hello_cb_test bin/s2n_parse_client_supported_groups_list_test bin/s2n_client_pq_kem_extension_test bin/s2n_client_max_frag_len_extension_test bin/s2n_client_key_share_extension_test bin/s2n_certificate_extensions_test bin/s2n_client_empty_cert_test lib/liballocator_overrides.dylib bin/s2n_client_extensions_test bin/s2n_extension_type_lists_test bin/s2n_x509_validator_test bin/s2n_ecc_evp_test bin/s2n_cleanup_test bin/s2n_self_talk_test bin/s2n_cipher_suite_match_test bin/s2n_client_session_ticket_extension_test bin/s2n_extensions_server_key_share_select_test bin/s2n_auth_selection_test bin/s2n_ssl_prf_test bin/s2n_client_auth_handshake_test bin/s2n_cbc_verify_test bin/s2n_bike_r2_kem_test bin/s2n_tls13_prf_test bin/s2n_mem_allocator_test bin/s2n_client_record_version_test bin/s2n_bike_r2_kat_test bin/s2n_error_lookup_test bin/s2n_client_server_name_extension_test bin/s2n_tls13_compute_shared_secret_test bin/s2n_drain_alert_test bin/s2n_tls13_server_finished_test bin/s2n_config_test bin/s2n_asn1_time_test lib/libtestss2n.a bin/s2n_server_supported_versions_extension_test lib/libs2n.a bin/s2n_aead_chacha20_poly1305_test bin/s2n_bike_r1_kat_test bin/s2n_malformed_handshake_test bin/s2n_drbg_test bin/s2n_encrypted_extensions_test bin/s2n_random_test bin/s2n_blob_test bin/s2n_aes_sha_composite_test bin/s2n_cert_chain_and_key_test bin/s2n_sike_r1_kat_test bin/s2n_extension_list_send_test bin/s2n_ecdsa_test bin/s2n_extension_type_test bin/s2n_release_non_empty_buffers_test bin/s2n_server_key_share_extension_test bin/s2n_rsa_pss_test bin/s2n_self_talk_alpn_test bin/s2n_stacktrace_test bin/s2n_client_hello_test bin/s2n_kem_test bin/s2n_rsa_pss_rsae_test bin/s2n_hybrid_ecdhe_sike_r1_test bin/s2n_stuffer_text_test bin/s2n_array_test bin/s2n_client_status_request_extension_test bin/s2n_kex_with_kem_test bin/s2n_aes_test
 
 # =============================================================================
 # Unknown Build Time Dependencies.

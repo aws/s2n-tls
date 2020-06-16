@@ -2245,25 +2245,6 @@ rule C_EXECUTABLE_LINKER__s2n_extensions_server_key_share_select_test_Debug
 #############################################
 # Rule for compiling C files.
 
-rule C_COMPILER__s2n_kyber_r2_kem_test_Debug
-  depfile = $DEP_FILE
-  deps = gcc
-  command = /usr/bin/gcc $DEFINES $INCLUDES $FLAGS -MD -MT $out -MF $DEP_FILE -o $out   -c $in
-  description = Building C object $out
-
-
-#############################################
-# Rule for linking C executable.
-
-rule C_EXECUTABLE_LINKER__s2n_kyber_r2_kem_test_Debug
-  command = $PRE_LINK && /usr/bin/gcc $FLAGS -Wl,-search_paths_first -Wl,-headerpad_max_install_names $LINK_FLAGS $in  -o $TARGET_FILE $LINK_PATH $LINK_LIBRARIES && $POST_BUILD
-  description = Linking C executable $TARGET_FILE
-  restat = $RESTAT
-
-
-#############################################
-# Rule for compiling C files.
-
 rule C_COMPILER__s2n_auth_selection_test_Debug
   depfile = $DEP_FILE
   deps = gcc

@@ -28,7 +28,7 @@
 /* This fuzz test uses the first private key from tests/unit/kats/kyber_r2.kat, the valid ciphertext generated with the
  * public key was copied to corpus/s2n_kyber_r2_fuzz_test/valid_ciphertext */
 
-static struct s2n_kem_params server_kem_params = {.kem = & s2n_kyber_512_r2};
+static struct s2n_kem_params server_kem_params = {.kem = &s2n_kyber_512_r2};
 
 static void s2n_fuzz_atexit()
 {

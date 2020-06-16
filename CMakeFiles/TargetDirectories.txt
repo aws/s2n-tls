@@ -1,5 +1,4 @@
 /Users/pkz/s2n/CMakeFiles/install/strip.dir
-/Users/pkz/s2n/CMakeFiles/install/local.dir
 /Users/pkz/s2n/CMakeFiles/install.dir
 /Users/pkz/s2n/CMakeFiles/s2n_utils_test.dir
 /Users/pkz/s2n/CMakeFiles/s2n_choose_supported_group_test.dir
@@ -103,6 +102,7 @@
 /Users/pkz/s2n/CMakeFiles/s2n_self_talk_session_id_test.dir
 /Users/pkz/s2n/CMakeFiles/s2n_optional_client_auth_test.dir
 /Users/pkz/s2n/CMakeFiles/s2n_client_supported_versions_extension_test.dir
+/Users/pkz/s2n/CMakeFiles/install/local.dir
 /Users/pkz/s2n/CMakeFiles/s2n_handshake_errno_test.dir
 /Users/pkz/s2n/CMakeFiles/NightlyStart.dir
 /Users/pkz/s2n/CMakeFiles/s2n_client_sct_list_extension_test.dir
@@ -130,7 +130,6 @@
 /Users/pkz/s2n/CMakeFiles/s2n_cipher_suite_match_test.dir
 /Users/pkz/s2n/CMakeFiles/s2n_client_session_ticket_extension_test.dir
 /Users/pkz/s2n/CMakeFiles/s2n_extensions_server_key_share_select_test.dir
-/Users/pkz/s2n/CMakeFiles/s2n_kyber_r2_kem_test.dir
 /Users/pkz/s2n/CMakeFiles/s2n_auth_selection_test.dir
 /Users/pkz/s2n/CMakeFiles/Continuous.dir
 /Users/pkz/s2n/CMakeFiles/s2n_ssl_prf_test.dir
