@@ -104,65 +104,106 @@ available_ports = AvailablePorts()
 # Server certificates used to test matching domain names client with server_name
 # ( cert_path, private_key_path, domains[] )
 SNI_CERTS = {
-    "alligator" : ( TEST_SNI_CERT_DIRECTORY + "alligator_cert.pem", TEST_SNI_CERT_DIRECTORY + "alligator_key.pem",
-            ["www.alligator.com"]),
-    "second_alligator_rsa" : ( TEST_SNI_CERT_DIRECTORY + "second_alligator_rsa_cert.pem", TEST_SNI_CERT_DIRECTORY + "second_alligator_rsa_key.pem",
-            ["www.alligator.com"]),
-    "alligator_ecdsa" : ( TEST_SNI_CERT_DIRECTORY + "alligator_ecdsa_cert.pem", TEST_SNI_CERT_DIRECTORY +
-            "alligator_ecdsa_key.pem", ["www.alligator.com"]),
-    "beaver"    : ( TEST_SNI_CERT_DIRECTORY + "beaver_cert.pem", TEST_SNI_CERT_DIRECTORY + "beaver_key.pem",
-            ["www.beaver.com"]),
-    "many_animals" : (TEST_SNI_CERT_DIRECTORY + "many_animal_sans_rsa_cert.pem", TEST_SNI_CERT_DIRECTORY + "many_animal_sans_rsa_key.pem",
-            ["www.catfish.com",
-            "www.dolphin.com",
-            "www.elephant.com",
-            "www.falcon.com",
-            "www.gorilla.com",
-            "www.horse.com",
-            "www.impala.com",
-            # "Simple hostname"
-            "Jackal",
-            "k.e.e.l.b.i.l.l.e.d.t.o.u.c.a.n",
-            # SAN on this cert is actually "ladybug.ladybug"
-            # Verify case insensitivity works as expected.
-            "LADYBUG.LADYBUG",
-            "com.penguin.macaroni"
-            ]),
-    "narwhal_cn" : ( TEST_SNI_CERT_DIRECTORY + "narwhal_cn_cert.pem", TEST_SNI_CERT_DIRECTORY + "narwhal_cn_key.pem",
-            ["www.narwhal.com"]),
-    "octopus_cn_platypus_san" : ( TEST_SNI_CERT_DIRECTORY + "octopus_cn_platypus_san_cert.pem", TEST_SNI_CERT_DIRECTORY
-            + "octopus_cn_platypus_san_key.pem", ["www.platypus.com"]),
-    "quail_cn_rattlesnake_cn" : ( TEST_SNI_CERT_DIRECTORY + "quail_cn_rattlesnake_cn_cert.pem", TEST_SNI_CERT_DIRECTORY
-            + "quail_cn_rattlesnake_cn_key.pem", ["www.quail.com", "www.rattlesnake.com"]),
-    "many_animals_mixed_case" : (TEST_SNI_CERT_DIRECTORY + "many_animal_sans_mixed_case_rsa_cert.pem", 
-            TEST_SNI_CERT_DIRECTORY + "many_animal_sans_mixed_case_rsa_key.pem",
-            ["alligator.com",
-            "beaver.com",
-            "catFish.com",
-            "WWW.dolphin.COM",
-            "www.ELEPHANT.com",
-            "www.Falcon.Com",
-            "WWW.gorilla.COM",
-            "www.horse.com",
-            "WWW.IMPALA.COM",
-            "WwW.jAcKaL.cOm"]),
-    "embedded_wildcard" : ( TEST_SNI_CERT_DIRECTORY + "embedded_wildcard_rsa_cert.pem",
-            TEST_SNI_CERT_DIRECTORY + "embedded_wildcard_rsa_key.pem", ["www.labelstart*labelend.com"]),
-    "non_empty_label_wildcard" : ( TEST_SNI_CERT_DIRECTORY + "non_empty_label_wildcard_rsa_cert.pem",
-            TEST_SNI_CERT_DIRECTORY + "non_empty_label_wildcard_rsa_key.pem", ["WILD*.middle.end"]),
-    "trailing_wildcard" : ( TEST_SNI_CERT_DIRECTORY + "trailing_wildcard_rsa_cert.pem",
-            TEST_SNI_CERT_DIRECTORY + "trailing_wildcard_rsa_key.pem", ["the.prefix.*"]),
-    "wildcard_insect" : ( TEST_SNI_CERT_DIRECTORY + "wildcard_insect_rsa_cert.pem",
-            TEST_SNI_CERT_DIRECTORY + "wildcard_insect_rsa_key.pem",
-            ["ant.insect.hexapod",
-            "BEE.insect.hexapod",
-            "wasp.INSECT.hexapod",
-            "butterfly.insect.hexapod",
-            ]),
-    "termite" : ( TEST_SNI_CERT_DIRECTORY + "termite_rsa_cert.pem", TEST_SNI_CERT_DIRECTORY + "termite_rsa_key.pem",
-            [ "termite.insect.hexapod" ]),
-    "underwing" : ( TEST_SNI_CERT_DIRECTORY + "underwing_ecdsa_cert.pem", TEST_SNI_CERT_DIRECTORY + "underwing_ecdsa_key.pem",
-            [ "underwing.insect.hexapod" ])
+    "alligator" : (
+        TEST_SNI_CERT_DIRECTORY + "alligator_cert.pem",
+        TEST_SNI_CERT_DIRECTORY + "alligator_key.pem",
+        ["www.alligator.com"]
+    ),
+    "second_alligator_rsa" : (
+        TEST_SNI_CERT_DIRECTORY + "second_alligator_rsa_cert.pem",
+        TEST_SNI_CERT_DIRECTORY + "second_alligator_rsa_key.pem",
+        ["www.alligator.com"]
+    ),
+    "alligator_ecdsa" : (
+        TEST_SNI_CERT_DIRECTORY + "alligator_ecdsa_cert.pem",
+        TEST_SNI_CERT_DIRECTORY + "alligator_ecdsa_key.pem",
+        ["www.alligator.com"]
+    ),
+    "beaver" : (
+        TEST_SNI_CERT_DIRECTORY + "beaver_cert.pem",
+        TEST_SNI_CERT_DIRECTORY + "beaver_key.pem",
+        ["www.beaver.com"]
+    ),
+    "many_animals" : (
+        TEST_SNI_CERT_DIRECTORY + "many_animal_sans_rsa_cert.pem",
+        TEST_SNI_CERT_DIRECTORY + "many_animal_sans_rsa_key.pem",
+        ["www.catfish.com",
+        "www.dolphin.com",
+        "www.elephant.com",
+        "www.falcon.com",
+        "www.gorilla.com",
+        "www.horse.com",
+        "www.impala.com",
+        # "Simple hostname"
+        "Jackal",
+        "k.e.e.l.b.i.l.l.e.d.t.o.u.c.a.n",
+        # SAN on this cert is actually "ladybug.ladybug"
+        # Verify case insensitivity works as expected.
+        "LADYBUG.LADYBUG",
+        "com.penguin.macaroni"]
+    ),
+    "narwhal_cn" : (
+        TEST_SNI_CERT_DIRECTORY + "narwhal_cn_cert.pem",
+        TEST_SNI_CERT_DIRECTORY + "narwhal_cn_key.pem",
+        ["www.narwhal.com"]
+    ),
+    "octopus_cn_platypus_san" : (
+        TEST_SNI_CERT_DIRECTORY + "octopus_cn_platypus_san_cert.pem",
+        TEST_SNI_CERT_DIRECTORY + "octopus_cn_platypus_san_key.pem",
+        ["www.platypus.com"]
+    ),
+    "quail_cn_rattlesnake_cn" : (
+        TEST_SNI_CERT_DIRECTORY + "quail_cn_rattlesnake_cn_cert.pem",
+        TEST_SNI_CERT_DIRECTORY + "quail_cn_rattlesnake_cn_key.pem",
+        ["www.quail.com", "www.rattlesnake.com"]
+    ),
+    "many_animals_mixed_case" : (
+        TEST_SNI_CERT_DIRECTORY + "many_animal_sans_mixed_case_rsa_cert.pem",
+        TEST_SNI_CERT_DIRECTORY + "many_animal_sans_mixed_case_rsa_key.pem",
+        ["alligator.com",
+        "beaver.com",
+        "catFish.com",
+        "WWW.dolphin.COM",
+        "www.ELEPHANT.com",
+        "www.Falcon.Com",
+        "WWW.gorilla.COM",
+        "www.horse.com",
+        "WWW.IMPALA.COM",
+        "WwW.jAcKaL.cOm"]
+    ),
+    "embedded_wildcard" : (
+        TEST_SNI_CERT_DIRECTORY + "embedded_wildcard_rsa_cert.pem",
+        TEST_SNI_CERT_DIRECTORY + "embedded_wildcard_rsa_key.pem",
+        ["www.labelstart*labelend.com"]
+    ),
+    "non_empty_label_wildcard" : (
+        TEST_SNI_CERT_DIRECTORY + "non_empty_label_wildcard_rsa_cert.pem",
+        TEST_SNI_CERT_DIRECTORY + "non_empty_label_wildcard_rsa_key.pem",
+        ["WILD*.middle.end"]
+    ),
+    "trailing_wildcard" : (
+        TEST_SNI_CERT_DIRECTORY + "trailing_wildcard_rsa_cert.pem",
+        TEST_SNI_CERT_DIRECTORY + "trailing_wildcard_rsa_key.pem",
+        ["the.prefix.*"]
+    ),
+    "wildcard_insect" : (
+        TEST_SNI_CERT_DIRECTORY + "wildcard_insect_rsa_cert.pem",
+        TEST_SNI_CERT_DIRECTORY + "wildcard_insect_rsa_key.pem",
+        ["ant.insect.hexapod",
+        "BEE.insect.hexapod",
+        "wasp.INSECT.hexapod",
+        "butterfly.insect.hexapod"]
+    ),
+    "termite" : (
+        TEST_SNI_CERT_DIRECTORY + "termite_rsa_cert.pem",
+        TEST_SNI_CERT_DIRECTORY + "termite_rsa_key.pem",
+        [ "termite.insect.hexapod" ]
+    ),
+    "underwing" : (
+        TEST_SNI_CERT_DIRECTORY + "underwing_ecdsa_cert.pem",
+        TEST_SNI_CERT_DIRECTORY + "underwing_ecdsa_key.pem",
+        [ "underwing.insect.hexapod" ]
+    )
 }
 
 
