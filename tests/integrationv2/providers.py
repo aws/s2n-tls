@@ -146,6 +146,9 @@ class S2N(Provider):
         if options.client_certificate_file:
             cmd_line.extend(['--cert', options.client_certificate_file])
 
+        if options.extra_flags is not None:
+            cmd_line.extend(options.extra_flags)
+
         cmd_line.extend([options.host, options.port])
 
         # Clients are always ready to connect
