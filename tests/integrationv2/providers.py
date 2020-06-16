@@ -191,28 +191,52 @@ class S2N(Provider):
 
 class OpenSSL(Provider):
 
+    supported_ciphers = {
+        Ciphers.AES128_GCM_SHA256: 'TLS_AES_128_GCM_SHA256',
+        Ciphers.AES256_GCM_SHA384: 'TLS_AES_256_GCM_SHA384',
+        Ciphers.CHACHA20_POLY1305_SHA256: 'TLS_CHACHA20_POLY1305_SHA256',
+    }
+
     def __init__(self, options: ProviderOptions):
         self.ready_to_send_input_marker = None
         Provider.__init__(self, options)
 
-    def cipher_to_cmdline(self, protocol, cipher):
+    def _join_ciphers(self, ciphers):
+        """
+        Given a list of ciphers, join the names with a ':' like OpenSSL expects
+        """
+        assert type(ciphers) is list
+
+        cipher_list = []
+        for c in ciphers:
+            if c.min_version is Protocols.TLS13:
+                cipher_list.append(OpenSSL.supported_ciphers[c])
+            else:
+                # This replace is only done for ciphers that are not TLS13 specific.
+                # Run `openssl ciphers` to view the inconsistency in naming.
+                cipher_list.append(c.name.replace("_", "-"))
+
+        ciphers = ':'.join(cipher_list)
+
+        return ciphers
+
+    def _cipher_to_cmdline(self, protocol, cipher):
         cmdline = list()
 
-        # Prior to TLS13 the -cipher flag is used
-        if cipher.min_version == Protocols.TLS13:
-            supported_ciphers = {
-                Ciphers.AES128_GCM_SHA256: 'TLS_AES_128_GCM_SHA256',
-                Ciphers.AES256_GCM_SHA384: 'TLS_AES_256_GCM_SHA384',
-                Ciphers.CHACHA20_POLY1305_SHA256: 'TLS_CHACHA20_POLY1305_SHA256',
-            }
+        cmdline.append('-cipher')
 
-            cmdline.append('-ciphersuites')
-            cmdline.append(supported_ciphers[cipher])
+        ciphers = []
+        if type(cipher) is list:
+            ciphers.append(self._join_ciphers(cipher))
         else:
-            cmdline.append('-cipher')
-            cmdline.append(cipher.name.replace("_", "-"))
+            if cipher.min_version == Protocols.TLS13:
+                ciphers.append(OpenSSL.supported_ciphers[cipher])
+            else:
+                # This replace is only done for ciphers that are not TLS13 specific.
+                # Run `openssl ciphers` to view the inconsistency in naming.
+                ciphers.append(cipher.name.replace("_", "-"))
 
-        return cmdline
+        return cmdline + ciphers
 
     def setup_client(self, options: ProviderOptions):
         # s_client prints this message before it is ready to send/receive data
@@ -241,7 +265,7 @@ class OpenSSL(Provider):
             cmd_line.append('-tls1')
 
         if options.cipher is not None:
-            cmd_line.extend(self.cipher_to_cmdline(options.protocol, options.cipher))
+            cmd_line.extend(self._cipher_to_cmdline(options.protocol, options.cipher))
 
         if options.curve is not None:
             cmd_line.extend(['-curves', str(options.curve)])
@@ -252,6 +276,12 @@ class OpenSSL(Provider):
 
         if options.reconnect is True:
             cmd_line.append('-reconnect')
+
+        if options.server_name is not None:
+            cmd_line.extend(['-servername', options.server_name])
+            if options.verify_hostname is not None:
+                cmd_line.extend(['-verify_hostname', options.server_name])
+
 
         if options.extra_flags is not None:
             cmd_line.extend(options.extra_flags)
@@ -297,7 +327,7 @@ class OpenSSL(Provider):
             cmd_line.append('-tls1')
 
         if options.cipher is not None:
-            cmd_line.extend(self.cipher_to_cmdline(options.protocol, options.cipher))
+            cmd_line.extend(self._cipher_to_cmdline(options.protocol, options.cipher))
             if options.cipher.parameters is not None:
                 cmd_line.extend(['-dhparam', options.cipher.parameters])
 

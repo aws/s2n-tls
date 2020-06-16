@@ -270,6 +270,8 @@ class ProviderOptions(object):
             client_trust_store=None,
             reconnects_before_exit=None,
             reconnect=None,
+            verify_hostname=None,
+            server_name=None,
             protocol=None):
 
         # Client or server
@@ -316,6 +318,13 @@ class ProviderOptions(object):
 
         # Tell the client to reconnect
         self.reconnect = reconnect
+
+        # Tell the client to verify that the hostname returned by the server
+        # matches this argument
+        self.verify_hostname = verify_hostname
+
+        # Tell the client to send this server name to the server
+        self.server_name = server_name
 
         # Extra flags to pass to the provider
         self.extra_flags = extra_flags
