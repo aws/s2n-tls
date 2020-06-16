@@ -44,8 +44,6 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
-int s2n_parse_client_hello(struct s2n_connection *conn);
-
 struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn) {
     if (conn->client_hello.parsed != 1) {
         return NULL;
@@ -146,7 +144,7 @@ int s2n_collect_client_hello(struct s2n_connection *conn, struct s2n_stuffer *so
     return 0;
 }
 
-int s2n_parse_client_hello(struct s2n_connection *conn)
+static int s2n_parse_client_hello(struct s2n_connection *conn)
 {
     notnull_check(conn);
     GUARD(s2n_collect_client_hello(conn, &conn->handshake.io));
