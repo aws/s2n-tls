@@ -42,11 +42,13 @@ void s2n_stuffer_alloc_harness() {
         assert(stuffer->blob.size == size);
         assert(s2n_stuffer_is_valid(stuffer));
     } else {
-        assert(stuffer->read_cursor == old_stuffer.read_cursor);
-        assert(stuffer->write_cursor == old_stuffer.write_cursor);
-        assert(stuffer->high_water_mark == old_stuffer.high_water_mark);
-        assert(stuffer->alloced == old_stuffer.alloced);
-        assert(stuffer->growable == old_stuffer.growable);
-        assert(stuffer->tainted == old_stuffer.tainted);
+        assert(stuffer->blob.data == NULL);
+        assert(stuffer->blob.size == 0);
+        assert(stuffer->read_cursor == 0);
+        assert(stuffer->write_cursor == 0);
+        assert(stuffer->high_water_mark == 0);
+        assert(stuffer->alloced == 0);
+        assert(stuffer->growable == 0);
+        assert(stuffer->tainted == 0);
     }
 }

@@ -51,6 +51,7 @@ int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in)
 int s2n_stuffer_alloc(struct s2n_stuffer *stuffer, const uint32_t size)
 {
     notnull_check(stuffer);
+    *stuffer = (struct s2n_stuffer) {0};
     GUARD(s2n_alloc(&stuffer->blob, size));
     GUARD(s2n_stuffer_init(stuffer, &stuffer->blob));
 
