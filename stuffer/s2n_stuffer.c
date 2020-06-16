@@ -368,5 +368,7 @@ int s2n_stuffer_extract_blob(struct s2n_stuffer *stuffer, struct s2n_blob *out)
                      stuffer->blob.data + stuffer->read_cursor,
                      s2n_stuffer_data_available(stuffer));
     }
+
+    POSTCONDITION_POSIX(s2n_blob_is_valid(out));
     return S2N_SUCCESS;
 }
