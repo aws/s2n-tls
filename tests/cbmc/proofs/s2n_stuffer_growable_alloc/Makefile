@@ -23,7 +23,7 @@ DEPENDENCIES += $(SRCDIR)/utils/s2n_ensure.c
 DEPENDENCIES += $(SRCDIR)/utils/s2n_mem.c
 DEPENDENCIES += $(SRCDIR)/utils/s2n_safety.c
 
-ENTRY = s2n_stuffer_alloc_harness
+ENTRY = s2n_stuffer_growable_alloc_harness
 
 # We abstract these functions because manual inspection demonstrates they are unreachable.
 REMOVE_FUNCTION_BODY += --remove-function-body s2n_blob_slice
