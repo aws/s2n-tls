@@ -39,20 +39,15 @@ void s2n_stuffer_extract_blob_harness() {
     struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
-    //struct store_byte_from_buffer old_byte_from_available_region;
-    //save_byte_from_array(stuffer->blob.data + stuffer->read_cursor, s2n_stuffer_data_available(stuffer), &old_byte_from_available_region);
-    uint32_t index;
-    /* Store a byte from the stuffer that won't be overwritten to compare if the write succeeds. */
-    __CPROVER_assume(index >= old_stuffer.read_cursor && index < old_stuffer.write_cursor);
-    uint8_t untouched_byte = stuffer->blob.data[index];
 
     /* Operation under verification. */
     if (s2n_stuffer_extract_blob(stuffer, blob) == S2N_SUCCESS) {
         assert(s2n_blob_is_valid(blob));
+        assert(blob->size == s2n_stuffer_data_available(stuffer));
         if (blob->size > 0) {
-            size_t i;
-            __CPROVER_assume(i < blob->size);
-            assert(blob->data[i] = untouched_byte);
+            uint32_t index;
+            __CPROVER_assume(index < blob->size);
+            assert(blob->data[index] == stuffer->blob.data[stuffer->read_cursor + index]);
         }
     }
 

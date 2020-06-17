@@ -29,7 +29,6 @@ ENTRY = s2n_stuffer_extract_blob_harness
 
 # We abstract these functions because manual inspection demonstrates they are unreachable.
 REMOVE_FUNCTION_BODY += --remove-function-body s2n_blob_slice
-REMOVE_FUNCTION_BODY += --remove-function-body s2n_ensure_memcpy_trace
 
 UNWINDSET +=
 

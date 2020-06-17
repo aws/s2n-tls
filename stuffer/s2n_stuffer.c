@@ -360,7 +360,6 @@ int s2n_stuffer_extract_blob(struct s2n_stuffer *stuffer, struct s2n_blob *out)
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     notnull_check(out);
-    //GUARD(s2n_free(out));
     GUARD(s2n_realloc(out , s2n_stuffer_data_available(stuffer)));
 
     if (s2n_stuffer_data_available(stuffer) > 0) {
