@@ -15,6 +15,7 @@
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
+#include "utils/s2n_mem.h"
 
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/proof_allocators.h>
