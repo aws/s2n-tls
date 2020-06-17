@@ -52,6 +52,11 @@ void s2n_stuffer_reserve_space_harness() {
             assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
         }
     } else {
+        /*
+         * s2n_realloc could fail, so we can onyl guarantee equivalence of
+         * data pointer, but not the elements in it.
+         */
+        assert(stuffer->blob.data == old_stuffer.blob.data);
         assert(stuffer->blob.size == old_stuffer.blob.size);
         assert(stuffer->write_cursor == old_stuffer.write_cursor);
         assert(stuffer->high_water_mark == old_stuffer.high_water_mark);
