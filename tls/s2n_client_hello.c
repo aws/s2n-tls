@@ -177,8 +177,9 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
 
     uint16_t cipher_suites_length = 0;
     GUARD(s2n_stuffer_read_uint16(in, &cipher_suites_length));
-    S2N_ERROR_IF(cipher_suites_length % S2N_TLS_CIPHER_SUITE_LEN || cipher_suites_length == 0, S2N_ERR_BAD_MESSAGE);
-
+    ENSURE_POSIX(cipher_suites_length > 0, S2N_ERR_BAD_MESSAGE);
+    ENSURE_POSIX(cipher_suites_length % S2N_TLS_CIPHER_SUITE_LEN == 0, S2N_ERR_BAD_MESSAGE);
+   
     client_hello->cipher_suites.size = cipher_suites_length;
     client_hello->cipher_suites.data = s2n_stuffer_raw_read(in, cipher_suites_length);
     notnull_check(client_hello->cipher_suites.data);
