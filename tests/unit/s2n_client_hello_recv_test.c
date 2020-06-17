@@ -321,6 +321,60 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_disable_tls13());
     }
 
+    /* s2n receiving a client hello will error when parsing an empty cipher suite */
+    {
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
+
+        hello_stuffer = &client_conn->handshake.io;
+
+        EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+
+        uint8_t empty_cipher_suite[S2N_TLS_CIPHER_SUITE_LEN] = {0};
+
+        /* Move write_cursor to cipher_suite position */
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(hello_stuffer));
+        EXPECT_SUCCESS(s2n_stuffer_skip_write(hello_stuffer, S2N_TLS_PROTOCOL_VERSION_LEN + S2N_TLS_RANDOM_DATA_LEN + 1));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(hello_stuffer, empty_cipher_suite, S2N_TLS_CIPHER_SUITE_LEN));
+
+        EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &hello_stuffer->blob));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_BAD_MESSAGE);
+
+        s2n_connection_free(server_conn);
+        s2n_connection_free(client_conn);
+    }
+
+    /* s2n receiving a sslv2 client hello will error when parsing an empty cipher suite */
+    {
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls12_config));
+
+        /* Record version and protocol version are in the header for SSLv2 */
+        server_conn->client_hello_version = S2N_SSLv2;
+        server_conn->client_protocol_version = S2N_TLS12;
+
+        /* Writing a sslv2 client hello with a length 0 cipher suite list */
+        uint8_t sslv2_client_hello[] = {
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x20,
+            SSLv2_CLIENT_HELLO_CIPHER_SUITES,
+            SSLv2_CLIENT_HELLO_CHALLENGE,
+        };
+
+        struct s2n_blob client_hello = {
+            .data = sslv2_client_hello,
+            .size = sizeof(sslv2_client_hello),
+            .allocated = 0,
+            .growable = 0
+        };
+        EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_hello));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_BAD_MESSAGE);
+
+        s2n_connection_free(server_conn);
+    }
+
     s2n_config_free(tls12_config);
     s2n_config_free(tls13_config);
     s2n_cert_chain_and_key_free(chain_and_key);
