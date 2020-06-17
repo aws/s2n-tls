@@ -387,7 +387,8 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     /* We start 5 bytes into the record */
     uint16_t cipher_suites_length;
     GUARD(s2n_stuffer_read_uint16(in, &cipher_suites_length));
-    S2N_ERROR_IF(cipher_suites_length % S2N_SSLv2_CIPHER_SUITE_LEN || cipher_suites_length == 0, S2N_ERR_BAD_MESSAGE);
+    ENSURE_POSIX(cipher_suites_length > 0, S2N_ERR_BAD_MESSAGE);
+    ENSURE_POSIX(cipher_suites_length % S2N_SSLv2_CIPHER_SUITE_LEN == 0, S2N_ERR_BAD_MESSAGE);
 
     uint16_t session_id_length;
     GUARD(s2n_stuffer_read_uint16(in, &session_id_length));
