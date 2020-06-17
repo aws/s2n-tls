@@ -37,15 +37,19 @@ void s2n_stuffer_reserve_space_harness() {
 
     /* Save previous state. */
     struct s2n_stuffer old_stuffer = *stuffer;
-    struct store_byte_from_buffer old_byte;
-    save_byte_from_blob(&stuffer->blob, &old_byte);
+    struct store_byte_from_buffer old_byte_from_stuffer;
+    save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
     if (s2n_stuffer_reserve_space(stuffer, size) == S2N_SUCCESS) {
         assert(s2n_stuffer_is_valid(stuffer));
-        if(s2n_stuffer_space_remaining(stuffer) < size) {
-            assert(stuffer->blob.size == MAX(size - s2n_stuffer_space_remaining(stuffer), 1024));
+        if(s2n_stuffer_space_remaining(&old_stuffer) < size) {
+            /* Always grow a stuffer by at least 1k */
+            assert(stuffer->blob.size == (MAX(size - s2n_stuffer_space_remaining(&old_stuffer), 1024) +
+                                          old_stuffer.blob.size));
             assert(stuffer->blob.allocated >= size);
+        } else {
+            assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
         }
     } else {
         assert(stuffer->blob.size == old_stuffer.blob.size);
