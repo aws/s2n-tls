@@ -103,8 +103,8 @@ int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, const char target)
         }
         stuffer->read_cursor += 1;
     }
-
-    return 0;
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    return S2N_SUCCESS;
 }
 
 /* Skips an expected character in the stuffer between min and max times */
