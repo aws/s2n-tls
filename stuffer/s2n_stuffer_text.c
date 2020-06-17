@@ -165,8 +165,9 @@ int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *toke
 
 int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *str)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    notnull_check(str);
     uint32_t length = strlen(str);
-
     GUARD(s2n_stuffer_alloc(stuffer, length + 1));
     return s2n_stuffer_write_bytes(stuffer, (const uint8_t *)str, length);
 }
