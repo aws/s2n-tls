@@ -108,8 +108,9 @@ int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, const char target)
 }
 
 /* Skips an expected character in the stuffer between min and max times */
-int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, int min, int max)
+int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const int min, const int max)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     int skipped = 0;
     while (stuffer->read_cursor < stuffer->write_cursor && skipped < max) {
         if (stuffer->blob.data[stuffer->read_cursor] == expected){
@@ -119,9 +120,8 @@ int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expec
             break;
         }
     }
-
     S2N_ERROR_IF(skipped < min, S2N_ERR_STUFFER_NOT_FOUND);
-
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     return skipped;
 }
 
