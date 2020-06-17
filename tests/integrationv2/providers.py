@@ -225,7 +225,10 @@ class OpenSSL(Provider):
     def _cipher_to_cmdline(self, protocol, cipher):
         cmdline = list()
 
-        cmdline.append('-cipher')
+        if cipher.min_version is Protocols.TLS13:
+            cmdline.append('-ciphersuites')
+        else:
+            cmdline.append('-cipher')
 
         ciphers = []
         if type(cipher) is list:
@@ -267,7 +270,7 @@ class OpenSSL(Provider):
             cmd_line.append('-tls1')
 
         if self.options.cipher is not None:
-            cmd_line.extend(self.cipher_to_cmdline(self.options.protocol, self.options.cipher))
+            cmd_line.extend(self._cipher_to_cmdline(self.options.protocol, self.options.cipher))
 
         if self.options.curve is not None:
             cmd_line.extend(['-curves', str(self.options.curve)])
@@ -328,7 +331,7 @@ class OpenSSL(Provider):
             cmd_line.append('-tls1')
 
         if self.options.cipher is not None:
-            cmd_line.extend(self.cipher_to_cmdline(self.options.protocol, self.options.cipher))
+            cmd_line.extend(self._cipher_to_cmdline(self.options.protocol, self.options.cipher))
             if self.options.cipher.parameters is not None:
                 cmd_line.extend(['-dhparam', self.options.cipher.parameters])
 
