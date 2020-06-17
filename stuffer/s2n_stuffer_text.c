@@ -43,6 +43,7 @@ int s2n_stuffer_peek_check_for_str(struct s2n_stuffer *s2n_stuffer, const char *
 
 int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(s2n_stuffer));
     int skipped = 0;
     while (s2n_stuffer->read_cursor < s2n_stuffer->write_cursor) {
         switch (s2n_stuffer->blob.data[s2n_stuffer->read_cursor]) {
@@ -54,10 +55,11 @@ int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer)
             skipped += 1;
             break;
         default:
+            POSTCONDITION_POSIX(s2n_stuffer_is_valid(s2n_stuffer));
             return skipped;
         }
     }
-
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(s2n_stuffer));
     return skipped;
 }
 
