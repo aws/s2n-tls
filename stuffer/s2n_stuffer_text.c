@@ -148,13 +148,14 @@ int s2n_stuffer_read_line(struct s2n_stuffer *stuffer, struct s2n_stuffer *token
 
 int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *token, char delim)
 {
-    int token_size = 0;
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(token));
+    uint32_t token_size = 0;
 
     while ((stuffer->read_cursor + token_size) < stuffer->write_cursor) {
         if (stuffer->blob.data[stuffer->read_cursor + token_size] == delim) {
             break;
         }
-
         token_size++;
     }
 
@@ -165,7 +166,9 @@ int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *toke
         stuffer->read_cursor++;
     }
 
-    return 0;
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(token));
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *str)
