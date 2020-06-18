@@ -84,9 +84,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(0, s2n_extensions_server_key_share_send_size(conn));
 
         /* A HelloRetryRequest only requires a Selected Group, not a key share */
-        conn->actual_protocol_version = S2N_TLS13;
-        conn->handshake.message_number = 1;
-        conn->handshake.handshake_type = NEGOTIATED | HELLO_RETRY_REQUEST | FULL_HANDSHAKE;
+        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
+        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
         conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_EQUAL(6, s2n_extensions_server_key_share_send_size(conn));
 
@@ -390,7 +389,6 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.send(conn, &conn->handshake.io),
                 S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
-        EXPECT_SUCCESS(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
@@ -421,6 +419,58 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_enable_tls13());
     }
 
+    /* Test the s2n_server_key_share_extension.recv with HelloRetryRequest */
+    {
+        EXPECT_SUCCESS(s2n_enable_tls13());
+        /* For a HelloRetryRequest, we won't have a key share. We just have the server selected group/negotiated curve.
+         * Test that s2n_server_key_share_extension.recv obtains the server negotiate curve successfully. */
+        {
+            struct s2n_connection *client_conn;
+            struct s2n_connection *server_conn;
+
+            EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+
+            struct s2n_stuffer *key_share_extension = &server_conn->handshake.io;
+
+            EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+
+            server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+            EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+            EXPECT_MEMCPY_SUCCESS(server_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+            EXPECT_SUCCESS(s2n_server_key_share_extension.send(server_conn, key_share_extension));
+
+            const struct s2n_ecc_preferences *ecc_preferences = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_preferences));
+            EXPECT_NOT_NULL(ecc_preferences);
+
+            /* Verify that no key shares are sent */
+            for (size_t i = 0; i < ecc_preferences->count; i++) {
+                struct s2n_ecc_evp_params *ecc_evp_params = &server_conn->secure.client_ecc_evp_params[i];
+                EXPECT_NULL(ecc_evp_params->negotiated_curve);
+                EXPECT_NULL(ecc_evp_params->evp_pkey);
+            }
+
+            /* Setup the client to have received a HelloRetryRequest */
+            EXPECT_MEMCPY_SUCCESS(client_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+            EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
+            EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(client_conn));
+            EXPECT_SUCCESS(s2n_set_hello_retry_required(client_conn));
+
+            /* Parse the key share */
+            EXPECT_SUCCESS(s2n_server_key_share_extension.recv(client_conn, key_share_extension));
+            EXPECT_EQUAL(s2n_stuffer_data_available(key_share_extension), 0);
+
+            EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, client_conn->secure.server_ecc_evp_params.negotiated_curve);
+            EXPECT_NULL(client_conn->secure.server_ecc_evp_params.evp_pkey);
+
+            EXPECT_SUCCESS(s2n_stuffer_free(key_share_extension));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        }
+        EXPECT_SUCCESS(s2n_disable_tls13());
+    }
     END_TEST();
     return 0;
 }

@@ -60,12 +60,10 @@ const s2n_extension_type s2n_client_key_share_extension = {
     .if_missing = s2n_extension_noop_if_missing,
 };
 
-static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_generate_preferred_key_shares(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     notnull_check(conn);
-
     uint8_t preferred_key_shares = conn->preferred_key_shares;
-    const struct s2n_ecc_named_curve *named_curve = NULL;
     struct s2n_ecc_evp_params *ecc_evp_params = NULL;
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -85,16 +83,64 @@ static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s
     }
 
     for (size_t i = 0; i < ecc_pref->count; i++) {
-        ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
-        named_curve = ecc_pref->ecc_curves[i];
-        ecc_evp_params->negotiated_curve = named_curve;
-        ecc_evp_params->evp_pkey = NULL;
         /* If a bit in the bitmap (minus the lsb) is set, generate keyshare for the corresponding curve */
         if (S2N_IS_KEY_SHARE_REQUESTED(preferred_key_shares, i)) {
+            ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
+            ecc_evp_params->negotiated_curve = ecc_pref->ecc_curves[i];
             GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
         }
     }
 
+    return S2N_SUCCESS;
+}
+
+static int s2n_send_hrr_keyshare(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    notnull_check(conn);
+    const struct s2n_ecc_named_curve *server_negotiated_curve = NULL;
+    struct s2n_ecc_evp_params *ecc_evp_params = NULL;
+
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    notnull_check(ecc_pref);
+
+    server_negotiated_curve = conn->secure.server_ecc_evp_params.negotiated_curve;
+    ENSURE_POSIX(server_negotiated_curve != NULL, S2N_ERR_BAD_KEY_SHARE);
+
+    bool has_supported_curve = false;
+
+    for (size_t i = 0; i < ecc_pref->count; i++) {
+        if (ecc_pref->ecc_curves[i]->iana_id == server_negotiated_curve->iana_id) {
+            has_supported_curve = true;
+            ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
+            ENSURE_POSIX(ecc_evp_params->evp_pkey == NULL, S2N_ERR_INVALID_HELLO_RETRY);
+            ecc_evp_params->negotiated_curve = server_negotiated_curve;
+            /* Generate the keyshare for the server negotiated curve */
+            GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
+        } else if (&conn->secure.client_ecc_evp_params[i] != NULL) {
+            /* Our original key shares weren't successful, so clear the old list of keyshares */
+            GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
+            conn->secure.client_ecc_evp_params[i].negotiated_curve = NULL;
+        }
+    }
+
+    ENSURE_POSIX(has_supported_curve, S2N_ERR_INVALID_HELLO_RETRY);
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    /* From https://tools.ietf.org/html/rfc8446#section-4.1.2
+     * If a "key_share" extension was supplied in the HelloRetryRequest,
+     * replace the list of shares with a list containing a single
+     * KeyShareEntry from the indicated group.*/
+    if (s2n_is_hello_retry_handshake(conn)) {
+        GUARD(s2n_send_hrr_keyshare(conn, out));
+        return S2N_SUCCESS;
+    }
+
+    GUARD(s2n_generate_preferred_key_shares(conn, out));
     return S2N_SUCCESS;
 }
 

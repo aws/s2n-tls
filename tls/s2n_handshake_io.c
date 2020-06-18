@@ -356,6 +356,11 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
             SERVER_HELLO
     },
 
+    [INITIAL | HELLO_RETRY_REQUEST] = {
+            CLIENT_HELLO,
+            HELLO_RETRY_MSG
+    },
+
     [NEGOTIATED | FULL_HANDSHAKE] = {
             CLIENT_HELLO,
             SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
@@ -510,16 +515,17 @@ int s2n_generate_new_client_session_id(struct s2n_connection *conn)
 /* Lets the server flag whether a HelloRetryRequest is needed while processing extensions */
 int s2n_set_hello_retry_required(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+
+    ENSURE_POSIX(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
     conn->handshake.handshake_type |= HELLO_RETRY_REQUEST;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
-/* Lets the server determine whether a HelloRetryRequest should be sent.
- * A retry is only possible after the first ClientHello (HELLO_RETRY_MSG). */
-bool s2n_is_hello_retry_required(struct s2n_connection *conn)
+bool s2n_is_hello_retry_message(struct s2n_connection *conn)
 {
-    return ACTIVE_MESSAGE(conn) == HELLO_RETRY_MSG;
+    return (ACTIVE_MESSAGE(conn) == HELLO_RETRY_MSG);
 }
 
 bool s2n_is_hello_retry_handshake(struct s2n_connection *conn)
@@ -530,6 +536,7 @@ bool s2n_is_hello_retry_handshake(struct s2n_connection *conn)
 int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 {
     if (conn->handshake.handshake_type & HELLO_RETRY_REQUEST) {
+        ENSURE_POSIX(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
         conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
     } else {
         conn->handshake.handshake_type = INITIAL;

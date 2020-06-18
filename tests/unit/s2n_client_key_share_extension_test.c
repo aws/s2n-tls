@@ -269,6 +269,260 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test s2n_client_key_share_extension.send with HelloRetryRequest */
+    {
+        /* For HelloRetryRequest initiated when a list of empty keyshares are sent in the first ClientHello,
+         * test that s2n_client_key_share_extension.send sends a keyshare list containing a single KeyShareEntry
+         * for the server selected group/negotiated curve. */
+        {
+            struct s2n_connection *conn;
+            struct s2n_stuffer key_share_extension;
+
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+            /* Force the client to send an empty list of keyshares in ClientHello1 */
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(conn, "none"));
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
+
+            const struct s2n_ecc_preferences *ecc_preferences = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
+            EXPECT_NOT_NULL(ecc_preferences);
+
+            /* ClientHello1 should contain empty keyshare list */
+            for (size_t i = 0; i < ecc_preferences->count; i++) {
+                struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
+                if (ecc_evp_params->negotiated_curve == conn->secure.server_ecc_evp_params.negotiated_curve) {
+                    EXPECT_NULL(ecc_evp_params->negotiated_curve);
+                    EXPECT_NULL(ecc_evp_params->evp_pkey);
+                }
+            }
+
+            /* Setup the client to have received a HelloRetryRequest */
+            EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+            EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
+            EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
+            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+
+            EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
+
+            /* should contain keyshare for only server negotiated curve */
+            for (size_t i = 0; i < ecc_preferences->count; i++) {
+                struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
+                if (ecc_evp_params->negotiated_curve == conn->secure.server_ecc_evp_params.negotiated_curve) {
+                    EXPECT_NOT_NULL(ecc_evp_params->negotiated_curve);
+                    EXPECT_NOT_NULL(ecc_evp_params->evp_pkey);
+                } else {
+                    EXPECT_NULL(ecc_evp_params->negotiated_curve);
+                    EXPECT_NULL(ecc_evp_params->evp_pkey);
+                }
+            }
+
+            uint16_t key_shares_size;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &key_shares_size));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), key_shares_size);
+
+            /* should contain keyshare for only server negotiated curve */
+            uint32_t bytes_processed = 0;
+            EXPECT_EQUAL(key_shares_size, conn->secure.server_ecc_evp_params.negotiated_curve->share_size
+                                            + S2N_SIZE_OF_NAMED_GROUP + S2N_SIZE_OF_KEY_SHARE_SIZE);
+
+            uint16_t iana_value, share_size;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &iana_value));
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &share_size));
+            bytes_processed += conn->secure.server_ecc_evp_params.negotiated_curve->share_size + S2N_SIZE_OF_NAMED_GROUP
+                            + S2N_SIZE_OF_KEY_SHARE_SIZE;
+
+            EXPECT_EQUAL(iana_value, conn->secure.server_ecc_evp_params.negotiated_curve->iana_id);
+            EXPECT_EQUAL(share_size, conn->secure.server_ecc_evp_params.negotiated_curve->share_size);
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, share_size));
+            EXPECT_EQUAL(bytes_processed, key_shares_size);
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* For HelloRetryRequests when a keyshare does not match, test that s2n_client_key_share_extension.send replaces the list of keyshares,
+         * with a list containing a single KeyShareEntry for the server selected group. */
+        if (s2n_is_evp_apis_supported()) {
+            struct s2n_connection *conn;
+            struct s2n_config *config;
+            struct s2n_stuffer key_share_extension;
+
+            EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            /* Security policy "20190801" contains x25519 */
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20190801"));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
+
+            /* Force the client to send only p-256 and p-384 keyshares in keyshare list */
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(conn, "secp256r1"));
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(conn, "secp384r1"));
+
+            const struct s2n_ecc_preferences *ecc_preferences = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
+            EXPECT_NOT_NULL(ecc_preferences);
+
+            EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
+
+            /* Verify that only p-256 and p-384 keyshares are sent */
+            for (size_t i = 0; i < ecc_preferences->count; i++) {
+                if (ecc_preferences->ecc_curves[i]->iana_id == TLS_EC_CURVE_SECP_256_R1
+                    || ecc_preferences->ecc_curves[i]->iana_id == TLS_EC_CURVE_SECP_384_R1) {
+                    EXPECT_NOT_NULL(conn->secure.client_ecc_evp_params[i].negotiated_curve);
+                    EXPECT_NOT_NULL(conn->secure.client_ecc_evp_params[i].evp_pkey);
+                } else {
+                    EXPECT_NULL(conn->secure.client_ecc_evp_params[i].negotiated_curve);
+                    EXPECT_NULL(conn->secure.client_ecc_evp_params[i].evp_pkey);
+                }
+            }
+
+            /* Setup the client to have received a HelloRetryRequest with server negotiated curve as x25519 */
+            EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+            EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
+            EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
+            conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_x25519;
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
+
+            EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
+
+            /* should contain keyshare for only server negotiated curve */
+            for (size_t i = 0; i < ecc_preferences->count; i++) {
+                struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
+                if (ecc_evp_params->negotiated_curve == conn->secure.server_ecc_evp_params.negotiated_curve) {
+                    EXPECT_NOT_NULL(ecc_evp_params->negotiated_curve);
+                    EXPECT_NOT_NULL(ecc_evp_params->evp_pkey);
+                } else {
+                    EXPECT_NULL(ecc_evp_params->negotiated_curve);
+                    EXPECT_NULL(ecc_evp_params->evp_pkey);
+                }
+            }
+
+            uint16_t key_shares_size;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &key_shares_size));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), key_shares_size);
+
+            /* should contain keyshare for only server negotiated curve */
+            uint32_t bytes_processed = 0;
+            EXPECT_EQUAL(key_shares_size, conn->secure.server_ecc_evp_params.negotiated_curve->share_size
+                                            + S2N_SIZE_OF_NAMED_GROUP + S2N_SIZE_OF_KEY_SHARE_SIZE);
+
+            uint16_t iana_value, share_size;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &iana_value));
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &share_size));
+            bytes_processed += conn->secure.server_ecc_evp_params.negotiated_curve->share_size + S2N_SIZE_OF_NAMED_GROUP
+                            + S2N_SIZE_OF_KEY_SHARE_SIZE;
+
+            EXPECT_EQUAL(iana_value, conn->secure.server_ecc_evp_params.negotiated_curve->iana_id);
+            EXPECT_EQUAL(share_size, conn->secure.server_ecc_evp_params.negotiated_curve->share_size);
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, share_size));
+            EXPECT_EQUAL(bytes_processed, key_shares_size);
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* For HelloRetryRequests, test that s2n_client_key_share_extension.recv can read and parse
+         * the result of s2n_client_key_share_extension.send */
+        {
+            struct s2n_connection *client_conn;
+            struct s2n_connection *server_conn;
+            struct s2n_stuffer key_share_extension;
+
+            EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
+
+            const struct s2n_ecc_preferences *ecc_preferences = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_preferences));
+            EXPECT_NOT_NULL(ecc_preferences);
+
+            /* Setup the client to have received a HelloRetryRequest */
+            memcpy_check(client_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+            EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
+            EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(client_conn));
+            client_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+
+            /* During HRR, A key_share list with a single key_share entry,
+            * corresponding to the server negotiated curve is sent by the client */
+            EXPECT_SUCCESS(s2n_client_key_share_extension.send(client_conn, &key_share_extension));
+
+            /* should contain keyshare for only server negotiated curve */
+            for (size_t i = 0; i < ecc_preferences->count; i++) {
+                struct s2n_ecc_evp_params *ecc_evp_params = &client_conn->secure.client_ecc_evp_params[i];
+                if (ecc_evp_params->negotiated_curve == client_conn->secure.server_ecc_evp_params.negotiated_curve) {
+                    EXPECT_NOT_NULL(ecc_evp_params->negotiated_curve);
+                    EXPECT_NOT_NULL(ecc_evp_params->evp_pkey);
+                } else {
+                    EXPECT_NULL(ecc_evp_params->negotiated_curve);
+                    EXPECT_NULL(ecc_evp_params->evp_pkey);
+                }
+            }
+
+
+            server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+            EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
+
+            EXPECT_SUCCESS(s2n_client_key_share_extension.recv(server_conn, &key_share_extension));
+            /* should read all data */
+            EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), 0);
+
+            /* Verify that a keyshare list with a single keyshare corresponding to the server negotiated curve is received */
+            for (size_t i = 0; i < ecc_preferences->count; i++) {
+                struct s2n_ecc_evp_params *ecc_evp_params = &server_conn->secure.client_ecc_evp_params[i];
+                if (ecc_evp_params->negotiated_curve == server_conn->secure.server_ecc_evp_params.negotiated_curve) {
+                    EXPECT_NOT_NULL(ecc_evp_params->negotiated_curve);
+                    EXPECT_NOT_NULL(ecc_evp_params->evp_pkey);
+                } else {
+                    EXPECT_NULL(ecc_evp_params->negotiated_curve);
+                    EXPECT_NULL(ecc_evp_params->evp_pkey);
+                }
+            }
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
+
+        /* For HelloRetryRequests, test that s2n_client_key_share_extension.send fails,
+         * if the server negotiated_curve is not set and is NULL. */
+        {
+            struct s2n_connection *conn;
+            struct s2n_stuffer key_share_extension;
+
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
+
+            /* Setup the client to have received a HelloRetryRequest */
+            EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+            EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
+            EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
+            conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_key_share_extension.send(conn, &key_share_extension),
+                                      S2N_ERR_BAD_KEY_SHARE);
+
+            const struct s2n_ecc_preferences *ecc_preferences = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
+            EXPECT_NOT_NULL(ecc_preferences);
+
+            for (size_t i = 0; i < ecc_preferences->count; i++) {
+                struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
+                EXPECT_NULL(ecc_evp_params->negotiated_curve);
+                EXPECT_NULL(ecc_evp_params->evp_pkey);
+            }
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
+
     /* Test s2n_client_key_share_extension.recv */
     {
         /* Test that s2n_client_key_share_extension.recv is a no-op
@@ -436,7 +690,7 @@ int main(int argc, char **argv)
             struct s2n_connection *server_conn;
             struct s2n_stuffer key_share_extension;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-            server_conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -447,8 +701,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_client_key_share_extension.recv(server_conn, &key_share_extension));
 
-            /* should not have initialized any other curves */
-            for (int i = 1; i < ecc_pref->count; i++) {
+            /* should not have initialized any curves */
+            for (size_t i = 0; i < ecc_pref->count; i++) {
                 struct s2n_ecc_evp_params *ecc_evp_params = &server_conn->secure.client_ecc_evp_params[i];
                 EXPECT_NULL(ecc_evp_params->negotiated_curve);
                 EXPECT_NULL(ecc_evp_params->evp_pkey);
@@ -463,7 +717,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             struct s2n_stuffer key_share_extension;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -503,7 +757,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             struct s2n_stuffer key_share_extension;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -539,7 +793,7 @@ int main(int argc, char **argv)
             struct s2n_ecc_evp_params first_params, second_params;
             int supported_curve_index = 0;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-            server_conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -580,7 +834,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             struct s2n_stuffer key_share_extension;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -621,7 +875,7 @@ int main(int argc, char **argv)
                 struct s2n_connection *conn;
                 struct s2n_stuffer key_share_extension;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-                conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
                 EXPECT_NOT_NULL(conn->config);
                 /* Explicitly set the ecc_preferences list to contain the curves p-256 and p-384 */
