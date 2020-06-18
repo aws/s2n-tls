@@ -536,6 +536,7 @@ bool s2n_is_hello_retry_handshake(struct s2n_connection *conn)
 int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 {
     if (conn->handshake.handshake_type & HELLO_RETRY_REQUEST) {
+        ENSURE_POSIX(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
         conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
     } else {
         conn->handshake.handshake_type = INITIAL;

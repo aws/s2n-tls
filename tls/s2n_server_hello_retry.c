@@ -79,7 +79,7 @@ int s2n_server_hello_retry_send(struct s2n_connection *conn)
 int s2n_server_hello_retry_recv(struct s2n_connection *conn)
 {
     notnull_check(conn);
-
+    ENSURE_POSIX(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
     const struct s2n_ecc_named_curve *named_curve = conn->secure.server_ecc_evp_params.negotiated_curve;
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));

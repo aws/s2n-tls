@@ -26,6 +26,9 @@
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_connection.h"
 
+/* This include is required to access static function s2n_server_hello_parse */
+#include "tls/s2n_server_hello.c"
+
 #include "error/s2n_errno.h"
 
 #define HELLO_RETRY_MSG_NO 1
@@ -35,6 +38,144 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     EXPECT_SUCCESS(s2n_enable_tls13());
+
+    /* Test s2n_server_hello_retry_recv */
+    {
+        /* s2n_server_hello_retry_recv must fail when a keyshare for a matching curve was already present */
+        {
+            struct s2n_config *config;
+            struct s2n_connection *conn;
+
+            EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            const struct s2n_ecc_preferences *ecc_pref = NULL;
+            GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
+
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+            conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+
+            EXPECT_NULL(conn->secure.client_ecc_evp_params->evp_pkey);
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+            EXPECT_NOT_NULL(conn->secure.client_ecc_evp_params->evp_pkey);
+
+            EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+
+            EXPECT_SUCCESS(s2n_hello_retry_validate(conn));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
+
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* s2n_server_hello_retry_recv must fail when a matching curve is not found, i.e the selected_group field
+         * does not correspond to a group which was provided in the "supported_groups" extension in the original ClientHello */
+        if (s2n_is_evp_apis_supported()) {
+            struct s2n_config *config;
+            struct s2n_connection *conn;
+
+            EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20190802")); /* does not contain x25519 */
+
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_x25519;
+
+            EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+
+            EXPECT_SUCCESS(s2n_hello_retry_validate(conn));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
+
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* s2n_server_hello_retry_recv must fail for a connection with actual protocol version less than TLS13 */
+        {
+            struct s2n_config *config;
+            struct s2n_connection *conn;
+
+            EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            conn->actual_protocol_version = S2N_TLS12;
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
+
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Test success case for s2n_server_hello_retry_recv */
+        {
+            struct s2n_config *server_config;
+            struct s2n_config *client_config;
+
+            struct s2n_connection *server_conn;
+            struct s2n_connection *client_conn;
+
+            struct s2n_cert_chain_and_key *tls13_chain_and_key;
+            char tls13_cert_chain[S2N_MAX_TEST_PEM_SIZE] = {0};
+            char tls13_private_key[S2N_MAX_TEST_PEM_SIZE] = {0};
+
+            EXPECT_NOT_NULL(server_config = s2n_config_new());
+            EXPECT_NOT_NULL(client_config = s2n_config_new());
+
+            EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+
+            EXPECT_NOT_NULL(tls13_chain_and_key = s2n_cert_chain_and_key_new());
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, tls13_cert_chain, S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, tls13_private_key, S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(tls13_chain_and_key, tls13_cert_chain, tls13_private_key));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, tls13_chain_and_key));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
+
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+            /* Force the HRR path by sending an empty list of keyshares */
+            EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+
+            /* ClientHello 1 */
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+
+            EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                                            s2n_stuffer_data_available(&client_conn->handshake.io)));
+
+            /* Server receives ClientHello 1 */
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+
+            server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+            EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+
+            /* Server sends HelloRetryMessage */
+            EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
+                                            s2n_stuffer_data_available(&server_conn->handshake.io)));
+            client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
+            /* Read the message off the wire */
+            EXPECT_SUCCESS(s2n_server_hello_parse(client_conn));
+            client_conn->actual_protocol_version_established = 1;
+
+            EXPECT_SUCCESS(s2n_conn_set_handshake_type(client_conn));
+            /* Client receives the HelloRetryRequest mesage */
+            EXPECT_SUCCESS(s2n_server_hello_retry_recv(client_conn));
+
+            EXPECT_SUCCESS(s2n_config_free(client_config));
+            EXPECT_SUCCESS(s2n_config_free(server_config));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
+
+        }
+    }
 
     /* Verify that the hash transcript recreation function is called correctly,
      * within the s2n_server_hello_retry_send and s2n_server_hello_retry_recv functions.
