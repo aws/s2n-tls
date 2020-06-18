@@ -33,14 +33,16 @@ int s2n_stuffer_peek_char(struct s2n_stuffer *s2n_stuffer, char *c)
 /* Peeks in stuffer to see if expected string is present. */
 int s2n_stuffer_peek_check_for_str(struct s2n_stuffer *s2n_stuffer, const char *expected)
 {
-    int orig_read_pos = s2n_stuffer->read_cursor;
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(s2n_stuffer));
+    uint32_t orig_read_pos = s2n_stuffer->read_cursor;
     int rc = s2n_stuffer_read_expected_str(s2n_stuffer, expected);
     s2n_stuffer->read_cursor = orig_read_pos;
 
-    if (rc == 0) {
+    if (rc == S2N_SUCCESS) {
         return 1;
     }
-    return 0;
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(s2n_stuffer));
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer)
