@@ -135,6 +135,8 @@ int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expec
 /* Read a line of text. Agnostic to LF or CR+LF line endings. */
 int s2n_stuffer_read_line(struct s2n_stuffer *stuffer, struct s2n_stuffer *token)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(token));
     /* Consume an LF terminated line */
     GUARD(s2n_stuffer_read_token(stuffer, token, '\n'));
 
@@ -142,8 +144,9 @@ int s2n_stuffer_read_line(struct s2n_stuffer *stuffer, struct s2n_stuffer *token
     if ((s2n_stuffer_data_available(token) > 0) && (token->blob.data[(token->write_cursor - 1)] == '\r')) {
         token->write_cursor--;
     }
-
-    return 0;
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(token));
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *token, char delim)
