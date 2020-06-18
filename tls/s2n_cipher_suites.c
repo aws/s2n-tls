@@ -1079,10 +1079,19 @@ struct s2n_cipher_suite *s2n_cipher_suite_from_wire(const uint8_t cipher_suite[S
 int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN])
 {
     notnull_check(conn);
+    notnull_check(conn->secure.cipher_suite);
+    struct s2n_cipher_suite *cipher_suite;
 
     /* See if the cipher is one we support */
-    conn->secure.cipher_suite = s2n_cipher_suite_from_wire(wire);
-    S2N_ERROR_IF(conn->secure.cipher_suite == NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
+    cipher_suite = s2n_cipher_suite_from_wire(wire);
+    S2N_ERROR_IF(cipher_suite == NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
+
+    /* Verify cipher suite sent in server hello is the same as sent in hello retry */
+    if (conn->secure.cipher_suite != &s2n_null_cipher_suite) {
+        ENSURE_POSIX(conn->secure.cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_BAD_MESSAGE);
+        return S2N_SUCCESS;
+    }
+    conn->secure.cipher_suite = cipher_suite;
 
     /* Verify the cipher was part of the originally offered list */
     const struct s2n_cipher_preferences *cipher_prefs;
