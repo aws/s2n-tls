@@ -32,16 +32,6 @@ uint8_t hello_retry_req_random[S2N_TLS_RANDOM_DATA_LEN] = {
     0xC2, 0xA2, 0x11, 0x16, 0x7A, 0xBB, 0x8C, 0x5E, 0x07, 0x9E, 0x09, 0xE2, 0xC8, 0xA8, 0x33, 0x9C
 };
 
-int s2n_hello_retry_validate(struct s2n_connection *conn)
-{
-    notnull_check(conn);
-
-    ENSURE_POSIX(memcmp(hello_retry_req_random, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN) == 0,
-                 S2N_ERR_INVALID_HELLO_RETRY);
-
-    return S2N_SUCCESS;
-}
-
 static int s2n_conn_reset_retry_values(struct s2n_connection *conn)
 {
     notnull_check(conn);

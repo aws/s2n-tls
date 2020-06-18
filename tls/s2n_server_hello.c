@@ -50,6 +50,15 @@ const uint8_t tls11_downgrade_protection_bytes[] = {
     0x44, 0x4F, 0x57, 0x4E, 0x47, 0x52, 0x44, 0x00
 };
 
+static int s2n_hello_retry_validate(struct s2n_connection *conn) {
+    notnull_check(conn);
+
+    ENSURE_POSIX(memcmp(hello_retry_req_random, conn->secure.server_random, S2N_TLS_RANDOM_DATA_LEN) == 0,
+                 S2N_ERR_INVALID_HELLO_RETRY);
+
+    return S2N_SUCCESS;
+}
+
 static int s2n_client_detect_downgrade_mechanism(struct s2n_connection *conn) {
     if (!s2n_is_tls13_enabled()) {
         return 0;
@@ -182,7 +191,7 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
 
     /* If this is a HelloRetryRequest, we don't process the ServerHello.
      * Instead we proceed with retry logic. */
-    if (s2n_hello_retry_validate(conn) == S2N_SUCCESS) {
+    if (s2n_is_hello_retry_message(conn)) {
         GUARD(s2n_server_hello_retry_recv(conn));
         return 0;
     }

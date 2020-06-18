@@ -62,9 +62,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
             EXPECT_NOT_NULL(conn->secure.client_ecc_evp_params->evp_pkey);
 
-            EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
-
-            EXPECT_SUCCESS(s2n_hello_retry_validate(conn));
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
             EXPECT_SUCCESS(s2n_config_free(config));
@@ -85,9 +82,6 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_x25519;
 
-            EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
-
-            EXPECT_SUCCESS(s2n_hello_retry_validate(conn));
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
             EXPECT_SUCCESS(s2n_config_free(config));
