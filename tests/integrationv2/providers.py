@@ -173,8 +173,7 @@ class S2N(Provider):
         if self.options.protocol == Protocols.TLS13:
             cmd_line.append('--tls13')
 
-        if self.options.cipher is not None:
-            cmd_line.extend(['-c', 'test_all'])
+        cmd_line.extend(['-c', 'test_all'])
 
         if self.options.use_client_auth is True:
             cmd_line.append('-m')
@@ -225,21 +224,23 @@ class OpenSSL(Provider):
     def _cipher_to_cmdline(self, protocol, cipher):
         cmdline = list()
 
-        if cipher.min_version is Protocols.TLS13:
-            cmdline.append('-ciphersuites')
-        else:
-            cmdline.append('-cipher')
-
         ciphers = []
         if type(cipher) is list:
             ciphers.append(self._join_ciphers(cipher))
+            min_version = min(cipher, key=lambda x: x.min_version)
         else:
+            min_version = cipher.min_version
             if cipher.min_version == Protocols.TLS13:
                 ciphers.append(OpenSSL.supported_ciphers[cipher])
             else:
                 # This replace is only done for ciphers that are not TLS13 specific.
                 # Run `openssl ciphers` to view the inconsistency in naming.
                 ciphers.append(cipher.name.replace("_", "-"))
+
+        if min_version is Protocols.TLS13:
+            cmdline.append('-ciphersuites')
+        else:
+            cmdline.append('-cipher')
 
         return cmdline + ciphers
 
