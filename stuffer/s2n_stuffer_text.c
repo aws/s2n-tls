@@ -78,6 +78,8 @@ int s2n_stuffer_read_expected_str(struct s2n_stuffer *stuffer, const char *expec
 /* Read from stuffer until the target string is found, or until there is no more data. */
 int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char *target)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    notnull_check(target);
     int len = strlen(target);
     while (s2n_stuffer_data_available(stuffer) >= len) {
         GUARD(s2n_stuffer_skip_to_char(stuffer, target[0]));
@@ -85,15 +87,15 @@ int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char *target)
         notnull_check(actual);
 
         if (strncmp(actual, target, len) == 0){
-            return 0;
+            return S2N_SUCCESS;
         } else {
             /* If string doesn't match, rewind stuffer to 1 byte after last read */
             GUARD(s2n_stuffer_rewind_read(stuffer, len - 1));
             continue;
         }
     }
-
-    return 0;
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    return S2N_SUCCESS;
 
 }
 
