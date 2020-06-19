@@ -45,7 +45,7 @@ void s2n_stuffer_reserve_space_harness() {
         assert(s2n_stuffer_is_valid(stuffer));
         if(s2n_stuffer_space_remaining(&old_stuffer) < size) {
             /* Always grow a stuffer by at least 1k */
-            assert(stuffer->blob.size == (MAX(size - s2n_stuffer_space_remaining(&old_stuffer), 1024) +
+            assert(stuffer->blob.size == (MAX(size - s2n_stuffer_space_remaining(&old_stuffer), S2N_MIN_STUFFER_GROWTH_IN_BYTES) +
                                           old_stuffer.blob.size));
             assert(stuffer->blob.allocated >= size);
         } else {
