@@ -260,7 +260,7 @@ MULTI_CERT_TEST_CASES= [
                     " even if domain mismatched RSA certificate is available and RSA cipher is higher priority.",
         server_certs=[SNI_CERTS["beaver"], SNI_CERTS["alligator_ecdsa"]],
         client_sni="www.alligator.com",
-        client_ciphers=[Ciphers.ECDHE_RSA_AES128_SHA, Ciphers.ECDHE_ECDSA_AES128_SHA256],
+        client_ciphers=[Ciphers.ECDHE_RSA_AES128_SHA256, Ciphers.ECDHE_ECDSA_AES128_SHA256],
         expected_cert=SNI_CERTS["alligator_ecdsa"],
         expect_matching_hostname=True),
     MultiCertTest(
