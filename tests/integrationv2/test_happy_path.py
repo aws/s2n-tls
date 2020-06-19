@@ -61,6 +61,9 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
         assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) in results.stdout
         assert random_bytes in results.stdout
 
+        if provider is OpenSSL:
+            assert bytes("Cipher negotiated: {}".format(cipher.name).encode('utf-8')) in results.stdout
+
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)

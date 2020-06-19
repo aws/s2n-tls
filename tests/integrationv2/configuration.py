@@ -260,7 +260,7 @@ MULTI_CERT_TEST_CASES= [
                     " even if domain mismatched RSA certificate is available and RSA cipher is higher priority.",
         server_certs=[SNI_CERTS["beaver"], SNI_CERTS["alligator_ecdsa"]],
         client_sni="www.alligator.com",
-        client_ciphers=[Ciphers.ECDHE_RSA_AES128_SHA, Ciphers.ECDHE_ECDSA_AES128_SHA256],
+        client_ciphers=[Ciphers.ECDHE_RSA_AES128_SHA256, Ciphers.ECDHE_ECDSA_AES128_SHA256],
         expected_cert=SNI_CERTS["alligator_ecdsa"],
         expect_matching_hostname=True),
     MultiCertTest(
@@ -341,9 +341,7 @@ MULTI_CERT_TEST_CASES= [
                     " *.insect.hexapod when RSA ciphers are higher priority than ECDSA in sever preferences.",
         server_certs=[ SNI_CERTS["wildcard_insect"], SNI_CERTS["alligator"], SNI_CERTS["underwing"] ],
         client_sni="underwing.insect.hexapod",
-        # AES128-GCM-SHA256 is prioritized about ECDHE-ECDSA-AES128-SHA in
-        # the "test_all" server cipher preferences
-        client_ciphers=[Ciphers.AES128_GCM_SHA256, Ciphers.ECDHE_ECDSA_AES128_SHA],
+        client_ciphers=[Ciphers.AES128_GCM_SHA256],
         expected_cert=SNI_CERTS["underwing"],
         expect_matching_hostname=True),
     MultiCertTest(

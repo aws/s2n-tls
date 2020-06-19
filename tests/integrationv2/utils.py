@@ -49,8 +49,11 @@ def invalid_test_parameters(*args, **kwargs):
 
     if cipher is not None:
         # If the selected protocol doesn't allow the cipher, don't test
-        if protocol is not None and cipher.min_version > protocol:
-            return True
+        if protocol is not None:
+            if cipher.min_version > protocol:
+                return True
+            if protocol is Protocols.TLS13 and cipher.min_version < protocol:
+                return True
 
         # NOTE: We don't detect the version of OpenSSL at the moment,
         # so we will deselect these tests.

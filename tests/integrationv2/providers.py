@@ -192,12 +192,6 @@ class S2N(Provider):
 
 class OpenSSL(Provider):
 
-    supported_ciphers = {
-        Ciphers.AES128_GCM_SHA256: 'TLS_AES_128_GCM_SHA256',
-        Ciphers.AES256_GCM_SHA384: 'TLS_AES_256_GCM_SHA384',
-        Ciphers.CHACHA20_POLY1305_SHA256: 'TLS_CHACHA20_POLY1305_SHA256',
-    }
-
     def __init__(self, options: ProviderOptions):
         self.ready_to_send_input_marker = None
         Provider.__init__(self, options)
@@ -210,12 +204,7 @@ class OpenSSL(Provider):
 
         cipher_list = []
         for c in ciphers:
-            if c.min_version is Protocols.TLS13:
-                cipher_list.append(OpenSSL.supported_ciphers[c])
-            else:
-                # This replace is only done for ciphers that are not TLS13 specific.
-                # Run `openssl ciphers` to view the inconsistency in naming.
-                cipher_list.append(c.name.replace("_", "-"))
+            cipher_list.append(c.name)
 
         ciphers = ':'.join(cipher_list)
 
@@ -226,16 +215,15 @@ class OpenSSL(Provider):
 
         ciphers = []
         if type(cipher) is list:
+            min_version = cipher[0].min_version
+            mismatched_version = [x.min_version for x in cipher if x.min_version > min_version]
+            if len(mismatched_version) > 0:
+                raise Exception("Cipher string contains mismatched versions: {}".format([c.name for c in cipher]))
+
             ciphers.append(self._join_ciphers(cipher))
-            min_version = min(cipher, key=lambda x: x.min_version)
         else:
             min_version = cipher.min_version
-            if cipher.min_version == Protocols.TLS13:
-                ciphers.append(OpenSSL.supported_ciphers[cipher])
-            else:
-                # This replace is only done for ciphers that are not TLS13 specific.
-                # Run `openssl ciphers` to view the inconsistency in naming.
-                ciphers.append(cipher.name.replace("_", "-"))
+            ciphers.append(cipher.name)
 
         if min_version is Protocols.TLS13:
             cmdline.append('-ciphersuites')
