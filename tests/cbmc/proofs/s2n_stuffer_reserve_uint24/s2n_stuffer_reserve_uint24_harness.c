@@ -22,18 +22,16 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/nondet.h>
 #include <cbmc_proof/proof_allocators.h>
 
-void s2n_stuffer_reserve_harness() {
+void s2n_stuffer_reserve_uint24_harness() {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
-    struct s2n_stuffer_reservation *reservation = nondet_bool() ? NULL : cbmc_allocate_s2n_stuffer_reservation();
-    uint8_t length = nondet_uint8_t();
+    struct s2n_stuffer_reservation *reservation = cbmc_allocate_s2n_stuffer_reservation();
 
     /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if (nondet_bool()) {
+    if(nondet_bool()) {
         s2n_mem_init();
     }
 
@@ -44,11 +42,11 @@ void s2n_stuffer_reserve_harness() {
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
-    if (s2n_stuffer_reserve(stuffer, reservation, length) == S2N_SUCCESS) {
-        assert(stuffer->write_cursor == old_stuffer.write_cursor + length);
-        assert(stuffer->high_water_mark == MAX(old_stuffer.write_cursor + length, old_stuffer.high_water_mark));
-        assert(reservation->length == length);
-        if (old_stuffer.blob.size > 0 && reservation->length > 0) {
+    if (s2n_stuffer_reserve_uint24(stuffer, reservation) == S2N_SUCCESS) {
+        assert(stuffer->write_cursor == old_stuffer.write_cursor + SIZEOF_UINT24);
+        assert(stuffer->high_water_mark == MAX(old_stuffer.write_cursor + SIZEOF_UINT24, old_stuffer.high_water_mark));
+        assert(reservation->length == SIZEOF_UINT24);
+        if(old_stuffer.blob.size > 0) {
             size_t index;
             __CPROVER_assume(index >= reservation->write_cursor &&
                              index < (reservation->write_cursor + reservation->length));

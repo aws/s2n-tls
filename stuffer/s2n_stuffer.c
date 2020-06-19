@@ -35,7 +35,7 @@ bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer)
            stuffer->read_cursor <= stuffer->write_cursor;
 }
 
-extern bool s2n_stuffer_reservation_is_valid(const struct s2n_stuffer_reservation* reservation)
+bool s2n_stuffer_reservation_is_valid(const struct s2n_stuffer_reservation* reservation)
 {
     return s2n_stuffer_is_valid(reservation->stuffer) &&
            (reservation->write_cursor == reservation->stuffer->write_cursor);
