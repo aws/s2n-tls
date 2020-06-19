@@ -38,7 +38,7 @@ int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, const uint64_t 
 
 int s2n_stuffer_reserve(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation, uint8_t length)
 {
-    notnull_check(stuffer);
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     notnull_check(reservation);
 
     reservation->stuffer = stuffer;
@@ -47,7 +47,8 @@ int s2n_stuffer_reserve(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservat
 
     GUARD(s2n_stuffer_skip_write(stuffer, reservation->length));
     memset_check(stuffer->blob.data + reservation->write_cursor, S2N_WIPE_PATTERN, reservation->length);
-
+    POSTCONDITION_POSIX(s2n_stuffer_reservation_is_valid(reservation));
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     return S2N_SUCCESS;
 }
 
