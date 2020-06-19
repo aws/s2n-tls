@@ -13,22 +13,29 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
 
+#include <sys/param.h>
 #include <assert.h>
+
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
 
-void s2n_stuffer_raw_write_harness() {
+void s2n_stuffer_writev_bytes_harness() {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
-    uint32_t data_len;
+    size_t iov_count;
+    __CPROVER_assume(iov_count < MAX_IOVEC_SIZE);
+    struct iovec iov[iov_count];
+    for(int i = 0; i < iov_count; i++) {
+        iov[i].iov_base = can_fail_malloc(iov[i].iov_len);
+    }
+    uint32_t offs;
+    uint32_t size;
 
     /* Non-deterministically set initialized (in s2n_mem) to true. */
     if(nondet_bool()) {
@@ -37,24 +44,12 @@ void s2n_stuffer_raw_write_harness() {
 
     /* Save previous state from stuffer. */
     struct s2n_stuffer old_stuffer = *stuffer;
-    /* Store a byte from the stuffer to compare. */
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
-    void *retval = s2n_stuffer_raw_write(stuffer, data_len);
-
-    if (retval != NULL) {
-        assert(stuffer->write_cursor == old_stuffer.write_cursor + data_len);
-        assert(retval == stuffer->blob.data + old_stuffer.write_cursor);
-        assert(stuffer->high_water_mark == MAX(old_stuffer.write_cursor + data_len, old_stuffer.high_water_mark));
-        assert(stuffer->tainted == 1);
-        if(old_stuffer.blob.size > 0) {
-            assert_byte_from_blob_matches(&stuffer->blob, &old_byte_from_stuffer);
-        }
+    if (s2n_stuffer_writev_bytes(stuffer, iov, iov_count, offs, size) == S2N_SUCCESS) {
+        /* Post-conditions. */
         assert(s2n_stuffer_is_valid(stuffer));
-    } else {
-        assert(stuffer->write_cursor == old_stuffer.write_cursor);
-        assert(stuffer->high_water_mark == old_stuffer.high_water_mark);
     }
 }
