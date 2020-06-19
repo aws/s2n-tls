@@ -67,20 +67,25 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len)
 
 int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     struct stat st = {0};
 
     S2N_ERROR_IF(fstat(rfd, &st) < 0, S2N_ERR_FSTAT);
 
-    stuffer->blob.data = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, rfd, 0);
+    ENSURE_POSIX(st.st_size > 0 && st.st_size <= SIZE_MAX, S2N_FAILURE);
+    stuffer->blob.data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, rfd, 0);
     S2N_ERROR_IF(stuffer->blob.data == MAP_FAILED, S2N_ERR_MMAP);
 
-    stuffer->blob.size = st.st_size;
+    ENSURE_POSIX(st.st_size >= 0 && st.st_size <= UINT32_MAX, S2N_FAILURE);
+    stuffer->blob.size = (uint32_t)st.st_size;
 
     return s2n_stuffer_init(stuffer, &stuffer->blob);
 }
 
 int s2n_stuffer_alloc_ro_from_file(struct s2n_stuffer *stuffer, const char *file)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    notnull_check(file);
     int fd;
 
     do {
