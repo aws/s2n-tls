@@ -35,6 +35,12 @@ bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer)
            stuffer->read_cursor <= stuffer->write_cursor;
 }
 
+extern bool s2n_stuffer_reservation_is_valid(const struct s2n_stuffer_reservation* reservation)
+{
+    return s2n_stuffer_is_valid(reservation->stuffer) &&
+           (reservation->write_cursor == reservation->stuffer->write_cursor);
+}
+
 int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in)
 {
     PRECONDITION_POSIX(S2N_OBJECT_PTR_IS_WRITABLE(stuffer));

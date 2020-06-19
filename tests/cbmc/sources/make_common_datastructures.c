@@ -69,3 +69,11 @@ const char *nondet_c_str_is_allocated(size_t max_size) {
     __CPROVER_assume(IMPLIES(str != NULL, str[cap - 1] == 0));
     return str;
 }
+
+struct s2n_stuffer_reservation* cbmc_allocate_s2n_stuffer_reservation() {
+    struct s2n_stuffer_reservation* reservation = can_fail_malloc(sizeof(*reservation));
+    if (reservation != NULL) {
+        reservation->stuffer = cbmc_allocate_s2n_stuffer();
+    }
+    return reservation;
+}
