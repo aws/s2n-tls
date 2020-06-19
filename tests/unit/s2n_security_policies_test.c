@@ -50,7 +50,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r2r1);
 #else
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_EQUAL(0, security_policy->kem_preferences->count);
+        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
         EXPECT_NULL(security_policy->kem_preferences->kems);
 #endif
 
