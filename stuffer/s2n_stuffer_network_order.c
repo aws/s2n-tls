@@ -174,13 +174,13 @@ static int s2n_stuffer_write_reservation_impl(struct s2n_stuffer_reservation res
 
     GUARD(length_matches_value_check(u, reservation.length));
     GUARD(s2n_stuffer_write_network_order(reservation.stuffer, u, reservation.length));
-
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(reservation.stuffer));
     return S2N_SUCCESS;
 }
 
 int s2n_stuffer_write_reservation(struct s2n_stuffer_reservation reservation, uint32_t u)
 {
-    notnull_check(reservation.stuffer);
+    PRECONDITION_POSIX(s2n_stuffer_reservation_is_valid(&reservation));
 
     uint32_t old_write_cursor = reservation.stuffer->write_cursor;
     int result = s2n_stuffer_write_reservation_impl(reservation, u);
