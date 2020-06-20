@@ -197,3 +197,10 @@ int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out)
     *out = (uint32_t) result;
     return S2N_SUCCESS;
 }
+
+int s2n_sub_overflow(uint32_t a, uint32_t b, uint32_t* out)
+{
+    S2N_ERROR_IF(a < b, S2N_ERR_INTEGER_OVERFLOW);
+    *out = a - b;
+    return S2N_SUCCESS;
+}
