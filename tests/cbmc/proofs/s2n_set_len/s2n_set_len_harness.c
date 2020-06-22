@@ -14,26 +14,26 @@
  */
 
 #include "api/s2n.h"
-#include "utils/s2n_array.h"
+#include "utils/s2n_set.h"
 #include "utils/s2n_result.h"
 
 #include <assert.h>
 #include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
-void s2n_array_num_elements_harness()
+void s2n_set_len_harness()
 {
     /* Non-deterministic inputs. */
-    struct s2n_array *array = cbmc_allocate_s2n_array();
-    __CPROVER_assume(s2n_array_is_valid(array));
+    struct s2n_set *set = cbmc_allocate_s2n_set();
+    __CPROVER_assume(s2n_set_is_valid(set));
     uint32_t* len = can_fail_malloc(sizeof(*len));
 
     /* Operation under verification. */
-    if(s2n_result_is_ok(s2n_array_num_elements(array, len))) {
+    if(s2n_result_is_ok(s2n_set_len(set, len))) {
         /* Post-condition. */
-        assert(*len == array->len);
+        assert(*len == set->data->len);
     }
 
     /* Post-condition. */
-    assert(s2n_array_is_valid(array));
+    assert(s2n_set_is_valid(set));
 }
