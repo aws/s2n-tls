@@ -19,6 +19,12 @@
 
 #define S2N_INITIAL_ARRAY_SIZE 16
 
+extern bool s2n_array_is_valid(const struct s2n_array *array)
+{
+    return S2N_OBJECT_PTR_IS_READABLE(array) &&
+           s2n_blob_is_valid(&array->mem);
+}
+
 static S2N_RESULT s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
 {
     ENSURE_REF(array);
@@ -36,12 +42,13 @@ static S2N_RESULT s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
     return S2N_RESULT_OK;
 }
 
-struct s2n_array *s2n_array_new(size_t element_size)
+struct s2n_array *s2n_array_new(uint32_t element_size)
 {
     struct s2n_blob mem = {0};
     GUARD_PTR(s2n_alloc(&mem, sizeof(struct s2n_array)));
 
     struct s2n_array *array = (void *) mem.data;
+
     *array = (struct s2n_array) {.mem = {0}, .len = 0, .element_size = element_size};
 
     if (s2n_result_is_error(s2n_array_enlarge(array, S2N_INITIAL_ARRAY_SIZE))) {
@@ -49,6 +56,7 @@ struct s2n_array *s2n_array_new(size_t element_size)
         GUARD_PTR(s2n_free(&mem));
         return NULL;
     }
+    POSTCONDITION_PTR(s2n_array_is_valid(array));
     return array;
 }
 
