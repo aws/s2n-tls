@@ -138,7 +138,8 @@ S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t index)
 
 S2N_RESULT s2n_array_num_elements(struct s2n_array *array, uint32_t *len)
 {
-    ENSURE_REF(array);
+    PRECONDITION(s2n_array_is_valid(array));
+    ENSURE_REF(len);
 
     *len = array->len;
 
