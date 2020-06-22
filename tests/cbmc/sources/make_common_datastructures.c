@@ -92,3 +92,17 @@ struct s2n_array* cbmc_allocate_s2n_array() {
     }
     return array;
 }
+
+static int nondet_comparator(const void *a, const void *b)
+{
+    return nondet_int();
+}
+
+struct s2n_set* cbmc_allocate_s2n_set() {
+    struct s2n_set *set = can_fail_malloc(sizeof(*set));
+    if(set != NULL) {
+        set->data = cbmc_allocate_s2n_array();
+        set->comparator = nondet_comparator;
+    }
+    return set;
+}
