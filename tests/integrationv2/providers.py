@@ -173,7 +173,12 @@ class S2N(Provider):
         if self.options.protocol == Protocols.TLS13:
             cmd_line.append('--tls13')
 
-        cmd_line.extend(['-c', 'test_all'])
+        if self.options.protocol == Protocols.TLS13:
+            cmd_line.extend(['-c', 'test_all_tls13'])
+        elif self.options.protocol == Protocols.TLS12:
+            cmd_line.extend(['-c', 'test_all_tls12'])
+        else:
+            cmd_line.extend(['-c', 'test_all'])
 
         if self.options.use_client_auth is True:
             cmd_line.append('-m')
