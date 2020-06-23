@@ -260,6 +260,8 @@ int s2n_mem_cleanup(void)
 
 int s2n_free(struct s2n_blob *b)
 {
+    PRECONDITION_POSIX(s2n_blob_is_valid(b));
+
     S2N_ERROR_IF(initialized == false, S2N_ERR_NOT_INITIALIZED);
     S2N_ERROR_IF(!s2n_blob_is_growable(b), S2N_ERR_FREE_STATIC_BLOB);
 
