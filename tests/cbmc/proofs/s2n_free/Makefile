@@ -11,22 +11,23 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-###########
-#Use the default set of CBMC flags
+ABSTRACTIONS += $(HELPERDIR)/stubs/munlock.c
+ABSTRACTIONS += $(HELPERDIR)/stubs/s2n_calculate_stacktrace.c
+ABSTRACTIONS += $(HELPERDIR)/stubs/sysconf.c
+
 CHECKFLAGS +=
 
+DEPENDENCIES += $(HELPERDIR)/source/cbmc_utils.c
 DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c
 DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
-DEPENDENCIES += $(HELPERDIR)/source/cbmc_utils.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_mem.c
+
 DEPENDENCIES += $(SRCDIR)/utils/s2n_blob.c
+DEPENDENCIES += $(SRCDIR)/utils/s2n_mem.c
 
 ENTRY = s2n_free_harness
 
-#No loops to unwind
-UNWINDSET +=
-###########
-
 REMOVE_FUNCTION_BODY += --remove-function-body s2n_mem_cleanup_impl
+
+UNWINDSET +=
 
 include ../Makefile.common

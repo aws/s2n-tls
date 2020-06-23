@@ -15,22 +15,11 @@
 
 #include "api/s2n.h"
 #include "utils/s2n_blob.h"
-#include "error/s2n_errno.h"
 
 #include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
-#include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/cbmc_utils.h>
-
-int munlock(const void *addr, size_t len)
-{
-    assert(S2N_MEM_IS_WRITABLE(addr,len));
-    return nondet_int();
-}
-
-int s2n_calculate_stacktrace() { return nondet_int(); }
-
-long sysconf(int name) { return nondet_long(); }
+#include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/proof_allocators.h>
 
 void s2n_free_harness() {
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
@@ -42,7 +31,19 @@ void s2n_free_harness() {
         s2n_mem_init();
     }
 
+    struct s2n_blob old_blob = *blob;
+
     if (s2n_free(blob) == 0) {
+        /* If the call worked, assert all bytes in the blob struct
+           are zero */
         assert_all_zeroes(blob, sizeof(*blob));
     }
+
+#pragma CPROVER check push
+#pragma CPROVER check disable "pointer"
+    /* Regardless of the result of s2n_free, verify that the
+       data pointed to in the blob was zeroed */
+    assert_all_bytes_are(old_blob.data, 0, old_blob.size);
+#pragma CPROVER check pop
+
 }
