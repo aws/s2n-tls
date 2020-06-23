@@ -209,7 +209,6 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
 
 int s2n_free_object(uint8_t **p_data, uint32_t size)
 {
-    S2N_ERROR_IF(initialized == false, S2N_ERR_NOT_INITIALIZED);
     notnull_check(p_data);
 
     if (*p_data == NULL) {

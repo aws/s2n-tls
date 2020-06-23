@@ -11,14 +11,17 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
+ABSTRACTIONS += $(HELPERDIR)/stubs/munlock.c
+ABSTRACTIONS += $(HELPERDIR)/stubs/s2n_calculate_stacktrace.c
+ABSTRACTIONS += $(HELPERDIR)/stubs/sysconf.c
+
 CHECKFLAGS +=
 
-
-DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c
-DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
 DEPENDENCIES += $(HELPERDIR)/source/cbmc_utils.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_mem.c
+DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
+DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c
 DEPENDENCIES += $(SRCDIR)/utils/s2n_blob.c
+DEPENDENCIES += $(SRCDIR)/utils/s2n_mem.c
 
 ENTRY = s2n_free_object_harness
 

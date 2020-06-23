@@ -14,28 +14,16 @@
  */
 
 #include "api/s2n.h"
-#include "utils/s2n_blob.h"
-#include "error/s2n_errno.h"
 
 #include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
-#include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/cbmc_utils.h>
-
-int munlock(const void *addr, size_t len)
-{
-    assert(S2N_MEM_IS_WRITABLE(addr,len));
-    return nondet_int();
-}
-
-long sysconf(int name) { return nondet_long(); }
-
-int s2n_calculate_stacktrace() { return nondet_int(); }
+#include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/proof_allocators.h>
 
 void s2n_free_object_harness() {
     uint32_t size;
     uint8_t * data = can_fail_malloc( size );
-    uint8_t * data_copy = data;
+    uint8_t * old_data = data;
 
     /* Non-deterministically set initialized (in s2n_mem) to true. */
     if(nondet_bool()) {
@@ -48,10 +36,10 @@ void s2n_free_object_harness() {
 #pragma CPROVER check push
 #pragma CPROVER check disable "pointer"
         /* Verify that the memory was zeroed */
-        if (size > 0 && data_copy != NULL) {
+        if (size > 0 && old_data != NULL) {
             size_t i;
             __CPROVER_assume(i < size);
-            assert(data_copy[i] == 0);
+            assert(old_data[i] == 0);
         }
 #pragma CPROVER check pop
 

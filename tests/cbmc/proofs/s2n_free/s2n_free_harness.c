@@ -43,7 +43,11 @@ void s2n_free_harness() {
 #pragma CPROVER check disable "pointer"
     /* Regardless of the result of s2n_free, verify that the
        data pointed to in the blob was zeroed */
-    assert_all_bytes_are(old_blob.data, 0, old_blob.size);
+    if (old_blob.size > 0 && old_blob.data != NULL) {
+        size_t i;
+        __CPROVER_assume(i < old_blob.size);
+        assert(old_blob.data[i] == 0);
+    }
 #pragma CPROVER check pop
 
 }
