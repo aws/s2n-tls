@@ -5,6 +5,31 @@ from constants import TEST_SNI_CERT_DIRECTORY
 from providers import S2N, OpenSSL, BoringSSL
 
 
+# We support global configuration flags that are set via command line.
+# These flags enable Providers and Tests to determine how to behave
+# based on the environment.
+
+# If PQ support was not compiled in to S2N
+S2N_NO_PQ = 's2n_no_pq'
+
+# If S2N is operating in FIPS mode
+S2N_FIPS_MODE = 's2n_fips_mode'
+
+# The version of OpenSSL being used
+S2N_OPENSSL_VERSION = 's2n_openssl_version'
+
+_flags = {}
+
+def get_flag(name, default=None):
+    """Return the value of a flag"""
+    return _flags.get(name, default)
+
+
+def set_flag(name, value):
+    """Set the value of a flag"""
+    _flags[name] = value
+
+
 # The boolean configuration will let a test run for True and False
 # for some value. For example, using the insecure flag.
 BOOLEAN = [True, False]

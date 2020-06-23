@@ -305,7 +305,8 @@ class OpenSSL(Provider):
         self.ready_to_test_marker = 'ACCEPT'
 
         cmd_line = ['openssl', 's_server']
-        cmd_line.extend(['-accept', '{}:{}'.format(self.options.host, self.options.port)])
+        cmd_line.extend(['-accept', self.options.port])
+        #cmd_line.extend(['-accept', '{}:{}'.format(self.options.host, self.options.port)])
 
         if self.options.reconnects_before_exit is not None:
             # If the user request a specific reconnection count, set it here

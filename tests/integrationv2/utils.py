@@ -1,4 +1,5 @@
-from common import Protocols
+from configuration import get_flag, S2N_OPENSSL_VERSION
+from common import Protocols, Curves, Ciphers
 from providers import S2N, OpenSSL
 
 
@@ -47,6 +48,9 @@ def invalid_test_parameters(*args, **kwargs):
     cipher = kwargs.get('cipher')
     curve = kwargs.get('curve')
 
+    if protocol is Protocols.TLS13 and get_flag(S2N_OPENSSL_VERSION) == "openssl-1.0.2-fips":
+        return True
+
     if cipher is not None:
         # If the selected protocol doesn't allow the cipher, don't test
         if protocol is not None:
@@ -55,10 +59,22 @@ def invalid_test_parameters(*args, **kwargs):
             if protocol is Protocols.TLS13 and cipher.min_version < protocol:
                 return True
 
-        # NOTE: We don't detect the version of OpenSSL at the moment,
-        # so we will deselect these tests.
-        if provider is not None and provider is OpenSSL and cipher.openssl1_1_1 is False:
-            return True
+        if provider is OpenSSL:
+            if get_flag(S2N_OPENSSL_VERSION) == "openssl-1.1.1" and cipher.openssl1_1_1 is False:
+                # If the cipher is not supported in OpenSSL 1.1.1, deselect the test
+                return True
+            if get_flag(S2N_OPENSSL_VERSION) == "openssl-1.0.2-fips":
+                if cipher.fips is False:
+                    # If the cipher is not supported using FIPS, deselect the test
+                    return True
+                invalid_ciphers = [
+                    Ciphers.ECDHE_RSA_AES128_SHA256,
+                    Ciphers.ECDHE_RSA_AES256_SHA384,
+                    Ciphers.ECDHE_RSA_AES128_GCM_SHA256,
+                    Ciphers.ECDHE_RSA_AES256_GCM_SHA384
+                ]
+                if curve is Curves.P384 and cipher in invalid_ciphers:
+                    return True
 
     # If we are using a cipher that depends on a specific certificate algorithm
     # deselect the test of the wrong certificate is used.
@@ -70,7 +86,14 @@ def invalid_test_parameters(*args, **kwargs):
             return True
 
     # Prevent situations like using X25519 with TLS1.2
-    if curve is not None and protocol is not None and curve.min_protocol > protocol:
+    if curve is not None:
+        if protocol is not None and curve.min_protocol > protocol:
             return True
+
+    if provider is OpenSSL:
+        if get_flag(S2N_OPENSSL_VERSION) != "openssl-1.1.1":
+            if protocol is not None and protocol is Protocols.TLS13:
+                # TLS1.3 is only supported by OpenSSL 1.1.1 and greater
+                return True
 
     return False

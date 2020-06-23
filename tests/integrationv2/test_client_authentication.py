@@ -3,7 +3,8 @@ import os
 import pytest
 import time
 
-from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROVIDERS, PROTOCOLS
+from configuration import (available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES,
+    ALL_TEST_CERTS, PROTOCOLS, get_flag, S2N_OPENSSL_VERSION)
 from common import Certificates, ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
@@ -159,7 +160,10 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, curve, pro
         if protocol is Protocols.TLS13:
             message = bytes("SSL_accept:SSLv3/TLS read client certificate\nSSL_accept:SSLv3/TLS read finished".encode('utf-8'))
         else:
-            message = bytes("SSL_accept:SSLv3/TLS read client certificate\nSSL_accept:SSLv3/TLS read client key exchange\nSSL_accept:SSLv3/TLS read change cipher spec\nSSL_accept:SSLv3/TLS read finished".encode('utf-8'))
+            if get_flag(S2N_OPENSSL_VERSION) == "openssl-1.0.2-fips":
+                message = bytes('SSL_accept:SSLv3 read client certificate A\nSSL_accept:SSLv3 read client key exchange A\nSSL_accept:SSLv3 read certificate verify A\nSSL_accept:SSLv3 read finished A'.encode('utf-8'))
+            else:
+                message = bytes("SSL_accept:SSLv3/TLS read client certificate\nSSL_accept:SSLv3/TLS read client key exchange\nSSL_accept:SSLv3/TLS read change cipher spec\nSSL_accept:SSLv3/TLS read finished".encode('utf-8'))
 
         assert message in results.stderr
 
@@ -214,5 +218,8 @@ def test_client_auth_with_s2n_client_with_cert(managed_process, cipher, curve, p
             message = bytes("SSL_accept:SSLv3/TLS read client certificate\nSSL_accept:SSLv3/TLS read certificate verify\nSSL_accept:SSLv3/TLS read finished".encode('utf-8'))
         else:
             message = bytes('SSL_accept:SSLv3/TLS read client certificate\nSSL_accept:SSLv3/TLS read client key exchange\nSSL_accept:SSLv3/TLS read certificate verify\nSSL_accept:SSLv3/TLS read change cipher spec\nSSL_accept:SSLv3/TLS read finished'.encode('utf-8'))
+
+            if get_flag(S2N_OPENSSL_VERSION) == "openssl-1.0.2-fips":
+                message = bytes('SSL_accept:SSLv3 read client certificate A\nSSL_accept:SSLv3 read client key exchange A\nSSL_accept:SSLv3 read certificate verify A\nSSL_accept:SSLv3 read finished A'.encode('utf-8'))
 
         assert message in results.stderr
