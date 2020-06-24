@@ -1087,8 +1087,8 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     ENSURE_POSIX(cipher_suite != NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
     /* Verify cipher suite sent in server hello is the same as sent in hello retry */
-    if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO && s2n_is_hello_retry_handshake(conn)) {
-        ENSURE_POSIX(conn->secure.cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_CIPHER_TYPE);
+    if (s2n_is_hello_retry_handshake(conn) && !s2n_is_hello_retry_message(conn)) {
+        ENSURE_POSIX(conn->secure.cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_CIPHER_NOT_SUPPORTED);
         return S2N_SUCCESS;
     }
     conn->secure.cipher_suite = cipher_suite;

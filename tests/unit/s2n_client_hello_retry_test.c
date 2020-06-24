@@ -481,7 +481,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test server_hello_receive raises a S2N_ERR_CIPHER_TYPE error when the cipher suite supplied
+    /* Test server_hello_receive raises a S2N_ERR_CIPHER_NOT_SUPPORTED error when the cipher suite supplied
      * by the Server Hello does not match the cipher suite supplied by the Hello Retry Request */
     {
         struct s2n_connection *server_conn;
@@ -498,7 +498,6 @@ int main(int argc, char **argv)
         client_conn->handshake.handshake_type |= FULL_HANDSHAKE;
         client_conn->handshake.message_number = SERVER_HELLO_MSG_NO;
 
-
         /* Server Hello with cipher suite that does not match Hello Retry Request cipher suite */
         server_conn->secure.cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
         EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
@@ -507,7 +506,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
                                         s2n_stuffer_data_available(&server_conn->handshake.io)));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn), S2N_ERR_CIPHER_TYPE);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn), S2N_ERR_CIPHER_NOT_SUPPORTED);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
