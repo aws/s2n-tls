@@ -39,7 +39,13 @@
 static int read_priv_ecc(EVP_PKEY **pkey, const char *priv_ecc) {
     size_t key_len = sizeof(char) * strlen(priv_ecc);
 
+#if defined(LIBRESSL_VERSION_NUMBER)
+    /* LibreSSL's API is different from OpenSSL's */
+    BIO *bio = BIO_new_mem_buf((void *)priv_ecc, key_len);
+#else
     BIO *bio = BIO_new_mem_buf(priv_ecc, key_len);
+#endif
+
     notnull_check(bio);
     PEM_read_bio_PrivateKey(bio, pkey, 0, NULL);
     /* Caller should assert notnull_check on *pkey */
