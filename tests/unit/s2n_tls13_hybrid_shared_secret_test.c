@@ -186,19 +186,9 @@ int main(int argc, char **argv) {
     }
 
     S2N_BLOB_FROM_HEX(sikep434r2_secret, SIKEP434R2_SECRET);
-    S2N_BLOB_FROM_HEX(x25519_secret, X25519_SHARED_SECRET);
+
     S2N_BLOB_FROM_HEX(secp256r1_secret, SECP256R1_SHARED_SECRET);
-    S2N_BLOB_FROM_HEX(x25519_sikep434r2_hybrid_secret, X25519_SIKEP434R2_HYBRID_SECRET);
     S2N_BLOB_FROM_HEX(secp256r1_sikep434r2_hybrid_secret,SECP256R1_SIKEP434R2_HYBRID_SECRET);
-
-    const struct hybrid_test_vector x25519_sikep434r2_vector = {
-            .kem_group = &s2n_x25519_sike_p434_r2,
-            .client_ecc_key = CLIENT_X25519_PRIV_KEY,
-            .server_ecc_key = SERVER_X25519_PRIV_KEY,
-            .pq_secret = &sikep434r2_secret,
-            .expected_hybrid_secret = &x25519_sikep434r2_hybrid_secret,
-    };
-
     const struct hybrid_test_vector secp256r1_sikep434r2_vector = {
             .kem_group = &s2n_secp256r1_sike_p434_r2,
             .client_ecc_key = CLIENT_SECP256R1_PRIV_KEY,
@@ -207,19 +197,27 @@ int main(int argc, char **argv) {
             .expected_hybrid_secret = &secp256r1_sikep434r2_hybrid_secret,
     };
 
-    /* Asserting this equality to ensure that this test gets updated if a new kem_group is added */
-#if EVP_APIS_SUPPORTED
-    EXPECT_EQUAL(2, S2N_SUPPORTED_KEM_GROUPS_COUNT);
-#else
-    EXPECT_EQUAL(1, S2N_SUPPORTED_KEM_GROUPS_COUNT);
-#endif
+    EXPECT_TRUE(S2N_SUPPORTED_KEM_GROUPS_COUNT > 0);
+    const struct hybrid_test_vector *all_test_vectors[S2N_SUPPORTED_KEM_GROUPS_COUNT];
+    all_test_vectors[0] = &secp256r1_sikep434r2_vector;
 
-    const struct hybrid_test_vector *all_test_vectors[] = {
 #if EVP_APIS_SUPPORTED
-            &x25519_sikep434r2_vector,
-#endif
-            &secp256r1_sikep434r2_vector
+    /* All x25519 based kem_groups require EVP_APIS_SUPPORTED */
+    S2N_BLOB_FROM_HEX(x25519_secret, X25519_SHARED_SECRET);
+    S2N_BLOB_FROM_HEX(x25519_sikep434r2_hybrid_secret, X25519_SIKEP434R2_HYBRID_SECRET);
+    const struct hybrid_test_vector x25519_sikep434r2_vector = {
+            .kem_group = &s2n_x25519_sike_p434_r2,
+            .client_ecc_key = CLIENT_X25519_PRIV_KEY,
+            .server_ecc_key = SERVER_X25519_PRIV_KEY,
+            .pq_secret = &sikep434r2_secret,
+            .expected_hybrid_secret = &x25519_sikep434r2_hybrid_secret,
     };
+
+    EXPECT_EQUAL(2, S2N_SUPPORTED_KEM_GROUPS_COUNT);
+    all_test_vectors[1] = &x25519_sikep434r2_vector;
+#else
+        EXPECT_EQUAL(1, S2N_SUPPORTED_KEM_GROUPS_COUNT);
+#endif
 
     struct s2n_connection *client_conn;
     struct s2n_connection *server_conn;
