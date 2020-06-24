@@ -166,6 +166,7 @@ int s2n_in_unit_test_set(bool newval)
 
 int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out)
 {
+    notnull_check(out);
     const uint64_t result = ((uint64_t) a) * ((uint64_t) b);
     S2N_ERROR_IF(result > UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     *out = (uint32_t) result;
