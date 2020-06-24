@@ -71,7 +71,7 @@ struct s2n_kem_group_params {
  * even if S2N_NO_PQ is defined. The macro is used to declare
  * the size of arrays in s2n_crypto.h and ISO C forbids zero-size
  * arrays. */
-#define S2N_SUPPORTED_KEM_GROUPS_COUNT 2
+#define S2N_SUPPORTED_KEM_GROUPS_COUNT 1
 
 #if !defined(S2N_NO_PQ)
 
@@ -81,7 +81,14 @@ extern const struct s2n_kem s2n_sike_p503_r1;
 extern const struct s2n_kem s2n_sike_p434_r2;
 extern const struct s2n_kem s2n_kyber_512_r2;
 
+#if EVP_APIS_SUPPORTED
+
+/* All x25519 based kem_groups require EVP_APIS_SUPPORTED */
+#undef S2N_SUPPORTED_KEM_GROUPS_COUNT
+#define S2N_SUPPORTED_KEM_GROUPS_COUNT 2
 extern const struct s2n_kem_group s2n_x25519_sike_p434_r2;
+#endif
+
 extern const struct s2n_kem_group s2n_secp256r1_sike_p434_r2;
 
 #endif

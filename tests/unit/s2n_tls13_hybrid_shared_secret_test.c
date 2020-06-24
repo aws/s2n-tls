@@ -208,9 +208,16 @@ int main(int argc, char **argv) {
     };
 
     /* Asserting this equality to ensure that this test gets updated if a new kem_group is added */
+#if EVP_APIS_SUPPORTED
     EXPECT_EQUAL(2, S2N_SUPPORTED_KEM_GROUPS_COUNT);
-    const struct hybrid_test_vector *all_test_vectors[S2N_SUPPORTED_KEM_GROUPS_COUNT] = {
+#else
+    EXPECT_EQUAL(1, S2N_SUPPORTED_KEM_GROUPS_COUNT);
+#endif
+
+    const struct hybrid_test_vector *all_test_vectors[] = {
+#if EVP_APIS_SUPPORTED
             &x25519_sikep434r2_vector,
+#endif
             &secp256r1_sikep434r2_vector
     };
 
@@ -249,8 +256,7 @@ int main(int argc, char **argv) {
     }
     {
         /* Various failure cases */
-        const struct hybrid_test_vector *test_vector = all_test_vectors[0];
-        EXPECT_EQUAL(test_vector->kem_group, &s2n_x25519_sike_p434_r2);
+        const struct hybrid_test_vector *test_vector = &secp256r1_sikep434r2_vector;
 
         /* Failures because of NULL arguments */
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(NULL, NULL), S2N_ERR_NULL);
