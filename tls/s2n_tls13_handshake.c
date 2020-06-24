@@ -88,6 +88,10 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     notnull_check(conn);
     notnull_check(shared_secret);
 
+    /* conn->secure.server_ecc_evp_params should be set only during a classic/non-hybrid handshake */
+    eq_check(NULL, conn->secure.server_ecc_evp_params.negotiated_curve);
+    eq_check(NULL, conn->secure.server_ecc_evp_params.evp_pkey);
+
     struct s2n_kem_group_params *server_kem_group_params = &conn->secure.server_kem_group_params;
     notnull_check(server_kem_group_params);
     struct s2n_ecc_evp_params *server_ecc_params = &server_kem_group_params->ecc_params;

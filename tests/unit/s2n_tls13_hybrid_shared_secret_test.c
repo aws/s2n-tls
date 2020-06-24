@@ -265,6 +265,14 @@ int main(int argc, char **argv) {
         DEFER_CLEANUP(struct s2n_blob client_calculated_shared_secret = {0}, s2n_free);
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(NULL, &client_calculated_shared_secret), S2N_ERR_NULL);
 
+        /* Failures because classic (non-hybrid) parameters were configured */
+        client_conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_SAFETY);
+        client_conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
+        EXPECT_SUCCESS(read_priv_ecc(&client_conn->secure.server_ecc_evp_params.evp_pkey, test_vector->client_ecc_key));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_SAFETY);
+        EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_conn->secure.server_ecc_evp_params));
+
         /* Failure because the chosen_client_kem_group_params is NULL */
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_NULL);
         client_conn->secure.chosen_client_kem_group_params = &client_conn->secure.client_kem_group_params[0];
