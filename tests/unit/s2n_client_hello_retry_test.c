@@ -32,6 +32,7 @@
 #include "error/s2n_errno.h"
 
 #define HELLO_RETRY_MSG_NO 1
+#define SERVER_HELLO_MSG_NO 5
 
 int main(int argc, char **argv)
 {
@@ -480,67 +481,23 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test server_hello_receive raises a S2N_ERR_BAD_MESSAGE error when the cipher suite supplied
+    /* Test server_hello_receive raises a S2N_ERR_CIPHER_TYPE error when the cipher suite supplied
      * by the Server Hello does not match the cipher suite supplied by the Hello Retry Request */
     {
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
-
         struct s2n_connection *server_conn;
         struct s2n_connection *client_conn;
 
-        struct s2n_cert_chain_and_key *tls13_chain_and_key;
-        char tls13_cert_chain[S2N_MAX_TEST_PEM_SIZE] = {0};
-        char tls13_private_key[S2N_MAX_TEST_PEM_SIZE] = {0};
-
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_NOT_NULL(client_config = s2n_config_new());
-
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        
+        /* A Hello Retry Request has been processed */
+        EXPECT_SUCCESS(s2n_set_hello_retry_required(client_conn));
+        client_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        client_conn->server_protocol_version = S2N_TLS13;
+        client_conn->handshake.handshake_type |= NEGOTIATED;
+        client_conn->handshake.handshake_type |= FULL_HANDSHAKE;
+        client_conn->handshake.message_number = SERVER_HELLO_MSG_NO;
 
-        EXPECT_NOT_NULL(tls13_chain_and_key = s2n_cert_chain_and_key_new());
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, tls13_cert_chain, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, tls13_private_key, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(tls13_chain_and_key, tls13_cert_chain, tls13_private_key));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, tls13_chain_and_key));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
-
-
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-
-        /* The client will offer the default tls13 ciphersuites */
-        s2n_connection_set_cipher_preferences(client_conn, "default_tls13");
-
-        /* Force the client to send an empty list of keyshares */
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
-
-        /* ClientHello 1 */
-        EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
-                                        s2n_stuffer_data_available(&client_conn->handshake.io)));
-        EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
-        EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
-        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
-
-        /* Server HelloRetryRequest */
-        EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
-        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
-
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
-                                        s2n_stuffer_data_available(&server_conn->handshake.io)));
-        client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
-        EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
-
-        EXPECT_EQUAL(client_conn->secure.cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
-
-        /* ClientHello 2 */
-        EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->handshake.io));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
-                                        s2n_stuffer_data_available(&client_conn->handshake.io)));
-        EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
         /* Server Hello with cipher suite that does not match Hello Retry Request cipher suite */
         server_conn->secure.cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
@@ -550,13 +507,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
                                         s2n_stuffer_data_available(&server_conn->handshake.io)));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn), S2N_ERR_BAD_MESSAGE);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn), S2N_ERR_CIPHER_TYPE);
 
-        EXPECT_SUCCESS(s2n_config_free(client_config));
-        EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
     }
 
     EXPECT_SUCCESS(s2n_disable_tls13());
