@@ -209,7 +209,6 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
 
 int s2n_free_object(uint8_t **p_data, uint32_t size)
 {
-    S2N_ERROR_IF(initialized == false, S2N_ERR_NOT_INITIALIZED);
     notnull_check(p_data);
 
     if (*p_data == NULL) {
@@ -260,11 +259,14 @@ int s2n_mem_cleanup(void)
 
 int s2n_free(struct s2n_blob *b)
 {
+    PRECONDITION_POSIX(s2n_blob_is_valid(b));
+
+    /* To avoid memory leaks, don't exit the function until the memory
+       has been freed */
+    int zero_rc = s2n_blob_zero(b);
+
     S2N_ERROR_IF(initialized == false, S2N_ERR_NOT_INITIALIZED);
     S2N_ERROR_IF(!s2n_blob_is_growable(b), S2N_ERR_FREE_STATIC_BLOB);
-
-    /* To avoid memory leaks, still free the data even if we can't unlock / wipe it */
-    int zero_rc = s2n_blob_zero(b);
 
     GUARD(s2n_mem_free_cb(b->data, b->allocated));
 
