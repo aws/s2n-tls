@@ -11,26 +11,15 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-#ABSTRACTIONS += $(HELPERDIR)/stubs/__tolower.c
+CBMCFLAGS += 
 
-# Enough to get full coverage with 10 seconds of runtime.
-#BLOB_SIZE = 10
-#DEFINES += -DBLOB_SIZE=$(BLOB_SIZE)
-
-CBMCFLAGS += --flush
-
-DEPENDENCIES += $(HELPERDIR)/source/cbmc_utils.c
 DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c
 DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
-#DEPENDENCIES += $(SRCDIR)/utils/s2n_blob.c
 DEPENDENCIES += $(SRCDIR)/utils/s2n_safety.c
-#DEPENDENCIES += $(SRCDIR)/error/s2n_errno.c
 
 ENTRY = s2n_mul_overflow_harness
 
-# We abstract this function because manual inspection demonstrates it is unreachable.
-#REMOVE_FUNCTION_BODY += --remove-function-body s2n_calculate_stacktrace
 
-#UNWINDSET += s2n_blob_char_to_lower.3:$(call addone,$(BLOB_SIZE))
+UNWINDSET += 
 
 include ../Makefile.common

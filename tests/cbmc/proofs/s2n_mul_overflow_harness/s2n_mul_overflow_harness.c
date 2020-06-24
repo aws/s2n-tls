@@ -14,29 +14,21 @@
  */
 
 #include "api/s2n.h"
-//#include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
 #include <assert.h>
-#include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
-
 int s2n_mul_overflow_harness()
 {
-
     uint32_t a;
     uint32_t b;
     uint32_t *out = can_fail_malloc(sizeof(uint32_t));
 
-
-    __CPROVER_assume(out != NULL);
-
     if(s2n_mul_overflow(a, b, out) == S2N_SUCCESS) {
-        //assert(__CPROVER_overflow_mult(a, b)==false);
+        assert(*out <= UINT32_MAX);
     }
-    
 }
 
 
