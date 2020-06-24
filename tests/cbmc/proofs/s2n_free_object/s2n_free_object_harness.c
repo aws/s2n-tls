@@ -30,18 +30,17 @@ void s2n_free_object_harness() {
         s2n_mem_init();
     }
 
-    if (s2n_free_object(&data, size) == 0) {
+    if (s2n_free_object(&data, size) == S2N_SUCCESS) {
         assert(data == NULL);
+    }
 
 #pragma CPROVER check push
 #pragma CPROVER check disable "pointer"
-        /* Verify that the memory was zeroed */
-        if (size > 0 && old_data != NULL) {
-            size_t i;
-            __CPROVER_assume(i < size);
-            assert(old_data[i] == 0);
-        }
-#pragma CPROVER check pop
-
+    /* Verify that the memory was zeroed */
+    if (size > 0 && old_data != NULL) {
+        size_t i;
+        __CPROVER_assume(i < size);
+        assert(old_data[i] == 0);
     }
+#pragma CPROVER check pop
 }

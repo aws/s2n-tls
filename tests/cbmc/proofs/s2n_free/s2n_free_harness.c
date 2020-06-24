@@ -33,7 +33,7 @@ void s2n_free_harness() {
 
     struct s2n_blob old_blob = *blob;
 
-    if (s2n_free(blob) == 0) {
+    if (s2n_free(blob) == S2N_SUCCESS) {
         /* If the call worked, assert all bytes in the blob struct
            are zero */
         assert_all_zeroes(blob, sizeof(*blob));
