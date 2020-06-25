@@ -61,7 +61,7 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
         assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) in results.stdout
         assert random_bytes in results.stdout
 
-        if provider is OpenSSL:
+        if provider is not S2N:
             assert bytes("Cipher negotiated: {}".format(cipher.name).encode('utf-8')) in results.stdout
 
 
