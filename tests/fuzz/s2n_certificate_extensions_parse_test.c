@@ -34,7 +34,7 @@
 
 static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out_stuffer, const char *pem_data)
 {
-    struct s2n_stuffer chain_in_stuffer, cert_stuffer;
+    struct s2n_stuffer chain_in_stuffer = {0}, cert_stuffer = {0};
     s2n_stuffer_alloc_ro_from_string(&chain_in_stuffer, pem_data);
     s2n_stuffer_growable_alloc(&cert_stuffer, 4096);
     s2n_stuffer_growable_alloc(chain_out_stuffer, 4096);

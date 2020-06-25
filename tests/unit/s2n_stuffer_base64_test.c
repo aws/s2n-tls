@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 {
     char hello_world[] = "Hello world!";
     uint8_t hello_world_base64[] = "SGVsbG8gd29ybGQhAA==";
-    struct s2n_stuffer stuffer, known_data, scratch, entropy, mirror;
+    struct s2n_stuffer stuffer = {0}, known_data = {0}, scratch = {0}, entropy = {0}, mirror = {0};
     uint8_t pad[50];
     struct s2n_blob r = {.data = pad, .size = sizeof(pad)};
 
