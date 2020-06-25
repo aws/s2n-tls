@@ -9,10 +9,6 @@ cache:
 
 jobs:
   include:
-  - os: linux
-    dist: bionic
-    env: S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integration GCC_VERSION=6 S2N_COVERAGE=true CODECOV_IO_UPLOAD=true
-
 # Normal Build Targets
   - os: linux
     dist: bionic
