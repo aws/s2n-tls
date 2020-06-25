@@ -78,13 +78,12 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
     PRECONDITION_POSIX(s2n_stuffer_is_valid(out));
     uint8_t pad[4];
     int bytes_this_round = 3;
-    struct s2n_blob o;// = {.data = pad,.size = sizeof(pad) };
+    struct s2n_blob o;
     GUARD(s2n_blob_init(&o, pad, sizeof(pad)));
 
     do {
         if (s2n_stuffer_data_available(stuffer) < 4) {
             break;
-            //return S2N_SUCCESS;
         }
 
         GUARD(s2n_stuffer_read(stuffer, &o));
