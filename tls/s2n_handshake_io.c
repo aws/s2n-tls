@@ -892,7 +892,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
     if (record_type == TLS_CHANGE_CIPHER_SPEC) {
         /* TLS1.2 should not receive unexpected change cipher spec messages, but TLS1.3 might. */
         if (!IS_TLS13_HANDSHAKE(conn)) {
-            S2N_ERROR_IF(EXPECTED_RECORD_TYPE(conn) != TLS_CHANGE_CIPHER_SPEC, S2N_ERR_BAD_MESSAGE);
+            ENSURE_POSIX(EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC, S2N_ERR_BAD_MESSAGE);
+            ENSURE_POSIX(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);
         }
 
         S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) != 1, S2N_ERR_BAD_MESSAGE);
@@ -907,7 +908,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         conn->in_status = ENCRYPTED;
 
         /* Advance the state machine if this was an expected message */
-        if (EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC) {
+        if (EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC && !CONNECTION_IS_WRITER(conn)) {
             GUARD(s2n_advance_message(conn));
         }
 

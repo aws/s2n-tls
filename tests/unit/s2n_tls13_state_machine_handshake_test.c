@@ -63,7 +63,7 @@ static int s2n_setup_handler_to_expect(message_type_t expected, uint8_t directio
     return 0;
 }
 
-int s2n_test_write_header(struct s2n_stuffer *output, uint8_t record_type, uint8_t message_type)
+static int s2n_test_write_header(struct s2n_stuffer *output, uint8_t record_type, uint8_t message_type)
 {
     GUARD(s2n_stuffer_write_uint8(output, record_type));
 
@@ -74,9 +74,7 @@ int s2n_test_write_header(struct s2n_stuffer *output, uint8_t record_type, uint8
     if (record_type == TLS_HANDSHAKE) {
         /* Total message size */
         GUARD(s2n_stuffer_write_uint16(output, 4));
-
         GUARD(s2n_stuffer_write_uint8(output, message_type));
-
         /* Handshake message data size */
         GUARD(s2n_stuffer_write_uint24(output, 0));
         return 0;
@@ -85,7 +83,6 @@ int s2n_test_write_header(struct s2n_stuffer *output, uint8_t record_type, uint8
     if (record_type == TLS_CHANGE_CIPHER_SPEC) {
         /* Total message size */
         GUARD(s2n_stuffer_write_uint16(output, 1));
-
         /* change spec is always just 0x01 */
         GUARD(s2n_stuffer_write_uint8(output, 1));
         return 0;
@@ -240,7 +237,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
-        GUARD(s2n_setup_handler_to_expect(SERVER_CHANGE_CIPHER_SPEC, S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_setup_handler_to_expect(SERVER_CHANGE_CIPHER_SPEC, S2N_CLIENT));
 
         for (int i = 0; i < valid_tls13_handshakes_size; i++) {
             int handshake = valid_tls13_handshakes[i];
@@ -255,12 +252,16 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_handshake_read_io(conn));
 
-                EXPECT_EQUAL(conn->handshake.message_number, j);
+                if (tls13_handshakes[i][j] == SERVER_CHANGE_CIPHER_SPEC) {
+                    EXPECT_EQUAL(conn->handshake.message_number, j + 1);
+                } else {
+                    EXPECT_EQUAL(conn->handshake.message_number, j);
+                }
+
                 EXPECT_FALSE(unexpected_handler_called);
                 EXPECT_TRUE(expected_handler_called);
 
                 EXPECT_SUCCESS(s2n_stuffer_wipe(&input));
-                break;
             }
         }
 
@@ -277,7 +278,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
-        GUARD(s2n_setup_handler_to_expect(CLIENT_CHANGE_CIPHER_SPEC, S2N_SERVER));
+        EXPECT_SUCCESS(s2n_setup_handler_to_expect(CLIENT_CHANGE_CIPHER_SPEC, S2N_SERVER));
 
         for (int i = 0; i < valid_tls13_handshakes_size; i++) {
             int handshake = valid_tls13_handshakes[i];
@@ -292,12 +293,16 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_handshake_read_io(conn));
 
-                EXPECT_EQUAL(conn->handshake.message_number, j);
+                if (tls13_handshakes[i][j] == CLIENT_CHANGE_CIPHER_SPEC) {
+                    EXPECT_EQUAL(conn->handshake.message_number, j + 1);
+                } else {
+                    EXPECT_EQUAL(conn->handshake.message_number, j);
+                }
+
                 EXPECT_FALSE(unexpected_handler_called);
                 EXPECT_TRUE(expected_handler_called);
 
                 EXPECT_SUCCESS(s2n_stuffer_wipe(&input));
-                break;
             }
         }
 
@@ -305,7 +310,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test: TLS1.3 s2n_conn_set_handshake_type sets FULL_HANDSHAKE, HELLO_RETRY_REQUEST, and CLIENT_AUTH*/
+    /* Test: TLS1.3 s2n_conn_set_handshake_type sets FULL_HANDSHAKE, HELLO_RETRY_REQUEST, and CLIENT_AUTH */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
 
