@@ -220,20 +220,22 @@ class OpenSSL(Provider):
 
         ciphers = []
         if type(cipher) is list:
-            version = cipher[0].min_version
+            # In the case of a cipher list we need to be sure TLS13 specific ciphers aren't
+            # mixed with ciphers from previous versions
+            min_cipher = min(cipher, key=lambda x: x.min_version)
+            max_cipher = max(cipher, key=lambda x: x.min_version)
 
-            # Verify that each cipher in the list is the same version to prevent
-            # errors on the command line
-            mismatched_version = [x.min_version for x in cipher if x.min_version != version]
-            if len(mismatched_version) > 0:
-                raise Exception("Cipher string contains mismatched versions: {}".format([c.name for c in cipher]))
+            min_version = min_cipher.min_version
+            max_version = max_cipher.min_version
+            if max_version is Protocols.TLS13 and min_version < Protocols.TLS13:
+                raise Exception("Cannot combine TLS1.3 ciphers with older ciphers: {}".format([c.name for c in cipher]))
 
             ciphers.append(self._join_ciphers(cipher))
         else:
-            version = cipher.min_version
+            min_version = cipher.min_version
             ciphers.append(cipher.name)
 
-        if version is Protocols.TLS13:
+        if min_version is Protocols.TLS13:
             cmdline.append('-ciphersuites')
         else:
             cmdline.append('-cipher')
