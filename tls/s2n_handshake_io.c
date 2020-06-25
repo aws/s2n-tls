@@ -965,7 +965,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
             conn->handshake.handshake_type &= ~OCSP_STATUS;
         }
 
-        S2N_ERROR_IF(actual_handshake_message_type != EXPECTED_MESSAGE_TYPE(conn), S2N_ERR_BAD_MESSAGE);
+        ENSURE_POSIX(actual_handshake_message_type == EXPECTED_MESSAGE_TYPE(conn), S2N_ERR_BAD_MESSAGE);
+        ENSURE_POSIX(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);
 
         /* Call the relevant handler */
         r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
