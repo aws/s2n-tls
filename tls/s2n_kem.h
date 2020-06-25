@@ -86,7 +86,7 @@ struct s2n_kem_group_params {
         #define S2N_NUM_X25519_KEM_GROUPS 0
     #endif
 
-    #define S2N_SUPPORTED_KEM_GROUPS_COUNT S2N_NUM_SECP256R1_KEM_GROUPS + S2N_NUM_X25519_KEM_GROUPS
+    #define S2N_SUPPORTED_KEM_GROUPS_COUNT (S2N_NUM_SECP256R1_KEM_GROUPS + S2N_NUM_X25519_KEM_GROUPS)
 
 #else
     /* If S2N_NO_PQ is defined, we must still define
