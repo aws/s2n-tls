@@ -36,10 +36,23 @@
 #if !defined(S2N_NO_PQ)
 
 /* "Imports" a PEM encoded private ECC key */
-static int read_priv_ecc(EVP_PKEY **pkey, char *priv_ecc) {
+static int read_priv_ecc(EVP_PKEY **pkey, const char *priv_ecc) {
     size_t key_len = sizeof(char) * strlen(priv_ecc);
 
-    BIO *bio = BIO_new_mem_buf((void *)priv_ecc, key_len);
+#if defined(LIBRESSL_VERSION_NUMBER)
+    /* Some moderate hackery to get around LibreSSL's non-const API signature */
+
+    DEFER_CLEANUP(struct s2n_blob priv_ecc_blob = { 0 }, s2n_free);
+    GUARD(s2n_alloc(&priv_ecc_blob, key_len));
+    for (size_t i = 0; i < key_len; i++) {
+        priv_ecc_blob.data[i] = priv_ecc[i];
+    }
+
+    BIO *bio = BIO_new_mem_buf((void *)priv_ecc_blob.data, key_len);
+#else
+    BIO *bio = BIO_new_mem_buf((const void *)priv_ecc, key_len);
+#endif
+
     notnull_check(bio);
     PEM_read_bio_PrivateKey(bio, pkey, 0, NULL);
     /* Caller should assert notnull_check on *pkey */
@@ -51,7 +64,7 @@ static int read_priv_ecc(EVP_PKEY **pkey, char *priv_ecc) {
 }
 
 static int set_up_conns(struct s2n_connection *client_conn, struct s2n_connection *server_conn,
-        char *client_priv_ecc, char *server_priv_ecc, const struct s2n_kem_group *kem_group,
+        const char *client_priv_ecc, const char *server_priv_ecc, const struct s2n_kem_group *kem_group,
                 struct s2n_blob *pq_shared_secret) {
     /* These parameters would normally be set during the handshake */
     client_conn->secure.chosen_client_kem_group_params = &client_conn->secure.client_kem_group_params[0];
@@ -135,8 +148,8 @@ static int assert_kem_group_params_freed(struct s2n_connection *conn) {
 
 struct hybrid_test_vector {
     const struct s2n_kem_group *kem_group;
-    char *client_ecc_key;
-    char *server_ecc_key;
+    const char *client_ecc_key;
+    const char *server_ecc_key;
     struct s2n_blob *pq_secret;
     struct s2n_blob *expected_hybrid_secret;
 };
