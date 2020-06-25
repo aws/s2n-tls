@@ -32,6 +32,7 @@
 #include "error/s2n_errno.h"
 
 #define HELLO_RETRY_MSG_NO 1
+#define SERVER_HELLO_MSG_NO 5
 
 int main(int argc, char **argv)
 {
@@ -478,6 +479,37 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_hello_retry_validate(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test server_hello_receive raises a S2N_ERR_CIPHER_NOT_SUPPORTED error when the cipher suite supplied
+     * by the Server Hello does not match the cipher suite supplied by the Hello Retry Request */
+    {
+        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn;
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        
+        /* A Hello Retry Request has been processed */
+        EXPECT_SUCCESS(s2n_set_hello_retry_required(client_conn));
+        client_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+        client_conn->server_protocol_version = S2N_TLS13;
+        client_conn->handshake.handshake_type |= NEGOTIATED;
+        client_conn->handshake.handshake_type |= FULL_HANDSHAKE;
+        client_conn->handshake.message_number = SERVER_HELLO_MSG_NO;
+
+        /* Server Hello with cipher suite that does not match Hello Retry Request cipher suite */
+        server_conn->secure.cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
+        EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
+
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
+                                        s2n_stuffer_data_available(&server_conn->handshake.io)));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn), S2N_ERR_CIPHER_NOT_SUPPORTED);
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
     EXPECT_SUCCESS(s2n_disable_tls13());

@@ -412,7 +412,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
     }
 
-    /* Test s2n_set_hello_retry_required corectly sets the handshake type to HELLO_RETRY_REQUEST,
+    /* Test s2n_set_hello_retry_required correctly sets the handshake type to HELLO_RETRY_REQUEST,
      * when conn->actual_protocol_version is set to TLS1.3 version */
     {
         struct s2n_connection *conn;
