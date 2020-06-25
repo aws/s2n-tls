@@ -149,6 +149,7 @@ int s2n_evp_pkey_to_ecdsa_public_key(s2n_ecdsa_public_key *ecdsa_key, EVP_PKEY *
 }
 
 int s2n_ecdsa_pkey_init(struct s2n_pkey *pkey) {
+    pkey->pkey_type = S2N_PKEY_TYPE_ECDSA;
     pkey->size = &s2n_ecdsa_der_signature_size;
     pkey->sign = &s2n_ecdsa_sign;
     pkey->verify = &s2n_ecdsa_verify;

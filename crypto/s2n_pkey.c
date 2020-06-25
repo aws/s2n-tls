@@ -103,6 +103,8 @@ int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_k
 {
     notnull_check(pub_key->match);
 
+    S2N_ERROR_IF(pub_key->pkey_type != priv_key->pkey_type, S2N_ERR_KEY_MISMATCH);
+
     return pub_key->match(pub_key, priv_key);
 }
 

@@ -178,6 +178,7 @@ int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *evp_
 
 int s2n_rsa_pkey_init(struct s2n_pkey *pkey)
 {
+    pkey->pkey_type = S2N_PKEY_TYPE_RSA;
     pkey->size = &s2n_rsa_encrypted_size;
     pkey->sign = &s2n_rsa_sign;
     pkey->verify = &s2n_rsa_verify;

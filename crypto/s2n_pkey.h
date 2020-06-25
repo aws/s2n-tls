@@ -42,6 +42,7 @@ struct s2n_pkey {
         struct s2n_ecdsa_key ecdsa_key;
     } key;
     EVP_PKEY *pkey;
+    s2n_pkey_type pkey_type;
 
     int (*size)(const struct s2n_pkey *key);
     int (*sign)(const struct s2n_pkey *priv_key, s2n_signature_algorithm sig_alg,

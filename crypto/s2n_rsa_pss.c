@@ -206,6 +206,7 @@ int s2n_rsa_pss_pkey_init(struct s2n_pkey *pkey)
 {
     GUARD(s2n_rsa_pkey_init(pkey));
 
+    pkey->pkey_type = S2N_PKEY_TYPE_RSA_PSS;
     pkey->size = &s2n_rsa_pss_size;
     pkey->sign = &s2n_rsa_pss_key_sign;
     pkey->verify = &s2n_rsa_pss_key_verify;
