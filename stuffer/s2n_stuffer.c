@@ -362,13 +362,14 @@ int s2n_stuffer_extract_blob(struct s2n_stuffer *stuffer, struct s2n_blob *out)
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     notnull_check(out);
-    GUARD(s2n_free(out));
-    GUARD(s2n_alloc(out, s2n_stuffer_data_available(stuffer)));
+    GUARD(s2n_realloc(out , s2n_stuffer_data_available(stuffer)));
 
     if (s2n_stuffer_data_available(stuffer) > 0) {
         memcpy_check(out->data,
                      stuffer->blob.data + stuffer->read_cursor,
                      s2n_stuffer_data_available(stuffer));
     }
+
+    POSTCONDITION_POSIX(s2n_blob_is_valid(out));
     return S2N_SUCCESS;
 }
