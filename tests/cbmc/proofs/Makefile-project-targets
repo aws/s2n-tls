@@ -1,0 +1,10 @@
+# -*- mode: makefile -*-
+# The first line sets the emacs major mode to Makefile
+
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+################################################################
+# Use this file to give project-specific targets, including targets
+# that may depend on targets defined in Makefile.common.
+################################################################
