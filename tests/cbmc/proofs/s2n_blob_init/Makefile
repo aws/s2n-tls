@@ -14,11 +14,14 @@
 # Use the default set of CBMC flags.
 CBMCFLAGS +=
 
-DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c
-DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_blob.c
+HARNESS_ENTRY = s2n_blob_init_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-ENTRY = s2n_blob_init_harness
+PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
+PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 
 UNWINDSET +=
 

@@ -14,9 +14,12 @@
 # Expected runtime is 10 seconds.
 CBMCFLAGS +=
 
-DEPENDENCIES += $(SRCDIR)/stuffer/s2n_stuffer_base64.c
+HARNESS_ENTRY = s2n_is_base64_char_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-ENTRY = s2n_is_base64_char_harness
+PROOF_SOURCES += $(HARNESS_FILE)
+
+PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_base64.c
 
 UNWINDSET +=
 

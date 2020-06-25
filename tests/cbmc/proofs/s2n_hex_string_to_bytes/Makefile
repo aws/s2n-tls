@@ -17,17 +17,20 @@ DEFINES += -DMAX_STRING_LEN=$(MAX_STRING_LEN)
 
 CBMCFLAGS +=
 
-DEPENDENCIES += $(HELPERDIR)/source/cbmc_utils.c
-DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c
-DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_blob.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_safety.c
-DEPENDENCIES += $(SRCDIR)/error/s2n_errno.c
+HARNESS_ENTRY = s2n_hex_string_to_bytes_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-ENTRY = s2n_hex_string_to_bytes_harness
+PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
+PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
+PROJECT_SOURCES += $(SRCDIR)/error/s2n_errno.c
 
 # We abstract this function because manual inspection demonstrates it is unreachable.
-REMOVE_FUNCTION_BODY += --remove-function-body s2n_calculate_stacktrace
+REMOVE_FUNCTION_BODY += s2n_calculate_stacktrace
 
 UNWINDSET += strlen.0:$(shell echo $$((1 + $(MAX_STRING_LEN))))
 UNWINDSET += s2n_hex_string_to_bytes.18:$(shell echo $$((1 + $(MAX_STRING_LEN))))

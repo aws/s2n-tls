@@ -15,13 +15,16 @@
 #Use the default set of CBMC flags
 CHECKFLAGS +=
 
-DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c
-DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/stuffer/s2n_stuffer.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_blob.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_ensure.c
+HARNESS_ENTRY = s2n_stuffer_wipe_n_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-ENTRY = s2n_stuffer_wipe_n_harness
+PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
+PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+
+PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
 
 #No loops to unwind
 UNWINDSET +=
