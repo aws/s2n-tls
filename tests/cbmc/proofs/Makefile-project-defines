@@ -20,12 +20,26 @@
 # LINK_FLAGS =
 
 # Preprocessor include paths -I...
-# Consider adding
-#     INCLUDES += -I$(CBMC_ROOT)/include
-# You will want to decide what order that comes in relative to the other
-# include directories in your project.
-#
-# INCLUDES =
+INCLUDES += -I$(CBMC_ROOT)/include
+INCLUDES += -I$(SRCDIR)
+INCLUDES += -I$(SRCDIR)/api
 
 # Preprocessor definitions -D...
-# DEFINES =
+
+# Whether a proof needs these checks should be decided on a proof by proof basis.
+# Checks can be enabled by setting AWS_DEEP_CHECKS to 1 in the makefile
+# of the proof that requires them
+AWS_DEEP_CHECKS ?= 0
+DEFINES += -DAWS_DEEP_CHECKS=$(AWS_DEEP_CHECKS)
+
+################################################################
+# Remove function bodies that are not used in the proofs.
+# Removing the function from the goto program helps CBMC's
+# function pointer analysis
+
+# We override abort() to be assert(0)
+PROOF_SOURCES += $(PROOF_STUB)/abort_override_assert_false.c
+REMOVE_FUNCTION_BODY += abort
+
+# Useful for setting unwind limits to one more than some value.
+addone = $(shell echo $$(( $(1) + 1)))
