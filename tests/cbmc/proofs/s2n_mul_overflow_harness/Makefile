@@ -19,7 +19,6 @@ DEPENDENCIES += $(SRCDIR)/utils/s2n_safety.c
 
 ENTRY = s2n_mul_overflow_harness
 
-
 UNWINDSET += 
 
 include ../Makefile.common

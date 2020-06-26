@@ -33,5 +33,3 @@ int s2n_mul_overflow_harness()
         assert(*out <= UINT32_MAX);
     }
 }
-
-
