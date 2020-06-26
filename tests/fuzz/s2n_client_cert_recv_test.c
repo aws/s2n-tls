@@ -95,6 +95,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
         GUARD(s2n_connection_set_verify_host_callback(server_conn, verify_host_accept_everything, &verify_data));
     }
 
+    /* Returns void, so can't be guarded */
+    s2n_x509_validator_wipe(&server_conn->x509_validator);
     GUARD(s2n_x509_validator_init(&server_conn->x509_validator, &trust_store, 1));
     server_conn->x509_validator.skip_cert_validation = (randval >> 1) % 2;
     server_conn->actual_protocol_version = TLS_VERSIONS[((randval >> 4) & 0x0f) % s2n_array_len(TLS_VERSIONS)];
