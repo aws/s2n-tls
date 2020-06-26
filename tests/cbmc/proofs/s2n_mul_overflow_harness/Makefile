@@ -11,7 +11,7 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-CBMCFLAGS += 
+CBMCFLAGS +=
 
 HARNESS_ENTRY = s2n_mul_overflow_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
@@ -22,6 +22,6 @@ PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
 
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
-UNWINDSET += 
+UNWINDSET +=
 
 include ../Makefile.common
