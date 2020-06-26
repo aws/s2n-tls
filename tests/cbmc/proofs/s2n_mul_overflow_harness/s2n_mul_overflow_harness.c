@@ -27,6 +27,9 @@ int s2n_mul_overflow_harness()
     uint32_t *out = can_fail_malloc(sizeof(uint32_t));
 
     if(s2n_mul_overflow(a, b, out) == S2N_SUCCESS) {
+        //a check on *out == a*b should be added here but the CBMC checking is too slow
+        //the checking of assert(__CPROVER_overflow_mult(a, b)==false) is also slow 
+        //this assertion is vacuously true
         assert(*out <= UINT32_MAX);
     }
 }
