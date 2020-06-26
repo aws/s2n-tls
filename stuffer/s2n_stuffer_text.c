@@ -96,14 +96,12 @@ int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char *target)
 /* Skips the stuffer until the first instance of the target character or until there is no more data. */
 int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, const char target)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     while (s2n_stuffer_data_available(stuffer) > 0) {
-        char c;
-        GUARD(s2n_stuffer_peek_char(stuffer, &c));
-        if (c == target) {
+        if (stuffer->blob.data[stuffer->read_cursor] == target) {
             break;
         }
-
-        GUARD(s2n_stuffer_skip_read(stuffer, 1));
+        stuffer->read_cursor += 1;
     }
 
     return 0;

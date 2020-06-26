@@ -79,16 +79,18 @@ static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stu
     struct s2n_stuffer base64_stuffer = {0};
     GUARD(s2n_stuffer_init(&base64_stuffer, &base64__blob));
 
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(pem));
     while (1) {
-        char c;
+        /* We need a byte... */
+        ENSURE_POSIX(s2n_stuffer_data_available(pem) >= 1, S2N_ERR_STUFFER_OUT_OF_DATA);
+
         /* Peek to see if the next char is a dash, meaning end of pem_contents */
-        GUARD(s2n_stuffer_peek_char(pem, &c));
+        char c = pem->blob.data[pem->read_cursor];
         if (c == '-') {
             break;
-        } else {
-            /* Else, move read pointer forward by 1 byte since we will be consuming it. */
-             GUARD(s2n_stuffer_skip_read(pem, 1));
         }
+        /* Else, move read pointer forward by 1 byte since we will be consuming it. */
+        pem->read_cursor += 1;
 
          /* Skip non-base64 characters */
         if (!s2n_is_base64_char(c)) {

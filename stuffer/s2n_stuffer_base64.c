@@ -118,23 +118,27 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
             value4 = 0;
         }
 
+        /* Advance by bytes_this_round, and then fill in the data */
+        GUARD(s2n_stuffer_skip_write(out, bytes_this_round));
+        uint8_t *ptr = out->blob.data + out->write_cursor - bytes_this_round;
+
         /* value1 maps to the first 6 bits of the first data byte */
         /* value2's top two bits are the rest */
-        uint8_t c = ((value1 << 2) & 0xfc) | ((value2 >> 4) & 0x03);
-        GUARD(s2n_stuffer_write_uint8(out, c));
+        *ptr = ((value1 << 2) & 0xfc) | ((value2 >> 4) & 0x03);
+        ptr++;
 
         if (bytes_this_round > 1) {
             /* Put the next four bits in the second data byte */
             /* Put the next four bits in the third data byte */
-            c = ((value2 << 4) & 0xf0) | ((value3 >> 2) & 0x0f);
-            GUARD(s2n_stuffer_write_uint8(out, c));
+            *ptr = ((value2 << 4) & 0xf0) | ((value3 >> 2) & 0x0f);
+            ptr++;
         }
 
         if (bytes_this_round > 2) {
             /* Put the next two bits in the third data byte */
             /* Put the next six bits in the fourth data byte */
-            c = ((value3 << 6) & 0xc0) | (value4 & 0x3f);
-            GUARD(s2n_stuffer_write_uint8(out, c));
+            *ptr = ((value3 << 6) & 0xc0) | (value4 & 0x3f);
+            ptr++;
         }
 
     } while (bytes_this_round == 3);
