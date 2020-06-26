@@ -18,7 +18,7 @@ all: build_viz
 
 include ../../s2n.mk
 
-LDFLAGS += -L../../lib ${LIBS} -ls2n -L$(LIBCRYPTO_ROOT)/lib ${CRYPTO_LIBS}
+LDFLAGS += ../../lib/libs2n.a -L$(LIBCRYPTO_ROOT)/lib ${CRYPTO_LIBS} ${LIBS}
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
@@ -32,8 +32,8 @@ endif
 build_viz::
 	${CC} ${CFLAGS} -o s2n_state_machine_viz s2n_state_machine_viz.c ${LDFLAGS}
 	@[ "${STATE_MACHINE_GRAPHS}" ] && \
-	DYLD_LIBRARY_PATH="../../lib:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
-	LD_LIBRARY_PATH="../../lib:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	DYLD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	./s2n_state_machine_viz || true
 
 .PHONY : clean

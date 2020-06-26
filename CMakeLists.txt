@@ -183,14 +183,14 @@ file(GLOB S2N_SRC
     ${UTILS_SRC}
 )
 
-add_library(${PROJECT_NAME} ${S2N_HEADERS} ${S2N_SRC})
+add_library(${PROJECT_NAME} STATIC ${S2N_HEADERS} ${S2N_SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
-        -Wno-missing-braces)
+        -Wno-missing-braces -fvisibility=hidden -DS2N_EXPORTS)
 
 if(S2N_NO_PQ_ASM)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_NO_PQ_ASM)
@@ -240,7 +240,7 @@ if (BUILD_TESTING)
     file(GLOB TESTLIB_SRC "tests/testlib/*.c")
     file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
 
-    add_library(testss2n ${TESTLIB_HEADERS} ${TESTLIB_SRC})
+    add_library(testss2n STATIC ${TESTLIB_HEADERS} ${TESTLIB_SRC})
     target_include_directories(testss2n PUBLIC tests)
     target_compile_options(testss2n PRIVATE -std=gnu99)
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})

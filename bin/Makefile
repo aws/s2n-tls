@@ -17,7 +17,7 @@
 all: s2nc s2nd
 include ../s2n.mk
 
-LDFLAGS += -L../lib/ -L${LIBCRYPTO_ROOT}/lib -ls2n ${LIBS} ${CRYPTO_LIBS}
+LDFLAGS += -L../lib/ -L${LIBCRYPTO_ROOT}/lib ../lib/libs2n.a ${CRYPTO_LIBS} ${LIBS}
 CRUFT += s2nc s2nd
 
 s2nc: s2nc.c echo.c
