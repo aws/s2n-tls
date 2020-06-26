@@ -16,15 +16,7 @@
 SRCS=fips202_kyber_r2.c cbd.c reduce.c ntt.c poly.c polyvec.c verify.c symmetric-fips202.c indcpa.c kyber_r2_kem.c
 OBJS=$(SRCS:.c=.o)
 
-BCS_1=fips202_kyber_r2.bc cbd.bc reduce.bc ntt.bc poly.bc polyvec.bc verify.bc symmetric-fips202.bc indcpa.bc kyber_r2_kem.bc
-BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
-
 .PHONY : all
 all: $(OBJS)
-
-BCS=$(addprefix $(BITCODE_DIR), $(SRCS:.c=.bc))
-
-.PHONY : bc
-bc: $(BCS)
 
 include ../../s2n.mk
