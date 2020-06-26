@@ -13,19 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
+#include "api/s2n.h"
+#include "utils/s2n_mem.h"
 
-#include "utils/s2n_blob.h"
+#include <assert.h>
 
-#include <stdint.h>
-
-int s2n_mem_init(void);
-bool s2n_mem_is_init(void);
-uint32_t s2n_mem_get_page_size(void);
-int s2n_mem_cleanup(void);
-int s2n_alloc(struct s2n_blob *b, uint32_t size);
-int s2n_realloc(struct s2n_blob *b, uint32_t size);
-int s2n_free(struct s2n_blob *b);
-int s2n_blob_zeroize_free(struct s2n_blob *b);
-int s2n_free_object(uint8_t **p_data, uint32_t size);
-int s2n_dup(struct s2n_blob *from, struct s2n_blob *to);
+void s2n_mem_init_harness()
+{
+    /* Operation under verification. */
+    if( s2n_mem_init( ) == S2N_SUCCESS ) {
+        assert(s2n_mem_is_init());
+        assert(s2n_mem_get_page_size() > 0);
+        assert(s2n_mem_get_page_size() <= UINT32_MAX);
+    } else {
+        assert(!s2n_mem_is_init());
+    }
+}

@@ -47,9 +47,14 @@ static s2n_mem_free_callback s2n_mem_free_cb = s2n_mem_free_mlock_impl;
 static int s2n_mem_init_impl(void)
 {
     long sysconf_rc = sysconf(_SC_PAGESIZE);
-    GUARD(sysconf_rc);
+
+    /* sysconf must not error, and page_size cannot be 0 */
+    ENSURE_POSIX(sysconf_rc > 0, S2N_FAILURE);
+
+    /* page_size must be a valid uint32 */
     ENSURE_POSIX(sysconf_rc <= UINT32_MAX, S2N_FAILURE);
-    page_size = (uint32_t)sysconf_rc;
+
+    page_size = (uint32_t) sysconf_rc;
 
     if (getenv("S2N_DONT_MLOCK")) {
         s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
@@ -246,6 +251,16 @@ int s2n_mem_init(void)
     initialized = true;
 
     return S2N_SUCCESS;
+}
+
+bool s2n_mem_is_init(void)
+{
+    return initialized;
+}
+
+uint32_t s2n_mem_get_page_size(void)
+{
+    return page_size;
 }
 
 int s2n_mem_cleanup(void)
