@@ -223,7 +223,7 @@ class OpenSSL(Provider):
             # In the case of a cipher list we need to be sure TLS13 specific ciphers aren't
             # mixed with ciphers from previous versions
             is_tls13_or_above = (cipher[0].min_version >= Protocols.TLS13)
-            mismatch = [c for c in cipher if (c.min_version is Protocols.TLS13) != is_tls13_or_above]
+            mismatch = [c for c in cipher if (c.min_version >= Protocols.TLS13) != is_tls13_or_above]
 
             if len(mismatch) > 0:
                 raise Exception("Cannot combine ciphers for TLS1.3 or above with older ciphers: {}".format([c.name for c in cipher]))
