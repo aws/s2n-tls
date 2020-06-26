@@ -24,12 +24,12 @@ int main(int argc, char **argv)
      * the same type can be compared */
     {
         struct s2n_cert_chain_and_key *chain_and_key;
-        char rsa_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        char rsa_pss_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        char ecdsa_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        char rsa_private_key_pem[S2N_MAX_TEST_PEM_SIZE];
-        char rsa_pss_private_key_pem[S2N_MAX_TEST_PEM_SIZE];
-        char ecdsa_private_key_pem[S2N_MAX_TEST_PEM_SIZE];
+        char rsa_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = {0};
+        char rsa_pss_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = {0};
+        char ecdsa_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = {0};
+        char rsa_private_key_pem[S2N_MAX_TEST_PEM_SIZE] = {0};
+        char rsa_pss_private_key_pem[S2N_MAX_TEST_PEM_SIZE] = {0};
+        char ecdsa_private_key_pem[S2N_MAX_TEST_PEM_SIZE] = {0};
 
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, rsa_cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_PSS_2048_SHA256_CA_CERT, rsa_pss_cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -38,27 +38,48 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_PSS_2048_SHA256_CA_KEY, rsa_pss_private_key_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, ecdsa_private_key_pem, S2N_MAX_TEST_PEM_SIZE));
 
-        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-
         /* Keys of the same type can be compared */
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, rsa_cert_chain_pem, rsa_private_key_pem));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, rsa_pss_cert_chain_pem, rsa_pss_private_key_pem));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, ecdsa_cert_chain_pem, ecdsa_private_key_pem));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
         /* Keys of different types cannot be compared */
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
         EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem(chain_and_key, rsa_cert_chain_pem, rsa_pss_private_key_pem),
                                   S2N_ERR_KEY_MISMATCH);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
         EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem(chain_and_key, rsa_cert_chain_pem, ecdsa_private_key_pem),
                                   S2N_ERR_KEY_MISMATCH);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
         EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem(chain_and_key, rsa_pss_cert_chain_pem, rsa_private_key_pem),
                                   S2N_ERR_KEY_MISMATCH);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
         EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem(chain_and_key, rsa_pss_cert_chain_pem, ecdsa_private_key_pem),
                                   S2N_ERR_KEY_MISMATCH);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
         EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem(chain_and_key, ecdsa_cert_chain_pem, rsa_private_key_pem),
                                   S2N_ERR_KEY_MISMATCH);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
         EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem(chain_and_key, ecdsa_cert_chain_pem, rsa_pss_private_key_pem),
                                   S2N_ERR_KEY_MISMATCH);
-
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     }
 
