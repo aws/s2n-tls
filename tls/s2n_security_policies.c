@@ -535,6 +535,11 @@ int s2n_find_security_policy_from_version(const char *version, const struct s2n_
     S2N_ERROR(S2N_ERR_INVALID_SECURITY_POLICY);
 }
 
+int s2n_config_set_security_policy(struct s2n_config *config, const char *version)
+{
+    return s2n_config_set_cipher_preferences(config, version);
+}
+
 int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
 {
     GUARD(s2n_find_security_policy_from_version(version, &config->security_policy));
@@ -542,7 +547,12 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     notnull_check(&config->security_policy->kem_preferences);
     notnull_check(&config->security_policy->signature_preferences);
     notnull_check(&config->security_policy->ecc_preferences);
-    return 0;
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_set_security_policy(struct s2n_connection *conn, const char *version)
+{
+    return s2n_connection_set_cipher_preferences(conn, version);
 }
 
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version)
@@ -552,7 +562,7 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
     notnull_check(&conn->security_policy_override->kem_preferences);
     notnull_check(&conn->security_policy_override->signature_preferences);
     notnull_check(&conn->security_policy_override->ecc_preferences);
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_security_policies_init()

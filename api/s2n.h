@@ -153,6 +153,7 @@ extern int s2n_config_set_max_cert_chain_depth(struct s2n_config *config, uint16
 
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
+extern int s2n_config_set_security_policy(struct s2n_config *config, const char *version);
 extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count);
 typedef enum { S2N_STATUS_REQUEST_NONE = 0, S2N_STATUS_REQUEST_OCSP = 1 } s2n_status_request_type;
 extern int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_request_type type);
@@ -220,6 +221,7 @@ extern int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding
 extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
 
 extern int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
+extern int s2n_connection_set_security_policy(struct s2n_connection *conn, const char *version);
 extern int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char * const *protocols, int protocol_count);
 extern int s2n_set_server_name(struct s2n_connection *conn, const char *server_name);
 extern const char *s2n_get_server_name(struct s2n_connection *conn);
