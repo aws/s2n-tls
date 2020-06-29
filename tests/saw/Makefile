@@ -249,7 +249,7 @@ BIKE_R2_COPY = $(addprefix s2n/pq-crypto/bike_r2/, $(notdir $(BIKE_R2_C)))
 #It is not to run any SAW tests on Kyber code
 #It is just to make building without failure during the BIKE/SIKE SAW tests
 KYBER_R2_C = $(wildcard ../../pq-crypto/kyber_r2/*.c) $(wildcard ../../pq-crypto/kyber_r2/*.h) ../../pq-crypto/kyber_r2/Makefile
-KYBER_R2_COPY = $(addprefix s2n/pq-crypto/kyber_r2/, $(notdir $(SIKE_R2_C)))
+KYBER_R2_COPY = $(addprefix s2n/pq-crypto/kyber_r2/, $(notdir $(KYBER_R2_C)))
 
 UTILS_C = $(wildcard ../../utils/*.c) $(wildcard ../../utils/*.h) ../../utils/Makefile
 UTILS_COPY =$(addprefix s2n/utils/, $(notdir $(UTILS_C)))
