@@ -173,7 +173,11 @@ class S2N(Provider):
         if self.options.protocol == Protocols.TLS13:
             cmd_line.append('--tls13')
 
-        if self.options.cipher is not None:
+        if self.options.protocol == Protocols.TLS13:
+            cmd_line.extend(['-c', 'test_all_tls13'])
+        elif self.options.protocol == Protocols.TLS12:
+            cmd_line.extend(['-c', 'test_all_tls12'])
+        else:
             cmd_line.extend(['-c', 'test_all'])
 
         if self.options.use_client_auth is True:
@@ -193,12 +197,6 @@ class S2N(Provider):
 
 class OpenSSL(Provider):
 
-    supported_ciphers = {
-        Ciphers.AES128_GCM_SHA256: 'TLS_AES_128_GCM_SHA256',
-        Ciphers.AES256_GCM_SHA384: 'TLS_AES_256_GCM_SHA384',
-        Ciphers.CHACHA20_POLY1305_SHA256: 'TLS_CHACHA20_POLY1305_SHA256',
-    }
-
     def __init__(self, options: ProviderOptions):
         self.ready_to_send_input_marker = None
         Provider.__init__(self, options)
@@ -211,12 +209,7 @@ class OpenSSL(Provider):
 
         cipher_list = []
         for c in ciphers:
-            if c.min_version is Protocols.TLS13:
-                cipher_list.append(OpenSSL.supported_ciphers[c])
-            else:
-                # This replace is only done for ciphers that are not TLS13 specific.
-                # Run `openssl ciphers` to view the inconsistency in naming.
-                cipher_list.append(c.name.replace("_", "-"))
+            cipher_list.append(c.name)
 
         ciphers = ':'.join(cipher_list)
 
@@ -225,21 +218,25 @@ class OpenSSL(Provider):
     def _cipher_to_cmdline(self, protocol, cipher):
         cmdline = list()
 
-        if cipher.min_version is Protocols.TLS13:
+        ciphers = []
+        if type(cipher) is list:
+            # In the case of a cipher list we need to be sure TLS13 specific ciphers aren't
+            # mixed with ciphers from previous versions
+            is_tls13_or_above = (cipher[0].min_version >= Protocols.TLS13)
+            mismatch = [c for c in cipher if (c.min_version >= Protocols.TLS13) != is_tls13_or_above]
+
+            if len(mismatch) > 0:
+                raise Exception("Cannot combine ciphers for TLS1.3 or above with older ciphers: {}".format([c.name for c in cipher]))
+
+            ciphers.append(self._join_ciphers(cipher))
+        else:
+            is_tls13_or_above = (cipher.min_version >= Protocols.TLS13)
+            ciphers.append(cipher.name)
+
+        if is_tls13_or_above:
             cmdline.append('-ciphersuites')
         else:
             cmdline.append('-cipher')
-
-        ciphers = []
-        if type(cipher) is list:
-            ciphers.append(self._join_ciphers(cipher))
-        else:
-            if cipher.min_version == Protocols.TLS13:
-                ciphers.append(OpenSSL.supported_ciphers[cipher])
-            else:
-                # This replace is only done for ciphers that are not TLS13 specific.
-                # Run `openssl ciphers` to view the inconsistency in naming.
-                ciphers.append(cipher.name.replace("_", "-"))
 
         return cmdline + ciphers
 

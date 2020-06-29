@@ -118,7 +118,8 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, ci
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
-def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, curve, protocol, certificate):
+@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, curve, protocol, provider, certificate):
     port = next(available_ports)
 
     random_bytes = data_bytes(64)
@@ -142,7 +143,7 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, curve, pro
 
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.
-    server = managed_process(OpenSSL, server_options, timeout=5)
+    server = managed_process(provider, server_options, timeout=5)
     client = managed_process(S2N, client_options, timeout=5)
 
     # The client should connect and return without error
@@ -168,7 +169,8 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, curve, pro
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
-def test_client_auth_with_s2n_client_with_cert(managed_process, cipher, curve, protocol, certificate):
+@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+def test_client_auth_with_s2n_client_with_cert(managed_process, cipher, curve, protocol, provider, certificate):
     port = next(available_ports)
 
     random_bytes = data_bytes(64)
@@ -194,7 +196,7 @@ def test_client_auth_with_s2n_client_with_cert(managed_process, cipher, curve, p
 
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.
-    server = managed_process(OpenSSL, server_options, timeout=5)
+    server = managed_process(provider, server_options, timeout=5)
     client = managed_process(S2N, client_options, timeout=5)
 
     # The client should connect and return without error

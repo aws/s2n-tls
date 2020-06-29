@@ -338,12 +338,10 @@ MULTI_CERT_TEST_CASES= [
         expect_matching_hostname=True),
     MultiCertTest(
         description="ECDSA Certificate with exact sni match(underwing.insect.hexapod) is preferred over RSA wildcard"\
-                    " *.insect.hexapod when RSA ciphers are higher priority than ECDSA in sever preferences.",
+                    " *.insect.hexapod when RSA ciphers are higher priority than ECDSA in server preferences.",
         server_certs=[ SNI_CERTS["wildcard_insect"], SNI_CERTS["alligator"], SNI_CERTS["underwing"] ],
         client_sni="underwing.insect.hexapod",
-        # AES128-GCM-SHA256 is prioritized about ECDHE-ECDSA-AES128-SHA in
-        # the "test_all" server cipher preferences
-        client_ciphers=[Ciphers.AES128_GCM_SHA256, Ciphers.ECDHE_ECDSA_AES128_SHA],
+        client_ciphers=[Ciphers.ECDHE_RSA_AES128_GCM_SHA256, Ciphers.ECDHE_ECDSA_AES128_GCM_SHA256],
         expected_cert=SNI_CERTS["underwing"],
         expect_matching_hostname=True),
     MultiCertTest(

@@ -15,7 +15,8 @@ from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [p for p in PROTOCOLS if p != Protocols.TLS13], ids=get_parameter_name)
-def test_session_resumption_s2n_server(managed_process, cipher, curve, protocol, certificate):
+@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+def test_session_resumption_s2n_server(managed_process, cipher, curve, protocol, provider, certificate):
     host = "localhost"
     port = next(available_ports)
 
@@ -38,7 +39,7 @@ def test_session_resumption_s2n_server(managed_process, cipher, curve, protocol,
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.
     server = managed_process(S2N, server_options, timeout=5)
-    client = managed_process(OpenSSL, client_options, timeout=5)
+    client = managed_process(provider, client_options, timeout=5)
 
     # The client should connect and return without error
     for results in client.get_results():

@@ -9,7 +9,8 @@ from utils import get_expected_s2n_version
 
 
 pq_handshake_test_vectors = [
-    # The first set of vectors specify client and server cipher preference versions that are compatible for a successful PQ handshake
+    # The first set of vectors verify that PQ handshakes are successful by
+    # specifing client and server cipher preference versions that are compatible for a successful PQ handshake
     {
         "client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06,
         "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06,
@@ -58,7 +59,8 @@ pq_handshake_test_vectors = [
         "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384",
         "expected_kem": "SIKEp434r2-KEM",
     },
-    # The last set of vectors specify a "mismatch" between PQ cipher preferences - a classic handshake should be completed
+    # The last set of vectors verify that a standard handshake can be completed when only one side support PQ
+    # by specifing a "mismatch" between PQ cipher preferences
     {
         "client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06,
         "server_ciphers": Ciphers.KMS_TLS_1_0_2018_10,
