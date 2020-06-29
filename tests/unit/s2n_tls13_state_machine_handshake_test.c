@@ -399,12 +399,12 @@ int main(int argc, char **argv)
 
         /* Test: "If not offering early data, the client sends a dummy change_cipher_spec record immediately before
          *       its second flight. This may either be before its second ClientHello or before its encrypted handshake flight." */
-        for (int i = 0; i < valid_tls13_handshakes_size; i++) {
+        for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
             change_cipher_spec_found = false;
             handshake_type = valid_tls13_handshakes[i];
             messages = tls13_handshakes[handshake_type];
 
-            for (int j = 1; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
+            for (size_t j = 1; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
 
                 /* Ignore initial handshakes */
                 if (!IS_NEGOTIATED(handshake_type)) {
@@ -437,12 +437,12 @@ int main(int argc, char **argv)
 
         /* Test: "The server sends a dummy change_cipher_spec record immediately after its first handshake message.
          *       This may either be after a ServerHello or a HelloRetryRequest." */
-        for (int i = 0; i < valid_tls13_handshakes_size; i++) {
+        for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
             change_cipher_spec_found = false;
             handshake_type = valid_tls13_handshakes[i];
             messages = tls13_handshakes[handshake_type];
 
-            for (int j = 1; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
+            for (size_t j = 1; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
 
                 /* Ignore initial handshakes */
                 if (!IS_NEGOTIATED(handshake_type)) {
