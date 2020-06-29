@@ -292,6 +292,12 @@ s2n/pq-crypto/bike_r1 :
 s2n/pq-crypto/bike_r2 :
 	mkdir -p $@
 
+#The scripts below for correcting the failed SAW buildings too. 
+#It is not to run any SAW tests on Kyber code
+#It is just to make building without failure during the BIKE/SIKE SAW tests
+s2n/pq-crypto/kyber_r2 :
+	mkdir -p $@
+
 s2n/utils :
 	mkdir -p $@
 
