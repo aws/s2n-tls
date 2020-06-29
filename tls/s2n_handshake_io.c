@@ -440,6 +440,9 @@ static const char* handshake_type_names[] = {
 #define EXPECTED_RECORD_TYPE( conn )  ACTIVE_STATE( conn ).record_type
 #define EXPECTED_MESSAGE_TYPE( conn ) ACTIVE_STATE( conn ).message_type
 
+#define CONNECTION_WRITER( conn ) (conn->mode == S2N_CLIENT ? 'C' : 'S')
+#define CONNECTION_IS_WRITER( conn ) (ACTIVE_STATE(conn).writer == CONNECTION_WRITER(conn))
+
 /* Used in our test cases */
 message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn)
 {
@@ -450,10 +453,7 @@ static int s2n_advance_message(struct s2n_connection *conn)
 {
     /* Get the mode: 'C'lient or 'S'erver */
     char previous_writer = ACTIVE_STATE(conn).writer;
-    char this_mode = 'S';
-    if (conn->mode == S2N_CLIENT) {
-        this_mode = 'C';
-    }
+    char this_mode = CONNECTION_WRITER(conn);
 
     /* Actually advance the message number */
     conn->handshake.message_number++;
@@ -892,7 +892,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
     if (record_type == TLS_CHANGE_CIPHER_SPEC) {
         /* TLS1.2 should not receive unexpected change cipher spec messages, but TLS1.3 might. */
         if (!IS_TLS13_HANDSHAKE(conn)) {
-            S2N_ERROR_IF(EXPECTED_RECORD_TYPE(conn) != TLS_CHANGE_CIPHER_SPEC, S2N_ERR_BAD_MESSAGE);
+            ENSURE_POSIX(EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC, S2N_ERR_BAD_MESSAGE);
+            ENSURE_POSIX(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);
         }
 
         S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) != 1, S2N_ERR_BAD_MESSAGE);
@@ -907,7 +908,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         conn->in_status = ENCRYPTED;
 
         /* Advance the state machine if this was an expected message */
-        if (EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC) {
+        if (EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC && !CONNECTION_IS_WRITER(conn)) {
             GUARD(s2n_advance_message(conn));
         }
 
@@ -964,7 +965,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
             conn->handshake.handshake_type &= ~OCSP_STATUS;
         }
 
-        S2N_ERROR_IF(actual_handshake_message_type != EXPECTED_MESSAGE_TYPE(conn), S2N_ERR_BAD_MESSAGE);
+        ENSURE_POSIX(actual_handshake_message_type == EXPECTED_MESSAGE_TYPE(conn), S2N_ERR_BAD_MESSAGE);
+        ENSURE_POSIX(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);
 
         /* Call the relevant handler */
         r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
@@ -1021,9 +1023,7 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
-    const char connection_mode = conn->mode == S2N_CLIENT ? 'C' : 'S';
-
-    if (ACTIVE_STATE(conn).writer != connection_mode) {
+    if (!CONNECTION_IS_WRITER(conn)) {
         /* We're done parsing the record, reset everything */
         GUARD(s2n_stuffer_wipe(&conn->header_in));
         GUARD(s2n_stuffer_wipe(&conn->in));
@@ -1040,7 +1040,7 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
-    if (ACTIVE_STATE(conn).writer == connection_mode) {
+    if (CONNECTION_IS_WRITER(conn)) {
         /* If we're the writer and handler just finished, update the record header if
          * needed and let the s2n_handshake_write_io write the data to the socket */
         if (EXPECTED_RECORD_TYPE(conn) == TLS_HANDSHAKE) {
@@ -1060,8 +1060,6 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
     notnull_check(conn);
     notnull_check(blocked);
 
-    const char connection_mode = conn->mode == S2N_CLIENT ? 'C' : 'S';
-
     while (ACTIVE_STATE(conn).writer != 'B') {
         errno = 0;
         s2n_errno = S2N_ERR_OK;
@@ -1075,7 +1073,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
             GUARD(s2n_handle_retry_state(conn));
         }
 
-        if (ACTIVE_STATE(conn).writer == connection_mode) {
+        if (CONNECTION_IS_WRITER(conn)) {
             *blocked = S2N_BLOCKED_ON_WRITE;
             const int write_result = s2n_handshake_write_io(conn);
 
