@@ -126,9 +126,11 @@ const struct s2n_iana_to_kem kem_mapping[3] = {
 };
 
 /* Specific assignments of KEM group IDs and names have not yet been
- * published in an RFC (or draft). For IDs, there is consensus to use
- * values in the proposed reserved range defined in
- * https://tools.ietf.org/html/draft-stebila-tls-hybrid-design */
+ * published in an RFC (or draft). There is consensus in the
+ * community to use values in the proposed reserved range defined in
+ * https://tools.ietf.org/html/draft-stebila-tls-hybrid-design.
+ * Values for interoperability are defined in
+ * https://docs.google.com/spreadsheets/d/12YarzaNv3XQNLnvDsWLlRKwtZFhRrDdWf36YlzwrPeg/edit#gid=0. */
 const struct s2n_kem_group s2n_x25519_sike_p434_r2 = {
         .name = "x25519_sike-p434-r2",
         .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2,
