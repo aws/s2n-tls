@@ -11,7 +11,6 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-ABSTRACTIONS += $(HELPERDIR)/stubs/__tolower.c
 
 # Enough to get full coverage with 10 seconds of runtime.
 BLOB_SIZE = 10
@@ -19,17 +18,22 @@ DEFINES += -DBLOB_SIZE=$(BLOB_SIZE)
 
 CBMCFLAGS +=
 
-DEPENDENCIES += $(HELPERDIR)/source/cbmc_utils.c
-DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c
-DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_blob.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_safety.c
-DEPENDENCIES += $(SRCDIR)/error/s2n_errno.c
+HARNESS_ENTRY = s2n_blob_char_to_lower_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-ENTRY = s2n_blob_char_to_lower_harness
+PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
+PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+
+PROOF_SOURCES += $(PROOF_STUB)/__tolower.c
+
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
+PROJECT_SOURCES += $(SRCDIR)/error/s2n_errno.c
 
 # We abstract this function because manual inspection demonstrates it is unreachable.
-REMOVE_FUNCTION_BODY += --remove-function-body s2n_calculate_stacktrace
+REMOVE_FUNCTION_BODY += s2n_calculate_stacktrace
 
 UNWINDSET += s2n_blob_char_to_lower.3:$(call addone,$(BLOB_SIZE))
 

@@ -14,17 +14,20 @@
 # Expected runtime is 10 seconds.
 CBMCFLAGS +=
 
-DEPENDENCIES += $(HELPERDIR)/source/cbmc_utils.c
-DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c
-DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_blob.c
-DEPENDENCIES += $(SRCDIR)/error/s2n_errno.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_safety.c
+HARNESS_ENTRY = s2n_blob_slice_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-ENTRY = s2n_blob_slice_harness
+PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
+PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
+PROJECT_SOURCES += $(SRCDIR)/error/s2n_errno.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
 # We abstract this function because manual inspection demonstrates it is unreachable.
-REMOVE_FUNCTION_BODY += --remove-function-body s2n_calculate_stacktrace
+REMOVE_FUNCTION_BODY += s2n_calculate_stacktrace
 
 UNWINDSET +=
 
