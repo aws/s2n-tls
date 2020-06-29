@@ -15,7 +15,6 @@
 
 #include <sys/param.h>
 #include <errno.h>
-#include <s2n.h>
 
 #include "error/s2n_errno.h"
 

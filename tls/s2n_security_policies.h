@@ -20,6 +20,7 @@
 #include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_signature_scheme.h"
 #include "tls/s2n_ecc_preferences.h"
+#include "utils/s2n_annotations.h"
 
 struct s2n_security_policy {
     uint8_t minimum_protocol_version;
@@ -103,10 +104,10 @@ extern const struct s2n_security_policy security_policy_20190122;
 extern const struct s2n_security_policy security_policy_null;
 
 int s2n_security_policies_init();
-int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
-int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
 bool s2n_ecc_is_extension_required(const struct s2n_security_policy *security_policy);
 bool s2n_pq_kem_is_extension_required(const struct s2n_security_policy *security_policy);
 bool s2n_security_policy_supports_tls13(const struct s2n_security_policy *security_policy);
 int s2n_find_security_policy_from_version(const char *version, const struct s2n_security_policy **security_policy);
 int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferences, bool pq_kem_extension_required);
+int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
+int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);

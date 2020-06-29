@@ -15,7 +15,6 @@
 
 #pragma once
 
-#include "api/s2n.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_dhe.h"
 #include "tls/s2n_resume.h"

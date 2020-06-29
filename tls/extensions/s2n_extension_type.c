@@ -13,8 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <s2n.h>
-
 #include "error/s2n_errno.h"
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_connection.h"

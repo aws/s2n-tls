@@ -31,6 +31,8 @@ extern "C" {
 #include <stdio.h>
 #include <sys/uio.h>
 
+#include "utils/s2n_annotations.h"
+
 /* Function return code  */
 #define S2N_SUCCESS 0
 #define S2N_FAILURE -1
@@ -67,6 +69,12 @@ extern int s2n_error_get_type(int error);
 
 struct s2n_config;
 struct s2n_connection;
+struct s2n_security_policy;
+
+extern const struct s2n_security_policy *S2N_SECURITY_POLICY_DEFAULT;
+extern const struct s2n_security_policy *S2N_SECURITY_POLICY_DEFAULT_TLS13;
+extern const struct s2n_security_policy *S2N_SECURITY_POLICY_20170210;
+extern const struct s2n_security_policy *S2N_SECURITY_POLICY_20190801;
 
 S2N_API
 extern unsigned long s2n_get_openssl_version(void);
@@ -208,8 +216,10 @@ extern int s2n_config_set_max_cert_chain_depth(struct s2n_config *config, uint16
 
 S2N_API
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);
-S2N_API
+S2N_DEPRECATED
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
+S2N_API
+extern int s2n_config_set_security_policy(struct s2n_config *config, const struct s2n_security_policy *policy);
 S2N_API
 extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count);
 typedef enum { S2N_STATUS_REQUEST_NONE = 0, S2N_STATUS_REQUEST_OCSP = 1 } s2n_status_request_type;
@@ -317,8 +327,10 @@ extern int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding
 S2N_API
 extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
 
-S2N_API
+S2N_DEPRECATED
 extern int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
+S2N_API
+extern int s2n_connection_set_security_policy(struct s2n_connection *conn, const struct s2n_security_policy *policy);
 S2N_API
 extern int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char * const *protocols, int protocol_count);
 S2N_API

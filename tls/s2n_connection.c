@@ -20,7 +20,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <s2n.h>
 #include <stdbool.h>
 
 #include "crypto/s2n_fips.h"

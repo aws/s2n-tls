@@ -119,7 +119,10 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
         exit(1);
     }
 
-    GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs), "Error setting cipher prefs");
+    const struct s2n_security_policy *policy;
+    GUARD_EXIT(s2n_find_security_policy_from_version(cipher_prefs, &policy), "Error finding policy");
+
+    GUARD_EXIT(s2n_config_set_security_policy(config, policy), "Error setting cipher prefs");
 
     GUARD_EXIT(s2n_config_set_status_request_type(config, type), "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
 

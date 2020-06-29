@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <s2n.h>
 
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_connection.h"
@@ -27,6 +26,9 @@ const struct s2n_security_policy security_policy_20170210 = {
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
+const struct s2n_security_policy *S2N_SECURITY_POLICY_DEFAULT = &security_policy_20170210;
+const struct s2n_security_policy *S2N_SECURITY_POLICY_20170210 = &security_policy_20170210;
+
 const struct s2n_security_policy security_policy_20190801 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20190801,
@@ -39,6 +41,9 @@ const struct s2n_security_policy security_policy_20190801 = {
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
+
+const struct s2n_security_policy *S2N_SECURITY_POLICY_20190801 = &security_policy_20190801;
+const struct s2n_security_policy *S2N_SECURITY_POLICY_DEFAULT_TLS13 = &security_policy_20190801;
 
 const struct s2n_security_policy security_policy_20190802 = {
     .minimum_protocol_version = S2N_TLS10,
@@ -613,24 +618,38 @@ int s2n_find_security_policy_from_version(const char *version, const struct s2n_
     S2N_ERROR(S2N_ERR_INVALID_SECURITY_POLICY);
 }
 
+int s2n_config_set_security_policy(struct s2n_config *config, const struct s2n_security_policy *policy)
+{
+    notnull_check(config);
+    notnull_check(policy);
+    config->security_policy = policy;
+
+    return S2N_SUCCESS;
+}
+
 int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
 {
-    GUARD(s2n_find_security_policy_from_version(version, &config->security_policy));
-    notnull_check(&config->security_policy->cipher_preferences);
-    notnull_check(&config->security_policy->kem_preferences);
-    notnull_check(&config->security_policy->signature_preferences);
-    notnull_check(&config->security_policy->ecc_preferences);
-    return 0;
+    const struct s2n_security_policy *policy;
+    GUARD(s2n_find_security_policy_from_version(version, &policy));
+
+    return s2n_config_set_security_policy(config, policy);
+}
+
+int s2n_connection_set_security_policy(struct s2n_connection *conn, const struct s2n_security_policy *policy)
+{
+    notnull_check(conn);
+    notnull_check(policy);
+    conn->security_policy_override = policy;
+
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version)
 {
-    GUARD(s2n_find_security_policy_from_version(version, &conn->security_policy_override));
-    notnull_check(&conn->security_policy_override->cipher_preferences);
-    notnull_check(&conn->security_policy_override->kem_preferences);
-    notnull_check(&conn->security_policy_override->signature_preferences);
-    notnull_check(&conn->security_policy_override->ecc_preferences);
-    return 0;
+    const struct s2n_security_policy *policy;
+    GUARD(s2n_find_security_policy_from_version(version, &policy));
+
+    return s2n_connection_set_security_policy(conn, policy);
 }
 
 int s2n_security_policies_init()

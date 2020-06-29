@@ -16,7 +16,6 @@
 #pragma once
 
 #include <stdint.h>
-#include <s2n.h>
 
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_extension_list.h"

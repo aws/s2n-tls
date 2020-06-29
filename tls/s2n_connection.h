@@ -16,7 +16,6 @@
 #pragma once
 
 #include <errno.h>
-#include <s2n.h>
 #include <signal.h>
 #include <stdint.h>
 

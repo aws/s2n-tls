@@ -14,7 +14,6 @@
  */
 
 #include "tls/s2n_cipher_preferences.h"
-#include <s2n.h>
 #include <stdint.h>
 #include <strings.h>
 #include "tls/s2n_config.h"
