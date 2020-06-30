@@ -52,7 +52,7 @@ def invalid_test_parameters(*args, **kwargs):
         if protocol is not None:
             if cipher.min_version > protocol:
                 return True
-            if protocol is Protocols.TLS13 and cipher.min_version < Protocols.TLS13:
+            if protocol is Protocols.TLS13 and cipher.min_version < protocol:
                 return True
 
         # NOTE: We don't detect the version of OpenSSL at the moment,
