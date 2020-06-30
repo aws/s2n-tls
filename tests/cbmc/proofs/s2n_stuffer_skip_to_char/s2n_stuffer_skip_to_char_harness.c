@@ -14,6 +14,7 @@
  */
 
 #include "api/s2n.h"
+#include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 
 #include <assert.h>
@@ -35,11 +36,9 @@ void s2n_stuffer_skip_to_char_harness() {
 
     /* Operation under verification. */
     if (s2n_stuffer_skip_to_char(stuffer, target) == S2N_SUCCESS) {
-        if(s2n_stuffer_data_available(&old_stuffer) == 0) {
-            assert(stuffer->read_cursor == old_stuffer.read_cursor);
-            size_t index;
-            __CPROVER_assume(index >= old_stuffer.read_cursor && index < old_stuffer.write_cursor);
-            assert(stuffer->blob.data[index] != *((uint8_t *)(&target)));
+        assert(S2N_IMPLIES(s2n_stuffer_data_available(&old_stuffer) == 0, stuffer->read_cursor == old_stuffer.read_cursor));
+        if(s2n_stuffer_data_available(stuffer) > 0) {
+            assert(stuffer->blob.data[stuffer->read_cursor] == target);
         }
     }
     assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
