@@ -59,7 +59,7 @@ pq_handshake_test_vectors = [
         "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384",
         "expected_kem": "SIKEp434r2-KEM",
     },
-    # The last set of vectors verify that a standard handshake can be completed when only one side support PQ
+    # The last set of vectors verify that a standard handshake can be completed when only one side supports PQ
     # by specifing a "mismatch" between PQ cipher preferences
     {
         "client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06,

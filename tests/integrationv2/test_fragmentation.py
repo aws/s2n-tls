@@ -38,22 +38,15 @@ def test_s2n_server_low_latency(managed_process, multi_cipher, provider, protoco
     server_options.key = certificate.key
     server_options.cert = certificate.cert
 
-    # Passing the type of client and server as a parameter will
-    # allow us to use a fixture to enumerate all possibilities.
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(provider, client_options, timeout=5)
 
-    # The client will be one of all supported providers. We
-    # just want to make sure there was no exception and that
-    # the client exited cleanly.
     for results in client.get_results():
         assert results.exception is None
         assert results.exit_code == 0
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
-    # The server is always S2N in this test, so we can examine
-    # the stdout reliably.
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
@@ -88,22 +81,15 @@ def test_s2n_server_framented_data(managed_process, multi_cipher, provider, prot
     server_options.key = certificate.key
     server_options.cert = certificate.cert
 
-    # Passing the type of client and server as a parameter will
-    # allow us to use a fixture to enumerate all possibilities.
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(provider, client_options, timeout=5)
 
-    # The client will be one of all supported providers. We
-    # just want to make sure there was no exception and that
-    # the client exited cleanly.
     for results in client.get_results():
         assert results.exception is None
         assert results.exit_code == 0
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
-    # The server is always S2N in this test, so we can examine
-    # the stdout reliably.
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
