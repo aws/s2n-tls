@@ -25,7 +25,6 @@
 #define S2N_PEM_DELIMITER_MAX_COUNT         64
 #define S2N_PEM_BEGIN_TOKEN                 "BEGIN "
 #define S2N_PEM_END_TOKEN                   "END "
-
 #define S2N_PEM_PKCS1_RSA_PRIVATE_KEY       "RSA PRIVATE KEY"
 #define S2N_PEM_PKCS1_EC_PRIVATE_KEY        "EC PRIVATE KEY"
 #define S2N_PEM_PKCS8_PRIVATE_KEY           "PRIVATE KEY"
@@ -58,8 +57,8 @@ static int s2n_stuffer_pem_read_encapsulation_line(struct s2n_stuffer *pem, cons
     }
 
     /* Skip newlines and other whitepsace that may be after the dashes */
-    GUARD(s2n_stuffer_skip_whitespace(pem, NULL));
-    return 0;
+    GUARD(s2n_stuffer_skip_whitespace(pem));
+    return S2N_SUCCESS;
 }
 
 static int s2n_stuffer_pem_read_begin(struct s2n_stuffer *pem, const char *keyword)
@@ -79,13 +78,12 @@ static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stu
     struct s2n_stuffer base64_stuffer = {0};
     GUARD(s2n_stuffer_init(&base64_stuffer, &base64__blob));
 
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(pem));
     while (1) {
         /* We need a byte... */
         ENSURE_POSIX(s2n_stuffer_data_available(pem) >= 1, S2N_ERR_STUFFER_OUT_OF_DATA);
 
         /* Peek to see if the next char is a dash, meaning end of pem_contents */
-        char c = pem->blob.data[pem->read_cursor];
+        uint8_t c = pem->blob.data[pem->read_cursor];
         if (c == '-') {
             break;
         }
@@ -111,19 +109,26 @@ static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stu
     /* Flush any remaining bytes to asn1 */
     GUARD(s2n_stuffer_read_base64(&base64_stuffer, asn1));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, const char *keyword)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(pem));
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(asn1));
+
     GUARD(s2n_stuffer_pem_read_begin(pem, keyword));
     GUARD(s2n_stuffer_pem_read_contents(pem, asn1));
     GUARD(s2n_stuffer_pem_read_end(pem, keyword));
 
-    return 0;
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(pem));
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(asn1));
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1) {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(pem));
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(asn1));
     int rc;
 
     rc = s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS1_RSA_PRIVATE_KEY);
