@@ -29,6 +29,6 @@ PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_text.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 
-UNWINDSET += s2n_stuffer_skip_expected_char.3:$(call addone,$(BLOB_SIZE))
+UNWINDSET += s2n_stuffer_skip_expected_char.9:$(call addone,$(BLOB_SIZE))
 
 include ../Makefile.common

@@ -28,8 +28,9 @@ void s2n_stuffer_skip_expected_char_harness() {
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
     __CPROVER_assume(s2n_blob_is_bounded(&stuffer->blob, BLOB_SIZE));
     const char expected;
-    int min;
-    int max;
+    unsigned int min;
+    unsigned int max;
+    unsigned int skipped;
     uint32_t index;
 
     /* Save previous state from stuffer. */
@@ -38,8 +39,8 @@ void s2n_stuffer_skip_expected_char_harness() {
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
-    int skipped = s2n_stuffer_skip_expected_char(stuffer, expected, min, max);
-    if (skipped >= min) {
+    if (s2n_stuffer_skip_expected_char(stuffer, expected, min, max, &skipped) == S2N_SUCCESS) {
+        assert(skipped >= min && skipped <= max);
         /* The read_cursor will move the number of skipped positions. */
         assert(stuffer->read_cursor == old_stuffer.read_cursor + skipped);
         if(stuffer->blob.size > 0) {
