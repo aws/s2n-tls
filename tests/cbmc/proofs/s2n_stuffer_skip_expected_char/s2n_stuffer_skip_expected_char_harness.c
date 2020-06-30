@@ -40,8 +40,10 @@ void s2n_stuffer_skip_expected_char_harness() {
     /* Operation under verification. */
     int skipped = s2n_stuffer_skip_expected_char(stuffer, expected, min, max);
     if (skipped >= min) {
+        /* The read_cursor will move the number of skipped positions. */
         assert(stuffer->read_cursor == old_stuffer.read_cursor + skipped);
         if(stuffer->blob.size > 0) {
+            /* The skipped bytes should match the expected element. */
             __CPROVER_assume(index >= old_stuffer.read_cursor && index < (old_stuffer.read_cursor + skipped));
             assert(stuffer->blob.data[index] == expected);
         }
