@@ -11,12 +11,20 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-ABSTRACTIONS += $(HELPERDIR)/stubs/s2n_calculate_stacktrace.c
+CBMCFLAGS +=
 
-DEPENDENCIES += $(SRCDIR)/utils/s2n_mem.c
+HARNESS_ENTRY = s2n_mem_init_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-ENTRY = s2n_mem_init_harness
+PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
+PROOF_SOURCES += $(PROOF_STUB)/sysconf.c
 
-REMOVE_FUNCTION_BODY += --remove-function-body s2n_mem_cleanup_impl
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
+
+# We abstract this function because manual inspection demonstrates it is unreachable.
+REMOVE_FUNCTION_BODY += s2n_mem_cleanup_impl
+
+UNWINDSET +=
 
 include ../Makefile.common
