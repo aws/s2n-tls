@@ -79,7 +79,7 @@ const struct s2n_kem s2n_sike_p434_r2 = {
 };
 
 const struct s2n_kem s2n_kyber_512_r2 = {
-        .name = "kyber512r2-KEM",
+        .name = "kyber512r2",
         .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R2,
         .public_key_length = KYBER_512_R2_PUBLIC_KEY_BYTES,
         .private_key_length = KYBER_512_R2_SECRET_KEY_BYTES,
