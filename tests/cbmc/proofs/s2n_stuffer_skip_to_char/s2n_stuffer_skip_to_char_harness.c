@@ -37,12 +37,9 @@ void s2n_stuffer_skip_to_char_harness() {
     if (s2n_stuffer_skip_to_char(stuffer, target) == S2N_SUCCESS) {
         if(s2n_stuffer_data_available(&old_stuffer) == 0) {
             assert(stuffer->read_cursor == old_stuffer.read_cursor);
-        } else if (s2n_stuffer_data_available(stuffer) == 0) {
             size_t index;
             __CPROVER_assume(index >= old_stuffer.read_cursor && index < old_stuffer.write_cursor);
             assert(stuffer->blob.data[index] != *((uint8_t *)(&target)));
-        } else {
-            assert(stuffer->blob.data[stuffer->read_cursor] == *((uint8_t *)(&target)));
         }
     }
     assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
