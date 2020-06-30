@@ -45,8 +45,6 @@ void s2n_stuffer_skip_expected_char_harness() {
             __CPROVER_assume(index >= old_stuffer.read_cursor && index < (old_stuffer.read_cursor + skipped));
             assert(stuffer->blob.data[index] == expected);
         }
-    } else {
-        assert(skipped < min);
     }
     assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
     assert(s2n_stuffer_is_valid(stuffer));
