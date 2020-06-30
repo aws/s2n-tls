@@ -109,7 +109,7 @@ class S2N(Provider):
         """
         Using the passed ProviderOptions, create a command line.
         """
-        cmd_line = ['s2nc', '-e']
+        cmd_line = ['s2nc', '-e', '--non-blocking']
 
         # This is the last thing printed by s2nc before it is ready to send/receive data
         self.ready_to_send_input_marker = 'Cipher negotiated:'
@@ -160,7 +160,7 @@ class S2N(Provider):
         """
         Using the passed ProviderOptions, create a command line.
         """
-        cmd_line = ['s2nd', '-X', '--self-service-blinding']
+        cmd_line = ['s2nd', '-X', '--self-service-blinding', '--non-blocking']
 
         if self.options.key is not None:
             cmd_line.extend(['--key', self.options.key])

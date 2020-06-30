@@ -283,6 +283,8 @@ void usage()
     fprintf(stderr, "    Turn on corked io\n");
     fprintf(stderr, "  --tls13\n");
     fprintf(stderr, "    Turn on experimental TLS1.3 support.\n");
+    fprintf(stderr, "  --non-blocking\n");
+    fprintf(stderr, "    Set the non-blocking flag on the connection's socket.\n");
     fprintf(stderr, "  -w --https-server\n");
     fprintf(stderr, "    Run s2nd in a simple https server mode.\n");
     fprintf(stderr, "  -b --https-bench <bytes>\n");
@@ -404,6 +406,7 @@ int main(int argc, char *const *argv)
     int fips_mode = 0;
     int parallelize = 0;
     int use_tls13 = 0;
+    int non_blocking = 0;
     long int bytes = 0;
     conn_settings.session_ticket = 1;
     conn_settings.session_cache = 1;
@@ -434,12 +437,13 @@ int main(int argc, char *const *argv)
         {"https-server", no_argument, 0, 'w'},
         {"https-bench", required_argument, 0, 'b'},
         {"alpn", required_argument, 0, 'A'},
+        {"non-blocking", no_argument, 0, 'B'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:A:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:A:B", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -533,6 +537,9 @@ int main(int argc, char *const *argv)
             break;
         case 'A':
             alpn = optarg;
+            break;
+        case 'B':
+            non_blocking = 1;
             break;
         case '?':
         default:
@@ -751,6 +758,14 @@ int main(int argc, char *const *argv)
     int fd;
     while ((fd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
 
+        if (non_blocking) {
+            int flags = fcntl(sockfd, F_GETFL, 0);
+            if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+                fprintf(stderr, "fcntl error: %s\n", strerror(errno));
+                exit(1);
+            }
+        }
+
         if (!parallelize) {
             int rc = handle_connection(fd, config, conn_settings);
             close(fd);
@@ -785,7 +800,6 @@ int main(int argc, char *const *argv)
                 continue;
             }
         }
-
     }
 
     GUARD_EXIT(s2n_cleanup(),  "Error running s2n_cleanup()");
