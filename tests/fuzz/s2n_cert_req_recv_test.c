@@ -41,19 +41,8 @@
 static char *cert_chain, *private_key;
 struct s2n_cert_chain_and_key *default_cert;
 
-static void s2n_cert_req_recv_fuzz_atexit()
+int s2n_fuzz_init(int *argc, char **argv[])
 {
-    s2n_cleanup();
-    free(cert_chain);
-    free(private_key);
-    s2n_cert_chain_and_key_free(default_cert);
-}
-
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
-{
-    GUARD(s2n_init());
-    GUARD_POSIX_STRICT(atexit(s2n_cert_req_recv_fuzz_atexit));
-
     /* Initialize test chain and key */
     cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE);
     notnull_check(cert_chain);
@@ -65,12 +54,12 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     GUARD(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
     GUARD(s2n_cert_chain_and_key_load_pem(default_cert, cert_chain, private_key));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
     /* We need at least one byte of input to set parameters */
     S2N_FUZZ_ENSURE_MIN_LEN(len, 1);
@@ -98,5 +87,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     GUARD(s2n_connection_free(client_conn));
     GUARD(s2n_config_free(client_config));
 
-    return 0;
+    return S2N_SUCCESS;
 }
+
+static void s2n_fuzz_cleanup()
+{
+    free(cert_chain);
+    free(private_key);
+    s2n_cert_chain_and_key_free(default_cert);
+}
+
+S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test, s2n_fuzz_cleanup)

@@ -20,5 +20,5 @@ int s2n_free(struct s2n_blob *b)
     /* This will cause large amounts of memory leaks. This should be caught by LibFuzzer as a negative fuzz test to
      * ensure that LibFuzzer will catch these memory leaks.
      */
-    return 0;
+    return S2N_SUCCESS;
 }

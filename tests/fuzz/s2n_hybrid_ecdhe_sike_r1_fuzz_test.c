@@ -59,29 +59,20 @@ static int setup_connection(struct s2n_connection *server_conn)
     GUARD(s2n_dup(&server_kem_params.private_key, &server_conn->secure.kem_params.private_key));
     GUARD(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.server_ecc_evp_params));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
-static void s2n_fuzz_atexit()
+int s2n_fuzz_init(int *argc, char **argv[])
 {
-    s2n_cleanup();
-    s2n_kem_free(&server_kem_params);
-}
-
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
-{
-    GUARD(s2n_init());
-    GUARD_POSIX_STRICT(atexit(s2n_fuzz_atexit));
-
     struct s2n_blob *public_key = &server_kem_params.public_key;
     GUARD(s2n_alloc(public_key, SIKE_P503_R1_PUBLIC_KEY_BYTES));
     GUARD(s2n_kem_generate_keypair(&server_kem_params));
     GUARD(s2n_free(public_key));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
     struct s2n_connection *server_conn;
     notnull_check(server_conn = s2n_connection_new(S2N_SERVER));
@@ -100,5 +91,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
 
     GUARD(s2n_connection_free(server_conn));
 
-    return 0;
+    return S2N_SUCCESS;
 }
+
+static void s2n_fuzz_cleanup()
+{
+    s2n_kem_free(&server_kem_params);
+}
+
+S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test, s2n_fuzz_cleanup)

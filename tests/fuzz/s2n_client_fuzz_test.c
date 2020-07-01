@@ -140,7 +140,7 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
     int n_read, n_avail;
 
     if (buf == NULL) {
-        return 0;
+        return S2N_SUCCESS;
     }
 
     in_buf = (struct s2n_stuffer *) io_context;
@@ -169,26 +169,17 @@ int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
 
 static struct s2n_config *client_config;
 
-static void s2n_server_fuzz_atexit()
+int s2n_fuzz_init(int *argc, char **argv[])
 {
-    s2n_config_free(client_config);
-    s2n_cleanup();
-}
-
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
-{
-    GUARD(s2n_init());
-    GUARD_POSIX_STRICT(atexit(s2n_server_fuzz_atexit));
-
     /* Set up Server Config */
     notnull_check(client_config = s2n_config_new());
     GUARD(s2n_config_add_cert_chain_and_key(client_config, certificate_chain, private_key));
     GUARD(s2n_config_add_dhparams(client_config, dhparams));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
     S2N_FUZZ_ENSURE_MIN_LEN(len, S2N_TLS_RECORD_HEADER_LENGTH);
 
@@ -219,5 +210,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     GUARD(s2n_connection_free(client_conn));
     GUARD(s2n_stuffer_free(&in));
 
-    return 0;
+    return S2N_SUCCESS;
 }
+
+static void s2n_fuzz_cleanup()
+{
+    s2n_config_free(client_config);
+}
+
+S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test, s2n_fuzz_cleanup)

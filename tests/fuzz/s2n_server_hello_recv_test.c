@@ -31,23 +31,7 @@
 static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12, S2N_TLS13};
 struct s2n_config *client_config;
 
-static void s2n_fuzz_atexit()
-{
-    s2n_cleanup();
-}
-
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
-{
-#ifdef S2N_TEST_IN_FIPS_MODE
-    S2N_TEST_ENTER_FIPS_MODE();
-#endif
-
-    GUARD(s2n_init());
-    GUARD_POSIX_STRICT(atexit(s2n_fuzz_atexit));
-    return 0;
-}
-
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
     /* We need at least one byte of input to set parameters */
     S2N_FUZZ_ENSURE_MIN_LEN(len, 1);
@@ -73,5 +57,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     GUARD(s2n_config_free(client_config));
     GUARD(s2n_connection_free(client_conn));
 
-    return 0;
+    return S2N_SUCCESS;
 }
+
+S2N_FUZZ_TARGET(NULL, s2n_fuzz_test, NULL)

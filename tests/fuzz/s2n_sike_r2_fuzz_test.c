@@ -30,17 +30,8 @@
 
 static struct s2n_kem_params server_kem_params = {.kem = &s2n_sike_p434_r2};
 
-static void s2n_fuzz_atexit()
+int s2n_fuzz_init(int *argc, char **argv[])
 {
-    s2n_kem_free(&server_kem_params);
-    s2n_cleanup();
-}
-
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
-{
-    GUARD(s2n_init());
-    GUARD_POSIX_STRICT(atexit(s2n_fuzz_atexit));
-
     GUARD(s2n_alloc(&server_kem_params.private_key, s2n_sike_p434_r2.private_key_length));
 
     FILE *kat_file = fopen(RSP_FILE_NAME, "r");
@@ -49,10 +40,10 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 
     fclose(kat_file);
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
     struct s2n_blob ciphertext = {0};
     GUARD(s2n_alloc(&ciphertext, len));
@@ -69,5 +60,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     if (server_kem_params.shared_secret.allocated) {
         GUARD(s2n_free(&(server_kem_params.shared_secret)));
     }
-    return 0;
+    return S2N_SUCCESS;
 }
+
+static void s2n_fuzz_cleanup()
+{
+    s2n_kem_free(&server_kem_params);
+}
+
+S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test, s2n_fuzz_cleanup)
