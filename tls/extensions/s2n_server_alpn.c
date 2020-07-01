@@ -79,26 +79,3 @@ static int s2n_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer *extens
 
     return S2N_SUCCESS;
 }
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_server_extensions_alpn_send_size(struct s2n_connection *conn)
-{
-    const uint8_t application_protocol_len = strlen(conn->application_protocol);
-
-    if (!application_protocol_len) {
-        return 0;
-    }
-
-    return 3 * sizeof(uint16_t) + 1 * sizeof(uint8_t) + application_protocol_len;
-}
-
-int s2n_server_extensions_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_server_alpn_extension, conn, out);
-}
-
-int s2n_recv_server_alpn(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_server_alpn_extension, conn, extension);
-}

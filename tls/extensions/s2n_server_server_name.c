@@ -49,23 +49,3 @@ static int s2n_server_name_recv(struct s2n_connection *conn, struct s2n_stuffer 
     conn->server_name_used = 1;
     return S2N_SUCCESS;
 }
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_server_extensions_server_name_send_size(struct s2n_connection *conn) {
-    if (!s2n_server_name_should_send(conn)) {
-        return 0;
-    }
-
-    return 2 * sizeof(uint16_t);
-}
-
-int s2n_server_extensions_server_name_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_server_server_name_extension, conn, out);
-}
-
-int s2n_recv_server_server_name(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_server_server_name_extension, conn, extension);
-}
