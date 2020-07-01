@@ -201,7 +201,7 @@ static int s2n_evp_hmac_p_hash_free(struct s2n_prf_working_space *ws)
 }
 
 static const struct s2n_p_hash_hmac s2n_evp_hmac = {
-    .new = &s2n_evp_hmac_p_hash_new,
+    .alloc = &s2n_evp_hmac_p_hash_new,
     .init = &s2n_evp_hmac_p_hash_init,
     .update = &s2n_evp_hmac_p_hash_update,
     .final = &s2n_evp_hmac_p_hash_digest,
@@ -249,7 +249,7 @@ static int s2n_hmac_p_hash_free(struct s2n_prf_working_space *ws)
 }
 
 static const struct s2n_p_hash_hmac s2n_hmac = {
-    .new = &s2n_hmac_p_hash_new,
+    .alloc = &s2n_hmac_p_hash_new,
     .init = &s2n_hmac_p_hash_init,
     .update = &s2n_hmac_p_hash_update,
     .final = &s2n_hmac_p_hash_digest,
@@ -333,7 +333,7 @@ int s2n_prf_new(struct s2n_connection *conn)
      */
     conn->prf_space.tls.p_hash_hmac_impl = s2n_get_hmac_implementation();
 
-    return conn->prf_space.tls.p_hash_hmac_impl->new(&conn->prf_space);
+    return conn->prf_space.tls.p_hash_hmac_impl->alloc(&conn->prf_space);
 }
 
 int s2n_prf_free(struct s2n_connection *conn)
