@@ -78,39 +78,3 @@ int s2n_server_certificate_status_recv(struct s2n_connection *conn, struct s2n_s
 
     return S2N_SUCCESS;
 }
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-static int s2n_server_certificate_status_send_size(struct s2n_connection *conn)
-{
-    if (s2n_server_can_send_ocsp(conn)) {
-        return sizeof(uint8_t) + U24_SIZE + conn->handshake_params.our_chain_and_key->ocsp_status.size;
-    }
-
-    return 0;
-}
-
-int s2n_tls13_ocsp_extension_send_size(struct s2n_connection *conn)
-{
-    notnull_check(conn);
-    if (s2n_server_can_send_ocsp(conn)) {
-        uint16_t size = 2 * sizeof(uint16_t);
-        size += s2n_server_certificate_status_send_size(conn);
-        return size;
-    }
-
-    return 0;
-}
-
-int s2n_tls13_ocsp_extension_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_tls13_server_status_request_extension, conn, out);
-}
-
-int s2n_tls13_ocsp_extension_recv(struct s2n_connection *conn, struct s2n_blob *extension)
-{
-    struct s2n_stuffer in;
-    GUARD(s2n_stuffer_init(&in, extension));
-    GUARD(s2n_stuffer_write(&in, extension));
-    return s2n_extension_recv(&s2n_tls13_server_status_request_extension, conn, &in);
-}

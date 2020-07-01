@@ -65,25 +65,3 @@ int s2n_server_sct_list_recv(struct s2n_connection *conn, struct s2n_stuffer *ex
 
     return S2N_SUCCESS;
 }
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_server_extensions_sct_list_send_size(struct s2n_connection *conn)
-{
-    if (s2n_server_can_send_sct_list(conn)) {
-        return 2 * sizeof(uint16_t) +
-            conn->handshake_params.our_chain_and_key->sct_list.size;
-    }
-
-    return 0;
-}
-
-int s2n_server_extensions_sct_list_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_server_sct_list_extension, conn, out);
-}
-
-int s2n_recv_server_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_server_sct_list_extension, conn, extension);
-}
