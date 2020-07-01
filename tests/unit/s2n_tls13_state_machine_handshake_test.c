@@ -257,7 +257,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_handshake_read_io(conn));
 
-                if (tls13_handshakes[i][j] == SERVER_CHANGE_CIPHER_SPEC) {
+                if (tls13_handshakes[handshake][j] == SERVER_CHANGE_CIPHER_SPEC) {
                     EXPECT_EQUAL(conn->handshake.message_number, j + 1);
                 } else {
                     EXPECT_EQUAL(conn->handshake.message_number, j);
@@ -298,7 +298,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_handshake_read_io(conn));
 
-                if (tls13_handshakes[i][j] == CLIENT_CHANGE_CIPHER_SPEC) {
+                if (tls13_handshakes[handshake][j] == CLIENT_CHANGE_CIPHER_SPEC) {
                     EXPECT_EQUAL(conn->handshake.message_number, j + 1);
                 } else {
                     EXPECT_EQUAL(conn->handshake.message_number, j);
