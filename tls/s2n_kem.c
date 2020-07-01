@@ -85,9 +85,9 @@ const struct s2n_kem s2n_kyber_512_r2 = {
         .private_key_length = KYBER_512_R2_SECRET_KEY_BYTES,
         .shared_secret_key_length = KYBER_512_R2_SHARED_SECRET_BYTES,
         .ciphertext_length = KYBER_512_R2_CIPHERTEXT_BYTES,
-        .generate_keypair = &KYBER_512_r2_crypto_kem_keypair,
-        .encapsulate = &KYBER_512_r2_crypto_kem_enc,
-        .decapsulate = &KYBER_512_r2_crypto_kem_dec,
+        .generate_keypair = &kyber_512_r2_crypto_kem_keypair,
+        .encapsulate = &kyber_512_r2_crypto_kem_enc,
+        .decapsulate = &kyber_512_r2_crypto_kem_dec,
 };
 
 /* These lists should be kept up to date with the above KEMs. Order in the lists

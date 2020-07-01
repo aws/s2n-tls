@@ -11,19 +11,19 @@
 // Keygenerate - pk is the public key
 //               sk is the private key
 // Return 0 for success and !0 for failures. See types.h for failure codes
-int KYBER_512_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk);
+int kyber_512_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk);
 
 //Encapsulate - pk is the public key,
 //              ct is a key encapsulation message (ciphertext),
 //              ss is the shared secret.
 // Return 0 for success and !0 for failures.
-int KYBER_512_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk);
+int kyber_512_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk);
 
 //Decapsulate - ct is a key encapsulation message (ciphertext),
 //              sk is the private key,
 //              ss is the shared secret
 // Return 0 for success and !0 for failures.
-int KYBER_512_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
+int kyber_512_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
 
 #endif // KYBER_R2_KEM_H
 

@@ -21,15 +21,10 @@ typedef struct {
 typedef shake128ctx keccak_state;
 
 
-#define SHAKE128_RATE OQS_SHA3_SHAKE128_RATE
-#define SHAKE256_RATE OQS_SHA3_SHAKE256_RATE
-#define SHA3_256_RATE OQS_SHA3_SHA3_256_RATE
-#define SHA3_512_RATE OQS_SHA3_SHA3_512_RATE
-
-#define OQS_SHA3_SHAKE128_RATE 168
-#define OQS_SHA3_SHAKE256_RATE 136
-#define OQS_SHA3_SHA3_256_RATE 136
-#define OQS_SHA3_SHA3_512_RATE 72
+#define SHAKE128_RATE 168
+#define SHAKE256_RATE 136
+#define SHA3_256_RATE 136
+#define SHA3_512_RATE 72
 
 void shake128_absorb(shake128ctx *state, const uint8_t *input, size_t inlen);
 void shake128_squeezeblocks(uint8_t *output, size_t nblocks, shake128ctx *state);
