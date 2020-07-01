@@ -82,10 +82,12 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->actual_protocol_version = S2N_TLS13;
 
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&client_conn->handshake.io, 2));
-        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&client_conn->handshake.io, s2n_extensions_server_signature_algorithms_size(client_conn)));
-        EXPECT_SUCCESS(s2n_extensions_server_signature_algorithms_send(client_conn, &client_conn->handshake.io));
+        /* Request context correct */
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&client_conn->handshake.io, 0));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_req_recv(client_conn), S2N_ERR_MISSING_EXTENSION);
 
+        /* Request context incorrect */
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&client_conn->handshake.io, 2));
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_req_recv(client_conn), S2N_ERR_BAD_MESSAGE);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));

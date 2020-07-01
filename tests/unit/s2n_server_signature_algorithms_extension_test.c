@@ -40,9 +40,9 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
         struct s2n_stuffer io;
-        s2n_stuffer_alloc(&io, s2n_extensions_server_signature_algorithms_size(server_conn));
-        EXPECT_SUCCESS(s2n_server_signature_algorithms_extension.send(server_conn, &io));
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&io, 0));
 
+        EXPECT_SUCCESS(s2n_server_signature_algorithms_extension.send(server_conn, &io));
         EXPECT_SUCCESS(s2n_server_signature_algorithms_extension.recv(client_conn, &io));
         EXPECT_EQUAL(s2n_stuffer_data_available(&io), 0);
 
