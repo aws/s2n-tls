@@ -25,7 +25,8 @@ void s2n_stuffer_skip_whitespace_harness() {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
-    __CPROVER_assume(s2n_blob_is_bounded(&stuffer->blob, BLOB_SIZE));
+    __CPROVER_assume(s2n_blob_is_bounded(&stuffer->blob, MAX_BLOB_SIZE));
+    uint32_t skipped;
 
     /* Save previous state from stuffer. */
     struct s2n_stuffer old_stuffer = *stuffer;
@@ -33,12 +34,17 @@ void s2n_stuffer_skip_whitespace_harness() {
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
-    int skipped = s2n_stuffer_skip_whitespace(stuffer);
-    if (skipped > 0) {
-        assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
-        assert(stuffer->read_cursor == old_stuffer.read_cursor + skipped);
-    } else {
-        assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
+    if(s2n_stuffer_skip_whitespace(stuffer, &skipped) == S2N_SUCCESS) {
+        if (skipped > 0) {
+            assert(stuffer->read_cursor == old_stuffer.read_cursor + skipped);
+            size_t index;
+            __CPROVER_assume(index >= old_stuffer.read_cursor && index < stuffer->read_cursor);
+            assert(stuffer->blob.data[index] == ' '  ||
+                   stuffer->blob.data[index] == '\t' ||
+                   stuffer->blob.data[index] == '\n' ||
+                   stuffer->blob.data[index] == '\r');
+        }
     }
+    assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
     assert(s2n_stuffer_is_valid(stuffer));
 }

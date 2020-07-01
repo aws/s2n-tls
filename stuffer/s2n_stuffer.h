@@ -142,7 +142,7 @@ extern int s2n_stuffer_peek_char(struct s2n_stuffer *stuffer, char *c);
 extern int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *token, char delim);
 extern int s2n_stuffer_read_line(struct s2n_stuffer *stuffer, struct s2n_stuffer *token);
 extern int s2n_stuffer_peek_check_for_str(struct s2n_stuffer *s2n_stuffer, const char *expected);
-extern int s2n_stuffer_skip_whitespace(struct s2n_stuffer *stuffer);
+extern int s2n_stuffer_skip_whitespace(struct s2n_stuffer *stuffer, uint32_t *skipped);
 extern int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, char target);
 extern int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const uint32_t min, const uint32_t max, uint32_t *skipped);
 extern int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char* target);

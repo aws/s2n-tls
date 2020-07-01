@@ -41,10 +41,10 @@ int s2n_stuffer_peek_check_for_str(struct s2n_stuffer *s2n_stuffer, const char *
     return rc;
 }
 
-int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer)
+int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer, uint32_t *skipped)
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(s2n_stuffer));
-    int skipped = 0;
+    uint32_t skip = 0;
     while (s2n_stuffer->read_cursor < s2n_stuffer->write_cursor) {
         switch (s2n_stuffer->blob.data[s2n_stuffer->read_cursor]) {
         case ' ':              /* We don't use isspace, because it changes under locales */
@@ -52,15 +52,17 @@ int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer)
         case '\n':
         case '\r':
             s2n_stuffer->read_cursor += 1;
-            skipped += 1;
+            skip += 1;
             break;
         default:
+            if(skipped != NULL) *skipped = skip;
             POSTCONDITION_POSIX(s2n_stuffer_is_valid(s2n_stuffer));
-            return skipped;
+            return S2N_SUCCESS;
         }
     }
+    if(skipped != NULL) *skipped = skip;
     POSTCONDITION_POSIX(s2n_stuffer_is_valid(s2n_stuffer));
-    return skipped;
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_read_expected_str(struct s2n_stuffer *stuffer, const char *expected)

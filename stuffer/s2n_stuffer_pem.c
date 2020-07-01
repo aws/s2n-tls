@@ -58,7 +58,7 @@ static int s2n_stuffer_pem_read_encapsulation_line(struct s2n_stuffer *pem, cons
     }
 
     /* Skip newlines and other whitepsace that may be after the dashes */
-    GUARD(s2n_stuffer_skip_whitespace(pem));
+    GUARD(s2n_stuffer_skip_whitespace(pem, NULL));
     return 0;
 }
 

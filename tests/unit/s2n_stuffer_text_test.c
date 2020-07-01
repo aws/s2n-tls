@@ -23,6 +23,7 @@
 int main(int argc, char **argv)
 {
     char c;
+    uint32_t skipped = 0;
     struct s2n_stuffer stuffer, token;
     struct s2n_blob pad_blob, token_blob;
     char text[] = "    This is some text\r\n\tmore text";
@@ -43,7 +44,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_text(&stuffer, text, sizeof(text)));
 
         /* Skip 4 bytes of whitespace */
-        EXPECT_EQUAL(s2n_stuffer_skip_whitespace(&stuffer), 4);
+        EXPECT_SUCCESS(s2n_stuffer_skip_whitespace(&stuffer, &skipped));
+        EXPECT_EQUAL(skipped, 4);
         EXPECT_SUCCESS(s2n_stuffer_peek_char(&stuffer, &c));
         EXPECT_EQUAL(c, 'T');
 
@@ -52,14 +54,15 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(memcmp(out, "This is some text", 17), 0);
 
         /* Skip 3 bytes of whitespace */
-        EXPECT_EQUAL(s2n_stuffer_skip_whitespace(&stuffer), 3);
+        EXPECT_SUCCESS(s2n_stuffer_skip_whitespace(&stuffer, &skipped));
+        EXPECT_EQUAL(skipped, 3);
 
         /* Read the next 10 chars (including the terminating zero) */
         EXPECT_SUCCESS(s2n_stuffer_read_text(&stuffer, out, 10));
         EXPECT_EQUAL(memcmp(out, "more text", 10), 0);
 
         /* Test end of stream behaviour */
-        EXPECT_SUCCESS(s2n_stuffer_skip_whitespace(&stuffer));
+        EXPECT_SUCCESS(s2n_stuffer_skip_whitespace(&stuffer, NULL));
         EXPECT_FAILURE(s2n_stuffer_peek_char(&stuffer, &c));
         EXPECT_FAILURE(s2n_stuffer_read_char(&stuffer, &c));
     }
