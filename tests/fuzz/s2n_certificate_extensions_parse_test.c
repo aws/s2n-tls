@@ -128,10 +128,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
         GUARD(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type;
 
-        /* Add cert to chain twice to reach codepaths that need 2+ certs */
-        GUARD(s2n_x509_validator_validate_cert_chain(&client_conn->x509_validator, client_conn, chain_data, chain_len, &pkey_type, &public_key_out));
-        GUARD(s2n_pkey_free(&public_key_out));
-        GUARD(s2n_pkey_zero_init(&public_key_out));
         GUARD(s2n_x509_validator_validate_cert_chain(&client_conn->x509_validator, client_conn, chain_data, chain_len, &pkey_type, &public_key_out));
         GUARD(s2n_stuffer_free(&chain_stuffer));
         GUARD(s2n_pkey_free(&public_key_out));
