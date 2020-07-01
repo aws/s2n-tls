@@ -25,7 +25,7 @@
 /* Just to get access to the static functions / variables we need to test */
 #include "tls/s2n_handshake_io.c"
 
-static message_type_t invalid_handshake[S2N_MAX_HANDSHAKE_LENGTH];
+static message_type_t invalid_handshake[S2N_MAX_HANDSHAKE_LENGTH] = { 0 };
 
 static int expected_handler_called;
 static int unexpected_handler_called;
@@ -95,11 +95,13 @@ int main(int argc, char **argv)
     uint16_t valid_tls12_handshakes[S2N_HANDSHAKES_COUNT];
     int valid_tls12_handshakes_size = 0;
     for (int i = 0; i < S2N_HANDSHAKES_COUNT; i++) {
-        if( memcmp(handshakes, invalid_handshake, S2N_MAX_HANDSHAKE_LENGTH) != 0) {
+        if(memcmp(handshakes[i], invalid_handshake, S2N_MAX_HANDSHAKE_LENGTH) != 0) {
             valid_tls12_handshakes[valid_tls12_handshakes_size] = i;
             valid_tls12_handshakes_size++;
         }
     }
+    EXPECT_TRUE(valid_tls12_handshakes_size > 0);
+    EXPECT_TRUE(valid_tls12_handshakes_size < S2N_HANDSHAKES_COUNT);
 
     /* Test: When using TLS 1.2, use the existing state machine and handshakes */
     {
@@ -121,7 +123,7 @@ int main(int argc, char **argv)
             conn->handshake.handshake_type = handshake;
 
             for (int j = 0; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
-                if (handshakes[i][j] == CLIENT_CHANGE_CIPHER_SPEC) {
+                if (handshakes[handshake][j] == CLIENT_CHANGE_CIPHER_SPEC) {
                     conn->handshake.message_number = j - 1;
 
                     EXPECT_SUCCESS(s2n_advance_message(conn));
@@ -148,7 +150,7 @@ int main(int argc, char **argv)
             conn->handshake.handshake_type = handshake;
 
             for (int j = 0; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
-                if (handshakes[i][j] == SERVER_CHANGE_CIPHER_SPEC) {
+                if (handshakes[handshake][j] == SERVER_CHANGE_CIPHER_SPEC) {
                     conn->handshake.message_number = j - 1;
 
                     EXPECT_SUCCESS(s2n_advance_message(conn));
@@ -186,7 +188,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_CHANGE_CIPHER_SPEC, 0));
 
-                if (handshakes[i][j] == SERVER_CHANGE_CIPHER_SPEC) {
+                if (handshakes[handshake][j] == SERVER_CHANGE_CIPHER_SPEC) {
                     EXPECT_SUCCESS(s2n_handshake_read_io(conn));
                     EXPECT_TRUE(expected_handler_called);
                     EXPECT_FALSE(unexpected_handler_called);
@@ -226,7 +228,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_CHANGE_CIPHER_SPEC, 0));
 
-                if (handshakes[i][j] == CLIENT_CHANGE_CIPHER_SPEC) {
+                if (handshakes[handshake][j] == CLIENT_CHANGE_CIPHER_SPEC) {
                     EXPECT_SUCCESS(s2n_handshake_read_io(conn));
                     EXPECT_TRUE(expected_handler_called);
                     EXPECT_FALSE(unexpected_handler_called);
