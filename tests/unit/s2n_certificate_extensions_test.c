@@ -64,6 +64,7 @@ static int s2n_x509_validator_validate_cert_chain_test(struct s2n_connection *co
     GUARD(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn,
             cert_chain_data, cert_chain_size, &actual_cert_pkey_type, &public_key));
 
+    GUARD(s2n_pkey_free(&public_key));
     return S2N_SUCCESS;
 }
 
