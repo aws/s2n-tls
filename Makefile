@@ -104,6 +104,10 @@ fuzz-linux : export S2N_UNSAFE_FUZZING_MODE = 1
 fuzz-linux : bin
 	$(MAKE) -C tests fuzz
 
+.PHONY : benchmark
+benchmark: bin
+	$(MAKE) -C tests benchmark
+
 .PHONY : coverage
 coverage: run-gcov run-lcov run-genhtml
 

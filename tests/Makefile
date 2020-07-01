@@ -25,6 +25,10 @@ all: libs viz
 	${MAKE} -C unit
 	@echo "\033[1m ${COMPILE_INFO} \033[0;39m"
 
+.PHONY : benchmark
+benchmark: libs
+	${MAKE} -C benchmark
+
 .PHONY : valgrind
 valgrind: libs
 	${MAKE} -C unit valgrind
@@ -61,4 +65,5 @@ clean: decruft
 	${MAKE} -C fuzz clean
 	${MAKE} -C viz clean
 	${MAKE} -C saw decruft
+	${MAKE} -C benchmark decruft
 
