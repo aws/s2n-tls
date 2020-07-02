@@ -159,17 +159,20 @@ int test_count;
 #define EXPECT_STRING_EQUAL( p1, p2 ) EXPECT_EQUAL( strcmp( (p1), (p2) ), 0 )
 #define EXPECT_STRING_NOT_EQUAL( p1, p2 ) EXPECT_NOT_EQUAL( strcmp( (p1), (p2) ), 0 )
 
-#define S2N_TEST_ENTER_FIPS_MODE()    { if (FIPS_mode_set(1) == 0) { \
-                                            unsigned long fips_rc = ERR_get_error(); \
-                                            char ssl_error_buf[256]; \
-                                            fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf)); \
-                                            return 1; \
-                                        } \
-                                        printf("s2nd entered FIPS mode\n"); \
-                                      }
-
 #ifdef S2N_TEST_IN_FIPS_MODE
-#define S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE() S2N_TEST_ENTER_FIPS_MODE()
+#include <openssl/err.h>
+
+#define S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE() \
+    do { \
+        if (FIPS_mode_set(1) == 0) { \
+            unsigned long fips_rc = ERR_get_error(); \
+            char ssl_error_buf[256]; \
+            fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf)); \
+            return 1; \
+        } \
+        printf("s2nd entered FIPS mode\n"); \
+    } while (0)
+
 #else
 #define S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE()
 #endif
