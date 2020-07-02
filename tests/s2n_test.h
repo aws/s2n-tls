@@ -209,7 +209,7 @@ int LLVMFuzzerInitialize(int *argc, char **argv[]) \
 { \
     S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE(); \
     EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init()); \
-    EXPECT_SUCCESS_WITHOUT_COUNT(atexit(s2n_test__fuzz_cleanup));
+    EXPECT_SUCCESS_WITHOUT_COUNT(atexit(s2n_test__fuzz_cleanup)); \
     if (!fuzz_init) { \
         return S2N_SUCCESS; \
     } \
