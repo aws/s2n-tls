@@ -493,8 +493,7 @@ int main(int argc, char *const *argv)
         }
 
         /* See echo.c */
-        if (negotiate(conn) != 0)
-        {
+        if (negotiate(conn, sockfd) != 0) {
             /* Error is printed in negotiate */
             S2N_ERROR_PRESERVE_ERRNO();
         }
