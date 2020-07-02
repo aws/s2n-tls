@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include "api/s2n.h"
 #include "utils/s2n_blob.h"
 
 int s2n_free(struct s2n_blob *b)

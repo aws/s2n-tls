@@ -11,7 +11,8 @@ By default, every test in this directory will be run as a fuzz test for several 
 3. If a Positive Fuzz test, it should have a non-empty corpus directory with inputs that have a relatively high branch coverage.
 4. Have a function `int s2n_fuzz_init(int *argc, char **argv[])` that will perform any initialization that will be run only once at startup.
 5. Have a function `int s2n_fuzz_test(const uint8_t *buf, size_t len)` that will pass `buf` to one of s2n's API's
-6. Call `S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test)` at the bottom of the test to initialize the fuzz target
+5. Optionally add a function `void s2n_fuzz_cleanup()` which cleans up any global state.
+6. Call `S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test, s2n_fuzz_cleanup)` at the bottom of the test to initialize the fuzz target
 
 ## Fuzz Test Coverage
 To generate coverage reports for fuzz tests, simply set the FUZZ_COVERAGE environment variable to any non-null value and run `make fuzz`. This will report the target function coverage and overall S2N coverage when running the tests. In order to define target functions for a fuzz test, simply add the following line to your fuzz test below the copyright notice:

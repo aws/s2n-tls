@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <dlfcn.h>
 
+#include "api/s2n.h"
 #include "crypto/s2n_drbg.h"
 
 #include "stuffer/s2n_stuffer.h"
