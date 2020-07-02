@@ -35,14 +35,20 @@ void s2n_stuffer_skip_whitespace_harness() {
 
     /* Operation under verification. */
     if(s2n_stuffer_skip_whitespace(stuffer, &skipped) == S2N_SUCCESS) {
+        size_t index;
         if (skipped > 0) {
             assert(stuffer->read_cursor == old_stuffer.read_cursor + skipped);
-            size_t index;
             __CPROVER_assume(index >= old_stuffer.read_cursor && index < stuffer->read_cursor);
             assert(stuffer->blob.data[index] == ' '  ||
                    stuffer->blob.data[index] == '\t' ||
                    stuffer->blob.data[index] == '\n' ||
                    stuffer->blob.data[index] == '\r');
+        } else {
+            assert((stuffer->read_cursor >= stuffer->write_cursor) ||
+                   (stuffer->blob.data[old_stuffer.read_cursor] != ' '  &&
+                    stuffer->blob.data[old_stuffer.read_cursor] != '\t' &&
+                    stuffer->blob.data[old_stuffer.read_cursor] != '\n' &&
+                    stuffer->blob.data[old_stuffer.read_cursor] != '\r'));
         }
     }
     assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
