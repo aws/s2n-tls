@@ -14,14 +14,12 @@
  */
 
 #include "api/s2n.h"
-#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
 #include <sys/param.h>
 #include <assert.h>
 
 #include <cbmc_proof/cbmc_utils.h>
-#include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
 
 void s2n_safety_constant_time_equals_harness() {
@@ -40,10 +38,7 @@ void s2n_safety_constant_time_equals_harness() {
     __CPROVER_assume(S2N_IMPLIES(len != 0, a != NULL && b != NULL));
     
     /* Check logical equivalence of s2n_constant_time_equals against element equality */
-    bool result = s2n_constant_time_equals(a, b, len);
-    if(result) {
+    if(s2n_constant_time_equals(a, b, len)) {
         assert(__CPROVER_forall {size_t i; (i >=0 && i < len) ==> (a[i] == b[i])});
-    }/* else { 
-        assert(__CPROVER_exists {size_t i; (i >= 0 && i < len) && (a[i] != b[i])}));
-    }*/
+    }
 }

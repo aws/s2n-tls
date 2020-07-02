@@ -11,22 +11,26 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Expected runtime is 60 seconds.
 
-CBMCFLAGS +=
+# Expected runtime is 40 seconds.
 MAX_ARR_LEN = 10
 DEFINES += -DMAX_ARR_LEN=$(MAX_ARR_LEN)
 
-DEPENDENCIES += $(HELPERDIR)/source/cbmc_utils.c
-DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c
-DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/stuffer/s2n_stuffer.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_blob.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_ensure.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_mem.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_safety.c
+CBMCFLAGS +=
 
-ENTRY = s2n_safety_constant_time_equals_harness
+HARNESS_ENTRY = s2n_safety_constant_time_equals_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
+
+PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
+PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+
+PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
 # We abstract these functions because manual inspection demonstrates they are unreachable.
 REMOVE_FUNCTION_BODY += --remove-function-body s2n_blob_slice

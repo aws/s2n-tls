@@ -55,11 +55,13 @@ pid_t s2n_actual_getpid()
  * Returns:
  *  Whether all bytes in arrays "a" and "b" are identical
  */
-bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len)
+bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, const uint32_t len)
 {
     S2N_PUBLIC_INPUT(a);
     S2N_PUBLIC_INPUT(b);
     S2N_PUBLIC_INPUT(len);
+
+    PRECONDITION_POSIX(len == 0 || a != NULL && b != NULL);
 
     uint8_t xor = 0;
     for (int i = 0; i < len; i++) {
