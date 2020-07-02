@@ -59,7 +59,6 @@ static int wait_for_event(int fd, s2n_blocked_status blocked)
         /* This case is not encountered by the s2nc/s2nd applications,
          * but is detected for completeness */
         return S2N_SUCCESS;
-        break;
     }
 
     if (poll(&reader, 1, -1) < 0) {
