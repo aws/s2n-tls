@@ -55,11 +55,10 @@ int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer, uint32_t *skipp
             skip += 1;
             break;
         default:
-            if(skipped != NULL) *skipped = skip;
-            POSTCONDITION_POSIX(s2n_stuffer_is_valid(s2n_stuffer));
-            return S2N_SUCCESS;
+            goto finished;
         }
     }
+    finished:
     if(skipped != NULL) *skipped = skip;
     POSTCONDITION_POSIX(s2n_stuffer_is_valid(s2n_stuffer));
     return S2N_SUCCESS;
