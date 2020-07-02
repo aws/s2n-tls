@@ -48,7 +48,6 @@ static int wait_for_event(int fd, s2n_blocked_status blocked)
     switch (blocked) {
     case S2N_NOT_BLOCKED:
         return S2N_SUCCESS;
-        break;
     case S2N_BLOCKED_ON_READ:
         reader.events |= POLLIN;
         break;
