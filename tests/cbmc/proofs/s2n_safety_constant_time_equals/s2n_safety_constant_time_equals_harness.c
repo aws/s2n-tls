@@ -19,11 +19,9 @@
 #include <sys/param.h>
 #include <assert.h>
 
-#include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/proof_allocators.h>
 
 void s2n_safety_constant_time_equals_harness() {
-
     /* Non-deterministic inputs. */
     uint32_t len;
     uint32_t alen;

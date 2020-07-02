@@ -22,20 +22,9 @@ HARNESS_ENTRY = s2n_safety_constant_time_equals_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(HARNESS_FILE)
-PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
-PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
 
-PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
-
-# We abstract these functions because manual inspection demonstrates they are unreachable.
-REMOVE_FUNCTION_BODY += --remove-function-body s2n_blob_slice
-REMOVE_FUNCTION_BODY += --remove-function-body s2n_mem_cleanup_impl
-REMOVE_FUNCTION_BODY += --remove-function-body s2n_stuffer_wipe_n
 
 UNWINDSET += s2n_constant_time_equals.0:$(call addone,$(MAX_ARR_LEN))
 
