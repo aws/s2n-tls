@@ -50,7 +50,7 @@ ld-preload :
 $(TESTS)::
 	@${CC} ${CFLAGS} $@.c -o $@  ${LDFLAGS} > /dev/null
 
-run_tests:: $(TESTS) ld-preload
+run_tests:: $(FUZZ_TESTS) ld-preload
 	@( fail_count=0; for test_name in ${FUZZ_TESTS} ; do \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}; \
 	export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}; \

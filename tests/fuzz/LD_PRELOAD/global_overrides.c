@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <dlfcn.h>
 
+#include "api/s2n.h"
 #include "crypto/s2n_drbg.h"
 
 #include "stuffer/s2n_stuffer.h"
@@ -33,7 +34,7 @@ int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob) {
      */
     GUARD_AS_POSIX(s2n_get_urandom_data(blob));
     drbg->bytes_used += blob->size;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len)

@@ -115,23 +115,12 @@ static struct s2n_cipher_suite *s2n_all_fips_cipher_suites[] = {
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,        /* 0xC0,0x30 */
 };
 
-static void s2n_fuzz_atexit()
-{
-    s2n_cleanup();
-    free(cert_chain_pem);
-    free(private_key_pem);
-    free(dhparams_pem);
-    s2n_config_free(config);
-    s2n_cert_chain_and_key_free(chain_and_key);
-}
-
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
+int s2n_fuzz_init(int *argc, char **argv[])
 {
     notnull_check(s2n_all_cipher_suites);
     notnull_check(s2n_all_fips_cipher_suites);
 
 #ifdef S2N_TEST_IN_FIPS_MODE
-    S2N_TEST_ENTER_FIPS_MODE();
     test_suites = s2n_all_fips_cipher_suites;
     num_suites = s2n_array_len(s2n_all_fips_cipher_suites);
 #else
@@ -140,9 +129,6 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
 #endif
 
     /* One time Diffie-Hellman negotiation to speed along fuzz tests*/
-    GUARD(s2n_init());
-    GUARD_POSIX_STRICT(atexit(s2n_fuzz_atexit));
-
     cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
     private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
     dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE);
@@ -168,10 +154,10 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     cert = s2n_config_get_single_default_cert(config);
     notnull_check(cert);
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
     /* We need at least two bytes of input to set parameters */
     S2N_FUZZ_ENSURE_MIN_LEN(len, 2);
@@ -192,7 +178,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     /* Skip incompatible TLS 1.3 cipher suites */
     if (server_conn->secure.cipher_suite->key_exchange_alg == NULL) {
         GUARD(s2n_connection_free(server_conn));
-        return 0;
+        return S2N_SUCCESS;
     }
 
     server_conn->handshake_params.our_chain_and_key = cert;
@@ -218,5 +204,16 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     /* Cleanup */
     GUARD(s2n_connection_free(server_conn));
 
-    return 0;
+    return S2N_SUCCESS;
 }
+
+static void s2n_fuzz_cleanup()
+{
+    free(cert_chain_pem);
+    free(private_key_pem);
+    free(dhparams_pem);
+    s2n_config_free(config);
+    s2n_cert_chain_and_key_free(chain_and_key);
+}
+
+S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test, s2n_fuzz_cleanup)

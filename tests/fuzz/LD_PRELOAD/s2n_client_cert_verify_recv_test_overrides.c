@@ -35,5 +35,5 @@ int s2n_pkey_verify(const struct s2n_pkey *key, s2n_signature_algorithm sig_alg,
     orig_s2n_pkey_verify(key, sig_alg, digest, signature);
 
     /* Always assume that pkey_verify passes */
-    return 0;
+    return S2N_SUCCESS;
 }

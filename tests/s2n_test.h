@@ -41,26 +41,17 @@ int test_count;
  * This is a very basic, but functional unit testing framework. All testing should
  * happen in main() and start with a BEGIN_TEST() and end with an END_TEST();
  */
-#ifdef S2N_TEST_IN_FIPS_MODE
-#define BEGIN_TEST()						\
-  do {								\
-    test_count = 0; \
-    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));	\
-    EXPECT_NOT_EQUAL_WITHOUT_COUNT(FIPS_mode_set(1), 0);	\
-    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());			\
-    fprintf(stdout, "Running FIPS test %-50s ... ", __FILE__);	\
+#define BEGIN_TEST()                                           \
+  do {                                                         \
+    test_count = 0;                                            \
+    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));  \
+    S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                    \
+    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                  \
+    fprintf(stdout, "Running %-50s ... ", __FILE__);           \
   } while(0)
-#else
-#define BEGIN_TEST()						\
-  do {					\
-    test_count = 0; \
-    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));	\
-    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());			\
-    fprintf(stdout, "Running %-50s ... ", __FILE__);		\
-  } while(0)
-#endif
+
 #define END_TEST()   do { \
-                        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false));		\
+                        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false));      \
                         EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup());       \
                         if (isatty(fileno(stdout))) { \
                             if (test_count) { \
@@ -84,18 +75,22 @@ int test_count;
 #define FAIL()      FAIL_MSG("")
 
 #define FAIL_MSG( msg ) do { \
-                          s2n_print_stacktrace(stdout); \
+                          FAIL_MSG_PRINT(msg); \
+                          exit(1);  \
+                        } while(0)
+
+#define FAIL_MSG_PRINT( msg ) do { \
+                          s2n_print_stacktrace(stderr); \
                           /* isatty will overwrite errno on failure */ \
                           int real_errno = errno; \
-                          if (isatty(fileno(stdout))) { \
+                          if (isatty(fileno(stderr))) { \
                             errno = real_errno; \
-                            fprintf(stdout, "\033[31;1mFAILED test %d\033[0m\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno); \
+                            fprintf(stderr, "\033[31;1mFAILED test %d\033[0m\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno); \
                           } \
                           else { \
                             errno = real_errno; \
-                            fprintf(stdout, "FAILED test %d\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno); \
+                            fprintf(stderr, "FAILED test %d\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno); \
                           } \
-                          exit(1);  \
                         } while(0)
 
 #define RESET_ERRNO() \
@@ -164,17 +159,26 @@ int test_count;
 #define EXPECT_STRING_EQUAL( p1, p2 ) EXPECT_EQUAL( strcmp( (p1), (p2) ), 0 )
 #define EXPECT_STRING_NOT_EQUAL( p1, p2 ) EXPECT_NOT_EQUAL( strcmp( (p1), (p2) ), 0 )
 
-#define S2N_TEST_ENTER_FIPS_MODE()    { if (FIPS_mode_set(1) == 0) { \
-                                            unsigned long fips_rc = ERR_get_error(); \
-                                            char ssl_error_buf[256]; \
-                                            fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf)); \
-                                            return 1; \
-                                        } \
-                                        printf("s2nd entered FIPS mode\n"); \
-                                      }
+#ifdef S2N_TEST_IN_FIPS_MODE
+#include <openssl/err.h>
+
+#define S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE() \
+    do { \
+        if (FIPS_mode_set(1) == 0) { \
+            unsigned long fips_rc = ERR_get_error(); \
+            char ssl_error_buf[256]; \
+            fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf)); \
+            return 1; \
+        } \
+        printf("s2nd entered FIPS mode\n"); \
+    } while (0)
+
+#else
+#define S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE()
+#endif
 
 /* Ensures fuzz test input length is greater than or equal to the minimum needed for the test */
-#define S2N_FUZZ_ENSURE_MIN_LEN( len , min ) do {if ( (len) < (min) ) return 0;} while (0)
+#define S2N_FUZZ_ENSURE_MIN_LEN( len , min ) do {if ( (len) < (min) ) return S2N_SUCCESS;} while (0)
 
 #define EXPECT_MEMCPY_SUCCESS(d, s, n)                                         \
     do {                                                                       \
@@ -194,3 +198,35 @@ int test_count;
 #else
 #define TEST_DEBUG_PRINT(...)
 #endif
+
+/* Creates a fuzz target */
+#define S2N_FUZZ_TARGET(fuzz_init, fuzz_entry, fuzz_cleanup) \
+void s2n_test__fuzz_cleanup() \
+{ \
+    if (fuzz_cleanup) { \
+        ((void (*)()) fuzz_cleanup)(); \
+    } \
+    s2n_cleanup(); \
+} \
+int LLVMFuzzerInitialize(int *argc, char **argv[]) \
+{ \
+    S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE(); \
+    EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init()); \
+    EXPECT_SUCCESS_WITHOUT_COUNT(atexit(s2n_test__fuzz_cleanup)); \
+    if (!fuzz_init) { \
+        return S2N_SUCCESS; \
+    } \
+    int result = ((int (*)(int *argc, char **argv[])) fuzz_init)(argc, argv); \
+    if (result != S2N_SUCCESS) { \
+        FAIL_MSG_PRINT(#fuzz_init " did not return S2N_SUCCESS"); \
+    } \
+    return result; \
+} \
+int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) \
+{ \
+    int result = fuzz_entry(buf, len); \
+    if (result != S2N_SUCCESS) { \
+        FAIL_MSG_PRINT(#fuzz_entry " did not return S2N_SUCCESS"); \
+    } \
+    return result; \
+}

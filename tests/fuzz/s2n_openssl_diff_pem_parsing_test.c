@@ -41,27 +41,6 @@
 #include "s2n_test.h"
 #include "crypto/s2n_certificate.h"
 
-static void s2n_fuzz_atexit()
-{
-    s2n_cleanup();
-    ERR_free_strings();
-    CRYPTO_cleanup_all_ex_data();
-    CONF_modules_free();
-    ERR_clear_error();
-}
-
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
-{
-#ifdef S2N_TEST_IN_FIPS_MODE
-    S2N_TEST_ENTER_FIPS_MODE();
-#endif
-
-    GUARD(s2n_init());
-    GUARD_POSIX_STRICT(atexit(s2n_fuzz_atexit));
-
-    return 0;
-}
-
 static int openssl_parse_cert_chain(struct s2n_stuffer *in)
 {
     uint8_t chain_len = 0;
@@ -91,7 +70,7 @@ static int s2n_parse_cert_chain(struct s2n_stuffer *in)
     /* Allocate the memory for the chain and key */
     if (s2n_create_cert_chain_from_stuffer(chain_and_key->cert_chain, in) != S2N_SUCCESS) {
         GUARD(s2n_cert_chain_and_key_free(chain_and_key));
-        return 0;
+        return S2N_SUCCESS;
     }
 
     int chain_len = 0;
@@ -106,7 +85,7 @@ static int s2n_parse_cert_chain(struct s2n_stuffer *in)
     return chain_len;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
     struct s2n_stuffer in = {0};
     GUARD(s2n_stuffer_alloc(&in, len + 1));
@@ -128,5 +107,15 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
         /* return -1; */
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
+
+static void s2n_fuzz_cleanup()
+{
+    ERR_free_strings();
+    CRYPTO_cleanup_all_ex_data();
+    CONF_modules_free();
+    ERR_clear_error();
+}
+
+S2N_FUZZ_TARGET(NULL, s2n_fuzz_test, s2n_fuzz_cleanup)

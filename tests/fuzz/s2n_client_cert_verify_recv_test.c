@@ -123,22 +123,8 @@ static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
 static struct s2n_config *server_config;
 static struct s2n_pkey public_key;
 
-static void s2n_fuzz_atexit()
+int s2n_fuzz_init(int *argc, char **argv[])
 {
-    s2n_pkey_free(&public_key);
-    s2n_config_free(server_config);
-    s2n_cleanup();
-}
-
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
-{
-#ifdef S2N_TEST_IN_FIPS_MODE
-    S2N_TEST_ENTER_FIPS_MODE();
-#endif
-
-    GUARD(s2n_init());
-    GUARD_POSIX_STRICT(atexit(s2n_fuzz_atexit));
-
     /* Set up Server Config */
     server_config = s2n_config_new();
     GUARD(s2n_config_add_cert_chain_and_key(server_config, certificate_chain, private_key));
@@ -148,10 +134,10 @@ int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
     notnull_check(cert);
     GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &cert->cert_chain->head->raw));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
     /* We need at least one byte of input to set parameters */
     S2N_FUZZ_ENSURE_MIN_LEN(len, 1);
@@ -179,5 +165,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
     /* Cleanup */
     GUARD(s2n_connection_free(server_conn));
 
-    return 0;
+    return S2N_SUCCESS;
 }
+
+static void s2n_fuzz_cleanup()
+{
+    s2n_pkey_free(&public_key);
+    s2n_config_free(server_config);
+}
+
+S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test, s2n_fuzz_cleanup)

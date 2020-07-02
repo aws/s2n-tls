@@ -46,22 +46,6 @@
 #define MAX_TOKENS 1024
 #define MAX_CERTIFICATES 256
 
-static void s2n_fuzz_atexit()
-{
-    s2n_cleanup();
-}
-
-int LLVMFuzzerInitialize(const uint8_t *buf, size_t len)
-{
-#ifdef S2N_TEST_IN_FIPS_MODE
-    S2N_TEST_ENTER_FIPS_MODE();
-#endif
-
-    GUARD(s2n_init());
-    GUARD_POSIX_STRICT(atexit(s2n_fuzz_atexit));
-    return 0;
-}
-
 /*
  * Tokenize the input fuzz buffer based on NULL bytes into output array and return the number of tokens.
  * Avoiding extra heap allocation here to increase fuzz test rate.
@@ -134,7 +118,7 @@ static int set_x509_sans(X509* x509_cert, const char **names, size_t num_sans)
     }
 
     GENERAL_NAMES_free(san_names);
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int set_x509_cns(X509 *x509_cert, const char **cns, size_t num_cns)
@@ -150,7 +134,7 @@ static int set_x509_cns(X509 *x509_cert, const char **cns, size_t num_cns)
 
     X509_set_subject_name(x509_cert, x509_name);
     X509_NAME_free(x509_name);
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static struct s2n_cert_chain_and_key *create_cert(const char **names, int num_names)
@@ -208,12 +192,12 @@ cert_cleanup:
 static size_t create_certs(const char **strings, unsigned int num_strings, struct s2n_cert_chain_and_key **out_certs, unsigned int num_certs)
 {
     if (num_certs == 0) {
-        return 0;
+        return S2N_SUCCESS;
     }
 
     /* We want the fuzz input to give us at least 1 domain name string for each cert */
     if (num_strings <= num_certs) {
-        return 0;
+        return S2N_SUCCESS;
     }
 
     const int num_names_per_cert = num_strings / num_certs;
@@ -237,7 +221,7 @@ static size_t create_certs(const char **strings, unsigned int num_strings, struc
  * - Generate the data to populate the SNI TLS extension
  * - Fuzz the certificate matching function in s2n: s2n_cert_chain_and_key_matches_name
  */
-int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)
+int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
     struct s2n_config *config = s2n_config_new();
     struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
@@ -289,5 +273,7 @@ cleanup:
     if (conn != NULL) { s2n_connection_free(conn); }
     if (config != NULL) { s2n_config_free(config); }
 
-    return 0;
+    return S2N_SUCCESS;
 }
+
+S2N_FUZZ_TARGET(NULL, s2n_fuzz_test, NULL)
