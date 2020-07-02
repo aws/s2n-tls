@@ -2,7 +2,7 @@
 +++ utils/s2n_safety.c	2018-02-09 10:28:30.000000000 -0500
 @@ -55,14 +65,12 @@
   */
- int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len)
+ bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len)
  {
 -    S2N_PUBLIC_INPUT(a);
 -    S2N_PUBLIC_INPUT(b);
