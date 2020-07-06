@@ -67,6 +67,8 @@ struct s2n_kem_group_params {
     struct s2n_ecc_evp_params ecc_params;
 };
 
+#define S2N_MAX_NUM_SUPPORTED_KEM_GROUPS 2
+
 #if !defined(S2N_NO_PQ)
     extern const struct s2n_kem s2n_bike1_l1_r1;
     extern const struct s2n_kem s2n_bike1_l1_r2;
@@ -74,29 +76,12 @@ struct s2n_kem_group_params {
     extern const struct s2n_kem s2n_sike_p434_r2;
     extern const struct s2n_kem s2n_kyber_512_r2;
 
-    #define S2N_NUM_SECP256R1_KEM_GROUPS 1
     extern const struct s2n_kem_group s2n_secp256r1_sike_p434_r2;
 
     #if EVP_APIS_SUPPORTED
-        /* If EVP_APIS_SUPPORTED, then we support x25519 based kem_groups */
-        #define S2N_NUM_X25519_KEM_GROUPS 1
         extern const struct s2n_kem_group s2n_x25519_sike_p434_r2;
-    #else
-        /* If *not* EVP_APIS_SUPPORTED, then we *do not* supported x25519 */
-        #define S2N_NUM_X25519_KEM_GROUPS 0
     #endif
-
-    #define S2N_SUPPORTED_KEM_GROUPS_COUNT (S2N_NUM_SECP256R1_KEM_GROUPS + S2N_NUM_X25519_KEM_GROUPS)
-
-#else
-    /* If S2N_NO_PQ is defined, we must still define
-     * S2N_SUPPORTED_KEM_GROUPS_COUNT to be non-zero.
-     * This value is used to declare the size of
-     * certain arrays in s2n_crypto.h and ISO C forbids
-     * zero-size arrays. */
-
-    #define S2N_SUPPORTED_KEM_GROUPS_COUNT 1
-#endif /* !defined(S2N_NO_PQ) */
+#endif
 
 extern int s2n_kem_generate_keypair(struct s2n_kem_params *kem_params);
 extern int s2n_kem_encapsulate(struct s2n_kem_params *kem_params, struct s2n_blob *ciphertext);

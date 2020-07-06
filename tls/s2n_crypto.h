@@ -39,7 +39,7 @@ struct s2n_crypto_parameters {
     struct s2n_ecc_evp_params client_ecc_evp_params[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT];
     struct s2n_kem_group_params server_kem_group_params;
     struct s2n_kem_group_params *chosen_client_kem_group_params;
-    struct s2n_kem_group_params client_kem_group_params[S2N_SUPPORTED_KEM_GROUPS_COUNT];
+    struct s2n_kem_group_params client_kem_group_params[S2N_MAX_NUM_SUPPORTED_KEM_GROUPS];
     struct s2n_kem_params kem_params;
     struct s2n_blob client_key_exchange_message;
     struct s2n_blob client_pq_kem_extension;

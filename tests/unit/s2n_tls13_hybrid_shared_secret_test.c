@@ -191,8 +191,9 @@ int main(int argc, char **argv) {
     };
 #endif
 
+    EXPECT_EQUAL(2, S2N_MAX_NUM_SUPPORTED_KEM_GROUPS);
+
 #if EVP_APIS_SUPPORTED
-    EXPECT_EQUAL(2, S2N_SUPPORTED_KEM_GROUPS_COUNT);
     const struct hybrid_test_vector *all_test_vectors[] = {
             &aes_128_sha_256_secp256r1_sikep434r2,
             &aes_256_sha_384_secp256r1_sikep434r2,
@@ -200,7 +201,6 @@ int main(int argc, char **argv) {
             &aes_256_sha_284_x25519_sikep434r2_vector,
     };
 #else
-    EXPECT_EQUAL(1, S2N_SUPPORTED_KEM_GROUPS_COUNT);
     const struct hybrid_test_vector *all_test_vectors[] = {
             &aes_128_sha_256_secp256r1_sikep434r2,
             &aes_256_sha_384_secp256r1_sikep434r2,
