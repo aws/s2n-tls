@@ -92,8 +92,8 @@ struct hybrid_test_vector {
 #define SIKEP434R2_SECRET "35f7f8ff388714dedc41f139078cedc9"
 
 /* Hybrid shared secrets are the concatenation: ECDHE || PQ */
-#define X25519_SIKEP434R2_HYBRID_SECRET X25519_SHARED_SECRET SIKEP434R2_SECRET
-#define SECP256R1_SIKEP434R2_HYBRID_SECRET SECP256R1_SHARED_SECRET SIKEP434R2_SECRET
+#define X25519_SIKEP434R2_HYBRID_SECRET      (X25519_SHARED_SECRET      SIKEP434R2_SECRET)
+#define SECP256R1_SIKEP434R2_HYBRID_SECRET   (SECP256R1_SHARED_SECRET   SIKEP434R2_SECRET)
 
 /* A fake transcript string to hash when deriving handshake secrets */
 #define FAKE_TRANSCRIPT "client_hello || server_hello"
@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
             "2fa1a075eaf636138170e3b2a84f6baa4ac08f846ffe2d005ae5e66b03352c11");
     S2N_BLOB_FROM_HEX(aes_128_secp256r1_sikep434r2_server_secret,
             "423dfaf8fd66b17aaf8c919a9318f3a6bd69875aacdf022aa58a953a7b6de806");
-    const struct hybrid_test_vector aes_128_sha_256_secp256r1_sikep434r2 = {
+    const struct hybrid_test_vector aes_128_sha_256_secp256r1_sikep434r2_vector = {
             .cipher_suite = &s2n_tls13_aes_128_gcm_sha256,
             .transcript = FAKE_TRANSCRIPT,
             .kem_group = &s2n_secp256r1_sike_p434_r2,
@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
             "f7d349f364f49ff3ae9c4e9e7aa60c41d6c650d09c03d8c076bc714ab76177045e23e7426dceb872d2fe7c0d07abdefd");
     S2N_BLOB_FROM_HEX(aes_256_secp256r1_sikep434r2_server_secret,
             "184755801232f7b9b5c42cbdc66c793071f4322079e34307fd60261c0f7a27612b3808918218c4000c12f829d6c19ebf");
-    const struct hybrid_test_vector aes_256_sha_384_secp256r1_sikep434r2 = {
+    const struct hybrid_test_vector aes_256_sha_384_secp256r1_sikep434r2_vector = {
             .cipher_suite = &s2n_tls13_aes_256_gcm_sha384,
             .transcript = FAKE_TRANSCRIPT,
             .kem_group = &s2n_secp256r1_sike_p434_r2,
@@ -195,8 +195,8 @@ int main(int argc, char **argv) {
 
 #if EVP_APIS_SUPPORTED
     const struct hybrid_test_vector *all_test_vectors[] = {
-            &aes_128_sha_256_secp256r1_sikep434r2,
-            &aes_256_sha_384_secp256r1_sikep434r2,
+            &aes_128_sha_256_secp256r1_sikep434r2_vector,
+            &aes_256_sha_384_secp256r1_sikep434r2_vector,
             &aes_128_sha_256_x25519_sikep434r2_vector,
             &aes_256_sha_284_x25519_sikep434r2_vector,
     };
@@ -271,7 +271,7 @@ int main(int argc, char **argv) {
     }
     {
         /* Various failure cases for s2n_tls13_compute_shared_secret() */
-        const struct hybrid_test_vector *test_vector = &aes_128_sha_256_secp256r1_sikep434r2;
+        const struct hybrid_test_vector *test_vector = &aes_128_sha_256_secp256r1_sikep434r2_vector;
 
         /* Failures because of NULL arguments */
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(NULL, NULL), S2N_ERR_NULL);
