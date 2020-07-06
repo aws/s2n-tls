@@ -27,6 +27,7 @@
 #include "pq-crypto/bike_r2/bike_r2_kem.h"
 #include "pq-crypto/sike_r1/sike_r1_kem.h"
 #include "pq-crypto/sike_r2/sike_r2_kem.h"
+#include "pq-crypto/kyber_r2/kyber_r2_kem.h"
 
 /* The names below come from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-02#section-5.1.6 */
 const struct s2n_kem s2n_bike1_l1_r1 = {
@@ -77,6 +78,18 @@ const struct s2n_kem s2n_sike_p434_r2 = {
         .decapsulate = &SIKE_P434_r2_crypto_kem_dec,
 };
 
+const struct s2n_kem s2n_kyber_512_r2 = {
+        .name = "kyber512r2",
+        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R2,
+        .public_key_length = KYBER_512_R2_PUBLIC_KEY_BYTES,
+        .private_key_length = KYBER_512_R2_SECRET_KEY_BYTES,
+        .shared_secret_key_length = KYBER_512_R2_SHARED_SECRET_BYTES,
+        .ciphertext_length = KYBER_512_R2_CIPHERTEXT_BYTES,
+        .generate_keypair = &kyber_512_r2_crypto_kem_keypair,
+        .encapsulate = &kyber_512_r2_crypto_kem_enc,
+        .decapsulate = &kyber_512_r2_crypto_kem_dec,
+};
+
 /* These lists should be kept up to date with the above KEMs. Order in the lists
  * does not matter. Adding a KEM to these lists will not automatically enable
  * support for the KEM extension - that must be added via the cipher preferences.*/
@@ -89,7 +102,11 @@ const struct s2n_kem *sike_kems[] = {
         &s2n_sike_p434_r2,
 };
 
-const struct s2n_iana_to_kem kem_mapping[2] = {
+const struct s2n_kem *kyber_kems[] = {
+        &s2n_kyber_512_r2,
+};
+
+const struct s2n_iana_to_kem kem_mapping[3] = {
         {
             .iana_value = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 },
             .kems = bike_kems,
@@ -99,6 +116,11 @@ const struct s2n_iana_to_kem kem_mapping[2] = {
             .iana_value = { TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 },
             .kems = sike_kems,
             .kem_count = s2n_array_len(sike_kems),
+        },
+	{
+            .iana_value = { TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384 },
+            .kems = kyber_kems,
+            .kem_count = s2n_array_len(kyber_kems),
         }
 };
 
