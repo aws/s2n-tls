@@ -40,16 +40,51 @@ void print_s2n_error(const char *app_error)
             s2n_strerror_debug(s2n_errno, "EN"));
 }
 
-int negotiate(struct s2n_connection *conn)
+/* Poll the given file descriptor for an event determined by the blocked status */
+static int wait_for_event(int fd, s2n_blocked_status blocked)
+{
+    struct pollfd reader = { .fd = fd, .events = 0 };
+
+    switch (blocked) {
+    case S2N_NOT_BLOCKED:
+        return S2N_SUCCESS;
+    case S2N_BLOCKED_ON_READ:
+        reader.events |= POLLIN;
+        break;
+    case S2N_BLOCKED_ON_WRITE:
+        reader.events |= POLLOUT;
+        break;
+    case S2N_BLOCKED_ON_APPLICATION_INPUT:
+        /* This case is not encountered by the s2nc/s2nd applications,
+         * but is detected for completeness */
+        return S2N_SUCCESS;
+    }
+
+    if (poll(&reader, 1, -1) < 0) {
+        fprintf(stderr, "Failed to poll connection: %s\n", strerror(errno));
+        S2N_ERROR_PRESERVE_ERRNO();
+    }
+
+    return S2N_SUCCESS;
+}
+
+int negotiate(struct s2n_connection *conn, int fd)
 {
     s2n_blocked_status blocked;
-    do {
-        if (s2n_negotiate(conn, &blocked) < 0) {
-            fprintf(stderr, "Failed to negotiate: '%s'. %s\n", s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"));
-            fprintf(stderr, "Alert: %d\n", s2n_connection_get_alert(conn));
+    while (s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {
+        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+            fprintf(stderr, "Failed to negotiate: '%s'. %s\n",
+                    s2n_strerror(s2n_errno, "EN"),
+                    s2n_strerror_debug(s2n_errno, "EN"));
+            fprintf(stderr, "Alert: %d\n",
+                    s2n_connection_get_alert(conn));
             S2N_ERROR_PRESERVE_ERRNO();
         }
-    } while (blocked);
+
+        if (wait_for_event(fd, blocked) != S2N_SUCCESS) {
+            S2N_ERROR_PRESERVE_ERRNO();
+        }
+    }
 
     /* Now that we've negotiated, print some parameters */
     int client_hello_version;
@@ -126,21 +161,26 @@ int echo(struct s2n_connection *conn, int sockfd)
             ssize_t bytes_written = 0;
 
             if (readers[0].revents & POLLIN) {
-                do {
-                    bytes_read = s2n_recv(conn, buffer, STDIO_BUFSIZE, &blocked);
-                    if (bytes_read == 0) {
-                        return 0;
+                s2n_errno = S2N_ERR_T_OK;
+                bytes_read = s2n_recv(conn, buffer, STDIO_BUFSIZE, &blocked);
+                if (bytes_read == 0) {
+                    return 0;
+                }
+                if (bytes_read < 0) {
+                    if (s2n_error_get_type(s2n_errno) == S2N_ERR_T_BLOCKED) {
+                        /* Wait until poll tells us data is ready */
+                        continue;
                     }
-                    if (bytes_read < 0) {
-                        fprintf(stderr, "Error reading from connection: '%s' %d\n", s2n_strerror(s2n_errno, "EN"), s2n_connection_get_alert(conn));
-                        exit(1);
-                    }
-                    bytes_written = write(STDOUT_FILENO, buffer, bytes_read);
-                    if (bytes_written <= 0) {
-                        fprintf(stderr, "Error writing to stdout\n");
-                        exit(1);
-                    }
-                } while (blocked);
+
+                    fprintf(stderr, "Error reading from connection: '%s' %d\n", s2n_strerror(s2n_errno, "EN"), s2n_connection_get_alert(conn));
+                    exit(1);
+                }
+
+                bytes_written = write(STDOUT_FILENO, buffer, bytes_read);
+                if (bytes_written <= 0) {
+                    fprintf(stderr, "Error writing to stdout\n");
+                    exit(1);
+                }
             }
 
             if (readers[1].revents & POLLIN) {
@@ -173,10 +213,18 @@ int echo(struct s2n_connection *conn, int sockfd)
                      * keep sending until we have cleared our buffer. */
                     char *buf_ptr = buffer;
                     do {
+                        s2n_errno = S2N_ERR_T_OK;
                         bytes_written = s2n_send(conn, buf_ptr, bytes_read, &blocked);
                         if (bytes_written < 0) {
-                            fprintf(stderr, "Error writing to connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-                            exit(1);
+                            if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+                                fprintf(stderr, "Error writing to connection: '%s'\n",
+                                        s2n_strerror(s2n_errno, "EN"));
+                                exit(1);
+                            }
+
+                            if (wait_for_event(sockfd, blocked) != S2N_SUCCESS) {
+                                S2N_ERROR_PRESERVE_ERRNO();
+                            }
                         }
 
                         bytes_read -= bytes_written;

@@ -28,6 +28,7 @@
 #include <getopt.h>
 #include <strings.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include <s2n.h>
 #include "common.h"
@@ -86,6 +87,8 @@ void usage()
     fprintf(stderr, "    Turn on corked io\n");
     fprintf(stderr, "  --tls13\n");
     fprintf(stderr, "    Turn on experimental TLS1.3 support.\n");
+    fprintf(stderr, "  --non-blocking\n");
+    fprintf(stderr, "    Set the non-blocking flag on the connection's socket.\n");
     fprintf(stderr, "  -K ,--keyshares\n");
     fprintf(stderr, "    Colon separated list of curve names.\n"
                     "    The client will generate keyshares only for the curve names present in the ecc_preferences list configured in the security_policy.\n"
@@ -248,6 +251,7 @@ int main(int argc, char *const *argv)
     int echo_input = 0;
     int use_corked_io = 0;
     int use_tls13 = 0;
+    uint8_t non_blocking = 0;
     int keyshares_count = 0;
     char keyshares[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT][S2N_MAX_ECC_CURVE_NAME_LENGTH];
     char *input = NULL;
@@ -273,6 +277,7 @@ int main(int argc, char *const *argv)
         {"corked-io", no_argument, 0, 'C'},
         {"tls13", no_argument, 0, '3'},
         {"keyshares", required_argument, 0, 'K'},
+        {"non-blocking", no_argument, 0, 'B'},
     };
 
     while (1) {
@@ -353,6 +358,9 @@ int main(int argc, char *const *argv)
         case '3':
             use_tls13 = 1;
             break;
+        case 'B':
+            non_blocking = 1;
+            break;
         case '?':
         default:
             usage();
@@ -420,6 +428,14 @@ int main(int argc, char *const *argv)
             exit(1);
         }
 
+        if (non_blocking) {
+            int flags = fcntl(sockfd, F_GETFL, 0);
+            if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0) {
+                fprintf(stderr, "fcntl error: %s\n", strerror(errno));
+                exit(1);
+            }
+        }
+
         struct s2n_config *config = s2n_config_new();
         setup_s2n_config(config, cipher_prefs, type, &unsafe_verify_data, host, alpn_protocols, mfl_value);
 
@@ -477,8 +493,7 @@ int main(int argc, char *const *argv)
         }
 
         /* See echo.c */
-        if (negotiate(conn) != 0)
-        {
+        if (negotiate(conn, sockfd) != 0) {
             /* Error is printed in negotiate */
             S2N_ERROR_PRESERVE_ERRNO();
         }
