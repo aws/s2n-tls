@@ -67,7 +67,12 @@ struct s2n_kem_group_params {
     struct s2n_ecc_evp_params ecc_params;
 };
 
-#define S2N_MAX_NUM_SUPPORTED_KEM_GROUPS 2
+/* x25519 based kem_groups require EVP_APIS_SUPPORTED */
+#if EVP_APIS_SUPPORTED
+#define S2N_SUPPORTED_KEM_GROUPS_COUNT 2
+#else
+#define S2N_SUPPORTED_KEM_GROUPS_COUNT 1
+#endif
 
 #if !defined(S2N_NO_PQ)
     extern const struct s2n_kem s2n_bike1_l1_r1;
@@ -77,10 +82,7 @@ struct s2n_kem_group_params {
     extern const struct s2n_kem s2n_kyber_512_r2;
 
     extern const struct s2n_kem_group s2n_secp256r1_sike_p434_r2;
-
-    #if EVP_APIS_SUPPORTED
-        extern const struct s2n_kem_group s2n_x25519_sike_p434_r2;
-    #endif
+    extern const struct s2n_kem_group s2n_x25519_sike_p434_r2;
 #endif
 
 extern int s2n_kem_generate_keypair(struct s2n_kem_params *kem_params);

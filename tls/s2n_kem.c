@@ -131,19 +131,23 @@ const struct s2n_iana_to_kem kem_mapping[3] = {
  * https://tools.ietf.org/html/draft-stebila-tls-hybrid-design.
  * Values for interoperability are defined in
  * https://docs.google.com/spreadsheets/d/12YarzaNv3XQNLnvDsWLlRKwtZFhRrDdWf36YlzwrPeg/edit#gid=0. */
-const struct s2n_kem_group s2n_x25519_sike_p434_r2 = {
-        .name = "x25519_sike-p434-r2",
-        .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2,
-        .curve = &s2n_ecc_curve_x25519,
-        .kem = &s2n_sike_p434_r2,
-};
-
 const struct s2n_kem_group s2n_secp256r1_sike_p434_r2 = {
         .name = "secp256r1_sike-p434-r2",
         .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2,
         .curve = &s2n_ecc_curve_secp256r1,
         .kem = &s2n_sike_p434_r2,
 };
+
+#if EVP_APIS_SUPPORTED
+const struct s2n_kem_group s2n_x25519_sike_p434_r2 = {
+        .name = "x25519_sike-p434-r2",
+        .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2,
+        .curve = &s2n_ecc_curve_x25519,
+        .kem = &s2n_sike_p434_r2,
+};
+#else
+const struct s2n_kem_group s2n_x25519_sike_p434_r2 = { 0 };
+#endif
 
 #else
 
