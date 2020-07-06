@@ -92,6 +92,12 @@ ALL_TEST_CIPHERS = [
     Ciphers.CHACHA20_POLY1305_SHA256,
 ]
 
+# List of TLS13 Ciphers
+TLS13_CIPHERS = [
+    Ciphers.CHACHA20_POLY1305_SHA256,
+    Ciphers.AES128_GCM_SHA256,
+    Ciphers.AES256_GCM_SHA384,
+]
 
 # List of providers that will be tested.
 PROVIDERS = [S2N, OpenSSL]
