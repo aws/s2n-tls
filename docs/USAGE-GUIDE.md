@@ -500,26 +500,35 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config,
                                       const char *version);
 ```
 
-**s2n_config_set_cipher_preferences** sets the ciphersuite and protocol versions. The currently supported versions are;
+**s2n_config_set_cipher_preferences** sets the security policy that includes the cipher/kem/signature/ecc preferences and protocol version.
 
-|    version | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | AES-CBC | ChaCha20-Poly1305 | ECDSA | AES-GCM | 3DES | RC4 | DHE | ECDHE |
-|------------|-------|--------|--------|--------|---------|-------------------|-------|---------|------|-----|-----|-------|
-| "default"  |       |   X    |    X   |    X   |    X    |         X         |       |    X    |      |     |     |   X   |
-| "20190214" |       |   X    |    X   |    X   |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |
-| "20170718" |       |   X    |    X   |    X   |    X    |                   |       |    X    |      |     |     |   X   |
-| "20170405" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |     |   X   |
-| "20170328" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |  X  |   X   |
-| "20170210" |       |   X    |    X   |    X   |    X    |         X         |       |    X    |      |     |     |   X   |
-| "20160824" |       |   X    |    X   |    X   |    X    |                   |       |    X    |      |     |     |   X   |
-| "20160804" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |     |   X   |
-| "20160411" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |     |   X   |
-| "20150306" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |     |   X   |
-| "20150214" |       |   X    |    X   |    X   |    X    |                   |       |    X    |  X   |     |  X  |       |
-| "20150202" |       |   X    |    X   |    X   |    X    |                   |       |         |  X   |     |  X  |       |
-| "20141001" |       |   X    |    X   |    X   |    X    |                   |       |         |  X   |  X  |  X  |       |
-| "20140601" |   X   |   X    |    X   |    X   |    X    |                   |       |         |  X   |  X  |  X  |       |
+The following chart maps the security policy version to protocol version and ciphertsuites supported:
 
-The "default" version is special in that it will be updated with future s2n changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change. 
+|    version     | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3  | AES-CBC | ChaCha20-Poly1305 | ECDSA | AES-GCM | 3DES | RC4 | DHE | ECDHE |
+|----------------|-------|--------|--------|--------|---------|---------|-------------------|-------|---------|------|-----|-----|-------|
+|   "default"    |       |   X    |    X   |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |
+|   "20190214"   |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |
+|   "20170718"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |      |     |     |   X   |
+|   "20170405"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
+|   "20170328"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |  X  |   X   |
+|   "20170210"   |       |   X    |    X   |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |
+|   "20160824"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |      |     |     |   X   |
+|   "20160804"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
+|   "20160411"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
+|   "20150306"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
+|   "20150214"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |  X  |       |
+|   "20150202"   |       |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |     |  X  |       |
+|   "20141001"   |       |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |  X  |  X  |       |
+|   "20140601"   |   X   |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |  X  |  X  |       |
+|   "20190120"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
+|   "20190121"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
+|   "20190122"   |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |
+| "default_tls13"|       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
+|   "20190801"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
+|   "20190802"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
+|   "20200207"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |       |
+
+The "default" and "default_tls13" version is special in that it will be updated with future s2n changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change. 
 
 "20160411" follows the same general preference order as "default". The main difference is it has a CBC cipher suite at the top. This is to accomodate certain Java clients that have poor GCM implementations. Users of s2n who have found GCM to be hurting performance for their clients should consider this version.
 
@@ -534,6 +543,58 @@ underlying encrpyt/decrypt functions are not available in older versions.
 2. Always use forward secrecy where possible. Prefer ECDHE over DHE. 
 3. Prefer encryption ciphers in the following order: AES128, AES256, ChaCha20, 3DES, RC4.
 4. Prefer record authentication modes in the following order: GCM, Poly1305, SHA256, SHA1, MD5.
+
+The following chart maps the security policy version to the signature scheme supported:
+
+|    version     |   RSA PKCS1  | ECDSA - TLS 1.2 |  SHA-1 Legacy |  RSA PSS | 
+|----------------|--------------|-----------------|---------------|----------|
+|   "default"    |      X       |         X       |      X        |          |
+|   "20190214"   |      X       |         X       |      X        |          |
+|   "20170718"   |      X       |         X       |      X        |          |
+|   "20170405"   |      X       |         X       |      X        |          |
+|   "20170328"   |      X       |         X       |      X        |          |
+|   "20170210"   |      X       |         X       |      X        |          |
+|   "20160824"   |      X       |         X       |      X        |          |
+|   "20160804"   |      X       |         X       |      X        |          |
+|   "20160411"   |      X       |         X       |      X        |          |
+|   "20150306"   |      X       |         X       |      X        |          |
+|   "20150214"   |      X       |         X       |      X        |          |
+|   "20150202"   |      X       |         X       |      X        |          |
+|   "20141001"   |      X       |         X       |      X        |          |
+|   "20140601"   |      X       |         X       |      X        |          |
+|   "20190120"   |      X       |         X       |      X        |          |
+|   "20190121"   |      X       |         X       |      X        |          |
+|   "20190122"   |      X       |         X       |      X        |          |
+| "default_tls13"|      X       |         X       |      X        |    X     |
+|   "20190801"   |      X       |         X       |      X        |    X     |
+|   "20190802"   |      X       |         X       |      X        |    X     |
+|   "20200207"   |      X       |         X       |      X        |    X     |
+
+The following chart maps the security policy version to the supported curves/groups: 
+
+|    version     |   secp256r1  |  secp384r1 | x25519 | 
+|----------------|--------------|------------|--------|
+|   "default"    |      X       |      X     |        | 
+|   "20190214"   |      X       |      X     |        | 
+|   "20170718"   |      X       |      X     |        | 
+|   "20170405"   |      X       |      X     |        | 
+|   "20170328"   |      X       |      X     |        | 
+|   "20170210"   |      X       |      X     |        | 
+|   "20160824"   |      X       |      X     |        | 
+|   "20160804"   |      X       |      X     |        | 
+|   "20160411"   |      X       |      X     |        | 
+|   "20150306"   |      X       |      X     |        | 
+|   "20150214"   |      X       |      X     |        | 
+|   "20150202"   |      X       |      X     |        | 
+|   "20141001"   |      X       |      X     |        | 
+|   "20140601"   |      X       |      X     |        | 
+|   "20190120"   |      X       |      X     |        | 
+|   "20190121"   |      X       |      X     |        | 
+|   "20190122"   |      X       |      X     |        | 
+| "default_tls13"|      X       |      X     |   X    | 
+|   "20190801"   |      X       |      X     |   X    | 
+|   "20190802"   |      X       |      X     |   X    | 
+|   "20200207"   |      X       |      X     |   X    | 
 
 ### s2n\_config\_add\_cert\_chain\_and\_key
 
