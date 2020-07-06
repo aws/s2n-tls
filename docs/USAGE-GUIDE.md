@@ -1226,12 +1226,12 @@ ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tl
 **s2n_client_hello_get_extension_length** returns the number of bytes the given extension type takes on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
 **s2n_client_hello_get_extension_by_id** copies into the **out** buffer **max_length** bytes of a given extension type on the ClienthHello and returns the number of bytes that were copied.
 
-### s2n\_connection\_is\_client\_authenticated
+### s2n\_connection\_client\_cert\_used
 
 ```c
-int s2n_connection_is_client_authenticated(struct s2n_connection *conn);
+int s2n_connection_client_cert_used(struct s2n_connection *conn);
 ```
-**s2n_connection_is_client_authenticated** returns 1 if the handshake completed and Client Auth was 
+**s2n_connection_client_cert_used** returns 1 if the handshake completed and Client Auth was 
 negotiated during the handshake.
 
 ### s2n\_get\_application\_protocol
