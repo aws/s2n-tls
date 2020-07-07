@@ -109,7 +109,12 @@ class S2N(Provider):
         """
         Using the passed ProviderOptions, create a command line.
         """
-        cmd_line = ['s2nc', '-e']
+        cmd_line = ['s2nc', '--non-blocking']
+
+        # Tests requiring reconnects can't wait on echo data,
+        # but all other tests can.
+        if self.options.reconnect is not True:
+            cmd_line.append('-e')
 
         # This is the last thing printed by s2nc before it is ready to send/receive data
         self.ready_to_send_input_marker = 'Cipher negotiated:'
@@ -160,7 +165,7 @@ class S2N(Provider):
         """
         Using the passed ProviderOptions, create a command line.
         """
-        cmd_line = ['s2nd', '-X', '--self-service-blinding']
+        cmd_line = ['s2nd', '-X', '--self-service-blinding', '--non-blocking']
 
         if self.options.key is not None:
             cmd_line.extend(['--key', self.options.key])
@@ -183,6 +188,9 @@ class S2N(Provider):
         if self.options.use_client_auth is True:
             cmd_line.append('-m')
             cmd_line.extend(['-t', self.options.client_certificate_file])
+
+        if self.options.use_session_ticket is False:
+            cmd_line.append('-T')
 
         if self.options.reconnects_before_exit is not None:
             cmd_line.append('--max-conns={}'.format(self.options.reconnects_before_exit))
