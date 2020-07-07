@@ -36,7 +36,8 @@
 
 int s2n_encrypted_extensions_send(struct s2n_connection *conn)
 {
-    S2N_ERROR_IF(conn->actual_protocol_version != S2N_TLS13, S2N_ERR_BAD_MESSAGE);
+    notnull_check(conn);
+    ENSURE_POSIX(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_BAD_MESSAGE);
 
     struct s2n_stuffer *out = &conn->handshake.io;
     GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS, conn, out));
@@ -45,6 +46,9 @@ int s2n_encrypted_extensions_send(struct s2n_connection *conn)
 
 int s2n_encrypted_extensions_recv(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+    ENSURE_POSIX(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_BAD_MESSAGE);
+
     struct s2n_stuffer *in = &conn->handshake.io;
     GUARD(s2n_extension_list_recv(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS, conn, in));
     return S2N_SUCCESS;

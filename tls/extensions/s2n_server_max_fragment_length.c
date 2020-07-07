@@ -59,23 +59,3 @@ static int s2n_max_fragment_length_recv(struct s2n_connection *conn, struct s2n_
     S2N_ERROR_IF(mfl_code != conn->config->mfl_code, S2N_ERR_MAX_FRAG_LEN_MISMATCH);
     return S2N_SUCCESS;
 }
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_server_extensions_max_fragment_length_send_size(struct s2n_connection *conn)
-{
-    if (!conn->mfl_code) {
-        return 0;
-    }
-    return 2 * sizeof(uint16_t) + 1 * sizeof(uint8_t);
-}
-
-int s2n_server_extensions_max_fragment_length_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_server_max_fragment_length_extension, conn, out);
-}
-
-int s2n_recv_server_max_fragment_length(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_server_max_fragment_length_extension, conn, extension);
-}
