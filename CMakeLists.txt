@@ -57,6 +57,7 @@ else()
         "pq-crypto/bike_r2/*.h"
         "pq-crypto/sike_r1/*.h"
         "pq-crypto/sike_r2/*.h"
+        "pq-crypto/kyber_r2/*.h"
     )
 
     # The SIKE code #includes .c files directly, including all sike_r*/*.c breaks the build due to duplicates
@@ -70,6 +71,7 @@ else()
             "pq-crypto/sike_r1/fips202_r1.c"
             "pq-crypto/sike_r2/fips202.c"
             "pq-crypto/sike_r2/P434.c"
+            "pq-crypto/kyber_r2/*.c"
     )
 endif()
 

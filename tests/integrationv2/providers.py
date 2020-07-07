@@ -109,7 +109,7 @@ class S2N(Provider):
         """
         Using the passed ProviderOptions, create a command line.
         """
-        cmd_line = ['s2nc']
+        cmd_line = ['s2nc', '--non-blocking']
 
         # Tests requiring reconnects can't wait on echo data,
         # but all other tests can.
@@ -165,7 +165,7 @@ class S2N(Provider):
         """
         Using the passed ProviderOptions, create a command line.
         """
-        cmd_line = ['s2nd', '-X', '--self-service-blinding']
+        cmd_line = ['s2nd', '-X', '--self-service-blinding', '--non-blocking']
 
         if self.options.key is not None:
             cmd_line.extend(['--key', self.options.key])

@@ -24,6 +24,7 @@ all: $(OBJS)
 	$(MAKE) -C bike_r2
 	$(MAKE) -C sike_r1
 	$(MAKE) -C sike_r2
+	$(MAKE) -C kyber_r2
 
 .PHONY : sike_r1_bc
 sike_r1_bc: $(BCS1)
@@ -57,5 +58,6 @@ clean: decruft
 	$(MAKE) -C bike_r2 decruft
 	$(MAKE) -C sike_r1 decruft
 	$(MAKE) -C sike_r2 decruft
+	$(MAKE) -C kyber_r2 decruft
 
 include ../s2n.mk

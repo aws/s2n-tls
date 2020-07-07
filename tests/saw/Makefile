@@ -245,6 +245,12 @@ BIKE_R1_COPY = $(addprefix s2n/pq-crypto/bike_r1/, $(notdir $(BIKE_R1_C)))
 BIKE_R2_C = $(wildcard ../../pq-crypto/bike_r2/*.c) $(wildcard ../../pq-crypto/bike_r2/*.h) ../../pq-crypto/bike_r2/Makefile
 BIKE_R2_COPY = $(addprefix s2n/pq-crypto/bike_r2/, $(notdir $(BIKE_R2_C)))
 
+#The scripts below for correcting the failed SAW buildings. 
+#It is not to run any SAW tests on Kyber code
+#It is just to make building without failure during the BIKE/SIKE SAW tests
+KYBER_R2_C = $(wildcard ../../pq-crypto/kyber_r2/*.c) $(wildcard ../../pq-crypto/kyber_r2/*.h) ../../pq-crypto/kyber_r2/Makefile
+KYBER_R2_COPY = $(addprefix s2n/pq-crypto/kyber_r2/, $(notdir $(KYBER_R2_C)))
+
 UTILS_C = $(wildcard ../../utils/*.c) $(wildcard ../../utils/*.h) ../../utils/Makefile
 UTILS_COPY =$(addprefix s2n/utils/, $(notdir $(UTILS_C)))
 
@@ -284,6 +290,12 @@ s2n/pq-crypto/bike_r1 :
 	mkdir -p $@
 
 s2n/pq-crypto/bike_r2 :
+	mkdir -p $@
+
+#The scripts below for correcting the failed SAW buildings too. 
+#It is not to run any SAW tests on Kyber code
+#It is just to make building without failure during the BIKE/SIKE SAW tests
+s2n/pq-crypto/kyber_r2 :
 	mkdir -p $@
 
 s2n/utils :
@@ -341,7 +353,7 @@ bitcode/bike_r2_llvm.bc : s2n/crypto s2n/pq-crypto s2n/pq-crypto/bike_r2 s2n/uti
 	${MAKE} -C bitcode bike_r2_llvm.bc
 	${RM} -r s2n
 
-s2n/lib/libs2n.so : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/pq-crypto/sike_r2 s2n/pq-crypto/bike_r1 s2n/pq-crypto/bike_r2 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/lib s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(SIKE_R2_COPY) $(BIKE_R1_COPY) $(BIKE_R2_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY) $(LIB_COPY)
+s2n/lib/libs2n.so : s2n/crypto s2n/pq-crypto s2n/pq-crypto/sike_r1 s2n/pq-crypto/sike_r2 s2n/pq-crypto/bike_r1 s2n/pq-crypto/bike_r2 s2n/pq-crypto/kyber_r2 s2n/utils s2n/tls s2n/api s2n/error s2n/stuffer s2n/lib s2n/Makefile s2n/s2n.mk $(CRYPTO_COPY) $(PQ_CRYPTO_COPY) $(SIKE_R1_COPY) $(SIKE_R2_COPY) $(BIKE_R1_COPY) $(BIKE_R2_COPY) $(KYBER_R2_COPY) $(UTILS_COPY) $(TLS_COPY) $(API_COPY) $(ERROR_COPY) $(STUFFER_COPY) $(LIB_COPY)
 	${MAKE} -C s2n libs NO_STACK_PROTECTOR=1 NO_INLINE=1
 
 s2n/%.h : ../../%.h

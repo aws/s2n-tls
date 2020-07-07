@@ -57,7 +57,7 @@ fi
 FIPS_TEST_MSG=""
 if [ -n "${S2N_TEST_IN_FIPS_MODE}" ];
 then
-    if [[ $TEST_NAME == *bike* ]] || [[ $TEST_NAME == *sike* ]]; then
+    if [[ $TEST_NAME == *bike* ]] || [[ $TEST_NAME == *sike* ]] || [[ $TEST_NAME == *kyber* ]]; then
         printf "Skipping %s because PQ crypto is not supported in FIPS mode...\n" ${TEST_NAME}
         exit 0
     else
