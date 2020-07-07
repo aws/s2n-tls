@@ -4,7 +4,7 @@ index 3af0262..261285a 100644
 +++ b/tests/sidetrail/working/s2n-cbc/utils/s2n_safety.c
 @@ -55,8 +55,8 @@ pid_t s2n_actual_getpid()
   */
- int s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len)
+ bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len)
  {
 -    S2N_PUBLIC_INPUT(a);
 -    S2N_PUBLIC_INPUT(b);
