@@ -3,14 +3,15 @@ import os
 import pytest
 import time
 
-from configuration import available_ports, TLS13_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROVIDERS, PROTOCOLS
-from common import Certificates, ProviderOptions, Protocols, data_bytes, Ciphers, Curves
+from configuration import available_ports, TLS13_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS
+from common import ProviderOptions, Protocols, data_bytes, Curves
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name
 
 def verify_hello_retry_request(server):  
     marker_found = False
+    bytes_found = False 
     client_hello_count = 0
     server_hello_count = 0 
     finished_count = 0
@@ -28,7 +29,9 @@ def verify_hello_retry_request(server):
             server_hello_count += 1
         if b'finished' in results.stdout:
             finished_count += 1
-        if marker_found and client_hello_count == 2 and server_hello_count == 2 and finished_count == 2:
+        if server.data_to_send in results.stdout:
+            bytes_found = True
+        if marker_found and client_hello_count == 2 and server_hello_count == 2 and finished_count == 2 and bytes_to_send:
             return True
 
     return False
@@ -42,13 +45,13 @@ def verify_hello_retry_request(server):
 def test_hrr_with_empty_keyshare(managed_process, cipher, provider, curve, protocol, certificate):
     port = next(available_ports)
 
-    bytes_to_send = data_bytes(24)
+    random_bytes = data_bytes(24)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
         host="localhost",
         port=port,
         cipher=cipher,
-        data_to_send=bytes_to_send,
+        data_to_send=random_bytes,
         insecure=True,
         curve=curve,
         extra_flags=["-K", "none"],
