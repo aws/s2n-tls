@@ -1,0 +1,28 @@
+on:
+  push:
+    tags:
+      - v0.*  #Caveat: if you tag a personal branch with this format, it _will_ be marked for release.
+
+name: Create Release
+
+jobs:
+  build:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Get current date; set as env variable
+        run: echo "::set-env name=NOW::$(date +'%Y-%m-%d')"
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Weekly release for ${{env.NOW}}
+          draft: false
+          prerelease: false
