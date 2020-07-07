@@ -17,10 +17,12 @@
 #include <stdint.h>
 
 #include "tls/extensions/s2n_client_signature_algorithms.h"
+#include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_signature_algorithms.h"
 
+#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
 static int s2n_signature_algorithms_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -37,22 +39,4 @@ const s2n_extension_type s2n_server_signature_algorithms_extension = {
 static int s2n_signature_algorithms_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     return s2n_recv_supported_sig_scheme_list(extension, &conn->handshake_params.server_sig_hash_algs);
-}
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_extensions_server_signature_algorithms_size(struct s2n_connection *conn)
-{
-    /* extra 6 = 2 from extension type, 2 from extension size, 2 from list length */
-    return s2n_supported_sig_scheme_list_size(conn) + 6;
-}
-
-int s2n_extensions_server_signature_algorithms_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_server_signature_algorithms_extension, conn, out);
-}
-
-int s2n_extensions_server_signature_algorithms_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_server_signature_algorithms_extension, conn, extension);
 }
