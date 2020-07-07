@@ -23,18 +23,11 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 
-s2n_parsed_extension empty_parsed_extensions[S2N_PARSED_EXTENSIONS_COUNT] = { 0 };
-
 #define SET_PARSED_EXTENSION(list, entry) do {                                              \
     s2n_extension_type_id id;                                                               \
     EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(entry.extension_type, &id));    \
     list.parsed_extensions[id] = entry;                                                     \
 } while(0)
-
-#define EXPECT_PARSED_EXTENSION_LIST_EMPTY(list) \
-    EXPECT_BYTEARRAY_EQUAL(list.parsed_extensions, empty_parsed_extensions, sizeof(empty_parsed_extensions))
-#define EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(list) \
-    EXPECT_BYTEARRAY_NOT_EQUAL(list.parsed_extensions, empty_parsed_extensions, sizeof(empty_parsed_extensions))
 
 static int s2n_setup_test_parsed_extension(const s2n_extension_type *extension_type,
         s2n_parsed_extension *parsed_extension, struct s2n_connection *conn, struct s2n_stuffer *stuffer)

@@ -32,11 +32,6 @@
 s2n_cert_public_key public_key;
 s2n_pkey_type actual_cert_pkey_type;
 
-static const s2n_parsed_extension empty_extensions[S2N_PARSED_EXTENSIONS_COUNT] = { 0 };
-
-#define EXPECT_EXTENSIONS_EMPTY(extensions) EXPECT_BYTEARRAY_EQUAL(extensions.parsed_extensions, empty_extensions, sizeof(empty_extensions))
-#define EXPECT_EXTENSIONS_NOT_EMPTY(extensions) EXPECT_BYTEARRAY_NOT_EQUAL(extensions.parsed_extensions, empty_extensions, sizeof(empty_extensions))
-
 static int s2n_skip_cert_chain_size(struct s2n_stuffer *stuffer)
 {
     uint32_t cert_chain_size;
@@ -138,7 +133,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_skip_cert(&stuffer));
 
                 EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &extensions));
-                EXPECT_EXTENSIONS_NOT_EMPTY(extensions);
+                EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(extensions);
             }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -165,13 +160,13 @@ int main(int argc, char **argv)
             /* First cert includes extensions */
             EXPECT_SUCCESS(s2n_skip_cert(&stuffer));
             EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &extensions));
-            EXPECT_EXTENSIONS_NOT_EMPTY(extensions);
+            EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(extensions);
 
             /* Other certs do not include extensions */
             do {
                 EXPECT_SUCCESS(s2n_skip_cert(&stuffer));
                 EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &extensions));
-                EXPECT_EXTENSIONS_EMPTY(extensions);
+                EXPECT_PARSED_EXTENSION_LIST_EMPTY(extensions);
             } while(s2n_stuffer_data_available(&stuffer));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
