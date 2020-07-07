@@ -25,7 +25,8 @@ coverage:
         threshold: 0.5
         base: auto
       fuzz:
-        flags: fuzz
+        flags:
+          - fuzz
         target: auto
         threshold: 0.5
         base: auto
