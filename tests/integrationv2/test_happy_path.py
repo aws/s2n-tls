@@ -22,7 +22,7 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
     # expected easily.
     # We purposefully send a non block aligned number to make sure
     # nothing blocks waiting for more data.
-    random_bytes = data_bytes(65519)
+    random_bytes = data_bytes(65) #519)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
         host="localhost",
@@ -48,8 +48,14 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
     # just want to make sure there was no exception and that
     # the client exited cleanly.
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        try:
+            assert results.exception is None
+            assert results.exit_code == 0
+        except Exception as e:
+            for results in server.get_results():
+                print(results.stdout)
+                print(results.stderr)
+                raise e
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
@@ -59,7 +65,7 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
         assert results.exception is None
         assert results.exit_code == 0
         assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) in results.stdout
-        assert random_bytes in results.stdout
+        assert random_bytes[1:] in results.stdout
 
         if provider is not S2N:
             assert bytes("Cipher negotiated: {}".format(cipher.name).encode('utf-8')) in results.stdout
@@ -116,4 +122,4 @@ def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protoco
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
-        assert random_bytes in results.stdout
+        assert random_bytes[1:] in results.stdout

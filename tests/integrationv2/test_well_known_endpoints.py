@@ -2,14 +2,11 @@ import copy
 import os
 import pytest
 
-<<<<<<< HEAD
 from constants import TRUST_STORE_BUNDLE
 from configuration import available_ports, PROTOCOLS
-=======
-from configuration import available_ports, get_flag, S2N_NO_PQ, S2N_FIPS_MODE, PROTOCOLS
->>>>>>> Refactors to allow different environment settings to configure tests
 from common import ProviderOptions, Protocols, Ciphers
 from fixtures import managed_process
+from global_flags import get_flag, S2N_NO_PQ, S2N_FIPS_MODE
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name
 
