@@ -452,7 +452,7 @@ static int s2n_evp_hash_free(struct s2n_hash_state *state)
 }
 
 static const struct s2n_hash s2n_low_level_hash = {
-    .new = &s2n_low_level_hash_new,
+    .alloc = &s2n_low_level_hash_new,
     .allow_md5_for_fips = NULL,
     .init = &s2n_low_level_hash_init,
     .update = &s2n_low_level_hash_update,
@@ -463,7 +463,7 @@ static const struct s2n_hash s2n_low_level_hash = {
 };
 
 static const struct s2n_hash s2n_evp_hash = {
-    .new = &s2n_evp_hash_new,
+    .alloc = &s2n_evp_hash_new,
     .allow_md5_for_fips = &s2n_evp_hash_allow_md5_for_fips,
     .init = &s2n_evp_hash_init,
     .update = &s2n_evp_hash_update,
@@ -487,9 +487,9 @@ int s2n_hash_new(struct s2n_hash_state *state)
      */
     GUARD(s2n_hash_set_impl(state));
 
-    notnull_check(state->hash_impl->new);
+    notnull_check(state->hash_impl->alloc);
 
-    return state->hash_impl->new(state);
+    return state->hash_impl->alloc(state);
 }
 
 int s2n_hash_allow_md5_for_fips(struct s2n_hash_state *state)

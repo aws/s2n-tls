@@ -22,6 +22,7 @@ endif
 CRYPTO_LIBS = -lcrypto
 
 CC	:= $(CROSS_COMPILE)$(CC)
+CXX	:= $(CROSS_COMPILE)$(CXX)
 AR	= $(CROSS_COMPILE)ar
 RANLIB	= $(CROSS_COMPILE)ranlib
 CLANG    ?= clang-3.9
@@ -120,6 +121,12 @@ endif
 ifdef S2N_DEBUG
 	CFLAGS += ${DEBUG_CFLAGS}
 endif
+
+# Prepare CPPFLAGS by stripping out the unsupported options
+CPPFLAGS = ${CFLAGS}
+CPPFLAGS:=$(filter-out -Wimplicit,${CPPFLAGS})
+CPPFLAGS:=$(filter-out -std=c99,${CPPFLAGS})
+CPPFLAGS:=$(filter-out -fgnu89-inline,${CPPFLAGS})
 
 # Prints more information when running tests
 ifdef S2N_TEST_DEBUG

@@ -88,3 +88,17 @@ if [[ "$SAW" == "true" || "$TESTS" == "ALL" ]]; then
     mkdir -p "$Z3_INSTALL_DIR"||true
     codebuild/bin/install_z3_yices.sh "$(mktemp -d)" "$Z3_INSTALL_DIR" > /dev/null ;
 fi
+
+if [[ "$TESTS" == "benchmark" || "$TESTS" == "ALL" ]]; then
+    # Install tox if running on Ubuntu(only supported Linux at this time)
+    if [[ "$OS_NAME" == "linux" && ! -x `which cmake` ]]; then
+        apt-get -y install cmake
+    fi
+
+    if [[ ! -x "$GB_INSTALL_DIR/lib/libbenchmark.a" ]]; then
+        mkdir -p "$GB_INSTALL_DIR"||true
+        codebuild/bin/install_googlebenchmark.sh "$(mktemp -d)" "$GB_INSTALL_DIR" "$OS_NAME" > /dev/null ;
+    fi
+fi
+
+

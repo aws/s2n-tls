@@ -77,7 +77,7 @@ struct s2n_hash_state {
  * either OpenSSL's low-level algorithm-specific API's or OpenSSL's EVP API's.
  */
 struct s2n_hash {
-    int (*new) (struct s2n_hash_state *state);
+    int (*alloc) (struct s2n_hash_state *state);
     int (*allow_md5_for_fips) (struct s2n_hash_state *state);
     int (*init) (struct s2n_hash_state *state, s2n_hash_algorithm alg);
     int (*update) (struct s2n_hash_state *state, const void *data, uint32_t size);
