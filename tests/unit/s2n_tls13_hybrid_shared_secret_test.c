@@ -95,6 +95,17 @@ struct hybrid_test_vector {
 #define X25519_SIKEP434R2_HYBRID_SECRET      (X25519_SHARED_SECRET      SIKEP434R2_SECRET)
 #define SECP256R1_SIKEP434R2_HYBRID_SECRET   (SECP256R1_SHARED_SECRET   SIKEP434R2_SECRET)
 
+/* The expected traffic secrets were calculated from an independent implementation,
+ * using the ECDHE & PQ secrets defined above. */
+#define AES_128_SECP256R1_SIKEP434R2_CLIENT_TRAFFIC_SECRET "2fa1a075eaf636138170e3b2a84f6baa4ac08f846ffe2d005ae5e66b03352c11"
+#define AES_128_SECP256R1_SIKEP434R2_SERVER_TRAFFIC_SECRET "423dfaf8fd66b17aaf8c919a9318f3a6bd69875aacdf022aa58a953a7b6de806"
+#define AES_256_SECP256R1_SIKEP434R2_CLIENT_TRAFFIC_SECRET "f7d349f364f49ff3ae9c4e9e7aa60c41d6c650d09c03d8c076bc714ab76177045e23e7426dceb872d2fe7c0d07abdefd"
+#define AES_256_SECP256R1_SIKEP434R2_SERVER_TRAFFIC_SECRET "184755801232f7b9b5c42cbdc66c793071f4322079e34307fd60261c0f7a27612b3808918218c4000c12f829d6c19ebf"
+#define AES_128_X25519_SIKEP434_CLIENT_TRAFFIC_SECRET "9b9c53221edb5cc1f95ab2ecfc5eb8ec27d6b9fc2159c956333cd90099911dc7"
+#define AES_128_X25519_SIKEP434_SERVER_TRAFFIC_SECRET "29a8786ffc6a48692b95d70ab7e04bcf112afd0a019dff6c15c1d095cfa5ebcc"
+#define AES_256_X25519_SIKEP434_CLIENT_TRAFFIC_SECRET "c7ee90f95fdfd53d97da07e338c7b6aa9e5111864d66d9631048941f45c9fd1a7b119871594140000923a79333040775"
+#define AES_256_X25519_SIKEP434_SERVER_TRAFFIC_SECRET "aff2987e4ed3c2bc55cbd9e3e52db0cc330034dfa709e0a4127c4d74278198720b74a444afa8f0f7dca115797470cef2"
+
 /* A fake transcript string to hash when deriving handshake secrets */
 #define FAKE_TRANSCRIPT "client_hello || server_hello"
 
@@ -113,12 +124,9 @@ int main(int argc, char **argv) {
     S2N_BLOB_FROM_HEX(secp256r1_secret, SECP256R1_SHARED_SECRET);
     S2N_BLOB_FROM_HEX(secp256r1_sikep434r2_hybrid_secret,SECP256R1_SIKEP434R2_HYBRID_SECRET);
 
-    /* The expected client & server traffic secrets were calculated from an
-     * independent implementation, using the parameters defined above. */
-    S2N_BLOB_FROM_HEX(aes_128_secp256r1_sikep434r2_client_secret,
-            "2fa1a075eaf636138170e3b2a84f6baa4ac08f846ffe2d005ae5e66b03352c11");
-    S2N_BLOB_FROM_HEX(aes_128_secp256r1_sikep434r2_server_secret,
-            "423dfaf8fd66b17aaf8c919a9318f3a6bd69875aacdf022aa58a953a7b6de806");
+    S2N_BLOB_FROM_HEX(aes_128_secp256r1_sikep434r2_client_secret, AES_128_SECP256R1_SIKEP434R2_CLIENT_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_128_secp256r1_sikep434r2_server_secret, AES_128_SECP256R1_SIKEP434R2_SERVER_TRAFFIC_SECRET);
+
     const struct hybrid_test_vector aes_128_sha_256_secp256r1_sikep434r2_vector = {
             .cipher_suite = &s2n_tls13_aes_128_gcm_sha256,
             .transcript = FAKE_TRANSCRIPT,
@@ -131,12 +139,9 @@ int main(int argc, char **argv) {
             .expected_server_traffic_secret = &aes_128_secp256r1_sikep434r2_server_secret,
     };
 
-    /* The expected client & server traffic secrets were calculated from an
-     * independent implementation, using the parameters defined above. */
-    S2N_BLOB_FROM_HEX(aes_256_secp256r1_sikep434r2_client_secret,
-            "f7d349f364f49ff3ae9c4e9e7aa60c41d6c650d09c03d8c076bc714ab76177045e23e7426dceb872d2fe7c0d07abdefd");
-    S2N_BLOB_FROM_HEX(aes_256_secp256r1_sikep434r2_server_secret,
-            "184755801232f7b9b5c42cbdc66c793071f4322079e34307fd60261c0f7a27612b3808918218c4000c12f829d6c19ebf");
+    S2N_BLOB_FROM_HEX(aes_256_secp256r1_sikep434r2_client_secret, AES_256_SECP256R1_SIKEP434R2_CLIENT_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_256_secp256r1_sikep434r2_server_secret, AES_256_SECP256R1_SIKEP434R2_SERVER_TRAFFIC_SECRET);
+
     const struct hybrid_test_vector aes_256_sha_384_secp256r1_sikep434r2_vector = {
             .cipher_suite = &s2n_tls13_aes_256_gcm_sha384,
             .transcript = FAKE_TRANSCRIPT,
@@ -154,12 +159,9 @@ int main(int argc, char **argv) {
     S2N_BLOB_FROM_HEX(x25519_secret, X25519_SHARED_SECRET);
     S2N_BLOB_FROM_HEX(x25519_sikep434r2_hybrid_secret, X25519_SIKEP434R2_HYBRID_SECRET);
 
-    /* The expected client & server traffic secrets were calculated from an
-     * independent implementation, using the parameters defined above. */
-    S2N_BLOB_FROM_HEX(aes_128_x25519_sikep434r2_client_secret,
-            "9b9c53221edb5cc1f95ab2ecfc5eb8ec27d6b9fc2159c956333cd90099911dc7");
-    S2N_BLOB_FROM_HEX(aes_128_x25519_sikep434r2_server_secret,
-            "29a8786ffc6a48692b95d70ab7e04bcf112afd0a019dff6c15c1d095cfa5ebcc");
+    S2N_BLOB_FROM_HEX(aes_128_x25519_sikep434r2_client_secret, AES_128_X25519_SIKEP434_CLIENT_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_128_x25519_sikep434r2_server_secret, AES_128_X25519_SIKEP434_SERVER_TRAFFIC_SECRET);
+
     const struct hybrid_test_vector aes_128_sha_256_x25519_sikep434r2_vector = {
             .cipher_suite = &s2n_tls13_aes_128_gcm_sha256,
             .transcript = FAKE_TRANSCRIPT,
@@ -172,12 +174,9 @@ int main(int argc, char **argv) {
             .expected_server_traffic_secret = &aes_128_x25519_sikep434r2_server_secret,
     };
 
-    /* The expected client & server traffic secrets were calculated from an
-     * independent implementation, using the parameters defined above. */
-    S2N_BLOB_FROM_HEX(aes_256_x25519_sikep434r2_client_secret,
-            "c7ee90f95fdfd53d97da07e338c7b6aa9e5111864d66d9631048941f45c9fd1a7b119871594140000923a79333040775");
-    S2N_BLOB_FROM_HEX(aes_256_x25519_sikep434r2_server_secret,
-            "aff2987e4ed3c2bc55cbd9e3e52db0cc330034dfa709e0a4127c4d74278198720b74a444afa8f0f7dca115797470cef2");
+    S2N_BLOB_FROM_HEX(aes_256_x25519_sikep434r2_client_secret, AES_256_X25519_SIKEP434_CLIENT_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_256_x25519_sikep434r2_server_secret, AES_256_X25519_SIKEP434_SERVER_TRAFFIC_SECRET);
+
     const struct hybrid_test_vector aes_256_sha_284_x25519_sikep434r2_vector = {
             .cipher_suite = &s2n_tls13_aes_256_gcm_sha384,
             .transcript = FAKE_TRANSCRIPT,
