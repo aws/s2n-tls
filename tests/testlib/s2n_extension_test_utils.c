@@ -13,13 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
-
-#include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_connection.h"
-#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 
-extern const s2n_extension_type s2n_tls13_server_status_request_extension;
+const s2n_parsed_extension EMPTY_PARSED_EXTENSIONS[S2N_PARSED_EXTENSIONS_COUNT] = { 0 };
 
-int s2n_server_certificate_status_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-int s2n_server_certificate_status_recv(struct s2n_connection *conn, struct s2n_stuffer *in);
+int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn)
+{
+    memset_check(&conn->extension_requests_received, 0xFF, S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN);
+    memset_check(&conn->extension_requests_sent, 0xFF, S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN);
+    return S2N_SUCCESS;
+}

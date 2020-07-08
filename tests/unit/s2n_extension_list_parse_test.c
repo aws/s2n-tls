@@ -14,6 +14,7 @@
  */
 
 #include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_extension_type.h"
@@ -47,12 +48,6 @@ const s2n_extension_type test_extension = {
         .if_missing = s2n_extension_noop_if_missing,
 };
 
-const s2n_parsed_extension empty_parsed_extensions[S2N_PARSED_EXTENSIONS_COUNT] = { 0 };
-#define EXPECT_PARSED_EXTENSION_LIST_EMPTY(list) \
-    EXPECT_BYTEARRAY_EQUAL(list.parsed_extensions, empty_parsed_extensions, sizeof(empty_parsed_extensions))
-#define EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(list) \
-    EXPECT_BYTEARRAY_NOT_EQUAL(list.parsed_extensions, empty_parsed_extensions, sizeof(empty_parsed_extensions))
-
 #define EXPECT_PARSED_EXTENSION_EQUAL(list, type, d, n) do {                    \
     s2n_extension_type_id id;                                                   \
     EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(type, &id));        \
@@ -68,7 +63,7 @@ const s2n_parsed_extension empty_parsed_extensions[S2N_PARSED_EXTENSIONS_COUNT] 
 #define CLEAR_PARSED_EXTENSION(list, type) do {                                 \
     s2n_extension_type_id id;                                                   \
     EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(type, &id));        \
-    list.parsed_extensions[id] = empty_parsed_extensions[0];                    \
+    list.parsed_extensions[id] = EMPTY_PARSED_EXTENSIONS[0];                    \
 } while(0)
 
 
