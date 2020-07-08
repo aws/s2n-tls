@@ -100,7 +100,6 @@ PROVIDERS = [S2N, OpenSSL]
 available_ports = AvailablePorts()
 
 
-
 # Server certificates used to test matching domain names client with server_name
 # ( cert_path, private_key_path, domains[] )
 SNI_CERTS = {

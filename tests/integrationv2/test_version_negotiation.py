@@ -87,6 +87,10 @@ def test_s2nd_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, p
     server_options.cert = certificate.cert
     server_options.protocol = Protocols.TLS13
 
+    # Allow the server to use all ciphers, don't limit to TLS13 even though we are
+    # forcing the protocol to be TLS13
+    server_options.extra_flags = ['-c', 'test_all']
+
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(provider, client_options, timeout=5)
 
