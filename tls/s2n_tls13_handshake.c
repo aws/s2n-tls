@@ -135,11 +135,15 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     return S2N_SUCCESS;
 }
 
+static int s2n_tls13_pq_hybrid_supported(struct s2n_connection *conn) {
+    return conn->secure.server_kem_group_params.kem_group != NULL;
+}
+
 int s2n_tls13_compute_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret)
 {
     notnull_check(conn);
 
-    if (conn->secure.server_kem_group_params.kem_group != NULL) {
+    if (s2n_tls13_pq_hybrid_supported(conn)) {
         GUARD(s2n_tls13_compute_pq_hybrid_shared_secret(conn, shared_secret));
     } else {
         GUARD(s2n_tls13_compute_ecc_shared_secret(conn, shared_secret));
