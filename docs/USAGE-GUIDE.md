@@ -546,29 +546,29 @@ underlying encrpyt/decrypt functions are not available in older versions.
 
 The following chart maps the security policy version to the signature scheme supported:
 
-|    version     |   RSA PKCS1  | ECDSA - TLS 1.2 |  SHA-1 Legacy |  RSA PSS | 
-|----------------|--------------|-----------------|---------------|----------|
-|   "default"    |      X       |         X       |      X        |          |
-|   "20190214"   |      X       |         X       |      X        |          |
-|   "20170718"   |      X       |         X       |      X        |          |
-|   "20170405"   |      X       |         X       |      X        |          |
-|   "20170328"   |      X       |         X       |      X        |          |
-|   "20170210"   |      X       |         X       |      X        |          |
-|   "20160824"   |      X       |         X       |      X        |          |
-|   "20160804"   |      X       |         X       |      X        |          |
-|   "20160411"   |      X       |         X       |      X        |          |
-|   "20150306"   |      X       |         X       |      X        |          |
-|   "20150214"   |      X       |         X       |      X        |          |
-|   "20150202"   |      X       |         X       |      X        |          |
-|   "20141001"   |      X       |         X       |      X        |          |
-|   "20140601"   |      X       |         X       |      X        |          |
-|   "20190120"   |      X       |         X       |      X        |          |
-|   "20190121"   |      X       |         X       |      X        |          |
-|   "20190122"   |      X       |         X       |      X        |          |
-| "default_tls13"|      X       |         X       |      X        |    X     |
-|   "20190801"   |      X       |         X       |      X        |    X     |
-|   "20190802"   |      X       |         X       |      X        |    X     |
-|   "20200207"   |      X       |         X       |      X        |    X     |
+|    version     |   RSA PKCS1  |   ECDSA  |  SHA-1 Legacy |  RSA PSS | 
+|----------------|--------------|----------|---------------|----------|
+|   "default"    |      X       |     X    |      X        |          |
+|   "20190214"   |      X       |     X    |      X        |          |
+|   "20170718"   |      X       |     X    |      X        |          |
+|   "20170405"   |      X       |     X    |      X        |          |
+|   "20170328"   |      X       |     X    |      X        |          |
+|   "20170210"   |      X       |     X    |      X        |          |
+|   "20160824"   |      X       |     X    |      X        |          |
+|   "20160804"   |      X       |     X    |      X        |          |
+|   "20160411"   |      X       |     X    |      X        |          |
+|   "20150306"   |      X       |     X    |      X        |          |
+|   "20150214"   |      X       |     X    |      X        |          |
+|   "20150202"   |      X       |     X    |      X        |          |
+|   "20141001"   |      X       |     X    |      X        |          |
+|   "20140601"   |      X       |     X    |      X        |          |
+|   "20190120"   |      X       |     X    |      X        |          |
+|   "20190121"   |      X       |     X    |      X        |          |
+|   "20190122"   |      X       |     X    |      X        |          |
+| "default_tls13"|      X       |     X    |      X        |    X     |
+|   "20190801"   |      X       |     X    |      X        |    X     |
+|   "20190802"   |      X       |     X    |      X        |    X     |
+|   "20200207"   |      X       |     X    |      X        |    X     |
 
 The following chart maps the security policy version to the supported curves/groups: 
 
@@ -593,7 +593,7 @@ The following chart maps the security policy version to the supported curves/gro
 |   "20190122"   |      X       |      X     |        | 
 | "default_tls13"|      X       |      X     |   X    | 
 |   "20190801"   |      X       |      X     |   X    | 
-|   "20190802"   |      X       |      X     |   X    | 
+|   "20190802"   |      X       |      X     |        | 
 |   "20200207"   |      X       |      X     |   X    | 
 
 ### s2n\_config\_add\_cert\_chain\_and\_key
