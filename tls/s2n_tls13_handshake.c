@@ -84,6 +84,8 @@ int s2n_tls13_compute_ecc_shared_secret(struct s2n_connection *conn, struct s2n_
     return 0;
 }
 
+/* Computes the ECDHE+PQKEM hybrid shared secret as defined in
+ * https://tools.ietf.org/html/draft-stebila-tls-hybrid-design */
 int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struct s2n_blob *shared_secret) {
     notnull_check(conn);
     notnull_check(shared_secret);
