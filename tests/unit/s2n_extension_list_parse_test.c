@@ -14,6 +14,7 @@
  */
 
 #include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_extension_type.h"
@@ -62,7 +63,7 @@ const s2n_extension_type test_extension = {
 #define CLEAR_PARSED_EXTENSION(list, type) do {                                 \
     s2n_extension_type_id id;                                                   \
     EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(type, &id));        \
-    list.parsed_extensions[id] = empty_parsed_extensions[0];                    \
+    list.parsed_extensions[id] = EMPTY_PARSED_EXTENSIONS[0];                    \
 } while(0)
 
 

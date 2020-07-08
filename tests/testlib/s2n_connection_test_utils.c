@@ -230,10 +230,3 @@ int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_
 
     return S2N_SUCCESS;
 }
-
-int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn)
-{
-    memset_check(&conn->extension_requests_received, 0xFF, S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN);
-    memset_check(&conn->extension_requests_sent, 0xFF, S2N_SUPPORTED_EXTENSIONS_BITFIELD_LEN);
-    return S2N_SUCCESS;
-}
