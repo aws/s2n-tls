@@ -1,3 +1,5 @@
+import os
+import re
 import subprocess
 import string
 import threading
@@ -33,7 +35,18 @@ class AvailablePorts(object):
     """
 
     def __init__(self, low=8000, high=30000):
-        self.ports = iter(range(low, high))
+        # If xdist is being used, parse the workerid from the envvar. This can
+        # be used to allocate unique ports to each worker.
+        worker = os.getenv('PYTEST_XDIST_WORKER')
+        worker_id = 0
+        if worker is not None:
+            worker_id = re.findall('gw(\d+)', worker)
+            if len(worker_id) != 0:
+                worker_id = int(worker_id[0])
+
+        # This is a naive way to allocate ports, but it allows us to cut
+        # the run time in half without workers colliding.
+        self.ports = iter(range(low + (worker_id * 100), high))
         self.lock = threading.Lock()
 
     def __iter__(self):
