@@ -202,8 +202,8 @@ int main(int argc, char **argv) {
 #else
     EXPECT_EQUAL(1, S2N_SUPPORTED_KEM_GROUPS_COUNT);
     const struct hybrid_test_vector *all_test_vectors[] = {
-            &aes_128_sha_256_secp256r1_sikep434r2,
-            &aes_256_sha_384_secp256r1_sikep434r2,
+            &aes_128_sha_256_secp256r1_sikep434r2_vector,
+            &aes_256_sha_384_secp256r1_sikep434r2_vector,
     };
 #endif
 
