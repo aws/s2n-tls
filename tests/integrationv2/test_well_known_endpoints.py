@@ -2,6 +2,7 @@ import copy
 import os
 import pytest
 
+from constants import TRUST_STORE_BUNDLE
 from configuration import available_ports, PROTOCOLS
 from common import ProviderOptions, Protocols, Ciphers
 from fixtures import managed_process
@@ -55,6 +56,7 @@ def test_well_known_endpoints(managed_process, protocol, endpoint):
         host=endpoint['endpoint'],
         port=port,
         insecure=False,
+        client_trust_store=TRUST_STORE_BUNDLE,
         protocol=protocol)
 
     if 'cipher_preference_version' in endpoint:
@@ -63,8 +65,7 @@ def test_well_known_endpoints(managed_process, protocol, endpoint):
     client = managed_process(S2N, client_options, timeout=5)
 
     for results in client.get_results():
-        assert results.exception is None
-        if results.exit_code != 0:
+        if results.exception is not None or results.exit_code != 0:
             assert endpoint['endpoint'] in expected_failures
 
         if 'expected_cipher' in endpoint:
