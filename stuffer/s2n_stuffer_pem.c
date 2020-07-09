@@ -52,7 +52,7 @@ static int s2n_stuffer_pem_read_encapsulation_line(struct s2n_stuffer *pem, cons
 
     /* Check for missing newline between dashes case: "-----END CERTIFICATE----------BEGIN CERTIFICATE-----" */
     if (strncmp(encap_marker, S2N_PEM_END_TOKEN, strlen(S2N_PEM_END_TOKEN)) == 0
-            && s2n_stuffer_peek_check_for_str(pem, S2N_PEM_BEGIN_TOKEN)) {
+            && s2n_stuffer_peek_check_for_str(pem, S2N_PEM_BEGIN_TOKEN) == S2N_SUCCESS) {
         /* Rewind stuffer by 1 byte before BEGIN, so that next read will find the dash before the BEGIN */
         GUARD(s2n_stuffer_rewind_read(pem, 1));
     }
