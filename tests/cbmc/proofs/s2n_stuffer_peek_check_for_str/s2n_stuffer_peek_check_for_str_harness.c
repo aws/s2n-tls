@@ -36,7 +36,7 @@ void s2n_stuffer_peek_check_for_str_harness() {
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
-    if (s2n_stuffer_peek_check_for_str(stuffer, expected) == 1) {
+    if (s2n_stuffer_peek_check_for_str(stuffer, expected) == S2N_SUCCESS) {
         uint8_t* actual = stuffer->blob.data + stuffer->read_cursor;
         assert(!memcmp(actual, expected, strlen(expected)));
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
@@ -44,9 +44,10 @@ void s2n_stuffer_peek_check_for_str_harness() {
         assert(stuffer->high_water_mark == old_stuffer.high_water_mark);
         assert(stuffer->alloced == old_stuffer.alloced);
         assert(stuffer->growable == old_stuffer.growable);
-        assert(stuffer->tainted == 1);
+        assert(stuffer->tainted);
         assert_blob_equivalence(&stuffer->blob, &old_stuffer.blob, &old_byte_from_stuffer);
     } else {
+        assert(stuffer->read_cursor == old_stuffer.read_cursor);
         assert(stuffer->write_cursor == old_stuffer.write_cursor);
         assert(stuffer->high_water_mark == old_stuffer.high_water_mark);
         assert(stuffer->alloced == old_stuffer.alloced);
