@@ -258,17 +258,17 @@ class Curves(object):
 
 class Signature(object):
     def __init__(self, name, min_protocol=Protocols.SSLv3, sig_type=None, sig_digest=None):
-        self.name = name
+        self.name = name.upper()
         self.min_protocol = min_protocol
-        if 'RSA' in name:
+        if 'RSA' in self.name:
             self.algorithm = 'RSA'
-        if 'PSS' in name.upper():
+        if 'PSS' in self.name:
             self.algorithm = 'RSAPSS'
-        if 'EC' in name.upper() or 'ED' in name.upper():
+        if 'EC' in self.name or 'ED' in self.name:
             self.algorithm = 'EC'
 
-        if '+' in name:
-            sig_type, sig_digest = name.split('+')
+        if '+' in self.name:
+            sig_type, sig_digest = self.name.split('+')
 
         self.sig_type = sig_type
         self.sig_digest = sig_digest

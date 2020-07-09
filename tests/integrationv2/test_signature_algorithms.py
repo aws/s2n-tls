@@ -1,7 +1,7 @@
 import copy
 import pytest
 
-from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROVIDERS, PROTOCOLS
+from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS
 from common import ProviderOptions, Protocols, Ciphers, Certificates, Signatures, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
@@ -26,6 +26,8 @@ all_sigs = [
     Signatures.RSA_PSS_SHA256,
 ]
 
+# These ciphers are unsupported in the signature test because there is
+# no associated signing algorithm.
 unsupported_ciphers = [
     Ciphers.AES128_SHA,
     Ciphers.AES256_SHA,

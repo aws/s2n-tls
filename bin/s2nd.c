@@ -358,7 +358,6 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         if (settings.mutual_auth) {
             if (!s2n_connection_client_cert_used(conn)) {
                 print_s2n_error("Error: Mutual Auth was required, but not negotiated");
-                S2N_ERROR_PRESERVE_ERRNO();
             }
         }
 
