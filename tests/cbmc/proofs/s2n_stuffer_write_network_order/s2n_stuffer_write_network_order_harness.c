@@ -29,9 +29,8 @@ void s2n_stuffer_write_network_order_harness() {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
-    uint32_t input;
+    uint64_t input;
     uint8_t length;
-    __CPROVER_assume(length < MAX_LENGTH);
 
     /* Store a byte from the stuffer to compare if the write fails */
     struct s2n_stuffer old_stuffer = *stuffer;
@@ -47,6 +46,15 @@ void s2n_stuffer_write_network_order_harness() {
     if (s2n_stuffer_write_network_order(stuffer, input, length) == S2N_SUCCESS) {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + length);
         assert(s2n_stuffer_is_valid(stuffer));
+        if(length == 0) {
+            assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
+        } else {
+            uint8_t* data = stuffer->blob.data + old_stuffer.write_cursor;
+            for (int i = 0; i < length; i++) {
+                uint8_t shift = (length - i - 1) * CHAR_BIT;
+                assert(data[i] == ((input >> (shift)) & UINT8_MAX));
+            }
+        }
     } else {
         assert(stuffer->write_cursor == old_stuffer.write_cursor);
         assert(stuffer->high_water_mark == old_stuffer.high_water_mark);

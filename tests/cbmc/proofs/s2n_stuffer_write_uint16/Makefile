@@ -35,6 +35,6 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 REMOVE_FUNCTION_BODY += s2n_blob_slice
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe_n
 
-UNWINDSET += s2n_stuffer_write_network_order.1:$(shell echo $$((1 + $(SIZEOF_UINT16))))
+UNWINDSET += s2n_stuffer_write_network_order.4:$(shell echo $$((1 + $(SIZEOF_UINT16))))
 
 include ../Makefile.common

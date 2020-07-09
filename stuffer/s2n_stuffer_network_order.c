@@ -20,15 +20,17 @@
 #include "utils/s2n_annotations.h"
 #include "utils/s2n_safety.h"
 
-int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, uint32_t input, uint8_t length)
+/* Writes length bytes of input to stuffer, in network order, starting from the smallest byte of input. */
+int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, const uint64_t input, const uint8_t length)
 {
+    PRECONDITION_POSIX(length <= sizeof(input));
     GUARD(s2n_stuffer_skip_write(stuffer, length));
     uint8_t *data = stuffer->blob.data + stuffer->write_cursor - length;
 
     for (int i = 0; i < length; i++) {
         S2N_INVARIENT(i <= length);
-        uint8_t shift = (length - i - 1) * 8;
-        data[i] = (input >> (shift)) & 0xFF;
+        uint8_t shift = (length - i - 1) * CHAR_BIT;
+        data[i] = (input >> (shift)) & UINT8_MAX;
     }
     POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     return S2N_SUCCESS;
@@ -151,10 +153,7 @@ int s2n_stuffer_read_uint64(struct s2n_stuffer *stuffer, uint64_t * u)
 
 int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, const uint64_t u)
 {
-    GUARD(s2n_stuffer_write_network_order(stuffer, u >> SIZEOF_IN_BITS(uint32_t), sizeof(uint32_t)));
-    GUARD(s2n_stuffer_write_network_order(stuffer, u & UINT32_MAX, sizeof(uint32_t)));
-
-    return S2N_SUCCESS;
+    return s2n_stuffer_write_network_order(stuffer, u, sizeof(u));
 }
 
 static int length_matches_value_check(uint32_t value, uint8_t length)
