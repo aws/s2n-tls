@@ -31,7 +31,7 @@ def verify_hello_retry_request(server):
             finished_count += 1
         if server.data_to_send in results.stdout:
             bytes_found = True
-        if marker_found and client_hello_count == 2 and server_hello_count == 2 and finished_count == 2 and bytes_to_send:
+        if marker_found and client_hello_count == 2 and server_hello_count == 2 and finished_count == 2 and bytes_found:
             return True
 
     return False
