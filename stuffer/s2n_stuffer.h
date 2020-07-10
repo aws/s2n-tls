@@ -73,7 +73,6 @@ extern int s2n_stuffer_reread(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_rewrite(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_wipe(struct s2n_stuffer *stuffer);
 extern int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t n);
-extern int s2n_stuffer_release_if_consumed(struct s2n_stuffer *stuffer);
 extern bool s2n_stuffer_is_consumed(struct s2n_stuffer *stuffer);
 
 /* Basic read and write */

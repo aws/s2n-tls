@@ -538,10 +538,10 @@ int s2n_connection_release_buffers(struct s2n_connection *conn)
     PRECONDITION_POSIX(s2n_stuffer_is_valid(&conn->out));
     PRECONDITION_POSIX(s2n_stuffer_is_valid(&conn->in));
 
-    if(conn->out.blob.data != NULL && s2n_stuffer_is_consumed(&conn->out)) {
+    if(s2n_stuffer_is_consumed(&conn->out)) {
         GUARD(s2n_stuffer_resize(&conn->out, 0));
     }
-    if(conn->in.blob.data != NULL && s2n_stuffer_is_consumed(&conn->in)) {
+    if(s2n_stuffer_is_consumed(&conn->in)) {
         GUARD(s2n_stuffer_resize(&conn->in, 0));
     }
 
