@@ -24,7 +24,7 @@
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
 
-void s2n_stuffer_peek_check_for_str_harness() {
+void s2n_stuffer_read_expected_str_harness() {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
@@ -36,10 +36,13 @@ void s2n_stuffer_peek_check_for_str_harness() {
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
-    if (s2n_stuffer_peek_check_for_str(stuffer, expected) == S2N_SUCCESS) {
-        uint8_t* actual = stuffer->blob.data + stuffer->read_cursor;
+    if (s2n_stuffer_read_expected_str(stuffer, expected) == S2N_SUCCESS) {
+        uint8_t* actual = stuffer->blob.data + stuffer->read_cursor - strlen(expected);
         assert(!memcmp(actual, expected, strlen(expected)));
+        assert(stuffer->read_cursor == old_stuffer.read_cursor + strlen(expected));
+    } else {
+        assert(stuffer->read_cursor == old_stuffer.read_cursor);
     }
-    assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
+    assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
     assert(s2n_stuffer_is_valid(stuffer));
 }

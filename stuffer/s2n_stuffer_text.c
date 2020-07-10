@@ -63,10 +63,16 @@ int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer)
 
 int s2n_stuffer_read_expected_str(struct s2n_stuffer *stuffer, const char *expected)
 {
-    void *actual = s2n_stuffer_raw_read(stuffer, strlen(expected));
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    notnull_check(expected);
+    size_t expected_length = strlen(expected);
+    ENSURE_POSIX(s2n_stuffer_data_available(stuffer) >= expected_length, S2N_ERR_STUFFER_OUT_OF_DATA);
+    uint8_t *actual =  stuffer->blob.data + stuffer->read_cursor;
     notnull_check(actual);
-    S2N_ERROR_IF(memcmp(actual, expected, strlen(expected)), S2N_ERR_STUFFER_NOT_FOUND);
-    return 0;
+    ENSURE_POSIX(!memcmp(actual, expected, expected_length), S2N_ERR_STUFFER_NOT_FOUND);
+    stuffer->read_cursor += expected_length;
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    return S2N_SUCCESS;
 }
 
 /* Read from stuffer until the target string is found, or until there is no more data. */
