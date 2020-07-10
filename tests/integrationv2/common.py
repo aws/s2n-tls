@@ -46,7 +46,7 @@ class AvailablePorts(object):
 
         # This is a naive way to allocate ports, but it allows us to cut
         # the run time in half without workers colliding.
-        self.ports = iter(range(low + (worker_id * 100), high))
+        self.ports = iter(range(low + (worker_id * 500), high))
         self.lock = threading.Lock()
 
     def __iter__(self):
@@ -258,17 +258,19 @@ class Curves(object):
 
 class Signature(object):
     def __init__(self, name, min_protocol=Protocols.SSLv3, sig_type=None, sig_digest=None):
-        self.name = name.upper()
         self.min_protocol = min_protocol
-        if 'RSA' in self.name:
+
+        if 'RSA' in name.upper():
             self.algorithm = 'RSA'
-        if 'PSS' in self.name:
+        if 'PSS' in name.upper():
             self.algorithm = 'RSAPSS'
-        if 'EC' in self.name or 'ED' in self.name:
+        if 'EC' in name.upper() or 'ED' in name.upper():
             self.algorithm = 'EC'
 
-        if '+' in self.name:
-            sig_type, sig_digest = self.name.split('+')
+        if '+' in name:
+            sig_type, sig_digest = name.split('+')
+
+        self.name = name
 
         self.sig_type = sig_type
         self.sig_digest = sig_digest
@@ -284,12 +286,20 @@ class Signatures(object):
     RSA_SHA384 = Signature('RSA+SHA384')
     RSA_SHA512 = Signature('RSA+SHA512')
 
-    RSA_PSS_SHA256 = Signature("RSA-PSS+SHA256", min_protocol=Protocols.TLS13)
+    # Using rss_pss_pss_sha256 results in a signature not found error, but using
+    # this naming scheme seems to work.
+    RSA_PSS_SHA256 = Signature(
+        'RSA-PSS+SHA256',
+        min_protocol=Protocols.TLS13,
+        sig_type='RSA-PSS',
+        sig_digest='SHA256')
+
     ECDSA_SECP256r1_SHA256 = Signature(
         'ecdsa_secp256r1_sha256',
         min_protocol=Protocols.TLS13,
         sig_type='ECDSA',
         sig_digest='SHA256')
+
     ED25519 = Signature(
         'ed25519',
         min_protocol=Protocols.TLS13,

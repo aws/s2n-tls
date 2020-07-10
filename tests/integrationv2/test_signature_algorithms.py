@@ -26,8 +26,9 @@ all_sigs = [
     Signatures.RSA_PSS_SHA256,
 ]
 
-# These ciphers are unsupported in the signature test because there is
-# no associated signing algorithm.
+# These ciphers don't print out the proper debugging information from s_client,
+# so we can't verify the signature algorithm used. When s2n provides the signature
+# algorithm to the client, we can enable these.
 unsupported_ciphers = [
     Ciphers.AES128_SHA,
     Ciphers.AES256_SHA,
@@ -72,15 +73,6 @@ def skip_ciphers(*args, **kwargs):
 def test_s2n_server_signature_algorithms(managed_process, cipher, provider, protocol, certificate, signature, client_auth):
     port = next(available_ports)
 
-    # Two unsupported signatures to verify unsupported sigs are ignored
-    sigs = ["ECDSA+SHA256", "ECDSA+SHA512", signature.name]
-
-    # OpenSSL gives a command line error if this algorithm is used with the
-    # unsupported signatures, so just test this one algorithm without the
-    # unsupporteds.
-    if signature.name is 'ecdsa_secp256r1_sha256':
-        sigs = [signature.name]
-
     random_bytes = data_bytes(64)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
@@ -88,8 +80,11 @@ def test_s2n_server_signature_algorithms(managed_process, cipher, provider, prot
         port=port,
         cipher=cipher,
         data_to_send=random_bytes,
-        insecure=True,
-        extra_flags=['-sigalgs', ':'.join(sigs)],
+        insecure=False,
+        use_client_auth=client_auth,
+        client_key_file=certificate.key,
+        client_certificate_file=certificate.cert,
+        extra_flags=['-sigalgs', signature.name],
         protocol=protocol)
 
     server_options = copy.copy(client_options)
@@ -135,10 +130,10 @@ def test_s2n_client_signature_algorithms(managed_process, cipher, provider, prot
         cipher=cipher,
         data_to_send=random_bytes,
         insecure=True,
+        use_client_auth=client_auth,
         protocol=protocol)
 
     server_options = copy.copy(client_options)
-    server_options.extra_flags = None
     server_options.data_to_send = None
     server_options.mode = Provider.ServerMode
     server_options.key = certificate.key
@@ -146,8 +141,6 @@ def test_s2n_client_signature_algorithms(managed_process, cipher, provider, prot
     server_options.extra_flags=['-sigalgs', signature.name]
 
     if client_auth is True:
-        client_options.insecure = False
-        client_options.use_client_auth = True
         client_options.client_trust_store = Certificates.RSA_2048_SHA256_WILDCARD.cert
         server_options.key = Certificates.RSA_2048_SHA256_WILDCARD.key
         server_options.cert = Certificates.RSA_2048_SHA256_WILDCARD.cert
