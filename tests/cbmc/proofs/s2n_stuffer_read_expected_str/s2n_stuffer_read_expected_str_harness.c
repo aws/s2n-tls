@@ -43,10 +43,6 @@ void s2n_stuffer_read_expected_str_harness() {
     } else {
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
     }
-    assert(stuffer->write_cursor == old_stuffer.write_cursor);
-    assert(stuffer->high_water_mark == old_stuffer.high_water_mark);
-    assert(stuffer->alloced == old_stuffer.alloced);
-    assert(stuffer->growable == old_stuffer.growable);
-    assert_blob_equivalence(&stuffer->blob, &old_stuffer.blob, &old_byte_from_stuffer);
+    assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
     assert(s2n_stuffer_is_valid(stuffer));
 }
