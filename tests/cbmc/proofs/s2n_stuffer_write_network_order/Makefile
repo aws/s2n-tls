@@ -11,18 +11,19 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Expected runtime is 50 seconds.
-SIZEOF_UINT32 = 4
-
+# Expected runtime is 2 minutes.
 CBMCFLAGS +=
 
-HARNESS_ENTRY = s2n_stuffer_write_uint32_harness
+HARNESS_ENTRY = s2n_stuffer_write_network_order_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(PROOF_STUB)/munlock.c
+PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
+PROOF_SOURCES += $(PROOF_STUB)/sysconf.c
 
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_network_order.c
@@ -35,6 +36,7 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 REMOVE_FUNCTION_BODY += s2n_blob_slice
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe_n
 
-UNWINDSET += s2n_stuffer_write_network_order.4:$(shell echo $$((1 + $(SIZEOF_UINT32))))
+UNWINDSET += s2n_stuffer_write_network_order.4:9
+UNWINDSET += s2n_stuffer_write_network_order_harness.0:9
 
 include ../Makefile.common
