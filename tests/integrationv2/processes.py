@@ -231,8 +231,15 @@ class ManagedProcess(threading.Thread):
     The stdin/stdout/stderr and exist code a monitored and results
     are made available to the caller.
     """
-    def __init__(self, cmd_line, provider_set_ready_condition, wait_for_marker=None, ready_to_send=None, timeout=5, data_source=None):
+    def __init__(self, cmd_line, provider_set_ready_condition, wait_for_marker=None, ready_to_send=None, timeout=5, data_source=None, env_overrides=dict()):
         threading.Thread.__init__(self)
+
+        proc_env = os.environ.copy()
+
+        for key in env_overrides:
+            proc_env[key] = env_overrides[key]
+
+        self.proc_env = proc_env
 
         # Command line to execute in the subprocess
         self.cmd_line = cmd_line
@@ -266,7 +273,7 @@ class ManagedProcess(threading.Thread):
     def run(self):
         with self.results_condition:
             try:
-                proc = subprocess.Popen(self.cmd_line, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+                proc = subprocess.Popen(self.cmd_line, env=self.proc_env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
                 self.proc = proc
             except Exception as ex:
                 self.results = Results(None, None, None, ex)

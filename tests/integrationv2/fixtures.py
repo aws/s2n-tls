@@ -29,7 +29,8 @@ def managed_process():
                 wait_for_marker=provider.ready_to_test_marker,
                 ready_to_send=provider.ready_to_send_input_marker,
                 data_source=options.data_to_send,
-                timeout=timeout)
+                timeout=timeout,
+                env_overrides=options.env_overrides)
 
         processes.append(p)
         with p.ready_condition:
