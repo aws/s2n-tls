@@ -267,7 +267,7 @@ int main(int argc, char **argv)
     /* test the composite AES256_SHA256 cipher  */
     conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_sha256_composite;
     for (int j = 0; j < 3; j++ ) {
-        for (int i = 0; i <= max_aligned_fragment; i++) {
+        for (int i = 0; i <= max_aligned_fragment + 1; i++) {
             struct s2n_blob in = {.data = random_data,.size = i };
             int bytes_written;
 
