@@ -154,9 +154,7 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
         if (conn->active_application_bytes_consumed < (uint64_t) conn->dynamic_record_resize_threshold) {
             int min_payload_size = s2n_record_min_write_payload_size(conn);
             GUARD(min_payload_size);
-            if (min_payload_size < to_write) {
-                to_write = min_payload_size;
-            }
+            to_write = MIN(min_payload_size, to_write);
         }
 
         /* Don't split messages in server mode for interoperability with naive clients.

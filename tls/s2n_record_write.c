@@ -88,10 +88,32 @@ int s2n_record_max_write_payload_size(struct s2n_connection *conn)
 /* Find the size that will fit within an ethernet frame */
 int s2n_record_min_write_payload_size(struct s2n_connection *conn)
 {
-    uint16_t min_outgoing_fragement_length = ETH_MTU - (conn->ipv6 ? IP_V6_HEADER_LENGTH : IP_V4_HEADER_LENGTH)
+    /* remove ethernet, TCP/IP and TLS header overheads */
+    const uint16_t min_outgoing_fragment_length = ETH_MTU - (conn->ipv6 ? IP_V6_HEADER_LENGTH : IP_V4_HEADER_LENGTH)
         - TCP_HEADER_LENGTH - TCP_OPTIONS_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH;
+
     int size;
-    GUARD(size = s2n_record_rounded_write_payload_size(conn, min_outgoing_fragement_length));
+    GUARD(size = s2n_record_rounded_write_payload_size(conn, min_outgoing_fragment_length));
+
+    int overhead;
+    GUARD(overhead = s2n_tls_record_overhead(conn));
+    size -= overhead;
+
+    const struct s2n_crypto_parameters *active = conn->mode == S2N_CLIENT ? conn->client : conn->server;
+
+    /* Round the fragment size down to be block aligned */
+    if (active->cipher_suite->record_alg->cipher->type == S2N_CBC) {
+        size -= size % active->cipher_suite->record_alg->cipher->io.cbc.block_size;
+    } else if (active->cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
+        size -= size % active->cipher_suite->record_alg->cipher->io.comp.block_size;
+        /* Composite digest length */
+        size -= active->cipher_suite->record_alg->cipher->io.comp.mac_key_size;
+        /* Padding length byte */
+        size -= 1;
+    }
+
+    S2N_ERROR_IF(size <= 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
+
     return size;
 }
 
