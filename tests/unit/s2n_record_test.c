@@ -144,10 +144,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
-        if (i < S2N_DEFAULT_FRAGMENT_LENGTH - 20) {
+        if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
             EXPECT_EQUAL(bytes_written, i);
         } else {
-            EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH - 20);
+            EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH);
         }
 
         uint16_t predicted_length = bytes_written + 20;
@@ -215,8 +215,7 @@ int main(int argc, char **argv)
     conn->actual_protocol_version = S2N_TLS10;
     conn->initial.cipher_suite = &mock_block_cipher_suite;
 
-    uint16_t max_aligned_fragment = S2N_DEFAULT_FRAGMENT_LENGTH - (S2N_DEFAULT_FRAGMENT_LENGTH % 16);
-    for (int i = 0; i <= max_aligned_fragment + 1; i++) {
+    for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
 
@@ -226,10 +225,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
-        if (i < max_aligned_fragment - 20 - 1) {
+        if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
             EXPECT_EQUAL(bytes_written, i);
         } else {
-            EXPECT_EQUAL(bytes_written, max_aligned_fragment - 20 - 1);
+            EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH);
         }
 
         uint16_t predicted_length = bytes_written + 1 + 20;
@@ -282,8 +281,7 @@ int main(int argc, char **argv)
     conn->actual_protocol_version = S2N_TLS11;
     conn->initial.cipher_suite = &mock_block_cipher_suite;
 
-    max_aligned_fragment = S2N_DEFAULT_FRAGMENT_LENGTH - (S2N_DEFAULT_FRAGMENT_LENGTH % 16);
-    for (int i = 0; i <= max_aligned_fragment + 1; i++) {
+    for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
 
@@ -293,10 +291,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
-        if (i < max_aligned_fragment - 20 - 16 - 1) {
+        if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
             EXPECT_EQUAL(bytes_written, i);
         } else {
-            EXPECT_EQUAL(bytes_written, max_aligned_fragment - 20 - 16 - 1);
+            EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH);
         }
 
         uint16_t predicted_length = bytes_written + 1 + 20 + 16;

@@ -66,26 +66,11 @@ static int s2n_tls_record_overhead(struct s2n_connection *conn)
 
 int s2n_record_rounded_write_payload_size(struct s2n_connection *conn, uint16_t size_without_overhead)
 {
-    const struct s2n_crypto_parameters *active = conn->mode == S2N_CLIENT ? conn->client : conn->server;
-
     /* reduce the fragment length to the maximum allowed by the protocol */
+    /* record overheads are not subtracted from payload but are accounted as part of the total record size */
     int max_fragment_size = MIN(size_without_overhead, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
 
-    /* Round the fragment size down to be block aligned */
-    if (active->cipher_suite->record_alg->cipher->type == S2N_CBC) {
-        max_fragment_size -= max_fragment_size % active->cipher_suite->record_alg->cipher->io.cbc.block_size;
-    } else if (active->cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
-        max_fragment_size -= max_fragment_size % active->cipher_suite->record_alg->cipher->io.comp.block_size;
-        /* Composite digest length */
-        max_fragment_size -= active->cipher_suite->record_alg->cipher->io.comp.mac_key_size;
-        /* Padding length byte */
-        max_fragment_size -= 1;
-    }
-
-    int overhead;
-    GUARD(overhead = s2n_tls_record_overhead(conn));
-
-    return max_fragment_size - overhead;
+    return max_fragment_size;
 }
 
 /* This function returns maximum size of plaintext data to write for the payload. In the current
