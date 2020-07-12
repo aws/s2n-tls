@@ -19,6 +19,8 @@
 # Flags to pass to goto-cc for linking (typically those passed to gcc)
 # LINK_FLAGS =
 
+LITANI = $(SRCDIR)/tests/litani/litani
+
 # Preprocessor include paths -I...
 INCLUDES += -I$(CBMC_ROOT)/include
 INCLUDES += -I$(SRCDIR)
