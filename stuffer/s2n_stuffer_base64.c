@@ -76,9 +76,9 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     PRECONDITION_POSIX(s2n_stuffer_is_valid(out));
-    uint8_t pad[4];
+    uint8_t pad[4] = {0};
     int bytes_this_round = 3;
-    struct s2n_blob o;
+    struct s2n_blob o = {0};
     GUARD(s2n_blob_init(&o, pad, sizeof(pad)));
 
     do {
@@ -152,10 +152,12 @@ int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     PRECONDITION_POSIX(s2n_stuffer_is_valid(in));
-    uint8_t outpad[4];
-    uint8_t inpad[3];
-    struct s2n_blob o = {.data = outpad,.size = sizeof(outpad) };
-    struct s2n_blob i = {.data = inpad,.size = sizeof(inpad) };
+    uint8_t outpad[4] = {0};
+    uint8_t inpad[3] = {0};
+    struct s2n_blob o = {0};
+    GUARD(s2n_blob_init(&o, outpad, sizeof(outpad)));
+    struct s2n_blob i = {0};
+    GUARD(s2n_blob_init(&i, inpad, sizeof(inpad)));
 
     while (s2n_stuffer_data_available(in) > 2) {
         GUARD(s2n_stuffer_read(in, &i));
