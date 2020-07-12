@@ -13,19 +13,22 @@
 
 # Expected runtime is 10 seconds.
 
-ABSTRACTIONS += $(HELPERDIR)/stubs/fstat.c
-ABSTRACTIONS += $(HELPERDIR)/stubs/mmap.c
-
 CBMCFLAGS +=
 
-DEPENDENCIES += $(HELPERDIR)/source/cbmc_utils.c
-DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c
-DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/stuffer/s2n_stuffer.c
-DEPENDENCIES += $(SRCDIR)/stuffer/s2n_stuffer_file.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_blob.c
+HARNESS_ENTRY = s2n_stuffer_alloc_ro_from_fd_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-ENTRY = s2n_stuffer_alloc_ro_from_fd_harness
+PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
+PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(PROOF_STUB)/fstat.c
+PROOF_SOURCES += $(PROOF_STUB)/mmap.c
+PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
+
+PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
+PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_file.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 
 UNWINDSET +=
 
