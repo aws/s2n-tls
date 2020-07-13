@@ -92,6 +92,7 @@ int main(int argc, char **argv)
         if (i <= max_fragment) {
             EXPECT_EQUAL(bytes_written, i);
         } else {
+            /* application data size of intended fragment size + 1 should only send max fragment */
             EXPECT_EQUAL(bytes_written, max_fragment);
         }
 
@@ -276,6 +277,7 @@ int main(int argc, char **argv)
         if (i <= max_fragment) {
             EXPECT_EQUAL(bytes_written, i);
         } else {
+            /* application data size of intended fragment size + 1 should only send max fragment */
             EXPECT_EQUAL(bytes_written, max_fragment);
         }
 

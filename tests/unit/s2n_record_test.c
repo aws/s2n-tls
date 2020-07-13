@@ -103,6 +103,7 @@ int main(int argc, char **argv)
         if (i < S2N_DEFAULT_FRAGMENT_LENGTH) {
             EXPECT_EQUAL(bytes_written, i);
         } else {
+            /* application data size of intended fragment size + 1 should only send max fragment */
             EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH);
         }
 
@@ -147,6 +148,7 @@ int main(int argc, char **argv)
         if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
             EXPECT_EQUAL(bytes_written, i);
         } else {
+            /* application data size of intended fragment size + 1 should only send max fragment */
             EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH);
         }
 
@@ -228,6 +230,7 @@ int main(int argc, char **argv)
         if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
             EXPECT_EQUAL(bytes_written, i);
         } else {
+            /* application data size of intended fragment size + 1 should only send max fragment */
             EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH);
         }
 
@@ -294,6 +297,7 @@ int main(int argc, char **argv)
         if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
             EXPECT_EQUAL(bytes_written, i);
         } else {
+            /* application data size of intended fragment size + 1 should only send max fragment */
             EXPECT_EQUAL(bytes_written, S2N_DEFAULT_FRAGMENT_LENGTH);
         }
 
