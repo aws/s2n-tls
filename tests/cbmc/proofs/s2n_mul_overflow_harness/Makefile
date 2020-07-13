@@ -14,7 +14,7 @@
 CBMCFLAGS +=
 
 HARNESS_ENTRY = s2n_mul_overflow_harness
-HARNESS_FILE = $(PROOFDIR)/$(HARNESS_ENTRY).c
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
