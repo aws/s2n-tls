@@ -12,6 +12,16 @@ coverage:
   status:
     project:
       default:
+        flags:
+          - asan
+          - integration
+          - integrationv2
+        target: auto
+        threshold: 0.5
+        base: auto
+      fuzz:
+        flags:
+          - fuzz
         target: auto
         threshold: 0.5
         base: auto
