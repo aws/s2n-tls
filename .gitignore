@@ -16,6 +16,7 @@ coverage/html/*
 libcrypto-build/*
 libcrypto-root
 libcrypto-root/*
+.litani_cache_dir
 tests/integration/__pycache__
 tests/unit/*_test
 tests/fuzz/fuzz-*.log
