@@ -15,48 +15,29 @@
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
-#include "utils/s2n_mem.h"
 
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
-/*
- * The reason we don't have full coverage is that we only call s2n_realloc
- * with blob-data == NULL.
- */
-void s2n_stuffer_resize_if_empty_harness() {
+void s2n_stuffer_is_consumed_harness() {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
-    uint32_t size;
-
-    /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if(nondet_bool()) {
-        s2n_mem_init();
-    }
 
     /* Save previous state. */
     struct s2n_stuffer old_stuffer = *stuffer;
-    struct store_byte_from_buffer old_byte;
-    save_byte_from_blob(&stuffer->blob, &old_byte);
+    struct store_byte_from_buffer old_byte_from_stuffer;
+    save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
-    if (s2n_stuffer_resize_if_empty(stuffer, size) == S2N_SUCCESS &&
-        size != 0 && old_stuffer.blob.data == NULL) {
-        assert(stuffer->blob.growable);
-        assert(stuffer->blob.size == size);
-        assert(stuffer->blob.allocated >= size);
+    if (s2n_stuffer_is_consumed(stuffer)) {
+        assert(stuffer->read_cursor == old_stuffer.write_cursor);
     } else {
-        assert(stuffer->blob.size == old_stuffer.blob.size);
-        assert(stuffer->write_cursor == old_stuffer.write_cursor);
-        assert(stuffer->high_water_mark == old_stuffer.high_water_mark);
-        assert(stuffer->alloced == old_stuffer.alloced);
-        assert(stuffer->growable == old_stuffer.growable);
-        assert(stuffer->tainted == old_stuffer.tainted);
-        assert_byte_from_blob_matches(&stuffer->blob, &old_byte);
+        assert(stuffer->read_cursor != old_stuffer.write_cursor);
     }
 
     /* Post-conditions. */
     assert(s2n_stuffer_is_valid(stuffer));
+    assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
 }
