@@ -22,7 +22,7 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
     # expected easily.
     # We purposefully send a non block aligned number to make sure
     # nothing blocks waiting for more data.
-    random_bytes = data_bytes(65) #519)
+    random_bytes = data_bytes(65519)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
         host="localhost",
@@ -65,7 +65,7 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
         assert results.exception is None
         assert results.exit_code == 0
         assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) in results.stdout
-        assert random_bytes[1:] in results.stdout
+        assert random_bytes in results.stdout
 
         if provider is not S2N:
             assert bytes("Cipher negotiated: {}".format(cipher.name).encode('utf-8')) in results.stdout
@@ -122,4 +122,5 @@ def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protoco
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
+        # Avoid debugging information that sometimes gets inserted after the first character
         assert random_bytes[1:] in results.stdout
