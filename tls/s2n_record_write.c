@@ -64,21 +64,21 @@ static int s2n_tls_record_overhead(struct s2n_connection *conn)
     return extra;
 }
 
-int s2n_record_rounded_write_payload_size(struct s2n_connection *conn, uint16_t size_without_overhead)
+/* Limits the size of the fragment length to the maximum allowed by the protocol */
+static int s2n_record_limit_write_payload_size(struct s2n_connection *conn, uint16_t size_without_overhead)
 {
-    /* reduce the fragment length to the maximum allowed by the protocol */
-    /* record overheads are not subtracted from payload but are accounted as part of the total record size */
     int max_fragment_size = MIN(size_without_overhead, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
 
     return max_fragment_size;
 }
 
-/* This function returns maximum size of plaintext data to write for the payload. In the current
-  s2n implementation, it is also critical that it syncs up with from connection buffer size object */
+/* This function returns maximum size of plaintext data to write for the payload.
+ * Record overheads are not calculated here but they have been accounted as part of the total record sizes.
+ */
 int s2n_record_max_write_payload_size(struct s2n_connection *conn)
 {
     int bytes;
-    GUARD(bytes = s2n_record_rounded_write_payload_size(conn, conn->max_outgoing_fragment_length));
+    GUARD(bytes = s2n_record_limit_write_payload_size(conn, conn->max_outgoing_fragment_length));
 
     S2N_ERROR_IF(bytes > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
     S2N_ERROR_IF(bytes <= 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
@@ -93,8 +93,9 @@ int s2n_record_min_write_payload_size(struct s2n_connection *conn)
         - TCP_HEADER_LENGTH - TCP_OPTIONS_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH;
 
     int size;
-    GUARD(size = s2n_record_rounded_write_payload_size(conn, min_outgoing_fragment_length));
+    GUARD(size = s2n_record_limit_write_payload_size(conn, min_outgoing_fragment_length));
 
+    /* subtract overheads of a TLS record */
     int overhead;
     GUARD(overhead = s2n_tls_record_overhead(conn));
     size -= overhead;
