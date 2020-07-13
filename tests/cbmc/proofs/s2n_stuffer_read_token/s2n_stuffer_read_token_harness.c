@@ -54,7 +54,7 @@ void s2n_stuffer_read_token_harness() {
     } else {
         assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
         /*
-         * s2n_realloc could fail, so we can onyl guarantee equivalence of
+         * s2n_realloc could fail, so we can only guarantee equivalence of
          * data pointer, but not the elements in it.
          */
         assert(token->blob.data == old_token.blob.data);
