@@ -31,6 +31,14 @@ const struct s2n_kem *pq_kems_r2r1[4] = {
     &s2n_sike_p503_r1,
 };
 
+const struct s2n_kem *pq_kems_r2r1_2020_07[5] = {
+    &s2n_kyber_512_r2,
+    &s2n_bike1_l1_r2,
+    &s2n_sike_p434_r2,
+    &s2n_bike1_l1_r1,
+    &s2n_sike_p503_r1,
+};
+
 /* Extension list for SIKE P503 Round 1 only (for testing) */
 const struct s2n_kem *pq_kems_sike_r1[1] = {
     &s2n_sike_p503_r1,
@@ -53,6 +61,11 @@ const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2019_06 = {
 const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_02 = {
     .kem_count = s2n_array_len(pq_kems_r2r1),
     .kems = pq_kems_r2r1,
+};
+
+const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_07 = {
+    .kem_count = s2n_array_len(pq_kems_r2r1_2020_07),
+    .kems = pq_kems_r2r1_2020_07,
 };
 
 /* Includes only SIKE round 1 (for integration tests) */

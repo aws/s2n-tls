@@ -263,6 +263,14 @@ const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2020_02 = 
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
+const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_07 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_kms_pq_tls_1_0_2020_07,
+    .kem_preferences = &kem_preferences_kms_pq_tls_1_0_2020_07,
+    .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
+};
+
 #endif
 const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2018_10 = {
     .minimum_protocol_version = S2N_TLS12,
@@ -388,7 +396,7 @@ const struct s2n_security_policy security_policy_test_all = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_all,
 #if !defined(S2N_NO_PQ)
-    .kem_preferences = &kem_preferences_kms_pq_tls_1_0_2020_02,
+    .kem_preferences = &kem_preferences_kms_pq_tls_1_0_2020_07,
 #else
     .kem_preferences = &kem_preferences_null,
 #endif
@@ -400,7 +408,7 @@ const struct s2n_security_policy security_policy_test_all_tls12 = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_all_tls12,
 #if !defined(S2N_NO_PQ)
-    .kem_preferences = &kem_preferences_kms_pq_tls_1_0_2020_02,
+    .kem_preferences = &kem_preferences_kms_pq_tls_1_0_2020_07,
 #else
     .kem_preferences = &kem_preferences_null,
 #endif
@@ -486,6 +494,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
 #if !defined(S2N_NO_PQ)
     { .version="KMS-PQ-TLS-1-0-2019-06", .security_policy=&security_policy_kms_pq_tls_1_0_2019_06, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="KMS-PQ-TLS-1-0-2020-02", .security_policy=&security_policy_kms_pq_tls_1_0_2020_02, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="KMS-PQ-TLS-1-0-2020-07", .security_policy=&security_policy_kms_pq_tls_1_0_2020_07, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="PQ-SIKE-TEST-TLS-1-0-2019-11", .security_policy=&security_policy_pq_sike_test_tls_1_0_2019_11, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="PQ-SIKE-TEST-TLS-1-0-2020-02", .security_policy=&security_policy_pq_sike_test_tls_1_0_2020_02, .ecc_extension_required=0, .pq_kem_extension_required=0 },
 #endif
