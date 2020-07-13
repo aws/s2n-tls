@@ -310,6 +310,7 @@ S2N_RESULT s2n_rand_cleanup_thread(void)
 {
     GUARD_AS_RESULT(s2n_drbg_wipe(&per_thread_private_drbg));
     GUARD_AS_RESULT(s2n_drbg_wipe(&per_thread_public_drbg));
+    zero_if_forked = 0;
 
     return S2N_RESULT_OK;
 }

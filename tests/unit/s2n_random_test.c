@@ -308,5 +308,12 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Ensure that s2n_rand_cleanup_thread will not prevent the random util to reallocate */
+    blob.size = 100;
+    for (int t = 1; t < 8; t++) {
+        EXPECT_OK(s2n_rand_cleanup_thread());
+        EXPECT_OK(s2n_get_public_random_data(&blob));
+    }
+
     END_TEST();
 }
