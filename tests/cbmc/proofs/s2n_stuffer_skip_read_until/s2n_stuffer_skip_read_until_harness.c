@@ -36,12 +36,15 @@ void s2n_stuffer_skip_read_until_harness() {
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
-    s2n_stuffer_skip_read_until(stuffer, target);
+    if (s2n_stuffer_skip_read_until(stuffer, target) == S2N_SUCCESS) {
+        const int len = strlen(target);
+        if (s2n_stuffer_data_available(stuffer) >= len) {
+              uint8_t *actual = stuffer->blob.data + stuffer->read_cursor - len;
+              assert((strncmp((char*)actual, target, len) == 0) || (s2n_stuffer_data_available(stuffer) < len));
+        }
+    }
 
-    assert(stuffer->write_cursor == old_stuffer.write_cursor);
-    assert(stuffer->high_water_mark == old_stuffer.high_water_mark);
-    assert(stuffer->alloced == old_stuffer.alloced);
-    assert(stuffer->growable == old_stuffer.growable);
-    assert_blob_equivalence(&stuffer->blob, &old_stuffer.blob, &old_byte_from_stuffer);
+    /* Post-conditions. */
+    assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
     assert(s2n_stuffer_is_valid(stuffer));
 }

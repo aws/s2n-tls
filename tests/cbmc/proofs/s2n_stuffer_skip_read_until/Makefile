@@ -35,7 +35,7 @@ PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_text.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
 
-UNWINDSET += s2n_stuffer_skip_read_until.11:$(call addone,$(MAX_BLOB_SIZE))
+UNWINDSET += s2n_stuffer_skip_read_until.12:$(call addone,$(MAX_BLOB_SIZE))
 UNWINDSET += s2n_stuffer_skip_to_char.3:$(call addone,$(MAX_BLOB_SIZE))
 UNWINDSET += strlen.0:$(call addone,$(MAX_STRING_LEN))
 UNWINDSET += strncmp.0:$(call addone,$(MAX_STRING_LEN))
