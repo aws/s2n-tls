@@ -48,14 +48,8 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
     # just want to make sure there was no exception and that
     # the client exited cleanly.
     for results in client.get_results():
-        try:
-            assert results.exception is None
-            assert results.exit_code == 0
-        except Exception as e:
-            for results in server.get_results():
-                print(results.stdout)
-                print(results.stderr)
-                raise e
+        assert results.exception is None
+        assert results.exit_code == 0
 
     expected_version = get_expected_s2n_version(protocol, provider)
 

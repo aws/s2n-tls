@@ -277,7 +277,7 @@ class OpenSSL(Provider):
 
     @classmethod
     def supports_max_frag(cls):
-        if '1.0.2' in OpenSSL.get_version():
+        if 'openssl-1.0.2' in OpenSSL.get_version():
             return False
 
         return True
@@ -289,7 +289,7 @@ class OpenSSL(Provider):
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
         if protocol is Protocols.TLS13:
-            if '1.1.1' in OpenSSL.get_version():
+            if 'openssl-1.1.1' in OpenSSL.get_version():
                 return True
             else:
                 return False
@@ -310,7 +310,7 @@ class OpenSSL(Provider):
         if cipher.fips is False and "fips" in OpenSSL.get_version():
             return False
 
-        if "1.0.2" in OpenSSL.get_version() and with_curve is not None:
+        if "openssl-1.0.2" in OpenSSL.get_version() and with_curve is not None:
             invalid_ciphers = [
                 Ciphers.ECDHE_RSA_AES128_SHA,
                 Ciphers.ECDHE_RSA_AES256_SHA,
