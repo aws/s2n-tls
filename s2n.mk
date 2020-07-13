@@ -10,13 +10,13 @@
 #
 
 ifeq ($(PLATFORM),Darwin)
-    LIBS = -lc -lpthread
+    LIBS = -lc -pthread
 else ifeq ($(PLATFORM),FreeBSD)
     LIBS = -lthr
 else ifeq ($(PLATFORM),NetBSD)
-    LIBS = -lpthread
+    LIBS = -pthread
 else
-    LIBS = -lpthread -ldl -lrt
+    LIBS = -pthread -ldl -lrt
 endif
 
 CRYPTO_LIBS = -lcrypto
@@ -43,7 +43,7 @@ DEFAULT_CFLAGS += -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-s
                  -Wshadow  -Wcast-align -Wwrite-strings -fPIC -Wno-missing-braces\
                  -D_POSIX_C_SOURCE=200809L -O2 -I$(LIBCRYPTO_ROOT)/include/ \
                  -I$(S2N_ROOT)/api/ -I$(S2N_ROOT) -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security \
-                 -D_FORTIFY_SOURCE=2 -fgnu89-inline 
+                 -D_FORTIFY_SOURCE=2 -fgnu89-inline -fvisibility=hidden -DS2N_EXPORTS
 
 COVERAGE_CFLAGS = -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
@@ -145,6 +145,15 @@ ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
     # Turn on debugging and fuzzing flags when S2N_UNSAFE_FUZZING_MODE is enabled to give detailed stack traces in case
     # an error occurs while fuzzing.
     CFLAGS += ${DEFAULT_CFLAGS} ${DEBUG_CFLAGS} ${FUZZ_CFLAGS}
+
+    # Filter out the visibility settings if we are fuzzing
+    CFLAGS := $(filter-out -fvisibility=hidden,$(CFLAGS))
+    CFLAGS := $(filter-out -DS2N_EXPORTS,$(CFLAGS))
+    DEFAULT_CFLAGS := $(filter-out -fvisibility=hidden,$(DEFAULT_CFLAGS))
+    DEFAULT_CFLAGS := $(filter-out -DS2N_EXPORTS,$(DEFAULT_CFLAGS))
+    CPPFLAGS := $(filter-out -fvisibility=hidden,$(CPPFLAGS))
+    CPPFLAGS := $(filter-out -DS2N_EXPORTS,$(CPPFLAGS))
+
 endif
 
 # If COV_TOOL isn't set, pick a default COV_TOOL depending on if the LLVM Marker File was created.
