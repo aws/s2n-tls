@@ -46,7 +46,7 @@ class AvailablePorts(object):
 
         # This is a naive way to allocate ports, but it allows us to cut
         # the run time in half without workers colliding.
-        self.ports = iter(range(low + (worker_id * 100), high))
+        self.ports = iter(range(low + (worker_id * 500), high))
         self.lock = threading.Lock()
 
     def __iter__(self):
@@ -81,6 +81,8 @@ class Cert(object):
             self.algorithm = 'EC'
         elif 'RSA' in name:
             self.algorithm = 'RSA'
+        if 'PSS' in name:
+            self.algorithm = 'RSAPSS'
 
     def compatible_with_cipher(self, cipher):
         return (self.algorithm == cipher.algorithm) or (cipher.algorithm == 'ANY')
@@ -90,6 +92,13 @@ class Cert(object):
             return True
 
         return curve.name[:-3] == self.name[:-3]
+
+    def compatible_with_sigalg(self, sigalg):
+        if self.algorithm is 'EC':
+            if '384' in self.name and 'p256' in sigalg.name:
+                return False
+
+        return (self.algorithm == sigalg.algorithm)
 
     def __str__(self):
         return self.name
@@ -111,10 +120,12 @@ class Certificates(object):
     RSA_4096_SHA256 = Cert("RSA_4096_SHA256", "rsa_4096_sha256_client")
     RSA_4096_SHA384 = Cert("RSA_4096_SHA384", "rsa_4096_sha384_client")
     RSA_4096_SHA512 = Cert("RSA_4096_SHA512", "rsa_4096_sha512_client")
-    ECDSA_256 = Cert("ECDSA_256", "ecdsa_p256_pkcs1")
+
+    ECDSA_256 = Cert("ECDSA_256", "localhost_ecdsa_p256")
     ECDSA_384 = Cert("ECDSA_384", "ecdsa_p384_pkcs1")
 
     RSA_2048_SHA256_WILDCARD = Cert("RSA_2048_SHA256_WILDCARD", "rsa_2048_sha256_wildcard")
+    RSA_PSS_2048_SHA256 = Cert("RSA_PSS_2048_SHA256", "localhost_rsa_pss_2048_sha256")
 
 
 class Protocol(object):
@@ -243,6 +254,57 @@ class Curves(object):
     X25519 = Curve("X25519", Protocols.TLS13)
     P256 = Curve("P-256")
     P384 = Curve("P-384")
+
+
+class Signature(object):
+    def __init__(self, name, min_protocol=Protocols.SSLv3, sig_type=None, sig_digest=None):
+        self.min_protocol = min_protocol
+
+        if 'RSA' in name.upper():
+            self.algorithm = 'RSA'
+        if 'PSS' in name.upper():
+            self.algorithm = 'RSAPSS'
+        if 'EC' in name.upper() or 'ED' in name.upper():
+            self.algorithm = 'EC'
+
+        if '+' in name:
+            sig_type, sig_digest = name.split('+')
+
+        self.name = name
+
+        self.sig_type = sig_type
+        self.sig_digest = sig_digest
+
+    def __str__(self):
+        return self.name
+
+
+class Signatures(object):
+    RSA_SHA1 = Signature('RSA+SHA1')
+    RSA_SHA224 = Signature('RSA+SHA224')
+    RSA_SHA256 = Signature('RSA+SHA256')
+    RSA_SHA384 = Signature('RSA+SHA384')
+    RSA_SHA512 = Signature('RSA+SHA512')
+
+    # Using rss_pss_pss_sha256 results in a signature not found error, but using
+    # this naming scheme seems to work.
+    RSA_PSS_SHA256 = Signature(
+        'RSA-PSS+SHA256',
+        min_protocol=Protocols.TLS13,
+        sig_type='RSA-PSS',
+        sig_digest='SHA256')
+
+    ECDSA_SECP256r1_SHA256 = Signature(
+        'ecdsa_secp256r1_sha256',
+        min_protocol=Protocols.TLS13,
+        sig_type='ECDSA',
+        sig_digest='SHA256')
+
+    ED25519 = Signature(
+        'ed25519',
+        min_protocol=Protocols.TLS13,
+        sig_type='ECDSA',
+        sig_digest='SHA256')
 
 
 class Results(object):
