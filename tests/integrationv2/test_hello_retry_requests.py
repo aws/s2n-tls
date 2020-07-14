@@ -71,3 +71,74 @@ def test_hrr_with_s2n_as_client(managed_process, cipher, provider, curve, protoc
         assert b'Supported Elliptic Groups: X25519:P-256:P-384' in results.stdout
         assert bytes("Shared Elliptic groups: {}".format(server_options.curve).encode('utf-8')) in results.stdout
         assert random_bytes in results.stdout
+
+
+def get_curve_name(curve):
+    if curve.name == "X25519":
+       return "x25519"
+    elif curve.name == "P-256":
+        return "secp256r1"
+    elif curve.name == "P-384":
+        return "secp384r1"
+    else:
+       return None
+
+
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [OpenSSL])
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+def test_hrr_with_s2n_as_server(managed_process, cipher, provider, curve, protocol, certificate):
+    port = next(available_ports)
+
+    random_bytes = data_bytes(64)
+    client_options = ProviderOptions(
+        mode=Provider.ClientMode,
+        host="localhost",
+        port=port,
+        cipher=cipher,
+        data_to_send=random_bytes,
+        insecure=True,
+        curve=curve,
+        extra_flags = ['-msg', '-curves', 'X448:'+str(curve)],
+        protocol=protocol)
+
+    server_options = copy.copy(client_options)
+    server_options.data_to_send = None
+    server_options.mode = Provider.ServerMode
+    server_options.key = certificate.key
+    server_options.cert = certificate.cert
+    server_options.extra_flags = None
+
+    # Passing the type of client and server as a parameter will
+    # allow us to use a fixture to enumerate all possibilities.
+    server = managed_process(S2N, server_options, timeout=5)
+    client = managed_process(provider, client_options, timeout=5)
+
+    # The client should connect and return without error
+    for results in server.get_results():
+        assert results.exception is None
+        assert results.exit_code == 0
+        assert random_bytes in results.stdout
+        assert bytes("Curve: {}".format(get_curve_name(curve)).encode('utf-8')) in results.stdout
+        assert random_bytes in results.stdout
+
+    marker_found = False
+    client_hello_count = 0
+    server_hello_count = 0 
+    finished_count = 0
+    marker = b"cf 21 ad 74 e5 9a 61 11 be 1d"
+
+    for results in client.get_results():
+        assert results.exception is None
+        assert results.exit_code == 0
+        assert marker in results.stdout 
+        client_hello_count = results.stdout.count(b'ClientHello')
+        server_hello_count = results.stdout.count(b'ServerHello')
+        finished_count = results.stdout.count(b'Finished')
+        
+    assert client_hello_count == 2
+    assert server_hello_count == 2
+    assert finished_count == 2
