@@ -19,7 +19,7 @@ multi_cipher = [Ciphers.AES256_SHA, Ciphers.ECDHE_ECDSA_AES256_SHA]
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", [Certificates.RSA_4096_SHA384, Certificates.ECDSA_384], ids=get_parameter_name)
 def test_s2n_server_low_latency(managed_process, multi_cipher, provider, protocol, certificate):
-    if not provider.supports_max_frag():
+    if provider is OpenSSL and 'openssl-1.0.2' in provider.get_version():
         pytest.skip('{} does not allow setting max fragmentation for packets'.format(provider))
 
     port = next(available_ports)
@@ -64,8 +64,9 @@ def test_s2n_server_low_latency(managed_process, multi_cipher, provider, protoco
 @pytest.mark.parametrize("certificate", [Certificates.RSA_4096_SHA384, Certificates.ECDSA_384], ids=get_parameter_name)
 @pytest.mark.parametrize("frag_len", [512, 2048, 8192, 12345, 16384], ids=get_parameter_name)
 def test_s2n_server_framented_data(managed_process, multi_cipher, provider, protocol, frag_len, certificate):
-    if not provider.supports_max_frag():
+    if provider is OpenSSL and 'openssl-1.0.2' in provider.get_version():
         pytest.skip('{} does not allow setting max fragmentation for packets'.format(provider))
+
     port = next(available_ports)
 
     random_bytes = data_bytes(65519)

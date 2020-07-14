@@ -50,9 +50,6 @@ class Provider(object):
         """
         raise NotImplementedError
 
-    @classmethod
-    def supports_max_frag(cls):
-        raise NotImplementedError
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
@@ -117,10 +114,6 @@ class S2N(Provider):
     def __init__(self, options: ProviderOptions):
         self.ready_to_send_input_marker = None
         Provider.__init__(self, options)
-
-    @classmethod
-    def supports_max_frag(cls):
-        return True
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
@@ -274,13 +267,6 @@ class OpenSSL(Provider):
             cmdline.append('-cipher')
 
         return cmdline + ciphers
-
-    @classmethod
-    def supports_max_frag(cls):
-        if 'openssl-1.0.2' in OpenSSL.get_version():
-            return False
-
-        return True
 
     @classmethod
     def get_version(cls):
