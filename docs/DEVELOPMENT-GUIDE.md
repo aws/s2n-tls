@@ -2,7 +2,7 @@
 
 If you are curious about the internals of s2n, or interested in contributing to
 s2n, this document is for you. If instead you are interested in using s2n in an application
-that you are developing, please see the accompanying [Usage Guide](https://github.com/awslabs/s2n/blob/master/docs/USAGE-GUIDE.md).
+that you are developing, please see the accompanying [Usage Guide](https://github.com/awslabs/s2n/blob/main/docs/USAGE-GUIDE.md).
 
 ## s2n's development principles
 
@@ -91,7 +91,7 @@ benefit is that functions can read quite declaratively. In the case of message
 parsers, the function contents can read almost like schemas of the message
 being parsed.
 
-A good example file for message parsing to look at is [tls/s2n_server_finished.c](https://github.com/awslabs/s2n/blob/master/tls/s2n_server_finished.c).
+A good example file for message parsing to look at is [tls/s2n_server_finished.c](https://github.com/awslabs/s2n/blob/main/tls/s2n_server_finished.c).
 From reading the file it should be reasonably clear that a server
 finished message consists just of S2N_TLS_FINISHED_LEN number of bytes, what
 the next state is and so on.
@@ -113,7 +113,7 @@ if (s2n_result_is_error(s2n_do_something(with_something_else))) {
 }
 ```
 
-is so common that [utils/s2n_safety.h](https://github.com/awslabs/s2n/blob/master/utils/s2n_safety.h) provides several macros for working with fallible functions. Notable macros include;
+is so common that [utils/s2n_safety.h](https://github.com/awslabs/s2n/blob/main/utils/s2n_safety.h) provides several macros for working with fallible functions. Notable macros include;
 
 ```c
 /**
@@ -130,7 +130,7 @@ is so common that [utils/s2n_safety.h](https://github.com/awslabs/s2n/blob/maste
 These macros should be used when calling functions you expect to succeed. Primarily these macros help save two lines that repeatedly clutter files, and secondarily they are very useful when developing and debugging code as it is easy to redefine the macro to implement a simple backtrace (even a simple printf will suffice, but a breakpoint is more usual).
 
 If a function does fail, it should use the `BAIL(errno)` macro provided for surfacing the error to an application.
-New error translations, and their human-readable translations can be defined in [error/s2n_errno.h](https://github.com/awslabs/s2n/blob/master/error/s2n_errno.h) and [error/s2n_errno.c](https://github.com/awslabs/s2n/blob/master/error/s2n_errno.c). When called, e.g.:
+New error translations, and their human-readable translations can be defined in [error/s2n_errno.h](https://github.com/awslabs/s2n/blob/main/error/s2n_errno.h) and [error/s2n_errno.c](https://github.com/awslabs/s2n/blob/main/error/s2n_errno.c). When called, e.g.:
 
 ```c
 BAIL(S2N_ERR_BAD_MESSAGE);
@@ -140,7 +140,7 @@ the macro will set s2n_errno correctly, as well as some useful debug strings, an
 
 ### Safety checking
 
-[utils/s2n_safety.h](https://github.com/awslabs/s2n/blob/master/utils/s2n_safety.h) provides several more convenience macros intended to make safety and bounds checking easier. There are checked versions of memcpy (`CHECKED_MEMCPY`) and memset (`CHECKED_MEMSET`), as well as predicate testers like `ENSURE`, `ENSURE_GTE`, `ENSURE_INCLUSIVE_RANGE`, `ENSURE_EXCLUSIVE_RANGE` for performing simple comparisons in a systematic, error-handled, way.
+[utils/s2n_safety.h](https://github.com/awslabs/s2n/blob/main/utils/s2n_safety.h) provides several more convenience macros intended to make safety and bounds checking easier. There are checked versions of memcpy (`CHECKED_MEMCPY`) and memset (`CHECKED_MEMSET`), as well as predicate testers like `ENSURE`, `ENSURE_GTE`, `ENSURE_INCLUSIVE_RANGE`, `ENSURE_EXCLUSIVE_RANGE` for performing simple comparisons in a systematic, error-handled, way.
 
 *Note*: In general, C preprocessor Macros with embedded control flow are a bad idea, but `GUARD`, `ENSURE`, and `BAIL` are so thoroughly used throughout s2n that it should be a clear and idiomatic pattern, almost forming a small domain specific language.
 
@@ -167,7 +167,7 @@ As discussed below, s2n rarely allocates resources, and so has nothing to clean 
 
 Branches can be a source of cognitive load, as they ask the reader to follow a path of thinking, while also remembering that there is another path to be explored. When branches are nested, they can often lead to impossible to grasp combinatorial explosions. s2n tries to systematically reduce the number of branches used in the code in several ways.
 
-Firstly, there are almost no ifdef calls in s2n. Ifdefs can be a particularly penalizing source of cognitive load. In addition to being a branch, they also ask the reader to mix state from two different languages (C, and the C preprocessor) and they tend to be associated with ugly rendering in IDEs and code formatters. In the few places where ifdef's are necessary, we use them in a careful way without compromising the integrity of the function. [tls/s2n_config.c](https://github.com/awslabs/s2n/blob/master/tls/s2n_config.c) is a good example. Rather than mixing the Apple and non-Apple implementations and cluttering one function with several ifdefs, there is a complete implementation of the timer functionality for each platform. Within the POSIX implementation, an ifdef and define are used to use the most precise clock type, but in a way that does not compromise readability.
+Firstly, there are almost no ifdef calls in s2n. Ifdefs can be a particularly penalizing source of cognitive load. In addition to being a branch, they also ask the reader to mix state from two different languages (C, and the C preprocessor) and they tend to be associated with ugly rendering in IDEs and code formatters. In the few places where ifdef's are necessary, we use them in a careful way without compromising the integrity of the function. [tls/s2n_config.c](https://github.com/awslabs/s2n/blob/main/tls/s2n_config.c) is a good example. Rather than mixing the Apple and non-Apple implementations and cluttering one function with several ifdefs, there is a complete implementation of the timer functionality for each platform. Within the POSIX implementation, an ifdef and define are used to use the most precise clock type, but in a way that does not compromise readability.
 
 Secondly, s2n generally branches in the case of failure, rather than success. So instead of creating a nest of if's:
 
@@ -217,15 +217,15 @@ There is also a brief set of other coding conventions:
 
 s2n is written in C99, a language which lacks a "standard" testing framework. Although there are some more well used C++ testing frameworks, s2n also targets some embedded platforms on which a C++ compiler is unavailable.
 
-Since testing and test-cases are absolutely mandatory for all s2n functionality, s2n includes its own small testing framework, defined in [tests/s2n_test.h](https://github.com/awslabs/s2n/blob/master/tests/s2n_test.h). The framework consists of 15 macros that allow you to start a test suite, which is a normal C application with a main() function, and to validate various expectations.
+Since testing and test-cases are absolutely mandatory for all s2n functionality, s2n includes its own small testing framework, defined in [tests/s2n_test.h](https://github.com/awslabs/s2n/blob/main/tests/s2n_test.h). The framework consists of 15 macros that allow you to start a test suite, which is a normal C application with a main() function, and to validate various expectations.
 
-Unit tests are added as .c files in [tests/unit/](https://github.com/awslabs/s2n/blob/master/tests/unit/). A simple example to look at is [tests/unit/s2n_stuffer_base64_test.c](https://github.com/awslabs/s2n/blob/master/tests/unit/s2n_stuffer_base64_test.c). The tests are started with BEGIN_TEST(), and expectations are tested with EXPECT_SUCCESS and EXPECT_EQUAL before exiting with an END_TEST call.
+Unit tests are added as .c files in [tests/unit/](https://github.com/awslabs/s2n/blob/main/tests/unit/). A simple example to look at is [tests/unit/s2n_stuffer_base64_test.c](https://github.com/awslabs/s2n/blob/main/tests/unit/s2n_stuffer_base64_test.c). The tests are started with BEGIN_TEST(), and expectations are tested with EXPECT_SUCCESS and EXPECT_EQUAL before exiting with an END_TEST call.
 
 The test framework will take care of compiling and executing the tests and indicates success or failure with green or red text in the console.
 
 In addition to fully covering functionality in the correct cases, s2n tests are also expected to include adversarial or "negative" test cases. For example, the tests performed on record encryption validate that s2n is tamper resistant by attempting to actually tamper with records. Similarly, we validate that our memory handling routines cannot be over-filled by attempting to over-fill them.
 
-To avoid adding unneeded code to the production build of s2n, there is also a small test library defined at [tests/testlib/](https://github.com/awslabs/s2n/blob/master/tests/testlib/) which includes routines useful for test cases. For example, there is a hex parser and emitter, which is useful for defining network data in test cases, but not needed in production.
+To avoid adding unneeded code to the production build of s2n, there is also a small test library defined at [tests/testlib/](https://github.com/awslabs/s2n/blob/main/tests/testlib/) which includes routines useful for test cases. For example, there is a hex parser and emitter, which is useful for defining network data in test cases, but not needed in production.
 
 Unit tests are run automatically with `make`. To run a subset of the unit tests, set the `UNIT_TESTS` environment variable with the unit test name(s). For example:
 ```
@@ -247,7 +247,7 @@ struct s2n_blob {
 };
 ```
 
-Functions that handle memory ranges are expected to at least use blobs (stuffers are better though, as we'll see). A blob can be initialized with an existing memory buffer using **s2n_blob_init**, but  [utils/s2n_mem.h](https://github.com/awslabs/s2n/blob/master/utils/s2n_mem.h) also defines routines for dynamically allocated blobs. For handling user data, we prefer the latter, as s2n prevents the memory regions from being swapped to disk and from showing up in core files (where supported).
+Functions that handle memory ranges are expected to at least use blobs (stuffers are better though, as we'll see). A blob can be initialized with an existing memory buffer using **s2n_blob_init**, but  [utils/s2n_mem.h](https://github.com/awslabs/s2n/blob/main/utils/s2n_mem.h) also defines routines for dynamically allocated blobs. For handling user data, we prefer the latter, as s2n prevents the memory regions from being swapped to disk and from showing up in core files (where supported).
 
 ### s2n_stuffer: a streaming buffer
 
@@ -358,7 +358,7 @@ Every connection is associated with an s2n_connection structure. The details of 
 
 When a TLS connection is being started, the first communication consists of handshake messages. The client sends the first message (a client hello), and then the server replies (with a server hello), and so on. Because a server must wait for a client and vice versa, this phase of a TLS connection is not full-duplex. To save on memory, s2n uses a single stuffer for both incoming and outgoing handshake messages and it is located as s2n_connection->handshake.io (which is a growable stuffer).
 
-Borrowing another trick from functional programming, the state machine for handling handshake messages is implemented using a table of function pointers, located in [tls/s2n_handshake_io.c](https://github.com/awslabs/s2n/blob/master/tls/s2n_handshake_io.c).
+Borrowing another trick from functional programming, the state machine for handling handshake messages is implemented using a table of function pointers, located in [tls/s2n_handshake_io.c](https://github.com/awslabs/s2n/blob/main/tls/s2n_handshake_io.c).
 
 ```c
 static struct s2n_handshake_action state_machine[] = {
@@ -386,7 +386,7 @@ One detail we've skipped over so far is that handshake messages are encapsulated
 
 ![TLS layers](images/s2n_tls_layers.png "s2n TLS layers")
 
-In the outbound direction, s2n never coalesces multiple messages into a single record, so writing a handshake message is a simple matter of fragmenting the handshake message if necessary and writing the records. In the inbound direction, the small state machine in s2n_handshake_io.c takes care of any fragmentation and coalescing. See [tests/unit/s2n_fragmentation_coalescing_test.c](https://github.com/awslabs/s2n/blob/master/tests/unit/s2n_fragmentation_coalescing_test.c) for our test cases covering the logic too.
+In the outbound direction, s2n never coalesces multiple messages into a single record, so writing a handshake message is a simple matter of fragmenting the handshake message if necessary and writing the records. In the inbound direction, the small state machine in s2n_handshake_io.c takes care of any fragmentation and coalescing. See [tests/unit/s2n_fragmentation_coalescing_test.c](https://github.com/awslabs/s2n/blob/main/tests/unit/s2n_fragmentation_coalescing_test.c) for our test cases covering the logic too.
 
 To perform all of this, the s2n_connection structure has a few more internal stuffers:
 

@@ -2,11 +2,11 @@
 
 s2n is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority. It is released and licensed under the Apache License 2.0. 
 
-[![Build Status](https://codebuild.us-west-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiQkcyWjA5cThqZHF3ZGR4enpYN1V4RlAwdnl3Rzk1a2lUNzB5S0JHNUxreTRLUEthbHRaZjJ0M0kvLzJrK3U3SmhtVEhOVG9qMlowenhDWXZWWnFhMU53PSIsIml2UGFyYW1ldGVyU3BlYyI6IldNeTdSak5VZ1M1WjlZRVEiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)](https://github.com/awslabs/s2n/)
+[![Build Status](https://codebuild.us-west-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiMndlTzJNbHVxWEo3Nm82alp4eGdGNm4rTWdxZDVYU2VTbitIR0ZLbHVtcFFGOW5majk5QnhqaUp3ZEkydG1ueWg0NGlhRE43a1ZnUzZaQTVnSm91TzFFPSIsIml2UGFyYW1ldGVyU3BlYyI6IlJLbW42NENlYXhJNy80QnYiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=main)](https://github.com/awslabs/s2n/)
 [![Apache 2 License](https://img.shields.io/github/license/awslabs/s2n.svg)](http://aws.amazon.com/apache-2-0/)
 [![C99](https://img.shields.io/badge/language-C99-blue.svg)](http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf)
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/awslabs/s2n.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/awslabs/s2n/context:cpp)
-[![codecov](https://codecov.io/gh/awslabs/s2n/branch/master/graph/badge.svg)](https://codecov.io/gh/awslabs/s2n)
+[![codecov](https://codecov.io/gh/awslabs/s2n/branch/main/graph/badge.svg)](https://codecov.io/gh/awslabs/s2n)
 [![Github forks](https://img.shields.io/github/forks/awslabs/s2n.svg)](https://github.com/awslabs/s2n/network)
 [![Github stars](https://img.shields.io/github/stars/awslabs/s2n.svg)](https://github.com/awslabs/s2n/stargazers)
 [![Join the chat at https://gitter.im/awslabs/s2n](https://badges.gitter.im/awslabs/s2n.svg)](https://gitter.im/awslabs/s2n?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -81,7 +81,7 @@ int bytes_written;
 bytes_written = s2n_send(conn, "Hello World", sizeof("Hello World"), &blocked);
 ```
 
-For details on building the s2n library and how to use s2n in an application you are developing, see the [API Reference](https://github.com/awslabs/s2n/blob/master/docs/USAGE-GUIDE.md).
+For details on building the s2n library and how to use s2n in an application you are developing, see the [API Reference](https://github.com/awslabs/s2n/blob/main/docs/USAGE-GUIDE.md).
 
 ## s2n features
 
@@ -145,7 +145,7 @@ AWS Security via our [vulnerability reporting page](http://aws.amazon.com/securi
 If you package or distribute s2n, or use s2n as part of a large multi-user service, you may be eligible for pre-notification of future s2n releases. Please contact s2n-pre-notification@amazon.com.  
 
 ## Contributing to s2n
-If you are interested in contributing to s2n, please see our [development guide](https://github.com/awslabs/s2n/blob/master/docs/DEVELOPMENT-GUIDE.md).
+If you are interested in contributing to s2n, please see our [development guide](https://github.com/awslabs/s2n/blob/main/docs/DEVELOPMENT-GUIDE.md).
 
 ## Language Bindings for s2n
-See our [language bindings list](https://github.com/awslabs/s2n/blob/master/docs/BINDINGS.md) for language bindings for s2n that we're aware of. 
+See our [language bindings list](https://github.com/awslabs/s2n/blob/main/docs/BINDINGS.md) for language bindings for s2n that we're aware of. 
