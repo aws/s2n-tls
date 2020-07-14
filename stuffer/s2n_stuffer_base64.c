@@ -94,11 +94,11 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
         uint8_t value3 = b64_inverse[o.data[2]];
         uint8_t value4 = b64_inverse[o.data[3]];
 
-        /* Terminate cleanly if we encounter a non-base64 character */
+        /* We assume the entire thing is base64 data, thus, terminate cleanly if we encounter a non-base64 character */
         if (value1 == 255) {
             /* Undo the read */
-            stuffer->read_cursor -= pad_len;
-            return S2N_SUCCESS;
+            stuffer->read_cursor -= 4;
+            S2N_ERROR(S2N_ERR_INVALID_BASE64);
         }
 
         /* The first two characters can never be '=' and in general
