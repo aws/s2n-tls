@@ -679,7 +679,7 @@ struct s2n_cipher_suite s2n_dhe_rsa_with_chacha20_poly1305_sha256 = /* 0xCC,0xAA
     .minimum_required_tls_version = S2N_TLS12,
 };
 
-/* From https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-01 */
+/* From https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
 
 struct s2n_cipher_suite s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384 = /* 0xFF, 0x0C */ {
     .available = 0,

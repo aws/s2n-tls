@@ -107,7 +107,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2019-11", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
         EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
         EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2020-02", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2020-05", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2020-07", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
 #endif
 
         security_policy = NULL;
