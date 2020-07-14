@@ -8,13 +8,15 @@ from common import ProviderOptions, Protocols, data_bytes, Curves
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name
-   
+
+
 # List of keyshares for hello retry requests client side test.
 HRR_CLIENT_KEYSHARES = [
     ["-K", "none"],
     ["-K", "secp256r1"],
     ["-K", "secp256r1:secp384r1"],
 ]
+
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
