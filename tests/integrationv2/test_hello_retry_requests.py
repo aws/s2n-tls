@@ -3,12 +3,19 @@ import os
 import pytest
 import time
 
-from configuration import available_ports, TLS13_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, HRR_CLIENT_KEYSHARES
+from configuration import available_ports, TLS13_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS
 from common import ProviderOptions, Protocols, data_bytes, Curves
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name
    
+# List of keyshares for hello retry requests client side test.
+HRR_CLIENT_KEYSHARES = [
+    ["-K", "none"],
+    ["-K", "secp256r1"],
+    ["-K", "secp256r1:secp384r1"],
+]
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
@@ -50,27 +57,15 @@ def test_hrr_with_s2n_as_client(managed_process, cipher, provider, curve, protoc
         assert results.exit_code == 0
         assert bytes("Curve: {}".format("x25519").encode('utf-8')) in results.stdout
 
-    marker_found = False
-    supported_groups_found = False
-    shared_group_found = False  
-    data_to_send_found = False 
     marker_part1 = b"cf 21 ad 74 e5"
     marker_part2 = b"9a 61 11 be 1d"
 
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
-
-        if marker_part1 in results.stdout and marker_part2 in results.stdout:
-           marker_found = True
+        assert marker_part1 in results.stdout and marker_part2 in results.stdout
         if 'none' in keyshare:
             assert b'"key share" (id=51), len=2\n0000 - 00 00' in results.stdout
-        if b'Supported Elliptic Groups: X25519:P-256:P-384' in results.stdout:
-            supported_groups_found = True 
-        if bytes("Shared Elliptic groups: {}".format(server_options.curve).encode('utf-8')) in results.stdout:
-            shared_group_found = True 
-        if random_bytes in results.stdout:
-            data_to_send_found = True 
-        
-    assert marker_found and supported_groups_found and shared_group_found and data_to_send_found
-
+        assert b'Supported Elliptic Groups: X25519:P-256:P-384' in results.stdout
+        assert bytes("Shared Elliptic groups: {}".format(server_options.curve).encode('utf-8')) in results.stdout
+        assert random_bytes in results.stdout
