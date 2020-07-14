@@ -67,26 +67,27 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len)
 
 int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)
 {
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    PRECONDITION_POSIX(S2N_OBJECT_PTR_IS_WRITABLE(stuffer));
     struct stat st = {0};
 
     ENSURE_POSIX(fstat(rfd, &st) < 0, S2N_ERR_FSTAT);
 
     ENSURE_POSIX(st.st_size > 0, S2N_FAILURE);
     ENSURE_POSIX(st.st_size <= SIZE_MAX, S2N_FAILURE);
-    stuffer->blob.data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, rfd, 0);
-    ENSURE_POSIX(stuffer->blob.data == MAP_FAILED, S2N_ERR_MMAP);
+    uint8_t *map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, rfd, 0);
+    ENSURE_POSIX(map == MAP_FAILED, S2N_ERR_MMAP);
 
     ENSURE_POSIX(st.st_size >= 0, S2N_FAILURE);
     ENSURE_POSIX(st.st_size <= UINT32_MAX, S2N_FAILURE);
-    stuffer->blob.size = (uint32_t)st.st_size;
 
-    return s2n_stuffer_init(stuffer, &stuffer->blob);
+    struct s2n_blob b = {0};
+    ENSURE_POSIX(s2n_blob_init(&b, map, (uint32_t)st.st_size), S2N_FAILURE);
+    return s2n_stuffer_init(stuffer, &b);
 }
 
 int s2n_stuffer_alloc_ro_from_file(struct s2n_stuffer *stuffer, const char *file)
 {
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    PRECONDITION_POSIX(S2N_OBJECT_PTR_IS_WRITABLE(stuffer));
     notnull_check(file);
     int fd;
 
