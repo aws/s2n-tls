@@ -125,7 +125,6 @@ def test_hrr_with_s2n_as_server(managed_process, cipher, provider, curve, protoc
         assert bytes("Curve: {}".format(get_curve_name(curve)).encode('utf-8')) in results.stdout
         assert random_bytes in results.stdout
 
-    marker_found = False
     client_hello_count = 0
     server_hello_count = 0 
     finished_count = 0
