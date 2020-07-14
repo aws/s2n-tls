@@ -34,6 +34,12 @@ ALL_TEST_CURVES = [
     Curves.P384,
 ]
 
+# List of keyshares for Hello Retr Requests test.
+HRR_CLIENT_KEYSHARES = [
+    ["-K", "none"],
+    ["-K", "secp256r1"],
+    ["-K", "secp256r1:secp384r1"],
+]
 
 # List of all certificates that will be tested.
 ALL_TEST_CERTS = [
