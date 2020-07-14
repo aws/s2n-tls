@@ -21,14 +21,16 @@ def managed_process():
     """
     processes = []
 
-    def _fn(provider_class: Provider, options: ProviderOptions, timeout=5):
+    def _fn(provider_class: Provider, options: ProviderOptions, timeout=5, send_marker_list=None, close_marker=None):
         provider = provider_class(options)
         cmd_line = provider.get_cmd_line()
+        if send_marker_list is not None:
+            provider.ready_to_send_input_marker = send_marker_list
         p = ManagedProcess(cmd_line,
                 provider.set_provider_ready,
                 wait_for_marker=provider.ready_to_test_marker,
-                ready_to_send=provider.ready_to_send_input_marker,
-                ready_to_close=options.ready_to_close,
+                send_marker_list=provider.ready_to_send_input_marker,
+                close_marker=close_marker,
                 data_source=options.data_to_send,
                 timeout=timeout,
                 env_overrides=options.env_overrides)

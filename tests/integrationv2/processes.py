@@ -20,7 +20,7 @@ class _processCommunicator(object):
     TLS clients (OpenSSL derivatives) to shut down before the handshake is complete.
 
     To prevent a premature shutdown, we need to wait until the handshake is complete
-    before writing to stdin. To accomplish this we `poll` stdout for a ready_to_send
+    before writing to stdin. To accomplish this we `poll` stdout for a send
     marker. Once that marker is found, we can write input data to stdin. The
     benefit of using `poll` and `os.read` is that we get non-blocking IO. Our timeouts
     are much more reliable, and we don't risk deadlocking on a readline() call which
@@ -61,7 +61,7 @@ class _processCommunicator(object):
 
         return (stdout, stderr)
 
-    def communicate(self, input_data=None, ready_to_send=None, ready_to_close=None, timeout=None):
+    def communicate(self, input_data=None, send_marker_list=None, close_marker=None, timeout=None):
         """
         Communicates with the managed process. If ready_to_send is set, input_data will not be sent
         until the marker is seen.
@@ -69,8 +69,8 @@ class _processCommunicator(object):
         This method acts very similar to the Popen.communicate method. The only difference is the
         ready_to_send marker.
         """
-        self.ready_to_send = ready_to_send
-        self.ready_to_close = ready_to_close
+        self.send_marker_list = send_marker_list
+        self.close_marker = close_marker
         self.wait_for_marker = None
         stdout = None
         stderr = None
@@ -112,16 +112,12 @@ class _processCommunicator(object):
         stdout = self._fileobj2output[self.proc.stdout]
         stderr = self._fileobj2output[self.proc.stderr]
 
-        chunk_size = _PIPE_BUF
-        # Data destined for stdin is stored in a memoryview and the offset
-        # will be used incase multiple writes are needed.
-        if input_data:
-            input_view = memoryview(input_data)
-            # Reduce the size of the chunk if we are sending a connected command
-            if chr(input_data[0]) == 'K' or chr(input_data[0]) == 'k':
-                chunk_size = 1
+        input_data_len = 0
         input_data_offset = 0
         input_data_sent = False
+        send_marker = None
+        if self.send_marker_list:
+            send_marker = self.send_marker_list.pop(0)
 
         # Keeping track of the original timeout value, and the expected end
         # time of the operation allow us to timeout while reads/writes are
@@ -157,19 +153,18 @@ class _processCommunicator(object):
                     # marker is found.
                     if key.fileobj is self.proc.stdin:
                         chunk = input_view[input_data_offset :
-                                           input_data_offset + chunk_size]
-                        # Reset chunk_size after writing a connected command
-                        chunk_size = _PIPE_BUF
+                                           input_data_offset + _PIPE_BUF]
                         try:
                             input_data_offset += os.write(key.fd, chunk)
-                            time.sleep(0.001)
-
                         except BrokenPipeError:
                             selector.unregister(key.fileobj)
                         else:
-                            if input_data_offset >= len(input_data):
+                            if input_data_offset >= input_data_len:
                                 selector.unregister(key.fileobj)
                                 input_data_sent = True
+                                input_data_offset = 0
+                                if self.send_marker_list:
+                                    send_marker = self.send_marker_list.pop(0)
                     elif key.fileobj in (self.proc.stdout, self.proc.stderr):
                         data = os.read(key.fd, 32768)
                         if not data:
@@ -182,9 +177,13 @@ class _processCommunicator(object):
                         # If we are looking for, and find, the ready-to-send marker, then
                         # register STDIN to receive events. If there is no data to send,
                         # just mark input_send as true so we can close out STDIN.
-                        if self.ready_to_send is not None and self.ready_to_send in str(data):
+                        if send_marker is not None and send_marker in str(data):
                             if self.proc.stdin and input_data:
                                 selector.register(self.proc.stdin, selectors.EVENT_WRITE)
+                                message = input_data.pop(0)
+                                # Data destined for stdin is stored in a memoryview
+                                input_view = memoryview(message)
+                                input_data_len = len(message)
                             else:
                                 input_data_sent = True
 
@@ -196,10 +195,7 @@ class _processCommunicator(object):
                 # If we have finished sending all our input, and have received the
                 # ready-to-send marker, we can close out stdin.
                 if self.proc.stdin and input_data_sent:
-                    if self.ready_to_close is None:
-                        input_data_sent = None
-                        self.proc.stdin.close()
-                    elif self.ready_to_close in str(data):
+                    if self.close_marker is None or (self.close_marker and self.close_marker in str(data)):
                         input_data_sent = None
                         self.proc.stdin.close()
 
@@ -245,7 +241,7 @@ class ManagedProcess(threading.Thread):
     The stdin/stdout/stderr and exist code a monitored and results
     are made available to the caller.
     """
-    def __init__(self, cmd_line, provider_set_ready_condition, wait_for_marker=None, ready_to_send=None, ready_to_close=None, timeout=5, data_source=None, env_overrides=dict()):
+    def __init__(self, cmd_line, provider_set_ready_condition, wait_for_marker=None, send_marker_list=None, close_marker=None, timeout=5, data_source=None, env_overrides=dict()):
         threading.Thread.__init__(self)
 
         proc_env = os.environ.copy()
@@ -273,19 +269,16 @@ class ManagedProcess(threading.Thread):
         # Indicates the process has completed some initial setup and is ready for testing
         self.ready_to_test = wait_for_marker
 
-        self.data_source = None
-        self.ready_to_send = None
-        self.ready_to_close = None
-        if ready_to_close is not None:
-            self.ready_to_close = ready_to_close
-        if data_source is not None:
-            # If no data source is provided, then we never need to
-            # set the ready_to_send marker.
-            self.data_source = data_source
-            self.ready_to_send = ready_to_send
-
+        self.close_marker = close_marker
         self.data_source = data_source
-        self.ready_to_send = ready_to_send
+        self.send_marker_list = send_marker_list
+
+        if data_source is not None:
+            if type(data_source) is not list:
+                self.data_source = [data_source]
+        if send_marker_list is not None:
+            if type(send_marker_list) is not list:
+                self.send_marker_list = [send_marker_list]
 
     def run(self):
         with self.results_condition:
@@ -307,7 +300,7 @@ class ManagedProcess(threading.Thread):
 
             proc_results = None
             try:
-                proc_results = communicator.communicate(input_data=self.data_source, ready_to_send=self.ready_to_send, ready_to_close=self.ready_to_close, timeout=self.timeout)
+                proc_results = communicator.communicate(input_data=self.data_source, send_marker_list=self.send_marker_list, close_marker=self.close_marker, timeout=self.timeout)
                 self.results = Results(proc_results[0], proc_results[1], proc.returncode, None)
             except subprocess.TimeoutExpired as ex:
                 proc.kill()

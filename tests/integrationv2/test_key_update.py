@@ -9,7 +9,6 @@ from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version
 
 
-
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 # These are the only ciphers that utilize the key update feature
 @pytest.mark.parametrize("cipher", [Ciphers.AES128_GCM_SHA256, Ciphers.AES256_GCM_SHA384])
@@ -22,6 +21,10 @@ def test_s2n_server_key_update(managed_process, cipher, curve, certificate):
     update_requested = b"K"
     server_data = data_bytes(10)
     client_data = data_bytes(10)
+    starting_marker = "Verify return code"
+    key_update_marker = "KEYUPDATE"
+
+    send_marker_list = [starting_marker, key_update_marker]
 
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
@@ -29,24 +32,21 @@ def test_s2n_server_key_update(managed_process, cipher, curve, certificate):
         port=port,
         cipher=cipher,
         curve=curve,
-        data_to_send=update_requested + client_data,
+        data_to_send= [update_requested, client_data],
         insecure=True,
-        protocol=Protocols.TLS13,
-        ready_to_close=str(server_data))
+        protocol=Protocols.TLS13)
 
     server_options = copy.copy(client_options)
     
-    server_options.mode = "server"
+    server_options.mode = Provider.ServerMode
     server_options.key = certificate.key
     server_options.cert = certificate.cert
-    server_options.ready_to_send = str(client_data)
-    server_options.data_to_send = server_data
-    server_options.ready_to_close=None
+    server_options.data_to_send = [server_data]
 
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.
-    server = managed_process(S2N, server_options, timeout=5)
-    client = managed_process(OpenSSL, client_options, timeout=5)
+    server = managed_process(S2N, server_options, send_marker_list=[str(client_data)], timeout=5)
+    client = managed_process(OpenSSL, client_options, send_marker_list=send_marker_list, close_marker=str(server_data), timeout=5)
 
     # The client will be one of all supported providers. We
     # just want to make sure there was no exception and that
@@ -54,7 +54,7 @@ def test_s2n_server_key_update(managed_process, cipher, curve, certificate):
     for results in client.get_results():
         assert results.exception is None
         assert results.exit_code == 0
-        assert b"KEYUPDATE" in results.stderr
+        assert key_update_marker in str(results.stderr)
         assert server_data in results.stdout
 
     # The server is always S2N in this test, so we can examine

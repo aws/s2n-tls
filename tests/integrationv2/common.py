@@ -357,6 +357,7 @@ class ProviderOptions(object):
             reconnect=None,
             verify_hostname=None,
             server_name=None,
+<<<<<<< HEAD
             protocol=None,
 <<<<<<< HEAD
             env_overrides=dict()):
@@ -364,6 +365,9 @@ class ProviderOptions(object):
             ready_to_send=None,
             ready_to_close=None):
 >>>>>>> Added key update integv2 test
+=======
+            protocol=None):
+>>>>>>> Responding to PR comments
 
         # Client or server
         self.mode = mode
