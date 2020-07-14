@@ -27,7 +27,7 @@ void s2n_stuffer_alloc_ro_from_file_harness() {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
-    char *file = nondet_bool() ? ensure_c_str_is_allocated(MAX_STRING_LEN) : NULL;
+    char *file = nondet_c_str_is_allocated(MAX_STRING_LEN);
 
     /* Store a byte from the stuffer to compare if the write fails */
     struct s2n_stuffer old_stuffer = *stuffer;
@@ -38,6 +38,7 @@ void s2n_stuffer_alloc_ro_from_file_harness() {
     if (s2n_stuffer_alloc_ro_from_file(stuffer, file) == S2N_SUCCESS) {
         assert(s2n_stuffer_is_valid(stuffer));
     } else {
+        /* The function may failed while preparing blob, so we can't assert its equivalence. */
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
         assert(stuffer->write_cursor == old_stuffer.write_cursor);
         assert(stuffer->high_water_mark == old_stuffer.high_water_mark);

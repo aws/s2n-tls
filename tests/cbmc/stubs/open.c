@@ -18,7 +18,10 @@
 #include <cbmc_proof/proof_allocators.h>
 #include <sys/fcntl.h>
 
-int open(const char *path, int, ...) {
+#include <stdarg.h>
+
+int open(const char *path, int flag, ...) {
     assert(path != NULL);
+    assert(flag == O_RDONLY || flag == O_WRONLY || flag == O_RDWR);
     return 0;
 }

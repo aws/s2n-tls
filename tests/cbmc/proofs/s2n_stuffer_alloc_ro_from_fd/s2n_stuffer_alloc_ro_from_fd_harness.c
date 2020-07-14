@@ -38,6 +38,7 @@ void s2n_stuffer_alloc_ro_from_fd_harness() {
     if (s2n_stuffer_alloc_ro_from_fd(stuffer, rfd) == S2N_SUCCESS) {
         assert(s2n_stuffer_is_valid(stuffer));
     } else {
+        /* The function may failed while preparing blob, so we can't assert its equivalence. */
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
         assert(stuffer->write_cursor == old_stuffer.write_cursor);
         assert(stuffer->high_water_mark == old_stuffer.high_water_mark);

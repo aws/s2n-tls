@@ -17,10 +17,8 @@
 #include <cbmc_proof/nondet.h>
 #include <sys/stat.h>
 
-off_t nondet_off_t();
-
 int fstat(int fd, struct stat *buf) {
-    assert(buf != NULL);
+    assert(__CPROVER_w_ok(buf, sizeof(*buf)));
     buf->st_size = nondet_off_t();
     return nondet_bool() ? 0 : -1;
 }
