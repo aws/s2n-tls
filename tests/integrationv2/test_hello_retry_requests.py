@@ -9,32 +9,48 @@ from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name
 
-def verify_hello_retry_request(server):  
+def get_curve_name(curve):
+    if curve.name == "X25519":
+       return "x25519"
+    elif curve.name == "P-256":
+        return "secp256r1"
+    elif curve.name == "P-384":
+        return "secp384r1"
+    else:
+       return None
+   
+def verify_hello_retry_request_client(curve_name, client):
+    # The client should connect and return without error
+    for results in client.get_results():
+        assert results.exception is None
+        assert results.exit_code == 0
+        if bytes("Curve: {}".format(curve_name).encode('utf-8')) in results.stdout:
+            return True 
+    return False 
+
+def verify_hello_retry_request_server(random_bytes, curve, server):
     marker_found = False
-    bytes_found = False 
-    client_hello_count = 0
-    server_hello_count = 0 
-    finished_count = 0
-    marker = b"cf 21 ad 74 e5 9a 61 11 be 1d"
+    supported_groups_found = False
+    shared_group_found = False  
+    data_to_send_found = False 
+    marker_part1 = b"cf 21 ad 74 e5"
+    marker_part2 = b"9a 61 11 be 1d"
 
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
 
-        if marker in results.stdout:
-            marker_found = True
-        if b'client hello' in results.stdout:
-            client_hello_count += 1
-        if b'server hello' in results.stdout:
-            server_hello_count += 1
-        if b'finished' in results.stdout:
-            finished_count += 1
-        if server.data_to_send in results.stdout:
-            bytes_found = True
-        if marker_found and client_hello_count == 2 and server_hello_count == 2 and finished_count == 2 and bytes_found:
-            return True
-
-    return False
+        if marker_part1 in results.stdout and marker_part2 in results.stdout:
+           marker_found = True
+        if b'Supported Elliptic Groups: X25519:P-256:P-384' in results.stdout:
+            supported_groups_found = True 
+        if bytes("Shared Elliptic groups: {}".format(curve).encode('utf-8')) in results.stdout:
+            shared_group_found = True 
+        if random_bytes in results.stdout:
+            data_to_send_found = True 
+        if marker_found and supported_groups_found and shared_group_found and data_to_send_found:
+            return True 
+    return False 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
@@ -45,7 +61,7 @@ def verify_hello_retry_request(server):
 def test_hrr_with_empty_keyshare(managed_process, cipher, provider, curve, protocol, certificate):
     port = next(available_ports)
 
-    random_bytes = data_bytes(24)
+    random_bytes = data_bytes(64)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
         host="localhost",
@@ -69,19 +85,19 @@ def test_hrr_with_empty_keyshare(managed_process, cipher, provider, curve, proto
     server = managed_process(provider, server_options, timeout=5)
     client = managed_process(S2N, client_options, timeout=5)
 
-    # The client should connect and return without error
-    for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-
-    assert verify_hello_retry_request(server) is True
+    curve_name = get_curve_name(curve)
+    assert verify_hello_retry_request_client(curve_name, client) is True 
+    assert verify_hello_retry_request_server(random_bytes, curve, server) is True 
+ 
+    for results in server.get_results():
+        assert b'"key share" (id=51), len=2\n0000 - 00 00' in results.stdout
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
-def test_hrr_with_single_keyshare(managed_process, cipher, provider, curve, protocol, certificate):
+def test_hrr_with_single_and_multiple_keyshares(managed_process, cipher, provider, protocol, certificate):
     port = next(available_ports)
 
     random_bytes = data_bytes(64)
@@ -95,69 +111,26 @@ def test_hrr_with_single_keyshare(managed_process, cipher, provider, curve, prot
         extra_flags=["-K","secp256r1"],
         protocol=protocol)
     
-    server_options = ProviderOptions(
-        mode=Provider.ServerMode,
-        host="localhost",
-        port=port,
-        cipher=cipher,
-        curve=Curves.X25519,
-        protocol=protocol,
-        data_to_send=None,
-        insecure=True,
-        key=certificate.key,
-        cert=certificate.cert)
+    server_options = copy.copy(client_options)
+    server_options.data_to_send = None
+    server_options.mode = Provider.ServerMode
+    server_options.key = certificate.key
+    server_options.cert = certificate.cert
+    server_options.extra_flags = None
+    server_options.curve = Curves.X25519
 
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.
     server = managed_process(provider, server_options, timeout=5)
     client = managed_process(S2N, client_options, timeout=5)
 
-    # The client should connect and return without error
-    for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+    assert verify_hello_retry_request_client("x25519", client) is True 
+    assert verify_hello_retry_request_server(random_bytes, Curves.X25519, server) is True 
 
-    assert verify_hello_retry_request(server) is True
+    client_options.extra_flags = ["-K","secp256r1:secp384r1"]
 
-@pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [OpenSSL])
-@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
-def test_hrr_with_multiple_keyshare(managed_process, cipher, provider, curve, protocol, certificate):
-    port = next(available_ports)
-
-    random_bytes = data_bytes(64)
-    client_options = ProviderOptions(
-        mode=Provider.ClientMode,
-        host="localhost",
-        port=port,
-        cipher=cipher,
-        data_to_send=random_bytes,
-        insecure=True,
-        extra_flags=["-K","secp256r1:secp384r1"],
-        protocol=protocol)
-    
-    server_options = ProviderOptions(
-        mode=Provider.ServerMode,
-        host="localhost",
-        port=port,
-        cipher=cipher,
-        curve=Curves.X25519,
-        protocol=protocol,
-        data_to_send=None,
-        insecure=True,
-        key=certificate.key,
-        cert=certificate.cert)
-
-    # Passing the type of client and server as a parameter will
-    # allow us to use a fixture to enumerate all possibilities.
     server = managed_process(provider, server_options, timeout=5)
     client = managed_process(S2N, client_options, timeout=5)
 
-    # The client should connect and return without error
-    for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-
-    assert verify_hello_retry_request(server) is True
+    assert verify_hello_retry_request_client("x25519", client) is True 
+    assert verify_hello_retry_request_server(random_bytes, Curves.X25519, server) is True
