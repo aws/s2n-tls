@@ -358,7 +358,12 @@ class ProviderOptions(object):
             verify_hostname=None,
             server_name=None,
             protocol=None,
+<<<<<<< HEAD
             env_overrides=dict()):
+=======
+            ready_to_send=None,
+            ready_to_close=None):
+>>>>>>> Added key update integv2 test
 
         # Client or server
         self.mode = mode

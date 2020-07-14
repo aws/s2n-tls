@@ -22,7 +22,7 @@ class Provider(object):
         # If the test should wait for a specific output message before sending
         # data, put that message in ready_to_send_input_marker
         self.ready_to_send_input_marker = None
-
+        self.ready_to_close = None
         # Allows users to determine if the provider is ready to begin testing
         self._provider_ready_condition = threading.Condition()
         self._provider_ready = False
@@ -185,6 +185,12 @@ class S2N(Provider):
         return cmd_line
 
     def setup_server(self):
+
+        # This is what s2n server is looking for before it is ready to send data
+        if self.options.ready_to_send is not None:
+            self.ready_to_send_input_marker = self.options.ready_to_send
+        if self.options.data_to_send is not None:
+            self.data_to_send = self.options.data_to_send
         """
         Using the passed ProviderOptions, create a command line.
         """
@@ -316,6 +322,9 @@ class OpenSSL(Provider):
     def setup_client(self):
         # s_client prints this message before it is ready to send/receive data
         self.ready_to_send_input_marker = 'Verify return code'
+
+        if self.options.ready_to_close is not None:
+            self.ready_to_close = self.options.ready_to_close
 
         cmd_line = ['openssl', 's_client']
         cmd_line.extend(['-connect', '{}:{}'.format(self.options.host, self.options.port)])

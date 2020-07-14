@@ -28,6 +28,7 @@ def managed_process():
                 provider.set_provider_ready,
                 wait_for_marker=provider.ready_to_test_marker,
                 ready_to_send=provider.ready_to_send_input_marker,
+                ready_to_close=options.ready_to_close,
                 data_source=options.data_to_send,
                 timeout=timeout,
                 env_overrides=options.env_overrides)
