@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - main
 jobs:
   build:
     # This should only run in one place.
