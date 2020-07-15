@@ -180,7 +180,6 @@ async def main():
         logging.error(
             "Failed to configure the following proofs:\n%s", "\n".join(
                 [str(f) for f in counter["fail"]]))
-        sys.exit(1)
 
     if not args.no_standalone:
         run_build(litani, args.parallel_jobs, args.proofs)
