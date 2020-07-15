@@ -613,7 +613,7 @@ int main(int argc, char **argv)
                 &s2n_kyber_512_r2
         };
 
-        for (int i = 0; i < s2n_array_len(kems); i++) {
+        for (size_t i = 0; i < s2n_array_len(kems); i++) {
             kem_extension_size kem_id = kem_extensions[i];
             const struct s2n_kem *returned_kem = NULL;
 

@@ -29,7 +29,7 @@ int main(int argc, char **argv)
             "KMS-PQ-TLS-1-0-2020-07"
     };
 
-    for (int policy_index = 0; policy_index < s2n_array_len(pq_security_policies); policy_index++) {
+    for (size_t policy_index = 0; policy_index < s2n_array_len(pq_security_policies); policy_index++) {
         const char *pq_security_policy = pq_security_policies[policy_index];
         const struct s2n_security_policy *security_policy;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version(pq_security_policy, &security_policy));
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
 
             /* Should write ids */
             uint16_t actual_id;
-            for (int i = 0; i < kem_preferences->kem_count; i++) {
+            for (size_t i = 0; i < kem_preferences->kem_count; i++) {
                 GUARD(s2n_stuffer_read_uint16(&stuffer, &actual_id));
                 EXPECT_EQUAL(actual_id, kem_preferences->kems[i]->kem_extension_id);
             }
