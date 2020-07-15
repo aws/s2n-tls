@@ -46,6 +46,11 @@ void s2n_stuffer_write_base64_harness() {
 
     if (s2n_stuffer_write_base64(stuffer, in) == S2N_SUCCESS) {
         assert(s2n_stuffer_is_valid(stuffer));
+        if(s2n_stuffer_data_available(&old_stuffer) >= 2) {
+	          size_t index;
+	          __CPROVER_assume(index >= old_stuffer.write_cursor && index < stuffer->write_cursor);
+	          assert(s2n_is_base64_char(stuffer->blob.data[index]));
+	      }
     }
 
     assert_stuffer_immutable_fields_after_read(in, &old_in, &old_byte_from_in);

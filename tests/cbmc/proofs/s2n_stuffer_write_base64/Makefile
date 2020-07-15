@@ -11,7 +11,7 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Enough to get full coverage with 7 minutes of runtime.
+# Enough to get full coverage with 9 minutes of runtime.
 MAX_BLOB_SIZE = 4
 DEFINES += -DMAX_BLOB_SIZE=$(MAX_BLOB_SIZE)
 
