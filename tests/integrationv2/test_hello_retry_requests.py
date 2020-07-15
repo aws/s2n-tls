@@ -18,6 +18,13 @@ HRR_CLIENT_KEYSHARES = [
 ]
 
 
+# Mapping list of curve_names for hello retry requests server side test.
+CURVE_NAMES = {
+    "X25519": "x25519",
+    "P-256": "secp256r1",
+    "P-384": "secp384r1"
+}
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
@@ -73,17 +80,6 @@ def test_hrr_with_s2n_as_client(managed_process, cipher, provider, curve, protoc
         assert random_bytes in results.stdout
 
 
-def get_curve_name(curve):
-    if curve.name == "X25519":
-       return "x25519"
-    elif curve.name == "P-256":
-        return "secp256r1"
-    elif curve.name == "P-384":
-        return "secp384r1"
-    else:
-       return None
-
-
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
@@ -122,22 +118,23 @@ def test_hrr_with_s2n_as_server(managed_process, cipher, provider, curve, protoc
         assert results.exception is None
         assert results.exit_code == 0
         assert random_bytes in results.stdout
-        assert bytes("Curve: {}".format(get_curve_name(curve)).encode('utf-8')) in results.stdout
+        assert bytes("Curve: {}".format(CURVE_NAMES[curve.name]).encode('utf-8')) in results.stdout
         assert random_bytes in results.stdout
 
     client_hello_count = 0
-    server_hello_count = 0 
+    server_hello_count = 0
     finished_count = 0
+    # HRR random data Refer: https://tools.ietf.org/html/rfc8446#section-4.1.3
     marker = b"cf 21 ad 74 e5 9a 61 11 be 1d"
 
     for results in client.get_results():
         assert results.exception is None
         assert results.exit_code == 0
-        assert marker in results.stdout 
+        assert marker in results.stdout
         client_hello_count = results.stdout.count(b'ClientHello')
         server_hello_count = results.stdout.count(b'ServerHello')
         finished_count = results.stdout.count(b'Finished')
-        
+
     assert client_hello_count == 2
     assert server_hello_count == 2
     assert finished_count == 2
