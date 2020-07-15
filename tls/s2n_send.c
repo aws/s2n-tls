@@ -91,7 +91,6 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status * blocked)
 ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked)
 {
     ssize_t user_data_sent, total_size = 0;
-    int max_payload_size;
 
     S2N_ERROR_IF(conn->closed, S2N_ERR_CLOSED);
 
@@ -103,7 +102,8 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
 
     *blocked = S2N_BLOCKED_ON_WRITE;
 
-    GUARD((max_payload_size = s2n_record_max_write_payload_size(conn)));
+    uint16_t max_payload_size;
+    GUARD_AS_POSIX(s2n_record_max_write_payload_size(conn, &max_payload_size));
 
     /* TLS 1.0 and SSLv3 are vulnerable to the so-called Beast attack. Work
      * around this by splitting messages into one byte records, and then

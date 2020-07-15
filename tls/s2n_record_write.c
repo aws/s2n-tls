@@ -67,16 +67,14 @@ static int s2n_tls_record_overhead(struct s2n_connection *conn)
 /* This function returns maximum size of plaintext data to write for the payload.
  * Record overheads are not included here.
  */
-int s2n_record_max_write_payload_size(struct s2n_connection *conn)
+S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16_t *max_fragment_size)
 {
-    notnull_check(conn);
+    ENSURE_REF(conn);
+    ENSURE(conn->max_outgoing_fragment_length > 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
 
-    const uint16_t max_fragment_size = MIN(conn->max_outgoing_fragment_length, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
+    *max_fragment_size = MIN(conn->max_outgoing_fragment_length, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
 
-    ENSURE_POSIX(max_fragment_size > 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
-    ENSURE_POSIX(max_fragment_size <= S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
-
-    return max_fragment_size;
+    return S2N_RESULT_OK;
 }
 
 /* Find the largest size that will fit within an ethernet frame for a "small" payload */
@@ -220,8 +218,8 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     /* Before we do anything, we need to figure out what the length of the
      * fragment is going to be.
      */
-    int max_write_payload_size;
-    GUARD(max_write_payload_size = s2n_record_max_write_payload_size(conn));
+    uint16_t max_write_payload_size;
+    GUARD_AS_POSIX(s2n_record_max_write_payload_size(conn, &max_write_payload_size));
     const uint16_t data_bytes_to_take = MIN(to_write, max_write_payload_size);
 
     int overhead;
