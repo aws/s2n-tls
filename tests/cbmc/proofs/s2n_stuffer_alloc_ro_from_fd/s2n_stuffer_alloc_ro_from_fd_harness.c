@@ -40,6 +40,8 @@ void s2n_stuffer_alloc_ro_from_fd_harness() {
     if (s2n_stuffer_alloc_ro_from_fd(stuffer, rfd) == S2N_SUCCESS) {
         assert(s2n_stuffer_is_valid(stuffer));
     } else {
-        if (s2n_stuffer_is_valid(stuffer)) assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
+        if (s2n_stuffer_is_valid(stuffer)) {
+            assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
+        }
     }
 }

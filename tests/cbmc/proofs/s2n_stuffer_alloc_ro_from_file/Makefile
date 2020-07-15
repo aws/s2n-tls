@@ -24,6 +24,7 @@ PROOF_SOURCES += $(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(PROOF_STUB)/close.c
 PROOF_SOURCES += $(PROOF_STUB)/fstat.c
 PROOF_SOURCES += $(PROOF_STUB)/mmap.c
 PROOF_SOURCES += $(PROOF_STUB)/open.c
@@ -33,6 +34,6 @@ PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_file.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 
-UNWINDSET +=
+UNWINDSET += s2n_stuffer_alloc_ro_from_file.9:3
 
 include ../Makefile.common

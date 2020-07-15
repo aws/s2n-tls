@@ -16,12 +16,22 @@
 #include <assert.h>
 #include <cbmc_proof/nondet.h>
 #include <cbmc_proof/proof_allocators.h>
+#include <errno.h>
 #include <sys/fcntl.h>
 
-#include <stdarg.h>
+static bool loop_flag = false;
 
 int open(const char *path, int flag, ...) {
     assert(path != NULL);
     assert(flag == O_RDONLY || flag == O_WRONLY || flag == O_RDWR);
-    return 0;
+    int rval = 0;
+    errno = nondet_int();
+    if(loop_flag) {
+        __CPROVER_assume(errno != EINTR);
+        return rval;
+    }
+    loop_flag = true;
+    rval = nondet_int();
+    __CPROVER_assume(rval >= -1 && rval <= 65536 /* File descriptor limit. */);
+    return rval;
 }

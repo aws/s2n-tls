@@ -28,6 +28,7 @@
  */
 bool nondet_bool();
 int nondet_int();
+unsigned int nondet_unsigned_int();
 size_t nondet_size_t();
 uint16_t nondet_uint16_t();
 uint32_t nondet_uint32_t();

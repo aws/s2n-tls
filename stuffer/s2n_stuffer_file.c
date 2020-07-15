@@ -70,15 +70,13 @@ int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)
     PRECONDITION_POSIX(S2N_OBJECT_PTR_IS_WRITABLE(stuffer));
     struct stat st = {0};
 
-    ENSURE_POSIX(fstat(rfd, &st) < 0, S2N_ERR_FSTAT);
+    ENSURE_POSIX(fstat(rfd, &st) >= 0, S2N_ERR_FSTAT);
 
     ENSURE_POSIX(st.st_size > 0, S2N_FAILURE);
-    ENSURE_POSIX(st.st_size <= SIZE_MAX, S2N_FAILURE);
-    uint8_t *map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, rfd, 0);
-    ENSURE_POSIX(map == MAP_FAILED, S2N_ERR_MMAP);
-
-    ENSURE_POSIX(st.st_size >= 0, S2N_FAILURE);
     ENSURE_POSIX(st.st_size <= UINT32_MAX, S2N_FAILURE);
+
+    uint8_t *map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, rfd, 0);
+    ENSURE_POSIX(map != MAP_FAILED, S2N_ERR_MMAP);
 
     struct s2n_blob b = {0};
     ENSURE_POSIX(s2n_blob_init(&b, map, (uint32_t)st.st_size), S2N_FAILURE);
@@ -93,7 +91,7 @@ int s2n_stuffer_alloc_ro_from_file(struct s2n_stuffer *stuffer, const char *file
 
     do {
         fd = open(file, O_RDONLY);
-        S2N_ERROR_IF(fd < 0 && errno != EINTR, S2N_ERR_OPEN);
+        ENSURE_POSIX(fd >= 0 || errno == EINTR, S2N_ERR_OPEN);
     } while (fd < 0);
 
     int r = s2n_stuffer_alloc_ro_from_fd(stuffer, fd);

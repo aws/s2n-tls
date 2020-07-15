@@ -18,6 +18,7 @@
 #include "stuffer/s2n_stuffer.h"
 
 #include <assert.h>
+#include <errno.h>
 
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
@@ -40,6 +41,11 @@ void s2n_stuffer_alloc_ro_from_file_harness() {
     if (s2n_stuffer_alloc_ro_from_file(stuffer, file) == S2N_SUCCESS) {
         assert(s2n_stuffer_is_valid(stuffer));
     } else {
-        if (s2n_stuffer_is_valid(stuffer)) assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
+        if (s2n_stuffer_is_valid(stuffer) &&
+            errno != EBADF && /* The stuffer might not be equivalent if close() fails. */
+            errno != EINTR &&
+            errno != EIO) {
+            assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
+        }
     }
 }
