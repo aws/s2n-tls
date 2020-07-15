@@ -74,12 +74,13 @@ bool s2n_is_base64_char(unsigned char c)
  */
 int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out)
 {
-    uint8_t pad[4];
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(out));
     int bytes_this_round = 3;
-    struct s2n_blob o = {.data = pad,.size = sizeof(pad) };
+    s2n_stack_blob(o, 4, 4);
 
     do {
-        if (s2n_stuffer_data_available(stuffer) < 4) {
+        if (s2n_stuffer_data_available(stuffer) < o.size) {
             break;
         }
 
@@ -90,11 +91,11 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
         uint8_t value3 = b64_inverse[o.data[2]];
         uint8_t value4 = b64_inverse[o.data[3]];
 
-        /* Terminate cleanly if we encounter a non-base64 character */
+        /* We assume the entire thing is base64 data, thus, terminate cleanly if we encounter a non-base64 character */
         if (value1 == 255) {
             /* Undo the read */
-            stuffer->read_cursor -= 4;
-            return 0;
+            stuffer->read_cursor -= o.size;
+            S2N_ERROR(S2N_ERR_INVALID_BASE64);
         }
 
         /* The first two characters can never be '=' and in general
@@ -140,18 +141,17 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
             *ptr = ((value3 << 6) & 0xc0) | (value4 & 0x3f);
             ptr++;
         }
-
     } while (bytes_this_round == 3);
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in)
 {
-    uint8_t outpad[4];
-    uint8_t inpad[3];
-    struct s2n_blob o = {.data = outpad,.size = sizeof(outpad) };
-    struct s2n_blob i = {.data = inpad,.size = sizeof(inpad) };
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(in));
+    s2n_stack_blob(o, 4, 4);
+    s2n_stack_blob(i, 3, 3);
 
     while (s2n_stuffer_data_available(in) > 2) {
         GUARD(s2n_stuffer_read(in, &i));
@@ -206,5 +206,5 @@ int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in
         GUARD(s2n_stuffer_write(stuffer, &o));
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
