@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/proof_allocators.h>
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -49,3 +50,9 @@ struct s2n_stuffer* cbmc_allocate_s2n_stuffer();
  * with as much nondet as possible, len < max_size.
  */
 const char *ensure_c_str_is_allocated(size_t max_size);
+
+/*
+ * Nondeterministically return a valid-allocated const string or NULL,
+ * with as much nondet as possible, len < max_size.
+ */
+const char *nondet_c_str_is_allocated(size_t max_size);

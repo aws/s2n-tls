@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/stat.h>
 
 /**
  * These functions provide a way to get unconstrained values of the correct types for use in CBMC proofs
@@ -27,9 +28,11 @@
  */
 bool nondet_bool();
 int nondet_int();
+unsigned int nondet_unsigned_int();
 size_t nondet_size_t();
 uint16_t nondet_uint16_t();
 uint32_t nondet_uint32_t();
 uint64_t nondet_uint64_t();
 uint8_t nondet_uint8_t();
 void *nondet_voidp();
+off_t nondet_off_t();
