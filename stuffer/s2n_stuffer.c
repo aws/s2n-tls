@@ -150,19 +150,8 @@ int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
     return S2N_SUCCESS;
 }
 
-int s2n_stuffer_release_if_empty(struct s2n_stuffer *stuffer)
-{
-    if (stuffer->blob.data == NULL) {
-        return S2N_SUCCESS;
-    }
-
-    S2N_ERROR_IF(stuffer->read_cursor != stuffer->write_cursor,
-            S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
-
-    GUARD(s2n_stuffer_wipe(stuffer));
-    GUARD(s2n_stuffer_resize(stuffer, 0));
-
-    return S2N_SUCCESS;
+bool s2n_stuffer_is_consumed(struct s2n_stuffer *stuffer) {
+      return stuffer && (stuffer->read_cursor == stuffer->write_cursor);
 }
 
 int s2n_stuffer_wipe(struct s2n_stuffer *stuffer)
@@ -287,8 +276,10 @@ int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t * data, c
     return S2N_SUCCESS;
 }
 
-int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec* iov, int iov_count, size_t offs, size_t size)
+int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec* iov, size_t iov_count, uint32_t offs, uint32_t size)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    notnull_check(iov);
     void *ptr = s2n_stuffer_raw_write(stuffer, size);
     notnull_check(ptr);
 
@@ -298,10 +289,13 @@ int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec* io
             to_skip -= iov[i].iov_len;
             continue;
         }
-
-        uint32_t iov_len = iov[i].iov_len - to_skip;
+        size_t iov_len_op = iov[i].iov_len - to_skip;
+        ENSURE_POSIX(iov_len_op <= UINT32_MAX, S2N_FAILURE);
+        uint32_t iov_len = (uint32_t)iov_len_op;
         uint32_t iov_size_to_take = MIN(size_left, iov_len);
-        memcpy_check(ptr, (uint8_t*)iov[i].iov_base + to_skip, iov_size_to_take);
+        notnull_check(iov[i].iov_base);
+        ENSURE_POSIX(to_skip < iov[i].iov_len, S2N_FAILURE);
+        memcpy_check(ptr, ((uint8_t*)(iov[i].iov_base)) + to_skip, iov_size_to_take);
         size_left -= iov_size_to_take;
         if (size_left == 0) {
             break;

@@ -63,32 +63,40 @@ int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer)
 
 int s2n_stuffer_read_expected_str(struct s2n_stuffer *stuffer, const char *expected)
 {
-    void *actual = s2n_stuffer_raw_read(stuffer, strlen(expected));
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    notnull_check(expected);
+    size_t expected_length = strlen(expected);
+    ENSURE_POSIX(s2n_stuffer_data_available(stuffer) >= expected_length, S2N_ERR_STUFFER_OUT_OF_DATA);
+    uint8_t *actual =  stuffer->blob.data + stuffer->read_cursor;
     notnull_check(actual);
-    S2N_ERROR_IF(memcmp(actual, expected, strlen(expected)), S2N_ERR_STUFFER_NOT_FOUND);
-    return 0;
+    ENSURE_POSIX(!memcmp(actual, expected, expected_length), S2N_ERR_STUFFER_NOT_FOUND);
+    stuffer->read_cursor += expected_length;
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    return S2N_SUCCESS;
 }
 
 /* Read from stuffer until the target string is found, or until there is no more data. */
 int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char *target)
 {
-    int len = strlen(target);
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    notnull_check(target);
+    const int len = strlen(target);
     while (s2n_stuffer_data_available(stuffer) >= len) {
         GUARD(s2n_stuffer_skip_to_char(stuffer, target[0]));
-        char *actual = s2n_stuffer_raw_read(stuffer, len);
+        GUARD(s2n_stuffer_skip_read(stuffer, len));
+        uint8_t *actual = stuffer->blob.data + stuffer->read_cursor - len;
         notnull_check(actual);
 
-        if (strncmp(actual, target, len) == 0){
-            return 0;
+        if (strncmp((char*)actual, target, len) == 0){
+            return S2N_SUCCESS;
         } else {
             /* If string doesn't match, rewind stuffer to 1 byte after last read */
             GUARD(s2n_stuffer_rewind_read(stuffer, len - 1));
             continue;
         }
     }
-
-    return 0;
-
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    return S2N_SUCCESS;
 }
 
 /* Skips the stuffer until the first instance of the target character or until there is no more data. */
@@ -129,6 +137,8 @@ int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expec
 /* Read a line of text. Agnostic to LF or CR+LF line endings. */
 int s2n_stuffer_read_line(struct s2n_stuffer *stuffer, struct s2n_stuffer *token)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(token));
     /* Consume an LF terminated line */
     GUARD(s2n_stuffer_read_token(stuffer, token, '\n'));
 
@@ -136,19 +146,21 @@ int s2n_stuffer_read_line(struct s2n_stuffer *stuffer, struct s2n_stuffer *token
     if ((s2n_stuffer_data_available(token) > 0) && (token->blob.data[(token->write_cursor - 1)] == '\r')) {
         token->write_cursor--;
     }
-
-    return 0;
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(token));
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *token, char delim)
 {
-    int token_size = 0;
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(token));
+    uint32_t token_size = 0;
 
     while ((stuffer->read_cursor + token_size) < stuffer->write_cursor) {
         if (stuffer->blob.data[stuffer->read_cursor + token_size] == delim) {
             break;
         }
-
         token_size++;
     }
 
@@ -159,7 +171,9 @@ int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *toke
         stuffer->read_cursor++;
     }
 
-    return 0;
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(token));
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *str)

@@ -14,7 +14,6 @@
  */
 
 #include "api/s2n.h"
-
 #include "stuffer/s2n_stuffer.h"
 
 #include <assert.h>
@@ -24,22 +23,28 @@
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
 
-void s2n_stuffer_peek_check_for_str_harness() {
+void s2n_stuffer_skip_read_until_harness() {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
-    char *expected = ensure_c_str_is_allocated(MAX_STRING_LEN);
+    __CPROVER_assume(s2n_blob_is_bounded(&stuffer->blob, MAX_BLOB_SIZE));
+    char *target = nondet_bool() ? ensure_c_str_is_allocated(MAX_STRING_LEN) : NULL;
 
-    /* Store a byte from the stuffer to compare after the read */
+    /* Save previous state from stuffer. */
     struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
-    if (s2n_stuffer_peek_check_for_str(stuffer, expected) == S2N_SUCCESS) {
-        uint8_t* actual = stuffer->blob.data + stuffer->read_cursor;
-        assert(!memcmp(actual, expected, strlen(expected)));
+    if (s2n_stuffer_skip_read_until(stuffer, target) == S2N_SUCCESS) {
+        const int len = strlen(target);
+        if (s2n_stuffer_data_available(stuffer) >= len) {
+              uint8_t *actual = stuffer->blob.data + stuffer->read_cursor - len;
+              assert((strncmp((char*)actual, target, len) == 0) || (s2n_stuffer_data_available(stuffer) < len));
+        }
     }
-    assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
+
+    /* Post-conditions. */
+    assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
     assert(s2n_stuffer_is_valid(stuffer));
 }

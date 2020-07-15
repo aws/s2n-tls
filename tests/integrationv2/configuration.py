@@ -51,6 +51,7 @@ ALL_TEST_CERTS = [
     Certificates.RSA_4096_SHA512,
     Certificates.ECDSA_256,
     Certificates.ECDSA_384,
+    Certificates.RSA_PSS_2048_SHA256,
 ]
 
 
@@ -91,6 +92,12 @@ ALL_TEST_CIPHERS = [
     Ciphers.CHACHA20_POLY1305_SHA256,
 ]
 
+# List of TLS13 Ciphers
+TLS13_CIPHERS = [
+    Ciphers.CHACHA20_POLY1305_SHA256,
+    Ciphers.AES128_GCM_SHA256,
+    Ciphers.AES256_GCM_SHA384,
+]
 
 # List of providers that will be tested.
 PROVIDERS = [S2N, OpenSSL]

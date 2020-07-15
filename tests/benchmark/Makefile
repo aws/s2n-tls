@@ -32,7 +32,7 @@ all: $(BM_TESTS)
 include ../../s2n.mk
 
 CRUFT += $(wildcard *_benchmark)
-LIBS += -L../testlib/ -ltests2n -L../../lib/ -ls2n
+LIBS += ../testlib/libtests2n.a ../../lib/libs2n.a
 
 # Suppress the unreachable code warning, because tests involve what should be
 # unreachable code
@@ -41,8 +41,8 @@ LDFLAGS += ${CRYPTO_LDFLAGS} ${LIBS} ${CRYPTO_LIBS} ${BENCHMARK_LDFLAGS} -lm -ld
 
 $(BM_TESTS)::
 	${CXX} ${CPPFLAGS} -o $@ $@.cc ${LDFLAGS} 2>&1
-	@DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
-	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	@DYLD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	./$@
 
 .PHONY : clean

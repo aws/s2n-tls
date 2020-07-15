@@ -345,6 +345,9 @@ class OpenSSL(Provider):
         if self.options.use_client_auth is True:
             cmd_line.extend(['-verify', '1'])
 
+        if self.options.extra_flags is not None:
+            cmd_line.extend(self.options.extra_flags)
+
         return cmd_line
 
 

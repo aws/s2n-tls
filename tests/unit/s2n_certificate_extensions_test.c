@@ -71,6 +71,21 @@ static int s2n_write_test_cert(struct s2n_stuffer *stuffer, struct s2n_cert_chai
     return S2N_SUCCESS;
 }
 
+static int s2n_setup_connection_for_ocsp_validate_test(struct s2n_connection **conn, struct s2n_cert_chain_and_key *chain_and_key)
+{
+    struct s2n_connection *nconn;
+
+    notnull_check(nconn = s2n_connection_new(S2N_SERVER));
+    nconn->actual_protocol_version = S2N_TLS13;
+    nconn->handshake_params.our_chain_and_key = chain_and_key;
+
+    GUARD(s2n_connection_allow_all_response_extensions(nconn));
+    nconn->status_type = S2N_STATUS_REQUEST_OCSP;
+
+    *conn = nconn;
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -224,13 +239,8 @@ int main(int argc, char **argv)
     {
         /* Test: extensions only processed for >= TLS1.3 */
         {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            conn->actual_protocol_version = S2N_TLS13;
-            conn->handshake_params.our_chain_and_key = chain_and_key;
-
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
-            conn->status_type = S2N_STATUS_REQUEST_OCSP;
+            struct s2n_connection *setup_conn;
+            GUARD(s2n_setup_connection_for_ocsp_validate_test(&setup_conn, chain_and_key));
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
@@ -238,11 +248,14 @@ int main(int argc, char **argv)
             struct s2n_stuffer_reservation size;
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint24(&stuffer, &size));
             EXPECT_SUCCESS(s2n_write_test_cert(&stuffer, chain_and_key));
-            EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, conn, &stuffer));
+            EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, setup_conn, &stuffer));
             EXPECT_SUCCESS(s2n_stuffer_write_vector_size(size));
 
             /* TLS1.2 does NOT process extensions */
             {
+                struct s2n_connection *conn;
+                GUARD(s2n_setup_connection_for_ocsp_validate_test(&conn, chain_and_key));
+
                 EXPECT_SUCCESS(s2n_stuffer_reread(&stuffer));
                 conn->actual_protocol_version = S2N_TLS12;
 
@@ -250,10 +263,15 @@ int main(int argc, char **argv)
 
                 EXPECT_EQUAL(conn->status_response.size, 0);
                 EXPECT_EQUAL(conn->status_response.data, NULL);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
             }
 
             /* TLS1.3 DOES process extensions */
             {
+                struct s2n_connection *conn;
+                GUARD(s2n_setup_connection_for_ocsp_validate_test(&conn, chain_and_key));
+
                 EXPECT_SUCCESS(s2n_stuffer_reread(&stuffer));
                 conn->actual_protocol_version = S2N_TLS13;
 
@@ -261,25 +279,22 @@ int main(int argc, char **argv)
 
                 EXPECT_EQUAL(conn->status_response.size, s2n_array_len(data));
                 EXPECT_BYTEARRAY_EQUAL(conn->status_response.data, data, s2n_array_len(data));
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
             }
 
-            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_connection_free(setup_conn));
         }
 
         /* Test: extensions only processed on first certificate */
         {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            conn->actual_protocol_version = S2N_TLS13;
-            conn->handshake_params.our_chain_and_key = chain_and_key;
-
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
-            conn->status_type = S2N_STATUS_REQUEST_OCSP;
-
             struct s2n_stuffer_reservation size;
 
             /* Extensions on second cert ignored */
             {
+                struct s2n_connection *conn;
+                GUARD(s2n_setup_connection_for_ocsp_validate_test(&conn, chain_and_key));
+
                 DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
@@ -294,10 +309,15 @@ int main(int argc, char **argv)
 
                 EXPECT_EQUAL(conn->status_response.size, 0);
                 EXPECT_EQUAL(conn->status_response.data, NULL);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
             }
 
             /* Extensions on first cert processed */
             {
+                struct s2n_connection *conn;
+                GUARD(s2n_setup_connection_for_ocsp_validate_test(&conn, chain_and_key));
+
                 DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
@@ -312,9 +332,9 @@ int main(int argc, char **argv)
 
                 EXPECT_EQUAL(conn->status_response.size, s2n_array_len(data));
                 EXPECT_BYTEARRAY_EQUAL(conn->status_response.data, data, s2n_array_len(data));
-            }
 
-            EXPECT_SUCCESS(s2n_connection_free(conn));
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
         }
     }
 

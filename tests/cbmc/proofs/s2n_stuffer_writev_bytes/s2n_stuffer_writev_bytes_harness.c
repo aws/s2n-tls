@@ -14,32 +14,42 @@
  */
 
 #include "api/s2n.h"
-
 #include "stuffer/s2n_stuffer.h"
+#include "utils/s2n_mem.h"
 
+#include <sys/param.h>
 #include <assert.h>
-#include <string.h>
 
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
 
-void s2n_stuffer_peek_check_for_str_harness() {
+void s2n_stuffer_writev_bytes_harness() {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
-    char *expected = ensure_c_str_is_allocated(MAX_STRING_LEN);
+    size_t iov_count;
+    __CPROVER_assume(iov_count < MAX_IOVEC_SIZE);
+    struct iovec iov[iov_count];
+    for(int i = 0; i < iov_count; i++) {
+        iov[i].iov_base = can_fail_malloc(iov[i].iov_len);
+    }
+    uint32_t offs;
+    uint32_t size;
 
-    /* Store a byte from the stuffer to compare after the read */
+    /* Non-deterministically set initialized (in s2n_mem) to true. */
+    if(nondet_bool()) {
+        s2n_mem_init();
+    }
+
+    /* Save previous state from stuffer. */
     struct s2n_stuffer old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
-    if (s2n_stuffer_peek_check_for_str(stuffer, expected) == S2N_SUCCESS) {
-        uint8_t* actual = stuffer->blob.data + stuffer->read_cursor;
-        assert(!memcmp(actual, expected, strlen(expected)));
+    if (s2n_stuffer_writev_bytes(stuffer, iov, iov_count, offs, size) == S2N_SUCCESS) {
+        /* Post-conditions. */
+        assert(s2n_stuffer_is_valid(stuffer));
     }
-    assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
-    assert(s2n_stuffer_is_valid(stuffer));
 }
