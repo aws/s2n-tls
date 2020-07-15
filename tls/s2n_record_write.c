@@ -64,25 +64,15 @@ static int s2n_tls_record_overhead(struct s2n_connection *conn)
     return extra;
 }
 
-/* Limits the size of the fragment length to the maximum allowed by the protocol */
-static int s2n_record_limit_write_payload_size(struct s2n_connection *conn, uint16_t size_without_overhead)
+/* This function returns maximum size of plaintext data to write for the payload.
+ * Record overheads are not included here.
+ */
+uint16_t s2n_record_max_write_payload_size(struct s2n_connection *conn)
 {
-    int max_fragment_size = MIN(size_without_overhead, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
+    /* Limits the fragment length to the maximum allowed by TLS */
+    const uint16_t max_fragment_size = MIN(conn->max_outgoing_fragment_length, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
 
     return max_fragment_size;
-}
-
-/* This function returns maximum size of plaintext data to write for the payload.
- * Record overheads are not calculated here but they have been accounted as part of the total record sizes.
- */
-int s2n_record_max_write_payload_size(struct s2n_connection *conn)
-{
-    int bytes;
-    GUARD(bytes = s2n_record_limit_write_payload_size(conn, conn->max_outgoing_fragment_length));
-
-    S2N_ERROR_IF(bytes > S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
-    S2N_ERROR_IF(bytes <= 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
-    return bytes;
 }
 
 /* Find the largest size that will fit within an ethernet frame for a "small" payload */
@@ -92,8 +82,9 @@ int s2n_record_min_write_payload_size(struct s2n_connection *conn)
     const uint16_t min_outgoing_fragment_length = ETH_MTU - (conn->ipv6 ? IP_V6_HEADER_LENGTH : IP_V4_HEADER_LENGTH)
         - TCP_HEADER_LENGTH - TCP_OPTIONS_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH;
 
-    int size;
-    GUARD(size = s2n_record_limit_write_payload_size(conn, min_outgoing_fragment_length));
+    ENSURE_POSIX(min_outgoing_fragment_length <= S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+
+    int size = min_outgoing_fragment_length;
 
     /* subtract overheads of a TLS record */
     int overhead;
@@ -113,7 +104,7 @@ int s2n_record_min_write_payload_size(struct s2n_connection *conn)
         size -= 1;
     }
 
-    S2N_ERROR_IF(size <= 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
+    ENSURE_POSIX(size > 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
 
     return size;
 }
@@ -226,9 +217,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     /* Before we do anything, we need to figure out what the length of the
      * fragment is going to be.
      */
-    int max_write_payload_size;
-    GUARD(max_write_payload_size = s2n_record_max_write_payload_size(conn));
-    uint16_t data_bytes_to_take = MIN(to_write, max_write_payload_size);
+    const uint16_t data_bytes_to_take = MIN(to_write, s2n_record_max_write_payload_size(conn));
 
     int overhead;
     GUARD(overhead = s2n_tls_record_overhead(conn));
@@ -289,7 +278,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     }
 
     /* Rewrite the length to be the actual fragment length */
-    uint16_t actual_fragment_length = data_bytes_to_take + padding + extra;
+    const uint16_t actual_fragment_length = data_bytes_to_take + padding + extra;
     /* ensure actual_fragment_length + S2N_TLS_RECORD_HEADER_LENGTH <= max record length */
     const uint16_t max_record_length = is_tls13_record ? S2N_TLS13_MAXIMUM_RECORD_LENGTH : S2N_TLS_MAXIMUM_RECORD_LENGTH;
     S2N_ERROR_IF(actual_fragment_length + S2N_TLS_RECORD_HEADER_LENGTH > max_record_length, S2N_ERR_RECORD_LENGTH_TOO_LARGE);
