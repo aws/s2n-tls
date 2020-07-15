@@ -97,7 +97,7 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
         /* We assume the entire thing is base64 data, thus, terminate cleanly if we encounter a non-base64 character */
         if (value1 == 255) {
             /* Undo the read */
-            stuffer->read_cursor -= 4;
+            stuffer->read_cursor -= pad_len;
             S2N_ERROR(S2N_ERR_INVALID_BASE64);
         }
 
