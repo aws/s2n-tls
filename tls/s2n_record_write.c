@@ -85,7 +85,7 @@ int s2n_record_max_write_payload_size(struct s2n_connection *conn)
     return bytes;
 }
 
-/* Find the size that will fit within an ethernet frame */
+/* Find the largest size that will fit within an ethernet frame for a "small" payload */
 int s2n_record_min_write_payload_size(struct s2n_connection *conn)
 {
     /* remove ethernet, TCP/IP and TLS header overheads */

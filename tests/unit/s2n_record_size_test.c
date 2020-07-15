@@ -134,6 +134,50 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
+    /* Test s2n_record_min_write_payload_size() */
+    {
+        struct s2n_connection *server_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
+        int size;
+        const int RECORD_SIZE_LESS_OVERHEADS = 1415;
+
+        EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
+        EXPECT_EQUAL(RECORD_SIZE_LESS_OVERHEADS, size);
+
+        /* CBC */
+        server_conn->actual_protocol_version = S2N_TLS11;
+        server_conn->initial.cipher_suite->record_alg = &s2n_record_alg_3des_sha;
+        EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
+        const int after_overheads = RECORD_SIZE_LESS_OVERHEADS - 20 - 8 - 1;
+
+        EXPECT_EQUAL(after_overheads - after_overheads % 8 /* rounded down to block size */
+            , size);
+
+        /* AEAD */
+        server_conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
+        EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
+        EXPECT_EQUAL(RECORD_SIZE_LESS_OVERHEADS - 8 - 16, size); /* 8 - IV, 16 - TAG */
+
+        server_conn->initial.cipher_suite->record_alg = &s2n_record_alg_chacha20_poly1305;
+        EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
+        EXPECT_EQUAL(RECORD_SIZE_LESS_OVERHEADS - S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN - S2N_TLS_GCM_TAG_LEN, size);
+
+        /* composite */
+        if (s2n_aes128_sha.is_available() && s2n_aes128_sha256.is_available()) {
+            server_conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_sha_composite;
+            EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
+
+            const int explicit_iv_len = 0;
+            const int size_after_overheads = RECORD_SIZE_LESS_OVERHEADS - SHA_DIGEST_LENGTH - explicit_iv_len - 1;
+            const int size_aligned_to_block = size_after_overheads - size_after_overheads % 16 - 20 - 1;
+
+            EXPECT_EQUAL(size_aligned_to_block, size);
+        }
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
     /* Test large fragment/record sending for TLS 1.3 */
     {
         struct s2n_connection *server_conn;
