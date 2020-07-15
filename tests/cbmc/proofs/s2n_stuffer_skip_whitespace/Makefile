@@ -1,0 +1,40 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+#     http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Enough to get full coverage with 4 minutes of runtime.
+MAX_BLOB_SIZE = 2
+DEFINES += -DMAX_BLOB_SIZE=$(MAX_BLOB_SIZE)
+
+CHECKFLAGS +=
+
+HARNESS_ENTRY = s2n_stuffer_skip_whitespace_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
+
+PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
+PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+
+PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
+PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_text.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
+
+UNWINDSET += s2n_stuffer_skip_whitespace.0:$(call addone,$(MAX_BLOB_SIZE))
+UNWINDSET += s2n_stuffer_skip_whitespace.1:$(call addone,$(MAX_BLOB_SIZE))
+UNWINDSET += s2n_stuffer_skip_whitespace.2:$(call addone,$(MAX_BLOB_SIZE))
+UNWINDSET += s2n_stuffer_skip_whitespace.3:$(call addone,$(MAX_BLOB_SIZE))
+UNWINDSET += s2n_stuffer_skip_whitespace.4:$(call addone,$(MAX_BLOB_SIZE))
+UNWINDSET += s2n_stuffer_skip_whitespace.5:$(call addone,$(MAX_BLOB_SIZE))
+UNWINDSET += s2n_stuffer_skip_whitespace.6:$(call addone,$(MAX_BLOB_SIZE))
+
+include ../Makefile.common
