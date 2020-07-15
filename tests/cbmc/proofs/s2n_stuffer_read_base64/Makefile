@@ -41,6 +41,6 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
 REMOVE_FUNCTION_BODY += s2n_blob_slice
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe_n
 
-UNWINDSET += s2n_stuffer_read_base64.18:$(MAX_BLOB_SIZE)
+UNWINDSET += s2n_stuffer_read_base64.23:$(MAX_BLOB_SIZE)
 
 include ../Makefile.common

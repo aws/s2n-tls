@@ -76,14 +76,11 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     PRECONDITION_POSIX(s2n_stuffer_is_valid(out));
-    uint8_t pad[4] = {0};
-    size_t pad_len = s2n_array_len(pad);
     int bytes_this_round = 3;
-    struct s2n_blob o = {0};
-    GUARD(s2n_blob_init(&o, pad, pad_len));
+    s2n_stack_blob(o, 4, 4);
 
     do {
-        if (s2n_stuffer_data_available(stuffer) < pad_len) {
+        if (s2n_stuffer_data_available(stuffer) < o.size) {
             break;
         }
 
@@ -97,7 +94,7 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
         /* We assume the entire thing is base64 data, thus, terminate cleanly if we encounter a non-base64 character */
         if (value1 == 255) {
             /* Undo the read */
-            stuffer->read_cursor -= pad_len;
+            stuffer->read_cursor -= o.size;
             S2N_ERROR(S2N_ERR_INVALID_BASE64);
         }
 
@@ -153,12 +150,8 @@ int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     PRECONDITION_POSIX(s2n_stuffer_is_valid(in));
-    uint8_t outpad[4] = {0};
-    uint8_t inpad[3] = {0};
-    struct s2n_blob o = {0};
-    GUARD(s2n_blob_init(&o, outpad, s2n_array_len(outpad)));
-    struct s2n_blob i = {0};
-    GUARD(s2n_blob_init(&i, inpad, s2n_array_len(inpad)));
+    s2n_stack_blob(o, 4, 4);
+    s2n_stack_blob(i, 3, 3);
 
     while (s2n_stuffer_data_available(in) > 2) {
         GUARD(s2n_stuffer_read(in, &i));
