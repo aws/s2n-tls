@@ -9,82 +9,35 @@ from utils import get_expected_s2n_version
 
 
 pq_handshake_test_vectors = [
-    # The first set of vectors verify that PQ handshakes are successful by
-    # specifing client and server cipher preference versions that are compatible for a successful PQ handshake
-    {
-        "client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06,
-        "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06,
-        "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384",
-        "expected_kem": "BIKE1r1-Level1",
-    },
-    {
-        "client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06,
-        "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02,
-        "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384",
-        "expected_kem": "BIKE1r1-Level1",
-    },
-    {
-        "client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02,
-        "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02,
-        "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384",
-        "expected_kem": "BIKE1r2-Level1",
-    },
-    {
-        "client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02,
-        "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06,
-        "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384",
-        "expected_kem": "BIKE1r1-Level1",
-    },
-    {
-        "client_ciphers": Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11,
-        "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06,
-        "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384",
-        "expected_kem": "SIKEp503r1-KEM",
-    },
-    {
-        "client_ciphers": Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11,
-        "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02,
-        "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384",
-        "expected_kem": "SIKEp503r1-KEM",
-    },
-    {
-        "client_ciphers": Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02,
-        "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06,
-        "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384",
-        "expected_kem": "SIKEp503r1-KEM",
-    },
-    {
-        "client_ciphers": Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02,
-        "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02,
-        "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384",
-        "expected_kem": "SIKEp434r2-KEM",
-    },
-    # The last set of vectors verify that a standard handshake can be completed when only one side supports PQ
-    # by specifing a "mismatch" between PQ cipher preferences
-    {
-        "client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06,
-        "server_ciphers": Ciphers.KMS_TLS_1_0_2018_10,
-        "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-        "expected_kem": "NONE",
-    },
-    {
-        "client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02,
-        "server_ciphers": Ciphers.KMS_TLS_1_0_2018_10,
-        "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-        "expected_kem": "NONE",
-    },
-    {
-        "client_ciphers": Ciphers.KMS_TLS_1_0_2018_10,
-        "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06,
-        "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-        "expected_kem": "NONE",
-    },
-    {
-        "client_ciphers": Ciphers.KMS_TLS_1_0_2018_10,
-        "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02,
-        "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384",
-        "expected_kem": "NONE",
-    },
+    # The first set of vectors specify client and server cipher preference versions that are compatible for a successful PQ handshake
+    {"client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06, "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "expected_kem": "BIKE1r1-Level1"},
+    {"client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02, "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "expected_kem": "BIKE1r1-Level1"},
+    {"client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_07, "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "expected_kem": "BIKE1r1-Level1"},
+
+    {"client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06, "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "expected_kem": "BIKE1r1-Level1"},
+    {"client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02, "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "expected_kem": "BIKE1r2-Level1"},
+    {"client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_07, "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "expected_kem": "BIKE1r2-Level1"},
+
+    {"client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_07, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06, "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "expected_kem": "BIKE1r1-Level1"},
+    {"client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_07, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02, "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "expected_kem": "BIKE1r2-Level1"},
+    {"client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_07, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_07, "expected_cipher": "ECDHE-KYBER-RSA-AES256-GCM-SHA384", "expected_kem": "kyber512r2"},
+
+    {"client_ciphers": Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06, "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp503r1-KEM"},
+    {"client_ciphers": Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02, "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp503r1-KEM"},
+    {"client_ciphers": Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_07, "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp503r1-KEM"},
+
+    {"client_ciphers": Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06, "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp503r1-KEM"},
+    {"client_ciphers": Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02, "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp434r2-KEM"},
+    {"client_ciphers": Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_07, "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp434r2-KEM"},
+
+    # The last set of vectors specify a "mismatch" between PQ cipher preferences - a classic handshake should be completed
+    {"client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06, "server_ciphers": Ciphers.KMS_TLS_1_0_2018_10, "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
+    {"client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02, "server_ciphers": Ciphers.KMS_TLS_1_0_2018_10, "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
+    {"client_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_07, "server_ciphers": Ciphers.KMS_TLS_1_0_2018_10, "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
+
+    {"client_ciphers": Ciphers.KMS_TLS_1_0_2018_10, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2019_06, "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
+    {"client_ciphers": Ciphers.KMS_TLS_1_0_2018_10, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_02, "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
+    {"client_ciphers": Ciphers.KMS_TLS_1_0_2018_10, "server_ciphers": Ciphers.KMS_PQ_TLS_1_0_2020_07, "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
 ]
 
 

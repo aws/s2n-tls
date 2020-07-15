@@ -35,6 +35,7 @@ const uint8_t TEST_CIPHERTEXT[] = { 5, 5, 5, 5, 5 };
 
 #if !defined(S2N_NO_PQ)
 
+static const uint8_t kyber_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384 };
 static const uint8_t bike_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 };
 static const uint8_t sike_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384 };
 static const uint8_t classic_ecdhe_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA };
@@ -271,6 +272,11 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2);
             negotiated_kem = NULL;
 
+            EXPECT_SUCCESS(s2n_choose_kem_without_peer_pref_list(bike_iana, pq_kems_r2r1_2020_07, 5, &negotiated_kem));
+            EXPECT_NOT_NULL(negotiated_kem);
+            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2);
+            negotiated_kem = NULL;
+
             EXPECT_SUCCESS(s2n_choose_kem_without_peer_pref_list(sike_iana, pq_kems_r1, 2, &negotiated_kem));
             EXPECT_NOT_NULL(negotiated_kem);
             EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1);
@@ -279,6 +285,16 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_choose_kem_without_peer_pref_list(sike_iana, pq_kems_r2r1, 4, &negotiated_kem));
             EXPECT_NOT_NULL(negotiated_kem);
             EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2);
+            negotiated_kem = NULL;
+
+            EXPECT_SUCCESS(s2n_choose_kem_without_peer_pref_list(sike_iana, pq_kems_r2r1_2020_07, 5, &negotiated_kem));
+            EXPECT_NOT_NULL(negotiated_kem);
+            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2);
+            negotiated_kem = NULL;
+
+            EXPECT_SUCCESS(s2n_choose_kem_without_peer_pref_list(kyber_iana, pq_kems_r2r1_2020_07, 5, &negotiated_kem));
+            EXPECT_NOT_NULL(negotiated_kem);
+            EXPECT_EQUAL(negotiated_kem->kem_extension_id, TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R2);
             negotiated_kem = NULL;
         }
         {
@@ -318,7 +334,14 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(compatible_params->kem_count, 2);
         EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_sike_p503_r1.kem_extension_id);
         EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_sike_p434_r2.kem_extension_id);
+
+        compatible_params = NULL;
+        EXPECT_SUCCESS(s2n_cipher_suite_to_kem(kyber_iana, &compatible_params));
+        EXPECT_NOT_NULL(compatible_params);
+        EXPECT_EQUAL(compatible_params->kem_count, 1);
+        EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_kyber_512_r2.kem_extension_id);
     }
+
     {
         /* Tests for s2n_kem_free() */
         EXPECT_SUCCESS(s2n_kem_free(NULL));
@@ -578,7 +601,8 @@ int main(int argc, char **argv)
                 TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1,
                 TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2,
                 TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1,
-                TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2
+                TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2,
+                TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R2
         };
 
         const struct s2n_kem *kems[] = {
@@ -586,9 +610,10 @@ int main(int argc, char **argv)
                 &s2n_bike1_l1_r2,
                 &s2n_sike_p503_r1,
                 &s2n_sike_p434_r2,
+                &s2n_kyber_512_r2
         };
 
-        for (int i = 0; i < 4; i++) {
+        for (size_t i = 0; i < s2n_array_len(kems); i++) {
             kem_extension_size kem_id = kem_extensions[i];
             const struct s2n_kem *returned_kem = NULL;
 
