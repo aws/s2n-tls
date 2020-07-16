@@ -1,3 +1,6 @@
 [submodule "tests/cbmc/aws-templates-for-cbmc-proofs"]
 	path = tests/cbmc/aws-templates-for-cbmc-proofs
 	url = https://github.com/awslabs/aws-templates-for-cbmc-proofs
+[submodule "tests/cbmc/aws-proof-build-assistant"]
+	path = tests/cbmc/aws-proof-build-assistant
+	url = https://github.com/awslabs/aws-proof-build-assistant.git

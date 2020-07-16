@@ -43,3 +43,12 @@ REMOVE_FUNCTION_BODY += abort
 
 # Useful for setting unwind limits to one more than some value.
 addone = $(shell echo $$(( $(1) + 1)))
+
+################################################################
+# Path to arpa executable
+ARPA = $(CBMC_ROOT)/aws-proof-build-assistant/arpa
+
+# Flags to pass to cmake for building the project
+ARPA_CMAKE_FLAGS += -GNinja
+ARPA_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE=Debug
+ARPA_CMAKE_FLAGS += -DCMAKE_PREFIX_PATH=/usr/local/Cellar/openssl@1.1/1.1.1g

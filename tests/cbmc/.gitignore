@@ -5,3 +5,6 @@ gotos
 html
 logs
 property.xml
+
+arpa_cmake
+Makefile.arpa
