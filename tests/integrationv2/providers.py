@@ -2,6 +2,7 @@ import pytest
 import threading
 
 from common import ProviderOptions, Ciphers, Curves, Protocols
+from global_flags import get_flag, S2N_PROVIDER_VERSION
 
 
 class Provider(object):
@@ -47,6 +48,15 @@ class Provider(object):
         Provider specific setup code goes here.
         This will probably include creating the command line based on ProviderOptions.
         """
+        raise NotImplementedError
+
+
+    @classmethod
+    def supports_protocol(cls, protocol, with_cert=None):
+        raise NotImplementedError
+
+    @classmethod
+    def supports_cipher(cls, cipher, with_curve=None):
         raise NotImplementedError
 
     def get_cmd_line(self):
@@ -104,6 +114,19 @@ class S2N(Provider):
     def __init__(self, options: ProviderOptions):
         self.ready_to_send_input_marker = None
         Provider.__init__(self, options)
+
+    @classmethod
+    def supports_protocol(cls, protocol, with_cert=None):
+        # If s2n is built with OpenSSL 1.0.2 it can't connect to itself
+        if protocol is Protocols.TLS13 and 'openssl-1.0.2' in OpenSSL.get_version():
+            if with_cert is not None and with_cert.algorithm != 'EC':
+                return False
+
+        return True
+
+    @classmethod
+    def supports_cipher(cls, cipher, with_curve=None):
+        return True
 
     def setup_client(self):
         """
@@ -178,12 +201,7 @@ class S2N(Provider):
         if self.options.protocol == Protocols.TLS13:
             cmd_line.append('--tls13')
 
-        if self.options.protocol == Protocols.TLS13:
-            cmd_line.extend(['-c', 'test_all_tls13'])
-        elif self.options.protocol == Protocols.TLS12:
-            cmd_line.extend(['-c', 'test_all_tls12'])
-        else:
-            cmd_line.extend(['-c', 'test_all'])
+        cmd_line.extend(['-c', 'test_all'])
 
         if self.options.use_client_auth is True:
             cmd_line.append('-m')
@@ -205,6 +223,8 @@ class S2N(Provider):
 
 class OpenSSL(Provider):
 
+    _version = get_flag(S2N_PROVIDER_VERSION)
+
     def __init__(self, options: ProviderOptions):
         self.ready_to_send_input_marker = None
         Provider.__init__(self, options)
@@ -223,7 +243,7 @@ class OpenSSL(Provider):
 
         return ciphers
 
-    def _cipher_to_cmdline(self, protocol, cipher):
+    def _cipher_to_cmdline(self, cipher):
         cmdline = list()
 
         ciphers = []
@@ -247,6 +267,51 @@ class OpenSSL(Provider):
             cmdline.append('-cipher')
 
         return cmdline + ciphers
+
+    @classmethod
+    def get_version(cls):
+        return cls._version
+
+    @classmethod
+    def supports_protocol(cls, protocol, with_cert=None):
+        if protocol is Protocols.TLS13:
+            if 'openssl-1.1.1' in OpenSSL.get_version():
+                return True
+            else:
+                return False
+
+        return True
+
+    @classmethod
+    def supports_cipher(cls, cipher, with_curve=None):
+        is_openssl_111 = "openssl-1.1.1" in OpenSSL.get_version()
+        if is_openssl_111 and cipher.openssl1_1_1 is False:
+            return False
+
+        if not is_openssl_111:
+            # OpenSSL 1.0.2 does not have ChaChaPoly
+            if 'CHACHA20' in cipher.name:
+                return False
+
+        if cipher.fips is False and "fips" in OpenSSL.get_version():
+            return False
+
+        if "openssl-1.0.2" in OpenSSL.get_version() and with_curve is not None:
+            invalid_ciphers = [
+                Ciphers.ECDHE_RSA_AES128_SHA,
+                Ciphers.ECDHE_RSA_AES256_SHA,
+                Ciphers.ECDHE_RSA_AES128_SHA256,
+                Ciphers.ECDHE_RSA_AES256_SHA384,
+                Ciphers.ECDHE_RSA_AES128_GCM_SHA256,
+                Ciphers.ECDHE_RSA_AES256_GCM_SHA384,
+            ]
+
+            # OpenSSL 1.0.2 and 1.0.2-FIPS can't find a shared cipher with S2N
+            # when P-384 is used, but I can't find any reason why.
+            if with_curve is Curves.P384 and cipher in invalid_ciphers:
+                return False
+
+        return True
 
     def setup_client(self):
         # s_client prints this message before it is ready to send/receive data
@@ -275,7 +340,7 @@ class OpenSSL(Provider):
             cmd_line.append('-tls1')
 
         if self.options.cipher is not None:
-            cmd_line.extend(self._cipher_to_cmdline(self.options.protocol, self.options.cipher))
+            cmd_line.extend(self._cipher_to_cmdline(self.options.cipher))
 
         if self.options.curve is not None:
             cmd_line.extend(['-curves', str(self.options.curve)])
@@ -305,7 +370,7 @@ class OpenSSL(Provider):
         self.ready_to_test_marker = 'ACCEPT'
 
         cmd_line = ['openssl', 's_server']
-        cmd_line.extend(['-accept', '{}:{}'.format(self.options.host, self.options.port)])
+        cmd_line.extend(['-accept', '{}'.format(self.options.port)])
 
         if self.options.reconnects_before_exit is not None:
             # If the user request a specific reconnection count, set it here
@@ -336,7 +401,7 @@ class OpenSSL(Provider):
             cmd_line.append('-tls1')
 
         if self.options.cipher is not None:
-            cmd_line.extend(self._cipher_to_cmdline(self.options.protocol, self.options.cipher))
+            cmd_line.extend(self._cipher_to_cmdline(self.options.cipher))
             if self.options.cipher.parameters is not None:
                 cmd_line.extend(['-dhparam', self.options.cipher.parameters])
 

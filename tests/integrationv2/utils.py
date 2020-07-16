@@ -1,4 +1,4 @@
-from common import Protocols
+from common import Protocols, Curves, Ciphers
 from providers import S2N, OpenSSL
 
 
@@ -47,22 +47,29 @@ def invalid_test_parameters(*args, **kwargs):
     cipher = kwargs.get('cipher')
     curve = kwargs.get('curve')
 
+    if provider is not None and not provider.supports_protocol(protocol):
+        return True
+
     if cipher is not None:
         # If the selected protocol doesn't allow the cipher, don't test
         if protocol is not None:
             if cipher.min_version > protocol:
                 return True
+
+            # Ciphersuites prior to TLS13 can not be used with TLS13
+            # https://wiki.openssl.org/index.php/TLS1.3#Differences_with_TLS1.2_and_below
             if protocol is Protocols.TLS13 and cipher.min_version < protocol:
                 return True
 
-        # NOTE: We don't detect the version of OpenSSL at the moment,
-        # so we will deselect these tests.
-        if provider is not None and provider is OpenSSL and cipher.openssl1_1_1 is False:
+        if provider is not None and not provider.supports_cipher(cipher, with_curve=curve):
             return True
 
     # If we are using a cipher that depends on a specific certificate algorithm
     # deselect the test of the wrong certificate is used.
     if certificate is not None:
+        if protocol is not None and provider.supports_protocol(protocol, with_cert=certificate) is False:
+            return True
+
         if cipher is not None and certificate.compatible_with_cipher(cipher) is False:
             return True
 
@@ -70,7 +77,8 @@ def invalid_test_parameters(*args, **kwargs):
             return True
 
     # Prevent situations like using X25519 with TLS1.2
-    if curve is not None and protocol is not None and curve.min_protocol > protocol:
+    if curve is not None:
+        if protocol is not None and curve.min_protocol > protocol:
             return True
 
     return False

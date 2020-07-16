@@ -116,4 +116,5 @@ def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protoco
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
-        assert random_bytes in results.stdout
+        # Avoid debugging information that sometimes gets inserted after the first character
+        assert random_bytes[1:] in results.stdout

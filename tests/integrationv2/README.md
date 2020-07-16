@@ -126,3 +126,9 @@ ProviderOptions object. But with the dynamic threshold feature we simply pass th
 In each provider that supports your feature you need to check if the flag is set, and create a command
 line option for that particular provider. You can also add logic checks, e.g with client authentication
 the client must have a certificate to send. Otherwise the test will fail.
+
+# Troubleshooting
+
+**INTERNALERROR> OSError: cannot send to <Channel id=1 closed>**
+An error similar to this is caused by a runtime error in a test. In `tox.ini` change `-n8` to `-n0` to
+see the actual error causing the OSError.

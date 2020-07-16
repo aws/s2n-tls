@@ -3,7 +3,8 @@ import os
 import pytest
 import time
 
-from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROVIDERS, PROTOCOLS
+from configuration import (available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES,
+    ALL_TEST_CERTS, PROTOCOLS)
 from common import Certificates, ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
@@ -115,7 +116,7 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, ci
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
-@pytest.mark.parametrize("curve", ALL_TEST_CURVES)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
@@ -159,14 +160,17 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, curve, pro
         if protocol is Protocols.TLS13:
             message = bytes("SSL_accept:SSLv3/TLS read client certificate\nSSL_accept:SSLv3/TLS read finished".encode('utf-8'))
         else:
-            message = bytes("SSL_accept:SSLv3/TLS read client certificate\nSSL_accept:SSLv3/TLS read client key exchange\nSSL_accept:SSLv3/TLS read change cipher spec\nSSL_accept:SSLv3/TLS read finished".encode('utf-8'))
+            if 'openssl-1.0.2' in OpenSSL.get_version():
+                message = bytes('SSL_accept:SSLv3 read client certificate A\nSSL_accept:SSLv3 read client key exchange A\nSSL_accept:SSLv3 read certificate verify A\nSSL_accept:SSLv3 read finished A'.encode('utf-8'))
+            else:
+                message = bytes("SSL_accept:SSLv3/TLS read client certificate\nSSL_accept:SSLv3/TLS read client key exchange\nSSL_accept:SSLv3/TLS read change cipher spec\nSSL_accept:SSLv3/TLS read finished".encode('utf-8'))
 
         assert message in results.stderr
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
-@pytest.mark.parametrize("curve", ALL_TEST_CURVES)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
@@ -214,5 +218,8 @@ def test_client_auth_with_s2n_client_with_cert(managed_process, cipher, curve, p
             message = bytes("SSL_accept:SSLv3/TLS read client certificate\nSSL_accept:SSLv3/TLS read certificate verify\nSSL_accept:SSLv3/TLS read finished".encode('utf-8'))
         else:
             message = bytes('SSL_accept:SSLv3/TLS read client certificate\nSSL_accept:SSLv3/TLS read client key exchange\nSSL_accept:SSLv3/TLS read certificate verify\nSSL_accept:SSLv3/TLS read change cipher spec\nSSL_accept:SSLv3/TLS read finished'.encode('utf-8'))
+
+            if 'openssl-1.0.2' in OpenSSL.get_version():
+                message = bytes('SSL_accept:SSLv3 read client certificate A\nSSL_accept:SSLv3 read client key exchange A\nSSL_accept:SSLv3 read certificate verify A\nSSL_accept:SSLv3 read finished A'.encode('utf-8'))
 
         assert message in results.stderr

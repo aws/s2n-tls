@@ -23,10 +23,9 @@ def filter_cipher_list(*args, **kwargs):
     if protocol < lowest_protocol_cipher.min_version:
         return True
 
-    return False
+    return invalid_test_parameters(*args, **kwargs)
 
 
-@pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.uncollect_if(func=filter_cipher_list)
 @pytest.mark.parametrize("provider", [OpenSSL])
 @pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)

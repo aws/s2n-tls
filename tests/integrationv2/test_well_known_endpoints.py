@@ -6,6 +6,7 @@ from constants import TRUST_STORE_BUNDLE
 from configuration import available_ports, PROTOCOLS
 from common import ProviderOptions, Protocols, Ciphers
 from fixtures import managed_process
+from global_flags import get_flag, S2N_NO_PQ, S2N_FIPS_MODE
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name
 
@@ -22,7 +23,7 @@ ENDPOINTS = [
 ]
 
 
-if os.getenv("S2N_NO_PQ") is None:
+if get_flag(S2N_NO_PQ, False) is False:
     # If PQ was compiled into S2N, test the PQ preferences against KMS
     pq_endpoints = [
         {
@@ -58,6 +59,11 @@ def test_well_known_endpoints(managed_process, protocol, endpoint):
         insecure=False,
         client_trust_store=TRUST_STORE_BUNDLE,
         protocol=protocol)
+
+    if get_flag(S2N_FIPS_MODE) is True:
+        client_options.client_trust_store = "../integration/trust-store/ca-bundle.trust.crt"
+    else:
+        client_options.client_trust_store = "../integration/trust-store/ca-bundle.crt"
 
     if 'cipher_preference_version' in endpoint:
         client_options.cipher = endpoint['cipher_preference_version']
