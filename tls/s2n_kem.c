@@ -157,6 +157,7 @@ int s2n_kem_generate_keypair(struct s2n_kem_params *kem_params)
 int s2n_kem_encapsulate(struct s2n_kem_params *kem_params, struct s2n_blob *ciphertext)
 {
     notnull_check(kem_params);
+    notnull_check(kem_params->kem);
     const struct s2n_kem *kem = kem_params->kem;
     notnull_check(kem->encapsulate);
 
