@@ -61,8 +61,8 @@ int main(int argc, char **argv)
     conn->server = &conn->initial;
     conn->client = &conn->initial;
 
-    int max_aligned_fragment = S2N_DEFAULT_FRAGMENT_LENGTH - (S2N_DEFAULT_FRAGMENT_LENGTH % 16);
-    uint8_t proto_versions[3] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
+    const int max_aligned_fragment = S2N_DEFAULT_FRAGMENT_LENGTH;
+    const uint8_t proto_versions[3] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
 
     /* test the composite AES128_SHA1 cipher  */
     conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_sha_composite;
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
      * There are a few gotchas with respect to explicit IV length and payload length
      */
     for (int j = 0; j < 3; j++ ) {
-        for (int i = 0; i < max_aligned_fragment; i++) {
+        for (int i = 0; i <= max_aligned_fragment + 1; i++) {
             struct s2n_blob in = {.data = random_data,.size = i };
             int bytes_written;
 
@@ -93,10 +93,11 @@ int main(int argc, char **argv)
                 explicit_iv_len = 0;
             }
 
-            if (i < max_aligned_fragment - SHA_DIGEST_LENGTH - explicit_iv_len - 1) {
+            if (i <= max_aligned_fragment) {
                 EXPECT_EQUAL(bytes_written, i);
             } else {
-                EXPECT_EQUAL(bytes_written, max_aligned_fragment - SHA_DIGEST_LENGTH - explicit_iv_len - 1);
+                /* application data size of intended fragment size + 1 should only send max fragment */
+                EXPECT_EQUAL(bytes_written, max_aligned_fragment);
             }
 
             uint16_t predicted_length = bytes_written + 1 + SHA_DIGEST_LENGTH + explicit_iv_len;
@@ -136,7 +137,7 @@ int main(int argc, char **argv)
     /* test the composite AES256_SHA1 cipher  */
     conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_sha_composite;
     for (int j = 0; j < 3; j++ ) {
-        for (int i = 0; i < max_aligned_fragment; i++) {
+        for (int i = 0; i <= max_aligned_fragment + 1; i++) {
             struct s2n_blob in = {.data = random_data,.size = i };
             int bytes_written;
 
@@ -158,10 +159,11 @@ int main(int argc, char **argv)
                 explicit_iv_len = 0;
             }
 
-            if (i < max_aligned_fragment - SHA_DIGEST_LENGTH - explicit_iv_len - 1) {
+            if (i <= max_aligned_fragment) {
                 EXPECT_EQUAL(bytes_written, i);
             } else {
-                EXPECT_EQUAL(bytes_written, max_aligned_fragment - SHA_DIGEST_LENGTH - explicit_iv_len - 1);
+                /* application data size of intended fragment size + 1 should only send max fragment */
+                EXPECT_EQUAL(bytes_written, max_aligned_fragment);
             }
 
             uint16_t predicted_length = bytes_written + 1 + SHA_DIGEST_LENGTH + explicit_iv_len;
@@ -202,7 +204,7 @@ int main(int argc, char **argv)
     /* test the composite AES128_SHA256 cipher  */
     conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_sha256_composite;
     for (int j = 0; j < 3; j++ ) {
-        for (int i = 0; i < max_aligned_fragment; i++) {
+        for (int i = 0; i < max_aligned_fragment + 1; i++) {
             struct s2n_blob in = {.data = random_data,.size = i };
             int bytes_written;
 
@@ -224,10 +226,11 @@ int main(int argc, char **argv)
                 explicit_iv_len = 0;
             }
 
-            if (i < max_aligned_fragment - SHA256_DIGEST_LENGTH - explicit_iv_len - 1) {
+            if (i <= max_aligned_fragment) {
                 EXPECT_EQUAL(bytes_written, i);
             } else {
-                EXPECT_EQUAL(bytes_written, max_aligned_fragment - SHA256_DIGEST_LENGTH - explicit_iv_len - 1);
+                /* application data size of intended fragment size + 1 should only send max fragment */
+                EXPECT_EQUAL(bytes_written, max_aligned_fragment);
             }
 
             uint16_t predicted_length = bytes_written + 1 + SHA256_DIGEST_LENGTH + explicit_iv_len;
@@ -267,7 +270,7 @@ int main(int argc, char **argv)
     /* test the composite AES256_SHA256 cipher  */
     conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes256_sha256_composite;
     for (int j = 0; j < 3; j++ ) {
-        for (int i = 0; i < max_aligned_fragment; i++) {
+        for (int i = 0; i <= max_aligned_fragment + 1; i++) {
             struct s2n_blob in = {.data = random_data,.size = i };
             int bytes_written;
 
@@ -289,10 +292,11 @@ int main(int argc, char **argv)
                 explicit_iv_len = 0;
             }
 
-            if (i < max_aligned_fragment - SHA256_DIGEST_LENGTH - explicit_iv_len - 1) {
+            if (i <= max_aligned_fragment) {
                 EXPECT_EQUAL(bytes_written, i);
             } else {
-                EXPECT_EQUAL(bytes_written, max_aligned_fragment - SHA256_DIGEST_LENGTH - explicit_iv_len - 1);
+                /* application data size of intended fragment size + 1 should only send max fragment */
+                EXPECT_EQUAL(bytes_written, max_aligned_fragment);
             }
 
             uint16_t predicted_length = bytes_written + 1 + SHA256_DIGEST_LENGTH + explicit_iv_len;

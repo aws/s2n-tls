@@ -72,7 +72,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
 
     int max_fragment = S2N_SMALL_FRAGMENT_LENGTH;
-    for (int i = 0; i < max_fragment; i++) {
+    for (int i = 0; i <= max_fragment + 1; i++) {
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
 
@@ -89,17 +89,19 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(setup_server_keys(conn, &aes128));
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
-        const int overhead = 8   /* IV */
-            + 16; /* TAG */
-        if (i < max_fragment - overhead) {
+        if (i <= max_fragment) {
             EXPECT_EQUAL(bytes_written, i);
         } else {
-            EXPECT_EQUAL(bytes_written, max_fragment - overhead);
+            /* application data size of intended fragment size + 1 should only send max fragment */
+            EXPECT_EQUAL(bytes_written, max_fragment);
         }
 
         uint16_t predicted_length = bytes_written;
         predicted_length += conn->initial.cipher_suite->record_alg->cipher->io.aead.record_iv_size;
         predicted_length += conn->initial.cipher_suite->record_alg->cipher->io.aead.tag_size;
+
+        const int overhead = 8 /* IV */ + 16 /* TAG */;
+        EXPECT_EQUAL(predicted_length, bytes_written + overhead);
 
         EXPECT_EQUAL(conn->out.blob.data[0], TLS_APPLICATION_DATA);
         EXPECT_EQUAL(conn->out.blob.data[1], 3);
@@ -272,17 +274,19 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
-        const int overhead = 8   /* IV */
-            + 16; /* TAG */
-        if (i < max_fragment - overhead) {
+        if (i <= max_fragment) {
             EXPECT_EQUAL(bytes_written, i);
         } else {
-            EXPECT_EQUAL(bytes_written, max_fragment - overhead);
+            /* application data size of intended fragment size + 1 should only send max fragment */
+            EXPECT_EQUAL(bytes_written, max_fragment);
         }
 
         uint16_t predicted_length = bytes_written;
         predicted_length += conn->initial.cipher_suite->record_alg->cipher->io.aead.record_iv_size;
         predicted_length += conn->initial.cipher_suite->record_alg->cipher->io.aead.tag_size;
+
+        const int overhead = 8 /* IV */ + 16 /* TAG */;
+        EXPECT_EQUAL(predicted_length, bytes_written + overhead);
 
         EXPECT_EQUAL(conn->out.blob.data[0], TLS_APPLICATION_DATA);
         EXPECT_EQUAL(conn->out.blob.data[1], 3);
