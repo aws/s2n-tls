@@ -102,7 +102,7 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
 
     *blocked = S2N_BLOCKED_ON_WRITE;
 
-    uint16_t max_payload_size;
+    uint16_t max_payload_size = 0;
     GUARD_AS_POSIX(s2n_record_max_write_payload_size(conn, &max_payload_size));
 
     /* TLS 1.0 and SSLv3 are vulnerable to the so-called Beast attack. Work

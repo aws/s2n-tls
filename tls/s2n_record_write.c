@@ -36,8 +36,10 @@
 extern uint8_t s2n_unknown_protocol_version;
 
 /* How much overhead does the IV, MAC, TAG and padding bytes introduce ? */
-static int s2n_tls_record_overhead(struct s2n_connection *conn)
+static S2N_RESULT s2n_tls_record_overhead(struct s2n_connection *conn, uint16_t *out)
 {
+    ENSURE_REF(conn);
+    ENSURE_MUT(out);
     struct s2n_crypto_parameters *active = conn->server;
 
     if (conn->mode == S2N_CLIENT) {
@@ -45,7 +47,7 @@ static int s2n_tls_record_overhead(struct s2n_connection *conn)
     }
 
     uint8_t extra;
-    GUARD(s2n_hmac_digest_size(active->cipher_suite->record_alg->hmac_alg, &extra));
+    GUARD_AS_RESULT(s2n_hmac_digest_size(active->cipher_suite->record_alg->hmac_alg, &extra));
 
     if (active->cipher_suite->record_alg->cipher->type == S2N_CBC) {
         /* Subtract one for the padding length byte */
@@ -61,7 +63,9 @@ static int s2n_tls_record_overhead(struct s2n_connection *conn)
         extra += active->cipher_suite->record_alg->cipher->io.comp.record_iv_size;
     }
 
-    return extra;
+    *out = extra;
+
+    return S2N_RESULT_OK;
 }
 
 /* This function returns maximum size of plaintext data to write for the payload.
@@ -70,6 +74,7 @@ static int s2n_tls_record_overhead(struct s2n_connection *conn)
 S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16_t *max_fragment_size)
 {
     ENSURE_REF(conn);
+    ENSURE_MUT(max_fragment_size);
     ENSURE(conn->max_outgoing_fragment_length > 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
 
     *max_fragment_size = MIN(conn->max_outgoing_fragment_length, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
@@ -88,8 +93,9 @@ int s2n_record_min_write_payload_size(struct s2n_connection *conn)
     int size = min_outgoing_fragment_length;
 
     /* subtract overheads of a TLS record */
-    int overhead;
-    GUARD(overhead = s2n_tls_record_overhead(conn));
+    uint16_t overhead = 0;
+    GUARD_AS_POSIX(s2n_tls_record_overhead(conn, &overhead));
+    ENSURE_POSIX(size > overhead, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
     size -= overhead;
 
     const struct s2n_crypto_parameters *active = conn->mode == S2N_CLIENT ? conn->client : conn->server;
@@ -106,6 +112,7 @@ int s2n_record_min_write_payload_size(struct s2n_connection *conn)
     }
 
     ENSURE_POSIX(size > 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
+    ENSURE_POSIX(size <= ETH_MTU, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
 
     return size;
 }
@@ -218,13 +225,12 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     /* Before we do anything, we need to figure out what the length of the
      * fragment is going to be.
      */
-    uint16_t max_write_payload_size;
+    uint16_t max_write_payload_size = 0;
     GUARD_AS_POSIX(s2n_record_max_write_payload_size(conn, &max_write_payload_size));
     const uint16_t data_bytes_to_take = MIN(to_write, max_write_payload_size);
 
-    int overhead;
-    GUARD(overhead = s2n_tls_record_overhead(conn));
-    uint16_t extra = overhead;
+    uint16_t extra = 0;
+    GUARD_AS_POSIX(s2n_tls_record_overhead(conn, &extra));
 
     /* If we have padding to worry about, figure that out too */
     if (cipher_suite->record_alg->cipher->type == S2N_CBC) {

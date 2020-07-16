@@ -707,7 +707,7 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
     /* Write the handshake data to records in fragment sized chunks */
     struct s2n_blob out = {0};
     while (s2n_stuffer_data_available(&conn->handshake.io) > 0) {
-        uint16_t max_payload_size;
+        uint16_t max_payload_size = 0;
         GUARD_AS_POSIX(s2n_record_max_write_payload_size(conn, &max_payload_size));
         out.size = MIN(s2n_stuffer_data_available(&conn->handshake.io), max_payload_size);
 
