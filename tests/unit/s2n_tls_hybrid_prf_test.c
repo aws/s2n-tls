@@ -37,7 +37,7 @@
 #define SERVER_RANDOM_LENGTH 32
 #define MASTER_SECRET_LENGTH 48
 
-#define NUM_TEST_VECTORS 8
+#define NUM_TEST_VECTORS 10
 
 int main(int argc, char **argv)
 {
