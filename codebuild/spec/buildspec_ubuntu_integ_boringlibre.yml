@@ -29,7 +29,7 @@ phases:
         if expr "${LATEST_CLANG}" != "true" >/dev/null; then
           apt-get install -y --no-install-recommends clang-3.9 llvm-3.9;
         fi
-      - apt-get install -y --no-install-recommends indent kwstyle lcov libssl-dev m4 make net-tools nettle-bin nettle-dev pkg-config psmisc python3-pip shellcheck sudo tcpdump unzip valgrind zlib1g-dev zlibc cmake tox
+      - apt-get install -y --no-install-recommends indent kwstyle lcov libssl-dev m4 make net-tools nettle-bin nettle-dev pkg-config psmisc python3-pip shellcheck sudo tcpdump unzip valgrind zlib1g-dev zlibc cmake tox libtool ninja-build
   pre_build:
     commands:
       - S2N_LIBCRYPTO=libressl GCC_VERSION=6 codebuild/bin/install_default_dependencies.sh

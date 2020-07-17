@@ -357,7 +357,8 @@ class ProviderOptions(object):
             reconnect=None,
             verify_hostname=None,
             server_name=None,
-            protocol=None):
+            protocol=None,
+            env_overrides=dict()):
 
         # Client or server
         self.mode = mode
@@ -413,3 +414,6 @@ class ProviderOptions(object):
 
         # Extra flags to pass to the provider
         self.extra_flags = extra_flags
+
+        # Extra environment parameters
+        self.env_overrides = env_overrides
