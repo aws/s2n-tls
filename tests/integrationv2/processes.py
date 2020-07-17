@@ -35,8 +35,8 @@ class _processCommunicator(object):
     """
     def __init__(self, proc):
         self.proc = proc
-        self.ready_to_send = None
-        self.ready_to_close = None
+        self.send_marker_list = None
+        self.close_marker = None
         self.wait_for_marker = None
 
         # If the process times out, communicate() is called once more to pick
@@ -63,11 +63,11 @@ class _processCommunicator(object):
 
     def communicate(self, input_data=None, send_marker_list=None, close_marker=None, timeout=None):
         """
-        Communicates with the managed process. If ready_to_send is set, input_data will not be sent
+        Communicates with the managed process. If send_marker_list is set, input_data will not be sent
         until the marker is seen.
 
         This method acts very similar to the Popen.communicate method. The only difference is the
-        ready_to_send marker.
+        send_marker_list and close_marker.
         """
         self.send_marker_list = send_marker_list
         self.close_marker = close_marker
