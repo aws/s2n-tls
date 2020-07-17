@@ -11,7 +11,7 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Expected runtime is 40 seconds.
+# Expected runtime is 23 minutes.
 MAX_LENGTH = 3
 DEFINES += -DMAX_LENGTH=$(MAX_LENGTH)
 
@@ -40,6 +40,14 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 REMOVE_FUNCTION_BODY += s2n_blob_slice
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe_n
 
- UNWINDSET += s2n_stuffer_write_network_order.4:$(shell echo $$((1 + $(MAX_LENGTH))))
+UNWINDSET += s2n_stuffer_write_network_order.0:$(shell echo $$((1 + $(MAX_LENGTH))))
+UNWINDSET += s2n_stuffer_write_network_order.1:$(shell echo $$((1 + $(MAX_LENGTH))))
+UNWINDSET += s2n_stuffer_write_network_order.2:$(shell echo $$((1 + $(MAX_LENGTH))))
+UNWINDSET += s2n_stuffer_write_network_order.3:$(shell echo $$((1 + $(MAX_LENGTH))))
+UNWINDSET += s2n_stuffer_write_network_order.4:$(shell echo $$((1 + $(MAX_LENGTH))))
+UNWINDSET += s2n_stuffer_write_network_order.5:$(shell echo $$((1 + $(MAX_LENGTH))))
+UNWINDSET += s2n_stuffer_write_network_order.6:$(shell echo $$((1 + $(MAX_LENGTH))))
+UNWINDSET += s2n_stuffer_write_network_order.7:$(shell echo $$((1 + $(MAX_LENGTH))))
+UNWINDSET += s2n_stuffer_write_reservation_harness.0:$(shell echo $$((1 + $(MAX_LENGTH))))
 
 include ../Makefile.common

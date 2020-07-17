@@ -146,12 +146,12 @@ static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s
 
 static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    struct s2n_stuffer_reservation shares_size;
+    struct s2n_stuffer_reservation shares_size = {0};
     GUARD(s2n_stuffer_reserve_uint16(out, &shares_size));
 
     GUARD(s2n_ecdhe_supported_curves_send(conn, out));
 
-    GUARD(s2n_stuffer_write_vector_size(shares_size));
+    GUARD(s2n_stuffer_write_vector_size(&shares_size));
 
     return S2N_SUCCESS;
 }
@@ -255,7 +255,7 @@ uint32_t s2n_extensions_client_key_share_size(struct s2n_connection *conn)
 
     for (uint32_t i = 0; i < ecc_pref->count ; i++) {
         s2n_client_key_share_extension_size += S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIZE_OF_NAMED_GROUP;
-        s2n_client_key_share_extension_size += ecc_pref->ecc_curves[i]->share_size; 
+        s2n_client_key_share_extension_size += ecc_pref->ecc_curves[i]->share_size;
     }
 
     return s2n_client_key_share_extension_size;

@@ -513,11 +513,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
             /* Write extensions - just status_request */
-            struct s2n_stuffer_reservation extension_list_size;
+            struct s2n_stuffer_reservation extension_list_size = {0};
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
             EXPECT_SUCCESS(s2n_extension_send(&s2n_server_status_request_extension,
                     server_conn, &stuffer));
-            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(extension_list_size));
+            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
             EXPECT_EQUAL(client_conn->status_type, S2N_STATUS_REQUEST_NONE);
             EXPECT_EQUAL(client_conn->server_protocol_version, S2N_UNKNOWN_PROTOCOL_VERSION);
@@ -542,13 +542,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
             /* Write extensions - supported_versions + status_request */
-            struct s2n_stuffer_reservation extension_list_size;
+            struct s2n_stuffer_reservation extension_list_size = {0};
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
             EXPECT_SUCCESS(s2n_extension_send(&s2n_server_supported_versions_extension,
                     server_conn, &stuffer));
             EXPECT_SUCCESS(s2n_extension_send(&s2n_server_status_request_extension,
                     server_conn, &stuffer));
-            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(extension_list_size));
+            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
             EXPECT_EQUAL(client_conn->status_type, S2N_STATUS_REQUEST_NONE);
             EXPECT_EQUAL(client_conn->server_protocol_version, S2N_UNKNOWN_PROTOCOL_VERSION);

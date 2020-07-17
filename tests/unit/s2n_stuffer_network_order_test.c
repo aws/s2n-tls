@@ -282,7 +282,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &reservation));
 
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, test_sizes[i]));
-            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(reservation));
+            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&reservation));
 
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &actual_value));
             EXPECT_EQUAL(actual_value, test_sizes[i]);

@@ -30,23 +30,26 @@ void s2n_stuffer_write_reservation_harness() {
     struct s2n_stuffer_reservation *reservation = cbmc_allocate_s2n_stuffer_reservation();
     __CPROVER_assume(s2n_stuffer_reservation_is_valid(reservation));
     __CPROVER_assume(reservation->length < MAX_LENGTH);
-    uint32_t u = nondet_uint32_t();
+    uint32_t u;
 
     /* Non-deterministically set initialized (in s2n_mem) to true. */
     if(nondet_bool()) {
         s2n_mem_init();
     }
 
-    /* Save previous state from stuffer. */
-    struct s2n_stuffer old_stuffer = *(reservation->stuffer);
+    /* Save previous state from stuffer_reservation. */
+    struct s2n_stuffer_reservation old_stuffer_reservation = *reservation;
 
     /* Operation under verification. */
-    if (s2n_stuffer_write_reservation(*reservation, u) == S2N_SUCCESS) {
-        assert(reservation->stuffer->write_cursor == old_stuffer.write_cursor);
+    if (s2n_stuffer_write_reservation(reservation, u) == S2N_SUCCESS) {
+        assert(s2n_stuffer_reservation_is_valid(reservation));
+        assert(reservation->stuffer->write_cursor == old_stuffer_reservation.stuffer->write_cursor);
     } else {
-        assert(reservation->stuffer->read_cursor == old_stuffer.read_cursor);
-        assert(reservation->stuffer->alloced == old_stuffer.alloced);
-        assert(reservation->stuffer->growable == old_stuffer.growable);
-        assert(reservation->stuffer->tainted == old_stuffer.tainted);
+        assert(reservation->stuffer->write_cursor == old_stuffer_reservation.stuffer->write_cursor);
+        assert(reservation->stuffer->high_water_mark == old_stuffer_reservation.stuffer->high_water_mark);
     }
+    assert(reservation->stuffer->alloced == old_stuffer_reservation.stuffer->alloced);
+    assert(reservation->stuffer->growable == old_stuffer_reservation.stuffer->growable);
+    assert(reservation->stuffer->tainted == old_stuffer_reservation.stuffer->tainted);
+    assert(reservation->stuffer->read_cursor == old_stuffer_reservation.stuffer->read_cursor);
 }
