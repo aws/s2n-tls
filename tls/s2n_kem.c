@@ -141,6 +141,7 @@ const struct s2n_iana_to_kem kem_mapping[1] = {
 int s2n_kem_generate_keypair(struct s2n_kem_params *kem_params)
 {
     notnull_check(kem_params);
+    notnull_check(kem_params->kem);
     const struct s2n_kem *kem = kem_params->kem;
     notnull_check(kem->generate_keypair);
 
