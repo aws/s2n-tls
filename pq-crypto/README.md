@@ -19,8 +19,11 @@ post-quantum key exchange scheme and a classical key exchange scheme.
 
 ## Hybrid key exchange
 A hybrid key exchange combines both the high assurance of classical key exchange with the conjectured quantum-resistance
-of newly proposed key exchanges. s2n implements the hybrid specification from [this RFC](https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-01).
-See [this s2n issue](https://github.com/awslabs/s2n/issues/904) for more up-to-date information.
+of newly proposed key exchanges. For hybrid TLS 1.2, s2n implements the hybrid specification from [this RFC](https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid-01).
+See [this s2n issue](https://github.com/awslabs/s2n/issues/904) for more up-to-date information. For hybrid TLS 1.3, s2n
+implements the hybrid specification from [this draft RFC](https://tools.ietf.org/html/draft-stebila-tls-hybrid-design).
+See also [this doc](https://docs.google.com/spreadsheets/d/12YarzaNv3XQNLnvDsWLlRKwtZFhRrDdWf36YlzwrPeg/edit#gid=0) that
+defines hybrid group values for interoperability.
 
 ## SIKE (Supersingular Isogeny Key Encapsulation)
 The code in the pq-crypto/sike_r1 directory was taken from the [round 1 NIST submission](https://csrc.nist.gov/CSRC/media/Projects/Post-Quantum-Cryptography/documents/round-1/submissions/SIKE.zip).
@@ -47,7 +50,11 @@ the optimized assembly code will significantly improve performance of the post-q
 the architecture is compatible with the assembly code, and falls back to the portable C implementation if it detects incompatibility. However, some users
 may wish to manually force s2n to use the portable C implementation. To do so, simply `export S2N_NO_PQ_ASM=1` as an environment variable before compiling.
 
-## How to add a new PQ KEM family
+## How to disable all PQ Crypto
+Users may have need to compile s2n without any PQ crypto support whatsoever. To so do, `export S2N_NO_PQ=1` as an environment
+variable before compiling.
+
+## How to add a new PQ KEM family for use in hybrid TLS 1.2
 1. Add the code to `pq-crypto/KEM_NAME/`
     1. Update `pq-crypto/Makefile` to build that directory
     1. Update `lib/Makefile` to also include that directory
@@ -64,7 +71,7 @@ may wish to manually force s2n to use the portable C implementation. To do so, s
 1. Create a new `s2n_cipher_preferences` in `tls/s2n_cipher_prefrences.c` that uses the new cipher suite
     1. Once this change is made, the KEM will be available for use in TLS handshakes; ensure that all testing/verification has been completed
     
-## How to add a new variant to an existing PQ KEM family
+## How to add a new variant to an existing PQ KEM family for use in hybrid TLS 1.2
 1. Add the code to `pq-crypto/KEM_NAME/`
     1. Update `pq-crypto/Makefile` to build that directory
     1. Update `lib/Makefile` to also include that directory
@@ -78,7 +85,7 @@ may wish to manually force s2n to use the portable C implementation. To do so, s
 1. Update the appropriate `supported_KEM_NAME_params` array in `tls/s2n_kem.c`
     1. Once this change is made, the KEM extension will be available for use in TLS handshakes; ensure that all testing/verification has been completed 
 
-## How to use PQ cipher suites
+## How to use PQ cipher suites for hybrid TLS 1.2
 1. Checkout s2n `git clone https://github.com/awslabs/s2n.git`
 1. Following the docs/USAGE-GUIDE.md build s2n
 1. Use the sample server and client in the bin directory:

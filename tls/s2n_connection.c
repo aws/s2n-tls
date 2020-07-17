@@ -300,6 +300,10 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     for (int i=0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
         GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
     }
+    GUARD(s2n_kem_group_free(&conn->secure.server_kem_group_params));
+    for (int i = 0; i < S2N_SUPPORTED_KEM_GROUPS_COUNT; i++) {
+        GUARD(s2n_kem_group_free(&conn->secure.client_kem_group_params[i]));
+    }
     GUARD(s2n_kem_free(&conn->secure.kem_params));
     GUARD(s2n_free(&conn->secure.client_cert_chain));
     GUARD(s2n_free(&conn->ct_response));
