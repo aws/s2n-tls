@@ -25,17 +25,43 @@ import sys
 
 
 DESCRIPTION = "Configure and run all CBMC proofs in parallel"
+# Keep this hard-wrapped at 70 characters, as it gets printed verbatim
+# in the terminal. 70 characters stops here -----------------------> |
 EPILOG = """
-This tool automates the process of running `make report` in each of the CBMC
-proof directories. The tool calculates the dependency graph of all tasks needed
-to build, run, and report on all the proofs, and executes these tasks in
-parallel.
+This tool automates the process of running `make report` in each of
+the CBMC proof directories. The tool calculates the dependency graph
+of all tasks needed to build, run, and report on all the proofs, and
+executes these tasks in parallel.
+
+The tool is roughly equivalent to doing this:
+
+        litani init --project s2n;
+
+        for proof in $(find . -name cbmc-batch.yaml); do
+            pushd $(dirname ${proof});
+            make report;
+            popd;
+        done
+
+        litani run-build;
+
+except that it is much faster and provides some convenience options.
+The CBMC CI runs this script with no arguments to build and run all
+proofs in parallel.
+
+The --no-standalone argument omits the `litani init` and `litani
+run-build`; use it when you want to add additional proof jobs, not
+just the CBMC ones. In that case, you would run `litani init`
+yourself; then run `run-cbmc-proofs --no-standalone`; add any
+additional jobs that you want to execute with `litani add-job`; and
+finally run `litani run-build`.
 """
 
 
 def get_args():
     pars = argparse.ArgumentParser(
-        description=DESCRIPTION, epilog=EPILOG)
+        description=DESCRIPTION, epilog=EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
     for arg in [{
             "flags": ["-j", "--parallel-jobs"],
             "type": int,
