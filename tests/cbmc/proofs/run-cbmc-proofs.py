@@ -48,8 +48,8 @@ def get_args():
     }, {
             "flags": ["-p", "--proofs"],
             "nargs": "+",
-            "metavar": "P",
-            "help": "only run proof P",
+            "metavar": "DIR",
+            "help": "only run proof in directory DIR (can pass more than one)",
     }, {
             "flags": ["--project-name"],
             "metavar": "NAME",
@@ -88,8 +88,10 @@ def print_counter(counter):
             **counter), end="", file=sys.stderr)
 
 
-def get_proof_dirs(proof_root):
+def get_proof_dirs(proof_root, proof_list):
     for root, _, fyles in os.walk(proof_root):
+        if proof_list and pathlib.Path(root).name not in proof_list:
+            continue
         if "cbmc-batch.yaml" in fyles:
             yield root
 
@@ -98,9 +100,6 @@ def run_build(litani, jobs, proofs):
     cmd = [str(litani), "run-build"]
     if jobs:
         cmd.append("-j", jobs)
-    if proofs:
-        cmd.append("--pipelines")
-        cmd.extend(proofs)
 
     logging.debug(" ".join(cmd))
     proc = subprocess.run(cmd)
@@ -154,7 +153,7 @@ async def main():
             logging.error("Failed to run litani init")
             sys.exit(1)
 
-    proof_dirs = list(get_proof_dirs(proof_root))
+    proof_dirs = list(get_proof_dirs(proof_root, args.proofs))
 
     proof_queue = asyncio.Queue()
     for proof_dir in proof_dirs:
