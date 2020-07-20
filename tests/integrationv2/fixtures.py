@@ -24,6 +24,8 @@ def managed_process():
     def _fn(provider_class: Provider, options: ProviderOptions, timeout=5, send_marker_list=None, close_marker=None):
         provider = provider_class(options)
         cmd_line = provider.get_cmd_line()
+        # The process will default to send markers in the providers.py file
+        # if not specified by a test.
         if send_marker_list is not None:
             provider.ready_to_send_input_marker = send_marker_list
         p = ManagedProcess(cmd_line,

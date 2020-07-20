@@ -127,8 +127,18 @@ In each provider that supports your feature you need to check if the flag is set
 line option for that particular provider. You can also add logic checks, e.g with client authentication
 the client must have a certificate to send. Otherwise the test will fail.
 
+## Fine-tune how input data is sent in the tests
+
+There are several optional arguments in the managed_process function. Use these arguments to have a
+greater level of control over how peers send test data. The argument send_marker_list can be used in parallel
+with the data_to_send Provider options. If both of these arguments are lists, the process will only write a
+data_to_send element when it reads a corresponding send_marker_list element from the process's stdout or stderr.
+Additionally, the managed_process argument close_marker can be used to control when the process should shut down.
+If none of these arguments are set, they take default values from the Providers file.
+
 # Troubleshooting
 
 **INTERNALERROR> OSError: cannot send to <Channel id=1 closed>**
 An error similar to this is caused by a runtime error in a test. In `tox.ini` change `-n8` to `-n0` to
 see the actual error causing the OSError.
+
