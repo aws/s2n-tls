@@ -187,13 +187,13 @@ int main()
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
-        struct s2n_stuffer_reservation extension_list_size;
+        struct s2n_stuffer_reservation extension_list_size = {0};
         EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
         /* Write extensions */
         EXPECT_SUCCESS(s2n_extension_send(&test_extension, conn, &stuffer));
         /* Check / write size */
         EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > extension_list_size.length);
-        EXPECT_SUCCESS(s2n_stuffer_write_vector_size(extension_list_size));
+        EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
         EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
 
@@ -215,14 +215,14 @@ int main()
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
-        struct s2n_stuffer_reservation extension_list_size;
+        struct s2n_stuffer_reservation extension_list_size = {0};
         EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
         /* Write extensions */
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, 0));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, 100));
         /* Check / write size */
         EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > extension_list_size.length);
-        EXPECT_SUCCESS(s2n_stuffer_write_vector_size(extension_list_size));
+        EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &parsed_extension_list),
                 S2N_ERR_BAD_MESSAGE);
@@ -241,13 +241,13 @@ int main()
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
-        struct s2n_stuffer_reservation extension_list_size;
+        struct s2n_stuffer_reservation extension_list_size = {0};
         EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
         /* Write extensions */
         EXPECT_SUCCESS(s2n_extension_send(&empty_test_extension, conn, &stuffer));
         /* Check / write size */
         EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > extension_list_size.length);
-        EXPECT_SUCCESS(s2n_stuffer_write_vector_size(extension_list_size));
+        EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
         EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
 
@@ -269,14 +269,14 @@ int main()
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
-        struct s2n_stuffer_reservation extension_list_size;
+        struct s2n_stuffer_reservation extension_list_size = {0};
         EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
         /* Write extension - use grease value as type */
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, S2N_UNKNOWN_EXTENSION_IANA));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, 0));
         /* Check / write size */
         EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > extension_list_size.length);
-        EXPECT_SUCCESS(s2n_stuffer_write_vector_size(extension_list_size));
+        EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
         EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
 
@@ -294,14 +294,14 @@ int main()
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
-        struct s2n_stuffer_reservation extension_list_size;
+        struct s2n_stuffer_reservation extension_list_size = {0};
         EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
         /* Write extensions */
         EXPECT_SUCCESS(s2n_extension_send(&test_extension, conn, &stuffer));
         EXPECT_SUCCESS(s2n_extension_send(&test_extension, conn, &stuffer));
         /* Check / write size */
         EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > extension_list_size.length);
-        EXPECT_SUCCESS(s2n_stuffer_write_vector_size(extension_list_size));
+        EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &parsed_extension_list),
                 S2N_ERR_DUPLICATE_EXTENSION);
@@ -317,14 +317,14 @@ int main()
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
-        struct s2n_stuffer_reservation extension_list_size;
+        struct s2n_stuffer_reservation extension_list_size = {0};
         EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
         /* Write extensions */
         EXPECT_SUCCESS(s2n_extension_send(&empty_test_extension, conn, &stuffer));
         EXPECT_SUCCESS(s2n_extension_send(&empty_test_extension, conn, &stuffer));
         /* Check / write size */
         EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > extension_list_size.length);
-        EXPECT_SUCCESS(s2n_stuffer_write_vector_size(extension_list_size));
+        EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &parsed_extension_list),
                 S2N_ERR_DUPLICATE_EXTENSION);
@@ -346,7 +346,7 @@ int main()
         test_extension_3.send = s2n_extension_send_other_test_data;
 
         /* Reserve size */
-        struct s2n_stuffer_reservation extension_list_size;
+        struct s2n_stuffer_reservation extension_list_size = {0};
         EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
         /* Write extensions */
         EXPECT_SUCCESS(s2n_extension_send(&test_extension, conn, &stuffer));
@@ -356,7 +356,7 @@ int main()
         EXPECT_SUCCESS(s2n_extension_send(&test_extension_3, conn, &stuffer));
         /* Check / write size */
         EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > extension_list_size.length);
-        EXPECT_SUCCESS(s2n_stuffer_write_vector_size(extension_list_size));
+        EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
         EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
 

@@ -22,7 +22,7 @@
 #define SIZEOF_UINT24 3
 
 int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, uint32_t input, uint8_t length);
-int s2n_stuffer_write_reservation(struct s2n_stuffer_reservation reservation, uint32_t u);
+int s2n_stuffer_write_reservation(struct s2n_stuffer_reservation* reservation, const uint32_t u);
 
 int main(int argc, char **argv)
 {
@@ -214,24 +214,24 @@ int main(int argc, char **argv)
 
         /* Null checks */
         reservation.stuffer = NULL;
-        EXPECT_FAILURE(s2n_stuffer_write_reservation(reservation, 0));
+        EXPECT_FAILURE(s2n_stuffer_write_reservation(&reservation, 0));
         EXPECT_EQUAL(stuffer.write_cursor, expected_write_cursor);
         reservation.stuffer = &stuffer;
 
         /* Should throw an error if reservation has wrong size */
         reservation.length = sizeof(uint64_t);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_write_reservation(reservation, 0), S2N_ERR_SIZE_MISMATCH);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_write_reservation(&reservation, 0), S2N_ERR_PRECONDITION_VIOLATION);
         EXPECT_EQUAL(stuffer.write_cursor, expected_write_cursor);
         reservation.length = sizeof(uint16_t);
 
         /* Should throw an error if value length does not match reservation length */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_write_reservation(reservation, UINT32_MAX), S2N_ERR_SIZE_MISMATCH);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_write_reservation(&reservation, UINT32_MAX), S2N_ERR_PRECONDITION_VIOLATION);
         EXPECT_EQUAL(stuffer.write_cursor, expected_write_cursor);
 
         /* Should throw an error if rewriting would require an invalid stuffer state.
          * ( A write cursor being greater than the high water mark is an invalid stuffer state.) */
         reservation.write_cursor = stuffer.high_water_mark + 1;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_write_reservation(reservation, 0), S2N_ERR_PRECONDITION_VIOLATION);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_write_reservation(&reservation, 0), S2N_ERR_PRECONDITION_VIOLATION);
         EXPECT_EQUAL(stuffer.write_cursor, expected_write_cursor);
 
         /* Happy case: successfully rewrites a uint16_t */
@@ -251,9 +251,9 @@ int main(int argc, char **argv)
             /* Rewrite reserved uint16s */
             uint16_t expected_value = 0xabcd;
             expected_write_cursor = stuffer.write_cursor;
-            EXPECT_SUCCESS(s2n_stuffer_write_reservation(reservation, expected_value));
+            EXPECT_SUCCESS(s2n_stuffer_write_reservation(&reservation, expected_value));
             EXPECT_EQUAL(stuffer.write_cursor, expected_write_cursor);
-            EXPECT_SUCCESS(s2n_stuffer_write_reservation(other_reservation, expected_value));
+            EXPECT_SUCCESS(s2n_stuffer_write_reservation(&other_reservation, expected_value));
             EXPECT_EQUAL(stuffer.write_cursor, expected_write_cursor);
 
             /* Make sure expected values read back */
@@ -282,7 +282,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &reservation));
 
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, test_sizes[i]));
-            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(reservation));
+            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&reservation));
 
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &actual_value));
             EXPECT_EQUAL(actual_value, test_sizes[i]);

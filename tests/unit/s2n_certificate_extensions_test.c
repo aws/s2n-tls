@@ -245,11 +245,11 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-            struct s2n_stuffer_reservation size;
+            struct s2n_stuffer_reservation size = {0};
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint24(&stuffer, &size));
             EXPECT_SUCCESS(s2n_write_test_cert(&stuffer, chain_and_key));
             EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, setup_conn, &stuffer));
-            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(size));
+            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&size));
 
             /* TLS1.2 does NOT process extensions */
             {
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
 
         /* Test: extensions only processed on first certificate */
         {
-            struct s2n_stuffer_reservation size;
+            struct s2n_stuffer_reservation size = {0};
 
             /* Extensions on second cert ignored */
             {
@@ -303,7 +303,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_EMPTY, conn, &stuffer));
                 EXPECT_SUCCESS(s2n_write_test_cert(&stuffer, chain_and_key));
                 EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, conn, &stuffer));
-                EXPECT_SUCCESS(s2n_stuffer_write_vector_size(size));
+                EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&size));
 
                 EXPECT_SUCCESS(s2n_x509_validator_validate_cert_chain_test(conn, &stuffer));
 
@@ -326,7 +326,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, conn, &stuffer));
                 EXPECT_SUCCESS(s2n_write_test_cert(&stuffer, chain_and_key));
                 EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_EMPTY, conn, &stuffer));
-                EXPECT_SUCCESS(s2n_stuffer_write_vector_size(size));
+                EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&size));
 
                 EXPECT_SUCCESS(s2n_x509_validator_validate_cert_chain_test(conn, &stuffer));
 

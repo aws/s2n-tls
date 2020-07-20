@@ -403,7 +403,7 @@ int s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out, st
     struct s2n_cert *cur_cert = chain->head;
     notnull_check(cur_cert);
 
-    struct s2n_stuffer_reservation cert_chain_size;
+    struct s2n_stuffer_reservation cert_chain_size = {0};
     GUARD(s2n_stuffer_reserve_uint24(out, &cert_chain_size));
 
     /* Send certs and extensions (in TLS 1.3) */
@@ -429,7 +429,7 @@ int s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out, st
         cur_cert = cur_cert->next;
     }
 
-    GUARD(s2n_stuffer_write_vector_size(cert_chain_size));
+    GUARD(s2n_stuffer_write_vector_size(&cert_chain_size));
 
     return 0;
 }

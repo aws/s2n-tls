@@ -44,7 +44,7 @@ static bool s2n_client_server_name_should_send(struct s2n_connection *conn)
 
 static int s2n_client_server_name_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    struct s2n_stuffer_reservation server_name_list_size;
+    struct s2n_stuffer_reservation server_name_list_size = {0};
     GUARD(s2n_stuffer_reserve_uint16(out, &server_name_list_size));
 
     /* NameType, as described by RFC6066.
@@ -54,7 +54,7 @@ static int s2n_client_server_name_send(struct s2n_connection *conn, struct s2n_s
     GUARD(s2n_stuffer_write_uint16(out, strlen(conn->server_name)));
     GUARD(s2n_stuffer_write_bytes(out, (const uint8_t *) conn->server_name, strlen(conn->server_name)));
 
-    GUARD(s2n_stuffer_write_vector_size(server_name_list_size));
+    GUARD(s2n_stuffer_write_vector_size(&server_name_list_size));
     return S2N_SUCCESS;
 }
 

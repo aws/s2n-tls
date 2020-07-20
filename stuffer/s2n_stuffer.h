@@ -124,7 +124,7 @@ struct s2n_stuffer_reservation {
 extern bool s2n_stuffer_reservation_is_valid(const struct s2n_stuffer_reservation* reservation);
 extern int s2n_stuffer_reserve_uint16(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
 extern int s2n_stuffer_reserve_uint24(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
-extern int s2n_stuffer_write_vector_size(struct s2n_stuffer_reservation reservation);
+extern int s2n_stuffer_write_vector_size(struct s2n_stuffer_reservation *reservation);
 
 /* Copy one stuffer to another */
 extern int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, uint32_t len);
