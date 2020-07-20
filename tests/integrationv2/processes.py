@@ -307,8 +307,8 @@ class ManagedProcess(threading.Thread):
                 # information no matter where a test fails.
                 print("Command line: {}".format(" ".join(self.cmd_line)))
                 print("Exit code: {}".format(proc.returncode))
-                print("Stdout: {}".format(proc_results[0]))
-                print("Stderr: {}".format(proc_results[1]))
+                print("Stdout: {}".format(proc_results[0].decode("utf-8", "backslashreplace")))
+                print("Stderr: {}".format(proc_results[1].decode("utf-8", "backslashreplace")))
 
     def _process_ready(self):
         """Condition variable predicate"""
