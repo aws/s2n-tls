@@ -399,6 +399,11 @@ int main(int argc, char **argv)
 
     /* Positive and negative cases for s2n_validate_kem_preferences() */
     {
+        EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(NULL, 0), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&kem_preferences_null, 1), S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_SUCCESS(s2n_validate_kem_preferences(&kem_preferences_null, 0));
+
+#if !defined(S2N_NO_PQ)
         const struct s2n_kem_group *test_kem_group_list[] = {
                 &s2n_secp256r1_sike_p434_r2
         };
@@ -434,9 +439,9 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&invalid_kem_prefs[i], 1), S2N_ERR_INVALID_SECURITY_POLICY);
         }
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&kem_preferences_null, 1), S2N_ERR_INVALID_SECURITY_POLICY);
         EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&kem_preferences_kms_pq_tls_1_0_2020_07, 0), S2N_ERR_INVALID_SECURITY_POLICY);
         EXPECT_SUCCESS(s2n_validate_kem_preferences(&kem_preferences_kms_pq_tls_1_0_2020_07, 1));
+#endif
     }
 
     END_TEST();
