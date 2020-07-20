@@ -30,8 +30,13 @@
  * TLS1.3 compatibility. */
 #define S2N_TLS13_CIPHER_SUITES_20190801 \
     &s2n_tls13_aes_256_gcm_sha384,       \
-        &s2n_tls13_aes_128_gcm_sha256,   \
-        &s2n_tls13_chacha20_poly1305_sha256
+    &s2n_tls13_aes_128_gcm_sha256,       \
+    &s2n_tls13_chacha20_poly1305_sha256
+
+#define S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716 \
+    &s2n_tls13_aes_128_gcm_sha256,       \
+    &s2n_tls13_aes_256_gcm_sha384,       \
+    &s2n_tls13_chacha20_poly1305_sha256
 
 /* s2n's list of cipher suites, in order of preferences, as of 2019-08-01 */
 struct s2n_cipher_suite *cipher_suites_20190801[] = {
@@ -801,6 +806,7 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2019 =
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2020[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256

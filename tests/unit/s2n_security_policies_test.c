@@ -142,7 +142,6 @@ int main(int argc, char **argv)
             "CloudFront-TLS-1-1-2016",
             "CloudFront-TLS-1-2-2018",
             "CloudFront-TLS-1-2-2019",
-            "CloudFront-TLS-1-2-2020",
             "KMS-TLS-1-0-2018-10",
 #if !defined(S2N_NO_PQ)
             "KMS-PQ-TLS-1-0-2019-06",
@@ -185,7 +184,8 @@ int main(int argc, char **argv)
             "test_all",
             "test_all_tls13",
             "20190801",
-            "20190802"
+            "20190802",
+            "CloudFront-TLS-1-2-2020",
         };
         for (size_t i = 0; i < s2n_array_len(tls13_security_policy_strings); i++) {
             security_policy = NULL;
