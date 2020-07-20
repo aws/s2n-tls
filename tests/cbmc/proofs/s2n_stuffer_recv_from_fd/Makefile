@@ -11,9 +11,7 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Enough to get full coverage with 1 minute of runtime.
-MAX_BLOB_SIZE = 2
-DEFINES += -DMAX_BLOB_SIZE=$(MAX_BLOB_SIZE)
+# Expected runtime of 2 minutes.
 
 CBMCFLAGS +=
 
@@ -24,6 +22,7 @@ PROOF_SOURCES += $(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(PROOF_STUB)/mlock.c
 PROOF_SOURCES += $(PROOF_STUB)/munlock.c
 PROOF_SOURCES += $(PROOF_STUB)/read.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
@@ -41,6 +40,6 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 REMOVE_FUNCTION_BODY += s2n_blob_slice
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe_n
 
-UNWINDSET += s2n_stuffer_recv_from_fd.7:$(call addone,$(MAX_BLOB_SIZE))
+UNWINDSET += s2n_stuffer_recv_from_fd.7:3
 
 include ../Makefile.common

@@ -25,7 +25,6 @@ void s2n_stuffer_recv_from_fd_harness() {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
-    __CPROVER_assume(s2n_blob_is_bounded(&stuffer->blob, MAX_BLOB_SIZE));
     int rfd;
     uint32_t len;
 

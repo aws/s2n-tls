@@ -13,12 +13,23 @@
  * limitations under the License.
  */
 
+#include <error/s2n_errno.h>
+
+#include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/nondet.h>
+#include <errno.h>
 #include <unistd.h>
 
-static ssize_t round = MAX_BLOB_SIZE;
+static bool loop_flag = false;
 
 ssize_t write(int fildes, const void *buf, size_t nbyte) {
-    round--;
-    return (round > 0) ? nondet_ssize_t() : round;
+    ssize_t rval = 0;
+    errno = nondet_int();
+    if(loop_flag) {
+        __CPROVER_assume(errno != EINTR);
+        return rval;
+    }
+    loop_flag = true;
+    rval = nondet_ssize_t();
+    return rval;
 }

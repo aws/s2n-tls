@@ -11,9 +11,7 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Enough to get full coverage with 10 seconds of runtime.
-MAX_BLOB_SIZE = 10
-DEFINES += -DMAX_BLOB_SIZE=$(MAX_BLOB_SIZE)
+# Expected runtime is 30 seconds.
 
 CBMCFLAGS +=
 
@@ -36,6 +34,6 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
-UNWINDSET += s2n_stuffer_send_to_fd.7:$(call addone,$(MAX_BLOB_SIZE))
+UNWINDSET += s2n_stuffer_send_to_fd.7:3
 
 include ../Makefile.common
