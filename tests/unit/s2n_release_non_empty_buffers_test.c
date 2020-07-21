@@ -146,7 +146,11 @@ int main(int argc, char **argv)
     while (n < 100) {
         ret = s2n_stuffer_recv_from_fd(&in, io_pair.server, 100 - n, &n);
 
-        if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            continue;
+        } else {
+            GUARD(ret);
+        }
             continue;
         }
 
