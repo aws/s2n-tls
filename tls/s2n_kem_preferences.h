@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include "tls/s2n_kem.h"
 #include "tls/s2n_kex.h"
 
@@ -45,3 +46,5 @@ extern const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_202
 #endif
 
 extern const struct s2n_kem_preferences kem_preferences_null;
+
+bool s2n_kem_preferences_tls13_kem_groups_includes(const struct s2n_kem_preferences *kem_preferences, uint16_t query_iana_id);
