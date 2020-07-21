@@ -1,15 +1,17 @@
---- /Users/dsn/github/s2n/utils/s2n_safety.c	2018-02-01 17:51:30.000000000 -0500
-+++ utils/s2n_safety.c	2018-02-09 10:28:30.000000000 -0500
-@@ -55,14 +65,12 @@
+diff --git a/utils/s2n_safety.c b/utils/s2n_safety.c
+index 66cadaf0..b9a045f9 100644
+--- a/utils/s2n_safety.c
++++ b/utils/s2n_safety.c
+@@ -57,16 +57,10 @@ pid_t s2n_actual_getpid()
   */
- bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, uint32_t len)
+ bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, const uint32_t len)
  {
 -    S2N_PUBLIC_INPUT(a);
 -    S2N_PUBLIC_INPUT(b);
-+  //S2N_PUBLIC_INPUT(a);
-+  //S2N_PUBLIC_INPUT(b);
-     S2N_PUBLIC_INPUT(len);
-
+-    S2N_PUBLIC_INPUT(len);
+-
+     PRECONDITION_POSIX(len == 0 || (a != NULL && b != NULL));
+ 
      uint8_t xor = 0;
      for (int i = 0; i < len; i++) {
 -        /* Invariants must hold for each execution of the loop
@@ -17,3 +19,14 @@
          S2N_INVARIENT(i <= len);
          xor |= a[i] ^ b[i];
      }
+@@ -86,10 +80,6 @@ bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, const uint32
+  */
+ int s2n_constant_time_copy_or_dont(uint8_t * dest, const uint8_t * src, uint32_t len, uint8_t dont)
+ {
+-    S2N_PUBLIC_INPUT(dest);
+-    S2N_PUBLIC_INPUT(src);
+-    S2N_PUBLIC_INPUT(len);
+-
+     uint8_t mask = ((uint_fast16_t)((uint_fast16_t)(dont) - 1)) >> 8;
+ 
+     /* dont = 0 : mask = 0xff */

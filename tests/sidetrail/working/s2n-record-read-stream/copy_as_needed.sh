@@ -49,7 +49,7 @@ mkdir -p utils
 cp $S2N_BASE/utils/s2n_safety.c utils/
 cp $S2N_BASE/utils/s2n_safety.h utils/
 cp ../stubs/s2n_mem.c utils/
-patch -p5 < ../patches/safety.patch
+patch -p1 < ../patches/safety.patch
 
 cp ../stubs/s2n_annotations.h utils/
 cp ../stubs/s2n_ensure.h utils/

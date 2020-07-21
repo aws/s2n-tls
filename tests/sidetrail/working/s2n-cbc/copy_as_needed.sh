@@ -26,7 +26,7 @@ mkdir -p crypto
 #The hmac should be based off the old hmac, so just apply the patches to add the invarients
 cp $S2N_BASE/crypto/s2n_hmac.c crypto/
 cp $S2N_BASE/crypto/s2n_hmac.h crypto/
-patch -p5 < patches/hmac.patch
+patch -p5 < ../patches/hmac.patch
 
 #the hash uses my stubs for now, so replace the file
 cp stubs/s2n_hash.c crypto/
@@ -38,12 +38,12 @@ cp ../stubs/s2n_errno.c error/
 mkdir -p tls
 #add invariants etc needed for the proof to the s2n_cbc code
 cp $S2N_BASE/tls/s2n_cbc.c tls/
-patch -p5 < patches/cbc.patch
+patch -p5 < ../patches/cbc.patch
 
 mkdir -p utils
 cp $S2N_BASE/utils/s2n_safety.c utils/
 cp $S2N_BASE/utils/s2n_safety.h utils/
-patch -p5 < ../patches/safety.patch
+patch -p1 < ../patches/safety.patch
 
 cp ../stubs/s2n_annotations.h utils/
 cp ../stubs/s2n_ensure.h utils/
