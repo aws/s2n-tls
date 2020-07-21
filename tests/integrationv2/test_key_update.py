@@ -10,10 +10,8 @@ from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 # These are the only ciphers that utilize the key update feature
-@pytest.mark.parametrize("cipher", [Ciphers.AES128_GCM_SHA256, Ciphers.AES256_GCM_SHA384])
-@pytest.mark.parametrize("curve", ALL_TEST_CURVES)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
-def test_s2n_server_key_update(managed_process, cipher, curve, certificate):
+@pytest.mark.parametrize("cipher", [Ciphers.AES128_GCM_SHA256, Ciphers.AES256_GCM_SHA384, Ciphers.CHACHA20_POLY1305_SHA256])
+def test_s2n_server_key_update(managed_process, cipher):
     host = "localhost"
     port = next(available_ports)
     
@@ -30,7 +28,6 @@ def test_s2n_server_key_update(managed_process, cipher, curve, certificate):
         host=host,
         port=port,
         cipher=cipher,
-        curve=curve,
         data_to_send= [update_requested, client_data],
         insecure=True,
         protocol=Protocols.TLS13)
@@ -38,8 +35,8 @@ def test_s2n_server_key_update(managed_process, cipher, curve, certificate):
     server_options = copy.copy(client_options)
     
     server_options.mode = Provider.ServerMode
-    server_options.key = certificate.key
-    server_options.cert = certificate.cert
+    server_options.key = "../pems/ecdsa_p384_pkcs1_key.pem"
+    server_options.cert = "../pems/ecdsa_p384_pkcs1_cert.pem"
     server_options.data_to_send = [server_data]
 
     server = managed_process(S2N, server_options, send_marker=[str(client_data)], timeout=5)
@@ -51,7 +48,6 @@ def test_s2n_server_key_update(managed_process, cipher, curve, certificate):
         assert key_update_marker in str(results.stderr)
         assert server_data in results.stdout
 
-
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
@@ -59,10 +55,8 @@ def test_s2n_server_key_update(managed_process, cipher, curve, certificate):
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 # These are the only ciphers that utilize the key update feature
-@pytest.mark.parametrize("cipher", [Ciphers.AES128_GCM_SHA256, Ciphers.AES256_GCM_SHA384])
-@pytest.mark.parametrize("curve", ALL_TEST_CURVES)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
-def test_s2n_client_key_update(managed_process, cipher, curve, certificate):
+@pytest.mark.parametrize("cipher", [Ciphers.AES128_GCM_SHA256, Ciphers.AES256_GCM_SHA384, Ciphers.CHACHA20_POLY1305_SHA256])
+def test_s2n_client_key_update(managed_process, cipher):
     host = "localhost"
     port = next(available_ports)
 
@@ -81,7 +75,6 @@ def test_s2n_client_key_update(managed_process, cipher, curve, certificate):
         host=host,
         port=port,
         cipher=cipher,
-        curve=curve,
         data_to_send=[client_data],
         insecure=True,
         protocol=Protocols.TLS13)
@@ -89,8 +82,8 @@ def test_s2n_client_key_update(managed_process, cipher, curve, certificate):
     server_options = copy.copy(client_options)
 
     server_options.mode = Provider.ServerMode
-    server_options.key = certificate.key
-    server_options.cert = certificate.cert
+    server_options.key = "../pems/ecdsa_p384_pkcs1_key.pem"
+    server_options.cert = "../pems/ecdsa_p384_pkcs1_cert.pem"
     server_options.data_to_send = [update_requested, server_data]
 
     server = managed_process(OpenSSL, server_options, send_marker=send_marker_list, close_marker=str(client_data), timeout=5)
