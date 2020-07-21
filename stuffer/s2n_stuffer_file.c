@@ -26,7 +26,7 @@
 
 #include "utils/s2n_safety.h"
 
-int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, int rfd, uint32_t len)
+int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, int rfd, uint32_t len, ssize_t *bytes_written)
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     /* Make sure we have enough space to write */
@@ -44,12 +44,11 @@ int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, int rfd, uint32_t len)
     /* Record just how many bytes we have written */
     S2N_ERROR_IF(r > UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     GUARD(s2n_stuffer_skip_write(stuffer, (uint32_t)r));
-
-    S2N_ERROR_IF(r > INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
-    return r;
+    if (bytes_written != NULL) *bytes_written = r;
+    return S2N_SUCCESS;
 }
 
-int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len)
+int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len, ssize_t *bytes_sent)
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
 
@@ -67,9 +66,8 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len)
 
     S2N_ERROR_IF(w > UINT32_MAX - stuffer->read_cursor, S2N_ERR_INTEGER_OVERFLOW);
     stuffer->read_cursor += w;
-
-    S2N_ERROR_IF(w > INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
-    return w;
+    if (bytes_sent != NULL) *bytes_sent = w;
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)

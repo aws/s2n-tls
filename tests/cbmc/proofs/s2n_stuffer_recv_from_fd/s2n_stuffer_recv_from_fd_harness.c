@@ -27,6 +27,7 @@ void s2n_stuffer_recv_from_fd_harness() {
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
     int rfd;
     uint32_t len;
+    ssize_t bytes_written;
 
     /* Non-deterministically set initialized (in s2n_mem) to true. */
     if(nondet_bool()) {
@@ -39,11 +40,12 @@ void s2n_stuffer_recv_from_fd_harness() {
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
-    int rc = s2n_stuffer_recv_from_fd(stuffer, rfd, len);
-
-    /* Post-conditions. */
-    if(rc >= 0 && rc < UINT32_MAX) assert(stuffer->write_cursor == old_stuffer.write_cursor + rc);
-    assert(stuffer->alloced == old_stuffer.alloced);
-    assert(stuffer->growable == old_stuffer.growable);
-    assert(stuffer->tainted == old_stuffer.tainted);
+    if (s2n_stuffer_recv_from_fd(stuffer, rfd, len, &bytes_written) == S2N_SUCCESS) {
+       assert(stuffer->write_cursor == old_stuffer.write_cursor + bytes_written);
+       assert(s2n_stuffer_is_valid(stuffer));
+   }
+   assert(stuffer->read_cursor == old_stuffer.read_cursor);
+   assert(stuffer->alloced == old_stuffer.alloced);
+   assert(stuffer->growable == old_stuffer.growable);
+   assert(stuffer->tainted == old_stuffer.tainted);
 }

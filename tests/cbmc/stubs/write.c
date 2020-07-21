@@ -31,5 +31,6 @@ ssize_t write(int fildes, const void *buf, size_t nbyte) {
     }
     loop_flag = true;
     rval = nondet_ssize_t();
+    __CPROVER_assume(rval <= (ssize_t)nbyte);
     return rval;
 }
