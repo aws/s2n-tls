@@ -130,11 +130,24 @@ the client must have a certificate to send. Otherwise the test will fail.
 ## Fine-tune how input data is sent in the tests
 
 There are several optional arguments in the managed_process function. Use these arguments to have a
-greater level of control over how peers send test data. The argument send_marker_list can be used in parallel
+greater level of control over how peers send test data. The argument send_marker can be used in parallel
 with the data_to_send Provider options. If both of these arguments are lists, the process will only write a
-data_to_send element when it reads a corresponding send_marker_list element from the process's stdout or stderr.
+data_to_send element when it reads a corresponding send_marker element from the process's stdout or stderr.
 Additionally, the managed_process argument close_marker can be used to control when the process should shut down.
-If none of these arguments are set, they take default values from the Providers file.
+
+An example of how to test that the server and the client can send and receive application data:
+```
+    server_options.data_to_send = ["First server message", "Second server message"]
+    server_send_marker = ["Ready to send data", "First client message"]
+    server_close_marker = ["Second client message"]
+
+    client_options.data_to_send = ["First client message", "Second client message"]
+    client_send_marker = ["Ready to send data", "First server message"]
+    client_close_marker = ["Second server message"]
+
+    server = managed_process(provider, server_options, server_send_marker, server_close_marker, timeout=5)
+    client = managed_process(S2N, client_options, client_send_marker, client_close_marker, timeout=5)
+```
 
 # Troubleshooting
 

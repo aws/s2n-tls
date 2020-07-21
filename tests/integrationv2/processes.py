@@ -35,8 +35,6 @@ class _processCommunicator(object):
     """
     def __init__(self, proc):
         self.proc = proc
-        self.send_marker_list = None
-        self.close_marker = None
         self.wait_for_marker = None
 
         # If the process times out, communicate() is called once more to pick
@@ -55,7 +53,7 @@ class _processCommunicator(object):
         stderr = None
 
         try:
-            stdout, stderr = self._communicate(None, timeout)
+            stdout, stderr = self._communicate(None, timeout=timeout)
         finally:
             self._communication_started = True
 
@@ -69,20 +67,18 @@ class _processCommunicator(object):
         This method acts very similar to the Popen.communicate method. The only difference is the
         send_marker_list and close_marker.
         """
-        self.send_marker_list = send_marker_list
-        self.close_marker = close_marker
         self.wait_for_marker = None
         stdout = None
         stderr = None
 
         try:
-            stdout, stderr = self._communicate(input_data, timeout)
+            stdout, stderr = self._communicate(input_data, send_marker_list, close_marker, timeout)
         finally:
             self._communication_started = True
 
         return (stdout, stderr)
 
-    def _communicate(self, input_data=None, timeout=None):
+    def _communicate(self, input_data=None, send_marker_list=None, close_marker=None, timeout=None):
         """
         This method will read and write data to a subprocess in a non-blocking manner.
         The code is heavily based on Popen.communicate. There are a couple differences:
@@ -116,8 +112,8 @@ class _processCommunicator(object):
         input_data_offset = 0
         input_data_sent = False
         send_marker = None
-        if self.send_marker_list:
-            send_marker = self.send_marker_list.pop(0)
+        if send_marker_list:
+            send_marker = send_marker_list.pop(0)
 
         # Keeping track of the original timeout value, and the expected end
         # time of the operation allow us to timeout while reads/writes are
@@ -149,8 +145,7 @@ class _processCommunicator(object):
                 self._check_timeout(endtime, orig_timeout, stdout, stderr)
 
                 for key, events in ready:
-                    # STDIN is only registered to receive events after the ready-to-send
-                    # marker is found.
+                    # STDIN is only registered to receive events after the send_marker is found.
                     if key.fileobj is self.proc.stdin:
                         chunk = input_view[input_data_offset :
                                            input_data_offset + _PIPE_BUF]
@@ -163,8 +158,8 @@ class _processCommunicator(object):
                                 selector.unregister(key.fileobj)
                                 input_data_sent = True
                                 input_data_offset = 0
-                                if self.send_marker_list:
-                                    send_marker = self.send_marker_list.pop(0)
+                                if send_marker_list:
+                                    send_marker = send_marker_list.pop(0)
                     elif key.fileobj in (self.proc.stdout, self.proc.stderr):
                         data = os.read(key.fd, 32768)
                         if not data:
@@ -195,7 +190,7 @@ class _processCommunicator(object):
                 # If we have finished sending all our input, and have received the
                 # ready-to-send marker, we can close out stdin.
                 if self.proc.stdin and input_data_sent:
-                    if self.close_marker is None or (self.close_marker and self.close_marker in str(data)):
+                    if close_marker is None or (close_marker and close_marker in str(data)):
                         input_data_sent = None
                         self.proc.stdin.close()
 
@@ -276,6 +271,7 @@ class ManagedProcess(threading.Thread):
         if data_source is not None:
             if type(data_source) is not list:
                 self.data_source = [data_source]
+
         if send_marker_list is not None:
             if type(send_marker_list) is not list:
                 self.send_marker_list = [send_marker_list]
