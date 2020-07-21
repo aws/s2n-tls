@@ -1,0 +1,28 @@
+--- /Users/dsn/github/s2n/tls/s2n_record_read_cbc.c	2018-02-09 15:50:12.000000000 -0500
++++ tls/s2n_record_read_cbc.c	2018-02-12 15:20:10.000000000 -0500
+@@ -30,6 +30,8 @@
+ #include "utils/s2n_safety.h"
+ #include "utils/s2n_blob.h"
+ 
++extern int g_padding_length;
++
+ int s2n_record_parse_cbc(
+     const struct s2n_cipher_suite *cipher_suite,
+     struct s2n_connection *conn,
+@@ -86,6 +88,8 @@
+ 
+     /* Subtract the padding length */
+     gt_check(en.size, 0);
++    //After hmac verification padding_length is declassified
++    en.data[en.size - 1] = g_padding_length;
+     payload_length -= (en.data[en.size - 1] + 1);
+ 
+     /* Update the MAC */
+@@ -106,6 +110,7 @@
+ 
+     /* Padding */
+     if (s2n_verify_cbc(conn, mac, &en) < 0) {
++        __VERIFIER_assume(0);
+         GUARD(s2n_stuffer_wipe(&conn->in));
+         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+     }
