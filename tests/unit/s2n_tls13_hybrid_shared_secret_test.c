@@ -207,11 +207,11 @@ int main(int argc, char **argv) {
 #endif
 
 
-    struct s2n_connection *client_conn;
-    struct s2n_connection *server_conn;
-
     {
         /* Happy cases for computing the hybrid shared secret and client & server traffic secrets */
+        struct s2n_connection *client_conn;
+        struct s2n_connection *server_conn;
+
         for (int i = 0; i < s2n_array_len(all_test_vectors); i++) {
             const struct hybrid_test_vector *test_vector = all_test_vectors[i];
             const struct s2n_kem_group *kem_group = test_vector->kem_group;
@@ -271,50 +271,58 @@ int main(int argc, char **argv) {
     {
         /* Various failure cases for s2n_tls13_compute_shared_secret() */
         const struct hybrid_test_vector *test_vector = &aes_128_sha_256_secp256r1_sikep434r2_vector;
+        s2n_mode modes[] = { S2N_SERVER, S2N_CLIENT };
+        struct s2n_connection *conn;
 
-        /* Failures because of NULL arguments */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(NULL, NULL), S2N_ERR_NULL);
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, NULL), S2N_ERR_NULL);
-        DEFER_CLEANUP(struct s2n_blob client_calculated_shared_secret = {0}, s2n_free);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(NULL, &client_calculated_shared_secret), S2N_ERR_NULL);
+        for (size_t i = 0; i < s2n_array_len(modes); i++) {
+            /* Failures because of NULL arguments */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(NULL, NULL), S2N_ERR_NULL);
+            EXPECT_NOT_NULL(conn = s2n_connection_new(modes[i]));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, NULL), S2N_ERR_NULL);
+            DEFER_CLEANUP(struct s2n_blob client_calculated_shared_secret = {0}, s2n_free);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(NULL, &client_calculated_shared_secret), S2N_ERR_NULL);
 
-        /* Failures because classic (non-hybrid) parameters were configured */
-        client_conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_SAFETY);
-        client_conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
-        EXPECT_SUCCESS(read_priv_ecc(&client_conn->secure.server_ecc_evp_params.evp_pkey, test_vector->client_ecc_key));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_SAFETY);
-        EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_conn->secure.server_ecc_evp_params));
+            /* Failures because classic (non-hybrid) parameters were configured */
+            conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &client_calculated_shared_secret), S2N_ERR_SAFETY);
+            conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
+            EXPECT_SUCCESS(read_priv_ecc(&conn->secure.server_ecc_evp_params.evp_pkey, test_vector->client_ecc_key));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &client_calculated_shared_secret), S2N_ERR_SAFETY);
+            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
 
-        /* Failure because the chosen_client_kem_group_params is NULL */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_NULL);
-        client_conn->secure.chosen_client_kem_group_params = &client_conn->secure.client_kem_group_params[0];
+            /* Failure because the chosen_client_kem_group_params is NULL */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &client_calculated_shared_secret), S2N_ERR_NULL);
+            conn->secure.chosen_client_kem_group_params = &conn->secure.client_kem_group_params[0];
 
-        /* Failures because the kem_group_params aren't set */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_NULL);
-        client_conn->secure.server_kem_group_params.ecc_params.negotiated_curve = test_vector->kem_group->curve;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_NULL);
-        client_conn->secure.chosen_client_kem_group_params->ecc_params.negotiated_curve = test_vector->kem_group->curve;
+            /* Failures because the kem_group_params aren't set */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &client_calculated_shared_secret), S2N_ERR_NULL);
+            conn->secure.server_kem_group_params.ecc_params.negotiated_curve = test_vector->kem_group->curve;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &client_calculated_shared_secret), S2N_ERR_NULL);
+            conn->secure.chosen_client_kem_group_params->ecc_params.negotiated_curve = test_vector->kem_group->curve;
 
-        /* Failures because the ECC private keys are NULL */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_NULL);
-        EXPECT_SUCCESS(read_priv_ecc(&client_conn->secure.chosen_client_kem_group_params->ecc_params.evp_pkey, test_vector->client_ecc_key));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_NULL);
-        EXPECT_SUCCESS(read_priv_ecc(&client_conn->secure.server_kem_group_params.ecc_params.evp_pkey, test_vector->server_ecc_key));
+            /* Failures because the ECC private keys are NULL */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &client_calculated_shared_secret), S2N_ERR_NULL);
+            EXPECT_SUCCESS(read_priv_ecc(&conn->secure.chosen_client_kem_group_params->ecc_params.evp_pkey, test_vector->client_ecc_key));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &client_calculated_shared_secret), S2N_ERR_NULL);
+            EXPECT_SUCCESS(read_priv_ecc(&conn->secure.server_kem_group_params.ecc_params.evp_pkey, test_vector->server_ecc_key));
 
-        /* Failure because the kem_group is NULL */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_NULL);
-        client_conn->secure.server_kem_group_params.kem_group = test_vector->kem_group;
+            /* Failure because the kem_group is NULL */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &client_calculated_shared_secret), S2N_ERR_NULL);
+            conn->secure.server_kem_group_params.kem_group = test_vector->kem_group;
 
-        /* Failure because pq_shared_secret is NULL */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_NULL);
-        EXPECT_SUCCESS(s2n_dup(test_vector->pq_secret, &client_conn->secure.server_kem_group_params.kem_params.shared_secret));
+            /* Failure because pq_shared_secret is NULL */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &client_calculated_shared_secret), S2N_ERR_NULL);
+            if (conn->mode == S2N_CLIENT) {
+                EXPECT_SUCCESS(s2n_dup(test_vector->pq_secret, &conn->secure.chosen_client_kem_group_params->kem_params.shared_secret));
+            } else {
+                EXPECT_SUCCESS(s2n_dup(test_vector->pq_secret, &conn->secure.server_kem_group_params.kem_params.shared_secret));
+            }
 
-        /* Finally, success */
-        EXPECT_SUCCESS(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret));
+            /* Finally, success */
+            EXPECT_SUCCESS(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &client_calculated_shared_secret));
 
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
     }
 
 #endif
@@ -374,9 +382,10 @@ static int set_up_conns(struct s2n_connection *client_conn, struct s2n_connectio
     client_conn->secure.server_kem_group_params.kem_params.kem = kem_group->kem;
     client_conn->secure.chosen_client_kem_group_params->kem_params.kem = kem_group->kem;
 
-    /* PQ shared secret is stored in the server_kem_group_params struct, regardless if connection is client or server */
+    /* During an actual handshake, server will generate the shared secret and store it in server_kem_group_params,
+     * client will decapsulate the ciphertext and store the shared secret in chosen_client_kem_group_params. */
     GUARD(s2n_dup(pq_shared_secret, &server_conn->secure.server_kem_group_params.kem_params.shared_secret));
-    GUARD(s2n_dup(pq_shared_secret, &client_conn->secure.server_kem_group_params.kem_params.shared_secret));
+    GUARD(s2n_dup(pq_shared_secret, &client_conn->secure.chosen_client_kem_group_params->kem_params.shared_secret));
 
     /* Populate the client's PQ private key with something - it doesn't have to be a
      * legitimate private key since it doesn't get used in the shared secret derivation,

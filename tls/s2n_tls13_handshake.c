@@ -119,7 +119,12 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
 
     struct s2n_kem_params *server_kem_params = &server_kem_group_params->kem_params;
     notnull_check(server_kem_params);
-    struct s2n_blob *pq_shared_secret = &server_kem_params->shared_secret;
+    struct s2n_blob *pq_shared_secret;
+    if (conn->mode == S2N_CLIENT) {
+        pq_shared_secret = &client_kem_group_params->kem_params.shared_secret;
+    } else {
+        pq_shared_secret = &server_kem_params->shared_secret;
+    }
     notnull_check(pq_shared_secret);
     notnull_check(pq_shared_secret->data);
     eq_check(pq_shared_secret->size, negotiated_kem_group->kem->shared_secret_key_length);
