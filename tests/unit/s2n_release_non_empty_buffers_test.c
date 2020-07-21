@@ -144,7 +144,7 @@ int main(int argc, char **argv)
     /* Receive only 100 bytes of the record and try to call s2n_recv */
     n = 0;
     while (n < 100) {
-        s2n_stuffer_recv_from_fd(&in, io_pair.server, 100 - n, &ret);
+        ret = s2n_stuffer_recv_from_fd(&in, io_pair.server, 100 - n, &n);
 
         if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             continue;
