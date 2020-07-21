@@ -26,7 +26,7 @@
 
 #include "utils/s2n_safety.h"
 
-int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, int rfd, uint32_t len, ssize_t *bytes_written)
+int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const uint32_t len, uint32_t *bytes_written)
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     /* Make sure we have enough space to write */
@@ -48,7 +48,7 @@ int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, int rfd, uint32_t len,
     return S2N_SUCCESS;
 }
 
-int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len, ssize_t *bytes_sent)
+int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uint32_t len, uint32_t *bytes_sent)
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
 

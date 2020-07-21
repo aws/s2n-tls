@@ -27,7 +27,7 @@ void s2n_stuffer_recv_from_fd_harness() {
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
     int rfd;
     uint32_t len;
-    ssize_t bytes_written;
+    uint32_t bytes_written;
 
     /* Non-deterministically set initialized (in s2n_mem) to true. */
     if(nondet_bool()) {

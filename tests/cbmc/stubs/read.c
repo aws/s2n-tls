@@ -20,14 +20,13 @@
 static bool loop_flag = false;
 
 ssize_t read(int fd, void *buf, size_t nbyte) {
-    ssize_t rval = 0;
     errno = nondet_int();
     if(loop_flag) {
         __CPROVER_assume(errno != EINTR);
-        return rval;
+        return 0;
     }
     loop_flag = true;
-    rval = nondet_ssize_t();
+    ssize_t rval;
     __CPROVER_assume(rval <= (ssize_t)nbyte);
     return rval;
 }
