@@ -19,8 +19,13 @@
 #include "tls/s2n_kex.h"
 
 struct s2n_kem_preferences {
+    /* kems used for hybrid TLS 1.2 */
     uint8_t kem_count;
     const struct s2n_kem **kems;
+
+    /* tls13_kem_groups used for hybrid TLS 1.3 */
+    uint8_t tls13_kem_group_count;
+    const struct s2n_kem_group **tls13_kem_groups;
 };
 
 #if !defined(S2N_NO_PQ)

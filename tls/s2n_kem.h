@@ -67,7 +67,7 @@ struct s2n_kem_group_params {
     struct s2n_ecc_evp_params ecc_params;
 };
 
-/* x25519 based kem_groups require EVP_APIS_SUPPORTED */
+/* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
 #if EVP_APIS_SUPPORTED
 #define S2N_SUPPORTED_KEM_GROUPS_COUNT 2
 #else

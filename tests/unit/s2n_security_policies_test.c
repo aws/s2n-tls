@@ -30,6 +30,8 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_NULL(security_policy->kem_preferences->kems);
         EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
+        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
         EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
         security_policy = NULL;
@@ -38,6 +40,8 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
         EXPECT_EQUAL(0, security_policy->kem_preferences->kems);
+        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
         EXPECT_NULL(security_policy->kem_preferences->kems);
 
         security_policy = NULL;
@@ -48,10 +52,14 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(5, security_policy->kem_preferences->kem_count);
         EXPECT_NOT_NULL(security_policy->kem_preferences->kems);
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r2r1_2020_07);
+        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
 #else
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
         EXPECT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
 #endif
 
         security_policy = NULL;
@@ -60,6 +68,8 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
         EXPECT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
 
 #if !defined(S2N_NO_PQ)
         security_policy = NULL;
@@ -69,6 +79,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(2, security_policy->kem_preferences->kem_count);
         EXPECT_NOT_NULL(security_policy->kem_preferences->kems);
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r1);
+        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
 
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2019-11", &security_policy));
@@ -77,6 +89,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(1, security_policy->kem_preferences->kem_count);
         EXPECT_NOT_NULL(security_policy->kem_preferences->kems);
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_sike_r1);
+        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
 
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &security_policy));
@@ -85,6 +99,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(2, security_policy->kem_preferences->kem_count);
         EXPECT_NOT_NULL(security_policy->kem_preferences->kems);
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_sike_r2r1);
+        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
 
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2020-02", &security_policy));
@@ -93,6 +109,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(4, security_policy->kem_preferences->kem_count);
         EXPECT_NOT_NULL(security_policy->kem_preferences->kems);
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r2r1);
+        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
 
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2020-07", &security_policy));
@@ -101,6 +119,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(5, security_policy->kem_preferences->kem_count);
         EXPECT_NOT_NULL(security_policy->kem_preferences->kems);
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r2r1_2020_07);
+        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
 #else
         security_policy = NULL;
         EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2019-06", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
@@ -116,6 +136,8 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
         EXPECT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
     }
 
     {
@@ -373,6 +395,53 @@ int main(int argc, char **argv)
         };
 
         EXPECT_FAILURE(s2n_check_ecc_preferences_curves_list(&s2n_ecc_preferences_new_list));
+    }
+
+    /* Positive and negative cases for s2n_validate_kem_preferences() */
+    {
+        EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(NULL, 0), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&kem_preferences_null, 1), S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_SUCCESS(s2n_validate_kem_preferences(&kem_preferences_null, 0));
+
+#if !defined(S2N_NO_PQ)
+        const struct s2n_kem_group *test_kem_group_list[] = {
+                &s2n_secp256r1_sike_p434_r2
+        };
+
+        const struct s2n_kem_preferences invalid_kem_prefs[] = {
+            {
+                .kem_count = 1,
+                .kems = NULL,
+                .tls13_kem_group_count = 0,
+                .tls13_kem_groups = NULL,
+            },
+            {
+                .kem_count = 0,
+                .kems = NULL,
+                .tls13_kem_group_count = 1,
+                .tls13_kem_groups = NULL,
+            },
+            {
+                .kem_count = 0,
+                .kems = pq_kems_r1,
+                .tls13_kem_group_count = 0,
+                .tls13_kem_groups = NULL,
+            },
+            {
+                .kem_count = 0,
+                .kems = NULL,
+                .tls13_kem_group_count = 0,
+                .tls13_kem_groups = test_kem_group_list,
+            },
+        };
+
+        for (size_t i = 0; i < s2n_array_len(invalid_kem_prefs); i++) {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&invalid_kem_prefs[i], 1), S2N_ERR_INVALID_SECURITY_POLICY);
+        }
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&kem_preferences_kms_pq_tls_1_0_2020_07, 0), S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_SUCCESS(s2n_validate_kem_preferences(&kem_preferences_kms_pq_tls_1_0_2020_07, 1));
+#endif
     }
 
     END_TEST();

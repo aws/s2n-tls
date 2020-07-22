@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
     };
 
 #if EVP_APIS_SUPPORTED
-    /* All x25519 based kem_groups require EVP_APIS_SUPPORTED */
+    /* All x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
     S2N_BLOB_FROM_HEX(x25519_secret, X25519_SHARED_SECRET);
     S2N_BLOB_FROM_HEX(x25519_sikep434r2_hybrid_secret, X25519_SIKEP434R2_HYBRID_SECRET);
 
