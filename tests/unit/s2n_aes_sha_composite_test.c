@@ -62,7 +62,7 @@ int main(int argc, char **argv)
     conn->client = &conn->initial;
 
     const int max_aligned_fragment = S2N_DEFAULT_FRAGMENT_LENGTH;
-    const uint8_t proto_versions[3] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
+    const uint16_t proto_versions[3] = { S2N_TLS10, S2N_TLS11, S2N_TLS12 };
 
     /* test the composite AES128_SHA1 cipher  */
     conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_sha_composite;
