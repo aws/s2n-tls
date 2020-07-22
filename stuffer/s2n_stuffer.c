@@ -97,9 +97,18 @@ int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)
         return S2N_SUCCESS;
     }
 
+    if (size == 0) {
+        s2n_stuffer_wipe(stuffer);
+        return s2n_free(&stuffer->blob);
+    }
+
     if (size < stuffer->blob.size) {
-        GUARD(s2n_stuffer_wipe_n(stuffer, stuffer->blob.size - size));
+        memset_check(stuffer->blob.data + size, 0, (stuffer->blob.size - size));
+        if (stuffer->read_cursor > size) stuffer->read_cursor = size;
+        if (stuffer->write_cursor > size) stuffer->write_cursor = size;
         if (stuffer->high_water_mark > size) stuffer->high_water_mark = stuffer->write_cursor;
+        stuffer->blob.size = size;
+        return S2N_SUCCESS;
     }
 
     GUARD(s2n_realloc(&stuffer->blob, size));

@@ -34,6 +34,9 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
+# We abstract these functions because manual inspection demonstrates they are unreachable.
+REMOVE_FUNCTION_BODY += s2n_blob_slice
+
 UNWINDSET +=
 
 include ../Makefile.common
