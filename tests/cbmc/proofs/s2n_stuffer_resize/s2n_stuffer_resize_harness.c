@@ -65,7 +65,7 @@ void s2n_stuffer_resize_harness() {
             size_t index;
             /* Confirms wiped portion. */
             __CPROVER_assume(index >= size && index < old_stuffer.blob.size);
-            assert(stuffer->blob.data[index] == 0);
+            assert(stuffer->blob.data[index] == S2N_WIPE_PATTERN);
             assert(stuffer->blob.allocated == old_stuffer.blob.allocated);
             assert(stuffer->blob.growable == old_stuffer.blob.growable);
         }

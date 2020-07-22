@@ -103,7 +103,7 @@ int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)
     }
 
     if (size < stuffer->blob.size) {
-        memset_check(stuffer->blob.data + size, 0, (stuffer->blob.size - size));
+        memset_check(stuffer->blob.data + size, S2N_WIPE_PATTERN, (stuffer->blob.size - size));
         if (stuffer->read_cursor > size) stuffer->read_cursor = size;
         if (stuffer->write_cursor > size) stuffer->write_cursor = size;
         if (stuffer->high_water_mark > size) stuffer->high_water_mark = size;
