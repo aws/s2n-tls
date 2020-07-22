@@ -693,7 +693,7 @@ int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferenc
     notnull_check(kem_preferences);
 
     /* Basic sanity checks to assert that the count is 0 if and only if the associated list is NULL */
-    ENSURE_POSIX(S2N_IFF(kem_preferences->kem_group_count == 0, kem_preferences->kem_groups == NULL),
+    ENSURE_POSIX(S2N_IFF(kem_preferences->tls13_kem_group_count == 0, kem_preferences->tls13_kem_groups == NULL),
                  S2N_ERR_INVALID_SECURITY_POLICY);
     ENSURE_POSIX(S2N_IFF(kem_preferences->kem_count == 0, kem_preferences->kems == NULL),
                  S2N_ERR_INVALID_SECURITY_POLICY);

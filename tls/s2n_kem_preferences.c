@@ -55,39 +55,39 @@ const struct s2n_kem *pq_kems_sike_r2r1[2] = {
 const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2019_06 = {
     .kem_count = s2n_array_len(pq_kems_r1),
     .kems = pq_kems_r1,
-    .kem_group_count = 0,
-    .kem_groups = NULL,
+    .tls13_kem_group_count = 0,
+    .tls13_kem_groups = NULL,
 };
 
 /* Includes round 1 and round 2 PQ KEM params. */
 const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_02 = {
     .kem_count = s2n_array_len(pq_kems_r2r1),
     .kems = pq_kems_r2r1,
-    .kem_group_count = 0,
-    .kem_groups = NULL,
+    .tls13_kem_group_count = 0,
+    .tls13_kem_groups = NULL,
 };
 
 const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_07 = {
     .kem_count = s2n_array_len(pq_kems_r2r1_2020_07),
     .kems = pq_kems_r2r1_2020_07,
-    .kem_group_count = 0,
-    .kem_groups = NULL,
+    .tls13_kem_group_count = 0,
+    .tls13_kem_groups = NULL,
 };
 
 /* Includes only SIKE round 1 (for integration tests) */
 const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2019_11 = {
     .kem_count = s2n_array_len(pq_kems_sike_r1),
     .kems = pq_kems_sike_r1,
-    .kem_group_count = 0,
-    .kem_groups = NULL,
+    .tls13_kem_group_count = 0,
+    .tls13_kem_groups = NULL,
 };
 
 /* Includes only SIKE round 1 and round 2 (for integration tests). */
 const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2020_02 = {
     .kem_count = s2n_array_len(pq_kems_sike_r2r1),
     .kems = pq_kems_sike_r2r1,
-    .kem_group_count = 0,
-    .kem_groups = NULL,
+    .tls13_kem_group_count = 0,
+    .tls13_kem_groups = NULL,
 };
 
 #endif
@@ -95,6 +95,6 @@ const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2020_02 = 
 const struct s2n_kem_preferences kem_preferences_null = {
     .kem_count = 0,
     .kems = NULL,
-    .kem_group_count = 0,
-    .kem_groups = NULL,
+    .tls13_kem_group_count = 0,
+    .tls13_kem_groups = NULL,
 };
