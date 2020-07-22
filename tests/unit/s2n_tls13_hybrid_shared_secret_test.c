@@ -306,10 +306,6 @@ int main(int argc, char **argv) {
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &client_calculated_shared_secret), S2N_ERR_NULL);
             EXPECT_SUCCESS(read_priv_ecc(&conn->secure.server_kem_group_params.ecc_params.evp_pkey, test_vector->server_ecc_key));
 
-            /* Failure because the kem_group is NULL */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &client_calculated_shared_secret), S2N_ERR_NULL);
-            conn->secure.server_kem_group_params.kem_group = test_vector->kem_group;
-
             /* Failure because pq_shared_secret is NULL */
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &client_calculated_shared_secret), S2N_ERR_NULL);
             if (conn->mode == S2N_CLIENT) {
@@ -317,6 +313,10 @@ int main(int argc, char **argv) {
             } else {
                 EXPECT_SUCCESS(s2n_dup(test_vector->pq_secret, &conn->secure.server_kem_group_params.kem_params.shared_secret));
             }
+
+            /* Failure because the kem_group is NULL */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &client_calculated_shared_secret), S2N_ERR_NULL);
+            conn->secure.server_kem_group_params.kem_group = test_vector->kem_group;
 
             /* Finally, success */
             EXPECT_SUCCESS(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &client_calculated_shared_secret));
