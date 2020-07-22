@@ -26,43 +26,48 @@
 
 #include "utils/s2n_safety.h"
 
-int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, int rfd, uint32_t len)
+int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const uint32_t len, uint32_t *bytes_written)
 {
-
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     /* Make sure we have enough space to write */
     GUARD(s2n_stuffer_skip_write(stuffer, len));
 
     /* "undo" the skip write */
     stuffer->write_cursor -= len;
 
-    int r = 0;
+    ssize_t r = 0;
     do {
         r = read(rfd, stuffer->blob.data + stuffer->write_cursor, len);
         S2N_ERROR_IF(r < 0 && errno != EINTR, S2N_ERR_READ);
     } while (r < 0);
 
     /* Record just how many bytes we have written */
-    GUARD(s2n_stuffer_skip_write(stuffer, r));
-    return r;
+    S2N_ERROR_IF(r > UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    GUARD(s2n_stuffer_skip_write(stuffer, (uint32_t)r));
+    if (bytes_written != NULL) *bytes_written = r;
+    return S2N_SUCCESS;
 }
 
-int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, int wfd, uint32_t len)
+int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uint32_t len, uint32_t *bytes_sent)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+
     /* Make sure we even have the data */
     GUARD(s2n_stuffer_skip_read(stuffer, len));
 
     /* "undo" the skip read */
     stuffer->read_cursor -= len;
 
-    int w = 0;
+    ssize_t w = 0;
     do {
         w = write(wfd, stuffer->blob.data + stuffer->read_cursor, len);
-        S2N_ERROR_IF (w < 0 && errno != EINTR, S2N_ERR_WRITE);
+        S2N_ERROR_IF(w < 0 && errno != EINTR, S2N_ERR_WRITE);
     } while (w < 0);
 
+    S2N_ERROR_IF(w > UINT32_MAX - stuffer->read_cursor, S2N_ERR_INTEGER_OVERFLOW);
     stuffer->read_cursor += w;
-
-    return w;
+    if (bytes_sent != NULL) *bytes_sent = w;
+    return S2N_SUCCESS;
 }
 
 int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)

@@ -19,6 +19,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 /**
  * These functions provide a way to get unconstrained values of the correct types for use in CBMC proofs
@@ -36,3 +37,4 @@ uint64_t nondet_uint64_t();
 uint8_t nondet_uint8_t();
 void *nondet_voidp();
 off_t nondet_off_t();
+ssize_t nondet_ssize_t();
