@@ -57,8 +57,7 @@ static int s2n_stuffer_pem_read_encapsulation_line(struct s2n_stuffer *pem, cons
     }
 
     /* Skip newlines and other whitepsace that may be after the dashes */
-    GUARD(s2n_stuffer_skip_whitespace(pem));
-    return S2N_SUCCESS;
+    return s2n_stuffer_skip_whitespace(pem, NULL);
 }
 
 static int s2n_stuffer_pem_read_begin(struct s2n_stuffer *pem, const char *keyword)
@@ -73,8 +72,7 @@ static int s2n_stuffer_pem_read_end(struct s2n_stuffer *pem, const char *keyword
 
 static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stuffer *asn1)
 {
-    uint8_t base64_buf[64] = { 0 };
-    struct s2n_blob base64__blob = { .data = base64_buf, .size = sizeof(base64_buf) };
+    s2n_stack_blob(base64__blob, 64, 64);
     struct s2n_stuffer base64_stuffer = {0};
     GUARD(s2n_stuffer_init(&base64_stuffer, &base64__blob));
 
@@ -116,6 +114,7 @@ static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(pem));
     PRECONDITION_POSIX(s2n_stuffer_is_valid(asn1));
+    notnull_check(keyword);
 
     GUARD(s2n_stuffer_pem_read_begin(pem, keyword));
     GUARD(s2n_stuffer_pem_read_contents(pem, asn1));

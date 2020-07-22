@@ -24,7 +24,9 @@ int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expec
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     PRECONDITION_POSIX(min <= max);
-    uint32_t skip;
-    __CPROVER_assume(skip >= min && skip < max && skip < s2n_stuffer_data_available(stuffer));
+    /*
+     * This is stub is incomplete and it needs to update stuffer
+     * cursors appropriately https://github.com/awslabs/s2n/issues/2173.
+     */
     return nondet_bool() ? S2N_SUCCESS : S2N_FAILURE;
 }

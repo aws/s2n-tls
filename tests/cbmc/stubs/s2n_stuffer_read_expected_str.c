@@ -23,5 +23,9 @@ int s2n_stuffer_read_expected_str(struct s2n_stuffer *s2n_stuffer, const char *e
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(s2n_stuffer));
     notnull_check(expected);
+    /*
+     * This is stub is incomplete and it needs to update stuffer
+     * cursors appropriately https://github.com/awslabs/s2n/issues/2173.
+     */
     return nondet_bool() ? S2N_SUCCESS : S2N_FAILURE;
 }

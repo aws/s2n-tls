@@ -23,6 +23,7 @@
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/nondet.h>
 
 void s2n_stuffer_dhparams_from_pem_harness() {
     /* Non-deterministic inputs. */

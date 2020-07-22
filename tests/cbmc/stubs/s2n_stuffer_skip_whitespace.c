@@ -19,8 +19,12 @@
 
 #include <cbmc_proof/nondet.h>
 
-int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer)
+int s2n_stuffer_skip_whitespace(struct s2n_stuffer *s2n_stuffer, uint32_t *skipped)
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(s2n_stuffer));
+    /*
+     * This is stub is incomplete and it needs to update stuffer
+     * cursors appropriately https://github.com/awslabs/s2n/issues/2173.
+     */
     return nondet_bool() ? S2N_SUCCESS : S2N_FAILURE;
 }

@@ -26,12 +26,11 @@ PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 PROOF_SOURCES += $(PROOF_STUB)/sysconf.c
-
 PROOF_SOURCES += $(PROOF_STUB)/s2n_stuffer_read_expected_str.c
-PROOF_SOURCES += $(PROOF_STUB)/s2n_stuffer_skip_expected_char.c # S2N_PEM_DELIMITER_MAX_COUNT
+PROOF_SOURCES += $(PROOF_STUB)/s2n_stuffer_skip_expected_char.c
+PROOF_SOURCES += $(PROOF_STUB)/s2n_stuffer_skip_to_char.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_stuffer_skip_whitespace.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_stuffer_read_base64.c
-
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_pem.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_text.c
@@ -44,10 +43,12 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
 # We abstract this function because manual inspection demonstrates it is unreachable.
 REMOVE_FUNCTION_BODY += s2n_stuffer_resize
+REMOVE_FUNCTION_BODY += s2n_stuffer_rewrite
+REMOVE_FUNCTION_BODY += s2n_add_overflow
 
 UNWINDSET += strlen.0:5 # size of S2N_PEM_PKCS1_RSA_PRIVATE_KEY
 UNWINDSET += strncmp.0:5 # size of S2N_PEM_END_TOKEN
-UNWINDSET += __CPROVER_file_local_s2n_stuffer_pem_c_s2n_stuffer_pem_read_contents.7:$(call addone,$(MAX_BLOB_SIZE))
+UNWINDSET += __CPROVER_file_local_s2n_stuffer_pem_c_s2n_stuffer_pem_read_contents.11:$(call addone,$(MAX_BLOB_SIZE))
 UNWINDSET += s2n_stuffer_skip_to_char.3:$(call addone,$(MAX_BLOB_SIZE))
 
 include ../Makefile.common

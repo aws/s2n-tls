@@ -26,6 +26,11 @@
 bool s2n_blob_is_bounded(const struct s2n_blob* blob, const size_t max_size);
 
 /*
+ * Checks whether s2n_blob is bounded by max_size.
+ */
+bool s2n_stuffer_is_bounded(const struct s2n_stuffer* stuffer, const size_t max_size);
+
+/*
  * Ensures s2n_blob has a proper allocated data member.
  */
 void ensure_s2n_blob_has_allocated_fields(struct s2n_blob* blob);

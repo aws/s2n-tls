@@ -28,7 +28,7 @@ void s2n_stuffer_certificate_from_pem_harness() {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *pem = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(pem));
-    __CPROVER_assume(s2n_blob_is_bounded(&pem->blob, MAX_BLOB_SIZE));
+    __CPROVER_assume(s2n_stuffer_is_bounded(pem, MAX_BLOB_SIZE));
 
     struct s2n_stuffer *asn1 = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(asn1));
