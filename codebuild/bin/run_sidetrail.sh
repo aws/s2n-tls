@@ -29,6 +29,15 @@ runSingleTest() {
     ../../count_success.pl 1 0 out.txt
 }
 
+runNegativeTest() {
+    cd "${BASE_S2N_DIR}/tests/sidetrail/working/${1}"
+    ./copy_as_needed.sh
+    make clean
+    make 2>&1 | tee out.txt
+
+    ../../count_success.pl 0 1 out.txt
+}
+
 if [[ "$#" -ne "2" ]]; then
     usage
 fi
@@ -53,6 +62,7 @@ clang --version
 echo $BOOGIE
 echo $CORRAL
 
+runNegativeTest "s2n-record-read-cbc-negative-test"
 runSingleTest "s2n-cbc" # Takes 6m 30s
 runSingleTest "s2n-record-read-aead"
 runSingleTest "s2n-record-read-cbc"
