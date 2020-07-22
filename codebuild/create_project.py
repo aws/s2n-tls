@@ -266,7 +266,20 @@ def build_codebuild_role(config, template=Template(), project_name: str = None, 
                         "arn:aws:logs:{region}:{account_number}:log-group:/aws/codebuild/{project}:*".format(
                             region=region, account_number=account_number, project=project_name),
                     ]
-                )
+                ),
+                Statement(
+                    Effect=Allow,
+                    Action=[
+                        Action("codecommit", "BatchGet*"),
+                        Action("codecommit", "BatchDescribe*"),
+                        Action("codecommit", "Describe*"),
+                        Action("codecommit", "EvaluatePullRequestApprovalRules"),
+                        Action("codecommit", "Get*"),
+                        Action("codecommit", "List*"),
+                        Action("codecommit", "GitPull"),
+                    ],
+                    Resource=["*"],
+                ),
             ]
         )
     )]

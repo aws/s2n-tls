@@ -41,9 +41,7 @@ General flow of the CodeBuild Test Projects
 
 Using your favorite virtualenv, install the following dependencies:
 ```
-pip install boto3
-pip install awacs
-pip install troposphere
+pip install -r requirements.txt
 ```
 
 To bootstrap the CodeBuild jobs, the python script:
