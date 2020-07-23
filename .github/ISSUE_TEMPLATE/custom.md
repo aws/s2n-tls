@@ -1,6 +1,22 @@
+
+---
+name: S2N Issue
+about: Template
+title: ''
+labels: ''
+assignees: ''
+
+---
+
+### Security issue notifications
+
+If you discover a potential security issue in s2n we ask that you notify
+AWS Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
+
 ### Problem:
 
 A short description of what the problem is and why we need to fix it. Add reproduction steps if necessary.
+
 ### Solution:
 
 A description of the possible solution in terms of S2N architecture. Highlight and explain any potentially controversial design decisions taken.
@@ -8,9 +24,10 @@ A description of the possible solution in terms of S2N architecture. Highlight a
 * **Does this change what S2N sends over the wire?** If yes, explain.
 * **Does this change any public APIs?** If yes, explain.
 * **Which versions of TLS will this impact?**
+
 ### Requirements / Acceptance Criteria:
 
- What must a solution address in order to solve the problem? How do we know the solution is complete?
+What must a solution address in order to solve the problem? How do we know the solution is complete?
 
 * **RFC links:** Links to relevant RFC(s)
 * **Related Issues:** Link any relevant issues
