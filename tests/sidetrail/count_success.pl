@@ -32,7 +32,9 @@ my $filename = shift;
 my @undefined_functions = ();
 my %allowed_undefined = ("__CONTRACT_invariant" => 1,
 			 "malloc" => 1,
-			 "nondet" => 1);
+			 "nondet" => 1,
+			 "free" => 1,
+    );
 
 my $verified = 0;
 my $errors = 0;
