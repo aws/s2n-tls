@@ -259,6 +259,7 @@ int main(int argc, char **argv)
 
             conn->handshake.handshake_type = 0;
             conn->handshake.message_number = 0;
+            EXPECT_EQUAL(ACTIVE_MESSAGE(conn), CLIENT_HELLO);
             EXPECT_SUCCESS(s2n_setup_handler_to_expect(CLIENT_HELLO, S2N_SERVER));
 
             EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_HANDSHAKE, TLS_CLIENT_HELLO));
@@ -283,6 +284,7 @@ int main(int argc, char **argv)
 
             conn->handshake.handshake_type = 0;
             conn->handshake.message_number = 0;
+            EXPECT_EQUAL(ACTIVE_MESSAGE(conn), CLIENT_HELLO);
             EXPECT_SUCCESS(s2n_setup_handler_to_expect(CLIENT_HELLO, S2N_SERVER));
 
             EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_HANDSHAKE, TLS_CERTIFICATE));
@@ -307,12 +309,39 @@ int main(int argc, char **argv)
 
             conn->handshake.handshake_type = 0;
             conn->handshake.message_number = 0;
+            EXPECT_EQUAL(ACTIVE_MESSAGE(conn), CLIENT_HELLO);
             EXPECT_SUCCESS(s2n_setup_handler_to_expect(CLIENT_HELLO, S2N_SERVER));
 
             EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_HANDSHAKE, TLS_CLIENT_HELLO));
             EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_read_io(conn), S2N_ERR_BAD_MESSAGE);
 
             EXPECT_EQUAL(conn->handshake.message_number, 0);
+            EXPECT_FALSE(unexpected_handler_called);
+            EXPECT_FALSE(expected_handler_called);
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&input));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* TLS1.2 should error for an expected message from the wrong record type */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            conn->actual_protocol_version = S2N_TLS12;
+
+            struct s2n_stuffer input;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
+
+            uint8_t server_css_message_number = 2;
+            conn->handshake.handshake_type = NEGOTIATED;
+            conn->handshake.message_number = server_css_message_number;
+            EXPECT_EQUAL(ACTIVE_MESSAGE(conn), SERVER_CHANGE_CIPHER_SPEC);
+            EXPECT_SUCCESS(s2n_setup_handler_to_expect(SERVER_CHANGE_CIPHER_SPEC, S2N_CLIENT));
+
+            EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_HANDSHAKE, ACTIVE_STATE(conn).message_type));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_read_io(conn), S2N_ERR_BAD_MESSAGE);
+
+            EXPECT_EQUAL(conn->handshake.message_number, server_css_message_number);
             EXPECT_FALSE(unexpected_handler_called);
             EXPECT_FALSE(expected_handler_called);
 
