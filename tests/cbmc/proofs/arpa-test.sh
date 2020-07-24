@@ -1,16 +1,20 @@
 #!/bin/bash
 
 makefile=Makefile
+results=arpa-test-results.log
+debug_std=out_std
+debug_arpa=out_arpa
 
-function check_files {
-    if [ ! -f $makefile ]; then
-        echo "-- Makefile does not exist in $dir. Skipping." 1>&2
+function initialize {
+        rm -f $results
+}
+
+function look_for {
+    if [ ! -f $1 ]; then
+        echo "-- $1 does not exist in ($dir)." 1>&2
+        echo "<SKIPPING>" 1>&2
         cd ..
-        continue
-    fi
-    if [ ! -f $harness ]; then
-        echo "-- Harness file does not exist in $dir. Skipping." 1>&2
-        cd ..
+        echo "ERROR  -  $dir" >> $results
         continue
     fi
 }
@@ -23,6 +27,7 @@ function make_std {
     make veryclean
     make goto
     fcts_std=$(get_functions)
+    fcts_std_clean=$(grep -v " *//.*" <<< "$fcts_std")
 }
 
 function make_arpa {
@@ -36,62 +41,82 @@ function make_arpa {
 
     make goto -f <(echo "$makefile_temp")
     fcts_arpa=$(get_functions)
-}
-
-function clean_up {
-    make veryclean
-    # rm diff_file
-    # rm fcts_std
-    # rm fcts_arpa
-}
-
-# for x in *; do
-for dir in s2n_stuffer_free; do
-
-    cd $dir
-    harness="$dir"_harness.c
-    echo -e "\n<BEGIN in $dir>"
-
-    # check files
-    check_files
-    echo "-- Confirmed existence of required files"
-
-    # define fcts_std
-    make_std > /dev/null
-    echo "-- Created list of goto functions for STANDARD approach"
-
-    # define fcts_arpa
-    make_arpa > /dev/null
-    echo "-- Created list of goto functions for ARPA approach"
-
-    # compare functions list
-    echo -n "-- Comparing goto functions..."
-    # get rid of comments
-    fcts_std_clean=$(grep -v " *//.*" <<< "$fcts_std")
     fcts_arpa_clean=$(grep -v " *//.*" <<< "$fcts_arpa")
-    # echo "$fcts_arpa_clean" > fcts_arpa
-    # echo "$fcts_std_clean" > fcts_std
-    
-    # diff --new-line-format="" --unchanged-line-format="" \
-    #     <(echo "$fcts_std_clean") \
-    #     <(echo "$fcts_arpa_clean")
+}
 
-    is_ident=$(diff -s <(echo "$fcts_std_clean") \
-        <(echo "$fcts_arpa_clean"))
+function test-proofs {
+    initialize
+    for dir in *; do
+    # for dir in s2n_stuffer_erase_and_read; do
+        # if [[ ! "$dir" =~ s2n_blob_* ]]; then
+        if [ ! -d $dir ]; then
+            continue
+        fi
 
-    if [ is_ident ]; then
-        echo " IDENTICAL :)"
-    else
-        echo " DIFFERENT :("
-    fi
+        cd $dir
+        harness="$dir"_harness.c
+        echo -e "\n<BEGIN - ($dir) >"
 
-    echo -e "<END>\n"
-    # compare fcts_std and fcts_arpa
+        # check files
+        look_for $makefile
+        look_for $harness
 
+        # define fcts_std_clean
+        echo "-- Listing goto functions for STANDARD approach"
+        make_std > /dev/null
 
-    # clean up
-    clean_up > /dev/null
-    cd ..
+        # define fcts_arpa_clean
+        echo "-- Listing goto functions for ARPA approach"
+        make_arpa > /dev/null
 
-done
+        # diff --new-line-format="" --unchanged-line-format="" \
+        #     <(echo "$fcts_std_clean") \
+        #     <(echo "$fcts_arpa_clean")
 
+        # compare functions list
+        is_dif=$(diff -q <(echo "$fcts_std_clean") \
+            <(echo "$fcts_arpa_clean"))
+
+        # report
+        echo -n "<END - "
+        if [ "$is_dif" ]; then
+            echo -n "(DIFFERENT)"
+            echo "FAILURE  -  $dir" >> ../$results
+            echo "$fcts_std_clean" > $debug_std
+            echo "$fcts_arpa_clean" > $debug_arpa
+        else
+            echo -n "(IDENTICAL)"
+            echo "SUCCESS  -  $dir" >> ../$results
+            make veryclean > /dev/null
+        fi
+        echo " >"
+
+        # clean up
+        cd ..
+
+    done
+}
+
+function clean-proofs {
+    for dir in *; do
+        if [ ! -d $dir ]; then
+            continue
+        fi
+
+        cd $dir
+        echo "<CLEANING - ($dir) >"
+
+        make veryclean > /dev/null
+        rm -f $debug_arpa
+        rm -f $debug_std
+        cd ..
+
+    done
+}
+
+# MAIN
+if [ $1 ] && [ $1 = clean]; then
+    clean-proofs
+else
+    test-proofs
+fi
