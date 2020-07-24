@@ -44,79 +44,54 @@ function make_arpa {
     fcts_arpa_clean=$(grep -v " *//.*" <<< "$fcts_arpa")
 }
 
-function test-proofs {
-    initialize
-    for dir in *; do
-    # for dir in s2n_stuffer_erase_and_read; do
-        # if [[ ! "$dir" =~ s2n_blob_* ]]; then
-        if [ ! -d $dir ]; then
-            continue
-        fi
-
-        cd $dir
-        harness="$dir"_harness.c
-        echo -e "\n<BEGIN - ($dir) >"
-
-        # check files
-        look_for $makefile
-        look_for $harness
-
-        # define fcts_std_clean
-        echo "-- Listing goto functions for STANDARD approach"
-        make_std > /dev/null
-
-        # define fcts_arpa_clean
-        echo "-- Listing goto functions for ARPA approach"
-        make_arpa > /dev/null
-
-        # diff --new-line-format="" --unchanged-line-format="" \
-        #     <(echo "$fcts_std_clean") \
-        #     <(echo "$fcts_arpa_clean")
-
-        # compare functions list
-        is_dif=$(diff -q <(echo "$fcts_std_clean") \
-            <(echo "$fcts_arpa_clean"))
-
-        # report
-        echo -n "<END - "
-        if [ "$is_dif" ]; then
-            echo -n "(DIFFERENT)"
-            echo "FAILURE  -  $dir" >> ../$results
-            echo "$fcts_std_clean" > $debug_std
-            echo "$fcts_arpa_clean" > $debug_arpa
-        else
-            echo -n "(IDENTICAL)"
-            echo "SUCCESS  -  $dir" >> ../$results
-            make veryclean > /dev/null
-        fi
-        echo " >"
-
-        # clean up
-        cd ..
-
-    done
-}
-
-function clean-proofs {
-    for dir in *; do
-        if [ ! -d $dir ]; then
-            continue
-        fi
-
-        cd $dir
-        echo "<CLEANING - ($dir) >"
-
-        make veryclean > /dev/null
-        rm -f $debug_arpa
-        rm -f $debug_std
-        cd ..
-
-    done
-}
-
 # MAIN
-if [ $1 ] && [ $1 = clean]; then
-    clean-proofs
-else
-    test-proofs
-fi
+initialize
+for dir in *; do
+# for dir in s2n_stuffer_erase_and_read; do
+    # if [[ ! "$dir" =~ s2n_blob_* ]]; then
+    if [ ! -d $dir ]; then
+        continue
+    fi
+
+    cd $dir
+    harness="$dir"_harness.c
+    echo -e "\n<BEGIN - ($dir) >"
+
+    # check files
+    look_for $makefile
+    look_for $harness
+
+    # define fcts_std_clean
+    echo "-- Listing goto functions for STANDARD approach"
+    make_std > /dev/null
+
+    # define fcts_arpa_clean
+    echo "-- Listing goto functions for ARPA approach"
+    make_arpa > /dev/null
+
+    # diff --new-line-format="" --unchanged-line-format="" \
+    #     <(echo "$fcts_std_clean") \
+    #     <(echo "$fcts_arpa_clean")
+
+    # compare functions list
+    is_dif=$(diff -q <(echo "$fcts_std_clean") \
+        <(echo "$fcts_arpa_clean"))
+
+    # report
+    echo -n "<END - "
+    if [ "$is_dif" ]; then
+        echo -n "(DIFFERENT)"
+        echo "FAILURE  -  $dir" >> ../$results
+        echo "$fcts_std_clean" > $debug_std
+        echo "$fcts_arpa_clean" > $debug_arpa
+    else
+        echo -n "(IDENTICAL)"
+        echo "SUCCESS  -  $dir" >> ../$results
+        make veryclean > /dev/null
+    fi
+    echo " >"
+
+    # clean up
+    cd ..
+
+done
