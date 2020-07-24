@@ -1,23 +1,15 @@
 import copy
 import pytest
 
-from configuration import available_ports, Ciphers
+from configuration import available_ports, TLS13_CIPHERS
 from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
-from utils import invalid_test_parameters
+from utils import invalid_test_parameters, get_parameter_name
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
-# These are the only ciphers that utilize the key update feature
-@pytest.mark.parametrize(
-    "cipher",
-    [
-        Ciphers.AES128_GCM_SHA256,
-        Ciphers.AES256_GCM_SHA384,
-        Ciphers.CHACHA20_POLY1305_SHA256,
-    ],
-)
+@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 def test_s2n_server_key_update(managed_process, cipher):
     host = "localhost"
     port = next(available_ports)
@@ -71,15 +63,7 @@ def test_s2n_server_key_update(managed_process, cipher):
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
-# These are the only ciphers that utilize the key update feature
-@pytest.mark.parametrize(
-    "cipher",
-    [
-        Ciphers.AES128_GCM_SHA256,
-        Ciphers.AES256_GCM_SHA384,
-        Ciphers.CHACHA20_POLY1305_SHA256,
-    ],
-)
+@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 def test_s2n_client_key_update(managed_process, cipher):
     host = "localhost"
     port = next(available_ports)
