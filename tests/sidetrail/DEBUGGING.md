@@ -98,6 +98,9 @@ Boogie program verifier finished with 1 verified, 0 errors
 then you probably forgot to source `smack.environment`.
 Go back and do so.
 
+## How to read a failure trace
+[TODO]
+
 ## Known issues
 
 ### Known undefined functions
@@ -117,7 +120,66 @@ Or, it requires a model to be written.
 
 [TODO] Details on how to write a timing model.
 
+### Warning: No entrypoints found.
+
+For unknown reasons, this warning sometimes appears in CI, although the same docker container does not display it when run locally.
+This appears to be benign, although we are investigating and hope to close it out.
+
 ## Updating the patch files
+
+Sidetrail depends on a set of patch files, stored in the `s2n/tests/sidetrail/working/patches`.
+These files patch away certain C constructs that SideTrail has trouble with.
+They are applied by the `copy_as_needed.sh` script in each proof.
+If the file they are patching is modified, `patch` may be unable to apply the needed patches, and fail with an error.
+To fix this, regenerate the patch file.
+
+1. View the failing patch to see what it does.
+   It may be useful to apply it to a previous version of the file, so you can see what the patched file looks like.
+   Identify any failing hunks, and figure out why they are failing to apply.
+   
+2. In a clean branch of s2n, modify the file in need of patching to have the required changes.
+   Work directly on the file in the s2n src folders - we will revery it back before committing our changes.
+   I often find it useful to also (temporarily) modify the `copy_as_needed.sh` file to just copy the file, and not patch it.
+
+3. Iterate on that file until the tests pass.
+
+4. In the `s2n/tests/sidetrail/working/patches` folder, regenerate the patch using `git diff -u <path-to-changed-file> > <patch_filename>.patch`
+
+5. Restore all other changed files using `git checkout`.
+
+6. Some of the current patch files were not generated following this standard procedure, and hence are invoked using `-p5`, instead of the `-p1` this procuedure will generate.
+   You may need to change the `./copy_as_needed.sh` files to use the correct `-p` level.
+   
+7. Rerun the proofs using the docker container to ensure they work.
+
+8. Commit the new patch file, and attach it to your PR.
+
+## What to do if the proof gets really slow
+
+1. Delta-debugging is your friend here.
+   Find the last fast commit.
+   Then, apply parts of the diff until it suddenly gets slow.
+   That's your culprit.
+1. Slowdown is often because alias analysis has failed to distinguish cases that can't actually alias.
+   Sidetrail exports information about how many alias sets it had as part of its output.
+   Did that change from the last fast version?
+   In this case, sometimes simple syntatic changes are enough to fix it; if that doesn't work, consult an AR expert.
+
+## Loop related errors
+When Sidetrail analyzes a program, it needs to know how many times a loop will execute.
+If Sidetrail encounters a loop, and can't tell how many times it will execute, it may give a spurious counterexample.
+You can fix this using the `S2N_INVARIENT` macro.
+A good example of this is in `s2n_constant_time_equals`.
+
+```C
+    uint8_t xor = 0;
+    for (int i = 0; i < len; i++) {
+        /* Invariants must hold for each execution of the loop
+	 * and at loop exit, hence the <= */
+        S2N_INVARIENT(i <= len);
+        xor |= a[i] ^ b[i];
+    }
+```
 
 ## Expected runtimes:
 
