@@ -1181,14 +1181,14 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     for (int i = 0; i < security_policy->cipher_preferences->count; i++) {
         const uint8_t *ours = security_policy->cipher_preferences->suites[i]->iana_value;
 
-        /* if the connection is using TLS 1.3, skip non-TLS 1.3 ciphers */
-        if (conn->actual_protocol_version >= S2N_TLS13 && !s2n_is_valid_tls13_cipher(ours)) {
-            continue;
-        }
-
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
             /* We have a match */
             struct s2n_cipher_suite *match = s2n_cipher_suite_from_wire(ours);
+
+            /* Never use TLS1.3 ciphers on a pre-TLS1.3 connection, and vice versa */
+            if ((conn->actual_protocol_version >= S2N_TLS13) != (match->minimum_required_tls_version >= S2N_TLS13)) {
+                continue;
+            }
 
             /* If connection is for SSLv3, use SSLv3 version of suites */
             if (conn->client_protocol_version == S2N_SSLv3) {
@@ -1197,11 +1197,6 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
 
             /* Skip the suite if we don't have an available implementation */
             if (!match->available) {
-                continue;
-            }
-
-            /* Skip if cipher suite requires a higher version than what server is supporting */
-            if (match->minimum_required_tls_version > conn->server_protocol_version) {
                 continue;
             }
 
@@ -1223,8 +1218,8 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
                 }
             }
 
-            /* Don't immediately choose a cipher the client shouldn't be able to support */
-            if (conn->client_protocol_version < match->minimum_required_tls_version) {
+            /* Don't immediately choose a cipher the connection shouldn't be able to support */
+            if (conn->actual_protocol_version < match->minimum_required_tls_version) {
                 if (!higher_vers_match) {
                     higher_vers_match = match;
                 }

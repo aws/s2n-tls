@@ -189,6 +189,8 @@ int s2n_kex_supported(const struct s2n_cipher_suite *cipher_suite, struct s2n_co
 
 int s2n_configure_kex(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
+    notnull_check(cipher_suite);
+    notnull_check(cipher_suite->key_exchange_alg);
     notnull_check(cipher_suite->key_exchange_alg->configure_connection);
     return cipher_suite->key_exchange_alg->configure_connection(cipher_suite, conn);
 }
@@ -201,36 +203,42 @@ int s2n_kex_is_ephemeral(const struct s2n_kex *kex)
 
 int s2n_kex_server_key_recv_parse_data(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_kex_raw_server_data *raw_server_data)
 {
+    notnull_check(kex);
     notnull_check(kex->server_key_recv_parse_data);
     return kex->server_key_recv_parse_data(conn, raw_server_data);
 }
 
 int s2n_kex_server_key_recv_read_data(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_verify, struct s2n_kex_raw_server_data *raw_server_data)
 {
+    notnull_check(kex);
     notnull_check(kex->server_key_recv_read_data);
     return kex->server_key_recv_read_data(conn, data_to_verify, raw_server_data);
 }
 
 int s2n_kex_server_key_send(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_sign)
 {
+    notnull_check(kex);
     notnull_check(kex->server_key_send);
     return kex->server_key_send(conn, data_to_sign);
 }
 
 int s2n_kex_client_key_recv(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
+    notnull_check(kex);
     notnull_check(kex->client_key_recv);
     return kex->client_key_recv(conn, shared_key);
 }
 
 int s2n_kex_client_key_send(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
+    notnull_check(kex);
     notnull_check(kex->client_key_send);
     return kex->client_key_send(conn, shared_key);
 }
 
 int s2n_kex_tls_prf(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
+    notnull_check(kex);
     notnull_check(kex->prf);
     return kex->prf(conn, premaster_secret);
 }
