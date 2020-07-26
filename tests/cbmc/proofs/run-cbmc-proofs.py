@@ -180,6 +180,9 @@ async def main():
             sys.exit(1)
 
     proof_dirs = list(get_proof_dirs(proof_root, args.proofs))
+    if not proof_dirs:
+        logging.error("No proof directories found")
+        sys.exit(1)
 
     proof_queue = asyncio.Queue()
     for proof_dir in proof_dirs:
