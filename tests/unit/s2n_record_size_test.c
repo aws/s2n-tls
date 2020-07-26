@@ -157,10 +157,10 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
-        int size;
+        uint16_t size = 0;
         const int RECORD_SIZE_LESS_OVERHEADS = 1415;
 
-        EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
+        EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
         EXPECT_EQUAL(RECORD_SIZE_LESS_OVERHEADS, size);
 
         const int MIN_SIZE = RECORD_SIZE_LESS_OVERHEADS + 5;
@@ -182,7 +182,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_hmac_init(&server_conn->secure.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
             EXPECT_SUCCESS(s2n_hmac_init(&server_conn->secure.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 
-            EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
+            EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
             r.size = size;
             const int after_overheads = RECORD_SIZE_LESS_OVERHEADS - RECORD_SIZE_LESS_OVERHEADS % 8; /* rounded down to block size */
             EXPECT_EQUAL(size, after_overheads - 20 - 8 - 1);
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
             server_conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
             EXPECT_SUCCESS(setup_server_keys(server_conn, &aes128));
 
-            EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
+            EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
             r.size = size;
             EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - 8 - 16); /* 8 - IV, 16 - TAG */
 
@@ -225,7 +225,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(setup_server_keys(server_conn, &chacha20_poly1305_key));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
-            EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
+            EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
             EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN - S2N_TLS_GCM_TAG_LEN);
             r.size = size;
 
@@ -251,7 +251,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(server_conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&server_conn->initial.server_key, mac_key_sha, sizeof(mac_key_sha)));
             EXPECT_SUCCESS(server_conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&server_conn->initial.client_key, mac_key_sha, sizeof(mac_key_sha)));
 
-            EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
+            EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
             const int explicit_iv_len = 16;
             const int size_aligned_to_block = RECORD_SIZE_LESS_OVERHEADS - RECORD_SIZE_LESS_OVERHEADS % 16 - 20 - 1;
             const int size_after_overheads = size_aligned_to_block - explicit_iv_len;
