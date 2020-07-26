@@ -30,6 +30,23 @@
 #include "tls/s2n_record.h"
 #include "tls/s2n_prf.h"
 
+static int destroy_server_keys(struct s2n_connection *server_conn)
+{
+    GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.server_key));
+    GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.client_key));
+    return 0;
+}
+
+static int setup_server_keys(struct s2n_connection *server_conn, struct s2n_blob *key)
+{
+    GUARD(server_conn->initial.cipher_suite->record_alg->cipher->init(&server_conn->initial.server_key));
+    GUARD(server_conn->initial.cipher_suite->record_alg->cipher->init(&server_conn->initial.client_key));
+    GUARD(server_conn->initial.cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->initial.server_key, key));
+    GUARD(server_conn->initial.cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->initial.client_key, key));
+
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -146,35 +163,110 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
         EXPECT_EQUAL(RECORD_SIZE_LESS_OVERHEADS, size);
 
-        /* CBC */
-        server_conn->actual_protocol_version = S2N_TLS11;
-        server_conn->initial.cipher_suite->record_alg = &s2n_record_alg_3des_sha;
-        EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
-        const int after_overheads = RECORD_SIZE_LESS_OVERHEADS - 20 - 8 - 1;
+        const int MIN_SIZE = RECORD_SIZE_LESS_OVERHEADS + 5; // 1420
 
-        EXPECT_EQUAL(after_overheads - after_overheads % 8 /* rounded down to block size */
-            , size);
+        /* CBC */
+        {
+            EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
+            server_conn->actual_protocol_version = S2N_TLS11;
+            server_conn->initial.cipher_suite->record_alg = &s2n_record_alg_3des_sha;
+            uint8_t des3_key[] = "12345678901234567890123";
+            struct s2n_blob des3 = {.data = des3_key,.size = sizeof(des3_key) };
+            server_conn->server = &server_conn->secure;
+            server_conn->client = &server_conn->secure;
+            EXPECT_SUCCESS(server_conn->secure.cipher_suite->record_alg->cipher->init(&server_conn->secure.server_key));
+            EXPECT_SUCCESS(server_conn->secure.cipher_suite->record_alg->cipher->init(&server_conn->secure.client_key));
+            EXPECT_SUCCESS(server_conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->secure.server_key, &des3));
+            EXPECT_SUCCESS(server_conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->secure.client_key, &des3));
+            EXPECT_SUCCESS(s2n_hmac_init(&server_conn->secure.client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+            EXPECT_SUCCESS(s2n_hmac_init(&server_conn->secure.server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
+
+            EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
+            r.size = size;
+            const int after_overheads = RECORD_SIZE_LESS_OVERHEADS - RECORD_SIZE_LESS_OVERHEADS % 8; /* rounded down to block size */
+            EXPECT_EQUAL(size, after_overheads - 20 - 8 - 1);
+
+            EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
+            const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
+            EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
+            EXPECT_EQUAL(bytes_written, size);
+            EXPECT_EQUAL((server_conn->out.blob.data[3] << 8) | server_conn->out.blob.data[4], wire_size - 5);
+            EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
+        }
 
         /* AEAD */
-        server_conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
-        EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
-        EXPECT_EQUAL(RECORD_SIZE_LESS_OVERHEADS - 8 - 16, size); /* 8 - IV, 16 - TAG */
+        {
+            EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
-        server_conn->initial.cipher_suite->record_alg = &s2n_record_alg_chacha20_poly1305;
-        EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
-        EXPECT_EQUAL(RECORD_SIZE_LESS_OVERHEADS - S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN - S2N_TLS_GCM_TAG_LEN, size);
+            server_conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_gcm;
+            EXPECT_SUCCESS(setup_server_keys(server_conn, &aes128));
+
+            EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
+            r.size = size;
+            EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - 8 - 16); /* 8 - IV, 16 - TAG */
+
+            EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
+            const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
+            EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
+            EXPECT_EQUAL(bytes_written, size);
+            EXPECT_EQUAL((server_conn->out.blob.data[3] << 8) | server_conn->out.blob.data[4], wire_size - 5);
+            EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
+        }
+
+        if (s2n_chacha20_poly1305.is_available()) {
+            EXPECT_SUCCESS(destroy_server_keys(server_conn));
+            EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+
+            server_conn->initial.cipher_suite->record_alg = &s2n_record_alg_chacha20_poly1305;
+            uint8_t chacha20_poly1305_key_data[] = "1234567890123456789012345678901";
+            struct s2n_blob chacha20_poly1305_key = { .data = chacha20_poly1305_key_data, sizeof(chacha20_poly1305_key_data) };
+            EXPECT_SUCCESS(setup_server_keys(server_conn, &chacha20_poly1305_key));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
+
+            EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
+            EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN - S2N_TLS_GCM_TAG_LEN);
+            r.size = size;
+
+            EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
+            const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
+            EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
+            EXPECT_EQUAL(bytes_written, size);
+            EXPECT_EQUAL((server_conn->out.blob.data[3] << 8) | server_conn->out.blob.data[4], wire_size - 5);
+            EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
+        }
 
         /* composite */
         if (s2n_aes128_sha.is_available() && s2n_aes128_sha256.is_available()) {
+            EXPECT_SUCCESS(destroy_server_keys(server_conn));
+            EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
+
             server_conn->initial.cipher_suite->record_alg = &s2n_record_alg_aes128_sha_composite;
+            server_conn->actual_protocol_version = S2N_TLS11;
+            uint8_t mac_key_sha[20] = "server key shaserve";
+            EXPECT_SUCCESS(server_conn->initial.cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->initial.server_key, &aes128));
+            EXPECT_SUCCESS(server_conn->initial.cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->initial.client_key, &aes128));
+            EXPECT_SUCCESS(server_conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&server_conn->initial.server_key, mac_key_sha, sizeof(mac_key_sha)));
+            EXPECT_SUCCESS(server_conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&server_conn->initial.client_key, mac_key_sha, sizeof(mac_key_sha)));
+
             EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
+            const int explicit_iv_len = 16;
+            const int size_aligned_to_block = RECORD_SIZE_LESS_OVERHEADS - RECORD_SIZE_LESS_OVERHEADS % 16 - 20 - 1;
+            const int size_after_overheads = size_aligned_to_block - explicit_iv_len;
+            EXPECT_EQUAL(size, size_after_overheads);
+            r.size = size;
 
-            const int explicit_iv_len = 0;
-            const int size_after_overheads = RECORD_SIZE_LESS_OVERHEADS - SHA_DIGEST_LENGTH - explicit_iv_len - 1;
-            const int size_aligned_to_block = size_after_overheads - size_after_overheads % 16 - 20 - 1;
-
-            EXPECT_EQUAL(size_aligned_to_block, size);
+            EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
+            const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
+            EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
+            EXPECT_EQUAL(bytes_written, size);
+            EXPECT_EQUAL((server_conn->out.blob.data[3] << 8) | server_conn->out.blob.data[4], wire_size - 5);
+            EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
         }
+
+        /* TEST TLS 1.3 */
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }

@@ -92,12 +92,6 @@ int s2n_record_min_write_payload_size(struct s2n_connection *conn)
     ENSURE_POSIX(min_outgoing_fragment_length <= S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
     int size = min_outgoing_fragment_length;
 
-    /* subtract overheads of a TLS record */
-    uint16_t overhead = 0;
-    GUARD_AS_POSIX(s2n_tls_record_overhead(conn, &overhead));
-    ENSURE_POSIX(size > overhead, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
-    size -= overhead;
-
     const struct s2n_crypto_parameters *active = conn->mode == S2N_CLIENT ? conn->client : conn->server;
 
     /* Round the fragment size down to be block aligned */
@@ -110,6 +104,12 @@ int s2n_record_min_write_payload_size(struct s2n_connection *conn)
         /* Padding length byte */
         size -= 1;
     }
+
+    /* subtract overheads of a TLS record */
+    uint16_t overhead = 0;
+    GUARD_AS_POSIX(s2n_tls_record_overhead(conn, &overhead));
+    ENSURE_POSIX(size > overhead, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
+    size -= overhead;
 
     ENSURE_POSIX(size > 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
     ENSURE_POSIX(size <= ETH_MTU, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
