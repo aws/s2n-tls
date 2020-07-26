@@ -163,7 +163,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(size = s2n_record_min_write_payload_size(server_conn));
         EXPECT_EQUAL(RECORD_SIZE_LESS_OVERHEADS, size);
 
-        const int MIN_SIZE = RECORD_SIZE_LESS_OVERHEADS + 5; // 1420
+        const int MIN_SIZE = RECORD_SIZE_LESS_OVERHEADS + 5;
 
         /* CBC */
         {
@@ -266,8 +266,7 @@ int main(int argc, char **argv)
             EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
         }
 
-        /* TEST TLS 1.3 */
-
+        r.size = sizeof(random_data);
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
