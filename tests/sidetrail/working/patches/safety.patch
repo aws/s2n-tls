@@ -1,5 +1,5 @@
 diff --git a/utils/s2n_safety.c b/utils/s2n_safety.c
-index 66cadaf0..b9a045f9 100644
+index 107bdb78..242ba7a5 100644
 --- a/utils/s2n_safety.c
 +++ b/utils/s2n_safety.c
 @@ -57,16 +57,10 @@ pid_t s2n_actual_getpid()
@@ -27,6 +27,6 @@ index 66cadaf0..b9a045f9 100644
 -    S2N_PUBLIC_INPUT(src);
 -    S2N_PUBLIC_INPUT(len);
 -
-     uint8_t mask = ((uint_fast16_t)((uint_fast16_t)(dont) - 1)) >> 8;
- 
-     /* dont = 0 : mask = 0xff */
+ /* This underflows a value of 0 to the maximum value via arithmetic underflow,
+  * so the check for arithmetic overflow/underflow needs to be disabled for CBMC.
+  * Additionally, uint_fast16_t is defined as the fastest available unsigned
