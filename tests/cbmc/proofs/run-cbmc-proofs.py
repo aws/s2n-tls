@@ -115,17 +115,31 @@ def print_counter(counter):
 
 
 def get_proof_dirs(proof_root, proof_list):
+    if proof_list is not None:
+        proofs_remaining = list(proof_list)
+    else:
+        proofs_remaining = []
+
     for root, _, fyles in os.walk(proof_root):
-        if proof_list and pathlib.Path(root).name not in proof_list:
+        proof_name = str(pathlib.Path(root).name)
+        if proof_list and proof_name not in proof_list:
             continue
+        if proof_list and proof_name in proofs_remaining:
+            proofs_remaining.remove(proof_name)
         if "cbmc-batch.yaml" in fyles:
             yield root
+
+    if proofs_remaining:
+        logging.error(
+            "The following proofs were not found: %s",
+            ", ".join(proofs_remaining))
+        sys.exit(1)
 
 
 def run_build(litani, jobs, proofs):
     cmd = [str(litani), "run-build"]
     if jobs:
-        cmd.append("-j", jobs)
+        cmd.extend(["-j", str(jobs)])
 
     logging.debug(" ".join(cmd))
     proc = subprocess.run(cmd)
