@@ -19,6 +19,10 @@
 # Flags to pass to goto-cc for linking (typically those passed to gcc)
 # LINK_FLAGS =
 
+# This is displayed in CBMC proof reports
+PROJECT_NAME = s2n
+
+# Path to litani executable, used for running proofs
 LITANI = $(SRCDIR)/tests/litani/litani
 
 # Preprocessor include paths -I...
