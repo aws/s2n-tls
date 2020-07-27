@@ -209,14 +209,13 @@ int main(int argc, char **argv) {
 
     {
         /* Happy cases for computing the hybrid shared secret and client & server traffic secrets */
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-
         for (int i = 0; i < s2n_array_len(all_test_vectors); i++) {
             const struct hybrid_test_vector *test_vector = all_test_vectors[i];
             const struct s2n_kem_group *kem_group = test_vector->kem_group;
 
             /* Set up connections */
+            struct s2n_connection *client_conn = NULL;
+            struct s2n_connection *server_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
@@ -272,11 +271,11 @@ int main(int argc, char **argv) {
         /* Various failure cases for s2n_tls13_compute_shared_secret() */
         const struct hybrid_test_vector *test_vector = &aes_128_sha_256_secp256r1_sikep434r2_vector;
         s2n_mode modes[] = { S2N_SERVER, S2N_CLIENT };
-        struct s2n_connection *conn;
 
         for (size_t i = 0; i < s2n_array_len(modes); i++) {
             /* Failures because of NULL arguments */
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(NULL, NULL), S2N_ERR_NULL);
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(modes[i]));
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, NULL), S2N_ERR_NULL);
             DEFER_CLEANUP(struct s2n_blob calculated_shared_secret = {0}, s2n_free);

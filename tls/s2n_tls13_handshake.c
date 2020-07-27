@@ -105,7 +105,7 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     notnull_check(client_ecc_params);
 
     DEFER_CLEANUP(struct s2n_blob ecdhe_shared_secret = { 0 }, s2n_blob_zeroize_free);
-    struct s2n_blob *pq_shared_secret;
+    struct s2n_blob *pq_shared_secret = NULL;
 
     /* Compute the ECDHE shared secret, and retrieve the PQ shared secret. */
     if (conn->mode == S2N_CLIENT) {
