@@ -155,7 +155,7 @@ async def configure_proof_dirs(queue, counter):
         path = str(await queue.get())
 
         proc = await asyncio.create_subprocess_exec(
-            "nice", "-n", "15", "make", "-B", "--quiet", "report", cwd=path)
+            "nice", "-n", "15", "make", "-B", "--quiet", "_report", cwd=path)
         await proc.wait()
         counter["fail" if proc.returncode else "pass"].append(path)
         counter["complete"] += 1
