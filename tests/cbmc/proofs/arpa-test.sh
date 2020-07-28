@@ -1,5 +1,18 @@
 #!/bin/bash
 
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+#     http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+
 # This script is to test whether arpa can provide full coverage of goto functions
 # required to run a given proof
 
@@ -13,6 +26,7 @@ goto_functions_arpa=$arpa_log/goto-functions-arpa
 
 function initialize {
         rm -f $results
+        set -e
 }
 
 
@@ -56,7 +70,7 @@ function make_arpa {
 
 
 function write_failure_log {
-        mkdir -p $arpa_log
+    mkdir -p $arpa_log
     cp Makefile.arpa $arpa_log
     cp arpa_cmake/compile_commands.json $arpa_log
     echo "$fcts_std_clean" > $goto_functions_std
