@@ -1,13 +1,20 @@
 #!/bin/bash
 
+# This script is to test whether arpa can provide full coverage of goto functions
+# required to run a given proof
+
 makefile=Makefile
 results=arpa-test-results.log
-debug_std=out_std
-debug_arpa=out_arpa
+
+arpa_log=arpa-test-logs
+goto_functions_std=$arpa_log/goto-functions-std
+goto_functions_arpa=$arpa_log/goto-functions-arpa
+
 
 function initialize {
         rm -f $results
 }
+
 
 function look_for {
     if [ ! -f $1 ]; then
@@ -19,9 +26,11 @@ function look_for {
     fi
 }
 
+
 function get_functions {
         cbmc --show-goto-functions gotos/$harness.goto
 }
+
 
 function make_std {
     make veryclean
@@ -29,6 +38,7 @@ function make_std {
     fcts_std=$(get_functions)
     fcts_std_clean=$(grep -v " *//.*" <<< "$fcts_std")
 }
+
 
 function make_arpa {
     make veryclean
@@ -43,6 +53,16 @@ function make_arpa {
     fcts_arpa=$(get_functions)
     fcts_arpa_clean=$(grep -v " *//.*" <<< "$fcts_arpa")
 }
+
+
+function write_failure_log {
+        mkdir -p $arpa_log
+    cp Makefile.arpa $arpa_log
+    cp arpa_cmake/compile_commands.json $arpa_log
+    echo "$fcts_std_clean" > $goto_functions_std
+    echo "$fcts_arpa_clean" > $goto_functions_arpa
+}
+
 
 # MAIN
 initialize
@@ -74,17 +94,20 @@ for dir in *; do
     # report
     echo -n "<END - "
     if [ "$is_dif" ]; then
+        # goto functions are different
         echo -n "(DIFFERENT)"
         echo "FAILURE  -  $dir" >> ../$results
-        echo "$fcts_std_clean" > $debug_std
-        echo "$fcts_arpa_clean" > $debug_arpa
+
+        #write files to arpa_log
+        write_failure_log
     else
+        # goto functions are identical
         echo -n "(IDENTICAL)"
         echo "SUCCESS  -  $dir" >> ../$results
-        make veryclean > /dev/null
     fi
     echo " >"
 
     # clean up
+    make veryclean > /dev/null
     cd ..
 done
