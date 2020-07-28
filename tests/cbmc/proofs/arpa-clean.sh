@@ -14,5 +14,4 @@ for dir in *; do
     rm -f $debug_arpa
     rm -f $debug_std
     cd ..
-
 done

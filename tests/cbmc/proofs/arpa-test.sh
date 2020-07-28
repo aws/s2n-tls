@@ -47,8 +47,6 @@ function make_arpa {
 # MAIN
 initialize
 for dir in *; do
-# for dir in s2n_stuffer_erase_and_read; do
-    # if [[ ! "$dir" =~ s2n_blob_* ]]; then
     if [ ! -d $dir ]; then
         continue
     fi
@@ -68,10 +66,6 @@ for dir in *; do
     # define fcts_arpa_clean
     echo "-- Listing goto functions for ARPA approach"
     make_arpa > /dev/null
-
-    # diff --new-line-format="" --unchanged-line-format="" \
-    #     <(echo "$fcts_std_clean") \
-    #     <(echo "$fcts_arpa_clean")
 
     # compare functions list
     is_dif=$(diff -q <(echo "$fcts_std_clean") \
@@ -93,5 +87,4 @@ for dir in *; do
 
     # clean up
     cd ..
-
 done
