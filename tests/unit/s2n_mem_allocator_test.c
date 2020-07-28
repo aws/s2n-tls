@@ -265,6 +265,7 @@ int main(int argc, char **argv)
     free(private_key_pem);
     free(dhparams_pem);
 
+#if defined(S2N_TEST_DEBUG)
     /* Sort our histogram */
     uint32_t spare_value, spare_count;
     for (int i = 0; i < HISTOGRAM_SIZE; i++) {
@@ -291,14 +292,15 @@ int main(int argc, char **argv)
     }
 
     /* Print the histogram values */
-    printf("\n\n");
+    TEST_DEBUG_PRINT("\n\n");
     for (int i = 0; i < HISTOGRAM_SIZE; i++) {
         if (histogram_values[i] == 0) {
             break;
         }
-        printf("Allocated %d bytes %d times\n", histogram_values[i], histogram_counts[i]);
+        TEST_DEBUG_PRINT("Allocated %d bytes %d times\n", histogram_values[i], histogram_counts[i]);
     }
-    printf("\n");
+    TEST_DEBUG_PRINT("\n");
+#endif
 
     END_TEST();
 
