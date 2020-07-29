@@ -33,7 +33,7 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
     struct s2n_signature_scheme chosen_sig_scheme = s2n_rsa_pkcs1_md5_sha1;
 
     if(conn->actual_protocol_version >= S2N_TLS12){
-        /* Verify the Server picked one of the SignatureSchemes that we sent in the ClientCertificateRequest */
+        /* Verify the SigScheme picked by the Client was in the preference list we sent (or is the default SigScheme) */
         GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, in, &chosen_sig_scheme));
     }
     uint16_t signature_size;

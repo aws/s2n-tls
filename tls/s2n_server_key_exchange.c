@@ -54,7 +54,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     /* Add common signature data */
     struct s2n_signature_scheme active_sig_scheme;
     if (conn->actual_protocol_version == S2N_TLS12) {
-        /* Verify the SigScheme picked by the Server was actually in the list we sent */
+        /* Verify the SigScheme picked by the Server was in the preference list we sent (or is the default SigScheme) */
         GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, in, &active_sig_scheme));
     } else {
         active_sig_scheme = conn->secure.conn_sig_scheme;

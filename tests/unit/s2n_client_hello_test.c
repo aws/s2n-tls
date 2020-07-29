@@ -929,6 +929,13 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
+        EXPECT_EQUAL(server_conn->secure.cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
+        EXPECT_EQUAL(client_conn->secure.cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
+        EXPECT_EQUAL(server_conn->secure.conn_sig_scheme.sig_alg, S2N_SIGNATURE_ECDSA);
+        EXPECT_EQUAL(server_conn->secure.conn_sig_scheme.hash_alg, S2N_HASH_SHA1);
+        EXPECT_EQUAL(client_conn->secure.conn_sig_scheme.sig_alg, S2N_SIGNATURE_ECDSA);
+        EXPECT_EQUAL(client_conn->secure.conn_sig_scheme.hash_alg, S2N_HASH_SHA1);
+
         /* Free the data */
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
