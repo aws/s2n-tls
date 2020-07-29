@@ -34,8 +34,11 @@
 } while (0)
 
 int s2n_extensions_server_key_share_send_check(struct s2n_connection *conn);
+
+#if !defined(S2N_NO_PQ)
 static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_group *kem_group, struct s2n_blob *pq_private_key,
         struct s2n_stuffer *pq_shared_secret, struct s2n_stuffer *key_share_payload);
+#endif /* !defined(S2N_NO_PQ) */
 
 int main(int argc, char **argv)
 {
@@ -475,6 +478,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_disable_tls13());
     }
 
+#if !defined(S2N_NO_PQ)
     /* Tests for s2n_server_key_share_extension.recv with hybrid PQ key shares */
     {
         EXPECT_SUCCESS(s2n_enable_tls13());
@@ -655,11 +659,13 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_disable_tls13());
     }
+#endif /* !defined(S2N_NO_PQ) */
 
     END_TEST();
     return 0;
 }
 
+#if !defined(S2N_NO_PQ)
 static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_group *kem_group, struct s2n_blob *pq_private_key,
         struct s2n_stuffer *pq_shared_secret, struct s2n_stuffer *key_share_payload) {
     FILE *kat_file = fopen("kats/tls13_server_hybrid_key_share_recv.kat", "r");
@@ -695,3 +701,4 @@ static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_gr
     fclose(kat_file);
     return S2N_SUCCESS;
 }
+#endif /* !defined(S2N_NO_PQ) */
