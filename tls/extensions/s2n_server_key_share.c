@@ -153,8 +153,7 @@ static int s2n_server_key_share_recv_ecc(struct s2n_connection *conn, uint16_t n
     server_ecc_evp_params->negotiated_curve = ecc_pref->ecc_curves[supported_curve_index];
 
     /* If this is a HelloRetryRequest, we won't have a key share. We just have the selected group.
-     * Set the server negotiated curve and exit early so a proper keyshare can be generated.
-     */
+     * Set the server negotiated curve and exit early so a proper keyshare can be generated. */
     if (s2n_is_hello_retry_message(conn)) {
         return S2N_SUCCESS;
     }

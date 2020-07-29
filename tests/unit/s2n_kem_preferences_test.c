@@ -24,6 +24,8 @@ int main(int argc, char **argv)
 
     EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_null, TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2));
     EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_null, TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2));
+    EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_null, TLS_PQ_KEM_GROUP_ID_X25519_BIKE1_L1_R2));
+    EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_null, TLS_PQ_KEM_GROUP_ID_SECP256R1_BIKE1_L1_R2));
 
 #if !defined(S2N_NO_PQ)
 
@@ -35,23 +37,37 @@ int main(int argc, char **argv)
     {
         EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_kms_pq_tls_1_0_2019_06, TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2));
         EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_kms_pq_tls_1_0_2019_06, TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2));
+        EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_kms_pq_tls_1_0_2019_06, TLS_PQ_KEM_GROUP_ID_X25519_BIKE1_L1_R2));
+        EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_kms_pq_tls_1_0_2019_06, TLS_PQ_KEM_GROUP_ID_SECP256R1_BIKE1_L1_R2));
 
         EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_kms_pq_tls_1_0_2020_02, TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2));
         EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_kms_pq_tls_1_0_2020_02, TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2));
+        EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_kms_pq_tls_1_0_2020_02, TLS_PQ_KEM_GROUP_ID_X25519_BIKE1_L1_R2));
+        EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_kms_pq_tls_1_0_2020_02, TLS_PQ_KEM_GROUP_ID_SECP256R1_BIKE1_L1_R2));
 
         EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_kms_pq_tls_1_0_2020_07, TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2));
         EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_kms_pq_tls_1_0_2020_07, TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2));
+        EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_kms_pq_tls_1_0_2020_07, TLS_PQ_KEM_GROUP_ID_X25519_BIKE1_L1_R2));
+        EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_kms_pq_tls_1_0_2020_07, TLS_PQ_KEM_GROUP_ID_SECP256R1_BIKE1_L1_R2));
 
         EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_pq_sike_test_tls_1_0_2019_11, TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2));
         EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_pq_sike_test_tls_1_0_2019_11, TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2));
+        EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_pq_sike_test_tls_1_0_2019_11, TLS_PQ_KEM_GROUP_ID_X25519_BIKE1_L1_R2));
+        EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_pq_sike_test_tls_1_0_2019_11, TLS_PQ_KEM_GROUP_ID_SECP256R1_BIKE1_L1_R2));
 
         EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_pq_sike_test_tls_1_0_2020_02, TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2));
         EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_pq_sike_test_tls_1_0_2020_02, TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2));
+        EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_pq_sike_test_tls_1_0_2020_02, TLS_PQ_KEM_GROUP_ID_X25519_BIKE1_L1_R2));
+        EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_pq_sike_test_tls_1_0_2020_02, TLS_PQ_KEM_GROUP_ID_SECP256R1_BIKE1_L1_R2));
     }
     {
         const struct s2n_kem_group *test_kem_groups[] = {
                 &s2n_secp256r1_sike_p434_r2,
+                &s2n_secp256r1_bike1_l1_r2,
+#if EVP_APIS_SUPPORTED
                 &s2n_x25519_sike_p434_r2,
+                &s2n_x25519_bike1_l1_r2,
+#endif
         };
 
         const struct s2n_kem_preferences test_prefs = {
@@ -61,8 +77,16 @@ int main(int argc, char **argv)
                 .tls13_kem_groups = test_kem_groups,
         };
 
-        EXPECT_TRUE(s2n_kem_preferences_tls13_kem_groups_includes(&test_prefs, TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2));
         EXPECT_TRUE(s2n_kem_preferences_tls13_kem_groups_includes(&test_prefs, TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2));
+        EXPECT_TRUE(s2n_kem_preferences_tls13_kem_groups_includes(&test_prefs, TLS_PQ_KEM_GROUP_ID_SECP256R1_BIKE1_L1_R2));
+#if EVP_APIS_SUPPORTED
+        EXPECT_TRUE(s2n_kem_preferences_tls13_kem_groups_includes(&test_prefs, TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2));
+        EXPECT_TRUE(s2n_kem_preferences_tls13_kem_groups_includes(&test_prefs, TLS_PQ_KEM_GROUP_ID_X25519_BIKE1_L1_R2));
+#else
+        EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&test_prefs, TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2));
+        EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&test_prefs, TLS_PQ_KEM_GROUP_ID_X25519_BIKE1_L1_R2));
+#endif
+
     }
 
 
