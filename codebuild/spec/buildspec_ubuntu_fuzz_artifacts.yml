@@ -53,12 +53,12 @@ phases:
   build:
     commands:
       - printenv
-      - $CB_BIN_DIR/bin/s2n_codebuild.sh
+      - $CB_BIN_DIR/s2n_codebuild.sh
   post_build:
     commands:
       - echo Build completed on `date`
       - echo Uploading CodeCov.io artifacts
-      - $CB_BIN_DIR/bin/s2n_after_codebuild.sh
+      - $CB_BIN_DIR/s2n_after_codebuild.sh
 artifacts:
   files:
     - "./tests/fuzz/corpus/$FUZZ_TESTS/*"
