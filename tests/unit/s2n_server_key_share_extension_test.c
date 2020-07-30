@@ -589,14 +589,14 @@ int main(int argc, char **argv)
 
                 /* To test the remaining failure cases, we need to read in the test vector from the KAT file, then
                  * manipulate it as necessary. (We do this now, instead of earlier, because we needed
-                 * client_kem_group_params[0].kem_params.private_key to be empty to test the previous case.) */
+                 * client_kem_group_params[i].kem_params.private_key to be empty to test the previous case.) */
                 struct s2n_blob *pq_private_key = &client_conn->secure.client_kem_group_params[i].kem_params.private_key;
                 DEFER_CLEANUP(struct s2n_stuffer pq_shared_secret = {0}, s2n_stuffer_free);
                 DEFER_CLEANUP(struct s2n_stuffer key_share_payload = {0}, s2n_stuffer_free);
                 EXPECT_SUCCESS(s2n_read_server_key_share_hybrid_test_vectors(kem_group, pq_private_key,
                         &pq_shared_secret, &key_share_payload));
 
-                /* Server sends the wrong (total) size: data[2] and data[4] are the bytes containing the total size
+                /* Server sends the wrong (total) size: data[2] and data[3] are the bytes containing the total size
                  * of the key share; bitflip data[2] to invalidate the sent size */
                 key_share_payload.blob.data[2] = ~key_share_payload.blob.data[2];
                 client_conn->secure.client_kem_group_params[i].kem_group = kem_group;
