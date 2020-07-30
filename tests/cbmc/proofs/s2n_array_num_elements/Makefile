@@ -13,15 +13,19 @@
 
 # Expected runtime is less than 10 seconds.
 
-CHECKFLAGS +=
+CBMCFLAGS +=
 
-DEPENDENCIES += $(HELPERDIR)/source/make_common_datastructures.c
-DEPENDENCIES += $(HELPERDIR)/source/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_result.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_array.c
-DEPENDENCIES += $(SRCDIR)/utils/s2n_blob.c
+HARNESS_ENTRY = s2n_array_num_elements_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-ENTRY = s2n_array_num_elements_harness
+PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
+PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
+
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_array.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 UNWINDSET +=
 
