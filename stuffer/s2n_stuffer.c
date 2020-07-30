@@ -90,6 +90,7 @@ int s2n_stuffer_free(struct s2n_stuffer *stuffer)
 
 int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)
 {
+    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     ENSURE_POSIX(!stuffer->tainted, S2N_ERR_RESIZE_TAINTED_STUFFER);
     ENSURE_POSIX(stuffer->growable, S2N_ERR_RESIZE_STATIC_STUFFER);
 
@@ -108,11 +109,12 @@ int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)
         if (stuffer->write_cursor > size) stuffer->write_cursor = size;
         if (stuffer->high_water_mark > size) stuffer->high_water_mark = size;
         stuffer->blob.size = size;
+        POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
         return S2N_SUCCESS;
     }
 
     GUARD(s2n_realloc(&stuffer->blob, size));
-
+    POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     return S2N_SUCCESS;
 }
 
