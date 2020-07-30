@@ -31,6 +31,7 @@ int main(int argc, char **argv)
         struct s2n_connection *conn;
         uint8_t wire[2];
         int count;
+        int cipher_suite_order;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         char *cert_chain;
@@ -41,6 +42,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(conn->config, cert_chain, private_key));
 
+        /* Test that all cipher suites that s2n negotiates are listed in IANA order */
+        const uint8_t cipher_suite_count = cipher_preferences_test_all.count;
+        for (int i = 0; i < cipher_suite_count-1; ++i) {
+            cipher_suite_order = memcmp(cipher_preferences_test_all.suites[i]->iana_value, cipher_preferences_test_all.suites[i+1]->iana_value, 2);
+            EXPECT_TRUE(cipher_suite_order < 0);
+        }
+        
         count = 0;
         for (int i = 0; i < 0xffff; i++) {
             wire[0] = (i >> 8);
