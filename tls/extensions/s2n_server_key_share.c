@@ -21,6 +21,8 @@
 
 #include "utils/s2n_safety.h"
 
+#include "crypto/s2n_fips.h"
+
 static int s2n_server_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
@@ -61,6 +63,8 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
         struct s2n_stuffer *extension) {
     notnull_check(conn);
     notnull_check(extension);
+
+    ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
 
     const struct s2n_kem_preferences *kem_pref = NULL;
     GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
