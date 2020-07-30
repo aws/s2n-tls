@@ -24,7 +24,6 @@
 
 #define S2N_IS_KEY_SHARE_LIST_EMPTY(preferred_key_shares) (preferred_key_shares & 1)
 #define S2N_IS_KEY_SHARE_REQUESTED(preferred_key_shares, i) ((preferred_key_shares >> (i + 1)) & 1)
-#define S2N_ALL_KEY_SHARES_REQUESTED 254
 /**
  * Specified in https://tools.ietf.org/html/rfc8446#section-4.2.8
  * "The "key_share" extension contains the endpoint's cryptographic parameters."
@@ -75,13 +74,6 @@ static int s2n_generate_preferred_key_shares(struct s2n_connection *conn, struct
         return S2N_SUCCESS;
     }
 
-    if (!conn->preferred_key_shares) {
-        /* Default behavior is to generate keyshares for all curves.
-        * The bitmap to generate keyshares for all curve is 111111110 (254),
-        * i.e. all bit values set except lsb which is RESERVED for empty keyshares */
-        preferred_key_shares = S2N_ALL_KEY_SHARES_REQUESTED;
-    }
-
     for (size_t i = 0; i < ecc_pref->count; i++) {
         /* If a bit in the bitmap (minus the lsb) is set, generate keyshare for the corresponding curve */
         if (S2N_IS_KEY_SHARE_REQUESTED(preferred_key_shares, i)) {
@@ -90,6 +82,21 @@ static int s2n_generate_preferred_key_shares(struct s2n_connection *conn, struct
             GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
         }
     }
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_generate_default_key_share(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    notnull_check(conn);
+    struct s2n_ecc_evp_params *ecc_evp_params = NULL;
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    notnull_check(ecc_pref);
+
+    ecc_evp_params = &conn->secure.client_ecc_evp_params[0];
+    ecc_evp_params->negotiated_curve = ecc_pref->ecc_curves[0];
+    GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
 
     return S2N_SUCCESS;
 }
@@ -137,6 +144,11 @@ static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s
      * KeyShareEntry from the indicated group.*/
     if (s2n_is_hello_retry_handshake(conn)) {
         GUARD(s2n_send_hrr_keyshare(conn, out));
+        return S2N_SUCCESS;
+    }
+
+    if (!conn->preferred_key_shares) {
+        GUARD(s2n_generate_default_key_share(conn, out));
         return S2N_SUCCESS;
     }
 
@@ -253,10 +265,8 @@ uint32_t s2n_extensions_client_key_share_size(struct s2n_connection *conn)
             + S2N_SIZE_OF_EXTENSION_DATA_SIZE
             + S2N_SIZE_OF_CLIENT_SHARES_SIZE;
 
-    for (uint32_t i = 0; i < ecc_pref->count ; i++) {
-        s2n_client_key_share_extension_size += S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIZE_OF_NAMED_GROUP;
-        s2n_client_key_share_extension_size += ecc_pref->ecc_curves[i]->share_size;
-    }
+    s2n_client_key_share_extension_size += S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIZE_OF_NAMED_GROUP;
+    s2n_client_key_share_extension_size += ecc_pref->ecc_curves[0]->share_size;
 
     return s2n_client_key_share_extension_size;
 }
