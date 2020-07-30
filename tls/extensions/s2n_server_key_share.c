@@ -57,7 +57,7 @@ static int s2n_server_key_share_send(struct s2n_connection *conn, struct s2n_stu
     return S2N_SUCCESS;
 }
 
-static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint16_t named_group,
+static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint16_t named_group_iana,
         struct s2n_stuffer *extension) {
     notnull_check(conn);
     notnull_check(extension);
@@ -68,11 +68,11 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
 
     /* This check should have been done higher up, but including it here as well for extra defense.
      * Uses S2N_ERR_ECDHE_UNSUPPORTED_CURVE for backward compatibility. */
-    ENSURE_POSIX(s2n_kem_preferences_tls13_kem_groups_includes(kem_pref, named_group), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    ENSURE_POSIX(s2n_kem_preferences_tls13_kem_groups_includes(kem_pref, named_group_iana), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     size_t kem_group_index = 0;
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-        if (named_group == kem_pref->tls13_kem_groups[i]->iana_id) {
+        if (named_group_iana == kem_pref->tls13_kem_groups[i]->iana_id) {
             kem_group_index = i;
             break;
         }
@@ -93,7 +93,7 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
     ENSURE_POSIX(conn->secure.client_kem_group_params[kem_group_index].ecc_params.evp_pkey != NULL,
             S2N_ERR_BAD_KEY_SHARE);
     notnull_check(conn->secure.client_kem_group_params[kem_group_index].kem_group);
-    eq_check(conn->secure.client_kem_group_params[kem_group_index].kem_group->iana_id, named_group);
+    eq_check(conn->secure.client_kem_group_params[kem_group_index].kem_group->iana_id, named_group_iana);
     conn->secure.chosen_client_kem_group_params = &conn->secure.client_kem_group_params[kem_group_index];
 
     /* The structure of the PQ share should be:
@@ -128,7 +128,7 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
     return S2N_SUCCESS;
 }
 
-static int s2n_server_key_share_recv_ecc(struct s2n_connection *conn, uint16_t named_group,
+static int s2n_server_key_share_recv_ecc(struct s2n_connection *conn, uint16_t named_group_iana,
         struct s2n_stuffer *extension) {
     notnull_check(conn);
     notnull_check(extension);
@@ -138,12 +138,12 @@ static int s2n_server_key_share_recv_ecc(struct s2n_connection *conn, uint16_t n
     notnull_check(ecc_pref);
 
     /* This check should have been done higher up, but including it here as well for extra defense. */
-    ENSURE_POSIX(s2n_ecc_preferences_includes(ecc_pref, named_group), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    ENSURE_POSIX(s2n_ecc_preferences_includes(ecc_pref, named_group_iana), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     size_t supported_curve_index = 0;
 
     for (size_t i = 0; i < ecc_pref->count; i++) {
-        if (named_group == ecc_pref->ecc_curves[i]->iana_id) {
+        if (named_group_iana == ecc_pref->ecc_curves[i]->iana_id) {
             supported_curve_index = i;
             break;
         }
@@ -192,9 +192,9 @@ static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stu
     notnull_check(conn);
     notnull_check(extension);
 
-    uint16_t named_group = 0;
-    S2N_ERROR_IF(s2n_stuffer_data_available(extension) < sizeof(named_group), S2N_ERR_BAD_KEY_SHARE);
-    GUARD(s2n_stuffer_read_uint16(extension, &named_group));
+    uint16_t negotiated_named_group_iana = 0;
+    S2N_ERROR_IF(s2n_stuffer_data_available(extension) < sizeof(negotiated_named_group_iana), S2N_ERR_BAD_KEY_SHARE);
+    GUARD(s2n_stuffer_read_uint16(extension, &negotiated_named_group_iana));
 
     const struct s2n_kem_preferences *kem_pref = NULL;
     GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
@@ -204,10 +204,10 @@ static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stu
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     notnull_check(ecc_pref);
 
-    if (s2n_ecc_preferences_includes(ecc_pref, named_group)) {
-        GUARD(s2n_server_key_share_recv_ecc(conn, named_group, extension));
-    } else if (s2n_kem_preferences_tls13_kem_groups_includes(kem_pref, named_group)) {
-        GUARD(s2n_server_key_share_recv_pq_hybrid(conn, named_group, extension));
+    if (s2n_ecc_preferences_includes(ecc_pref, negotiated_named_group_iana)) {
+        GUARD(s2n_server_key_share_recv_ecc(conn, negotiated_named_group_iana, extension));
+    } else if (s2n_kem_preferences_tls13_kem_groups_includes(kem_pref, negotiated_named_group_iana)) {
+        GUARD(s2n_server_key_share_recv_pq_hybrid(conn, negotiated_named_group_iana, extension));
     } else {
         S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
     }
