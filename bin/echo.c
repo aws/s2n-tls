@@ -91,6 +91,7 @@ int negotiate(struct s2n_connection *conn, int fd)
     int client_protocol_version;
     int server_protocol_version;
     int actual_protocol_version;
+    int signature_scheme;
 
     if ((client_hello_version = s2n_connection_get_client_hello_version(conn)) < 0) {
         fprintf(stderr, "Could not get client hello version\n");
@@ -108,11 +109,16 @@ int negotiate(struct s2n_connection *conn, int fd)
         fprintf(stderr, "Could not get actual protocol version\n");
         S2N_ERROR(S2N_ERR_ACTUAL_PROTOCOL_VERSION);
     }
+    if ((signature_scheme = s2n_connection_get_signature_scheme(conn)) < 0) {
+        fprintf(stderr, "Could not get signature scheme\n");
+        S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_SCHEME);
+    }
     printf("CONNECTED:\n");
     printf("Client hello version: %d\n", client_hello_version);
     printf("Client protocol version: %d\n", client_protocol_version);
     printf("Server protocol version: %d\n", server_protocol_version);
     printf("Actual protocol version: %d\n", actual_protocol_version);
+    printf("Signature scheme: 0x%04x\n", signature_scheme);
 
     if (s2n_get_server_name(conn)) {
         printf("Server name: %s\n", s2n_get_server_name(conn));

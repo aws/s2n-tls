@@ -374,6 +374,8 @@ extern int s2n_connection_get_session_id_length(struct s2n_connection *conn);
 S2N_API
 extern int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_id, size_t max_length);
 S2N_API
+extern int s2n_connection_get_signature_scheme(struct s2n_connection *conn);
+S2N_API
 extern int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 S2N_API
 extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);

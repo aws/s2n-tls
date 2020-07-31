@@ -826,6 +826,13 @@ int s2n_connection_get_signature_preferences(struct s2n_connection *conn, const 
 
 }
 
+int s2n_connection_get_signature_scheme(struct s2n_connection *conn)
+{
+    notnull_check(conn);
+
+    return conn->secure.conn_sig_scheme.iana_value;
+}
+
 int s2n_connection_get_ecc_preferences(struct s2n_connection *conn, const struct s2n_ecc_preferences **ecc_preferences)
 {
     notnull_check(conn);
