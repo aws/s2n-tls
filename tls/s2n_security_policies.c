@@ -18,6 +18,7 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
+#include "crypto/s2n_fips.h"
 
 const struct s2n_security_policy security_policy_20170210 = {
     .minimum_protocol_version = S2N_TLS10,
@@ -705,6 +706,13 @@ int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferenc
     } else {
         ENSURE_POSIX(kem_preferences->kem_count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
         ENSURE_POSIX(kem_preferences->kems == NULL, S2N_ERR_INVALID_SECURITY_POLICY);
+    }
+
+    if (s2n_is_in_fips_mode()) {
+        ENSURE_POSIX(kem_preferences->kem_count == 0, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+        ENSURE_POSIX(kem_preferences->kems == NULL, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+        ENSURE_POSIX(kem_preferences->tls13_kem_group_count == 0, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+        ENSURE_POSIX(kem_preferences->tls13_kem_groups == NULL, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     }
 
     return S2N_SUCCESS;

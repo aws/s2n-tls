@@ -16,6 +16,7 @@
 #include "s2n_test.h"
 
 #include "tls/s2n_security_policies.h"
+#include "crypto/s2n_fips.h"
 
 int main(int argc, char **argv)
 {
@@ -399,13 +400,20 @@ int main(int argc, char **argv)
 
     /* Positive and negative cases for s2n_validate_kem_preferences() */
     {
-        EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(NULL, 0), S2N_ERR_NULL);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&kem_preferences_null, 1), S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(NULL, false), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&kem_preferences_null, true), S2N_ERR_INVALID_SECURITY_POLICY);
         EXPECT_SUCCESS(s2n_validate_kem_preferences(&kem_preferences_null, 0));
 
 #if !defined(S2N_NO_PQ)
         const struct s2n_kem_group *test_kem_group_list[] = {
                 &s2n_secp256r1_sike_p434_r2
+        };
+
+        const struct s2n_kem_preferences valid_tls13_kem_pref = {
+                .kem_count = 0,
+                .kems = NULL,
+                .tls13_kem_group_count = s2n_array_len(test_kem_group_list),
+                .tls13_kem_groups = test_kem_group_list,
         };
 
         const struct s2n_kem_preferences invalid_kem_prefs[] = {
@@ -436,11 +444,22 @@ int main(int argc, char **argv)
         };
 
         for (size_t i = 0; i < s2n_array_len(invalid_kem_prefs); i++) {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&invalid_kem_prefs[i], 1), S2N_ERR_INVALID_SECURITY_POLICY);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&invalid_kem_prefs[i], true),
+                    S2N_ERR_INVALID_SECURITY_POLICY);
         }
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&kem_preferences_kms_pq_tls_1_0_2020_07, 0), S2N_ERR_INVALID_SECURITY_POLICY);
-        EXPECT_SUCCESS(s2n_validate_kem_preferences(&kem_preferences_kms_pq_tls_1_0_2020_07, 1));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&kem_preferences_kms_pq_tls_1_0_2020_07, false),
+                S2N_ERR_INVALID_SECURITY_POLICY);
+
+        if (s2n_is_in_fips_mode()) {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&valid_tls13_kem_pref, false),
+                    S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&kem_preferences_kms_pq_tls_1_0_2020_07, true),
+                    S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+        } else {
+            EXPECT_SUCCESS(s2n_validate_kem_preferences(&kem_preferences_kms_pq_tls_1_0_2020_07, true));
+            EXPECT_SUCCESS(s2n_validate_kem_preferences(&valid_tls13_kem_pref, false));
+        }
 #endif
     }
 
