@@ -16,6 +16,7 @@
 #include "s2n_test.h"
 
 #include "tls/s2n_security_policies.h"
+#include "crypto/s2n_fips.h"
 
 int main(int argc, char **argv)
 {
@@ -294,6 +295,15 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "notathing"),
                 S2N_ERR_INVALID_SECURITY_POLICY);
 
+#if !defined(S2N_NO_PQ)
+        if (s2n_is_in_fips_mode()) {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "KMS-PQ-TLS-1-0-2020-07"),
+                    S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+        } else {
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "KMS-PQ-TLS-1-0-2020-07"));
+        }
+#endif
+
         s2n_config_free(config);
     }
     {
@@ -336,6 +346,15 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "notathing"),
                 S2N_ERR_INVALID_SECURITY_POLICY);
+
+#if !defined(S2N_NO_PQ)
+        if (s2n_is_in_fips_mode()) {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2020-07"),
+                    S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+        } else {
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2020-07"));
+        }
+#endif
 
         s2n_config_free(config);
         s2n_connection_free(conn);
