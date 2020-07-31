@@ -45,6 +45,13 @@ LDFLAGS += ${CRYPTO_LDFLAGS} ${LIBS} ${CRYPTO_LIBS} -lm -ldl -lrt -pthread
 DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH"
 LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH"
 
+ifdef AFL_FUZZ
+    ifndef FUZZ_COVERAGE
+        CFLAGS += $(LIBFUZZER_ROOT)/FuzzingEngine.a
+    endif
+endif
+
+
 ld-preload :
 	${MAKE} -C LD_PRELOAD
 

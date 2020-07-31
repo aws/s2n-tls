@@ -75,7 +75,27 @@ ACTUAL_TEST_FAILURE=0
 TEMP_CORPUS_DIR="$(mktemp -d)"
 cp -r ./corpus/${TEST_NAME}/. "${TEMP_CORPUS_DIR}"
 
-printf "Running %-s %-40s for %5d sec with %2d threads... " "${FIPS_TEST_MSG}" ${TEST_NAME} ${FUZZ_TIMEOUT_SEC} ${NUM_CPU_THREADS}
+# Run AFL instead of libfuzzer if AFL_FUZZ is set. Not compatible with fuzz coverage.
+if [[ ! -z "$AFL_FUZZ" && -z "$FUZZ_COVERAGE" ]]; then
+    printf "Running %-s %-40s for %5d sec... " "${FIPS_TEST_MSG}" ${TEST_NAME} ${FUZZ_TIMEOUT_SEC}
+    mkdir -p results/${TEST_NAME}
+    timeout ${FUZZ_TIMEOUT_SEC} afl-fuzz -i corpus/${TEST_NAME} -o results/${TEST_NAME} -m none ./${TEST_NAME}
+    CRASH_COUNT=`sed -n -e 's/^unique_crashes *: //p' ./results/${TEST_NAME}/fuzzer_stats`
+    TEST_COUNT=`sed -n -e 's/^execs_done *: //p' ./results/${TEST_NAME}/fuzzer_stats`
+    TESTS_PER_SEC=`sed -n -e 's/^execs_per_sec *: //p' ./results/${TEST_NAME}/fuzzer_stats`
+    if [[ ${CRASH_COUNT} -gt 0 ]]; then
+        ACTUAL_TEST_FAILURE=1
+    fi
+    if [[ $ACTUAL_TEST_FAILURE == $EXPECTED_TEST_FAILURE ]]; then
+        printf "\033[32;1mPASSED\033[0m %8d tests, %6d test/sec\n" ${TEST_COUNT} ${TESTS_PER_SEC}
+        exit 0
+    else
+        printf "\033[31;1mFAILED\033[0m %10d tests, %6d unique crashes\n" ${TEST_COUNT} ${CRASH_COUNT}
+        exit -1
+    fi
+else
+    printf "Running %-s %-40s for %5d sec with %2d threads... " "${FIPS_TEST_MSG}" ${TEST_NAME} ${FUZZ_TIMEOUT_SEC} ${NUM_CPU_THREADS}
+fi
 
 # Setup and clean profile structure if FUZZ_COVERAGE is enabled, otherwise run as normal
 if [[ ! -z "$FUZZ_COVERAGE" ]]; then
