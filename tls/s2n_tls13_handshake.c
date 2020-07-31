@@ -105,25 +105,28 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     notnull_check(client_ecc_params);
 
     DEFER_CLEANUP(struct s2n_blob ecdhe_shared_secret = { 0 }, s2n_blob_zeroize_free);
+    struct s2n_blob *pq_shared_secret = NULL;
 
+    /* Compute the ECDHE shared secret, and retrieve the PQ shared secret. */
     if (conn->mode == S2N_CLIENT) {
         GUARD(s2n_ecc_evp_compute_shared_secret_from_params(client_ecc_params, server_ecc_params, &ecdhe_shared_secret));
+        pq_shared_secret = &client_kem_group_params->kem_params.shared_secret;
     } else {
         GUARD(s2n_ecc_evp_compute_shared_secret_from_params(server_ecc_params, client_ecc_params, &ecdhe_shared_secret));
+        pq_shared_secret = &server_kem_group_params->kem_params.shared_secret;
     }
+
+    notnull_check(pq_shared_secret);
+    notnull_check(pq_shared_secret->data);
 
     const struct s2n_kem_group *negotiated_kem_group = conn->secure.server_kem_group_params.kem_group;
     notnull_check(negotiated_kem_group);
     notnull_check(negotiated_kem_group->kem);
-    uint32_t hybrid_shared_secret_size = ecdhe_shared_secret.size + negotiated_kem_group->kem->shared_secret_key_length;
 
-    struct s2n_kem_params *server_kem_params = &server_kem_group_params->kem_params;
-    notnull_check(server_kem_params);
-    struct s2n_blob *pq_shared_secret = &server_kem_params->shared_secret;
-    notnull_check(pq_shared_secret);
-    notnull_check(pq_shared_secret->data);
     eq_check(pq_shared_secret->size, negotiated_kem_group->kem->shared_secret_key_length);
 
+    /* Construct the concatenated/hybrid shared secret */
+    uint32_t hybrid_shared_secret_size = ecdhe_shared_secret.size + negotiated_kem_group->kem->shared_secret_key_length;
     GUARD(s2n_alloc(shared_secret, hybrid_shared_secret_size));
     struct s2n_stuffer stuffer_combiner = { 0 };
     GUARD(s2n_stuffer_init(&stuffer_combiner, shared_secret));

@@ -90,10 +90,13 @@ struct hybrid_test_vector {
 
 /* PQ shared secrets taken from the first entry in the NIST KAT files */
 #define SIKEP434R2_SECRET "35f7f8ff388714dedc41f139078cedc9"
+#define BIKE1L1R2_SECRET "C1C96E2B8B1D23E52F02AD3A766A75ADBEDF7BA1558B94412B4AB534EEDBDE36"
 
 /* Hybrid shared secrets are the concatenation: ECDHE || PQ */
 #define X25519_SIKEP434R2_HYBRID_SECRET      (X25519_SHARED_SECRET      SIKEP434R2_SECRET)
 #define SECP256R1_SIKEP434R2_HYBRID_SECRET   (SECP256R1_SHARED_SECRET   SIKEP434R2_SECRET)
+#define X25519_BIKE1L1R2_HYBRID_SECRET       (X25519_SHARED_SECRET      BIKE1L1R2_SECRET)
+#define SECP256R1_BIKE1L1R2_HYBRID_SECRET    (SECP256R1_SHARED_SECRET   BIKE1L1R2_SECRET)
 
 /* The expected traffic secrets were calculated from an independent implementation,
  * using the ECDHE & PQ secrets defined above. */
@@ -101,10 +104,21 @@ struct hybrid_test_vector {
 #define AES_128_SECP256R1_SIKEP434R2_SERVER_TRAFFIC_SECRET "423dfaf8fd66b17aaf8c919a9318f3a6bd69875aacdf022aa58a953a7b6de806"
 #define AES_256_SECP256R1_SIKEP434R2_CLIENT_TRAFFIC_SECRET "f7d349f364f49ff3ae9c4e9e7aa60c41d6c650d09c03d8c076bc714ab76177045e23e7426dceb872d2fe7c0d07abdefd"
 #define AES_256_SECP256R1_SIKEP434R2_SERVER_TRAFFIC_SECRET "184755801232f7b9b5c42cbdc66c793071f4322079e34307fd60261c0f7a27612b3808918218c4000c12f829d6c19ebf"
+
 #define AES_128_X25519_SIKEP434_CLIENT_TRAFFIC_SECRET "9b9c53221edb5cc1f95ab2ecfc5eb8ec27d6b9fc2159c956333cd90099911dc7"
 #define AES_128_X25519_SIKEP434_SERVER_TRAFFIC_SECRET "29a8786ffc6a48692b95d70ab7e04bcf112afd0a019dff6c15c1d095cfa5ebcc"
 #define AES_256_X25519_SIKEP434_CLIENT_TRAFFIC_SECRET "c7ee90f95fdfd53d97da07e338c7b6aa9e5111864d66d9631048941f45c9fd1a7b119871594140000923a79333040775"
 #define AES_256_X25519_SIKEP434_SERVER_TRAFFIC_SECRET "aff2987e4ed3c2bc55cbd9e3e52db0cc330034dfa709e0a4127c4d74278198720b74a444afa8f0f7dca115797470cef2"
+
+#define AES_128_SECP256R1_BIKE1L1R2_CLIENT_TRAFFIC_SECRET "67ed1aec6227ce924087b4a2224ec697ae164dc8541eee3c3d393dda2bd10958"
+#define AES_128_SECP256R1_BIKE1L1R2_SERVER_TRAFFIC_SECRET "c0d1cf356e224db5fa693b91bad93130915448913fd3509257188a3f064585d1"
+#define AES_256_SECP256R1_BIKE1L1R2_CLIENT_TRAFFIC_SECRET "fd5d731c6454c523dd029a2311346da9969c30ea8cead8a6e19f211762c2bbabd182e6fb599527b26eecf86f3329103c"
+#define AES_256_SECP256R1_BIKE1L1R2_SERVER_TRAFFIC_SECRET "03dcd83c4ae4cd4dd5a76404afd3147e277a748ec3f10e8c1427ae37c1c0cc0eff29149cb14b61da49696510dc0182d2"
+
+#define AES_128_X25519_BIKE1L1R2_CLIENT_TRAFFIC_SECRET "3a0d971f4461ee69688eb1159c1640d429e2255473f2e2668b1cbab4ac80a47f"
+#define AES_128_X25519_BIKE1L1R2_SERVER_TRAFFIC_SECRET "74ea914ef6416dbe16b75a568c00d505c66770b0938539fccbfe3051460ab583"
+#define AES_256_X25519_BIKE1L1R2_CLIENT_TRAFFIC_SECRET "982ea3ccdd83225b6b2bb8a2f623e4f9b9cdcca1f5a11ea2b94f264bbf6785d6c1db3232ceb395eb79ddcae3f754fe7d"
+#define AES_256_X25519_BIKE1L1R2_SERVER_TRAFFIC_SECRET "510970206a3eb187c8ea4ad5f91b738e44dee08616579a16572320e2dac46f6dfa5d072c0f5ac08b9e3480b28d6d8923"
 
 /* A fake transcript string to hash when deriving handshake secrets */
 #define FAKE_TRANSCRIPT "client_hello || server_hello"
@@ -122,7 +136,7 @@ int main(int argc, char **argv) {
     S2N_BLOB_FROM_HEX(sikep434r2_secret, SIKEP434R2_SECRET);
 
     S2N_BLOB_FROM_HEX(secp256r1_secret, SECP256R1_SHARED_SECRET);
-    S2N_BLOB_FROM_HEX(secp256r1_sikep434r2_hybrid_secret,SECP256R1_SIKEP434R2_HYBRID_SECRET);
+    S2N_BLOB_FROM_HEX(secp256r1_sikep434r2_hybrid_secret, SECP256R1_SIKEP434R2_HYBRID_SECRET);
 
     S2N_BLOB_FROM_HEX(aes_128_secp256r1_sikep434r2_client_secret, AES_128_SECP256R1_SIKEP434R2_CLIENT_TRAFFIC_SECRET);
     S2N_BLOB_FROM_HEX(aes_128_secp256r1_sikep434r2_server_secret, AES_128_SECP256R1_SIKEP434R2_SERVER_TRAFFIC_SECRET);
@@ -152,6 +166,38 @@ int main(int argc, char **argv) {
             .expected_hybrid_secret = &secp256r1_sikep434r2_hybrid_secret,
             .expected_client_traffic_secret = &aes_256_secp256r1_sikep434r2_client_secret,
             .expected_server_traffic_secret = &aes_256_secp256r1_sikep434r2_server_secret,
+    };
+
+    S2N_BLOB_FROM_HEX(bike1l1r2_secret, BIKE1L1R2_SECRET);
+    S2N_BLOB_FROM_HEX(secp256r1_bike1l1r2_hybrid_secret, SECP256R1_BIKE1L1R2_HYBRID_SECRET);
+    S2N_BLOB_FROM_HEX(aes_128_secp256r1_bike1l1r2_client_secret, AES_128_SECP256R1_BIKE1L1R2_CLIENT_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_128_secp256r1_bike1l1r2_server_secret, AES_128_SECP256R1_BIKE1L1R2_SERVER_TRAFFIC_SECRET);
+
+    const struct hybrid_test_vector aes_128_sha_256_secp256r1_bike1l1r2_vector = {
+            .cipher_suite = &s2n_tls13_aes_128_gcm_sha256,
+            .transcript = FAKE_TRANSCRIPT,
+            .kem_group = &s2n_secp256r1_bike1_l1_r2,
+            .client_ecc_key = CLIENT_SECP256R1_PRIV_KEY,
+            .server_ecc_key = SERVER_SECP256R1_PRIV_KEY,
+            .pq_secret = &bike1l1r2_secret,
+            .expected_hybrid_secret = &secp256r1_bike1l1r2_hybrid_secret,
+            .expected_client_traffic_secret = &aes_128_secp256r1_bike1l1r2_client_secret,
+            .expected_server_traffic_secret = &aes_128_secp256r1_bike1l1r2_server_secret,
+    };
+
+    S2N_BLOB_FROM_HEX(aes_256_secp256r1_bike1l1r2_client_secret, AES_256_SECP256R1_BIKE1L1R2_CLIENT_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_256_secp256r1_bike1l1r2_server_secret, AES_256_SECP256R1_BIKE1L1R2_SERVER_TRAFFIC_SECRET);
+
+    const struct hybrid_test_vector aes_256_sha_384_secp256r1_bike1l1r2_vector = {
+            .cipher_suite = &s2n_tls13_aes_256_gcm_sha384,
+            .transcript = FAKE_TRANSCRIPT,
+            .kem_group = &s2n_secp256r1_bike1_l1_r2,
+            .client_ecc_key = CLIENT_SECP256R1_PRIV_KEY,
+            .server_ecc_key = SERVER_SECP256R1_PRIV_KEY,
+            .pq_secret = &bike1l1r2_secret,
+            .expected_hybrid_secret = &secp256r1_bike1l1r2_hybrid_secret,
+            .expected_client_traffic_secret = &aes_256_secp256r1_bike1l1r2_client_secret,
+            .expected_server_traffic_secret = &aes_256_secp256r1_bike1l1r2_server_secret,
     };
 
 #if EVP_APIS_SUPPORTED
@@ -188,27 +234,62 @@ int main(int argc, char **argv) {
             .expected_client_traffic_secret = &aes_256_x25519_sikep434r2_client_secret,
             .expected_server_traffic_secret = &aes_256_x25519_sikep434r2_server_secret,
     };
+
+    S2N_BLOB_FROM_HEX(x25519_bike1l1r2_hybrid_secret, X25519_BIKE1L1R2_HYBRID_SECRET);
+    S2N_BLOB_FROM_HEX(aes_128_x25519_bike1l1r2_client_secret, AES_128_X25519_BIKE1L1R2_CLIENT_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_128_x25519_bike1l1r2_server_secret, AES_128_X25519_BIKE1L1R2_SERVER_TRAFFIC_SECRET);
+
+    const struct hybrid_test_vector aes_128_sha_256_x25519_bike1l1r2_vector = {
+            .cipher_suite = &s2n_tls13_aes_128_gcm_sha256,
+            .transcript = FAKE_TRANSCRIPT,
+            .kem_group = &s2n_x25519_bike1_l1_r2,
+            .client_ecc_key = CLIENT_X25519_PRIV_KEY,
+            .server_ecc_key = SERVER_X25519_PRIV_KEY,
+            .pq_secret = &bike1l1r2_secret,
+            .expected_hybrid_secret = &x25519_bike1l1r2_hybrid_secret,
+            .expected_client_traffic_secret = &aes_128_x25519_bike1l1r2_client_secret,
+            .expected_server_traffic_secret = &aes_128_x25519_bike1l1r2_server_secret,
+    };
+
+    S2N_BLOB_FROM_HEX(aes_256_x25519_bike1l1r2_client_secret, AES_256_X25519_BIKE1L1R2_CLIENT_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_256_x25519_bike1l1r2_server_secret, AES_256_X25519_BIKE1L1R2_SERVER_TRAFFIC_SECRET);
+
+    const struct hybrid_test_vector aes_256_sha_384_x25519_bike1l1r2_vector = {
+            .cipher_suite = &s2n_tls13_aes_256_gcm_sha384,
+            .transcript = FAKE_TRANSCRIPT,
+            .kem_group = &s2n_x25519_bike1_l1_r2,
+            .client_ecc_key = CLIENT_X25519_PRIV_KEY,
+            .server_ecc_key = SERVER_X25519_PRIV_KEY,
+            .pq_secret = &bike1l1r2_secret,
+            .expected_hybrid_secret = &x25519_bike1l1r2_hybrid_secret,
+            .expected_client_traffic_secret = &aes_256_x25519_bike1l1r2_client_secret,
+            .expected_server_traffic_secret = &aes_256_x25519_bike1l1r2_server_secret,
+    };
 #endif
 
 #if EVP_APIS_SUPPORTED
-    EXPECT_EQUAL(2, S2N_SUPPORTED_KEM_GROUPS_COUNT);
+    EXPECT_EQUAL(4, S2N_SUPPORTED_KEM_GROUPS_COUNT);
     const struct hybrid_test_vector *all_test_vectors[] = {
             &aes_128_sha_256_secp256r1_sikep434r2_vector,
             &aes_256_sha_384_secp256r1_sikep434r2_vector,
             &aes_128_sha_256_x25519_sikep434r2_vector,
             &aes_256_sha_284_x25519_sikep434r2_vector,
+            &aes_128_sha_256_secp256r1_bike1l1r2_vector,
+            &aes_256_sha_384_secp256r1_bike1l1r2_vector,
+            &aes_128_sha_256_x25519_bike1l1r2_vector,
+            &aes_256_sha_384_x25519_bike1l1r2_vector,
     };
 #else
-    EXPECT_EQUAL(1, S2N_SUPPORTED_KEM_GROUPS_COUNT);
+    EXPECT_EQUAL(2, S2N_SUPPORTED_KEM_GROUPS_COUNT);
     const struct hybrid_test_vector *all_test_vectors[] = {
             &aes_128_sha_256_secp256r1_sikep434r2_vector,
             &aes_256_sha_384_secp256r1_sikep434r2_vector,
+            &aes_128_sha_256_secp256r1_bike1l1r2_vector,
+            &aes_256_sha_384_secp256r1_bike1l1r2_vector,
     };
 #endif
 
-
-    struct s2n_connection *client_conn;
-    struct s2n_connection *server_conn;
+    EXPECT_EQUAL(2 * S2N_SUPPORTED_KEM_GROUPS_COUNT, s2n_array_len(all_test_vectors));
 
     {
         /* Happy cases for computing the hybrid shared secret and client & server traffic secrets */
@@ -217,6 +298,8 @@ int main(int argc, char **argv) {
             const struct s2n_kem_group *kem_group = test_vector->kem_group;
 
             /* Set up connections */
+            struct s2n_connection *client_conn = NULL;
+            struct s2n_connection *server_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
@@ -271,50 +354,58 @@ int main(int argc, char **argv) {
     {
         /* Various failure cases for s2n_tls13_compute_shared_secret() */
         const struct hybrid_test_vector *test_vector = &aes_128_sha_256_secp256r1_sikep434r2_vector;
+        s2n_mode modes[] = { S2N_SERVER, S2N_CLIENT };
 
-        /* Failures because of NULL arguments */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(NULL, NULL), S2N_ERR_NULL);
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, NULL), S2N_ERR_NULL);
-        DEFER_CLEANUP(struct s2n_blob client_calculated_shared_secret = {0}, s2n_free);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(NULL, &client_calculated_shared_secret), S2N_ERR_NULL);
+        for (size_t i = 0; i < s2n_array_len(modes); i++) {
+            /* Failures because of NULL arguments */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(NULL, NULL), S2N_ERR_NULL);
+            struct s2n_connection *conn = NULL;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(modes[i]));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, NULL), S2N_ERR_NULL);
+            DEFER_CLEANUP(struct s2n_blob calculated_shared_secret = {0}, s2n_free);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(NULL, &calculated_shared_secret), S2N_ERR_NULL);
 
-        /* Failures because classic (non-hybrid) parameters were configured */
-        client_conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_SAFETY);
-        client_conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
-        EXPECT_SUCCESS(read_priv_ecc(&client_conn->secure.server_ecc_evp_params.evp_pkey, test_vector->client_ecc_key));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_SAFETY);
-        EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_conn->secure.server_ecc_evp_params));
+            /* Failures because classic (non-hybrid) parameters were configured */
+            conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_SAFETY);
+            conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
+            EXPECT_SUCCESS(read_priv_ecc(&conn->secure.server_ecc_evp_params.evp_pkey, test_vector->client_ecc_key));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_SAFETY);
+            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
 
-        /* Failure because the chosen_client_kem_group_params is NULL */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_NULL);
-        client_conn->secure.chosen_client_kem_group_params = &client_conn->secure.client_kem_group_params[0];
+            /* Failure because the chosen_client_kem_group_params is NULL */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_NULL);
+            conn->secure.chosen_client_kem_group_params = &conn->secure.client_kem_group_params[0];
 
-        /* Failures because the kem_group_params aren't set */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_NULL);
-        client_conn->secure.server_kem_group_params.ecc_params.negotiated_curve = test_vector->kem_group->curve;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_NULL);
-        client_conn->secure.chosen_client_kem_group_params->ecc_params.negotiated_curve = test_vector->kem_group->curve;
+            /* Failures because the kem_group_params aren't set */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_NULL);
+            conn->secure.server_kem_group_params.ecc_params.negotiated_curve = test_vector->kem_group->curve;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_NULL);
+            conn->secure.chosen_client_kem_group_params->ecc_params.negotiated_curve = test_vector->kem_group->curve;
 
-        /* Failures because the ECC private keys are NULL */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_NULL);
-        EXPECT_SUCCESS(read_priv_ecc(&client_conn->secure.chosen_client_kem_group_params->ecc_params.evp_pkey, test_vector->client_ecc_key));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_NULL);
-        EXPECT_SUCCESS(read_priv_ecc(&client_conn->secure.server_kem_group_params.ecc_params.evp_pkey, test_vector->server_ecc_key));
+            /* Failures because the ECC private keys are NULL */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_NULL);
+            EXPECT_SUCCESS(read_priv_ecc(&conn->secure.chosen_client_kem_group_params->ecc_params.evp_pkey, test_vector->client_ecc_key));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_NULL);
+            EXPECT_SUCCESS(read_priv_ecc(&conn->secure.server_kem_group_params.ecc_params.evp_pkey, test_vector->server_ecc_key));
 
-        /* Failure because the kem_group is NULL */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_NULL);
-        client_conn->secure.server_kem_group_params.kem_group = test_vector->kem_group;
+            /* Failure because pq_shared_secret is NULL */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_NULL);
+            if (conn->mode == S2N_CLIENT) {
+                EXPECT_SUCCESS(s2n_dup(test_vector->pq_secret, &conn->secure.chosen_client_kem_group_params->kem_params.shared_secret));
+            } else {
+                EXPECT_SUCCESS(s2n_dup(test_vector->pq_secret, &conn->secure.server_kem_group_params.kem_params.shared_secret));
+            }
 
-        /* Failure because pq_shared_secret is NULL */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret), S2N_ERR_NULL);
-        EXPECT_SUCCESS(s2n_dup(test_vector->pq_secret, &client_conn->secure.server_kem_group_params.kem_params.shared_secret));
+            /* Failure because the kem_group is NULL */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_NULL);
+            conn->secure.server_kem_group_params.kem_group = test_vector->kem_group;
 
-        /* Finally, success */
-        EXPECT_SUCCESS(s2n_tls13_compute_pq_hybrid_shared_secret(client_conn, &client_calculated_shared_secret));
+            /* Finally, success */
+            EXPECT_SUCCESS(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret));
 
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
     }
 
 #endif
@@ -374,9 +465,10 @@ static int set_up_conns(struct s2n_connection *client_conn, struct s2n_connectio
     client_conn->secure.server_kem_group_params.kem_params.kem = kem_group->kem;
     client_conn->secure.chosen_client_kem_group_params->kem_params.kem = kem_group->kem;
 
-    /* PQ shared secret is stored in the server_kem_group_params struct, regardless if connection is client or server */
+    /* During an actual handshake, server will generate the shared secret and store it in server_kem_group_params,
+     * client will decapsulate the ciphertext and store the shared secret in chosen_client_kem_group_params. */
     GUARD(s2n_dup(pq_shared_secret, &server_conn->secure.server_kem_group_params.kem_params.shared_secret));
-    GUARD(s2n_dup(pq_shared_secret, &client_conn->secure.server_kem_group_params.kem_params.shared_secret));
+    GUARD(s2n_dup(pq_shared_secret, &client_conn->secure.chosen_client_kem_group_params->kem_params.shared_secret));
 
     /* Populate the client's PQ private key with something - it doesn't have to be a
      * legitimate private key since it doesn't get used in the shared secret derivation,

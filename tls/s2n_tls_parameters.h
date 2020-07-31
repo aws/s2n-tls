@@ -74,6 +74,8 @@
  * are defined in https://docs.google.com/spreadsheets/d/12YarzaNv3XQNLnvDsWLlRKwtZFhRrDdWf36YlzwrPeg/edit#gid=0. */
 #define TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2 0x2F27
 #define TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2 0x2F1F
+#define TLS_PQ_KEM_GROUP_ID_X25519_BIKE1_L1_R2 0x2F28
+#define TLS_PQ_KEM_GROUP_ID_SECP256R1_BIKE1_L1_R2 0x2F23
 
 /* From https://tools.ietf.org/html/rfc7507 */
 #define TLS_FALLBACK_SCSV                   0x56, 0x00

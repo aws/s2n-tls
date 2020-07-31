@@ -123,6 +123,74 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
+    /* TLS 1.2 Server that receives TLS 1.3 KeyUpdate from Client should close connection */
+    {
+        EXPECT_SUCCESS(s2n_disable_tls13());
+
+        char *cert_chain;
+        char *private_key;
+        EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+
+        struct s2n_connection *client_conn;
+        struct s2n_connection *server_conn;
+        struct s2n_config *server_config;
+        struct s2n_cert_chain_and_key *chain_and_key;
+
+        struct s2n_config *client_config;
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+        client_conn->actual_protocol_version = S2N_TLS12;
+        client_conn->server_protocol_version = S2N_TLS12;
+        client_conn->client_protocol_version = S2N_TLS12;
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->server_protocol_version = S2N_TLS12;
+        server_conn->client_protocol_version = S2N_TLS12;
+
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Force Client to send a TLS 1.3 KeyUpdate Message over TLS 1.2 connection */
+        client_conn->key_update_pending = 1;
+        EXPECT_SUCCESS(s2n_key_update_send(client_conn));
+
+        /* Next message sent will trigger key update message */
+        s2n_blocked_status blocked;
+        char client_message[] = "client message";
+        EXPECT_SUCCESS(s2n_send(client_conn, client_message, sizeof(client_message), &blocked));
+
+        /* Attempt to recv on Server conn, see KeyUpdate Message, and confirm connection is closed. */
+        uint8_t server_message[128];
+        EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server_conn, server_message, sizeof(server_message), &blocked), S2N_ERR_BAD_MESSAGE);
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+        free(cert_chain);
+        free(private_key);
+
+    }
+
     END_TEST();
 }
 

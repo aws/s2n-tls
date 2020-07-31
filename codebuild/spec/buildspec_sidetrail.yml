@@ -13,6 +13,11 @@
 # limitations under the License.
 version: 0.2
 
+env:
+  variables:
+    # CODEBUILD_ is a reserved namespace.
+    CB_BIN_DIR: "./codebuild/bin"
+
 phases:
   install:
     runtime-versions:
@@ -35,9 +40,15 @@ phases:
   build:
     commands:
       - printenv
-      - codebuild/bin/run_sidetrail.sh /sidetrail-install-dir ${CODEBUILD_SRC_DIR}
+      - |
+        if [ -d "third-party-src" ]; then
+          cd third-party-src
+          $CB_BIN_DIR/run_sidetrail.sh /sidetrail-install-dir ${CODEBUILD_SRC_DIR}/third-party-src;
+        else
+         $CB_BIN_DIR/run_sidetrail.sh /sidetrail-install-dir ${CODEBUILD_SRC_DIR};
+        fi
   post_build:
     commands:
       - echo Build completed on `date`
       - echo Uploading CodeCov.io artifacts
-      - codebuild/bin/s2n_after_codebuild.sh
+      - $CB_BIN_DIR/s2n_after_codebuild.sh

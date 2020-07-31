@@ -31,6 +31,9 @@ typedef struct asn1_string_st ASN1_STRING;
 typedef struct bio_st BIO;
 typedef struct bignum_st BIGNUM;
 
+typedef struct dh_st DH;
+typedef struct dh_method DH_METHOD;
+
 typedef struct ec_key_st EC_KEY;
 
 typedef struct evp_pkey_ctx_st EVP_PKEY_CTX;
@@ -43,5 +46,8 @@ typedef struct evp_md_ctx_st EVP_MD_CTX;
 typedef struct evp_pkey_st EVP_PKEY;
 
 typedef struct engine_st ENGINE;
+
+/* This empty definition is required for BIGNUM to function properly in CBMC. */
+struct bignum_st{};
 
 #endif
