@@ -30,7 +30,7 @@
  * should define a separate s2n_cipher struct for LibreSSL and BoringSSL.
  */
 #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1) && !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL)
-#define S2N_SHA1_COMPOSITE_AVAILABLE
+#define S2N_AES_SHA1_COMPOSITE_AVAILABLE
 #endif
 
 #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,2) && !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL)
