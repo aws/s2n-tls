@@ -12,7 +12,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
-set -e
+set -ex
 
 usage() {
 	echo "install_libFuzzer.sh download_dir install_dir os_name"
@@ -42,3 +42,10 @@ ar ruv libFuzzer.a Fuzzer*.o
 echo "Copying libFuzzer.a to $LIBFUZZER_INSTALL_DIR"
 mkdir -p "$LIBFUZZER_INSTALL_DIR"/lib && cp libFuzzer.a "$LIBFUZZER_INSTALL_DIR"/lib
 
+if [ ! -z "$AFL_FUZZ" && -z "$FUZZ_COVERAGE" ]; then
+	mkdir -p "$LIBFUZZER_INSTALL_DIR" && curl https://raw.githubusercontent.com/google/clusterfuzz/master/docs/setting-up-fuzzing/build_afl.bash > "$LIBFUZZER_INSTALL_DIR"/build_afl.bash
+	chmod +x "$LIBFUZZER_INSTALL_DIR"/build_afl.bash
+	cd "$LIBFUZZER_INSTALL_DIR"
+	"$LIBFUZZER_INSTALL_DIR"/build_afl.bash
+	cd -
+fi
