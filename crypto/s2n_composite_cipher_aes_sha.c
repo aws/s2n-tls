@@ -29,12 +29,16 @@
 /* LibreSSL and BoringSSL supports the cipher, but the interface is different from Openssl's. We
  * should define a separate s2n_cipher struct for LibreSSL and BoringSSL.
  */
-#if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1) && !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL)
+#if !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL)
+
+#if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1) 
 #define S2N_AES_SHA1_COMPOSITE_AVAILABLE
 #endif
 
-#if S2N_OPENSSL_VERSION_AT_LEAST(1,0,2) && !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL)
+#if S2N_OPENSSL_VERSION_AT_LEAST(1,0,2)
 #define S2N_AES_SHA256_COMPOSITE_AVAILABLE
+#endif
+
 #endif
 
 /* Silly accessors, but we avoid using version macro guards in multiple places */
