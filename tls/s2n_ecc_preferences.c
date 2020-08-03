@@ -71,7 +71,9 @@ int s2n_check_ecc_preferences_curves_list(const struct s2n_ecc_preferences *ecc_
 
 /* Determines if query_iana_id corresponds to a curve for these ECC preferences. */
 bool s2n_ecc_preferences_includes(const struct s2n_ecc_preferences *ecc_preferences, uint16_t query_iana_id) {
-    notnull_check(ecc_preferences);
+    if (ecc_preferences == NULL) {
+        return false;
+    }
 
     for (size_t i = 0; i < ecc_preferences->count; i++) {
         if (query_iana_id == ecc_preferences->ecc_curves[i]->iana_id) {

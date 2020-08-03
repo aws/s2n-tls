@@ -22,6 +22,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(NULL, TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2));
     EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_null, TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2));
     EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_null, TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2));
     EXPECT_FALSE(s2n_kem_preferences_tls13_kem_groups_includes(&kem_preferences_null, TLS_PQ_KEM_GROUP_ID_X25519_BIKE1_L1_R2));

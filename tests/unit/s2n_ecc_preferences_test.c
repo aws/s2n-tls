@@ -22,6 +22,8 @@ int main(int argc, char **argv) {
 
     /* Tests for s2n_ecc_preferences_includes */
     {
+        EXPECT_FALSE(s2n_ecc_preferences_includes(NULL, TLS_EC_CURVE_SECP_256_R1));
+
         EXPECT_TRUE(s2n_ecc_preferences_includes(&s2n_ecc_preferences_20140601, TLS_EC_CURVE_SECP_256_R1));
         EXPECT_TRUE(s2n_ecc_preferences_includes(&s2n_ecc_preferences_20140601, TLS_EC_CURVE_SECP_384_R1));
         EXPECT_FALSE(s2n_ecc_preferences_includes(&s2n_ecc_preferences_20140601, TLS_EC_CURVE_ECDH_X25519));
