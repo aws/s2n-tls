@@ -31,7 +31,6 @@
  */
 #if !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL)
 /* Symbols for AES-SHA1-CBC composite ciphers were added in Openssl 1.0.1:
- * See https://www.openssl.org/news/cl101.txt.
  */
 #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1) 
 #define S2N_AES_SHA1_COMPOSITE_AVAILABLE
