@@ -17,6 +17,7 @@
 
 #include "tls/extensions/s2n_client_pq_kem.h"
 #include "tls/s2n_security_policies.h"
+#include "crypto/s2n_fips.h"
 
 int main(int argc, char **argv)
 {
@@ -35,13 +36,35 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_find_security_policy_from_version(pq_security_policy, &security_policy));
         const struct s2n_kem_preferences *kem_preferences = security_policy->kem_preferences;
 
-        /* Test should_send */
+        /* Test should_send with default prefs */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             /* Default cipher preferences do not include PQ, so extension not sent */
             EXPECT_FALSE(s2n_client_pq_kem_extension.should_send(conn));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* If building in FIPS mode, we end the test here since PQ KEMs are disallowed */
+        {
+            if (s2n_is_in_fips_mode()) {
+                struct s2n_connection *conn;
+                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, pq_security_policy),
+                        S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+
+                END_TEST();
+            }
+        }
+
+        /* Test should_sent with PQ prefs */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             /* Use cipher preferences that do include PQ */
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, pq_security_policy));
