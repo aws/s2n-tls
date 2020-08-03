@@ -30,13 +30,15 @@
  * should define a separate s2n_cipher struct for LibreSSL and BoringSSL.
  */
 #if !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL)
-/* Symbols for AES-SHA1-CBC composite ciphers were added in Openssl 1.0.1:
+/* Symbols for AES-SHA1-CBC composite ciphers were added in Openssl 1.0.1
+ * These composite ciphers exhibit erratic behavior in LibreSSL releases.
  */
 #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1) 
 #define S2N_AES_SHA1_COMPOSITE_AVAILABLE
 #endif
-/* Symbols for AES-SHA256-CBC composite ciphers were added in Openssl 1.0.2:
- * See https://www.openssl.org/news/cl102.txt. Not supported in any LibreSSL releases.
+/* Symbols for AES-SHA256-CBC composite ciphers were added in Openssl 1.0.2
+ * See https://www.openssl.org/news/cl102.txt
+ * These composite ciphers exhibit erratic behavior in LibreSSL releases.
  */
 #if S2N_OPENSSL_VERSION_AT_LEAST(1,0,2)
 #define S2N_AES_SHA256_COMPOSITE_AVAILABLE
