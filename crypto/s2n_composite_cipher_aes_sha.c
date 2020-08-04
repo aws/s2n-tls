@@ -29,17 +29,27 @@
 /* LibreSSL and BoringSSL supports the cipher, but the interface is different from Openssl's. We
  * should define a separate s2n_cipher struct for LibreSSL and BoringSSL.
  */
-#if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1) && !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL)
-#define S2N_AES_SHA_COMPOSITE_AVAILABLE
+#if !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL)
+/* Symbols for AES-SHA1-CBC composite ciphers were added in Openssl 1.0.1
+ * These composite ciphers exhibit erratic behavior in LibreSSL releases.
+ */
+#if S2N_OPENSSL_VERSION_AT_LEAST(1,0,1) 
+#define S2N_AES_SHA1_COMPOSITE_AVAILABLE
+#endif
+/* Symbols for AES-SHA256-CBC composite ciphers were added in Openssl 1.0.2
+ * See https://www.openssl.org/news/cl102.txt
+ * These composite ciphers exhibit erratic behavior in LibreSSL releases.
+ */
+#if S2N_OPENSSL_VERSION_AT_LEAST(1,0,2)
+#define S2N_AES_SHA256_COMPOSITE_AVAILABLE
+#endif
+
 #endif
 
 /* Silly accessors, but we avoid using version macro guards in multiple places */
 static const EVP_CIPHER *s2n_evp_aes_128_cbc_hmac_sha1(void)
 {
-    /* Symbols for AES-SHA1-CBC composite ciphers were added in Openssl 1.0.1:
-     * See https://www.openssl.org/news/cl101.txt.
-     */
-    #if defined(S2N_AES_SHA_COMPOSITE_AVAILABLE)
+    #if defined(S2N_AES_SHA1_COMPOSITE_AVAILABLE)
         return EVP_aes_128_cbc_hmac_sha1();
     #else
         return NULL;
@@ -48,7 +58,7 @@ static const EVP_CIPHER *s2n_evp_aes_128_cbc_hmac_sha1(void)
 
 static const EVP_CIPHER *s2n_evp_aes_256_cbc_hmac_sha1(void)
 {
-    #if defined(S2N_AES_SHA_COMPOSITE_AVAILABLE)
+    #if defined(S2N_AES_SHA1_COMPOSITE_AVAILABLE)
         return EVP_aes_256_cbc_hmac_sha1();
     #else
         return NULL;
@@ -57,10 +67,7 @@ static const EVP_CIPHER *s2n_evp_aes_256_cbc_hmac_sha1(void)
 
 static const EVP_CIPHER *s2n_evp_aes_128_cbc_hmac_sha256(void)
 {
-    /* Symbols for AES-SHA256-CBC composite ciphers were added in Openssl 1.0.2:
-     * See https://www.openssl.org/news/cl102.txt. Not supported in any LibreSSL releases.
-     */
-    #if defined(S2N_AES_SHA_COMPOSITE_AVAILABLE)
+    #if defined(S2N_AES_SHA256_COMPOSITE_AVAILABLE)
         return EVP_aes_128_cbc_hmac_sha256();
     #else
         return NULL;
@@ -69,7 +76,7 @@ static const EVP_CIPHER *s2n_evp_aes_128_cbc_hmac_sha256(void)
 
 static const EVP_CIPHER *s2n_evp_aes_256_cbc_hmac_sha256(void)
 {
-    #if defined(S2N_AES_SHA_COMPOSITE_AVAILABLE)
+    #if defined(S2N_AES_SHA256_COMPOSITE_AVAILABLE)
         return EVP_aes_256_cbc_hmac_sha256();
     #else
         return NULL;
