@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
         }
 
-        /* Should do nothing if cookie size wrong */
+        /* Should fail if cookie size wrong */
         {
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_conn->cookie_stuffer,
                     test_cookie_data, test_cookie_size));
@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_server_cookie_extension.send(server_conn, &stuffer));
             EXPECT_SUCCESS(s2n_stuffer_wipe_n(&stuffer, 1));
 
-            EXPECT_SUCCESS(s2n_server_cookie_extension.recv(client_conn, &stuffer));
+            EXPECT_FAILURE(s2n_server_cookie_extension.recv(client_conn, &stuffer));
             EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->cookie_stuffer), 0);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
