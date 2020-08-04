@@ -18,12 +18,13 @@ This is a guide for what to do when SideTrail reports a potential timing violati
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## How to locally rerun the tests
+
 The first step to debugging is to locally rerun the failing proof(s).
 Follow [the instructions here](README.md#how-to-execute-the-tests) to get SideTrail docker container and execute the tests.
 
 ## Updating the patch files
 
-The most common error you are likely to see if a failure to apply the necessary patches.
+The most common error you are likely to see is a failure to apply the necessary patches.
 Sidetrail depends on a set of patch files, stored in the `s2n/tests/sidetrail/working/patches`.
 These files patch away certain C constructs that SideTrail has trouble with.
 They are applied by the `copy_as_needed.sh` script in each proof.
@@ -39,13 +40,13 @@ To fix this, regenerate the patch file.
 
 1. View the failing patch to see what it does.
    It may be useful to apply it to a previous version of the file, so you can see what the patched file looks like.
-   Identify any failing hunks, and figure out why they are failing to apply.
+   Identify any failing chunks, and figure out why they are failing to apply.
    
 2. In a clean branch of s2n, modify the file in need of patching to have the required changes.
-   Work directly on the file in the s2n src folders - we will revery it back before committing our changes.
-   I often find it useful to also (temporarily) modify the `copy_as_needed.sh` file to just copy the file, and not patch it.
+   Work directly on the file in the s2n src folders - we will revert it back before committing our changes.
+   You may find it useful to also (temporarily) modify the `copy_as_needed.sh` file [(example)](https://github.com/awslabs/s2n/blob/master/tests/sidetrail/working/s2n-cbc/copy_as_needed.sh) to just copy the file, and not patch it.
 
-3. Iterate on that file until the tests pass.
+3. Iterate on the file in need of patching until the tests pass.
 
 4. In the `s2n/tests/sidetrail/working/patches` folder, regenerate the patch using `git diff -u <path-to-changed-file> > <patch_filename>.patch`
 
@@ -68,7 +69,7 @@ warning: module contains undefined functions: malloc, __CONTRACT_invariant, nond
 ```
 
 The list above is the list of functions for which SMACK does not have a model.
-In some cases, this is expected and benign --- you can find a list of `allowed_undefined` functions in https://github.com/awslabs/s2n/blob/master/tests/sidetrail/count_success.pl#L33.
+In some cases, this is expected and benign --- you can find a list of `allowed_undefined` functions [here](https://github.com/awslabs/s2n/blob/master/tests/sidetrail/count_success.pl#L33).
 If there are any functions in the warning that are not in that list, then one of three things needs to happen.
 
 1. The new function does not need a timing stub, and should be added to the list of `allowed_undefined`.

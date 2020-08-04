@@ -156,7 +156,6 @@ If you do not source this file when you begin working, SideTrail may appear to r
 
 ### Running a proof inside docker
 
-
 ```shell
 cd /home/s2n/tests/sidetrail/working
 cd <testname>
@@ -212,5 +211,7 @@ Go back and do so.
 ## Debugging SideTrail failures
 
 Consult [the debugging guide](DEBUGGING.md).
+
 ## Questions?
-contact dsn@amazon.com
+
+contact aws-arg-platforms-support@amazon.com
