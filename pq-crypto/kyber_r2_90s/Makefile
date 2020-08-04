@@ -19,7 +19,4 @@ OBJS=$(SRCS:.c=.o)
 .PHONY : all
 all: $(OBJS)
 
-.PHONY : bc
-bc: $(BCS)
-
-
+include ../../s2n.mk
