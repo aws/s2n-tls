@@ -15,7 +15,7 @@
 
 #include "tls/s2n_kem_preferences.h"
 
-#if !defined(S2N_NO_PQ)
+#if !defined(S2N_NO_PQ) && !defined(OPENSSL_FIPS)
 
 /* Extension list for round 1 PQ KEMs, in order of preference */
 const struct s2n_kem *pq_kems_r1[2] = {

@@ -230,7 +230,7 @@ const struct s2n_security_policy security_policy_kms_tls_1_0_2018_10 = {
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
-#if !defined(S2N_NO_PQ)
+#if !defined(S2N_NO_PQ) && !defined(OPENSSL_FIPS)
 
 const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2019_06 = {
     .minimum_protocol_version = S2N_TLS10,
@@ -396,7 +396,7 @@ const struct s2n_security_policy security_policy_20170718 = {
 const struct s2n_security_policy security_policy_test_all = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_all,
-#if !defined(S2N_NO_PQ)
+#if !defined(S2N_NO_PQ) && !defined(OPENSSL_FIPS)
     .kem_preferences = &kem_preferences_kms_pq_tls_1_0_2020_07,
 #else
     .kem_preferences = &kem_preferences_null,
@@ -408,7 +408,7 @@ const struct s2n_security_policy security_policy_test_all = {
 const struct s2n_security_policy security_policy_test_all_tls12 = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_all_tls12,
-#if !defined(S2N_NO_PQ)
+#if !defined(S2N_NO_PQ) && !defined(OPENSSL_FIPS)
     .kem_preferences = &kem_preferences_kms_pq_tls_1_0_2020_07,
 #else
     .kem_preferences = &kem_preferences_null,
@@ -492,7 +492,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="CloudFront-TLS-1-2-2019", .security_policy=&security_policy_cloudfront_tls_1_2_2019, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="CloudFront-TLS-1-2-2020", .security_policy=&security_policy_cloudfront_tls_1_2_2020, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="KMS-TLS-1-0-2018-10", .security_policy=&security_policy_kms_tls_1_0_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-#if !defined(S2N_NO_PQ)
+#if !defined(S2N_NO_PQ) && !defined(OPENSSL_FIPS)
     { .version="KMS-PQ-TLS-1-0-2019-06", .security_policy=&security_policy_kms_pq_tls_1_0_2019_06, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="KMS-PQ-TLS-1-0-2020-02", .security_policy=&security_policy_kms_pq_tls_1_0_2020_02, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="KMS-PQ-TLS-1-0-2020-07", .security_policy=&security_policy_kms_pq_tls_1_0_2020_07, .ecc_extension_required=0, .pq_kem_extension_required=0 },

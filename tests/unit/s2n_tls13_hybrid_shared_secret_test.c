@@ -130,6 +130,12 @@ int main(int argc, char **argv) {
 
     if (s2n_is_in_fips_mode()) {
         /* There is no support for PQ KEMs while in FIPS mode */
+        struct s2n_blob blob = { 0 };
+        struct s2n_connection *conn = NULL;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_shared_secret(conn, &blob), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+
         END_TEST();
     }
 

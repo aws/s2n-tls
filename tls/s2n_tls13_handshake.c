@@ -16,6 +16,7 @@
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_security_policies.h"
+#include "crypto/s2n_fips.h"
 
 int s2n_tls13_mac_verify(struct s2n_tls13_keys *keys, struct s2n_blob *finished_verify, struct s2n_blob *wire_verify)
 {
@@ -149,6 +150,7 @@ int s2n_tls13_compute_shared_secret(struct s2n_connection *conn, struct s2n_blob
     notnull_check(conn);
 
     if (s2n_tls13_pq_hybrid_supported(conn)) {
+        S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
         GUARD(s2n_tls13_compute_pq_hybrid_shared_secret(conn, shared_secret));
     } else {
         GUARD(s2n_tls13_compute_ecc_shared_secret(conn, shared_secret));

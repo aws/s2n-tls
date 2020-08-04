@@ -48,7 +48,7 @@ int main(int argc, char **argv)
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("test_all", &security_policy));
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
-#if !defined(S2N_NO_PQ)
+#if !defined(S2N_NO_PQ) && !defined(OPENSSL_FIPS)
         EXPECT_TRUE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_EQUAL(5, security_policy->kem_preferences->kem_count);
         EXPECT_NOT_NULL(security_policy->kem_preferences->kems);
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
         EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
 
-#if !defined(S2N_NO_PQ)
+#if !defined(S2N_NO_PQ) && !defined(OPENSSL_FIPS)
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2019-06", &security_policy));
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
             "CloudFront-TLS-1-2-2018",
             "CloudFront-TLS-1-2-2019",
             "KMS-TLS-1-0-2018-10",
-#if !defined(S2N_NO_PQ)
+#if !defined(S2N_NO_PQ) && !defined(OPENSSL_FIPS)
             "KMS-PQ-TLS-1-0-2019-06",
             "KMS-PQ-TLS-1-0-2020-02",
             "KMS-PQ-TLS-1-0-2020-07",
@@ -422,7 +422,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&kem_preferences_null, 1), S2N_ERR_INVALID_SECURITY_POLICY);
         EXPECT_SUCCESS(s2n_validate_kem_preferences(&kem_preferences_null, 0));
 
-#if !defined(S2N_NO_PQ)
+#if !defined(S2N_NO_PQ) && !defined(OPENSSL_FIPS)
         const struct s2n_kem_group *test_kem_group_list[] = {
                 &s2n_secp256r1_sike_p434_r2
         };

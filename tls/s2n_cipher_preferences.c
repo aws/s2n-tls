@@ -834,7 +834,7 @@ const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10 = {
     .suites = cipher_suites_kms_tls_1_0_2018_10,
 };
 
-#if !defined(S2N_NO_PQ)
+#if !defined(S2N_NO_PQ) && !defined(OPENSSL_FIPS)
 
 struct s2n_cipher_suite *cipher_suites_kms_pq_tls_1_0_2019_06[] = {
     &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,

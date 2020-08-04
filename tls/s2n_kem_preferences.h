@@ -28,7 +28,7 @@ struct s2n_kem_preferences {
     const struct s2n_kem_group **tls13_kem_groups;
 };
 
-#if !defined(S2N_NO_PQ)
+#if !defined(S2N_NO_PQ) && !defined(OPENSSL_FIPS)
 
 extern const struct s2n_kem *pq_kems_r1[2];
 extern const struct s2n_kem *pq_kems_r2r1[4];

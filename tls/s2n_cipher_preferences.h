@@ -78,7 +78,7 @@ extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2
 
 extern const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10;
 
-#if !defined(S2N_NO_PQ)
+#if !defined(S2N_NO_PQ) && !defined(OPENSSL_FIPS)
 
 extern const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2019_06;
 extern const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2020_02;

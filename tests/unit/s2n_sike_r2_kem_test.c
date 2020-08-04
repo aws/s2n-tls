@@ -15,6 +15,7 @@
 
 #include "s2n_test.h"
 #include "pq-crypto/sike_r2/sike_r2_kem.h"
+#include "crypto/s2n_fips.h"
 
 int main(int argc, char **argv)
 {
@@ -27,6 +28,10 @@ int main(int argc, char **argv)
     unsigned char c_shared_secret[SIKE_P434_R2_SHARED_SECRET_BYTES];
     unsigned char s_shared_secret[SIKE_P434_R2_SHARED_SECRET_BYTES];
     unsigned char ciphertext[SIKE_P434_R2_CIPHERTEXT_BYTES];
+
+    if (s2n_is_in_fips_mode()) {
+        END_TEST();
+    }
 
     EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_keypair(pub_key, priv_key));
     EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_enc(ciphertext, c_shared_secret, pub_key));
