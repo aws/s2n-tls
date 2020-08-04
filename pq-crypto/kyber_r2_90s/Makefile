@@ -13,7 +13,7 @@
 # permissions and limitations under the License.
 #
 
-SRCS=aes256ctr.c cbd.c indcpa.c ntt.c poly.c polyvec.c reduce.c verify.c aes_c.c sha2_c.c kyber_r2_kem.c
+SRCS=aes256ctr.c cbd.c indcpa.c ntt.c poly.c polyvec.c reduce.c verify.c aes_c.c sha2_c.c kyber_r2_90s_kem.c
 OBJS=$(SRCS:.c=.o)
 
 .PHONY : all
