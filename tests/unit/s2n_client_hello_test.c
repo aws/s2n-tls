@@ -855,6 +855,97 @@ int main(int argc, char **argv)
         free(sent_client_hello);
     }
 
+    {
+        struct s2n_cipher_suite *client_cipher_suites[] = {
+            &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+        };
+
+        struct s2n_cipher_preferences client_cipher_preferences = {
+            .count = s2n_array_len(client_cipher_suites),
+            .suites = client_cipher_suites,
+        };
+
+        const struct s2n_signature_scheme* const client_sig_scheme_pref_list[] = {
+            &s2n_rsa_pkcs1_sha1,
+
+            /* Intentionally do not send and ECDSA SignatureScheme in the Client Hello. This is malformed since the
+             * Client's only Ciphersuite uses ECDSA, meaning that technically the Server could reject it, but there are
+             * some clients that send this form of malformed Client Hello's in the wild. So ensure we are compatible
+             * with them by assuming that the Client does support ECDSA, even though it's missing from the ClientHello.
+             */
+
+            /* &s2n_ecdsa_sha1, */
+        };
+
+        struct s2n_signature_preferences client_signature_preferences = {
+            .count = s2n_array_len(client_sig_scheme_pref_list),
+            .signature_schemes = client_sig_scheme_pref_list,
+        };
+
+        struct s2n_security_policy client_security_policy = {
+            .minimum_protocol_version = S2N_TLS10,
+            .cipher_preferences = &client_cipher_preferences,
+            .kem_preferences = &kem_preferences_null,
+            .signature_preferences = &client_signature_preferences,
+            .ecc_preferences = &s2n_ecc_preferences_20140601,
+        };
+
+        EXPECT_TRUE(client_cipher_suites[0]->available);
+
+        struct s2n_cert_chain_and_key *ecdsa_cert_chain;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain, S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+
+        char dhparams_pem[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
+
+        /* Create Configs */
+        struct s2n_config *server_config, *client_config;
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert_chain));
+
+        EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
+        server_config->security_policy = &security_policy_20190214;
+
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+        client_config->security_policy = &client_security_policy;
+
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+
+        /* Create connection */
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        /* Create nonblocking pipes */
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_EQUAL(server_conn->secure.cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
+        EXPECT_EQUAL(client_conn->secure.cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
+        EXPECT_EQUAL(server_conn->secure.conn_sig_scheme.sig_alg, S2N_SIGNATURE_ECDSA);
+        EXPECT_EQUAL(server_conn->secure.conn_sig_scheme.hash_alg, S2N_HASH_SHA1);
+        EXPECT_EQUAL(client_conn->secure.conn_sig_scheme.sig_alg, S2N_SIGNATURE_ECDSA);
+        EXPECT_EQUAL(client_conn->secure.conn_sig_scheme.hash_alg, S2N_HASH_SHA1);
+
+        /* Free the data */
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert_chain));
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+    }
+
+
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
     END_TEST();
