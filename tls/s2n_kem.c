@@ -21,7 +21,7 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
-#if !defined(S2N_NO_PQ) && !defined(OPENSSL_FIPS)
+#if !defined(S2N_NO_PQ)
 
 #include "pq-crypto/bike_r1/bike_r1_kem.h"
 #include "pq-crypto/bike_r2/bike_r2_kem.h"
