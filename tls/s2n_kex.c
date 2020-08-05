@@ -116,7 +116,7 @@ static int s2n_no_op_configure(const struct s2n_cipher_suite *cipher_suite, stru
     return 0;
 }
 
-static int s2n_check_hybrid_echde_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
+static int s2n_check_hybrid_ecdhe_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
     return s2n_check_ecdhe(cipher_suite, conn) && s2n_check_kem(cipher_suite, conn);
 }
@@ -171,7 +171,7 @@ const struct s2n_kex s2n_ecdhe = {
 const struct s2n_kex s2n_hybrid_ecdhe_kem = {
     .is_ephemeral = 1,
     .hybrid = { &s2n_ecdhe, &s2n_kem },
-    .connection_supported = &s2n_check_hybrid_echde_kem,
+    .connection_supported = &s2n_check_hybrid_ecdhe_kem,
     .configure_connection = &s2n_configure_kem,
     .server_key_recv_read_data = &s2n_hybrid_server_key_recv_read_data,
     .server_key_recv_parse_data = &s2n_hybrid_server_key_recv_parse_data,
