@@ -17,7 +17,7 @@
 #include "ct-verif.h"
 #include "../sidetrail.h"
 
-/* Based off the max leakage for this module, proven here https://github.com/awslabs/s2n/blob/master/tests/sidetrail/working/s2n-cbc/cbc.c#L38 */
+/* Based off the max leakage for this module, proven here https://github.com/awslabs/s2n/blob/main/tests/sidetrail/working/s2n-cbc/cbc.c#L38 */
 #define MAX_LEAKAGE_DIFFERENCE  68
 
 int nondet();

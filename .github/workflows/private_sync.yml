@@ -2,7 +2,6 @@ name: force_push
 on:
   push:
     branches:
-      - master
       - main
 jobs:
   build:

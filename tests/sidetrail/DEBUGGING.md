@@ -44,7 +44,7 @@ To fix this, regenerate the patch file.
    
 2. In a clean branch of s2n, modify the file in need of patching to have the required changes.
    Work directly on the file in the s2n src folders - we will revert it back before committing our changes.
-   You may find it useful to also (temporarily) modify the `copy_as_needed.sh` file [(example)](https://github.com/awslabs/s2n/blob/master/tests/sidetrail/working/s2n-cbc/copy_as_needed.sh) to just copy the file, and not patch it.
+   You may find it useful to also (temporarily) modify the `copy_as_needed.sh` file [(example)](https://github.com/awslabs/s2n/blob/main/tests/sidetrail/working/s2n-cbc/copy_as_needed.sh) to just copy the file, and not patch it.
 
 3. Iterate on the file in need of patching until the tests pass.
 
@@ -69,7 +69,7 @@ warning: module contains undefined functions: malloc, __CONTRACT_invariant, nond
 ```
 
 The list above is the list of functions for which SMACK does not have a model.
-In some cases, this is expected and benign --- you can find a list of `allowed_undefined` functions [here](https://github.com/awslabs/s2n/blob/master/tests/sidetrail/count_success.pl#L33).
+In some cases, this is expected and benign --- you can find a list of `allowed_undefined` functions [here](https://github.com/awslabs/s2n/blob/main/tests/sidetrail/count_success.pl#L33).
 If there are any functions in the warning that are not in that list, then one of three things needs to happen.
 
 1. The new function does not need a timing stub, and should be added to the list of `allowed_undefined`.

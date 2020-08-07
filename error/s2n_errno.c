@@ -372,7 +372,7 @@ int s2n_print_stacktrace(FILE *fptr)
     if (!s_s2n_stack_traces_enabled) {
       fprintf(fptr, "%s\n%s\n",
 	      "NOTE: Some details are omitted, run with S2N_PRINT_STACKTRACE=1 for a verbose backtrace.",
-	      "See https://github.com/awslabs/s2n/blob/master/docs/USAGE-GUIDE.md");
+	      "See https://github.com/awslabs/s2n/blob/main/docs/USAGE-GUIDE.md");
         return S2N_SUCCESS;
     }
 
