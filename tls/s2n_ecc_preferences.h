@@ -17,6 +17,7 @@
 
 #include <s2n.h>
 #include <strings.h>
+#include <stdbool.h>
 
 #include "crypto/s2n_ecc_evp.h"
 
@@ -29,3 +30,4 @@ extern const struct s2n_ecc_preferences s2n_ecc_preferences_20200310;
 extern const struct s2n_ecc_preferences s2n_ecc_preferences_null;
 
 int s2n_check_ecc_preferences_curves_list(const struct s2n_ecc_preferences *ecc_preferences);
+bool s2n_ecc_preferences_includes_curve(const struct s2n_ecc_preferences *ecc_preferences, uint16_t query_iana_id);
