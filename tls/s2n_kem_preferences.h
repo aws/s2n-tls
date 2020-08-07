@@ -47,4 +47,5 @@ extern const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_202
 
 extern const struct s2n_kem_preferences kem_preferences_null;
 
-bool s2n_kem_preferences_tls13_kem_groups_includes(const struct s2n_kem_preferences *kem_preferences, uint16_t query_iana_id);
+bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferences *kem_preferences,
+        uint16_t query_iana_id);

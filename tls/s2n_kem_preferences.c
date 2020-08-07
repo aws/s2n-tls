@@ -100,7 +100,8 @@ const struct s2n_kem_preferences kem_preferences_null = {
 };
 
 /* Determines if query_iana_id corresponds to a tls13_kem_group for these KEM preferences. */
-bool s2n_kem_preferences_tls13_kem_groups_includes(const struct s2n_kem_preferences *kem_preferences, uint16_t query_iana_id) {
+bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferences *kem_preferences,
+        uint16_t query_iana_id) {
     if (kem_preferences == NULL) {
         return false;
     }
