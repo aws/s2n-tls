@@ -1,5 +1,5 @@
-#ifndef KYBER_R2_90S_KEM_H
-#define KYBER_R2_90S_KEM_H
+#ifndef KYBER_90S_R2_KEM_H
+#define KYBER_90S_R2_KEM_H
 
 #include "../pq_utils.h"
 
@@ -11,19 +11,19 @@
 // Keygenerate - pk is the public key
 //               sk is the private key
 // Return 0 for success and !0 for failures. See types.h for failure codes
-int kyber_512_r2_90s_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk);
+int kyber_512_90s_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk);
 
 //Encapsulate - pk is the public key,
 //              ct is a key encapsulation message (ciphertext),
 //              ss is the shared secret.
 // Return 0 for success and !0 for failures.
-int kyber_512_r2_90s_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk);
+int kyber_512_90s_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk);
 
 //Decapsulate - ct is a key encapsulation message (ciphertext),
 //              sk is the private key,
 //              ss is the shared secret
 // Return 0 for success and !0 for failures.
-int kyber_512_r2_90s_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
+int kyber_512_90s_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
 
-#endif // KYBER_R2_90S_KEM_H
+#endif // KYBER_90S_R2_KEM_H
 
