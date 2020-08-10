@@ -118,7 +118,7 @@ const struct s2n_kem *sike_kems[] = {
 
 const struct s2n_kem *kyber_kems[] = {
         &s2n_kyber_512_r2,
-	&s2n_kyber_512_90s_r2,
+		&s2n_kyber_512_90s_r2,
 };
 
 const struct s2n_iana_to_kem kem_mapping[3] = {
