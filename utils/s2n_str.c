@@ -23,7 +23,7 @@ char *s2n_strcpy(char *buf, char *last, const char *str) {
 #pragma CPROVER check push
 #pragma CPROVER check disable "pointer"
 
-    if (buf >= last) {
+    if (buf > last) {
         return buf;
     }
 
@@ -40,7 +40,7 @@ char *s2n_strcpy(char *buf, char *last, const char *str) {
     size_t bytes_to_copy = MIN(last - buf - 1, strlen(str));
 
     char *p = buf;
-    if (bytes_to_copy > 0) {
+    if (bytes_to_copy > 1) {
         p = (char *)memcpy(buf, str, bytes_to_copy) + bytes_to_copy;
     }
     *p = '\0';
