@@ -69,9 +69,9 @@ struct s2n_kem_group_params {
 
 /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
 #if EVP_APIS_SUPPORTED
-#define S2N_SUPPORTED_KEM_GROUPS_COUNT 4
+#define S2N_SUPPORTED_KEM_GROUPS_COUNT 6
 #else
-#define S2N_SUPPORTED_KEM_GROUPS_COUNT 2
+#define S2N_SUPPORTED_KEM_GROUPS_COUNT 3
 #endif
 
 #if !defined(S2N_NO_PQ)
@@ -83,8 +83,10 @@ struct s2n_kem_group_params {
 
     extern const struct s2n_kem_group s2n_secp256r1_sike_p434_r2;
     extern const struct s2n_kem_group s2n_secp256r1_bike1_l1_r2;
+    extern const struct s2n_kem_group s2n_secp256r1_kyber_512_r2;
     extern const struct s2n_kem_group s2n_x25519_sike_p434_r2;
     extern const struct s2n_kem_group s2n_x25519_bike1_l1_r2;
+    extern const struct s2n_kem_group s2n_x25519_kyber_512_r2;
 #endif
 
 extern int s2n_kem_generate_keypair(struct s2n_kem_params *kem_params);
