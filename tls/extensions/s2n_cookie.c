@@ -66,10 +66,7 @@ static int s2n_cookie_recv(struct s2n_connection *conn, struct s2n_stuffer *exte
 
     uint16_t cookie_len;
     GUARD(s2n_stuffer_read_uint16(extension, &cookie_len));
-
-    if (s2n_stuffer_data_available(extension) < cookie_len) {
-        return S2N_SUCCESS;
-    }
+    ENSURE_POSIX(s2n_stuffer_data_available(extension) == cookie_len, S2N_ERR_BAD_MESSAGE);
 
     GUARD(s2n_stuffer_wipe(&conn->cookie_stuffer));
     GUARD(s2n_stuffer_resize(&conn->cookie_stuffer, cookie_len));

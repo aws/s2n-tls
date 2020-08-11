@@ -55,11 +55,22 @@ static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct 
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     notnull_check(ecc_pref);
 
-    /* Curve list len */
-    GUARD(s2n_stuffer_write_uint16(out, ecc_pref->count * sizeof(uint16_t)));
+    const struct s2n_kem_preferences *kem_pref = NULL;
+    GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    notnull_check(kem_pref);
 
-    /* Curve list */
-    for (int i = 0; i < ecc_pref->count; i++) {
+    /* Group list len */
+    uint16_t named_group_list_length = (ecc_pref->count * sizeof(uint16_t)) +
+            (kem_pref->tls13_kem_group_count * sizeof(uint16_t));
+    GUARD(s2n_stuffer_write_uint16(out, named_group_list_length));
+
+    /* Send KEM groups list first */
+    for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+        GUARD(s2n_stuffer_write_uint16(out, kem_pref->tls13_kem_groups[i]->iana_id));
+    }
+
+    /* Then send curve list */
+    for (size_t i = 0; i < ecc_pref->count; i++) {
         GUARD(s2n_stuffer_write_uint16(out, ecc_pref->ecc_curves[i]->iana_id));
     }
 

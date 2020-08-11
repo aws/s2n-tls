@@ -28,19 +28,19 @@ defines hybrid group values for interoperability.
 ## SIKE (Supersingular Isogeny Key Encapsulation)
 The code in the pq-crypto/sike_r1 directory was taken from the [round 1 NIST submission](https://csrc.nist.gov/CSRC/media/Projects/Post-Quantum-Cryptography/documents/round-1/submissions/SIKE.zip).
 s2n uses the optimized portable implementation to ensure maximum comparability and ease of review. The known answer tests
-are [here](https://github.com/awslabs/s2n/blob/master/tests/unit/s2n_sike_r1_kat_test.c) and use the known answer file
+are [here](https://github.com/awslabs/s2n/blob/main/tests/unit/s2n_sike_r1_kat_test.c) and use the known answer file
 from the SIKEp503 round 1 submission.
 
 The code in the pq-crypto/sike_r2 directory was imported from [liboqs](https://github.com/open-quantum-safe/liboqs/tree/386372ba7dbef781f0b939f1cf73d33019958d6a/src/kem/sike), and
 implements the [round 2 NIST submission](https://csrc.nist.gov/projects/post-quantum-cryptography/round-2-submissions). s2n is configured to use the optimized
 assembly implementation on x86_64 processors, and the optimized portable implementation elsewhere. The known answer tests
-are [here](https://github.com/awslabs/s2n/blob/master/tests/unit/s2n_sike_r2_kat_test.c) and use the known answer file from the SIKEP434 round 2 submission.
+are [here](https://github.com/awslabs/s2n/blob/main/tests/unit/s2n_sike_r2_kat_test.c) and use the known answer file from the SIKEP434 round 2 submission.
 
 ## BIKE (Bit Flipping Key Encapsulation)
 The code in the pq-crypto/bike directory was taken from the [additional implementation](https://bikesuite.org/files/round2/add-impl/Additional_Implementation.2019.03.30.zip).
 s2n uses the "additional implementation" which ensures constant time primitives, does not use any external libraries
 besides libcrypto, and does not depend on any specific hardware instructions to ensure maximum comparability and ease of
-review. The known answer tests are [here](https://github.com/awslabs/s2n/blob/master/tests/unit/s2n_bike1_l1_r1_kat_test.c)
+review. The known answer tests are [here](https://github.com/awslabs/s2n/blob/main/tests/unit/s2n_bike1_l1_r1_kat_test.c)
 and use the BIKE1_L1.const.kat from the above Additional_Implementation.2019.03.30.zip. This implementation uses constant
 time primitives on x86 and aarch64 platforms.
 

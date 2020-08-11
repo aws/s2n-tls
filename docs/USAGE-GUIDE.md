@@ -1753,6 +1753,6 @@ function that can free memory.
 
 # Examples
 
-To understand the API it may be easiest to see examples in action. s2n's [bin/](https://github.com/awslabs/s2n/blob/master/bin/) directory
+To understand the API it may be easiest to see examples in action. s2n's [bin/](https://github.com/awslabs/s2n/blob/main/bin/) directory
 includes an example client (s2nc) and server (s2nd).
 
