@@ -109,8 +109,6 @@ int test_count;
 #define EXPECT_NULL( ptr )      EXPECT_EQUAL( ptr, NULL )
 #define EXPECT_NOT_NULL( ptr )  EXPECT_NOT_EQUAL( ptr, NULL )
 
-#define EXPECT_LESS_THAN_EQUAL( p1, p2 ) EXPECT_TRUE( (p1) <= (p2) )
-
 #define EXPECT_FAILURE( function_call ) \
     do { \
         EXPECT_EQUAL( (function_call) ,  -1 ); \

@@ -30,6 +30,15 @@
 #include "tls/s2n_record.h"
 #include "tls/s2n_prf.h"
 
+#define ONE_BLOCK 1024
+#define ONE_HUNDRED_K 100000
+#define RECORD_SIZE_HIGH_BYTE_ORDER 3
+#define RECORD_SIZE_LOW_BYTE_ORDER 4
+#define BYTE_SHIFT 8
+#define RECORD_SIZE(data) ((data[RECORD_SIZE_HIGH_BYTE_ORDER] << BYTE_SHIFT) | data[RECORD_SIZE_LOW_BYTE_ORDER])
+
+#define EXPECT_LESS_THAN_EQUAL( p1, p2 ) EXPECT_TRUE( (p1) <= (p2) )
+
 static int destroy_server_keys(struct s2n_connection *server_conn)
 {
     GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.server_key));
@@ -104,12 +113,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.server_key));
     EXPECT_SUCCESS(conn->secure.cipher_suite->record_alg->cipher->destroy_key(&conn->secure.client_key));
     EXPECT_SUCCESS(s2n_connection_free(conn));
-
-    #define ONE_BLOCK 1024
-    #define ONE_HUNDRED_K 100000
-    #define RECORD_SIZE_HIGH 3
-    #define RECORD_SIZE_LOW 4
-    #define BYTE_SHIFT 8
 
     /* Test s2n_record_max_write_payload_size() have proper checks in place */
     {
@@ -187,13 +190,16 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
             r.size = size;
             const int after_overheads = RECORD_SIZE_LESS_OVERHEADS - RECORD_SIZE_LESS_OVERHEADS % 8; /* rounded down to cbc block size (8) */
-            EXPECT_EQUAL(size, after_overheads - 20 - 8 - 1);
+            #define PADDING_LENGTH_BYTE 1
+            #define RECORD_IV_SIZE 8
+            #define HMAC_DIGEST 20
+            EXPECT_EQUAL(size, after_overheads - HMAC_DIGEST - RECORD_IV_SIZE - PADDING_LENGTH_BYTE);
 
             EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
             EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
             EXPECT_EQUAL(bytes_written, size);
-            EXPECT_EQUAL((server_conn->out.blob.data[RECORD_SIZE_HIGH] << BYTE_SHIFT) | server_conn->out.blob.data[RECORD_SIZE_LOW], wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
+            EXPECT_EQUAL(RECORD_SIZE(server_conn->out.blob.data), wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
             EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
         }
 
@@ -207,13 +213,15 @@ int main(int argc, char **argv)
 
             EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
             r.size = size;
-            EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - 8 - 16); /* 8 - IV, 16 - TAG */
+            #define IV 8
+            #define TAG 16
+            EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - IV - TAG);
 
             EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
             EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
             EXPECT_EQUAL(bytes_written, size);
-            EXPECT_EQUAL((server_conn->out.blob.data[RECORD_SIZE_HIGH] << BYTE_SHIFT) | server_conn->out.blob.data[RECORD_SIZE_LOW], wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
+            EXPECT_EQUAL(RECORD_SIZE(server_conn->out.blob.data), wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
             EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
         }
 
@@ -237,7 +245,7 @@ int main(int argc, char **argv)
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
             EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
             EXPECT_EQUAL(bytes_written, size);
-            EXPECT_EQUAL((server_conn->out.blob.data[RECORD_SIZE_HIGH] << BYTE_SHIFT) | server_conn->out.blob.data[RECORD_SIZE_LOW], wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
+            EXPECT_EQUAL(RECORD_SIZE(server_conn->out.blob.data), wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
             EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
         }
 
@@ -256,8 +264,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(server_conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&server_conn->initial.client_key, mac_key_sha, sizeof(mac_key_sha)));
 
             EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
+            #define COMPOSITE_BLOCK_SIZE 16
+            #define COMPOSITE_DIGEST_LENGTH 20
+            #define COMPOSITE_PADDING_LENGTH 1
+            const int size_aligned_to_block = RECORD_SIZE_LESS_OVERHEADS - RECORD_SIZE_LESS_OVERHEADS % COMPOSITE_BLOCK_SIZE - COMPOSITE_DIGEST_LENGTH - COMPOSITE_PADDING_LENGTH;
             const int explicit_iv_len = 16;
-            const int size_aligned_to_block = RECORD_SIZE_LESS_OVERHEADS - RECORD_SIZE_LESS_OVERHEADS % 16 - 20 - 1;
             const int size_after_overheads = size_aligned_to_block - explicit_iv_len;
             EXPECT_EQUAL(size, size_after_overheads);
             r.size = size;
@@ -266,7 +277,7 @@ int main(int argc, char **argv)
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
             EXPECT_LESS_THAN_EQUAL(wire_size, MIN_SIZE);
             EXPECT_EQUAL(bytes_written, size);
-            EXPECT_EQUAL((server_conn->out.blob.data[RECORD_SIZE_HIGH] << BYTE_SHIFT) | server_conn->out.blob.data[RECORD_SIZE_LOW], wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
+            EXPECT_EQUAL(RECORD_SIZE(server_conn->out.blob.data), wire_size - S2N_TLS_RECORD_HEADER_LENGTH);
             EXPECT_LESS_THAN_EQUAL(bytes_written, RECORD_SIZE_LESS_OVERHEADS);
         }
 
