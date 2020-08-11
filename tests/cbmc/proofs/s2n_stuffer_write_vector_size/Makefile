@@ -12,8 +12,6 @@
 # limitations under the License.
 
 # Expected runtime is 18 minutes.
-MAX_LENGTH = 3
-DEFINES += -DMAX_LENGTH=$(MAX_LENGTH)
 
 CBMCFLAGS +=
 
@@ -40,6 +38,6 @@ REMOVE_FUNCTION_BODY += s2n_blob_slice
 REMOVE_FUNCTION_BODY += s2n_stuffer_resize
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe_n
 
- UNWINDSET += s2n_stuffer_write_network_order.4:$(shell echo $$((1 + $(MAX_LENGTH))))
+UNWINDSET += s2n_stuffer_write_network_order.4:9
 
 include ../Makefile.common
