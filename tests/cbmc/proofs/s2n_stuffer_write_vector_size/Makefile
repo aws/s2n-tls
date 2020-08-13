@@ -13,6 +13,10 @@
 
 # Expected runtime is 18 minutes.
 
+# This the the maximum number of iterations to unroll
+# the loop in s2n_stuffer_write_network_order
+MAX_WRITE_NETWORK_ORDER = 9
+
 CBMCFLAGS +=
 
 HARNESS_ENTRY = s2n_stuffer_write_vector_size_harness
@@ -38,6 +42,13 @@ REMOVE_FUNCTION_BODY += s2n_blob_slice
 REMOVE_FUNCTION_BODY += s2n_stuffer_resize
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe_n
 
-UNWINDSET += s2n_stuffer_write_network_order.4:9
+UNWINDSET += s2n_stuffer_write_network_order.0:$(MAX_WRITE_NETWORK_ORDER)
+UNWINDSET += s2n_stuffer_write_network_order.1:$(MAX_WRITE_NETWORK_ORDER)
+UNWINDSET += s2n_stuffer_write_network_order.2:$(MAX_WRITE_NETWORK_ORDER)
+UNWINDSET += s2n_stuffer_write_network_order.3:$(MAX_WRITE_NETWORK_ORDER)
+UNWINDSET += s2n_stuffer_write_network_order.4:$(MAX_WRITE_NETWORK_ORDER)
+UNWINDSET += s2n_stuffer_write_network_order.5:$(MAX_WRITE_NETWORK_ORDER)
+UNWINDSET += s2n_stuffer_write_network_order.6:$(MAX_WRITE_NETWORK_ORDER)
+UNWINDSET += s2n_stuffer_write_network_order.7:$(MAX_WRITE_NETWORK_ORDER)
 
 include ../Makefile.common
