@@ -56,9 +56,9 @@ if os.getenv("S2N_NO_PQ") is None:
     well_known_endpoints.extend(pq_endpoints)
 
 
-# Make an exception to allow failure (if CI is having issues)
+# This can be removed when https://github.com/awslabs/s2n/issues/2220 is fixed.
 allowed_endpoints_failures = [
-    'wikipedia.org'
+    'wikipedia.org', 'yahoo.com'
 ]
 
 def print_result(result_prefix, return_code):
@@ -125,6 +125,8 @@ def well_known_endpoints_test(use_corked_io, tls13_enabled):
     for endpoint_config in well_known_endpoints:
 
         endpoint = endpoint_config["endpoint"]
+        if endpoint in allowed_endpoints_failures and tls13_enabled:
+            continue
         expected_cipher = endpoint_config.get("expected_cipher")
 
         if "cipher_preference_version" in endpoint_config:
