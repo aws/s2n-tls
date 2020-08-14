@@ -138,12 +138,10 @@ def well_known_endpoints_test(use_corked_io, tls13_enabled):
             if ret is 0:
                 break
             else:
-                if endpoint in allowed_endpoints_failures:
-                    break
                 time.sleep(i)
 
         print_result("Endpoint: %-35sExpected Cipher: %-40s... " % (endpoint, expected_cipher if expected_cipher else "Any"), ret)
-        if ret != 0 and endpoint not in allowed_endpoints_failures:
+        if ret != 0:
             failed += 1
 
     return failed
