@@ -190,9 +190,9 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
             r.size = size;
             const int after_overheads = RECORD_SIZE_LESS_OVERHEADS - RECORD_SIZE_LESS_OVERHEADS % 8; /* rounded down to cbc block size (8) */
-            #define PADDING_LENGTH_BYTE 1
-            #define RECORD_IV_SIZE 8
-            #define HMAC_DIGEST 20
+            const uint16_t PADDING_LENGTH_BYTE = 1;
+            const uint16_t RECORD_IV_SIZE = 8;
+            const uint16_t HMAC_DIGEST = 20;
             EXPECT_EQUAL(size, after_overheads - HMAC_DIGEST - RECORD_IV_SIZE - PADDING_LENGTH_BYTE);
 
             EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
@@ -213,8 +213,8 @@ int main(int argc, char **argv)
 
             EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
             r.size = size;
-            #define IV 8
-            #define TAG 16
+            const uint16_t IV = 8;
+            const uint16_t TAG = 16;
             EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - IV - TAG);
 
             EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
@@ -264,12 +264,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(server_conn->initial.cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&server_conn->initial.client_key, mac_key_sha, sizeof(mac_key_sha)));
 
             EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
-            #define COMPOSITE_BLOCK_SIZE 16
-            #define COMPOSITE_DIGEST_LENGTH 20
-            #define COMPOSITE_PADDING_LENGTH 1
-            const int size_aligned_to_block = RECORD_SIZE_LESS_OVERHEADS - RECORD_SIZE_LESS_OVERHEADS % COMPOSITE_BLOCK_SIZE - COMPOSITE_DIGEST_LENGTH - COMPOSITE_PADDING_LENGTH;
-            const int explicit_iv_len = 16;
-            const int size_after_overheads = size_aligned_to_block - explicit_iv_len;
+            const uint16_t COMPOSITE_BLOCK_SIZE = 16;
+            const uint16_t COMPOSITE_DIGEST_LENGTH = 20;
+            const uint16_t COMPOSITE_PADDING_LENGTH = 1;
+            const uint16_t size_aligned_to_block = RECORD_SIZE_LESS_OVERHEADS - RECORD_SIZE_LESS_OVERHEADS % COMPOSITE_BLOCK_SIZE - COMPOSITE_DIGEST_LENGTH - COMPOSITE_PADDING_LENGTH;
+            const uint16_t explicit_iv_len = 16;
+            const uint16_t size_after_overheads = size_aligned_to_block - explicit_iv_len;
             EXPECT_EQUAL(size, size_after_overheads);
             r.size = size;
 
