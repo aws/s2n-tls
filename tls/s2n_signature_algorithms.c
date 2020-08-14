@@ -92,6 +92,35 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
     S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_SCHEME);
 }
 
+/* exactly like s2n_choose_sig_scheme()  without matching client's preference */
+static int s2n_preferred_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_scheme_out)
+{
+    notnull_check(conn);
+    const struct s2n_signature_preferences *signature_preferences = NULL;
+    GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
+    notnull_check(signature_preferences);
+
+    struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
+    notnull_check(cipher_suite);
+
+    for (int i = 0; i < signature_preferences->count; i++) {
+        const struct s2n_signature_scheme *candidate = signature_preferences->signature_schemes[i];
+
+        if (s2n_signature_scheme_valid_to_accept(conn, candidate) != S2N_SUCCESS) {
+            continue;
+        }
+
+        if (s2n_is_sig_scheme_valid_for_auth(conn, candidate) != S2N_SUCCESS) {
+            continue;
+        }
+
+        *chosen_scheme_out = *candidate;
+        return S2N_SUCCESS;
+    }
+
+    S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_SCHEME);
+}
+
 int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn, struct s2n_stuffer *in,
                                              struct s2n_signature_scheme *chosen_sig_scheme)
 {
@@ -173,11 +202,13 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
     if (peer_wire_prefs != NULL && peer_wire_prefs->len > 0) {
         int result = s2n_choose_sig_scheme(conn, peer_wire_prefs, &chosen_scheme);
 
-        /* We require an exact match in TLS 1.3, but all previous versions can fall back to the default.
-         * The pre-TLS1.3 behavior is an intentional choice to maximize support. */
-        S2N_ERROR_IF(result != S2N_SUCCESS && conn->actual_protocol_version == S2N_TLS13,
-                S2N_ERR_INVALID_SIGNATURE_SCHEME);
+        /* Previous versions can fall back to the default */
+        if (conn->actual_protocol_version == S2N_TLS13 && result != S2N_SUCCESS) {
+            /* make the best match we can (https://tools.ietf.org/html/rfc8446#section-4.4.2.2) */
+            S2N_ERROR_IF(s2n_preferred_sig_scheme(conn, &chosen_scheme) != S2N_SUCCESS, S2N_ERR_INVALID_SIGNATURE_SCHEME);
+        }
     } else {
+        /* we can keep this here since we have not found any offending clients for this error */
         S2N_ERROR_IF(conn->actual_protocol_version == S2N_TLS13, S2N_ERR_EMPTY_SIGNATURE_SCHEME);
     }
 
