@@ -6,7 +6,6 @@ html
 logs
 property.xml
 
-arpa_cmake
+arpa_cmake/
+arpa-validation-logs/
 Makefile.arpa
-arpa-test-results.log
-arpa-test-logs
