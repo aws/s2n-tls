@@ -89,11 +89,11 @@ static int s2n_generate_preferred_key_shares(struct s2n_connection *conn, struct
 static int s2n_generate_default_key_share(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     notnull_check(conn);
-    struct s2n_ecc_evp_params *ecc_evp_params = NULL;
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     notnull_check(ecc_pref);
 
+    struct s2n_ecc_evp_params *ecc_evp_params = NULL;
     ecc_evp_params = &conn->secure.client_ecc_evp_params[0];
     ecc_evp_params->negotiated_curve = ecc_pref->ecc_curves[0];
     GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
