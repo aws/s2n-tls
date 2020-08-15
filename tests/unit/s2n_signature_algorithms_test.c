@@ -408,7 +408,7 @@ int main(int argc, char **argv)
                     S2N_ERR_EMPTY_SIGNATURE_SCHEME);
         }
 
-        /* Test: no shared valid signature schemes, using TLS1.3 */
+        /* Test: no shared valid signature schemes, using TLS1.3. Server picks preferred */
         {
             conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS13;
@@ -420,8 +420,9 @@ int main(int argc, char **argv)
                     },
             };
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result),
-                    S2N_ERR_INVALID_SIGNATURE_SCHEME);
+            /* behavior is that we fallback to a preferred signature algorithm */
+            EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
+            EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha384.iana_value);
         }
 
         /* Test: no shared valid signature schemes, using TLS1.2 */
