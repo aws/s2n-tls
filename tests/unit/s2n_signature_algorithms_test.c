@@ -627,6 +627,7 @@ int main(int argc, char **argv)
     }
 
     /* Test fallback of TLS 1.3 signature algorithms */
+    if (s2n_is_rsa_pss_signing_supported())
     {
         struct s2n_config *config = s2n_config_new();
 
@@ -694,7 +695,6 @@ int main(int argc, char **argv)
         s2n_connection_free(conn);
         s2n_config_free(config);
     }
-
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert_chain));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert_chain));
