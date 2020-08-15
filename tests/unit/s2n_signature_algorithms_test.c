@@ -626,6 +626,76 @@ int main(int argc, char **argv)
         s2n_config_free(config);
     }
 
+    /* Test fallback of TLS 1.3 signature algorithms */
+    {
+        struct s2n_config *config = s2n_config_new();
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        const struct s2n_security_policy *security_policy = NULL;
+        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+
+        const struct s2n_signature_scheme *const test_rsae_signature_schemes[] = {
+            &s2n_rsa_pss_rsae_sha256,
+        };
+
+        const struct s2n_signature_preferences test_rsae_preferences = {
+            .count = 1,
+            .signature_schemes = test_rsae_signature_schemes,
+        };
+
+        struct s2n_security_policy test_security_policy = {
+            .minimum_protocol_version = security_policy->minimum_protocol_version,
+            .cipher_preferences = security_policy->cipher_preferences,
+            .kem_preferences = security_policy->kem_preferences,
+            .signature_preferences = &test_rsae_preferences,
+            .ecc_preferences = security_policy->ecc_preferences,
+        };
+
+        config->security_policy = &test_security_policy;
+
+        struct s2n_signature_scheme result;
+
+        /* Test: no shared valid signature schemes, using TLS1.3. Server cant pick preferred */
+        {
+            conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+            conn->actual_protocol_version = S2N_TLS13;
+
+            struct s2n_sig_scheme_list peer_list = {
+                    .len = 1, .iana_list = {
+                        s2n_rsa_pkcs1_sha224.iana_value, /* Invalid (wrong protocol version) */
+                    },
+            };
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result),
+                S2N_ERR_INVALID_SIGNATURE_SCHEME);
+        }
+
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
+
+        /* Test: no shared valid signature schemes, using TLS1.3. Server picks a preferred */
+        {
+            conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+            conn->actual_protocol_version = S2N_TLS13;
+
+            struct s2n_sig_scheme_list peer_list = {
+                    .len = 1, .iana_list = {
+                        s2n_rsa_pkcs1_sha224.iana_value, /* Invalid (wrong protocol version) */
+                    },
+            };
+
+            /* behavior is that we fallback to a preferred signature algorithm */
+            EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
+            EXPECT_EQUAL(result.iana_value, s2n_rsa_pss_rsae_sha256.iana_value);
+        }
+
+        s2n_connection_free(conn);
+        s2n_config_free(config);
+    }
+
+
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert_chain));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert_chain));
 

@@ -92,7 +92,7 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
     S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_SCHEME);
 }
 
-/* exactly like s2n_choose_sig_scheme()  without matching client's preference */
+/* exactly like s2n_choose_sig_scheme() without matching client's preference */
 static int s2n_preferred_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_scheme_out)
 {
     notnull_check(conn);
