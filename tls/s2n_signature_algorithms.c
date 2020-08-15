@@ -68,7 +68,7 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
     struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
     notnull_check(cipher_suite);
 
-    for (int i = 0; i < signature_preferences->count; i++) {
+    for (size_t i = 0; i < signature_preferences->count; i++) {
         const struct s2n_signature_scheme *candidate = signature_preferences->signature_schemes[i];
 
         if (s2n_signature_scheme_valid_to_accept(conn, candidate) != S2N_SUCCESS) {
@@ -103,7 +103,7 @@ static int s2n_preferred_sig_scheme(struct s2n_connection *conn, struct s2n_sign
     struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
     notnull_check(cipher_suite);
 
-    for (int i = 0; i < signature_preferences->count; i++) {
+    for (size_t i = 0; i < signature_preferences->count; i++) {
         const struct s2n_signature_scheme *candidate = signature_preferences->signature_schemes[i];
 
         if (s2n_signature_scheme_valid_to_accept(conn, candidate) != S2N_SUCCESS) {
@@ -131,7 +131,7 @@ int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn
     GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
     notnull_check(signature_preferences);
 
-    for (int i = 0; i < signature_preferences->count; i++) {
+    for (size_t i = 0; i < signature_preferences->count; i++) {
         const struct s2n_signature_scheme *candidate = signature_preferences->signature_schemes[i];
 
         if (0 != s2n_signature_scheme_valid_to_accept(conn, candidate)) {
@@ -225,7 +225,7 @@ int s2n_send_supported_sig_scheme_list(struct s2n_connection *conn, struct s2n_s
 
     GUARD(s2n_stuffer_write_uint16(out, s2n_supported_sig_scheme_list_size(conn)));
 
-    for (int i =  0; i < signature_preferences->count; i++) {
+    for (size_t i =  0; i < signature_preferences->count; i++) {
         const struct s2n_signature_scheme *const scheme = signature_preferences->signature_schemes[i];
         if (0 == s2n_signature_scheme_valid_to_offer(conn, scheme)) {
             GUARD(s2n_stuffer_write_uint16(out, scheme->iana_value));
@@ -247,7 +247,7 @@ int s2n_supported_sig_schemes_count(struct s2n_connection *conn)
     notnull_check(signature_preferences);
 
     uint8_t count = 0;
-    for (int i =  0; i < signature_preferences->count; i++) {
+    for (size_t i =  0; i < signature_preferences->count; i++) {
         if (0 == s2n_signature_scheme_valid_to_offer(conn, signature_preferences->signature_schemes[i])) {
             count ++;
         }
@@ -278,7 +278,7 @@ int s2n_recv_supported_sig_scheme_list(struct s2n_stuffer *in, struct s2n_sig_sc
     
     sig_hash_algs->len = 0;
 
-    for (int i = 0; i < pairs_available; i++) {
+    for (size_t i = 0; i < pairs_available; i++) {
         uint16_t sig_scheme = 0;
         GUARD(s2n_stuffer_read_uint16(in, &sig_scheme));
 
