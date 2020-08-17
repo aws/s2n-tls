@@ -41,6 +41,6 @@ UNWINDSET +=
 # function and the second interacts with OpenSSL functions. Since OpenSSL
 # is not emulated by CBMC, these do not fall within the scope of the proof.
 REMOVE_FUNCTION_BODY += DECLARE_ASN1_ITEM
-REMOVE_FUNCTION_BODY += s2n_check_p_g_dh_params
+REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_dhe_c_s2n_check_p_g_dh_params
 
 include ../Makefile.common
