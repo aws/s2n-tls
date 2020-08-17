@@ -181,3 +181,7 @@ uint64_t uninterpreted_hasher(const void *a) {
 }
 
 bool uninterpreted_predicate_fn(uint8_t value);
+
+void nondet_s2n_mem_init() {
+    if (nondet_bool()) { s2n_mem_init(); }
+}

@@ -141,6 +141,11 @@ uint64_t nondet_hasher(const void *a);
 uint64_t uninterpreted_hasher(const void *a);
 
 /**
- * Standard stub function of a predicate
+ * Standard stub function of a predicate.
  */
 bool uninterpreted_predicate_fn(uint8_t value);
+
+/**
+ * Non-deterministically set initialized (in s2n_mem) to true.
+ */
+void nondet_s2n_mem_init();
