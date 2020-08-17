@@ -29,7 +29,6 @@ void s2n_stuffer_write_vector_size_harness() {
     /* Non-deterministic inputs. */
     struct s2n_stuffer_reservation *reservation = cbmc_allocate_s2n_stuffer_reservation();
     __CPROVER_assume(s2n_stuffer_reservation_is_valid(reservation));
-    __CPROVER_assume(reservation->length < MAX_LENGTH);
 
     /* Non-deterministically set initialized (in s2n_mem) to true. */
     if(nondet_bool()) {

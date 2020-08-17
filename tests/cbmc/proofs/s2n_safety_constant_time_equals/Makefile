@@ -26,6 +26,6 @@ PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
 
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
-UNWINDSET += s2n_constant_time_equals.0:$(call addone,$(MAX_ARR_LEN))
+UNWINDSET += s2n_constant_time_equals.3:$(call addone,$(MAX_ARR_LEN))
 
 include ../Makefile.common
