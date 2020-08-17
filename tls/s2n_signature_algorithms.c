@@ -93,7 +93,7 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
 }
 
 /* exactly like s2n_choose_sig_scheme() without matching client's preference */
-static int s2n_preferred_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_scheme_out)
+static int s2n_tls13_preferred_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_scheme_out)
 {
     notnull_check(conn);
     const struct s2n_signature_preferences *signature_preferences = NULL;
@@ -202,10 +202,10 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
     if (peer_wire_prefs != NULL && peer_wire_prefs->len > 0) {
         int result = s2n_choose_sig_scheme(conn, peer_wire_prefs, &chosen_scheme);
 
-        /* Previous versions can fall back to the default */
+        /* If we can't find a match in TLS 1.3, we pick the best signature algorithm to use */
+        /* https://tools.ietf.org/html/rfc8446#section-4.4.2.2 */
         if (conn->actual_protocol_version == S2N_TLS13 && result != S2N_SUCCESS) {
-            /* make the best match we can (https://tools.ietf.org/html/rfc8446#section-4.4.2.2) */
-            S2N_ERROR_IF(s2n_preferred_sig_scheme(conn, &chosen_scheme) != S2N_SUCCESS, S2N_ERR_INVALID_SIGNATURE_SCHEME);
+            GUARD(s2n_tls13_preferred_sig_scheme(conn, &chosen_scheme));
         }
     } else {
         /* we can keep this here since we have not found any offending clients for this error */
