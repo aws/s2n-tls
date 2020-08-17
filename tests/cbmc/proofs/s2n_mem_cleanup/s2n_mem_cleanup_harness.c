@@ -13,21 +13,18 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-#include "utils/s2n_blob.h"
-#include "utils/s2n_mem.h"
-
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
 
-void s2n_mem_cleanup_harness() {
+#include "api/s2n.h"
+#include "utils/s2n_blob.h"
+#include "utils/s2n_mem.h"
 
-    /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if(nondet_bool()) {
-        s2n_mem_init();
-    }
+void s2n_mem_cleanup_harness()
+{
+    nondet_s2n_mem_init();
 
     bool old_init = s2n_mem_is_init();
 

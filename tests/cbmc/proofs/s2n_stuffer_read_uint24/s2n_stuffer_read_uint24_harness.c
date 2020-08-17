@@ -13,22 +13,21 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-
-#include "stuffer/s2n_stuffer.h"
-
 #include <assert.h>
-
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
 
-void s2n_stuffer_read_uint24_harness() {
+#include "api/s2n.h"
+#include "stuffer/s2n_stuffer.h"
+
+void s2n_stuffer_read_uint24_harness()
+{
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
 
     struct s2n_stuffer old_stuffer = *stuffer;
-    uint32_t *dest = can_fail_malloc(sizeof(uint32_t*));
+    uint32_t *         dest        = can_fail_malloc(sizeof(uint32_t *));
 
     /* Store a byte from the stuffer to compare after the read */
     struct store_byte_from_buffer old_byte_from_stuffer;
@@ -37,10 +36,9 @@ void s2n_stuffer_read_uint24_harness() {
     if (s2n_stuffer_read_uint24(stuffer, dest) == S2N_SUCCESS) {
         assert(stuffer->read_cursor == old_stuffer.read_cursor + SIZEOF_UINT24);
         /* If successful, ensure uint was assembled correctly from stuffer */
-        assert(((uint32_t) stuffer->blob.data[old_stuffer.read_cursor]) << 16
-             | ((uint32_t) stuffer->blob.data[old_stuffer.read_cursor + 1]) << 8
-             | ((uint32_t) stuffer->blob.data[old_stuffer.read_cursor + 2]) == *dest
-             | *dest < (1 << (24 - 1)));
+        assert((( uint32_t )stuffer->blob.data[ old_stuffer.read_cursor ]) << 16
+               | (( uint32_t )stuffer->blob.data[ old_stuffer.read_cursor + 1 ]) << 8
+               | (( uint32_t )stuffer->blob.data[ old_stuffer.read_cursor + 2 ]) == *dest | *dest < (1 << (24 - 1)));
     } else {
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
     }

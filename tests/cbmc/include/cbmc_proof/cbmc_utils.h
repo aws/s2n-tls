@@ -15,18 +15,17 @@
 
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
-
 #include <cbmc_proof/nondet.h>
 #include <cbmc_proof/proof_allocators.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stuffer/s2n_stuffer.h>
 #include <utils/s2n_blob.h>
 
 #define IMPLIES(a, b) (!(a) || (b))
 
 struct store_byte_from_buffer {
-    size_t index;
+    size_t  index;
     uint8_t byte;
 };
 
@@ -39,9 +38,8 @@ struct store_byte_from_buffer {
  * rhs s2n_blob instance (use save_byte_from_blob function), so it can properly
  * assert all bytes from blob.data match.
  */
- void assert_stuffer_immutable_fields_after_read(const struct s2n_stuffer *lhs,
-                                                 const struct s2n_stuffer *rhs,
-                                                 const struct store_byte_from_buffer *stored_byte_from_rhs);
+void assert_stuffer_immutable_fields_after_read(const struct s2n_stuffer *lhs, const struct s2n_stuffer *rhs,
+                                                const struct store_byte_from_buffer *stored_byte_from_rhs);
 
 /**
  * Asserts two s2n_blob instances are equivalent. In order to be considered equivalent,
@@ -50,9 +48,8 @@ struct store_byte_from_buffer {
  * a non-deterministic byte from the rhs s2n_blob instance (use save_byte_from_blob function),
  * so it can properly assert all bytes from *data match.
  */
- void assert_blob_equivalence(const struct s2n_blob *lhs,
-                              const struct s2n_blob *rhs,
-                              const struct store_byte_from_buffer *stored_byte_from_rhs);
+void assert_blob_equivalence(const struct s2n_blob *lhs, const struct s2n_blob *rhs,
+                             const struct store_byte_from_buffer *stored_byte_from_rhs);
 
 /**
  * Asserts two s2n_stuffer instances are equivalent. In order to be considered equivalent,
@@ -61,9 +58,8 @@ struct store_byte_from_buffer {
  * a non-deterministic byte from the rhs s2n_blob instance (use save_byte_from_blob function),
  * so it can properly assert all bytes from blob.data match.
  */
- void assert_stuffer_equivalence(const struct s2n_stuffer *lhs,
-                                 const struct s2n_stuffer *rhs,
-                                 const struct store_byte_from_buffer *stored_byte_from_rhs);
+void assert_stuffer_equivalence(const struct s2n_stuffer *lhs, const struct s2n_stuffer *rhs,
+                                const struct store_byte_from_buffer *stored_byte_from_rhs);
 
 /**
  * Asserts whether all bytes from two arrays of same length match.
@@ -102,7 +98,7 @@ void save_byte_from_array(const uint8_t *const array, const size_t size, struct 
  * structure. Afterwards, one can prove using the assert_byte_from_blob_matches function
  * whether no byte in the blob has changed.
  */
-void save_byte_from_blob(const struct s2n_blob *blob, struct store_byte_from_buffer * storage);
+void save_byte_from_blob(const struct s2n_blob *blob, struct store_byte_from_buffer *storage);
 
 /**
  * Standard stub function to compare two items.

@@ -13,20 +13,21 @@
  * permissions and limitations under the License.
  */
 
+#include <cbmc_proof/cbmc_utils.h>
+#include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/proof_allocators.h>
+
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 
-#include <cbmc_proof/cbmc_utils.h>
-#include <cbmc_proof/proof_allocators.h>
-#include <cbmc_proof/make_common_datastructures.h>
-
-void s2n_stuffer_is_consumed_harness() {
+void s2n_stuffer_is_consumed_harness()
+{
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
 
     /* Save previous state. */
-    struct s2n_stuffer old_stuffer = *stuffer;
+    struct s2n_stuffer            old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 

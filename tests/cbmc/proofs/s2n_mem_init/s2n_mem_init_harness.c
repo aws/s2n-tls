@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
+
 #include "api/s2n.h"
 #include "utils/s2n_mem.h"
-
-#include <assert.h>
 
 void s2n_mem_init_harness()
 {
     /* Operation under verification. */
-    if( s2n_mem_init( ) == S2N_SUCCESS ) {
+    if (s2n_mem_init() == S2N_SUCCESS) {
         assert(s2n_mem_is_init());
         assert(s2n_mem_get_page_size() > 0);
         assert(s2n_mem_get_page_size() <= UINT32_MAX);

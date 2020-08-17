@@ -13,39 +13,37 @@
  * permissions and limitations under the License.
  */
 
+#include <cbmc_proof/cbmc_utils.h>
+#include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/proof_allocators.h>
+
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
 
-#include <cbmc_proof/cbmc_utils.h>
-#include <cbmc_proof/proof_allocators.h>
-#include <cbmc_proof/make_common_datastructures.h>
-
-void s2n_stuffer_recv_from_fd_harness() {
+void s2n_stuffer_recv_from_fd_harness()
+{
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
-    int rfd;
+    int      rfd;
     uint32_t len;
     uint32_t bytes_written;
 
-    /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if(nondet_bool()) {
-        s2n_mem_init();
-    }
+    nondet_s2n_mem_init();
 
     /* Save previous state. */
-    struct s2n_stuffer old_stuffer = *stuffer;
+    struct s2n_stuffer            old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
     if (s2n_stuffer_recv_from_fd(stuffer, rfd, len, &bytes_written) == S2N_SUCCESS) {
-       assert(stuffer->write_cursor == old_stuffer.write_cursor + bytes_written);
-       assert(s2n_stuffer_is_valid(stuffer));
-   }
-   assert(stuffer->read_cursor == old_stuffer.read_cursor);
-   assert(stuffer->alloced == old_stuffer.alloced);
-   assert(stuffer->growable == old_stuffer.growable);
-   assert(stuffer->tainted == old_stuffer.tainted);
+        assert(stuffer->write_cursor == old_stuffer.write_cursor + bytes_written);
+        assert(s2n_stuffer_is_valid(stuffer));
+    }
+    assert(stuffer->read_cursor == old_stuffer.read_cursor);
+    assert(stuffer->alloced == old_stuffer.alloced);
+    assert(stuffer->growable == old_stuffer.growable);
+    assert(stuffer->tainted == old_stuffer.tainted);
 }

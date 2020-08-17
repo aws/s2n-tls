@@ -13,17 +13,17 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-#include "stuffer/s2n_stuffer.h"
-
 #include <assert.h>
-#include <string.h>
-
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
+#include <string.h>
 
-void s2n_stuffer_skip_read_until_harness() {
+#include "api/s2n.h"
+#include "stuffer/s2n_stuffer.h"
+
+void s2n_stuffer_skip_read_until_harness()
+{
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
@@ -31,7 +31,7 @@ void s2n_stuffer_skip_read_until_harness() {
     char *target = nondet_bool() ? ensure_c_str_is_allocated(MAX_STRING_LEN) : NULL;
 
     /* Save previous state from stuffer. */
-    struct s2n_stuffer old_stuffer = *stuffer;
+    struct s2n_stuffer            old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
@@ -39,8 +39,8 @@ void s2n_stuffer_skip_read_until_harness() {
     if (s2n_stuffer_skip_read_until(stuffer, target) == S2N_SUCCESS) {
         const int len = strlen(target);
         if (s2n_stuffer_data_available(stuffer) >= len) {
-              uint8_t *actual = stuffer->blob.data + stuffer->read_cursor - len;
-              assert((strncmp((char*)actual, target, len) == 0) || (s2n_stuffer_data_available(stuffer) < len));
+            uint8_t *actual = stuffer->blob.data + stuffer->read_cursor - len;
+            assert((strncmp(( char * )actual, target, len) == 0) || (s2n_stuffer_data_available(stuffer) < len));
         }
     }
 

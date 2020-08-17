@@ -13,28 +13,25 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
+#include <cbmc_proof/cbmc_utils.h>
+#include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/nondet.h>
+#include <cbmc_proof/proof_allocators.h>
 #include <sys/param.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
 
-#include <assert.h>
-#include <cbmc_proof/cbmc_utils.h>
-#include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/nondet.h>
-#include <cbmc_proof/proof_allocators.h>
-
-void s2n_stuffer_write_reservation_harness() {
+void s2n_stuffer_write_reservation_harness()
+{
     /* Non-deterministic inputs. */
     struct s2n_stuffer_reservation *reservation = cbmc_allocate_s2n_stuffer_reservation();
     __CPROVER_assume(s2n_stuffer_reservation_is_valid(reservation));
     uint32_t u;
 
-    /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if(nondet_bool()) {
-        s2n_mem_init();
-    }
+    nondet_s2n_mem_init();
 
     /* Save previous state from stuffer_reservation. */
     struct s2n_stuffer_reservation old_stuffer_reservation = *reservation;

@@ -13,16 +13,17 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-#include "error/s2n_errno.h"
-#include "stuffer/s2n_stuffer.h"
-
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
 
-void s2n_stuffer_skip_to_char_harness() {
+#include "api/s2n.h"
+#include "error/s2n_errno.h"
+#include "stuffer/s2n_stuffer.h"
+
+void s2n_stuffer_skip_to_char_harness()
+{
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
@@ -30,18 +31,19 @@ void s2n_stuffer_skip_to_char_harness() {
     const char target;
 
     /* Save previous state from stuffer. */
-    struct s2n_stuffer old_stuffer = *stuffer;
+    struct s2n_stuffer            old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
     if (s2n_stuffer_skip_to_char(stuffer, target) == S2N_SUCCESS) {
-        assert(S2N_IMPLIES(s2n_stuffer_data_available(&old_stuffer) == 0, stuffer->read_cursor == old_stuffer.read_cursor));
-        if(s2n_stuffer_data_available(stuffer) > 0) {
-            assert(stuffer->blob.data[stuffer->read_cursor] == target);
+        assert(S2N_IMPLIES(s2n_stuffer_data_available(&old_stuffer) == 0,
+                           stuffer->read_cursor == old_stuffer.read_cursor));
+        if (s2n_stuffer_data_available(stuffer) > 0) {
+            assert(stuffer->blob.data[ stuffer->read_cursor ] == target);
             size_t index;
             __CPROVER_assume(index >= old_stuffer.read_cursor && index < stuffer->read_cursor);
-            assert(stuffer->blob.data[index] != target);
+            assert(stuffer->blob.data[ index ] != target);
         }
     }
     assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);

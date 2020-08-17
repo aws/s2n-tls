@@ -13,27 +13,25 @@
  * permissions and limitations under the License.
  */
 
+#include <cbmc_proof/cbmc_utils.h>
+#include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/proof_allocators.h>
+
 #include "api/s2n.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 
-#include <cbmc_proof/cbmc_utils.h>
-#include <cbmc_proof/proof_allocators.h>
-#include <cbmc_proof/make_common_datastructures.h>
-
-void s2n_stuffer_resize_harness() {
+void s2n_stuffer_resize_harness()
+{
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
     uint32_t size;
 
-    /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if(nondet_bool()) {
-        s2n_mem_init();
-    }
+    nondet_s2n_mem_init();
 
     /* Save previous state. */
-    struct s2n_stuffer old_stuffer = *stuffer;
+    struct s2n_stuffer            old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
@@ -52,20 +50,21 @@ void s2n_stuffer_resize_harness() {
             assert(stuffer->blob.allocated == 0);
             assert(stuffer->blob.growable == 0);
         } else if (size > old_stuffer.blob.size) {
-            if(size < old_stuffer.blob.allocated) {
+            if (size < old_stuffer.blob.allocated) {
                 assert(stuffer->blob.data == old_stuffer.blob.data);
                 assert(stuffer->blob.allocated == old_stuffer.blob.allocated);
                 assert(stuffer->blob.growable == old_stuffer.blob.growable);
             } else {
                 /* Confirms bytes were maintained. */
-                if (old_stuffer.blob.size > 0) assert_byte_from_buffer_matches(stuffer->blob.data, &old_byte_from_stuffer);
+                if (old_stuffer.blob.size > 0)
+                    assert_byte_from_buffer_matches(stuffer->blob.data, &old_byte_from_stuffer);
                 assert(stuffer->blob.growable == 1);
             }
         } else { /* size < old_stuffer.blob.size */
             size_t index;
             /* Confirms wiped portion. */
             __CPROVER_assume(index >= size && index < old_stuffer.blob.size);
-            assert(stuffer->blob.data[index] == S2N_WIPE_PATTERN);
+            assert(stuffer->blob.data[ index ] == S2N_WIPE_PATTERN);
             assert(stuffer->blob.allocated == old_stuffer.blob.allocated);
             assert(stuffer->blob.growable == old_stuffer.blob.growable);
         }

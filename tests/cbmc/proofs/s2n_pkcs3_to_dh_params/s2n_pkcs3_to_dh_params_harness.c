@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-#include "stuffer/s2n_stuffer.h"
-#include "crypto/s2n_dhe.h"
-
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/nondet.h>
+#include <cbmc_proof/proof_allocators.h>
+
+#include "api/s2n.h"
+#include "crypto/s2n_dhe.h"
+#include "stuffer/s2n_stuffer.h"
 
 /*
  * Since this function largely serves as a way to call specific OpenSSL
@@ -30,20 +30,18 @@
  * and a few functions have been left omitted since they do not affect
  * the proof.
  */
-void s2n_pkcs3_to_dh_params_harness() {
+void s2n_pkcs3_to_dh_params_harness()
+{
     /* Non-deterministic inputs. */
-    struct s2n_dh_params dh_params = {0};
-    struct s2n_blob *pkcs3 = cbmc_allocate_s2n_blob();
+    struct s2n_dh_params dh_params = { 0 };
+    struct s2n_blob *    pkcs3     = cbmc_allocate_s2n_blob();
     __CPROVER_assume(s2n_blob_is_valid(pkcs3));
-    uint8_t *old_data = pkcs3->data;
+    uint8_t *                     old_data = pkcs3->data;
     struct store_byte_from_buffer old_byte;
     save_byte_from_blob(pkcs3, &old_byte);
     __CPROVER_assume(s2n_blob_is_bounded(pkcs3, MAX_BLOB_SIZE));
 
-    /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if(nondet_bool()) {
-        s2n_mem_init();
-    }
+    nondet_s2n_mem_init();
 
     /* Operation under verification. */
     if (s2n_pkcs3_to_dh_params(&dh_params, pkcs3) == S2N_SUCCESS) {
