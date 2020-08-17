@@ -33,3 +33,4 @@ test-deps/*
 .idea/*
 CMakeCache.txt
 CMakeFiles/*
+.project
