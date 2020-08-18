@@ -83,20 +83,16 @@ S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16
 }
 
 /* Find the largest size that will fit within an ethernet frame for a "small" payload */
-int s2n_record_min_write_payload_size(struct s2n_connection *conn)
+S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16_t *payload_size)
 {
+    ENSURE_REF(conn);
+    ENSURE_MUT(payload_size);
     /* remove ethernet, TCP/IP and TLS header overheads */
     const uint16_t min_outgoing_fragment_length = ETH_MTU - (conn->ipv6 ? IP_V6_HEADER_LENGTH : IP_V4_HEADER_LENGTH)
         - TCP_HEADER_LENGTH - TCP_OPTIONS_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH;
 
-    ENSURE_POSIX(min_outgoing_fragment_length <= S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
-    int size = min_outgoing_fragment_length;
-
-    /* subtract overheads of a TLS record */
-    uint16_t overhead = 0;
-    GUARD_AS_POSIX(s2n_tls_record_overhead(conn, &overhead));
-    ENSURE_POSIX(size > overhead, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
-    size -= overhead;
+    ENSURE(min_outgoing_fragment_length <= S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+    uint16_t size = min_outgoing_fragment_length;
 
     const struct s2n_crypto_parameters *active = conn->mode == S2N_CLIENT ? conn->client : conn->server;
 
@@ -111,10 +107,18 @@ int s2n_record_min_write_payload_size(struct s2n_connection *conn)
         size -= 1;
     }
 
-    ENSURE_POSIX(size > 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
-    ENSURE_POSIX(size <= ETH_MTU, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+    /* subtract overheads of a TLS record */
+    uint16_t overhead = 0;
+    GUARD_RESULT(s2n_tls_record_overhead(conn, &overhead));
+    ENSURE(size > overhead, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
+    size -= overhead;
 
-    return size;
+    ENSURE(size > 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
+    ENSURE(size <= ETH_MTU, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+
+    *payload_size = size;
+
+    return S2N_RESULT_OK;
 }
 
 int s2n_record_write_protocol_version(struct s2n_connection *conn)

@@ -22,7 +22,7 @@
 #define TLS13_CONTENT_TYPE_LENGTH 1
 
 extern S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16_t *max_fragment_size);
-extern int s2n_record_min_write_payload_size(struct s2n_connection *conn);
+extern S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16_t *payload_size);
 extern int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in);
 extern int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const struct iovec *in, int in_count, size_t offs, size_t to_write);
 extern int s2n_record_parse(struct s2n_connection *conn);

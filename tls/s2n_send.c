@@ -152,8 +152,8 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
          * use small TLS records that fit into a single TCP segment for the threshold bytes of data
          */
         if (conn->active_application_bytes_consumed < (uint64_t) conn->dynamic_record_resize_threshold) {
-            int min_payload_size = s2n_record_min_write_payload_size(conn);
-            GUARD(min_payload_size);
+            uint16_t min_payload_size = 0;
+            GUARD_AS_POSIX(s2n_record_min_write_payload_size(conn, &min_payload_size));
             to_write = MIN(min_payload_size, to_write);
         }
 
