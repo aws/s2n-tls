@@ -3,8 +3,10 @@
 #### Design
 
 - How does CodeBuild decide what to install/test ?
-   To match with Travis and minimize rewriting, the environment variables passed to the job
-   dictate what is installed and which tests get run.
+   Historically the environment variables passed to the job
+   dictate what is installed and which tests get run. CodeBuild has a pattern where environment
+   variables can be over-ridden by CloudWatch events or batch jobs, so in some cases the CodeBuild job definition
+   is generic or filled with placeholders (e.g. s2nFuzzScheduled).
 - Why not build docker images with the dependencies layered in ?
   This is the end goal: get tests running in CodeBuild first, then optimize the containers where it makes sense.
 
@@ -57,7 +59,7 @@ To bootstrap the CodeBuild jobs, the python script:
 ```
 
 If you are modifying an existing stack then a list of changes will be displayed and
-you have the option to accept or reject those changes.
+you have the option to accept or reject that change set.
 
 ```
 ubuntu:codebuild/ $ ./create_project.py --config codebuild-integv2.config --production --modify-existing
@@ -86,6 +88,12 @@ INFO:root:Update completed
 
 The [AWS Codebuild](https://docs.aws.amazon.com/codebuild/latest/userguide/limits.html) docs list the number of concurrent jobs at 60.
 With extensive testing, we've learned this number appears to be weighted based on [instance size](https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-compute-types.html) (or provisioning limits), so running all tests on the largest possible instances will reduce actual concurrency.  Additionally provisioning time is currently longer for larger instances, so there is a time penalty that might not be recovered by using a larger instance for short lived tests.
+
+### Batch Builds
+
+The `spec/buildspec_omnibus_batch.yml` contains a complete list of all CodeBuild jobs.  In the future, this will replace the individual jobs created by the create_project.py script.
+
+The broken out batch jobs: fuzz, integration and general, are created with the script create_batch.sh, which uses jq to parse out the jobs by title.
 
 ### Notes on moving from Travis-ci
 
