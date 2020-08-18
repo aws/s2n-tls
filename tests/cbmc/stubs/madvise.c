@@ -20,10 +20,8 @@
 
 int madvise(void *addr, size_t length, int advice)
 {
-    assert(S2N_MEM_IS_WRITABLE(addr,length));
-    if(nondet_bool()) {
-        return 0;
-    }
+    assert(S2N_MEM_IS_WRITABLE(addr, length));
+    if (nondet_bool()) { return 0; }
     errno = nondet_int();
     return -1;
 }

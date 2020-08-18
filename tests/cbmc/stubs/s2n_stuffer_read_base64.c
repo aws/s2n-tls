@@ -13,11 +13,11 @@
  * limitations under the License.
  */
 
+#include <cbmc_proof/nondet.h>
+
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
-
-#include <cbmc_proof/nondet.h>
 
 int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out)
 {

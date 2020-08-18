@@ -23,9 +23,6 @@
 
 int __tolower(int c)
 {
-    if(c >= 'A' && c <= 'Z')
-    {
-        c = c + ('a' - 'A');
-    }
+    if (c >= 'A' && c <= 'Z') { c = c + ('a' - 'A'); }
     return c;
 }

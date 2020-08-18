@@ -38,31 +38,31 @@ typedef enum {
 
 typedef struct ec_group_st EC_GROUP;
 
-EC_GROUP *EC_GROUP_new_by_curve_name(int nid);
-void EC_GROUP_set_point_conversion_form(EC_GROUP *group, point_conversion_form_t form);
+EC_GROUP *    EC_GROUP_new_by_curve_name(int nid);
+void          EC_GROUP_set_point_conversion_form(EC_GROUP *group, point_conversion_form_t form);
 const BIGNUM *EC_GROUP_get0_order(const EC_GROUP *group);
-void EC_GROUP_free(EC_GROUP *group);
+void          EC_GROUP_free(EC_GROUP *group);
 
 typedef struct ECDSA_SIG_st ECDSA_SIG;
 
-EC_KEY *EC_KEY_new(void);
-int EC_KEY_set_group(EC_KEY *key, const EC_GROUP *group);
-void EC_KEY_set_conv_form(EC_KEY *eckey, point_conversion_form_t cform);
-int EC_KEY_set_private_key(EC_KEY *key, const BIGNUM *prv);
-int EC_KEY_generate_key(EC_KEY *key);
-int EC_KEY_up_ref(EC_KEY *r);
+EC_KEY *        EC_KEY_new(void);
+int             EC_KEY_set_group(EC_KEY *key, const EC_GROUP *group);
+void            EC_KEY_set_conv_form(EC_KEY *eckey, point_conversion_form_t cform);
+int             EC_KEY_set_private_key(EC_KEY *key, const BIGNUM *prv);
+int             EC_KEY_generate_key(EC_KEY *key);
+int             EC_KEY_up_ref(EC_KEY *r);
 const EC_GROUP *EC_KEY_get0_group(const EC_KEY *key);
-const BIGNUM *EC_KEY_get0_private_key(const EC_KEY *key);
-int EC_KEY_generate_key(EC_KEY *key);
-void EC_KEY_free(EC_KEY *key);
+const BIGNUM *  EC_KEY_get0_private_key(const EC_KEY *key);
+int             EC_KEY_generate_key(EC_KEY *key);
+void            EC_KEY_free(EC_KEY *key);
 
 EC_KEY *o2i_ECPublicKey(EC_KEY **key, const unsigned char **in, long len);
-int i2o_ECPublicKey(EC_KEY *key, unsigned char **out);
+int     i2o_ECPublicKey(EC_KEY *key, unsigned char **out);
 
-void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps);
-int ECDSA_SIG_set0(ECDSA_SIG *sig, BIGNUM *r, BIGNUM *s);
-void ECDSA_SIG_free(ECDSA_SIG *sig);
+void       ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps);
+int        ECDSA_SIG_set0(ECDSA_SIG *sig, BIGNUM *r, BIGNUM *s);
+void       ECDSA_SIG_free(ECDSA_SIG *sig);
 ECDSA_SIG *d2i_ECDSA_SIG(ECDSA_SIG **sig, const unsigned char **pp, long len);
-int i2d_ECDSA_SIG(const ECDSA_SIG *sig, unsigned char **pp);
+int        i2d_ECDSA_SIG(const ECDSA_SIG *sig, unsigned char **pp);
 
 #endif

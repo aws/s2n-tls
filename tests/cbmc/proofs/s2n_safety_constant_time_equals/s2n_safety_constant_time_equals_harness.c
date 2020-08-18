@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
+#include <cbmc_proof/proof_allocators.h>
+#include <sys/param.h>
+
 #include "api/s2n.h"
 #include "utils/s2n_safety.h"
 
-#include <sys/param.h>
-#include <assert.h>
-
-#include <cbmc_proof/proof_allocators.h>
-
-void s2n_safety_constant_time_equals_harness() {
+void s2n_safety_constant_time_equals_harness()
+{
     /* Non-deterministic inputs. */
     uint32_t len;
     uint32_t alen;
@@ -29,14 +29,16 @@ void s2n_safety_constant_time_equals_harness() {
     __CPROVER_assume(len < MAX_ARR_LEN);
     __CPROVER_assume(alen >= len);
     __CPROVER_assume(blen >= len);
-    uint8_t * a = can_fail_malloc(alen);
-    uint8_t * b = can_fail_malloc(blen);
+    uint8_t *a = can_fail_malloc(alen);
+    uint8_t *b = can_fail_malloc(blen);
 
     /* Pre-conditions. */
     __CPROVER_assume(S2N_IMPLIES(len != 0, a != NULL && b != NULL));
-    
+
     /* Check logical equivalence of s2n_constant_time_equals against element equality */
-    if(s2n_constant_time_equals(a, b, len)) {
-        assert(__CPROVER_forall {size_t i; (i >=0 && i < len) ==> (a[i] == b[i])});
+    if (s2n_constant_time_equals(a, b, len)) {
+        /* clang-format off */
+        assert(__CPROVER_forall { size_t i; (i >=0 && i < len) ==> (a[i] == b[i]) });
+        /* clang-format on */
     }
 }

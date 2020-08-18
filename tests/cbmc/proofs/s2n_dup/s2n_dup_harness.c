@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-#include "utils/s2n_blob.h"
-
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
+
+#include "api/s2n.h"
+#include "utils/s2n_blob.h"
 
 /*
  * There's unreachable code in the CBMC output because s2n_dup calls
@@ -28,19 +28,18 @@
  * many branches of s2n_realloc cannot be executed. This is intentional behavior.
  */
 
-void s2n_dup_harness() {
+void s2n_dup_harness()
+{
     struct s2n_blob *from = cbmc_allocate_s2n_blob();
-    struct s2n_blob *to = cbmc_allocate_s2n_blob();
+    struct s2n_blob *to   = cbmc_allocate_s2n_blob();
     __CPROVER_assume(s2n_blob_is_valid(from));
     __CPROVER_assume(s2n_blob_is_valid(to));
-    const struct s2n_blob old_from = *from;
-    const struct s2n_blob old_to = *to;
+    const struct s2n_blob         old_from = *from;
+    const struct s2n_blob         old_to   = *to;
     struct store_byte_from_buffer old_byte;
     save_byte_from_blob(from, &old_byte);
     /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if (nondet_bool()) {
-        s2n_mem_init();
-    }
+    if (nondet_bool()) { s2n_mem_init(); }
 
     if (s2n_dup(from, to) == S2N_SUCCESS) {
         assert(old_from.size != 0);
@@ -51,7 +50,7 @@ void s2n_dup_harness() {
 
         uint32_t index;
         __CPROVER_assume(index < from->size);
-        assert(from->data[index] == to->data[index]);
+        assert(from->data[ index ] == to->data[ index ]);
     }
     assert(s2n_blob_is_valid(from));
     assert(s2n_blob_is_valid(to));

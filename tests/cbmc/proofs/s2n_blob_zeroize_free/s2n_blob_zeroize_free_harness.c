@@ -13,23 +13,21 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-#include "utils/s2n_blob.h"
-#include "error/s2n_errno.h"
-
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
 
-void s2n_blob_zeroize_free_harness() {
+#include "api/s2n.h"
+#include "error/s2n_errno.h"
+#include "utils/s2n_blob.h"
+
+void s2n_blob_zeroize_free_harness()
+{
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
     __CPROVER_assume(s2n_blob_is_valid(blob));
 
-    /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if(nondet_bool()) {
-        s2n_mem_init();
-    }
+    nondet_s2n_mem_init();
 
     const struct s2n_blob old_blob = *blob;
 
@@ -37,8 +35,8 @@ void s2n_blob_zeroize_free_harness() {
         /* If the call worked, assert all bytes in the blob struct
            are zero */
         assert_all_zeroes(blob->data, old_blob.size);
-        if(old_blob.size != 0 && s2n_blob_is_growable(&old_blob)) {
-            assert(!S2N_MEM_IS_READABLE(blob->data,old_blob.size));
+        if (old_blob.size != 0 && s2n_blob_is_growable(&old_blob)) {
+            assert(!S2N_MEM_IS_READABLE(blob->data, old_blob.size));
         }
     }
 }

@@ -13,27 +13,27 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
+#include <cbmc_proof/proof_allocators.h>
+#include <sys/param.h>
+
 #include "api/s2n.h"
 #include "utils/s2n_safety.h"
 
-#include <sys/param.h>
-#include <assert.h>
-
-#include <cbmc_proof/proof_allocators.h>
-
-void s2n_constant_time_copy_or_dont_harness() {
+void s2n_constant_time_copy_or_dont_harness()
+{
     /* Non-deterministic inputs. */
     const uint32_t len;
     const uint32_t destlen;
     const uint32_t srclen;
-    const uint8_t dont;
+    const uint8_t  dont;
     __CPROVER_assume(len < MAX_ARR_LEN);
     __CPROVER_assume(destlen >= len);
     __CPROVER_assume(srclen >= len);
-    uint8_t * dest = can_fail_malloc(destlen);
-    uint8_t * src = can_fail_malloc(srclen);
-    uint8_t old_src_byte;
-    uint8_t old_dest_byte;
+    uint8_t *dest = can_fail_malloc(destlen);
+    uint8_t *src  = can_fail_malloc(srclen);
+    uint8_t  old_src_byte;
+    uint8_t  old_dest_byte;
     uint32_t index;
 
     /* Pre-conditions. */
@@ -41,29 +41,23 @@ void s2n_constant_time_copy_or_dont_harness() {
         __CPROVER_assume(dest != NULL);
         __CPROVER_assume(src != NULL);
         __CPROVER_assume(index < len);
-        old_src_byte = src[index];
-        old_dest_byte = dest[index];
+        old_src_byte  = src[ index ];
+        old_dest_byte = dest[ index ];
     }
 
     s2n_constant_time_copy_or_dont(dest, src, len, dont);
 
     if (dont == 0) {
         if (src != NULL) {
-            if (len != 0) {
-                assert(src[index] == old_src_byte);
-            }
-            if(dest != NULL) {
+            if (len != 0) { assert(src[ index ] == old_src_byte); }
+            if (dest != NULL) {
                 uint32_t rand;
                 __CPROVER_assume(rand < len);
-                assert(dest[rand] == src[rand]);
+                assert(dest[ rand ] == src[ rand ]);
             }
         }
     } else {
-        if (src != NULL && len != 0) {
-            assert(src[index] == old_src_byte);
-        }
-        if (dest != NULL && len != 0) {
-            assert(dest[index] == old_dest_byte);
-        }
+        if (src != NULL && len != 0) { assert(src[ index ] == old_src_byte); }
+        if (dest != NULL && len != 0) { assert(dest[ index ] == old_dest_byte); }
     }
 }
