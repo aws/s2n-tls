@@ -15,7 +15,4 @@
 
 #include <cbmc_proof/nondet.h>
 
-long sysconf(int name)
-{
-    return nondet_long();
-}
+long sysconf(int name) { return nondet_long(); }

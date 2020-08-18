@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-#include "utils/s2n_blob.h"
-
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/proof_allocators.h>
+
+#include "api/s2n.h"
+#include "utils/s2n_blob.h"
 
 void s2n_blob_zero_harness()
 {
@@ -28,9 +28,6 @@ void s2n_blob_zero_harness()
     __CPROVER_assume(s2n_blob_is_valid(blob));
 
     /* Operation under verification. */
-    if(s2n_blob_zero(blob) == S2N_SUCCESS && blob->size != 0)
-    {
-        assert_all_zeroes(blob->data, blob->size);
-    }
+    if (s2n_blob_zero(blob) == S2N_SUCCESS && blob->size != 0) { assert_all_zeroes(blob->data, blob->size); }
     assert(s2n_blob_is_valid(blob));
 }

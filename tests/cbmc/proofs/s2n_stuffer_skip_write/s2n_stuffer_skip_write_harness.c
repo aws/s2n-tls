@@ -13,26 +13,23 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
+#include <cbmc_proof/cbmc_utils.h>
+#include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/proof_allocators.h>
 #include <sys/param.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 
-#include <assert.h>
-#include <cbmc_proof/cbmc_utils.h>
-#include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
-
-void s2n_stuffer_skip_write_harness() {
+void s2n_stuffer_skip_write_harness()
+{
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
     uint32_t data_len;
 
-    /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if(nondet_bool()) {
-        s2n_mem_init();
-    }
+    nondet_s2n_mem_init();
 
     /* Save previous state from stuffer. */
     struct s2n_stuffer old_stuffer = *stuffer;
@@ -44,9 +41,7 @@ void s2n_stuffer_skip_write_harness() {
     if (s2n_stuffer_skip_write(stuffer, data_len) == S2N_SUCCESS) {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + data_len);
         assert(stuffer->high_water_mark == MAX(old_stuffer.write_cursor + data_len, old_stuffer.high_water_mark));
-        if(old_stuffer.blob.size > 0) {
-            assert_byte_from_blob_matches(&stuffer->blob, &old_byte_from_stuffer);
-        }
+        if (old_stuffer.blob.size > 0) { assert_byte_from_blob_matches(&stuffer->blob, &old_byte_from_stuffer); }
         assert(s2n_stuffer_is_valid(stuffer));
     } else {
         assert(stuffer->write_cursor == old_stuffer.write_cursor);

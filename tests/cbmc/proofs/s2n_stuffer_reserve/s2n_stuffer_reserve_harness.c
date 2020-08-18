@@ -13,29 +13,27 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
+#include <cbmc_proof/cbmc_utils.h>
+#include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/nondet.h>
+#include <cbmc_proof/proof_allocators.h>
 #include <sys/param.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
 
-#include <assert.h>
-#include <cbmc_proof/cbmc_utils.h>
-#include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/nondet.h>
-#include <cbmc_proof/proof_allocators.h>
-
-void s2n_stuffer_reserve_harness() {
+void s2n_stuffer_reserve_harness()
+{
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
     struct s2n_stuffer_reservation *reservation = cbmc_allocate_s2n_stuffer_reservation();
-    const uint8_t length;
+    const uint8_t                   length;
 
     /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if (nondet_bool()) {
-        s2n_mem_init();
-    }
+    if (nondet_bool()) { s2n_mem_init(); }
 
     /* Save previous state from stuffer. */
     struct s2n_stuffer old_stuffer = *stuffer;
@@ -50,10 +48,10 @@ void s2n_stuffer_reserve_harness() {
         assert(reservation->length == length);
         if (old_stuffer.blob.size > 0 && reservation->length > 0) {
             size_t index;
-            __CPROVER_assume(index >= reservation->write_cursor &&
-                             index < (reservation->write_cursor + reservation->length));
-            assert(stuffer->blob.data[index] == S2N_WIPE_PATTERN);
-            assert(reservation->stuffer->blob.data[index] == S2N_WIPE_PATTERN);
+            __CPROVER_assume(index >= reservation->write_cursor
+                             && index < (reservation->write_cursor + reservation->length));
+            assert(stuffer->blob.data[ index ] == S2N_WIPE_PATTERN);
+            assert(reservation->stuffer->blob.data[ index ] == S2N_WIPE_PATTERN);
         }
         assert(stuffer == reservation->stuffer);
         assert(s2n_stuffer_is_valid(stuffer));

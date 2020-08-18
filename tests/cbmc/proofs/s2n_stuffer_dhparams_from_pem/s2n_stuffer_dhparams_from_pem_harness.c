@@ -13,19 +13,19 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
+#include <cbmc_proof/cbmc_utils.h>
+#include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/nondet.h>
+#include <cbmc_proof/proof_allocators.h>
+#include <string.h>
+
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
 
-#include <assert.h>
-#include <string.h>
-
-#include <cbmc_proof/cbmc_utils.h>
-#include <cbmc_proof/proof_allocators.h>
-#include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/nondet.h>
-
-void s2n_stuffer_dhparams_from_pem_harness() {
+void s2n_stuffer_dhparams_from_pem_harness()
+{
     /* Non-deterministic inputs. */
     struct s2n_stuffer *pem = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(pem));
@@ -34,10 +34,7 @@ void s2n_stuffer_dhparams_from_pem_harness() {
     struct s2n_stuffer *asn1 = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(asn1));
 
-    /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if(nondet_bool()) {
-        s2n_mem_init();
-    }
+    nondet_s2n_mem_init();
 
     /* Operation under verification. */
     s2n_stuffer_dhparams_from_pem(pem, asn1);

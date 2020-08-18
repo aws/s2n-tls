@@ -13,17 +13,19 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
+#include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/proof_allocators.h>
+
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
-#include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
-#include <cbmc_proof/make_common_datastructures.h>
 
-void s2n_stuffer_init_harness() {
-  struct s2n_stuffer *stuffer = can_fail_malloc(sizeof(*stuffer));
-  struct s2n_blob* in = cbmc_allocate_s2n_blob();
-  if (s2n_stuffer_init(stuffer, in) == S2N_SUCCESS){
-    assert(s2n_stuffer_is_valid(stuffer));
-    assert(s2n_blob_is_valid(in));
-  };
+void s2n_stuffer_init_harness()
+{
+    struct s2n_stuffer *stuffer = can_fail_malloc(sizeof(*stuffer));
+    struct s2n_blob *   in      = cbmc_allocate_s2n_blob();
+    if (s2n_stuffer_init(stuffer, in) == S2N_SUCCESS) {
+        assert(s2n_stuffer_is_valid(stuffer));
+        assert(s2n_blob_is_valid(in));
+    };
 }

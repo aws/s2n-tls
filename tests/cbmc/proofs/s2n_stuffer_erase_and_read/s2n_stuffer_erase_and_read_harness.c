@@ -13,25 +13,25 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-
-#include "stuffer/s2n_stuffer.h"
-
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
 
+#include "api/s2n.h"
+#include "stuffer/s2n_stuffer.h"
+
 void s2n_calculate_stacktrace() {}
 
-void s2n_stuffer_erase_and_read_harness() {
+void s2n_stuffer_erase_and_read_harness()
+{
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    struct s2n_blob *blob = cbmc_allocate_s2n_blob();
+    struct s2n_blob *   blob    = cbmc_allocate_s2n_blob();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
     __CPROVER_assume(s2n_blob_is_valid(blob));
 
     struct s2n_stuffer old_stuffer = *stuffer;
-    struct s2n_blob old_blob = *blob;
+    struct s2n_blob    old_blob    = *blob;
 
     /* Store a byte from the stuffer to compare if the copy fails */
     struct store_byte_from_buffer old_byte_from_stuffer;
@@ -39,14 +39,14 @@ void s2n_stuffer_erase_and_read_harness() {
 
     /* Store a byte from the stuffer to compare if the copy succeeds */
     struct store_byte_from_buffer copied_byte;
-    if(s2n_stuffer_data_available(stuffer) >= blob->size) {
-        save_byte_from_array(&stuffer->blob.data[old_stuffer.read_cursor], blob->size, &copied_byte);
+    if (s2n_stuffer_data_available(stuffer) >= blob->size) {
+        save_byte_from_array(&stuffer->blob.data[ old_stuffer.read_cursor ], blob->size, &copied_byte);
     }
 
     if (s2n_stuffer_erase_and_read(stuffer, blob) == S2N_SUCCESS) {
         assert(stuffer->read_cursor == old_stuffer.read_cursor + old_blob.size);
-        assert_all_zeroes(&(old_stuffer.blob.data[old_stuffer.read_cursor]), old_blob.size);
-        assert_byte_from_blob_matches(blob, &copied_byte); 
+        assert_all_zeroes(&(old_stuffer.blob.data[ old_stuffer.read_cursor ]), old_blob.size);
+        assert_byte_from_blob_matches(blob, &copied_byte);
     } else {
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
         assert_byte_from_blob_matches(&stuffer->blob, &old_byte_from_stuffer);

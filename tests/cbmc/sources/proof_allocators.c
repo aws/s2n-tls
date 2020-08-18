@@ -17,26 +17,23 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
-void *bounded_calloc(size_t num, size_t size) {
+void *bounded_calloc(size_t num, size_t size)
+{
     size_t required_bytes;
     __CPROVER_assume(!__builtin_mul_overflow(num, size, &required_bytes));
     __CPROVER_assume(required_bytes <= MAX_MALLOC);
     return calloc(num, size);
 }
 
-void *bounded_malloc(size_t size) {
+void *bounded_malloc(size_t size)
+{
     __CPROVER_assume(size <= MAX_MALLOC);
     return malloc(size);
 }
 
+void *can_fail_calloc(size_t num, size_t size) { return nondet_bool() ? NULL : bounded_calloc(num, size); }
 
-void *can_fail_calloc(size_t num, size_t size) {
-    return nondet_bool() ? NULL : bounded_calloc(num, size);
-}
-
-void *can_fail_malloc(size_t size) {
-    return nondet_bool() ? NULL : bounded_malloc(size);
-}
+void *can_fail_malloc(size_t size) { return nondet_bool() ? NULL : bounded_malloc(size); }
 
 /**
  * https://en.cppreference.com/w/c/memory/realloc
@@ -48,14 +45,11 @@ void *can_fail_malloc(size_t size) {
  * memory block may or may not be freed), or some non-null pointer may be returned that may not be used to access
  * storage).
  */
-void *can_fail_realloc(void *ptr, size_t newsize) {
-    if (newsize > MAX_MALLOC) {
-        return NULL;
-    }
+void *can_fail_realloc(void *ptr, size_t newsize)
+{
+    if (newsize > MAX_MALLOC) { return NULL; }
     if (newsize == 0) {
-        if (nondet_bool()) {
-            free(ptr);
-        }
+        if (nondet_bool()) { free(ptr); }
         return nondet_voidp();
     }
     return nondet_bool() ? NULL : realloc(ptr, newsize);

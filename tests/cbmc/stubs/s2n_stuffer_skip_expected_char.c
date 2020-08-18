@@ -13,14 +13,15 @@
  * limitations under the License.
  */
 
+#include <cbmc_proof/nondet.h>
+
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
-#include <cbmc_proof/nondet.h>
-
 /* Skips an expected character in the stuffer between min and max times */
-int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const uint32_t min, const uint32_t max, uint32_t *skipped)
+int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const uint32_t min,
+                                   const uint32_t max, uint32_t *skipped)
 {
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     PRECONDITION_POSIX(min <= max);

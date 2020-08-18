@@ -13,17 +13,16 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-
-#include "stuffer/s2n_stuffer.h"
-
 #include <assert.h>
-
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
 
-void s2n_stuffer_rewind_read_harness() {
+#include "api/s2n.h"
+#include "stuffer/s2n_stuffer.h"
+
+void s2n_stuffer_rewind_read_harness()
+{
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
@@ -36,11 +35,10 @@ void s2n_stuffer_rewind_read_harness() {
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
-    if(s2n_stuffer_rewind_read(stuffer, size) == S2N_SUCCESS) {
+    if (s2n_stuffer_rewind_read(stuffer, size) == S2N_SUCCESS) {
         assert(old_stuffer.read_cursor >= size);
         assert(stuffer->read_cursor == old_stuffer.read_cursor - size);
-    }
-    else {
+    } else {
         assert(old_stuffer.read_cursor < size);
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
     }

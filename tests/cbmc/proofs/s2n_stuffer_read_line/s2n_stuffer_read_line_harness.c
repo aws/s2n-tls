@@ -13,18 +13,17 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
+#include <cbmc_proof/cbmc_utils.h>
+#include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
 
-#include <assert.h>
-
-#include <cbmc_proof/proof_allocators.h>
-#include <cbmc_proof/cbmc_utils.h>
-#include <cbmc_proof/make_common_datastructures.h>
-
-void s2n_stuffer_read_line_harness() {
+void s2n_stuffer_read_line_harness()
+{
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
     __CPROVER_assume(s2n_blob_is_bounded(&stuffer->blob, MAX_BLOB_SIZE));
@@ -32,26 +31,25 @@ void s2n_stuffer_read_line_harness() {
     __CPROVER_assume(s2n_stuffer_is_valid(line));
 
     /* Store previous state from the stuffer. */
-    struct s2n_stuffer old_stuffer = *stuffer;
+    struct s2n_stuffer            old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Store previous state from the line. */
-    struct s2n_stuffer old_line = *line;
+    struct s2n_stuffer            old_line = *line;
     struct store_byte_from_buffer old_byte_from_line;
     save_byte_from_blob(&line->blob, &old_byte_from_line);
 
-    /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if(nondet_bool()) {
-        s2n_mem_init();
-    }
+    nondet_s2n_mem_init();
 
     if (s2n_stuffer_read_line(stuffer, line) == S2N_SUCCESS) {
         assert(s2n_stuffer_is_valid(line));
         if (line->write_cursor > old_line.write_cursor) {
-            assert(line->blob.data[line->write_cursor - 1] != '\n');
+            assert(line->blob.data[ line->write_cursor - 1 ] != '\n');
             uint32_t line_size = line->write_cursor - old_line.write_cursor;
-            if(line_size != 0) assert_bytes_match(line->blob.data + old_line.write_cursor, stuffer->blob.data + old_stuffer.read_cursor, line_size);
+            if (line_size != 0)
+                assert_bytes_match(line->blob.data + old_line.write_cursor,
+                                   stuffer->blob.data + old_stuffer.read_cursor, line_size);
         }
     } else {
         assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);

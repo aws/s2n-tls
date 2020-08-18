@@ -13,18 +13,17 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
+#include <cbmc_proof/cbmc_utils.h>
+#include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
 
-#include <assert.h>
-
-#include <cbmc_proof/proof_allocators.h>
-#include <cbmc_proof/cbmc_utils.h>
-#include <cbmc_proof/make_common_datastructures.h>
-
-void s2n_stuffer_read_token_harness() {
+void s2n_stuffer_read_token_harness()
+{
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
     __CPROVER_assume(s2n_blob_is_bounded(&stuffer->blob, MAX_BLOB_SIZE));
@@ -33,24 +32,23 @@ void s2n_stuffer_read_token_harness() {
     char delim;
 
     /* Store previous state from the stuffer. */
-    struct s2n_stuffer old_stuffer = *stuffer;
+    struct s2n_stuffer            old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Store previous state from the token. */
-    struct s2n_stuffer old_token = *token;
+    struct s2n_stuffer            old_token = *token;
     struct store_byte_from_buffer old_byte_from_token;
     save_byte_from_blob(&token->blob, &old_byte_from_token);
 
-    /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if(nondet_bool()) {
-        s2n_mem_init();
-    }
+    nondet_s2n_mem_init();
 
     if (s2n_stuffer_read_token(stuffer, token, delim) == S2N_SUCCESS) {
         assert(s2n_stuffer_is_valid(token));
         uint32_t token_size = token->write_cursor - old_token.write_cursor;
-        if(token_size != 0) assert_bytes_match(token->blob.data + old_token.write_cursor, stuffer->blob.data + old_stuffer.read_cursor, token_size);
+        if (token_size != 0)
+            assert_bytes_match(token->blob.data + old_token.write_cursor, stuffer->blob.data + old_stuffer.read_cursor,
+                               token_size);
     } else {
         assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
         /*

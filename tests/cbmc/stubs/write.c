@@ -13,23 +13,23 @@
  * limitations under the License.
  */
 
-#include <error/s2n_errno.h>
-
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/nondet.h>
 #include <errno.h>
+#include <error/s2n_errno.h>
 #include <unistd.h>
 
 static bool loop_flag = false;
 
-ssize_t write(int fildes, const void *buf, size_t nbyte) {
+ssize_t write(int fildes, const void *buf, size_t nbyte)
+{
     errno = nondet_int();
-    if(loop_flag) {
+    if (loop_flag) {
         __CPROVER_assume(errno != EINTR);
         return 0;
     }
     loop_flag = true;
     ssize_t rval;
-    __CPROVER_assume(rval <= (ssize_t)nbyte);
+    __CPROVER_assume(rval <= ( ssize_t )nbyte);
     return rval;
 }

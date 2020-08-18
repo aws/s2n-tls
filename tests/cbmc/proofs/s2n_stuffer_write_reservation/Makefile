@@ -11,9 +11,12 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Expected runtime is 23 minutes.
-MAX_LENGTH = 3
-DEFINES += -DMAX_LENGTH=$(MAX_LENGTH)
+# Expected runtime is 29 minutes.
+DEFINES += -DMADV_DONTDUMP=1
+
+# This the the maximum number of iterations to unroll
+# the loop in s2n_stuffer_write_network_order
+MAX_WRITE_NETWORK_ORDER = 9
 
 CBMCFLAGS +=
 
@@ -24,6 +27,7 @@ PROOF_SOURCES += $(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(PROOF_STUB)/madvise.c
 PROOF_SOURCES += $(PROOF_STUB)/mlock.c
 PROOF_SOURCES += $(PROOF_STUB)/munlock.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
@@ -38,16 +42,17 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
 # We abstract these functions because manual inspection demonstrates they are unreachable.
 REMOVE_FUNCTION_BODY += s2n_blob_slice
+REMOVE_FUNCTION_BODY += s2n_stuffer_wipe
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe_n
+REMOVE_FUNCTION_BODY += s2n_mem_cleanup_impl
 
-UNWINDSET += s2n_stuffer_write_network_order.0:$(shell echo $$((1 + $(MAX_LENGTH))))
-UNWINDSET += s2n_stuffer_write_network_order.1:$(shell echo $$((1 + $(MAX_LENGTH))))
-UNWINDSET += s2n_stuffer_write_network_order.2:$(shell echo $$((1 + $(MAX_LENGTH))))
-UNWINDSET += s2n_stuffer_write_network_order.3:$(shell echo $$((1 + $(MAX_LENGTH))))
-UNWINDSET += s2n_stuffer_write_network_order.4:$(shell echo $$((1 + $(MAX_LENGTH))))
-UNWINDSET += s2n_stuffer_write_network_order.5:$(shell echo $$((1 + $(MAX_LENGTH))))
-UNWINDSET += s2n_stuffer_write_network_order.6:$(shell echo $$((1 + $(MAX_LENGTH))))
-UNWINDSET += s2n_stuffer_write_network_order.7:$(shell echo $$((1 + $(MAX_LENGTH))))
-UNWINDSET += s2n_stuffer_write_reservation_harness.0:$(shell echo $$((1 + $(MAX_LENGTH))))
+UNWINDSET += s2n_stuffer_write_network_order.0:$(MAX_WRITE_NETWORK_ORDER)
+UNWINDSET += s2n_stuffer_write_network_order.1:$(MAX_WRITE_NETWORK_ORDER)
+UNWINDSET += s2n_stuffer_write_network_order.2:$(MAX_WRITE_NETWORK_ORDER)
+UNWINDSET += s2n_stuffer_write_network_order.3:$(MAX_WRITE_NETWORK_ORDER)
+UNWINDSET += s2n_stuffer_write_network_order.4:$(MAX_WRITE_NETWORK_ORDER)
+UNWINDSET += s2n_stuffer_write_network_order.5:$(MAX_WRITE_NETWORK_ORDER)
+UNWINDSET += s2n_stuffer_write_network_order.6:$(MAX_WRITE_NETWORK_ORDER)
+UNWINDSET += s2n_stuffer_write_network_order.7:$(MAX_WRITE_NETWORK_ORDER)
 
 include ../Makefile.common
