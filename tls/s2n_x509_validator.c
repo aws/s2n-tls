@@ -289,6 +289,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
     S2N_ERROR_IF(s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob) < 0, S2N_ERR_CERT_UNTRUSTED);
 
     uint32_t certificate_count = 0;
+    s2n_parsed_extensions_list first_certificate_extensions = {0};
 
     X509 *server_cert = NULL;
 
@@ -332,11 +333,14 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
             /* RFC 8446: if an extension applies to the entire chain, it SHOULD be included in the first CertificateEntry */
             if (certificate_count == 0) {
-                GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &parsed_extensions_list));
+                first_certificate_extensions = parsed_extensions_list;
             }
         }
 
         certificate_count++;
+    }
+    if (conn->actual_protocol_version >= S2N_TLS13) {
+        GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &first_certificate_extensions));
     }
 
     /* if this occurred we exceeded validator->max_chain_depth */
