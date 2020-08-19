@@ -23,7 +23,7 @@ PROOF_SOURCES += $(PROOF_STUB)/sysconf.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
 
 # We abstract this function because manual inspection demonstrates it is unreachable.
-REMOVE_FUNCTION_BODY += s2n_mem_cleanup_impl
+REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
 
 UNWINDSET +=
 

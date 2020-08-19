@@ -41,7 +41,7 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 REMOVE_FUNCTION_BODY += s2n_blob_slice
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe_n
-REMOVE_FUNCTION_BODY += s2n_mem_cleanup_impl
+REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
 
 UNWINDSET += s2n_stuffer_writev_bytes.20:$(call addone,$(MAX_IOVEC_SIZE))
 UNWINDSET += s2n_stuffer_writev_bytes_harness.0:$(call addone,$(MAX_IOVEC_SIZE))
