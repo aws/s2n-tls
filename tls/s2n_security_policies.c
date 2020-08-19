@@ -71,7 +71,7 @@ const struct s2n_security_policy security_policy_elb_2015_04 = {
 
 const struct s2n_security_policy security_policy_elb_2016_08 = {
     .minimum_protocol_version = S2N_TLS10,
-    .cipher_preferences = &elb_security_policy_2015_04,
+    .cipher_preferences = &elb_security_policy_2016_08,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
@@ -102,7 +102,7 @@ const struct s2n_security_policy security_policy_elb_tls_1_2_ext_2018_06 = {
 };
 
 const struct s2n_security_policy security_policy_elb_fs_2018_06 = {
-    .minimum_protocol_version = S2N_TLS12,
+    .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &elb_security_policy_fs_2018_06,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
