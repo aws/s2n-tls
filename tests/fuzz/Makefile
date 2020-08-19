@@ -56,10 +56,10 @@ ld-preload :
 	${MAKE} -C LD_PRELOAD
 
 $(TESTS)::
-	@${CC} ${CFLAGS} $@.c -o $@  ${LDFLAGS} > /dev/null
+	@${CC} ${CFLAGS} $@.c -o $@  ${LDFLAGS} | tee make_test_output.txt
 
 run_tests:: $(FUZZ_TESTS) ld-preload
-	@( fail_count=0; for test_name in ${FUZZ_TESTS} ; do \
+	( fail_count=0; for test_name in ${FUZZ_TESTS} ; do \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}; \
 	export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}; \
 	export LIBCRYPTO_ROOT=${LIBCRYPTO_ROOT}; \
