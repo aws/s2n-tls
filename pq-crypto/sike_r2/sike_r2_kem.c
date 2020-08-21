@@ -5,7 +5,7 @@
 *********************************************************************************************/
 
 #include <string.h>
-#include "../pq_random.h"
+#include "../s2n_pq_random.h"
 #include "fips202.h"
 #include "utils/s2n_safety.h"
 

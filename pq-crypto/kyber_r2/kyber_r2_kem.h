@@ -1,7 +1,7 @@
 #ifndef KYBER_R2_KEM_H
 #define KYBER_R2_KEM_H
 
-#include "../pq_utils.h"
+#include "../s2n_pq_utils.h"
 
 #define KYBER_512_R2_PUBLIC_KEY_BYTES 800
 #define KYBER_512_R2_SECRET_KEY_BYTES 1632

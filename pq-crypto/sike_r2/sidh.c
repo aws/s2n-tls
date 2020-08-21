@@ -4,7 +4,7 @@
 * Abstract: ephemeral supersingular isogeny Diffie-Hellman key exchange (SIDH)
 *********************************************************************************************/
 
-#include "../pq_random.h"
+#include "../s2n_pq_random.h"
 #include "utils/s2n_safety.h"
 
 static void init_basis(const digit_t *gen, f2elm_t *XP, f2elm_t *XQ, f2elm_t *XR) { // Initialization of basis points

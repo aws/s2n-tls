@@ -5,7 +5,7 @@
 #include "symmetric.h"
 #include "verify.h"
 
-#include "../pq_random.h"
+#include "../s2n_pq_random.h"
 #include "utils/s2n_safety.h"
 
 #include <stdlib.h>

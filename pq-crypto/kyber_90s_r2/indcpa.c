@@ -3,7 +3,7 @@
 #include "params.h"
 #include "poly.h"
 #include "polyvec.h"
-#include "../pq_random.h"
+#include "../s2n_pq_random.h"
 #include "utils/s2n_safety.h"
 #include "symmetric.h"
 
