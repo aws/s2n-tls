@@ -22,7 +22,7 @@ typedef enum
 _INLINE_ ret_t
 get_seeds(OUT seeds_t *seeds)
 {
-  if(s2n_result_is_ok(get_random_bytes(seeds->seed[0].raw, sizeof(seeds_t))))
+  if(s2n_result_is_ok(s2n_get_random_bytes(seeds->seed[0].raw, sizeof(seeds_t))))
   {
     return SUCCESS;
   }

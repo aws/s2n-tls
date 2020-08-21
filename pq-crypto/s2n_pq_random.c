@@ -15,10 +15,31 @@
 
 #include "utils/s2n_random.h"
 #include "utils/s2n_result.h"
-#include "s2n_pq_utils.h"
+#include "utils/s2n_safety.h"
+#include "s2n_pq_random.h"
 
-S2N_RESULT get_random_bytes(OUT unsigned char *buffer, unsigned int num_bytes)
-{
-    struct s2n_blob out = {.data = buffer,.size = num_bytes };
-    return s2n_get_private_random_data(&out);
+static S2N_RESULT s2n_get_random_bytes_default(uint8_t *buffer, uint32_t num_bytes);
+
+static s2n_get_random_bytes_callback s2n_get_random_bytes_cb = s2n_get_random_bytes_default;
+
+S2N_RESULT s2n_get_random_bytes(unsigned char *buffer, uint32_t num_bytes) {
+    ENSURE_REF(buffer);
+    GUARD_RESULT(s2n_get_random_bytes_cb(buffer, num_bytes));
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_get_random_bytes_default(uint8_t *buffer, uint32_t num_bytes) {
+    struct s2n_blob out = { .data = buffer, .size = num_bytes };
+    GUARD_RESULT(s2n_get_private_random_data(&out));
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_set_rand_bytes_callback_for_testing(s2n_get_random_bytes_callback rand_bytes_callback) {
+    ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+
+    s2n_get_random_bytes_cb = rand_bytes_callback;
+
+    return S2N_RESULT_OK;
 }
