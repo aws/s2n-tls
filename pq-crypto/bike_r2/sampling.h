@@ -9,7 +9,7 @@
 #pragma once
 
 #include "aes_ctr_prf.h"
-#include "pq-crypto/pq_random.h"
+#include "pq-crypto/s2n_pq_random.h"
 #include "utils/s2n_result.h"
 #include "utilities.h"
 

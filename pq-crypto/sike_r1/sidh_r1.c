@@ -6,7 +6,7 @@
 
 #include "sike_r1_namespace.h"
 #include "P503_internal_r1.h"
-#include "pq-crypto/pq_random.h"
+#include "pq-crypto/s2n_pq_random.h"
 #include "utils/s2n_safety.h"
 
 static void clear_words(void* mem, digit_t nwords)

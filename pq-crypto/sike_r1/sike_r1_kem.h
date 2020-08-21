@@ -16,7 +16,7 @@
 #define __SIKE_R1_KEM_H_INCLUDED__
 
 #include "sike_r1_namespace.h"
-#include "../pq_utils.h"
+#include "../s2n_pq_utils.h"
 
 ////////////////////////////////////////////////////////////////
 //The three APIs below (keypair, enc, dec) are defined by NIST:
