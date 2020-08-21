@@ -209,9 +209,6 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
         if (conn->actual_protocol_version == S2N_TLS13 && result != S2N_SUCCESS) {
             GUARD(s2n_tls13_preferred_sig_scheme(conn, &chosen_scheme));
         }
-    } else {
-        /* we can keep this here since we have not found any offending clients for this error */
-        S2N_ERROR_IF(conn->actual_protocol_version == S2N_TLS13, S2N_ERR_EMPTY_SIGNATURE_SCHEME);
     }
 
     *sig_scheme_out = chosen_scheme;
