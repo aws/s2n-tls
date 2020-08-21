@@ -15,6 +15,6 @@
 
 #pragma once
 
-//For clarity of the code.
+/* For clarity of the code. */
 #define IN
 #define OUT
