@@ -183,7 +183,7 @@ file(GLOB S2N_SRC
     ${UTILS_SRC}
 )
 
-add_library(${PROJECT_NAME} STATIC ${S2N_HEADERS} ${S2N_SRC})
+add_library(${PROJECT_NAME} ${S2N_HEADERS} ${S2N_SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")
