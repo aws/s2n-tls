@@ -111,15 +111,12 @@ int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_
 
 /* OCSP Stapled Response Testing files */
 #define S2N_OCSP_SERVER_CERT                   "../pems/ocsp/server_cert.pem"
-#define S2N_OCSP_SERVER_ECDSA_CERT             "../pems/ocsp/server_ecdsa_cert.pem"
 
 #define S2N_OCSP_SERVER_KEY                    "../pems/ocsp/server_key.pem"
 #define S2N_OCSP_CA_CERT                       "../pems/ocsp/ca_cert.pem"
 #define S2N_OCSP_CA_KEY                        "../pems/ocsp/ca_key.pem"
 #define S2N_OCSP_RESPONSE_DER                  "../pems/ocsp/ocsp_response.der"
 #define S2N_OCSP_RESPONSE_NO_NEXT_UPDATE_DER   "../pems/ocsp/ocsp_response_no_next_update.der"
-#define S2N_OCSP_RESPONSE_REVOKED_DER          "../pems/ocsp/ocsp_response_revoked.der"
-#define S2N_OCSP_RESPONSE_WRONG_SIGNER_DER     "../pems/ocsp/ocsp_response_wrong_signer.der"
 #define S2N_OCSP_RESPONSE_CERT                 "../pems/ocsp/ocsp_cert.pem"
 
 #define S2N_ALLIGATOR_SAN_CERT                 "../pems/sni/alligator_cert.pem"
