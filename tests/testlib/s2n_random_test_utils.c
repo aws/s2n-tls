@@ -30,6 +30,11 @@ S2N_RESULT s2n_fixed_entropy_generator(struct s2n_blob *blob)
     return S2N_RESULT_OK;
 }
 
+/* TODO: Needs re-write
+ * s2n_srbg no longer has entropy_generator. 
+ * S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR is deleted.
+ */
+/*
 static struct s2n_drbg fixed_drbg = { .entropy_generator = &s2n_fixed_entropy_generator };
 
 int s2n_unsafe_set_drbg_seed(const struct s2n_blob *seed)
@@ -48,3 +53,11 @@ int s2n_unsafe_set_drbg_seed(const struct s2n_blob *seed)
 
     return S2N_SUCCESS;
 }
+*/
+
+int s2n_unsafe_set_drbg_seed(const struct s2n_blob *seed)
+{
+    S2N_ERROR_IF(!s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    return S2N_FAILURE;
+}
+

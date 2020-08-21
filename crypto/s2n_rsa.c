@@ -22,14 +22,13 @@
 #include "stuffer/s2n_stuffer.h"
 
 #include "crypto/s2n_hash.h"
-#include "crypto/s2n_openssl.h"
+#include "crypto/s2n_drbg.h"
 #include "crypto/s2n_rsa.h"
 #include "crypto/s2n_rsa_signing.h"
 #include "crypto/s2n_pkey.h"
 
-#include "utils/s2n_blob.h"
-#include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
+#include "utils/s2n_random.h"
 #include "utils/s2n_blob.h"
 
 static int s2n_rsa_modulus_check(RSA *rsa)
@@ -105,7 +104,7 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
     S2N_ERROR_IF(expected_size > sizeof(intermediate), S2N_ERR_NOMEM);
     S2N_ERROR_IF(out->size > sizeof(intermediate), S2N_ERR_NOMEM);
 
-    GUARD_AS_POSIX(s2n_get_urandom_data(out));
+    GUARD_AS_POSIX(s2n_get_public_random_data(out));
 
     const s2n_rsa_private_key *key = &priv->key.rsa_key;
     int r = RSA_private_decrypt(in->size, (unsigned char *)in->data, intermediate, key->rsa, RSA_NO_PADDING);
@@ -119,7 +118,7 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
 static int s2n_rsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv)
 {
     uint8_t plain_inpad[36] = {1}, plain_outpad[36] = {0}, encpad[8192];
-    struct s2n_blob plain_in, plain_out, enc;
+    struct s2n_blob plain_in = { 0 }, plain_out = { 0 }, enc = { 0 };
 
     plain_in.data = plain_inpad;
     plain_in.size = sizeof(plain_inpad);

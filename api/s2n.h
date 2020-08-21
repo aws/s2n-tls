@@ -130,6 +130,15 @@ S2N_API
 extern int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback,
                                  s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback);
 
+typedef int (*s2n_rand_init_callback)(void);
+typedef int (*s2n_rand_cleanup_callback)(void);
+typedef int (*s2n_rand_seed_callback)(void *data, uint32_t size);
+typedef int (*s2n_rand_mix_callback)(void *data, uint32_t size);
+
+S2N_API
+extern int s2n_rand_set_callbacks(s2n_rand_init_callback rand_init_callback, s2n_rand_cleanup_callback rand_cleanup_callback,
+        s2n_rand_seed_callback rand_seed_callback, s2n_rand_mix_callback rand_mix_callback);
+
 typedef enum {
     S2N_EXTENSION_SERVER_NAME = 0,
     S2N_EXTENSION_MAX_FRAG_LEN = 1,
