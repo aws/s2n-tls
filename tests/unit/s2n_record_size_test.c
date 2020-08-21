@@ -43,6 +43,7 @@ static int destroy_server_keys(struct s2n_connection *server_conn)
 {
     GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.server_key));
     GUARD(server_conn->initial.cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial.client_key));
+
     return S2N_SUCCESS;
 }
 
