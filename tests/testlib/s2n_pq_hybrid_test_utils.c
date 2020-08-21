@@ -34,13 +34,13 @@ uint8_t hybrid_kat_entropy_buff[SEED_LENGTH] = {0};
 struct s2n_blob hybrid_kat_entropy_blob = {.size = SEED_LENGTH, .data = hybrid_kat_entropy_buff};
 struct s2n_drbg drbg_for_hybrid_kats;
 
-static int s2n_hybrid_pq_init_cleanup(void) {
+int s2n_hybrid_pq_init_cleanup(void) {
     ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     return S2N_SUCCESS;
 }
 
 /* We use "seed" from the KAT file for both the seed entropy and mix entropy for DRBG */
-static int s2n_hybrid_pq_entropy(void *ptr, uint32_t size) {
+int s2n_hybrid_pq_entropy(void *ptr, uint32_t size) {
     ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     notnull_check(ptr);
     eq_check(size, hybrid_kat_entropy_blob.size);

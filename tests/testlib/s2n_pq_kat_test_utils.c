@@ -30,13 +30,13 @@ uint8_t kat_entropy_buff[SEED_LENGTH] = {0};
 struct s2n_blob kat_entropy_blob = {.size = SEED_LENGTH, .data = kat_entropy_buff};
 struct s2n_drbg drbg_for_pq_kats;
 
-static int s2n_pq_kat_init_cleanup(void) {
+int s2n_pq_kat_init_cleanup(void) {
     ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     return S2N_SUCCESS;
 }
 
 /* The entropy is provided as the seed value in the KAT file. */
-static int s2n_pq_kat_seed_entropy(void *ptr, uint32_t size) {
+int s2n_pq_kat_seed_entropy(void *ptr, uint32_t size) {
     ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     notnull_check(ptr);
     eq_check(size, kat_entropy_blob.size);
@@ -89,7 +89,7 @@ static S2N_RESULT s2n_get_random_data_for_pq_kat_tests(struct s2n_blob *blob) {
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_get_random_bytes_for_pq_kat_tests(uint8_t *buffer, uint32_t num_bytes) {
+S2N_RESULT s2n_get_random_bytes_for_pq_kat_tests(uint8_t *buffer, uint32_t num_bytes) {
     ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     struct s2n_blob out = { .data = buffer, .size = num_bytes };
 
