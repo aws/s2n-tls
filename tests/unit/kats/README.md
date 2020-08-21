@@ -33,3 +33,11 @@ based on the PQ-KEM. The length must be specified as a base 10 integer. The leng
 and are defined in the source test files. The values for `premaster_classic_secret`, `premaster_kem_secret`,
 `client_random`, `server_random`, `client_key_exchange_message`, and `master_secret` are represented as hex-encoded
 strings.
+
+## TLS 1.3 Server Hybrid Key Share KAT
+The `tls13_server_hybrid_key_share_recv.kat` KAT is used to verify correctness of the TLS 1.3 client functionality for
+receiving PQ hybrid key shares from the server. The values for `pq_private_key` and `pq_shared_secret` were taken from
+the first entry of the NIST KAT files. The value for `server_key_share_payload` is hex-encoded bytes, as they would
+appear over the wire, of the key shares extension received by the client in the `ServerHello` (the first four bytes of
+a typical key share extension are omitted - the payload begins with the two-byte identifier for the named KEM group).
+ 
