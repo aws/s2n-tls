@@ -198,9 +198,10 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
 
     struct s2n_signature_scheme chosen_scheme;
 
-    GUARD(s2n_choose_default_sig_scheme(conn, &chosen_scheme));
-    /* Pick a default signature algorithm in TLS 1.3 https://tools.ietf.org/html/rfc8446#section-4.4.2.2 */
-    if (conn->actual_protocol_version == S2N_TLS13) {
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        GUARD(s2n_choose_default_sig_scheme(conn, &chosen_scheme));
+    } else {
+        /* Pick a default signature algorithm in TLS 1.3 https://tools.ietf.org/html/rfc8446#section-4.4.2.2 */
         GUARD(s2n_tls13_default_sig_scheme(conn, &chosen_scheme));
     }
 
