@@ -21,6 +21,8 @@
 
 #include "utils/s2n_random.h"
 
+extern int s2n_cpu_supports_rdrand();
+
 static uint8_t thread_data[2][100];
 
 void *thread_safety_tester(void *slot)
@@ -221,7 +223,7 @@ int main(int argc, char **argv)
     memset(trailing_zeros, 0, sizeof(trailing_zeros));
     for (int i = 0; i < 5120; i++) {
         blob.size = i;
-        EXPECT_OK(s2n_get_urandom_data(&blob));
+        EXPECT_OK(s2n_get_public_random_data(&blob));
 
         if (i >= 64) {
             /* Set the run counts to 0 */
@@ -266,7 +268,7 @@ int main(int argc, char **argv)
         memset(trailing_zeros, 0, sizeof(trailing_zeros));
         for (int i = 0; i < 5120; i++) {
             blob.size = i;
-            EXPECT_OK(s2n_get_urandom_data(&blob));
+            EXPECT_OK(s2n_get_public_random_data(&blob));
 
             if (i >= 64) {
                 /* Set the run counts to 0 */

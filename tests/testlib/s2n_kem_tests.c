@@ -23,6 +23,23 @@
 
 #define SEED_LENGTH 48
 uint8_t kat_entropy_buff[SEED_LENGTH] = {0};
+struct s2n_blob kat_entropy_blob = {.size = SEED_LENGTH, .data = kat_entropy_buff};
+
+int kat_init_cleanup(void)
+{
+    return 0;
+}
+
+int kat_entropy(void *ptr, uint32_t size)
+{
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+
+    notnull_check(ptr);
+    eq_check(size, kat_entropy_blob.size);
+    memcpy_check(ptr, kat_entropy_buff, size);
+
+    return 0;
+}
 
 int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name)
 {
@@ -59,11 +76,10 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name)
         eq_check(count, i);
 
         /* Set the NIST rng to the same state the response file was created with */
-        GUARD(ReadHex(kat_file, kat_entropy_buff, SEED_LENGTH, "seed = "));
+        GUARD(ReadHex(kat_file, kat_entropy_blob.data, SEED_LENGTH, "seed = "));
 
-        struct s2n_blob seed;
-        GUARD(s2n_blob_init(&seed, kat_entropy_buff, SEED_LENGTH));
-        GUARD(s2n_unsafe_set_drbg_seed(&seed));
+        /* Plug in our own Entropy Source */
+        GUARD(s2n_rand_set_callbacks(kat_init_cleanup, kat_init_cleanup, kat_entropy, kat_entropy));
 
         /* Generate the public/private key pair */
         GUARD(kem->generate_keypair(pk, sk));

@@ -213,7 +213,7 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     if (!use_iov) {
         data_size = 10000000;
         s2n_alloc(&blob, data_size);
-        EXPECT_OK(s2n_get_urandom_data(&blob));
+        EXPECT_OK(s2n_get_public_random_data(&blob));
     } else {
         iov = malloc(sizeof(*iov) * iov_size);
         data_size = 0;
@@ -221,7 +221,7 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
             struct s2n_blob blob_local;
             iov[i].iov_base = blob_local.data = malloc(iov_payload_size);
             iov[i].iov_len = blob_local.size = iov_payload_size;
-            EXPECT_OK(s2n_get_urandom_data(&blob));
+            EXPECT_OK(s2n_get_public_random_data(&blob));
             data_size += iov_payload_size;
         }
     }

@@ -29,7 +29,25 @@
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_security_policies.h"
 
-struct s2n_blob hybrid_kat_entropy_blob = {0};
+#define SEED_LENGTH 48
+uint8_t hybrid_kat_entropy_buff[SEED_LENGTH] = {0};
+struct s2n_blob hybrid_kat_entropy_blob = {.size = SEED_LENGTH, .data = hybrid_kat_entropy_buff};
+
+int hybrid_kat_init_cleanup(void)
+{
+    return 0;
+}
+
+int hybrid_kat_entropy(void *ptr, uint32_t size)
+{
+    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+
+    notnull_check(ptr);
+    eq_check(size, hybrid_kat_entropy_blob.size);
+    memcpy_check(ptr, hybrid_kat_entropy_buff, size);
+
+    return 0;
+}
 
 int setup_connection(struct s2n_connection *conn, const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
                      const char *cipher_pref_version) {
@@ -110,9 +128,10 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
      * generates the same ECDHE point and KEM public key, the client does the same. */
     FILE *kat_file = fopen(kat_file_name, "r");
     GUARD_NONNULL(kat_file);
-    GUARD(s2n_alloc(&hybrid_kat_entropy_blob, 48));
     GUARD(ReadHex(kat_file, hybrid_kat_entropy_blob.data, 48, "seed = "));
-    GUARD(s2n_unsafe_set_drbg_seed(&hybrid_kat_entropy_blob));
+
+    /* Plug in our own Entropy Source */
+    GUARD(s2n_rand_set_callbacks(hybrid_kat_init_cleanup, hybrid_kat_init_cleanup, hybrid_kat_entropy, hybrid_kat_entropy));
 #endif
 
     /* Part 2 server sends key first */
