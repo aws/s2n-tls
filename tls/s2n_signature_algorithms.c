@@ -85,7 +85,7 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
             continue;
         }
 
-        for (int j = 0; j < peer_wire_prefs->len; j++) {
+        for (size_t j = 0; j < peer_wire_prefs->len; j++) {
             uint16_t their_iana_val = peer_wire_prefs->iana_list[j];
 
             if (candidate->iana_value == their_iana_val) {
@@ -95,10 +95,11 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
         }
     }
 
-    S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_SCHEME);
+    /* do not error even if there's no match */
+    return S2N_SUCCESS;
 }
 
-/* exactly like s2n_choose_sig_scheme() without matching client's preference */
+/* similar to s2n_choose_sig_scheme() without matching client's preference */
 static int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_scheme_out)
 {
     notnull_check(conn);
@@ -208,7 +209,7 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
     /* SignatureScheme preference list was first added in TLS 1.2. It will be empty in older TLS versions. */
     if (peer_wire_prefs != NULL && peer_wire_prefs->len > 0) {
         /* Use a best effort approach to selecting a signature scheme matching client's preferences */
-        s2n_choose_sig_scheme(conn, peer_wire_prefs, &chosen_scheme);
+        GUARD(s2n_choose_sig_scheme(conn, peer_wire_prefs, &chosen_scheme));
     }
 
     *sig_scheme_out = chosen_scheme;
