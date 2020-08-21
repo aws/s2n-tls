@@ -17,7 +17,7 @@ int SIKE_P434_r2_crypto_kem_keypair(unsigned char *pk, unsigned char *sk) {
     digit_t _sk[(SECRETKEY_B_BYTES / sizeof(digit_t)) + 1];
 
     // Generate lower portion of secret key sk <- s||SK
-    GUARD_AS_POSIX(get_random_bytes(sk, MSG_BYTES));
+    GUARD_AS_POSIX(s2n_get_random_bytes(sk, MSG_BYTES));
     GUARD(random_mod_order_B((unsigned char *)_sk));
 
     // Generate public key pk
@@ -46,7 +46,7 @@ int SIKE_P434_r2_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsi
     unsigned char temp[CRYPTO_CIPHERTEXTBYTES + MSG_BYTES];
 
     // Generate ephemeralsk <- G(m||pk) mod oA
-    GUARD_AS_POSIX(get_random_bytes(temp, MSG_BYTES));
+    GUARD_AS_POSIX(s2n_get_random_bytes(temp, MSG_BYTES));
     memcpy(&temp[MSG_BYTES], pk, CRYPTO_PUBLICKEYBYTES);
     shake256(ephemeralsk.b, SECRETKEY_A_BYTES, temp, CRYPTO_PUBLICKEYBYTES + MSG_BYTES);
     ephemeralsk.b[SECRETKEY_A_BYTES - 1] &= MASK_ALICE;

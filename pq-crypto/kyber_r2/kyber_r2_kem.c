@@ -28,7 +28,7 @@ int kyber_512_r2_crypto_kem_keypair(uint8_t *pk, uint8_t *sk) {
         sk[i + KYBER_INDCPA_SECRETKEYBYTES] = pk[i];
     }
     hash_h(sk + KYBER_SECRETKEYBYTES - 2 * KYBER_SYMBYTES, pk, KYBER_PUBLICKEYBYTES);
-    GUARD_AS_POSIX(get_random_bytes(sk + KYBER_SECRETKEYBYTES - KYBER_SYMBYTES, KYBER_SYMBYTES));	/* Value z for pseudo-random output on reject */
+    GUARD_AS_POSIX(s2n_get_random_bytes(sk + KYBER_SECRETKEYBYTES - KYBER_SYMBYTES, KYBER_SYMBYTES));	/* Value z for pseudo-random output on reject */
     return 0;
 }
 
@@ -48,7 +48,7 @@ int kyber_512_r2_crypto_kem_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk) {
     uint8_t  kr[2 * KYBER_SYMBYTES];                                   /* Will contain key, coins */
     uint8_t buf[2 * KYBER_SYMBYTES];
 
-    GUARD_AS_POSIX(get_random_bytes(buf, KYBER_SYMBYTES));
+    GUARD_AS_POSIX(s2n_get_random_bytes(buf, KYBER_SYMBYTES));
     hash_h(buf, buf, KYBER_SYMBYTES);                                        /* Don't release system RNG output */
 
     hash_h(buf + KYBER_SYMBYTES, pk, KYBER_PUBLICKEYBYTES);                  /* Multitarget countermeasure for coins + contributory KEM */
