@@ -15,7 +15,7 @@
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
-BCS_11=pq_random.bc
+BCS_11=s2n_pq_random.bc
 BCS1=$(addprefix $(BITCODE_DIR), $(BCS_11))
 
 .PHONY : all

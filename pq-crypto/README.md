@@ -58,7 +58,7 @@ variable before compiling.
 1. Add the code to `pq-crypto/KEM_NAME/`
     1. Update `pq-crypto/Makefile` to build that directory
     1. Update `lib/Makefile` to also include that directory
-    1. Update the KEM code to include `pq-crypto/pq_random.h` and use the function `s2n_get_random_bytes` for any random data the KEM needs
+    1. Update the KEM code to include `pq-crypto/s2n_pq_random.h` and use the function `s2n_get_random_bytes` for any random data the KEM needs
     1. Create a `pq-crypto/KEM_NAME/KEM_NAME.h` with the size of objects and method definitions
 1. Define the new cipher suite value and KEM extension value in `tls/s2n_tls_parameters.h`
 1. Create the `KEM_NAME` `s2n_kem` struct in `tls/s2n_kem.c`
@@ -75,7 +75,7 @@ variable before compiling.
 1. Add the code to `pq-crypto/KEM_NAME/`
     1. Update `pq-crypto/Makefile` to build that directory
     1. Update `lib/Makefile` to also include that directory
-    1. Update the KEM code to include `pq-crypto/pq_random.h` and use the function `s2n_get_random_bytes` for any random data the KEM needs
+    1. Update the KEM code to include `pq-crypto/s2n_pq_random.h` and use the function `s2n_get_random_bytes` for any random data the KEM needs
     1. Create a `pq-crypto/KEM_NAME/KEM_NAME.h` with the size of objects and method definitions
 1. Define the KEM extension value in `tls/s2n_tls_parameters.h`
 1. Create the `KEM_NAME` `s2n_kem` struct in `tls/s2n_kem.c`
