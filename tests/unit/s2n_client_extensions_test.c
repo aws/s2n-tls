@@ -890,7 +890,7 @@ int main(int argc, char **argv)
     }
 
     /* Server and client support the OCSP extension. Test Behavior for TLS 1.3 */
-    if(s2n_x509_ocsp_stapling_supported()) {
+    if(s2n_x509_ocsp_stapling_supported() && s2n_is_tls13_supported()) {
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
