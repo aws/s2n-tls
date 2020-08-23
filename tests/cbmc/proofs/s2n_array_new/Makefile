@@ -22,7 +22,7 @@ PROOF_SOURCES += $(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
-PROOF_SOURCES += $(PROOF_STUB)/memset.c
+PROOF_SOURCES += $(PROOF_STUB)/memset_havoc.c
 PROOF_SOURCES += $(PROOF_STUB)/mlock.c
 PROOF_SOURCES += $(PROOF_STUB)/munlock.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
@@ -38,6 +38,7 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 # We abstract these functions because manual inspection demonstrates they are unreachable.
 REMOVE_FUNCTION_BODY += s2n_blob_slice
 REMOVE_FUNCTION_BODY += s2n_ensure_memcpy_trace
+REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
 
 UNWINDSET +=
 
