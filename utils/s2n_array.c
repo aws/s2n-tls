@@ -73,10 +73,10 @@ S2N_RESULT s2n_array_pushback(struct s2n_array *array, void **element)
 
 S2N_RESULT s2n_array_get(struct s2n_array *array, uint32_t index, void **element)
 {
-    ENSURE_REF(array);
+    PRECONDITION(s2n_array_is_valid(array));
     ENSURE_REF(element);
     ENSURE(index < array->len, S2N_ERR_ARRAY_INDEX_OOB);
-    *element = array->mem.data + array->element_size * index;
+    *element = array->mem.data + (array->element_size * index);
     return S2N_RESULT_OK;
 }
 
