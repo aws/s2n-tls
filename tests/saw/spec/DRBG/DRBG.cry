@@ -39,6 +39,7 @@ block_encrypt key data = aesEncrypt(data, key)
 
 type s2n_drbg =
   { bytes_used : [64]
+  , mixes : [32]
   , ctx : cipher_ctx
   , v : [blocklen]
   }
@@ -81,7 +82,7 @@ drbg_reseed : {ps_size}
 drbg_reseed drbg entropy ps = drbg''
   where
     drbg' = drbg_update (entropy ^ (ps # zero)) drbg
-    drbg'' = { v = drbg'.v, ctx = drbg'.ctx, bytes_used = 0}
+    drbg'' = { v = drbg'.v, ctx = drbg'.ctx, bytes_used = 0, mixes = drbg'.mixes}
 
 drbg_mix : {ps_size}
            (ps_size <= seedlen)
@@ -92,7 +93,7 @@ drbg_mix : {ps_size}
 drbg_mix drbg entropy ps = drbg''
   where
     drbg' = drbg_update (entropy ^ (ps # zero)) drbg
-    drbg'' = { v = drbg'.v, ctx = drbg'.ctx, bytes_used = drbg'.bytes_used}
+    drbg'' = { v = drbg'.v, ctx = drbg'.ctx, bytes_used = drbg'.bytes_used, mixes = 1 + drbg'.mixes}
 
 drbg_uninstantiate : s2n_drbg -> s2n_drbg
 drbg_uninstantiate drbg = zero
@@ -137,4 +138,5 @@ drbg_update data drbg = result
     result = { bytes_used = drbg.bytes_used + (`blocks * `blocksize)
              , ctx = { key = take data_xor }
              , v = drop data_xor
+             , mixes = drbg.mixes
              }
