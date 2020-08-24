@@ -389,9 +389,9 @@ bits_ov <- crucible_llvm_verify m "s2n_drbg_bits" [inc_ov, encryptUpdate_ov, blk
 
 update_ov <- crucible_llvm_verify m "s2n_drbg_update" [bits_ov, encryptInit_ov, aes_128_ecb_ov, cipher_key_length_ov] false (update_spec seedsize) (w4_unint_yices ["block_encrypt"]);
 
-seed_ov <- crucible_llvm_verify m "s2n_drbg_seed" [get_public_random_ov, get_rand_seed_cb_ov, update_ov, cipher_key_length_ov] false (seed_spec seedsize) (w4_unint_yices ["block_encrypt"]);
+seed_ov <- crucible_llvm_verify m "s2n_drbg_seed" [get_public_random_ov, get_seed_entropy_ov, update_ov, cipher_key_length_ov] false (seed_spec seedsize) (w4_unint_yices ["block_encrypt"]);
 
-mix_ov <- crucible_llvm_verify m "s2n_drbg_mix" [get_public_random_ov, get_rand_mix_cb_ov, update_ov, cipher_key_length_ov] false (mix_spec seedsize) (w4_unint_yices ["block_encrypt"]);
+mix_ov <- crucible_llvm_verify m "s2n_drbg_mix" [get_public_random_ov, get_mix_entropy_ov, update_ov, cipher_key_length_ov] false (mix_spec seedsize) (w4_unint_yices ["block_encrypt"]);
 
 instantiate_ov <- crucible_llvm_verify m "s2n_drbg_instantiate" [zero_ov_block, zero_ov_seed, cipher_new_ov, cipher_cleanup_ov, encryptInit_ov, encryptInit_nokey_ov, aes_128_ecb_ov, cipher_key_length_ov, seed_ov, supports_rdrand_ov] false(instantiate_spec seedsize) (w4_unint_yices ["block_encrypt"]);
 
