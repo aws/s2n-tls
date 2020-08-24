@@ -51,6 +51,7 @@ drbg_generate_internal : {n, blocks}
 drbg_generate_internal drbg =
   (join [ block_encrypt drbg.ctx.key (drbg.v + i) | i <- [1 .. blocks]], drbg')
     where drbg' = { bytes_used = drbg.bytes_used + `(blocks * blocksize)
+                  , mixes = drbg.mixes
                   , ctx = drbg.ctx
                   , v = drbg.v + `blocks
                   }
