@@ -21,7 +21,7 @@
 
 #include "utils/s2n_random.h"
 
-extern int s2n_cpu_supports_rdrand();
+extern bool s2n_cpu_supports_rdrand();
 
 static uint8_t thread_data[2][100];
 
