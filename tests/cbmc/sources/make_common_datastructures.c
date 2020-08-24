@@ -104,3 +104,8 @@ struct s2n_set* cbmc_allocate_s2n_set() {
     }
     return set;
 }
+
+bool s2n_array_is_bounded(const struct s2n_array *array, const size_t max_len, const size_t max_element_size)
+{
+    return (array->len <= max_len) && (array->element_size <= max_element_size);
+}

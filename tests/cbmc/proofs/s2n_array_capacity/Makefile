@@ -11,7 +11,7 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Expected runtime is less than 10 seconds.
+# Expected runtime is less than 15 seconds.
 
 MAX_ARRAY_LEN = 100
 DEFINES += -DMAX_ARRAY_LEN=$(MAX_ARRAY_LEN)
@@ -21,7 +21,7 @@ DEFINES += -DMAX_ARRAY_ELEMENT_SIZE=$(MAX_ARRAY_ELEMENT_SIZE)
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = s2n_array_num_elements_harness
+HARNESS_ENTRY = s2n_array_capacity_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(HARNESS_FILE)
