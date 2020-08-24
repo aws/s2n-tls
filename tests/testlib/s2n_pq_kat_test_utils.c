@@ -30,8 +30,12 @@ uint8_t kat_entropy_buff[SEED_LENGTH] = {0};
 struct s2n_blob kat_entropy_blob = {.size = SEED_LENGTH, .data = kat_entropy_buff};
 struct s2n_drbg drbg_for_pq_kats;
 
-int s2n_pq_kat_init_cleanup(void) {
+int s2n_pq_kat_rand_init(void) {
     ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    return S2N_SUCCESS;
+}
+
+int s2n_pq_kat_rand_cleanup(void) {
     return S2N_SUCCESS;
 }
 
@@ -124,7 +128,7 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) 
     notnull_check(ss_answer = malloc(kem->shared_secret_key_length));
 
     s2n_stack_blob(personalization_string, SEED_LENGTH, SEED_LENGTH);
-    GUARD(s2n_rand_set_callbacks(s2n_pq_kat_init_cleanup, s2n_pq_kat_init_cleanup, s2n_pq_kat_seed_entropy,
+    GUARD(s2n_rand_set_callbacks(s2n_pq_kat_rand_init, s2n_pq_kat_rand_cleanup, s2n_pq_kat_seed_entropy,
             s2n_kat_mix_entropy));
     GUARD_AS_POSIX(s2n_set_rand_bytes_callback_for_testing(s2n_get_random_bytes_for_pq_kat_tests));
 

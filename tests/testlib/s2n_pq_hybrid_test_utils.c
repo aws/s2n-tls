@@ -34,8 +34,12 @@ uint8_t hybrid_kat_entropy_buff[SEED_LENGTH] = {0};
 struct s2n_blob hybrid_kat_entropy_blob = {.size = SEED_LENGTH, .data = hybrid_kat_entropy_buff};
 struct s2n_drbg drbg_for_hybrid_kats;
 
-int s2n_hybrid_pq_init_cleanup(void) {
+int s2n_hybrid_pq_rand_init(void) {
     ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    return S2N_SUCCESS;
+}
+
+int s2n_hybrid_pq_rand_cleanup(void) {
     return S2N_SUCCESS;
 }
 
@@ -130,7 +134,7 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
     GUARD(ReadHex(kat_file, hybrid_kat_entropy_blob.data, SEED_LENGTH, "seed = "));
 
     s2n_stack_blob(personalization_string, SEED_LENGTH, SEED_LENGTH);
-    GUARD(s2n_rand_set_callbacks(s2n_hybrid_pq_init_cleanup, s2n_hybrid_pq_init_cleanup, s2n_hybrid_pq_entropy,
+    GUARD(s2n_rand_set_callbacks(s2n_hybrid_pq_rand_init, s2n_hybrid_pq_rand_cleanup, s2n_hybrid_pq_entropy,
             s2n_hybrid_pq_entropy));
     GUARD(s2n_drbg_instantiate(&drbg_for_hybrid_kats, &personalization_string, S2N_AES_256_CTR_NO_DF_PR));
     GUARD_AS_POSIX(s2n_set_private_drbg_for_test(drbg_for_hybrid_kats));
