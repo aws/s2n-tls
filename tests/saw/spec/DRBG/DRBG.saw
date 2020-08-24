@@ -117,12 +117,9 @@ let drbg_state n = do {
     (key, keyp) <- ptr_to_fresh "key" ctx_type;
     bytes_used <- crucible_fresh_var (str_concat n "->bytes_used") i64;
     v <- crucible_fresh_var (str_concat n "->v") (bytes_type blocksize);
-    gen <- crucible_fresh_var (str_concat n "->generation") i32;
     crucible_points_to (crucible_field state "bytes_used") (tm bytes_used);
     crucible_points_to (crucible_field state "ctx") keyp;
     crucible_points_to (crucible_field state "v") (tm v);
-    crucible_points_to (crucible_field state "entropy_generator") crucible_null;
-    crucible_points_to (crucible_field state "generation") (tm gen);
     return ( state
            , keyp
            , {{ { bytes_used = bytes_used
@@ -132,7 +129,7 @@ let drbg_state n = do {
            );
 };
 
-let ensure_drbg_state_helper is_null_entropy_generator p keyp s = do {
+let ensure_drbg_state p keyp s = do {
     crucible_points_to (crucible_field p "bytes_used") (tm {{ s.bytes_used }});
     crucible_points_to (crucible_field p "ctx") keyp;
     crucible_points_to_untyped keyp (tm {{
@@ -141,17 +138,7 @@ let ensure_drbg_state_helper is_null_entropy_generator p keyp s = do {
     crucible_points_to (crucible_field p "v") (tm {{
         split s.v : [blocksize][8]
     }});
-    if is_null_entropy_generator then do {
-        crucible_points_to (crucible_field p "entropy_generator") crucible_null;
-    } else do {
-        return ();
-    };
-    gen <- crucible_fresh_var ("generation'") i32;
-    crucible_points_to (crucible_field p "generation") (tm gen);
 };
-
-let ensure_drbg_state = ensure_drbg_state_helper true;
-let ensure_drbg_state_nonnull_entropy_generator = ensure_drbg_state_helper false;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Assumed specifications
@@ -230,7 +217,7 @@ let encryptUpdate_spec n = do {
     crucible_return (tm {{ 1 : [32] }});
 };
 
-let get_urandom_spec = do {
+let get_public_random_spec = do {
     (p, datap) <- alloc_blob seedsize;
     crucible_execute_func [p];
     crucible_points_to datap (tm {{ split fake_entropy : [seedsize][8] }});
@@ -314,7 +301,7 @@ let instantiate_spec n = do {
 
     newkeyp <- crucible_alloc ctx_type;
     crucible_points_to (crucible_field sp "ctx") newkeyp;
-    ensure_drbg_state_nonnull_entropy_generator sp newkeyp {{ drbg_instantiate fake_entropy (join data) }};
+    ensure_drbg_state sp newkeyp {{ drbg_instantiate fake_entropy (join data) }};
     crucible_return (tm {{ 0 : [32] }});
 };
 
@@ -369,7 +356,7 @@ encryptUpdate_ov <- crucible_llvm_unsafe_assume_spec m "EVP_EncryptUpdate"
 
 supports_rdrand_ov <- crucible_llvm_unsafe_assume_spec m "s2n_cpu_supports_rdrand" supports_rdrand_spec;
 
-get_urandom_ov <- crucible_llvm_unsafe_assume_spec m "s2n_get_public_random_data" get_urandom_spec;
+get_public_random_ov <- crucible_llvm_unsafe_assume_spec m "s2n_get_public_random_data" get_public_random_spec;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Proofs about internal functions
@@ -389,7 +376,7 @@ bits_ov <- crucible_llvm_verify m "s2n_drbg_bits" [inc_ov, encryptUpdate_ov, blk
 
 update_ov <- crucible_llvm_verify m "s2n_drbg_update" [bits_ov, encryptInit_ov, aes_128_ecb_ov, cipher_key_length_ov] false (update_spec seedsize) (w4_unint_yices ["block_encrypt"]);
 
-seed_ov <- crucible_llvm_verify m "s2n_drbg_seed" [get_urandom_ov, update_ov, cipher_key_length_ov] false (seed_spec seedsize) (w4_unint_yices ["block_encrypt"]);
+seed_ov <- crucible_llvm_verify m "s2n_drbg_seed" [get_public_random_ov, update_ov, cipher_key_length_ov] false (seed_spec seedsize) (w4_unint_yices ["block_encrypt"]);
 
 instantiate_ov <- crucible_llvm_verify m "s2n_drbg_instantiate" [zero_ov_block, zero_ov_seed, cipher_new_ov, cipher_cleanup_ov, encryptInit_ov, encryptInit_nokey_ov, aes_128_ecb_ov, cipher_key_length_ov, seed_ov, supports_rdrand_ov] false(instantiate_spec seedsize) (w4_unint_yices ["block_encrypt"]);
 
