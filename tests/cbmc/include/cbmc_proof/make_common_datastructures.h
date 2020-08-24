@@ -85,3 +85,8 @@ struct s2n_set* cbmc_allocate_s2n_set();
  * Checks whether s2n_array is bounded by max_len and max_element_size.
  */
 bool s2n_array_is_bounded(const struct s2n_array *array, const size_t max_len, const size_t max_element_size);
+
+/*
+ * Checks whether s2n_set is bounded by max_len and max_element_size.
+ */
+bool s2n_set_is_bounded(const struct s2n_set *set, const size_t max_len, const size_t max_element_size);

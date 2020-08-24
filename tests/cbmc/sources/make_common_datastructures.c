@@ -109,3 +109,8 @@ bool s2n_array_is_bounded(const struct s2n_array *array, const size_t max_len, c
 {
     return (array->len <= max_len) && (array->element_size <= max_element_size);
 }
+
+bool s2n_set_is_bounded(const struct s2n_set *set, const size_t max_len, const size_t max_element_size)
+{
+    return s2n_array_is_bounded(set->data, max_len, max_element_size);
+}

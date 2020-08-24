@@ -19,13 +19,14 @@
 
 #define S2N_INITIAL_ARRAY_SIZE 16
 
-extern bool s2n_array_is_valid(const struct s2n_array *array)
+bool s2n_array_is_valid(const struct s2n_array *array)
 {
     uint32_t mem_size = 0;
     return S2N_OBJECT_PTR_IS_READABLE(array) &&
            s2n_blob_is_valid(&array->mem) &&
+           (array->element_size != 0) &&
            !s2n_mul_overflow(array->len, array->element_size, &mem_size) &&
-           array->mem.size == mem_size;
+           (array->mem.size >= mem_size);
 }
 
 static S2N_RESULT s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
