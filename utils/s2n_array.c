@@ -90,7 +90,7 @@ S2N_RESULT s2n_array_insert_and_copy(struct s2n_array *array, uint32_t index, vo
 
 S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **element)
 {
-    ENSURE_REF(array);
+    PRECONDITION(s2n_array_is_valid(array));
     ENSURE_REF(element);
     /* index == len is ok since we're about to add one element */
     ENSURE(index <= array->len, S2N_ERR_ARRAY_INDEX_OOB);
@@ -98,13 +98,14 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **elem
     /* We are about to add one more element to the array. Add capacity if necessary */
     uint32_t current_capacity = 0;
     GUARD_RESULT(s2n_array_capacity(array, &current_capacity));
+
     if (array->len >= current_capacity) {
         /* Enlarge the array */
         uint32_t new_capacity;
         GUARD_AS_RESULT(s2n_mul_overflow(current_capacity, 2, &new_capacity));
         GUARD_RESULT(s2n_array_enlarge(array, new_capacity));
     }
-
+#if 0
     /* If we are adding at an existing index, slide everything down. */
     if (index < array->len) {
         memmove(array->mem.data + array->element_size * (index + 1),
@@ -114,7 +115,7 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **elem
 
     *element = array->mem.data + array->element_size * index;
     array->len++;
-
+#endif
     return S2N_RESULT_OK;
 }
 
