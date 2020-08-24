@@ -367,9 +367,9 @@ supports_rdrand_ov <- crucible_llvm_unsafe_assume_spec m "s2n_cpu_supports_rdran
 
 get_public_random_ov <- crucible_llvm_unsafe_assume_spec m "s2n_get_public_random_data" get_public_random_spec;
 
-get_rand_seed_cb_ov <- crucible_llvm_unsafe_assume_spec m "s2n_rand_seed_cb" get_public_random_spec;
+get_seed_entropy_ov <- crucible_llvm_unsafe_assume_spec m "s2n_get_seed_entropy" get_public_random_spec;
 
-get_rand_mix_cb_ov <- crucible_llvm_unsafe_assume_spec m "s2n_rand_mix_cb" get_public_random_spec;
+get_mix_entropy_ov <- crucible_llvm_unsafe_assume_spec m "s2n_get_mix_entropy" get_public_random_spec;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Proofs about internal functions
