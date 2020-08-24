@@ -66,7 +66,7 @@ struct s2n_array *s2n_array_new(uint32_t element_size)
 
 S2N_RESULT s2n_array_pushback(struct s2n_array *array, void **element)
 {
-    ENSURE_REF(array);
+    PRECONDITION(s2n_array_is_valid(array));
     ENSURE_REF(element);
     return s2n_array_insert(array, array->len, element);
 }
