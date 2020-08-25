@@ -22,7 +22,7 @@ static S2N_RESULT s2n_get_random_bytes_default(uint8_t *buffer, uint32_t num_byt
 
 static s2n_get_random_bytes_callback s2n_get_random_bytes_cb = s2n_get_random_bytes_default;
 
-S2N_RESULT s2n_get_random_bytes(unsigned char *buffer, uint32_t num_bytes) {
+S2N_RESULT s2n_get_random_bytes(uint8_t *buffer, uint32_t num_bytes) {
     ENSURE_REF(buffer);
     GUARD_RESULT(s2n_get_random_bytes_cb(buffer, num_bytes));
 
