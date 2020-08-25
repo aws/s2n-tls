@@ -102,7 +102,7 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
     return S2N_SUCCESS;
 }
 
-static int s2n_generate_preferred_pq_hybrid_key_share(struct s2n_connection *conn, struct s2n_stuffer *out) {
+static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn, struct s2n_stuffer *out) {
     notnull_check(conn);
     notnull_check(out);
 
@@ -231,7 +231,7 @@ static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stu
     if (s2n_is_hello_retry_handshake(conn)) {
         GUARD(s2n_send_hrr_keyshare(conn, out));
     } else {
-        GUARD(s2n_generate_preferred_pq_hybrid_key_share(conn, out));
+        GUARD(s2n_generate_default_pq_hybrid_key_share(conn, out));
         GUARD(s2n_ecdhe_supported_curves_send(conn, out));
     }
 
