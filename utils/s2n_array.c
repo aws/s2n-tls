@@ -155,7 +155,7 @@ S2N_RESULT s2n_array_capacity(struct s2n_array *array, uint32_t *capacity)
 {
     GUARD_RESULT(s2n_array_validate(array));
     PRECONDITION(array->element_size != 0);
-    ENSURE_REF(capacity);
+    ENSURE_MUT(capacity);
 
     *capacity = array->mem.size / array->element_size;
 
