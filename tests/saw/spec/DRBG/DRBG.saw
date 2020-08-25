@@ -116,7 +116,7 @@ let drbg_state n = do {
     state <- crucible_alloc (llvm_struct "struct.s2n_drbg");
     (key, keyp) <- ptr_to_fresh "key" ctx_type;
     bytes_used <- crucible_fresh_var (str_concat n "->bytes_used") i64;
-    mixes <- crucible_fresh_var "mixes" i32;
+    mixes <- crucible_fresh_var (str_concat n "->mixes") i32;
     v <- crucible_fresh_var (str_concat n "->v") (bytes_type blocksize);
     crucible_points_to (crucible_field state "bytes_used") (tm bytes_used);
     crucible_points_to (crucible_field state "mixes") (tm mixes);
@@ -125,7 +125,6 @@ let drbg_state n = do {
     return ( state
            , keyp
            , {{ { bytes_used = bytes_used
-               , mixes = mixes
                , ctx = { key = join key }
                , v = join v
                } }}
@@ -134,7 +133,6 @@ let drbg_state n = do {
 
 let ensure_drbg_state p keyp s = do {
     crucible_points_to (crucible_field p "bytes_used") (tm {{ s.bytes_used }});
-    crucible_points_to (crucible_field p "mixes") (tm {{ s.mixes }});
     crucible_points_to (crucible_field p "ctx") keyp;
     crucible_points_to_untyped keyp (tm {{
         split s.ctx.key : [keysize][8]
@@ -142,6 +140,8 @@ let ensure_drbg_state p keyp s = do {
     crucible_points_to (crucible_field p "v") (tm {{
         split s.v : [blocksize][8]
     }});
+    mixes <- crucible_fresh_var ("mixes'") i32;
+    crucible_points_to (crucible_field p "mixes") (tm mixes);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
