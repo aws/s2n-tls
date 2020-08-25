@@ -25,7 +25,7 @@ void s2n_array_free_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_array *array = cbmc_allocate_s2n_array();
-    __CPROVER_assume(s2n_array_is_valid(array));
+    __CPROVER_assume(s2n_result_is_ok(s2n_array_validate(array)));
 
     nondet_s2n_mem_init();
 
