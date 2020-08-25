@@ -122,6 +122,8 @@ S2N_RESULT s2n_set_free_p(struct s2n_set **pset)
 
     ENSURE_REF(set);
     GUARD_RESULT(s2n_array_free(set->data));
+
+    /* And finally the set object. */
     GUARD_AS_RESULT(s2n_free_object((uint8_t **)pset, sizeof(struct s2n_set)));
 
     return S2N_RESULT_OK;

@@ -172,12 +172,13 @@ S2N_RESULT s2n_array_free_p(struct s2n_array **parray)
     GUARD_AS_RESULT(s2n_free(&array->mem));
 
     /* And finally the array */
-    *array = (struct s2n_array) {0};
+    GUARD_AS_RESULT(s2n_free_object((uint8_t **)parray, sizeof(struct s2n_array)));
 
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_array_free(struct s2n_array *array)
 {
+    ENSURE_REF(array);
     return s2n_array_free_p(&array);
 }

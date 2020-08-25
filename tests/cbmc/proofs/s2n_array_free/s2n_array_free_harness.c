@@ -14,6 +14,7 @@
  */
 
 #include "api/s2n.h"
+#include "error/s2n_errno.h"
 #include "utils/s2n_array.h"
 #include "utils/s2n_result.h"
 
@@ -32,10 +33,8 @@ void s2n_array_free_harness()
     struct s2n_array old_array = *array;
 
     /* Operation under verification. */
-    if(s2n_result_is_ok(s2n_array_free(array))) {
-        /* If the call worked, assert all bytes in the blob struct are zero. */
-        assert_all_zeroes(array, sizeof(*array));
-    }
+    s2n_array_free(array);
+
 #pragma CPROVER check push
 #pragma CPROVER check disable "pointer"
     /*
