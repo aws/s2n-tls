@@ -40,7 +40,7 @@ struct s2n_drbg {
     /* The current DRBG 'value' */
     uint8_t v[S2N_DRBG_BLOCK_SIZE];
 
-    /* Also used only by the unit tests: how many times has entropy been mixed in */
+    /* Used only by the unit tests: how many times has entropy been mixed in */
     uint32_t mixes;
 };
 

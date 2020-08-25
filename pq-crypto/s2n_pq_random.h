@@ -16,7 +16,6 @@
 #pragma once
 
 #include "utils/s2n_result.h"
-#include "s2n_pq_utils.h"
 
 typedef S2N_RESULT (*s2n_get_random_bytes_callback)(uint8_t *buffer, uint32_t num_bytes);
 
