@@ -19,14 +19,15 @@
 
 #define S2N_INITIAL_ARRAY_SIZE 16
 
-bool s2n_array_is_valid(const struct s2n_array *array)
+S2N_RESULT s2n_array_validate(const struct s2n_array *array)
 {
     uint32_t mem_size = 0;
-    return S2N_OBJECT_PTR_IS_READABLE(array) &&
-           s2n_blob_is_valid(&array->mem) &&
-           (array->element_size != 0) &&
-           !s2n_mul_overflow(array->len, array->element_size, &mem_size) &&
-           (array->mem.size >= mem_size);
+    ENSURE_REF(array);
+    ENSURE(s2n_blob_is_valid(&array->mem), S2N_ERR_SAFETY);
+    ENSURE_NE(array->element_size, 0);
+    GUARD_AS_RESULT(s2n_mul_overflow(array->len, array->element_size, &mem_size));
+    ENSURE_GTE(array->mem.size, mem_size);
+    return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
@@ -60,7 +61,7 @@ struct s2n_array *s2n_array_new(uint32_t element_size)
         GUARD_PTR(s2n_free(&mem));
         return NULL;
     }
-    POSTCONDITION_PTR(s2n_array_is_valid(array));
+    GUARD_RESULT_PTR(s2n_array_validate(array));
     return array;
 }
 
@@ -142,7 +143,7 @@ S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t index)
 
 S2N_RESULT s2n_array_num_elements(struct s2n_array *array, uint32_t *len)
 {
-    PRECONDITION(s2n_array_is_valid(array));
+    GUARD_RESULT(s2n_array_validate(array));
     ENSURE_REF(len);
 
     *len = array->len;
@@ -152,7 +153,7 @@ S2N_RESULT s2n_array_num_elements(struct s2n_array *array, uint32_t *len)
 
 S2N_RESULT s2n_array_capacity(struct s2n_array *array, uint32_t *capacity)
 {
-    PRECONDITION(s2n_array_is_valid(array));
+    GUARD_RESULT(s2n_array_validate(array));
     PRECONDITION(array->element_size != 0);
     ENSURE_REF(capacity);
 

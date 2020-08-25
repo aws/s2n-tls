@@ -25,7 +25,7 @@ void s2n_set_len_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_set *set = cbmc_allocate_s2n_set();
-    __CPROVER_assume(s2n_set_is_valid(set));
+    __CPROVER_assume(s2n_result_is_ok(s2n_set_validate(set)));
     __CPROVER_assume(s2n_set_is_bounded(set, MAX_ARRAY_LEN, MAX_ARRAY_ELEMENT_SIZE));
     uint32_t* len = can_fail_malloc(sizeof(*len));
 
@@ -36,5 +36,5 @@ void s2n_set_len_harness()
     }
 
     /* Post-condition. */
-    assert(s2n_set_is_valid(set));
+    assert(s2n_result_is_ok(s2n_set_validate(set)));
 }

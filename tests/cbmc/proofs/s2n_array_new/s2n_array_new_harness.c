@@ -27,14 +27,11 @@ void s2n_array_new_harness()
     /* Non-deterministic inputs. */
     uint32_t element_size;
 
-    /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if(nondet_bool()) {
-        s2n_mem_init();
-    }
+    nondet_s2n_mem_init();
 
     /* Operation under verification. */
     struct s2n_array *new_array = s2n_array_new(element_size);
 
     /* Post-conditions. */
-    assert(S2N_IMPLIES(new_array != NULL, s2n_array_is_valid(new_array)));
+    assert(S2N_IMPLIES(new_array != NULL, s2n_result_is_ok(s2n_array_validate(new_array))));
 }

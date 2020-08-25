@@ -21,10 +21,11 @@
 
 #define S2N_INITIAL_SET_SIZE 16
 
-bool s2n_set_is_valid(struct s2n_set *set)
+S2N_RESULT s2n_set_validate(const struct s2n_set *set)
 {
-    return S2N_OBJECT_PTR_IS_READABLE(set) &&
-           s2n_array_is_valid(set->data);
+    ENSURE_REF(set);
+    GUARD_RESULT(s2n_array_validate(set->data));
+    return S2N_RESULT_OK;
 }
 
 /* Sets "out" to the index at which the element should be inserted.
@@ -133,7 +134,7 @@ S2N_RESULT s2n_set_free(struct s2n_set *set)
 
 S2N_RESULT s2n_set_len(struct s2n_set *set, uint32_t *len)
 {
-    PRECONDITION(s2n_set_is_valid(set));
+    GUARD_RESULT(s2n_set_validate(set));
 
     GUARD_RESULT(s2n_array_num_elements(set->data, len));
 
