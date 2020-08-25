@@ -21,6 +21,13 @@
 
 #define S2N_INITIAL_SET_SIZE 16
 
+S2N_RESULT s2n_set_validate(const struct s2n_set *set)
+{
+    ENSURE_REF(set);
+    GUARD_RESULT(s2n_array_validate(set->data));
+    return S2N_RESULT_OK;
+}
+
 /* Sets "out" to the index at which the element should be inserted.
  * Returns an error if the element already exists */
 static S2N_RESULT s2n_set_binary_search(struct s2n_set *set, void *element, uint32_t* out)
@@ -127,8 +134,7 @@ S2N_RESULT s2n_set_free(struct s2n_set *set)
 
 S2N_RESULT s2n_set_len(struct s2n_set *set, uint32_t *len)
 {
-    ENSURE_REF(set);
-    ENSURE_REF(len);
+    GUARD_RESULT(s2n_set_validate(set));
 
     GUARD_RESULT(s2n_array_num_elements(set->data, len));
 
