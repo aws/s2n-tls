@@ -43,7 +43,7 @@ static S2N_RESULT s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
     uint32_t array_elements_size;
     GUARD_AS_RESULT(s2n_mul_overflow(array->element_size, array->len, &array_elements_size));
     CHECKED_MEMSET(array->mem.data + array_elements_size, 0, array->mem.size - array_elements_size);
-
+    GUARD_RESULT(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 
@@ -61,7 +61,6 @@ struct s2n_array *s2n_array_new(uint32_t element_size)
         GUARD_PTR(s2n_free(&mem));
         return NULL;
     }
-    GUARD_RESULT_PTR(s2n_array_validate(array));
     return array;
 }
 
@@ -154,7 +153,6 @@ S2N_RESULT s2n_array_num_elements(struct s2n_array *array, uint32_t *len)
 S2N_RESULT s2n_array_capacity(struct s2n_array *array, uint32_t *capacity)
 {
     GUARD_RESULT(s2n_array_validate(array));
-    PRECONDITION(array->element_size != 0);
     ENSURE_MUT(capacity);
 
     *capacity = array->mem.size / array->element_size;
