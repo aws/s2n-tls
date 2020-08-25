@@ -22,7 +22,7 @@
 #include "crypto/s2n_fips.h"
 #include "pq-crypto/s2n_pq_random.h"
 
-/* We include s2n_drbg.c directly in order to access the static functions in our PQ random callback. */
+/* We include s2n_drbg.c directly in order to access the static functions in our entropy callbacks. */
 #include "crypto/s2n_drbg.c"
 
 #define SEED_LENGTH 48
@@ -39,7 +39,7 @@ int s2n_pq_kat_rand_cleanup(void) {
     return S2N_SUCCESS;
 }
 
-/* The entropy is provided as the seed value in the KAT file. */
+/* The seed entropy is taken from the NIST KAT file. */
 int s2n_pq_kat_seed_entropy(void *ptr, uint32_t size) {
     ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     notnull_check(ptr);
@@ -51,13 +51,13 @@ int s2n_pq_kat_seed_entropy(void *ptr, uint32_t size) {
 
 /* Since the NIST KATs were generated without prediction resistance, the
  * mix entropy callback should never be called. */
-static int s2n_kat_mix_entropy(void *ptr, uint32_t size) {
+static int s2n_pq_kat_mix_entropy(void *ptr, uint32_t size) {
     return S2N_FAILURE;
 }
 
 /* Adapted from s2n_drbg.c::s2n_drbg_generate(); this allows us to side-step the DRBG
  * prediction resistance that is built in to s2n's DRBG modes. The PQ KATs were generated
- * using AES 256 CTR NO DF NO PR */
+ * using AES 256 CTR NO DF NO PR. */
 static S2N_RESULT s2n_drbg_generate_for_pq_kat_tests(struct s2n_drbg *drbg, struct s2n_blob *blob) {
     ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     ENSURE_REF(drbg);
@@ -74,7 +74,7 @@ static S2N_RESULT s2n_drbg_generate_for_pq_kat_tests(struct s2n_drbg *drbg, stru
     return S2N_RESULT_OK;
 }
 
-/* Adapted from s2n_random.c::s2n_get_private_random_data() */
+/* Adapted from s2n_random.c::s2n_get_private_random_data(). */
 static S2N_RESULT s2n_get_random_data_for_pq_kat_tests(struct s2n_blob *blob) {
     ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     uint32_t offset = 0;
@@ -106,6 +106,7 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) 
     S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
+#if defined(S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND)
     notnull_check(kem);
 
     FILE *kat_file = fopen(kat_file_name, "r");
@@ -129,10 +130,10 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) 
 
     s2n_stack_blob(personalization_string, SEED_LENGTH, SEED_LENGTH);
     GUARD(s2n_rand_set_callbacks(s2n_pq_kat_rand_init, s2n_pq_kat_rand_cleanup, s2n_pq_kat_seed_entropy,
-            s2n_kat_mix_entropy));
+            s2n_pq_kat_mix_entropy));
     GUARD_AS_POSIX(s2n_set_rand_bytes_callback_for_testing(s2n_get_random_bytes_for_pq_kat_tests));
 
-    for (int32_t i = 0; i < NUM_OF_KATS; i++) {
+    for (size_t i = 0; i < NUM_OF_KATS; i++) {
         /* Verify test index */
         int32_t count = 0;
         GUARD(FindMarker(kat_file, "count = "));
@@ -170,6 +171,7 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) 
         eq_check(memcmp(ct_answer, ct, kem->ciphertext_length), 0);
         eq_check(memcmp(ss_answer, server_shared_secret, kem->shared_secret_key_length ), 0);
 
+        /* Wipe the DRBG; it will reseed for each KAT test vector. */
         GUARD(s2n_drbg_wipe(&drbg_for_pq_kats));
     }
     fclose(kat_file);
@@ -183,5 +185,6 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) 
     free(ct_answer);
     free(ss_answer);
 
+#endif
     return 0;
 }
