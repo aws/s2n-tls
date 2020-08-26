@@ -106,7 +106,6 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) 
     S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
-#if defined(S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND)
     notnull_check(kem);
 
     FILE *kat_file = fopen(kat_file_name, "r");
@@ -185,6 +184,5 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) 
     free(ct_answer);
     free(ss_answer);
 
-#endif
     return 0;
 }
