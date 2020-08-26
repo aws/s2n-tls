@@ -722,6 +722,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
 
+    /* Cannot enable OCSP stapling if there's no support for it */
+    if(!s2n_x509_ocsp_stapling_supported()) {
+        struct s2n_config *client_config;
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_FAILURE(s2n_config_set_check_stapled_ocsp_response(client_config, 1));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+    }
+
     /* Server doesn't support the OCSP extension. We can't run this test if ocsp isn't supported by the client. */
     if(s2n_x509_ocsp_stapling_supported()) {
         struct s2n_connection *client_conn;

@@ -405,6 +405,7 @@ int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_ho
 int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_t check_ocsp)
 {
     notnull_check(config);
+    S2N_ERROR_IF(check_ocsp && !s2n_x509_ocsp_stapling_supported(), S2N_ERR_OCSP_NOT_SUPPORTED);
     config->check_ocsp = check_ocsp;
     return 0;
 }
