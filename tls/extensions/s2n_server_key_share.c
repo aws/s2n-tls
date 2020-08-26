@@ -64,6 +64,8 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
     notnull_check(conn);
     notnull_check(extension);
 
+    /* If in FIPS mode, the client should not have sent any PQ IDs
+     * in the supported_groups list of the initial ClientHello */
     ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
 
     const struct s2n_kem_preferences *kem_pref = NULL;
@@ -87,8 +89,11 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
     server_kem_group_params->kem_params.kem = kem_pref->tls13_kem_groups[kem_group_index]->kem;
     server_kem_group_params->ecc_params.negotiated_curve = kem_pref->tls13_kem_groups[kem_group_index]->curve;
 
+    /* If this a HRR, the server will only have sent the named group ID. We assign the
+     * appropriate KEM group params above, then exit early so that the client can
+     * generate the correct key share. */
     if (s2n_is_hello_retry_message(conn)) {
-        S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+        return S2N_SUCCESS;
     }
 
     /* Ensure that the server's key share corresponds with a key share previously sent by the client */

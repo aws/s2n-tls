@@ -29,6 +29,8 @@
 #include "utils/s2n_safety.h"
 #include "crypto/s2n_fips.h"
 
+#define HELLO_RETRY_MSG_NO 1
+
 #define S2N_STUFFER_READ_SKIP_TILL_END( stuffer ) do { \
     EXPECT_SUCCESS(s2n_stuffer_skip_read(stuffer,      \
         s2n_stuffer_data_available(stuffer)));         \
@@ -562,6 +564,50 @@ int main(int argc, char **argv)
 
                     EXPECT_SUCCESS(s2n_connection_free(client_conn));
                 }
+            }
+            /* Test s2n_server_key_share_extension.recv with HRR for PQ */
+            {
+                struct s2n_connection *client_conn = NULL;
+                EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+                client_conn->security_policy_override = &test_security_policy;
+                client_conn->actual_protocol_version = S2N_TLS13;
+                client_conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
+                client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
+                client_conn->actual_protocol_version_established = 1;
+
+                /* In the HRR, the server indicated p256+BIKE as it's choice in the key share extension */
+                const struct s2n_kem_group *kem_group = &s2n_secp256r1_bike1_l1_r2;
+                DEFER_CLEANUP(struct s2n_stuffer key_share_payload = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&key_share_payload, "2F23"));
+
+                /* Client should successfully parse the indicated group */
+                EXPECT_SUCCESS(s2n_server_key_share_extension.recv(client_conn, &key_share_payload));
+
+                EXPECT_NOT_NULL(client_conn->secure.server_kem_group_params.kem_group);
+                EXPECT_EQUAL(client_conn->secure.server_kem_group_params.kem_group, kem_group);
+                EXPECT_NOT_NULL(client_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
+                EXPECT_EQUAL(client_conn->secure.server_kem_group_params.ecc_params.negotiated_curve, kem_group->curve);
+                EXPECT_NOT_NULL(client_conn->secure.server_kem_group_params.kem_params.kem);
+                EXPECT_EQUAL(client_conn->secure.server_kem_group_params.kem_params.kem, kem_group->kem);
+
+                /* s2n_server_key_share_extension.recv should have exited early after parsing the indicated group,
+                 * so everything else should be NULL */
+                EXPECT_NULL(client_conn->secure.chosen_client_kem_group_params);
+
+                for (size_t i = 0; i < S2N_SUPPORTED_KEM_GROUPS_COUNT; i++) {
+                    EXPECT_NULL(client_conn->secure.client_kem_group_params[i].kem_group);
+                    EXPECT_NULL(client_conn->secure.client_kem_group_params[i].ecc_params.negotiated_curve);
+                    EXPECT_NULL(client_conn->secure.client_kem_group_params[i].ecc_params.evp_pkey);
+                    EXPECT_NULL(client_conn->secure.client_kem_group_params[i].kem_params.kem);
+                    EXPECT_NULL(client_conn->secure.client_kem_group_params[i].kem_params.private_key.data);
+                    EXPECT_NULL(client_conn->secure.client_kem_group_params[i].kem_params.public_key.data);
+                    EXPECT_NULL(client_conn->secure.client_kem_group_params[i].kem_params.shared_secret.data);
+                }
+
+                EXPECT_NULL(client_conn->secure.server_kem_group_params.ecc_params.evp_pkey);
+                EXPECT_NULL(client_conn->secure.server_kem_group_params.kem_params.shared_secret.data);
+
+                EXPECT_SUCCESS(s2n_connection_free(client_conn));
             }
             /* Various failure cases */
             {
