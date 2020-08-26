@@ -66,14 +66,14 @@ struct s2n_array *s2n_array_new(uint32_t element_size)
 
 S2N_RESULT s2n_array_pushback(struct s2n_array *array, void **element)
 {
-    PRECONDITION(s2n_array_is_valid(array));
+    GUARD_RESULT(s2n_array_validate(array));
     ENSURE_REF(element);
     return s2n_array_insert(array, array->len, element);
 }
 
 S2N_RESULT s2n_array_get(struct s2n_array *array, uint32_t index, void **element)
 {
-    PRECONDITION(s2n_array_is_valid(array));
+    GUARD_RESULT(s2n_array_validate(array));
     ENSURE_REF(element);
     ENSURE(index < array->len, S2N_ERR_ARRAY_INDEX_OOB);
     *element = array->mem.data + (array->element_size * index);
@@ -90,7 +90,7 @@ S2N_RESULT s2n_array_insert_and_copy(struct s2n_array *array, uint32_t index, vo
 
 S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **element)
 {
-    PRECONDITION(s2n_array_is_valid(array));
+    GUARD_RESULT(s2n_array_validate(array));
     ENSURE_REF(element);
     /* index == len is ok since we're about to add one element */
     ENSURE(index <= array->len, S2N_ERR_ARRAY_INDEX_OOB);
@@ -105,7 +105,7 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **elem
         GUARD_AS_RESULT(s2n_mul_overflow(current_capacity, 2, &new_capacity));
         GUARD_RESULT(s2n_array_enlarge(array, new_capacity));
     }
-#if 0
+
     /* If we are adding at an existing index, slide everything down. */
     if (index < array->len) {
         memmove(array->mem.data + array->element_size * (index + 1),
@@ -115,13 +115,14 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **elem
 
     *element = array->mem.data + array->element_size * index;
     array->len++;
-#endif
+
+    GUARD_RESULT(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t index)
 {
-    PRECONDITION(s2n_array_is_valid(array));
+    GUARD_RESULT(s2n_array_validate(array));
     ENSURE(index < array->len, S2N_ERR_ARRAY_INDEX_OOB);
 
     /* If the removed element is the last one, no need to move anything.
@@ -133,18 +134,12 @@ S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t index)
     }
     array->len--;
 
-    if (array->len == 0) {
-        /* If array is empty, make sure the underline blob is empty too. */
-        s2n_blob_zero(&array->mem);
-        array->mem.size = 0;
-    } else {
-        /* After shifting, zero the last element */
-        CHECKED_MEMSET(array->mem.data + array->element_size * array->len,
-                       0,
-                       array->element_size);
-    }
+    /* After shifting, zero the last element */
+    CHECKED_MEMSET(array->mem.data + array->element_size * array->len,
+                   0,
+                   array->element_size);
 
-    PRECONDITION(s2n_array_is_valid(array));
+    GUARD_RESULT(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 

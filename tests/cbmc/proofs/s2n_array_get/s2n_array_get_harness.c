@@ -25,7 +25,7 @@ void s2n_array_get_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_array *array = cbmc_allocate_s2n_array();
-    __CPROVER_assume(s2n_array_is_valid(array));
+    __CPROVER_assume(s2n_result_is_ok(s2n_array_validate(array)));
     __CPROVER_assume(s2n_array_is_bounded(array, MAX_ARRAY_LEN, MAX_ARRAY_ELEMENT_SIZE));
     uint32_t index;
     void **element = can_fail_malloc(sizeof(void *));
@@ -43,5 +43,5 @@ void s2n_array_get_harness()
     }
 
     /* Post-condition. */
-    assert(s2n_array_is_valid(array));
+    assert(s2n_result_is_ok(s2n_array_validate(array)));
 }
