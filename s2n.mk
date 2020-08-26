@@ -52,10 +52,10 @@ FUZZ_CFLAGS = -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,le
 
 # Define FUZZ_COVERAGE - to be used for generating coverage reports on fuzz tests
 #                !!! NOT COMPATIBLE WITH S2N_COVERAGE !!!
-ifdef FUZZ_COVERAGE
+ifeq ($(FUZZ_COVERAGE), true)
 	FUZZ_CFLAGS += -fprofile-instr-generate -fcoverage-mapping
 else
-	ifdef S2N_COVERAGE
+	ifeq ($(S2N_COVERAGE), true)
 		DEFAULT_CFLAGS += ${COVERAGE_CFLAGS}
 		LIBS += ${COVERAGE_LDFLAGS}
 	endif
