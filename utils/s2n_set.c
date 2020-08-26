@@ -74,7 +74,7 @@ static S2N_RESULT s2n_set_binary_search(struct s2n_set *set, void *element, uint
 
 struct s2n_set *s2n_set_new(uint32_t element_size, int (*comparator)(const void*, const void*))
 {
-    if (comparator == NULL) return NULL;
+    notnull_check_ptr(comparator);
     struct s2n_blob mem = {0};
     GUARD_POSIX_PTR(s2n_alloc(&mem, sizeof(struct s2n_set)));
     struct s2n_set *set = (void *) mem.data;

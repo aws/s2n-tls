@@ -26,11 +26,12 @@ void s2n_set_new_harness()
 {
     /* Non-deterministic inputs. */
     uint32_t element_size;
+    int (*nondet_compare_ptr)(void*,void*) = nondet_bool() ? &nondet_compare : NULL;
 
     nondet_s2n_mem_init();
 
     /* Operation under verification. */
-    struct s2n_set *new_set = s2n_set_new(element_size, nondet_compare);
+    struct s2n_set *new_set = s2n_set_new(element_size, nondet_compare_ptr);
 
     /* Post-conditions. */
     assert(S2N_IMPLIES(new_set != NULL, s2n_result_is_ok(s2n_set_validate(new_set))));

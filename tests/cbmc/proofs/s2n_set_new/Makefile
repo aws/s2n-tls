@@ -13,6 +13,8 @@
 
 # Expected runtime is less than 20 seconds.
 
+DEFINES += -DMADV_DONTDUMP=1
+
 CBMCFLAGS +=
 
 HARNESS_ENTRY = s2n_set_new_harness
@@ -22,6 +24,7 @@ PROOF_SOURCES += $(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(PROOF_STUB)/madvise.c
 PROOF_SOURCES += $(PROOF_STUB)/memset_havoc.c
 PROOF_SOURCES += $(PROOF_STUB)/mlock.c
 PROOF_SOURCES += $(PROOF_STUB)/munlock.c
