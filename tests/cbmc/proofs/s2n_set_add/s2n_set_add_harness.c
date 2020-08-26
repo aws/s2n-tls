@@ -37,7 +37,7 @@ void s2n_set_add_harness()
     /* Operation under verification. */
     if(s2n_result_is_ok(s2n_set_add(set, element))) {
         /*
-         * In the case s2n_array_insert_and_copy is successful, we can ensure the array isn't empty
+         * In the case s2n_set_add is successful, we can ensure the array isn't empty
          * and index is within bounds.
          */
          assert(set->data->mem.data != NULL);
