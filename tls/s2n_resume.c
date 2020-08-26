@@ -499,7 +499,7 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     GUARD(s2n_stuffer_write(to, &iv));
 
     GUARD(s2n_blob_init(&aes_key_blob, key->aes_key, S2N_AES256_KEY_LEN));
-    notnull_check(aes_ticket_key.evp_cipher_ctx = EVP_CIPHER_CTX_new());
+    GUARD(s2n_session_key_alloc(&aes_ticket_key));
     GUARD(s2n_aes256_gcm.init(&aes_ticket_key));
     GUARD(s2n_aes256_gcm.set_encryption_key(&aes_ticket_key, &aes_key_blob));
 
@@ -558,7 +558,7 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn)
     GUARD(s2n_stuffer_read(from, &iv));
 
     s2n_blob_init(&aes_key_blob, key->aes_key, S2N_AES256_KEY_LEN);
-    notnull_check(aes_ticket_key.evp_cipher_ctx = EVP_CIPHER_CTX_new());
+    GUARD(s2n_session_key_alloc(&aes_ticket_key));
     GUARD(s2n_aes256_gcm.init(&aes_ticket_key));
     GUARD(s2n_aes256_gcm.set_decryption_key(&aes_ticket_key, &aes_key_blob));
 
@@ -639,7 +639,7 @@ int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *f
     GUARD(s2n_stuffer_read(from, &iv));
 
     s2n_blob_init(&aes_key_blob, key->aes_key, S2N_AES256_KEY_LEN);
-    notnull_check(aes_ticket_key.evp_cipher_ctx = EVP_CIPHER_CTX_new());
+    GUARD(s2n_session_key_alloc(&aes_ticket_key));
     GUARD(s2n_aes256_gcm.init(&aes_ticket_key));
     GUARD(s2n_aes256_gcm.set_decryption_key(&aes_ticket_key, &aes_key_blob));
 
