@@ -76,7 +76,7 @@ TEMP_CORPUS_DIR="$(mktemp -d)"
 cp -r ./corpus/${TEST_NAME}/. "${TEMP_CORPUS_DIR}"
 
 # Run AFL instead of libfuzzer if AFL_FUZZ is set. Not compatible with fuzz coverage.
-if [[ ! -z "$AFL_FUZZ" && -z "$FUZZ_COVERAGE" ]]; then
+if [[ ! -z "$AFL_FUZZ" && "$FUZZ_COVERAGE" != "true" ]]; then
     printf "Running %-s %-40s for %5d sec... " "${FIPS_TEST_MSG}" ${TEST_NAME} ${FUZZ_TIMEOUT_SEC}
     mkdir -p results/${TEST_NAME}
     timeout ${FUZZ_TIMEOUT_SEC} afl-fuzz -i corpus/${TEST_NAME} -o results/${TEST_NAME} -m none ./${TEST_NAME}
@@ -98,7 +98,7 @@ else
 fi
 
 # Setup and clean profile structure if FUZZ_COVERAGE is enabled, otherwise run as normal
-if [[ ! -z "$FUZZ_COVERAGE" ]]; then
+if [[ "$FUZZ_COVERAGE" == "true" ]]; then
     mkdir -p "./profiles/${TEST_NAME}"
     rm -f ./profiles/${TEST_NAME}/*.profraw
     LLVM_PROFILE_FILE="./profiles/${TEST_NAME}/${TEST_NAME}.%p.profraw" ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
@@ -118,7 +118,7 @@ declare -i TARGET_COV=0
 # Coverage is overlayed on source code in ${TEST_NAME}_cov.html, and coverage statistics are available in ${TEST_NAME}_cov.txt
 # If using LLVM version 9 or greater, coverage is output in LCOV format instead of HTML
 # All files are stored in the s2n coverage directory
-if [[ ! -z "$FUZZ_COVERAGE" ]]; then
+if [[ "$FUZZ_COVERAGE" == "true" ]]; then
     mkdir -p ${COVERAGE_DIR}/fuzz
     llvm-profdata merge -sparse ./profiles/${TEST_NAME}/*.profraw -o ./profiles/${TEST_NAME}/${TEST_NAME}.profdata
     llvm-cov report -instr-profile=./profiles/${TEST_NAME}/${TEST_NAME}.profdata ${S2N_ROOT}/lib/libs2n.so ${FUZZCOV_SOURCES} -show-functions > ${COVERAGE_DIR}/fuzz/${TEST_NAME}_cov.txt
@@ -151,7 +151,7 @@ then
 
     # Output target function coverage percentage if target functions are defined and fuzzing coverage is enabled
     # Otherwise, print number of features covered
-    if [[ ! -z "$FUZZ_COVERAGE" && ! -z "$TARGET_FUNCS" && "$EXPECTED_TEST_FAILURE" != 1 && "$TARGET_TOTAL" != 0 ]];
+    if [[ "$FUZZ_COVERAGE" == "true" && ! -z "$TARGET_FUNCS" && "$EXPECTED_TEST_FAILURE" != 1 && "$TARGET_TOTAL" != 0 ]];
     then
         printf ", %6.2f%% target coverage" "$(( 10000 * ($TARGET_TOTAL - $TARGET_COV) / $TARGET_TOTAL ))e-2"
     else
