@@ -356,7 +356,11 @@ extern int s2n_sub_overflow(uint32_t a, uint32_t b, uint32_t* out);
 /* Note: this macro is replaced by ENSURE_POSIX_REF */
 #define notnull_check( ptr )                        ENSURE_POSIX_REF(ptr)
 /* Note: this macro is replaced by ENSURE_REF_PTR */
-#define notnull_check_ptr( ptr )                    ENSURE_REF_PTR(ptr)
+#ifdef CBMC
+#    define notnull_check_ptr( ptr )                do { if ( ptr == NULL ) { return NULL; } } while (0)
+#else
+#    define notnull_check_ptr( ptr )                ENSURE_REF_PTR(ptr)
+#endif
 
 /* Range check a number */
 #define gte_check( n , min )                        ENSURE_POSIX((n) >= (min), S2N_ERR_SAFETY)
