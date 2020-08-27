@@ -118,7 +118,7 @@ S2N_RESULT s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blo
         GUARD_RESULT(s2n_map_embiggen(map, map->capacity * 2));
     }
 
-    uint32_t slot;
+    uint32_t slot = 0;
     GUARD_RESULT(s2n_map_slot(map, key, &slot));
 
     /* Linear probing until we find an empty slot */
@@ -150,7 +150,7 @@ S2N_RESULT s2n_map_put(struct s2n_map *map, struct s2n_blob *key, struct s2n_blo
         GUARD_RESULT(s2n_map_embiggen(map, map->capacity * 2));
     }
 
-    uint32_t slot;
+    uint32_t slot = 0;
     GUARD_RESULT(s2n_map_slot(map, key, &slot));
 
     /* Linear probing until we find an empty slot */
@@ -194,7 +194,7 @@ S2N_RESULT s2n_map_lookup(struct s2n_map *map, struct s2n_blob *key, struct s2n_
 {
     ENSURE(map->immutable, S2N_ERR_MAP_MUTABLE);
 
-    uint32_t slot;
+    uint32_t slot = 0;
     GUARD_RESULT(s2n_map_slot(map, key, &slot));
     const uint32_t initial_slot = slot;
 
