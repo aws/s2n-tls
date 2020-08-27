@@ -33,7 +33,7 @@ void s2n_set_get_harness()
     /* Operation under verification. */
     if(s2n_result_is_ok(s2n_set_get(set, index, element))) {
         /*
-         * In the case s2n_array_get is successful, we can ensure the array isn't empty
+         * In the case s2n_set_get is successful, we can ensure the array isn't empty
          * and index is within bounds.
          */
          assert(set->data->mem.data != NULL);

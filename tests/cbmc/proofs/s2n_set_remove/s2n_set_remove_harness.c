@@ -38,6 +38,9 @@ void s2n_set_remove_harness()
         assert(set->data->mem.data != NULL);
         assert(S2N_IMPLIES(old_array.len != 0, set->data->len == (old_array.len - 1)));
         assert(index < old_array.len);
+	if(index == old_array.len - 1) {
+            assert_bytes_match(set->data->mem.data, old_array.mem.data, set->data->len);
+        }
     }
 
     assert(s2n_result_is_ok(s2n_set_validate(set)));
