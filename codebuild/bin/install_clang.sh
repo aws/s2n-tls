@@ -54,7 +54,7 @@ echo "Installed Clang Version: "
 "$CLANG_DOWNLOAD_DIR"/third_party/llvm-build/Release+Asserts/bin/clang --version
 
 # Install matching LLVM if FUZZ_COVERAGE is enabled
-if [[ ! -z "$FUZZ_COVERAGE" ]]; then
+if [[ "$FUZZ_COVERAGE" == "true" ]]; then
 	LLVM_INSTALL_DIR="$CLANG_INSTALL_DIR"/../llvm
 	mkdir -p "$LLVM_INSTALL_DIR"
 	python3 "$CLANG_DOWNLOAD_DIR"/clang/scripts/update.py --package="coverage_tools" --output-dir="$LLVM_INSTALL_DIR"

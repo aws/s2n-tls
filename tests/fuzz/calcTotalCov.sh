@@ -35,7 +35,7 @@ FUZZCOV_SOURCES="${S2N_ROOT}/api ${S2N_ROOT}/bin ${S2N_ROOT}/crypto ${S2N_ROOT}/
 # Total coverage is overlayed on source code in s2n_cov.html and coverage statistics are available in s2n_cov.txt
 # If using LLVM version 9 or greater, coverage is output in LCOV format instead of HTML
 # All files are stored in the s2n coverage directory
-if [[ ! -z "$FUZZ_COVERAGE" ]]; then
+if [[ "$FUZZ_COVERAGE" == "true" ]]; then
 
     printf "Calculating total s2n coverage... "
 

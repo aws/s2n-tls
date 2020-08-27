@@ -16,8 +16,8 @@
 set -ex
 
 # Upload Code Coverage Information to CodeCov.io
-if [[ -n "$CODECOV_IO_UPLOAD" ]]; then
-    if [[ -n "$FUZZ_COVERAGE" ]]; then
+if [[ "$CODECOV_IO_UPLOAD" == "true" ]]; then
+    if [[ "$FUZZ_COVERAGE" == "true" ]]; then
         bash <(curl -s https://codecov.io/bash) -f coverage/fuzz/codecov.txt -F ${TESTS};
     else
         bash <(curl -s https://codecov.io/bash) -F ${TESTS};

@@ -46,7 +46,7 @@ DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_P
 LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH"
 
 ifdef AFL_FUZZ
-    ifndef FUZZ_COVERAGE
+    ifneq ($(FUZZ_COVERAGE), true)
         CFLAGS += $(LIBFUZZER_ROOT)/FuzzingEngine.a
     endif
 endif
