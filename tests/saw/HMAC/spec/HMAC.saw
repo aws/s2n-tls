@@ -70,7 +70,7 @@ let setup_hash_state pstate = do {
     is_ready_for_input0 <- crucible_fresh_var "is_ready_for_input" (llvm_int 8);
     currently_in_hash0 <- crucible_fresh_var "currently_in_hash" (llvm_int 64);
     md_len0 <- crucible_fresh_var "md_len" (llvm_int 32);
-    (_, pimpl) <- ptr_to_fresh "impl" (llvm_struct "struct.s2n_hash");
+    (_, pimpl) <- ptr_to_fresh_readonly "impl" (llvm_struct "struct.s2n_hash");
     crucible_points_to pstate
       (crucible_struct
         [ pimpl
@@ -106,7 +106,7 @@ let update_hash_state pstate st = do {
     alg <- crucible_fresh_var "alg" (llvm_int 32);
     is_ready_for_input <- crucible_fresh_var "is_ready_for_input" (llvm_int 8);
     currently_in_hash <- crucible_fresh_var "currently_in_hash" (llvm_int 64);
-    (_, pimpl) <- ptr_to_fresh "impl" (llvm_struct "struct.s2n_hash");
+    (_, pimpl) <- ptr_to_fresh_readonly "impl" (llvm_struct "struct.s2n_hash");
 
     crucible_points_to pstate
       (crucible_struct
