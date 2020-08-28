@@ -21,6 +21,7 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 #include "tls/s2n_tls13.h"
+#include "crypto/s2n_fips.h"
 
 #define S2N_IS_KEY_SHARE_LIST_EMPTY(preferred_key_shares) (preferred_key_shares & 1)
 #define S2N_IS_KEY_SHARE_REQUESTED(preferred_key_shares, i) ((preferred_key_shares >> (i + 1)) & 1)
@@ -59,7 +60,7 @@ const s2n_extension_type s2n_client_key_share_extension = {
     .if_missing = s2n_extension_noop_if_missing,
 };
 
-static int s2n_generate_preferred_key_shares(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_generate_preferred_ecc_key_shares(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     notnull_check(conn);
     uint8_t preferred_key_shares = conn->preferred_key_shares;
@@ -86,7 +87,7 @@ static int s2n_generate_preferred_key_shares(struct s2n_connection *conn, struct
     return S2N_SUCCESS;
 }
 
-static int s2n_generate_default_key_share(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     notnull_check(conn);
     const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -101,7 +102,57 @@ static int s2n_generate_default_key_share(struct s2n_connection *conn, struct s2
     return S2N_SUCCESS;
 }
 
-static int s2n_send_hrr_keyshare(struct s2n_connection *conn, struct s2n_stuffer *out)
+static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn, struct s2n_stuffer *out) {
+    notnull_check(conn);
+    notnull_check(out);
+
+    if (s2n_is_in_fips_mode()) {
+        /* PQ KEMs are not supported in FIPS mode */
+        return S2N_SUCCESS;
+    }
+
+    const struct s2n_kem_preferences *kem_pref = NULL;
+    GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    notnull_check(kem_pref);
+
+    if (kem_pref->tls13_kem_group_count == 0) {
+        return S2N_SUCCESS;
+    }
+
+    /* We only send a single PQ key share - the highest preferred one */
+    const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[0];
+
+    /* The structure of the PQ share is:
+     *    IANA ID (2 bytes)
+     * || total share size (2 bytes)
+     * || size of ECC key share (2 bytes)
+     * || ECC key share (variable bytes)
+     * || size of PQ key share (2 bytes)
+     * || PQ key share (variable bytes) */
+    GUARD(s2n_stuffer_write_uint16(out, kem_group->iana_id));
+
+    struct s2n_stuffer_reservation total_share_size = {0};
+    GUARD(s2n_stuffer_reserve_uint16(out, &total_share_size));
+
+    struct s2n_kem_group_params *kem_group_params = &conn->secure.client_kem_group_params[0];
+    kem_group_params->kem_group = kem_group;
+
+    struct s2n_ecc_evp_params *ecc_params = &kem_group_params->ecc_params;
+    ecc_params->negotiated_curve = kem_group->curve;
+    GUARD(s2n_stuffer_write_uint16(out, ecc_params->negotiated_curve->share_size));
+    GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_params));
+    GUARD(s2n_ecc_evp_write_params_point(ecc_params, out));
+
+    struct s2n_kem_params *kem_params = &kem_group_params->kem_params;
+    kem_params->kem = kem_group->kem;
+    GUARD(s2n_kem_send_public_key(out, kem_params));
+
+    GUARD(s2n_stuffer_write_vector_size(&total_share_size));
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_send_hrr_ecc_keyshare(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     notnull_check(conn);
     const struct s2n_ecc_named_curve *server_negotiated_curve = NULL;
@@ -136,23 +187,38 @@ static int s2n_send_hrr_keyshare(struct s2n_connection *conn, struct s2n_stuffer
     return S2N_SUCCESS;
 }
 
+static int s2n_send_hrr_pq_hybrid_keyshare(struct s2n_connection *conn, struct s2n_stuffer *out) {
+    notnull_check(conn);
+    notnull_check(out);
+
+    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+}
+
+/* From https://tools.ietf.org/html/rfc8446#section-4.1.2
+ * If a "key_share" extension was supplied in the HelloRetryRequest,
+ * replace the list of shares with a list containing a single
+ * KeyShareEntry from the indicated group.*/
+static int s2n_send_hrr_keyshare(struct s2n_connection *conn, struct s2n_stuffer *out) {
+    notnull_check(conn);
+    notnull_check(out);
+
+    if (conn->secure.server_kem_group_params.kem_group != NULL) {
+        GUARD(s2n_send_hrr_pq_hybrid_keyshare(conn, out));
+    } else {
+        GUARD(s2n_send_hrr_ecc_keyshare(conn, out));
+    }
+
+    return S2N_SUCCESS;
+}
+
 static int s2n_ecdhe_supported_curves_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    /* From https://tools.ietf.org/html/rfc8446#section-4.1.2
-     * If a "key_share" extension was supplied in the HelloRetryRequest,
-     * replace the list of shares with a list containing a single
-     * KeyShareEntry from the indicated group.*/
-    if (s2n_is_hello_retry_handshake(conn)) {
-        GUARD(s2n_send_hrr_keyshare(conn, out));
-        return S2N_SUCCESS;
-    }
-
     if (!conn->preferred_key_shares) {
-        GUARD(s2n_generate_default_key_share(conn, out));
+        GUARD(s2n_generate_default_ecc_key_share(conn, out));
         return S2N_SUCCESS;
     }
 
-    GUARD(s2n_generate_preferred_key_shares(conn, out));
+    GUARD(s2n_generate_preferred_ecc_key_shares(conn, out));
     return S2N_SUCCESS;
 }
 
@@ -161,7 +227,12 @@ static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stu
     struct s2n_stuffer_reservation shares_size = {0};
     GUARD(s2n_stuffer_reserve_uint16(out, &shares_size));
 
-    GUARD(s2n_ecdhe_supported_curves_send(conn, out));
+    if (s2n_is_hello_retry_handshake(conn)) {
+        GUARD(s2n_send_hrr_keyshare(conn, out));
+    } else {
+        GUARD(s2n_generate_default_pq_hybrid_key_share(conn, out));
+        GUARD(s2n_ecdhe_supported_curves_send(conn, out));
+    }
 
     GUARD(s2n_stuffer_write_vector_size(&shares_size));
 
