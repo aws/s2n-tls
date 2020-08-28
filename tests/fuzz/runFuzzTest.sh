@@ -65,6 +65,11 @@ then
     fi
 fi
 
+if [ ! -d "./corpus/${TEST_NAME}" ];
+then
+  printf "\033[33;1mWARNING!\033[0m ./corpus/${TEST_NAME} directory does not exist, feature coverage may be below minimum.\n\n"
+fi
+
 # Make directory if it doesn't exist
 mkdir -p "./corpus/${TEST_NAME}"
 
@@ -177,7 +182,7 @@ then
         fi
 
         if [ "$FEATURE_COVERAGE" -lt $MIN_FEATURES_COVERED ]; then
-            printf "\033[31;1mERROR!\033[0m ${TEST_NAME} only covers ${FEATURE_COVERAGE} features, which is below ${MIN_FEATURES_COVERED}! This is likely a bug.\n"
+            printf "\033[31;1mERROR!\033[0m ${TEST_NAME} only covers ${FEATURE_COVERAGE} features, which is below ${MIN_FEATURES_COVERED}! This may be due to missing corpus files or a bug.\n"
             exit -1;
         fi
     fi
