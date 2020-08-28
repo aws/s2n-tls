@@ -33,6 +33,7 @@ void s2n_set_add_harness()
     nondet_s2n_mem_init();
 
     struct s2n_array old_array = *(set->data);
+    struct store_byte_from_buffer old_byte;
 
     /* Operation under verification. */
     if(s2n_result_is_ok(s2n_set_add(set, element))) {
@@ -43,5 +44,10 @@ void s2n_set_add_harness()
          assert(set->data->mem.data != NULL);
          assert(set->data->len == (old_array.len + 1));
          assert(s2n_result_is_ok(s2n_set_validate(set)));
+         uint32_t old_capacity = old_array.mem.size / old_array.element_size;
+         if (old_array.len >= old_capacity) {
+             uint32_t new_capacity = set->data->mem.size;
+             assert(set->data->mem.size == (2 * old_capacity * set->data->element_size));
+         }
     }
 }

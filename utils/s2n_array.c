@@ -101,7 +101,7 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **elem
 
     if (array->len >= current_capacity) {
         /* Enlarge the array */
-        uint32_t new_capacity;
+        uint32_t new_capacity = 0;
         GUARD_AS_RESULT(s2n_mul_overflow(current_capacity, 2, &new_capacity));
         GUARD_RESULT(s2n_array_enlarge(array, new_capacity));
     }
@@ -139,7 +139,6 @@ S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t index)
                    0,
                    array->element_size);
 
-    GUARD_RESULT(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 

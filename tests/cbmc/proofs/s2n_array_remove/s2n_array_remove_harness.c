@@ -31,6 +31,8 @@ void s2n_array_remove_harness()
     uint32_t index;
 
     struct s2n_array old_array = *array;
+    struct store_byte_from_buffer old_byte;
+    if (array->len != 0) save_byte_from_array(array->mem.data, array->len - 1, &old_byte);
 
     /* Operation under verification. */
     if(s2n_result_is_ok(s2n_array_remove(array, index))) {
@@ -38,6 +40,9 @@ void s2n_array_remove_harness()
         assert(array->mem.data != NULL);
         assert(array->len == (old_array.len - 1));
         assert(index < old_array.len);
+        if(array->len != 0 && index == old_array.len - 1) {
+            assert_byte_from_blob_matches(&array->mem, &old_byte);
+        }
     }
     assert(s2n_result_is_ok(s2n_array_validate(array)));
 }

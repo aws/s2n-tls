@@ -33,16 +33,26 @@ void s2n_array_pushback_harness()
     nondet_s2n_mem_init();
 
     struct s2n_array old_array = *array;
+    struct store_byte_from_buffer old_byte;
+    save_byte_from_array(array->mem.data, array->len, &old_byte);
 
     /* Operation under verification. */
     if(s2n_result_is_ok(s2n_array_pushback(array, element))) {
        /*
-        * In the case s2n_array_insert is successful, we can ensure the array isn't empty
+        * In the case s2n_array_pushback is successful, we can ensure the array isn't empty
         * and index is within bounds.
         */
         assert(array->mem.data != NULL);
         assert(array->len == (old_array.len + 1));
         assert(*element == (array->mem.data + (array->element_size * old_array.len)));
         assert(s2n_result_is_ok(s2n_array_validate(array)));
+        if (old_array.len != 0) {
+            assert_byte_from_blob_matches(&array->mem, &old_byte);
+        }
+        uint32_t old_capacity = old_array.mem.size / old_array.element_size;
+        if (old_array.len >= old_capacity) {
+            uint32_t new_capacity = array->mem.size;
+            assert(array->mem.size == (2 * old_capacity * array->element_size));
+        }
     }
 }
