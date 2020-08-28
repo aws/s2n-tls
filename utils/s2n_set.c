@@ -21,11 +21,18 @@
 
 #define S2N_INITIAL_SET_SIZE 16
 
+S2N_RESULT s2n_set_validate(const struct s2n_set *set)
+{
+    ENSURE_REF(set);
+    GUARD_RESULT(s2n_array_validate(set->data));
+    return S2N_RESULT_OK;
+}
+
 /* Sets "out" to the index at which the element should be inserted.
  * Returns an error if the element already exists */
 static S2N_RESULT s2n_set_binary_search(struct s2n_set *set, void *element, uint32_t* out)
 {
-    ENSURE_REF(set);
+    GUARD_RESULT(s2n_set_validate(set));
     ENSURE_REF(element);
     ENSURE_REF(out);
     struct s2n_array *array = set->data;
@@ -65,9 +72,9 @@ static S2N_RESULT s2n_set_binary_search(struct s2n_set *set, void *element, uint
     return S2N_RESULT_OK;
 }
 
-struct s2n_set *s2n_set_new(size_t element_size, int (*comparator)(const void*, const void*))
+struct s2n_set *s2n_set_new(uint32_t element_size, int (*comparator)(const void*, const void*))
 {
-    ENSURE_REF_PTR(comparator);
+    notnull_check_ptr(comparator);
     struct s2n_blob mem = {0};
     GUARD_POSIX_PTR(s2n_alloc(&mem, sizeof(struct s2n_set)));
     struct s2n_set *set = (void *) mem.data;
@@ -81,6 +88,8 @@ struct s2n_set *s2n_set_new(size_t element_size, int (*comparator)(const void*, 
 
 S2N_RESULT s2n_set_add(struct s2n_set *set, void *element)
 {
+    GUARD_RESULT(s2n_set_validate(set));
+
     uint32_t index = 0;
     GUARD_RESULT(s2n_set_binary_search(set, element, &index));
     GUARD_RESULT(s2n_array_insert_and_copy(set->data, index, element));
@@ -90,7 +99,7 @@ S2N_RESULT s2n_set_add(struct s2n_set *set, void *element)
 
 S2N_RESULT s2n_set_get(struct s2n_set *set, uint32_t index, void **element)
 {
-    ENSURE_REF(set);
+    GUARD_RESULT(s2n_set_validate(set));
     ENSURE_REF(element);
 
     GUARD_RESULT(s2n_array_get(set->data, index, element));
@@ -100,6 +109,7 @@ S2N_RESULT s2n_set_get(struct s2n_set *set, uint32_t index, void **element)
 
 S2N_RESULT s2n_set_remove(struct s2n_set *set, uint32_t index)
 {
+    GUARD_RESULT(s2n_set_validate(set));
     GUARD_RESULT(s2n_array_remove(set->data, index));
 
     return S2N_RESULT_OK;
@@ -127,8 +137,7 @@ S2N_RESULT s2n_set_free(struct s2n_set *set)
 
 S2N_RESULT s2n_set_len(struct s2n_set *set, uint32_t *len)
 {
-    ENSURE_REF(set);
-    ENSURE_REF(len);
+    GUARD_RESULT(s2n_set_validate(set));
 
     GUARD_RESULT(s2n_array_num_elements(set->data, len));
 

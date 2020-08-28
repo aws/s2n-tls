@@ -20,7 +20,7 @@ all: libs2n.a libs2n.so libs2n.dylib
 
 include ../s2n.mk
 
-ifdef FUZZ_COVERAGE
+ifeq ($(FUZZ_COVERAGE), true)
 	FUZZCOV_FLAGS = -fprofile-instr-generate -fcoverage-mapping
 endif
 

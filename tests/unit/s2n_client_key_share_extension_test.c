@@ -86,12 +86,17 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
             EXPECT_NOT_NULL(ecc_preferences);
 
-            for (int i = 0; i < ecc_preferences->count; i++) {
-                struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
-                EXPECT_EQUAL(ecc_evp_params->negotiated_curve, ecc_preferences->ecc_curves[i]);
-                EXPECT_NOT_NULL(ecc_evp_params->evp_pkey);
+            for (size_t i = 0; i < ecc_preferences->count; i++) {
+                struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];  
+                
+                if (i == 0) {
+                    EXPECT_EQUAL(ecc_evp_params->negotiated_curve, ecc_preferences->ecc_curves[i]);
+                    EXPECT_NOT_NULL(ecc_evp_params->evp_pkey);
+                } else {
+                    EXPECT_NOT_EQUAL(ecc_evp_params->negotiated_curve, ecc_preferences->ecc_curves[i]);
+                    EXPECT_NULL(ecc_evp_params->evp_pkey);
+                }
             }
-
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -115,16 +120,14 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
             EXPECT_NOT_NULL(ecc_preferences);
 
-            /* should contain every supported curve, in order, with their sizes */
-            for (int i = 0; i < ecc_preferences->count; i++) {
-                uint16_t iana_value, share_size;
-                EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &iana_value));
-                EXPECT_EQUAL(iana_value, ecc_preferences->ecc_curves[i]->iana_id);
-                EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &share_size));
-                EXPECT_EQUAL(share_size, ecc_preferences->ecc_curves[i]->share_size);
+            /* should contain only the default supported curve */
+            uint16_t iana_value, share_size;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &iana_value));
+            EXPECT_EQUAL(iana_value, ecc_preferences->ecc_curves[0]->iana_id);
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &share_size));
+            EXPECT_EQUAL(share_size, ecc_preferences->ecc_curves[0]->share_size);
 
-                EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, share_size));
-            }
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, share_size));
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -586,13 +589,18 @@ int main(int argc, char **argv)
             /* should set internal state the same as the client */
             struct s2n_ecc_evp_params *server_ecc_evp_params;
             struct s2n_ecc_evp_params *client_ecc_evp_params;
-            for (int i = 0; i < ecc_pref->count; i++) {
+            for (size_t i = 0; i < ecc_pref->count; i++) {
                 server_ecc_evp_params = &server_conn->secure.client_ecc_evp_params[i];
                 client_ecc_evp_params = &client_conn->secure.client_ecc_evp_params[i];
 
-                EXPECT_NOT_NULL(server_ecc_evp_params->negotiated_curve);
-                EXPECT_NOT_NULL(server_ecc_evp_params->evp_pkey);
-                EXPECT_TRUE(s2n_public_ecc_keys_are_equal(server_ecc_evp_params, client_ecc_evp_params));
+                if (i == 0) {
+                    EXPECT_NOT_NULL(server_ecc_evp_params->negotiated_curve);
+                    EXPECT_NOT_NULL(server_ecc_evp_params->evp_pkey);
+                    EXPECT_TRUE(s2n_public_ecc_keys_are_equal(server_ecc_evp_params, client_ecc_evp_params));
+                } else {
+                    EXPECT_NULL(server_ecc_evp_params->negotiated_curve);
+                    EXPECT_NULL(server_ecc_evp_params->evp_pkey);
+                }
             }
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));

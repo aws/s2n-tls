@@ -82,7 +82,7 @@ export OS_NAME
 export S2N_CORKED_IO
 
 # S2N_COVERAGE should not be used with fuzz tests, use FUZZ_COVERAGE instead
-if [[ ! -z "$S2N_COVERAGE" && "$TESTS" == "fuzz" ]]; then
+if [[ "$S2N_COVERAGE" == "true" && "$TESTS" == "fuzz" ]]; then
     unset S2N_COVERAGE
     export FUZZ_COVERAGE=true
 fi
