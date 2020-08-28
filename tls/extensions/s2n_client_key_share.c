@@ -130,12 +130,9 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
      * || size of PQ key share (2 bytes)
      * || PQ key share (variable bytes) */
     GUARD(s2n_stuffer_write_uint16(out, kem_group->iana_id));
-    uint16_t total_share_size =
-              S2N_SIZE_OF_KEY_SHARE_SIZE
-            + kem_group->curve->share_size
-            + S2N_SIZE_OF_KEY_SHARE_SIZE
-            + kem_group->kem->public_key_length;
-    GUARD(s2n_stuffer_write_uint16(out, total_share_size));
+
+    struct s2n_stuffer_reservation total_share_size = {0};
+    GUARD(s2n_stuffer_reserve_uint16(out, &total_share_size));
 
     struct s2n_kem_group_params *kem_group_params = &conn->secure.client_kem_group_params[0];
     kem_group_params->kem_group = kem_group;
@@ -149,6 +146,8 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
     struct s2n_kem_params *kem_params = &kem_group_params->kem_params;
     kem_params->kem = kem_group->kem;
     GUARD(s2n_kem_send_public_key(out, kem_params));
+
+    GUARD(s2n_stuffer_write_vector_size(&total_share_size));
 
     return S2N_SUCCESS;
 }
