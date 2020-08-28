@@ -164,7 +164,7 @@ struct s2n_handshake {
 
 /* Handshake needs OCSP status message */
 #define OCSP_STATUS                 0x08
-#define IS_OCSP_STAPLED( type ) ( (type) & OCSP_STATUS )
+#define IS_OCSP_STAPLED( type ) ( ( (type) & OCSP_STATUS ) != 0 )
 
 /* Handshake should request a Client Certificate */
 #define CLIENT_AUTH                 0x10

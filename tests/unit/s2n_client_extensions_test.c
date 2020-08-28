@@ -818,7 +818,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, sizeof(server_ocsp_status));
 
-        for (int i = 0; i < sizeof(server_ocsp_status); i++) {
+        for (size_t i = 0; i < sizeof(server_ocsp_status); i++) {
             EXPECT_EQUAL(server_ocsp_reply[i], server_ocsp_status[i]);
         }
 
@@ -876,7 +876,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, sizeof(server_ocsp_status));
 
-        for (int i = 0; i < sizeof(server_ocsp_status); i++) {
+        for (size_t i = 0; i < sizeof(server_ocsp_status); i++) {
             EXPECT_EQUAL(server_ocsp_reply[i], server_ocsp_status[i]);
         }
 
@@ -933,12 +933,13 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(server_conn), 1);
 
         /* Verify that the client received an OCSP response. */
-        /* Currently fails test */ /*EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 1); */
+        /* Currently fails test. Remove when https://github.com/awslabs/s2n/issues/2239 is fixed */
+        /* EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 1); */
 
         EXPECT_NOT_NULL(server_ocsp_reply = s2n_connection_get_ocsp_response(client_conn, &length));
         EXPECT_EQUAL(length, sizeof(server_ocsp_status));
 
-        for (int i = 0; i < sizeof(server_ocsp_status); i++) {
+        for (size_t i = 0; i < sizeof(server_ocsp_status); i++) {
             EXPECT_EQUAL(server_ocsp_reply[i], server_ocsp_status[i]);
         }
 
