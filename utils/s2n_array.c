@@ -66,17 +66,17 @@ struct s2n_array *s2n_array_new(uint32_t element_size)
 
 S2N_RESULT s2n_array_pushback(struct s2n_array *array, void **element)
 {
-    ENSURE_REF(array);
+    GUARD_RESULT(s2n_array_validate(array));
     ENSURE_REF(element);
     return s2n_array_insert(array, array->len, element);
 }
 
 S2N_RESULT s2n_array_get(struct s2n_array *array, uint32_t index, void **element)
 {
-    ENSURE_REF(array);
+    GUARD_RESULT(s2n_array_validate(array));
     ENSURE_REF(element);
     ENSURE(index < array->len, S2N_ERR_ARRAY_INDEX_OOB);
-    *element = array->mem.data + array->element_size * index;
+    *element = array->mem.data + (array->element_size * index);
     return S2N_RESULT_OK;
 }
 
@@ -90,7 +90,7 @@ S2N_RESULT s2n_array_insert_and_copy(struct s2n_array *array, uint32_t index, vo
 
 S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **element)
 {
-    ENSURE_REF(array);
+    GUARD_RESULT(s2n_array_validate(array));
     ENSURE_REF(element);
     /* index == len is ok since we're about to add one element */
     ENSURE(index <= array->len, S2N_ERR_ARRAY_INDEX_OOB);
@@ -98,9 +98,10 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **elem
     /* We are about to add one more element to the array. Add capacity if necessary */
     uint32_t current_capacity = 0;
     GUARD_RESULT(s2n_array_capacity(array, &current_capacity));
+
     if (array->len >= current_capacity) {
         /* Enlarge the array */
-        uint32_t new_capacity;
+        uint32_t new_capacity = 0;
         GUARD_AS_RESULT(s2n_mul_overflow(current_capacity, 2, &new_capacity));
         GUARD_RESULT(s2n_array_enlarge(array, new_capacity));
     }
@@ -115,12 +116,13 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **elem
     *element = array->mem.data + array->element_size * index;
     array->len++;
 
+    GUARD_RESULT(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t index)
 {
-    ENSURE_REF(array);
+    GUARD_RESULT(s2n_array_validate(array));
     ENSURE(index < array->len, S2N_ERR_ARRAY_INDEX_OOB);
 
     /* If the removed element is the last one, no need to move anything.

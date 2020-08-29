@@ -15,35 +15,34 @@
 
 #include "api/s2n.h"
 #include "error/s2n_errno.h"
-#include "utils/s2n_set.h"
+#include "utils/s2n_array.h"
 #include "utils/s2n_result.h"
 
 #include <assert.h>
 #include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
-void s2n_set_remove_harness()
+void s2n_array_remove_harness()
 {
     /* Non-deterministic inputs. */
-    struct s2n_set *set = cbmc_allocate_s2n_set();
-    __CPROVER_assume(s2n_result_is_ok(s2n_set_validate(set)));
-    __CPROVER_assume(s2n_set_is_bounded(set, MAX_ARRAY_LEN, MAX_ARRAY_ELEMENT_SIZE));
+    struct s2n_array *array = cbmc_allocate_s2n_array();
+    __CPROVER_assume(s2n_result_is_ok(s2n_array_validate(array)));
+    __CPROVER_assume(s2n_array_is_bounded(array, MAX_ARRAY_LEN, MAX_ARRAY_ELEMENT_SIZE));
     uint32_t index;
 
-    struct s2n_array old_array = *(set->data);
+    struct s2n_array old_array = *array;
     struct store_byte_from_buffer old_byte;
-    if (set->data->len != 0) save_byte_from_array(set->data->mem.data, set->data->len - 1, &old_byte);
+    if (array->len != 0) save_byte_from_array(array->mem.data, array->len - 1, &old_byte);
 
     /* Operation under verification. */
-    if(s2n_result_is_ok(s2n_set_remove(set, index))) {
-        /* Post-conditions. */
-        assert(set->data->mem.data != NULL);
-        assert(S2N_IMPLIES(old_array.len != 0, set->data->len == (old_array.len - 1)));
+    if(s2n_result_is_ok(s2n_array_remove(array, index))) {
+       /* Post-conditions. */
+        assert(array->mem.data != NULL);
+        assert(array->len == (old_array.len - 1));
         assert(index < old_array.len);
-        if(set->data->len != 0 && index == old_array.len - 1) {
-            assert_byte_from_blob_matches(&set->data->mem, &old_byte);
+        if(array->len != 0 && index == old_array.len - 1) {
+            assert_byte_from_blob_matches(&array->mem, &old_byte);
         }
     }
-
-    assert(s2n_result_is_ok(s2n_set_validate(set)));
+    assert(s2n_result_is_ok(s2n_array_validate(array)));
 }
