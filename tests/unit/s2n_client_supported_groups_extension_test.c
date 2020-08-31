@@ -106,11 +106,7 @@ int main()
 
         struct s2n_stuffer stuffer;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-
-        if (!s2n_is_in_fips_mode()) {
-            conn->security_policy_override = &test_pq_security_policy;
-        }
-        /* If in FIPS mode, the test will proceed using the default KEM preferences (kem_preferences_null) */
+        conn->security_policy_override = &test_pq_security_policy;
 
         const struct s2n_ecc_preferences *ecc_pref = NULL;
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
@@ -119,29 +115,29 @@ int main()
         const struct s2n_kem_preferences *kem_pref = NULL;
         EXPECT_SUCCESS(s2n_connection_get_kem_preferences(conn, &kem_pref));
         EXPECT_NOT_NULL(kem_pref);
-        if (!s2n_is_in_fips_mode()) {
-            EXPECT_EQUAL(kem_pref, &test_kem_prefs);
+
+        if (s2n_is_in_fips_mode()) {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_supported_groups_extension.send(conn, &stuffer),
+                    S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
         } else {
-            EXPECT_EQUAL(kem_pref, &kem_preferences_null);
-        }
+            EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(conn, &stuffer));
 
-        EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(conn, &stuffer));
+            uint16_t length;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &length));
+            EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
+            EXPECT_EQUAL(length, (ecc_pref->count * sizeof(uint16_t)) + (kem_pref->tls13_kem_group_count * sizeof(uint16_t)));
 
-        uint16_t length;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &length));
-        EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
-        EXPECT_EQUAL(length, (ecc_pref->count * sizeof(uint16_t)) + (kem_pref->tls13_kem_group_count * sizeof(uint16_t)));
+            uint16_t kem_id;
+            for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+                EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &kem_id));
+                EXPECT_EQUAL(kem_id, kem_pref->tls13_kem_groups[i]->iana_id);
+            }
 
-        uint16_t kem_id;
-        for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &kem_id));
-            EXPECT_EQUAL(kem_id, kem_pref->tls13_kem_groups[i]->iana_id);
-        }
-
-        uint16_t curve_id;
-        for (int i = 0; i < ecc_pref->count; i++) {
-            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &curve_id));
-            EXPECT_EQUAL(curve_id, ecc_pref->ecc_curves[i]->iana_id);
+            uint16_t curve_id;
+            for (int i = 0; i < ecc_pref->count; i++) {
+                EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &curve_id));
+                EXPECT_EQUAL(curve_id, ecc_pref->ecc_curves[i]->iana_id);
+            }
         }
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));

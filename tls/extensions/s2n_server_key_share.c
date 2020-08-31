@@ -64,15 +64,17 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
     notnull_check(conn);
     notnull_check(extension);
 
-    ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
-
     const struct s2n_kem_preferences *kem_pref = NULL;
     GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
     notnull_check(kem_pref);
 
     /* This check should have been done higher up, but including it here as well for extra defense.
      * Uses S2N_ERR_ECDHE_UNSUPPORTED_CURVE for backward compatibility. */
-    ENSURE_POSIX(s2n_kem_preferences_includes_tls13_kem_group(kem_pref, named_group_iana), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    ENSURE_POSIX(s2n_kem_preferences_includes_tls13_kem_group(kem_pref, named_group_iana),
+            S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    /* Defense in depth; security policy initialization checks should have already enforced KEM
+     * preferences do not include any KEM groups if in FIPS mode */
+    ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
 
     size_t kem_group_index = 0;
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {

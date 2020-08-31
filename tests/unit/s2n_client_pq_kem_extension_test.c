@@ -17,10 +17,26 @@
 
 #include "tls/extensions/s2n_client_pq_kem.h"
 #include "tls/s2n_security_policies.h"
+#include "crypto/s2n_fips.h"
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+
+    /* Test should_send for default cipher preferences */
+    {
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+        /* Default cipher preferences do not include PQ, so extension not sent */
+        EXPECT_FALSE(s2n_client_pq_kem_extension.should_send(conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    if (s2n_is_in_fips_mode()) {
+        END_TEST();
+    }
 
 #if !defined(S2N_NO_PQ)
 
@@ -40,10 +56,6 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            /* Default cipher preferences do not include PQ, so extension not sent */
-            EXPECT_FALSE(s2n_client_pq_kem_extension.should_send(conn));
-
-            /* Use cipher preferences that do include PQ */
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, pq_security_policy));
             EXPECT_TRUE(s2n_client_pq_kem_extension.should_send(conn));
 

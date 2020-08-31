@@ -106,11 +106,6 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
     notnull_check(conn);
     notnull_check(out);
 
-    if (s2n_is_in_fips_mode()) {
-        /* PQ KEMs are not supported in FIPS mode */
-        return S2N_SUCCESS;
-    }
-
     const struct s2n_kem_preferences *kem_pref = NULL;
     GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
     notnull_check(kem_pref);
@@ -118,6 +113,10 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
     if (kem_pref->tls13_kem_group_count == 0) {
         return S2N_SUCCESS;
     }
+
+    /* Defense in depth; security policy initialization checks should have already
+     * enforced that tls13_kem_group_count == 0 if in FIPS mode */
+    ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
 
     /* We only send a single PQ key share - the highest preferred one */
     const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[0];

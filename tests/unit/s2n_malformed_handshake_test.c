@@ -24,6 +24,7 @@
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "crypto/s2n_fips.h"
 
 #define TLS_ALERT              21
 #define TLS_HANDSHAKE          22
@@ -241,7 +242,11 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
+    if (s2n_is_in_fips_mode()) {
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all_fips"));
+    } else {
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
+    }
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Test a good certificate list */

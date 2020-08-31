@@ -16,6 +16,7 @@
 #include "s2n_test.h"
 
 #include "tls/s2n_security_policies.h"
+#include "crypto/s2n_fips.h"
 
 int main(int argc, char **argv)
 {
@@ -298,6 +299,20 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_null);
         EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_null);
 
+#if !defined(S2N_NO_PQ)
+        if (s2n_is_in_fips_mode()) {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "KMS-PQ-TLS-1-0-2020-07"),
+                    S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+        } else {
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "KMS-PQ-TLS-1-0-2020-07"));
+            EXPECT_EQUAL(config->security_policy, &security_policy_kms_pq_tls_1_0_2020_07);
+            EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_kms_pq_tls_1_0_2020_07);
+            EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_kms_pq_tls_1_0_2020_07);
+            EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20140601);
+            EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20140601);
+        }
+#endif
+
         EXPECT_FAILURE(s2n_config_set_cipher_preferences(config, NULL));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "notathing"),
@@ -342,6 +357,21 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_null);
         EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20200207);
         EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
+
+#if !defined(S2N_NO_PQ)
+        if (s2n_is_in_fips_mode()) {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2020-07"),
+                    S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+        } else {
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2020-07"));
+            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+            EXPECT_EQUAL(security_policy, &security_policy_kms_pq_tls_1_0_2020_07);
+            EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_kms_pq_tls_1_0_2020_07);
+            EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_kms_pq_tls_1_0_2020_07);
+            EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20140601);
+            EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20140601);
+        }
+#endif
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "notathing"),
                 S2N_ERR_INVALID_SECURITY_POLICY);

@@ -939,7 +939,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(S2N_SUPPORTED_KEM_GROUPS_COUNT, s2n_array_len(all_kem_groups));
 
         if (s2n_is_in_fips_mode()) {
-            /* Test that s2n_client_key_share_extension.send sends only ECC key shares when in FIPS mode */
+            /* s2n_client_key_share_extension.send should error if in FIPS mode */
             const struct s2n_kem_preferences test_kem_prefs = {
                 .kem_count = 0,
                 .kems = NULL,
@@ -955,7 +955,6 @@ int main(int argc, char **argv)
                 .ecc_preferences = &s2n_ecc_preferences_20200310,
             };
 
-            struct s2n_stuffer key_share_extension;
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             conn->security_policy_override = &test_security_policy;
@@ -969,27 +968,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
             EXPECT_NOT_NULL(ecc_preferences);
 
+            DEFER_CLEANUP(struct s2n_stuffer key_share_extension = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 1024));
-            EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_key_share_extension.send(conn, &key_share_extension),
+                    S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
 
-            /* Assert total key shares extension size is correct */
-            uint16_t sent_key_shares_size;
-            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &sent_key_shares_size));
-            EXPECT_EQUAL(sent_key_shares_size, s2n_stuffer_data_available(&key_share_extension));
-
-            /* ECC key shares should have the format: IANA ID || size || share. Only one ECC key share
-             * should be sent (as per defualt s2n behavior). */
-            uint16_t iana_value, share_size;
-            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &iana_value));
-            EXPECT_EQUAL(iana_value, ecc_preferences->ecc_curves[0]->iana_id);
-            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &share_size));
-            EXPECT_EQUAL(share_size, ecc_preferences->ecc_curves[0]->share_size);
-            EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, share_size));
-
-            /* If all the sizes/bytes were correctly written, there should be nothing left over */
-            EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), 0);
-
-            EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
         } else {
             /* Test that s2n_client_key_share_extension.send generates and sends PQ hybrid and ECC shares correctly

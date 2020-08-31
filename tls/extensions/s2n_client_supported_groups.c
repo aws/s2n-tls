@@ -24,6 +24,7 @@
 #include "tls/s2n_security_policies.h"
 
 #include "utils/s2n_safety.h"
+#include "crypto/s2n_fips.h"
 
 static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_client_supported_groups_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -59,10 +60,15 @@ static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct 
     GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
     notnull_check(kem_pref);
 
+    /* Defense in depth; security policy initialization checks should have already
+     * enforced that tls13_kem_group_count == 0 if in FIPS mode */
+    if (s2n_is_in_fips_mode()) {
+        ENSURE_POSIX(kem_pref->tls13_kem_group_count == 0, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+    }
+
     /* Group list len */
-    uint16_t named_group_list_length = (ecc_pref->count * sizeof(uint16_t)) +
-            (kem_pref->tls13_kem_group_count * sizeof(uint16_t));
-    GUARD(s2n_stuffer_write_uint16(out, named_group_list_length));
+    struct s2n_stuffer_reservation group_list_length = { 0 };
+    GUARD(s2n_stuffer_reserve_uint16(out, &group_list_length));
 
     /* Send KEM groups list first */
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
@@ -73,6 +79,8 @@ static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct 
     for (size_t i = 0; i < ecc_pref->count; i++) {
         GUARD(s2n_stuffer_write_uint16(out, ecc_pref->ecc_curves[i]->iana_id));
     }
+
+    GUARD(s2n_stuffer_write_vector_size(&group_list_length));
 
     return S2N_SUCCESS;
 }
