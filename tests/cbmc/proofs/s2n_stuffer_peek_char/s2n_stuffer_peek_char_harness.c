@@ -13,31 +13,30 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-
-#include "stuffer/s2n_stuffer.h"
-
 #include <assert.h>
-
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
 
-void s2n_stuffer_peek_char_harness() {
+#include "api/s2n.h"
+#include "stuffer/s2n_stuffer.h"
+
+void s2n_stuffer_peek_char_harness()
+{
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
     uint8_t dest;
 
     /* Store a byte from the stuffer to compare after the read */
-    struct s2n_stuffer old_stuffer = *stuffer;
+    struct s2n_stuffer            old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
     if (s2n_stuffer_peek_char(stuffer, &dest) == S2N_SUCCESS) {
         /* If successful, ensure uint was assembled correctly from stuffer */
-        assert(stuffer->blob.data[old_stuffer.read_cursor] == dest);
+        assert(stuffer->blob.data[ old_stuffer.read_cursor ] == dest);
         assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);
     } else {
         assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);

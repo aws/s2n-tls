@@ -289,96 +289,72 @@ int main(int argc, char **argv)
 
     /* Test Shared Key Generation */
     {
+        struct s2n_connection *client_conn, *server_conn;
+        struct s2n_stuffer key_share_extension;
+
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
+
         const struct s2n_ecc_preferences *ecc_pref = NULL;
-         /* Shared Secret Size: x25519 (32), p-256 (32), p-384 (48) */
-        int shared_secret_size[3] = { 32, 32, 48 };
-        if (!s2n_is_evp_apis_supported()) {
-        /* Shared Secret Size: p-256 (32), p-384 (48) */
-            shared_secret_size[1] = 48;  
+        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
+        EXPECT_NOT_NULL(ecc_pref);
+
+        EXPECT_SUCCESS(s2n_client_key_share_extension.send(client_conn, &key_share_extension));
+        EXPECT_SUCCESS(s2n_client_key_share_extension.recv(server_conn, &key_share_extension));
+
+        /* should read all data */
+        EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), 0);
+
+        /* Server configures the "negotiated_curve" */
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+        for (size_t i = 1; i < ecc_pref->count; i++) {
+            server_conn->secure.client_ecc_evp_params[i].negotiated_curve = NULL;
         }
-        int i = 0;
-        do {
-            struct s2n_connection *client_conn;
-            struct s2n_connection *server_conn;
-            struct s2n_stuffer client_hello_key_share;
-            struct s2n_stuffer server_hello_key_share;
 
-            EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-            server_conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_SUCCESS(s2n_server_key_share_extension.send(server_conn, &key_share_extension));
+        EXPECT_SUCCESS(s2n_server_key_share_extension.recv(client_conn, &key_share_extension));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), 0);
 
-            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
-            EXPECT_NOT_NULL(ecc_pref);
+        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, client_conn->secure.server_ecc_evp_params.negotiated_curve);
 
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_hello_key_share, 1024));
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_hello_key_share, 1024));
+        /* Ensure both client and server public key matches */
+        s2n_public_ecc_keys_are_equal(&server_conn->secure.server_ecc_evp_params, &client_conn->secure.server_ecc_evp_params);
+        s2n_public_ecc_keys_are_equal(&server_conn->secure.client_ecc_evp_params[0], &client_conn->secure.client_ecc_evp_params[0]);
 
-            /* Client sends ClientHello key_share */
-            EXPECT_SUCCESS(s2n_extensions_client_key_share_send(client_conn, &client_hello_key_share));
+        /* Server generates shared key based on Server's Key and Client's public key  */
+        struct s2n_blob server_shared_secret = { 0 };
+        EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_from_params(
+            &server_conn->secure.server_ecc_evp_params,
+            &server_conn->secure.client_ecc_evp_params[0],
+            &server_shared_secret));
 
-            /* Server receives ClientHello key_share */
-            S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, TLS_EXTENSION_KEY_SHARE, uint16);
-            S2N_STUFFER_READ_EXPECT_EQUAL(&client_hello_key_share, s2n_extensions_client_key_share_size(server_conn) - 4, uint16);
-            EXPECT_SUCCESS(s2n_extensions_client_key_share_recv(server_conn, &client_hello_key_share));
-            EXPECT_EQUAL(s2n_stuffer_data_available(&client_hello_key_share), 0);
+        /* Clients generates shared key based on Client's Key and Server's public key */
+        struct s2n_blob client_shared_secret = { 0 };
+        EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_from_params(
+            &client_conn->secure.client_ecc_evp_params[0],
+            &client_conn->secure.server_ecc_evp_params,
+            &client_shared_secret));
 
-            EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
+        /* Test that server shared secret matches client shared secret */
+        if (ecc_pref->ecc_curves[0] == &s2n_ecc_curve_secp256r1 || ecc_pref->ecc_curves[0] == &s2n_ecc_curve_secp384r1) {
+            /* Share sizes are described here: https://tools.ietf.org/html/rfc8446#section-4.2.8.2
+             * and include the extra "legacy_form" byte */
+            EXPECT_EQUAL(server_shared_secret.size, (ecc_pref->ecc_curves[0]->share_size - 1) * 0.5);
+        } else {
+            EXPECT_EQUAL(server_shared_secret.size, ecc_pref->ecc_curves[0]->share_size);
+        }
 
-            /* Server configures the "negotiated_curve" */
-            server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[i];
+        S2N_BLOB_EXPECT_EQUAL(server_shared_secret, client_shared_secret);
 
-            for (int j = 0; j < ecc_pref->count; j++) {
-                if (j != i) {
-                    server_conn->secure.client_ecc_evp_params[j].negotiated_curve = NULL;
-                }
-            }
+        EXPECT_SUCCESS(s2n_free(&client_shared_secret));
+        EXPECT_SUCCESS(s2n_free(&server_shared_secret));
 
-            EXPECT_NOT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-            server_conn->secure.server_ecc_evp_params.evp_pkey = NULL;
-            EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve->iana_id, ecc_pref->ecc_curves[i]->iana_id);
-
-            /* Server sends ServerHello key_share */
-            EXPECT_SUCCESS(s2n_server_key_share_extension.send(server_conn, &server_hello_key_share));
-
-            /* Client receives ServerHello key_share */
-            EXPECT_SUCCESS(s2n_server_key_share_extension.recv(client_conn, &server_hello_key_share));
-            EXPECT_EQUAL(s2n_stuffer_data_available(&server_hello_key_share), 0);
-
-            EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, client_conn->secure.server_ecc_evp_params.negotiated_curve);
-
-            /* Ensure both client and server public key matches */
-            s2n_public_ecc_keys_are_equal(&server_conn->secure.server_ecc_evp_params, &client_conn->secure.server_ecc_evp_params);
-            s2n_public_ecc_keys_are_equal(&server_conn->secure.client_ecc_evp_params[i], &client_conn->secure.client_ecc_evp_params[i]);
-
-            /* Server generates shared key based on Server's Key and Client's public key  */
-            struct s2n_blob server_shared_secret = { 0 };
-            EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_from_params(
-                &server_conn->secure.server_ecc_evp_params,
-                &server_conn->secure.client_ecc_evp_params[i],
-                &server_shared_secret));
-
-            /* Clients generates shared key based on Client's Key and Server's public key */
-            struct s2n_blob client_shared_secret = { 0 };
-            EXPECT_SUCCESS(s2n_ecc_evp_compute_shared_secret_from_params(
-                &client_conn->secure.client_ecc_evp_params[i],
-                &client_conn->secure.server_ecc_evp_params,
-                &client_shared_secret));
-
-            /* Test that server shared secret matches client shared secret */
-            EXPECT_EQUAL(server_shared_secret.size, shared_secret_size[i]);
-
-            S2N_BLOB_EXPECT_EQUAL(server_shared_secret, client_shared_secret);
-
-            EXPECT_SUCCESS(s2n_free(&client_shared_secret));
-            EXPECT_SUCCESS(s2n_free(&server_shared_secret));
-
-            /* Clean up */
-            EXPECT_SUCCESS(s2n_stuffer_free(&client_hello_key_share));
-            EXPECT_SUCCESS(s2n_stuffer_free(&server_hello_key_share));
-            EXPECT_SUCCESS(s2n_connection_free(client_conn));
-            EXPECT_SUCCESS(s2n_connection_free(server_conn));
-            i += 1;
-        } while (i < ecc_pref->count);
+        /* Clean up */
+        EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
     /* Test s2n_server_key_share_extension.send with supported curve not in s2n_ecc_preferences list selected */
@@ -485,9 +461,11 @@ int main(int argc, char **argv)
         const struct s2n_kem_group *test_kem_groups[] = {
                 &s2n_secp256r1_sike_p434_r2,
                 &s2n_secp256r1_bike1_l1_r2,
+                &s2n_secp256r1_kyber_512_r2,
 #if EVP_APIS_SUPPORTED
                 &s2n_x25519_sike_p434_r2,
                 &s2n_x25519_bike1_l1_r2,
+                &s2n_x25519_kyber_512_r2,
 #endif
         };
 

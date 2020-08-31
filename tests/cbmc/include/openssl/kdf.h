@@ -48,16 +48,16 @@ extern "C" {
 #define EVP_PKEY_HKDEF_MODE_EXPAND_ONLY EVP_KDF_HKDF_MODE_EXPAND_ONLY
 
 #define EVP_PKEY_CTX_set_hkdf_md(pctx, md) \
-    EVP_PKEY_CTX_ctrl(pctx, -1, EVP_PKEY_OP_DERIVE, EVP_PKEY_CTRL_HKDF_MD, 0, (void *)(md))
+    EVP_PKEY_CTX_ctrl(pctx, -1, EVP_PKEY_OP_DERIVE, EVP_PKEY_CTRL_HKDF_MD, 0, ( void * )(md))
 
 #define EVP_PKEY_CTX_set1_hkdf_salt(pctx, salt, saltlen) \
-    EVP_PKEY_CTX_ctrl(pctx, -1, EVP_PKEY_OP_DERIVE, EVP_PKEY_CTRL_HKDF_SALT, saltlen, (void *)(salt))
+    EVP_PKEY_CTX_ctrl(pctx, -1, EVP_PKEY_OP_DERIVE, EVP_PKEY_CTRL_HKDF_SALT, saltlen, ( void * )(salt))
 
 #define EVP_PKEY_CTX_set1_hkdf_key(pctx, key, keylen) \
-    EVP_PKEY_CTX_ctrl(pctx, -1, EVP_PKEY_OP_DERIVE, EVP_PKEY_CTRL_HKDF_KEY, keylen, (void *)(key))
+    EVP_PKEY_CTX_ctrl(pctx, -1, EVP_PKEY_OP_DERIVE, EVP_PKEY_CTRL_HKDF_KEY, keylen, ( void * )(key))
 
 #define EVP_PKEY_CTX_add1_hkdf_info(pctx, info, infolen) \
-    EVP_PKEY_CTX_ctrl(pctx, -1, EVP_PKEY_OP_DERIVE, EVP_PKEY_CTRL_HKDF_INFO, infolen, (void *)(info))
+    EVP_PKEY_CTX_ctrl(pctx, -1, EVP_PKEY_OP_DERIVE, EVP_PKEY_CTRL_HKDF_INFO, infolen, ( void * )(info))
 
 #define EVP_PKEY_CTX_hkdf_mode(pctx, mode) \
     EVP_PKEY_CTX_ctrl(pctx, -1, EVP_PKEY_OP_DERIVE, EVP_PKEY_CTRL_HKDF_MODE, mode, NULL)

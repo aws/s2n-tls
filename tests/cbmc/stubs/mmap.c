@@ -18,10 +18,11 @@
 #include <cbmc_proof/proof_allocators.h>
 #include <sys/mman.h>
 
-void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
+void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
+{
     assert(addr == NULL);
     assert(length > 0);
-    if(nondet_bool()) {
+    if (nondet_bool()) {
         uint8_t *buf = can_fail_malloc(length);
         return buf;
     }

@@ -13,17 +13,17 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-#include "stuffer/s2n_stuffer.h"
-#include "utils/s2n_mem.h"
-
 #include <assert.h>
-
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
 
-void s2n_stuffer_read_base64_harness() {
+#include "api/s2n.h"
+#include "stuffer/s2n_stuffer.h"
+#include "utils/s2n_mem.h"
+
+void s2n_stuffer_read_base64_harness()
+{
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
     __CPROVER_assume(s2n_blob_is_bounded(&stuffer->blob, MAX_BLOB_SIZE));
@@ -32,25 +32,22 @@ void s2n_stuffer_read_base64_harness() {
     __CPROVER_assume(s2n_stuffer_is_valid(out));
 
     /* Save previous state from stuffer. */
-    struct s2n_stuffer old_stuffer = *stuffer;
+    struct s2n_stuffer            old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Save previous state from out. */
     struct s2n_stuffer old_out = *out;
 
-    /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if(nondet_bool()) {
-        s2n_mem_init();
-    }
+    nondet_s2n_mem_init();
 
     if (s2n_stuffer_read_base64(stuffer, out) == S2N_SUCCESS) {
         assert(s2n_stuffer_is_valid(out));
-	      if(s2n_stuffer_data_available(&old_stuffer) >= 4) {
-	          size_t index;
-	          __CPROVER_assume(index >= old_stuffer.read_cursor && index < old_stuffer.write_cursor);
-	          assert(s2n_is_base64_char(stuffer->blob.data[index]));
-	      }
+        if (s2n_stuffer_data_available(&old_stuffer) >= 4) {
+            size_t index;
+            __CPROVER_assume(index >= old_stuffer.read_cursor && index < old_stuffer.write_cursor);
+            assert(s2n_is_base64_char(stuffer->blob.data[ index ]));
+        }
     }
 
     assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);

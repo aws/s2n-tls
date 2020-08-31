@@ -19,6 +19,17 @@
 
 #define S2N_INITIAL_ARRAY_SIZE 16
 
+S2N_RESULT s2n_array_validate(const struct s2n_array *array)
+{
+    uint32_t mem_size = 0;
+    ENSURE_REF(array);
+    ENSURE(s2n_blob_is_valid(&array->mem), S2N_ERR_SAFETY);
+    ENSURE_NE(array->element_size, 0);
+    GUARD_AS_RESULT(s2n_mul_overflow(array->len, array->element_size, &mem_size));
+    ENSURE_GTE(array->mem.size, mem_size);
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
 {
     ENSURE_REF(array);
@@ -32,16 +43,17 @@ static S2N_RESULT s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
     uint32_t array_elements_size;
     GUARD_AS_RESULT(s2n_mul_overflow(array->element_size, array->len, &array_elements_size));
     CHECKED_MEMSET(array->mem.data + array_elements_size, 0, array->mem.size - array_elements_size);
-
+    GUARD_RESULT(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 
-struct s2n_array *s2n_array_new(size_t element_size)
+struct s2n_array *s2n_array_new(uint32_t element_size)
 {
     struct s2n_blob mem = {0};
     GUARD_PTR(s2n_alloc(&mem, sizeof(struct s2n_array)));
 
     struct s2n_array *array = (void *) mem.data;
+
     *array = (struct s2n_array) {.mem = {0}, .len = 0, .element_size = element_size};
 
     if (s2n_result_is_error(s2n_array_enlarge(array, S2N_INITIAL_ARRAY_SIZE))) {
@@ -54,17 +66,17 @@ struct s2n_array *s2n_array_new(size_t element_size)
 
 S2N_RESULT s2n_array_pushback(struct s2n_array *array, void **element)
 {
-    ENSURE_REF(array);
+    GUARD_RESULT(s2n_array_validate(array));
     ENSURE_REF(element);
     return s2n_array_insert(array, array->len, element);
 }
 
 S2N_RESULT s2n_array_get(struct s2n_array *array, uint32_t index, void **element)
 {
-    ENSURE_REF(array);
+    GUARD_RESULT(s2n_array_validate(array));
     ENSURE_REF(element);
     ENSURE(index < array->len, S2N_ERR_ARRAY_INDEX_OOB);
-    *element = array->mem.data + array->element_size * index;
+    *element = array->mem.data + (array->element_size * index);
     return S2N_RESULT_OK;
 }
 
@@ -78,7 +90,7 @@ S2N_RESULT s2n_array_insert_and_copy(struct s2n_array *array, uint32_t index, vo
 
 S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **element)
 {
-    ENSURE_REF(array);
+    GUARD_RESULT(s2n_array_validate(array));
     ENSURE_REF(element);
     /* index == len is ok since we're about to add one element */
     ENSURE(index <= array->len, S2N_ERR_ARRAY_INDEX_OOB);
@@ -86,9 +98,10 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **elem
     /* We are about to add one more element to the array. Add capacity if necessary */
     uint32_t current_capacity = 0;
     GUARD_RESULT(s2n_array_capacity(array, &current_capacity));
+
     if (array->len >= current_capacity) {
         /* Enlarge the array */
-        uint32_t new_capacity;
+        uint32_t new_capacity = 0;
         GUARD_AS_RESULT(s2n_mul_overflow(current_capacity, 2, &new_capacity));
         GUARD_RESULT(s2n_array_enlarge(array, new_capacity));
     }
@@ -103,12 +116,13 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **elem
     *element = array->mem.data + array->element_size * index;
     array->len++;
 
+    GUARD_RESULT(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t index)
 {
-    ENSURE_REF(array);
+    GUARD_RESULT(s2n_array_validate(array));
     ENSURE(index < array->len, S2N_ERR_ARRAY_INDEX_OOB);
 
     /* If the removed element is the last one, no need to move anything.
@@ -130,7 +144,8 @@ S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t index)
 
 S2N_RESULT s2n_array_num_elements(struct s2n_array *array, uint32_t *len)
 {
-    ENSURE_REF(array);
+    GUARD_RESULT(s2n_array_validate(array));
+    ENSURE_MUT(len);
 
     *len = array->len;
 
@@ -139,7 +154,8 @@ S2N_RESULT s2n_array_num_elements(struct s2n_array *array, uint32_t *len)
 
 S2N_RESULT s2n_array_capacity(struct s2n_array *array, uint32_t *capacity)
 {
-    ENSURE_REF(array);
+    GUARD_RESULT(s2n_array_validate(array));
+    ENSURE_MUT(capacity);
 
     *capacity = array->mem.size / array->element_size;
 

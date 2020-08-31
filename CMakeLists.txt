@@ -58,6 +58,7 @@ else()
         "pq-crypto/sike_r1/*.h"
         "pq-crypto/sike_r2/*.h"
         "pq-crypto/kyber_r2/*.h"
+	"pq-crypto/kyber_90s_r2/*.h"
     )
 
     # The SIKE code #includes .c files directly, including all sike_r*/*.c breaks the build due to duplicates
@@ -72,6 +73,7 @@ else()
             "pq-crypto/sike_r2/fips202.c"
             "pq-crypto/sike_r2/P434.c"
             "pq-crypto/kyber_r2/*.c"
+	    "pq-crypto/kyber_90s_r2/*.c"
     )
 endif()
 
@@ -183,7 +185,7 @@ file(GLOB S2N_SRC
     ${UTILS_SRC}
 )
 
-add_library(${PROJECT_NAME} STATIC ${S2N_HEADERS} ${S2N_SRC})
+add_library(${PROJECT_NAME} ${S2N_HEADERS} ${S2N_SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")

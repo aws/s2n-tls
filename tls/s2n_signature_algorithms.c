@@ -57,6 +57,16 @@ static int s2n_signature_scheme_valid_to_accept(struct s2n_connection *conn, con
     return 0;
 }
 
+static int s2n_is_signature_scheme_usable(struct s2n_connection *conn, const struct s2n_signature_scheme *candidate) {
+    notnull_check(conn);
+    notnull_check(candidate);
+
+    GUARD(s2n_signature_scheme_valid_to_accept(conn, candidate));
+    GUARD(s2n_is_sig_scheme_valid_for_auth(conn, candidate));
+
+    return S2N_SUCCESS;
+}
+
 static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
                           struct s2n_signature_scheme *chosen_scheme_out)
 {
@@ -68,18 +78,14 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
     struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
     notnull_check(cipher_suite);
 
-    for (int i = 0; i < signature_preferences->count; i++) {
+    for (size_t i = 0; i < signature_preferences->count; i++) {
         const struct s2n_signature_scheme *candidate = signature_preferences->signature_schemes[i];
 
-        if (s2n_signature_scheme_valid_to_accept(conn, candidate) != S2N_SUCCESS) {
+        if (s2n_is_signature_scheme_usable(conn, candidate) != S2N_SUCCESS) {
             continue;
         }
 
-        if (s2n_is_sig_scheme_valid_for_auth(conn, candidate) != S2N_SUCCESS) {
-            continue;
-        }
-
-        for (int j = 0; j < peer_wire_prefs->len; j++) {
+        for (size_t j = 0; j < peer_wire_prefs->len; j++) {
             uint16_t their_iana_val = peer_wire_prefs->iana_list[j];
 
             if (candidate->iana_value == their_iana_val) {
@@ -87,6 +93,32 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
                 return S2N_SUCCESS;
             }
         }
+    }
+
+    /* do not error even if there's no match */
+    return S2N_SUCCESS;
+}
+
+/* similar to s2n_choose_sig_scheme() without matching client's preference */
+static int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_scheme_out)
+{
+    notnull_check(conn);
+    const struct s2n_signature_preferences *signature_preferences = NULL;
+    GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
+    notnull_check(signature_preferences);
+
+    struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
+    notnull_check(cipher_suite);
+
+    for (size_t i = 0; i < signature_preferences->count; i++) {
+        const struct s2n_signature_scheme *candidate = signature_preferences->signature_schemes[i];
+
+        if (s2n_is_signature_scheme_usable(conn, candidate) != S2N_SUCCESS) {
+            continue;
+        }
+
+        *chosen_scheme_out = *candidate;
+        return S2N_SUCCESS;
     }
 
     S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_SCHEME);
@@ -102,7 +134,7 @@ int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn
     GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
     notnull_check(signature_preferences);
 
-    for (int i = 0; i < signature_preferences->count; i++) {
+    for (size_t i = 0; i < signature_preferences->count; i++) {
         const struct s2n_signature_scheme *candidate = signature_preferences->signature_schemes[i];
 
         if (0 != s2n_signature_scheme_valid_to_accept(conn, candidate)) {
@@ -167,18 +199,17 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
 
     struct s2n_signature_scheme chosen_scheme;
 
-    GUARD(s2n_choose_default_sig_scheme(conn, &chosen_scheme));
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        GUARD(s2n_choose_default_sig_scheme(conn, &chosen_scheme));
+    } else {
+        /* Pick a default signature algorithm in TLS 1.3 https://tools.ietf.org/html/rfc8446#section-4.4.2.2 */
+        GUARD(s2n_tls13_default_sig_scheme(conn, &chosen_scheme));
+    }
 
     /* SignatureScheme preference list was first added in TLS 1.2. It will be empty in older TLS versions. */
     if (peer_wire_prefs != NULL && peer_wire_prefs->len > 0) {
-        int result = s2n_choose_sig_scheme(conn, peer_wire_prefs, &chosen_scheme);
-
-        /* We require an exact match in TLS 1.3, but all previous versions can fall back to the default.
-         * The pre-TLS1.3 behavior is an intentional choice to maximize support. */
-        S2N_ERROR_IF(result != S2N_SUCCESS && conn->actual_protocol_version == S2N_TLS13,
-                S2N_ERR_INVALID_SIGNATURE_SCHEME);
-    } else {
-        S2N_ERROR_IF(conn->actual_protocol_version == S2N_TLS13, S2N_ERR_EMPTY_SIGNATURE_SCHEME);
+        /* Use a best effort approach to selecting a signature scheme matching client's preferences */
+        GUARD(s2n_choose_sig_scheme(conn, peer_wire_prefs, &chosen_scheme));
     }
 
     *sig_scheme_out = chosen_scheme;
@@ -194,7 +225,7 @@ int s2n_send_supported_sig_scheme_list(struct s2n_connection *conn, struct s2n_s
 
     GUARD(s2n_stuffer_write_uint16(out, s2n_supported_sig_scheme_list_size(conn)));
 
-    for (int i =  0; i < signature_preferences->count; i++) {
+    for (size_t i = 0; i < signature_preferences->count; i++) {
         const struct s2n_signature_scheme *const scheme = signature_preferences->signature_schemes[i];
         if (0 == s2n_signature_scheme_valid_to_offer(conn, scheme)) {
             GUARD(s2n_stuffer_write_uint16(out, scheme->iana_value));
@@ -216,7 +247,7 @@ int s2n_supported_sig_schemes_count(struct s2n_connection *conn)
     notnull_check(signature_preferences);
 
     uint8_t count = 0;
-    for (int i =  0; i < signature_preferences->count; i++) {
+    for (size_t i = 0; i < signature_preferences->count; i++) {
         if (0 == s2n_signature_scheme_valid_to_offer(conn, signature_preferences->signature_schemes[i])) {
             count ++;
         }
@@ -247,7 +278,7 @@ int s2n_recv_supported_sig_scheme_list(struct s2n_stuffer *in, struct s2n_sig_sc
     
     sig_hash_algs->len = 0;
 
-    for (int i = 0; i < pairs_available; i++) {
+    for (size_t i = 0; i < pairs_available; i++) {
         uint16_t sig_scheme = 0;
         GUARD(s2n_stuffer_read_uint16(in, &sig_scheme));
 

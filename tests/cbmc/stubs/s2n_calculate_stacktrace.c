@@ -13,11 +13,8 @@
  * limitations under the License.
  */
 
-#include "api/s2n.h"
-
 #include <cbmc_proof/nondet.h>
 
-int s2n_calculate_stacktrace()
-{
-    return nondet_bool() ? S2N_SUCCESS : S2N_FAILURE;
-}
+#include "api/s2n.h"
+
+int s2n_calculate_stacktrace() { return nondet_bool() ? S2N_SUCCESS : S2N_FAILURE; }

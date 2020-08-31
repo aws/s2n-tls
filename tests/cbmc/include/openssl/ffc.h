@@ -18,7 +18,7 @@
 #include <openssl/bn.h>
 
 #ifndef OSSL_INTERNAL_FFC_H
-# define OSSL_INTERNAL_FFC_H
+#    define OSSL_INTERNAL_FFC_H
 
 typedef struct ffc_params_st {
     /* Primes */

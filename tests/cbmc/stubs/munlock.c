@@ -13,14 +13,13 @@
  * limitations under the License.
  */
 
+#include <cbmc_proof/nondet.h>
+
 #include "api/s2n.h"
 #include "error/s2n_errno.h"
 
-#include <cbmc_proof/nondet.h>
-
 int munlock(const void *addr, size_t len)
 {
-    assert(S2N_MEM_IS_WRITABLE(addr,len));
+    assert(S2N_MEM_IS_WRITABLE(addr, len));
     return nondet_int();
 }
-

@@ -13,25 +13,27 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-#include "stuffer/s2n_stuffer.h"
 #include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/proof_allocators.h>
 
-void s2n_stuffer_skip_read_harness() {
+#include "api/s2n.h"
+#include "stuffer/s2n_stuffer.h"
+
+void s2n_stuffer_skip_read_harness()
+{
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
-    struct s2n_stuffer old_stuffer = *stuffer;
+    struct s2n_stuffer            old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte;
     save_byte_from_blob(&stuffer->blob, &old_byte);
     uint32_t n;
-   
+
     if (s2n_stuffer_skip_read(stuffer, n) == S2N_SUCCESS) {
-	assert(stuffer->read_cursor == old_stuffer.read_cursor + n);
+        assert(stuffer->read_cursor == old_stuffer.read_cursor + n);
     } else {
-	assert(stuffer->read_cursor == old_stuffer.read_cursor);
+        assert(stuffer->read_cursor == old_stuffer.read_cursor);
     }
 
     /* These assertions should always hold, regardless of whether the test succeeded */

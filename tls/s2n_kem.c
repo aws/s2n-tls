@@ -28,6 +28,7 @@
 #include "pq-crypto/sike_r1/sike_r1_kem.h"
 #include "pq-crypto/sike_r2/sike_r2_kem.h"
 #include "pq-crypto/kyber_r2/kyber_r2_kem.h"
+#include "pq-crypto/kyber_90s_r2/kyber_90s_r2_kem.h"
 
 /* The KEM IDs and names come from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
 const struct s2n_kem s2n_bike1_l1_r1 = {
@@ -90,6 +91,18 @@ const struct s2n_kem s2n_kyber_512_r2 = {
         .decapsulate = &kyber_512_r2_crypto_kem_dec,
 };
 
+const struct s2n_kem s2n_kyber_512_90s_r2 = {
+        .name = "kyber51290sr2",
+        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_KYBER_512_90S_R2,
+        .public_key_length = KYBER_512_R2_PUBLIC_KEY_BYTES,
+        .private_key_length = KYBER_512_R2_SECRET_KEY_BYTES,
+        .shared_secret_key_length = KYBER_512_R2_SHARED_SECRET_BYTES,
+        .ciphertext_length = KYBER_512_R2_CIPHERTEXT_BYTES,
+        .generate_keypair = &kyber_512_90s_r2_crypto_kem_keypair,
+        .encapsulate = &kyber_512_90s_r2_crypto_kem_enc,
+        .decapsulate = &kyber_512_90s_r2_crypto_kem_dec,
+};
+
 /* These lists should be kept up to date with the above KEMs. Order in the lists
  * does not matter. Adding a KEM to these lists will not automatically enable
  * support for the KEM extension - that must be added via the cipher preferences.
@@ -105,6 +118,7 @@ const struct s2n_kem *sike_kems[] = {
 
 const struct s2n_kem *kyber_kems[] = {
         &s2n_kyber_512_r2,
+	&s2n_kyber_512_90s_r2,
 };
 
 const struct s2n_iana_to_kem kem_mapping[3] = {
@@ -146,6 +160,13 @@ const struct s2n_kem_group s2n_secp256r1_bike1_l1_r2 = {
         .kem = &s2n_bike1_l1_r2,
 };
 
+const struct s2n_kem_group s2n_secp256r1_kyber_512_r2 = {
+        .name = "secp256r1_kyber-512-r2",
+        .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R2,
+        .curve = &s2n_ecc_curve_secp256r1,
+        .kem = &s2n_kyber_512_r2,
+};
+
 #if EVP_APIS_SUPPORTED
 const struct s2n_kem_group s2n_x25519_sike_p434_r2 = {
         .name = "x25519_sike-p434-r2",
@@ -161,9 +182,17 @@ const struct s2n_kem_group s2n_x25519_bike1_l1_r2 = {
         .curve = &s2n_ecc_curve_x25519,
         .kem = &s2n_bike1_l1_r2,
 };
+
+const struct s2n_kem_group s2n_x25519_kyber_512_r2 = {
+        .name = "x25519_kyber-512-r2",
+        .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R2,
+        .curve = &s2n_ecc_curve_x25519,
+        .kem = &s2n_kyber_512_r2,
+};
 #else
 const struct s2n_kem_group s2n_x25519_sike_p434_r2 = { 0 };
 const struct s2n_kem_group s2n_x25519_bike1_l1_r2 = { 0 };
+const struct s2n_kem_group s2n_x25519_kyber_512_r2 = { 0 };
 #endif
 
 #else
