@@ -41,6 +41,9 @@ struct s2n_config {
     /* Whether a connection can be used by a QUIC implementation.
      * See s2n_quic_support.h */
     unsigned quic_enabled:1;
+    /* Whether to add dss cert type during a server certificate request.
+     * See https://github.com/awslabs/s2n/blob/main/docs/USAGE-GUIDE.md */
+    unsigned cert_req_dss_legacy_compat_enabled:1;
 
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
