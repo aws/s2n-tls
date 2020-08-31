@@ -50,6 +50,16 @@ static uint8_t s2n_cert_type_preference_list[] = {
     S2N_CERT_TYPE_ECDSA_SIGN
 };
 
+/*
+ * Include DSS sign in certificate request.
+ * Only will be used if S2N_ENABLE_CERT_REQ_DSS_SIGN is set.
+ */
+uint8_t s2n_cert_type_preference_list_with_dss[] = {
+    S2N_CERT_TYPE_RSA_SIGN,
+    S2N_CERT_TYPE_DSS_SIGN,
+    S2N_CERT_TYPE_ECDSA_SIGN
+};
+
 static int s2n_cert_type_to_pkey_type(s2n_cert_type cert_type_in, s2n_pkey_type *pkey_type_out) {
     switch(cert_type_in) {
         case S2N_CERT_TYPE_RSA_SIGN:
@@ -161,10 +171,17 @@ int s2n_cert_req_send(struct s2n_connection *conn)
     struct s2n_stuffer *out = &conn->handshake.io;
 
     uint8_t client_cert_preference_list_size = sizeof(s2n_cert_type_preference_list);
+    if (getenv("S2N_ENABLE_CERT_REQ_DSS_SIGN") != NULL) {
+        client_cert_preference_list_size = sizeof(s2n_cert_type_preference_list_with_dss);
+    }
     GUARD(s2n_stuffer_write_uint8(out, client_cert_preference_list_size));
 
     for (int i = 0; i < client_cert_preference_list_size; i++) {
-        GUARD(s2n_stuffer_write_uint8(out, s2n_cert_type_preference_list[i]));
+        if (getenv("S2N_ENABLE_CERT_REQ_DSS_SIGN") != NULL) {
+            GUARD(s2n_stuffer_write_uint8(out, s2n_cert_type_preference_list_with_dss[i]));
+        } else {
+            GUARD(s2n_stuffer_write_uint8(out, s2n_cert_type_preference_list[i]));
+        }
     }
 
     if (conn->actual_protocol_version == S2N_TLS12) {
