@@ -158,12 +158,13 @@ int main(int argc, char **argv)
             "CloudFront-Upstream-TLS-1-0",
             "CloudFront-Upstream-TLS-1-1",
             "CloudFront-Upstream-TLS-1-2",
-            "CloudFront-SSL-v-3",
-            "CloudFront-TLS-1-0-2014",
-            "CloudFront-TLS-1-0-2016",
-            "CloudFront-TLS-1-1-2016",
-            "CloudFront-TLS-1-2-2018",
-            "CloudFront-TLS-1-2-2019",
+            /* CloudFront legacy viewer facing policies (max TLS 1.2)  */
+            "CloudFront-SSL-v-3-Legacy",
+            "CloudFront-TLS-1-0-2014-Legacy",
+            "CloudFront-TLS-1-0-2016-Legacy",
+            "CloudFront-TLS-1-1-2016-Legacy",
+            "CloudFront-TLS-1-2-2018-Legacy",
+            "CloudFront-TLS-1-2-2019-Legacy",
             "KMS-TLS-1-0-2018-10",
 #if !defined(S2N_NO_PQ)
             "KMS-PQ-TLS-1-0-2019-06",
@@ -207,6 +208,14 @@ int main(int argc, char **argv)
             "test_all_tls13",
             "20190801",
             "20190802",
+            /* CloudFront viewer facing */
+            "CloudFront-SSL-v-3",
+            "CloudFront-TLS-1-0-2014",
+            "CloudFront-TLS-1-0-2016",
+            "CloudFront-TLS-1-1-2016",
+            "CloudFront-TLS-1-2-2018",
+            "CloudFront-TLS-1-2-2019",
+            /* CloudFront undocumented */
             "CloudFront-TLS-1-2-2020",
         };
         for (size_t i = 0; i < s2n_array_len(tls13_security_policy_strings); i++) {

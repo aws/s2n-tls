@@ -64,16 +64,27 @@ extern const struct s2n_cipher_preferences elb_security_policy_fs_1_2_2019_08;
 extern const struct s2n_cipher_preferences elb_security_policy_fs_1_1_2019_08;
 extern const struct s2n_cipher_preferences elb_security_policy_fs_1_2_Res_2019_08;
 
+/* CloudFront upstream */
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_tls10;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_tls11;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_tls12;
+/* CloudFront viewer facing */
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_ssl_v_3;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2014;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2016;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_1_2016;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2018;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2019;
+
+/* CloudFront viewer facing legacy TLS 1.2 policies */
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_ssl_v_3_legacy;
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2014_legacy;
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2016_legacy;
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_1_2016_legacy;
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2018_legacy;
+extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2019_legacy;
+/* CloudFront undocumented policies for testing */
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2020;
 
 extern const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10;
