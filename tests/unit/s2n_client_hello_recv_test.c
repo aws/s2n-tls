@@ -31,6 +31,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_client_hello.h"
 
+#include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
 int main(int argc, char **argv)
@@ -373,6 +374,48 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_BAD_MESSAGE);
 
         s2n_connection_free(server_conn);
+    }
+
+    /* Test that curve selection will be NIST P-256 when tls12 client does not sending curve extension. */
+    {
+        S2N_BLOB_FROM_HEX(tls12_client_hello_no_curves,
+            "030307de81928fe1" "7cba77904c2798da" "2521a76b013a16e4" "21ade32208f658d4" "327d000048000400"
+            "05000a0016002f00" "3300350039003c00" "3d0067006b009c00" "9d009e009fc009c0" "0ac011c012c013c0"
+            "14c023c024c027c0" "28c02bc02cc02fc0" "30cca8cca9ccaaff" "04ff0800ff010000" "30000d0016001404"
+            "0105010601030104" "0305030603030302" "010203000b000201" "00fe01000c000a00" "17000d0013000100"
+            "0a");
+
+        /* The above code is generated the following code,
+            disabling s2n_client_supported_groups_extension
+            from client_hello_extensions (s2n_extension_type_lists.c)
+            and exporting the resulting client_conn->handshake.io.blob
+
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls12_config));
+        EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+        EXPECT_EQUAL(client_conn->client_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(client_conn->client_hello_version, S2N_TLS12);
+        s2n_connection_free(client_conn);
+        */
+
+        EXPECT_SUCCESS(s2n_enable_tls13());
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
+
+        EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &tls12_client_hello_no_curves));
+        EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+
+        /* ensure negotiated_curve == secp256r1 for maximum client compatability */
+        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, &s2n_ecc_curve_secp256r1);
+
+        EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS12);
+
+        s2n_connection_free(server_conn);
+        EXPECT_SUCCESS(s2n_disable_tls13());
     }
 
     s2n_config_free(tls12_config);
