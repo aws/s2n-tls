@@ -84,11 +84,3 @@ bool s2n_ecc_preferences_includes_curve(const struct s2n_ecc_preferences *ecc_pr
     return false;
 }
 
-/* Check that ecc preferences include P-256 */
-S2N_RESULT s2n_ecc_preferences_includes_p256(const struct s2n_ecc_preferences *ecc_preferences) {
-    if (!s2n_ecc_preferences_includes_curve(ecc_preferences, TLS_EC_CURVE_SECP_256_R1)) {
-        return S2N_RESULT_ERROR;
-    }
-
-    return S2N_RESULT_OK;
-}

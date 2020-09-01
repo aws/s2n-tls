@@ -636,9 +636,10 @@ int s2n_security_policies_init()
         const struct s2n_ecc_preferences *ecc_preference = security_policy->ecc_preferences;
         notnull_check(ecc_preference);
         GUARD(s2n_check_ecc_preferences_curves_list(ecc_preference));
+
         if (security_policy != &security_policy_null) {
             /* catch any offending security policy that does not support P-256 */
-            GUARD_AS_POSIX(s2n_ecc_preferences_includes_p256(ecc_preference));
+            S2N_ERROR_IF(!s2n_ecc_preferences_includes_curve(ecc_preference, TLS_EC_CURVE_SECP_256_R1), S2N_ERR_INVALID_SECURITY_POLICY);
         }
 
         for (int j = 0; j < cipher_preference->count; j++) {
