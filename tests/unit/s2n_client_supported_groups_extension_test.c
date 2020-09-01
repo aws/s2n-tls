@@ -25,6 +25,7 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 #include "crypto/s2n_fips.h"
+#include "tls/s2n_tls13.h"
 
 int main()
 {
@@ -79,7 +80,6 @@ int main()
     }
 
 #if !defined(S2N_NO_PQ)
-    /* Test send with KEM groups */
     {
         const struct s2n_kem_group *test_kem_groups[] = {
                 &s2n_secp256r1_sike_p434_r2,
@@ -101,51 +101,85 @@ int main()
                 .ecc_preferences = &s2n_ecc_preferences_20200310,
         };
 
-        struct s2n_connection *conn;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        /* Test send with TLS 1.3 KEM groups */
+        {
+            EXPECT_SUCCESS(s2n_enable_tls13());
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-        struct s2n_stuffer stuffer;
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-
-        if (!s2n_is_in_fips_mode()) {
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = {0}, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             conn->security_policy_override = &test_pq_security_policy;
+
+            const struct s2n_ecc_preferences *ecc_pref = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
+
+            const struct s2n_kem_preferences *kem_pref = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_kem_preferences(conn, &kem_pref));
+            EXPECT_NOT_NULL(kem_pref);
+
+            EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(conn, &stuffer));
+
+            uint16_t length;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &length));
+            uint16_t expected_length = ecc_pref->count * sizeof(uint16_t);
+            if (!s2n_is_in_fips_mode()) {
+                expected_length += kem_pref->tls13_kem_group_count * sizeof(uint16_t);
+            }
+            EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
+            EXPECT_EQUAL(length, expected_length);
+
+            if (!s2n_is_in_fips_mode()) {
+                uint16_t kem_id;
+                for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+                    EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &kem_id));
+                    EXPECT_EQUAL(kem_id, kem_pref->tls13_kem_groups[i]->iana_id);
+                }
+            }
+
+            uint16_t curve_id;
+            for (int i = 0; i < ecc_pref->count; i++) {
+                EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &curve_id));
+                EXPECT_EQUAL(curve_id, ecc_pref->ecc_curves[i]->iana_id);
+            }
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_disable_tls13());
         }
-        /* If in FIPS mode, the test will proceed using the default KEM preferences (kem_preferences_null) */
+        /* Test that send does not send KEM group IDs for versions != TLS 1.3 */
+        {
+            EXPECT_FALSE(s2n_is_tls13_enabled());
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-        const struct s2n_ecc_preferences *ecc_pref = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-        EXPECT_NOT_NULL(ecc_pref);
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = {0}, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            conn->security_policy_override = &test_pq_security_policy;
 
-        const struct s2n_kem_preferences *kem_pref = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_kem_preferences(conn, &kem_pref));
-        EXPECT_NOT_NULL(kem_pref);
-        if (!s2n_is_in_fips_mode()) {
-            EXPECT_EQUAL(kem_pref, &test_kem_prefs);
-        } else {
-            EXPECT_EQUAL(kem_pref, &kem_preferences_null);
+            const struct s2n_ecc_preferences *ecc_pref = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
+
+            const struct s2n_kem_preferences *kem_pref = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_kem_preferences(conn, &kem_pref));
+            EXPECT_NOT_NULL(kem_pref);
+
+            EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(conn, &stuffer));
+
+            uint16_t length;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &length));
+            EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
+            EXPECT_EQUAL(length, ecc_pref->count * sizeof(uint16_t));
+
+            uint16_t curve_id;
+            for (int i = 0; i < ecc_pref->count; i++) {
+                EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &curve_id));
+                EXPECT_EQUAL(curve_id, ecc_pref->ecc_curves[i]->iana_id);
+            }
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-
-        EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(conn, &stuffer));
-
-        uint16_t length;
-        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &length));
-        EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
-        EXPECT_EQUAL(length, (ecc_pref->count * sizeof(uint16_t)) + (kem_pref->tls13_kem_group_count * sizeof(uint16_t)));
-
-        uint16_t kem_id;
-        for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &kem_id));
-            EXPECT_EQUAL(kem_id, kem_pref->tls13_kem_groups[i]->iana_id);
-        }
-
-        uint16_t curve_id;
-        for (int i = 0; i < ecc_pref->count; i++) {
-            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &curve_id));
-            EXPECT_EQUAL(curve_id, ecc_pref->ecc_curves[i]->iana_id);
-        }
-
-        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 #endif
 

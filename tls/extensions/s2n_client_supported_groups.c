@@ -24,6 +24,8 @@
 #include "tls/s2n_security_policies.h"
 
 #include "utils/s2n_safety.h"
+#include "crypto/s2n_fips.h"
+#include "tls/s2n_tls13.h"
 
 static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_client_supported_groups_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -60,19 +62,22 @@ static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct 
     notnull_check(kem_pref);
 
     /* Group list len */
-    uint16_t named_group_list_length = (ecc_pref->count * sizeof(uint16_t)) +
-            (kem_pref->tls13_kem_group_count * sizeof(uint16_t));
-    GUARD(s2n_stuffer_write_uint16(out, named_group_list_length));
+    struct s2n_stuffer_reservation group_list_len = { 0 };
+    GUARD(s2n_stuffer_reserve_uint16(out, &group_list_len));
 
     /* Send KEM groups list first */
-    for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-        GUARD(s2n_stuffer_write_uint16(out, kem_pref->tls13_kem_groups[i]->iana_id));
+    if (s2n_is_tls13_enabled() && !s2n_is_in_fips_mode()) {
+        for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+            GUARD(s2n_stuffer_write_uint16(out, kem_pref->tls13_kem_groups[i]->iana_id));
+        }
     }
 
     /* Then send curve list */
     for (size_t i = 0; i < ecc_pref->count; i++) {
         GUARD(s2n_stuffer_write_uint16(out, ecc_pref->ecc_curves[i]->iana_id));
     }
+
+    GUARD(s2n_stuffer_write_vector_size(&group_list_len));
 
     return S2N_SUCCESS;
 }
