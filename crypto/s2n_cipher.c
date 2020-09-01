@@ -26,7 +26,7 @@ int s2n_session_key_alloc(struct s2n_session_key *key)
 {
     eq_check(key->evp_cipher_ctx, NULL);
     notnull_check(key->evp_cipher_ctx = EVP_CIPHER_CTX_new());
-#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+#if defined(S2N_CIPHER_AEAD_API_AVAILABLE)
     eq_check(key->evp_aead_ctx, NULL);
     notnull_check(key->evp_aead_ctx = OPENSSL_malloc(sizeof(EVP_AEAD_CTX)));
     EVP_AEAD_CTX_zero(key->evp_aead_ctx);
@@ -40,7 +40,7 @@ int s2n_session_key_free(struct s2n_session_key *key)
     notnull_check(key->evp_cipher_ctx);
     EVP_CIPHER_CTX_free(key->evp_cipher_ctx);
     key->evp_cipher_ctx = NULL;
-#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+#if defined(S2N_CIPHER_AEAD_API_AVAILABLE)
     notnull_check(key->evp_aead_ctx);
     EVP_AEAD_CTX_free(key->evp_aead_ctx);
     key->evp_aead_ctx = NULL;
