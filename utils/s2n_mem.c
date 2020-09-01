@@ -217,7 +217,7 @@ int s2n_free_object(uint8_t **p_data, uint32_t size)
     notnull_check(p_data);
 
     if (*p_data == NULL) {
-        return 0;
+        return S2N_SUCCESS;
     }
     struct s2n_blob b = {.data = *p_data, .allocated = size, .size = size, .growable = 1};
 
