@@ -607,32 +607,38 @@ int s2n_find_security_policy_from_version(const char *version, const struct s2n_
 
 int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
 {
-    GUARD(s2n_find_security_policy_from_version(version, &config->security_policy));
-    notnull_check(&config->security_policy->cipher_preferences);
-    notnull_check(&config->security_policy->kem_preferences);
-    notnull_check(&config->security_policy->signature_preferences);
-    notnull_check(&config->security_policy->ecc_preferences);
+    const struct s2n_security_policy *temp_policy = NULL;
+    GUARD(s2n_find_security_policy_from_version(version, &temp_policy));
+    notnull_check(temp_policy);
+    notnull_check(&temp_policy->cipher_preferences);
+    notnull_check(&temp_policy->kem_preferences);
+    notnull_check(&temp_policy->signature_preferences);
+    notnull_check(&temp_policy->ecc_preferences);
 
     if (s2n_is_in_fips_mode()) {
-        ENSURE_POSIX(config->security_policy->kem_preferences == &kem_preferences_null,
-                S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+        ENSURE_POSIX(temp_policy->kem_preferences == &kem_preferences_null, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     }
+
+    config->security_policy = temp_policy;
 
     return 0;
 }
 
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version)
 {
-    GUARD(s2n_find_security_policy_from_version(version, &conn->security_policy_override));
-    notnull_check(&conn->security_policy_override->cipher_preferences);
-    notnull_check(&conn->security_policy_override->kem_preferences);
-    notnull_check(&conn->security_policy_override->signature_preferences);
-    notnull_check(&conn->security_policy_override->ecc_preferences);
+    const struct s2n_security_policy *temp_policy = NULL;
+    GUARD(s2n_find_security_policy_from_version(version, &temp_policy));
+    notnull_check(temp_policy);
+    notnull_check(&temp_policy->cipher_preferences);
+    notnull_check(&temp_policy->kem_preferences);
+    notnull_check(&temp_policy->signature_preferences);
+    notnull_check(&temp_policy->ecc_preferences);
 
     if (s2n_is_in_fips_mode()) {
-        ENSURE_POSIX(conn->security_policy_override->kem_preferences == &kem_preferences_null,
-                S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+        ENSURE_POSIX(temp_policy->kem_preferences == &kem_preferences_null, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     }
+
+    conn->security_policy_override = temp_policy;
 
     return 0;
 }
