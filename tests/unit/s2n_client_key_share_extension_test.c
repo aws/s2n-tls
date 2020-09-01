@@ -939,7 +939,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(S2N_SUPPORTED_KEM_GROUPS_COUNT, s2n_array_len(all_kem_groups));
 
         if (s2n_is_in_fips_mode()) {
-            /* s2n_client_key_share_extension.send should error if in FIPS mode */
+            /* s2n_client_key_share_extension.send should error when attempting to send PQ shares in FIPS mode */
             const struct s2n_kem_preferences test_kem_prefs = {
                 .kem_count = 0,
                 .kems = NULL,

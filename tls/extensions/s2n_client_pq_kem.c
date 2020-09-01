@@ -23,6 +23,7 @@
 #include "tls/s2n_tls_parameters.h"
 
 #include "utils/s2n_safety.h"
+#include "crypto/s2n_fips.h"
 
 static bool s2n_client_pq_kem_should_send(struct s2n_connection *conn);
 static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffer *out);
@@ -41,11 +42,13 @@ static bool s2n_client_pq_kem_should_send(struct s2n_connection *conn)
 {
     const struct s2n_security_policy *security_policy;
     return s2n_connection_get_security_policy(conn, &security_policy) == S2N_SUCCESS
-            && s2n_pq_kem_is_extension_required(security_policy);
+            && s2n_pq_kem_is_extension_required(security_policy)
+            && (!s2n_is_in_fips_mode());
 }
 
 static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
+    ENSURE_POSIX(!s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     const struct s2n_kem_preferences *kem_preferences = NULL;
     GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
     notnull_check(kem_preferences);
@@ -60,6 +63,7 @@ static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffe
 
 static int s2n_client_pq_kem_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
+    ENSURE_POSIX(!s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     uint16_t size_of_all;
     struct s2n_blob *proposed_kems = &conn->secure.client_pq_kem_extension;
 
