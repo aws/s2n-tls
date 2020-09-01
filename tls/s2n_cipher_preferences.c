@@ -644,12 +644,19 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_ssl_v_3 = {
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_0_2014[] = {
     S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_256_gcm_sha384,
@@ -666,12 +673,19 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2014 =
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_0_2016[] = {
     S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_256_gcm_sha384,
@@ -687,12 +701,19 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2016 =
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_1_2016[] = {
     S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_256_gcm_sha384,
@@ -708,10 +729,15 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_1_2016 =
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2018[] = {
     S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_256_gcm_sha384,
@@ -725,11 +751,17 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2018 =
 
 /* CloudFront viewer facing legacy TLS 1.2 policies */
 struct s2n_cipher_suite *cipher_suites_cloudfront_ssl_v_3_legacy[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_256_gcm_sha384,
@@ -746,11 +778,17 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_ssl_v_3_legacy
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_0_2014_legacy[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_256_gcm_sha384,
@@ -766,11 +804,17 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2014_l
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_0_2016_legacy[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_256_gcm_sha384,
@@ -785,11 +829,17 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0_2016_l
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_1_2016_legacy[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_256_gcm_sha384,
@@ -804,9 +854,13 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_1_2016_l
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2018_legacy[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_256_gcm_sha384,
@@ -819,9 +873,13 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2018_l
 };
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2019_legacy[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256
 };
 
@@ -914,10 +972,15 @@ const struct s2n_cipher_preferences cipher_preferences_cloudfront_upstream_tls12
 
 struct s2n_cipher_suite *cipher_suites_cloudfront_tls_1_2_2019[] = {
     S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256
 };
 
