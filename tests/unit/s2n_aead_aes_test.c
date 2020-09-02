@@ -100,7 +100,8 @@ int main(int argc, char **argv)
         predicted_length += conn->initial.cipher_suite->record_alg->cipher->io.aead.record_iv_size;
         predicted_length += conn->initial.cipher_suite->record_alg->cipher->io.aead.tag_size;
 
-        const int overhead = 8 /* IV */ + 16 /* TAG */;
+        const int overhead = S2N_TLS_GCM_EXPLICIT_IV_LEN /* Explicit IV */
+            + S2N_TLS_GCM_TAG_LEN /* TAG */;
         EXPECT_EQUAL(predicted_length, bytes_written + overhead);
 
         EXPECT_EQUAL(conn->out.blob.data[0], TLS_APPLICATION_DATA);
@@ -187,7 +188,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
-            conn->in.blob.data[5 + j] ++;
+            conn->in.blob.data[j] ++;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
             EXPECT_FAILURE(s2n_record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
@@ -239,7 +240,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
-            conn->in.blob.data[S2N_TLS_GCM_IV_LEN + j]++;
+            conn->in.blob.data[S2N_TLS_GCM_EXPLICIT_IV_LEN + j] ++;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
             EXPECT_FAILURE(s2n_record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
@@ -285,7 +286,8 @@ int main(int argc, char **argv)
         predicted_length += conn->initial.cipher_suite->record_alg->cipher->io.aead.record_iv_size;
         predicted_length += conn->initial.cipher_suite->record_alg->cipher->io.aead.tag_size;
 
-        const int overhead = 8 /* IV */ + 16 /* TAG */;
+        const int overhead = S2N_TLS_GCM_EXPLICIT_IV_LEN /* Explicit IV */
+            + S2N_TLS_GCM_TAG_LEN /* TAG */;
         EXPECT_EQUAL(predicted_length, bytes_written + overhead);
 
         EXPECT_EQUAL(conn->out.blob.data[0], TLS_APPLICATION_DATA);
@@ -343,7 +345,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
 
         /* Tamper with the IV and ensure decryption fails */
-        for (int j = 0; j < S2N_TLS_GCM_IV_LEN; j++) {
+        for (int j = 0; j < S2N_TLS_GCM_EXPLICIT_IV_LEN; j++) {
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             conn->actual_protocol_version_established = 1;
             conn->server_protocol_version = S2N_TLS12;
@@ -360,7 +362,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
-            conn->in.blob.data[5 + j] ++;
+            conn->in.blob.data[j] ++;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
             EXPECT_FAILURE(s2n_record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
@@ -397,7 +399,7 @@ int main(int argc, char **argv)
         }
 
         /* Tamper with the ciphertext and ensure decryption fails */
-        for (int j = S2N_TLS_GCM_IV_LEN; j < i - S2N_TLS_GCM_TAG_LEN; j++) {
+        for (int j = S2N_TLS_GCM_EXPLICIT_IV_LEN; j < i - S2N_TLS_GCM_TAG_LEN; j++) {
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             conn->actual_protocol_version_established = 1;
             conn->server_protocol_version = S2N_TLS12;
@@ -414,7 +416,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
-            conn->in.blob.data[j]++;
+            conn->in.blob.data[j] ++;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
             EXPECT_FAILURE(s2n_record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);

@@ -97,8 +97,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(bytes_written, max_fragment);
         }
 
-        static const int overhead = S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN   /* Should be 0 */
-            + S2N_TLS_GCM_TAG_LEN; /* TAG */
+        static const int overhead = S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN /* Should be 0 */
+            + S2N_TLS_CHACHA20_POLY1305_TAG_LEN; /* TAG */
 
         uint16_t predicted_length = bytes_written;
         predicted_length += conn->initial.cipher_suite->record_alg->cipher->io.aead.record_iv_size;
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
-            conn->in.blob.data[S2N_TLS_GCM_IV_LEN + j]++;
+            conn->in.blob.data[S2N_TLS_CHACHA20_POLY1305_IV_LEN + j] ++;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
             EXPECT_FAILURE(s2n_record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
