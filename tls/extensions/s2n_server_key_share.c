@@ -100,21 +100,9 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
     eq_check(conn->secure.client_kem_group_params[kem_group_index].kem_group->iana_id, named_group_iana);
     conn->secure.chosen_client_kem_group_params = &conn->secure.client_kem_group_params[kem_group_index];
 
-    /* The structure of the PQ share should be:
-     *    total share size (2 bytes)
-     * || size of ECC key share (2 bytes)
-     * || ECC key share (variable bytes)
-     * || size of PQ key share (2 bytes)
-     * || PQ key share (variable bytes) */
     uint16_t received_total_share_size;
     GUARD(s2n_stuffer_read_uint16(extension, &received_total_share_size));
-
-    uint16_t expected_total_share_size =
-            S2N_SIZE_OF_KEY_SHARE_SIZE
-            + server_kem_group_params->kem_group->curve->share_size
-            + S2N_SIZE_OF_KEY_SHARE_SIZE
-            + server_kem_group_params->kem_group->kem->ciphertext_length;
-    ENSURE_POSIX(received_total_share_size == expected_total_share_size, S2N_ERR_BAD_KEY_SHARE);
+    ENSURE_POSIX(received_total_share_size == server_kem_group_params->kem_group->server_share_size, S2N_ERR_BAD_KEY_SHARE);
     ENSURE_POSIX(s2n_stuffer_data_available(extension) == received_total_share_size, S2N_ERR_BAD_KEY_SHARE);
 
     /* Parse ECC key share */
