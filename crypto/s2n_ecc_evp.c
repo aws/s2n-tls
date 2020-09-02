@@ -34,15 +34,13 @@ DEFINE_POINTER_CLEANUP_FUNC(EC_POINT *, EC_POINT_free);
 #endif
 
 /* IANA values can be found here: https://tools.ietf.org/html/rfc8446#appendix-B.3.1.4 */
-/* Share sizes are described here: https://tools.ietf.org/html/rfc8446#section-4.2.8.2
- * and include the extra "legacy_form" byte */
 
 const struct s2n_ecc_named_curve s2n_ecc_curve_secp256r1 =
 {
         .iana_id = TLS_EC_CURVE_SECP_256_R1,
         .libcrypto_nid = NID_X9_62_prime256v1,
         .name = "secp256r1",
-        .share_size = ( 32 * 2 ) + 1
+        .share_size = SECP256R1_SHARE_SIZE,
 };
 
 const struct s2n_ecc_named_curve s2n_ecc_curve_secp384r1 =
@@ -50,7 +48,7 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_secp384r1 =
         .iana_id = TLS_EC_CURVE_SECP_384_R1,
         .libcrypto_nid = NID_secp384r1,
         .name = "secp384r1",
-        .share_size = ( 48 * 2 ) + 1
+        .share_size = SECP384R1_SHARE_SIZE,
 };
 
 #if EVP_APIS_SUPPORTED
@@ -58,7 +56,7 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {
     .iana_id = TLS_EC_CURVE_ECDH_X25519,
     .libcrypto_nid = NID_X25519,
     .name = "x25519",
-    .share_size = 32
+    .share_size = X25519_SHARE_SIZE,
 };
 #else
 const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {0};

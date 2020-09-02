@@ -23,6 +23,12 @@
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_safety.h"
 
+/* Share sizes are described here: https://tools.ietf.org/html/rfc8446#section-4.2.8.2
+ * and include the extra "legacy_form" byte */
+#define SECP256R1_SHARE_SIZE ((32 * 2 ) + 1)
+#define SECP384R1_SHARE_SIZE ((48 * 2 ) + 1)
+#define X25519_SHARE_SIZE (32)
+
 struct s2n_ecc_named_curve {
     /* See https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8 */
     uint16_t iana_id;
