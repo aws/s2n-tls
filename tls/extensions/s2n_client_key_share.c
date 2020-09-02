@@ -103,9 +103,7 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
     return S2N_SUCCESS;
 }
 
-static int s2n_generate_pq_hybrid_key_share(struct s2n_connection *conn, struct s2n_stuffer *out,
-        struct s2n_kem_group_params *kem_group_params) {
-    notnull_check(conn);
+static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_kem_group_params *kem_group_params) {
     notnull_check(out);
     notnull_check(kem_group_params);
 
@@ -163,7 +161,7 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
     struct s2n_kem_group_params *kem_group_params = &conn->secure.client_kem_group_params[0];
     kem_group_params->kem_group = kem_pref->tls13_kem_groups[0];
 
-    GUARD(s2n_generate_pq_hybrid_key_share(conn, out, kem_group_params));
+    GUARD(s2n_generate_pq_hybrid_key_share(out, kem_group_params));
 
     return S2N_SUCCESS;
 }
@@ -256,7 +254,7 @@ static int s2n_send_hrr_pq_hybrid_keyshare(struct s2n_connection *conn, struct s
     GUARD(s2n_wipe_all_client_keyshares(conn));
     /* Generate the keyshare for the server negotiated KEM group */
     kem_group_params->kem_group = server_negotiated_kem_group;
-    GUARD(s2n_generate_pq_hybrid_key_share(conn, out, kem_group_params));
+    GUARD(s2n_generate_pq_hybrid_key_share(out, kem_group_params));
 
     return S2N_SUCCESS;
 }
@@ -306,8 +304,122 @@ static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stu
     return S2N_SUCCESS;
 }
 
-static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
+static int s2n_client_key_share_recv_ecc(struct s2n_connection *conn, struct s2n_stuffer *key_share,
+        uint16_t curve_iana_id, bool *match) {
+    notnull_check(conn);
+    notnull_check(key_share);
+    notnull_check(match);
+
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    notnull_check(ecc_pref);
+
+    ENSURE_POSIX(s2n_ecc_preferences_includes_curve(ecc_pref, curve_iana_id), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+
+    const struct s2n_ecc_named_curve *curve = NULL;
+    struct s2n_ecc_evp_params *client_ecc_params = NULL;
+    for (size_t i = 0; i < ecc_pref->count; i++) {
+        if (curve_iana_id == ecc_pref->ecc_curves[i]->iana_id) {
+            curve = ecc_pref->ecc_curves[i];
+            client_ecc_params = &conn->secure.client_ecc_evp_params[i];
+            break;
+        }
+    }
+
+    /* Ignore curves that we've already received material for */
+    if (client_ecc_params->negotiated_curve) {
+        return S2N_SUCCESS;
+    }
+
+    /* Ignore curves with unexpected share sizes */
+    if (key_share->blob.size != curve->share_size) {
+        return S2N_SUCCESS;
+    }
+
+    struct s2n_blob point_blob = { 0 };
+    GUARD(s2n_ecc_evp_read_params_point(key_share, curve->share_size, &point_blob));
+
+    /* Ignore curves with points we can't parse */
+    client_ecc_params->negotiated_curve = curve;
+    if (s2n_ecc_evp_parse_params_point(&point_blob, client_ecc_params) < 0) {
+        client_ecc_params->negotiated_curve = NULL;
+        GUARD(s2n_ecc_evp_params_free(client_ecc_params));
+        return S2N_SUCCESS;
+    }
+
+    *match = true;
+    return S2N_SUCCESS;
+}
+
+static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, struct s2n_stuffer *key_share,
+        uint16_t kem_group_iana_id, bool *match) {
+    notnull_check(conn);
+    notnull_check(key_share);
+    notnull_check(match);
+
+    const struct s2n_kem_preferences *kem_pref = NULL;
+    GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    notnull_check(kem_pref);
+
+    ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+    ENSURE_POSIX(s2n_kem_preferences_includes_tls13_kem_group(kem_pref, kem_group_iana_id), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+
+    const struct s2n_kem_group *kem_group = NULL;
+    struct s2n_kem_group_params *client_kem_group_params = NULL;
+    for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+        if (kem_group_iana_id == kem_pref->tls13_kem_groups[i]->iana_id) {
+            kem_group = kem_pref->tls13_kem_groups[i];
+            client_kem_group_params = &conn->secure.client_kem_group_params[i];
+            break;
+        }
+    }
+
+    /* Ignore KEM groups that we've already received material for */
+    if (client_kem_group_params->kem_group) {
+        return S2N_SUCCESS;
+    }
+
+    /* Ignore KEM groups with unexpected overall total share sizes */
+    if (key_share->blob.size != kem_group->client_share_size) {
+        return S2N_SUCCESS;
+    }
+
+    uint16_t ec_share_size = 0;
+    GUARD(s2n_stuffer_read_uint16(key_share, &ec_share_size));
+    /* Ignore KEM groups with unexpected ECC share sizes */
+    if (ec_share_size != kem_group->curve->share_size) {
+        return S2N_SUCCESS;
+    }
+
+    struct s2n_blob point_blob = { 0 };
+    GUARD(s2n_ecc_evp_read_params_point(key_share, kem_group->curve->share_size, &point_blob));
+
+    /* Ignore KEM groups with ECC points we can't parse */
+    client_kem_group_params->ecc_params.negotiated_curve = kem_group->curve;
+    if (s2n_ecc_evp_parse_params_point(&point_blob, &client_kem_group_params->ecc_params) < 0) {
+        client_kem_group_params->ecc_params.negotiated_curve = NULL;
+        GUARD(s2n_ecc_evp_params_free(&client_kem_group_params->ecc_params));
+        return S2N_SUCCESS;
+    }
+
+    /* Note: the PQ share size is validated in s2n_kem_recv_public_key() */
+    /* Ignore groups with PQ public keys we can't parse */
+    client_kem_group_params->kem_params.kem = kem_group->kem;
+    if (s2n_kem_recv_public_key(key_share, &client_kem_group_params->kem_params) != S2N_SUCCESS) {
+        client_kem_group_params->kem_group = NULL;
+        client_kem_group_params->kem_params.kem = NULL;
+        client_kem_group_params->ecc_params.negotiated_curve = NULL;
+        /* s2n_kem_group_free() will free both the ECC and KEM params */
+        GUARD(s2n_kem_group_free(client_kem_group_params));
+        return S2N_SUCCESS;
+    }
+
+    client_kem_group_params->kem_group = kem_group;
+    *match = true;
+    return S2N_SUCCESS;
+}
+
+static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension) {
     notnull_check(conn);
     notnull_check(extension);
 
@@ -319,18 +431,16 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     notnull_check(ecc_pref);
 
+    const struct s2n_kem_preferences *kem_pref = NULL;
+    GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    notnull_check(kem_pref);
+
     uint16_t key_shares_size;
     GUARD(s2n_stuffer_read_uint16(extension, &key_shares_size));
-    S2N_ERROR_IF(s2n_stuffer_data_available(extension) < key_shares_size, S2N_ERR_BAD_MESSAGE);
+    ENSURE_POSIX(s2n_stuffer_data_available(extension) >= key_shares_size, S2N_ERR_BAD_MESSAGE);
 
-    const struct s2n_ecc_named_curve *supported_curve;
-    struct s2n_blob point_blob;
     uint16_t named_group, share_size;
-    uint32_t supported_curve_index;
-
-    /* Whether a match was found */
-    uint8_t match = 0;
-
+    bool match_found = false;
     /* bytes_processed is declared as a uint32_t to avoid integer overflow in later calculations */
     uint32_t bytes_processed = 0;
 
@@ -338,51 +448,25 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
         GUARD(s2n_stuffer_read_uint16(extension, &named_group));
         GUARD(s2n_stuffer_read_uint16(extension, &share_size));
 
-        S2N_ERROR_IF(s2n_stuffer_data_available(extension) < share_size, S2N_ERR_BAD_MESSAGE);
+        ENSURE_POSIX(s2n_stuffer_data_available(extension) >= share_size, S2N_ERR_BAD_MESSAGE);
         bytes_processed += share_size + S2N_SIZE_OF_NAMED_GROUP + S2N_SIZE_OF_KEY_SHARE_SIZE;
 
-        supported_curve = NULL;
-        for (size_t i = 0; i < ecc_pref->count; i++) {
-            if (named_group == ecc_pref->ecc_curves[i]->iana_id) {
-                supported_curve_index = i;
-                supported_curve = ecc_pref->ecc_curves[i];
-                break;
-            }
-        }
+        DEFER_CLEANUP(struct s2n_stuffer key_share = { 0 }, s2n_stuffer_free);
+        GUARD(s2n_stuffer_alloc(&key_share, share_size));
+        GUARD(s2n_stuffer_copy(extension, &key_share, share_size));
 
-        /* Ignore unsupported curves */
-        if (!supported_curve) {
-            GUARD(s2n_stuffer_skip_read(extension, share_size));
-            continue;
+        if (s2n_ecc_preferences_includes_curve(ecc_pref, named_group)) {
+            GUARD(s2n_client_key_share_recv_ecc(conn, &key_share, named_group, &match_found));
+        } else if (!s2n_is_in_fips_mode() && s2n_kem_preferences_includes_tls13_kem_group(kem_pref, named_group)) {
+            GUARD(s2n_client_key_share_recv_pq_hybrid(conn, &key_share, named_group, &match_found));
         }
-
-        /* Ignore curves that we've already received material for */
-        if (conn->secure.client_ecc_evp_params[supported_curve_index].negotiated_curve) {
-            GUARD(s2n_stuffer_skip_read(extension, share_size));
-            continue;
-        }
-
-        /* Ignore curves with unexpected share sizes */
-        if (supported_curve->share_size != share_size) {
-            GUARD(s2n_stuffer_skip_read(extension, share_size));
-            continue;
-        }
-
-        GUARD(s2n_ecc_evp_read_params_point(extension, share_size, &point_blob));
-
-        conn->secure.client_ecc_evp_params[supported_curve_index].negotiated_curve = supported_curve;
-        if (s2n_ecc_evp_parse_params_point(&point_blob, &conn->secure.client_ecc_evp_params[supported_curve_index]) < 0) {
-            /* Ignore curves with points we can't parse */
-            conn->secure.client_ecc_evp_params[supported_curve_index].negotiated_curve = NULL;
-            GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[supported_curve_index]));
-        } else {
-            match = 1;
-        }
+        /* else: we ignore unsupported groups. We do not need to call
+         * s2n_stuffer_skip_read() because of the above call to s2n_stuffer_copy(). */
     }
 
-    /* If there was no matching key share then we received an empty key share extension
-     * or we didn't match a keyshare with a supported group. We should send a retry. */
-    if (match == 0) {
+    /* If there were no matching key shares, then we received an empty key share extension
+     * or we didn't match a key share with a supported group. We should send a retry. */
+    if (!match_found) {
         GUARD(s2n_set_hello_retry_required(conn));
     }
 
