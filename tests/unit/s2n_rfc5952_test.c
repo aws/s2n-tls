@@ -17,6 +17,12 @@
 
 #include <arpa/inet.h>
 
+#if defined(__FreeBSD__)
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
+
 #include "utils/s2n_rfc5952.h"
 
 int main(int argc, char **argv)
