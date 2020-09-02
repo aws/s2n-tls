@@ -69,6 +69,7 @@ int s2n_record_parse_composite(
     payload_length -= mac_size;
     /* Adjust payload_length for explicit IV */
     if (conn->actual_protocol_version > S2N_TLS10) {
+        gte_check(payload_length, cipher_suite->record_alg->cipher->io.comp.record_iv_size);
         payload_length -= cipher_suite->record_alg->cipher->io.comp.record_iv_size;
     }
 
@@ -86,7 +87,9 @@ int s2n_record_parse_composite(
 
     /* Subtract the padding length */
     gt_check(en.size, 0);
-    payload_length -= (en.data[en.size - 1] + 1);
+    uint16_t padding_length = en.data[en.size - 1] + 1;
+    gte_check(payload_length, padding_length);
+    payload_length -= padding_length;
 
     struct s2n_blob seq = {.data = sequence_number,.size = S2N_TLS_SEQUENCE_NUM_LEN };
     GUARD(s2n_increment_sequence_number(&seq));
