@@ -29,7 +29,7 @@
 #include <openssl/err.h>
 #include <openssl/asn1.h>
 
-#if !defined(OPENSSL_IS_BORINGSSL)
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 #include <openssl/ocsp.h>
 #endif
 
