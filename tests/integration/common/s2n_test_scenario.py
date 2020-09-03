@@ -124,6 +124,7 @@ ALL_CIPHERS_PER_LIBCRYPTO_VERSION = {
     "openssl-1.0.2-fips"    : LEGACY_COMPATIBLE_CIPHERS,
     "libressl"              : LEGACY_COMPATIBLE_CIPHERS,
     "boringssl"             : LEGACY_COMPATIBLE_CIPHERS,
+    "awslc"                 : LEGACY_COMPATIBLE_CIPHERS,
 }
 
 class Curve():
@@ -163,6 +164,7 @@ ALL_CURVES_PER_LIBCRYPTO_VERSION = {
     "openssl-1.0.2-fips"    : LEGACY_COMPATIBLE_CURVES,
     "libressl"              : LEGACY_COMPATIBLE_CURVES,
     "boringssl"             : LEGACY_COMPATIBLE_CURVES,
+    "awslc"                 : LEGACY_COMPATIBLE_CURVES,
 }
 
 
