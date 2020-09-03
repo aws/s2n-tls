@@ -506,11 +506,12 @@ combinations are called *security policies*. This function is simply a wrapper f
 ### s2n\_config\_set\_cipher\_preferences
 
 ```c
+S2N_DEPRECATED
 int s2n_config_set_cipher_preferences(struct s2n_config *config,
                                       const char *version);
 ```
 
-**s2n_config_set_cipher_preferences** sets the security policy that includes the cipher/kem/signature/ecc preferences and protocol version.
+*This API is deprecated* **s2n_config_set_cipher_preferences** sets the security policy that includes the cipher/kem/signature/ecc preferences and protocol version.
 
 The following chart maps the security policy version to protocol version and ciphertsuites supported:
 
@@ -1120,10 +1121,11 @@ This function is a wrapper for **s2n_connection_set_cipher_preferences**.
 ### s2n\_connection\_set\_cipher\_preferences
 
 ```c
+S2N_DEPRECATED
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
 ```
 
-**s2n_connection_set_cipher_preferences** sets the cipher preference override for the
+*This API is deprecated* **s2n_connection_set_cipher_preferences** sets the cipher preference override for the
 s2n_connection. Calling this function is not necessary unless you want to set the
 cipher preferences on the connection to something different than what is in the s2n_config.
 
