@@ -83,3 +83,4 @@ bool s2n_ecc_preferences_includes_curve(const struct s2n_ecc_preferences *ecc_pr
 
     return false;
 }
+
