@@ -29,7 +29,7 @@
 /* LibreSSL, BoringSSL and AWS-LC supports the cipher, but the interface is different from Openssl's. We
  * should define a separate s2n_cipher struct for LibreSSL, BoringSSL and AWS-LC.
  */
-#if !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL)
+#if !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 /* Symbols for AES-SHA1-CBC composite ciphers were added in Openssl 1.0.1
  * These composite ciphers exhibit erratic behavior in LibreSSL releases.
  */
