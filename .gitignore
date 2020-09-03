@@ -34,3 +34,4 @@ test-deps/*
 CMakeCache.txt
 CMakeFiles/*
 .project
+./codebuild/spec/buildspec_*_batch.yml

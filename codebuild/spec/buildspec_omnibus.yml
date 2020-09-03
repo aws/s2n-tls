@@ -1,0 +1,239 @@
+---
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+# http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+version: 0.2
+
+# Doc for batch https://docs.aws.amazon.com/codebuild/latest/userguide/batch-build-buildspec.html#build-spec.batch.build-list
+batch:
+  build-list:
+    # Consolidated Integration tests
+    - identifier: s2nIntegrationBoringLibre
+      buildspec: codebuild/spec/buildspec_ubuntu_integ_boringlibre.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+
+    - identifier: s2nIntegrationOpenSSL111PlusCoverage
+      buildspec: codebuild/spec/buildspec_ubuntu_integ_openssl111.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+
+    - identifier: s2nIntegrationOpenSSL102Plus
+      buildspec: codebuild/spec/buildspec_ubuntu_integ_openssl102.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+
+    - identifier: s2nIntegrationOpenSSL102AsanValgrind
+      buildspec: codebuild/spec/buildspec_ubuntu_integ_openssl102_asanvalgrind.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+
+    # Individual Integration tests
+    - identifier: s2nIntegrationBoringSSLGcc9
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: boringssl
+          BUILD_S2N: true
+          TESTS: integration
+          GCC_VERSION: 9
+
+    - identifier: s2nIntegrationOpenSSL111Gcc6SoftCrypto
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-1.1.1
+          BUILD_S2N: true
+          TESTS: integration
+          GCC_VERSION: 6
+          OPENSSL_ia32cap: "~0x200000200000000"
+
+    - identifier: s2nIntegrationOpenSSL111Gcc9
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-1.1.1
+          BUILD_S2N: true
+          TESTS: integration
+          GCC_VERSION: 9
+
+    - identifier: s2nIntegrationLibreSSLGcc9
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: libressl
+          BUILD_S2N: true
+          TESTS: integration
+          GCC_VERSION: 9
+
+    - identifier: s2nIntegrationOpenSSL111Gcc6Coverage
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-1.1.1
+          BUILD_S2N: true
+          TESTS: integration
+          GCC_VERSION: 6
+          S2N_COVERAGE: true
+          CODECOV_IO_UPLOAD: true
+
+    # Saw
+    - identifier: s2nSawBike
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_2XLARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-1.0.2
+          TESTS: sawBIKE
+          SAW: true
+          GCC_VERSION: NONE
+
+    - identifier: sawHMACPlus
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          TESTS: sawHMACPlus
+          SAW: true
+          GCC_VERSION: NONE
+
+    - identifier: s2nSawTls
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          TESTS: tls
+          SAW: true
+          GCC_VERSION: NONE
+
+    # Other
+    - identifier: s2nSidetrail
+      buildspec: codebuild/spec/buildspec_sidetrail.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_2XLARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/linux-docker-images:sidetrail
+        variables:
+          TESTS: sidetrail
+
+
+    - identifier: s2nValgrindOpenSSL102Gcc6Fips
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          TESTS: valgrind
+          GCC_VERSION: 6
+          S2N_LIBCRYPTO: openssl-1.0.2-fips
+          BUILD_S2N: true
+
+    - identifier: s2nValgrindOpenSSL111Gcc9
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          TESTS: valgrind
+          GCC_VERSION: 9
+          S2N_LIBCRYPTO: openssl-1.1.1
+          BUILD_S2N: true
+
+    - identifier: s2nValgrindOpenssl102
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          TESTS: valgrind
+          GCC_VERSION: '6'
+          S2N_LIBCRYPTO: 'openssl-1.0.2'
+          BUILD_S2N: 'true'
+
+    - identifier: s2nAsanOpenSSL111Coverage
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_SMALL
+        variables:
+          TESTS: asan
+          GCC_VERSION: '6'
+          S2N_LIBCRYPTO: 'openssl-1.1.1'
+          BUILD_S2N: 'true'
+          S2N_COVERAGE: 'true'
+          CODECOV_IO_UPLOAD: 'true'
+          CODECOV_TOKEN: 'e460b7c1-6019-4a50-b65d-555c4a8fbc22'
+
+    - identifier: s2nAsanOpenssl102
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_SMALL
+        variables:
+          TESTS: asan
+          GCC_VERSION: '6'
+          S2N_LIBCRYPTO: 'openssl-1.0.2'
+          BUILD_S2N: 'true'
+
+    # Fuzz tests
+    - identifier: s2nFuzzerOpenSSL111Coverage
+      buildspec: codebuild/spec/buildspec_ubuntu_fuzz_artifacts.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-1.1.1
+          LATEST_CLANG: true
+          TESTS: fuzz
+          FUZZ_TIMEOUT_SEC: 60
+          FUZZ_COVERAGE: true
+          CODECOV_IO_UPLOAD: true
+
+    - identifier: s2nFuzzerOpenSSL102
+      buildspec: codebuild/spec/buildspec_ubuntu_fuzz_artifacts.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-1.0.2
+          LATEST_CLANG: true
+          TESTS: fuzz
+          FUZZ_TIMEOUT_SEC: 60
+
+    - identifier: s2nFuzzerOpenSSL102FIPS
+      buildspec: codebuild/spec/buildspec_ubuntu_fuzz_artifacts.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-1.0.2-fips
+          LATEST_CLANG: true
+          TESTS: fuzz
+          FUZZ_TIMEOUT_SEC: 60
+
