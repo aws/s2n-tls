@@ -37,7 +37,7 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
 # We abstract these functions because manual inspection demonstrates they are unreachable.
 REMOVE_FUNCTION_BODY += s2n_blob_slice
-REMOVE_FUNCTION_BODY += s2n_stuffer_wipe_n
+REMOVE_FUNCTION_BODY += s2n_stuffer_wipe
 
 UNWINDSET += s2n_stuffer_read_token.6:$(call addone,$(MAX_BLOB_SIZE))
 

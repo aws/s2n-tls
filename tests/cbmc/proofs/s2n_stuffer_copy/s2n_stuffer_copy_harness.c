@@ -33,6 +33,8 @@ void s2n_stuffer_copy_harness()
     __CPROVER_assume(s2n_stuffer_is_valid(to));
     uint32_t length;
 
+    nondet_s2n_mem_init();
+
     s2n_stuffer_copy(from, to, length);
 
     /* These assertions should always hold, regardless of whether the test succeeded */
