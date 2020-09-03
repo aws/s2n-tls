@@ -27,6 +27,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_resume.h"
 #include "tls/s2n_crypto.h"
+#include "tls/s2n_tls.h"
 
 int s2n_allowed_to_cache_connection(struct s2n_connection *conn)
 {
@@ -311,7 +312,12 @@ int s2n_connection_is_session_resumed(struct s2n_connection *conn)
 int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn)
 {
     notnull_check(conn);
-    return IS_OCSP_STAPLED(conn->handshake.handshake_type) ? 1 : 0;
+
+    if (conn->actual_protocol_version >= S2N_TLS13) {
+        return (s2n_server_can_send_ocsp(conn) || s2n_server_sent_ocsp(conn));
+    } else {
+        return IS_OCSP_STAPLED(conn->handshake.handshake_type);
+    }
 }
 
 int s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config)
