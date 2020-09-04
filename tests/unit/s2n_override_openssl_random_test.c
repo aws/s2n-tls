@@ -144,7 +144,7 @@ int main(int argc, char **argv)
     END_TEST();
 }
 
-#else /* defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC) */
+#else
 
 int main(int argc, char **argv)
 {

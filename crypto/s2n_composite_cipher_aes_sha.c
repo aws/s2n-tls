@@ -26,7 +26,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-/* LibreSSL, BoringSSL and AWS-LC supports the cipher, but the interface is different from Openssl's. We
+/* LibreSSL, BoringSSL and AWS-LC support the cipher, but the interface is different from Openssl's. We
  * should define a separate s2n_cipher struct for LibreSSL, BoringSSL and AWS-LC.
  */
 #if !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
@@ -125,7 +125,7 @@ static uint8_t s2n_composite_cipher_aes256_sha256_available(void)
 static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type,
                                                      uint16_t protocol_version, uint16_t payload_and_eiv_len, int *extra)
 {
-    /* BoringSSL and AWS-LC does not support these composite ciphers with the existing EVP API, and they took out the
+    /* BoringSSL and AWS-LC do not support these composite ciphers with the existing EVP API, and they took out the
      * constants used below. This method should never be called with BoringSSL or AWS-LC because the isAvaliable checked
      * will fail. Instead of defining a possibly dangerous default or hard coding this to 0x16 error out with BoringSSL and AWS-LC.
      */
