@@ -38,8 +38,8 @@ void s2n_dup_harness()
     const struct s2n_blob         old_to   = *to;
     struct store_byte_from_buffer old_byte;
     save_byte_from_blob(from, &old_byte);
-    /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if (nondet_bool()) { s2n_mem_init(); }
+
+    nondet_s2n_mem_init();
 
     if (s2n_dup(from, to) == S2N_SUCCESS) {
         assert(old_from.size != 0);
