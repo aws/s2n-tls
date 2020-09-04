@@ -17,6 +17,9 @@ env:
   variables:
     # CODEBUILD_ is a reserved namespace.
     CB_BIN_DIR: "./codebuild/bin"
+    S2N_LIBCRYPTO: "awslc"
+    TESTS: "integration"
+    BUILD_S2N: true
 
 phases:
   install:
@@ -42,13 +45,13 @@ phases:
         if [ -d "third-party-src" ]; then
           cd third-party-src;
         fi
-      - S2N_LIBCRYPTO=awslc GCC_VERSION=6 $CB_BIN_DIR/install_default_dependencies.sh
+      - GCC_VERSION=6 $CB_BIN_DIR/install_default_dependencies.sh
   build:
     commands:
       - printenv
-      - S2N_LIBCRYPTO=awslc GCC_VERSION=4.8 TESTS=integration $CB_BIN_DIR/s2n_codebuild.sh
-      - S2N_LIBCRYPTO=awslc GCC_VERSION=6 TESTS=integration $CB_BIN_DIR/s2n_codebuild.sh
-      - S2N_LIBCRYPTO=awslc GCC_VERSION=9 TESTS=integration $CB_BIN_DIR/s2n_codebuild.sh
+      - GCC_VERSION=4.8 $CB_BIN_DIR/s2n_codebuild.sh
+      - GCC_VERSION=6 $CB_BIN_DIR/s2n_codebuild.sh
+      - GCC_VERSION=9 $CB_BIN_DIR/s2n_codebuild.sh
   post_build:
     commands:
       - echo Build completed on `date`
