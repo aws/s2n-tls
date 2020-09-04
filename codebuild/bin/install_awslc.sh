@@ -33,8 +33,8 @@ git clone https://github.com/awslabs/aws-lc.git
 mkdir build
 cd build
 
-cmake ../aws-lc -DBUILD_SHARED_LIBS=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
-make -j "${JOBS}" install
+cmake ../aws-lc -GNinja -DBUILD_SHARED_LIBS=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
+ninja -j "${JOBS}" install
 
 popd
 
