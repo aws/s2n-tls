@@ -151,6 +151,9 @@ include(CheckCSourceCompiles)
 check_c_source_compiles("
     #include <execinfo.h>
     int main() {
+        void *array[20];
+        int backtrace_size = backtrace(array, 20);
+        backtrace_symbols(array, backtrace_size);
         return 0;
     }" S2N_HAVE_EXECINFO)
 

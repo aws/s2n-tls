@@ -747,7 +747,9 @@ int main(int argc, char *const *argv)
         struct sigaction sa;
 
         sa.sa_handler = SIG_IGN;
+#if defined(SA_NOCLDWAIT)
         sa.sa_flags = SA_NOCLDWAIT;
+#endif
         sigemptyset(&sa.sa_mask);
         sigaction(SIGCHLD, &sa, NULL);
     }
