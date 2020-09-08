@@ -102,10 +102,11 @@ OPENSSL_1_0_2_TEST_CIPHERS = list(filter(lambda x: "CHACHA20" not in x.openssl_n
 # Test ciphers to use when s2n is built with Openssl 1.0.2 libcrypto that is linked with a FIPS module.
 OPENSSL_1_0_2_FIPS_TEST_CIPHERS = list(filter(lambda x: x.openssl_fips_compatible == True, ALL_TEST_CIPHERS))
 
-# Test ciphers to use when s2n is built with LibreSSL or BoringSSL libcrypto. s2n does not implement the
+# Test ciphers to use when s2n is built with LibreSSL, AWS-LC or BoringSSL libcrypto. s2n does not implement the
 # ChaCha20-Poly1305 cipher offered by these libcryptos.
 LIBRESSL_TEST_CIPHERS = list(filter(lambda x: "CHACHA20" not in x.openssl_name, ALL_TEST_CIPHERS))
 BORINGSSL_TEST_CIPHERS = list(filter(lambda x: "CHACHA20" not in x.openssl_name, ALL_TEST_CIPHERS))
+AWSLC_TEST_CIPHERS = list(filter(lambda x: "CHACHA20" not in x.openssl_name, ALL_TEST_CIPHERS))
 
 # Dictionary to look up ciphers to use by libcrypto s2n is built with.
 # Libcrypto string will be an argument to test scripts.
@@ -115,6 +116,7 @@ S2N_LIBCRYPTO_TO_TEST_CIPHERS = {
     "openssl-1.0.2-fips"    : OPENSSL_1_0_2_FIPS_TEST_CIPHERS,
     "libressl"              : LIBRESSL_TEST_CIPHERS,
     "boringssl"             : BORINGSSL_TEST_CIPHERS,
+    "awslc"                 : AWSLC_TEST_CIPHERS,
 }
 
 S2N_LIBCRYPTO_TO_OCSP = {
@@ -123,9 +125,10 @@ S2N_LIBCRYPTO_TO_OCSP = {
     "openssl-1.0.2-fips"    : [OCSP.ENABLED, OCSP.DISABLED, OCSP.MALFORMED],
     "libressl"              : [OCSP.ENABLED, OCSP.DISABLED, OCSP.MALFORMED],
     "boringssl"             : [OCSP.DISABLED],
+    "awslc"                 : [OCSP.DISABLED],
 }
 
-S2N_LIBCRYPTO_CHOICES = ['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.1', 'libressl', 'boringssl']
+S2N_LIBCRYPTO_CHOICES = ['openssl-1.0.2', 'openssl-1.0.2-fips', 'openssl-1.1.1', 'libressl', 'boringssl', 'awslc']
 
 S2N_PROTO_VERS_TO_STR = {
     S2N_SSLv3 : "SSLv3",
