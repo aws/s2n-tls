@@ -91,6 +91,7 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
     &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x04 */
     &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x08 */
+    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,   /* 0xFF,0x0C */
 };
 
 static struct s2n_cipher_suite *s2n_all_fips_cipher_suites[] = {
@@ -193,7 +194,13 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     }
 
     if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_kem_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
-        server_conn->secure.kem_params.kem = &s2n_sike_p503_r1;
+        if (server_conn->secure.cipher_suite == &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384) {
+            server_conn->secure.kem_params.kem = &s2n_sike_p434_r2;
+        } else if (server_conn->secure.cipher_suite == &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384) {
+            server_conn->secure.kem_params.kem = &s2n_bike1_l1_r2;
+        } else if (server_conn->secure.cipher_suite == &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384) {
+            server_conn->secure.kem_params.kem = &s2n_kyber_512_r2;
+        }
     }
 
     /* Run Test
