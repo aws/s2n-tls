@@ -29,7 +29,7 @@ phases:
       - echo Entered the install phase...
       - add-apt-repository ppa:ubuntu-toolchain-r/test -y
       # Add repo to get latest golang version. https://github.com/golang/go/wiki/Ubuntu
-      - add-apt-repository ppa:longsleep/golang-backports
+      - add-apt-repository ppa:longsleep/golang-backports -y
       - apt-get update -o Acquire::CompressionTypes::Order::=gz
       - apt-get update -y
       - apt-get install -y --no-install-recommends gcc g++ gcc-4.8 g++-4.8 gcc-6 g++-6 gcc-9 g++-9
