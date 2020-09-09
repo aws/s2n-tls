@@ -170,7 +170,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
         }
-
 #if !defined(S2N_NO_PQ)
         {
             const struct s2n_kem_group *test_kem_groups[] = {
@@ -245,7 +244,6 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_free(&client_params->kem_params.public_key));
                     EXPECT_SUCCESS(s2n_connection_free(conn));
                 }
-
                 /* s2n_server_hello_retry_recv must fail if the server chose a PQ KEM
                  * that wasn't in the client's supported_groups */
                 {
