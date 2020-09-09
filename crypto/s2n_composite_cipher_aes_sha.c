@@ -26,10 +26,10 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-/* LibreSSL and BoringSSL supports the cipher, but the interface is different from Openssl's. We
- * should define a separate s2n_cipher struct for LibreSSL and BoringSSL.
+/* LibreSSL, BoringSSL and AWS-LC support the cipher, but the interface is different from Openssl's. We
+ * should define a separate s2n_cipher struct for LibreSSL, BoringSSL and AWS-LC.
  */
-#if !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL)
+#if !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 /* Symbols for AES-SHA1-CBC composite ciphers were added in Openssl 1.0.1
  * These composite ciphers exhibit erratic behavior in LibreSSL releases.
  */
@@ -125,12 +125,12 @@ static uint8_t s2n_composite_cipher_aes256_sha256_available(void)
 static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type,
                                                      uint16_t protocol_version, uint16_t payload_and_eiv_len, int *extra)
 {
-    /* BoringSSL does not support these composite ciphers with the existing EVP API, and they took out the
-     * constants used below. This method should never be called with BoringSSL because the isAvaliable checked
-     * will fail. Instead of defining a possibly dangerous default or hard coding this to 0x16 error out with BoringSSL.
+    /* BoringSSL and AWS-LC do not support these composite ciphers with the existing EVP API, and they took out the
+     * constants used below. This method should never be called with BoringSSL or AWS-LC because the isAvaliable checked
+     * will fail. Instead of defining a possibly dangerous default or hard coding this to 0x16 error out with BoringSSL and AWS-LC.
      */
-#ifdef OPENSSL_IS_BORINGSSL
-  S2N_ERROR(S2N_ERR_NO_AVAILABLE_BORINGSSL_API);
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+  S2N_ERROR(S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
 #else
     uint8_t ctrl_buf[S2N_TLS12_AAD_LEN];
     struct s2n_blob ctrl_blob = { .data = ctrl_buf, .size = S2N_TLS12_AAD_LEN };

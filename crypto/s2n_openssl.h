@@ -36,13 +36,13 @@
 #define S2N_OPENSSL_VERSION_AT_LEAST(major, minor, fix) \
     (OPENSSL_VERSION_NUMBER >= ((major << 28) + (minor << 20) + (fix << 12)))
 
-#if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)) && (!defined(OPENSSL_IS_BORINGSSL))
+#if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)) && (!defined(OPENSSL_IS_BORINGSSL)) && (!defined(OPENSSL_IS_AWSLC))
 #define s2n_evp_ctx_init(ctx) GUARD_OSSL(EVP_CIPHER_CTX_init(ctx), S2N_ERR_DRBG)
 #else
 #define s2n_evp_ctx_init(ctx) EVP_CIPHER_CTX_init(ctx)
 #endif
 
-#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER)
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_FIPS) && !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_AWSLC)
 #define S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND 1
 #else
 #define S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND 0

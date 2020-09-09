@@ -88,7 +88,7 @@ static int s2n_sslv3_prf(struct s2n_prf_working_space *ws, struct s2n_blob *secr
     return 0;
 }
 
-#ifndef OPENSSL_IS_BORINGSSL
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 static int s2n_evp_hmac_p_hash_new(struct s2n_prf_working_space *ws)
 {
     notnull_check(ws->tls.p_hash.evp_hmac.evp_digest.ctx = S2N_EVP_MD_CTX_NEW());
@@ -209,7 +209,7 @@ static const struct s2n_p_hash_hmac s2n_evp_hmac = {
     .cleanup = &s2n_evp_hmac_p_hash_cleanup,
     .free = &s2n_evp_hmac_p_hash_free,
 };
-#endif /* OPENSSL_IS_BORINGSSL */
+#endif /* !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC) */
 
 static int s2n_hmac_p_hash_new(struct s2n_prf_working_space *ws)
 {
@@ -319,7 +319,7 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
 }
 
 const struct s2n_p_hash_hmac *s2n_get_hmac_implementation() {
-#ifdef OPENSSL_IS_BORINGSSL
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
   return &s2n_hmac;
 #else
   return s2n_is_in_fips_mode() ? &s2n_evp_hmac : &s2n_hmac;
