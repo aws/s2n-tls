@@ -140,6 +140,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         conn->server_protocol_version = (uint8_t)(protocol_version[0] * 10) + protocol_version[1];
 
         S2N_ERROR_IF(s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
+        ENSURE_POSIX(!conn->quic_enabled, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
         const struct s2n_security_policy *security_policy;
         GUARD(s2n_connection_get_security_policy(conn, &security_policy));

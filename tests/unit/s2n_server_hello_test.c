@@ -20,6 +20,7 @@
 #include <s2n.h>
 
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_quic_support.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_security_policies.h"
@@ -43,9 +44,26 @@ const uint8_t tls11_downgrade_protection_check_bytes[] = {
     0x44, 0x4F, 0x57, 0x4E, 0x47, 0x52, 0x44, 0x00
 };
 
+static S2N_RESULT s2n_test_client_hello(struct s2n_connection *client_conn, struct s2n_connection *server_conn)
+{
+    GUARD_AS_RESULT(s2n_client_hello_send(client_conn));
+    GUARD_AS_RESULT(s2n_stuffer_copy(&client_conn->handshake.io,
+            &server_conn->handshake.io, s2n_stuffer_data_available(&client_conn->handshake.io)));
+    GUARD_AS_RESULT(s2n_client_hello_recv(server_conn));
+
+    GUARD_AS_RESULT(s2n_stuffer_wipe(&client_conn->handshake.io));
+    GUARD_AS_RESULT(s2n_stuffer_wipe(&server_conn->handshake.io));
+
+    return S2N_RESULT_OK;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+
+    struct s2n_cert_chain_and_key *chain_and_key;
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     /* Test basic Server Hello Send */
     {
@@ -480,7 +498,62 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
-    END_TEST();
+    /* Test that negotiating TLS1.2 with QUIC-enabled client fails */
+    {
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
-    return 0;
+        /* Succeeds when negotiating TLS1.3 */
+        {
+            EXPECT_SUCCESS(s2n_enable_tls13());
+
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            EXPECT_EQUAL(client_conn->client_protocol_version, S2N_TLS13);;
+            EXPECT_SUCCESS(s2n_connection_enable_quic(client_conn));
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
+
+            EXPECT_OK(s2n_test_client_hello(client_conn, server_conn));
+
+            EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io,
+                    &client_conn->handshake.io, s2n_stuffer_data_available(&server_conn->handshake.io)));
+            EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
+
+        /* Fails when negotiating TLS1.2 */
+        {
+            EXPECT_SUCCESS(s2n_enable_tls13());
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            EXPECT_EQUAL(client_conn->client_protocol_version, S2N_TLS13);
+            EXPECT_SUCCESS(s2n_connection_enable_quic(client_conn));
+
+            EXPECT_SUCCESS(s2n_disable_tls13());
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS12);
+
+            EXPECT_OK(s2n_test_client_hello(client_conn, server_conn));
+
+            EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io,
+                    &client_conn->handshake.io, s2n_stuffer_data_available(&server_conn->handshake.io)));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
+    }
+
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+    END_TEST();
 }
