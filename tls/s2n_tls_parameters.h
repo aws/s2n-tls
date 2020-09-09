@@ -92,17 +92,18 @@
 #define TLS_AES_128_CCM_8_SHA256            0x13, 0x05
 
 /* TLS extensions from https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml */
-#define TLS_EXTENSION_SERVER_NAME           0
-#define TLS_EXTENSION_MAX_FRAG_LEN          1
-#define TLS_EXTENSION_STATUS_REQUEST        5
-#define TLS_EXTENSION_SUPPORTED_GROUPS     10
-#define TLS_EXTENSION_EC_POINT_FORMATS     11
-#define TLS_EXTENSION_SIGNATURE_ALGORITHMS 13
-#define TLS_EXTENSION_ALPN                 16
-#define TLS_EXTENSION_SCT_LIST             18
-#define TLS_EXTENSION_SESSION_TICKET       35
-#define TLS_EXTENSION_CERT_AUTHORITIES     47
-#define TLS_EXTENSION_RENEGOTIATION_INFO   65281
+#define TLS_EXTENSION_SERVER_NAME                0
+#define TLS_EXTENSION_MAX_FRAG_LEN               1
+#define TLS_EXTENSION_STATUS_REQUEST             5
+#define TLS_EXTENSION_SUPPORTED_GROUPS          10
+#define TLS_EXTENSION_EC_POINT_FORMATS          11
+#define TLS_EXTENSION_SIGNATURE_ALGORITHMS      13
+#define TLS_EXTENSION_ALPN                      16
+#define TLS_EXTENSION_SCT_LIST                  18
+#define TLS_EXTENSION_SESSION_TICKET            35
+#define TLS_EXTENSION_CERT_AUTHORITIES          47
+#define TLS_EXTENSION_SIGNATURE_ALGORITHMS_CERT 50
+#define TLS_EXTENSION_RENEGOTIATION_INFO        65281
 
 /* TLS 1.3 extensions from https://tools.ietf.org/html/rfc8446#section-4.2 */
 #define TLS_EXTENSION_SUPPORTED_VERSIONS   43

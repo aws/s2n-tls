@@ -52,6 +52,8 @@ struct s2n_crypto_parameters {
 
     struct s2n_signature_scheme client_cert_sig_scheme;
 
+    struct s2n_signature_scheme client_signature_algorithms_cert;
+
     struct s2n_cipher_suite *cipher_suite;
     struct s2n_session_key client_key;
     struct s2n_session_key server_key;

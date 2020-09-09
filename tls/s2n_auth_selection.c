@@ -215,7 +215,14 @@ int s2n_select_certs_for_server_auth(struct s2n_connection *conn, struct s2n_cer
     notnull_check(conn);
 
     s2n_pkey_type cert_type;
-    GUARD(s2n_get_cert_type_for_sig_alg(conn->secure.conn_sig_scheme.sig_alg, &cert_type));
+    /* If the client sent an optional signature algorithms cert extension,
+     * choose a certificate from their signature_algorithms_cert selection. 
+     */
+    if (conn->secure.client_signature_algorithms_cert.sig_alg) {
+        GUARD(s2n_get_cert_type_for_sig_alg(conn->secure.client_signature_algorithms_cert.sig_alg, &cert_type));
+    } else {
+        GUARD(s2n_get_cert_type_for_sig_alg(conn->secure.conn_sig_scheme.sig_alg, &cert_type));
+    }
 
     *chosen_certs = s2n_get_compatible_cert_chain_and_key(conn, cert_type);
     S2N_ERROR_IF(*chosen_certs == NULL, S2N_ERR_CERT_TYPE_UNSUPPORTED);

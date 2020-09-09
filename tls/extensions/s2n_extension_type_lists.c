@@ -31,6 +31,7 @@
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/extensions/s2n_client_pq_kem.h"
 #include "tls/extensions/s2n_client_renegotiation_info.h"
+#include "tls/extensions/s2n_client_signature_algorithms_cert.h"
 #include "tls/extensions/s2n_ec_point_format.h"
 #include "tls/extensions/s2n_quic_transport_params.h"
 #include "tls/extensions/s2n_server_certificate_status.h"
@@ -44,6 +45,7 @@
 #include "tls/extensions/s2n_server_signature_algorithms.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/extensions/s2n_server_key_share.h"
+#include "tls/extensions/s2n_server_signature_algorithms_cert.h"
 
 static const s2n_extension_type *const client_hello_extensions[] = {
         &s2n_client_supported_versions_extension,
@@ -60,6 +62,7 @@ static const s2n_extension_type *const client_hello_extensions[] = {
         &s2n_client_pq_kem_extension,
         &s2n_client_renegotiation_info_extension,
         &s2n_client_cookie_extension,
+        &s2n_client_signature_algorithms_cert_extension,
         &s2n_quic_transport_parameters_extension,
 };
 
@@ -90,6 +93,7 @@ static const s2n_extension_type *const encrypted_extensions[] = {
 
 static const s2n_extension_type *const cert_req_extensions[] = {
         &s2n_server_signature_algorithms_extension,
+        &s2n_server_signature_algorithms_cert_extension,
 };
 
 static const s2n_extension_type *const certificate_extensions[] = {
