@@ -339,6 +339,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
         certificate_count++;
     }
+
     if (conn->actual_protocol_version >= S2N_TLS13) {
         GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &first_certificate_extensions));
     }
