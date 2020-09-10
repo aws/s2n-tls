@@ -21,12 +21,6 @@
 
 int s2n_connection_enable_quic(struct s2n_connection *conn)
 {
-    /* The QUIC RFC is not yet finalized, so all QUIC APIs are
-     * considered experimental and subject to change.
-     * They should only be used for testing purposes.
-     */
-    ENSURE_POSIX(S2N_IN_TEST, S2N_ERR_NOT_IN_TEST);
-
     /* The QUIC protocol doesn't use pre-1.3 TLS */
     ENSURE_POSIX(s2n_is_tls13_enabled(), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 

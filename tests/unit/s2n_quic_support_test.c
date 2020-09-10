@@ -31,25 +31,17 @@ int main(int argc, char **argv)
         /* Check error handling */
         {
             EXPECT_SUCCESS(s2n_disable_tls13());
-            EXPECT_SUCCESS(s2n_in_unit_test_set(true));
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_enable_quic(conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
             EXPECT_FALSE(conn->quic_enabled);
 
             EXPECT_SUCCESS(s2n_enable_tls13());
-            EXPECT_SUCCESS(s2n_in_unit_test_set(true));
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_enable_quic(NULL), S2N_ERR_NULL);
-            EXPECT_FALSE(conn->quic_enabled);
-
-            EXPECT_SUCCESS(s2n_enable_tls13());
-            EXPECT_SUCCESS(s2n_in_unit_test_set(false));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_enable_quic(conn), S2N_ERR_NOT_IN_TEST);
             EXPECT_FALSE(conn->quic_enabled);
         }
 
         /* Check success */
         {
             EXPECT_SUCCESS(s2n_enable_tls13());
-            EXPECT_SUCCESS(s2n_in_unit_test_set(true));
             EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
             EXPECT_TRUE(conn->quic_enabled);
 

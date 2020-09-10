@@ -231,8 +231,8 @@ int main(int argc, char **argv)
     /* Test that negotiating TLS1.2 with QUIC-enabled server fails */
     {
         struct s2n_config *config = s2n_config_new();
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
 
         /* Succeeds when negotiating TLS1.3 */
         {
@@ -241,11 +241,12 @@ int main(int argc, char **argv)
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
             EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
-            EXPECT_SUCCESS(s2n_connection_enable_quic(server_conn));
 
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
             EXPECT_EQUAL(client_conn->client_protocol_version, S2N_TLS13);
+
+            EXPECT_SUCCESS(s2n_connection_enable_quic(server_conn));
 
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io,
@@ -258,16 +259,17 @@ int main(int argc, char **argv)
 
         /* Fails when negotiating TLS1.2 */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
-            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
-            EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
-            EXPECT_SUCCESS(s2n_connection_enable_quic(server_conn));
-
             EXPECT_SUCCESS(s2n_disable_tls13());
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
             EXPECT_EQUAL(client_conn->client_protocol_version, S2N_TLS12);
+
+            EXPECT_SUCCESS(s2n_enable_tls13());
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
+
+            EXPECT_SUCCESS(s2n_connection_enable_quic(server_conn));
 
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io,

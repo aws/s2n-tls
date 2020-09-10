@@ -18,15 +18,15 @@
 #include "api/s2n.h"
 
 /*
- * APIs intended to support the QUIC protocol: https://datatracker.ietf.org/wg/quic/about/
+ * APIs intended to support an external implementation of the QUIC protocol:
+ * https://datatracker.ietf.org/wg/quic/about/
  *
  * QUIC requires access to parts of S2N not usually surfaced to customers. These APIs change
  * the behavior of S2N in potentially dangerous ways and should only be used by implementations
  * of the QUIC protocol.
  *
  * Additionally, the QUIC RFC is not yet finalized, so all QUIC APIs are considered experimental
- * and are subject to change. They should only be used for testing purposes, and can only be called
- * from S2N unit tests or with the "S2N_INTEG_TEST" environmental variable set.
+ * and are subject to change without notice. They should only be used for testing purposes.
  */
 
 S2N_API int s2n_connection_enable_quic(struct s2n_connection *conn);
