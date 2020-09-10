@@ -246,6 +246,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
             EXPECT_EQUAL(client_conn->client_protocol_version, S2N_TLS13);
 
+            EXPECT_SUCCESS(s2n_connection_enable_quic(client_conn));
             EXPECT_SUCCESS(s2n_connection_enable_quic(server_conn));
 
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
@@ -269,6 +270,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
             EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
 
+            client_conn->quic_enabled = true; /* Actual api requires tls1.3, so set flag directly */
             EXPECT_SUCCESS(s2n_connection_enable_quic(server_conn));
 
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));

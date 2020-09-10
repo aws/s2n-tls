@@ -109,6 +109,9 @@
 #define TLS_EXTENSION_COOKIE               44
 #define TLS_EXTENSION_KEY_SHARE            51
 
+/* QUIC-TLS extension from https://tools.ietf.org/html/draft-ietf-quic-tls-29#section-8.2 */
+#define TLS_QUIC_TRANSPORT_PARAMETERS      65535
+
 /* TLS Signature Algorithms - RFC 5246 7.4.1.4.1 */
 /* https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16 */
 #define TLS_SIGNATURE_ALGORITHM_ANONYMOUS   0
