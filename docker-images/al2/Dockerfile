@@ -5,13 +5,13 @@ FROM amazonlinux:${AL_VERSION}
 WORKDIR /opt/s2n
 
 ARG OPENSSL_VERSION=openssl-1.1.1
-ARG GCC_VERSION=7
+ARG GCC_VERSION=9
 ARG ZSH_THEME=cypher
 
 ENV S2N_LIBCRYPTO=${OPENSSL_VERSION} \
     GCC_VERSION=${GCC_VERSION} \
     BUILD_S2N=true \
-    TESTS=integration \
+    TESTS=integration
 
 # set up user account
 RUN set -ex; \
@@ -29,7 +29,7 @@ RUN set -ex; \
     libicu-devel libjpeg-devel libpng-devel libserf libsqlite3x-devel \
     libtidy-devel libunwind libwebp-devel libxml2-devel libxslt libxslt-devel \
     libyaml-devel libzip-devel mariadb-devel mercurial mlocate mono-devel \
-    ncurses-devel oniguruma-devel openssl openssl-devel perl-DBD-SQLite \
+    ncurses-devel oniguruma-devel openssl11 perl-DBD-SQLite \
     perl-DBI perl-HTTP-Date perl-IO-Pty-Easy perl-TimeDate perl-YAML-LibYAML \
     postgresql-devel procps-ng python-configobj python3 readline-devel rsync shadow-utils sgml-common \
     subversion-perl sudo tar tcl tk vim wget which xfsprogs xmlto xz-devel zsh; \
@@ -37,13 +37,12 @@ RUN set -ex; \
 
 ADD ./bin/* /var/tmp
 ADD codebuild codebuild
-RUN  /var/tmp/s2n_dev_setup.sh
 
 # install dependencies
 RUN set -eux; \
   export LD_LIBRARY_PATH=""; \
   . codebuild/bin/s2n_setup_env.sh; \
-  echo "TODO: AL2 install test deps goes here..."; \
+  . codebuild/bin/s2n_install_test_dependencies.sh; \
   yum clean all; \
   echo done
 

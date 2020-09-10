@@ -29,10 +29,14 @@ codebuild/bin/install_shellcheck.sh
 echo "Running ShellCheck..."
 find ./codebuild -type f -name '*.sh' -exec shellcheck -Cnever -s bash {} \;
 
-if [[ "$OS_NAME" == "linux" ]]; then
+if [[ "$(uname -s)" == "Linux" ]]; then
     # Only run ubuntu install outside of CodeBuild
-    if [ ! "${CODEBUILD_BUILD_NUMBER}" ]; then
-        codebuild/bin/install_ubuntu_dependencies.sh;
+    if [[ ! "${CODEBUILD_BUILD_NUMBER}" ]]; then
+	    if [[ "$(uname -m)" == "x86_64" ]];
+        	codebuild/bin/install_ubuntu_dependencies.sh;
+	    elif [[ "$(uname -m)" == "aarch64" ]]; then
+	        codebuild/bin/install_al2_dependencies.sh;"
+	    fi
     fi
 fi
 
