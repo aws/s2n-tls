@@ -13,7 +13,6 @@ ENV S2N_LIBCRYPTO=${OPENSSL_VERSION} \
     BUILD_S2N=true \
     TESTS=integration
 
-# set up user account
 RUN set -ex; \
     amazon-linux-extras install ruby2.6 rust1; \
     amazon-linux-extras enable epel;\
@@ -31,7 +30,7 @@ RUN set -ex; \
     libyaml-devel libzip-devel mariadb-devel mercurial mlocate mono-devel \
     ncurses-devel oniguruma-devel openssl11 perl-DBD-SQLite \
     perl-DBI perl-HTTP-Date perl-IO-Pty-Easy perl-TimeDate perl-YAML-LibYAML \
-    postgresql-devel procps-ng python-configobj python3 readline-devel rsync shadow-utils sgml-common \
+    postgresql-devel procps-ng python-configobj python3 python-tox readline-devel rsync shadow-utils sgml-common \
     subversion-perl sudo tar tcl tk vim wget which xfsprogs xmlto xz-devel zsh; \
     gem install bundler;
 
@@ -39,6 +38,7 @@ ADD ./bin/* /var/tmp
 ADD codebuild codebuild
 
 # install dependencies
+RUN uname -a
 RUN set -eux; \
   export LD_LIBRARY_PATH=""; \
   . codebuild/bin/s2n_setup_env.sh; \

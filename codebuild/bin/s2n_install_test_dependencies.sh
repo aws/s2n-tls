@@ -14,7 +14,7 @@
 #
 
 
-set -ex
+set -e
 
 # Install missing test dependencies. If the install directory already exists, cached artifacts will be used
 # for that dependency.
@@ -23,19 +23,20 @@ if [[ ! -d test-deps ]]; then
     mkdir test-deps ;
 fi
 
-#Install & Run shell check before installing dependencies
+# Are we running on CodeBuild?
+CODEBUILD=${CODEBUILD_BUILD_NUMBER:-}
+
+#Install shell check
 echo "Installing ShellCheck..."
 codebuild/bin/install_shellcheck.sh
-echo "Running ShellCheck..."
-find ./codebuild -type f -name '*.sh' -exec shellcheck -Cnever -s bash {} \;
 
 if [[ "$(uname -s)" == "Linux" ]]; then
     # Only run ubuntu install outside of CodeBuild
-    if [[ ! "${CODEBUILD_BUILD_NUMBER}" ]]; then
-	    if [[ "$(uname -m)" == "x86_64" ]];
+    if [[ ! -z "${CODEBUILD}" ]]; then
+	    if [[ "$(uname -m)" == "x86_64" ]]; then
         	codebuild/bin/install_ubuntu_dependencies.sh;
-	    elif [[ "$(uname -m)" == "aarch64" ]]; then
-	        codebuild/bin/install_al2_dependencies.sh;"
+	    else
+	        echo "AL2 has deps installed via docker"
 	    fi
     fi
 fi

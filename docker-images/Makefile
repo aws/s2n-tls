@@ -20,8 +20,8 @@ libffi:
 	@pip install docker-compose
 	@chmod 755 /usr/local/bin/docker-compose
 
-.PHONY : amazonlinux
+.PHONY : amazonlinux2
 amazonlinux2: /usr/local/bin/docker-compose
-	cp -R ../codebuild/ ./codebuild/
+	cp -fR ../codebuild/ ./codebuild/
 	REPOSITORY_URI=$(REPOSITORY_URI) docker-compose build amazonlinux_2_openssl-1.1.1_gcc9
 
