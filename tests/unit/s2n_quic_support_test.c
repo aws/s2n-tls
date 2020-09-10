@@ -18,6 +18,8 @@
 
 #include "tls/s2n_connection.h"
 
+static const uint8_t TEST_DATA[] = "test";
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -51,6 +53,86 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test s2n_connection_set_quic_transport_parameters */
+    {
+        /* Safety checks */
+        {
+            struct s2n_connection conn = { 0 };
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_quic_transport_parameters(NULL, TEST_DATA, sizeof(TEST_DATA)),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_quic_transport_parameters(&conn, NULL, sizeof(TEST_DATA)),
+                    S2N_ERR_NULL);
+            EXPECT_SUCCESS(s2n_connection_set_quic_transport_parameters(&conn, TEST_DATA, 0));
+            EXPECT_EQUAL(conn.our_quic_transport_parameters.size, 0);
+        }
+
+        /* Set transport data */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+            s2n_connection_set_quic_transport_parameters(conn, TEST_DATA, sizeof(TEST_DATA));
+            EXPECT_BYTEARRAY_EQUAL(conn->our_quic_transport_parameters.data, TEST_DATA, sizeof(TEST_DATA));
+
+            /* Set again */
+            const uint8_t other_data[] = "other parameters";
+            s2n_connection_set_quic_transport_parameters(conn, other_data, sizeof(other_data));
+            EXPECT_BYTEARRAY_EQUAL(conn->our_quic_transport_parameters.data, other_data, sizeof(other_data));
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
+
+    /* Test s2n_connection_get_quic_transport_parameters */
+    {
+        /* Safety checks */
+        {
+            struct s2n_connection conn = { 0 };
+            const uint8_t *data_buffer = NULL;
+            uint16_t data_buffer_len = 0;
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_quic_transport_parameters(NULL, &data_buffer, &data_buffer_len),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_quic_transport_parameters(&conn, NULL, &data_buffer_len),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_quic_transport_parameters(&conn, &data_buffer, NULL),
+                    S2N_ERR_NULL);
+        }
+
+        /* Get empty transport parameters */
+        {
+            const uint8_t *data_buffer = TEST_DATA;
+            uint16_t data_buffer_len = sizeof(TEST_DATA);
+
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+            EXPECT_SUCCESS(s2n_connection_get_quic_transport_parameters(conn, &data_buffer, &data_buffer_len));
+            EXPECT_EQUAL(data_buffer, NULL);
+            EXPECT_EQUAL(data_buffer_len, 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Get transport parameters */
+        {
+            const uint8_t *data_buffer = NULL;
+            uint16_t data_buffer_len = 0;
+
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+            EXPECT_SUCCESS(s2n_alloc(&conn->peer_quic_transport_parameters, sizeof(TEST_DATA)));
+            EXPECT_MEMCPY_SUCCESS(conn->peer_quic_transport_parameters.data, TEST_DATA, sizeof(TEST_DATA));
+
+            EXPECT_SUCCESS(s2n_connection_get_quic_transport_parameters(conn, &data_buffer, &data_buffer_len));
+            EXPECT_EQUAL(data_buffer, conn->peer_quic_transport_parameters.data);
+            EXPECT_EQUAL(data_buffer_len, conn->peer_quic_transport_parameters.size);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
     }
 
     END_TEST();
