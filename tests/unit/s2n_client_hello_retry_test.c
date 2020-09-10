@@ -25,6 +25,7 @@
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_connection.h"
+#include "crypto/s2n_fips.h"
 
 /* This include is required to access static function s2n_server_hello_parse */
 #include "tls/s2n_server_hello.c"
@@ -106,7 +107,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* Test success case for s2n_server_hello_retry_recv */
+        /* Test ECC success case for s2n_server_hello_retry_recv */
         {
             struct s2n_config *server_config;
             struct s2n_config *client_config;
@@ -168,8 +169,164 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
-
         }
+#if !defined(S2N_NO_PQ)
+        {
+            const struct s2n_kem_group *test_kem_groups[] = {
+                &s2n_secp256r1_sike_p434_r2,
+                &s2n_secp256r1_bike1_l1_r2,
+            };
+
+            const struct s2n_kem_preferences test_kem_prefs = {
+                .kem_count = 0,
+                .kems = NULL,
+                .tls13_kem_group_count = s2n_array_len(test_kem_groups),
+                .tls13_kem_groups = test_kem_groups,
+            };
+
+            const struct s2n_security_policy test_security_policy = {
+                .minimum_protocol_version = S2N_SSLv3,
+                .cipher_preferences = &cipher_preferences_test_all_tls13,
+                .kem_preferences = &test_kem_prefs,
+                .signature_preferences = &s2n_signature_preferences_20200207,
+                .ecc_preferences = &s2n_ecc_preferences_20200310,
+            };
+
+            if (s2n_is_in_fips_mode()) {
+                struct s2n_connection *conn;
+                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                conn->actual_protocol_version = S2N_TLS13;
+                conn->security_policy_override = &test_security_policy;
+
+                const struct s2n_kem_preferences *kem_pref = NULL;
+                GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+                EXPECT_NOT_NULL(kem_pref);
+
+                conn->secure.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
+                EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
+
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            } else {
+                /* s2n_server_hello_retry_recv must fail when a keyshare for a matching PQ KEM was already present */
+                {
+                    struct s2n_connection *conn;
+                    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                    conn->actual_protocol_version = S2N_TLS13;
+                    conn->security_policy_override = &test_security_policy;
+
+                    const struct s2n_kem_preferences *kem_pref = NULL;
+                    GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+                    EXPECT_NOT_NULL(kem_pref);
+
+                    conn->secure.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
+                    EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
+
+                    struct s2n_kem_group_params *client_params = &conn->secure.client_kem_group_params[0];
+                    client_params->kem_group = kem_pref->tls13_kem_groups[0];
+                    client_params->kem_params.kem = kem_pref->tls13_kem_groups[0]->kem;
+                    client_params->ecc_params.negotiated_curve = kem_pref->tls13_kem_groups[0]->curve;
+
+                    EXPECT_NULL(client_params->ecc_params.evp_pkey);
+                    EXPECT_NULL(client_params->kem_params.private_key.data);
+
+                    kem_public_key_size public_key_size = kem_pref->tls13_kem_groups[0]->kem->public_key_length;
+                    EXPECT_SUCCESS(s2n_alloc(&client_params->kem_params.public_key, public_key_size));
+
+                    EXPECT_SUCCESS(s2n_kem_generate_keypair(&client_params->kem_params));
+                    EXPECT_NOT_NULL(client_params->kem_params.private_key.data);
+                    EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params->ecc_params));
+                    EXPECT_NOT_NULL(client_params->ecc_params.evp_pkey);
+
+                    EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
+
+                    EXPECT_SUCCESS(s2n_free(&client_params->kem_params.public_key));
+                    EXPECT_SUCCESS(s2n_connection_free(conn));
+                }
+                /* s2n_server_hello_retry_recv must fail if the server chose a PQ KEM
+                 * that wasn't in the client's supported_groups */
+                {
+                    struct s2n_connection *conn;
+                    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                    conn->actual_protocol_version = S2N_TLS13;
+                    conn->security_policy_override = &test_security_policy;
+
+                    /* test_security_policy does not include kyber */
+                    conn->secure.server_kem_group_params.kem_group = &s2n_secp256r1_kyber_512_r2;
+                    EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
+
+                    EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
+
+                    EXPECT_SUCCESS(s2n_connection_free(conn));
+                }
+                /* Test failure if exactly one of {named_curve, kem_group} isn't non-null */
+                {
+                    struct s2n_connection *conn;
+                    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                    conn->actual_protocol_version = S2N_TLS13;
+                    conn->security_policy_override = &test_security_policy;
+
+                    conn->secure.server_kem_group_params.kem_group = &s2n_secp256r1_sike_p434_r2;
+                    conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+
+                    EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
+
+                    conn->secure.server_kem_group_params.kem_group = NULL;
+                    conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
+
+                    EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
+
+                    EXPECT_SUCCESS(s2n_connection_free(conn));
+                }
+                /* Test PQ KEM success case for s2n_server_hello_retry_recv. */
+                {
+                    struct s2n_config *config;
+                    struct s2n_connection *conn;
+
+                    struct s2n_cert_chain_and_key *tls13_chain_and_key;
+                    char tls13_cert_chain[S2N_MAX_TEST_PEM_SIZE] = {0};
+                    char tls13_private_key[S2N_MAX_TEST_PEM_SIZE] = {0};
+
+                    EXPECT_NOT_NULL(config = s2n_config_new());
+                    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                    conn->security_policy_override = &test_security_policy;
+
+                    EXPECT_NOT_NULL(tls13_chain_and_key = s2n_cert_chain_and_key_new());
+                    EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, tls13_cert_chain, S2N_MAX_TEST_PEM_SIZE));
+                    EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, tls13_private_key, S2N_MAX_TEST_PEM_SIZE));
+                    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(tls13_chain_and_key, tls13_cert_chain, tls13_private_key));
+                    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, tls13_chain_and_key));
+
+                    /* Client sends ClientHello containing key share for p256+SIKE
+                     * (but indicates support for p256+BIKE in supported_groups) */
+                    EXPECT_SUCCESS(s2n_client_hello_send(conn));
+
+                    EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->handshake.io));
+
+                    /* Server responds with HRR indicating p256+BIKE as choice for negotiation;
+                     * the last 6 bytes (0033 0002 2F23) are the key share extension with p256+BIKE */
+                    DEFER_CLEANUP(struct s2n_stuffer hrr = {0}, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&hrr,
+                            "0303CF21AD74E59A6111BE1D8C021E65B891C2A211167ABB8C5E079E09E2C8A8339C00130200000C002B00020304003300022F23"));
+
+                    EXPECT_SUCCESS(s2n_stuffer_copy(&hrr, &conn->handshake.io, s2n_stuffer_data_available(&hrr)));
+                    conn->handshake.message_number = HELLO_RETRY_MSG_NO;
+                    /* Read the message off the wire */
+                    EXPECT_SUCCESS(s2n_server_hello_parse(conn));
+                    conn->actual_protocol_version_established = 1;
+
+                    EXPECT_SUCCESS(s2n_conn_set_handshake_type(conn));
+                    /* Client receives the HelloRetryRequest message */
+                    EXPECT_SUCCESS(s2n_server_hello_retry_recv(conn));
+
+                    EXPECT_SUCCESS(s2n_config_free(config));
+                    EXPECT_SUCCESS(s2n_connection_free(conn));
+                    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
+                }
+            }
+        }
+#endif
     }
 
     /* Verify that the hash transcript recreation function is called correctly,

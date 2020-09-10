@@ -22,6 +22,7 @@
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "utils/s2n_safety.h"
+#include "crypto/s2n_fips.h"
 
 /* From RFC5246 7.4.1.2. */
 #define S2N_TLS_COMPRESSION_METHOD_NULL 0
@@ -70,10 +71,14 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
 {
     notnull_check(conn);
     ENSURE_POSIX(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
-    const struct s2n_ecc_named_curve *named_curve = conn->secure.server_ecc_evp_params.negotiated_curve;
+
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     notnull_check(ecc_pref);
+
+    const struct s2n_kem_preferences *kem_pref = NULL;
+    GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    notnull_check(kem_pref);
 
     /* Upon receipt of the HelloRetryRequest, the client MUST verify that:
      * (1) the selected_group field corresponds to a group
@@ -81,20 +86,43 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
      * original ClientHello and
      * (2) the selected_group field does not correspond to a group which was provided
      * in the "key_share" extension in the original ClientHello.
-     * If either of these checks fails, then the client MUST abort the handshake.
-     * */
+     * If either of these checks fails, then the client MUST abort the handshake. */
 
-    bool match = false;
+    bool match_found = false;
 
-    for (size_t i = 0; i < ecc_pref->count; i++) {
-        if (ecc_pref->ecc_curves[i] == named_curve) {
-            match = true;
-            ENSURE_POSIX(conn->secure.client_ecc_evp_params[i].evp_pkey == NULL, S2N_ERR_INVALID_HELLO_RETRY);
-            break;
+    const struct s2n_ecc_named_curve *named_curve = conn->secure.server_ecc_evp_params.negotiated_curve;
+    const struct s2n_kem_group *kem_group = conn->secure.server_kem_group_params.kem_group;
+
+    /* Boolean XOR check: exactly one of {named_curve, kem_group} should be non-null. */
+    ENSURE_POSIX( (named_curve != NULL) != (kem_group != NULL), S2N_ERR_INVALID_HELLO_RETRY);
+
+    if (named_curve != NULL) {
+        for (size_t i = 0; i < ecc_pref->count; i++) {
+            if (ecc_pref->ecc_curves[i] == named_curve) {
+                match_found = true;
+                ENSURE_POSIX(conn->secure.client_ecc_evp_params[i].evp_pkey == NULL, S2N_ERR_INVALID_HELLO_RETRY);
+                break;
+            }
         }
     }
 
-    ENSURE_POSIX(match, S2N_ERR_INVALID_HELLO_RETRY);
+    if (kem_group != NULL) {
+        /* If in FIPS mode, the client should not have sent any PQ IDs
+         * in the supported_groups list of the initial ClientHello */
+        ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+
+        for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+            if (kem_pref->tls13_kem_groups[i] == kem_group) {
+                match_found = true;
+                ENSURE_POSIX(conn->secure.client_kem_group_params[i].kem_params.private_key.data == NULL,
+                        S2N_ERR_INVALID_HELLO_RETRY);
+                ENSURE_POSIX(conn->secure.client_kem_group_params[i].ecc_params.evp_pkey == NULL,
+                        S2N_ERR_INVALID_HELLO_RETRY);
+            }
+        }
+    }
+
+    ENSURE_POSIX(match_found, S2N_ERR_INVALID_HELLO_RETRY);
 
     /* Update transcript hash */
     GUARD(s2n_server_hello_retry_recreate_transcript(conn));
