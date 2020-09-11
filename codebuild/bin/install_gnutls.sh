@@ -33,7 +33,12 @@ source codebuild/bin/jobs.sh
 
 # libgmp is needed for libnettle
 if [ "$OS_NAME" == "linux" ]; then
-    sudo apt-get -qq install libgmp3-dev -y
+	if [[ "$(uname -m)" == "x86_64" ]]; then
+    		sudo apt-get -qq install libgmp3-dev -y
+	else
+		sudo yum install -y gmp-devel
+	fi
+
 elif [ "$OS_NAME" == "osx" ]; then
     # Installing an existing package is a "failure" in brew
     brew install gmp || true ;

@@ -15,6 +15,23 @@
 
 set -ex
 
+aarch64_install() {
+	echo "old sslyze has a dep on nassl, which is not availabe for ARM.  Building it from source fails, skipping on"
+	return
+	yum install -y python3-devel
+	pip install pathlib
+	cd /tmp
+	wget https://github.com/nabla-c0d3/nassl/archive/2.2.0.zip
+	unzip 2.2.0.zip
+	cd nassl-2.2.0
+	python3 setup.py install --prefix /usr
+}
+
+
+if [[ "$(uname -m)" == "aarch64" ]]; then
+	aarch64_install
+}
+
 python3 -m pip install --user --upgrade pip setuptools
 
 # Version 3.0.0 introduces backwards incompatible changes in the JSON we parse.

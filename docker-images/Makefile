@@ -20,6 +20,11 @@ libffi:
 	@pip install docker-compose
 	@chmod 755 /usr/local/bin/docker-compose
 
+veryclean:
+	docker system prune --volumes -f
+clean:
+	rm -rf ./codebuild
+
 .PHONY : amazonlinux2
 amazonlinux2: /usr/local/bin/docker-compose
 	cp -fR ../codebuild/ ./codebuild/

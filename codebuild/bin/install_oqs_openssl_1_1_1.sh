@@ -43,6 +43,7 @@ cd liboqs
 git checkout 1b9aecc65672f86487018ee6f9786216578e4e29
 
 mkdir build && cd build
+echo "OPENSSL_ROOT_DIR:$OPENSSL_ROOT_DIR  S2N_LIBCRYPTO=$S2N_LIBCRYPTO"
 cmake -GNinja -DCMAKE_INSTALL_PREFIX=${BUILD_DIR}/openssl/oqs ..
 ninja
 ninja install
