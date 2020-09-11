@@ -32,7 +32,7 @@ RUN set -ex; \
     libcurl-devel libdb-devel libedit-devel libevent-devel libffi-devel \
     libicu-devel libjpeg-devel libpng-devel libserf libsqlite3x-devel \
     libtidy-devel libunwind libwebp-devel libxml2-devel libxslt libxslt-devel \
-    libyaml-devel libzip-devel mariadb-devel mercurial mlocate mono-devel \
+    libyaml-devel libzip-devel lsb-release mariadb-devel mercurial mlocate mono-devel \
     ncurses-devel ninja-build oniguruma-devel perl-DBD-SQLite \
     perl-DBI perl-HTTP-Date perl-IO-Pty-Easy perl-TimeDate perl-YAML-LibYAML \
     postgresql-devel procps-ng python3 python-tox readline-devel rsync shadow-utils sgml-common \
@@ -45,13 +45,10 @@ RUN gem install bundler
 ADD ./bin/* /var/tmp
 ADD codebuild codebuild
 
-# install dependencies
+# install test dependencies
 RUN set -eux; \
-  export LD_LIBRARY_PATH=""; \
-  . codebuild/bin/s2n_setup_env.sh; \
-  . codebuild/bin/s2n_install_test_dependencies.sh; \
-  yum clean all; \
-  echo done
+  LD_LIBRARY_PATH="" . codebuild/bin/s2n_install_test_dependencies.sh; \
+  yum clean all; rm -rf /var/cache/yum \
 
 RUN ./codebuild/bin/install_clang.sh
 USER s2n-dev

@@ -16,8 +16,8 @@
 set -ex
 
 aarch64_install() {
-	echo "old sslyze has a dep on nassl, which is not availabe for ARM.  Building it from source fails, skipping on"
-	return
+	echo "Old sslyze has a dep on nassl, which is not availabe for ARM. Building it from source fails, skipping"
+	exit 0
 	yum install -y python3-devel
 	pip install pathlib
 	cd /tmp
@@ -30,7 +30,7 @@ aarch64_install() {
 
 if [[ "$(uname -m)" == "aarch64" ]]; then
 	aarch64_install
-}
+fi
 
 python3 -m pip install --user --upgrade pip setuptools
 

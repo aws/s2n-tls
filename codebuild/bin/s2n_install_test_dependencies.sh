@@ -15,6 +15,7 @@
 
 
 set -e
+source codebuild/bin/s2n_setup_env.sh
 
 # Install missing test dependencies. If the install directory already exists, cached artifacts will be used
 # for that dependency.
@@ -30,13 +31,11 @@ CODEBUILD=${CODEBUILD_BUILD_NUMBER:-}
 echo "Installing ShellCheck..."
 codebuild/bin/install_shellcheck.sh
 
-if [[ "$(uname -s)" == "Linux" ]]; then
+if [[ "$OS_NAME" == "linux" ]]; then
     # Only run ubuntu install outside of CodeBuild
-    if [[ ! -z "${CODEBUILD}" ]]; then
-	    if [[ "$(uname -m)" == "x86_64" ]]; then
+    if [[ ! -z "${CODEBUILD}" && "$DISTO"=="Ubuntu" ]]; then
+	    if [[ "$ARCH" == "x86_64" ]]; then
         	codebuild/bin/install_ubuntu_dependencies.sh;
-	    else
-	        echo "AL2 has deps installed via docker"
 	    fi
     fi
 fi

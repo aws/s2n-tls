@@ -51,6 +51,13 @@
 
 # OS_NAME
 export OS_NAME=$(uname -s|tr "[:upper:]" "[:lower:]")
+export ARCH=$(uname -m)
+# Requires lsb-release to be installed
+if [[ -f "/etc/os-release" ]]; then
+	source /etc/os-release
+	export DISTRO=${NAME:-}
+fi
+
 
 # Export all Env Variables
 export S2N_LIBCRYPTO
