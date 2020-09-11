@@ -112,13 +112,13 @@ int main(int argc, char **argv)
 
             /* The data should be encrypted */
             if (bytes_written > 10) {
-                EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + 5, random_data, bytes_written), 0);
+                EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + S2N_TLS_RECORD_HEADER_LENGTH, random_data, bytes_written), 0);
             }
 
             /* Copy the encrypted out data to the in data */
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
-            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
             /* Let's decrypt it */
@@ -178,13 +178,13 @@ int main(int argc, char **argv)
 
             /* The data should be encrypted */
             if (bytes_written > 10) {
-                EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + 5, random_data, bytes_written), 0);
+                EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + S2N_TLS_RECORD_HEADER_LENGTH, random_data, bytes_written), 0);
             }
 
             /* Copy the encrypted out data to the in data */
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
-            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
             /* Let's decrypt it */
@@ -245,13 +245,13 @@ int main(int argc, char **argv)
 
             /* The data should be encrypted */
             if (bytes_written > 10) {
-                EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + 5, random_data, bytes_written), 0);
+                EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + S2N_TLS_RECORD_HEADER_LENGTH, random_data, bytes_written), 0);
             }
 
             /* Copy the encrypted out data to the in data */
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
-            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
             /* Let's decrypt it */
@@ -311,13 +311,13 @@ int main(int argc, char **argv)
 
             /* The data should be encrypted */
             if (bytes_written > 10) {
-                EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + 5, random_data, bytes_written), 0);
+                EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + S2N_TLS_RECORD_HEADER_LENGTH, random_data, bytes_written), 0);
             }
 
             /* Copy the encrypted out data to the in data */
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
-            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
             /* Let's decrypt it */

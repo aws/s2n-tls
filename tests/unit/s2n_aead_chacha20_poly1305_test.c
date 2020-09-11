@@ -76,9 +76,19 @@ int main(int argc, char **argv)
     GUARD(setup_server_keys(conn, &chacha20_poly1305_key));
 
     int max_fragment = S2N_SMALL_FRAGMENT_LENGTH;
-    for (int i = 0; i <= max_fragment + 1; i++) {
+    for (size_t i = 0; i <= max_fragment + 1; i++) {
         struct s2n_blob in = {.data = random_data,.size = i };
         int bytes_written;
+
+        /* TLS packet on the wire using ChaCha20-Poly1305:
+         * https://tools.ietf.org/html/rfc5246#section-6.2.3.3
+         * https://tools.ietf.org/html/rfc7905#section-2
+         * ----------------------------------
+         * |TLS header|encrypted payload|TAG|
+         * ----------------------------------
+         * Length:
+         * S2N_TLS_RECORD_HEADER_LENGTH + i + S2N_TLS_CHACHA20_POLY1305_TAG_LEN
+         */
 
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
         EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
@@ -97,8 +107,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(bytes_written, max_fragment);
         }
 
-        static const int overhead = S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN   /* Should be 0 */
-            + S2N_TLS_GCM_TAG_LEN; /* TAG */
+        static const int overhead = S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN /* Should be 0 */
+            + S2N_TLS_CHACHA20_POLY1305_TAG_LEN; /* TAG */
 
         uint16_t predicted_length = bytes_written;
         predicted_length += conn->initial.cipher_suite->record_alg->cipher->io.aead.record_iv_size;
@@ -175,7 +185,7 @@ int main(int argc, char **argv)
         GUARD(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.client_key));
 
         /* Tamper with the TAG and ensure decryption fails */
-        for (int j = 0; j < S2N_TLS_CHACHA20_POLY1305_TAG_LEN; j++) {
+        for (size_t j = 0; j < S2N_TLS_CHACHA20_POLY1305_TAG_LEN; j++) {
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             conn->actual_protocol_version_established = 1;
             conn->server_protocol_version = S2N_TLS12;
@@ -201,8 +211,8 @@ int main(int argc, char **argv)
             GUARD(conn->initial.cipher_suite->record_alg->cipher->destroy_key(&conn->initial.client_key));
         }
 
-        /* Tamper with the ciphertext and ensure decryption fails */
-        for (int j = 0; j < i - S2N_TLS_CHACHA20_POLY1305_TAG_LEN; j++) {
+        /* Tamper with the encrypted payload in the ciphertext and ensure decryption fails */
+        for (size_t j = 0; j < i; j++) {
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             conn->actual_protocol_version_established = 1;
             conn->server_protocol_version = S2N_TLS12;
@@ -217,7 +227,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
-            conn->in.blob.data[S2N_TLS_GCM_IV_LEN + j]++;
+            conn->in.blob.data[j] ++;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
             EXPECT_FAILURE(s2n_record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
