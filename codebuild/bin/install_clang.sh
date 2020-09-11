@@ -20,13 +20,12 @@ usage() {
 	exit 1
 }
 
-if [ "$#" -ne "3" ]; then
+if [ "$#" -ne "2" ]; then
 	usage
 fi
 
 CLANG_DOWNLOAD_DIR=$1
 CLANG_INSTALL_DIR=$2
-PLATFORM=$3
 
 if [[ -d "$CLANG_DOWNLOAD_DIR" ]]; then
 	rm -rf "$CLANG_DOWNLOAD_DIR"
@@ -38,16 +37,12 @@ cd "$CLANG_DOWNLOAD_DIR"
 # list supported by git/curl on Ubuntu/AL2, but the certificate is in the
 # ca-certificates.crt file in Ubuntu/AL2, so set this env variable so that it is
 # picked up by git.
-if [ "$PLATFORM" == "linux" ]; then
-	if [[ -f "/etc/system-release" ]]; then
-		#TODO: if we're going to co-mingle AL2, we need a global flag/function todo the following.
-		grep -q 'Amazon Linux release 2' /etc/system-release
-		if [ "$?" == 0 ]; then
-			export SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt
-		else
-			export SSL_CERT_FILE=/usr/lib/ssl/certs/ca-certificates.crt
-		fi
-	fi
+if [ "$OS_NAME" == "linux" ]; then
+        if [[ "$DISTRO" == "Amazon Linux 2" ]]; then
+          export SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt;
+        else
+          export SSL_CERT_FILE=/usr/lib/ssl/certs/ca-certificates.crt;
+        fi
 fi
 
 export GIT_CURL_VERBOSE=1
@@ -69,8 +64,8 @@ if [[ "$FUZZ_COVERAGE" == "true" ]]; then
 	LLVM_INSTALL_DIR="$CLANG_INSTALL_DIR"/../llvm
 	mkdir -p "$LLVM_INSTALL_DIR"
 	python3 "$CLANG_DOWNLOAD_DIR"/clang/scripts/update.py --package="coverage_tools" --output-dir="$LLVM_INSTALL_DIR"
-	ln -sf $LLVM_INSTALL_DIR/bin/llvm-cov /usr/bin/llvm-cov
-	ln -sf $LLVM_INSTALL_DIR/bin/llvm-profdata /usr/bin/llvm-profdata
+	ln -sf "$LLVM_INSTALL_DIR/bin/llvm-cov" /usr/bin/llvm-cov
+	ln -sf "$LLVM_INSTALL_DIR/bin/llvm-profdata" /usr/bin/llvm-profdata
 fi
 
 mkdir -p "$CLANG_INSTALL_DIR" && cp -rf "$CLANG_DOWNLOAD_DIR"/third_party/llvm-build/Release+Asserts/* "$CLANG_INSTALL_DIR"

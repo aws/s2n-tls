@@ -20,7 +20,7 @@ source codebuild/bin/s2n_setup_env.sh
  # Install latest version of clang, clang++, and llvm-symbolizer. Needed for fuzzing.
 if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" || "$LATEST_CLANG" == "true" ]]; then
     mkdir -p "$LATEST_CLANG_INSTALL_DIR"||true
-    codebuild/bin/install_clang.sh "$(mktemp -d)" "$LATEST_CLANG_INSTALL_DIR" "$OS_NAME" > /dev/null ;
+    codebuild/bin/install_clang.sh "$(mktemp -d)" "$LATEST_CLANG_INSTALL_DIR" ;
 fi
 
 # Download and Install LibFuzzer with latest clang
