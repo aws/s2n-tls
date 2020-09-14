@@ -94,15 +94,6 @@ struct s2n_connection {
     /* Was the EC point formats sent by the client */
     unsigned ec_point_formats:1;
 
-    /* Track request extensions to ensure correct response extension behavior.
-     *
-     * We need to track client and server extensions separately because some
-     * extensions (like request_status and other Certificate extensions) can
-     * be requested by the client, the server, or both.
-     */
-    s2n_extension_bitfield extension_requests_sent;
-    s2n_extension_bitfield extension_requests_received;
-
     /* whether the connection address is ipv6 or not */
     unsigned ipv6:1;
 
@@ -114,7 +105,16 @@ struct s2n_connection {
 
     /* If write fd is broken */
     unsigned write_fd_broken:1;
-    
+
+    /* Track request extensions to ensure correct response extension behavior.
+     *
+     * We need to track client and server extensions separately because some
+     * extensions (like request_status and other Certificate extensions) can
+     * be requested by the client, the server, or both.
+     */
+    s2n_extension_bitfield extension_requests_sent;
+    s2n_extension_bitfield extension_requests_received;
+
     /* Is this connection a client or a server connection */
     s2n_mode mode;
 
@@ -304,6 +304,10 @@ struct s2n_connection {
 
     /* Key update data */
     unsigned key_update_pending:1;
+
+    /* Whether this connection can be used by a QUIC implementation.
+     * See s2n_quic_support.h */
+    unsigned quic_enabled:1;
 
     /* Bitmap to represent preferred list of keyshare for client to generate and send keyshares in the ClientHello message.
      * The least significant bit (lsb), if set, indicates that the client must send an empty keyshare list.

@@ -88,7 +88,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_CERT_TYPE_UNSUPPORTED, "Certificate Type is unsupported") \
     ERR_ENTRY(S2N_ERR_INVALID_MAX_FRAG_LEN, "invalid Maximum Fragmentation Length encountered") \
     ERR_ENTRY(S2N_ERR_MAX_FRAG_LEN_MISMATCH, "Negotiated Maximum Fragmentation Length from server does not match the requested length by client") \
-    ERR_ENTRY(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED, "TLS protocol version is not supported by selected cipher suite") \
+    ERR_ENTRY(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED, "TLS protocol version is not supported by configuration") \
     ERR_ENTRY(S2N_ERR_BAD_KEY_SHARE, "Bad key share received") \
     ERR_ENTRY(S2N_ERR_CANCELLED, "handshake was cancelled") \
     ERR_ENTRY(S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED, "Protocol downgrade detected by client") \

@@ -231,7 +231,8 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     }
 
     /* for pre TLS 1.3 connections, protocol selection is not done in supported_versions extensions, so do it here */
-    if (conn->actual_protocol_version != S2N_TLS13) {
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        ENSURE_POSIX(!conn->quic_enabled, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
         conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
     }
 
