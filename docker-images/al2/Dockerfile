@@ -2,10 +2,8 @@ ARG AL_VERSION=2
 
 FROM amazonlinux:${AL_VERSION}
 
-WORKDIR /opt/s2n
-
 ARG OPENSSL_VERSION=openssl-1.1.1
-ARG GCC_VERSION=9
+ARG GCC_VERSION=7
 ARG ZSH_THEME=cypher
 
 ENV S2N_LIBCRYPTO=${OPENSSL_VERSION} \
@@ -23,7 +21,7 @@ RUN set -ex; \
     curl https://download.mono-project.com/repo/centos7-stable.repo | tee /etc/yum.repos.d/mono-centos7-stable.repo; \
     yum groupinstall -y "Development tools";
 
-# These packages are mutually exclusive, and the we need the lateset installed before depenedencies.
+# These packages are mutually exclusive, and we need the lateset installed before depenedencies.
 RUN yum erase -y openssl-devel; yum install -y openssl11-devel
 RUN set -ex; \
     yum install -y --skip-broken GeoIP-devel ImageMagick asciidoc bzip2-devel bzr bzrtools cmake3 cvs cvsps \
@@ -36,10 +34,13 @@ RUN set -ex; \
     ncurses-devel ninja-build oniguruma-devel perl-DBD-SQLite \
     perl-DBI perl-HTTP-Date perl-IO-Pty-Easy perl-TimeDate perl-YAML-LibYAML \
     postgresql-devel procps-ng python3 python-tox readline-devel rsync shadow-utils sgml-common \
-    subversion-perl sudo tar tcl tk vim wget which xfsprogs xmlto xz-devel zsh;
+    subversion-perl sudo tar tcl tk vim wget which valgrind xfsprogs xmlto xz-devel zsh;
 
-RUN update-alternatives --install /usr/bin/ninja ninja /usr/bin/ninja-build 1700
-RUN update-alternatives --install /usr/bin/cmake cmake /usr/bin/cmake3 3000
+RUN update-alternatives --install /usr/bin/ninja ninja /usr/bin/ninja-build 1700; \
+    update-alternatives --install /usr/bin/cmake cmake /usr/bin/cmake3 3000; \
+    update-alternatives --install /usr/bin/gcc-7 gcc /usr/bin/gcc 700; \
+    update-alternatives --install /usr/bin/g++-7 g++ /usr/bin/g++ 700;
+
 RUN gem install bundler
 
 ADD ./bin/* /var/tmp
@@ -48,9 +49,8 @@ ADD codebuild codebuild
 # install test dependencies
 RUN set -eux; \
   LD_LIBRARY_PATH="" . codebuild/bin/s2n_install_test_dependencies.sh; \
-  yum clean all; rm -rf /var/cache/yum \
+  yum clean all; rm -rf /var/cache/yum;
 
-RUN ./codebuild/bin/install_clang.sh
-USER s2n-dev
-WORKDIR /home/s2n-dev/s2n
+RUN groupadd -r s2n-dev; useradd -s /bin/zsh -g s2n-dev -s /bin/zsh s2n-dev
+WORKDIR /home/s2n-dev
 CMD ["/bin/zsh","-l"]

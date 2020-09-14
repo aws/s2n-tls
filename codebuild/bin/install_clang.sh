@@ -14,9 +14,10 @@
 #
 
 set -ex
+source codebuild/bin/s2n_setup_env.sh
 
 usage() {
-	echo "install_clang.sh download_dir install_dir os_name"
+	echo "install_clang.sh download_dir install_dir"
 	exit 1
 }
 
@@ -26,6 +27,11 @@ fi
 
 CLANG_DOWNLOAD_DIR=$1
 CLANG_INSTALL_DIR=$2
+
+if [[ "$ARCH" == "aarch64" ]]; then
+	echo "LATEST_CLANG not built for arm"
+	exit 0
+fi
 
 if [[ -d "$CLANG_DOWNLOAD_DIR" ]]; then
 	rm -rf "$CLANG_DOWNLOAD_DIR"

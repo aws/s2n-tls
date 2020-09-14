@@ -303,6 +303,12 @@ elseif(NOT DEFINED CMAKE_INSTALL_LIBDIR)
     set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
 
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+    message(STATUS "ARM processor detected, Setting S2N_NO_PQ and S2N_ADDRESS_SANITIZER")
+    set(S2N_ADDRESS_SANITIZER ON)
+    set(S2N_NO_PQ_ASM ON)
+endif()
+
 install(
         TARGETS ${PROJECT_NAME}
         EXPORT ${PROJECT_NAME}-targets
