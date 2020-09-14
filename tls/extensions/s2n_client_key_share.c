@@ -325,6 +325,9 @@ static int s2n_client_key_share_recv_ecc(struct s2n_connection *conn, struct s2n
             break;
         }
     }
+    
+    notnull_check(curve);
+    notnull_check(client_ecc_params);
 
     /* Ignore curves that we've already received material for */
     if (client_ecc_params->negotiated_curve) {
@@ -373,6 +376,9 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
             break;
         }
     }
+
+    notnull_check(kem_group);
+    notnull_check(client_kem_group_params);
 
     /* Ignore KEM groups that we've already received material for */
     if (client_kem_group_params->kem_group) {
