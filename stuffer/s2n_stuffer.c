@@ -25,8 +25,10 @@
 
 bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer)
 {
-    /* Note that we do not assert any properties on the alloced, growable, and tainted fields,
-    * as all possible combinations of boolean values in those fields are valid */
+    /**
+     * Note that we do not assert any properties on the alloced, growable, and tainted fields,
+     * as all possible combinations of boolean values in those fields are valid.
+     */
     return S2N_OBJECT_PTR_IS_READABLE(stuffer) &&
            s2n_blob_is_valid(&stuffer->blob) &&
            /* <= is valid because we can have a fully written/read stuffer */
@@ -37,9 +39,20 @@ bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer)
 
 bool s2n_stuffer_reservation_is_valid(const struct s2n_stuffer_reservation* reservation)
 {
-    return S2N_OBJECT_PTR_IS_READABLE(reservation) &&
-           s2n_stuffer_is_valid(reservation->stuffer) &&
-           S2N_MEM_IS_WRITABLE(reservation->stuffer->blob.data + reservation->write_cursor, reservation->length);
+    /**
+     * Note that we need two dereferences here to decrease proof complexity
+     * for CBMC (see https://github.com/awslabs/s2n/issues/2290). We can roll back
+     * this change once CBMC can handle common subexpression elimination.
+     */
+    if (!S2N_OBJECT_PTR_IS_READABLE(reservation)) {
+        return false;
+    }
+    const struct s2n_stuffer_reservation reserve_obj = *reservation;
+    if (!s2n_stuffer_is_valid(reserve_obj.stuffer)) {
+        return false;
+    }
+    const struct s2n_stuffer stuffer_obj = *(reserve_obj.stuffer);
+    return S2N_MEM_IS_WRITABLE(stuffer_obj.blob.data + reserve_obj.write_cursor, reserve_obj.length);
 }
 
 int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in)
