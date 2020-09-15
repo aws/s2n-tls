@@ -19,7 +19,7 @@
 #include "tls/s2n_quic_support.h"
 
 static const uint8_t CLIENT_TRANSPORT_PARAMS[] = "client transport params";
-static const uint8_t SERVER_TRANSPORT_PARAMS[] = "client transport params";
+static const uint8_t SERVER_TRANSPORT_PARAMS[] = "server transport params";
 
 int main(int argc, char **argv)
 {
@@ -79,6 +79,14 @@ int main(int argc, char **argv)
             &transport_params, &transport_params_len));
     EXPECT_EQUAL(transport_params_len, sizeof(CLIENT_TRANSPORT_PARAMS));
     EXPECT_BYTEARRAY_EQUAL(transport_params, CLIENT_TRANSPORT_PARAMS, transport_params_len);
+
+    /* Verify legacy_session_id not set (QUIC does not use middlebox compat mode) */
+    EXPECT_EQUAL(client_conn->session_id_len, 0);
+    EXPECT_EQUAL(server_conn->session_id_len, 0);
+
+    /* Verify handshake not MIDDLEBOX_COMPAT (QUIC does not use middlebox compat mode) */
+    EXPECT_FALSE(IS_MIDDLEBOX_COMPAT_MODE(client_conn->handshake.handshake_type));
+    EXPECT_FALSE(IS_MIDDLEBOX_COMPAT_MODE(server_conn->handshake.handshake_type));
 
     EXPECT_SUCCESS(s2n_connection_free(server_conn));
     EXPECT_SUCCESS(s2n_connection_free(client_conn));

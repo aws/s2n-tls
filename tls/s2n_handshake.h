@@ -170,16 +170,21 @@ struct s2n_handshake {
 #define CLIENT_AUTH                 0x10
 #define IS_CLIENT_AUTH_HANDSHAKE( type )   ( (type) & CLIENT_AUTH )
 
-/* Handshake requested a Client Certificate but did not get one */
-#define NO_CLIENT_CERT              0x40
-#define IS_CLIENT_AUTH_NO_CERT( type )   ( IS_CLIENT_AUTH_HANDSHAKE( (type) ) && ( (type) & NO_CLIENT_CERT) )
-
 /* Session Resumption via session-tickets */
 #define WITH_SESSION_TICKET         0x20
 #define IS_ISSUING_NEW_SESSION_TICKET( type )   ( (type) & WITH_SESSION_TICKET )
 
+/* Handshake requested a Client Certificate but did not get one */
+#define NO_CLIENT_CERT              0x40
+#define IS_CLIENT_AUTH_NO_CERT( type )   ( IS_CLIENT_AUTH_HANDSHAKE( (type) ) && ( (type) & NO_CLIENT_CERT) )
+
 /* A HelloRetryRequest was needed to proceed with the handshake */
 #define HELLO_RETRY_REQUEST         0x80
+
+/* Disguise a TLS1.3 handshake as a TLS1.2 handshake for backwards compatibility
+ * with some middleboxes: https://tools.ietf.org/html/rfc8446#appendix-D.4 */
+#define MIDDLEBOX_COMPAT            0x100
+#define IS_MIDDLEBOX_COMPAT_MODE( type ) ( (type) & MIDDLEBOX_COMPAT )
 
     /* Which handshake message number are we processing */
     int message_number;
