@@ -165,12 +165,12 @@ static int s2n_client_supported_groups_recv(struct s2n_connection *conn, struct 
 
     uint16_t size_of_all;
     GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
-    if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all % sizeof(uint16_t)) {
+    if (size_of_all > s2n_stuffer_data_available(extension) || (size_of_all % sizeof(uint16_t))) {
         /* Malformed length, ignore the extension */
         return S2N_SUCCESS;
     }
 
-    for (size_t i = 0; i < size_of_all / sizeof(uint16_t) ; i++) {
+    for (size_t i = 0; i < (size_of_all / sizeof(uint16_t)); i++) {
         uint16_t iana_id;
         GUARD(s2n_stuffer_read_uint16(extension, &iana_id));
         GUARD(s2n_client_supported_groups_recv_iana_id(conn, iana_id));
