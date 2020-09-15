@@ -303,6 +303,7 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_client_hello_send(conn));
 
                     EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->handshake.io));
+                    conn->session_id_len = 0; /* Wipe the session id to match the HRR hex */
 
                     /* Server responds with HRR indicating p256+BIKE as choice for negotiation;
                      * the last 6 bytes (0033 0002 2F23) are the key share extension with p256+BIKE */
