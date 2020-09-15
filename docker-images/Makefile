@@ -10,7 +10,7 @@ ubuntu:
 	@cp -R ../codebuild/ ./codebuild/
 	@REPOSITORY_URI=$(REPOSITORY_URI) docker-compose build ubuntu_18.04_openssl-1.1.1_gcc9
 
-.PHONY : amazonlinux2
+.PHONY : al2
 al2: /usr/local/bin/docker-compose
 	cp -fR ../codebuild/ ./codebuild/
 	REPOSITORY_URI=$(REPOSITORY_URI) docker-compose build amazonlinux_2_openssl-1.1.1_gcc7

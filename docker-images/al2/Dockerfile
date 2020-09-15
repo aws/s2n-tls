@@ -7,9 +7,7 @@ ARG GCC_VERSION=7
 ARG ZSH_THEME=cypher
 
 ENV S2N_LIBCRYPTO=${OPENSSL_VERSION} \
-    GCC_VERSION=${GCC_VERSION} \
-    BUILD_S2N=true \
-    TESTS=integration
+    GCC_VERSION=${GCC_VERSION} 
 
 RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 RUN set -ex; \
@@ -36,10 +34,14 @@ RUN set -ex; \
     postgresql-devel procps-ng python3 python-tox readline-devel rsync shadow-utils sgml-common \
     subversion-perl sudo tar tcl tk vim wget which valgrind xfsprogs xmlto xz-devel zsh;
 
+# Our scripts expect these utilities to be named a certain way.  Use symlinks to normalize them.
+# Note the use of the pre-built, not OS installed, OpenSSL.
 RUN update-alternatives --install /usr/bin/ninja ninja /usr/bin/ninja-build 1700; \
     update-alternatives --install /usr/bin/cmake cmake /usr/bin/cmake3 3000; \
     update-alternatives --install /usr/bin/gcc-7 gcc /usr/bin/gcc 700; \
-    update-alternatives --install /usr/bin/g++-7 g++ /usr/bin/g++ 700;
+    update-alternatives --install /usr/bin/g++-7 g++ /usr/bin/g++ 700; \
+    update-alternatives --install /usr/bin/g++-7 g++ /usr/bin/g++ 700; \
+    update-alternatives --install /usr/bin/openssl openssl /test-deps/$OPENSS_VERSION/bin 10;
 
 RUN gem install bundler
 
