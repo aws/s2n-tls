@@ -36,6 +36,7 @@ PROTO_VERS_TO_S_SERVER_ARG = {
 test_file = './data/test_buf'
 file_size = os.path.getsize(test_file)
 
+
 def cleanup_processes(*processes):
     for p in processes:
         p.kill()
@@ -50,6 +51,7 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
     :param int port: port for Openssl s_server to listen on
     :param str cipher: ciphers for Openssl s_server to use. See https://www.openssl.org/docs/man1.0.2/apps/ciphers.html
     :param int ssl_version: SSL version for Openssl s_server to use
+    :param int threshold: the number of bytes sent before switch over from low latency to high throughput
     :param str server_cert: path to certificate for Openssl s_server to use
     :param str server_key: path to private key for Openssl s_server to use
     :param str sig_algs: Signature algorithms for Openssl s_server to accept
@@ -124,7 +126,6 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
 
     # Read from s2nc until we get successful connection message
     found = 0
-    seperators = 0
     for line in range(0, 10):
         output = s2nc.stdout.readline().decode("utf-8")
         if output.strip() == "Connected to {}:{}".format(endpoint, port):
@@ -132,9 +133,10 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
 
     if not found:
         sys.stderr.write("= TEST FAILED =\ns_server cmd: {}\n s_server STDERR: {}\n\ns2nc cmd: {}\nSTDERR {}\n".format(" ".join(s_server_cmd), s_server.stderr.read().decode("utf-8"), " ".join(s2nc_cmd), s2nc.stderr.read().decode("utf-8")))
-        return -1   
+        return -1
 
     return 0
+
 
 def print_result(result_prefix, return_code):
     suffix = ""
@@ -147,13 +149,13 @@ def print_result(result_prefix, return_code):
         if sys.stdout.isatty():
             suffix = "\033[31;1mFAILED\033[0m"
         else:
-            suffix ="FAILED"
+            suffix = "FAILED"
 
     print(result_prefix + suffix)
 
+
 def run_test(host, port, ssl_version, cipher, threshold):
     cipher_name = cipher.openssl_name
-
     failed = 0
     tcpdump_filter = "dst port " + str(port)
     tcpdump_cmd = ["sudo", "tcpdump", "-l", "-i", "lo", "-n", "-B", "65535", tcpdump_filter]
@@ -161,7 +163,7 @@ def run_test(host, port, ssl_version, cipher, threshold):
 
     ret = try_dynamic_record(host, port, cipher_name, ssl_version, threshold)
     # wait for pipe ready
-    sleep(2)
+    sleep(1)
     subprocess.call(["sudo", "killall", "-9", "tcpdump"])
     out = tcpdump.communicate()[0].decode("utf-8")
     if out == '':
@@ -173,10 +175,7 @@ def run_test(host, port, ssl_version, cipher, threshold):
         failed += ret
     if 0 == ret:
         # print("\nAnalyzing tcpdump results for cipher {}".format(cipher_name))
-        # Case 1: first half of application data is optimized for latency
-        failed += analyze_latency_dump(out_array)
-        # Case 2: second half of application data is optimize for throughput
-        failed += analyze_throughput_dump(out_array)
+        failed += analyze_tcp_dump(out_array, threshold)
         result_prefix = "Cipher: %-28s Vers: %-8s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
         print_result(result_prefix, failed)
 
@@ -200,53 +199,39 @@ def test(host, port, test_ciphers, threshold):
 
     return failed
 
-def analyze_latency_dump(array):
-    failed = 0
+
+def analyze_tcp_dump(array, threshold):
+    failed = 1
+    packets_transferred = 0
+    array_len = len(array)
+    # get the mss from first message
     mss = get_local_mtu() - 40
     first_line = array[0]
-    if ("mss" in first_line):
+    if "mss" in first_line:
         mss_pos = first_line.find("mss")
         mss_str = first_line[mss_pos : mss_pos + 10]
         mss = int(mss_str[4 : mss_str.find(',')])
     else:
-        print ("use default mss")
-    # print("mss={}".format(mss))
-    
-    for i in range(0, 18):
-        output = array[i]
-        # print(output)
-        pos = output.find("length")
+        print ("using default mss")
+
+    for i in range(0, array_len):
+        # record the length of each packet in TCP dump
+        pos = array[i].find("length")
         if pos < 0:
             continue
-        length = output[pos + 6 : len(output)]
-        # Tcp package size should always <= mss
-        if int(length) > mss:
-            failed = 1
+        length = array[i][pos + 6 : len(array[i])]
+        packets_transferred += int(length)
+        # print ("Packet:",i, "packet size:", length, "packets transferred:",packets_transferred, "threshold met:", packets_transferred > threshold)
+        # optimized for latency - before the threshold has been met, the TCP packet size should always <= mss
+        if packets_transferred < threshold and int(length) > mss:
+            break
+        elif packets_transferred > threshold and int(length) > 1500:
+            # optimized for throughput - TCP packet size can exceed MTU, which results in segementation
+            failed = 0  # we just need a single packet to be larger than 1500 to show dynamic record size.
             break
 
     return failed
 
-def analyze_throughput_dump(array):
-    failed = 1
-    array_len = len(array)
-
-    for i in range(18, 36):
-        if i >= array_len:
-            print("Array len is ", array_len, ", expecting >= ", i)
-            print(array)
-            return failed
-        output = array[i]
-        # print(output)
-        pos = output.find("length")
-        if pos < 0:
-            continue
-        length = output[pos + 6 : len(output)]
-        # Tcp package size can exceed MTU, which results in segementation
-        if int(length) > 1500:
-            failed = 0
-            break
-
-    return failed
 
 def get_local_mtu():
     cmd = ["ifconfig", "lo"]
@@ -284,7 +269,8 @@ def main():
     
     failed = 0
     print("\n\tRunning s2n dynamic record size tests\n\t")
-    failed += test(host, port, test_ciphers, int(file_size / 2))
+    threshold = 10000  # threshold size set independently of file size
+    failed += test(host, port, test_ciphers, threshold)
 
     # Recover localhost MTU
     subprocess.call(["sudo", "ifconfig", "lo", "mtu", str(local_mtu)])
@@ -296,4 +282,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
