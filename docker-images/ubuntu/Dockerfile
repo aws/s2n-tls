@@ -19,8 +19,9 @@ SHELL ["/bin/bash", "-c"]
 # set up user account
 RUN set -eux; \
   apt-get update; \
+  apt-get install -y build-essential; \
   apt-get -y install --no-install-recommends\
-     curl sudo zsh unzip gnupg2 software-properties-common python-pip rubygems wget; \
+     curl sudo zsh unzip gnupg2 software-properties-common python-pip rubygems wget xz-utils; \
   gem install bundler; \
   useradd -m s2n-dev; \
   echo "s2n-dev ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/s2n-dev; \

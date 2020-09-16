@@ -7,10 +7,11 @@ ARG GCC_VERSION=7
 ARG ZSH_THEME=cypher
 
 ENV S2N_LIBCRYPTO=${OPENSSL_VERSION} \
-    GCC_VERSION=${GCC_VERSION} 
+    GCC_VERSION=${GCC_VERSION} \
+    OPENSSL_VERSION=${OPENSSL_VERSION}
 
-RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 RUN set -ex; \
+    yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm; \
     amazon-linux-extras install ruby2.6 rust1; \
     amazon-linux-extras enable epel;\
     amazon-linux-extras enable corretto8; \
@@ -32,20 +33,20 @@ RUN set -ex; \
     ncurses-devel ninja-build oniguruma-devel perl-DBD-SQLite \
     perl-DBI perl-HTTP-Date perl-IO-Pty-Easy perl-TimeDate perl-YAML-LibYAML \
     postgresql-devel procps-ng python3 python-tox readline-devel rsync shadow-utils sgml-common \
-    subversion-perl sudo tar tcl tk vim wget which valgrind xfsprogs xmlto xz-devel zsh;
+    subversion-perl sudo tar tcl tk vim wget which valgrind xfsprogs xmlto xz-devel zsh; \
+    gem install bundler;
 
 # Our scripts expect these utilities to be named a certain way.  Use symlinks to normalize them.
-# Note the use of the pre-built, not OS installed, OpenSSL.
-RUN update-alternatives --install /usr/bin/ninja ninja /usr/bin/ninja-build 1700; \
+# Note the use of the compiled from source, not package installed, OpenSSL.
+RUN set -exu; \
+    update-alternatives --install /usr/bin/ninja ninja /usr/bin/ninja-build 1700; \
     update-alternatives --install /usr/bin/cmake cmake /usr/bin/cmake3 3000; \
     update-alternatives --install /usr/bin/gcc-7 gcc /usr/bin/gcc 700; \
     update-alternatives --install /usr/bin/g++-7 g++ /usr/bin/g++ 700; \
     update-alternatives --install /usr/bin/g++-7 g++ /usr/bin/g++ 700; \
-    update-alternatives --install /usr/bin/openssl openssl /test-deps/$OPENSS_VERSION/bin 10;
+    update-alternatives --install /usr/bin/openssl openssl /test-deps/$OPENSSL_VERSION/bin/openssl 10;
 
-RUN gem install bundler
-
-ADD ./bin/* /var/tmp
+ADD ./bin/* /var/tmp/
 ADD codebuild codebuild
 
 # install test dependencies
@@ -53,6 +54,6 @@ RUN set -eux; \
   LD_LIBRARY_PATH="" . codebuild/bin/s2n_install_test_dependencies.sh; \
   yum clean all; rm -rf /var/cache/yum;
 
-RUN groupadd -r s2n-dev; useradd -s /bin/zsh -g s2n-dev -s /bin/zsh s2n-dev
+RUN /var/tmp/manage_users.sh
 WORKDIR /home/s2n-dev
 CMD ["/bin/zsh","-l"]
