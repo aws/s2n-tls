@@ -304,6 +304,25 @@ static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stu
     return S2N_SUCCESS;
 }
 
+static int s2n_client_key_share_parse_ecc_share(struct s2n_stuffer *key_share, const struct s2n_ecc_named_curve *curve,
+        struct s2n_ecc_evp_params *ecc_params) {
+    notnull_check(key_share);
+    notnull_check(curve);
+    notnull_check(ecc_params);
+
+    struct s2n_blob point_blob = { 0 };
+    GUARD(s2n_ecc_evp_read_params_point(key_share, curve->share_size, &point_blob));
+
+    /* Ignore curves with points we can't parse */
+    ecc_params->negotiated_curve = curve;
+    if (s2n_ecc_evp_parse_params_point(&point_blob, ecc_params) < 0) {
+        ecc_params->negotiated_curve = NULL;
+        GUARD(s2n_ecc_evp_params_free(ecc_params));
+    }
+
+    return S2N_SUCCESS;
+}
+
 static int s2n_client_key_share_recv_ecc(struct s2n_connection *conn, struct s2n_stuffer *key_share,
         uint16_t curve_iana_id, bool *match) {
     notnull_check(conn);
@@ -339,18 +358,12 @@ static int s2n_client_key_share_recv_ecc(struct s2n_connection *conn, struct s2n
         return S2N_SUCCESS;
     }
 
-    struct s2n_blob point_blob = { 0 };
-    GUARD(s2n_ecc_evp_read_params_point(key_share, curve->share_size, &point_blob));
-
-    /* Ignore curves with points we can't parse */
-    client_ecc_params->negotiated_curve = curve;
-    if (s2n_ecc_evp_parse_params_point(&point_blob, client_ecc_params) < 0) {
-        client_ecc_params->negotiated_curve = NULL;
-        GUARD(s2n_ecc_evp_params_free(client_ecc_params));
-        return S2N_SUCCESS;
+    GUARD(s2n_client_key_share_parse_ecc_share(key_share, curve, client_ecc_params));
+    /* negotiated_curve will be non-NULL if the key share was parsed successfully */
+    if (client_ecc_params->negotiated_curve != NULL) {
+        *match = true;
     }
 
-    *match = true;
     return S2N_SUCCESS;
 }
 
@@ -397,14 +410,10 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
         return S2N_SUCCESS;
     }
 
-    struct s2n_blob point_blob = { 0 };
-    GUARD(s2n_ecc_evp_read_params_point(key_share, kem_group->curve->share_size, &point_blob));
-
-    /* Ignore KEM groups with ECC points we can't parse */
-    client_kem_group_params->ecc_params.negotiated_curve = kem_group->curve;
-    if (s2n_ecc_evp_parse_params_point(&point_blob, &client_kem_group_params->ecc_params) < 0) {
-        client_kem_group_params->ecc_params.negotiated_curve = NULL;
-        GUARD(s2n_ecc_evp_params_free(&client_kem_group_params->ecc_params));
+    GUARD(s2n_client_key_share_parse_ecc_share(key_share, kem_group->curve, &client_kem_group_params->ecc_params));
+    /* If we were unable to parse the EC portion of the share, negotiated_curve
+     * will be NULL, and we should ignore the entire key share. */
+    if (client_kem_group_params->ecc_params.negotiated_curve == NULL) {
         return S2N_SUCCESS;
     }
 
@@ -457,17 +466,20 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
         ENSURE_POSIX(s2n_stuffer_data_available(extension) >= share_size, S2N_ERR_BAD_MESSAGE);
         bytes_processed += share_size + S2N_SIZE_OF_NAMED_GROUP + S2N_SIZE_OF_KEY_SHARE_SIZE;
 
-        DEFER_CLEANUP(struct s2n_stuffer key_share = { 0 }, s2n_stuffer_free);
-        GUARD(s2n_stuffer_alloc(&key_share, share_size));
-        GUARD(s2n_stuffer_copy(extension, &key_share, share_size));
+        struct s2n_blob key_share_blob = { .size = share_size, .data = s2n_stuffer_raw_read(extension, share_size) };
+        notnull_check(key_share_blob.data);
+        struct s2n_stuffer key_share = { 0 };
+        GUARD(s2n_stuffer_init(&key_share, &key_share_blob));
+        GUARD(s2n_stuffer_skip_write(&key_share, share_size));
 
         if (s2n_ecc_preferences_includes_curve(ecc_pref, named_group)) {
             GUARD(s2n_client_key_share_recv_ecc(conn, &key_share, named_group, &match_found));
         } else if (!s2n_is_in_fips_mode() && s2n_kem_preferences_includes_tls13_kem_group(kem_pref, named_group)) {
             GUARD(s2n_client_key_share_recv_pq_hybrid(conn, &key_share, named_group, &match_found));
         }
-        /* else: we ignore unsupported groups. We do not need to call
-         * s2n_stuffer_skip_read() because of the above call to s2n_stuffer_copy(). */
+        /* else: we ignore key shares for unrecognized groups. The above call to
+         * s2n_stuffer_raw_read() will have automatically advanced the extension
+         * stuffer to the correct place. */
     }
 
     /* If there were no matching key shares, then we received an empty key share extension
