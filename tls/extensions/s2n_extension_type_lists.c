@@ -32,6 +32,7 @@
 #include "tls/extensions/s2n_client_pq_kem.h"
 #include "tls/extensions/s2n_client_renegotiation_info.h"
 #include "tls/extensions/s2n_ec_point_format.h"
+#include "tls/extensions/s2n_quic_transport_params.h"
 #include "tls/extensions/s2n_server_certificate_status.h"
 #include "tls/extensions/s2n_server_renegotiation_info.h"
 #include "tls/extensions/s2n_server_alpn.h"
@@ -59,6 +60,7 @@ static const s2n_extension_type *const client_hello_extensions[] = {
         &s2n_client_pq_kem_extension,
         &s2n_client_renegotiation_info_extension,
         &s2n_client_cookie_extension,
+        &s2n_quic_transport_parameters_extension,
 };
 
 static const s2n_extension_type *const tls12_server_hello_extensions[] = {
@@ -83,6 +85,7 @@ static const s2n_extension_type *const encrypted_extensions[] = {
         &s2n_server_server_name_extension,
         &s2n_server_max_fragment_length_extension,
         &s2n_server_alpn_extension,
+        &s2n_quic_transport_parameters_extension,
 };
 
 static const s2n_extension_type *const cert_req_extensions[] = {

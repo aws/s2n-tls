@@ -275,6 +275,10 @@ struct s2n_connection {
     s2n_ct_support_level ct_level_requested;
     struct s2n_blob ct_response;
 
+    /* QUIC transport parameters data: https://tools.ietf.org/html/draft-ietf-quic-tls-29#section-8.2 */
+    struct s2n_blob our_quic_transport_parameters;
+    struct s2n_blob peer_quic_transport_parameters;
+
     struct s2n_client_hello client_hello;
 
     struct s2n_x509_validator x509_validator;
