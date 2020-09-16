@@ -14,7 +14,19 @@
 #
 
 """
-Dynamic record size tests using s2nc against Openssl s_server
+This is an integration test for the use of dynamic record sizes in TLS connections.
+
+The function s2n_connection_set_dynamic_record_threshold can be used to dynamically change the size of TCP packets to
+optimize for both latency and throughput. This is done by first setting a threshold, until this threshold has been
+met the connection uses small TLS records that fit into a single TCP segment (mss). This optimizes the connection
+for low latency. Once the number of bytes transferred in the connection has met this threshold, the size of the
+records can exceed this maximum bound - in order to optimize throughput.
+
+This test sets up an s2nc connection against OpenSSL s_server to transfer a test file using each of the cipher
+suites supported. In each connection, we test:
+ - That all segment sizes before the threshold is met are less than the mss (usually mss = 1460B, but if the mss cannot
+ be obtained a default of 65496B is used).
+ - That at least one segment size after the threshold has been met is greater than 1500B.
 """
 
 import argparse
@@ -163,7 +175,7 @@ def run_test(host, port, ssl_version, cipher, threshold):
 
     ret = try_dynamic_record(host, port, cipher_name, ssl_version, threshold)
     # wait for pipe ready
-    sleep(1)
+    sleep(2)
     subprocess.call(["sudo", "killall", "-9", "tcpdump"])
     out = tcpdump.communicate()[0].decode("utf-8")
     if out == '':
@@ -201,8 +213,19 @@ def test(host, port, test_ciphers, threshold):
 
 
 def analyze_tcp_dump(array, threshold):
+    """
+    This function iterates though each line of the TCP dump and reads the length of each segment, to check that it is
+    the correct size. It keeps account the total bytes_transferred and therefore tests that all segment sizes before
+    the threshold is met are less than the maximum segment size (mss). Once this threshold has been met, it tests
+    that the segment size has been increased by verifying that at least one segment is greater than 1500B.
+
+    The mss is read from the first message in the TCP dump, however if this cannot be found a default value is used.
+
+    :param list array: this is an array of strings where each list element is a segment from the TCP dump
+    :param int threshold: the number of bytes sent before switch over from low latency to high throughput mode
+    """
     failed = 1
-    packets_transferred = 0
+    bytes_transferred = 0
     array_len = len(array)
     # get the mss from first message
     mss = get_local_mtu() - 40
@@ -220,13 +243,15 @@ def analyze_tcp_dump(array, threshold):
         if pos < 0:
             continue
         length = array[i][pos + 6 : len(array[i])]
-        packets_transferred += int(length)
-        # print ("Packet:",i, "packet size:", length, "packets transferred:",packets_transferred, "threshold met:", packets_transferred > threshold)
+        bytes_transferred += int(length)
+        # print ("Packet:",i, "packet size:", length, "bytes transferred:",bytes_transferred, "threshold met:", bytes_transferred > threshold)
         # optimized for latency - before the threshold has been met, the TCP packet size should always <= mss
-        if packets_transferred < threshold and int(length) > mss:
+        if bytes_transferred < threshold and int(length) > mss:
+            # if this condition has been met, the length of a segment is greater than the mss, but the threshold has
+            # not been met, so we return with failed = 1
             break
-        elif packets_transferred > threshold and int(length) > 1500:
-            # optimized for throughput - TCP packet size can exceed MTU, which results in segementation
+        elif bytes_transferred > threshold and int(length) > 1500:
+            # optimized for throughput - after the threshold has been met TCP packet size can exceed MTU, which results in segementation
             failed = 0  # we just need a single packet to be larger than 1500 to show dynamic record size.
             break
 
@@ -270,6 +295,11 @@ def main():
     failed = 0
     print("\n\tRunning s2n dynamic record size tests\n\t")
     threshold = 10000  # threshold size set independently of file size
+    # test that the file size of the test file is greater than the threshold (otherwise we cannot implement the test)
+    if file_size < threshold:
+        failed = 1
+        print ("test file: %s file size too small (less than threshold of 10KB)" % test_file)
+        return failed
     failed += test(host, port, test_ciphers, threshold)
 
     # Recover localhost MTU
