@@ -315,7 +315,7 @@ static int s2n_client_key_share_parse_ecc_share(struct s2n_stuffer *key_share, c
 
     /* Ignore curves with points we can't parse */
     ecc_params->negotiated_curve = curve;
-    if (s2n_ecc_evp_parse_params_point(&point_blob, ecc_params) < 0) {
+    if (s2n_ecc_evp_parse_params_point(&point_blob, ecc_params) != S2N_SUCCESS) {
         ecc_params->negotiated_curve = NULL;
         GUARD(s2n_ecc_evp_params_free(ecc_params));
     }
@@ -333,8 +333,6 @@ static int s2n_client_key_share_recv_ecc(struct s2n_connection *conn, struct s2n
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     notnull_check(ecc_pref);
 
-    ENSURE_POSIX(s2n_ecc_preferences_includes_curve(ecc_pref, curve_iana_id), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
-
     const struct s2n_ecc_named_curve *curve = NULL;
     struct s2n_ecc_evp_params *client_ecc_params = NULL;
     for (size_t i = 0; i < ecc_pref->count; i++) {
@@ -344,9 +342,11 @@ static int s2n_client_key_share_recv_ecc(struct s2n_connection *conn, struct s2n
             break;
         }
     }
-    
-    notnull_check(curve);
-    notnull_check(client_ecc_params);
+
+    /* Ignore unsupported curves */
+    if (!curve || !client_ecc_params) {
+        return S2N_SUCCESS;
+    }
 
     /* Ignore curves that we've already received material for */
     if (client_ecc_params->negotiated_curve) {
@@ -360,7 +360,7 @@ static int s2n_client_key_share_recv_ecc(struct s2n_connection *conn, struct s2n
 
     GUARD(s2n_client_key_share_parse_ecc_share(key_share, curve, client_ecc_params));
     /* negotiated_curve will be non-NULL if the key share was parsed successfully */
-    if (client_ecc_params->negotiated_curve != NULL) {
+    if (client_ecc_params->negotiated_curve) {
         *match = true;
     }
 
@@ -378,7 +378,6 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
     notnull_check(kem_pref);
 
     ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
-    ENSURE_POSIX(s2n_kem_preferences_includes_tls13_kem_group(kem_pref, kem_group_iana_id), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
     const struct s2n_kem_group *kem_group = NULL;
     struct s2n_kem_group_params *client_kem_group_params = NULL;
@@ -390,8 +389,10 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
         }
     }
 
-    notnull_check(kem_group);
-    notnull_check(client_kem_group_params);
+    /* Ignore unsupported KEM groups */
+    if (!kem_group || !client_kem_group_params) {
+        return S2N_SUCCESS;
+    }
 
     /* Ignore KEM groups that we've already received material for */
     if (client_kem_group_params->kem_group) {
@@ -413,7 +414,7 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
     GUARD(s2n_client_key_share_parse_ecc_share(key_share, kem_group->curve, &client_kem_group_params->ecc_params));
     /* If we were unable to parse the EC portion of the share, negotiated_curve
      * will be NULL, and we should ignore the entire key share. */
-    if (client_kem_group_params->ecc_params.negotiated_curve == NULL) {
+    if (!client_kem_group_params->ecc_params.negotiated_curve) {
         return S2N_SUCCESS;
     }
 
@@ -472,14 +473,12 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
         GUARD(s2n_stuffer_init(&key_share, &key_share_blob));
         GUARD(s2n_stuffer_skip_write(&key_share, share_size));
 
-        if (s2n_ecc_preferences_includes_curve(ecc_pref, named_group)) {
-            GUARD(s2n_client_key_share_recv_ecc(conn, &key_share, named_group, &match_found));
-        } else if (!s2n_is_in_fips_mode() && s2n_kem_preferences_includes_tls13_kem_group(kem_pref, named_group)) {
+        /* Try to parse the share as ECC, then as PQ/hybrid; will ignore
+         * shares for unrecognized groups. */
+        GUARD(s2n_client_key_share_recv_ecc(conn, &key_share, named_group, &match_found));
+        if (!s2n_is_in_fips_mode()) {
             GUARD(s2n_client_key_share_recv_pq_hybrid(conn, &key_share, named_group, &match_found));
         }
-        /* else: we ignore key shares for unrecognized groups. The above call to
-         * s2n_stuffer_raw_read() will have automatically advanced the extension
-         * stuffer to the correct place. */
     }
 
     /* If there were no matching key shares, then we received an empty key share extension
