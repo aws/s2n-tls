@@ -294,7 +294,8 @@ def main():
     
     failed = 0
     print("\n\tRunning s2n dynamic record size tests\n\t")
-    threshold = 10000  # threshold size set independently of file size
+    # Set the threshold - the number of bytes transferred in low latency mode before switching to high throughput
+    threshold = 10000
     # test that the file size of the test file is greater than the threshold (otherwise we cannot implement the test)
     if file_size < threshold:
         failed = 1
