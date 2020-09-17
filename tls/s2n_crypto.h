@@ -35,11 +35,12 @@ struct s2n_crypto_parameters {
     struct s2n_pkey client_public_key;
     struct s2n_dh_params server_dh_params;
     struct s2n_ecc_evp_params server_ecc_evp_params;
-    const struct s2n_ecc_named_curve * mutually_supported_groups[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT];
+    const struct s2n_ecc_named_curve *mutually_supported_curves[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT];
     struct s2n_ecc_evp_params client_ecc_evp_params[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT];
     struct s2n_kem_group_params server_kem_group_params;
     struct s2n_kem_group_params *chosen_client_kem_group_params;
     struct s2n_kem_group_params client_kem_group_params[S2N_SUPPORTED_KEM_GROUPS_COUNT];
+    const struct s2n_kem_group *mutually_supported_kem_groups[S2N_SUPPORTED_KEM_GROUPS_COUNT];
     struct s2n_kem_params kem_params;
     struct s2n_blob client_key_exchange_message;
     struct s2n_blob client_pq_kem_extension;
