@@ -214,7 +214,7 @@ static int s2n_aead_chacha20_poly1305_destroy_key(struct s2n_session_key *key)
     return 0;
 }
 
-#else /* No implementation exists for chosen cryptographic provider */
+#else /* No ChaCha20-Poly1305 implementation exists for chosen cryptographic provider (E.g Openssl 1.0.x) */
 
 static int s2n_aead_chacha20_poly1305_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *aad, struct s2n_blob *in, struct s2n_blob *out)
 {
