@@ -80,6 +80,10 @@ extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_02;
 extern const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_07;
 extern const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2019_11;
 extern const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2020_02;
+extern const struct s2n_security_policy security_policy_kyberbikesike_test_tls_1_0_2020_09;
+extern const struct s2n_security_policy security_policy_kyber_test_tls_1_0_2020_09;
+extern const struct s2n_security_policy security_policy_bike_test_tls_1_0_2020_09;
+extern const struct s2n_security_policy security_policy_sike_test_tls_1_0_2020_09;
 #endif
 
 extern const struct s2n_security_policy security_policy_cloudfront_upstream;

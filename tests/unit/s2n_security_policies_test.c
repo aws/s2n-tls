@@ -122,6 +122,63 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r2r1_2020_07);
         EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
+
+        security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-KYBERBIKESIKE-TEST-TLS-1-0-2020-09", &security_policy));
+        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
+        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
+        EXPECT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_NOT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_kyberbikesike_r2);
+#if EVP_APIS_SUPPORTED
+        EXPECT_EQUAL(6, security_policy->kem_preferences->tls13_kem_group_count);
+#else
+        EXPECT_EQUAL(3, security_policy->kem_preferences->tls13_kem_group_count);
+#endif
+
+        security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-KYBER-TEST-TLS-1-0-2020-09", &security_policy));
+        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
+        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
+        EXPECT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_NOT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_kyber_r2);
+#if EVP_APIS_SUPPORTED
+        EXPECT_EQUAL(2, security_policy->kem_preferences->tls13_kem_group_count);
+#else
+        EXPECT_EQUAL(1, security_policy->kem_preferences->tls13_kem_group_count);
+#endif
+
+        security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-BIKE-TEST-TLS-1-0-2020-09", &security_policy));
+        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
+        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
+        EXPECT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_NOT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_bike_r2);
+#if EVP_APIS_SUPPORTED
+        EXPECT_EQUAL(2, security_policy->kem_preferences->tls13_kem_group_count);
+#else
+        EXPECT_EQUAL(1, security_policy->kem_preferences->tls13_kem_group_count);
+#endif
+
+        security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-09", &security_policy));
+        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
+        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
+        EXPECT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_NOT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_sike_r2);
+#if EVP_APIS_SUPPORTED
+        EXPECT_EQUAL(2, security_policy->kem_preferences->tls13_kem_group_count);
+#else
+        EXPECT_EQUAL(1, security_policy->kem_preferences->tls13_kem_group_count);
+#endif
+
 #else
         security_policy = NULL;
         EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2019-06", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
@@ -129,6 +186,10 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
         EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2020-02", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
         EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2020-07", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-KYBERBIKESIKE-TEST-TLS-1-0-2020-09", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-KYBER-TEST-TLS-1-0-2020-09", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-BIKE-TEST-TLS-1-0-2020-09", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-09", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
 #endif
 
         security_policy = NULL;
