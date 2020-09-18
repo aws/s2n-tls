@@ -257,6 +257,9 @@
 /* Maximum size for full encoded TLSInnerPlaintext (https://tools.ietf.org/html/rfc8446#section-5.4) */
 #define S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH ((1 << 14) + 1)
 
+/* Maximum size S2N accepts for full encoded TLSInnerPlaintext */
+#define S2N_ACCEPTED_MAXIUMUM_INNER_PLAINTEXT_LENGTH 65280
+
 /* Alert messages are always 2 bytes long */
 #define S2N_ALERT_LENGTH 2
 

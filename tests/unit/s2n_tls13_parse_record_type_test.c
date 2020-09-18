@@ -142,6 +142,13 @@ int main(int argc, char **argv)
         }
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH + 1);
 
+        EXPECT_SUCCESS(s2n_tls13_parse_record_type(&stuffer, &record_type));
+
+        /* fill up stuffer still after the limit */
+        while (s2n_stuffer_data_available(&stuffer) < S2N_ACCEPTED_MAXIUMUM_INNER_PLAINTEXT_LENGTH + 1) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 0x00));
+        }
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), S2N_ACCEPTED_MAXIUMUM_INNER_PLAINTEXT_LENGTH + 1);
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_parse_record_type(&stuffer, &record_type), S2N_ERR_MAX_INNER_PLAINTEXT_SIZE);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));

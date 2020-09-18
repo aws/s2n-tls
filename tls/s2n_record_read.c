@@ -171,9 +171,11 @@ int s2n_tls13_parse_record_type(struct s2n_stuffer *stuffer, uint8_t *record_typ
     /* From rfc8446 Section 5.4
      * The presence of padding does not change the overall record size
      * limitations: the full encoded TLSInnerPlaintext MUST NOT exceed 2^14
-     * + 1 octets
+     * + 1 octets.
+     * S2N accepts a larger plaintext size to handle some broken clients that have
+     * been seen in the field.
      */
-    S2N_ERROR_IF(bytes_left > S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH, S2N_ERR_MAX_INNER_PLAINTEXT_SIZE);
+    S2N_ERROR_IF(bytes_left > S2N_ACCEPTED_MAXIUMUM_INNER_PLAINTEXT_LENGTH, S2N_ERR_MAX_INNER_PLAINTEXT_SIZE);
 
     /* set cursor to the end of the stuffer */
     GUARD(s2n_stuffer_skip_read(stuffer, bytes_left));
