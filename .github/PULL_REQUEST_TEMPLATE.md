@@ -12,4 +12,6 @@ Address any potentially confusing code. Is there code added that needs to be cle
 
  How is this change tested (unit tests, fuzz tests, etc.)? Are there any testing steps to be verified by the reviewer?
 
+ Is this a refactor change? If so, is the change tested using snapshot/before and after tests?
+
 By submitting this pull request, I confirm that my contribution is made under the terms of the Apache 2.0 license.
