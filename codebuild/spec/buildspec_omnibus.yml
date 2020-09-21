@@ -96,13 +96,13 @@ batch:
         variables:
           INTEGV2_TEST: test_sni_match
 
-    - identifier: s2nIntegrationV2CompatibilityWithOqsOpenssl
+    - identifier: s2nIntegrationV2Tls13PqHandshake
       buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
         variables:
-          INTEGV2_TEST: test_compatibility_with_oqs_openssl
+          INTEGV2_TEST: test_tls13_pq_handshake
 
     - identifier: s2nIntegrationV2Fragmentation
       buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml

@@ -237,6 +237,10 @@ class Ciphers(object):
     KMS_PQ_TLS_1_0_2020_07 = Cipher("KMS-PQ-TLS-1-0-2020-07", Protocols.TLS10, False, False)
     PQ_SIKE_TEST_TLS_1_0_2019_11 = Cipher("PQ-SIKE-TEST-TLS-1-0-2019-11", Protocols.TLS10, False, False)
     PQ_SIKE_TEST_TLS_1_0_2020_02 = Cipher("PQ-SIKE-TEST-TLS-1-0-2020-02", Protocols.TLS10, False, False)
+    PQ_KYBERBIKESIKE_TEST_TLS_1_0_2020_09 = Cipher("PQ-KYBERBIKESIKE-TEST-TLS-1-0-2020-09", Protocols.TLS10, False, False)
+    PQ_KYBER_TEST_TLS_1_0_2020_09 = Cipher("PQ-KYBER-TEST-TLS-1-0-2020-09", Protocols.TLS10, False, False)
+    PQ_BIKE_TEST_TLS_1_0_2020_09 = Cipher("PQ-BIKE-TEST-TLS-1-0-2020-09", Protocols.TLS10, False, False)
+    PQ_SIKE_TEST_TLS_1_0_2020_09 = Cipher("PQ-SIKE-TEST-TLS-1-0-2020-09", Protocols.TLS10, False, False)
 
 
 class Curve(object):
@@ -257,6 +261,23 @@ class Curves(object):
     P256 = Curve("P-256")
     P384 = Curve("P-384")
 
+class KemGroup(object):
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return self.name
+
+class KemGroups(object):
+    """
+    When referencing a KEM Group, use these class values.
+    These are only for use with oqs_openssl. oqs_openssl
+    accepts the PQ KEM Group options as -groups on the
+    command line.
+    """
+    P256_KYBER512 = KemGroup("p256_kyber512")
+    P256_BIKE1L1FO = KemGroup("p256_bike1l1fo")
+    P256_SIKEP434 = KemGroup("p256_sikep434")
 
 class Signature(object):
     def __init__(self, name, min_protocol=Protocols.SSLv3, sig_type=None, sig_digest=None):
@@ -344,6 +365,7 @@ class ProviderOptions(object):
             port=None,
             cipher=None,
             curve=None,
+            kemgroup=None,
             key=None,
             cert=None,
             use_session_ticket=False,
@@ -375,6 +397,9 @@ class ProviderOptions(object):
 
         # Named curve
         self.curve = curve
+
+        # KEM group
+        self.kemgroup = kemgroup
 
         # Path to a key PEM
         self.key = key

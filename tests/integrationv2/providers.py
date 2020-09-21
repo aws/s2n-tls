@@ -157,12 +157,16 @@ class S2N(Provider):
             cmd_line.append('-r')
 
         cipher_prefs = 'test_all_tls12'
-        if self.options.cipher is Ciphers.KMS_PQ_TLS_1_0_2019_06:
-            cipher_prefs = 'KMS-PQ-TLS-1-0-2019-06'
-        elif self.options.cipher is Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11:
-            cipher_prefs = 'PQ-SIKE-TEST-TLS-1-0-2019-11'
-        elif self.options.protocol is Protocols.TLS13:
+        if self.options.protocol is Protocols.TLS13:
             cipher_prefs = 'test_all'
+
+        if (self.options.cipher is Ciphers.KMS_PQ_TLS_1_0_2019_06) or\
+                (self.options.cipher is Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11) or\
+                (self.options.cipher is Ciphers.PQ_KYBERBIKESIKE_TEST_TLS_1_0_2020_09) or\
+                (self.options.cipher is Ciphers.PQ_KYBER_TEST_TLS_1_0_2020_09) or\
+                (self.options.cipher is Ciphers.PQ_BIKE_TEST_TLS_1_0_2020_09) or \
+                (self.options.cipher is Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_09):
+            cipher_prefs = self.options.cipher.name
 
         cmd_line.extend(['-c', cipher_prefs])
 
@@ -195,10 +199,17 @@ class S2N(Provider):
         if self.options.insecure is True:
             cmd_line.append('--insecure')
 
+        cipher_prefs = 'test_all_tls12'
         if self.options.protocol == Protocols.TLS13:
-            cmd_line.extend(['-c', 'test_all'])
-        else:
-            cmd_line.extend(['-c', 'test_all_tls12'])
+            cipher_prefs = 'test_all'
+
+        if (self.options.cipher is Ciphers.PQ_KYBERBIKESIKE_TEST_TLS_1_0_2020_09) or\
+                (self.options.cipher is Ciphers.PQ_KYBER_TEST_TLS_1_0_2020_09) or\
+                (self.options.cipher is Ciphers.PQ_BIKE_TEST_TLS_1_0_2020_09) or \
+                (self.options.cipher is Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_09):
+            cipher_prefs = self.options.cipher.name
+
+        cmd_line.extend(['-c', cipher_prefs])
 
         if self.options.use_client_auth is True:
             cmd_line.append('-m')
@@ -340,6 +351,9 @@ class OpenSSL(Provider):
         if self.options.curve is not None:
             cmd_line.extend(['-curves', str(self.options.curve)])
 
+        if self.options.kemgroup is not None:
+            cmd_line.extend(['-groups', self.options.kemgroup.name])
+
         if self.options.use_client_auth is True:
             cmd_line.extend(['-key', self.options.client_key_file])
             cmd_line.extend(['-cert', self.options.client_certificate_file])
@@ -402,6 +416,8 @@ class OpenSSL(Provider):
 
         if self.options.curve is not None:
             cmd_line.extend(['-curves', str(self.options.curve)])
+        if self.options.kemgroup is not None:
+            cmd_line.extend(['-groups', self.options.kemgroup.name])
         if self.options.use_client_auth is True:
             cmd_line.extend(['-verify', '1'])
 
