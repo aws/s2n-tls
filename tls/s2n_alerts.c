@@ -56,10 +56,19 @@
 #define S2N_TLS_ALERT_LEVEL_WARNING         1
 #define S2N_TLS_ALERT_LEVEL_FATAL           2
 
+static bool s2n_alerts_supported(struct s2n_connection *conn)
+{
+    /* If running in QUIC mode, QUIC handles alerting.
+     * S2N should not send or receive alerts. */
+    return conn && !conn->quic_enabled;
+}
+
 int s2n_process_alert_fragment(struct s2n_connection *conn)
 {
+    notnull_check(conn);
     S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_BAD_MESSAGE);
     S2N_ERROR_IF(s2n_stuffer_data_available(&conn->alert_in) == 2, S2N_ERR_ALERT_PRESENT);
+    ENSURE_POSIX(s2n_alerts_supported(conn), S2N_ERR_BAD_MESSAGE);
 
     while (s2n_stuffer_data_available(&conn->in)) {
         uint8_t bytes_required = 2;
@@ -104,6 +113,8 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
 
 int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn)
 {
+    notnull_check(conn);
+
     uint8_t alert[2];
     alert[0] = S2N_TLS_ALERT_LEVEL_WARNING;
     alert[1] = S2N_TLS_ALERT_CLOSE_NOTIFY;
@@ -112,17 +123,23 @@ int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn)
 
     /* If there is an alert pending or we've already sent a close_notify, do nothing */
     if (s2n_stuffer_data_available(&conn->writer_alert_out) || conn->close_notify_queued) {
-        return 0;
+        return S2N_SUCCESS;
+    }
+
+    if (!s2n_alerts_supported(conn)) {
+        return S2N_SUCCESS;
     }
 
     GUARD(s2n_stuffer_write(&conn->writer_alert_out, &out));
     conn->close_notify_queued = 1;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_queue_reader_alert(struct s2n_connection *conn, uint8_t level, uint8_t error_code)
 {
+    notnull_check(conn);
+
     uint8_t alert[2];
     alert[0] = level;
     alert[1] = error_code;
@@ -131,12 +148,16 @@ static int s2n_queue_reader_alert(struct s2n_connection *conn, uint8_t level, ui
 
     /* If there is an alert pending, do nothing */
     if (s2n_stuffer_data_available(&conn->reader_alert_out)) {
-        return 0;
+        return S2N_SUCCESS;
+    }
+
+    if (!s2n_alerts_supported(conn)) {
+        return S2N_SUCCESS;
     }
 
     GUARD(s2n_stuffer_write(&conn->reader_alert_out, &out));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_queue_reader_unsupported_protocol_version_alert(struct s2n_connection *conn)
