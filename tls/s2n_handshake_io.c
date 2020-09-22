@@ -459,7 +459,7 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
 };
 /* clang-format on */
 
-#define MAX_HANDSHAKE_TYPE_LEN 155
+#define MAX_HANDSHAKE_TYPE_LEN 152
 static char handshake_type_str[S2N_HANDSHAKES_COUNT][MAX_HANDSHAKE_TYPE_LEN] = {0};
 
 static const char* handshake_type_names[] = {
@@ -605,8 +605,9 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     }
 
     if (IS_TLS13_HANDSHAKE(conn)) {
+        /* Use middlebox compatibility mode for TLS1.3 by default.
+         * For now, only disable it when QUIC support is enabled. */
         if (!conn->quic_enabled) {
-            /* Use middlebox compatibility mode for TLS1.3 by default */
             conn->handshake.handshake_type |= MIDDLEBOX_COMPAT;
         }
         conn->handshake.handshake_type |= FULL_HANDSHAKE;
@@ -942,8 +943,10 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
      */
     S2N_ERROR_IF(record_type == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
     if (record_type == TLS_CHANGE_CIPHER_SPEC) {
-        /* TLS1.2 should not receive unexpected change cipher spec messages.
-         * TLS1.3 using QUIC should never receive change cipher spec messages. */
+        /* TLS1.3 can receive unexpected CCS messages at any point in the handshake
+         * due to a peer operating in middlebox compatibility mode.
+         * However, when operating in QUIC mode, S2N should not accept ANY CCS messages,
+         * including these unexpected ones.*/
         if (!IS_TLS13_HANDSHAKE(conn) || conn->quic_enabled) {
             ENSURE_POSIX(EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC, S2N_ERR_BAD_MESSAGE);
             ENSURE_POSIX(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);

@@ -570,7 +570,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(change_cipher_spec_found);
         }
 
-        /* Test: "If offering early data, the [change_cipher_spce] record is placed immediately after the first ClientHello."
+        /* Test: "If offering early data, the [change_cipher_spec] record is placed immediately after the first ClientHello."
          *
          * TODO: This can't be tested yet because S2N doesn't support early data. */
 
@@ -634,6 +634,7 @@ int main(int argc, char **argv)
 
         /* Verify that tls1.2 DOES NOT set the flags only allowed by tls1.3 */
         EXPECT_FALSE(conn->handshake.handshake_type & MIDDLEBOX_COMPAT);
+        EXPECT_FALSE(conn->handshake.handshake_type & HELLO_RETRY_REQUEST);
 
         /* Verify that tls1.3 ONLY sets the flags allowed by tls1.3 */
         conn->actual_protocol_version = S2N_TLS13;
@@ -643,7 +644,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test: TLS1.3 s2n_conn_set_handshake_type only allows HELLO_RETRY_REQUEST with tls1.3 */
+    /* Test: s2n_conn_set_handshake_type only allows HELLO_RETRY_REQUEST with TLS1.3 */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
 
@@ -659,6 +660,16 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_conn_set_handshake_type(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test: TLS1.3 handshake type name maximum size is set correctly.
+     *       The maximum size is the size of a name with all flags set. */
+    {
+        size_t correct_size = 0;
+        for (size_t i = 0; i < s2n_array_len(handshake_type_names); i++) {
+            correct_size += strlen(handshake_type_names[i]);
+        }
+        EXPECT_EQUAL(correct_size, MAX_HANDSHAKE_TYPE_LEN);
     }
 
     /* Test: TLS 1.3 handshake types are all properly printed */
