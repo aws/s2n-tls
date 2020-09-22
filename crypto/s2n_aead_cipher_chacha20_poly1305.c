@@ -67,11 +67,17 @@ static int s2n_aead_chacha20_poly1305_encrypt(struct s2n_session_key *key, struc
     /* Encrypt the data */
     GUARD_OSSL(EVP_EncryptUpdate(key->evp_cipher_ctx, out->data, &out_len, in->data, in_len), S2N_ERR_ENCRYPT);
 
+    /* For OpenSSL 1.1.0 and 1.1.1, when using ChaCha20-Poly1305, *out_len is the number of bytes written by EVP_EncryptUpdate. Since the tag is not written during this call, we do not take S2N_TLS_CHACHA20_POLY1305_TAG_LEN into account */
+    S2N_ERROR_IF(in_len != out_len, S2N_ERR_ENCRYPT);
+
     /* Finalize */
     GUARD_OSSL(EVP_EncryptFinal_ex(key->evp_cipher_ctx, out->data, &out_len), S2N_ERR_ENCRYPT);
 
     /* Write the tag */
     GUARD_OSSL(EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_AEAD_GET_TAG, S2N_TLS_CHACHA20_POLY1305_TAG_LEN, tag_data), S2N_ERR_ENCRYPT);
+
+    /* For OpenSSL 1.1.0 and 1.1.1, when using ChaCha20-Poly1305, EVP_EncryptFinal_ex does not write any bytes. So, we should expect *out_len = 0. */
+    S2N_ERROR_IF(0 != out_len, S2N_ERR_ENCRYPT);
 
     return 0;
 }
@@ -104,6 +110,8 @@ static int s2n_aead_chacha20_poly1305_decrypt(struct s2n_session_key *key, struc
     evp_decrypt_rc &= EVP_DecryptFinal_ex(key->evp_cipher_ctx, out->data, &out_len);
 
     S2N_ERROR_IF(evp_decrypt_rc != 1, S2N_ERR_DECRYPT);
+
+    /* While we verify the content of out_len in s2n_aead_chacha20_poly1305_encrypt, we refrain from this here. This is to avoid doing any branching before the ciphertext is verified. */
 
     return 0;
 }
