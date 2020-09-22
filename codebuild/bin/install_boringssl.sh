@@ -30,8 +30,15 @@ source codebuild/bin/jobs.sh
 
 cd "$BUILD_DIR"
 git clone https://github.com/google/boringssl.git
-mkdir build
-cd build
+cd boringssl
+
+# BoringSSL doesn't have tags or versions in the Github repo.
+# This commit represents the latest version that S2N is compatible
+# with. It prevents our build system from breaking when BoringSSL
+# is updated.
+git checkout 3743aafdacff2f7b083615a043a37101f740fa53
+mkdir ../build
+cd ../build
 
 cmake ../boringssl -DBUILD_SHARED_LIBS=1 -DCMAKE_BUILD_TYPE=Release
 make -j $JOBS
