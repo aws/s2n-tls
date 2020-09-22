@@ -54,18 +54,14 @@ static int s2n_server_key_share_generate_pq_hybrid(struct s2n_connection *conn, 
     GUARD(s2n_ecc_evp_generate_ephemeral_key(server_ecc_params));
     GUARD(s2n_ecc_evp_write_params_point(server_ecc_params, out));
 
-    /* s2n_kem_send_ciphertext() expects to find the client's public key in the
-     * params passed to it. We temporarily point server_kem_params->public_key to
-     * the correct location. */
     notnull_check(conn->secure.chosen_client_kem_group_params);
     struct s2n_kem_params *client_kem_params = &conn->secure.chosen_client_kem_group_params->kem_params;
-    struct s2n_kem_params *server_kem_params = &server_kem_group_params->kem_params;
     notnull_check(client_kem_params->public_key.data);
-    server_kem_params->public_key.data = client_kem_params->public_key.data;
-    server_kem_params->public_key.size = client_kem_params->public_key.size;
-    GUARD(s2n_kem_send_ciphertext(out, server_kem_params));
-    server_kem_params->public_key.data = NULL;
-    server_kem_params->public_key.size = 0;
+    /* s2n_kem_send_ciphertext() will generate the PQ shared secret and use
+     * the client's public key to encapsulate; the PQ shared secret will be
+     * stored in client_kem_params, and will be used during the hybrid shared
+     * secret derivation. */
+    GUARD(s2n_kem_send_ciphertext(out, client_kem_params));
 
     GUARD(s2n_stuffer_write_vector_size(&total_share_size));
     return S2N_SUCCESS;
@@ -361,6 +357,7 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn) {
             return S2N_SUCCESS;
         }
     }
+
     for (size_t i = 0; i < ecc_pref->count; i++) {
         if (conn->secure.mutually_supported_curves[i] && conn->secure.client_ecc_evp_params[i].negotiated_curve) {
             conn->secure.server_ecc_evp_params.negotiated_curve = conn->secure.client_ecc_evp_params[i].negotiated_curve;

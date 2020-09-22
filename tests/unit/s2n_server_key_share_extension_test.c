@@ -862,8 +862,8 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(server_params->kem_group, kem_group);
                 EXPECT_EQUAL(server_params->kem_params.kem, kem_group->kem);
                 EXPECT_EQUAL(server_params->ecc_params.negotiated_curve, kem_group->curve);
-                EXPECT_EQUAL(server_params->kem_params.shared_secret.size, kem_group->kem->shared_secret_key_length);
-                EXPECT_NOT_NULL(server_params->kem_params.shared_secret.data);
+                EXPECT_EQUAL(client_params->kem_params.shared_secret.size, kem_group->kem->shared_secret_key_length);
+                EXPECT_NOT_NULL(client_params->kem_params.shared_secret.data);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
