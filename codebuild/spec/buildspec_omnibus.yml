@@ -47,6 +47,17 @@ batch:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
 
+    - identifier: s2nIntegrationV2OpenSSL111Gcc9
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-1.1.1
+          BUILD_S2N: true
+          TESTS: integrationv2
+          GCC_VERSION: 9
+
     # Individual Integration tests
     - identifier: s2nIntegrationBoringSSLGcc9
       buildspec: codebuild/spec/buildspec_ubuntu.yml

@@ -25,12 +25,46 @@ ifeq ($(S2N_CORKED_IO),true)
 	HANDSHAKE_TEST_PARAMS:=--use_corked_io $(HANDSHAKE_TEST_PARAMS)
 endif
 
-.PHONY : all
-all:
+
+define run_tox
 	( \
 	DYLD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="../../lib/:../testlib/:$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	S2N_INTEG_TEST=1 \
 	PATH="../../bin":$(LIBCRYPTO_ROOT)/bin:$(PATH) \
+	TOX_TEST_NAME=$(1) \
 	tox \
 	)
+endef
+
+test_key_update.py:
+	$(call run_tox,$@)
+test_client_authentication.py:
+	$(call run_tox,$@)
+test_dynamic_record_sizes.py:
+	$(call run_tox,$@)
+test_happy_path.py:
+	$(call run_tox,$@)
+test_session_resumption.py:
+	$(call run_tox,$@)
+test_sni_match.py:
+	$(call run_tox,$@)
+test_well_known_endpoints.py:
+	$(call run_tox,$@)
+test_compatibility_with_oqs_openssl.py:
+	$(call run_tox,$@)
+test_fragmentation.py:
+	$(call run_tox,$@)
+test_hello_retry_requests.py:
+	$(call run_tox,$@)
+test_pq_handshake.py:
+	$(call run_tox,$@)
+test_signature_algorithms.py:
+	$(call run_tox,$@)
+test_version_negotiation.py:
+	$(call run_tox,$@)
+
+.PHONY : test_client_authentication.py test_dynamic_record_sizes.py test_happy_path.py test_key_update.py test_session_resumption.py test_sni_match.py test_well_known_endpoints.py test_compatibility_with_oqs_openssl.py test_fragmentation.py test_hello_retry_requests.py test_pq_handshake.py test_signature_algorithms.py test_version_negotiation.py all
+
+all: test_client_authentication.py test_dynamic_record_sizes.py test_happy_path.py test_key_update.py test_session_resumption.py test_sni_match.py test_well_known_endpoints.py test_compatibility_with_oqs_openssl.py test_fragmentation.py test_hello_retry_requests.py test_pq_handshake.py test_signature_algorithms.py test_version_negotiation.py
+
