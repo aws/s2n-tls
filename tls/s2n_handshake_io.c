@@ -121,7 +121,7 @@ static const char *message_names[] = {
 };
 
 /* Maximum number of valid handshakes */
-#define S2N_HANDSHAKES_COUNT        256
+#define S2N_HANDSHAKES_COUNT        512
 
 /* Maximum number of messages in a handshake */
 #define S2N_MAX_HANDSHAKE_LENGTH    32
@@ -363,12 +363,28 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
 
     [NEGOTIATED | FULL_HANDSHAKE] = {
             CLIENT_HELLO,
+            SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+            CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
+    [NEGOTIATED | FULL_HANDSHAKE | MIDDLEBOX_COMPAT] = {
+            CLIENT_HELLO,
             SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
             CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
             APPLICATION_DATA
     },
 
     [NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST] = {
+            CLIENT_HELLO,
+            HELLO_RETRY_MSG,
+            CLIENT_HELLO,
+            SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+            CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
+    [NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST | MIDDLEBOX_COMPAT] = {
             CLIENT_HELLO,
             HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
             CLIENT_CHANGE_CIPHER_SPEC, CLIENT_HELLO,
@@ -379,6 +395,15 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
 
     [NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST | CLIENT_AUTH] = {
             CLIENT_HELLO,
+            HELLO_RETRY_MSG,
+            CLIENT_HELLO,
+            SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+            CLIENT_CERT, CLIENT_CERT_VERIFY, CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
+    [NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST | CLIENT_AUTH | MIDDLEBOX_COMPAT] = {
+            CLIENT_HELLO,
             HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
             CLIENT_CHANGE_CIPHER_SPEC, CLIENT_HELLO,
             SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
@@ -386,7 +411,16 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
             APPLICATION_DATA
     },
 
-    [NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST | CLIENT_AUTH | NO_CLIENT_CERT ] = {
+    [NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST | CLIENT_AUTH | NO_CLIENT_CERT] = {
+            CLIENT_HELLO,
+            HELLO_RETRY_MSG,
+            CLIENT_HELLO,
+            SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+            CLIENT_CERT, CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
+    [NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST | CLIENT_AUTH | NO_CLIENT_CERT | MIDDLEBOX_COMPAT] = {
             CLIENT_HELLO,
             HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
             CLIENT_CHANGE_CIPHER_SPEC, CLIENT_HELLO,
@@ -397,22 +431,35 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
 
     [NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH] = {
             CLIENT_HELLO,
+            SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+            CLIENT_CERT, CLIENT_CERT_VERIFY, CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
+    [NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | MIDDLEBOX_COMPAT] = {
+            CLIENT_HELLO,
             SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
             CLIENT_CHANGE_CIPHER_SPEC, CLIENT_CERT, CLIENT_CERT_VERIFY, CLIENT_FINISHED,
             APPLICATION_DATA
     },
 
-    [NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | NO_CLIENT_CERT ] = {
+    [NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | NO_CLIENT_CERT] = {
+            CLIENT_HELLO,
+            SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
+            CLIENT_CERT, CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
+    [NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | NO_CLIENT_CERT | MIDDLEBOX_COMPAT] = {
             CLIENT_HELLO,
             SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_CERT_REQ, SERVER_CERT, SERVER_CERT_VERIFY, SERVER_FINISHED,
             CLIENT_CHANGE_CIPHER_SPEC, CLIENT_CERT, CLIENT_FINISHED,
             APPLICATION_DATA
     },
-
 };
 /* clang-format on */
 
-#define MAX_HANDSHAKE_TYPE_LEN 128
+#define MAX_HANDSHAKE_TYPE_LEN 152
 static char handshake_type_str[S2N_HANDSHAKES_COUNT][MAX_HANDSHAKE_TYPE_LEN] = {0};
 
 static const char* handshake_type_names[] = {
@@ -423,7 +470,8 @@ static const char* handshake_type_names[] = {
     "CLIENT_AUTH|",
     "WITH_SESSION_TICKET|",
     "NO_CLIENT_CERT|",
-    "HELLO_RETRY_REQUEST|"
+    "HELLO_RETRY_REQUEST|",
+    "MIDDLEBOX_COMPAT|",
 };
 
 #define IS_TLS13_HANDSHAKE( conn )    ((conn)->actual_protocol_version == S2N_TLS13)
@@ -557,6 +605,11 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     }
 
     if (IS_TLS13_HANDSHAKE(conn)) {
+        /* Use middlebox compatibility mode for TLS1.3 by default.
+         * For now, only disable it when QUIC support is enabled. */
+        if (!conn->quic_enabled) {
+            conn->handshake.handshake_type |= MIDDLEBOX_COMPAT;
+        }
         conn->handshake.handshake_type |= FULL_HANDSHAKE;
 
         return 0;
@@ -890,8 +943,11 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
      */
     S2N_ERROR_IF(record_type == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
     if (record_type == TLS_CHANGE_CIPHER_SPEC) {
-        /* TLS1.2 should not receive unexpected change cipher spec messages, but TLS1.3 might. */
-        if (!IS_TLS13_HANDSHAKE(conn)) {
+        /* TLS1.3 can receive unexpected CCS messages at any point in the handshake
+         * due to a peer operating in middlebox compatibility mode.
+         * However, when operating in QUIC mode, S2N should not accept ANY CCS messages,
+         * including these unexpected ones.*/
+        if (!IS_TLS13_HANDSHAKE(conn) || conn->quic_enabled) {
             ENSURE_POSIX(EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC, S2N_ERR_BAD_MESSAGE);
             ENSURE_POSIX(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);
         }
