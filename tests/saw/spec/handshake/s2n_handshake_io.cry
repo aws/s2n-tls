@@ -170,7 +170,7 @@ IS_TLS13_HANDSHAKE conn = conn.actual_protocol_version == S2N_TLS13
 ACTIVE_STATE_MACHINE : connection -> [19]handshake_action
 ACTIVE_STATE_MACHINE conn = if IS_TLS13_HANDSHAKE conn then tls13_state_machine else state_machine # zero
 
-ACTIVE_HANDSHAKES : connection -> [256][32][32]
+ACTIVE_HANDSHAKES : connection -> [512][32][32]
 ACTIVE_HANDSHAKES conn = if IS_TLS13_HANDSHAKE conn then tls13_handshakes else handshakes
 
 ACTIVE_MESSAGE : connection -> [32]
@@ -257,8 +257,8 @@ state_machine_fn m =
   else zero
 
 // A model of the tls1.3 handshake state machine (array handshakes in C)
-tls13_handshakes : [256][32][32]
-tls13_handshakes = [tls13_handshakes_fn h | h <- [0..255]]
+tls13_handshakes : [512][32][32]
+tls13_handshakes = [tls13_handshakes_fn h | h <- [0..511]]
 
 // A function that gives the tls1.3 handshake sequence for each valid handshake_type.
 tls13_handshakes_fn: [32] -> [32][32]
@@ -285,8 +285,8 @@ tls13_handshakes_fn handshk =
   else zero
 
 // A model of the handshake state machine (array handshakes in C)
-handshakes : [256][32][32]
-handshakes = [handshakes_fn h | h <- [0..255]]
+handshakes : [512][32][32]
+handshakes = [handshakes_fn h | h <- [0..511]]
 
 // A function that gives the handshake sequence for each valid handshake_type.
 // This is a sparse encoding of the handshakes array (which is sparse too).
