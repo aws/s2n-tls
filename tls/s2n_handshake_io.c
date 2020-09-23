@@ -767,8 +767,11 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
         out.data = s2n_stuffer_raw_read(&conn->handshake.io, out.size);
         notnull_check(out.data);
 
-        /* Make the actual record */
-        GUARD(s2n_record_write(conn, record_type, &out));
+        if (conn->quic_enabled) {
+            GUARD(s2n_quic_write_handshake_message(conn, &out));
+        } else {
+            GUARD(s2n_record_write(conn, record_type, &out));
+        }
 
         /* MD5 and SHA sum the handshake data too */
         if (record_type == TLS_HANDSHAKE) {
@@ -797,7 +800,7 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
  *  0  - we read the whole handshake message.
  * -1  - error processing the handshake message.
  */
-static int s2n_read_full_handshake_message(struct s2n_connection *conn, uint8_t * message_type)
+static int s2n_read_full_handshake_message(struct s2n_connection *conn, uint8_t *message_type)
 {
     uint32_t current_handshake_data = s2n_stuffer_data_available(&conn->handshake.io);
     if (current_handshake_data < TLS_HANDSHAKE_HEADER_LENGTH) {
@@ -928,10 +931,17 @@ static int s2n_try_delete_session_cache(struct s2n_connection *conn)
 static int s2n_handshake_read_io(struct s2n_connection *conn)
 {
     uint8_t record_type;
-    int isSSLv2;
+    uint8_t message_type;
+    int isSSLv2 = false;
 
-    /* Fill conn->in stuffer necessary for the handshake */
-    GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
+    /* Fill conn->in stuffer necessary for the handshake.
+     * If using TCP, read a record. If using QUIC, read a message. */
+    if (conn->quic_enabled) {
+        record_type = TLS_HANDSHAKE;
+        GUARD(s2n_quic_read_handshake_message(conn, &message_type));
+    } else {
+        GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
+    }
 
     if (isSSLv2) {
         S2N_ERROR_IF(record_type != SSLv2_CLIENT_HELLO, S2N_ERR_BAD_MESSAGE);
@@ -988,8 +998,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
 
     while (s2n_stuffer_data_available(&conn->in)) {
         int r;
-        uint8_t actual_handshake_message_type;
-        GUARD((r = s2n_read_full_handshake_message(conn, &actual_handshake_message_type)));
+        GUARD((r = s2n_read_full_handshake_message(conn, &message_type)));
 
         /* Do we need more data? This happens for message fragmentation */
         if (r == 1) {
@@ -1009,7 +1018,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
          * is set to optional, then switch the State Machine that we're using to expect the ClientCertRequest. */
         if (conn->mode == S2N_CLIENT
                 && client_cert_auth_type == S2N_CERT_AUTH_OPTIONAL
-                && actual_handshake_message_type == TLS_CERT_REQ) {
+                && message_type == TLS_CERT_REQ) {
             conn->handshake.handshake_type |= CLIENT_AUTH;
         }
 
@@ -1017,12 +1026,12 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
          * sent "status_request" extension in the ServerHello message. */
         if (conn->mode == S2N_CLIENT
                 && EXPECTED_MESSAGE_TYPE(conn) == TLS_SERVER_CERT_STATUS
-                && actual_handshake_message_type != TLS_SERVER_CERT_STATUS) {
+                && message_type != TLS_SERVER_CERT_STATUS) {
             conn->handshake.handshake_type &= ~OCSP_STATUS;
         }
 
         ENSURE_POSIX(record_type == EXPECTED_RECORD_TYPE(conn), S2N_ERR_BAD_MESSAGE);
-        ENSURE_POSIX(actual_handshake_message_type == EXPECTED_MESSAGE_TYPE(conn), S2N_ERR_BAD_MESSAGE);
+        ENSURE_POSIX(message_type == EXPECTED_MESSAGE_TYPE(conn), S2N_ERR_BAD_MESSAGE);
         ENSURE_POSIX(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);
 
         /* Call the relevant handler */

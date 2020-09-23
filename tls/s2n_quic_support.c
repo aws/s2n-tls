@@ -17,9 +17,12 @@
 
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls13.h"
+#include "tls/s2n_tls.h"
 
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
+
+int s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *output, uint32_t length);
 
 int s2n_connection_enable_quic(struct s2n_connection *conn)
 {
@@ -53,5 +56,35 @@ int s2n_connection_get_quic_transport_parameters(struct s2n_connection *conn,
     *data_buffer = conn->peer_quic_transport_parameters.data;
     *data_len = conn->peer_quic_transport_parameters.size;
 
+    return S2N_SUCCESS;
+}
+
+/* When using QUIC, S2N reads unencrypted handshake messages instead of encrypted records.
+ * This method sets up the S2N input buffers to match the results of using s2n_read_full_record.
+ */
+int s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t *message_type)
+{
+    notnull_check(conn);
+
+    GUARD(s2n_read_in_bytes(conn, &conn->handshake.io, TLS_HANDSHAKE_HEADER_LENGTH));
+
+    uint32_t message_len;
+    GUARD(s2n_handshake_parse_header(conn, message_type, &message_len));
+    GUARD(s2n_stuffer_reread(&conn->handshake.io));
+
+    ENSURE_POSIX(message_len < S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
+    GUARD(s2n_read_in_bytes(conn, &conn->in, message_len));
+
+    return S2N_SUCCESS;
+}
+
+/* When using QUIC, S2N writes unencrypted handshake messages instead of encrypted records.
+ * This method sets up the S2N output buffer to match the result of using s2n_record_write.
+ */
+int s2n_quic_write_handshake_message(struct s2n_connection *conn, struct s2n_blob *in)
+{
+    notnull_check(conn);
+
+    GUARD(s2n_stuffer_write(&conn->out, in));
     return S2N_SUCCESS;
 }
