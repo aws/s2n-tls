@@ -416,6 +416,29 @@ class OpenSSL(Provider):
         return cmd_line
 
 
+class JavaSSL(Provider):
+    """
+    NOTE: Only a Java SSL client has been set up. The server has not been 
+    implemented yet.
+    """
+    def __init__(self, options: ProviderOptions):
+        self.ready_to_send_input_marker = None
+        Provider.__init__(self, options)
+    
+    def setup_server(self):
+        pytest.skip('JavaSSL does not support server mode at this time')
+
+    def setup_client(self):
+        self.ready_to_send_input_marker = "Starting handshake"
+        cmd_line = ['java', 'SSLSocketClient']
+
+        cmd_line.extend(['{}'.format(self.options.port)])
+
+        # Clients are always ready to connect
+        self.set_provider_ready()
+
+        return cmd_line
+
 class BoringSSL(Provider):
     """
     NOTE: In order to focus on the general use of this framework, BoringSSL

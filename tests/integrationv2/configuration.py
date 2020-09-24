@@ -2,7 +2,7 @@ import collections
 
 from common import Certificates, Ciphers, Curves, Protocols, AvailablePorts
 from constants import TEST_SNI_CERT_DIRECTORY
-from providers import S2N, OpenSSL, BoringSSL
+from providers import S2N, OpenSSL, BoringSSL, JavaSSL
 
 
 # The boolean configuration will let a test run for True and False
@@ -97,9 +97,6 @@ TLS13_CIPHERS = [
     Ciphers.AES128_GCM_SHA256,
     Ciphers.AES256_GCM_SHA384,
 ]
-
-# List of providers that will be tested.
-PROVIDERS = [S2N, OpenSSL]
 
 
 # List of ports available to tests.

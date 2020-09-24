@@ -26,8 +26,6 @@
 #include "utils/s2n_safety.h"
 
 static int s2n_client_signature_algorithms_cert_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
-static int s2n_send_supported_sig_scheme_list_modified(struct s2n_connection *conn, struct s2n_stuffer *out);
-static int s2n_signature_scheme_valid_to_offer_modified(struct s2n_connection *conn, const struct s2n_signature_scheme *scheme);
 
 const s2n_extension_type s2n_client_signature_algorithms_cert_extension = {
     .iana_value = TLS_EXTENSION_SIGNATURE_ALGORITHMS_CERT,
