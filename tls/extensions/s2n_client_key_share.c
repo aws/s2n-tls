@@ -304,7 +304,7 @@ static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stu
     return S2N_SUCCESS;
 }
 
-static int s2n_client_key_share_parse_ecc_share(struct s2n_stuffer *key_share, const struct s2n_ecc_named_curve *curve,
+static int s2n_client_key_share_parse_ecc(struct s2n_stuffer *key_share, const struct s2n_ecc_named_curve *curve,
         struct s2n_ecc_evp_params *ecc_params) {
     notnull_check(key_share);
     notnull_check(curve);
@@ -358,7 +358,7 @@ static int s2n_client_key_share_recv_ecc(struct s2n_connection *conn, struct s2n
         return S2N_SUCCESS;
     }
 
-    GUARD(s2n_client_key_share_parse_ecc_share(key_share, curve, client_ecc_params));
+    GUARD(s2n_client_key_share_parse_ecc(key_share, curve, client_ecc_params));
     /* negotiated_curve will be non-NULL if the key share was parsed successfully */
     if (client_ecc_params->negotiated_curve) {
         *match = true;
@@ -411,7 +411,7 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
         return S2N_SUCCESS;
     }
 
-    GUARD(s2n_client_key_share_parse_ecc_share(key_share, kem_group->curve, &client_kem_group_params->ecc_params));
+    GUARD(s2n_client_key_share_parse_ecc(key_share, kem_group->curve, &client_kem_group_params->ecc_params));
     /* If we were unable to parse the EC portion of the share, negotiated_curve
      * will be NULL, and we should ignore the entire key share. */
     if (!client_kem_group_params->ecc_params.negotiated_curve) {
