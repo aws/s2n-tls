@@ -16,7 +16,7 @@ version: 0.2
 # Doc for batch https://docs.aws.amazon.com/codebuild/latest/userguide/batch-build-buildspec.html#build-spec.batch.build-list
 batch:
   build-list:
-    # Consolidated Integration tests
+    # Consolidated Integration v1 tests
     - identifier: s2nIntegrationBoringLibre
       buildspec: codebuild/spec/buildspec_ubuntu_integ_boringlibre.yml
       env:
@@ -47,16 +47,94 @@ batch:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
 
-    - identifier: s2nIntegrationV2OpenSSL111Gcc9
-      buildspec: codebuild/spec/buildspec_ubuntu.yml
+    # Integration V2 tests
+    - identifier: s2nIntegrationV2ClientAuthentication
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
         variables:
-          S2N_LIBCRYPTO: openssl-1.1.1
-          BUILD_S2N: true
-          TESTS: integrationv2
-          GCC_VERSION: 9
+          INTEGV2_TEST: test_client_authentication
+
+    - identifier: s2nIntegrationV2DynamicRecordSizes
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_dynamic_record_sizes
+
+    - identifier: s2nIntegrationV2KeyUpdate
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_key_update
+
+    - identifier: s2nIntegrationV2SessionResumption
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_session_resumption
+
+    - identifier: s2nIntegrationV2SniMatch
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_sni_match
+
+    - identifier: s2nIntegrationV2CompatibilityWithOqsOpenssl
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_compatibility_with_oqs_openssl
+
+    - identifier: s2nIntegrationV2Fragmentation
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_fragmentation
+
+    - identifier: s2nIntegrationV2HelloRetryRequests
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_hello_retry_requests
+
+    - identifier: s2nIntegrationV2PqHandshake
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_pq_handshake
+
+    - identifier: s2nIntegrationV2SignatureAlgorithms
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_signature_algorithms
+
+    - identifier: s2nIntegrationV2VersionNegotiation
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_version_negotiation
 
     # Individual Integration tests
     - identifier: s2nIntegrationBoringSSLGcc9

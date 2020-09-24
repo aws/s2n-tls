@@ -37,34 +37,33 @@ define run_tox
 	)
 endef
 
-test_key_update.py:
-	$(call run_tox,$@)
-test_client_authentication.py:
-	$(call run_tox,$@)
-test_dynamic_record_sizes.py:
-	$(call run_tox,$@)
-test_happy_path.py:
-	$(call run_tox,$@)
-test_session_resumption.py:
-	$(call run_tox,$@)
-test_sni_match.py:
-	$(call run_tox,$@)
-test_well_known_endpoints.py:
-	$(call run_tox,$@)
-test_compatibility_with_oqs_openssl.py:
-	$(call run_tox,$@)
-test_fragmentation.py:
-	$(call run_tox,$@)
-test_hello_retry_requests.py:
-	$(call run_tox,$@)
-test_pq_handshake.py:
-	$(call run_tox,$@)
-test_signature_algorithms.py:
-	$(call run_tox,$@)
-test_version_negotiation.py:
-	$(call run_tox,$@)
+test_key_update:
+	$(call run_tox,$@.py)
+test_client_authentication:
+	$(call run_tox,$@.py)
+test_dynamic_record_sizes:
+	$(call run_tox,$@.py)
+test_happy_path:
+	$(call run_tox,$@.py)
+test_session_resumption:
+	$(call run_tox,$@.py)
+test_sni_match:
+	$(call run_tox,$@.py)
+test_well_known_endpoints:
+	$(call run_tox,$@.py)
+test_compatibility_with_oqs_openssl:
+	$(call run_tox,$@.py)
+test_fragmentation:
+	$(call run_tox,$@.py)
+test_hello_retry_requests:
+	$(call run_tox,$@.py)
+test_pq_handshake:
+	$(call run_tox,$@.py)
+test_signature_algorithms:
+	$(call run_tox,$@.py)
+test_version_negotiation:
+	$(call run_tox,$@.py)
 
-.PHONY : test_client_authentication.py test_dynamic_record_sizes.py test_happy_path.py test_key_update.py test_session_resumption.py test_sni_match.py test_well_known_endpoints.py test_compatibility_with_oqs_openssl.py test_fragmentation.py test_hello_retry_requests.py test_pq_handshake.py test_signature_algorithms.py test_version_negotiation.py all
-
-all: test_client_authentication.py test_dynamic_record_sizes.py test_happy_path.py test_key_update.py test_session_resumption.py test_sni_match.py test_well_known_endpoints.py test_compatibility_with_oqs_openssl.py test_fragmentation.py test_hello_retry_requests.py test_pq_handshake.py test_signature_algorithms.py test_version_negotiation.py
+.PHONY : test_client_authentication test_dynamic_record_sizes test_key_update test_happy_path est_session_resumption test_sni_match test_well_known_endpoints test_compatibility_with_oqs_openssl test_fragmentation test_hello_retry_requests test_pq_handshake test_signature_algorithms test_version_negotiation
+all: test_client_authentication test_dynamic_record_sizes test_key_update test_session_resumption test_sni_match test_well_known_endpoints test_compatibility_with_oqs_openssl test_fragmentation test_hello_retry_requests test_pq_handshake test_signature_algorithms test_version_negotiation
 
