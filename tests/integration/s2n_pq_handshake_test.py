@@ -13,6 +13,8 @@
 # permissions and limitations under the License.
 #
 
+from s2n_test_constants import NUM_EXPECTED_LINES_OUTPUT
+
 """
 PQ Handshake tests: s2nd and s2nc negotiate a handshake using BIKE or SIKE KEMs
 """
