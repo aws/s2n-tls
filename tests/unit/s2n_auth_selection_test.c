@@ -324,6 +324,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
+
         /* Client has a different signature_algorithms preference than signature_algorithms_cert preference */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);

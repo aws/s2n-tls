@@ -67,8 +67,8 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(tls13_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls13_config, "test_all"));
     
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
-            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
+              S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain,
             S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
@@ -111,7 +111,9 @@ int main(int argc, char **argv)
         }
     }
 
-    s2n_config_free(tls13_config);
+    EXPECT_SUCCESS(s2n_config_free(tls13_config));
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert_chain));
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert_chain));
     
     END_TEST();
     return S2N_SUCCESS;
