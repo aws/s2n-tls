@@ -7,6 +7,7 @@ from fixtures import managed_process
 from providers import Provider, S2N, JavaSSL
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version
 
+
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", [Certificates.ECDSA_384], ids=get_parameter_name)
 def test_s2n_server_happy_path(managed_process, certificate, protocol):
@@ -37,13 +38,13 @@ def test_s2n_server_happy_path(managed_process, certificate, protocol):
 
     for results in server.get_results():
         assert results.exception is None
-        ''' 
-        The JDK sends a user_canceled alert as well as a close_notify alert after 
-        a connection closes, so s2n will register the alert and complain. The way
-        to test that a handshake successfully completed is to check that the protocol
-        versions are correct.
+        '''
+        The JDK sends a user_canceled alert as well as a close_notify alert
+        after a connection closes, so s2n will register the alert and complain.
+        The way to test that a handshake successfully completed is to check that
+        the protocol versions are correct.
         '''
         assert results.exit_code == 1
-        assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) in results.stdout
+        assert bytes("Actual protocol version: 
+            {}".format(expected_version).encode('utf-8')) in results.stdout
         assert random_bytes in results.stdout
-

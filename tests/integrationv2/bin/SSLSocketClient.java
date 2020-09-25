@@ -16,14 +16,12 @@ public class SSLSocketClient {
         /* Java uses a different certificate format than s2n */
         System.setProperty("javax.net.ssl.trustStore", "../pems/ecdsa_p384_pkcs1.p12");
         System.setProperty("javax.net.ssl.trustStorePassword", "password");
-        System.setProperty("javax.net.debug", "all");
         
         SSLSocketFactory factory = (SSLSocketFactory)SSLSocketFactory.getDefault();
         InetAddress address = InetAddress.getByName(host);
 
         try (
-            SSLSocket socket = 
-            (SSLSocket)factory.createSocket(address, port);
+            SSLSocket socket = (SSLSocket)factory.createSocket(address, port);
             OutputStream out = new BufferedOutputStream(socket.getOutputStream());
             BufferedInputStream stdIn = new BufferedInputStream(System.in);
         ) {
