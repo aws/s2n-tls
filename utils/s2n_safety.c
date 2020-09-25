@@ -61,7 +61,7 @@ bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, const uint32
     S2N_PUBLIC_INPUT(b);
     S2N_PUBLIC_INPUT(len);
 
-    if(len != 0 && (a == NULL || b == NULL)) {
+    if (len != 0 && (a == NULL || b == NULL)) {
         return false;
     }
 
