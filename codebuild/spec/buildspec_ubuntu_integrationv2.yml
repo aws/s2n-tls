@@ -21,6 +21,7 @@ env:
 phases:
   install:
     runtime-versions:
+      # This must be pinned to 3.7 because of old sslyze
       python: 3.7
     commands:
       - echo Entered the install phase...
@@ -28,7 +29,14 @@ phases:
       - add-apt-repository ppa:ubuntu-toolchain-r/test -y
       - apt-get update -o Acquire::CompressionTypes::Order::=gz
       - apt-get update -y
-      - apt-get install -y --no-install-recommends gcc g++  gcc-6 g++-6 gcc-9 g++-9
+      - |
+        if expr "${GCC_VERSION}" : "9" >/dev/null; then
+          apt-get install -y --no-install-recommends g++ g++-9 gcc gcc-9;
+        fi
+      - |
+        if expr "${GCC_VERSION}" : "6" >/dev/null; then
+          apt-get install -y --no-install-recommends g++ g++-6 gcc gcc-6;
+        fi
       # Don't install old clang and llvm if LATEST_CLANG is enabled, handle it in install_clang.sh instead
       - |
         if expr "${LATEST_CLANG}" != "true" >/dev/null; then
@@ -41,15 +49,10 @@ phases:
         if [ -d "third-party-src" ]; then
           cd third-party-src;
         fi
-      - S2N_LIBCRYPTO=openssl-1.0.2 $CB_BIN_DIR/install_default_dependencies.sh
-      - S2N_LIBCRYPTO=openssl-1.0.2-fips $CB_BIN_DIR/install_default_dependencies.sh
+      - $CB_BIN_DIR/install_default_dependencies.sh
+      - make
   build:
     commands:
       - printenv
-      - S2N_LIBCRYPTO=openssl-1.0.2 TESTS=integration GCC_VERSION=6 $CB_BIN_DIR/s2n_codebuild.sh
-      - S2N_LIBCRYPTO=openssl-1.0.2-fips TESTS=integration GCC_VERSION=6 $CB_BIN_DIR/s2n_codebuild.sh
-  post_build:
-    commands:
-      - echo Build completed on `date`
-      - echo Uploading CodeCov.io artifacts
-      - $CB_BIN_DIR/s2n_after_codebuild.sh
+      - . $CB_BIN_DIR/s2n_setup_env.sh
+      - make -C tests/integrationv2 $INTEGV2_TEST
