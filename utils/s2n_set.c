@@ -33,7 +33,7 @@ S2N_RESULT s2n_set_validate(const struct s2n_set *set)
 static S2N_RESULT s2n_set_binary_search(struct s2n_set *set, void *element, uint32_t* out)
 {
     GUARD_RESULT(s2n_set_validate(set));
-    // cppcheck-suppress sizeofDereferencedVoidPointer
+    /* cppcheck-suppress sizeofDereferencedVoidPointer */
     ENSURE_REF(element);
     ENSURE_REF(out);
     struct s2n_array *array = set->data;
