@@ -289,6 +289,11 @@ int main(int argc, char **argv)
 
     EXPECT_EQUAL(s2n_constant_time_equals(a, b, sizeof(a)), 1);
     EXPECT_EQUAL(s2n_constant_time_equals(a, c, sizeof(a)), 0);
+    EXPECT_EQUAL(s2n_constant_time_equals(a, NULL, sizeof(a)), 0);
+    EXPECT_EQUAL(s2n_constant_time_equals(NULL, b, sizeof(b)), 0);
+    EXPECT_EQUAL(s2n_constant_time_equals(NULL, NULL, 0), 1);
+    EXPECT_EQUAL(s2n_constant_time_equals(NULL, NULL, sizeof(a)), 0);
+    EXPECT_EQUAL(s2n_constant_time_equals(a, c, 0), 1);
 
     EXPECT_SUCCESS(s2n_constant_time_copy_or_dont(a, c, sizeof(a), 0));
     EXPECT_EQUAL(s2n_constant_time_equals(a, c, sizeof(a)), 1);
