@@ -78,7 +78,7 @@ def try_client_handshake(endpoint, arguments, expected_cipher):
     if expected_cipher:
         expected_output += expected_cipher
 
-    for line in range(0, 20):
+    for line in range(0, NUM_EXPECTED_LINES_OUTPUT):
         output = str(s2nc.stdout.readline().decode("utf-8"))
         if expected_output in output:
             found = 1

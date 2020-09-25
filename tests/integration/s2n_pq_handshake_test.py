@@ -84,7 +84,7 @@ def do_pq_handshake(client_ciphers, server_ciphers, expected_cipher, expected_ke
     server_kem_found = False
     server_cipher_found = False
 
-    for i in range(0, 20):
+    for i in range(0, NUM_EXPECTED_LINES_OUTPUT):
         client_line = str(s2nc.stdout.readline().decode("utf-8"))
         if expected_kem_output in client_line:
             client_kem_found = True
