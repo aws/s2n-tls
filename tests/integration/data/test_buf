@@ -160,7 +160,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
 
     # Read it
     found = 0
-    for line in range(0, 10):
+    for line in range(0, 11):
         output = s2nd.stdout.readline().decode("utf-8")
         if output.strip() == cipher:
             found = 1
@@ -642,7 +642,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
 
     # Read it
     found = 0
-    for line in range(0, 10):
+    for line in range(0, 11):
         output = s2nd.stdout.readline().decode("utf-8")
         if output.strip() == cipher:
             found = 1
