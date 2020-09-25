@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     EXPECT_TRUE(0 == strcmp(buf, hello_hi));
 
     /* Writing to the end buf does not change the string */
-    p = s2n_strcpy(p, last, "s2n");
+    s2n_strcpy(p, last, "s2n");
     EXPECT_TRUE(0 == strcmp(buf, hello_hi));
 
     END_TEST();

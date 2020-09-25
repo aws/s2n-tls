@@ -106,7 +106,7 @@ static int success_lt()
 
 static int success_notnull()
 {
-    notnull_check("");
+    notnull_check(&"");
 
     return 0;
 }
