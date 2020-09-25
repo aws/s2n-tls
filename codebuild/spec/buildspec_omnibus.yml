@@ -72,6 +72,14 @@ batch:
         variables:
           INTEGV2_TEST: test_key_update
 
+    - identifier: s2nIntegrationV2HappyPath
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_happy_path
+
     - identifier: s2nIntegrationV2SessionResumption
       buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
       env:
