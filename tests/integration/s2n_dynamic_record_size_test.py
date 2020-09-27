@@ -125,7 +125,7 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
     # Read from s2nc until we get successful connection message
     found = 0
     seperators = 0
-    for line in range(0, 10):
+    for line in range(0, NUM_EXPECTED_LINES_OUTPUT):
         output = s2nc.stdout.readline().decode("utf-8")
         if output.strip() == "Connected to {}:{}".format(endpoint, port):
             found = 1

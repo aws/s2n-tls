@@ -22,6 +22,7 @@ import uuid
 
 from common.s2n_test_scenario import Mode, Version, run_scenarios
 from common.s2n_test_reporting import Result
+from s2n_test_constants import NUM_EXPECTED_LINES_OUTPUT
 
 
 def get_error(process, line_limit=10):
@@ -35,7 +36,7 @@ def get_error(process, line_limit=10):
     return error
 
 
-def wait_for_output(output, marker, line_limit=10):
+def wait_for_output(output, marker, line_limit=NUM_EXPECTED_LINES_OUTPUT):
     for count in range(line_limit):
         line = output.readline().decode("utf-8")
         if marker in line:
