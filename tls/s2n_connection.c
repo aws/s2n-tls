@@ -997,6 +997,17 @@ const char *s2n_connection_get_kem_name(struct s2n_connection *conn)
     return conn->secure.kem_params.kem->name;
 }
 
+const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn)
+{
+    notnull_check_ptr(conn);
+
+    if (!conn->secure.chosen_client_kem_group_params || !conn->secure.chosen_client_kem_group_params->kem_group) {
+        return "NONE";
+    }
+
+    return conn->secure.chosen_client_kem_group_params->kem_group->name;
+}
+
 int s2n_connection_get_client_protocol_version(struct s2n_connection *conn)
 {
     notnull_check(conn);

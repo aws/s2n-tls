@@ -133,7 +133,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
                 found = 1
                 break
     else:
-        for line in range(0, 10):
+        for line in range(0, NUM_EXPECTED_LINES_OUTPUT):
             output = s2nc.stdout.readline().decode("utf-8")
             if output.strip() == "Connected to {}:{}".format(endpoint, port):
                 found = 1
