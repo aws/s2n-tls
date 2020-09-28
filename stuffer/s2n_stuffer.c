@@ -216,8 +216,7 @@ int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out
     GUARD(s2n_stuffer_skip_read(stuffer, out->size));
 
     void *ptr = stuffer->blob.data + stuffer->read_cursor - out->size;
-    /* cppcheck-suppress sizeofDereferencedVoidPointer */
-    notnull_check(ptr);
+    ENSURE_POSIX(S2N_MEM_IS_READABLE(ptr, out->size), S2N_ERR_NULL);
 
     memcpy_check(out->data, ptr, out->size);
     memset_check(ptr, 0, out->size);
@@ -283,8 +282,7 @@ int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t * data, c
     GUARD(s2n_stuffer_skip_write(stuffer, size));
 
     void *ptr = stuffer->blob.data + stuffer->write_cursor - size;
-    /* cppcheck-suppress sizeofDereferencedVoidPointer */
-    notnull_check(ptr);
+    ENSURE_POSIX(S2N_MEM_IS_READABLE(ptr, size), S2N_ERR_NULL);
 
     if (ptr == data) {
         POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
@@ -302,8 +300,7 @@ int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec* io
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     notnull_check(iov);
     void *ptr = s2n_stuffer_raw_write(stuffer, size);
-    /* cppcheck-suppress sizeofDereferencedVoidPointer */
-    notnull_check(ptr);
+    ENSURE_POSIX(S2N_MEM_IS_READABLE(ptr, size), S2N_ERR_NULL);
 
     size_t size_left = size, to_skip = offs;
     for (int i = 0; i < iov_count; i++) {
