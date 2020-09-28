@@ -308,5 +308,25 @@ int main(int argc, char **argv)
         }
     }
 
+    uint64_t r;
+
+    /* Simulate 1,000,000 rolls of a dice */
+    for (int i = 0; i < 1000000; i++) {
+        EXPECT_OK(s2n_public_random(6, &r));
+        EXPECT_TRUE((0 <= r) && (r <= 5));
+    }
+
+    /* Pick an extremely high bound */
+    for (int i = 0; i < 1000000; i++) {
+        EXPECT_OK(s2n_public_random(INT64_MAX, &r));
+        EXPECT_TRUE((0 <= r) && (r <= INT64_MAX));
+    }
+
+    /* 0 should fail */
+    EXPECT_ERROR(s2n_public_random(0, &r));
+
+    /* -1 should fail */
+    EXPECT_ERROR(s2n_public_random(-1, &r));
+
     END_TEST();
 }
