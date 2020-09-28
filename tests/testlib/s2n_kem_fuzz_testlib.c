@@ -18,7 +18,6 @@
 #include "tls/s2n_kem.h"
 #include "tests/testlib/s2n_nist_kats.h"
 
-#define UNUSED_VAR(x) do { (void) (x); } while (0)
 
 int s2n_kem_recv_ciphertext_fuzz_test_init(const char *kat_file_path, struct s2n_kem_params *kem_params) {
     notnull_check(kat_file_path);
@@ -45,7 +44,6 @@ int s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n
     notnull_check(kem_params);
 
 #if defined(S2N_NO_PQ)
-    UNUSED_VAR(len);
     return S2N_FAILURE;
 #else
     notnull_check(kem_params->kem);
@@ -81,7 +79,6 @@ int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n
     notnull_check(kem_params);
 
 #if defined(S2N_NO_PQ)
-    UNUSED_VAR(len);
     return S2N_FAILURE;
 #else
     notnull_check(kem_params->kem);
