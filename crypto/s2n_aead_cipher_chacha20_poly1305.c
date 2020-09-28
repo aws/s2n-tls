@@ -49,6 +49,7 @@ static uint8_t s2n_aead_chacha20_poly1305_available(void)
 
 static int s2n_aead_chacha20_poly1305_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *aad, struct s2n_blob *in, struct s2n_blob *out)
 {
+    gte_check(in->size, S2N_TLS_CHACHA20_POLY1305_TAG_LEN);
     /* The size of the |in| blob includes the size of the data and the size of the ChaCha20-Poly1305 tag */
     gte_check(out->size, in->size);
     eq_check(iv->size, S2N_TLS_CHACHA20_POLY1305_IV_LEN);
@@ -160,6 +161,7 @@ static int s2n_aead_chacha20_poly1305_destroy_key(struct s2n_session_key *key)
 
 static int s2n_aead_chacha20_poly1305_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *aad, struct s2n_blob *in, struct s2n_blob *out)
 {
+    gte_check(in->size, S2N_TLS_CHACHA20_POLY1305_TAG_LEN);
     /* The size of the |in| blob includes the size of the data and the size of the ChaCha20-Poly1305 tag */
     gte_check(out->size, in->size);
     eq_check(iv->size, S2N_TLS_CHACHA20_POLY1305_IV_LEN);
