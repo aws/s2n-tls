@@ -180,32 +180,324 @@ S2N_RESULT s2n_get_urandom_data(struct s2n_blob *blob)
  */
 S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
 {
-    uint64_t r;
+    uint64_t x;
 
     ENSURE_GT(bound, 0);
 
-    while (1) {
-        struct s2n_blob blob = {.data = (void *)&r, sizeof(r) };
-        GUARD_RESULT(s2n_get_public_random_data(&blob));
+    /*
+     * This function implements Lemire's algorithm. You can read Lemire's blog post
+     * and paper at:
+     *
+     * https://lemire.me/blog/2019/06/06/nearly-divisionless-random-integer-generation-on-various-systems/
+     * https://arxiv.org/pdf/1805.10941.pdf
+     *
+     * But this massive comment is going to serve as a more concise explanation.
+     *
+     * Suppose we had uint3_t that is just 3 bits wide. That can represent the numbers
+     * 0, 1, 2, 3, 4, 5, 6, 7. And we also have a function that can return a random 3
+     * bits number. uint3_t x = random3();
+     *
+     * Now let's say that we want to use that to generate a number in the set 0, 1, 2.
+     * A naive way to to this is to simply use x % 3. % is the modulus or remainder
+     * operator and it returns the remainder left over from x/3. The remainder will
+     * always be smaller than 3 (obviously).
+     *
+     * If we lay the possibilities out on a number line, we can quickly see a problem:
+     *
+     *  x =         0  1  2  3  4  5  6  7
+     *              +--+--+--+--+--+--+--+
+     *  x % 3 =     0  1  2  0  1  2  0  1
+     *
+     * The results are unfair. There are 3 ways to get 0 or 1, but only 2 ways get
+     * 2, so it won't be chosen as often. That's no good if we want a fair
+     * probability.
+     *
+     * The usual fix for this is to do rejection sampling and to reject any value of
+     * x higher than or equal to (rand_max - (rand_max % 3)). Or in code:
+     *
+     *  uint3_t ceiling = (UINT3_MAX - (UINT3_MAX % s);
+     *  while(1) {
+     *      uint3_t x = random3();
+     *      if (x < ceiling)
+     *          return r % s;
+     *      }
+     *  }
+     *
+     * On our number line this can be visualzed as:
+     *
+     *  x =         0  1  2  3  4  5  6  7
+     *              +--+--+--+--+--+--+--+
+     *              \_____/  \_____/
+     *  x % 3 =     0  1  2  0  1  2
+     *
+     * if x comes up 6 or 7, we try again. That produces UINT3_MAX / s
+     * "ranges" of legitimate values. In this case two 0s, two 1s, two 2s.
+     *
+     * With our code, we checked if x was between 0 and 5, because that's
+     * easiest, but any contiguous window of 6 numbers would have done.
+     * For example:
+     *
+     *  x =         0  1  2  3  4  5  6  7
+     *              +--+--+--+--+--+--+--+
+     *                 \_____/  \_____/
+     *  x % 3 =        1  2  0  1  2  0
+     *
+     *  x =         0  1  2  3  4  5  6  7
+     *              +--+--+--+--+--+--+--+
+     *                    \_____/  \_____/
+     *  x % 3 =           2  0  1  2  0  1
+     *
+     * There's a general principle at play here. Any contiguous range of
+     * (n * s) numbers will contain exactly n values where x % s is 0, n values
+     * where x % s is 1, and so on, up to n values where x % s is (s - 1).
+     * This is important later, so really convince yourself of this.
+     *
+     * This algorithm works correctly but is expensive. There's at least two
+     * % operations per call and maybe more, and those operations are among the
+     * slowest a CPU can be asked to perform.
+     *
+     * To avoid this, we use Lemire's algorithm which cleverly replaces these
+     * modulus operations with bit-shifts. Here's how it works.
+     *
+     * First, we generate a random value as before:
+     *
+     *  uint3_t x = random3();
+     *
+     * which can be visualized on a number line:
+     *
+     *  x =        0  1  2  3  4  5  6  7
+     *             +--+--+--+--+--+--+--+
+     *
+     * We then multiply x by s. Recall that s is the size of the range we want,
+     * i.e. to pick a number in the set 0, 1, 2 then s is 3.
+     *
+     *  uint6_t m = x * s;
+     *
+     * Note that m is twice the bit-width of x. It's a 6-bit int, enough to represent
+     * the numbers 0-63. Since in our case s is 3, let's expand out all of the
+     * possibilities for m with another number line.
+     *
+     *  x =        0  1  2  3  4  5  6  7
+     *             +--+--+--+--+--+--+--+
+     *             .  .  .  .  ..  .. .. .......
+     *             .  .   .  ..  ... ..  ...    .......
+     *             .   .   .    ...  ....     .... ..   .......
+     *             .     .   .     ...   .....    ....  ....    .......
+     *             .      .    . .    ...     .....   .....  ....      ......
+     *             .      .        .     ....      ....    .....   .....     .....
+     *  m =        .        3        6        9        12       15       18       21
+     *             +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     *
+     * Our line stops at 21 because with s = 3, that's our maximum value for m. If
+     * was 6 (as when simulating a dice) it would go to 42. You get the idea.
+     *
+     * Now at any time we can "collapse" these numbers back to a set between 0-2 by
+     * by dividing by 8. That's the same as "m >> 3" which is faster than actually
+     * dividing.
+     *
+     *  m      =   0        3        6        9        12       15       18       21
+     *             +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     *  m >> 3 =   0        0        0        1        1        1        2        2
+     *             \___________________/   \____________________/  \___________________/
+     *
+     * Note that the operand 3 here comes from from dividing a 6-bit number to a
+     * 3-bit number, and not because s was 3. We'd still use 3, no matter what value
+     * s originally had. For example if s was 5, then the m number line would look
+     * like this:
+     *
+     *  m      =   0         5         10        15        20        25        30        35
+     *             +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     *  m >> 3 =   0         0         1         1         2         3         3         4
+     *             \_____________/ \_____________/ \_____________/ \_____________/ \_____________/
+     *
+     * Either way, m >> 3 is clearly unfair. So how do we fix it? We already have
+     * the answer. Recall that any contiguous range of size (n * s) will contain
+     * exactly n multiples of 0, 1, ... s - 1. Below each m >> 3 above in the
+     * ascii art diagrams are boat-shaped ranges of size 8. Every value in the
+     * first range is 0, it's 1 in the second, and so on.
+     *
+     * What we want to do is to select a sub-range of size (n * s) inside each of
+     * of these ranges of size 8. We're going to do that by rejecting the first
+     * (8 % s) values in each range from elligibility.
+     *
+     * Because each boat-shaped range is size 8, we can assign every value a position
+     * 'l' in that range by virtue of:
+     *
+     *  uint3_t l = m % 8;
+     *
+     * again with the number line:
+     *
+     *  m      =   0        3        6        9        12       15       18       21
+     *             +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     *  m >> 3 =   0        0        0        1        1        1        2        2
+     *  l      =   0  1  2  3  4  5  6  7  0  1  2  3  4  5  6  7  0  1  2  3  4  5  6  7
+     *             \___________________/   \____________________/  \___________________/
+     *
+     * Our goal will be to reject values of m where l is less than 8 % s. Since s is 3,
+     * that makes 8 % s is 2 and so we'll reject the any values in the first two 'slots'
+     * of a range. That will leave us with a contiguous sub-range of size 6. Before we
+     * get there though, another trick. We can speed up m % 8 by using bitwise math.
+     * It's the same as:
+     *
+     *  uint3_t l = (uint3_t) m;
+     *
+     * Recall that m is a 6-bit int, so this operation truncates the value of m
+     * to the value of its 3 least significant bits. Some examples in binary:
+     *
+     *  m = 0b101010  l = 0b010
+     *  m = 0b010101  l = 0b101
+     *  m = 0b001001  l = 0b001
+     *  m = 0b111111  l = 0b111
+     *
+     * Why is this the same as:
+     *
+     *  uint3_t l = m % 8;
+     *
+     * ? It's because of how binary works, any values in the left-most 3-bits
+     * represent a multiple of 8 (e.g. 8, 16, 32), and so any values in the
+     * right-most bits are purely the remainder of m / 8.
+     *
+     * So now we can rewrite our algorithm as:
+     *
+     *  while(1) {
+     *      uint3_t x = random3();
+     *      uint6_t m = x * s;
+     *      uint3_t l = (uint3_t) m;
+     *      if (l < (8 % s))
+     *          return m >> 3;
+     *      }
+     *  }
+     *
+     * This is ok, but we can do better. The first thing to notice is that
+     * (8 % s) is always smaller than s, so we can avoid calculating it, at least
+     * sometimes, by doing this:
+     *
+     *  uint3_t x = random3();
+     *  uint6_t m = x * s;
+     *  uint3_t l = (uint3_t) m;
+     *  if ( l < s ) {
+     *      uint3_t floor = 8 % s;
+     *      while (l < floor) {
+     *          uint3_t x = random3();
+     *          uint6_t m = x * s;
+     *          uint3_t l = (uint3_t) m;
+     *      }
+     *  }
+     *  return m >> 3;
+     *
+     * again, because s is always bigger than the floor, if we picked a value
+     * where l is greater than s, we can just go with it. No need to figure
+     * out what the floor is exactly and we can avoid one of those expensive
+     * division/modulus operations.
+     *
+     * But we need to do just a little more. Focus on this line of code:
+     *
+     *  uint3_t floor = 8 % s;
+     *
+     * The value 8 doesn't actually fit in a uint3, so this line mixes types.
+     * To avoid this and to run faster, we're going to rewrite it as:
+     *
+     *  uint3_t floor = -s % s;
+     *
+     * How does -s % s == 8 % s (when using a 3-bit uint)? Let's break it down.
+     * firstly, negation of an unsigned int in C is defined as taking the two's
+     * complement. That means flipping all of the bits and adding one to the
+     * result. Here's a table with all possible values of s, the bitwise not
+     * of s (that means all of the bits are flipped, and is notated as ~s),
+     * and the two's complement, -s. For a three-bit system.
+     *
+     *      s     |    ~s     |    -s
+     *  0b000 = 0 | 0b111 = 7 | 0b000 = 0
+     *  0b001 = 1 | 0b110 = 6 | 0b111 = 7
+     *  0b010 = 2 | 0b101 = 5 | 0b110 = 6
+     *  0b011 = 3 | 0b100 = 4 | 0b101 = 5
+     *  0b100 = 4 | 0b011 = 3 | 0b100 = 4
+     *  0b101 = 5 | 0b010 = 2 | 0b011 = 3
+     *  0b110 = 6 | 0b001 = 1 | 0b010 = 2
+     *  0b111 = 7 | 0b000 = 0 | 0b001 = 1
+     *
+     * From this, it's pretty easy to see that -s is the same as (8 - s).
+     * Now remember what 8 % s is all about, it's about finding the remainder
+     * from 8 / s. As long as s is no bigger than 8, subtracting exactly one
+     * s from 8 can never change the remainder. So 8 % s is the same as
+     * -s % s , when using uint3's.
+     *
+     * That leaves us with the final form of Lemire's algorithm:
+     *
+     *  uint3_t x = random3();
+     *  uint6_t m = x * s;
+     *  uint3_t l = (uint3_t) m;
+     *  if ( l < s ) {
+     *      uint3_t floor = -s % s;
+     *      while (l < floor) {
+     *          uint3_t x = random3();
+     *          uint6_t m = x * s;
+     *          uint3_t l = (uint3_t) m;
+     *      }
+     *  }
+     *  return m >> 3;
+     *
+     * A NOTE ON SIDE-CHANNELS: Lemire's algorithm is fast, it cuts down on the
+     * number of divisions, but it also has a timing side-channel that reveals
+     * details about the numbers chosen.
+     *
+     * Suppose we wanted to simulate a dice with our dummy 3-bit / 6-bit
+     * architecture. Here's how the number-line would look:
+     *
+     *  m      =   0           6           12          18          24          30          36          42
+     *             +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     *  m >> 3 =   0           0           1           2           3           3           4           5
+     *  l      =   0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
+     *             \_____________/ \_____________/ \_____________/ \_____________/ \_____________/ \_____________/
+     *
+     * An attacker measuring the time that the algorithm takes can infer
+     * information:
+     *
+     * 1/ The algorthim ran super fast. l was not smaller than s. This means the
+     *    value is either 0 or 3.
+     *
+     * 2/ The algorithm ran intermediately fast. l was smaller than s but was
+     *    not smaller than floor. This means the value is either 1, 2, 4, or 5.
+     *
+     * 3/ The algorithm ran slowly. Similar extrapolations as 1 and 2 can then
+     *    be performed recursively to determine post-rejection values.
+     *
+     * Note that this side-channel isn't a result of rejection sampling; the very
+     * first "simple" algorithm with rejection sampling does not have a side-channel
+     * because rejection reveals nothing about the final value.
+     *
+     * Now, does it matter? Probably not. In the real world, side-channels like this
+     * take repeated measurements to detect. But by definition each run of a random
+     * function is going to produce a randomly-generated result. This will confound
+     * the attack.
+     *
+     * But if you're worried about an attacker who can precisely measure a single
+     * invokation of this algorithm, or some kind of already-broken system where
+     * the randomN() function is deterministic, then maybe avoid this method.
+     *
+     * In s2n we use this function only in public contexts, it's in the name, so
+     * we don't need to worry about this side-channel.
+     */
 
-        /* Imagine an int was one byte and UINT_MAX was 256. If the
-         * caller asked for s2n_random(129, ...) we'd end up in
-         * trouble. Each number in the range 0...127 would be twice
-         * as likely as 128. That's because r == 0 % 129 -> 0, and
-         * r == 129 % 129 -> 0, but only r == 128 returns 128,
-         * r == 257 is out of range.
-         *
-         * To de-bias the dice, we discard values of r that are higher
-         * that the highest multiple of 'bound' an int can support. If
-         * bound is a uint, then in the worst case we discard 50% - 1 r's.
-         * But since 'bound' is an int and INT_MAX is <= UINT_MAX / 2,
-         * in the worst case we discard 25% - 1 r's.
-         */
-        if (r < (UINT64_MAX - (UINT64_MAX % bound))) {
-            *output = r % bound;
-            return S2N_RESULT_OK;
+    /* uint64_t x = random64() */
+    struct s2n_blob x_blob = {.data = (void *)&x, sizeof(x) };
+    GUARD_RESULT(s2n_get_public_random_data(&x_blob));
+
+    __uint128_t m = ( __uint128_t ) x * ( __uint128_t ) bound;
+    uint64_t l = ( uint64_t ) m;
+    uint64_t s = ( uint64_t ) bound;
+    if (l < s) {
+        uint64_t t = -s % s;
+        while (l < t) {
+            GUARD_RESULT(s2n_get_public_random_data(&x_blob));
+            m = ( __uint128_t ) x * ( __uint128_t ) bound;
+            l = ( uint64_t ) m;
         }
     }
+
+    *output =  m >> 64;
+
+    return S2N_RESULT_OK;
 }
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
