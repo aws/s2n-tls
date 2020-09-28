@@ -487,6 +487,7 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
     uint64_t l = ( uint64_t ) m;
     uint64_t s = ( uint64_t ) bound;
     if (l < s) {
+        /* cppcheck-suppress oppositeExpression */
         uint64_t t = -s % s;
         while (l < t) {
             GUARD_RESULT(s2n_get_public_random_data(&x_blob));
