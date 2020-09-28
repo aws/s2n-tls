@@ -194,8 +194,8 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
      * But this massive comment is going to serve as a more concise explanation.
      *
      * Suppose we had uint3_t that is just 3 bits wide. That can represent the numbers
-     * 0, 1, 2, 3, 4, 5, 6, 7. And we also have a function that can return a random 3
-     * bits number. uint3_t x = random3();
+     * 0, 1, 2, 3, 4, 5, 6, 7. And we also have a function that can return a random
+     * 3-bit number. uint3_t x = random3();
      *
      * Now let's say that we want to use that to generate a number in the set 0, 1, 2.
      * A naive way to to this is to simply use x % 3. % is the modulus or remainder
@@ -289,7 +289,7 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
      *             +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
      *
      * Our line stops at 21 because with s = 3, that's our maximum value for m. If
-     * was 6 (as when simulating a dice) it would go to 42. You get the idea.
+     * s was 6 (as when simulating a dice) it would go to 42. You get the idea.
      *
      * Now at any time we can "collapse" these numbers back to a set between 0-2 by
      * by dividing by 8. That's the same as "m >> 3" which is faster than actually
@@ -485,10 +485,10 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
 
     __uint128_t m = ( __uint128_t ) x * ( __uint128_t ) bound;
     uint64_t l = ( uint64_t ) m;
-    uint64_t s = ( uint64_t ) bound;
+    const uint64_t s = ( uint64_t ) bound;
     if (l < s) {
         /* cppcheck-suppress oppositeExpression */
-        uint64_t t = -s % s;
+        const uint64_t t = -s % s;
         while (l < t) {
             GUARD_RESULT(s2n_get_public_random_data(&x_blob));
             m = ( __uint128_t ) x * ( __uint128_t ) bound;
