@@ -214,80 +214,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
-    /* Test: s2n_conn_pre_handshake_hashes_update handlers */
-    {
-        S2N_BLOB_FROM_HEX(empty_secret, "0000000000000000000000000000000000000000000000000000000000000000");
-
-        s2n_mode modes[] = { S2N_CLIENT, S2N_SERVER };
-
-        /* we ensure this works in both client and server modes */
-        for (int m = 0; m < s2n_array_len(modes); m++) {
-            for (int i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
-                struct s2n_connection *conn;
-                EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
-
-                conn->actual_protocol_version = S2N_TLS13;
-                conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-
-                s2n_tls13_connection_keys(client_secrets, conn);
-                S2N_BLOB_EXPECT_EQUAL(empty_secret, client_secrets.extract_secret);
-
-                conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
-                conn->handshake.message_number = i;
-
-                EXPECT_SUCCESS(s2n_tls13_conn_copy_server_finished_hash(conn));
-
-                /* trigger s2n_conn_pre_handshake_hashes_update */
-                EXPECT_SUCCESS(s2n_conn_pre_handshake_hashes_update(conn));
-
-                if (s2n_conn_get_current_message_type(conn) == CLIENT_FINISHED) {
-                    /* check application secrets get updated in client finished */
-                    EXPECT_BYTEARRAY_NOT_EQUAL(empty_secret.data, client_secrets.extract_secret.data, empty_secret.size);
-                } else {
-                    S2N_BLOB_EXPECT_EQUAL(empty_secret, client_secrets.extract_secret);
-                }
-
-                EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
-        }
-
-        /* test that pre tls1.3 code paths are unaffected */
-        for (int m = 0; m < s2n_array_len(modes); m++) {
-            for (int i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
-                struct s2n_connection *conn;
-                EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
-
-                conn->actual_protocol_version = S2N_TLS12;
-                conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-
-                s2n_tls13_connection_keys(client_secrets, conn);
-                S2N_BLOB_EXPECT_EQUAL(empty_secret, client_secrets.extract_secret);
-
-                conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
-                conn->handshake.message_number = i;
-
-                /* trigger s2n_conn_pre_handshake_hashes_update */
-                EXPECT_SUCCESS(s2n_conn_pre_handshake_hashes_update(conn));
-
-                if (s2n_conn_get_current_message_type(conn) == CLIENT_FINISHED) {
-                    /* check application secrets get updated in client finished */
-                    S2N_BLOB_EXPECT_EQUAL(empty_secret, client_secrets.extract_secret);
-                } else {
-                    S2N_BLOB_EXPECT_EQUAL(empty_secret, client_secrets.extract_secret);
-                }
-
-                EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
-        }
-    }
-
-    /* Test: s2n_conn_post_handshake_hashes_update handlers */
-    {
+    /* Test: s2n_tls13_handle_secrets handlers */
+    for (uint8_t version = S2N_TLS12; version <= S2N_TLS13; version++) {
         S2N_BLOB_FROM_HEX(empty_secret, "0000000000000000000000000000000000000000000000000000000000000000");
         S2N_BLOB_FROM_HEX(ref_seq, "0100000000000000");
         S2N_BLOB_FROM_HEX(reset_seq, "0000000000000000");
 
         s2n_mode modes[] = { S2N_CLIENT, S2N_SERVER };
+        message_type_t secret_update_points[] = { SERVER_HELLO, CLIENT_FINISHED };
 
         /* we ensure this works in both client and server modes */
         for (int m = 0; m < s2n_array_len(modes); m++) {
@@ -299,7 +233,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
                 EXPECT_NOT_NULL(ecc_pref);
 
-                conn->actual_protocol_version = S2N_TLS13;
+                conn->actual_protocol_version = version;
                 conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
                 s2n_tls13_connection_keys(client_secrets, conn);
@@ -308,6 +242,8 @@ int main(int argc, char **argv)
                 /* verify that that is the initial secret state */
                 conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
                 conn->handshake.message_number = i;
+
+                EXPECT_SUCCESS(s2n_tls13_conn_copy_server_finished_hash(conn));
 
                 conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
                 conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
@@ -319,69 +255,23 @@ int main(int argc, char **argv)
                 client_seq.data[0] = 1;
                 server_seq.data[0] = 1;
 
-                EXPECT_SUCCESS(s2n_conn_post_handshake_hashes_update(conn));
+                EXPECT_SUCCESS(s2n_tls13_handle_secrets(conn));
 
-                if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO) {
-                    /* prove secrets have been updated after ServerHello as they are no longer 0-filled byte arrays */
-                    EXPECT_BYTEARRAY_NOT_EQUAL(empty_secret.data, client_secrets.extract_secret.data, empty_secret.size);
-                } else {
-                    S2N_BLOB_EXPECT_EQUAL(empty_secret, client_secrets.extract_secret);
+                bool expect_secret_updated = false;
+                for (size_t j = 0; j < s2n_array_len(secret_update_points); j++) {
+                    if (secret_update_points[j] == s2n_conn_get_current_message_type(conn)
+                            && version >= S2N_TLS13) {
+                        expect_secret_updated = true;
+                    }
                 }
 
-                if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO || s2n_conn_get_current_message_type(conn) == CLIENT_FINISHED) {
+                if (expect_secret_updated) {
+                    /* prove secrets have been updated after ServerHello as they are no longer 0-filled byte arrays */
+                    EXPECT_BYTEARRAY_NOT_EQUAL(empty_secret.data, client_secrets.extract_secret.data, empty_secret.size);
                     S2N_BLOB_EXPECT_EQUAL(client_seq, reset_seq);
                     S2N_BLOB_EXPECT_EQUAL(server_seq, reset_seq);
                 } else {
-                    S2N_BLOB_EXPECT_EQUAL(client_seq, ref_seq);
-                    S2N_BLOB_EXPECT_EQUAL(server_seq, ref_seq);
-                }
-
-                EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
-        }
-
-        /* Test pre 1.3 code paths are unaffected */
-        for (int m = 0; m < s2n_array_len(modes); m++) {
-            for (int i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
-                struct s2n_connection *conn;
-                EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
-
-                const struct s2n_ecc_preferences *ecc_pref = NULL;
-                EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-                EXPECT_NOT_NULL(ecc_pref);
-
-                conn->actual_protocol_version = S2N_TLS12;
-                conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-
-                s2n_tls13_connection_keys(client_secrets, conn);
-                S2N_BLOB_EXPECT_EQUAL(empty_secret, client_secrets.extract_secret);
-
-                /* verify that that is the initial secret state */
-                conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
-                conn->handshake.message_number = i;
-
-                conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-                conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
-                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
-
-                struct s2n_blob client_seq = { .data = conn->secure.client_sequence_number,.size = sizeof(conn->secure.client_sequence_number) };
-                struct s2n_blob server_seq = { .data = conn->secure.server_sequence_number,.size = sizeof(conn->secure.server_sequence_number) };
-                client_seq.data[0] = 1;
-                server_seq.data[0] = 1;
-
-                EXPECT_SUCCESS(s2n_conn_post_handshake_hashes_update(conn));
-
-                if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO) {
-                    S2N_BLOB_EXPECT_EQUAL(empty_secret, client_secrets.extract_secret);
-                } else {
-                    S2N_BLOB_EXPECT_EQUAL(empty_secret, client_secrets.extract_secret);
-                }
-
-                if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO || s2n_conn_get_current_message_type(conn) == CLIENT_FINISHED) {
-                    S2N_BLOB_EXPECT_EQUAL(client_seq, ref_seq);
-                    S2N_BLOB_EXPECT_EQUAL(server_seq, ref_seq);
-                } else {
+                    EXPECT_BYTEARRAY_EQUAL(empty_secret.data, client_secrets.extract_secret.data, empty_secret.size);
                     S2N_BLOB_EXPECT_EQUAL(client_seq, ref_seq);
                     S2N_BLOB_EXPECT_EQUAL(server_seq, ref_seq);
                 }

@@ -35,67 +35,6 @@ static int s2n_tls13_conn_copy_server_finished_hash(struct s2n_connection *conn)
     return 0;
 }
 
-/* this hook runs after hashes are updated */
-int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn)
-{
-    notnull_check(conn);
-
-    if (conn->actual_protocol_version < S2N_TLS13) {
-        return 0;
-    }
-
-    struct s2n_blob client_seq = {.data = conn->secure.client_sequence_number,.size = sizeof(conn->secure.client_sequence_number) };
-    struct s2n_blob server_seq = {.data = conn->secure.server_sequence_number,.size = sizeof(conn->secure.server_sequence_number) };
-
-    switch(s2n_conn_get_current_message_type(conn)) {
-    case HELLO_RETRY_MSG:
-        /* If we are sending a retry request, we didn't decide on a key share. There are no secrets to handle. */
-        break;
-    case SERVER_HELLO:
-        GUARD(s2n_tls13_handle_handshake_secrets(conn));
-        GUARD(s2n_blob_zero(&client_seq));
-        GUARD(s2n_blob_zero(&server_seq));
-        conn->server = &conn->secure;
-        conn->client = &conn->secure;
-        GUARD(s2n_stuffer_wipe(&conn->alert_in));
-        break;
-    case SERVER_FINISHED:
-        GUARD(s2n_tls13_conn_copy_server_finished_hash(conn));
-        break;
-    case CLIENT_FINISHED:
-        /* Reset sequence numbers for Application Data */
-        GUARD(s2n_blob_zero(&client_seq));
-        GUARD(s2n_blob_zero(&server_seq));
-        break;
-    default:
-        break;
-    }
-    return 0;
-}
-
-/* this hook runs before hashes are updated */
-int s2n_conn_pre_handshake_hashes_update(struct s2n_connection *conn)
-{
-    notnull_check(conn);
-
-    if (conn->actual_protocol_version < S2N_TLS13) {
-        return 0;
-    }
-
-    /* Right now this function is only concerned with CLIENT_FINISHED */
-    if (s2n_conn_get_current_message_type(conn) != CLIENT_FINISHED) {
-        return 0;
-    }
-
-    /* This runs before handshake update because application secrets uses only
-     * handshake hashes up to Server finished. This handler works in both
-     * read and write modes.
-     */
-    GUARD(s2n_tls13_handle_application_secrets(conn));
-
-    return 0;
-}
-
 int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
 {
     notnull_check(conn);
@@ -141,6 +80,12 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA512)) {
         GUARD(s2n_hash_update(&conn->handshake.sha512, data->data, data->size));
+    }
+
+    /* Copy the CLIENT_HELLO -> SERVER_FINISHED hash.
+     * We'll need it later to calculate the application secrets. */
+    if (s2n_conn_get_current_message_type(conn) == SERVER_FINISHED) {
+        GUARD(s2n_tls13_conn_copy_server_finished_hash(conn));
     }
 
     return 0;
