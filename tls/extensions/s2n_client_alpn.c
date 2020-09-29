@@ -83,10 +83,8 @@ static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer 
     notnull_check(client_app_protocols.data);
 
     /* Find a matching protocol */
-    GUARD(s2n_stuffer_init(&client_protos, &client_app_protocols));
-    GUARD(s2n_stuffer_write(&client_protos, &client_app_protocols));
-    GUARD(s2n_stuffer_init(&server_protos, server_app_protocols));
-    GUARD(s2n_stuffer_write(&server_protos, server_app_protocols));
+    GUARD(s2n_stuffer_init_with_data(&client_protos, &client_app_protocols));
+    GUARD(s2n_stuffer_init_with_data(&server_protos, server_app_protocols));
 
     while (s2n_stuffer_data_available(&server_protos)) {
         uint8_t length;

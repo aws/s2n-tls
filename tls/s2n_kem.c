@@ -316,8 +316,7 @@ static int s2n_kem_check_kem_compatibility(const uint8_t iana_value[S2N_TLS_CIPH
 int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], struct s2n_blob *client_kem_ids,
         const struct s2n_kem *server_kem_pref_list[], const uint8_t num_server_supported_kems, const struct s2n_kem **chosen_kem) {
     struct s2n_stuffer client_kem_ids_stuffer = {0};
-    GUARD(s2n_stuffer_init(&client_kem_ids_stuffer, client_kem_ids));
-    GUARD(s2n_stuffer_write(&client_kem_ids_stuffer, client_kem_ids));
+    GUARD(s2n_stuffer_init_with_data(&client_kem_ids_stuffer, client_kem_ids));
 
     /* Each KEM ID is 2 bytes */
     uint8_t num_client_candidate_kems = client_kem_ids->size / 2;

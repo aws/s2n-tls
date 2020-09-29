@@ -213,8 +213,7 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
     S2N_ERROR_IF(size != entry.size, S2N_ERR_SIZE_MISMATCH);
 
     struct s2n_stuffer from = {0};
-    GUARD(s2n_stuffer_init(&from, &entry));
-    GUARD(s2n_stuffer_write(&from, &entry));
+    GUARD(s2n_stuffer_init_with_data(&from, &entry));
     GUARD(s2n_decrypt_session_cache(conn, &from));
 
     return 0;
@@ -251,8 +250,7 @@ int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *sessi
     memcpy(session_data.data, session, length);
 
     struct s2n_stuffer from = {0};
-    GUARD(s2n_stuffer_init(&from, &session_data));
-    GUARD(s2n_stuffer_write(&from, &session_data));
+    GUARD(s2n_stuffer_init_with_data(&from, &session_data));
     GUARD(s2n_client_deserialize_resumption_state(conn, &from));
     return 0;
 }
