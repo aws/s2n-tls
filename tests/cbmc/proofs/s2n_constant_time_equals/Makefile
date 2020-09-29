@@ -18,7 +18,7 @@ DEFINES += -DMAX_ARR_LEN=$(MAX_ARR_LEN)
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = s2n_safety_constant_time_equals_harness
+HARNESS_ENTRY = s2n_constant_time_equals_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(HARNESS_FILE)
@@ -26,6 +26,6 @@ PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
 
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
-UNWINDSET += s2n_constant_time_equals.3:$(call addone,$(MAX_ARR_LEN))
+UNWINDSET += s2n_constant_time_equals.0:$(call addone,$(MAX_ARR_LEN))
 
 include ../Makefile.common

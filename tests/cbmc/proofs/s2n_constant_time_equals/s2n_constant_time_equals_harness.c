@@ -20,7 +20,7 @@
 #include "api/s2n.h"
 #include "utils/s2n_safety.h"
 
-void s2n_safety_constant_time_equals_harness()
+void s2n_constant_time_equals_harness()
 {
     /* Non-deterministic inputs. */
     uint32_t len;

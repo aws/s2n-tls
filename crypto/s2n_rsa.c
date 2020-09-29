@@ -99,7 +99,7 @@ static int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, stru
 static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, struct s2n_blob *out)
 {
     unsigned char intermediate[4096];
-    const size_t expected_size = s2n_rsa_encrypted_size(priv);
+    const int expected_size = s2n_rsa_encrypted_size(priv);
 
     GUARD(expected_size);
     S2N_ERROR_IF(expected_size > sizeof(intermediate), S2N_ERR_NOMEM);
