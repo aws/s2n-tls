@@ -18,8 +18,14 @@
 #include "tls/s2n_kem.h"
 #include "tests/testlib/s2n_nist_kats.h"
 
+
 int s2n_kem_recv_ciphertext_fuzz_test_init(const char *kat_file_path, struct s2n_kem_params *kem_params) {
+    notnull_check(kat_file_path);
     notnull_check(kem_params);
+
+#if defined(S2N_NO_PQ)
+    return S2N_FAILURE;
+#else
     notnull_check(kem_params->kem);
 
     GUARD(s2n_alloc(&kem_params->private_key, kem_params->kem->private_key_length));
@@ -30,12 +36,18 @@ int s2n_kem_recv_ciphertext_fuzz_test_init(const char *kat_file_path, struct s2n
     fclose(kat_file);
 
     return S2N_SUCCESS;
+#endif
 }
 
 int s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params) {
     notnull_check(buf);
     notnull_check(kem_params);
+
+#if defined(S2N_NO_PQ)
+    return S2N_FAILURE;
+#else
     notnull_check(kem_params->kem);
+
     /* Because of the way BIKE1_L1_R1's decapsulation function is written, this test will not work for that KEM. */
     ENSURE_POSIX(kem_params->kem != &s2n_bike1_l1_r1, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
@@ -59,11 +71,16 @@ int s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n
     GUARD(s2n_free(&kem_params->shared_secret));
 
     return S2N_SUCCESS;
+#endif
 }
 
 int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params) {
     notnull_check(buf);
     notnull_check(kem_params);
+
+#if defined(S2N_NO_PQ)
+    return S2N_FAILURE;
+#else
     notnull_check(kem_params->kem);
 
     struct s2n_stuffer public_key = { 0 };
@@ -90,4 +107,6 @@ int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n
     GUARD(s2n_kem_free(kem_params));
 
     return S2N_SUCCESS;
+#endif
 }
+
