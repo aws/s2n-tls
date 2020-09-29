@@ -25,7 +25,6 @@
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *server_conn;
     struct s2n_cert_chain_and_key *rsa_cert_chain;
     struct s2n_cert_chain_and_key *ecdsa_p256_cert_chain;
     struct s2n_config *tls13_config;
@@ -67,7 +66,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(tls13_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls13_config, "test_all"));
     
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
+     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_p256_cert_chain,
@@ -77,9 +76,11 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(tls13_config, ecdsa_p256_cert_chain));
 
     /* s2n_client_hello_recv can process a signature_algorithms_cert extension */
+#if RSA_PSS_CERTS_SUPPORTED
     {
         /* signature_algorithms_cert extension contains same information as signature_algorithms extension */
         {
+            struct s2n_connection *server_conn;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
 
@@ -93,6 +94,7 @@ int main(int argc, char **argv)
         
         /* signature_algorithms_cert extension is not the same as the signature_algorithms extension */
         {   
+            struct s2n_connection *server_conn;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
@@ -100,13 +102,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &tls13_client_hello_sig_alg_cert_no_rsa));
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-            /* The sig alg choosen for the server cert and for the Certificate Verify message should be equal */
+            /* The sig alg choosen for the server cert and for the Certificate Verify message should be not equal */
             EXPECT_NOT_EQUAL(server_conn->secure.conn_sig_scheme.iana_value, server_conn->secure.client_signature_algorithms_cert.iana_value);
 
             s2n_connection_free(server_conn);
         }
     }
-
+#endif
     EXPECT_SUCCESS(s2n_config_free(tls13_config));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert_chain));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_p256_cert_chain));
