@@ -13,14 +13,13 @@
  * permissions and limitations under the License.
  */
 
-int main()
-{
-    /* In CMakeLists.txt, we try_compile the PQ ASM code to determine if the
-     * toolchain is compatible with the assembly instructions. Older versions
-     * of CMake require that we supply a main() function in the sources that
-     * we are passing to try_compile. So, in the try_compile, we use this main()
-     * function as a noop. IMPORTANT NOTE: This file is referenced by name
-     * in CMakeLists.txt (which is unusual for a unit test). If this file is
-     * renamed, then CMakeLists.txt must be updated as well.*/
-    return 0;
-}
+#pragma once
+
+#include <stdbool.h>
+#include "utils/s2n_result.h"
+#include "utils/s2n_safety.h"
+
+bool s2n_is_sikep434r2_asm_enabled(void);
+S2N_RESULT s2n_disable_sikep434r2_asm(void);
+S2N_RESULT s2n_try_enable_sikep434r2_asm(void);
+S2N_RESULT s2n_pq_init(void);

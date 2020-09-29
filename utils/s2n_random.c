@@ -28,11 +28,9 @@
 #include <errno.h>
 #include <time.h>
 
-#include "utils/s2n_compiler.h"
 #include "s2n.h"
 
-/* clang can define gcc version to be < 4.3, but cpuid.h exists for most releases */
-#if ((defined(__x86_64__) || defined(__i386__)) && (defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,3,0)))
+#if defined(S2N_CPUID_AVAILABLE)
 #include <cpuid.h>
 #endif
 

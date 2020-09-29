@@ -13,39 +13,28 @@
 # permissions and limitations under the License.
 #
 
-SRCS=fips202.c P434.c
-OBJS=$(SRCS:.c=.o)
+C_SRCS=fips202.c P434.c
+C_OBJS=$(C_SRCS:.c=.o)
 
 BCS_1=fips202.bc P434.bc
 BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
 
-.PHONY : all
-all: $(OBJS)
+.PHONY : sikep434r2_c
+sikep434r2_c: $(C_OBJS)
 
 .PHONY : bc
 bc: $(BCS)
 
 include ../../s2n.mk
+include ../s2n_pq_asm.mk
 
-# Verify that the ASM code compiles before actually including it in the build.
-# Output is directed to /dev/null so it doesn't pollute the console on compilation
-# failures that may be expected.
-# Note that if compilation is successful, you probably will not see Make re-compile
-# fp_x64_asm.S in the logs when it compiles the rest of the sike_r2 code, since the
-# object file is up to date. If you're looking to sanity check that the ASM was
-# included in the build, you will be able to see fp_x64_asm.o linked at the end
-# of the build.
-ifndef S2N_NO_PQ_ASM
-	TRY_COMPILE_PQ_ASM := $(shell $(CC) -c -o ./fp_x64_asm.o ./fp_x64_asm.S > /dev/null 2>&1; echo $$?)
-	ifeq ($(TRY_COMPILE_PQ_ASM), 0)
-		ASRC=fp_x64_asm.S
-		OBJS+=$(ASRC:.S=.o)
-
-		TRY_COMPILE_PQ_ASM_ADX := $(shell $(CC) -D_ADX_ -c -o ./fp_x64_asm.o ./fp_x64_asm.S > /dev/null 2>&1; echo $$?)
-		ifeq ($(TRY_COMPILE_PQ_ASM_ADX), 0)
-			CFLAGS += -D_ADX_
-		endif
-	else
-		CFLAGS += -DS2N_NO_PQ_ASM
-	endif
+ifeq ($(TRY_COMPILE_SIKEP434R2_ASM), 0)
+.PHONY : sikep434r2_asm
+sikep434r2_asm: $(SIKEP434R2_ASM_OBJ)
+else
+.PHONY : sikep434r2_asm
+sikep434r2_asm: ;
 endif
+
+.PHONY : try_include_asm
+try_include_asm: sikep434r2_asm sikep434r2_c

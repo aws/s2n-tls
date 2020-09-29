@@ -15,6 +15,7 @@
 
 #include "s2n_test.h"
 #include "pq-crypto/sike_r2/sike_r2_kem.h"
+#include "pq-crypto/s2n_pq.h"
 
 int main(int argc, char **argv)
 {
@@ -25,14 +26,36 @@ int main(int argc, char **argv)
 
     unsigned char pub_key[SIKE_P434_R2_PUBLIC_KEY_BYTES] = {0};
     unsigned char priv_key[SIKE_P434_R2_SECRET_KEY_BYTES] = {0};
-    unsigned char c_shared_secret[SIKE_P434_R2_SHARED_SECRET_BYTES];
-    unsigned char s_shared_secret[SIKE_P434_R2_SHARED_SECRET_BYTES];
-    unsigned char ciphertext[SIKE_P434_R2_CIPHERTEXT_BYTES];
+    unsigned char c_shared_secret[SIKE_P434_R2_SHARED_SECRET_BYTES] = {0};
+    unsigned char s_shared_secret[SIKE_P434_R2_SHARED_SECRET_BYTES] = {0};
+    unsigned char ciphertext[SIKE_P434_R2_CIPHERTEXT_BYTES] = {0};
 
-    EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_keypair(pub_key, priv_key));
-    EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_enc(ciphertext, c_shared_secret, pub_key));
-    EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_dec(s_shared_secret, ciphertext, priv_key));
-    EXPECT_BYTEARRAY_EQUAL(s_shared_secret, c_shared_secret, SIKE_P434_R2_SHARED_SECRET_BYTES);
+    /* Test the portable C code */
+    {
+        EXPECT_OK(s2n_disable_sikep434r2_asm());
+        EXPECT_FALSE(s2n_is_sikep434r2_asm_enabled());
+
+        EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_keypair(pub_key, priv_key));
+        EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_enc(ciphertext, c_shared_secret, pub_key));
+        EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_dec(s_shared_secret, ciphertext, priv_key));
+        EXPECT_BYTEARRAY_EQUAL(s_shared_secret, c_shared_secret, SIKE_P434_R2_SHARED_SECRET_BYTES);
+    }
+
+    /* Test the assembly, if available; if not, don't bother testing the C again */
+    EXPECT_OK(s2n_try_enable_sikep434r2_asm());
+    if (s2n_is_sikep434r2_asm_enabled()) {
+        memset_check((unsigned char *)pub_key, 0, SIKE_P434_R2_PUBLIC_KEY_BYTES);
+        memset_check((unsigned char *)priv_key, 0, SIKE_P434_R2_SECRET_KEY_BYTES);
+        memset_check((unsigned char *)c_shared_secret, 0, SIKE_P434_R2_SHARED_SECRET_BYTES);
+        memset_check((unsigned char *)s_shared_secret, 0, SIKE_P434_R2_SHARED_SECRET_BYTES);
+        memset_check((unsigned char *)ciphertext, 0, SIKE_P434_R2_CIPHERTEXT_BYTES);
+
+        EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_keypair(pub_key, priv_key));
+        EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_enc(ciphertext, c_shared_secret, pub_key));
+        EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_dec(s_shared_secret, ciphertext, priv_key));
+        EXPECT_BYTEARRAY_EQUAL(s_shared_secret, c_shared_secret, SIKE_P434_R2_SHARED_SECRET_BYTES);
+    }
+
 
 #endif
 

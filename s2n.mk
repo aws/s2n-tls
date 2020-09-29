@@ -88,11 +88,6 @@ ifdef S2N_NO_PQ
 	DEFAULT_CFLAGS += -DS2N_NO_PQ
 endif
 
-# Force the usage of generic C code for PQ crypto, even if the optimized assembly could be used
-ifdef S2N_NO_PQ_ASM
-	DEFAULT_CFLAGS += -DS2N_NO_PQ_ASM
-endif
-
 # All native platforms have execinfo.h, cross-compile targets often don't (android, ARM/alpine)
 ifndef CROSS_COMPILE
 	DEFAULT_CFLAGS += -DS2N_HAVE_EXECINFO
@@ -166,6 +161,12 @@ ifndef COV_TOOL
 	else
 		COV_TOOL=gcov
 	endif
+endif
+
+# Determine if cpuid.h is available
+TRY_COMPILE_CPUID := $(shell echo "\#include <cpuid.h>\nint main() { return 0; }" | $(CC) -fsyntax-only -xc - > /dev/null 2>&1; echo $$?)
+ifeq ($(TRY_COMPILE_CPUID), 0)
+	DEFAULT_CFLAGS += -DS2N_CPUID_AVAILABLE
 endif
 
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1

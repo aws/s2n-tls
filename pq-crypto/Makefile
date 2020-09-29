@@ -15,17 +15,25 @@
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
-BCS_11=s2n_pq_random.bc
+BCS_11=s2n_pq_random.bc s2n_pq.bc
 BCS1=$(addprefix $(BITCODE_DIR), $(BCS_11))
 
+ifdef S2N_NO_PQ
+# If S2N_NO_PQ is defined, we build only the top-level pq-crypto directory, and exclude all the PQ crypto code
+S2N_NO_PQ_ASM = 1
+.PHONY : all
+all: $(OBJS)
+else
+# Explicitly specify `try_include_asm` target for KEMs that attempt to include assembly
 .PHONY : all
 all: $(OBJS)
 	$(MAKE) -C bike_r1
 	$(MAKE) -C bike_r2
 	$(MAKE) -C sike_r1
-	$(MAKE) -C sike_r2
+	$(MAKE) -C sike_r2 try_include_asm
 	$(MAKE) -C kyber_r2
 	$(MAKE) -C kyber_90s_r2
+endif
 
 .PHONY : sike_r1_bc
 sike_r1_bc: $(BCS1)
@@ -63,3 +71,4 @@ clean: decruft
 	$(MAKE) -C kyber_90s_r2 decruft
 
 include ../s2n.mk
+include ./s2n_pq_asm.mk
