@@ -89,7 +89,6 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
         s2n_send(client_conn, buffer, i, &blocked);
     }
 
-    /* cppcheck-suppress unreadVariable */
     int shutdown_rc= -1;
     if(!result) {
         do {

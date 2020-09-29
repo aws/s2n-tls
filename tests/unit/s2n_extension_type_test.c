@@ -168,11 +168,13 @@ int main()
 
             /* Fails if request was not sent */
             EXPECT_FAILURE_WITH_ERRNO(s2n_extension_recv(&response_extension_type, &conn, &stuffer), S2N_ERR_UNSUPPORTED_EXTENSION);
+            /* cppcheck-suppress sizeofDivisionMemfunc */
             EXPECT_BITFIELD_CLEAR(conn.extension_requests_received);
 
             /* Succeeds (but does not set request flag) if request was sent */
             S2N_CBIT_SET(conn.extension_requests_sent, test_extension_id);
             EXPECT_SUCCESS(s2n_extension_recv(&response_extension_type, &conn, &stuffer));
+            /* cppcheck-suppress sizeofDivisionMemfunc */
             EXPECT_BITFIELD_CLEAR(conn.extension_requests_received);
         }
 
@@ -183,6 +185,7 @@ int main()
             extension_type_with_failure.recv = s2n_extension_recv_unimplemented;
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_extension_recv(&extension_type_with_failure, &conn, &stuffer), S2N_ERR_UNIMPLEMENTED);
+            /* cppcheck-suppress sizeofDivisionMemfunc */
             EXPECT_BITFIELD_CLEAR(conn.extension_requests_received);
         }
     }
@@ -245,11 +248,13 @@ int main()
             /* Succeeds but no-op if request was not received */
             EXPECT_SUCCESS(s2n_extension_send(&response_extension_type, &conn, &stuffer));
             EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
+            /* cppcheck-suppress sizeofDivisionMemfunc */
             EXPECT_BITFIELD_CLEAR(conn.extension_requests_sent);
 
             /* Succeeds (but does not set request flag) if request was received */
             S2N_CBIT_SET(conn.extension_requests_received, test_extension_id);
             EXPECT_SUCCESS(s2n_extension_send(&response_extension_type, &conn, &stuffer));
+            /* cppcheck-suppress sizeofDivisionMemfunc */
             EXPECT_BITFIELD_CLEAR(conn.extension_requests_sent);
 
             /* writes iana_value */
@@ -276,6 +281,7 @@ int main()
 
             EXPECT_SUCCESS(s2n_extension_send(&extension_type_with_never_send, &conn, &stuffer));
             EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
+            /* cppcheck-suppress sizeofDivisionMemfunc */
             EXPECT_BITFIELD_CLEAR(conn.extension_requests_sent);
         }
 
@@ -289,6 +295,7 @@ int main()
             extension_type_with_failure.send = s2n_extension_send_unimplemented;
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_extension_send(&extension_type_with_failure, &conn, &stuffer), S2N_ERR_UNIMPLEMENTED);
+            /* cppcheck-suppress sizeofDivisionMemfunc */
             EXPECT_BITFIELD_CLEAR(conn.extension_requests_sent);
 
             s2n_stuffer_free(&stuffer);
