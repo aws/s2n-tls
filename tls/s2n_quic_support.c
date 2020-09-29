@@ -66,6 +66,9 @@ int s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t *messag
 {
     notnull_check(conn);
 
+    /* Allocate the maximum stuffer size now so that we don't have to realloc later in the handshake. */
+    GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH));
+
     GUARD(s2n_read_in_bytes(conn, &conn->handshake.io, TLS_HANDSHAKE_HEADER_LENGTH));
 
     uint32_t message_len;
@@ -84,6 +87,9 @@ int s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t *messag
 int s2n_quic_write_handshake_message(struct s2n_connection *conn, struct s2n_blob *in)
 {
     notnull_check(conn);
+
+    /* Allocate the maximum stuffer size now so that we don't have to realloc later in the handshake. */
+    GUARD(s2n_stuffer_resize_if_empty(&conn->out, S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH));
 
     GUARD(s2n_stuffer_write(&conn->out, in));
     return S2N_SUCCESS;
