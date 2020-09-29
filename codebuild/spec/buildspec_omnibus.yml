@@ -144,6 +144,14 @@ batch:
         variables:
           INTEGV2_TEST: test_version_negotiation
 
+    - identifier: s2nIntegrationV2JdkClient
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_jdk_happy_path
+
     # Individual Integration tests
     - identifier: s2nIntegrationBoringSSLGcc9
       buildspec: codebuild/spec/buildspec_ubuntu.yml
