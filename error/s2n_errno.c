@@ -50,6 +50,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_DECRYPT, "error decrypting data") \
     ERR_ENTRY(S2N_ERR_BAD_MESSAGE, "Bad message encountered") \
     ERR_ENTRY(S2N_ERR_KEY_INIT, "error initializing encryption key") \
+    ERR_ENTRY(S2N_ERR_KEY_DESTROY, "error destroying encryption key") \
     ERR_ENTRY(S2N_ERR_DH_SERIALIZING, "error serializing Diffie-Hellman parameters") \
     ERR_ENTRY(S2N_ERR_DH_SHARED_SECRET, "error computing Diffie-Hellman shared secret") \
     ERR_ENTRY(S2N_ERR_DH_WRITING_PUBLIC_KEY, "error writing Diffie-Hellman public key") \
