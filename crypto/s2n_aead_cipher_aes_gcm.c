@@ -45,7 +45,7 @@ static uint8_t s2n_aead_cipher_aes256_gcm_available()
 #endif
 }
 
-#if defined(S2N_AEAD_AES_GCM_AVAILABLE_BSSL_AWSLC) /* BoringSSL and AWS-LC AEAD interface implementation */
+#if defined(S2N_AEAD_AES_GCM_AVAILABLE_BSSL_AWSLC) /* BoringSSL and AWS-LC AEAD API implementation */
 
 static int s2n_aead_cipher_aes_gcm_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *aad, struct s2n_blob *in, struct s2n_blob *out)
 {
