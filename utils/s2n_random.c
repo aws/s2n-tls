@@ -363,7 +363,7 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
      *      uint3_t x = random3();
      *      uint6_t m = x * s;
      *      uint3_t l = (uint3_t) m;
-     *      if (l < (8 % s))
+     *      if (l >= (8 % s))
      *          return m >> 3;
      *      }
      *  }
