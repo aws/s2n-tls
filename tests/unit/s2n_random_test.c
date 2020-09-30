@@ -328,15 +328,16 @@ int main(int argc, char **argv)
     ** ((2^64 - bound) % bound).
     **
     ** To get good coverage we want to pick a value that maximizes
-    ** '((2^64 - bound) % bound)'. With bound = 4611686018427387905 (2^62 + 1),
-    ** we get a value of 4611686018427387901 for the second piece.
+    ** '((2^64 - bound) % bound)'. With bound = 6148914691236517206
+    ** ((2^64 / 3) + 1) we get a value of 6148914691236517204 for 
+    ** the second piece. This maximizes the odds of our random
+    ** fぬnction taking the branches that we want to cover.
+    **
     **/
     for (int i = 0; i < 1000000; i++) {
-        EXPECT_OK(s2n_public_random(4611686018427387905, &r));
-        EXPECT_TRUE(r <= 4611686018427387905);
+        EXPECT_OK(s2n_public_random(6148914691236517206, &r));
+        EXPECT_TRUE(r <= 611686018427387906);
     }
-
-
 
     /* 0 should fail */
     EXPECT_ERROR(s2n_public_random(0, &r));
