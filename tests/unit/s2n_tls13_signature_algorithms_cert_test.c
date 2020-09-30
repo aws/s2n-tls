@@ -88,7 +88,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
             /* The sig alg choosen for the server cert and for the Certificate Verify message should be equal */
-            EXPECT_EQUAL(server_conn->secure.conn_sig_scheme.iana_value, server_conn->secure.client_signature_algorithms_cert.iana_value);
+            EXPECT_EQUAL(server_conn->secure.conn_sig_scheme.iana_value, server_conn->secure.signature_algorithms_cert.iana_value);
             s2n_connection_free(server_conn);
         }
         
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
             /* The sig alg choosen for the server cert and for the Certificate Verify message should be not equal */
-            EXPECT_NOT_EQUAL(server_conn->secure.conn_sig_scheme.iana_value, server_conn->secure.client_signature_algorithms_cert.iana_value);
+            EXPECT_NOT_EQUAL(server_conn->secure.conn_sig_scheme.iana_value, server_conn->secure.signature_algorithms_cert.iana_value);
 
             s2n_connection_free(server_conn);
         }

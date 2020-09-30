@@ -88,12 +88,7 @@ struct s2n_handshake_parameters {
     /* Signature/hash algorithm pairs offered by the client in the signature_algorithms_cert
      * extension in TLS1.3 indicating its list of signature algorithms for certificate signing. 
      */
-    struct s2n_sig_scheme_list client_signature_algorithms_cert_list;
-
-    /* Signature/hash algorithm pairs offered by the server in the signature_algorithms_cert
-     * extension in TLS1.3 indicating its list of signature algorithms for certificate signing.
-     */
-    struct s2n_sig_scheme_list server_signature_algorithms_cert_list;
+    struct s2n_sig_scheme_list signature_algorithms_cert_list;
 
     /* The cert chain we will send the peer. */
     struct s2n_cert_chain_and_key *our_chain_and_key;

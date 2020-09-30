@@ -17,4 +17,4 @@
 
 #include "tls/extensions/s2n_extension_type.h"
 
-extern const s2n_extension_type s2n_server_signature_algorithms_cert_extension;
+extern const s2n_extension_type s2n_signature_algorithms_cert_extension;

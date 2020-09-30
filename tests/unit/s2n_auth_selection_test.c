@@ -334,7 +334,7 @@ int main(int argc, char **argv)
             s2n_connection_set_config(conn, all_certs_config);
 
             conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA;
-            conn->secure.client_signature_algorithms_cert.sig_alg = S2N_SIGNATURE_ECDSA;
+            conn->secure.signature_algorithms_cert.sig_alg = S2N_SIGNATURE_ECDSA;
             EXPECT_SUCCESS(s2n_select_certs_for_server_auth(conn, &chosen_certs));
             EXPECT_EQUAL(chosen_certs, ecdsa_cert_chain);
 
@@ -350,7 +350,7 @@ int main(int argc, char **argv)
             s2n_connection_set_config(conn, all_certs_config);
 
             conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA;
-            conn->secure.client_signature_algorithms_cert.sig_alg = S2N_SIGNATURE_RSA;
+            conn->secure.signature_algorithms_cert.sig_alg = S2N_SIGNATURE_RSA;
             EXPECT_SUCCESS(s2n_select_certs_for_server_auth(conn, &chosen_certs));
             EXPECT_EQUAL(chosen_certs, rsa_cert_chain);
 

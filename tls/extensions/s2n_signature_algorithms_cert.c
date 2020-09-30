@@ -16,7 +16,7 @@
 #include <sys/param.h>
 #include <stdint.h>
 
-#include "tls/extensions/s2n_server_signature_algorithms_cert.h"
+#include "tls/extensions/s2n_signature_algorithms_cert.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
@@ -25,18 +25,16 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
-static int s2n_server_signature_algorithms_cert_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_signature_algorithms_cert_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    return s2n_recv_supported_sig_scheme_list(extension, &conn->handshake_params.signature_algorithms_cert_list);
+}
 
-const s2n_extension_type s2n_server_signature_algorithms_cert_extension = {
+const s2n_extension_type s2n_signature_algorithms_cert_extension = {
     .iana_value = TLS_EXTENSION_SIGNATURE_ALGORITHMS_CERT,
     .is_response = false,
     .send = s2n_extension_send_noop,
-    .recv = s2n_server_signature_algorithms_cert_recv,
+    .recv = s2n_signature_algorithms_cert_recv,
     .should_send = s2n_extension_never_send,
     .if_missing = s2n_extension_noop_if_missing,
 };
-
-static int s2n_server_signature_algorithms_cert_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_recv_supported_sig_scheme_list(extension, &conn->handshake_params.server_signature_algorithms_cert_list);
-}

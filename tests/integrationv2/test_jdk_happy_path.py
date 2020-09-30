@@ -45,6 +45,6 @@ def test_s2n_server_happy_path(managed_process, certificate, protocol):
         the protocol versions are correct.
         '''
         assert results.exit_code == 1
-        assert bytes("Actual protocol version: 
+        assert bytes("Actual protocol version: \
             {}".format(expected_version).encode('utf-8')) in results.stdout
         assert random_bytes in results.stdout
