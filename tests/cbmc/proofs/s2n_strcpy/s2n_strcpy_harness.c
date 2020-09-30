@@ -26,11 +26,9 @@
 void s2n_strcpy_harness()
 {
     char *         str  = ensure_c_str_is_allocated(MAX_STRING_LEN);
-    const uint32_t slen = strlen(str);
+    const uint32_t slen = (str == NULL) ? 0 : strlen(str);
     const uint32_t buflen;
-    const uint32_t index;
     __CPROVER_assume(buflen < MAX_STRING_LEN);
-    __CPROVER_assume(slen == 0 || index < slen);
     char buf[ buflen ];
 
     /* Last must point to a valid position in buf. */
@@ -41,8 +39,7 @@ void s2n_strcpy_harness()
     save_byte_from_array(str, slen, &str_byte);
     char *result;
 
-    /* Non-deterministically set initialized (in s2n_mem) to true. */
-    if (nondet_bool()) { s2n_mem_init(); }
+    nondet_s2n_mem_init();
 
     /* Non-deterministically set str to NULL. */
     bool nullstr = nondet_bool();
