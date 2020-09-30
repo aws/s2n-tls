@@ -322,6 +322,22 @@ int main(int argc, char **argv)
         EXPECT_TRUE(r <= INT64_MAX);
     }
 
+    /* Internally s2n_public_random branches when it chooses
+    ** a random number with a modulus less than its bound, and
+    ** branches again when that modulus is less than
+    ** ((2^64 - bound) % bound).
+    **
+    ** To get good coverage we want to pick a value that maximizes
+    ** '((2^64 - bound) % bound)'. With bound = 4611686018427387905 (2^62 + 1),
+    ** we get a value of 4611686018427387901 for the second piece.
+    **/
+    for (int i = 0; i < 1000000; i++) {
+        EXPECT_OK(s2n_public_random(4611686018427387905, &r));
+        EXPECT_TRUE(r <= 4611686018427387905);
+    }
+
+
+
     /* 0 should fail */
     EXPECT_ERROR(s2n_public_random(0, &r));
 

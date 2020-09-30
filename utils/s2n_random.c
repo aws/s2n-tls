@@ -385,7 +385,7 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
      *  }
      *  return m >> 3;
      *
-     * again, because s is always bigger than the floor, if we picked a value
+     * Again, because s is always bigger than the floor, if we picked a value
      * where l is greater than s, we can just go with it. No need to figure
      * out what the floor is exactly and we can avoid one of those expensive
      * division/modulus operations.
@@ -400,7 +400,7 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
      *  uint3_t floor = -s % s;
      *
      * How does -s % s == 8 % s (when using a 3-bit uint)? Let's break it down.
-     * firstly, negation of an unsigned int in C is defined as taking the two's
+     * Firstly, negation of an unsigned int in C is defined as taking the two's
      * complement. That means flipping all of the bits and adding one to the
      * result. Here's a table with all possible values of s, the bitwise not
      * of s (that means all of the bits are flipped, and is notated as ~s),
@@ -480,7 +480,8 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
      */
 
     /* uint64_t x = random64() */
-    struct s2n_blob x_blob = {.data = (void *)&x, sizeof(x) };
+    struct s2n_blob x_blob;
+    GUARD_AS_RESULT( s2n_blob_init(&x_blob, (void *) &x, sizeof(x)) );
     GUARD_RESULT(s2n_get_public_random_data(&x_blob));
 
     __uint128_t m = ( __uint128_t ) x * ( __uint128_t ) bound;
