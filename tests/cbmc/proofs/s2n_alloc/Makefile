@@ -15,6 +15,8 @@
 
 CHECKFLAGS +=
 
+DEFINES += -DMADV_DONTDUMP=1
+
 HARNESS_ENTRY = s2n_alloc_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
@@ -25,6 +27,7 @@ PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(PROOF_STUB)/madvise.c
 PROOF_SOURCES += $(PROOF_STUB)/mlock.c
 PROOF_SOURCES += $(PROOF_STUB)/munlock.c
+PROOF_SOURCES += $(PROOF_STUB)/posix_memalign_override.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 PROOF_SOURCES += $(PROOF_STUB)/sysconf.c
 
@@ -33,6 +36,7 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
+# We abstract these functions because manual inspection demonstrates they are unreachable.
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
 REMOVE_FUNCTION_BODY += s2n_blob_slice
 REMOVE_FUNCTION_BODY += s2n_ensure_memcpy_trace
