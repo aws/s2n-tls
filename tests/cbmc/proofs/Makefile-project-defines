@@ -32,6 +32,8 @@ INCLUDES += -I$(SRCDIR)/api
 AWS_DEEP_CHECKS ?= 0
 DEFINES += -DAWS_DEEP_CHECKS=$(AWS_DEEP_CHECKS)
 
+CBMC_FLAG_POINTER_PRIMITIVE_CHECK =
+
 ################################################################
 # Remove function bodies that are not used in the proofs.
 # Removing the function from the goto program helps CBMC's
