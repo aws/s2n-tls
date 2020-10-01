@@ -86,6 +86,7 @@ int s2n_record_parse_cbc(
 
     /* Subtract the padding length */
     gt_check(en.size, 0);
+    gte_check(payload_length, en.data[en.size - 1] + 1);
     payload_length -= (en.data[en.size - 1] + 1);
 
     /* Update the MAC */
