@@ -218,7 +218,7 @@ def analyze_tcp_dump(array, threshold):
     This function iterates though each line of the TCP dump and reads the length of each segment, to check that it is
     the correct size. It keeps account the total bytes_transferred and therefore tests that all segment sizes before
     the threshold is met are less than the maximum segment size (mss). Once this threshold has been met, it tests
-    that the segment size has been increased by verifying that at least one segment is greater than 1500B.
+    that the segment size has been increased by verifying that at least one segment is greater than MTU_bytes.
 
     The mss is read from the first message in the TCP dump, however if this cannot be found a default value is used.
 
@@ -228,6 +228,7 @@ def analyze_tcp_dump(array, threshold):
     failed = 1
     bytes_transferred = 0
     array_len = len(array)
+    MTU_bytes = 1500
     # get the mss from first message
     mss = get_local_mtu() - 40
     first_line = array[0]
@@ -251,9 +252,9 @@ def analyze_tcp_dump(array, threshold):
             # if this condition has been met, the length of a segment is greater than the mss, but the threshold has
             # not been met, so we return with failed = 1
             break
-        elif bytes_transferred > threshold and int(length) > 1500:
+        elif bytes_transferred > threshold and int(length) > MTU_bytes:
             # optimized for throughput - after the threshold has been met TCP packet size can exceed MTU, which results in segementation
-            failed = 0  # we just need a single packet to be larger than 1500 to show dynamic record size.
+            failed = 0  # we just need a single packet to be larger than MTU_bytes to show dynamic record size.
             break
 
     return failed
