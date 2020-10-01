@@ -219,11 +219,11 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
      *  while(1) {
      *      uint3_t x = random3();
      *      if (x < ceiling)
-     *          return r % s;
+     *          return x % s;
      *      }
      *  }
      *
-     * On our number line this can be visualzed as:
+     * On our number line this can be visualized as:
      *
      *  x =         0  1  2  3  4  5  6  7
      *              +--+--+--+--+--+--+--+
@@ -300,7 +300,7 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
      *  m >> 3 =   0        0        0        1        1        1        2        2
      *             \___________________/   \____________________/  \___________________/
      *
-     * Note that the operand 3 here comes from from dividing a 6-bit number to a
+     * Note that the operand 3 here comes from dividing a 6-bit number to a
      * 3-bit number, and not because s was 3. We'd still use 3, no matter what value
      * s originally had. For example if s was 5, then the m number line would look
      * like this:
@@ -318,7 +318,7 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
      *
      * What we want to do is to select a sub-range of size (n * s) inside each of
      * of these ranges of size 8. We're going to do that by rejecting the first
-     * (8 % s) values in each range from elligibility.
+     * (8 % s) values in each range from eligibility.
      *
      * Because each boat-shaped range is size 8, we can assign every value a position
      * 'l' in that range by virtue of:
@@ -453,7 +453,7 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
      * An attacker measuring the time that the algorithm takes can infer
      * information:
      *
-     * 1/ The algorthim ran super fast. l was not smaller than s. This means the
+     * 1/ The algorithm ran super fast. l was not smaller than s. This means the
      *    value is either 0 or 3.
      *
      * 2/ The algorithm ran intermediately fast. l was smaller than s but was
@@ -472,7 +472,7 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
      * the attack.
      *
      * But if you're worried about an attacker who can precisely measure a single
-     * invokation of this algorithm, or some kind of already-broken system where
+     * invocation of this algorithm, or some kind of already-broken system where
      * the randomN() function is deterministic, then maybe avoid this method.
      *
      * In s2n we use this function only in public contexts, it's in the name, so
