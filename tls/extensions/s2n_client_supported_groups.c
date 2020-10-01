@@ -39,9 +39,6 @@ const s2n_extension_type s2n_client_supported_groups_extension = {
     .if_missing = s2n_extension_noop_if_missing,
 };
 
-int s2n_parse_client_supported_groups_list(struct s2n_connection *conn, struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **supported_groups);
-int s2n_choose_supported_group(struct s2n_connection *conn, const struct s2n_ecc_named_curve **group_options, struct s2n_ecc_evp_params *chosen_group);
-
 bool s2n_extension_should_send_if_ecc_enabled(struct s2n_connection *conn)
 {
     const struct s2n_security_policy *security_policy;
@@ -82,72 +79,106 @@ static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct 
     return S2N_SUCCESS;
 }
 
-static int s2n_client_supported_groups_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    uint16_t size_of_all;
-    struct s2n_blob proposed_curves = {0};
-
-    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
-    if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all % sizeof(uint16_t)) {
-        /* Malformed length, ignore the extension */
-        return S2N_SUCCESS;
-    }
-
-    proposed_curves.size = size_of_all;
-    proposed_curves.data = s2n_stuffer_raw_read(extension, proposed_curves.size);
-    notnull_check(proposed_curves.data);
-
-    GUARD(s2n_parse_client_supported_groups_list(conn, &proposed_curves, conn->secure.mutually_supported_groups));
-    if (s2n_choose_supported_group(conn, conn->secure.mutually_supported_groups,
-            &conn->secure.server_ecc_evp_params) != S2N_SUCCESS) {
-        /* Can't agree on a curve, ECC is not allowed. Return success to proceed with the handshake. */
-        conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
-    }
-
-    return S2N_SUCCESS;
-}
-
-int s2n_parse_client_supported_groups_list(struct s2n_connection *conn, struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **supported_groups) {
+/* Populates the appropriate index of either the mutually_supported_curves or
+ * mutually_supported_kem_groups array based on the received IANA ID. Will
+ * ignore unrecognized IANA IDs (and return success). */
+static int s2n_client_supported_groups_recv_iana_id(struct s2n_connection *conn, uint16_t iana_id) {
     notnull_check(conn);
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     notnull_check(ecc_pref);
 
-    struct s2n_stuffer iana_ids_in = {0};
-
-    GUARD(s2n_stuffer_init(&iana_ids_in, iana_ids));
-    iana_ids->data = s2n_stuffer_raw_write(&iana_ids_in, iana_ids->size);
-
-    uint16_t iana_id;
-    for (int i = 0; i < iana_ids->size / sizeof(iana_id); i++) {
-        GUARD(s2n_stuffer_read_uint16(&iana_ids_in, &iana_id));
-        for (int j = 0; j < ecc_pref->count; j++) {
-            const struct s2n_ecc_named_curve *supported_curve = ecc_pref->ecc_curves[j];
-            if (supported_curve->iana_id == iana_id) {
-                supported_groups[j] = supported_curve;
-            }
-        }
-    }
-    return S2N_SUCCESS;
-}
-
-int s2n_choose_supported_group(struct s2n_connection *conn, const struct s2n_ecc_named_curve **group_options, struct s2n_ecc_evp_params *chosen_group)
- {
-    notnull_check(conn);
-
-    const struct s2n_ecc_preferences *ecc_pref = NULL;
-    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-    notnull_check(ecc_pref);
-
-    for (int i = 0; i < ecc_pref->count; i++) {
-        if (group_options[i]) {
-            chosen_group->negotiated_curve = group_options[i];
+    for (size_t i = 0; i < ecc_pref->count; i++) {
+        const struct s2n_ecc_named_curve *supported_curve = ecc_pref->ecc_curves[i];
+        if (iana_id == supported_curve->iana_id) {
+            conn->secure.mutually_supported_curves[i] = supported_curve;
             return S2N_SUCCESS;
         }
     }
 
-    S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    /* Return early if in FIPS mode, or if TLS 1.3 is disabled, so as to ignore PQ IDs */
+    if (s2n_is_in_fips_mode() || !s2n_is_tls13_enabled()) {
+        return S2N_SUCCESS;
+    }
+
+    const struct s2n_kem_preferences *kem_pref = NULL;
+    GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    notnull_check(kem_pref);
+
+    for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+        const struct s2n_kem_group *supported_kem_group = kem_pref->tls13_kem_groups[i];
+        if (iana_id == supported_kem_group->iana_id) {
+            conn->secure.mutually_supported_kem_groups[i] = supported_kem_group;
+            return S2N_SUCCESS;
+        }
+    }
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_choose_supported_group(struct s2n_connection *conn) {
+    notnull_check(conn);
+
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    notnull_check(ecc_pref);
+
+    const struct s2n_kem_preferences *kem_pref = NULL;
+    GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    notnull_check(kem_pref);
+
+    /* Ensure that only the intended group will be non-NULL (if no group is chosen, everything
+     * should be NULL). */
+    conn->secure.server_kem_group_params.kem_group = NULL;
+    conn->secure.server_kem_group_params.ecc_params.negotiated_curve = NULL;
+    conn->secure.server_kem_group_params.kem_params.kem = NULL;
+    conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
+
+    /* Prefer to negotiate hybrid PQ over ECC. If in FIPS mode, we will never choose a
+     * PQ group because the mutually_supported_kem_groups array will not have been
+     * populated with anything. */
+    for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+        const struct s2n_kem_group *candidate_kem_group = conn->secure.mutually_supported_kem_groups[i];
+        if (candidate_kem_group != NULL) {
+            conn->secure.server_kem_group_params.kem_group = candidate_kem_group;
+            conn->secure.server_kem_group_params.ecc_params.negotiated_curve = candidate_kem_group->curve;
+            conn->secure.server_kem_group_params.kem_params.kem = candidate_kem_group->kem;
+            return S2N_SUCCESS;
+        }
+    }
+
+    for (size_t i = 0; i < ecc_pref->count; i++) {
+        const struct s2n_ecc_named_curve *candidate_curve = conn->secure.mutually_supported_curves[i];
+        if (candidate_curve != NULL) {
+            conn->secure.server_ecc_evp_params.negotiated_curve = candidate_curve;
+            return S2N_SUCCESS;
+        }
+    }
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_client_supported_groups_recv(struct s2n_connection *conn, struct s2n_stuffer *extension) {
+    notnull_check(conn);
+    notnull_check(extension);
+
+    uint16_t size_of_all;
+    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
+    if (size_of_all > s2n_stuffer_data_available(extension) || (size_of_all % sizeof(uint16_t))) {
+        /* Malformed length, ignore the extension */
+        return S2N_SUCCESS;
+    }
+
+    for (size_t i = 0; i < (size_of_all / sizeof(uint16_t)); i++) {
+        uint16_t iana_id;
+        GUARD(s2n_stuffer_read_uint16(extension, &iana_id));
+        GUARD(s2n_client_supported_groups_recv_iana_id(conn, iana_id));
+    }
+
+    GUARD(s2n_choose_supported_group(conn));
+
+    return S2N_SUCCESS;
 }
 
 /* Old-style extension functions -- remove after extensions refactor is complete */

@@ -26,8 +26,15 @@
 
 #include "utils/s2n_blob.h"
 
+#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+#define S2N_CIPHER_AEAD_API_AVAILABLE
+#endif
+
 struct s2n_session_key {
     EVP_CIPHER_CTX *evp_cipher_ctx;
+#if defined(S2N_CIPHER_AEAD_API_AVAILABLE)
+    EVP_AEAD_CTX *evp_aead_ctx;
+#endif
 };
 
 struct s2n_stream_cipher {

@@ -452,7 +452,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_handshake_read_io(server_conn));
 
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13); /* Server is now on TLS13 */
-        EXPECT_EQUAL(server_conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE);
+        EXPECT_EQUAL(server_conn->handshake.handshake_type, NEGOTIATED | FULL_HANDSHAKE | MIDDLEBOX_COMPAT);
 
         s2n_tls13_connection_keys(server_secrets, server_conn);
         EXPECT_EQUAL(server_secrets.size, 48);

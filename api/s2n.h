@@ -404,6 +404,8 @@ extern const char *s2n_connection_get_curve(struct s2n_connection *conn);
 S2N_API
 extern const char *s2n_connection_get_kem_name(struct s2n_connection *conn);
 S2N_API
+extern const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn);
+S2N_API
 extern int s2n_connection_get_alert(struct s2n_connection *conn);
 S2N_API
 extern const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn);

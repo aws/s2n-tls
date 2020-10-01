@@ -105,17 +105,15 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     notnull_check(client_ecc_params);
 
     DEFER_CLEANUP(struct s2n_blob ecdhe_shared_secret = { 0 }, s2n_blob_zeroize_free);
-    struct s2n_blob *pq_shared_secret = NULL;
 
     /* Compute the ECDHE shared secret, and retrieve the PQ shared secret. */
     if (conn->mode == S2N_CLIENT) {
         GUARD(s2n_ecc_evp_compute_shared_secret_from_params(client_ecc_params, server_ecc_params, &ecdhe_shared_secret));
-        pq_shared_secret = &client_kem_group_params->kem_params.shared_secret;
     } else {
         GUARD(s2n_ecc_evp_compute_shared_secret_from_params(server_ecc_params, client_ecc_params, &ecdhe_shared_secret));
-        pq_shared_secret = &server_kem_group_params->kem_params.shared_secret;
     }
 
+    struct s2n_blob *pq_shared_secret = &client_kem_group_params->kem_params.shared_secret;
     notnull_check(pq_shared_secret);
     notnull_check(pq_shared_secret->data);
 

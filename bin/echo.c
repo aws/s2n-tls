@@ -124,6 +124,7 @@ int negotiate(struct s2n_connection *conn, int fd)
 
     printf("Curve: %s\n", s2n_connection_get_curve(conn));
     printf("KEM: %s\n", s2n_connection_get_kem_name(conn));
+    printf("KEM Group: %s\n", s2n_connection_get_kem_group_name(conn));
 
     uint32_t length;
     const uint8_t *status = s2n_connection_get_ocsp_response(conn, &length);

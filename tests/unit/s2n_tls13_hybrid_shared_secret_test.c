@@ -473,11 +473,7 @@ int main(int argc, char **argv) {
 
             /* Failure because pq_shared_secret is NULL */
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_NULL);
-            if (conn->mode == S2N_CLIENT) {
-                EXPECT_SUCCESS(s2n_dup(test_vector->pq_secret, &conn->secure.chosen_client_kem_group_params->kem_params.shared_secret));
-            } else {
-                EXPECT_SUCCESS(s2n_dup(test_vector->pq_secret, &conn->secure.server_kem_group_params.kem_params.shared_secret));
-            }
+            EXPECT_SUCCESS(s2n_dup(test_vector->pq_secret, &conn->secure.chosen_client_kem_group_params->kem_params.shared_secret));
 
             /* Failure because the kem_group is NULL */
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_compute_pq_hybrid_shared_secret(conn, &calculated_shared_secret), S2N_ERR_NULL);
@@ -547,9 +543,9 @@ static int set_up_conns(struct s2n_connection *client_conn, struct s2n_connectio
     client_conn->secure.server_kem_group_params.kem_params.kem = kem_group->kem;
     client_conn->secure.chosen_client_kem_group_params->kem_params.kem = kem_group->kem;
 
-    /* During an actual handshake, server will generate the shared secret and store it in server_kem_group_params,
+    /* During an actual handshake, server will generate the shared secret and store it in chosen_client_kem_group_params,
      * client will decapsulate the ciphertext and store the shared secret in chosen_client_kem_group_params. */
-    GUARD(s2n_dup(pq_shared_secret, &server_conn->secure.server_kem_group_params.kem_params.shared_secret));
+    GUARD(s2n_dup(pq_shared_secret, &server_conn->secure.chosen_client_kem_group_params->kem_params.shared_secret));
     GUARD(s2n_dup(pq_shared_secret, &client_conn->secure.chosen_client_kem_group_params->kem_params.shared_secret));
 
     /* Populate the client's PQ private key with something - it doesn't have to be a

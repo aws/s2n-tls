@@ -465,6 +465,8 @@ int s2n_connection_free(struct s2n_connection *conn)
 
     GUARD(s2n_free(&conn->client_ticket));
     GUARD(s2n_free(&conn->status_response));
+    GUARD(s2n_free(&conn->our_quic_transport_parameters));
+    GUARD(s2n_free(&conn->peer_quic_transport_parameters));
     GUARD(s2n_stuffer_free(&conn->in));
     GUARD(s2n_stuffer_free(&conn->out));
     GUARD(s2n_stuffer_free(&conn->handshake.io));
@@ -580,6 +582,7 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
     /* We can free extension data we no longer need */
     GUARD(s2n_free(&conn->client_ticket));
     GUARD(s2n_free(&conn->status_response));
+    GUARD(s2n_free(&conn->our_quic_transport_parameters));
     GUARD(s2n_free(&conn->application_protocols_overridden));
     GUARD(s2n_stuffer_free(&conn->cookie_stuffer));
 
@@ -630,6 +633,8 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     GUARD(s2n_free(&conn->client_ticket));
     GUARD(s2n_free(&conn->status_response));
     GUARD(s2n_free(&conn->application_protocols_overridden));
+    GUARD(s2n_free(&conn->our_quic_transport_parameters));
+    GUARD(s2n_free(&conn->peer_quic_transport_parameters));
 
     /* Allocate memory for handling handshakes */
     GUARD(s2n_stuffer_resize(&conn->handshake.io, S2N_LARGE_RECORD_LENGTH));
@@ -990,6 +995,17 @@ const char *s2n_connection_get_kem_name(struct s2n_connection *conn)
     }
 
     return conn->secure.kem_params.kem->name;
+}
+
+const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn)
+{
+    notnull_check_ptr(conn);
+
+    if (!conn->secure.chosen_client_kem_group_params || !conn->secure.chosen_client_kem_group_params->kem_group) {
+        return "NONE";
+    }
+
+    return conn->secure.chosen_client_kem_group_params->kem_group->name;
 }
 
 int s2n_connection_get_client_protocol_version(struct s2n_connection *conn)

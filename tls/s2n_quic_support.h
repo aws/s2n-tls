@@ -30,3 +30,20 @@
  */
 
 S2N_API int s2n_connection_enable_quic(struct s2n_connection *conn);
+
+/*
+ * Set the data to be sent in the quic_transport_parameters extension.
+ * The data provided will be copied into a buffer owned by S2N.
+ */
+S2N_API int s2n_connection_set_quic_transport_parameters(struct s2n_connection *conn,
+        const uint8_t *data_buffer, uint16_t data_len);
+
+/*
+ * Retrieve the data from the peer's quic_transport_parameters extension.
+ * data_buffer will be set to a buffer owned by S2N which will be freed when the connection is freed.
+ * data_len will be set to the length of the data returned.
+ *
+ * S2N treats the extension data as opaque bytes and performs no validation.
+ */
+S2N_API int s2n_connection_get_quic_transport_parameters(struct s2n_connection *conn,
+        const uint8_t **data_buffer, uint16_t *data_len);

@@ -108,6 +108,7 @@ int https(struct s2n_connection *conn, uint32_t bench)
 
     BUFFER("Curve: %s\n", s2n_connection_get_curve(conn));
     BUFFER("KEM: %s\n", s2n_connection_get_kem_name(conn));
+    BUFFER("KEM Group: %s\n", s2n_connection_get_kem_group_name(conn));
     BUFFER("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
     BUFFER("Session resumption: %s\n", s2n_connection_is_session_resumed(conn) ? "true" : "false");
 

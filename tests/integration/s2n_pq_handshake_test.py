@@ -13,6 +13,8 @@
 # permissions and limitations under the License.
 #
 
+from s2n_test_constants import NUM_EXPECTED_LINES_OUTPUT
+
 """
 PQ Handshake tests: s2nd and s2nc negotiate a handshake using BIKE or SIKE KEMs
 """
@@ -84,7 +86,7 @@ def do_pq_handshake(client_ciphers, server_ciphers, expected_cipher, expected_ke
     server_kem_found = False
     server_cipher_found = False
 
-    for i in range(0, 10):
+    for i in range(0, NUM_EXPECTED_LINES_OUTPUT):
         client_line = str(s2nc.stdout.readline().decode("utf-8"))
         if expected_kem_output in client_line:
             client_kem_found = True

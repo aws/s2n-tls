@@ -48,9 +48,8 @@ static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob
     notnull_check(kex_method);
     notnull_check(stuffer_action);
     struct s2n_stuffer *io = &conn->handshake.io;
-    const struct s2n_kex *kex = conn->secure.cipher_suite->key_exchange_alg;
-    const struct s2n_kex *hybrid_kex_0 = kex->hybrid[0];
-    const struct s2n_kex *hybrid_kex_1 = kex->hybrid[1];
+    const struct s2n_kex *hybrid_kex_0 = conn->secure.cipher_suite->key_exchange_alg->hybrid[0];
+    const struct s2n_kex *hybrid_kex_1 = conn->secure.cipher_suite->key_exchange_alg->hybrid[1];
 
     /* Keep a copy to the start of the entire hybrid client key exchange message for the hybrid PRF */
     struct s2n_blob *client_key_exchange_message = &conn->secure.client_key_exchange_message;

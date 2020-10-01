@@ -56,6 +56,34 @@ static uint32_t min_size(struct s2n_blob *blob, uint32_t max_length) {
     return blob->size < max_length ? blob->size : max_length;
 }
 
+static S2N_RESULT s2n_generate_client_session_id(struct s2n_connection *conn)
+{
+    ENSURE_REF(conn);
+
+    /* Session id already generated - no-op */
+    if (conn->session_id_len) {
+        return S2N_RESULT_OK;
+    }
+
+    /* Only generate the session id for pre-TLS1.3 if using tickets */
+    if (conn->client_protocol_version < S2N_TLS13 && !conn->config->use_tickets) {
+        return S2N_RESULT_OK;
+    }
+
+    /* Generate the session id for TLS1.3 if in middlebox compatibility mode.
+     * For now, we default to middlebox compatibility mode unless using QUIC. */
+    if (conn->quic_enabled) {
+        return S2N_RESULT_OK;
+    }
+
+    struct s2n_blob session_id = {0};
+    GUARD_AS_RESULT(s2n_blob_init(&session_id, conn->session_id, S2N_TLS_SESSION_ID_MAX_LEN));
+    GUARD_RESULT(s2n_get_public_random_data(&session_id));
+    conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
+
+    return S2N_RESULT_OK;
+}
+
 ssize_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch) {
     notnull_check(ch);
 
@@ -162,7 +190,6 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
 
     GUARD(s2n_stuffer_read_bytes(in, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     GUARD(s2n_stuffer_erase_and_read_bytes(in, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
-    GUARD(s2n_stuffer_read_uint8(in, &conn->session_id_len));
 
     /* Protocol version in the ClientHello is fixed at 0x0303(TLS 1.2) for
      * future versions of TLS. Therefore, we will negotiate down if a client sends
@@ -171,6 +198,7 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     conn->client_protocol_version = MIN((client_protocol_version[0] * 10) + client_protocol_version[1], S2N_TLS12);
     conn->client_hello_version = conn->client_protocol_version;
 
+    GUARD(s2n_stuffer_read_uint8(in, &conn->session_id_len));
     S2N_ERROR_IF(conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN || conn->session_id_len > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
     GUARD(s2n_stuffer_read_bytes(in, conn->session_id, conn->session_id_len));
@@ -326,16 +354,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     GUARD(s2n_stuffer_write_bytes(out, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     GUARD(s2n_stuffer_copy(&client_random, out, S2N_TLS_RANDOM_DATA_LEN));
 
-    /* Generate client session id when empty so that when server sends
-     * an empty session id it is because it doesn't support session resumption
-     */
-    if (conn->session_id_len == 0 && conn->config->use_tickets) {
-        struct s2n_blob session_id = {0};
-        GUARD(s2n_blob_init(&session_id, conn->session_id, S2N_TLS_SESSION_ID_MAX_LEN));
-        GUARD_AS_POSIX(s2n_get_public_random_data(&session_id));
-        conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
-    }
-
+    GUARD_AS_POSIX(s2n_generate_client_session_id(conn));
     GUARD(s2n_stuffer_write_uint8(out, conn->session_id_len));
     if (conn->session_id_len > 0) {
         GUARD(s2n_stuffer_write_bytes(out, conn->session_id, conn->session_id_len));
