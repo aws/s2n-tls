@@ -22,6 +22,17 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
+/* When reading and writing records with TCP, S2N sets its input and output buffers
+ * to the maximum record fragment size to prevent resizing those buffers later.
+ *
+ * However, because S2N with QUIC reads and writes messages instead of records,
+ * the "maximum size" for the input and output buffers would be the maximum message size: 64k.
+ * Since most messages are MUCH smaller than that (<3k), setting the buffer that large is wasteful.
+ *
+ * Instead, we intentionally choose a smaller size and accept that an abnormally large message
+ * could cause the buffer to resize. */
+#define S2N_EXPECTED_QUIC_MESSAGE_SIZE S2N_DEFAULT_FRAGMENT_LENGTH
+
 S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *output, uint32_t length);
 
 int s2n_connection_enable_quic(struct s2n_connection *conn)
@@ -66,8 +77,8 @@ S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t 
 {
     ENSURE_REF(conn);
 
-    /* Allocate the maximum stuffer size now so that we don't have to realloc later in the handshake. */
-    GUARD_AS_RESULT(s2n_stuffer_resize_if_empty(&conn->in, S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH));
+    /* Allocate stuffer space now so that we don't have to realloc later in the handshake. */
+    GUARD_AS_RESULT(s2n_stuffer_resize_if_empty(&conn->in, S2N_EXPECTED_QUIC_MESSAGE_SIZE));
 
     GUARD_RESULT(s2n_read_in_bytes(conn, &conn->handshake.io, TLS_HANDSHAKE_HEADER_LENGTH));
 
@@ -88,8 +99,8 @@ S2N_RESULT s2n_quic_write_handshake_message(struct s2n_connection *conn, struct 
 {
     ENSURE_REF(conn);
 
-    /* Allocate the maximum stuffer size now so that we don't have to realloc later in the handshake. */
-    GUARD_AS_RESULT(s2n_stuffer_resize_if_empty(&conn->out, S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH));
+    /* Allocate stuffer space now so that we don't have to realloc later in the handshake. */
+    GUARD_AS_RESULT(s2n_stuffer_resize_if_empty(&conn->out, S2N_EXPECTED_QUIC_MESSAGE_SIZE));
 
     GUARD_AS_RESULT(s2n_stuffer_write(&conn->out, in));
     return S2N_RESULT_OK;
