@@ -38,7 +38,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
-int s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *output, uint32_t length)
+S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *output, uint32_t length)
 {
     while (s2n_stuffer_data_available(output) < length) {
         uint32_t remaining = length - s2n_stuffer_data_available(output);
@@ -47,17 +47,17 @@ int s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *output, u
         int r = s2n_connection_recv_stuffer(output, conn, remaining);
         if (r == 0) {
             conn->closed = 1;
-            S2N_ERROR(S2N_ERR_CLOSED);
+            BAIL(S2N_ERR_CLOSED);
         } else if (r < 0) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                S2N_ERROR(S2N_ERR_IO_BLOCKED);
+                BAIL(S2N_ERR_IO_BLOCKED);
             }
-            S2N_ERROR(S2N_ERR_IO);
+            BAIL(S2N_ERR_IO);
         }
         conn->wire_bytes_in += r;
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int *isSSLv2)
@@ -73,7 +73,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
 
     /* Read the record until we at least have a header */
-    GUARD(s2n_read_in_bytes(conn, &conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH));
+    GUARD_AS_POSIX(s2n_read_in_bytes(conn, &conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH));
 
     uint16_t fragment_length;
 
@@ -94,7 +94,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     }
 
     /* Read enough to have the whole record */
-    GUARD(s2n_read_in_bytes(conn, &conn->in, fragment_length));
+    GUARD_AS_POSIX(s2n_read_in_bytes(conn, &conn->in, fragment_length));
 
     if (*isSSLv2) {
         return 0;

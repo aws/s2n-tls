@@ -29,66 +29,66 @@ static const uint8_t TEST_DATA[] = "test";
 static const size_t TEST_DATA_SIZE = sizeof(TEST_DATA);
 
 struct s2n_stuffer input_stuffer, output_stuffer;
-static int s2n_setup_conn(struct s2n_connection *conn)
+static S2N_RESULT s2n_setup_conn(struct s2n_connection *conn)
 {
-    GUARD(s2n_connection_enable_quic(conn));
+    GUARD_AS_RESULT(s2n_connection_enable_quic(conn));
     conn->actual_protocol_version = S2N_TLS13;
 
-    GUARD(s2n_stuffer_wipe(&input_stuffer));
-    GUARD(s2n_stuffer_wipe(&output_stuffer));
-    GUARD(s2n_connection_set_io_stuffers(&input_stuffer, &output_stuffer, conn));
+    GUARD_AS_RESULT(s2n_stuffer_wipe(&input_stuffer));
+    GUARD_AS_RESULT(s2n_stuffer_wipe(&output_stuffer));
+    GUARD_AS_RESULT(s2n_connection_set_io_stuffers(&input_stuffer, &output_stuffer, conn));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_setup_conn_for_client_hello(struct s2n_connection *conn)
+static S2N_RESULT s2n_setup_conn_for_client_hello(struct s2n_connection *conn)
 {
-    GUARD(s2n_setup_conn(conn));
+    GUARD_RESULT(s2n_setup_conn(conn));
     conn->handshake.handshake_type = INITIAL;
     conn->handshake.message_number = 0;
-    eq_check(s2n_conn_get_current_message_type(conn), CLIENT_HELLO);
-    return S2N_SUCCESS;
+    ENSURE_EQ(s2n_conn_get_current_message_type(conn), CLIENT_HELLO);
+    return S2N_RESULT_OK;
 }
 
-static int s2n_setup_conn_for_server_hello(struct s2n_connection *conn)
+static S2N_RESULT s2n_setup_conn_for_server_hello(struct s2n_connection *conn)
 {
-    GUARD(s2n_setup_conn(conn));
+    GUARD_RESULT(s2n_setup_conn(conn));
 
     /* Use arbitrary cipher suite */
     conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
     /* Setup secrets */
     const struct s2n_ecc_preferences *ecc_preferences = NULL;
-    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
+    GUARD_AS_RESULT(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
     conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
     conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_preferences->ecc_curves[0];
     if(conn->secure.server_ecc_evp_params.evp_pkey == NULL) {
-        GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
+        GUARD_AS_RESULT(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
     }
     if(conn->secure.client_ecc_evp_params[0].evp_pkey == NULL) {
-        GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+        GUARD_AS_RESULT(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
     }
 
     /* Set handshake to write message */
     conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
     conn->handshake.message_number = 1;
-    eq_check(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
+    ENSURE_EQ(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_write_test_message(struct s2n_blob *out, message_type_t message_type)
+static S2N_RESULT s2n_write_test_message(struct s2n_blob *out, message_type_t message_type)
 {
-    GUARD(s2n_alloc(out, TEST_DATA_SIZE + TLS_HANDSHAKE_HEADER_LENGTH));
+    GUARD_AS_RESULT(s2n_alloc(out, TEST_DATA_SIZE + TLS_HANDSHAKE_HEADER_LENGTH));
 
     struct s2n_stuffer stuffer;
-    GUARD(s2n_stuffer_init(&stuffer, out));
+    GUARD_AS_RESULT(s2n_stuffer_init(&stuffer, out));
 
-    GUARD(s2n_stuffer_write_uint8(&stuffer, message_type));
-    GUARD(s2n_stuffer_write_uint24(&stuffer, TEST_DATA_SIZE));
-    GUARD(s2n_stuffer_write_bytes(&stuffer, TEST_DATA, TEST_DATA_SIZE));
+    GUARD_AS_RESULT(s2n_stuffer_write_uint8(&stuffer, message_type));
+    GUARD_AS_RESULT(s2n_stuffer_write_uint24(&stuffer, TEST_DATA_SIZE));
+    GUARD_AS_RESULT(s2n_stuffer_write_bytes(&stuffer, TEST_DATA, TEST_DATA_SIZE));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 static int s2n_test_write_handler(struct s2n_connection* conn)
@@ -117,8 +117,8 @@ int main(int argc, char **argv)
             struct s2n_connection conn = { 0 };
             struct s2n_blob blob = { 0 };
 
-            EXPECT_FAILURE(s2n_quic_write_handshake_message(NULL, &blob));
-            EXPECT_FAILURE(s2n_quic_write_handshake_message(&conn, NULL));
+            EXPECT_ERROR(s2n_quic_write_handshake_message(NULL, &blob));
+            EXPECT_ERROR(s2n_quic_write_handshake_message(&conn, NULL));
         }
 
         /* Writes handshake message */
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
             struct s2n_blob in;
             EXPECT_SUCCESS(s2n_blob_init(&in, message_data, sizeof(message_data)));
 
-            EXPECT_SUCCESS(s2n_quic_write_handshake_message(conn, &in));
+            EXPECT_OK(s2n_quic_write_handshake_message(conn, &in));
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), sizeof(message_data));
             EXPECT_BYTEARRAY_EQUAL(s2n_stuffer_raw_read(&conn->out, sizeof(message_data)),
                     message_data, sizeof(message_data));
@@ -146,8 +146,8 @@ int main(int argc, char **argv)
             struct s2n_connection conn = { 0 };
             uint8_t message_type = 0;
 
-            EXPECT_FAILURE(s2n_quic_read_handshake_message(NULL, &message_type));
-            EXPECT_FAILURE(s2n_quic_read_handshake_message(&conn, NULL));
+            EXPECT_ERROR(s2n_quic_read_handshake_message(NULL, &message_type));
+            EXPECT_ERROR(s2n_quic_read_handshake_message(&conn, NULL));
         }
 
         /* Reads basic handshake message */
@@ -165,7 +165,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, TEST_DATA, TEST_DATA_SIZE));
 
             uint8_t actual_message_type = 0;
-            EXPECT_SUCCESS(s2n_quic_read_handshake_message(conn, &actual_message_type));
+            EXPECT_OK(s2n_quic_read_handshake_message(conn, &actual_message_type));
 
             EXPECT_EQUAL(actual_message_type, expected_message_type);
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->handshake.io), TLS_HANDSHAKE_HEADER_LENGTH);
@@ -189,7 +189,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 7));
 
             uint8_t actual_message_type = 0;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_quic_read_handshake_message(conn, &actual_message_type),
+            EXPECT_ERROR_WITH_ERRNO(s2n_quic_read_handshake_message(conn, &actual_message_type),
                     S2N_ERR_IO_BLOCKED);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, TEST_DATA, TEST_DATA_SIZE - 1));
 
             uint8_t actual_message_type = 0;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_quic_read_handshake_message(conn, &actual_message_type),
+            EXPECT_ERROR_WITH_ERRNO(s2n_quic_read_handshake_message(conn, &actual_message_type),
                     S2N_ERR_IO_BLOCKED);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -230,7 +230,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH + 1));
 
             uint8_t actual_message_type = 0;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_quic_read_handshake_message(conn, &actual_message_type),
+            EXPECT_ERROR_WITH_ERRNO(s2n_quic_read_handshake_message(conn, &actual_message_type),
                     S2N_ERR_BAD_MESSAGE);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -250,7 +250,7 @@ int main(int argc, char **argv)
 
         /* Write test message */
         DEFER_CLEANUP(struct s2n_blob server_hello, s2n_free);
-        EXPECT_SUCCESS(s2n_write_test_message(&server_hello, TLS_SERVER_HELLO));
+        EXPECT_OK(s2n_write_test_message(&server_hello, TLS_SERVER_HELLO));
 
         /* Setup IO buffers */
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input_stuffer, 0));
@@ -260,7 +260,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_setup_conn_for_server_hello(conn));
+            EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
 
             EXPECT_SUCCESS(s2n_stuffer_write(&input_stuffer, &server_hello));
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked_status), S2N_ERR_IO_BLOCKED);
@@ -275,7 +275,7 @@ int main(int argc, char **argv)
         for(size_t i = 1; i < server_hello.size - 1; i++) {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_setup_conn_for_server_hello(conn));
+            EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
 
             /* Write initial fragment */
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input_stuffer, server_hello.data, i));
@@ -299,10 +299,10 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_setup_conn_for_server_hello(conn));
+            EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
 
             DEFER_CLEANUP(struct s2n_blob encrypted_extensions, s2n_free);
-            EXPECT_SUCCESS(s2n_write_test_message(&encrypted_extensions, TLS_ENCRYPTED_EXTENSIONS));
+            EXPECT_OK(s2n_write_test_message(&encrypted_extensions, TLS_ENCRYPTED_EXTENSIONS));
 
             EXPECT_SUCCESS(s2n_stuffer_write(&input_stuffer, &server_hello));
             EXPECT_SUCCESS(s2n_stuffer_write(&input_stuffer, &encrypted_extensions));
@@ -318,7 +318,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_setup_conn_for_server_hello(conn));
+            EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
 
             /* Write the record: record type, protocol version,
              *                   handshake message size, handshake message */
@@ -337,7 +337,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_setup_conn_for_server_hello(conn));
+            EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
 
             /* Write the record: record type, protocol version,
              *                   record data size, standard "0x01" record data */
@@ -358,7 +358,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_setup_conn_for_client_hello(conn));
+            EXPECT_OK(s2n_setup_conn_for_client_hello(conn));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked_status), S2N_ERR_IO_BLOCKED);
             client_hello_length = s2n_stuffer_data_available(&output_stuffer);
@@ -384,7 +384,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_setup_conn_for_client_hello(conn));
+            EXPECT_OK(s2n_setup_conn_for_client_hello(conn));
 
             /* Sabotage the output stuffer to block writing */
             struct s2n_stuffer bad_stuffer;

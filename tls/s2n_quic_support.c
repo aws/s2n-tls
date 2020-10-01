@@ -22,7 +22,7 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
-int s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *output, uint32_t length);
+S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *output, uint32_t length);
 
 int s2n_connection_enable_quic(struct s2n_connection *conn)
 {
@@ -62,35 +62,35 @@ int s2n_connection_get_quic_transport_parameters(struct s2n_connection *conn,
 /* When using QUIC, S2N reads unencrypted handshake messages instead of encrypted records.
  * This method sets up the S2N input buffers to match the results of using s2n_read_full_record.
  */
-int s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t *message_type)
+S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t *message_type)
 {
-    notnull_check(conn);
+    ENSURE_REF(conn);
 
     /* Allocate the maximum stuffer size now so that we don't have to realloc later in the handshake. */
-    GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH));
+    GUARD_AS_RESULT(s2n_stuffer_resize_if_empty(&conn->in, S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH));
 
-    GUARD(s2n_read_in_bytes(conn, &conn->handshake.io, TLS_HANDSHAKE_HEADER_LENGTH));
+    GUARD_RESULT(s2n_read_in_bytes(conn, &conn->handshake.io, TLS_HANDSHAKE_HEADER_LENGTH));
 
     uint32_t message_len;
-    GUARD(s2n_handshake_parse_header(conn, message_type, &message_len));
-    GUARD(s2n_stuffer_reread(&conn->handshake.io));
+    GUARD_AS_RESULT(s2n_handshake_parse_header(conn, message_type, &message_len));
+    GUARD_AS_RESULT(s2n_stuffer_reread(&conn->handshake.io));
 
-    ENSURE_POSIX(message_len < S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
-    GUARD(s2n_read_in_bytes(conn, &conn->in, message_len));
+    ENSURE(message_len < S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
+    GUARD_RESULT(s2n_read_in_bytes(conn, &conn->in, message_len));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 /* When using QUIC, S2N writes unencrypted handshake messages instead of encrypted records.
  * This method sets up the S2N output buffer to match the result of using s2n_record_write.
  */
-int s2n_quic_write_handshake_message(struct s2n_connection *conn, struct s2n_blob *in)
+S2N_RESULT s2n_quic_write_handshake_message(struct s2n_connection *conn, struct s2n_blob *in)
 {
-    notnull_check(conn);
+    ENSURE_REF(conn);
 
     /* Allocate the maximum stuffer size now so that we don't have to realloc later in the handshake. */
-    GUARD(s2n_stuffer_resize_if_empty(&conn->out, S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH));
+    GUARD_AS_RESULT(s2n_stuffer_resize_if_empty(&conn->out, S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH));
 
-    GUARD(s2n_stuffer_write(&conn->out, in));
-    return S2N_SUCCESS;
+    GUARD_AS_RESULT(s2n_stuffer_write(&conn->out, in));
+    return S2N_RESULT_OK;
 }
