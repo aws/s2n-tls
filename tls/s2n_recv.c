@@ -68,7 +68,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     if (conn->in_status == PLAINTEXT) {
         /* Only application data packets count as plaintext */
         *record_type = TLS_APPLICATION_DATA;
-        return 0;
+        return S2N_SUCCESS;
     }
     GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
 

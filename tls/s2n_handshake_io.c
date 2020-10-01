@@ -932,7 +932,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
 {
     uint8_t record_type;
     uint8_t message_type;
-    int isSSLv2 = false;
+    int isSSLv2 = 0;
 
     /* Fill conn->in stuffer necessary for the handshake.
      * If using TCP, read a record. If using QUIC, read a message. */

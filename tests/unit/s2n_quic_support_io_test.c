@@ -243,7 +243,7 @@ int main(int argc, char **argv)
         s2n_blocked_status blocked_status;
 
         /* Use handler stubs to avoid executing complicated handler implementations */
-        for (int i = 0; i < s2n_array_len(tls13_state_machine); i++) {
+        for (size_t i = 0; i < s2n_array_len(tls13_state_machine); i++) {
             tls13_state_machine[i].handler[S2N_SERVER] = s2n_test_read_handler;
             tls13_state_machine[i].handler[S2N_CLIENT] = s2n_test_write_handler;
         }
