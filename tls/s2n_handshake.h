@@ -218,3 +218,5 @@ struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_
 int s2n_conn_post_handshake_hashes_update(struct s2n_connection *conn);
 int s2n_conn_pre_handshake_hashes_update(struct s2n_connection *conn);
 int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data);
+S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t *message_type);
+S2N_RESULT s2n_quic_write_handshake_message(struct s2n_connection *conn, struct s2n_blob *in);
