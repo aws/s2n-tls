@@ -34,7 +34,7 @@ get_seeds(OUT seeds_t *seeds)
 
 // Return's an array of r pseudorandom bits
 // No restrictions exist for the top or bottom bits -
-// in case an odd number is requried then set must_be_odd=1
+// in case an odd number is required then set must_be_odd=1
 // Uses the provided prf context
 ret_t
 sample_uniform_r_bits_with_fixed_prf_context(OUT r_t *r,
@@ -44,7 +44,7 @@ sample_uniform_r_bits_with_fixed_prf_context(OUT r_t *r,
 
 // Return's an array of r pseudorandom bits
 // No restrictions exist for the top or bottom bits -
-// in case an odd number is  requried then set must_be_odd=1
+// in case an odd number is  required then set must_be_odd=1
 _INLINE_ ret_t
 sample_uniform_r_bits(OUT r_t *r,
                       IN const seed_t *      seed,

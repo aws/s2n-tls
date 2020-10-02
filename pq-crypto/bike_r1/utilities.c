@@ -42,7 +42,7 @@ r_bits_vector_weight(IN const r_t *in)
 _INLINE_ void
 print_uint64(IN const uint64_t val)
 {
-// If printing in BE is requried swap the order of bytes
+// If printing in BE is required swap the order of bytes
 #ifdef PRINT_IN_BE
   uint64_t tmp = bswap_64(val);
 #else
