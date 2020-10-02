@@ -33,7 +33,6 @@ extern int s2n_enable_tls13();
 /* from RFC: https://tools.ietf.org/html/rfc8446#section-4.1.3*/
 extern uint8_t hello_retry_req_random[S2N_TLS_RANDOM_DATA_LEN];
 
-int s2n_is_tls13_supported();
 int s2n_is_tls13_enabled();
 int s2n_disable_tls13();
 bool s2n_is_valid_tls13_cipher(const uint8_t version[2]);
