@@ -277,9 +277,7 @@ an error "category". See [Error Handling](#error-handling) for more detail.
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
 ```
 
-**s2n_mode** is used to declare connections as server or client type,
-respectively.  At this time, s2n does not function as a client and only
-S2N_SERVER should be used.
+**s2n_mode** is used to declare connections as server or client type, respectively.
 
 ### s2n_blocked_status
 
