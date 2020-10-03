@@ -86,9 +86,9 @@ int s2n_record_parse_cbc(
 
     /* Subtract the padding length */
     gt_check(en.size, 0);
-    gte_check(payload_length, en.data[en.size - 1] + 1);
-    payload_length -= (en.data[en.size - 1] + 1);
-
+    uint32_t out;
+    GUARD(s2n_sub_overflow(payload_length, en.data[en.size - 1] + 1, &out));
+    payload_length = out;
     /* Update the MAC */
     header[3] = (payload_length >> 8);
     header[4] = payload_length & 0xff;
