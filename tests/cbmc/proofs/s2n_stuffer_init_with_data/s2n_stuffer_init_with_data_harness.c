@@ -36,5 +36,10 @@ void s2n_stuffer_init_with_data_harness()
         assert(stuffer->blob.size == stuffer->high_water_mark);
         assert(stuffer->write_cursor == stuffer->blob.size);
         assert(stuffer->blob.data == old_blob.data);
-    };
+    } else {
+        assert(blob->data == old_blob.data);
+        assert(blob->size == old_blob.size);
+        assert(blob->allocated == old_blob.allocated);
+        assert(blob->growable == old_blob.growable);
+    }
 }
