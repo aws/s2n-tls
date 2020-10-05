@@ -43,7 +43,7 @@ mkdir -p tls
 #add invariants etc needed for the proof to the s2n_cbc code
 cp stubs/s2n_cbc.c tls/
 cp $S2N_BASE/tls/s2n_record_read_cbc.c tls/
-patch -p5 < record_read_cbc.patch
+patch -p1 < record_read_cbc.patch
 
 mkdir -p utils
 cp $S2N_BASE/utils/s2n_safety.c utils/
