@@ -58,7 +58,7 @@ const char *ensure_c_str_is_allocated(size_t max_size)
     /* Ensure that its a valid c string. Since all bytes are nondeterminstic, the actual
      * string length is 0..str_cap
      */
-    __CPROVER_assume(str[ cap - 1 ] == 0);
+    __CPROVER_assume(IMPLIES(str != NULL, str[ cap - 1 ] == '\0'));
     return str;
 }
 
