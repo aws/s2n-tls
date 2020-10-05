@@ -18,11 +18,6 @@
 #include "tls/s2n_tls13.h"
 #include "crypto/s2n_rsa_signing.h"
 
-int s2n_is_tls13_supported()
-{
-    return s2n_is_rsa_pss_signing_supported();
-}
-
 int s2n_is_tls13_enabled()
 {
     return s2n_highest_protocol_version == S2N_TLS13;
