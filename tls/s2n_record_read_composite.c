@@ -69,7 +69,7 @@ int s2n_record_parse_composite(
     payload_length -= mac_size;
     /* Adjust payload_length for explicit IV */
     if (conn->actual_protocol_version > S2N_TLS10) {
-        uint32_t out;
+        uint32_t out = 0;
         GUARD(s2n_sub_overflow(payload_length, cipher_suite->record_alg->cipher->io.comp.record_iv_size, &out));
         payload_length = out;
     }
@@ -88,7 +88,7 @@ int s2n_record_parse_composite(
 
     /* Subtract the padding length */
     gt_check(en.size, 0);
-    uint32_t out;
+    uint32_t out = 0;
     GUARD(s2n_sub_overflow(payload_length, en.data[en.size - 1] + 1, &out));
     payload_length = out;
 

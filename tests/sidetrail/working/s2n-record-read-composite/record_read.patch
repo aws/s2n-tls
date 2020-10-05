@@ -17,6 +17,6 @@ index b57207a0..5109c47f 100644
      gt_check(en.size, 0);
 +    //After hmac verification padding_length is declassified
 +    en.data[en.size - 1] = g_padding_length;
-     uint32_t out;
+     uint32_t out = 0;
      GUARD(s2n_sub_overflow(payload_length, en.data[en.size - 1] + 1, &out));
      payload_length = out;
