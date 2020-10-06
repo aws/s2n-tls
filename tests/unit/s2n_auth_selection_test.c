@@ -279,48 +279,83 @@ int main(int argc, char **argv)
 
     /* s2n_select_certs_for_server_auth */
     {
-        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-        struct s2n_cert_chain_and_key *chosen_certs;
+        /* Client only has a signature_algorithms preference */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            struct s2n_cert_chain_and_key *chosen_certs;
 
-        /* Requested cert chain exists */
-        s2n_connection_set_config(conn, all_certs_config);
+            /* Requested cert chain exists */
+            s2n_connection_set_config(conn, all_certs_config);
 
-        conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA;
-        EXPECT_SUCCESS(s2n_select_certs_for_server_auth(conn, &chosen_certs));
-        EXPECT_EQUAL(chosen_certs, rsa_cert_chain);
+            conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA;
+            EXPECT_SUCCESS(s2n_select_certs_for_server_auth(conn, &chosen_certs));
+            EXPECT_EQUAL(chosen_certs, rsa_cert_chain);
 
-        conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA_PSS_PSS;
-        EXPECT_SUCCESS_IF_RSA_PSS_CERTS_SUPPORTED(s2n_select_certs_for_server_auth(conn, &chosen_certs));
-        EXPECT_EQUAL(chosen_certs, rsa_pss_cert_chain);
+            conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA_PSS_PSS;
+            EXPECT_SUCCESS_IF_RSA_PSS_CERTS_SUPPORTED(s2n_select_certs_for_server_auth(conn, &chosen_certs));
+            EXPECT_EQUAL(chosen_certs, rsa_pss_cert_chain);
 
-        conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA_PSS_RSAE;
-        EXPECT_SUCCESS(s2n_select_certs_for_server_auth(conn, &chosen_certs));
-        EXPECT_EQUAL(chosen_certs, rsa_cert_chain);
+            conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA_PSS_RSAE;
+            EXPECT_SUCCESS(s2n_select_certs_for_server_auth(conn, &chosen_certs));
+            EXPECT_EQUAL(chosen_certs, rsa_cert_chain);
 
-        conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
-        EXPECT_SUCCESS(s2n_select_certs_for_server_auth(conn, &chosen_certs));
-        EXPECT_EQUAL(chosen_certs, ecdsa_cert_chain);
+            conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
+            EXPECT_SUCCESS(s2n_select_certs_for_server_auth(conn, &chosen_certs));
+            EXPECT_EQUAL(chosen_certs, ecdsa_cert_chain);
 
-        /* Requested cert chain does NOT exist */
-        s2n_connection_set_config(conn, no_certs_config);
+            /* Requested cert chain does NOT exist */
+            s2n_connection_set_config(conn, no_certs_config);
 
-        conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA;
-        EXPECT_FAILURE(s2n_select_certs_for_server_auth(conn, &chosen_certs));
-        EXPECT_NULL(chosen_certs);
+            conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA;
+            EXPECT_FAILURE(s2n_select_certs_for_server_auth(conn, &chosen_certs));
+            EXPECT_NULL(chosen_certs);
 
-        conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA_PSS_PSS;
-        EXPECT_FAILURE(s2n_select_certs_for_server_auth(conn, &chosen_certs));
-        EXPECT_NULL(chosen_certs);
+            conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA_PSS_PSS;
+            EXPECT_FAILURE(s2n_select_certs_for_server_auth(conn, &chosen_certs));
+            EXPECT_NULL(chosen_certs);
 
-        conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA_PSS_RSAE;
-        EXPECT_FAILURE(s2n_select_certs_for_server_auth(conn, &chosen_certs));
-        EXPECT_NULL(chosen_certs);
+            conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA_PSS_RSAE;
+            EXPECT_FAILURE(s2n_select_certs_for_server_auth(conn, &chosen_certs));
+            EXPECT_NULL(chosen_certs);
 
-        conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
-        EXPECT_FAILURE(s2n_select_certs_for_server_auth(conn, &chosen_certs));
-        EXPECT_NULL(chosen_certs);
+            conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
+            EXPECT_FAILURE(s2n_select_certs_for_server_auth(conn, &chosen_certs));
+            EXPECT_NULL(chosen_certs);
 
-        EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Client has a different signature_algorithms preference than signature_algorithms_cert preference */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            struct s2n_cert_chain_and_key *chosen_certs;
+
+            /* Requested cert chain exists */
+            s2n_connection_set_config(conn, all_certs_config);
+
+            conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA;
+            conn->secure.signature_algorithms_cert.sig_alg = S2N_SIGNATURE_ECDSA;
+            EXPECT_SUCCESS(s2n_select_certs_for_server_auth(conn, &chosen_certs));
+            EXPECT_EQUAL(chosen_certs, ecdsa_cert_chain);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Client has the same signature_algorithms preference and signature_algorithms_cert preference */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            struct s2n_cert_chain_and_key *chosen_certs;
+
+            /* Requested cert chain exists */
+            s2n_connection_set_config(conn, all_certs_config);
+
+            conn->secure.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA;
+            conn->secure.signature_algorithms_cert.sig_alg = S2N_SIGNATURE_RSA;
+            EXPECT_SUCCESS(s2n_select_certs_for_server_auth(conn, &chosen_certs));
+            EXPECT_EQUAL(chosen_certs, rsa_cert_chain);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
     }
 
     /* Test all possible combos */

@@ -279,6 +279,11 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn,
         &conn->handshake_params.client_sig_hash_algs,
         &conn->secure.conn_sig_scheme));
+    
+    /* Choose specific signature algorithm for certificates if sent by client */
+    GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn,
+        &conn->handshake_params.signature_algorithms_cert_list,
+        &conn->secure.signature_algorithms_cert));
 
     /* And finally, set the certs specified by the final auth + sig_alg combo. */
     GUARD(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));

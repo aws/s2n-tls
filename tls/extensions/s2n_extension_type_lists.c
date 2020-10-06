@@ -33,6 +33,7 @@
 #include "tls/extensions/s2n_client_renegotiation_info.h"
 #include "tls/extensions/s2n_ec_point_format.h"
 #include "tls/extensions/s2n_quic_transport_params.h"
+#include "tls/extensions/s2n_signature_algorithms_cert.h"
 #include "tls/extensions/s2n_server_certificate_status.h"
 #include "tls/extensions/s2n_server_renegotiation_info.h"
 #include "tls/extensions/s2n_server_alpn.h"
@@ -60,6 +61,7 @@ static const s2n_extension_type *const client_hello_extensions[] = {
         &s2n_client_pq_kem_extension,
         &s2n_client_renegotiation_info_extension,
         &s2n_client_cookie_extension,
+        &s2n_signature_algorithms_cert_extension,
         &s2n_quic_transport_parameters_extension,
 };
 
