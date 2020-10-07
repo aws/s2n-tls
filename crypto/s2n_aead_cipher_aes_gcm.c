@@ -24,12 +24,12 @@
 #include "utils/s2n_blob.h"
 
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
-#define S2N_AEAD_AES_GCM_AVAILABLE_BSSL_AWSLC
+#define S2N_AEAD_AES_GCM_AVAILABLE
 #endif
 
 static uint8_t s2n_aead_cipher_aes128_gcm_available()
 {
-#if defined(S2N_AEAD_AES_GCM_AVAILABLE_BSSL_AWSLC)
+#if defined(S2N_AEAD_AES_GCM_AVAILABLE)
     return (EVP_aead_aes_128_gcm() ? 1 : 0);
 #else
     return (EVP_aes_128_gcm() ? 1 : 0);
@@ -38,17 +38,23 @@ static uint8_t s2n_aead_cipher_aes128_gcm_available()
 
 static uint8_t s2n_aead_cipher_aes256_gcm_available()
 {
-#if defined(S2N_AEAD_AES_GCM_AVAILABLE_BSSL_AWSLC)
+#if defined(S2N_AEAD_AES_GCM_AVAILABLE)
     return (EVP_aead_aes_256_gcm() ? 1 : 0);
 #else
     return (EVP_aes_256_gcm() ? 1 : 0);
 #endif
 }
 
-#if defined(S2N_AEAD_AES_GCM_AVAILABLE_BSSL_AWSLC) /* BoringSSL and AWS-LC AEAD API implementation */
+#if defined(S2N_AEAD_AES_GCM_AVAILABLE) /* BoringSSL and AWS-LC AEAD API implementation */
 
 static int s2n_aead_cipher_aes_gcm_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *aad, struct s2n_blob *in, struct s2n_blob *out)
 {
+    notnull_check(in);
+    notnull_check(out);
+    notnull_check(iv);
+    notnull_check(key);
+    notnull_check(aad);
+
     /* The size of the |in| blob includes the size of the data and the size of the AES-GCM tag */
     gte_check(in->size, S2N_TLS_GCM_TAG_LEN);
     gte_check(out->size, in->size);
@@ -67,6 +73,12 @@ static int s2n_aead_cipher_aes_gcm_encrypt(struct s2n_session_key *key, struct s
 
 static int s2n_aead_cipher_aes_gcm_decrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *aad, struct s2n_blob *in, struct s2n_blob *out)
 {
+    notnull_check(in);
+    notnull_check(out);
+    notnull_check(iv);
+    notnull_check(key);
+    notnull_check(aad);
+
     gte_check(in->size, S2N_TLS_GCM_TAG_LEN);
     gte_check(out->size, in->size - S2N_TLS_GCM_TAG_LEN);
     eq_check(iv->size, S2N_TLS_GCM_IV_LEN);
@@ -82,6 +94,9 @@ static int s2n_aead_cipher_aes_gcm_decrypt(struct s2n_session_key *key, struct s
 
 static int s2n_aead_cipher_aes128_gcm_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
+    notnull_check(key);
+    notnull_check(in);
+
     eq_check(in->size, S2N_TLS_AES_128_GCM_KEY_LEN);
 
     GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_128_gcm(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
@@ -91,6 +106,9 @@ static int s2n_aead_cipher_aes128_gcm_set_encryption_key(struct s2n_session_key 
 
 static int s2n_aead_cipher_aes256_gcm_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
+    notnull_check(key);
+    notnull_check(in);
+
     eq_check(in->size, S2N_TLS_AES_256_GCM_KEY_LEN);
 
     GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_256_gcm(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
@@ -100,6 +118,9 @@ static int s2n_aead_cipher_aes256_gcm_set_encryption_key(struct s2n_session_key 
 
 static int s2n_aead_cipher_aes128_gcm_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
+    notnull_check(key);
+    notnull_check(in);
+
     eq_check(in->size, S2N_TLS_AES_128_GCM_KEY_LEN);
 
     GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_128_gcm(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
@@ -109,6 +130,9 @@ static int s2n_aead_cipher_aes128_gcm_set_decryption_key(struct s2n_session_key 
 
 static int s2n_aead_cipher_aes256_gcm_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
+    notnull_check(key);
+    notnull_check(in);
+
     eq_check(in->size, S2N_TLS_AES_256_GCM_KEY_LEN);
 
     GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_256_gcm(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
@@ -118,6 +142,8 @@ static int s2n_aead_cipher_aes256_gcm_set_decryption_key(struct s2n_session_key 
 
 static int s2n_aead_cipher_aes_gcm_init(struct s2n_session_key *key)
 {
+    notnull_check(key);
+
     EVP_AEAD_CTX_zero(key->evp_aead_ctx);
 
     return 0;
@@ -125,6 +151,8 @@ static int s2n_aead_cipher_aes_gcm_init(struct s2n_session_key *key)
 
 static int s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
 {
+    notnull_check(key);
+
     EVP_AEAD_CTX_cleanup(key->evp_aead_ctx);
 
     return 0;
