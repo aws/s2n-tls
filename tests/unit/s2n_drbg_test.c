@@ -373,6 +373,34 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(aes128_drbg.mixes, 500010);
     EXPECT_EQUAL(aes256_pr_drbg.mixes, 500010);
 
+    /* Generate 31 (= 16 + 15) bytes. Since the DRBG generates 16 bytes at a time,
+     * a common error is to incorrectly fill the last (not-aligned) bytes. Sometimes
+     * they are left unchanged and sometimes a single byte is copied in. We ensure
+     * that the last 15 bytes are not all equal to guard against this. */
+    memset_check((void*)data, 0, 31);
+    blob.size = 31;
+    EXPECT_SUCCESS(s2n_drbg_generate(&aes128_drbg, &blob));
+    bool bytes_are_all_equal = true;
+    for (size_t i = 17; i < 31; i++) {
+        if (data[16] != data[i]) {
+            bytes_are_all_equal = false;
+            break;
+        }
+    }
+    EXPECT_FALSE(bytes_are_all_equal);
+
+    memset_check((void*)data, 0, 31);
+    blob.size = 31;
+    EXPECT_SUCCESS(s2n_drbg_generate(&aes256_pr_drbg, &blob));
+    bytes_are_all_equal = true;
+    for (size_t i = 17; i < 31; i++) {
+        if (data[16] != data[i]) {
+            bytes_are_all_equal = false;
+            break;
+        }
+    }
+    EXPECT_FALSE(bytes_are_all_equal);
+
     EXPECT_SUCCESS(s2n_drbg_wipe(&aes128_drbg));
     EXPECT_SUCCESS(s2n_drbg_wipe(&aes256_pr_drbg));
 
