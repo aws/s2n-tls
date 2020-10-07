@@ -1,7 +1,7 @@
 import pytest
 import threading
 
-from common import ProviderOptions, Ciphers, Curves, Protocols
+from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates
 from global_flags import get_flag, S2N_PROVIDER_VERSION
 
 
@@ -323,8 +323,6 @@ class OpenSSL(Provider):
         # Additional debugging that will be captured incase of failure
         cmd_line.extend(['-debug', '-tlsextdebug'])
 
-        if self.options.cert is not None:
-            cmd_line.extend(['-cert', self.options.cert])
         if self.options.key is not None:
             cmd_line.extend(['-key', self.options.key])
 
@@ -415,6 +413,53 @@ class OpenSSL(Provider):
 
         return cmd_line
 
+class JavaSSL(Provider):
+    """
+    NOTE: Only a Java SSL client has been set up. The server has not been 
+    implemented yet.
+    """
+    def __init__(self, options: ProviderOptions):
+        self.ready_to_send_input_marker = None
+        Provider.__init__(self, options)
+
+    @classmethod
+    def supports_protocol(cls, protocol, with_cert=None):
+        if protocol is Protocols.TLS10:
+            return False
+
+        return True
+
+    @classmethod
+    def supports_cipher(cls, cipher, with_curve=None):
+        # Java SSL does not support CHACHA20 
+        if 'CHACHA20' in cipher.name:
+            return False
+
+        return True
+
+    def setup_server(self):
+        pytest.skip('JavaSSL does not support server mode at this time')
+    
+    def setup_client(self):
+        self.ready_to_send_input_marker = "Starting handshake"
+        cmd_line = ['java', "-classpath", "bin", "SSLSocketClient"]
+
+        if self.options.port is not None:
+            cmd_line.extend([self.options.port])
+        
+        if self.options.cert is not None:
+            cmd_line.extend([self.options.cert.cert])
+        
+        if self.options.protocol is not None:
+            cmd_line.extend([self.options.protocol.name])
+        
+        if self.options.cipher.standard_name is not None:
+            cmd_line.extend([self.options.cipher.standard_name])
+
+        # Clients are always ready to connect
+        self.set_provider_ready()
+
+        return cmd_line
 
 class BoringSSL(Provider):
     """

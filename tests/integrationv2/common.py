@@ -168,12 +168,13 @@ class Protocols(object):
 
 
 class Cipher(object):
-    def __init__(self, name, min_version, openssl1_1_1, fips, parameters=None):
+    def __init__(self, name, min_version, openssl1_1_1, fips, parameters=None, standard_name=None):
         self.name = name
         self.min_version = min_version
         self.openssl1_1_1 = openssl1_1_1
         self.fips = fips
         self.parameters = parameters
+        self.standard_name = standard_name
         self.algorithm = 'ANY'
 
         if 'ECDSA' in name:
@@ -195,40 +196,40 @@ class Ciphers(object):
     """
     When referencing ciphers, use these class values.
     """
-    DHE_RSA_DES_CBC3_SHA = Cipher("DHE-RSA-DES-CBC3-SHA", Protocols.SSLv3, False, False)
-    DHE_RSA_AES128_SHA = Cipher("DHE-RSA-AES128-SHA", Protocols.SSLv3, True, False, TEST_CERT_DIRECTORY + 'dhparams_2048.pem')
-    DHE_RSA_AES256_SHA = Cipher("DHE-RSA-AES256-SHA", Protocols.SSLv3, True, False, TEST_CERT_DIRECTORY + 'dhparams_2048.pem')
-    DHE_RSA_AES128_SHA256 = Cipher("DHE-RSA-AES128-SHA256", Protocols.TLS12, True, True, TEST_CERT_DIRECTORY + 'dhparams_2048.pem')
-    DHE_RSA_AES256_SHA256 = Cipher("DHE-RSA-AES256-SHA256", Protocols.TLS12, True, True, TEST_CERT_DIRECTORY + 'dhparams_2048.pem')
-    DHE_RSA_AES128_GCM_SHA256 = Cipher("DHE-RSA-AES128-GCM-SHA256", Protocols.TLS12, True, True, TEST_CERT_DIRECTORY + 'dhparams_2048.pem')
-    DHE_RSA_AES256_GCM_SHA384 = Cipher("DHE-RSA-AES256-GCM-SHA384", Protocols.TLS12, True, True, TEST_CERT_DIRECTORY + 'dhparams_2048.pem')
-    DHE_RSA_CHACHA20_POLY1305 = Cipher("DHE-RSA-CHACHA20-POLY1305", Protocols.TLS12, True, False, TEST_CERT_DIRECTORY + 'dhparams_2048.pem')
+    DHE_RSA_DES_CBC3_SHA = Cipher("DHE-RSA-DES-CBC3-SHA", Protocols.SSLv3, False, False, standard_name="SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA")
+    DHE_RSA_AES128_SHA = Cipher("DHE-RSA-AES128-SHA", Protocols.SSLv3, True, False, TEST_CERT_DIRECTORY + 'dhparams_2048.pem', standard_name="TLS_DHE_RSA_WITH_AES_128_CBC_SHA")
+    DHE_RSA_AES256_SHA = Cipher("DHE-RSA-AES256-SHA", Protocols.SSLv3, True, False, TEST_CERT_DIRECTORY + 'dhparams_2048.pem', standard_name="TLS_DHE_RSA_WITH_AES_256_CBC_SHA")
+    DHE_RSA_AES128_SHA256 = Cipher("DHE-RSA-AES128-SHA256", Protocols.TLS12, True, True, TEST_CERT_DIRECTORY + 'dhparams_2048.pem', standard_name="TLS_DHE_RSA_WITH_AES_128_CBC_SHA256")
+    DHE_RSA_AES256_SHA256 = Cipher("DHE-RSA-AES256-SHA256", Protocols.TLS12, True, True, TEST_CERT_DIRECTORY + 'dhparams_2048.pem', standard_name="TLS_DHE_RSA_WITH_AES_256_CBC_SHA256")
+    DHE_RSA_AES128_GCM_SHA256 = Cipher("DHE-RSA-AES128-GCM-SHA256", Protocols.TLS12, True, True, TEST_CERT_DIRECTORY + 'dhparams_2048.pem', standard_name="TLS_DHE_RSA_WITH_AES_128_GCM_SHA256")
+    DHE_RSA_AES256_GCM_SHA384 = Cipher("DHE-RSA-AES256-GCM-SHA384", Protocols.TLS12, True, True, TEST_CERT_DIRECTORY + 'dhparams_2048.pem', standard_name="TLS_DHE_RSA_WITH_AES_256_GCM_SHA384")
+    DHE_RSA_CHACHA20_POLY1305 = Cipher("DHE-RSA-CHACHA20-POLY1305", Protocols.TLS12, True, False, TEST_CERT_DIRECTORY + 'dhparams_2048.pem', standard_name="TLS_DHE_RSA_WITH_AES_256_GCM_SHA384")
 
-    AES128_SHA = Cipher("AES128-SHA", Protocols.SSLv3, True, True)
-    AES256_SHA = Cipher("AES256-SHA", Protocols.SSLv3, True, True)
-    AES128_SHA256 = Cipher("AES128-SHA256", Protocols.TLS12, True, True)
-    AES256_SHA256 = Cipher("AES256-SHA256", Protocols.TLS12, True, True)
-    AES128_GCM_SHA256 = Cipher("TLS_AES_128_GCM_SHA256", Protocols.TLS13, True, True)
-    AES256_GCM_SHA384 = Cipher("TLS_AES_256_GCM_SHA384", Protocols.TLS13, True, True)
+    AES128_SHA = Cipher("AES128-SHA", Protocols.SSLv3, True, True, standard_name="TLS_RSA_WITH_AES_128_CBC_SHA")
+    AES256_SHA = Cipher("AES256-SHA", Protocols.SSLv3, True, True, standard_name="TLS_RSA_WITH_AES_256_CBC_SHA")
+    AES128_SHA256 = Cipher("AES128-SHA256", Protocols.TLS12, True, True, standard_name="TLS_RSA_WITH_AES_128_CBC_SHA256")
+    AES256_SHA256 = Cipher("AES256-SHA256", Protocols.TLS12, True, True, standard_name="TLS_RSA_WITH_AES_256_CBC_SHA256")
+    AES128_GCM_SHA256 = Cipher("TLS_AES_128_GCM_SHA256", Protocols.TLS13, True, True, standard_name="TLS_AES_128_GCM_SHA256")
+    AES256_GCM_SHA384 = Cipher("TLS_AES_256_GCM_SHA384", Protocols.TLS13, True, True, standard_name="TLS_AES_256_GCM_SHA384")
 
-    ECDHE_ECDSA_AES128_SHA = Cipher("ECDHE-ECDSA-AES128-SHA", Protocols.SSLv3, True, False)
-    ECDHE_ECDSA_AES256_SHA = Cipher("ECDHE-ECDSA-AES256-SHA", Protocols.SSLv3, True, False)
-    ECDHE_ECDSA_AES128_SHA256 = Cipher("ECDHE-ECDSA-AES128-SHA256", Protocols.TLS12, True, True)
-    ECDHE_ECDSA_AES256_SHA384 = Cipher("ECDHE-ECDSA-AES256-SHA384", Protocols.TLS12, True, True)
-    ECDHE_ECDSA_AES128_GCM_SHA256 = Cipher("ECDHE-ECDSA-AES128-GCM-SHA256", Protocols.TLS12, True, True)
-    ECDHE_ECDSA_AES256_GCM_SHA384 = Cipher("ECDHE-ECDSA-AES256-GCM-SHA384", Protocols.TLS12, True, True)
-    ECDHE_ECDSA_CHACHA20_POLY1305 = Cipher("ECDHE-ECDSA-CHACHA20-POLY1305", Protocols.TLS12, True, False)
+    ECDHE_ECDSA_AES128_SHA = Cipher("ECDHE-ECDSA-AES128-SHA", Protocols.SSLv3, True, False, standard_name="TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA")
+    ECDHE_ECDSA_AES256_SHA = Cipher("ECDHE-ECDSA-AES256-SHA", Protocols.SSLv3, True, False, standard_name="TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA")
+    ECDHE_ECDSA_AES128_SHA256 = Cipher("ECDHE-ECDSA-AES128-SHA256", Protocols.TLS12, True, True, standard_name="TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256")
+    ECDHE_ECDSA_AES256_SHA384 = Cipher("ECDHE-ECDSA-AES256-SHA384", Protocols.TLS12, True, True, standard_name="TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384")
+    ECDHE_ECDSA_AES128_GCM_SHA256 = Cipher("ECDHE-ECDSA-AES128-GCM-SHA256", Protocols.TLS12, True, True, standard_name="TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256")
+    ECDHE_ECDSA_AES256_GCM_SHA384 = Cipher("ECDHE-ECDSA-AES256-GCM-SHA384", Protocols.TLS12, True, True, standard_name="TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384")
+    ECDHE_ECDSA_CHACHA20_POLY1305 = Cipher("ECDHE-ECDSA-CHACHA20-POLY1305", Protocols.TLS12, True, False, standard_name="TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256")
 
-    ECDHE_RSA_DES_CBC3_SHA = Cipher("ECDHE-RSA-DES-CBC3-SHA", Protocols.SSLv3, False, False)
-    ECDHE_RSA_AES128_SHA = Cipher("ECDHE-RSA-AES128-SHA", Protocols.SSLv3, True, False)
-    ECDHE_RSA_AES256_SHA = Cipher("ECDHE-RSA-AES256-SHA", Protocols.SSLv3, True, False)
-    ECDHE_RSA_RC4_SHA = Cipher("ECDHE-RSA-RC4-SHA", Protocols.SSLv3, False, False)
-    ECDHE_RSA_AES128_SHA256 = Cipher("ECDHE-RSA-AES128-SHA256", Protocols.TLS12, True, True)
-    ECDHE_RSA_AES256_SHA384 = Cipher("ECDHE-RSA-AES256-SHA384", Protocols.TLS12, True, True)
-    ECDHE_RSA_AES128_GCM_SHA256 = Cipher("ECDHE-RSA-AES128-GCM-SHA256", Protocols.TLS12, True, True)
-    ECDHE_RSA_AES256_GCM_SHA384 = Cipher("ECDHE-RSA-AES256-GCM-SHA384", Protocols.TLS12, True, True)
-    ECDHE_RSA_CHACHA20_POLY1305 = Cipher("ECDHE-RSA-CHACHA20-POLY1305", Protocols.TLS12, True, False)
-    CHACHA20_POLY1305_SHA256 = Cipher("TLS_CHACHA20_POLY1305_SHA256", Protocols.TLS13, True, False)
+    ECDHE_RSA_DES_CBC3_SHA = Cipher("ECDHE-RSA-DES-CBC3-SHA", Protocols.SSLv3, False, False, standard_name="TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA")
+    ECDHE_RSA_AES128_SHA = Cipher("ECDHE-RSA-AES128-SHA", Protocols.SSLv3, True, False, standard_name="TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA")
+    ECDHE_RSA_AES256_SHA = Cipher("ECDHE-RSA-AES256-SHA", Protocols.SSLv3, True, False, standard_name="TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA")
+    ECDHE_RSA_RC4_SHA = Cipher("ECDHE-RSA-RC4-SHA", Protocols.SSLv3, False, False, standard_name="TLS_ECDHE_RSA_WITH_RC4_128_SHA")
+    ECDHE_RSA_AES128_SHA256 = Cipher("ECDHE-RSA-AES128-SHA256", Protocols.TLS12, True, True, standard_name="TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256")
+    ECDHE_RSA_AES256_SHA384 = Cipher("ECDHE-RSA-AES256-SHA384", Protocols.TLS12, True, True, standard_name="TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384")
+    ECDHE_RSA_AES128_GCM_SHA256 = Cipher("ECDHE-RSA-AES128-GCM-SHA256", Protocols.TLS12, True, True, standard_name="TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256")
+    ECDHE_RSA_AES256_GCM_SHA384 = Cipher("ECDHE-RSA-AES256-GCM-SHA384", Protocols.TLS12, True, True, standard_name="TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384")
+    ECDHE_RSA_CHACHA20_POLY1305 = Cipher("ECDHE-RSA-CHACHA20-POLY1305", Protocols.TLS12, True, False, standard_name="TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256")
+    CHACHA20_POLY1305_SHA256 = Cipher("TLS_CHACHA20_POLY1305_SHA256", Protocols.TLS13, True, False, standard_name="TLS_CHACHA20_POLY1305_SHA256")
 
     KMS_TLS_1_0_2018_10 = Cipher("KMS-TLS-1-0-2018-10", Protocols.TLS10, False, False)
     KMS_PQ_TLS_1_0_2019_06 = Cipher("KMS-PQ-TLS-1-0-2019-06", Protocols.TLS10, False, False)

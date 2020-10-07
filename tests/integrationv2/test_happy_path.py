@@ -4,7 +4,7 @@ import pytest
 from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROVIDERS, PROTOCOLS
 from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
-from providers import Provider, S2N, OpenSSL
+from providers import Provider, S2N, OpenSSL, JavaSSL
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version
 
 
@@ -28,6 +28,7 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
         host="localhost",
         port=port,
         cipher=cipher,
+        cert=certificate,
         curve=curve,
         data_to_send=random_bytes,
         insecure=True,
@@ -57,7 +58,14 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
     # the stdout reliably.
     for results in server.get_results():
         assert results.exception is None
-        assert results.exit_code == 0
+        '''
+        In TLS1.3 the JDK sends a user_canceled alert as well as a close_notify alert
+        after a connection closes, so s2n will register the alert and complain.
+        '''
+        if protocol.name == "TLS1.3" and provider is JavaSSL:
+            assert results.exit_code == 1
+        else:
+            assert results.exit_code == 0
         assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) in results.stdout
         assert random_bytes in results.stdout
 
