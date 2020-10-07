@@ -13,6 +13,8 @@
 # permissions and limitations under the License.
 #
 
+# The timeout command sends a TERM and under normal circumstances returns
+# exit code 124. We'll undo this later. 
 set -e
 
 usage() {
@@ -75,16 +77,23 @@ mkdir -p "./corpus/${TEST_NAME}"
 
 ACTUAL_TEST_FAILURE=0
 
-# Copy existing Corpus to a temp directory so that new inputs from fuzz tests runs will add new inputs to the temp directory. 
+# Copy existing Corpus to a temp directory so that new inputs from fuzz tests runs will add new inputs to the temp directory.
 # This allows us to minimize new inputs before merging to the original corpus directory.
 TEMP_CORPUS_DIR="$(mktemp -d)"
 cp -r ./corpus/${TEST_NAME}/. "${TEMP_CORPUS_DIR}"
 
 # Run AFL instead of libfuzzer if AFL_FUZZ is set. Not compatible with fuzz coverage.
-if [[ ! -z "$AFL_FUZZ" && "$FUZZ_COVERAGE" != "true" ]]; then
+if [[ "$AFL_FUZZ" == "true" && "$FUZZ_COVERAGE" != "true" ]]; then
     printf "Running %-s %-40s for %5d sec... " "${FIPS_TEST_MSG}" ${TEST_NAME} ${FUZZ_TIMEOUT_SEC}
     mkdir -p results/${TEST_NAME}
-    timeout ${FUZZ_TIMEOUT_SEC} afl-fuzz -i corpus/${TEST_NAME} -o results/${TEST_NAME} -m none ./${TEST_NAME}
+    set +e
+    timeout ${FUZZ_TIMEOUT_SEC} ${LIBFUZZER_INSTALL_DIR}/afl-fuzz -i corpus/${TEST_NAME} -o results/${TEST_NAME} -m none ./${TEST_NAME}
+    returncode = $?
+    # See the timeout man page for specifics
+    if [[ "$returncode" -ne 124 ]]; then
+	    echo "AFL exited with an unexpected return value: $returncode"
+    fi
+    set -e
     CRASH_COUNT=`sed -n -e 's/^unique_crashes *: //p' ./results/${TEST_NAME}/fuzzer_stats`
     TEST_COUNT=`sed -n -e 's/^execs_done *: //p' ./results/${TEST_NAME}/fuzzer_stats`
     TESTS_PER_SEC=`sed -n -e 's/^execs_per_sec *: //p' ./results/${TEST_NAME}/fuzzer_stats`
@@ -92,7 +101,7 @@ if [[ ! -z "$AFL_FUZZ" && "$FUZZ_COVERAGE" != "true" ]]; then
         ACTUAL_TEST_FAILURE=1
     fi
     if [[ $ACTUAL_TEST_FAILURE == $EXPECTED_TEST_FAILURE ]]; then
-        printf "\033[32;1mPASSED\033[0m %8d tests, %6d test/sec\n" ${TEST_COUNT} ${TESTS_PER_SEC}
+        printf "\033[32;1mPASSED\033[0m %8d tests, %.1f test/sec\n" ${TEST_COUNT} ${TESTS_PER_SEC}
         exit 0
     else
         printf "\033[31;1mFAILED\033[0m %10d tests, %6d unique crashes\n" ${TEST_COUNT} ${CRASH_COUNT}
