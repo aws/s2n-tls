@@ -155,7 +155,8 @@ pre_commit_check: all indent clean
 
 # TODO use awslabs instead
 DEV_IMAGE ?= camshaft/s2n-dev
-DEV_VERSION ?= ubuntu_18.04_openssl-1.1.1_gcc9
+DEV_OPENSSL_VERSION ?= openssl-1.1.1
+DEV_VERSION ?= ubuntu_18.04_$(DEV_OPENSSL_VERSION)_gcc9
 
 dev:
 	@docker run -it --rm --ulimit memlock=-1 -v `pwd`:/home/s2n-dev/s2n $(DEV_IMAGE):$(DEV_VERSION)

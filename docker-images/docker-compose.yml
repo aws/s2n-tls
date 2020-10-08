@@ -12,8 +12,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-version: '3.8'
+version: '3.7'
 services:
+  ubuntu_18.04_openssl-1.0.2_gcc9:
+    build:
+      args:
+        UBUNTU_VERSION: 18.04
+        OPENSSL_VERSION: openssl-1.0.2
+        GCC_VERSION: 9
+      context: ./
+      dockerfile: ./ubuntu/Dockerfile
+    image: ${REPOSITORY_URI}:ubuntu_18.04_openssl-1.0.2_gcc9
   ubuntu_18.04_openssl-1.1.1_gcc9:
     build:
       args:
