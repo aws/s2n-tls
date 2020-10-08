@@ -35,9 +35,10 @@ void s2n_stuffer_peek_check_for_str_harness()
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
-    if (s2n_stuffer_peek_check_for_str(stuffer, expected) == S2N_SUCCESS) {
+    size_t expected_length = (expected != NULL) ? strlen(expected) : 0;
+    if (expected_length > 0 && s2n_stuffer_peek_check_for_str(stuffer, expected) == S2N_SUCCESS) {
         uint8_t *actual = stuffer->blob.data + stuffer->read_cursor;
-        assert(!memcmp(actual, expected, strlen(expected)));
+        assert(!memcmp(actual, expected, expected_length));
     }
     assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
     assert(s2n_stuffer_is_valid(stuffer));
