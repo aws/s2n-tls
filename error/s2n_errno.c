@@ -139,6 +139,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_INITIAL_HMAC, "error calling EVP_CIPHER_CTX_ctrl for composite cbc cipher") \
     ERR_ENTRY(S2N_ERR_INVALID_NONCE_TYPE, "Invalid AEAD nonce type") \
     ERR_ENTRY(S2N_ERR_UNIMPLEMENTED, "Unimplemented feature") \
+    ERR_ENTRY(S2N_ERR_HANDSHAKE_UNREACHABLE, "Unreachable handshake state machine handler invoked") \
     ERR_ENTRY(S2N_ERR_READ, "error calling read") \
     ERR_ENTRY(S2N_ERR_WRITE, "error calling write") \
     ERR_ENTRY(S2N_ERR_BAD_FD, "Invalid file descriptor") \
@@ -234,6 +235,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_ASYNC_APPLY_WHILE_INVOKING, "Async private key operation cannot consumed inside async pkey callback") \
     ERR_ENTRY(S2N_ERR_ASYNC_ALREADY_APPLIED, "Async operation was already applied to connection, cannot apply it again") \
     ERR_ENTRY(S2N_ERR_INVALID_HELLO_RETRY, "Invalid hello retry request") \
+    ERR_ENTRY(S2N_ERR_INVALID_STATE, "Invalid state, this is the result of invalid use of an API. Check the API documentation for the function that raised this error for more info.") \
 
 /* clang-format on */
 

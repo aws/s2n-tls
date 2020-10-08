@@ -48,7 +48,19 @@ struct s2n_handshake_action {
     int (*handler[2]) (struct s2n_connection * conn);
 };
 
-/* Client and Server handlers for each message type we support.
+static int s2n_always_fail_send(struct s2n_connection *conn)
+{
+    /* This state should never be sending a handshake message. */
+    S2N_ERROR(S2N_ERR_HANDSHAKE_UNREACHABLE);
+}
+
+static int s2n_always_fail_recv(struct s2n_connection *conn)
+{
+    /* This state should never have an incoming handshake message. */
+    S2N_ERROR(S2N_ERR_HANDSHAKE_UNREACHABLE);
+}
+
+/* Client and Server handlers for each message type we support.  
  * See http://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-7 for the list of handshake message types
  */
 static struct s2n_handshake_action state_machine[] = {
@@ -68,7 +80,7 @@ static struct s2n_handshake_action state_machine[] = {
     [CLIENT_FINISHED]           = {TLS_HANDSHAKE, TLS_FINISHED, 'C', {s2n_client_finished_recv, s2n_client_finished_send}},
     [SERVER_CHANGE_CIPHER_SPEC] = {TLS_CHANGE_CIPHER_SPEC, 0, 'S', {s2n_ccs_send, s2n_server_ccs_recv}},
     [SERVER_FINISHED]           = {TLS_HANDSHAKE, TLS_FINISHED, 'S', {s2n_server_finished_send, s2n_server_finished_recv}},
-    [APPLICATION_DATA]          = {TLS_APPLICATION_DATA, 0, 'B', {NULL, NULL}}
+    [APPLICATION_DATA]          = {TLS_APPLICATION_DATA, 0, 'B', {s2n_always_fail_send, s2n_always_fail_recv}}
 };
 
 /*
@@ -93,7 +105,7 @@ static struct s2n_handshake_action tls13_state_machine[] = {
     [CLIENT_CHANGE_CIPHER_SPEC] = {TLS_CHANGE_CIPHER_SPEC, 0, 'C', {s2n_basic_ccs_recv, s2n_ccs_send}},
     [SERVER_CHANGE_CIPHER_SPEC] = {TLS_CHANGE_CIPHER_SPEC, 0, 'S', {s2n_ccs_send, s2n_basic_ccs_recv}},
 
-    [APPLICATION_DATA]          = {TLS_APPLICATION_DATA, 0, 'B', {NULL, NULL}},
+    [APPLICATION_DATA]          = {TLS_APPLICATION_DATA, 0, 'B', {s2n_always_fail_send, s2n_always_fail_recv}},
 };
 
 #define MESSAGE_NAME_ENTRY(msg) [msg] = #msg
@@ -997,6 +1009,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
     S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_BAD_MESSAGE);
 
     while (s2n_stuffer_data_available(&conn->in)) {
+        /* We're done with negotiating but we have trailing data in this record. Bail on the handshake. */
+        S2N_ERROR_IF(EXPECTED_RECORD_TYPE(conn) == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
         int r;
         GUARD((r = s2n_read_full_handshake_message(conn, &message_type)));
 
