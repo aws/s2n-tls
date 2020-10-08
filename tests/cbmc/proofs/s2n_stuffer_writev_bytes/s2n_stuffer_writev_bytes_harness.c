@@ -28,10 +28,15 @@ void s2n_stuffer_writev_bytes_harness()
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+
     size_t iov_count;
     __CPROVER_assume(iov_count < MAX_IOVEC_SIZE);
-    struct iovec iov[ iov_count ];
-    for (int i = 0; i < iov_count; i++) { iov[ i ].iov_base = can_fail_malloc(iov[ i ].iov_len); }
+    struct iovec *iov = can_fail_malloc(iov_count * sizeof(struct iovec));
+    __CPROVER_assume(iov != NULL);
+    for (int i = 0; i < iov_count; i++) {
+        iov[ i ].iov_base = can_fail_malloc(iov[ i ].iov_len);
+    }
+
     uint32_t offs;
     uint32_t size;
 

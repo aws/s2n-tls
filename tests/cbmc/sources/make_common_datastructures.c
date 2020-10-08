@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <error/s2n_errno.h>
+
 #include <cbmc_proof/make_common_datastructures.h>
 
 bool s2n_blob_is_bounded(const struct s2n_blob *blob, const size_t max_size) { return (blob->size <= max_size); }
@@ -77,7 +79,17 @@ const char *nondet_c_str_is_allocated(size_t max_size)
 struct s2n_stuffer_reservation *cbmc_allocate_s2n_stuffer_reservation()
 {
     struct s2n_stuffer_reservation *reservation = can_fail_malloc(sizeof(*reservation));
-    if (reservation != NULL) { reservation->stuffer = cbmc_allocate_s2n_stuffer(); }
+    if (reservation != NULL) {
+        __CPROVER_assume(reservation->write_cursor <= UINT32_MAX - reservation->length);
+        uint32_t write_cursor_max = reservation->write_cursor + reservation->length;
+
+        reservation->stuffer = cbmc_allocate_s2n_stuffer();
+        if (reservation->stuffer != NULL) {
+            struct s2n_blob *blob = &reservation->stuffer->blob;
+            uint32_t blob_size = blob->growable ? blob->allocated : blob->size;
+            __CPROVER_assume(write_cursor_max < blob_size);
+        }
+    }
     return reservation;
 }
 

@@ -31,8 +31,8 @@ bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer)
      */
     return S2N_OBJECT_PTR_IS_READABLE(stuffer) &&
            s2n_blob_is_valid(&stuffer->blob) &&
+           stuffer->high_water_mark < stuffer->blob.size &&
            /* <= is valid because we can have a fully written/read stuffer */
-           stuffer->high_water_mark <= stuffer->blob.size &&
            stuffer->write_cursor <= stuffer->high_water_mark &&
            stuffer->read_cursor <= stuffer->write_cursor;
 }
