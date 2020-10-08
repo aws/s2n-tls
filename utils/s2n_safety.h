@@ -292,7 +292,7 @@
 /**
  * Marks a case of a switch statement as able to fall through to the next case
  */
-#if defined(__clang__) || (defined(__GNUC__) && __GNUC__ >= 7)
+#if (defined(__clang__) && __clang__ >= 4) || (defined(__GNUC__) && __GNUC__ >= 7)
 #    define FALL_THROUGH __attribute__((fallthrough))
 #else
 #    define FALL_THROUGH ((void)0)
