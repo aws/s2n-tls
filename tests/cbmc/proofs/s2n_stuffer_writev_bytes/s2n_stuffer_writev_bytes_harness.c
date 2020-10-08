@@ -31,7 +31,7 @@ void s2n_stuffer_writev_bytes_harness()
 
     size_t iov_count;
     __CPROVER_assume(iov_count < MAX_IOVEC_SIZE);
-    struct iovec *iov = can_fail_malloc(iov_count * sizeof(struct iovec));
+    struct iovec *iov = can_fail_malloc(iov_count * sizeof(*iov));
     __CPROVER_assume(iov != NULL);
     for (int i = 0; i < iov_count; i++) {
         iov[ i ].iov_base = can_fail_malloc(iov[ i ].iov_len);

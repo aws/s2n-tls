@@ -13,8 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <error/s2n_errno.h>
-
 #include <cbmc_proof/make_common_datastructures.h>
 
 bool s2n_blob_is_bounded(const struct s2n_blob *blob, const size_t max_size) { return (blob->size <= max_size); }

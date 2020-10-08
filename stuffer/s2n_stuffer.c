@@ -31,8 +31,9 @@ bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer)
      */
     return S2N_OBJECT_PTR_IS_READABLE(stuffer) &&
            s2n_blob_is_valid(&stuffer->blob) &&
+           /* <= is NOT valid here because the last read/write-able index is blob.size - 1 */
            stuffer->high_water_mark < stuffer->blob.size &&
-           /* <= is valid because we can have a fully written/read stuffer */
+           /* <= is valid below because we can have a fully written/read stuffer */
            stuffer->write_cursor <= stuffer->high_water_mark &&
            stuffer->read_cursor <= stuffer->write_cursor;
 }
