@@ -60,7 +60,7 @@ static int s2n_cookie_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 static int s2n_cookie_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     notnull_check(conn);
-    if (!s2n_is_tls13_enabled()) {
+    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         return S2N_SUCCESS;
     }
 

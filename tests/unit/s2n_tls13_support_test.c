@@ -31,68 +31,84 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    /* TLS 1.3 is not enabled by default */
-    EXPECT_FALSE(s2n_is_tls13_enabled());
+    /* TLS 1.3 is not used by default */
+    EXPECT_FALSE(s2n_use_default_tls13_config());
 
-    /* Client does not use TLS 1.3 by default */
+    /* TLS1.3 is not supported or configured by default */
     {
-        struct s2n_connection *conn;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        /* Client does not support or configure TLS 1.3 */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-        EXPECT_NOT_EQUAL(conn->client_protocol_version, S2N_TLS13);
+            EXPECT_NOT_EQUAL(conn->client_protocol_version, S2N_TLS13);
 
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+            const struct s2n_security_policy *security_policy;
+            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+            EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
-    /* Server does not use TLS 1.3 by default */
-    {
-        struct s2n_connection *conn;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
 
-        EXPECT_NOT_EQUAL(conn->server_protocol_version, S2N_TLS13);
+        /* Server does not support or configure TLS 1.3 */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-        EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_NOT_EQUAL(conn->server_protocol_version, S2N_TLS13);
+
+            const struct s2n_security_policy *security_policy;
+            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+            EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
     }
 
     EXPECT_SUCCESS(s2n_enable_tls13());
-    EXPECT_TRUE(s2n_is_tls13_enabled());
+    EXPECT_TRUE(s2n_use_default_tls13_config());
 
     /* Re-enabling has no effect */
     EXPECT_SUCCESS(s2n_enable_tls13());
-    EXPECT_TRUE(s2n_is_tls13_enabled());
+    EXPECT_TRUE(s2n_use_default_tls13_config());
 
-    /* Client does use TLS 1.3 if enabled */
+    /* If "enabled", TLS1.3 is supported and configured */
     {
-        struct s2n_connection *conn;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        /* Client supports and configures TLS 1.3 */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-        EXPECT_EQUAL(conn->client_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(conn->client_protocol_version, S2N_TLS13);
 
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+            const struct s2n_security_policy *security_policy;
+            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+            EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
-    /* Server does use TLS 1.3 if enabled */
-    {
-        struct s2n_connection *conn;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
 
-        EXPECT_EQUAL(conn->server_protocol_version, S2N_TLS13);
+        /* Server supports and configures TLS 1.3 */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-        EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_EQUAL(conn->server_protocol_version, S2N_TLS13);
+
+            const struct s2n_security_policy *security_policy;
+            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+            EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
     }
 
     EXPECT_SUCCESS(s2n_disable_tls13());
-    EXPECT_FALSE(s2n_is_tls13_enabled());
+    EXPECT_FALSE(s2n_use_default_tls13_config());
 
     /* Re-disabling has no effect */
     EXPECT_SUCCESS(s2n_disable_tls13());
-    EXPECT_FALSE(s2n_is_tls13_enabled());
-
-    /* TLS 1.3 can be enabled outside of unit tests */
-    EXPECT_SUCCESS(s2n_in_unit_test_set(false));
-    EXPECT_SUCCESS(s2n_enable_tls13());
-    EXPECT_SUCCESS(s2n_disable_tls13());
-    EXPECT_SUCCESS(s2n_in_unit_test_set(true));
+    EXPECT_FALSE(s2n_use_default_tls13_config());
 
     /* Test s2n_is_valid_tls13_cipher() */
     {
@@ -134,9 +150,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension_data, 0));
         EXPECT_SUCCESS(s2n_stuffer_write_str(&extension_data, "bad extension"));
 
-        /* Protocol version is required for key share extension parsing */
-        server_conn->actual_protocol_version = S2N_TLS13;
-
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
         for (int i=0; i < tls13_server_hello_extensions->count; i++) {
             const s2n_extension_type *tls13_extension_type = tls13_server_hello_extensions->extension_types[i];
@@ -148,14 +161,14 @@ int main(int argc, char **argv)
             parsed_extension->extension = extension_data.blob;
             parsed_extension->extension_type = tls13_extension_type->iana_value;
 
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            server_conn->server_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_extension_process(tls13_extension_type, server_conn, &parsed_extension_list));
 
             /* Create parsed extension again, because s2n_extension_process cleared the last one */
             parsed_extension->extension = extension_data.blob;
             parsed_extension->extension_type = tls13_extension_type->iana_value;
 
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            server_conn->server_protocol_version = S2N_TLS13;
             EXPECT_FAILURE(s2n_extension_process(tls13_extension_type, server_conn, &parsed_extension_list));
         }
 

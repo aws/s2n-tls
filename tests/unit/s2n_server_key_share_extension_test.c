@@ -274,6 +274,40 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_free(&extension_stuffer));
                 EXPECT_SUCCESS(s2n_connection_free(client_conn));
             }
+
+            /* Test that s2n_server_key_share_extension.recv is a no-op
+             * if tls1.3 not enabled */
+            {
+                struct s2n_stuffer extension_stuffer;
+                struct s2n_connection *client_conn;
+
+                EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+
+                const struct s2n_ecc_preferences *ecc_pref = NULL;
+                EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(client_conn, &ecc_pref));
+                EXPECT_NOT_NULL(ecc_pref);
+
+                const char *payload = key_share_payloads[0];
+
+                EXPECT_NULL(client_conn->secure.server_ecc_evp_params.negotiated_curve);
+                EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&extension_stuffer, payload));
+
+                client_conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[0]));
+
+                client_conn->actual_protocol_version = S2N_TLS12;
+                EXPECT_SUCCESS(s2n_server_key_share_extension.recv(client_conn, &extension_stuffer));
+                EXPECT_NULL(client_conn->secure.server_ecc_evp_params.negotiated_curve);
+                EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&extension_stuffer), 0);
+
+                client_conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_SUCCESS(s2n_server_key_share_extension.recv(client_conn, &extension_stuffer));
+                EXPECT_EQUAL(client_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
+                EXPECT_EQUAL(s2n_stuffer_data_available(&extension_stuffer), 0);
+
+                EXPECT_SUCCESS(s2n_stuffer_free(&extension_stuffer));
+                EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            }
         }
 
         /* Test error handling parsing broken/trancated p256 key share */
@@ -425,14 +459,6 @@ int main(int argc, char **argv)
                 S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
-
-    /* Test that s2n_server_key_share_extension.recv is a no-op
-     * if tls1.3 not enabled */
-    {
-        EXPECT_SUCCESS(s2n_disable_tls13());
-        EXPECT_SUCCESS(s2n_server_key_share_extension.recv(NULL, NULL));
-        EXPECT_SUCCESS(s2n_enable_tls13());
     }
 
     /* Test the s2n_server_key_share_extension.recv with HelloRetryRequest */

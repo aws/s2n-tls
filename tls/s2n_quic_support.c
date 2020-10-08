@@ -37,9 +37,6 @@ S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *ou
 
 int s2n_connection_enable_quic(struct s2n_connection *conn)
 {
-    /* The QUIC protocol doesn't use pre-1.3 TLS */
-    ENSURE_POSIX(s2n_is_tls13_enabled(), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
-
     notnull_check(conn);
     conn->quic_enabled = true;
     return S2N_SUCCESS;
