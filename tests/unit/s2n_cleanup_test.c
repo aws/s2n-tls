@@ -66,6 +66,7 @@ int check_dont_cleanup_null_on_fn_exit()
 int main()
 {
   BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
   int expected_cleanup_count = 0;
 
   /* check that the cleanup functions are called on each loop exit */

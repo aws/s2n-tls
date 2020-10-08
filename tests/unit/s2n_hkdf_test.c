@@ -530,6 +530,7 @@ int main(int argc, char **argv)
     struct s2n_blob in_key_blob, salt_blob, info_blob, actual_prk_blob, actual_output_blob;
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
 

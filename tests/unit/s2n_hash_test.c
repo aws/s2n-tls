@@ -37,6 +37,7 @@ int main(int argc, char **argv)
     uint64_t bytes_in_hash;
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     GUARD(s2n_hash_new(&hash));
     EXPECT_FALSE(s2n_hash_is_ready_for_input(&hash));

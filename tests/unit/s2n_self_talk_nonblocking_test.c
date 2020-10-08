@@ -356,6 +356,7 @@ int main(int argc, char **argv)
     signal(SIGPIPE, SIG_IGN);
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));

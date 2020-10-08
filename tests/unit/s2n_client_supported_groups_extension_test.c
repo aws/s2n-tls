@@ -30,6 +30,7 @@
 int main()
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Test s2n_extension_should_send_if_ecc_enabled */
     {

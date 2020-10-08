@@ -99,6 +99,7 @@ int main(int argc, char **argv)
     char dhparams_pem[S2N_MAX_TEST_PEM_SIZE];
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     for (int is_dh_key_exchange = 0; is_dh_key_exchange <= 1; is_dh_key_exchange++) {
         struct s2n_cert_chain_and_key *chain_and_keys[SUPPORTED_CERTIFICATE_FORMATS];

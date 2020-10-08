@@ -24,6 +24,7 @@
 int main(void)
 {
 	BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
 	s2n_errno = S2N_ERR_OK;
 	EXPECT_EQUAL(S2N_ERR_T_OK, s2n_error_get_type(s2n_errno));

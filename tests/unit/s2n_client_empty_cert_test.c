@@ -25,6 +25,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Test s2n_send_empty_cert_chain */
     {

@@ -29,6 +29,7 @@ int main(int argc, char **argv)
     uint8_t protocol_version[2] = { 3, 0 };
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     EXPECT_FAILURE(s2n_tls_record_stuffer_init(&writer, plaintext_pad, encrypted_pad, S2N_TLS_MAXIMUM_RECORD_LENGTH - 1, &error_message));
     EXPECT_SUCCESS(s2n_tls_record_stuffer_init(&writer, plaintext_pad, encrypted_pad, S2N_TLS_MAXIMUM_RECORD_LENGTH + 1, &error_message));

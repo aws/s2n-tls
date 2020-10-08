@@ -140,6 +140,7 @@ int main(int argc, char **argv)
     char *private_key_pem;
     struct s2n_cert_chain_and_key *chain_and_key;
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Ignore SIGPIPE */
     signal(SIGPIPE, SIG_IGN);

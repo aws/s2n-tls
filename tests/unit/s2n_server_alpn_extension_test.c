@@ -21,6 +21,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     const char *test_protocol_name = "chosen_protocol";
     const uint8_t test_protocol_name_size = strlen(test_protocol_name);

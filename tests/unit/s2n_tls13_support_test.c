@@ -30,6 +30,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* TLS 1.3 is not used by default */
     EXPECT_FALSE(s2n_use_default_tls13_config());

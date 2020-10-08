@@ -31,6 +31,7 @@ int main(int argc, char **argv)
 {
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
     /* s2n_post_handshake_recv */
     {   
         /* post_handshake_recv processes a key update requested message */

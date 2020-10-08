@@ -70,6 +70,7 @@ int s2n_app_data_in_handshake_record_recv_fn(void *io_context, uint8_t *buf, uin
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     struct s2n_connection *conn;
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));

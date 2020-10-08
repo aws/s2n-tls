@@ -33,6 +33,7 @@ int main(int argc, char **argv)
     char tokenpad[6];
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Check whitespace reading */
     {

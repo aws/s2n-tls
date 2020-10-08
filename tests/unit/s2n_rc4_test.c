@@ -41,6 +41,7 @@ int main(int argc, char **argv)
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     if (s2n_is_in_fips_mode()) {
         /* Skip when FIPS mode is set as FIPS mode does not support RC4 */

@@ -65,6 +65,7 @@ int main(int argc, char **argv)
     pthread_t threads[2];
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Get one byte of data, to make sure the pool is (almost) full */
     blob.size = 1;

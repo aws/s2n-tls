@@ -47,6 +47,7 @@ static int s2n_server_name_test_callback(struct s2n_connection *conn, void *ctx)
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* s2n_get_server_name */
     {
