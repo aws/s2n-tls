@@ -85,6 +85,12 @@ def cleanup_processes(*processes):
         p.kill()
         p.wait()
 
+def validate_version(expected_version, output):
+    for line in output.splitlines():
+        if ACTUAL_VERSION_STR.format(expected_version or S2N_TLS12) in line:
+            return 0
+    return -1
+
 def validate_data_transfer(expected_data, s_client_out, s2nd_out):
     """
     Verify that the application data written between s_client and s2nd is encrypted and decrypted successfuly.
@@ -279,7 +285,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
 
     s2nd_cmd.extend([str(endpoint), str(port)])
 
-    s2nd_ciphers = "test_all"
+    s2nd_ciphers = "test_all_tls12"
     if server_cipher_pref is not None:
         s2nd_ciphers = server_cipher_pref
     if enter_fips_mode == True:
@@ -288,9 +294,6 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
 
     if tls13_flag:
         s2nd_cmd.append("--tls13")
-        # we use tls12 only cipher preferences to keep s2nd negotiating maximum versions of TLS 1.2
-        if s2nd_ciphers == "test_all":
-            s2nd_ciphers = "test_all_tls12"
 
     s2nd_cmd.append("-c")
     s2nd_cmd.append(s2nd_ciphers)
@@ -394,6 +397,9 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
     cleanup_processes(s2nd, s_client)
 
     if validate_data_transfer(data_to_validate, s_client_out, s2nd_out) != 0:
+        return -1
+
+    if validate_version(ssl_version, s2nd_out) != 0:
         return -1
 
     if resume is True:
@@ -738,7 +744,7 @@ def cert_type_cipher_match_test(host, port, libcrypto_version, **kwargs):
 
     # Handshake with ECDSA cert + RSA priority server cipher prefs (must skip rsa ciphers)
     ecdsa_ret = try_handshake(host, port, cipher, None, curves=supported_curves,
-            server_cert=TEST_ECDSA_CERT, server_key=TEST_ECDSA_KEY, server_cipher_pref="test_all",
+            server_cert=TEST_ECDSA_CERT, server_key=TEST_ECDSA_KEY, server_cipher_pref="test_all_tls12",
             **kwargs)
     result_prefix = "Cert Type: ecdsa  Server Pref: rsa priority.  Vers: %-10s ... " % S2N_PROTO_VERS_TO_STR[None]
     print_result(result_prefix, ecdsa_ret)
@@ -759,7 +765,7 @@ def multiple_cert_type_test(host, port, libcrypto_version, **kwargs):
     # Basic handshake with ECDSA cert + RSA cert
     for cipher in ["ECDHE-ECDSA-AES128-SHA", "ECDHE-RSA-AES128-GCM-SHA256"]:
         supported_curves = "P-256:P-384"
-        server_prefs = "test_all"
+        server_prefs = "test_all_tls12"
         ret = try_handshake(host, port, cipher, None, curves=supported_curves,
                 server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
                 server_cipher_pref=server_prefs,
@@ -800,7 +806,7 @@ def multiple_cert_type_test(host, port, libcrypto_version, **kwargs):
     for cipher in ["ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-GCM-SHA256:AES128-SHA", "ECDHE-ECDSA-AES256-SHA:AES128-SHA"]:
         # Assume this is a curve s2n does not support
         supported_curves = "P-521"
-        server_prefs = "test_all"
+        server_prefs = "test_all_tls12"
         ret = try_handshake(host, port, cipher, None, curves=supported_curves,
                 server_cert_key_list=[(TEST_RSA_CERT, TEST_RSA_KEY),(TEST_ECDSA_CERT, TEST_ECDSA_KEY)],
                 server_cipher_pref=server_prefs,

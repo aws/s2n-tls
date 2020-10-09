@@ -138,13 +138,15 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
 
     # Read from s2nc until we get successful connection message
     found = 0
-    seperators = 0
+    right_version = 0
     for line in range(0, NUM_EXPECTED_LINES_OUTPUT):
         output = s2nc.stdout.readline().decode("utf-8")
         if output.strip() == "Connected to {}:{}".format(endpoint, port):
             found = 1
+        if ACTUAL_VERSION_STR.format(ssl_version or S2N_TLS12) in output:
+            right_version = 1
 
-    if not found:
+    if not found or not right_version:
         sys.stderr.write("= TEST FAILED =\ns_server cmd: {}\n s_server STDERR: {}\n\ns2nc cmd: {}\nSTDERR {}\n".format(" ".join(s_server_cmd), s_server.stderr.read().decode("utf-8"), " ".join(s2nc_cmd), s2nc.stderr.read().decode("utf-8")))
         return -1
 

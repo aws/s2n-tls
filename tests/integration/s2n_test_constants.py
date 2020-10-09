@@ -31,6 +31,8 @@ S2N_TLS11 = 32
 S2N_TLS12 = 33
 S2N_TLS13 = 34
 
+ACTUAL_VERSION_STR = "Actual protocol version: {}"
+
 # namedtuple makes iterating through ciphers across client libraries easier. The openssl_1_1_1_compatible flag is for
 # s_client tests. s_client won't be able to use those ciphers.
 S2N_CIPHER = collections.namedtuple('S2N_CIPHER', 'openssl_name gnutls_priority_str min_tls_vers openssl_1_1_1_compatible openssl_fips_compatible')
