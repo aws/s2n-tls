@@ -145,13 +145,13 @@ int s2n_check_sike434_r2_asm_compatibility() {
     s2n_cpuid(&eax, &ebx, &ecx, &edx, leaf);
 
     /* Check for bmi2 support */
-    if (!(edx & (1U << 8))) {
+    if (!(ebx & (1U << 8))) {
         return 0;
     }
 
 #if defined(_ADX_)
     /* Check for adx support */
-    if (!(edx & (1U << 19))) {
+    if (!(ebx & (1U << 19))) {
         return 0;
     }
 #endif /* _ADX_ */
