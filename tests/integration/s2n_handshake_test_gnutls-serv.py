@@ -94,7 +94,7 @@ def try_gnutls_handshake(endpoint, port, priority_str, session_tickets, ocsp):
     return found == 1
 
 def handshake(endpoint, port, cipher, session_tickets, ocsp):
-    success = try_gnutls_handshake(endpoint, port, cipher.gnutls_priority_str + ":+VERS-TLS1.2:+SIGN-ALL:+SHA1", session_tickets, ocsp)
+    success = try_gnutls_handshake(endpoint, port, cipher.gnutls_priority_str + ":+CURVE-ALL:+VERS-TLS1.2:+SIGN-ALL:+SHA1", session_tickets, ocsp)
 
     prefix = "Cipher: %-30s Session Tickets: %-5s OCSP: %-5s ... " % (cipher.openssl_name, session_tickets, ocsp)
 

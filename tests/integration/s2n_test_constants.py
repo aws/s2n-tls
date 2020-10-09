@@ -37,7 +37,7 @@ S2N_CIPHER = collections.namedtuple('S2N_CIPHER', 'openssl_name gnutls_priority_
 
 # Specifying a single cipher suite in GnuTLS requires specifying a "priority string" that removes all cipher suites,
 # and then adds each algorithm(kx,auth,enc,mac) for a given suite. See https://www.gnutls.org/manual/html_node/Priority-Strings.html
-S2N_GNUTLS_PRIORITY_PREFIX="NONE:+COMP-NULL:+CTYPE-ALL:+CURVE-ALL"
+S2N_GNUTLS_PRIORITY_PREFIX="NONE:+COMP-NULL:+CTYPE-ALL"
 
 ALL_TEST_CIPHERS = [
     S2N_CIPHER("RC4-MD5", S2N_GNUTLS_PRIORITY_PREFIX + ":+RSA:+ARCFOUR-128:+MD5", S2N_SSLv3, False, False),

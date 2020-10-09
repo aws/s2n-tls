@@ -138,6 +138,15 @@ int main(int argc, char **argv)
         EXPECT_NULL(security_policy->kem_preferences->kems);
         EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
+
+        security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("20201021", &security_policy));
+        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
+        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
+        EXPECT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
     }
 
     {
@@ -190,6 +199,7 @@ int main(int argc, char **argv)
             "20190120",
             "20190121",
             "20190122",
+            "20201021",
             "test_all_fips",
             "test_all_ecdsa",
             "test_ecdsa_priority",

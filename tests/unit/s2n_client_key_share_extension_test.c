@@ -956,7 +956,8 @@ static int s2n_write_key_share(struct s2n_stuffer *out,
             .iana_id = iana_value,
             .libcrypto_nid = existing_curve->libcrypto_nid,
             .name = existing_curve->name,
-            .share_size = share_size
+            .share_size = share_size,
+            .generate_key = existing_curve->generate_key
     };
 
     ecc_evp_params.negotiated_curve = &test_curve;

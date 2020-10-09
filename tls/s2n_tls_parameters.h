@@ -188,6 +188,7 @@
 /* Elliptic curves from https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8 */
 #define TLS_EC_CURVE_SECP_256_R1           23
 #define TLS_EC_CURVE_SECP_384_R1           24
+#define TLS_EC_CURVE_SECP_521_R1           25
 #define TLS_EC_CURVE_ECDH_X25519           29
 
 /* Ethernet maximum transmission unit (MTU)

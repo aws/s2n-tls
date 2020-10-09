@@ -37,6 +37,17 @@ DEFINE_POINTER_CLEANUP_FUNC(EC_KEY *, EC_KEY_free);
 DEFINE_POINTER_CLEANUP_FUNC(EC_POINT *, EC_POINT_free);
 #endif
 
+#if EVP_APIS_SUPPORTED
+static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
+#else
+static int s2n_ecc_evp_write_point_data_snug(const EC_POINT *point, const EC_GROUP *group, struct s2n_blob *out);
+static int s2n_ecc_evp_calculate_point_length(const EC_POINT *point, const EC_GROUP *group, uint8_t *length);
+static EC_POINT *s2n_ecc_evp_blob_to_point(struct s2n_blob *blob, const EC_KEY *ec_key);
+#endif
+static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
+static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
+static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret);
+
 /* IANA values can be found here: https://tools.ietf.org/html/rfc8446#appendix-B.3.1.4 */
 
 const struct s2n_ecc_named_curve s2n_ecc_curve_secp256r1 =
@@ -45,6 +56,7 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_secp256r1 =
         .libcrypto_nid = NID_X9_62_prime256v1,
         .name = "secp256r1",
         .share_size = SECP256R1_SHARE_SIZE,
+        .generate_key = s2n_ecc_evp_generate_key_nist_curves,
 };
 
 const struct s2n_ecc_named_curve s2n_ecc_curve_secp384r1 =
@@ -53,6 +65,16 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_secp384r1 =
         .libcrypto_nid = NID_secp384r1,
         .name = "secp384r1",
         .share_size = SECP384R1_SHARE_SIZE,
+        .generate_key = s2n_ecc_evp_generate_key_nist_curves,
+};
+
+const struct s2n_ecc_named_curve s2n_ecc_curve_secp521r1 =
+{
+        .iana_id = TLS_EC_CURVE_SECP_521_R1,
+        .libcrypto_nid = NID_secp521r1,
+        .name = "secp521r1",
+        .share_size = SECP521R1_SHARE_SIZE,
+        .generate_key = s2n_ecc_evp_generate_key_nist_curves,
 };
 
 #if EVP_APIS_SUPPORTED
@@ -61,6 +83,7 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {
     .libcrypto_nid = NID_X25519,
     .name = "x25519",
     .share_size = X25519_SHARE_SIZE,
+    .generate_key = s2n_ecc_evp_generate_key_x25519,
 };
 #else
 const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {0};
@@ -75,6 +98,7 @@ const struct s2n_ecc_named_curve *const s2n_all_supported_curves_list[] = {
 #if EVP_APIS_SUPPORTED
     &s2n_ecc_curve_x25519,
 #endif
+    &s2n_ecc_curve_secp521r1,
 };
 
 const size_t s2n_all_supported_curves_list_len = s2n_array_len(s2n_all_supported_curves_list);
@@ -84,17 +108,6 @@ int s2n_is_evp_apis_supported()
 {
     return EVP_APIS_SUPPORTED;
 }
-
-#if EVP_APIS_SUPPORTED
-static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
-#else
-static int s2n_ecc_evp_write_point_data_snug(const EC_POINT *point, const EC_GROUP *group, struct s2n_blob *out);
-static int s2n_ecc_evp_calculate_point_length(const EC_POINT *point, const EC_GROUP *group, uint8_t *length);
-static EC_POINT *s2n_ecc_evp_blob_to_point(struct s2n_blob *blob, const EC_KEY *ec_key);
-#endif
-static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
-static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
-static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret);
 
 #if EVP_APIS_SUPPORTED
 static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
@@ -134,15 +147,10 @@ static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve
 }
 
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
-#if EVP_APIS_SUPPORTED
-    if (named_curve->libcrypto_nid == NID_X25519) {
-        return s2n_ecc_evp_generate_key_x25519(named_curve, evp_pkey);
-    }
-#endif
-    if (named_curve->libcrypto_nid == NID_X9_62_prime256v1 || named_curve->libcrypto_nid == NID_secp384r1) {
-        return s2n_ecc_evp_generate_key_nist_curves(named_curve, evp_pkey);
-    }
-    S2N_ERROR(S2N_ERR_ECDHE_GEN_KEY);
+    notnull_check(named_curve);
+    S2N_ERROR_IF(named_curve->generate_key == NULL, S2N_ERR_ECDHE_GEN_KEY);
+
+    return named_curve->generate_key(named_curve, evp_pkey);
 }
 
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret) {

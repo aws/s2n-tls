@@ -58,6 +58,7 @@ extern const struct s2n_signature_scheme s2n_ecdsa_sha512;
 /* TLS 1.3 Compatible ECDSA Schemes */
 extern const struct s2n_signature_scheme s2n_ecdsa_secp256r1_sha256;
 extern const struct s2n_signature_scheme s2n_ecdsa_secp384r1_sha384;
+extern const struct s2n_signature_scheme s2n_ecdsa_secp521r1_sha512;
 
 /* RSA PSS */
 /*
@@ -73,4 +74,5 @@ extern const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha512;
 
 extern const struct s2n_signature_preferences s2n_signature_preferences_20140601;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20200207;
+extern const struct s2n_signature_preferences s2n_signature_preferences_20201021;
 extern const struct s2n_signature_preferences s2n_signature_preferences_null;

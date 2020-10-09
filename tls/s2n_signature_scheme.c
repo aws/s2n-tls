@@ -131,6 +131,14 @@ const struct s2n_signature_scheme s2n_ecdsa_secp384r1_sha384 = {
         .minimum_protocol_version = S2N_TLS13,
 };
 
+const struct s2n_signature_scheme s2n_ecdsa_secp521r1_sha512 = {
+        .iana_value = TLS_SIGNATURE_SCHEME_ECDSA_SECP521R1_SHA512,
+        .hash_alg = S2N_HASH_SHA512,
+        .sig_alg = S2N_SIGNATURE_ECDSA,
+        .signature_curve = &s2n_ecc_curve_secp521r1, /* Hardcoded as of TLS 1.3 */
+        .minimum_protocol_version = S2N_TLS13,
+};
+
 /**
  * RSA-PSS-RSAE
  */
@@ -233,6 +241,36 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20200207[] = {
         &s2n_ecdsa_sha1,
 };
 
+/* Add s2n_ecdsa_secp521r1_sha512 */
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20201021[] = {
+        /* RSA PSS */
+        &s2n_rsa_pss_pss_sha256,
+        &s2n_rsa_pss_pss_sha384,
+        &s2n_rsa_pss_pss_sha512,
+        &s2n_rsa_pss_rsae_sha256,
+        &s2n_rsa_pss_rsae_sha384,
+        &s2n_rsa_pss_rsae_sha512,
+
+        /* RSA PKCS1 */
+        &s2n_rsa_pkcs1_sha256,
+        &s2n_rsa_pkcs1_sha384,
+        &s2n_rsa_pkcs1_sha512,
+        &s2n_rsa_pkcs1_sha224,
+
+        /* ECDSA - TLS 1.2 */
+        &s2n_ecdsa_sha256, /* same iana value as TLS 1.3 s2n_ecdsa_secp256r1_sha256 */
+        &s2n_ecdsa_secp256r1_sha256,
+        &s2n_ecdsa_sha384, /* same iana value as TLS 1.3 s2n_ecdsa_secp384r1_sha384 */
+        &s2n_ecdsa_secp384r1_sha384,
+        &s2n_ecdsa_sha512, /* same iana value as TLS 1.3 s2n_ecdsa_secp521r1_sha512 */
+        &s2n_ecdsa_secp521r1_sha512,
+        &s2n_ecdsa_sha224,
+
+        /* SHA-1 Legacy */
+        &s2n_rsa_pkcs1_sha1,
+        &s2n_ecdsa_sha1,
+};
+
 const struct s2n_signature_preferences s2n_signature_preferences_20140601 = {
         .count = s2n_array_len(s2n_sig_scheme_pref_list_20140601),
         .signature_schemes = s2n_sig_scheme_pref_list_20140601,
@@ -241,6 +279,11 @@ const struct s2n_signature_preferences s2n_signature_preferences_20140601 = {
 const struct s2n_signature_preferences s2n_signature_preferences_20200207 = {
         .count = s2n_array_len(s2n_sig_scheme_pref_list_20200207),
         .signature_schemes = s2n_sig_scheme_pref_list_20200207,
+};
+
+const struct s2n_signature_preferences s2n_signature_preferences_20201021 = {
+        .count = s2n_array_len(s2n_sig_scheme_pref_list_20201021),
+        .signature_schemes = s2n_sig_scheme_pref_list_20201021,
 };
 
 const struct s2n_signature_preferences s2n_signature_preferences_null = {
