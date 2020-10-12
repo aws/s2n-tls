@@ -32,6 +32,25 @@
 #include "crypto/s2n_hmac.h"
 #include "crypto/s2n_hash.h"
 
+/* Explicit IV starts after the TLS record header. */
+#define EXPLICIT_IV_OFFSET S2N_TLS_RECORD_HEADER_LENGTH
+
+/* IVs should never be repeated with the same session key. */
+static int ensure_explicit_iv_is_unique(uint8_t existing_explicit_ivs[S2N_DEFAULT_FRAGMENT_LENGTH][S2N_TLS_MAX_IV_LEN],
+        size_t num_existing_ivs,
+        const uint8_t *candidate_iv,
+        uint16_t iv_len)
+{
+    for (size_t i = 0; i < num_existing_ivs; i++) {
+        if (memcmp(existing_explicit_ivs[i], candidate_iv, iv_len) == 0) {
+            return S2N_FAILURE;
+        }
+    }
+
+    return S2N_SUCCESS;
+}
+
+
 int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
@@ -43,6 +62,8 @@ int main(int argc, char **argv)
     struct s2n_blob aes128 = {.data = aes128_key,.size = sizeof(aes128_key) };
     struct s2n_blob aes256 = {.data = aes256_key,.size = sizeof(aes256_key) };
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
+    /* Stores explicit IVs used in each test case to validate uniqueness. */
+    uint8_t existing_explicit_ivs[S2N_DEFAULT_FRAGMENT_LENGTH + 2][S2N_TLS_MAX_IV_LEN];
 
     BEGIN_TEST();
 
@@ -112,7 +133,15 @@ int main(int argc, char **argv)
 
             /* The data should be encrypted */
             if (bytes_written > 10) {
-                EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + S2N_TLS_RECORD_HEADER_LENGTH, random_data, bytes_written), 0);
+                EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + EXPLICIT_IV_OFFSET + explicit_iv_len, random_data, bytes_written), 0);
+            }
+
+            if (explicit_iv_len > 0) {
+                /* The explicit IV for every record written should be random */
+                uint8_t *explicit_iv = conn->out.blob.data + EXPLICIT_IV_OFFSET;
+                EXPECT_SUCCESS(ensure_explicit_iv_is_unique(existing_explicit_ivs, i, explicit_iv, explicit_iv_len));
+                /* Record this IV */
+                memcpy(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
             }
 
             /* Copy the encrypted out data to the in data */
@@ -178,7 +207,15 @@ int main(int argc, char **argv)
 
             /* The data should be encrypted */
             if (bytes_written > 10) {
-                EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + S2N_TLS_RECORD_HEADER_LENGTH, random_data, bytes_written), 0);
+                EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + EXPLICIT_IV_OFFSET + explicit_iv_len, random_data, bytes_written), 0);
+            }
+
+            if (explicit_iv_len > 0) {
+                /* The explicit IV for every record written should be random */
+                uint8_t *explicit_iv = conn->out.blob.data + EXPLICIT_IV_OFFSET;
+                EXPECT_SUCCESS(ensure_explicit_iv_is_unique(existing_explicit_ivs, i, explicit_iv, explicit_iv_len));
+                /* Record this IV */
+                memcpy(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
             }
 
             /* Copy the encrypted out data to the in data */
@@ -245,7 +282,15 @@ int main(int argc, char **argv)
 
             /* The data should be encrypted */
             if (bytes_written > 10) {
-                EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + S2N_TLS_RECORD_HEADER_LENGTH, random_data, bytes_written), 0);
+                EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + EXPLICIT_IV_OFFSET + explicit_iv_len, random_data, bytes_written), 0);
+            }
+
+            if (explicit_iv_len > 0) {
+                /* The explicit IV for every record written should be random */
+                uint8_t *explicit_iv = conn->out.blob.data + EXPLICIT_IV_OFFSET;
+                EXPECT_SUCCESS(ensure_explicit_iv_is_unique(existing_explicit_ivs, i, explicit_iv, explicit_iv_len));
+                /* Record this IV */
+                memcpy(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
             }
 
             /* Copy the encrypted out data to the in data */
@@ -311,7 +356,15 @@ int main(int argc, char **argv)
 
             /* The data should be encrypted */
             if (bytes_written > 10) {
-                EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + S2N_TLS_RECORD_HEADER_LENGTH, random_data, bytes_written), 0);
+                EXPECT_NOT_EQUAL(memcmp(conn->out.blob.data + EXPLICIT_IV_OFFSET + explicit_iv_len, random_data, bytes_written), 0);
+            }
+
+            if (explicit_iv_len > 0) {
+                /* The explicit IV for every record written should be random */
+                uint8_t *explicit_iv = conn->out.blob.data + EXPLICIT_IV_OFFSET;
+                EXPECT_SUCCESS(ensure_explicit_iv_is_unique(existing_explicit_ivs, i, explicit_iv, explicit_iv_len));
+                /* Record this IV */
+                memcpy(existing_explicit_ivs[i], explicit_iv, explicit_iv_len);
             }
 
             /* Copy the encrypted out data to the in data */

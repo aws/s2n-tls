@@ -921,7 +921,7 @@ int main(int argc, char **argv) {
         s2n_x509_trust_store_wipe(&trust_store);
     }
 
-        /* Test invalid OCSP date range (after is off) */
+    /* Test invalid OCSP date range (after is off) */
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init_empty(&trust_store);
@@ -1058,10 +1058,201 @@ int main(int argc, char **argv) {
         uint8_t *raw_data = (uint8_t *)s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len);
         raw_data[800] = (uint8_t) (raw_data[800] + 1);
 
-        EXPECT_EQUAL(S2N_CERT_ERR_EXPIRED, s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+        EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
                                                                                                   raw_data,
                                                                                                   ocsp_data_len));
 
+        s2n_stuffer_free(&ocsp_data_stuffer);
+        s2n_connection_free(connection);
+        s2n_pkey_free(&public_key_out);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
+    }
+
+    /* Test valid OCSP date range and data, but the stapled response was signed with an issuer not in the chain of trust */
+    {
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init_empty(&trust_store);
+        EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_RSA_2048_SHA256_WILDCARD_CERT, NULL));
+
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+
+        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+
+        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_SHA256_WILDCARD_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
+
+        struct s2n_pkey public_key_out;
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type;
+        EXPECT_EQUAL(S2N_CERT_OK,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
+
+        EXPECT_EQUAL(1, verify_data.callback_invoked);
+        struct s2n_stuffer ocsp_data_stuffer;
+        EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
+        uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
+        EXPECT_TRUE(ocsp_data_len > 0);
+
+        uint8_t *raw_data = (uint8_t *)s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len);
+
+        EXPECT_EQUAL(S2N_CERT_ERR_INVALID, s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+                                                                                                  raw_data,
+                                                                                                  ocsp_data_len));
+
+        s2n_stuffer_free(&ocsp_data_stuffer);
+        s2n_connection_free(connection);
+        s2n_pkey_free(&public_key_out);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
+    }
+
+    /* Test OCSP response signed by the correct responder certificate, but not for the requested certificate.
+     * (So this would be a completely valid response to a different OCSP request for the other certificate.)  */
+    {
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init_empty(&trust_store);
+        EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
+
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+
+        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+
+        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_ECDSA_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
+
+        struct s2n_pkey public_key_out;
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type;
+        EXPECT_EQUAL(S2N_CERT_OK,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
+
+        EXPECT_EQUAL(1, verify_data.callback_invoked);
+        struct s2n_stuffer ocsp_data_stuffer;
+        EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
+        uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
+        EXPECT_TRUE(ocsp_data_len > 0);
+
+        uint8_t *raw_data = (uint8_t *)s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len);
+
+        EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+                                                                                                  raw_data,
+                                                                                                  ocsp_data_len));
+
+        s2n_stuffer_free(&ocsp_data_stuffer);
+        s2n_connection_free(connection);
+        s2n_pkey_free(&public_key_out);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
+    }
+
+    /* Test OCSP response signed by the wrong responder certificate, but the requested certificate was signed.
+     * (however this incorrect OCSP responder certificate is a valid OCSP responder for some other case and chains
+     * to a trusted root). Thus, this response is not valid for any request.  */
+    {
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init_empty(&trust_store);
+        EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
+
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+
+        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+
+        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_ECDSA_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
+
+        struct s2n_pkey public_key_out;
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type;
+        EXPECT_EQUAL(S2N_CERT_OK,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
+
+        EXPECT_EQUAL(1, verify_data.callback_invoked);
+        struct s2n_stuffer ocsp_data_stuffer;
+        EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_WRONG_SIGNER_DER, S2N_MAX_TEST_PEM_SIZE));
+        uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
+        EXPECT_TRUE(ocsp_data_len > 0);
+
+        uint8_t *raw_data = (uint8_t *)s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len);
+
+        EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED, s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+                                                                                                    raw_data,
+                                                                                                    ocsp_data_len));
+
+        s2n_stuffer_free(&ocsp_data_stuffer);
+        s2n_connection_free(connection);
+        s2n_pkey_free(&public_key_out);
+        s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
+    }
+
+    /* Test OCSP response status is revoked */
+    {
+        struct s2n_x509_trust_store trust_store;
+        s2n_x509_trust_store_init_empty(&trust_store);
+        EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
+
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init(&validator, &trust_store, 1);
+
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+
+        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+
+        uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        struct s2n_stuffer chain_stuffer;
+        uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
+
+        struct s2n_pkey public_key_out;
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type;
+        EXPECT_EQUAL(S2N_CERT_OK,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
+
+        EXPECT_EQUAL(1, verify_data.callback_invoked);
+        struct s2n_stuffer ocsp_data_stuffer;
+        EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_REVOKED_DER, S2N_MAX_TEST_PEM_SIZE));
+        uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
+        EXPECT_TRUE(ocsp_data_len > 0);
+        EXPECT_EQUAL(S2N_CERT_ERR_REVOKED, s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+                                                                                         s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len),
+                                                                                         ocsp_data_len));
         s2n_stuffer_free(&ocsp_data_stuffer);
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
