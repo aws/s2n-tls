@@ -51,9 +51,8 @@ test_sni_match:
 	$(call run_tox,$@.py)
 test_well_known_endpoints:
 	$(call run_tox,$@.py)
-# FIXME Temporary hack for to get CI working in draft PR
-test_compatibility_with_oqs_openssl:
-	$(call run_tox,test_tls13_pq_handshake.py)
+# FIXME Remove this test from CI, then from Makefile
+test_compatibility_with_oqs_openssl: ;
 test_fragmentation:
 	$(call run_tox,$@.py)
 test_hello_retry_requests:

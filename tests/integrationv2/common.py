@@ -231,21 +231,40 @@ class Ciphers(object):
     ECDHE_RSA_CHACHA20_POLY1305 = Cipher("ECDHE-RSA-CHACHA20-POLY1305", Protocols.TLS12, True, False, iana_standard_name="TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256")
     CHACHA20_POLY1305_SHA256 = Cipher("TLS_CHACHA20_POLY1305_SHA256", Protocols.TLS13, True, False, iana_standard_name="TLS_CHACHA20_POLY1305_SHA256")
 
-    KMS_TLS_1_0_2018_10 = Cipher("KMS-TLS-1-0-2018-10", Protocols.TLS10, False, False)
-    KMS_PQ_TLS_1_0_2019_06 = Cipher("KMS-PQ-TLS-1-0-2019-06", Protocols.TLS10, False, False)
-    KMS_PQ_TLS_1_0_2020_02 = Cipher("KMS-PQ-TLS-1-0-2020-02", Protocols.TLS10, False, False)
-    KMS_PQ_TLS_1_0_2020_07 = Cipher("KMS-PQ-TLS-1-0-2020-07", Protocols.TLS10, False, False)
-    PQ_SIKE_TEST_TLS_1_0_2019_11 = Cipher("PQ-SIKE-TEST-TLS-1-0-2019-11", Protocols.TLS10, False, False)
-    PQ_SIKE_TEST_TLS_1_0_2020_02 = Cipher("PQ-SIKE-TEST-TLS-1-0-2020-02", Protocols.TLS10, False, False)
-    PQ_KYBERBIKESIKE_TEST_TLS_1_0_2020_09 = Cipher("PQ-KYBERBIKESIKE-TEST-TLS-1-0-2020-09", Protocols.TLS10, False, False)
-    PQ_KYBER_TEST_TLS_1_0_2020_09 = Cipher("PQ-KYBER-TEST-TLS-1-0-2020-09", Protocols.TLS10, False, False)
-    PQ_BIKE_TEST_TLS_1_0_2020_09 = Cipher("PQ-BIKE-TEST-TLS-1-0-2020-09", Protocols.TLS10, False, False)
-    PQ_SIKE_TEST_TLS_1_0_2020_09 = Cipher("PQ-SIKE-TEST-TLS-1-0-2020-09", Protocols.TLS10, False, False)
+    ECDHE_KYBER_RSA_AES256_GCM_SHA384 = Cipher("ECDHE-KYBER-RSA-AES256-GCM-SHA384", Protocols.TLS12, False, False)
+    ECDHE_BIKE_RSA_AES256_GCM_SHA384 = Cipher("ECDHE-BIKE-RSA-AES256-GCM-SHA384", Protocols.TLS12, False, False)
+    ECDHE_SIKE_RSA_AES256_GCM_SHA384 = Cipher("ECDHE-SIKE-RSA-AES256-GCM-SHA384", Protocols.TLS12, False, False)
+
+
+class SecurityPolicy(object):
+    def __init__(self, name, min_version):
+        self.name = name
+        self.min_version = min_version
+
+    def __eq__(self, other):
+        return self.name == other
+
+    def __str__(self):
+        return self.name
+
+
+class SecurityPolicies(object):
+    KMS_TLS_1_0_2018_10 = SecurityPolicy("KMS-TLS-1-0-2018-10", Protocols.TLS10)
+    KMS_PQ_TLS_1_0_2019_06 = SecurityPolicy("KMS-PQ-TLS-1-0-2019-06", Protocols.TLS10)
+    KMS_PQ_TLS_1_0_2020_02 = SecurityPolicy("KMS-PQ-TLS-1-0-2020-02", Protocols.TLS10)
+    KMS_PQ_TLS_1_0_2020_07 = SecurityPolicy("KMS-PQ-TLS-1-0-2020-07", Protocols.TLS10)
+    PQ_SIKE_TEST_TLS_1_0_2019_11 = SecurityPolicy("PQ-SIKE-TEST-TLS-1-0-2019-11", Protocols.TLS10)
+    PQ_SIKE_TEST_TLS_1_0_2020_02 = SecurityPolicy("PQ-SIKE-TEST-TLS-1-0-2020-02", Protocols.TLS10)
+    PQ_KYBERBIKESIKE_TEST_TLS_1_0_2020_09 = SecurityPolicy("PQ-KYBERBIKESIKE-TEST-TLS-1-0-2020-09", Protocols.TLS10)
+    PQ_KYBER_TEST_TLS_1_0_2020_09 = SecurityPolicy("PQ-KYBER-TEST-TLS-1-0-2020-09", Protocols.TLS10)
+    PQ_BIKE_TEST_TLS_1_0_2020_09 = SecurityPolicy("PQ-BIKE-TEST-TLS-1-0-2020-09", Protocols.TLS10)
+    PQ_SIKE_TEST_TLS_1_0_2020_09 = SecurityPolicy("PQ-SIKE-TEST-TLS-1-0-2020-09", Protocols.TLS10)
 
 
 class Curve(object):
-    def __init__(self, name, min_protocol=Protocols.SSLv3):
+    def __init__(self, name, s2n_name, min_protocol=Protocols.SSLv3):
         self.name = name
+        self.s2n_name = s2n_name
         self.min_protocol = min_protocol
 
     def __str__(self):
@@ -257,27 +276,49 @@ class Curves(object):
     When referencing curves, use these class values.
     Don't hardcode curve names.
     """
-    X25519 = Curve("X25519", Protocols.TLS13)
-    P256 = Curve("P-256")
-    P384 = Curve("P-384")
+    X25519 = Curve("X25519", "x25519", Protocols.TLS13)
+    P256 = Curve("P-256", "secp256r1")
+    P384 = Curve("P-384", "secp384r1")
 
-class KemGroup(object):
+class Kem(object):
     def __init__(self, name):
         self.name = name
 
     def __str__(self):
         return self.name
 
+class Kems(object):
+    KYBER512R2 = Kem("kyber512r2")
+
+    BIKE1L1R1 = Kem("BIKE1r1-Level1")
+    BIKE1L1FOR2 = Kem("BIKE1r2-Level1")
+
+    SIKEP503R2 = Kem("SIKEp503r1-KEM")
+    SIKEP434R2 = Kem("SIKEp434r2-KEM")
+
+class KemGroup(object):
+    def __init__(self, s2n_name, oqs_name):
+        self.s2n_name = s2n_name
+        self.oqs_name = oqs_name
+
+    def __eq__(self, other_name):
+        return (other_name is not None) and ((self.s2n_name == other_name) or (self.oqs_name == other_name))
+
+    def __str__(self):
+        return self.s2n_name
+
 class KemGroups(object):
     """
     When referencing a KEM Group, use these class values.
-    These are only for use with oqs_openssl. oqs_openssl
-    accepts the PQ KEM Group options as -groups on the
-    command line.
     """
-    P256_KYBER512 = KemGroup("p256_kyber512")
-    P256_BIKE1L1FO = KemGroup("p256_bike1l1fo")
-    P256_SIKEP434 = KemGroup("p256_sikep434")
+    P256_KYBER512R2 = KemGroup("secp256r1_kyber-512-r2", "p256_kyber512")
+    P256_BIKE1L1FOR2 = KemGroup("secp256r1_bike-1l1fo-r2", "p256_bike1l1fo")
+    P256_SIKEP434R2 = KemGroup("secp256r1_sike-p434-r2", "p256_sikep434")
+
+    # oqs_openssl does not support x25519 based KEM groups
+    X25519_KYBER512R2 = KemGroup("x25519_kyber-512-r2", None)
+    X25519_BIKE1L1FOR2 = KemGroup("x25519_bike-1l1fo-r2", None)
+    X25519_SIKEP434R2 = KemGroup("x25519_sike-p434-r2", None)
 
 class Signature(object):
     def __init__(self, name, min_protocol=Protocols.SSLv3, sig_type=None, sig_digest=None):
@@ -364,8 +405,9 @@ class ProviderOptions(object):
             host=None,
             port=None,
             cipher=None,
+            security_policy=None,
             curve=None,
-            kemgroup=None,
+            kem_group=None,
             key=None,
             cert=None,
             use_session_ticket=False,
@@ -395,11 +437,14 @@ class ProviderOptions(object):
         # Cipher suite
         self.cipher = cipher
 
+        # S2N security policy
+        self.security_policy = security_policy
+
         # Named curve
         self.curve = curve
 
         # KEM group
-        self.kemgroup = kemgroup
+        self.kem_group = kem_group
 
         # Path to a key PEM
         self.key = key

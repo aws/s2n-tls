@@ -324,7 +324,7 @@ const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_07 = {
 
 const struct s2n_security_policy security_policy_kyberbikesike_test_tls_1_0_2020_09 = {
     .minimum_protocol_version = S2N_TLS10,
-    .cipher_preferences = &cipher_preferences_20190801,
+    .cipher_preferences = &cipher_preferences_pq_kyberbikesike_test_tls_1_0_2020_09,
     .kem_preferences = &kem_preferences_kyberbikesike_test_2020_09,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,

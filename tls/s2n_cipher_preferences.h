@@ -96,6 +96,7 @@ extern const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_202
 extern const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2020_07;
 extern const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2019_11;
 extern const struct s2n_cipher_preferences cipher_preferences_pq_sike_test_tls_1_0_2020_02;
+extern const struct s2n_cipher_preferences cipher_preferences_pq_kyberbikesike_test_tls_1_0_2020_09;
 
 #endif
 

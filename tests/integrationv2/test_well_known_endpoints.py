@@ -4,7 +4,7 @@ import pytest
 
 from constants import TRUST_STORE_BUNDLE
 from configuration import available_ports, PROTOCOLS
-from common import ProviderOptions, Protocols, Ciphers
+from common import ProviderOptions, Protocols, Ciphers, SecurityPolicies
 from fixtures import managed_process
 from global_flags import get_flag, S2N_NO_PQ, S2N_FIPS_MODE
 from providers import Provider, S2N
@@ -28,12 +28,12 @@ if get_flag(S2N_NO_PQ, False) is False:
     pq_endpoints = [
         {
             "endpoint": "kms.us-east-1.amazonaws.com",
-            "cipher_preference_version": Ciphers.KMS_PQ_TLS_1_0_2019_06,
+            "cipher_preference_version": SecurityPolicies.KMS_PQ_TLS_1_0_2019_06,
             "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384"
         },
         {
             "endpoint": "kms.us-east-1.amazonaws.com",
-            "cipher_preference_version": Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11,
+            "cipher_preference_version": SecurityPolicies.PQ_SIKE_TEST_TLS_1_0_2019_11,
             "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384"
         }
     ]

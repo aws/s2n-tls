@@ -127,31 +127,31 @@ const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2020_02 = 
 };
 
 const struct s2n_kem_preferences kem_preferences_kyberbikesike_test_2020_09 = {
-        .kem_count = 0,
-        .kems = NULL,
-        .tls13_kem_group_count = s2n_array_len(pq_kem_groups_kyberbikesike_r2),
-        .tls13_kem_groups = pq_kem_groups_kyberbikesike_r2,
+    .kem_count = s2n_array_len(pq_kems_r2r1_2020_07),
+    .kems = pq_kems_r2r1_2020_07,
+    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_kyberbikesike_r2),
+    .tls13_kem_groups = pq_kem_groups_kyberbikesike_r2,
 };
 
 const struct s2n_kem_preferences kem_preferences_kyber_test_2020_09 = {
-        .kem_count = 0,
-        .kems = NULL,
-        .tls13_kem_group_count = s2n_array_len(pq_kem_groups_kyber_r2),
-        .tls13_kem_groups = pq_kem_groups_kyber_r2,
+    .kem_count = 0,
+    .kems = NULL,
+    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_kyber_r2),
+    .tls13_kem_groups = pq_kem_groups_kyber_r2,
 };
 
 const struct s2n_kem_preferences kem_preferences_bike_test_2020_09 = {
-        .kem_count = 0,
-        .kems = NULL,
-        .tls13_kem_group_count = s2n_array_len(pq_kem_groups_bike_r2),
-        .tls13_kem_groups = pq_kem_groups_bike_r2,
+    .kem_count = 0,
+    .kems = NULL,
+    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_bike_r2),
+    .tls13_kem_groups = pq_kem_groups_bike_r2,
 };
 
 const struct s2n_kem_preferences kem_preferences_sike_test_2020_09 = {
-        .kem_count = 0,
-        .kems = NULL,
-        .tls13_kem_group_count = s2n_array_len(pq_kem_groups_sike_r2),
-        .tls13_kem_groups = pq_kem_groups_sike_r2,
+    .kem_count = 0,
+    .kems = NULL,
+    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_sike_r2),
+    .tls13_kem_groups = pq_kem_groups_sike_r2,
 };
 
 #endif
