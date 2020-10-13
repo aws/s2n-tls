@@ -31,6 +31,8 @@
 #define S2N_TLS_GCM_EXPLICIT_IV_LEN     8
 #define S2N_TLS_GCM_IV_LEN            (S2N_TLS_GCM_FIXED_IV_LEN + S2N_TLS_GCM_EXPLICIT_IV_LEN)
 #define S2N_TLS_GCM_TAG_LEN            16
+#define S2N_TLS_AES_128_GCM_KEY_LEN     16
+#define S2N_TLS_AES_256_GCM_KEY_LEN     32
 
 /* TLS 1.3 uses only implicit IVs - RFC 8446 5.3 */
 #define S2N_TLS13_AAD_LEN               5
