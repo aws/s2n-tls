@@ -41,6 +41,11 @@ def cleanup_processes(*processes):
         p.kill()
         p.wait()
 
+
+def validate_version(expected_version, line):
+    return ACTUAL_VERSION_STR.format(expected_version or S2N_TLS12) in line
+
+
 def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_key=None, sig_algs=None, curves=None, dh_params=None, resume=False, no_ticket=False):
     """
     Attempt to handshake against Openssl s_server listening on `endpoint` and `port` using s2nc
@@ -109,7 +114,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
         return -1
 
     # Fire up s2nc
-    s2nc_cmd = ["../../bin/s2nc", "-c", "test_all", "-i"]
+    s2nc_cmd = ["../../bin/s2nc", "-c", "test_all_tls12", "-i"]
     if resume:
         s2nc_cmd.append("-r")
     if no_ticket:
@@ -123,9 +128,12 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     # Read from s2nc until we get successful connection message
     found = 0
     seperators = 0
+    right_version = 0
     if resume:
         for line in s2nc.stdout:
             line = line.decode("utf-8").strip()
+            if validate_version(ssl_version, line):
+                right_version = 1
             if line.startswith("Resumed session"):
                 seperators += 1
 
@@ -135,13 +143,14 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_cert=None, server_
     else:
         for line in range(0, NUM_EXPECTED_LINES_OUTPUT):
             output = s2nc.stdout.readline().decode("utf-8")
+            if validate_version(ssl_version, output):
+                right_version = 1
             if output.strip() == "Connected to {}:{}".format(endpoint, port):
                 found = 1
-                break
 
     cleanup_processes(s2nc, s_server)
 
-    if not found:
+    if not found or not right_version:
         sys.stderr.write("= TEST FAILED =\ns_server cmd: {}\n s_server STDERR: {}\n\ns2nc cmd: {}\nSTDERR {}\n".format(" ".join(s_server_cmd), s_server.stderr.read().decode("utf-8"), " ".join(s2nc_cmd), s2nc.stderr.read().decode("utf-8")))
         return -1
 
