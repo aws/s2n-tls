@@ -57,7 +57,7 @@ bool s2n_stuffer_reservation_is_valid(const struct s2n_stuffer_reservation* rese
     }
     return S2N_IMPLIES(
         reserve_obj.length > 0,
-        (reserve_obj.write_cursor < stuffer_obj.blob.size &&
+        (reserve_obj.write_cursor < stuffer_obj.write_cursor &&
          S2N_MEM_IS_WRITABLE(stuffer_obj.blob.data + reserve_obj.write_cursor, reserve_obj.length))
     );
 }
