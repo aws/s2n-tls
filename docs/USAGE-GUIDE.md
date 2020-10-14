@@ -851,9 +851,11 @@ terminate handshake early with fatal handshake failure alert.
 ```c
 int s2n_config_set_alert_behavior(struct s2n_config *config, s2n_alert_behavior alert_behavior);
 ```
-Sets whether or not a should terminate connection on WARNING alert from peer. `alert_behavior` can take the following values:
-- `S2N_ALERT_FAIL_ON_WARNINGS` - default behavior: s2n will terminate conneciton if peer sends WARNING alert.
+Sets whether or not a connection should terminate on receiving a WARNING alert from its peer. `alert_behavior` can take the following values:
+- `S2N_ALERT_FAIL_ON_WARNINGS` - default behavior: s2n will terminate the connection if its peer sends a WARNING alert.
 - `S2N_ALERT_IGNORE_WARNINGS` - with the exception of `close_notify` s2n will ignore all WARNING alerts and keep communicating with its peer.
+
+This setting is ignored in TLS1.3, which requires that all alerts cause the connection to terminate.
 
 ## Certificate-related functions
 

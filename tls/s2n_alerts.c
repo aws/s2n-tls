@@ -92,6 +92,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
 
             /* Ignore warning-level alerts if we're in warning-tolerant mode */
             if (conn->config->alert_behavior == S2N_ALERT_IGNORE_WARNINGS &&
+                    s2n_connection_get_protocol_version(conn) < S2N_TLS13 &&
                     conn->alert_in_data[0] == S2N_TLS_ALERT_LEVEL_WARNING) {
                 GUARD(s2n_stuffer_wipe(&conn->alert_in));
                 return 0;
