@@ -85,7 +85,9 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
         if (s2n_stuffer_data_available(&conn->alert_in) == 2) {
 
             /* Close notifications are handled as shutdowns */
-            if (conn->alert_in_data[1] == S2N_TLS_ALERT_CLOSE_NOTIFY) {
+            if (conn->alert_in_data[1] == S2N_TLS_ALERT_CLOSE_NOTIFY ||
+                    (conn->alert_in_data[1] == S2N_TLS_ALERT_USER_CANCELED &&
+                     conn->actual_protocol_version >= S2N_TLS13)) {
                 conn->closed = 1;
                 return 0;
             }

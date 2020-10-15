@@ -453,8 +453,8 @@ class JavaSSL(Provider):
         if self.options.protocol is not None:
             cmd_line.extend([self.options.protocol.name])
         
-        if self.options.cipher.standard_name is not None:
-            cmd_line.extend([self.options.cipher.standard_name])
+        if self.options.cipher.iana_standard_name is not None:
+            cmd_line.extend([self.options.cipher.iana_standard_name])
 
         # Clients are always ready to connect
         self.set_provider_ready()
