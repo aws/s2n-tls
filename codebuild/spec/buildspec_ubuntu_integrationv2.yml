@@ -55,4 +55,6 @@ phases:
     commands:
       - printenv
       - . $CB_BIN_DIR/s2n_setup_env.sh
+      # For jdk integration test
+      - javac tests/integrationv2/bin/SSLSocketClient.java
       - make -C tests/integrationv2 $INTEGV2_TEST
