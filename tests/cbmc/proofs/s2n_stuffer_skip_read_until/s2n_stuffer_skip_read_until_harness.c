@@ -36,8 +36,8 @@ void s2n_stuffer_skip_read_until_harness()
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
-    if (s2n_stuffer_skip_read_until(stuffer, target) == S2N_SUCCESS) {
-        const int len = strlen(target);
+    size_t len = (target != NULL) ? strlen(target) : 0;
+    if (len > 0 && s2n_stuffer_skip_read_until(stuffer, target) == S2N_SUCCESS) {
         if (s2n_stuffer_data_available(stuffer) >= len) {
             uint8_t *actual = stuffer->blob.data + stuffer->read_cursor - len;
             assert((strncmp(( char * )actual, target, len) == 0) || (s2n_stuffer_data_available(stuffer) < len));

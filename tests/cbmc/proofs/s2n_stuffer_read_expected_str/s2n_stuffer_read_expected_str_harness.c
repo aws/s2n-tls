@@ -35,10 +35,11 @@ void s2n_stuffer_read_expected_str_harness()
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
-    if (s2n_stuffer_read_expected_str(stuffer, expected) == S2N_SUCCESS) {
-        uint8_t *actual = stuffer->blob.data + stuffer->read_cursor - strlen(expected);
-        assert(!memcmp(actual, expected, strlen(expected)));
-        assert(stuffer->read_cursor == old_stuffer.read_cursor + strlen(expected));
+    size_t expected_length = (expected != NULL) ? strlen(expected) : 0;
+    if (expected_length > 0 && s2n_stuffer_read_expected_str(stuffer, expected) == S2N_SUCCESS) {
+        uint8_t *actual = stuffer->blob.data + stuffer->read_cursor - expected_length;
+        assert(!memcmp(actual, expected, expected_length));
+        assert(stuffer->read_cursor == old_stuffer.read_cursor + expected_length);
     } else {
         assert(stuffer->read_cursor == old_stuffer.read_cursor);
     }

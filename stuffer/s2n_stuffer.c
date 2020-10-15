@@ -52,7 +52,14 @@ bool s2n_stuffer_reservation_is_valid(const struct s2n_stuffer_reservation* rese
         return false;
     }
     const struct s2n_stuffer stuffer_obj = *(reserve_obj.stuffer);
-    return S2N_MEM_IS_WRITABLE(stuffer_obj.blob.data + reserve_obj.write_cursor, reserve_obj.length);
+    if (stuffer_obj.blob.size < reserve_obj.length) {
+        return false;
+    }
+    return S2N_IMPLIES(
+        reserve_obj.length > 0,
+        (reserve_obj.write_cursor < stuffer_obj.write_cursor &&
+         S2N_MEM_IS_WRITABLE(stuffer_obj.blob.data + reserve_obj.write_cursor, reserve_obj.length))
+    );
 }
 
 int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in)
@@ -68,6 +75,7 @@ int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in)
     stuffer->tainted = 0;
     return S2N_SUCCESS;
 }
+
 int s2n_stuffer_alloc(struct s2n_stuffer *stuffer, const uint32_t size)
 {
     notnull_check(stuffer);
