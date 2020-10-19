@@ -855,8 +855,6 @@ Sets whether or not a connection should terminate on receiving a WARNING alert f
 - `S2N_ALERT_FAIL_ON_WARNINGS` - default behavior: s2n will terminate the connection if its peer sends a WARNING alert.
 - `S2N_ALERT_IGNORE_WARNINGS` - with the exception of `close_notify` s2n will ignore all WARNING alerts and keep communicating with its peer.
 
-This setting is ignored in TLS1.3, which requires that all alerts cause the connection to terminate.
-
 ## Certificate-related functions
 
 ### s2n\_cert\_chain\_and\_key\_new

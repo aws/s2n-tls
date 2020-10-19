@@ -54,8 +54,11 @@ int main(int argc, char **argv)
 
         /* Test warning behavior */
         {
-            const uint8_t warning_alert[] = { 0x01 /* AlertLevel = warning */,
-                                              0x46 /* AlertDescription = protocol_version (arbitrary value) */};
+            const uint8_t warning_alert[] = {  1 /* AlertLevel = warning */,
+                                              70 /* AlertDescription = protocol_version (arbitrary value) */};
+
+            const uint8_t user_canceled_alert[] = {  1 /* AlertLevel = warning */,
+                                                    90 /* AlertDescription = user_canceled */ };
 
             /* Warnings treated as errors by default */
             {
@@ -109,6 +112,29 @@ int main(int argc, char **argv)
 
                 EXPECT_FAILURE_WITH_ERRNO(s2n_process_alert_fragment(conn), S2N_ERR_ALERT);
                 EXPECT_TRUE(conn->closed);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+                EXPECT_SUCCESS(s2n_config_free(config));
+                EXPECT_SUCCESS(s2n_disable_tls13());
+            }
+
+            /* user_canceled ignored in TLS1.3 if alert_behavior == S2N_ALERT_IGNORE_WARNINGS */
+            {
+                EXPECT_SUCCESS(s2n_enable_tls13());
+
+                struct s2n_config *config;
+                EXPECT_NOT_NULL(config = s2n_config_new());
+                EXPECT_SUCCESS(s2n_config_set_alert_behavior(config, S2N_ALERT_IGNORE_WARNINGS));
+
+                struct s2n_connection *conn;
+                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+                EXPECT_EQUAL(s2n_connection_get_protocol_version(conn), S2N_TLS13);
+
+                EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, user_canceled_alert, sizeof(user_canceled_alert)));
+
+                EXPECT_SUCCESS(s2n_process_alert_fragment(conn));
+                EXPECT_FALSE(conn->closed);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
                 EXPECT_SUCCESS(s2n_config_free(config));
