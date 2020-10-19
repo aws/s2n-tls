@@ -32,10 +32,6 @@ int main(int argc, char **argv)
 
         /* Check error handling */
         {
-            EXPECT_SUCCESS(s2n_disable_tls13());
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_enable_quic(conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
-            EXPECT_FALSE(conn->quic_enabled);
-
             EXPECT_SUCCESS(s2n_enable_tls13());
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_enable_quic(NULL), S2N_ERR_NULL);
             EXPECT_FALSE(conn->quic_enabled);

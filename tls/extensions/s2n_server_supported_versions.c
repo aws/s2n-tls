@@ -80,7 +80,7 @@ static int s2n_extensions_server_supported_versions_process(struct s2n_connectio
 
 static int s2n_server_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
 {
-    if (!s2n_is_tls13_enabled()) {
+    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         return S2N_SUCCESS;
     }
 

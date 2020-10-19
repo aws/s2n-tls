@@ -18,9 +18,11 @@
 #include "tls/s2n_tls13.h"
 #include "crypto/s2n_rsa_signing.h"
 
-int s2n_is_tls13_enabled()
+bool s2n_use_default_tls13_config_flag = false;
+
+bool s2n_use_default_tls13_config()
 {
-    return s2n_highest_protocol_version == S2N_TLS13;
+    return s2n_use_default_tls13_config_flag;
 }
 
 /* ** WARNING **
@@ -31,12 +33,14 @@ int s2n_is_tls13_enabled()
 int s2n_enable_tls13()
 {
     s2n_highest_protocol_version = S2N_TLS13;
+    s2n_use_default_tls13_config_flag = true;
     return 0;
 }
 
 int s2n_disable_tls13()
 {
     s2n_highest_protocol_version = S2N_TLS12;
+    s2n_use_default_tls13_config_flag = false;
     return 0;
 }
 
