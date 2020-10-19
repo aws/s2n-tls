@@ -295,12 +295,12 @@ let seed_spec n = do {
 };
 
 let mix_spec n = do {
-    (sp, keyp, s) <- drbg_state "drbg";
-    (psp, datap) <- alloc_blob_readonly n;
+    (state_ptr, key_ptr, state) <- drbg_state "drbg";
+    (personalization_string_ptr, data_ptr) <- alloc_blob_readonly n;
     data <- crucible_fresh_var "data" (bytes_type n);
-    crucible_points_to datap (tm data);
-    crucible_execute_func [sp, psp];
-    ensure_drbg_state sp keyp {{ drbg_mix s fake_entropy (join data) }};
+    crucible_points_to data_ptr (tm data);
+    crucible_execute_func [state_ptr, personalization_string_ptr];
+    ensure_drbg_state state_ptr key_ptr {{ drbg_mix state fake_entropy (join data) }};
     crucible_return (tm {{ 0 : [32] }});
 };
 
