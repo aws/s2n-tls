@@ -182,7 +182,6 @@ int main(int argc, char **argv)
     struct s2n_cert_chain_and_key *chain_and_key;
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Test config swapping in client hello callback */
     EXPECT_NOT_NULL(config = s2n_config_new());

@@ -46,9 +46,6 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     config = s2n_config_new();
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
 
     s2n_connection_set_io_pair(conn, io_pair);
 
@@ -99,7 +96,6 @@ int main(int argc, char **argv)
     char dhparams_pem[S2N_MAX_TEST_PEM_SIZE];
 
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
 
     for (int is_dh_key_exchange = 0; is_dh_key_exchange <= 1; is_dh_key_exchange++) {
         struct s2n_cert_chain_and_key *chain_and_keys[SUPPORTED_CERTIFICATE_FORMATS];
@@ -122,11 +118,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
 
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        conn->server_protocol_version = S2N_TLS12;
-        conn->client_protocol_version = S2N_TLS12;
-        conn->actual_protocol_version = S2N_TLS12;
 
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
         for (int cert = 0; cert < SUPPORTED_CERTIFICATE_FORMATS; cert++) {
             EXPECT_SUCCESS(s2n_read_test_pem(certificate_paths[cert], cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
             EXPECT_SUCCESS(s2n_read_test_pem(private_key_paths[cert], private_key_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -147,6 +141,7 @@ int main(int argc, char **argv)
 
         /* Negotiate the handshake. */
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+        EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
 
         /* Give client a chance to close pipe at the receiving end */
         sleep(1);

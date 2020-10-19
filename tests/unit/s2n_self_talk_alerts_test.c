@@ -140,7 +140,6 @@ int main(int argc, char **argv)
     char *private_key_pem;
     struct s2n_cert_chain_and_key *chain_and_key;
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Ignore SIGPIPE */
     signal(SIGPIPE, SIG_IGN);
@@ -152,10 +151,11 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
     EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
 
-    /* Test that we ignore Warning Alerts in S2N_ALERT_IGNORE_WARNINGS mode */
+    /* Test that we ignore Warning Alerts in S2N_ALERT_IGNORE_WARNINGS mode in TLS1.2 */
     {
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
         /* Create a pipe */
         struct s2n_test_io_pair io_pair;
@@ -186,6 +186,7 @@ int main(int argc, char **argv)
 
         /* Negotiate the handshake. */
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+        EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
 
         /* Ensure that callback was invoked */
         EXPECT_EQUAL(warning_alert.invoked, 2);
@@ -217,10 +218,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(config));
     }
 
-    /* Test that we don't ignore Fatal Alerts in S2N_ALERT_IGNORE_WARNINGS mode */
+    /* Test that we don't ignore Fatal Alerts in S2N_ALERT_IGNORE_WARNINGS mode in TLS1.2 */
     {
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
         /* Create a pipe */
         struct s2n_test_io_pair io_pair;
@@ -250,6 +252,7 @@ int main(int argc, char **argv)
 
         /* Negotiate the handshake. */
         EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
+        EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
 
         /* Ensure that callback was invoked */
         EXPECT_EQUAL(fatal_alert.invoked, 1);
@@ -263,10 +266,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(config));
     }
 
-    /* Test that we don't ignore Warning Alerts in S2N_ALERT_FAIL_ON_WARNINGS mode */
+    /* Test that we don't ignore Warning Alerts in S2N_ALERT_FAIL_ON_WARNINGS mode in TLS1.2 */
     {
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
         /* Create a pipe */
         struct s2n_test_io_pair io_pair;
@@ -296,6 +300,7 @@ int main(int argc, char **argv)
 
         /* Negotiate the handshake. */
         EXPECT_FAILURE(s2n_negotiate(conn, &blocked));
+        EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
 
         /* Ensure that callback was invoked */
         EXPECT_EQUAL(warning_alert.invoked, 1);
