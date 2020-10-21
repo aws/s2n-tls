@@ -68,6 +68,7 @@ int main(int argc, char **argv)
     struct s2n_hash_state transcript_hash, transcript_hash_snapshot;
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&client_handshake_message_in, client_handshake_message_hex_in));
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&server_handshake_message_in, server_handshake_message_hex_in));

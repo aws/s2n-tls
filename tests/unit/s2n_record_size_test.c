@@ -60,6 +60,7 @@ static int setup_server_keys(struct s2n_connection *server_conn, struct s2n_blob
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     struct s2n_connection *conn;
     uint8_t mac_key[] = "sample mac key";

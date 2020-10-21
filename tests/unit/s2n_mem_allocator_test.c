@@ -166,6 +166,7 @@ int main(int argc, char **argv)
     int rc = s2n_mem_set_callbacks(custom_mem_init, custom_mem_cleanup, custom_mem_malloc, custom_mem_free);
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Can't add callbacks if s2n is initialized */
     EXPECT_FAILURE(s2n_mem_set_callbacks(custom_mem_init, custom_mem_cleanup, custom_mem_malloc, custom_mem_free));

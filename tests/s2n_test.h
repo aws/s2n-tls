@@ -25,6 +25,7 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_result.h"
+#include "tls/s2n_tls13.h"
 
 int test_count;
 

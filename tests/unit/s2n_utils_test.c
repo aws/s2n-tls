@@ -53,6 +53,7 @@ int succesful_stack_blob() {
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
     EXPECT_FAILURE(requested_bigger_than_max());
     EXPECT_SUCCESS(succesful_stack_blob());
     END_TEST();

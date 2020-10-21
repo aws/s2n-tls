@@ -26,6 +26,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
     
     const struct s2n_security_policy *default_security_policy, *tls13_security_policy, *fips_security_policy;
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &tls13_security_policy));

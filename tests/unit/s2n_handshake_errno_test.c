@@ -43,6 +43,7 @@ int main(int argc, char **argv)
     s2n_blocked_status blocked;
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Non-retriable errnos in io are not overwritten by retriable errnos */
     {

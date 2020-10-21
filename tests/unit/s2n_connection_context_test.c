@@ -25,6 +25,7 @@ int main(int argc, char **argv)
     struct s2n_connection *conn_null = NULL;
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 

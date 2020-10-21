@@ -28,6 +28,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
     const struct s2n_ecc_named_curve *test_curve = s2n_all_supported_curves_list[0];
 
     /* Test s2n_ecdhe_parameters_send write with valid ecc params */

@@ -30,6 +30,7 @@ static void s2n_set_test_ticket(struct s2n_connection *conn, const uint8_t *tick
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     struct s2n_config *config;
     EXPECT_NOT_NULL(config = s2n_config_new());

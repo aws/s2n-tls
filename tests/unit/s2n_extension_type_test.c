@@ -50,6 +50,7 @@ const s2n_extension_type test_extension_type = {
 int main()
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Test common implementations of methods */
     {

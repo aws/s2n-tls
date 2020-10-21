@@ -23,6 +23,7 @@ int main(int argc, char **argv)
     char buf[BUF_SIZE];
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     char *p = buf;
     char *last = buf + BUF_SIZE;

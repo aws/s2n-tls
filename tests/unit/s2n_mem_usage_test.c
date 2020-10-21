@@ -72,6 +72,7 @@ int main(int argc, char **argv)
     char *private_key;
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     struct s2n_test_io_pair io_pair;
     EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));

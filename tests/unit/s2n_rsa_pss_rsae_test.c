@@ -111,6 +111,7 @@ const char* key_param_d = "383a6f19e1ea27fd08c7fbc3bfa684bd6329888c0bbe4c98625e"
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Load the RSA cert */
     struct s2n_cert_chain_and_key *rsa_cert_chain;

@@ -413,6 +413,7 @@ int check_drgb_version(s2n_drbg_mode mode, s2n_result (*generator)(struct s2n_bl
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Open /dev/urandom */
     EXPECT_TRUE(entropy_fd = open("/dev/urandom", O_RDONLY));

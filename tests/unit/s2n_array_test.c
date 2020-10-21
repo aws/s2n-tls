@@ -33,6 +33,7 @@ int main(int argc, char **argv)
     uint32_t capacity = 0;
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
     struct array_element elements[NUM_OF_ELEMENTS] = {0};
 
     for (int i = 0; i < NUM_OF_ELEMENTS; i++) {

@@ -23,6 +23,7 @@ extern "C" {
 #endif
 
 S2N_API
+__attribute__((deprecated("The use of TLS1.3 is configured through security policies")))
 extern int s2n_enable_tls13();
 
 #ifdef __cplusplus
@@ -35,6 +36,7 @@ extern uint8_t hello_retry_req_random[S2N_TLS_RANDOM_DATA_LEN];
 
 bool s2n_use_default_tls13_config();
 int s2n_disable_tls13();
+int s2n_reset_tls13();
 bool s2n_is_valid_tls13_cipher(const uint8_t version[2]);
 
 bool s2n_is_hello_retry_handshake(struct s2n_connection *conn);

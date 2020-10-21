@@ -166,10 +166,6 @@ char *dhparams_pem;
 
 int test_send(int use_tls13, int use_iov, int prefer_throughput)
 {
-    if (use_tls13) {
-        EXPECT_SUCCESS(s2n_enable_tls13());
-    }
-
     struct s2n_connection *conn;
     struct s2n_config *config;
     s2n_blocked_status blocked;
@@ -185,7 +181,12 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
-    GUARD(s2n_config_set_cipher_preferences(config, "test_all"));
+
+    if (use_tls13) {
+        GUARD(s2n_config_set_cipher_preferences(config, "test_all"));
+    } else {
+        GUARD(s2n_config_set_cipher_preferences(config, "test_all_tls12"));
+    }
 
     /* Get some random data to send/receive */
     uint32_t data_size = 0;
@@ -341,10 +342,6 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
             free(iov[i].iov_base);
         }
         free(iov);
-    }
-
-    if (use_tls13) {
-        EXPECT_SUCCESS(s2n_disable_tls13());
     }
 
     return 0;

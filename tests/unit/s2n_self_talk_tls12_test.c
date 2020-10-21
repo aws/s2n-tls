@@ -46,9 +46,6 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     config = s2n_config_new();
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
 
     s2n_connection_set_io_pair(conn, io_pair);
 
@@ -114,6 +111,7 @@ int main(int argc, char **argv)
     char *dhparams_pem;
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -139,9 +137,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
 
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        conn->server_protocol_version = S2N_TLS12;
-        conn->client_protocol_version = S2N_TLS12;
-        conn->actual_protocol_version = S2N_TLS12;
 
         EXPECT_NOT_NULL(config = s2n_config_new());
         for (int cert = 0; cert < SUPPORTED_CERTIFICATE_FORMATS; cert++) {
@@ -164,6 +159,7 @@ int main(int argc, char **argv)
 
         /* Negotiate the handshake. */
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+        EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
 
         char buffer[0xffff];
         for (int i = 1; i < 0xffff; i += 100) {

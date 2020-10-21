@@ -109,6 +109,7 @@ static uint8_t verify_host_verify_alt(const char *host_name, size_t host_name_le
 int main(int argc, char **argv) {
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* test empty trust store */
     {

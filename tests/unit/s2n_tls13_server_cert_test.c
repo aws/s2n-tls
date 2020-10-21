@@ -89,6 +89,7 @@ const char tls13_cert_chain_header_hex[] =
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Test s2n_server_cert_recv() parses tls13 certificate */
     {

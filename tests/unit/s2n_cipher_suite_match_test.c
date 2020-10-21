@@ -27,6 +27,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
     {
         struct s2n_connection *conn;
         uint8_t wire[2];

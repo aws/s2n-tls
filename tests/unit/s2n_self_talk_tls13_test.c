@@ -107,8 +107,6 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
-
     /* Create a pipe */
     struct s2n_test_io_pair io_pair;
     EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
@@ -143,6 +141,7 @@ int main(int argc, char **argv)
 
     /* Negotiate the handshake. */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+    EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS13);
 
     char buffer[0xffff];
     for (int i = 1; i < 0xffff; i += 100) {
