@@ -139,7 +139,6 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
             /* Put the next two bits in the third data byte */
             /* Put the next six bits in the fourth data byte */
             *ptr = ((value3 << 6) & 0xc0) | (value4 & 0x3f);
-            ptr++;
         }
     } while (bytes_this_round == 3);
 
