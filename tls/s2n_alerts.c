@@ -63,15 +63,18 @@ static bool s2n_alerts_supported(struct s2n_connection *conn)
     return conn && !conn->quic_enabled;
 }
 
-static bool s2n_is_warning(struct s2n_connection *conn, uint8_t level, uint8_t type)
+static bool s2n_handle_as_warning(struct s2n_connection *conn, uint8_t level, uint8_t type)
 {
-    /* Only TLS1.2 considers the warning level. The warning level field is
+    /* Only TLS1.2 considers the alert level. The alert level field is
      * considered deprecated in TLS1.3. */
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
-        return level == S2N_TLS_ALERT_LEVEL_WARNING;
+        return level == S2N_TLS_ALERT_LEVEL_WARNING
+                && conn->config->alert_behavior == S2N_ALERT_IGNORE_WARNINGS;
     }
 
-    /* user_canceled is the only alert currently treated as a warning in TLS1.3 */
+    /* user_canceled is the only alert currently treated as a warning in TLS1.3.
+     * We need to treat it as a warning regardless of alert_behavior to avoid marking
+     * correctly-closed connections as failed. */
     return type == S2N_TLS_ALERT_USER_CANCELED;
 }
 
@@ -97,16 +100,13 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
         if (s2n_stuffer_data_available(&conn->alert_in) == 2) {
 
             /* Close notifications are handled as shutdowns */
-            if (conn->alert_in_data[1] == S2N_TLS_ALERT_CLOSE_NOTIFY ||
-                    (conn->alert_in_data[1] == S2N_TLS_ALERT_USER_CANCELED &&
-                     conn->actual_protocol_version >= S2N_TLS13)) {
+            if (conn->alert_in_data[1] == S2N_TLS_ALERT_CLOSE_NOTIFY) {
                 conn->closed = 1;
                 return 0;
             }
 
             /* Ignore warning-level alerts if we're in warning-tolerant mode */
-            if (conn->config->alert_behavior == S2N_ALERT_IGNORE_WARNINGS &&
-                    s2n_is_warning(conn, conn->alert_in_data[0], conn->alert_in_data[1])) {
+            if (s2n_handle_as_warning(conn, conn->alert_in_data[0], conn->alert_in_data[1])) {
                 GUARD(s2n_stuffer_wipe(&conn->alert_in));
                 return 0;
             }
