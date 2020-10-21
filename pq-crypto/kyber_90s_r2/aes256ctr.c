@@ -14,7 +14,6 @@ static inline void br_enc32be(unsigned char *dst, uint32_t x) {
 static void aes256_ctr_xof(unsigned char *out, size_t outlen, const unsigned char *iv, uint32_t ctr, const aes256ctx *ctx) {
     uint8_t ivw[16];
     uint8_t buf[AES_BLOCKBYTES];
-    size_t i;
 
     memcpy(ivw, iv, AESCTR_NONCEBYTES);
     br_enc32be(ivw + AESCTR_NONCEBYTES, ctr);
@@ -27,7 +26,7 @@ static void aes256_ctr_xof(unsigned char *out, size_t outlen, const unsigned cha
     }
     if (outlen > 0) {
         aes256_ecb(buf, ivw, 1, ctx);
-        for (i = 0; i < outlen; i++) {
+        for (size_t i = 0; i < outlen; i++) {
             out[i] = buf[i];
         }
     }

@@ -66,5 +66,5 @@ _INLINE_ void
 aes256_free_ks(OUT aes256_ks_t *ks)
 {
   EVP_CIPHER_CTX_free(*ks);
-  ks = NULL;
+  *ks = NULL;
 }

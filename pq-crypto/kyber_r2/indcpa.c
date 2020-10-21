@@ -115,11 +115,10 @@ static void unpack_ciphertext(polyvec *b, poly *v, const uint8_t *c) {
 **************************************************/
 static size_t rej_uniform(int16_t *r, size_t len, const uint8_t *buf, size_t buflen) {
     size_t ctr, pos;
-    uint16_t val;
 
     ctr = pos = 0;
     while (ctr < len && pos + 2 <= buflen) {
-        val = (uint16_t)(buf[pos] | ((uint16_t)buf[pos + 1] << 8));
+        uint16_t val = (uint16_t)(buf[pos] | ((uint16_t)buf[pos + 1] << 8));
         pos += 2;
 
         if (val < 19 * KYBER_Q) {
