@@ -118,13 +118,12 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_disable_tls13());
             }
 
-            /* user_canceled ignored in TLS1.3 if alert_behavior == S2N_ALERT_IGNORE_WARNINGS */
+            /* user_canceled ignored in TLS1.3 by default */
             {
                 EXPECT_SUCCESS(s2n_enable_tls13());
 
                 struct s2n_config *config;
                 EXPECT_NOT_NULL(config = s2n_config_new());
-                EXPECT_SUCCESS(s2n_config_set_alert_behavior(config, S2N_ALERT_IGNORE_WARNINGS));
 
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
