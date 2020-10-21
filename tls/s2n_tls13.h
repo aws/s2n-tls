@@ -23,6 +23,7 @@ extern "C" {
 #endif
 
 S2N_API
+__attribute__((deprecated("The use of TLS1.3 is configured through security policies")))
 extern int s2n_enable_tls13();
 
 #ifdef __cplusplus
