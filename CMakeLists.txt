@@ -103,11 +103,11 @@ else()
         ${CMAKE_BINARY_DIR}
         SOURCES
             "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
-            "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r2/fp_x64_asm.S"
+            "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r2/sikep434r2_fp_x64_asm.S"
     )
 
     if(SIKEP434R2_ASM_SUPPORTED)
-        file(GLOB SIKEP434R2_ASM_SRC "pq-crypto/sike_r2/fp_x64_asm.S")
+        file(GLOB SIKEP434R2_ASM_SRC "pq-crypto/sike_r2/sikep434r2_fp_x64_asm.S")
         list(APPEND PQ_SRC ${SIKEP434R2_ASM_SRC})
 
         # The ADX instruction set is preferred for best performance, but not necessary.
@@ -116,7 +116,7 @@ else()
             ${CMAKE_BINARY_DIR}
             SOURCES
                 "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
-                "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r2/fp_x64_asm.S"
+                "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r2/sikep434r2_fp_x64_asm.S"
             COMPILE_DEFINITIONS
                 "-DS2N_ADX"
         )

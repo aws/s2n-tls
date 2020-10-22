@@ -18,7 +18,7 @@ TRY_COMPILE_SIKEP434R2_ASM = -1
 
 ifndef S2N_NO_PQ_ASM
 	# sikep434r2
-	SIKEP434R2_ASM_SRC := $(shell find . -name "fp_x64_asm.S")
+	SIKEP434R2_ASM_SRC := $(shell find . -name "sikep434r2_fp_x64_asm.S")
 	TRY_COMPILE_SIKEP434R2_ASM := $(shell $(CC) -fsyntax-only $(SIKEP434R2_ASM_SRC) > /dev/null 2>&1; echo $$?)
 	ifeq ($(TRY_COMPILE_SIKEP434R2_ASM), 0)
 		CFLAGS += -DS2N_SIKEP434R2_ASM

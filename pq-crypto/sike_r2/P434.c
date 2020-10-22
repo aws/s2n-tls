@@ -22,7 +22,7 @@
 
 
 // The constants p434, p434p1, and p434x2 have been duplicated in
-// fp_x64_asm.S. If, for any reason, the constants are changed in
+// sikep434r2_fp_x64_asm.S. If, for any reason, the constants are changed in
 // one file, they should be updated in the other file as well.
 const uint64_t p434[NWORDS64_FIELD] = {0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFDC1767AE2FFFFFF,
                                               0x7BC65C783158AEA3, 0x6CFC5FD681C52056, 0x0002341F27177344};
