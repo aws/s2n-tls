@@ -47,7 +47,7 @@ int s2n_hybrid_pq_rand_cleanup(void) {
 int s2n_hybrid_pq_entropy(void *ptr, uint32_t size) {
     ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     notnull_check(ptr);
-    eq_check(size, hybrid_kat_entropy_blob.size);
+    lte_check(size, hybrid_kat_entropy_blob.size);
     memcpy_check(ptr, hybrid_kat_entropy_buff, size);
 
     return S2N_SUCCESS;
@@ -167,7 +167,6 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
     /* Part 3.1 verify the results as best we can */
     eq_check(client_conn->handshake.io.write_cursor - client_conn->handshake.io.read_cursor, client_key_message_length);
     struct s2n_blob client_key_message = {.size = client_key_message_length, .data = s2n_stuffer_raw_read(&client_conn->handshake.io, client_key_message_length)};
-
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Part 3.1.1 if we're running in known answer mode check the client's key exchange message matches the expected value */
