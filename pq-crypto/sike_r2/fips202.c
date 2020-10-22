@@ -75,12 +75,6 @@ static void KeccakF1600_StatePermute(uint64_t *state) {
     uint64_t Ama, Ame, Ami, Amo, Amu;
     uint64_t Asa, Ase, Asi, Aso, Asu;
     uint64_t BCa, BCe, BCi, BCo, BCu;
-    uint64_t Da, De, Di, Do, Du;
-    uint64_t Eba, Ebe, Ebi, Ebo, Ebu;
-    uint64_t Ega, Ege, Egi, Ego, Egu;
-    uint64_t Eka, Eke, Eki, Eko, Eku;
-    uint64_t Ema, Eme, Emi, Emo, Emu;
-    uint64_t Esa, Ese, Esi, Eso, Esu;
 
     // copyFromState(A, state)
     Aba = state[0];
@@ -110,6 +104,13 @@ static void KeccakF1600_StatePermute(uint64_t *state) {
     Asu = state[24];
 
     for (round = 0; round < NROUNDS; round += 2) {
+        uint64_t Da, De, Di, Do, Du;
+        uint64_t Eba, Ebe, Ebi, Ebo, Ebu;
+        uint64_t Ega, Ege, Egi, Ego, Egu;
+        uint64_t Eka, Eke, Eki, Eko, Eku;
+        uint64_t Ema, Eme, Emi, Emo, Emu;
+        uint64_t Esa, Ese, Esi, Eso, Esu;
+
         //    prepareTheta
         BCa = Aba ^ Aga ^ Aka ^ Ama ^ Asa;
         BCe = Abe ^ Age ^ Ake ^ Ame ^ Ase;

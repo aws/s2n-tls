@@ -49,6 +49,10 @@ int SIKE_P434_r2_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsi
     GUARD_AS_POSIX(s2n_get_random_bytes(temp, MSG_BYTES));
     memcpy(&temp[MSG_BYTES], pk, CRYPTO_PUBLICKEYBYTES);
     shake256(ephemeralsk.b, SECRETKEY_A_BYTES, temp, CRYPTO_PUBLICKEYBYTES + MSG_BYTES);
+
+    /* ephemeralsk is a union; the memory set here through .b will get accessed through the .d member later */
+    /* cppcheck-suppress unreadVariable */
+    /* cppcheck-suppress unmatchedSuppression */
     ephemeralsk.b[SECRETKEY_A_BYTES - 1] &= MASK_ALICE;
 
     // Encrypt
@@ -92,6 +96,11 @@ int SIKE_P434_r2_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, cons
     // Generate ephemeralsk_ <- G(m||pk) mod oA
     memcpy(&temp[MSG_BYTES], &sk[MSG_BYTES + SECRETKEY_B_BYTES], CRYPTO_PUBLICKEYBYTES);
     shake256(ephemeralsk_.b, SECRETKEY_A_BYTES, temp, CRYPTO_PUBLICKEYBYTES + MSG_BYTES);
+
+    /* ephemeralsk_ is a union; the memory set here through .b will get accessed through the .d member later */
+    /* cppcheck-suppress unreadVariable */
+    /* cppcheck-suppress uninitvar */
+    /* cppcheck-suppress unmatchedSuppression */
     ephemeralsk_.b[SECRETKEY_A_BYTES - 1] &= MASK_ALICE;
 
     // Generate shared secret ss <- H(m||ct) or output ss <- H(s||ct)

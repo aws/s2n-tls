@@ -31,7 +31,7 @@ get_rand_mod_len(OUT uint32_t *    rand_pos,
       break;
     }
 
-  } while(1 == 1);
+  } while(1);
 
   return SUCCESS;
 }
