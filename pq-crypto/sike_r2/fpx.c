@@ -369,7 +369,7 @@ unsigned int mp_add(const digit_t *a, const digit_t *b, digit_t *c, const unsign
 
 	for (i = 0; i < nwords; i++) {
 	    /* cppcheck-suppress shiftTooManyBits */
-        /* cppcheck-suppress unmatchedSuppression */
+	    /* cppcheck-suppress unmatchedSuppression */
 	    ADDC(carry, a[i], b[i], carry, c[i]);
 	}
 
