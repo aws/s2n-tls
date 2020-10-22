@@ -547,6 +547,9 @@ void OQS_AES256_CTR_sch(const uint8_t *iv, size_t iv_len, const void *schedule, 
 		ctr = 0;
 	} else if (iv_len == 16) {
 		memcpy(&ctr_be, &iv[12], 4);
+
+		/* ctr_be gets cast to a uint8_t* before being accessed; the non-zero indices are valid */
+		/* cppcheck-suppress objectIndex */
 		ctr = BE_TO_UINT32(ctr_be);
 	} else {
 		exit(EXIT_FAILURE);

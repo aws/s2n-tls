@@ -217,6 +217,9 @@ void rdc_mont(const dfelm_t ma, felm_t mc)
         u = t;
         t = 0;
     }
+
+    /* `carry` isn't read after this, but it's still a necessary argument to the macro */
+    /* cppcheck-suppress unreadVariable */
     ADDC(0, v, ma[2*NWORDS_FIELD-1], carry, v); 
     mc[NWORDS_FIELD-1] = v;
 }

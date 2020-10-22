@@ -1,15 +1,15 @@
-// Message: [tests/unit/s2n_stuffer_text_test.c:28]: (style:variableScope) The scope of the variable 'text' can be reduced.
+// Message: (style:variableScope) The scope of the variable 'text' can be reduced.
 // Reason: Don't error for being able to reduce scope of variables in tests
 variableScope:tests/unit/*
 
-// cppcheck Message: [utils/s2n_socket.c:87]: (information:ConfigurationNotChecked) Skipping configuration 'SO_RCVLOWAT' since the value of 'SO_RCVLOWAT' is unknown. Use -D if you want to check it. You can use -U to skip it explicitly.
+// cppcheck Message: (information:ConfigurationNotChecked) Skipping configuration 'SO_RCVLOWAT' since the value of 'SO_RCVLOWAT' is unknown. Use -D if you want to check it. You can use -U to skip it explicitly.
 // Reason: There are many Config options that aren't checked by Cppcheck, and it warns for each. Ignore these so that they don't clutter the output.
 ConfigurationNotChecked:bin/s2nd.c
 ConfigurationNotChecked:tls/s2n_x509_validator.c
 ConfigurationNotChecked:utils/s2n_safety.c
 ConfigurationNotChecked:utils/s2n_socket.c
 
-// cppcheck Message: [pq-crypto/bike_r1/bike_defs.h:85]: (information:ConfigurationNotChecked) Skipping configuration 'static_assert' since the value of 'static_assert' is unknown. Use -D if you want to check it. You can use -U to skip it explicitly.
+// cppcheck Message: (information:ConfigurationNotChecked) Skipping configuration 'static_assert' since the value of 'static_assert' is unknown. Use -D if you want to check it. You can use -U to skip it explicitly.
 // Reason: Same as above.
 ConfigurationNotChecked:pq-crypto/bike_r1/bike_defs.h
 ConfigurationNotChecked:pq-crypto/bike_r1/gf2x_mul.c
@@ -25,40 +25,10 @@ ConfigurationNotChecked:pq-crypto/bike_r2/secure_decode_portable.c
 ConfigurationNotChecked:pq-crypto/bike_r2/decode.c
 ConfigurationNotChecked:pq-crypto/bike_r2/bike_r2_kem.c
 
-// cppcheck Message: [tests/unit/s2n_timer_test.c:49]: (style:redundantAssignment) Variable 'mock_time' is reassigned a value before the old one has been used.
+// cppcheck Message: (style:redundantAssignment) Variable 'mock_time' is reassigned a value before the old one has been used.
 // Reason: s2n_config_set_monotonic_clock() takes a reference to mock_time so that whenever it's modified locally, the timer sees the update when it dereferences the pointer.
 redundantAssignment:tests/unit/s2n_timer_test.c
 
-// cppcheck Message: [pq-crypto/sike_r2/fp.c:24]: (error:shiftTooManyBits) Shifting 32-bit value by 64 bits is undefined behaviour.
-// Reason: This is actually a 128-bit typedef being shifted by 64 bits.
+// cppcheck Message: (error:shiftTooManyBits) Shifting 32-bit value by 64 bits is undefined behaviour.
+// Reason: In the SIKE arithmetic macros, this is actually a 128-bit typedef being shifted by 64 bits.
 shiftTooManyBits:pq-crypto/sike_r2/fp.c
-shiftTooManyBits:pq-crypto/sike_r2/fpx.c
-
-// cppcheck Message: [pq-crypto/kyber_90s_r2/aes_c.c:550]: (error:objectIndex) The address of local variable 'ctr_be' is accessed at non-zero index.
-// Reason: uint32_t 'ctr_be' is cast to a uint8_t* before being accessed, so the non-zero index is valid.
-objectIndex:pq-crypto/kyber_90s_r2/aes_c.c
-
-// cppcheck Message: [pq-crypto/sike_r1/sike_r1_kem.c:58]: (style:unreadVariable) Variable 'ephemeralsk.b[(250+7)/8-1]' is assigned a value that is never used.
-//                   [pq-crypto/kyber_90s_r2/aes_c.c:536]: (style:unreadVariable) Variable 'y.bytes[3]' is assigned a value that is never used.
-// Reason: The variable is a member of a union; although that member is not used, the memory is read through other union members.
-unreadVariable:pq-crypto/sike_r1/sike_r1_kem.c
-unreadVariable:pq-crypto/sike_r2/sike_r2_kem.c
-unreadVariable:pq-crypto/kyber_90s_r2/aes_c.c
-
-// cppcheck Message: [pq-crypto/sike_r1/fp_generic_r1.c:220]: (style:unreadVariable) Variable 'carry' is assigned a value that is never used.
-// Reason: It's true that 'carry' is never read, but it must be provided as an argument to a macro
-unreadVariable:pq-crypto/sike_r1/fp_generic_r1.c
-unreadVariable:pq-crypto/sike_r2/fp.c
-
-// cppcheck Message: [pq-crypto/sike_r1/sike_r1_kem.c:104]: (error:uninitvar) Uninitialized variable: b
-// Reason: The variable is initialized through a function call on the previous line
-uninitvar:pq-crypto/sike_r1/sike_r1_kem.c
-uninitvar:pq-crypto/sike_r2/sike_r2_kem.c
-
-// cppcheck Message: [pq-crypto/sike_r2/fpx.c:-1]: (information:unmatchedSuppression) Unmatched suppression: shiftTooManyBits
-//                   [pq-crypto/sike_r2/sike_r2_kem.c:-1]: (information:unmatchedSuppression) Unmatched suppression: unreadVariable
-// Reason: After suppressing shiftTooManyBits and unreadVariable above, cppcheck complains the suppressions aren't needed. But if we
-//         remove the suppressions, cppcheck complains about shiftTooManyBits and unreadVariable errors. May be a bug in cppcheck.
-unmatchedSuppression:pq-crypto/sike_r2/fp.c
-unmatchedSuppression:pq-crypto/sike_r2/fpx.c
-unmatchedSuppression:pq-crypto/sike_r2/sike_r2_kem.c
