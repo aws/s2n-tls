@@ -32,3 +32,7 @@ redundantAssignment:tests/unit/s2n_timer_test.c
 // cppcheck Message: (error:shiftTooManyBits) Shifting 32-bit value by 64 bits is undefined behaviour.
 // Reason: In the SIKE arithmetic macros, this is actually a 128-bit typedef being shifted by 64 bits.
 shiftTooManyBits:pq-crypto/sike_r2/fp.c
+
+// cppcheck Message (information:unmatchedSuppression) Unmatched suppression: shiftTooManyBits
+// Reason: After applying the shiftTooManyBits suppression above, cppcheck complains (erroneously) that it is not necessary
+unmatchedSuppression:pq-crypto/sike_r2/fp.c
