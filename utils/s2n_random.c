@@ -79,9 +79,8 @@ static s2n_rand_cleanup_callback s2n_rand_cleanup_cb = s2n_rand_cleanup_impl;
 static s2n_rand_seed_callback s2n_rand_seed_cb = s2n_rand_urandom_impl;
 static s2n_rand_mix_callback s2n_rand_mix_cb = s2n_rand_urandom_impl;
 
-bool s2n_cpu_supports_rdrand()
-{
-#if ((defined(__x86_64__) || defined(__i386__)) && (defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,3,0)))
+bool s2n_cpu_supports_rdrand() {
+#if defined(S2N_CPUID_AVAILABLE)
     uint32_t eax, ebx, ecx, edx;
     if (!__get_cpuid(1, &eax, &ebx, &ecx, &edx)) {
         return false;
