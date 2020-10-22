@@ -40,20 +40,8 @@ struct s2n_drbg {
     /* The current DRBG 'value' */
     uint8_t v[S2N_DRBG_BLOCK_SIZE];
 
-    /* Function pointer to the entropy generating function. If it's NULL, then
-     * s2n_get_urandom_data() will be used. This function pointer is intended
-     * ONLY for the s2n_drbg_test case to use, so that known entropy data can
-     * fed to the DRBG test vectors.
-     */
-    S2N_RESULT (*entropy_generator) (struct s2n_blob *);
-
-    /* Also used only by the unit tests: which generation of the DRBG is this.
-     * This number is incremented every time we reseed.
-     */
-    uint32_t generation;
-
-    /* Indicate if the DRBG instance offers prediction resistance and should reseed after every call */
-    uint8_t use_prediction_resistance;
+    /* Used only by the unit tests: how many times has entropy been mixed in */
+    uint64_t mixes;
 };
 
 /*
@@ -62,11 +50,8 @@ struct s2n_drbg {
  *
  * S2N_AES_256_CTR_NO_DF_PR is a deterministic random bit generator using AES 256 in counter mode (AES_128_CTR). It does not
  * use a derivation function on the seed but does have prediction resistance.
- *
- * S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR is a deterministic random bit generator using AES 256 in counter mode (AES_128_CTR).
- * It does not use a derivation function on the seed and does not have prediction resistance. This should only be used for testing!
  */
-typedef enum {S2N_AES_128_CTR_NO_DF_PR, S2N_AES_256_CTR_NO_DF_PR, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR} s2n_drbg_mode;
+typedef enum {S2N_AES_128_CTR_NO_DF_PR, S2N_AES_256_CTR_NO_DF_PR} s2n_drbg_mode;
 
 /* Per NIST SP 800-90C 6.3
  *

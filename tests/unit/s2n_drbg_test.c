@@ -92,8 +92,6 @@ const char nist_aes128_reference_entropy_hex[] =
 "9dfd31e3adc822b675c0a9c8702df12de4c3354ccdb5389ed481d910b3dbb51a"
 "2a1b1519d22d40ef4ec23c6d97dc148cfe171fb5f8b1c305ec6d8e83a1ef9064";
 
-int entropy_fd = -1;
-
 const char nist_aes128_reference_personalization_strings_hex[] =
 "07ca7a007b53f014d7f10461d6c97b5c8b0c502d3461d583f99efec69f121cd2"
 "99f2d501dd183f5657d8b8061bf4f0988de3bc2719f41281cf08d9bcc99f0dcb"
@@ -256,105 +254,30 @@ const char nist_aes256_reference_returned_bits_hex[] =
 "6553c630a07ddf7dc2110c3aa3c5ac0c488a0345e07571cd71df115ba37ea4676935be72a6033aeca7ac6fcce5654dae38f5777b5cff34b156539b42ed6dc93c"
 "ed703d9273bb9462ac400ee8d587ea3c4d6c27aa014defcb6ca6fe885272bcb4b6ba0822f42941071bf635b41d997c631b680d91b23ee48351041dc274900821";
 
-/* Test vectors are taken from https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/drbg/drbgtestvectors.zip
- * - drbgvectors_no_reseed/CTR_DRBG.txt :
- * [AES-256 no df]
- * [PredictionResistance = False]
- * [EntropyInputLen = 384]
- * [NonceLen = 0]
- * [PersonalizationStringLen = 384]
- * [AdditionalInputLen = 0]
- * [ReturnedBitsLen = 512]
- */
-struct s2n_stuffer nist_aes256_no_pr_reference_entropy;
-const char nist_aes256_no_pr_reference_entropy_hex[] =
-"22a89ee0e37b54ea636863d9fed10821f1952a428488d528eceb9d2ec69d573ec6216216fb3e8f72a148a5ada9d620b1"
-"a5ca32ff18305555d32e270f170529232c458779eaace221ac4958b4226df8189e42b0844fc765751a6291a60a35d8b4"
-"2e90b2daffc3ddda438c38c1bdd6e07d78c862225d9d10b50a4d8e3e32cb63e28101c06dd20e2d174d0f4ea1bddee40a"
-"8ab4fb1ba83e1e4e7f8ada8475bfa326315ded596e21ab804a90d50b2355d4b96c8d37ee0628f8f2c2a0245255a04bc5"
-"297137ef2d5704ec08c8f64502aadb6920027089e710b3de3174b4aaf756b7a0b1087195c71428f34112730d10d3156a"
-"2c3a24013a7c8b64238507f45127ddabf638dd69c89f268bb41f20f6edbf14157488072c171a1c99e7e05fd51541df31"
-"2558704be32a8df433d8768cbd5574c24dd09de31564b9a0f4495fc1ee551e448df4fe8b1459d6b2b6144e1f4a1090cf"
-"04d8aca25424af21b3e4449638d31e0d80a3ee4572788ca86640f9b87e4e07d9f755fc2e666c59b0a95fa1ee7dc47ede"
-"a0a51c6e8011f26db53533e6be8758dd7cd3c6cd00ceb4f429acd40b193beb1889136618c7826acd0b7ed10eef0551e5"
-"13e7f80bb83f94453bb5859079206d7c76441488a3044f20b0eedc5d06d3d8f8a633e80cdd6104d8ae5154cece908475"
-"597a5ca7e1deb5433e0a7c6b188530e2166f3c8c16ccfc7578c8d9931d70b4a333a536abdb0725b6c86fe3d2b2974e17"
-"32758241cc572bb88219e9c8280c3d99fdae0cd8e878f8c0cdf112f17cccb0121fbfb0859d27a0734da2e8c6de4cd80a"
-"101f19ed66587416179baa901d8b888b75770ffe679117f10f25b46f659a570ddbdef085578ded5e0d74fada6837fb5f"
-"224809c43bcdb46c52fe3098cc2d88d0d26c34e76e58f97047027adfe93f8bfa01c55d5b3c267bc60289ec82d2fa21bc"
-"4e37ee8649a86dd0bab8785a1e3acbd2c3a57ca346d0e31476490e49b588b928232dfa50cb1d96078f7068561b97e2f1";
-
-const char nist_aes256_no_pr_reference_personalization_strings_hex[] =
-"953c10badcbcd45fb4e5475826477fc137ac96a49ad5005fb14bdaf6468ae7f46c5d0de22d304afc67989615adc2e983"
-"f42a3a32dc92a3eeff658c349eb2e181564458c202aa922ec4364e3a93b2ebdfb58ef78fc7237b70d8a261bcf30bd1b6"
-"f349ed3b779184b8048f833e79751574c485de0b8f6ec73bf08b3ea4b82eeec4e736ce5a8093f96b4d7c7ce80f5cf606"
-"b838dddbbd18f37c352df301a07986fb4cce42d8f914547f49db31721a8bf4a4d45256f1a404994d3088ba095ad88c92"
-"e470987f1799ccaec5d2e73b0c2df260d1c19ff075bb97a65ccb8cd7dc94637ca7a9f46948afc6cbb5e450946468d79d"
-"88692bbedec9fb0fa2bd857341328a0eea7af184c79990e0714d41d84a1197155336f89243fab6a30bc9e34aca446a6a"
-"442c2e1d96fe08d89054b63a05b7122ff7936f837f4ac95d8dc3a1aca3e3680b56abb0e022fd0be9d0c11f5acdfaa8b7"
-"0ea4210396f98612261f80777d3ad5166f7b60c0bf821fd105ebd161ef1c1c5db911bc59bf29441f13228e800ad1099d"
-"102cd6ed39ce048b3cac4d535989bef8d4b51311948c86cea421e268d36bdb03ba1229026081783f8c05e2e73cdd3e72"
-"0abf501a537111f992af58a110749067b2b4765d37f0fe951cfa6eda03d410027df034e37398dfb64d50da515d3868a7"
-"80c2283df1561974506872ffc33bc7320ae2ac2d31e32d9c04bb75dd8a8cfa4c89597c9078622eb4d2900466625c0c9e"
-"628cb67176e187ed101f9f72a52368c2475b38e692297221c24ce95f2801fab1c29a4085664be4f751b5a64d787fce29"
-"ffebb3da7565946ed38a4d5c850c068f0cb10f6ce503440006f972a366dd61c3e9e1b00c6566baf8eebe0fc868ce363d"
-"1bde6bbdcce020ece37fe2931a70a88c5c36b8d29cb07590c9dfd23f8da8677646046dfeefeb17b45a09e621e263d406"
-"61334cdc8735332925221a6318987403a4c1c936c0a8066cbfbb1a84510bac2bb37ea52d6ba9f4e1a93269473f4566cb";
-
-const char nist_aes256_no_pr_reference_values_hex[] =
-"d81c6c3ee1a8effa1772c6367112fcbc" "8c960164b4afeffe826fb7d9160261e3" "55f1f21c57581386cc681ba2253a4122"
-"59ac44c1bf423471136205948c383c8c" "2dd393f66078f4304a3416520418485d" "4bb37755acc02bf44050ace0ef8768b8"
-"14570dfd653bfe08d1d1c7c7c7842782" "f8c796a139a78a9c678445318d53525f" "c6604f06f047a80dc8a750c08044dd47"
-"cabf62d5958a4bcb238a6bd57a7ef2d9" "349105be229c8af6a6603ab972810f92" "e764ae76ac6b31a1bcabb8641645104b"
-"64c18636b81dc44c2554d61701bdf779" "1421f0d4da0828d4f66621c3060528d4" "343f6cd1a9c0d5cff72f7c01a04cac14"
-"55defc746346804e3d8b4911aa0380d5" "d5b310ad91bf1d982d06a8d064ce783c" "4170cfe4385ce415e71f2672bda770c6"
-"a93f4da10102f72fb777a4cbf2ec0df6" "18b9f7e519c09fc98ad5d686cb44a530" "d72d15a845596a4d2d9c43d6a3138844"
-"3c2443bdeee337db6bdfdae0021342cd" "43e1673beb102480abfb29089bfe21b0" "481918557651a3f6bb1aa9b9476a3a44"
-"41614cd090a5388656d9c667a6de5a19" "e4aba9bba8c333ad09a4f740b9f65363" "1b581315ae5fec8ac9a01b6dc90f2103"
-"a9a3df25995ff11a32a37b11e6aed95c" "50f8bfac45b1392467e0ed28a567bf4f" "d899e4203509e657796be2dccef76ef9"
-"c89c49f194c32176cb5d123aa5cd7707" "65972879c31d461a64d5dadd0bcd640d" "ece1e8cfc7bf2cd917dc468830043e3d"
-"af45f3caccca6ef0cdb5bb05d33523ad" "ac4751e98b1ce69d6a6e41f2718f13d0" "63cb2ff204cc8eafa0106ef906fd5986"
-"405f4343054d7dd23268009c75fff8ec" "4b5ddb4783c25903fd29b0560248ad93" "612a110966961729fa1bbff25f113f62"
-"35a1336fe46b46068922ff2d459fc034" "a121e96fce40c3b6620c8ac448db12c5" "d82baf1b1c938ffa6c5732dbe0355305"
-"e2335cb797124892f7e0f49f51d4b1b4" "c169ff83c41d1a2dbc6796abf092b678" "78263f1b7558bbff9c25f1dfd6b837c3";
-
-const char nist_aes256_no_pr_reference_returned_bits_hex[] =
-"f7fab6a6fcf445f0a0434b2aa0c610bdef5489ecd95414634623add18a9f888bca6be151312d1b9e8f83bd0acad6234d3bccc11b63a40d6fbff448f67db0b91f"
-"00851cac3204326d97b5f26cd0bc05feafc34f56b5b7def2640bf5a12da0090d85320f3132fe7212c86d65f3b938366eae25cd9233c0f9941a70f99e795cde4c"
-"847f61148daa5d8290dae7f7291bed58a1a4a762c81d73eabca91542a5ae2200e18afc9397a1401956926826f65da3470b40fa9147842bb49d4e0d83bf77cd31"
-"0d55defbb1138ee33557c7f92504d0cd325140c088035044b3fb1c2f6469d8505e97e51d0dc97798d55b35f5b77e8ad24dd42bb9d76f9d10227ae4f05d09a010"
-"557416003e926fb5fbaef50bd48c265f74bb85a29502fd0153240b88ee5b95badce5813c2ab26deeb3a5bb9d9f01852223864b55266210a4be24e4e9c02ef32b"
-"e957b7171779c4699ff4c3b74274c28526106946be77a32fe696ef41aa89735078215aab201819099d610fd5680b51982ee832df561ae97cca2564f9595b4c4b"
-"b7f5d4862b47419974ee09a22c1c5e0ea5b0bf1f2e1292321e864d9d2edf3e36712da89ba4557cdedf03c6a396bc3b84c4a6e664d6cb8d94d861fbe472f2ee08"
-"c965c621a3ab4b375854d4c2d52f28debc07f7cfb7600489ebd9c7b64b4275577474be070950fca5628f128a8dddd9240a435373951d9a6252b52023010f6bdb"
-"b5d44cf219e26fc314728695cf08313c2ce4d05c9cf7d446c507550b462c5d313b6ceb2754e2570d37538df9be45d71f2ca9c8e24b8075fe6c1a44ceede84a5f"
-"b4b41afe5acd666be67f9dc45209f62b0a450a16f39ee2fb28ec3628b809f707f09e5e6d7badc1a5e7a2c5ae8b8fc57588ef110aed157c8d84c8b4bedb435451"
-"c1b9226e7718addcdddba21d7b5539b4464775388034b5ff17f8b512c65725ceda4a20ff9435a3af062082bcfaf29ec1ab8f42c72856ef59d881df85d465c14a"
-"f6ff29504dd7ae63d6016a62d77ed01486d022e14e2b7281956aa2f9d570da3a3eec8a744529564f55608905b09a08fa781cda39836207f6f5c165d27153fcdd"
-"7f613844a6e10636fb27d8b146257d10932c37c7616099893928d2d458f294ae165def19f7175e798c0dced4ab7d96def88cd653b3264f41e756a043af6f39c2"
-"48a51fb3c35b313058987bc10f6723ae5df051e180bf9b5b0fd8b4c4f12ee457f4d17681381865797b2f761fb05f12e6a9eb18b1f95d639a4af5b1613168c1fe"
-"8bf9c263c12a19c50525fb70cfe56980b26957e5c295f7546244ce6b7b1b90b24ce3cffc5536e96d973b192a77f878eb5e6987e1055475a0abd00312d7a65dd3";
-
-/* This function over-rides the s2n internal copy of the same function */
-S2N_RESULT nist_fake_128_urandom_data(struct s2n_blob *blob)
+int nist_fake_entropy_init_cleanup(void)
 {
-    GUARD_AS_RESULT(s2n_stuffer_read(&nist_aes128_reference_entropy, blob));
-    return S2N_RESULT_OK;
+    return 0;
 }
 
-S2N_RESULT nist_fake_256_urandom_data(struct s2n_blob *blob)
+int nist_fake_128_entropy_data(void *data, uint32_t size)
 {
-    GUARD_AS_RESULT(s2n_stuffer_read(&nist_aes256_reference_entropy, blob));
-    return S2N_RESULT_OK;
+    struct s2n_blob blob = {.data = data, .size = size};
+
+    GUARD(s2n_stuffer_read(&nist_aes128_reference_entropy, &blob));
+
+    return 0;
 }
 
-S2N_RESULT nist_fake_256_no_pr_urandom_data(struct s2n_blob *blob)
+int nist_fake_256_entropy_data(void *data, uint32_t size)
 {
-    GUARD_AS_RESULT(s2n_stuffer_read(&nist_aes256_no_pr_reference_entropy, blob));
-    return S2N_RESULT_OK;
+    struct s2n_blob blob = {.data = data, .size = size};
+
+    GUARD(s2n_stuffer_read(&nist_aes256_reference_entropy, &blob));
+
+    return 0;
 }
 
-int check_drgb_version(s2n_drbg_mode mode, s2n_result (*generator)(struct s2n_blob *), int personalization_size,
+int check_drgb_version(s2n_drbg_mode mode, int (*generator)(void *, uint32_t), int personalization_size,
         const char personalization_hex[], const char reference_values_hex[], const char returned_bits_hex[]) {
 
     DEFER_CLEANUP(struct s2n_stuffer personalization = {0}, s2n_stuffer_free);
@@ -363,12 +286,17 @@ int check_drgb_version(s2n_drbg_mode mode, s2n_result (*generator)(struct s2n_bl
     GUARD(s2n_stuffer_alloc_ro_from_hex_string(&personalization, personalization_hex));
     GUARD(s2n_stuffer_alloc_ro_from_hex_string(&returned_bits, returned_bits_hex));
     GUARD(s2n_stuffer_alloc_ro_from_hex_string(&reference_values, reference_values_hex));
+
     for (int i = 0; i < 14; i++) {
         uint8_t ps[S2N_DRBG_MAX_SEED_SIZE] = {0};
-        struct s2n_drbg nist_drbg = {.entropy_generator = generator};
+        struct s2n_drbg nist_drbg = {0};
         struct s2n_blob personalization_string = {.data = ps, .size = personalization_size};
+
         /* Read the next personalization string */
         GUARD(s2n_stuffer_read(&personalization, &personalization_string));
+
+        /* Over-ride the entropy sources */
+        GUARD(s2n_rand_set_callbacks(nist_fake_entropy_init_cleanup, nist_fake_entropy_init_cleanup, generator, generator));
 
         /* Instantiate the DRBG */
         GUARD(s2n_drbg_instantiate(&nist_drbg, &personalization_string, mode));
@@ -398,9 +326,7 @@ int check_drgb_version(s2n_drbg_mode mode, s2n_result (*generator)(struct s2n_bl
         eq_check(memcmp(nist_returned_bits, out, sizeof(nist_returned_bits)), 0);
 
         if (mode == S2N_AES_128_CTR_NO_DF_PR || mode == S2N_AES_256_CTR_NO_DF_PR){
-            eq_check(nist_drbg.generation, 3);
-        } else if (mode == S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR) {
-            eq_check(nist_drbg.generation, 1);
+            eq_check(nist_drbg.mixes, 2);
         } else {
             S2N_ERROR(S2N_ERR_DRBG);
         }
@@ -415,17 +341,79 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
 
-    /* Open /dev/urandom */
-    EXPECT_TRUE(entropy_fd = open("/dev/urandom", O_RDONLY));
+    uint8_t data[256] = {0};
+    struct s2n_drbg aes128_drbg = {0};
+    struct s2n_drbg aes256_pr_drbg = {0};
+    struct s2n_blob blob = {.data = data, .size = 64 };
+
+    EXPECT_SUCCESS(s2n_drbg_instantiate(&aes128_drbg, &blob, S2N_AES_128_CTR_NO_DF_PR));
+    EXPECT_SUCCESS(s2n_drbg_instantiate(&aes256_pr_drbg, &blob, S2N_AES_256_CTR_NO_DF_PR));
+
+    struct s2n_config *config;
+    EXPECT_NOT_NULL(config = s2n_config_new());
+
+    /* Use the AES128 DRBG for 32MB of data */
+    for (int i = 0; i < 500000; i++) {
+        EXPECT_SUCCESS(s2n_drbg_generate(&aes128_drbg, &blob));
+    }
+    EXPECT_EQUAL(aes128_drbg.mixes, 500000);
+
+    /* Use the AES256 DRBG with prediction resistance for 32MB of data */
+    for (int i = 0; i < 500000; i++) {
+        EXPECT_SUCCESS(s2n_drbg_generate(&aes256_pr_drbg, &blob));
+    }
+    EXPECT_EQUAL(aes256_pr_drbg.mixes, 500000);
+
+    /* NOTE: s2n_random_test also includes monobit tests for this DRBG */
+    /* the DRBG state is 128 bytes, test that we can get more than that */
+    blob.size = 129;
+    for (int i = 0; i < 10; i++) {
+        EXPECT_SUCCESS(s2n_drbg_generate(&aes128_drbg, &blob));
+        EXPECT_SUCCESS(s2n_drbg_generate(&aes256_pr_drbg, &blob));
+    }
+    EXPECT_EQUAL(aes128_drbg.mixes, 500010);
+    EXPECT_EQUAL(aes256_pr_drbg.mixes, 500010);
+
+    /* Generate 31 (= 16 + 15) bytes. Since the DRBG generates 16 bytes at a time,
+     * a common error is to incorrectly fill the last (not-aligned) bytes. Sometimes
+     * they are left unchanged and sometimes a single byte is copied in. We ensure
+     * that the last 15 bytes are not all equal to guard against this. */
+    memset_check((void*)data, 0, 31);
+    blob.size = 31;
+    EXPECT_SUCCESS(s2n_drbg_generate(&aes128_drbg, &blob));
+    bool bytes_are_all_equal = true;
+    for (size_t i = 17; i < 31; i++) {
+        if (data[16] != data[i]) {
+            bytes_are_all_equal = false;
+            break;
+        }
+    }
+    EXPECT_FALSE(bytes_are_all_equal);
+
+    memset_check((void*)data, 0, 31);
+    blob.size = 31;
+    EXPECT_SUCCESS(s2n_drbg_generate(&aes256_pr_drbg, &blob));
+    bytes_are_all_equal = true;
+    for (size_t i = 17; i < 31; i++) {
+        if (data[16] != data[i]) {
+            bytes_are_all_equal = false;
+            break;
+        }
+    }
+    EXPECT_FALSE(bytes_are_all_equal);
+
+    EXPECT_SUCCESS(s2n_drbg_wipe(&aes128_drbg));
+    EXPECT_SUCCESS(s2n_drbg_wipe(&aes256_pr_drbg));
 
     /* Check everything against the NIST AES 128 vectors with prediction resistance */
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_aes128_reference_entropy, nist_aes128_reference_entropy_hex));
-    EXPECT_SUCCESS(check_drgb_version(S2N_AES_128_CTR_NO_DF_PR, &nist_fake_128_urandom_data, 32, nist_aes128_reference_personalization_strings_hex,
+    EXPECT_SUCCESS(check_drgb_version(S2N_AES_128_CTR_NO_DF_PR, &nist_fake_128_entropy_data, 32, nist_aes128_reference_personalization_strings_hex,
                        nist_aes128_reference_values_hex, nist_aes128_reference_returned_bits_hex));
 
     /* Check everything against the NIST AES 256 vectors with prediction resistance */
     DEFER_CLEANUP(struct s2n_stuffer temp1 = {0}, s2n_stuffer_free);
     DEFER_CLEANUP(struct s2n_stuffer temp2 = {0}, s2n_stuffer_free);
+
     /* Combine nist_aes256_reference_entropy_hex_part1 and nist_aes256_reference_entropy_hex_part2 to avoid C99
      * string length limit. */
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&temp1, nist_aes256_reference_entropy_hex_part1));
@@ -434,98 +422,12 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_copy(&temp1, &nist_aes256_reference_entropy, temp1.write_cursor));
     EXPECT_SUCCESS(s2n_stuffer_copy(&temp2, &nist_aes256_reference_entropy, temp2.write_cursor));
 
-    EXPECT_SUCCESS(check_drgb_version(S2N_AES_256_CTR_NO_DF_PR, &nist_fake_256_urandom_data, 48, nist_aes256_reference_personalization_strings_hex,
+    EXPECT_SUCCESS(check_drgb_version(S2N_AES_256_CTR_NO_DF_PR, &nist_fake_256_entropy_data, 48, nist_aes256_reference_personalization_strings_hex,
                        nist_aes256_reference_values_hex, nist_aes256_reference_returned_bits_hex));
 
-    /* Check everything against the NIST AES 256 vectors with no prediction resistance */
-    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_aes256_no_pr_reference_entropy, nist_aes256_no_pr_reference_entropy_hex));
-    EXPECT_SUCCESS(check_drgb_version(S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR, &nist_fake_256_no_pr_urandom_data, 48, nist_aes256_no_pr_reference_personalization_strings_hex,
-                                      nist_aes256_no_pr_reference_values_hex, nist_aes256_no_pr_reference_returned_bits_hex));
-
-    uint8_t data[256] = {0};
-    struct s2n_drbg aes128_drbg = {0};
-    struct s2n_drbg aes256_pr_drbg = {0};
-    struct s2n_drbg aes256_no_pr_drbg = {0};
-    struct s2n_blob blob = {.data = data, .size = 64 };
-    struct s2n_timer timer;
-    uint64_t aes128_drbg_nanoseconds;
-    uint64_t aes256_pr_drbg_nanoseconds;
-    uint64_t aes256_no_pr_drbg_nanoseconds;
-    uint64_t urandom_nanoseconds;
-
-    EXPECT_SUCCESS(s2n_drbg_instantiate(&aes128_drbg, &blob, S2N_AES_128_CTR_NO_DF_PR));
-    EXPECT_SUCCESS(s2n_drbg_instantiate(&aes256_pr_drbg, &blob, S2N_AES_256_CTR_NO_DF_PR));
-    EXPECT_SUCCESS(s2n_drbg_instantiate(&aes256_no_pr_drbg, &blob, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
-
-    struct s2n_config *config;
-    EXPECT_NOT_NULL(config = s2n_config_new());
-
-    /* Use the AES128 DRBG for 32MB of data */
-    EXPECT_OK(s2n_timer_start(config, &timer));
-    for (int i = 0; i < 500000; i++) {
-        EXPECT_SUCCESS(s2n_drbg_generate(&aes128_drbg, &blob));
-    }
-    EXPECT_OK(s2n_timer_reset(config, &timer, &aes128_drbg_nanoseconds));
-    EXPECT_EQUAL(aes128_drbg.generation, 500001);
-
-    /* Use the AES256 DRBG with prediction resistance for 32MB of data */
-    EXPECT_OK(s2n_timer_start(config, &timer));
-    for (int i = 0; i < 500000; i++) {
-        EXPECT_SUCCESS(s2n_drbg_generate(&aes256_pr_drbg, &blob));
-    }
-    EXPECT_OK(s2n_timer_reset(config, &timer, &aes256_pr_drbg_nanoseconds));
-    EXPECT_EQUAL(aes256_pr_drbg.generation, 500001);
-
-    /* Use the AES256 DRBG without prediction resistance for 32MB of data */
-    EXPECT_OK(s2n_timer_start(config, &timer));
-    for (int i = 0; i < 500000; i++) {
-        EXPECT_SUCCESS(s2n_drbg_generate(&aes256_no_pr_drbg, &blob));
-    }
-    EXPECT_OK(s2n_timer_reset(config, &timer, &aes256_no_pr_drbg_nanoseconds));
-    EXPECT_EQUAL(aes256_no_pr_drbg.generation, 1);
-
-    /* Use urandom for 32MB of data */
-    EXPECT_OK(s2n_timer_start(config, &timer));
-    for (int i = 0; i < 500000; i++) {
-        EXPECT_OK(s2n_get_urandom_data(&blob));
-    }
-    EXPECT_OK(s2n_timer_reset(config, &timer, &urandom_nanoseconds));
-
-    /* NOTE: s2n_random_test also includes monobit tests for this DRBG */
-    /* the DRBG state is 128 bytes, test that we can get more than that */
-    blob.size = 129;
-    for (int i = 0; i < 10; i++) {
-        EXPECT_SUCCESS(s2n_drbg_generate(&aes128_drbg, &blob));
-        EXPECT_SUCCESS(s2n_drbg_generate(&aes256_pr_drbg, &blob));
-        EXPECT_SUCCESS(s2n_drbg_generate(&aes256_no_pr_drbg, &blob));
-    }
-    EXPECT_EQUAL(aes128_drbg.generation, 500011);
-    EXPECT_EQUAL(aes256_pr_drbg.generation, 500011);
-    EXPECT_EQUAL(aes256_no_pr_drbg.generation, 1);
-
-    /* Test that the drbg wont let you use dangerous configurations outside unit tests */
-    EXPECT_SUCCESS(s2n_in_unit_test_set(false));
-    struct s2n_drbg failing_drbg_mode = {0};
-    EXPECT_FAILURE(s2n_drbg_instantiate(&failing_drbg_mode, &blob, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
-
-    struct s2n_drbg failing_drbg_entropy = {.entropy_generator = &nist_fake_128_urandom_data};
-    EXPECT_FAILURE(s2n_drbg_instantiate(&failing_drbg_entropy, &blob, S2N_AES_128_CTR_NO_DF_PR));
-
-    /* Return to "unit test mode" and verify it would actually work and that was the reason for the failure */
-    EXPECT_SUCCESS(s2n_in_unit_test_set(true));
-
-    EXPECT_SUCCESS(s2n_drbg_instantiate(&failing_drbg_mode, &blob, S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR));
-    EXPECT_SUCCESS(s2n_drbg_instantiate(&failing_drbg_entropy, &blob, S2N_AES_128_CTR_NO_DF_PR));
-
-    EXPECT_SUCCESS(s2n_drbg_wipe(&failing_drbg_mode));
-    EXPECT_SUCCESS(s2n_drbg_wipe(&failing_drbg_entropy));
-    EXPECT_SUCCESS(s2n_drbg_wipe(&aes128_drbg));
-    EXPECT_SUCCESS(s2n_drbg_wipe(&aes256_pr_drbg));
-    EXPECT_SUCCESS(s2n_drbg_wipe(&aes256_no_pr_drbg));
 
     EXPECT_SUCCESS(s2n_stuffer_free(&nist_aes128_reference_entropy));
     EXPECT_SUCCESS(s2n_stuffer_free(&nist_aes256_reference_entropy));
-    EXPECT_SUCCESS(s2n_stuffer_free(&nist_aes256_no_pr_reference_entropy));
 
     EXPECT_SUCCESS(s2n_config_free(config));
 

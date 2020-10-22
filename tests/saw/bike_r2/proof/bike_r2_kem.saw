@@ -75,7 +75,7 @@ keypair_ov <- verify crypto_kem_keypair_fun_name
   , aes_ctr_prf_R_0_ov
   , aes_ctr_prf_R_1_ov
   , generate_sparse_rep_DV_R_ov
-  , get_random_bytes_ov
+  , s2n_get_random_bytes_ov
   , gf2x_mod_mul_ov
   , sample_uniform_r_bits_ov
   ]
@@ -90,7 +90,7 @@ crypto_kem_enc_ov <- verify crypto_kem_enc_fun_name
   , EVP_aes_256_ecb_ov
   , aes_ctr_prf_R_0_ov
   , generate_sparse_rep_T1_N_ov
-  , get_random_bytes_ov
+  , s2n_get_random_bytes_ov
   , gf2x_add_ov
   , gf2x_mod_mul_ov
   , sha384_2xR_ov
@@ -111,7 +111,7 @@ crypto_kem_dec_ov <- verify crypto_kem_dec_fun_name
   , compute_syndrome_ov
   , decode_ov
   , generate_sparse_rep_T1_N_ov
-  , get_random_bytes_ov
+  , s2n_get_random_bytes_ov
   , gf2x_add_ov
   , gf2x_mod_mul_ov
   , sha384_2xR_ov

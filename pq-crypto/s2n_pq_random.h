@@ -15,6 +15,9 @@
 
 #pragma once
 
-//For clarity of the code.
-#define IN
-#define OUT
+#include "utils/s2n_result.h"
+
+typedef S2N_RESULT (*s2n_get_random_bytes_callback)(uint8_t *buffer, uint32_t num_bytes);
+
+S2N_RESULT s2n_get_random_bytes(uint8_t *buffer, uint32_t num_bytes);
+S2N_RESULT s2n_set_rand_bytes_callback_for_testing(s2n_get_random_bytes_callback rand_bytes_callback);

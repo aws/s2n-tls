@@ -3,7 +3,7 @@
 #include "params.h"
 #include "poly.h"
 #include "polyvec.h"
-#include "../pq_random.h"
+#include "../s2n_pq_random.h"
 #include "utils/s2n_safety.h"
 #include "symmetric.h"
 
@@ -189,7 +189,7 @@ int PQCLEAN_KYBER51290S_CLEAN_indcpa_keypair(uint8_t *pk, uint8_t *sk) {
     uint8_t *noiseseed = buf + KYBER_SYMBYTES;
     uint8_t nonce = 0;
 
-    GUARD_AS_POSIX(get_random_bytes(buf, KYBER_SYMBYTES));
+    GUARD_AS_POSIX(s2n_get_random_bytes(buf, KYBER_SYMBYTES));
     hash_g(buf, buf, KYBER_SYMBYTES);
 
     gen_a(a, publicseed);

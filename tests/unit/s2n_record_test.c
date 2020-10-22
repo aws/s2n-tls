@@ -83,7 +83,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_new(&check_mac));
 
     EXPECT_SUCCESS(s2n_hmac_init(&check_mac, S2N_HMAC_SHA1, fixed_iv.data, fixed_iv.size));
-    EXPECT_OK(s2n_get_urandom_data(&r));
+    EXPECT_OK(s2n_get_public_random_data(&r));
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
     /* Peer and we are in sync */

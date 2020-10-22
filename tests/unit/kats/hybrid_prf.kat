@@ -1,16 +1,3 @@
-/* Test vectors were calculated from an independent implementation */
-
-/* The number of bytes (length) for premaster_kem_secret and client_key_exchange_message must
- * be defined here for each test vector, since they vary based on the KEM. The
- * length is specified as a base 10 integer.
- *
- * Example: For ECDHE + SIKE p503, test 0, the premaster_kem_secret is 4346C330BBB2526CECFCC8238FA86913.
- * This is 32 hex characters, which represents 16 bytes. So premaster_kem_secret_length = 16. The
- * client_key_exchange_message is 1022 hex characters, which represents 511 bytes. So,
- * client_key_exchange_message_length = 511.
- *
- * The lengths for the other elements do no vary and can be defined in the source file. */
-
 /* ECDHE + SIKE p503, test 0 */
 count = 0
 premaster_classic_secret = e45c242e720129feaafafea3dccb73b5562906657505525db4074c403215284992df25062a61091651dd5e9dd3401a72

@@ -9,7 +9,7 @@
 #include <string.h>
 #include "P503_internal_r1.h"
 #include "fips202_r1.h"
-#include "pq-crypto/pq_random.h"
+#include "pq-crypto/s2n_pq_random.h"
 #include "utils/s2n_safety.h"
 
 int SIKE_P503_r1_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
@@ -20,7 +20,7 @@ int SIKE_P503_r1_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
     digit_t _sk[SECRETKEY_B_BYTES/sizeof(digit_t)];
 
     // Generate lower portion of secret key sk <- s||SK
-    GUARD_AS_POSIX(get_random_bytes(sk, MSG_BYTES));
+    GUARD_AS_POSIX(s2n_get_random_bytes(sk, MSG_BYTES));
     GUARD(random_mod_order_B((unsigned char*)_sk));
 
     // Generate public key pk
@@ -52,7 +52,7 @@ int SIKE_P503_r1_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsi
     unsigned int i;
 
     // Generate ephemeralsk <- G(m||pk) mod oA
-    GUARD_AS_POSIX(get_random_bytes(temp, MSG_BYTES));
+    GUARD_AS_POSIX(s2n_get_random_bytes(temp, MSG_BYTES));
     memcpy(&temp[MSG_BYTES], pk, SIKE_P503_R1_PUBLIC_KEY_BYTES);
     cshake256_simple(ephemeralsk.b, SECRETKEY_A_BYTES, G, temp, SIKE_P503_R1_PUBLIC_KEY_BYTES+MSG_BYTES);
     ephemeralsk.b[SECRETKEY_A_BYTES - 1] &= MASK_ALICE;

@@ -43,7 +43,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13());
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    EXPECT_OK(s2n_get_urandom_data(&r));
+    EXPECT_OK(s2n_get_public_random_data(&r));
 
     /* Peer and we are in sync */
     conn->server = &conn->secure;

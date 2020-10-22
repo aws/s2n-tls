@@ -29,10 +29,32 @@
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_security_policies.h"
 
-struct s2n_blob hybrid_kat_entropy_blob = {0};
+#define SEED_LENGTH 48
+uint8_t hybrid_kat_entropy_buff[SEED_LENGTH] = {0};
+struct s2n_blob hybrid_kat_entropy_blob = {.size = SEED_LENGTH, .data = hybrid_kat_entropy_buff};
+struct s2n_drbg drbg_for_hybrid_kats;
 
-int setup_connection(struct s2n_connection *conn, const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
-                     const char *cipher_pref_version) {
+int s2n_hybrid_pq_rand_init(void) {
+    ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    return S2N_SUCCESS;
+}
+
+int s2n_hybrid_pq_rand_cleanup(void) {
+    return S2N_SUCCESS;
+}
+
+/* We use "seed" from the KAT file for both the seed entropy and mix entropy for DRBG */
+int s2n_hybrid_pq_entropy(void *ptr, uint32_t size) {
+    ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    notnull_check(ptr);
+    eq_check(size, hybrid_kat_entropy_blob.size);
+    memcpy_check(ptr, hybrid_kat_entropy_buff, size);
+
+    return S2N_SUCCESS;
+}
+
+static int setup_connection(struct s2n_connection *conn, const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
+        const char *cipher_pref_version) {
     S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     conn->actual_protocol_version = S2N_TLS12;
 
@@ -45,7 +67,7 @@ int setup_connection(struct s2n_connection *conn, const struct s2n_kem *kem, str
     conn->secure.cipher_suite = cipher_suite;
     conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
     GUARD(s2n_connection_set_cipher_preferences(conn, cipher_pref_version));
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
@@ -82,7 +104,8 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
     GUARD(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
     GUARD(s2n_connection_set_config(server_conn, server_config));
 
-    GUARD(s2n_choose_sig_scheme_from_peer_preference_list(server_conn, &server_conn->handshake_params.client_sig_hash_algs, &server_conn->secure.conn_sig_scheme));
+    GUARD(s2n_choose_sig_scheme_from_peer_preference_list(server_conn, &server_conn->handshake_params.client_sig_hash_algs,
+            &server_conn->secure.conn_sig_scheme));
 
     DEFER_CLEANUP(struct s2n_stuffer certificate_in = {0}, s2n_stuffer_free);
     GUARD(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
@@ -105,14 +128,16 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
     GUARD(setup_connection(client_conn, kem, cipher_suite, cipher_pref_version));
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
-    /* Read the seed from the RSP_FILE and create the DRBG for the test. Since the seed is the same (and prediction
-     * resistance is off) all calls to generate random data will return the same sequence. Thus the server always
-     * generates the same ECDHE point and KEM public key, the client does the same. */
+    /* Set the DRBG to the state that was used to generate this test vector. */
     FILE *kat_file = fopen(kat_file_name, "r");
     GUARD_NONNULL(kat_file);
-    GUARD(s2n_alloc(&hybrid_kat_entropy_blob, 48));
-    GUARD(ReadHex(kat_file, hybrid_kat_entropy_blob.data, 48, "seed = "));
-    GUARD(s2n_unsafe_set_drbg_seed(&hybrid_kat_entropy_blob));
+    GUARD(ReadHex(kat_file, hybrid_kat_entropy_blob.data, SEED_LENGTH, "seed = "));
+
+    s2n_stack_blob(personalization_string, SEED_LENGTH, SEED_LENGTH);
+    GUARD(s2n_rand_set_callbacks(s2n_hybrid_pq_rand_init, s2n_hybrid_pq_rand_cleanup, s2n_hybrid_pq_entropy,
+            s2n_hybrid_pq_entropy));
+    GUARD(s2n_drbg_instantiate(&drbg_for_hybrid_kats, &personalization_string, S2N_AES_256_CTR_NO_DF_PR));
+    GUARD_AS_POSIX(s2n_set_private_drbg_for_test(drbg_for_hybrid_kats));
 #endif
 
     /* Part 2 server sends key first */

@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 
         /* Get i bytes of random data */
         r.size = i;
-        EXPECT_OK(s2n_get_urandom_data(&r));
+        EXPECT_OK(s2n_get_public_random_data(&r));
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&entropy, pad, i));
 
         /* Write i bytes  it, base64 encoded */
