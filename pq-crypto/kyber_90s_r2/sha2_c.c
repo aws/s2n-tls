@@ -179,8 +179,8 @@ static size_t crypto_hashblocks_sha256(uint8_t *statebytes,
 		uint32_t w14 = load_bigendian_32(in + 56);
 		uint32_t w15 = load_bigendian_32(in + 60);
 
-        uint32_t T1;
-        uint32_t T2;
+		uint32_t T1;
+		uint32_t T2;
 
 		F_32(w0, 0x428a2f98)
 		F_32(w1, 0x71374491)
@@ -337,8 +337,8 @@ static size_t crypto_hashblocks_sha512(uint8_t *statebytes,
 		uint64_t w14 = load_bigendian_64(in + 112);
 		uint64_t w15 = load_bigendian_64(in + 120);
 
-        uint64_t T1;
-        uint64_t T2;
+		uint64_t T1;
+		uint64_t T2;
 
 		F_64(w0, 0x428a2f98d728ae22ULL)
 		F_64(w1, 0x7137449123ef65cdULL)

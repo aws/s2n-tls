@@ -108,8 +108,7 @@ void KeccakF1600_StatePermute(uint64_t * state)
         Aso = state[23];
         Asu = state[24];
 
-        for( round = 0; round < NROUNDS; round += 2 )
-        {
+        for( round = 0; round < NROUNDS; round += 2 ) {
             uint64_t Da, De, Di, Do, Du;
             uint64_t Eba, Ebe, Ebi, Ebo, Ebu;
             uint64_t Ega, Ege, Egi, Ego, Egu;
