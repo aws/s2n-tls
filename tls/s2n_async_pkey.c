@@ -280,6 +280,7 @@ int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key
 
     const struct s2n_async_pkey_op_actions *actions = NULL;
     GUARD_AS_POSIX(s2n_async_get_actions(op->type, &actions));
+    notnull_check(actions);
 
     GUARD_AS_POSIX(actions->perform(op, key));
 
@@ -304,6 +305,7 @@ int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection 
 
     const struct s2n_async_pkey_op_actions *actions = NULL;
     GUARD_AS_POSIX(s2n_async_get_actions(op->type, &actions));
+    notnull_check(actions);
 
     GUARD_AS_POSIX(actions->apply(op, conn));
 
@@ -321,6 +323,7 @@ int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op)
     ENSURE_POSIX_REF(op);
     const struct s2n_async_pkey_op_actions *actions = NULL;
     GUARD_AS_POSIX(s2n_async_get_actions(op->type, &actions));
+    notnull_check(actions);
 
     /* If applied the decrypt/sign structs were released in apply call */
     if (!op->applied) { GUARD_AS_POSIX(actions->free(op)); }

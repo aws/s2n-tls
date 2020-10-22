@@ -159,6 +159,9 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
                                                      struct s2n_blob *name,
                                                      struct s2n_cert_chain_and_key *cert_key_pair)
 {
+    notnull_check(config);
+    notnull_check(name);
+
     struct s2n_map *domain_name_to_cert_map = config->domain_name_to_cert_map;
     /* s2n_map does not allow zero-size key */
     if (name->size == 0) {
