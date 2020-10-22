@@ -532,11 +532,8 @@ static inline uint32_t UINT32_TO_BE(const uint32_t x) {
 	} y;
 
 	/* As part of the union, these bytes get read when y.val is read */
-    /* cppcheck-suppress unreadVariable */
 	y.bytes[0] = (x >> 24) & 0xFF;
-    /* cppcheck-suppress unreadVariable */
 	y.bytes[1] = (x >> 16) & 0xFF;
-    /* cppcheck-suppress unreadVariable */
 	y.bytes[2] = (x >> 8) & 0xFF;
     /* cppcheck-suppress unreadVariable */
 	y.bytes[3] = x & 0xFF;
