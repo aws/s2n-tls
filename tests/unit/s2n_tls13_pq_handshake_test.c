@@ -25,7 +25,7 @@
 /* Include C file directly to access static functions */
 #include "tls/s2n_handshake_io.c"
 
-static int do_handshake(const struct s2n_security_policy *client_sec_policy,
+static int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_policy,
         const struct s2n_security_policy *server_sec_policy, const struct s2n_kem_group *expected_kem_group,
         const struct s2n_ecc_named_curve *expected_curve, bool should_send_ec_shares, bool hrr_expected) {
     /* XOR check: can expect to negotiate either a KEM group, or a classic EC curve, but not both/neither */
@@ -221,8 +221,6 @@ int main() {
 
 #if !defined(S2N_NO_PQ)
 
-    EXPECT_SUCCESS(s2n_enable_tls13());
-
     const struct s2n_kem_group *expected_kyber_group = &s2n_x25519_kyber_512_r2;
     const struct s2n_kem_group *expected_bike_group = &s2n_x25519_bike1_l1_r2;
     const struct s2n_kem_group *expected_sike_group = &s2n_x25519_sike_p434_r2;
@@ -237,102 +235,102 @@ int main() {
 
     /* Server supports all KEM groups; client sends a PQ key share and an EC key share; server chooses
      * to negotiate client's first choice PQ without HRR. */
-    EXPECT_SUCCESS(do_handshake(&security_policy_kyberbikesike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_kyberbikesike_test_tls_1_0_2020_09,
             &security_policy_kyberbikesike_test_tls_1_0_2020_09, expected_kyber_group, NULL, true, false));
-    EXPECT_SUCCESS(do_handshake(&security_policy_kyber_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_kyber_test_tls_1_0_2020_09,
             &security_policy_kyberbikesike_test_tls_1_0_2020_09, expected_kyber_group, NULL, true, false));
-    EXPECT_SUCCESS(do_handshake(&security_policy_bike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_bike_test_tls_1_0_2020_09,
             &security_policy_kyberbikesike_test_tls_1_0_2020_09, expected_bike_group, NULL, true, false));
-    EXPECT_SUCCESS(do_handshake(&security_policy_sike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_sike_test_tls_1_0_2020_09,
             &security_policy_kyberbikesike_test_tls_1_0_2020_09, expected_sike_group, NULL, true, false));
 
     /* Server supports only one KEM group and it is the client's first choice; client sends a PQ share
      * and an EC share; server chooses to negotiate PQ without HRR. */
-    EXPECT_SUCCESS(do_handshake(&security_policy_kyberbikesike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_kyberbikesike_test_tls_1_0_2020_09,
             &security_policy_kyber_test_tls_1_0_2020_09, expected_kyber_group, NULL, true, false));
-    EXPECT_SUCCESS(do_handshake(&security_policy_kyber_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_kyber_test_tls_1_0_2020_09,
             &security_policy_kyber_test_tls_1_0_2020_09, expected_kyber_group, NULL, true, false));
-    EXPECT_SUCCESS(do_handshake(&security_policy_sike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_sike_test_tls_1_0_2020_09,
             &security_policy_sike_test_tls_1_0_2020_09, expected_sike_group, NULL, true, false));
-    EXPECT_SUCCESS(do_handshake(&security_policy_bike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_bike_test_tls_1_0_2020_09,
             &security_policy_bike_test_tls_1_0_2020_09, expected_bike_group, NULL, true, false));
 
     /* Server supports only one KEM group and it is *not* the client's first choice; client sends
      * only a PQ key share for its first choice (no ECC shares sent); server sends HRR and
      * negotiates a mutually supported PQ group. */
-    EXPECT_SUCCESS(do_handshake(&security_policy_kyberbikesike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_kyberbikesike_test_tls_1_0_2020_09,
             &security_policy_bike_test_tls_1_0_2020_09, expected_bike_group, NULL, false, true));
-    EXPECT_SUCCESS(do_handshake(&security_policy_kyberbikesike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_kyberbikesike_test_tls_1_0_2020_09,
             &security_policy_sike_test_tls_1_0_2020_09, expected_sike_group, NULL, false, true));
 
     /* Server supports only one KEM group and it is *not* the client's first choice; client sends
      * a key share for its first PQ choice, and a share for its first EC choice; server chooses
      * to negotiate EC to avoid additional round trips. */
-    EXPECT_SUCCESS(do_handshake(&security_policy_kyberbikesike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_kyberbikesike_test_tls_1_0_2020_09,
             &security_policy_bike_test_tls_1_0_2020_09, NULL, expected_curve, true, false));
-    EXPECT_SUCCESS(do_handshake(&security_policy_kyberbikesike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_kyberbikesike_test_tls_1_0_2020_09,
             &security_policy_sike_test_tls_1_0_2020_09, NULL, expected_curve, true, false));
 
     /* Client and server both support PQ, but have no mutually supported PQ groups; client
      * sent PQ and EC shares; EC should be negotiated without HRR. */
-    EXPECT_SUCCESS(do_handshake(&security_policy_kyber_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_kyber_test_tls_1_0_2020_09,
             &security_policy_bike_test_tls_1_0_2020_09, NULL, expected_curve, true, false));
-    EXPECT_SUCCESS(do_handshake(&security_policy_kyber_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_kyber_test_tls_1_0_2020_09,
             &security_policy_sike_test_tls_1_0_2020_09, NULL, expected_curve, true, false));
-    EXPECT_SUCCESS(do_handshake(&security_policy_sike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_sike_test_tls_1_0_2020_09,
             &security_policy_kyber_test_tls_1_0_2020_09, NULL, expected_curve, true, false));
-    EXPECT_SUCCESS(do_handshake(&security_policy_sike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_sike_test_tls_1_0_2020_09,
             &security_policy_bike_test_tls_1_0_2020_09, NULL, expected_curve, true, false));
-    EXPECT_SUCCESS(do_handshake(&security_policy_bike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_bike_test_tls_1_0_2020_09,
             &security_policy_kyber_test_tls_1_0_2020_09, NULL, expected_curve, true, false));
-    EXPECT_SUCCESS(do_handshake(&security_policy_bike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_bike_test_tls_1_0_2020_09,
             &security_policy_sike_test_tls_1_0_2020_09, NULL, expected_curve, true, false));
 
     /* Client and server both support PQ, but have no mutually supported PQ groups; client
      * sent only a PQ share (no EC); server should choose to negotiate EC and send HRR. */
-    EXPECT_SUCCESS(do_handshake(&security_policy_kyber_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_kyber_test_tls_1_0_2020_09,
             &security_policy_bike_test_tls_1_0_2020_09, NULL, expected_curve, false, true));
-    EXPECT_SUCCESS(do_handshake(&security_policy_kyber_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_kyber_test_tls_1_0_2020_09,
             &security_policy_sike_test_tls_1_0_2020_09, NULL, expected_curve, false, true));
-    EXPECT_SUCCESS(do_handshake(&security_policy_sike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_sike_test_tls_1_0_2020_09,
             &security_policy_kyber_test_tls_1_0_2020_09, NULL, expected_curve, false, true));
-    EXPECT_SUCCESS(do_handshake(&security_policy_sike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_sike_test_tls_1_0_2020_09,
             &security_policy_bike_test_tls_1_0_2020_09, NULL, expected_curve, false, true));
-    EXPECT_SUCCESS(do_handshake(&security_policy_bike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_bike_test_tls_1_0_2020_09,
             &security_policy_kyber_test_tls_1_0_2020_09, NULL, expected_curve, false, true));
-    EXPECT_SUCCESS(do_handshake(&security_policy_bike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_bike_test_tls_1_0_2020_09,
             &security_policy_sike_test_tls_1_0_2020_09, NULL, expected_curve, false, true));
 
     /* Server does not support PQ at all; client sends a PQ key share and an EC key share;
      * server should negotiate EC without HRR. */
-    EXPECT_SUCCESS(do_handshake(&security_policy_kyberbikesike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_kyberbikesike_test_tls_1_0_2020_09,
             &security_policy_test_all_tls13, NULL, expected_curve, true, false));
-    EXPECT_SUCCESS(do_handshake(&security_policy_bike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_bike_test_tls_1_0_2020_09,
             &security_policy_test_all_tls13, NULL, expected_curve, true, false));
-    EXPECT_SUCCESS(do_handshake(&security_policy_sike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_sike_test_tls_1_0_2020_09,
             &security_policy_test_all_tls13, NULL, expected_curve, true, false));
-    EXPECT_SUCCESS(do_handshake(&security_policy_kyber_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_kyber_test_tls_1_0_2020_09,
             &security_policy_test_all_tls13, NULL, expected_curve, true, false));
 
     /* Server does not support PQ at all; client sends a PQ key share, but no EC shares;
      * server should negotiate EC and send HRR. */
-    EXPECT_SUCCESS(do_handshake(&security_policy_kyberbikesike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_kyberbikesike_test_tls_1_0_2020_09,
             &security_policy_test_all_tls13, NULL, expected_curve, false, true));
-    EXPECT_SUCCESS(do_handshake(&security_policy_bike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_bike_test_tls_1_0_2020_09,
             &security_policy_test_all_tls13, NULL, expected_curve, false, true));
-    EXPECT_SUCCESS(do_handshake(&security_policy_sike_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_sike_test_tls_1_0_2020_09,
             &security_policy_test_all_tls13, NULL, expected_curve, false, true));
-    EXPECT_SUCCESS(do_handshake(&security_policy_kyber_test_tls_1_0_2020_09,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_kyber_test_tls_1_0_2020_09,
             &security_policy_test_all_tls13, NULL, expected_curve, false, true));
 
     /* Server supports PQ, but client does not. Client sent an EC share, EC should be negotiated
      * without HRR */
-    EXPECT_SUCCESS(do_handshake(&security_policy_test_all_tls13,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_test_all_tls13,
             &security_policy_kyberbikesike_test_tls_1_0_2020_09, NULL, expected_curve, true, false));
 
     /* Server supports PQ, but client does not. Client did not send any EC shares, EC should
      * be negotiated after exchanging HRR */
-    EXPECT_SUCCESS(do_handshake(&security_policy_test_all_tls13,
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_test_all_tls13,
             &security_policy_kyberbikesike_test_tls_1_0_2020_09, NULL, expected_curve, false, true));
 
 #endif
