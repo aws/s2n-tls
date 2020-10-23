@@ -17,15 +17,15 @@
 #include "utils/s2n_safety.h"
 #include "tls/s2n_kem.h"
 #include "tests/testlib/s2n_nist_kats.h"
+#include "pq-crypto/s2n_pq.h"
 
+/* PQ fuzz tests can (and should) run even when PQ is disabled. If PQ is disabled,
+ * the wrapper functions defined in s2n_kem.c should gracefully handle error cases
+ * without crashing, segfaulting, etc. */
 
 int s2n_kem_recv_ciphertext_fuzz_test_init(const char *kat_file_path, struct s2n_kem_params *kem_params) {
     notnull_check(kat_file_path);
     notnull_check(kem_params);
-
-#if defined(S2N_NO_PQ)
-    return S2N_FAILURE;
-#else
     notnull_check(kem_params->kem);
 
     GUARD(s2n_alloc(&kem_params->private_key, kem_params->kem->private_key_length));
@@ -36,20 +36,12 @@ int s2n_kem_recv_ciphertext_fuzz_test_init(const char *kat_file_path, struct s2n
     fclose(kat_file);
 
     return S2N_SUCCESS;
-#endif
 }
 
 int s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params) {
     notnull_check(buf);
     notnull_check(kem_params);
-
-#if defined(S2N_NO_PQ)
-    return S2N_FAILURE;
-#else
     notnull_check(kem_params->kem);
-
-    /* Because of the way BIKE1_L1_R1's decapsulation function is written, this test will not work for that KEM. */
-    ENSURE_POSIX(kem_params->kem != &s2n_bike1_l1_r1, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
     struct s2n_stuffer ciphertext = { 0 };
     GUARD(s2n_stuffer_growable_alloc(&ciphertext, 8192));
@@ -57,30 +49,36 @@ int s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n
 
     /* Don't GUARD here; this will probably fail. */
     s2n_kem_recv_ciphertext(&ciphertext, kem_params);
-    /* The PQ KEM functions are written in such a way that kem->decapsulate should
-     * never fail (except for BIKE1_L1_R1), even if the ciphertext is not valid. So,
-     * we check it with GUARD. */
     if (kem_params->shared_secret.allocated == 0) {
         /* If s2n_kem_recv_ciphertext failed, this probably did not get allocated. */
         GUARD(s2n_alloc(&kem_params->shared_secret, kem_params->kem->shared_secret_key_length));
     }
-    GUARD(kem_params->kem->decapsulate(kem_params->shared_secret.data, ciphertext.blob.data, kem_params->private_key.data));
+
+    s2n_result decaps_result = kem_params->kem->decapsulate(kem_params->shared_secret.data, ciphertext.blob.data,
+            kem_params->private_key.data);
+
+    if (s2n_pq_is_enabled()) {
+        /* (With one exception) If PQ is enabled, calling kem->decapsulate should never fail, even if
+         * the ciphertext is nonsense. The exception is s2n_bike1_l1_r1, which may or may not fail
+         * depending on the particular nonsense of the ciphertext. */
+        if (kem_params->kem != &s2n_bike1_l1_r1) {
+            ENSURE_POSIX(s2n_result_is_ok(decaps_result), S2N_ERR_SAFETY);
+        }
+    } else {
+        /* Calling decapsulate when PQ is disabled should always result in an error */
+        ENSURE_POSIX(s2n_result_is_error(decaps_result), S2N_ERR_SAFETY);
+    }
 
     /* Clean up */
     GUARD(s2n_stuffer_free(&ciphertext));
     GUARD(s2n_free(&kem_params->shared_secret));
 
     return S2N_SUCCESS;
-#endif
 }
 
 int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params) {
     notnull_check(buf);
     notnull_check(kem_params);
-
-#if defined(S2N_NO_PQ)
-    return S2N_FAILURE;
-#else
     notnull_check(kem_params->kem);
 
     struct s2n_stuffer public_key = { 0 };
@@ -92,12 +90,19 @@ int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n
      * we continue by calling s2n_kem_send_ciphertext to attempt to use the key
      * for encryption. */
     if (s2n_kem_recv_public_key(&public_key, kem_params) == S2N_SUCCESS) {
-        /* The PQ KEM functions are written in such a way that s2n_kem_send_ciphertext
-         * should always succeed, even if the public key is not valid. So, we check it
-         * with GUARD. */
         struct s2n_stuffer out = {0};
         GUARD(s2n_stuffer_growable_alloc(&out, 8192));
-        GUARD(s2n_kem_send_ciphertext(&out, kem_params));
+
+        /* The PQ KEM functions are written in such a way that s2n_kem_send_ciphertext()
+         * should always succeed, even if the public key is not valid, as long as PQ is
+         * enabled. If PQ is disabled, s2n_kem_send_ciphertext() should always fail. */
+        int send_ciphertext_result = s2n_kem_send_ciphertext(&out, kem_params);
+
+        if (s2n_pq_is_enabled()) {
+            ENSURE_POSIX(send_ciphertext_result == S2N_SUCCESS, S2N_ERR_SAFETY);
+        } else {
+            ENSURE_POSIX(send_ciphertext_result != S2N_SUCCESS, S2N_ERR_SAFETY);
+        }
 
         GUARD(s2n_stuffer_free(&out));
     }
@@ -107,6 +112,4 @@ int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n
     GUARD(s2n_kem_free(kem_params));
 
     return S2N_SUCCESS;
-#endif
 }
-

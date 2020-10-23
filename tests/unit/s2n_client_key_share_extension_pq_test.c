@@ -27,20 +27,9 @@
 #include "testlib/s2n_testlib.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 
 #define HELLO_RETRY_MSG_NO 1
-
-#if defined(S2N_NO_PQ)
-
-int main() {
-    BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
-    END_TEST();
-    return 0;
-}
-
-#else
 
 static int s2n_generate_pq_hybrid_key_share_for_test(struct s2n_stuffer *out, struct s2n_kem_group_params *kem_group_params);
 static int s2n_copy_pq_share(struct s2n_stuffer *from, struct s2n_blob *to, const struct s2n_kem_group *kem_group);
@@ -97,49 +86,14 @@ int main() {
 
         /* Tests for s2n_client_key_share_extension.send */
         {
-            /* Test that s2n_client_key_share_extension.send sends only ECC key shares
-             * when in FIPS mode, even if tls13_kem_groups is non-null. */
-            if (s2n_is_in_fips_mode()) {
-                struct s2n_connection *conn;
-                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-                conn->security_policy_override = &security_policy_all;
+            /* If PQ is disabled, the client will be prevented from selecting a security policy
+             * with any KEM groups. There are no special cases to test because they are already
+             * covered by classic tests in s2n_client_key_share_extension_test.c. */
 
-                const struct s2n_kem_preferences *kem_pref = NULL;
-                EXPECT_SUCCESS(s2n_connection_get_kem_preferences(conn, &kem_pref));
-                EXPECT_NOT_NULL(kem_pref);
-                EXPECT_EQUAL(kem_pref->tls13_kem_group_count, S2N_SUPPORTED_KEM_GROUPS_COUNT);
-
-                const struct s2n_ecc_preferences *ecc_preferences = NULL;
-                EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
-                EXPECT_NOT_NULL(ecc_preferences);
-
-                DEFER_CLEANUP(struct s2n_stuffer key_share_extension = {0}, s2n_stuffer_free);
-                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 1024));
-                EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
-
-                /* Assert total key shares extension size is correct */
-                uint16_t sent_key_shares_size;
-                EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &sent_key_shares_size));
-                EXPECT_EQUAL(sent_key_shares_size, s2n_stuffer_data_available(&key_share_extension));
-
-                /* ECC key shares should have the format: IANA ID || size || share. Only one ECC key share
-                 * should be sent (as per default s2n behavior). */
-                uint16_t iana_value, share_size;
-                EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &iana_value));
-                EXPECT_EQUAL(iana_value, ecc_preferences->ecc_curves[0]->iana_id);
-                EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &share_size));
-                EXPECT_EQUAL(share_size, ecc_preferences->ecc_curves[0]->share_size);
-                EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, share_size));
-
-                /* If all the sizes/bytes were correctly written, there should be nothing left over */
-                EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), 0);
-
-                EXPECT_SUCCESS(s2n_connection_free(conn));
-            }
 
             /* Test that s2n_client_key_share_extension.send generates and sends PQ hybrid
-             * and ECC shares correctly when not in FIPS mode. */
-            if (!s2n_is_in_fips_mode()) {
+             * and ECC shares correctly. */
+            if (s2n_pq_is_enabled()) {
                 for (size_t i = 0; i < S2N_SUPPORTED_KEM_GROUPS_COUNT; i++) {
                     /* The PQ hybrid key share send function only sends the highest priority PQ key share. On each
                      * iteration of the outer loop of this test (index i), we populate test_kem_groups[] with a
@@ -386,72 +340,13 @@ int main() {
         /* Tests for s2n_client_key_share_extension.recv */
         {
             EXPECT_SUCCESS(s2n_enable_tls13());
+            /* Because the hybrid s2n_client_key_share_extension.recv doesn't call any of the PQ crypto
+             * functions, there isn't a special case to test when PQ is disabled. The server will be
+             * prevented from selecting a PQ security policy, and the default kem_preferences_null
+             * will be selected. The server will treat client PQ shares as unrecognized groups and ignore
+             * them (that test case is handled below). */
 
-            /* Test that s2n_client_key_share_extension.recv ignores PQ key shares when in FIPS mode */
-            if (s2n_is_in_fips_mode()) {
-                struct s2n_connection *server_conn = NULL;
-                EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-                server_conn->actual_protocol_version = S2N_TLS13;
-                server_conn->security_policy_override = &security_policy_all;
-
-                DEFER_CLEANUP(struct s2n_stuffer key_share_extension = { 0 }, s2n_stuffer_free);
-                /* The key shares in this extension are fake - that's OK, the server should ignore the
-                 * KEM group ID and skip the share. */
-                EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&key_share_extension,
-                        /* Shares size: 12 bytes */
-                        "000C"
-                        /* IANA ID for secp256r1_sikep434r2 */
-                        "2F1F"
-                        /* KEM group share size: 8 bytes */
-                        "0008"
-                        /* ECC share size: 2 bytes */
-                        "0002"
-                        /* Fake ECC share */
-                        "FFFF"
-                        /* PQ share size: 2 bytes */
-                        "0002"
-                        /* Fake PQ share */
-                        "FFFF"
-                ));
-
-                EXPECT_SUCCESS(s2n_client_key_share_extension.recv(server_conn, &key_share_extension));
-
-                /* .recv should have read all data */
-                EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), 0);
-
-                /* Server should not have accepted any key shares */
-                const struct s2n_ecc_preferences *ecc_pref = NULL;
-                EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
-                EXPECT_NOT_NULL(ecc_pref);
-
-                for (size_t ec_index = 0; ec_index < ecc_pref->count; ec_index++) {
-                    struct s2n_ecc_evp_params *received_params = &server_conn->secure.client_ecc_evp_params[ec_index];
-                    EXPECT_NULL(received_params->negotiated_curve);
-                    EXPECT_NULL(received_params->evp_pkey);
-                }
-
-                const struct s2n_kem_preferences *server_kem_pref = NULL;
-                EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &server_kem_pref));
-                EXPECT_NOT_NULL(server_kem_pref);
-
-                for (size_t pq_index = 0; pq_index < server_kem_pref->tls13_kem_group_count; pq_index++) {
-                    struct s2n_kem_group_params *received_params = &server_conn->secure.client_kem_group_params[pq_index];
-                    EXPECT_NULL(received_params->kem_group);
-                    EXPECT_NULL(received_params->ecc_params.negotiated_curve);
-                    EXPECT_NULL(received_params->ecc_params.evp_pkey);
-                    EXPECT_NULL(received_params->kem_params.kem);
-                    EXPECT_NULL(received_params->kem_params.public_key.data);
-                    EXPECT_EQUAL(received_params->kem_params.public_key.size, 0);
-                    EXPECT_EQUAL(received_params->kem_params.public_key.allocated, 0);
-                }
-
-                /* Server should have indicated HRR */
-                EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
-
-                EXPECT_SUCCESS(s2n_connection_free(server_conn));
-            }
-
-            if (!s2n_is_in_fips_mode()) {
+            if (s2n_pq_is_enabled()) {
                 /* Test that s2n_client_key_share_extension.recv correctly handles the extension
                  * generated by s2n_client_key_share_extension.send */
                 {
@@ -1066,9 +961,6 @@ static int s2n_generate_pq_hybrid_key_share_for_test(struct s2n_stuffer *out, st
     notnull_check(out);
     notnull_check(kem_group_params);
 
-    /* This function should never be called when in FIPS mode */
-    ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
-
     const struct s2n_kem_group *kem_group = kem_group_params->kem_group;
     notnull_check(kem_group);
 
@@ -1091,4 +983,3 @@ static int s2n_generate_pq_hybrid_key_share_for_test(struct s2n_stuffer *out, st
 
     return S2N_SUCCESS;
 }
-#endif

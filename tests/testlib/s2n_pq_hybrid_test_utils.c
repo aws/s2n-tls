@@ -20,13 +20,11 @@
 #include "utils/s2n_safety.h"
 #include "crypto/s2n_drbg.h"
 #include "crypto/s2n_openssl.h"
-#include "crypto/s2n_fips.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_kex.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_security_policies.h"
 
 #define SEED_LENGTH 48
@@ -53,28 +51,22 @@ int s2n_hybrid_pq_entropy(void *ptr, uint32_t size) {
     return S2N_SUCCESS;
 }
 
-static int setup_connection(struct s2n_connection *conn, const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
-        const char *cipher_pref_version) {
-    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+static int setup_connection(struct s2n_connection *conn, const struct s2n_kem *kem,
+        struct s2n_cipher_suite *cipher_suite, const char *security_policy_name) {
     conn->actual_protocol_version = S2N_TLS12;
-
-    const struct s2n_ecc_preferences *ecc_preferences = NULL;
-    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
-    GUARD_NONNULL(ecc_preferences);
-
-    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+    conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
     conn->secure.kem_params.kem = kem;
     conn->secure.cipher_suite = cipher_suite;
     conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
-    GUARD(s2n_connection_set_cipher_preferences(conn, cipher_pref_version));
+
+    GUARD(s2n_connection_set_cipher_preferences(conn, security_policy_name));
+
     return S2N_SUCCESS;
 }
 
 int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,
-        const char *cipher_pref_version, const char * kat_file_name, uint32_t server_key_message_length,
+        const char *security_policy_name, const char *kat_file_name, uint32_t server_key_message_length,
         uint32_t client_key_message_length) {
-    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
-
     /* Part 1 setup a client and server connection with everything they need for a key exchange */
     struct s2n_connection *client_conn = NULL, *server_conn = NULL;
     GUARD_NONNULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -124,8 +116,8 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
 
     server_conn->handshake_params.our_chain_and_key = chain_and_key;
 
-    GUARD(setup_connection(server_conn, kem, cipher_suite, cipher_pref_version));
-    GUARD(setup_connection(client_conn, kem, cipher_suite, cipher_pref_version));
+    GUARD(setup_connection(server_conn, kem, cipher_suite, security_policy_name));
+    GUARD(setup_connection(client_conn, kem, cipher_suite, security_policy_name));
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Set the DRBG to the state that was used to generate this test vector. */

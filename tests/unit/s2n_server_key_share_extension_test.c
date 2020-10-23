@@ -27,17 +27,14 @@
 #include "testlib/s2n_nist_kats.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 
 #define HELLO_RETRY_MSG_NO 1
 
 int s2n_server_key_share_send_check_pq_hybrid(struct s2n_connection *conn);
 int s2n_server_key_share_send_check_ecdhe(struct s2n_connection *conn);
-
-#if !defined(S2N_NO_PQ)
-static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_group *kem_group, struct s2n_blob *pq_private_key,
-        struct s2n_stuffer *pq_shared_secret, struct s2n_stuffer *key_share_payload);
-#endif /* !defined(S2N_NO_PQ) */
+static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_group *kem_group,
+        struct s2n_blob *pq_private_key, struct s2n_stuffer *pq_shared_secret, struct s2n_stuffer *key_share_payload);
 
 int main(int argc, char **argv)
 {
@@ -514,7 +511,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_disable_tls13());
     }
 
-#if !defined(S2N_NO_PQ)
+    /* PQ tests */
     {
         const struct s2n_kem_group *test_kem_groups[] = {
                 &s2n_secp256r1_sike_p434_r2,
@@ -568,27 +565,31 @@ int main(int argc, char **argv)
         {
             EXPECT_SUCCESS(s2n_enable_tls13());
 
-            /* PQ KEMs are disabled in FIPs mode; test that we use the correct error */
-            if (s2n_is_in_fips_mode()) {
+            /* If the server's security policy does not contain any KEM groups,
+             * s2n_server_key_share_extension.recv will ignore PQ IANA IDs (this
+             * will be the case if PQ is disabled). */
+            {
                 struct s2n_connection *client_conn = NULL;
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-                client_conn->security_policy_override = &test_security_policy;
 
                 uint8_t iana_buffer[2];
                 struct s2n_blob iana_blob = {0};
                 struct s2n_stuffer iana_stuffer = {0};
                 EXPECT_SUCCESS(s2n_blob_init(&iana_blob, iana_buffer, 2));
                 EXPECT_SUCCESS(s2n_stuffer_init(&iana_stuffer, &iana_blob));
-                EXPECT_SUCCESS(s2n_stuffer_write_uint16(&iana_stuffer,test_security_policy.kem_preferences->tls13_kem_groups[0]->iana_id));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint16(&iana_stuffer,
+                        test_security_policy.kem_preferences->tls13_kem_groups[0]->iana_id));
 
+                /* S2N_ERR_ECDHE_UNSUPPORTED_CURVE is the correct default error for the case when the client
+                 * receives an unrecognized key share from the server */
                 EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.recv(client_conn, &iana_stuffer),
-                        S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+                        S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
                 EXPECT_SUCCESS(s2n_connection_free(client_conn));
             }
 
             /* Test s2n_server_key_share_extension.recv with KAT pq key shares */
-            if (!s2n_is_in_fips_mode()) {
+            if (s2n_pq_is_enabled()) {
                 {
                     for (size_t i = 0; i < s2n_array_len(test_kem_groups); i++) {
                         const struct s2n_kem_group *kem_group = test_kem_groups[i];
@@ -792,53 +793,48 @@ int main(int argc, char **argv)
 
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-            if (s2n_is_in_fips_mode()) {
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn),
-                        S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
-            }
+            conn->security_policy_override = &security_policy_sike_bike;
 
-            if (!s2n_is_in_fips_mode()) {
-                conn->security_policy_override = &security_policy_sike_bike;
+            EXPECT_FAILURE(s2n_server_key_share_send_check_pq_hybrid(conn));
+            conn->secure.server_kem_group_params.kem_params.kem = &s2n_kyber_512_r2;
 
-                EXPECT_FAILURE(s2n_server_key_share_send_check_pq_hybrid(conn));
-                conn->secure.server_kem_group_params.kem_params.kem = &s2n_kyber_512_r2;
+            EXPECT_FAILURE(s2n_server_key_share_send_check_pq_hybrid(conn));
+            conn->secure.server_kem_group_params.ecc_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
 
-                EXPECT_FAILURE(s2n_server_key_share_send_check_pq_hybrid(conn));
-                conn->secure.server_kem_group_params.ecc_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+            conn->secure.server_kem_group_params.kem_group = &s2n_secp256r1_kyber_512_r2;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
-                conn->secure.server_kem_group_params.kem_group = &s2n_secp256r1_kyber_512_r2;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+            conn->secure.server_kem_group_params.kem_group = &s2n_secp256r1_bike1_l1_r2;
+            conn->secure.server_kem_group_params.kem_params.kem = &s2n_bike1_l1_r2;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_NULL);
 
-                conn->secure.server_kem_group_params.kem_group = &s2n_secp256r1_bike1_l1_r2;
-                conn->secure.server_kem_group_params.kem_params.kem = &s2n_bike1_l1_r2;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_NULL);
+            conn->secure.chosen_client_kem_group_params = &conn->secure.client_kem_group_params[1];
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
 
-                conn->secure.chosen_client_kem_group_params = &conn->secure.client_kem_group_params[1];
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
+            conn->secure.client_kem_group_params[1].kem_group = &s2n_secp256r1_bike1_l1_r2;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
 
-                conn->secure.client_kem_group_params[1].kem_group = &s2n_secp256r1_bike1_l1_r2;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
+            conn->secure.client_kem_group_params[1].ecc_params.negotiated_curve = s2n_secp256r1_bike1_l1_r2.curve;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
 
-                conn->secure.client_kem_group_params[1].ecc_params.negotiated_curve = s2n_secp256r1_bike1_l1_r2.curve;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_kem_group_params[1].ecc_params));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
 
-                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_kem_group_params[1].ecc_params));
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
+            conn->secure.client_kem_group_params[1].kem_params.kem = s2n_secp256r1_bike1_l1_r2.kem;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
 
-                conn->secure.client_kem_group_params[1].kem_params.kem = s2n_secp256r1_bike1_l1_r2.kem;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_BAD_KEY_SHARE);
-
-                EXPECT_SUCCESS(s2n_alloc(&conn->secure.client_kem_group_params[1].kem_params.public_key,
-                        s2n_secp256r1_bike1_l1_r2.kem->public_key_length));
-                EXPECT_SUCCESS(s2n_kem_generate_keypair(&conn->secure.client_kem_group_params[1].kem_params));
-                EXPECT_SUCCESS(s2n_server_key_share_send_check_pq_hybrid(conn));
-            }
+            EXPECT_SUCCESS(s2n_alloc(&conn->secure.client_kem_group_params[1].kem_params.public_key,
+                    s2n_secp256r1_bike1_l1_r2.kem->public_key_length));
+            /* A fake PQ public key is good enough for testing here*/
+            memset_check(conn->secure.client_kem_group_params[1].kem_params.public_key.data, 1,
+                    s2n_secp256r1_bike1_l1_r2.kem->public_key_length);
+            EXPECT_SUCCESS(s2n_server_key_share_send_check_pq_hybrid(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
         /* Test s2n_server_key_share_extension.send sends key share success (PQ) */
-        if (!s2n_is_in_fips_mode()) {
+        if (s2n_pq_is_enabled()) {
             for (size_t i = 0; i < S2N_SUPPORTED_KEM_GROUPS_COUNT; i++) {
                 struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -896,7 +892,7 @@ int main(int argc, char **argv)
         }
 
         /* Test s2n_server_key_share_extension.send sends IANA ID for HRR (PQ) */
-        {
+        if (s2n_pq_is_enabled()) {
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->security_policy_override = &test_security_policy;
@@ -968,15 +964,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
     }
-#endif /* !defined(S2N_NO_PQ) */
 
     END_TEST();
     return 0;
 }
 
-#if !defined(S2N_NO_PQ)
-static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_group *kem_group, struct s2n_blob *pq_private_key,
-        struct s2n_stuffer *pq_shared_secret, struct s2n_stuffer *key_share_payload) {
+static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_group *kem_group,
+        struct s2n_blob *pq_private_key, struct s2n_stuffer *pq_shared_secret, struct s2n_stuffer *key_share_payload) {
     FILE *kat_file = fopen("kats/tls13_server_hybrid_key_share_recv.kat", "r");
     notnull_check(kat_file);
 
@@ -1010,4 +1004,3 @@ static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_gr
     fclose(kat_file);
     return S2N_SUCCESS;
 }
-#endif /* !defined(S2N_NO_PQ) */

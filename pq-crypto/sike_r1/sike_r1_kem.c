@@ -4,13 +4,12 @@
 * Abstract: supersingular isogeny key encapsulation (SIKE) protocol
 *********************************************************************************************/
 
-#include "sike_r1_kem.h"
-
 #include <string.h>
 #include "P503_internal_r1.h"
 #include "fips202_r1.h"
 #include "pq-crypto/s2n_pq_random.h"
 #include "utils/s2n_safety.h"
+#include "tls/s2n_kem.h"
 
 int SIKE_P503_r1_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 { // SIKE's key generation

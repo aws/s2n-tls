@@ -26,8 +26,11 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_result.h"
 #include "tls/s2n_tls13.h"
+#include "pq-crypto/s2n_pq.h"
 
 int test_count;
+const char *test_all_policy_name;
+const char *test_all_tls12_policy_name;
 
 /* Macro definitions for calls that occur within BEGIN_TEST() and END_TEST() to preserve the SKIPPED test behavior
  * by ignoring the test_count, keeping it as 0 to indicate that a test was skipped. */
@@ -48,6 +51,13 @@ int test_count;
     EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));  \
     S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                    \
     EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                  \
+    if (s2n_pq_is_enabled()) {                                 \
+        test_all_policy_name = "test_all";                     \
+        test_all_tls12_policy_name = "test_all_tls12";         \
+    } else {                                                   \
+        test_all_policy_name = "test_all_no_pq";               \
+        test_all_tls12_policy_name = "test_all_tls12_no_pq";   \
+    }                                                          \
     fprintf(stdout, "Running %-50s ... ", __FILE__);           \
   } while(0)
 

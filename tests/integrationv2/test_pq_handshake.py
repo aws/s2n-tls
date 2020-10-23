@@ -6,6 +6,7 @@ from common import Ciphers, ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N
 from utils import get_expected_s2n_version
+from global_flags import get_flag, S2N_NO_PQ
 
 
 pq_handshake_test_vectors = [
@@ -43,6 +44,9 @@ pq_handshake_test_vectors = [
 
 @pytest.mark.parametrize("vector", pq_handshake_test_vectors)
 def test_pq_handshake(managed_process, vector):
+    if get_flag(S2N_NO_PQ):
+        return
+
     host = "localhost"
     port = next(available_ports)
 

@@ -95,13 +95,21 @@ bool s2n_sikep434r2_asm_is_enabled() {
     return sikep434r2_asm_enabled;
 }
 
+bool s2n_pq_is_enabled() {
+#if defined(S2N_NO_PQ)
+    return false;
+#else
+    return !s2n_is_in_fips_mode();
+#endif
+}
+
 S2N_RESULT s2n_disable_sikep434r2_asm() {
     sikep434r2_asm_enabled = false;
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_try_enable_sikep434r2_asm() {
-    if (s2n_cpu_supports_sikep434r2_asm()) {
+    if (s2n_pq_is_enabled() && s2n_cpu_supports_sikep434r2_asm()) {
         sikep434r2_asm_enabled = true;
     }
     return S2N_RESULT_OK;

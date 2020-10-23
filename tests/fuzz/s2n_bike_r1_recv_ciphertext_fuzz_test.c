@@ -19,7 +19,6 @@
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_kem.h"
 #include "utils/s2n_safety.h"
-#include "pq-crypto/bike_r1/bike_r1_kem.h"
 
 #define KAT_FILE_NAME "../unit/kats/bike_r1.kat"
 
@@ -35,24 +34,7 @@ int s2n_fuzz_init(int *argc, char **argv[]) {
 }
 
 int s2n_fuzz_test(const uint8_t *buf, size_t len) {
-    struct s2n_stuffer ciphertext = { 0 };
-    GUARD(s2n_stuffer_growable_alloc(&ciphertext, 8192));
-    GUARD(s2n_stuffer_write_bytes(&ciphertext, buf, len));
-
-    /* We do not GUARD s2n_kem_recv_ciphertext; it will likely fail. */
-    s2n_kem_recv_ciphertext(&ciphertext, &kem_params);
-
-    /* We do not GUARD decapsulate for BIKE1_L1_R1; there is a non-zero
-     * chance the decoding may fail if the inputs are not valid. */
-    uint8_t ss_buf[BIKE1_L1_R1_SHARED_SECRET_BYTES] = { 0 };
-    kem_params.kem->decapsulate(ss_buf, ciphertext.blob.data, kem_params.private_key.data);
-
-    /* Clean up */
-    GUARD(s2n_stuffer_free(&ciphertext));
-    if (kem_params.shared_secret.allocated) {
-        GUARD(s2n_free(&kem_params.shared_secret));
-    }
-
+    GUARD(s2n_kem_recv_ciphertext_fuzz_test(buf, len, &kem_params));
     return S2N_SUCCESS;
 }
 

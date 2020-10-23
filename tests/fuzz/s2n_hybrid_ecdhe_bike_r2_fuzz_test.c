@@ -33,7 +33,6 @@
 #include "utils/s2n_safety.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_security_policies.h"
-#include "pq-crypto/bike_r2/bike_r2_kem.h"
 
 static struct s2n_kem_params server_kem_params = {.kem = &s2n_bike1_l1_r2};
 

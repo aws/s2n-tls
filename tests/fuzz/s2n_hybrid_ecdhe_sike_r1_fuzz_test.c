@@ -22,7 +22,6 @@
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_openssl.h"
 #include "error/s2n_errno.h"
-#include "pq-crypto/sike_r1/sike_r1_kem.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tests/s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"

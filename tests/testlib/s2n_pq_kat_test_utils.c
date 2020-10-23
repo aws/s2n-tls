@@ -103,7 +103,6 @@ S2N_RESULT s2n_get_random_bytes_for_pq_kat_tests(uint8_t *buffer, uint32_t num_b
 }
 
 int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) {
-    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
     notnull_check(kem);
@@ -147,13 +146,13 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) 
         GUARD(s2n_drbg_instantiate(&drbg_for_pq_kats, &personalization_string, S2N_AES_256_CTR_NO_DF_PR));
 
         /* Generate the public/private key pair */
-        GUARD(kem->generate_keypair(pk, sk));
+        GUARD_AS_POSIX(kem->generate_keypair(pk, sk));
 
         /* Create a shared secret and use the public key to encrypt it */
-        GUARD(kem->encapsulate(ct, client_shared_secret, pk));
+        GUARD_AS_POSIX(kem->encapsulate(ct, client_shared_secret, pk));
 
         /* Use the private key to decrypt the ct to get the shared secret */
-        GUARD(kem->decapsulate(server_shared_secret, ct, sk));
+        GUARD_AS_POSIX(kem->decapsulate(server_shared_secret, ct, sk));
 
         /* Read the KAT values */
         GUARD(ReadHex(kat_file, pk_answer, kem->public_key_length, "pk = "));

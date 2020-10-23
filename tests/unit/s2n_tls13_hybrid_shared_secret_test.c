@@ -35,8 +35,6 @@
 /* Included so we can test functions that are otherwise unavailable */
 #include "tls/s2n_tls13_handshake.c"
 
-#if !defined(S2N_NO_PQ)
-
 static int read_priv_ecc(EVP_PKEY **pkey, const char *priv_ecc);
 static int set_up_conns(struct s2n_connection *client_conn, struct s2n_connection *server_conn,
                         const char *client_priv_ecc, const char *server_priv_ecc, const struct s2n_kem_group *kem_group,
@@ -54,8 +52,6 @@ struct hybrid_test_vector {
     struct s2n_blob *expected_client_traffic_secret;
     struct s2n_blob *expected_server_traffic_secret;
 };
-
-#endif
 
 /* PEM-encoded ECC private keys */
 #define CLIENT_X25519_PRIV_KEY "-----BEGIN PRIVATE KEY-----\n"\
@@ -139,13 +135,6 @@ struct hybrid_test_vector {
 int main(int argc, char **argv) {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
-
-#if !defined(S2N_NO_PQ)
-
-    if (s2n_is_in_fips_mode()) {
-        /* There is no support for PQ KEMs while in FIPS mode */
-        END_TEST();
-    }
 
     S2N_BLOB_FROM_HEX(sikep434r2_secret, SIKEP434R2_SECRET);
 
@@ -487,12 +476,8 @@ int main(int argc, char **argv) {
         }
     }
 
-#endif
-
     END_TEST();
 }
-
-#if !defined(S2N_NO_PQ)
 
 static int read_priv_ecc(EVP_PKEY **pkey, const char *priv_ecc) {
     size_t key_len = sizeof(char) * strlen(priv_ecc);
@@ -605,5 +590,3 @@ static int assert_kem_group_params_freed(struct s2n_connection *conn) {
 
     return S2N_SUCCESS;
 }
-
-#endif

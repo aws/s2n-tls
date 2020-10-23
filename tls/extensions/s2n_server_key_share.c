@@ -20,7 +20,7 @@
 
 #include "utils/s2n_safety.h"
 
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 
 static int s2n_server_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -37,8 +37,6 @@ const s2n_extension_type s2n_server_key_share_extension = {
 static int s2n_server_key_share_generate_pq_hybrid(struct s2n_connection *conn, struct s2n_stuffer *out) {
     notnull_check(out);
     notnull_check(conn);
-
-    ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
 
     struct s2n_kem_group_params *server_kem_group_params = &conn->secure.server_kem_group_params;
 
@@ -70,8 +68,6 @@ static int s2n_server_key_share_generate_pq_hybrid(struct s2n_connection *conn, 
 /* Check that client has sent a corresponding key share for the server's KEM group */
 int s2n_server_key_share_send_check_pq_hybrid(struct s2n_connection *conn) {
     notnull_check(conn);
-
-    ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
 
     notnull_check(conn->secure.server_kem_group_params.kem_group);
     notnull_check(conn->secure.server_kem_group_params.kem_params.kem);
@@ -167,17 +163,13 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
     notnull_check(conn);
     notnull_check(extension);
 
-    /* If in FIPS mode, the client should not have sent any PQ IDs
-     * in the supported_groups list of the initial ClientHello */
-    ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
-
     const struct s2n_kem_preferences *kem_pref = NULL;
     GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
     notnull_check(kem_pref);
 
-    /* This check should have been done higher up, but including it here as well for extra defense.
-     * Uses S2N_ERR_ECDHE_UNSUPPORTED_CURVE for backward compatibility. */
-    ENSURE_POSIX(s2n_kem_preferences_includes_tls13_kem_group(kem_pref, named_group_iana), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    if (!s2n_kem_preferences_includes_tls13_kem_group(kem_pref, named_group_iana)) {
+        return S2N_SUCCESS;
+    }
 
     size_t kem_group_index = 0;
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
@@ -237,9 +229,9 @@ static int s2n_server_key_share_recv_ecc(struct s2n_connection *conn, uint16_t n
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     notnull_check(ecc_pref);
 
-    /* This check should have been done higher up, but including it here as well for extra defense. */
-    ENSURE_POSIX(s2n_ecc_preferences_includes_curve(ecc_pref, named_group_iana),
-            S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    if (!s2n_ecc_preferences_includes_curve(ecc_pref, named_group_iana)) {
+        return S2N_SUCCESS;
+    }
 
     size_t supported_curve_index = 0;
 
@@ -297,21 +289,13 @@ static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stu
     S2N_ERROR_IF(s2n_stuffer_data_available(extension) < sizeof(negotiated_named_group_iana), S2N_ERR_BAD_KEY_SHARE);
     GUARD(s2n_stuffer_read_uint16(extension, &negotiated_named_group_iana));
 
-    const struct s2n_kem_preferences *kem_pref = NULL;
-    GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
-    notnull_check(kem_pref);
-
-    const struct s2n_ecc_preferences *ecc_pref = NULL;
-    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-    notnull_check(ecc_pref);
-
-    if (s2n_ecc_preferences_includes_curve(ecc_pref, negotiated_named_group_iana)) {
-        GUARD(s2n_server_key_share_recv_ecc(conn, negotiated_named_group_iana, extension));
-    } else if (s2n_kem_preferences_includes_tls13_kem_group(kem_pref, negotiated_named_group_iana)) {
-        GUARD(s2n_server_key_share_recv_pq_hybrid(conn, negotiated_named_group_iana, extension));
-    } else {
-        S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
-    }
+    /* Try to parse the share as ECC, then as PQ/hybrid; will ignore unrecognized groups */
+    GUARD(s2n_server_key_share_recv_ecc(conn, negotiated_named_group_iana, extension));
+    GUARD(s2n_server_key_share_recv_pq_hybrid(conn, negotiated_named_group_iana, extension));
+    /* Boolean XOR: if the share was valid, exactly one of server_curve, server_kem_group should be set */
+    const struct s2n_ecc_named_curve *server_curve = conn->secure.server_ecc_evp_params.negotiated_curve;
+    const struct s2n_kem_group *server_kem_group = conn->secure.server_kem_group_params.kem_group;
+    ENSURE_POSIX((server_curve == NULL) != (server_kem_group == NULL), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     return S2N_SUCCESS;
 }

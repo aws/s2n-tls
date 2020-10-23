@@ -360,7 +360,7 @@ int main(int argc, char **argv)
 
         struct s2n_config *config = s2n_config_new();
         EXPECT_SUCCESS(s2n_config_enable_quic(config));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, test_all_policy_name));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
 
         /* Succeeds when negotiating TLS1.3 */
@@ -461,7 +461,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, test_all_policy_name));
 
             GUARD(s2n_connection_get_security_policy(client_conn, &security_policy));
             EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
@@ -479,7 +479,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, test_all_tls12_policy_name));
 
             GUARD(s2n_connection_get_security_policy(server_conn, &security_policy));
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));

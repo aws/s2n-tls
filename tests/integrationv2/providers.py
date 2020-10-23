@@ -2,7 +2,7 @@ import pytest
 import threading
 
 from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates, TLS12_PQ_CIPHER_PREFS
-from global_flags import get_flag, S2N_PROVIDER_VERSION
+from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_NO_PQ
 
 
 class Provider(object):
@@ -162,6 +162,17 @@ class S2N(Provider):
         if self.options.cipher in TLS12_PQ_CIPHER_PREFS:
             cipher_prefs = self.options.cipher.name
 
+        if get_flag(S2N_NO_PQ):
+            cipher_prefs += '_no_pq'
+
+        if self.options.cipher is Ciphers.KMS_PQ_TLS_1_0_2019_06 or \
+                self.options.cipher is Ciphers.KMS_PQ_TLS_1_0_2020_02 or \
+                self.options.cipher is Ciphers.KMS_PQ_TLS_1_0_2020_07 or \
+                self.options.cipher is Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11 or \
+                self.options.cipher is Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02:
+            assert get_flag(S2N_NO_PQ) is False
+            cipher_prefs = self.options.cipher.name
+
         cmd_line.extend(['-c', cipher_prefs])
 
         if self.options.client_key_file:
@@ -193,10 +204,14 @@ class S2N(Provider):
         if self.options.insecure is True:
             cmd_line.append('--insecure')
 
+        cipher_prefs = 'test_all_tls12'
         if self.options.protocol == Protocols.TLS13:
-            cmd_line.extend(['-c', 'test_all'])
-        else:
-            cmd_line.extend(['-c', 'test_all_tls12'])
+            cipher_prefs = 'test_all'
+
+        if get_flag(S2N_NO_PQ):
+            cipher_prefs += '_no_pq'
+
+        cmd_line.extend(['-c', cipher_prefs])
 
         if self.options.use_client_auth is True:
             cmd_line.append('-m')
@@ -434,20 +449,20 @@ class JavaSSL(Provider):
 
     def setup_server(self):
         pytest.skip('JavaSSL does not support server mode at this time')
-    
+
     def setup_client(self):
         self.ready_to_send_input_marker = "Starting handshake"
         cmd_line = ['java', "-classpath", "bin", "SSLSocketClient"]
 
         if self.options.port is not None:
             cmd_line.extend([self.options.port])
-        
+
         if self.options.cert is not None:
             cmd_line.extend([self.options.cert.cert])
-        
+
         if self.options.protocol is not None:
             cmd_line.extend([self.options.protocol.name])
-        
+
         if self.options.cipher.iana_standard_name is not None:
             cmd_line.extend([self.options.cipher.iana_standard_name])
 

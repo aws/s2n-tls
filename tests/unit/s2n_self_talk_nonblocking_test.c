@@ -47,7 +47,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
     client_config = s2n_config_new();
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);
-    GUARD(s2n_config_set_cipher_preferences(client_config, "test_all"));
+    GUARD(s2n_config_set_cipher_preferences(client_config, test_all_policy_name));
 
     s2n_connection_set_io_pair(client_conn, io_pair);
 
@@ -108,7 +108,7 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     client_config = s2n_config_new();
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);
-    GUARD(s2n_config_set_cipher_preferences(client_config, "test_all"));
+    GUARD(s2n_config_set_cipher_preferences(client_config, test_all_policy_name));
 
     s2n_connection_set_io_pair(client_conn, io_pair);
 
@@ -181,11 +181,10 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
-
     if (use_tls13) {
-        GUARD(s2n_config_set_cipher_preferences(config, "test_all"));
+        GUARD(s2n_config_set_cipher_preferences(config, test_all_policy_name));
     } else {
-        GUARD(s2n_config_set_cipher_preferences(config, "test_all_tls12"));
+        GUARD(s2n_config_set_cipher_preferences(config, test_all_tls12_policy_name));
     }
 
     /* Get some random data to send/receive */

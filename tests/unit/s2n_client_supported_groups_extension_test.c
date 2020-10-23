@@ -80,7 +80,6 @@ int main()
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-#if !defined(S2N_NO_PQ)
     {
         /* Define various PQ security policies to test different configurations */
         /* SIKE, BIKE*/
@@ -198,19 +197,15 @@ int main()
 
             uint16_t length;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &length));
-            uint16_t expected_length = ecc_pref->count * sizeof(uint16_t);
-            if (!s2n_is_in_fips_mode()) {
-                expected_length += kem_pref->tls13_kem_group_count * sizeof(uint16_t);
-            }
+            uint16_t expected_length = ecc_pref->count * sizeof(uint16_t) +
+                    kem_pref->tls13_kem_group_count * sizeof(uint16_t);
             EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
             EXPECT_EQUAL(length, expected_length);
 
-            if (!s2n_is_in_fips_mode()) {
-                uint16_t kem_id;
-                for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-                    EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &kem_id));
-                    EXPECT_EQUAL(kem_id, kem_pref->tls13_kem_groups[i]->iana_id);
-                }
+            uint16_t kem_id;
+            for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+                EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &kem_id));
+                EXPECT_EQUAL(kem_id, kem_pref->tls13_kem_groups[i]->iana_id);
             }
 
             uint16_t curve_id;
@@ -222,6 +217,7 @@ int main()
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_disable_tls13());
         }
+
         /* Test that send does not send KEM group IDs for versions != TLS 1.3 */
         {
             struct s2n_connection *conn;
@@ -255,6 +251,7 @@ int main()
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
+
         /* Test recv - in each case, the security policy overrides allow for a successful PQ handshake */
         {
 #define NUM_PQ_TEST_POLICY_OVERRIDES 4
@@ -307,28 +304,17 @@ int main()
 
                 EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(server_conn, &stuffer));
 
-                /* If in FIPS mode, s2n_client_supported_groups_extension.send will not have sent PQ IDs */
-                if (s2n_is_in_fips_mode()) {
-                    EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, server_ecc_pref->ecc_curves[0]);
-                    EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-                    EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-                    EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
-
-                    for (size_t j = 0; j < server_kem_pref->tls13_kem_group_count; j++) {
-                        EXPECT_NULL(server_conn->secure.mutually_supported_kem_groups[j]);
-                    }
-                } else {
-                    EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-                    EXPECT_EQUAL(server_conn->secure.server_kem_group_params.kem_group, expected_negotiated_kem_group[i]);
-                    EXPECT_EQUAL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve, expected_negotiated_kem_group[i]->curve);
-                    EXPECT_EQUAL(server_conn->secure.server_kem_group_params.kem_params.kem, expected_negotiated_kem_group[i]->kem);
-                }
+                EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
+                EXPECT_EQUAL(server_conn->secure.server_kem_group_params.kem_group, expected_negotiated_kem_group[i]);
+                EXPECT_EQUAL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve, expected_negotiated_kem_group[i]->curve);
+                EXPECT_EQUAL(server_conn->secure.server_kem_group_params.kem_params.kem, expected_negotiated_kem_group[i]->kem);
 
                 EXPECT_SUCCESS(s2n_connection_free(client_conn));
                 EXPECT_SUCCESS(s2n_connection_free(server_conn));
                 EXPECT_SUCCESS(s2n_disable_tls13());
             }
         }
+
         /* Test recv - in each case, the security policy overrides do not allow for a successful PQ handshake,
          * so ECC should be chosen */
         {
@@ -463,56 +449,7 @@ int main()
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
-
-        /* Test recv - server doesn't recognize PQ group IDs when FIPS is enabled */
-        {
-            if (s2n_is_in_fips_mode()) {
-                EXPECT_SUCCESS(s2n_enable_tls13());
-                struct s2n_connection *client_conn;
-                EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-                client_conn->security_policy_override = &test_pq_security_policy_sike_bike;
-
-                const struct s2n_ecc_preferences *client_ecc_pref = NULL;
-                EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(client_conn, &client_ecc_pref));
-                EXPECT_NOT_NULL(client_ecc_pref);
-
-                const struct s2n_kem_preferences *client_kem_pref = NULL;
-                EXPECT_SUCCESS(s2n_connection_get_kem_preferences(client_conn, &client_kem_pref));
-                EXPECT_NOT_NULL(client_kem_pref);
-
-                struct s2n_connection *server_conn;
-                EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
-                server_conn->security_policy_override = &test_pq_security_policy_sike_bike;
-
-                /* Manually craft a supported_groups extension with one PQ ID and one ECC ID, because
-                 * s2n_client_supported_groups_extension.send will ignore PQ IDs when FIPS is enabled */
-                DEFER_CLEANUP(struct s2n_stuffer stuffer = {0}, s2n_stuffer_free);
-                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-                struct s2n_stuffer_reservation group_list_len = {0};
-                EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &group_list_len));
-                EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, client_kem_pref->tls13_kem_groups[0]->iana_id));
-                EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, client_ecc_pref->ecc_curves[0]->iana_id));
-                GUARD(s2n_stuffer_write_vector_size(&group_list_len));
-
-                EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
-
-                EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(server_conn, &stuffer));
-
-                EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve,client_ecc_pref->ecc_curves[0]);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-                EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
-
-                EXPECT_SUCCESS(s2n_connection_free(client_conn));
-                EXPECT_SUCCESS(s2n_connection_free(server_conn));
-                EXPECT_SUCCESS(s2n_disable_tls13());
-            }
-        }
     }
-#endif
 
     /* Test recv */
     {

@@ -56,13 +56,13 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(tls12_config = s2n_config_new());
     EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-    s2n_config_set_cipher_preferences(tls12_config, "test_all_tls12");
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_config, test_all_tls12_policy_name));
 
     EXPECT_NOT_NULL(tls13_cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(tls13_private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(tls13_config = s2n_config_new());
     EXPECT_NOT_NULL(tls13_chain_and_key = s2n_cert_chain_and_key_new());
-    s2n_config_set_cipher_preferences(tls13_config, "test_all");
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls13_config, test_all_policy_name));
 
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));

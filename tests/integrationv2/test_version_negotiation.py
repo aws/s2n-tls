@@ -6,6 +6,7 @@ from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, get_expected_openssl_version
+from global_flags import get_flag, S2N_NO_PQ
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -89,7 +90,10 @@ def test_s2nd_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, p
 
     # Allow the server to use all ciphers, don't limit to TLS13 even though we are
     # forcing the protocol to be TLS13
-    server_options.extra_flags = ['-c', 'test_all']
+    test_all_cipher_pref = 'test_all'
+    if get_flag(S2N_NO_PQ):
+        test_all_cipher_pref += '_no_pq'
+    server_options.extra_flags = ['-c', test_all_cipher_pref]
 
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(provider, client_options, timeout=5)

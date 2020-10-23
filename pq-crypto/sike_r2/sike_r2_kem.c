@@ -8,6 +8,7 @@
 #include "../s2n_pq_random.h"
 #include "fips202.h"
 #include "utils/s2n_safety.h"
+#include "tls/s2n_kem.h"
 
 int SIKE_P434_r2_crypto_kem_keypair(unsigned char *pk, unsigned char *sk) {
     // SIKE's key generation

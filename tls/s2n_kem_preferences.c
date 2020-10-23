@@ -15,8 +15,6 @@
 
 #include "tls/s2n_kem_preferences.h"
 
-#if !defined(S2N_NO_PQ)
-
 /* Extension list for round 1 PQ KEMs, in order of preference */
 const struct s2n_kem *pq_kems_r1[2] = {
     &s2n_bike1_l1_r1,
@@ -89,8 +87,6 @@ const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2020_02 = 
     .tls13_kem_group_count = 0,
     .tls13_kem_groups = NULL,
 };
-
-#endif
 
 const struct s2n_kem_preferences kem_preferences_null = {
     .kem_count = 0,

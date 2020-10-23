@@ -19,7 +19,6 @@
 #include <string.h>
 
 #include "crypto/s2n_ecc_evp.h"
-#include "crypto/s2n_fips.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_security_policies.h"
@@ -114,7 +113,8 @@ int main(int argc, char **argv)
             TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
             TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
             TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384,
-            TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384,
+            TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384,
+            TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384,
         };
         const uint8_t cipher_count = sizeof(wire_ciphers) / S2N_TLS_CIPHER_SUITE_LEN;
 
@@ -208,7 +208,7 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS10;
         EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
         EXPECT_EQUAL(conn->secure_renegotiation, 0);
-        EXPECT_EQUAL(1, s2n_connection_is_valid_for_cipher_preferences(conn, "test_all"));
+        EXPECT_EQUAL(1, s2n_connection_is_valid_for_cipher_preferences(conn, test_all_policy_name));
         EXPECT_EQUAL(0, s2n_connection_is_valid_for_cipher_preferences(conn, "null"));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_renegotiation, cipher_count_renegotiation));
         EXPECT_EQUAL(conn->secure_renegotiation, 1);
-        EXPECT_EQUAL(1, s2n_connection_is_valid_for_cipher_preferences(conn, "test_all"));
+        EXPECT_EQUAL(1, s2n_connection_is_valid_for_cipher_preferences(conn, test_all_policy_name));
         EXPECT_EQUAL(-1, s2n_connection_is_valid_for_cipher_preferences(conn, "not_exist"));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
@@ -246,19 +246,17 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_rsa_wire_choice));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-#if !defined(S2N_NO_PQ)
-        if (!s2n_is_in_fips_mode()) {
-            /* There is no support for PQ KEMs while in FIPS mode */
-            /* Test that clients that support PQ ciphers can negotiate them. */
-            const uint8_t expected_pq_wire_choice[] = {TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384};
-            uint8_t client_extensions_data[] = {
-                    0xFE, 0x01, /* PQ KEM extension ID */
-                    0x00, 0x04, /* Total extension length in bytes */
-                    0x00, 0x02, /* Length of the supported parameters list in bytes */
-                    0x00, 0x01  /* BIKE1r1-Level1 */
-            };
-            int client_extensions_len = sizeof(client_extensions_data);
-            s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2019-06");
+        /* Test that clients that support PQ ciphers can negotiate them. */
+        const uint8_t expected_pq_wire_choice[] = {TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384};
+        uint8_t client_extensions_data[] = {
+                0xFE, 0x01, /* PQ KEM extension ID */
+                0x00, 0x04, /* Total extension length in bytes */
+                0x00, 0x02, /* Length of the supported parameters list in bytes */
+                0x00, 0x01  /* BIKE1r1-Level1 */
+        };
+        int client_extensions_len = sizeof(client_extensions_data);
+        if (s2n_pq_is_enabled()) {
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2019-06"));
             conn->actual_protocol_version = S2N_TLS12;
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->secure.client_pq_kem_extension.data = client_extensions_data;
@@ -266,13 +264,17 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
             EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_pq_wire_choice));
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
+        } else {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2019-06"), S2N_ERR_PQ_DISABLED);
+        }
 
-            /* Test cipher preferences that use PQ cipher suites that require TLS 1.2 fall back to classic ciphers if a client
-             * only supports TLS 1.1 or below, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA is the first cipher suite that supports
-             * TLS 1.1 in KMS-PQ-TLS-1-0-2019-06 */
+        /* Test cipher preferences that use PQ cipher suites that require TLS 1.2 fall back to classic ciphers if a client
+         * only supports TLS 1.1 or below, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA is the first cipher suite that supports
+         * TLS 1.1 in KMS-PQ-TLS-1-0-2019-06 */
+        if (s2n_pq_is_enabled()) {
             for (int i = S2N_TLS10; i <= S2N_TLS11; i++) {
                 const uint8_t expected_classic_wire_choice[] = {TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA};
-                s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2019-06");
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2019-06"));
                 conn->actual_protocol_version = i;
                 conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
                 conn->secure.client_pq_kem_extension.data = client_extensions_data;
@@ -282,7 +284,6 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
             }
         }
-#endif
 
         /* Clean+free to setup for ECDSA tests */
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -296,7 +297,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(ecc_pref);
 
         /* TEST ECDSA */
-        s2n_connection_set_cipher_preferences(conn, "test_all_ecdsa");
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all_ecdsa"));
         const uint8_t expected_ecdsa_wire_choice[] = { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 };
         /* Assume default for negotiated curve. */
         conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
@@ -307,7 +308,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
         /* TEST ECDSA cipher chosen when RSA cipher is at top */
-        s2n_connection_set_cipher_preferences(conn, "test_all");
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_all_policy_name));
         /* Assume default for negotiated curve. */
         conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
         conn->actual_protocol_version = conn->server_protocol_version;
@@ -327,7 +328,7 @@ int main(int argc, char **argv)
         /* Client sends RSA and ECDSA ciphers, server prioritizes ECDSA, ECDSA + RSA cert is configured */
         {
             const uint8_t expected_wire_choice[] = { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 };
-            s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority"));
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
@@ -340,7 +341,7 @@ int main(int argc, char **argv)
         /* Client sends RSA and ECDSA ciphers, server prioritizes RSA, ECDSA + RSA cert is configured */
         {
             const uint8_t expected_wire_choice[] = { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA };
-            s2n_connection_set_cipher_preferences(conn, "test_all");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_all_policy_name));
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
@@ -356,7 +357,7 @@ int main(int argc, char **argv)
         {
             const uint8_t expected_wire_choice[] = { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA };
             /* 20170328 only supports RSA ciphers */
-            s2n_connection_set_cipher_preferences(conn, "20170328");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20170328"));
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
@@ -371,7 +372,7 @@ int main(int argc, char **argv)
          */
         {
             const uint8_t expected_wire_choice[] = { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 };
-            s2n_connection_set_cipher_preferences(conn, "test_all_ecdsa");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all_ecdsa"));
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
@@ -386,7 +387,7 @@ int main(int argc, char **argv)
          */
         {
             const uint8_t expected_wire_choice[] = { TLS_RSA_WITH_RC4_128_MD5 };
-            s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority"));
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
@@ -401,7 +402,7 @@ int main(int argc, char **argv)
          */
         {
             const uint8_t expected_wire_choice[] = { TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA };
-            s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority"));
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
@@ -420,7 +421,7 @@ int main(int argc, char **argv)
              */
             const uint8_t expected_wire_choice[] = { TLS_RSA_WITH_AES_256_GCM_SHA384 };
             /* Selecting this preference list because it prioritizes ECDHE-ECDSA and ECDHE-RSA over plain RSA kx. */
-            s2n_connection_set_cipher_preferences(conn, "CloudFront-Upstream");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "CloudFront-Upstream"));
             /* No shared curve */
             conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
             conn->actual_protocol_version = conn->server_protocol_version;
@@ -442,7 +443,7 @@ int main(int argc, char **argv)
          * only RSA is default. Expect default RSA used instead of previous test that expects ECDSA for this case. */
         {
             const uint8_t expected_wire_choice[] = { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA };
-            s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority"));
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
@@ -459,7 +460,7 @@ int main(int argc, char **argv)
          * only ECDSA is default. Expect default ECDSA used instead of previous test that expects RSA for this case. */
         {
             const uint8_t expected_wire_choice[] = { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 };
-            s2n_connection_set_cipher_preferences(conn, "test_all");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_all_policy_name));
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
@@ -476,7 +477,7 @@ int main(int argc, char **argv)
         /* Client sends RSA and ECDSA ciphers, server prioritizes ECDSA, ECDSA + RSA cert is configured */
         {
             const uint8_t expected_wire_choice[] = { TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 };
-            s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_ecdsa_priority"));
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
@@ -501,7 +502,7 @@ int main(int argc, char **argv)
          * RSA default certificate should be chosen. */
         {
             const uint8_t expected_wire_choice[] = { TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA };
-            s2n_connection_set_cipher_preferences(conn, "test_all");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_all_policy_name));
             conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
@@ -522,7 +523,7 @@ int main(int argc, char **argv)
 
         /* Client sends TLS1.3 cipher suites, but server does not support TLS1.3 */
         {
-            s2n_connection_set_cipher_preferences(conn, "test_all");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_all_policy_name));
             conn->client_protocol_version = S2N_TLS13;
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
@@ -533,18 +534,18 @@ int main(int argc, char **argv)
         /* Client sends TLS1.3 cipher suites, server selects correct TLS1.3 ciphersuite */
         {
             struct test_case {
-                char cipher_pref[255];
+                const char *cipher_pref;
                 uint8_t expected_cipher_wire[2];
             };
 
             struct test_case test_cases[] = {
-                {.cipher_pref = "default_tls13", .expected_cipher_wire = { TLS_AES_256_GCM_SHA384 }},
-                {.cipher_pref = "test_all", .expected_cipher_wire = { TLS_AES_128_GCM_SHA256 }},
-                {.cipher_pref = "test_all_tls13", .expected_cipher_wire = { TLS_AES_128_GCM_SHA256 }},
+                    {.cipher_pref = "default_tls13", .expected_cipher_wire = {TLS_AES_256_GCM_SHA384}},
+                    {.cipher_pref = test_all_policy_name, .expected_cipher_wire = {TLS_AES_128_GCM_SHA256}},
+                    {.cipher_pref = "test_all_tls13", .expected_cipher_wire = {TLS_AES_128_GCM_SHA256}},
             };
 
             for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
-                s2n_connection_set_cipher_preferences(conn, test_cases[i].cipher_pref);
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_cases[i].cipher_pref));
                 conn->client_protocol_version = S2N_TLS13;
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->server_protocol_version = S2N_TLS13;
@@ -564,7 +565,7 @@ int main(int argc, char **argv)
             };
 
             const uint8_t count = sizeof(wire_ciphers2) / S2N_TLS_CIPHER_SUITE_LEN;
-            s2n_connection_set_cipher_preferences(conn, "test_all");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_all_policy_name));
             conn->client_protocol_version = S2N_TLS13;
             conn->actual_protocol_version = S2N_TLS13;
             conn->server_protocol_version = S2N_TLS13;
@@ -586,7 +587,7 @@ int main(int argc, char **argv)
             };
 
             const uint8_t count = sizeof(test_wire_ciphers) / S2N_TLS_CIPHER_SUITE_LEN;
-            s2n_connection_set_cipher_preferences(conn, "test_all");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_all_policy_name));
             conn->actual_protocol_version = S2N_TLS12;
             conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
 
@@ -601,7 +602,7 @@ int main(int argc, char **argv)
         {
             /* Skip but fall back to cipher suite with protocol version higher than connection */
             {
-                s2n_connection_set_cipher_preferences(conn, "test_all");
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_all_policy_name));
                 conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
 
                 uint8_t test_wire_ciphers[] = {
@@ -625,7 +626,7 @@ int main(int argc, char **argv)
 
             /* Skip and do NOT fall back to a TLS1.3 cipher suite if using TLS1.2 */
             {
-                s2n_connection_set_cipher_preferences(conn, "test_all");
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_all_policy_name));
                 conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
 
                 uint8_t test_wire_ciphers[] = {
@@ -649,7 +650,7 @@ int main(int argc, char **argv)
 
             /* Skip and do NOT fall back to a TLS1.2 cipher suite if using TLS1.3 */
             {
-                s2n_connection_set_cipher_preferences(conn, "test_all");
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_all_policy_name));
                 conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
 
                 uint8_t test_wire_ciphers[] = {
@@ -680,7 +681,7 @@ int main(int argc, char **argv)
             };
 
             const uint8_t invalid_cipher_count = sizeof(invalid_cipher_pref) / S2N_TLS_CIPHER_SUITE_LEN;
-            s2n_connection_set_cipher_preferences(conn, "default_tls13");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
             conn->client_protocol_version = S2N_TLS13;
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, invalid_cipher_pref, invalid_cipher_count), S2N_ERR_CIPHER_NOT_SUPPORTED);
@@ -696,7 +697,7 @@ int main(int argc, char **argv)
             conn->server_protocol_version = S2N_TLS13;
 
             /* The client will offer the default tls13 ciphersuites */
-            s2n_connection_set_cipher_preferences(conn, "default_tls13");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
 
             /* The server will send a TLS13 cipher over the wire */
             uint8_t valid_wire_ciphers[] = {
@@ -718,7 +719,7 @@ int main(int argc, char **argv)
             conn->server_protocol_version = S2N_TLS13;
 
             /* The client will offer the default tls13 ciphersuites */
-            s2n_connection_set_cipher_preferences(conn, "test_all_tls13");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all_tls13"));
 
             /* The server will send a TLS12 cipher over the wire */
             uint8_t invalid_wire_ciphers[] = {
