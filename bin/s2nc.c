@@ -35,7 +35,6 @@
 #include <error/s2n_errno.h>
 
 #include "tls/s2n_connection.h"
-#include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 
 #define S2N_MAX_ECC_CURVE_NAME_LENGTH 10
@@ -85,8 +84,6 @@ void usage()
     fprintf(stderr, "    Set dynamic record timeout threshold\n");
     fprintf(stderr, "  -C,--corked-io\n");
     fprintf(stderr, "    Turn on corked io\n");
-    fprintf(stderr, "  --tls13\n");
-    fprintf(stderr, "    Turn on experimental TLS1.3 support.\n");
     fprintf(stderr, "  --non-blocking\n");
     fprintf(stderr, "    Set the non-blocking flag on the connection's socket.\n");
     fprintf(stderr, "  -K ,--keyshares\n");
@@ -250,7 +247,6 @@ int main(int argc, char *const *argv)
     const char *port = "443";
     int echo_input = 0;
     int use_corked_io = 0;
-    int use_tls13 = 0;
     uint8_t non_blocking = 0;
     int keyshares_count = 0;
     char keyshares[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT][S2N_MAX_ECC_CURVE_NAME_LENGTH];
@@ -356,7 +352,7 @@ int main(int argc, char *const *argv)
             }
             break;
         case '3':
-            use_tls13 = 1;
+            /* Do nothing -- this argument is deprecated. */
             break;
         case 'B':
             non_blocking = 1;
@@ -393,10 +389,6 @@ int main(int argc, char *const *argv)
     if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
         fprintf(stderr, "Error disabling SIGPIPE\n");
         exit(1);
-    }
-
-    if (use_tls13) {
-        GUARD_EXIT(s2n_enable_tls13(), "Error enabling TLS1.3");
     }
 
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");

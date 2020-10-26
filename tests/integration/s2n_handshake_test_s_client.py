@@ -220,7 +220,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
         server_cert_key_list=None, expected_server_cert=None, server_cipher_pref=None, ocsp=None, sig_algs=None, curves=None, resume=False, no_ticket=False,
         prefer_low_latency=False, enter_fips_mode=False, client_auth=None, client_cert=DEFAULT_CLIENT_CERT_PATH,
         client_key=DEFAULT_CLIENT_KEY_PATH, expected_cipher=None, expected_extensions=None,
-        simulate_tests=False, debug_cmds=False, tls13_flag=False, results=dict
+        simulate_tests=False, debug_cmds=False, results=dict
         ):
     """
     Attempt to handshake against s2nd listening on `endpoint` and `port` using Openssl s_client
@@ -249,7 +249,6 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
     :param list expected_extensions: list of expected extensions that s_client should receive.
     :param bool simulate_tests: simulate tests passing but do not actually run them
     :param bool debug_cmds: print commands that are invoked for the handshake tests
-    :param bool tls13_flag: determine whether to add tls13_flag to s2nd
     :param dict results: object that can be used to update tests results like run count back to caller
     :return: 0 on successfully negotiation(s), -1 on failure
     """
@@ -291,9 +290,6 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
     if enter_fips_mode == True:
         s2nd_ciphers = "test_all_fips"
         s2nd_cmd.append("--enter-fips-mode")
-
-    if tls13_flag:
-        s2nd_cmd.append("--tls13")
 
     s2nd_cmd.append("-c")
     s2nd_cmd.append(s2nd_ciphers)
@@ -873,30 +869,26 @@ def main():
     results = {'tests_ran': 0}
 
     try:
-        for tls13_flag in [False, True]:
-            # options are additional arguments that eventually gets passed to try_handshake()
-            options = dict(
-                results=results,
-                tls13_flag=tls13_flag,
-                debug_cmds=args.debug,
-                simulate_tests=args.dryrun,
-            )
-            if tls13_flag:
-                print("\n\n------------- Testing with TLS1.3 Flag -------------\n\n")
+        # options are additional arguments that eventually gets passed to try_handshake()
+        options = dict(
+            results=results,
+            debug_cmds=args.debug,
+            simulate_tests=args.dryrun,
+        )
 
-            resume_test(host, port, test_ciphers, fips_mode, no_ticket=True, **options)
-            resume_test(host, port, test_ciphers, fips_mode, **options)
-            handshake_test(host, port, test_ciphers, fips_mode, **options)
-            client_auth_test(host, port, test_ciphers, fips_mode, **options)
-            sigalg_test(host, port, fips_mode, no_ticket=False, **options)
-            sigalg_test(host, port, fips_mode, use_client_auth=True, no_ticket=True, **options)
-            elliptic_curve_test(host, port, libcrypto_version, fips_mode, **options)
-            elliptic_curve_fallback_test(host, port, fips_mode, **options)
-            handshake_fragmentation_test(host, port, fips_mode, **options)
-            ocsp_stapling_test(host, port, fips_mode, **options)
-            cert_type_cipher_match_test(host, port, libcrypto_version, **options)
-            multiple_cert_type_test(host, port, libcrypto_version, **options)
-            multiple_cert_domain_name_test(host, port, **options)
+        resume_test(host, port, test_ciphers, fips_mode, no_ticket=True, **options)
+        resume_test(host, port, test_ciphers, fips_mode, **options)
+        handshake_test(host, port, test_ciphers, fips_mode, **options)
+        client_auth_test(host, port, test_ciphers, fips_mode, **options)
+        sigalg_test(host, port, fips_mode, no_ticket=False, **options)
+        sigalg_test(host, port, fips_mode, use_client_auth=True, no_ticket=True, **options)
+        elliptic_curve_test(host, port, libcrypto_version, fips_mode, **options)
+        elliptic_curve_fallback_test(host, port, fips_mode, **options)
+        handshake_fragmentation_test(host, port, fips_mode, **options)
+        ocsp_stapling_test(host, port, fips_mode, **options)
+        cert_type_cipher_match_test(host, port, libcrypto_version, **options)
+        multiple_cert_type_test(host, port, libcrypto_version, **options)
+        multiple_cert_domain_name_test(host, port, **options)
     except IntegrationTestFailure as ex:
         return 1
 

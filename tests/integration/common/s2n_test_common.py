@@ -147,7 +147,6 @@ def get_s2n_cmd(scenario):
         s2n_cmd.append("--echo")
 
     if scenario.version is Version.TLS13:
-        s2n_cmd.append("--tls13")
         s2n_cmd.extend(["-c", "test_all"])
     else:
         s2n_cmd.extend(["-c", "test_all_tls12"])

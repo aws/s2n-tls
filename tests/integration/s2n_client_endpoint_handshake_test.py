@@ -99,7 +99,7 @@ def well_known_endpoints_test(use_corked_io, tls13_enabled):
     opt_list = []
 
     if tls13_enabled:
-        arguments += ["--tls13", "--ciphers", "default_tls13"]
+        arguments += ["--ciphers", "default_tls13"]
         opt_list += ["TLS 1.3"]
     if use_corked_io:
         arguments += ["-C"]
