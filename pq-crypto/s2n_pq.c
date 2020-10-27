@@ -15,19 +15,24 @@
 
 #include "s2n_pq.h"
 
+static bool sikep434r2_asm_enabled = false;
+
 #if defined(S2N_CPUID_AVAILABLE)
 /* https://en.wikipedia.org/wiki/CPUID */
 #include <cpuid.h>
+
+#define EXTENDED_FEATURES_LEAF         7
+#define EXTENDED_FEATURES_SUBLEAF_ZERO 0
 
 /* The cpuid.h header included with older versions of gcc and
  * clang doesn't include definitions for bit_ADX, bit_BMI2, or
  * __get_cpuid_count(). */
 #if !defined(bit_ADX)
-#define bit_ADX 0x00080000
+    #define bit_ADX (1 << 19)
 #endif
 
 #if !defined(bit_BMI2)
-#define bit_BMI2 0x00000100
+    #define bit_BMI2 (1 << 8)
 #endif
 
 bool s2n_get_cpuid_count(uint32_t leaf, uint32_t sub_leaf, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx) {
@@ -41,47 +46,31 @@ bool s2n_get_cpuid_count(uint32_t leaf, uint32_t sub_leaf, uint32_t *eax, uint32
     __cpuid_count(leaf, sub_leaf, *eax, *ebx, *ecx, *edx);
     return true;
 }
-#endif
-
-static bool sikep434r2_asm_enabled = false;
 
 /* https://en.wikipedia.org/wiki/Bit_manipulation_instruction_set#BMI2_(Bit_Manipulation_Instruction_Set_2) */
 bool s2n_cpu_supports_bmi2() {
-#if defined(S2N_CPUID_AVAILABLE)
     uint32_t eax, ebx, ecx, edx;
-    if (!s2n_get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx)) {
+    if (!s2n_get_cpuid_count(EXTENDED_FEATURES_LEAF, EXTENDED_FEATURES_SUBLEAF_ZERO, &eax, &ebx, &ecx, &edx)) {
         return false;
     }
 
-    if (ebx & bit_BMI2) {
-        return true;
-    }
-#endif
-
-    return false;
+    return (ebx & bit_BMI2);
 }
 
 /* https://en.wikipedia.org/wiki/Intel_ADX */
 bool s2n_cpu_supports_adx() {
-#if defined(S2N_CPUID_AVAILABLE)
     uint32_t eax, ebx, ecx, edx;
-    if (!s2n_get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx)) {
+    if (!s2n_get_cpuid_count(EXTENDED_FEATURES_LEAF, EXTENDED_FEATURES_SUBLEAF_ZERO, &eax, &ebx, &ecx, &edx)) {
         return false;
     }
 
-    if (ebx & bit_ADX) {
-        return true;
-    }
-#endif
-
-    return false;
+    return (ebx & bit_ADX);
 }
 
 bool s2n_cpu_supports_sikep434r2_asm() {
 #if defined(S2N_SIKEP434R2_ASM)
-    /* The sikep434r2 assembly code always requires BMI2. If ADX support
-     * was detected at compile time, the code would have been compiled
-     * with ADX support turned on, so we must check ADX at runtime. */
+    /* The sikep434r2 assembly code always requires BMI2. If the assembly
+     * was compiled with support for ADX, we also require ADX at runtime. */
     #if defined(S2N_ADX)
         return s2n_cpu_supports_bmi2() && s2n_cpu_supports_adx();
     #else
@@ -90,8 +79,17 @@ bool s2n_cpu_supports_sikep434r2_asm() {
 #else
     /* sikep434r2 assembly was not supported at compile time */
     return false;
-#endif
+#endif /* defined(S2N_SIKEP434R2_ASM) */
 }
+
+#else /* defined(S2N_CPUID_AVAILABLE) */
+
+/* If CPUID is not available, we cannot perform necessary run-time checks. */
+bool s2n_cpu_supports_sikep434r2_asm() {
+    return false;
+}
+
+#endif /* defined(S2N_CPUID_AVAILABLE) */
 
 bool s2n_is_sikep434r2_asm_enabled() {
     return sikep434r2_asm_enabled;

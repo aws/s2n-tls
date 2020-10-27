@@ -21,14 +21,14 @@
 #define ADD2    adcx
 #define ADC2    adcx
 
-#else
+#else // S2N_ADX
 
 #define ADD1    add
 #define ADC1    adc
 #define ADD2    add
 #define ADC2    adc
 
-#endif
+#endif // S2N_ADX
 
 // The constants below (asm_p434, asm_p434p1, and asm_p434x2) are duplicated from
 // P434.c, and correspond to the arrays p434, p434p1, and p434x2. The values are
