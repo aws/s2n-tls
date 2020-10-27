@@ -100,12 +100,11 @@ static int s2n_tls13_transcript_message_hash(struct s2n_tls13_keys *keys, const 
     notnull_check(message);
     notnull_check(message_digest);
 
-    struct s2n_hash_state hash_state;
+    DEFER_CLEANUP(struct s2n_hash_state hash_state, s2n_hash_free);
     GUARD(s2n_hash_new(&hash_state));
     GUARD(s2n_hash_init(&hash_state, keys->hash_algorithm));
     GUARD(s2n_hash_update(&hash_state, message->data, message->size));
     GUARD(s2n_hash_digest(&hash_state, message_digest->data, message_digest->size));
-    GUARD(s2n_hash_free(&hash_state));
 
     return 0;
 }
@@ -182,11 +181,10 @@ int s2n_tls13_derive_handshake_secrets(struct s2n_tls13_keys *keys,
     s2n_tls13_key_blob(message_digest, keys->size);
 
     /* copy the hash */
-    struct s2n_hash_state hkdf_hash_copy;
+    DEFER_CLEANUP(struct s2n_hash_state hkdf_hash_copy, s2n_hash_free);
     GUARD(s2n_hash_new(&hkdf_hash_copy));
     GUARD(s2n_hash_copy(&hkdf_hash_copy, client_server_hello_hash));
     s2n_hash_digest(&hkdf_hash_copy, message_digest.data, message_digest.size);
-    s2n_hash_free(&hkdf_hash_copy);
 
     /* produce client + server traffic secrets */
     GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
@@ -202,41 +200,45 @@ int s2n_tls13_derive_handshake_secrets(struct s2n_tls13_keys *keys,
     return 0;
 }
 
-/*
- * Derives application/master secrets
- */
-int s2n_tls13_derive_application_secrets(struct s2n_tls13_keys *keys, struct s2n_hash_state *hashes, struct s2n_blob *client_secret, struct s2n_blob *server_secret)
+int s2n_tls13_extract_master_secret(struct s2n_tls13_keys *keys)
+{
+    s2n_tls13_key_blob(empty_key, keys->size);
+
+    /* Extract master secret from derived secret */
+    GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &keys->derive_secret, &empty_key, &keys->extract_secret));
+
+    return S2N_SUCCESS;
+}
+
+int s2n_tls13_derive_application_secret(struct s2n_tls13_keys *keys, struct s2n_hash_state *hashes, struct s2n_blob *secret_blob, s2n_mode mode)
 {
     notnull_check(keys);
     notnull_check(hashes);
-    notnull_check(client_secret);
-    notnull_check(server_secret);
+    notnull_check(secret_blob);
+
+    const struct s2n_blob *label_blob;
+    if (mode == S2N_CLIENT) {
+        label_blob = &s2n_tls13_label_client_application_traffic_secret;
+    } else {
+        label_blob = &s2n_tls13_label_server_application_traffic_secret;
+    }
 
     /* Sanity check that input hash is of expected type */
     S2N_ERROR_IF(keys->hash_algorithm != hashes->alg, S2N_ERR_HASH_INVALID_ALGORITHM);
 
-    s2n_tls13_key_blob(empty_key, keys->size);
-    GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &keys->derive_secret, &empty_key, &keys->extract_secret));
-
     s2n_tls13_key_blob(message_digest, keys->size);
 
-    /* copy the hash */
-    struct s2n_hash_state hkdf_hash_copy;
+    /* copy the hashes into the message_digest */
+    DEFER_CLEANUP(struct s2n_hash_state hkdf_hash_copy, s2n_hash_free);
     GUARD(s2n_hash_new(&hkdf_hash_copy));
     GUARD(s2n_hash_copy(&hkdf_hash_copy, hashes));
     GUARD(s2n_hash_digest(&hkdf_hash_copy, message_digest.data, message_digest.size));
 
-    GUARD(s2n_hash_free(&hkdf_hash_copy));
-
-    /* produce client + server traffic secrets */
+    /* Derive traffic secret from master secret */
     GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-        &s2n_tls13_label_client_application_traffic_secret, &message_digest, client_secret));
-    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-        &s2n_tls13_label_server_application_traffic_secret, &message_digest, server_secret));
+        label_blob, &message_digest, secret_blob));
 
-    /* exporter and resumption master secrets can be derived here */
-
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /*
@@ -278,11 +280,10 @@ int s2n_tls13_calculate_finished_mac(struct s2n_tls13_keys *keys, struct s2n_blo
     s2n_tls13_key_blob(transcript_hash, keys->size);
 
     /* Make a copy of the hash state */
-    struct s2n_hash_state hash_state_copy;
+    DEFER_CLEANUP(struct s2n_hash_state hash_state_copy, s2n_hash_free);
     GUARD(s2n_hash_new(&hash_state_copy));
     GUARD(s2n_hash_copy(&hash_state_copy, hash_state));
     GUARD(s2n_hash_digest(&hash_state_copy, transcript_hash.data, transcript_hash.size));
-    GUARD(s2n_hash_free(&hash_state_copy));
 
     GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, finished_key, &transcript_hash, finished_verify));
 

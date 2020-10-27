@@ -229,10 +229,13 @@ int main(int argc, char **argv)
     /* Test Client Finished MAC hash */
     S2N_BLOB_EXPECT_EQUAL(expect_client_finished_verify, client_finished_verify);
 
-    EXPECT_SUCCESS(s2n_tls13_derive_application_secrets(&secrets, &hash_state, &client_application_secret, &server_application_secret));
+    EXPECT_SUCCESS(s2n_tls13_extract_master_secret(&secrets));
     S2N_BLOB_EXPECT_EQUAL(expect_extract_master_secret, secrets.extract_secret);
 
+    EXPECT_SUCCESS(s2n_tls13_derive_application_secret(&secrets, &hash_state, &client_application_secret, S2N_CLIENT));
     S2N_BLOB_EXPECT_EQUAL(expect_derived_client_application_traffic_secret, client_application_secret);
+
+    EXPECT_SUCCESS(s2n_tls13_derive_application_secret(&secrets, &hash_state, &server_application_secret, S2N_SERVER));
     S2N_BLOB_EXPECT_EQUAL(expect_derived_server_application_traffic_secret, server_application_secret);
 
     /* Test Traffic Keys */
