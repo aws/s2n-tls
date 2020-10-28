@@ -83,8 +83,9 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
     }
 
     /* Copy the CLIENT_HELLO -> SERVER_FINISHED hash.
-     * We'll need it later to calculate the application secrets. */
-    if (s2n_conn_get_current_message_type(conn) == SERVER_FINISHED) {
+     * TLS1.3 will need it later to calculate the application secrets. */
+    if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13 &&
+            s2n_conn_get_current_message_type(conn) == SERVER_FINISHED) {
         GUARD(s2n_tls13_conn_copy_server_finished_hash(conn));
     }
 
