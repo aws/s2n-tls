@@ -29,9 +29,6 @@
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_security_policies.h"
 
-/* Include the .c file directly to access the default entropy callbacks */
-#include "utils/s2n_random.c"
-
 #define SEED_LENGTH 48
 uint8_t hybrid_kat_entropy_buff[SEED_LENGTH] = {0};
 struct s2n_blob hybrid_kat_entropy_blob = {.size = SEED_LENGTH, .data = hybrid_kat_entropy_buff};
@@ -50,7 +47,7 @@ int s2n_hybrid_pq_rand_cleanup(void) {
 int s2n_hybrid_pq_entropy(void *ptr, uint32_t size) {
     ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     notnull_check(ptr);
-    eq_check(size, hybrid_kat_entropy_blob.size);
+    lte_check(size, hybrid_kat_entropy_blob.size);
     memcpy_check(ptr, hybrid_kat_entropy_buff, size);
 
     return S2N_SUCCESS;
@@ -215,14 +212,6 @@ int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cip
     fclose(kat_file);
     free(expected_server_key_message);
     free(expected_client_key_message);
-
-    /* Reset the callbacks. This is necessary because some tests call this helper
-     * function multiple times, and the DRBG should use the default callbacks in
-     * the beginning when setting up the connections/certificates. (It's OK that
-     * the DRBG mode is still set to S2N_AES_256_CTR_NO_DF_PR instead of the default
-     * S2N_AES_128_CTR_NO_DF_PR.) */
-    GUARD(s2n_rand_set_callbacks(s2n_rand_init_impl, s2n_rand_cleanup_impl, s2n_rand_urandom_impl,
-            s2n_rand_urandom_impl));
 #endif
 
     return 0;
