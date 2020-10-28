@@ -142,7 +142,7 @@ void fp2correction(f2elm_t *a) {
 // Multiprecision addition, c = a+b.
 __inline static void mp_addfast(const digit_t *a, const digit_t *b, digit_t *c) {
 #if defined(S2N_SIKEP434R2_ASM)
-    if (s2n_is_sikep434r2_asm_enabled()) {
+    if (s2n_sikep434r2_asm_is_enabled()) {
         mp_add_asm(a, b, c);
         return;
     }
@@ -177,7 +177,7 @@ unsigned int mp_sub(const digit_t *a, const digit_t *b, digit_t *c, const unsign
 // Multiprecision subtraction followed by addition with p*2^MAXBITS_FIELD, c = a-b+(p*2^MAXBITS_FIELD) if a-b < 0, otherwise c=a-b.
 __inline static void mp_subaddfast(const digit_t *a, const digit_t *b, digit_t *c) {
 #if defined(S2N_SIKEP434R2_ASM)
-    if (s2n_is_sikep434r2_asm_enabled()) {
+    if (s2n_sikep434r2_asm_is_enabled()) {
         mp_subaddx2_asm(a, b, c);
         return;
     }
@@ -194,7 +194,7 @@ __inline static void mp_subaddfast(const digit_t *a, const digit_t *b, digit_t *
 // Multiprecision subtraction, c = c-a-b, where lng(a) = lng(b) = 2*NWORDS_FIELD.
 __inline static void mp_dblsubfast(const digit_t *a, const digit_t *b, digit_t *c) {
 #if defined(S2N_SIKEP434R2_ASM)
-    if (s2n_is_sikep434r2_asm_enabled()) {
+    if (s2n_sikep434r2_asm_is_enabled()) {
         mp_dblsubx2_asm(a, b, c);
         return;
     }

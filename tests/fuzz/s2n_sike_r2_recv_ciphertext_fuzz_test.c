@@ -41,7 +41,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len) {
 
     /* Test the assembly, if available; if not, don't bother testing the C again */
     GUARD_AS_POSIX(s2n_try_enable_sikep434r2_asm());
-    if (s2n_is_sikep434r2_asm_enabled()) {
+    if (s2n_sikep434r2_asm_is_enabled()) {
         GUARD(s2n_kem_recv_ciphertext_fuzz_test(buf, len, &kem_params));
     }
 

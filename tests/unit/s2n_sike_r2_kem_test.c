@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     /* Test the portable C code */
     {
         EXPECT_OK(s2n_disable_sikep434r2_asm());
-        EXPECT_FALSE(s2n_is_sikep434r2_asm_enabled());
+        EXPECT_FALSE(s2n_sikep434r2_asm_is_enabled());
 
         EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_keypair(pub_key, priv_key));
         EXPECT_SUCCESS(SIKE_P434_r2_crypto_kem_enc(ciphertext, c_shared_secret, pub_key));
@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 
     /* Test the assembly, if available; if not, don't bother testing the C again */
     EXPECT_OK(s2n_try_enable_sikep434r2_asm());
-    if (s2n_is_sikep434r2_asm_enabled()) {
+    if (s2n_sikep434r2_asm_is_enabled()) {
         memset_check((unsigned char *)pub_key, 0, SIKE_P434_R2_PUBLIC_KEY_BYTES);
         memset_check((unsigned char *)priv_key, 0, SIKE_P434_R2_SECRET_KEY_BYTES);
         memset_check((unsigned char *)c_shared_secret, 0, SIKE_P434_R2_SHARED_SECRET_BYTES);

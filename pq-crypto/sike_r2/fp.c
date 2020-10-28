@@ -11,7 +11,7 @@
 // Output: c in [0, 2*p434-1]
 void fpadd434(const digit_t *a, const digit_t *b, digit_t *c) {
 #if defined(S2N_SIKEP434R2_ASM)
-    if (s2n_is_sikep434r2_asm_enabled()) {
+    if (s2n_sikep434r2_asm_is_enabled()) {
         fpadd434_asm(a, b, c);
         return;
     }
@@ -41,7 +41,7 @@ void fpadd434(const digit_t *a, const digit_t *b, digit_t *c) {
 // Output: c in [0, 2*p434-1]
 void fpsub434(const digit_t *a, const digit_t *b, digit_t *c) {
 #if defined(S2N_SIKEP434R2_ASM)
-    if (s2n_is_sikep434r2_asm_enabled()) {
+    if (s2n_sikep434r2_asm_is_enabled()) {
         fpsub434_asm(a, b, c);
         return;
     }
@@ -138,7 +138,7 @@ void digit_x_digit(const digit_t a, const digit_t b, digit_t *c) {
 // Multiprecision comba multiply, c = a*b, where lng(a) = lng(b) = nwords.
 void mp_mul(const digit_t *a, const digit_t *b, digit_t *c, const unsigned int nwords) {
 #if defined(S2N_SIKEP434R2_ASM)
-    if (s2n_is_sikep434r2_asm_enabled()) {
+    if (s2n_sikep434r2_asm_is_enabled()) {
         UNREFERENCED_PARAMETER(nwords);
         mul434_asm(a, b, c);
         return;
@@ -182,7 +182,7 @@ void mp_mul(const digit_t *a, const digit_t *b, digit_t *c, const unsigned int n
 // ma is assumed to be in Montgomery representation.
 void rdc_mont(const digit_t *ma, digit_t *mc) {
 #if defined(S2N_SIKEP434R2_ASM)
-    if (s2n_is_sikep434r2_asm_enabled()) {
+    if (s2n_sikep434r2_asm_is_enabled()) {
         rdc434_asm(ma, mc);
         return;
     }

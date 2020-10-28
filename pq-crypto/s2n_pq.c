@@ -91,7 +91,7 @@ bool s2n_cpu_supports_sikep434r2_asm() {
 
 #endif /* defined(S2N_CPUID_AVAILABLE) */
 
-bool s2n_is_sikep434r2_asm_enabled() {
+bool s2n_sikep434r2_asm_is_enabled() {
     return sikep434r2_asm_enabled;
 }
 

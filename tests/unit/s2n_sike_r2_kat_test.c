@@ -38,12 +38,12 @@ int main(int argc, char **argv, char **envp) {
 
     /* Test the portable C code */
     EXPECT_OK(s2n_disable_sikep434r2_asm());
-    EXPECT_FALSE(s2n_is_sikep434r2_asm_enabled());
+    EXPECT_FALSE(s2n_sikep434r2_asm_is_enabled());
     EXPECT_SUCCESS(s2n_test_kem_with_kat(&s2n_sike_p434_r2, RSP_FILE));
 
     /* Test the assembly, if available; if not, don't bother testing the C again */
     EXPECT_OK(s2n_try_enable_sikep434r2_asm());
-    if (s2n_is_sikep434r2_asm_enabled()) {
+    if (s2n_sikep434r2_asm_is_enabled()) {
         EXPECT_SUCCESS(s2n_test_kem_with_kat(&s2n_sike_p434_r2, RSP_FILE));
     }
 

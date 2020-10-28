@@ -37,13 +37,13 @@ int main(int argc, char **argv) {
     }
     /* Test the portable C code */
     EXPECT_OK(s2n_disable_sikep434r2_asm());
-    EXPECT_FALSE(s2n_is_sikep434r2_asm_enabled());
+    EXPECT_FALSE(s2n_sikep434r2_asm_is_enabled());
     EXPECT_SUCCESS(s2n_test_hybrid_ecdhe_kem_with_kat(&s2n_sike_p434_r2, &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
             "KMS-PQ-TLS-1-0-2020-02", RSP_FILE_NAME, SERVER_KEY_MESSAGE_LENGTH, CLIENT_KEY_MESSAGE_LENGTH));
 
     /* Test the assembly, if available; if not, don't bother testing the C again */
     EXPECT_OK(s2n_try_enable_sikep434r2_asm());
-    if (s2n_is_sikep434r2_asm_enabled()) {
+    if (s2n_sikep434r2_asm_is_enabled()) {
         EXPECT_SUCCESS(s2n_test_hybrid_ecdhe_kem_with_kat(&s2n_sike_p434_r2, &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
                 "KMS-PQ-TLS-1-0-2020-02", RSP_FILE_NAME, SERVER_KEY_MESSAGE_LENGTH, CLIENT_KEY_MESSAGE_LENGTH));
     }
