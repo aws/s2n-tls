@@ -156,9 +156,6 @@ class S2N(Provider):
         if self.options.reconnect is True:
             cmd_line.append('-r')
 
-        if self.options.protocol == Protocols.TLS13:
-            cmd_line.append('--tls13')
-
         cipher_prefs = 'test_all_tls12'
         if self.options.cipher is Ciphers.KMS_PQ_TLS_1_0_2019_06:
             cipher_prefs = 'KMS-PQ-TLS-1-0-2019-06'
@@ -199,7 +196,6 @@ class S2N(Provider):
             cmd_line.append('--insecure')
 
         if self.options.protocol == Protocols.TLS13:
-            cmd_line.append('--tls13')
             cmd_line.extend(['-c', 'test_all'])
         else:
             cmd_line.extend(['-c', 'test_all_tls12'])

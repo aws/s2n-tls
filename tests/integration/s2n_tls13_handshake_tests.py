@@ -15,7 +15,6 @@
 
 """
 Handshake tests against openssl using TLS13.
-At the moment these tests are expected fail, as TLS13 is incomplete.
 """
 
 import argparse
