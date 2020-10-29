@@ -59,6 +59,7 @@ static uint32_t min_size(struct s2n_blob *blob, uint32_t max_length) {
 static S2N_RESULT s2n_generate_client_session_id(struct s2n_connection *conn)
 {
     ENSURE_REF(conn);
+    ENSURE_REF(conn->config);
 
     /* Session id already generated - no-op */
     if (conn->session_id_len) {
@@ -72,7 +73,7 @@ static S2N_RESULT s2n_generate_client_session_id(struct s2n_connection *conn)
 
     /* Generate the session id for TLS1.3 if in middlebox compatibility mode.
      * For now, we default to middlebox compatibility mode unless using QUIC. */
-    if (conn->quic_enabled) {
+    if (conn->config->quic_enabled) {
         return S2N_RESULT_OK;
     }
 
@@ -260,7 +261,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
 
     /* for pre TLS 1.3 connections, protocol selection is not done in supported_versions extensions, so do it here */
     if (conn->actual_protocol_version < S2N_TLS13) {
-        ENSURE_POSIX(!conn->quic_enabled, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+        ENSURE_POSIX(!conn->config->quic_enabled, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
         conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
     }
 

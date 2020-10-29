@@ -29,7 +29,7 @@
  * and are subject to change without notice. They should only be used for testing purposes.
  */
 
-S2N_API int s2n_connection_enable_quic(struct s2n_connection *conn);
+S2N_API int s2n_config_enable_quic(struct s2n_config *config);
 
 /*
  * Set the data to be sent in the quic_transport_parameters extension.

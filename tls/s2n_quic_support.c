@@ -35,10 +35,10 @@
 
 S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *output, uint32_t length);
 
-int s2n_connection_enable_quic(struct s2n_connection *conn)
+int s2n_config_enable_quic(struct s2n_config *config)
 {
-    notnull_check(conn);
-    conn->quic_enabled = true;
+    notnull_check(config);
+    config->quic_enabled = true;
     return S2N_SUCCESS;
 }
 

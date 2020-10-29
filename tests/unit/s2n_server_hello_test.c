@@ -501,29 +501,35 @@ int main(int argc, char **argv)
 
     /* Test that negotiating TLS1.2 with QUIC-enabled client fails */
     {
-        struct s2n_config *config = s2n_config_new();
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_reset_tls13());
+
+        struct s2n_config *quic_config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(quic_config, "test_all"));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(quic_config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_enable_quic(quic_config));
+
+        struct s2n_config *non_quic_config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(non_quic_config, "test_all"));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(non_quic_config, chain_and_key));
 
         /* Succeeds when negotiating TLS1.3 */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
-
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-            EXPECT_EQUAL(client_conn->client_protocol_version, S2N_TLS13);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, non_quic_config));
 
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
-            EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS13);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, non_quic_config));
 
             EXPECT_OK(s2n_test_client_hello(client_conn, server_conn));
-            EXPECT_SUCCESS(s2n_connection_enable_quic(client_conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, quic_config));
 
             EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io,
                     &client_conn->handshake.io, s2n_stuffer_data_available(&server_conn->handshake.io)));
             EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
+
+            EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -531,29 +537,29 @@ int main(int argc, char **argv)
 
         /* Fails when negotiating TLS1.2 */
         {
-            EXPECT_SUCCESS(s2n_disable_tls13());
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
-            EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS12);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, non_quic_config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
 
-            EXPECT_SUCCESS(s2n_enable_tls13());
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-            EXPECT_EQUAL(client_conn->client_protocol_version, S2N_TLS13);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, non_quic_config));
 
             EXPECT_OK(s2n_test_client_hello(client_conn, server_conn));
-            EXPECT_SUCCESS(s2n_connection_enable_quic(client_conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, quic_config));
 
             EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io,
                     &client_conn->handshake.io, s2n_stuffer_data_available(&server_conn->handshake.io)));
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
 
-        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_config_free(quic_config));
+        EXPECT_SUCCESS(s2n_config_free(non_quic_config));
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));

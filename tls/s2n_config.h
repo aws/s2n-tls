@@ -38,6 +38,9 @@ struct s2n_config {
     unsigned check_ocsp:1;
     unsigned disable_x509_validation:1;
     unsigned max_verify_cert_chain_depth_set:1;
+    /* Whether a connection can be used by a QUIC implementation.
+     * See s2n_quic_support.h */
+    unsigned quic_enabled:1;
 
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is

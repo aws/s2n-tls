@@ -23,7 +23,6 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Test s2n_process_alert_fragment */
     {
@@ -32,10 +31,12 @@ int main(int argc, char **argv)
 
         /* Fails if alerts not supported */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            struct s2n_config *config;
+            EXPECT_NOT_NULL(config = s2n_config_new());
 
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             /* Succeeds by default */
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&conn->in, 0));
@@ -45,12 +46,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->alert_in));
 
             /* Fails when alerts not supported (when QUIC mode enabled) */
-            EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
+            EXPECT_SUCCESS(s2n_config_enable_quic(config));
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&conn->in, 0));
             EXPECT_FAILURE_WITH_ERRNO(s2n_process_alert_fragment(conn), S2N_ERR_BAD_MESSAGE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_config_free(config));
         }
 
         /* Test warning behavior */
@@ -61,12 +62,27 @@ int main(int argc, char **argv)
             const uint8_t user_canceled_alert[] = {  1 /* AlertLevel = warning */,
                                                     90 /* AlertDescription = user_canceled */ };
 
-            /* Warnings treated as errors by default */
+            /* Warnings treated as errors by default in TLS1.2 */
             {
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 EXPECT_EQUAL(conn->config->alert_behavior, S2N_ALERT_FAIL_ON_WARNINGS);
-                EXPECT_EQUAL(s2n_connection_get_protocol_version(conn), S2N_TLS12);
+                conn->actual_protocol_version = S2N_TLS12;
+
+                EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, warning_alert, sizeof(warning_alert)));
+
+                EXPECT_FAILURE_WITH_ERRNO(s2n_process_alert_fragment(conn), S2N_ERR_ALERT);
+                EXPECT_TRUE(conn->closed);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+
+            /* Warnings treated as errors by default in TLS1.3 */
+            {
+                struct s2n_connection *conn;
+                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+                EXPECT_EQUAL(conn->config->alert_behavior, S2N_ALERT_FAIL_ON_WARNINGS);
+                conn->actual_protocol_version = S2N_TLS13;
 
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, warning_alert, sizeof(warning_alert)));
 
@@ -85,7 +101,7 @@ int main(int argc, char **argv)
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-                EXPECT_EQUAL(s2n_connection_get_protocol_version(conn), S2N_TLS12);
+                conn->actual_protocol_version = S2N_TLS12;
 
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, warning_alert, sizeof(warning_alert)));
 
@@ -98,8 +114,6 @@ int main(int argc, char **argv)
 
             /* Warnings treated as errors in TLS1.3 if alert_behavior == S2N_ALERT_IGNORE_WARNINGS */
             {
-                EXPECT_SUCCESS(s2n_enable_tls13());
-
                 struct s2n_config *config;
                 EXPECT_NOT_NULL(config = s2n_config_new());
                 EXPECT_SUCCESS(s2n_config_set_alert_behavior(config, S2N_ALERT_IGNORE_WARNINGS));
@@ -107,7 +121,7 @@ int main(int argc, char **argv)
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-                EXPECT_EQUAL(s2n_connection_get_protocol_version(conn), S2N_TLS13);
+                conn->actual_protocol_version = S2N_TLS13;
 
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, warning_alert, sizeof(warning_alert)));
 
@@ -116,20 +130,17 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
                 EXPECT_SUCCESS(s2n_config_free(config));
-                EXPECT_SUCCESS(s2n_disable_tls13());
             }
 
             /* user_canceled ignored in TLS1.3 by default */
             {
-                EXPECT_SUCCESS(s2n_enable_tls13());
-
                 struct s2n_config *config;
                 EXPECT_NOT_NULL(config = s2n_config_new());
 
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-                EXPECT_EQUAL(s2n_connection_get_protocol_version(conn), S2N_TLS13);
+                conn->actual_protocol_version = S2N_TLS13;
 
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, user_canceled_alert, sizeof(user_canceled_alert)));
 
@@ -138,7 +149,6 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
                 EXPECT_SUCCESS(s2n_config_free(config));
-                EXPECT_SUCCESS(s2n_disable_tls13());
             }
         }
     }
@@ -150,10 +160,13 @@ int main(int argc, char **argv)
 
         /* Does not send alert if alerts not supported */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            struct s2n_config *config;
+            EXPECT_NOT_NULL(config = s2n_config_new());
 
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->writer_alert_out), 0);
 
             /* Writes alert by default */
@@ -164,12 +177,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->writer_alert_out));
 
             /* Does not write alert when alerts not supported (when QUIC mode enabled) */
-            EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
+            EXPECT_SUCCESS(s2n_config_enable_quic(config));
             EXPECT_SUCCESS(s2n_queue_writer_close_alert_warning(conn));
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->writer_alert_out), 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_config_free(config));
         }
     }
 
@@ -181,10 +194,13 @@ int main(int argc, char **argv)
 
         /* Does not send alert if alerts not supported */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
+            struct s2n_config *config;
+            EXPECT_NOT_NULL(config = s2n_config_new());
 
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->reader_alert_out), 0);
 
             /* Writes alert by default */
@@ -195,12 +211,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->reader_alert_out));
 
             /* Does not write alert when alerts not supported (when QUIC mode enabled) */
-            EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
+            EXPECT_SUCCESS(s2n_config_enable_quic(config));
             EXPECT_SUCCESS(s2n_queue_reader_handshake_failure_alert(conn));
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->reader_alert_out), 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            EXPECT_SUCCESS(s2n_config_free(config));
         }
     }
 

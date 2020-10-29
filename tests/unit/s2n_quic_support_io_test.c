@@ -31,7 +31,6 @@ static const size_t TEST_DATA_SIZE = sizeof(TEST_DATA);
 struct s2n_stuffer input_stuffer, output_stuffer;
 static S2N_RESULT s2n_setup_conn(struct s2n_connection *conn)
 {
-    GUARD_AS_RESULT(s2n_connection_enable_quic(conn));
     conn->actual_protocol_version = S2N_TLS13;
 
     GUARD_AS_RESULT(s2n_stuffer_wipe(&input_stuffer));
@@ -256,11 +255,17 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input_stuffer, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output_stuffer, 0));
 
+        /* Setup config */
+        struct s2n_config *config;
+        EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_enable_quic(config));
+
         /* Functional: successfully reads full handshake message */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             EXPECT_SUCCESS(s2n_stuffer_write(&input_stuffer, &server_hello));
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked_status), S2N_ERR_IO_BLOCKED);
@@ -276,6 +281,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             /* Write initial fragment */
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input_stuffer, server_hello.data, i));
@@ -300,6 +306,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             DEFER_CLEANUP(struct s2n_blob encrypted_extensions, s2n_free);
             EXPECT_OK(s2n_write_test_message(&encrypted_extensions, TLS_ENCRYPTED_EXTENSIONS));
@@ -319,6 +326,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             /* Write the record: record type, protocol version,
              *                   handshake message size, handshake message */
@@ -338,6 +346,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             /* Write the record: record type, protocol version,
              *                   record data size, standard "0x01" record data */
@@ -359,6 +368,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_client_hello(conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked_status), S2N_ERR_IO_BLOCKED);
             client_hello_length = s2n_stuffer_data_available(&output_stuffer);
@@ -385,6 +395,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_client_hello(conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             /* Sabotage the output stuffer to block writing */
             struct s2n_stuffer bad_stuffer;
@@ -406,6 +417,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_free(&input_stuffer));
         EXPECT_SUCCESS(s2n_stuffer_free(&output_stuffer));
+        EXPECT_SUCCESS(s2n_config_free(config));
     }
 
     END_TEST();

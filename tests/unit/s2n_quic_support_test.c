@@ -23,33 +23,30 @@ static const uint8_t TEST_DATA[] = "test";
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
 
-    /* Test s2n_connection_enable_quic */
+    /* Test s2n_config_enable_quic */
     {
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-        EXPECT_NOT_NULL(conn);
-        EXPECT_FALSE(conn->quic_enabled);
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+        EXPECT_FALSE(config->quic_enabled);
 
         /* Check error handling */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_enable_quic(NULL), S2N_ERR_NULL);
-            EXPECT_FALSE(conn->quic_enabled);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_enable_quic(NULL), S2N_ERR_NULL);
+            EXPECT_FALSE(config->quic_enabled);
         }
 
         /* Check success */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13());
-            EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
-            EXPECT_TRUE(conn->quic_enabled);
+            EXPECT_SUCCESS(s2n_config_enable_quic(config));
+            EXPECT_TRUE(config->quic_enabled);
 
             /* Enabling QUIC again still succeeds */
-            EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
-            EXPECT_TRUE(conn->quic_enabled);
+            EXPECT_SUCCESS(s2n_config_enable_quic(config));
+            EXPECT_TRUE(config->quic_enabled);
         }
 
-        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
     }
 
     /* Test s2n_connection_set_quic_transport_parameters */
