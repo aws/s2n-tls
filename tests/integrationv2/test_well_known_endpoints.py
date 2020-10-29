@@ -41,11 +41,6 @@ if get_flag(S2N_NO_PQ, False) is False:
     ENDPOINTS.extend(pq_endpoints)
 
 
-# Wikipedia still fails when connecting from the codebuild images
-expected_failures = [
-    'wikipedia.org'
-]
-
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("endpoint", ENDPOINTS, ids=lambda x: "{}-{}".format(x['endpoint'], x.get('cipher_preference_version', 'Default')))
@@ -71,8 +66,8 @@ def test_well_known_endpoints(managed_process, protocol, endpoint):
     client = managed_process(S2N, client_options, timeout=5)
 
     for results in client.get_results():
-        if results.exception is not None or results.exit_code != 0:
-            assert endpoint['endpoint'] in expected_failures
+        assert results.exception is None
+        assert results.exit_code == 0
 
         if 'expected_cipher' in endpoint:
             assert bytes(endpoint['expected_cipher'].encode('utf-8')) in results.stdout
