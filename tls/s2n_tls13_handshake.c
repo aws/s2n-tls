@@ -17,6 +17,19 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_security_policies.h"
 
+static int s2n_zero_sequence_number(struct s2n_connection *conn, s2n_mode mode)
+{
+    notnull_check(conn);
+    struct s2n_blob sequence_number;
+    if (mode == S2N_CLIENT) {
+        GUARD(s2n_blob_init(&sequence_number, conn->secure.client_sequence_number, sizeof(conn->secure.client_sequence_number)));
+    } else {
+        GUARD(s2n_blob_init(&sequence_number, conn->secure.server_sequence_number, sizeof(conn->secure.server_sequence_number)));
+    }
+    GUARD(s2n_blob_zero(&sequence_number));
+    return S2N_SUCCESS;
+}
+
 int s2n_tls13_mac_verify(struct s2n_tls13_keys *keys, struct s2n_blob *finished_verify, struct s2n_blob *wire_verify)
 {
     notnull_check(wire_verify->data);
@@ -213,6 +226,13 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
         GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
     }
 
+    /* According to https://tools.ietf.org/html/rfc8446#section-5.3:
+     * Each sequence number is set to zero at the beginning of a connection and
+     * whenever the key is changed
+     */
+    GUARD(s2n_zero_sequence_number(conn, S2N_CLIENT));
+    GUARD(s2n_zero_sequence_number(conn, S2N_SERVER));
+
     return 0;
 }
 
@@ -245,7 +265,37 @@ int s2n_tls13_handle_application_secrets(struct s2n_connection *conn)
     GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.server_key, &s_app_key));
     GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.client_key, &c_app_key));
 
+    /* According to https://tools.ietf.org/html/rfc8446#section-5.3:
+     * Each sequence number is set to zero at the beginning of a connection and
+     * whenever the key is changed
+     */
+    GUARD(s2n_zero_sequence_number(conn, S2N_CLIENT));
+    GUARD(s2n_zero_sequence_number(conn, S2N_SERVER));
+
     return 0;
+}
+
+int s2n_tls13_handle_secrets(struct s2n_connection *conn)
+{
+    notnull_check(conn);
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        return S2N_SUCCESS;
+    }
+
+    switch(s2n_conn_get_current_message_type(conn)) {
+        case SERVER_HELLO:
+            GUARD(s2n_tls13_handle_handshake_secrets(conn));
+            /* Set negotiated crypto parameters for encryption */
+            conn->server = &conn->secure;
+            conn->client = &conn->secure;
+            break;
+        case CLIENT_FINISHED:
+            GUARD(s2n_tls13_handle_application_secrets(conn));
+            break;
+        default:
+            break;
+    }
+    return S2N_SUCCESS;
 }
 
 int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mode, keyupdate_status status)
@@ -257,18 +307,15 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
 
     struct s2n_session_key *old_key;
     struct s2n_blob old_app_secret;
-    struct s2n_blob sequence_number;
     struct s2n_blob app_iv;
 
     if (mode == S2N_CLIENT) {
         old_key = &conn->secure.client_key;
         GUARD(s2n_blob_init(&old_app_secret, conn->secure.client_app_secret, keys.size));
-        GUARD(s2n_blob_init(&sequence_number, conn->secure.client_sequence_number, sizeof(conn->secure.client_sequence_number)));
         GUARD(s2n_blob_init(&app_iv, conn->secure.client_implicit_iv, S2N_TLS13_FIXED_IV_LEN));
     } else {
         old_key = &conn->secure.server_key;
         GUARD(s2n_blob_init(&old_app_secret, conn->secure.server_app_secret, keys.size));
-        GUARD(s2n_blob_init(&sequence_number, conn->secure.server_sequence_number, sizeof(conn->secure.server_sequence_number)));
         GUARD(s2n_blob_init(&app_iv, conn->secure.server_implicit_iv, S2N_TLS13_FIXED_IV_LEN));  
     }
 
@@ -293,7 +340,7 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
      * whenever the key is changed; the first record transmitted under a particular traffic key
      * MUST use sequence number 0.
      */
-    GUARD(s2n_blob_zero(&sequence_number));
+    GUARD(s2n_zero_sequence_number(conn, mode));
     
     /* Save updated secret */
     struct s2n_stuffer old_secret_stuffer = {0};

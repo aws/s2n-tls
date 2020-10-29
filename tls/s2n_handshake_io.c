@@ -787,9 +787,7 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
 
         /* MD5 and SHA sum the handshake data too */
         if (record_type == TLS_HANDSHAKE) {
-            GUARD(s2n_conn_pre_handshake_hashes_update(conn));
             GUARD(s2n_conn_update_handshake_hashes(conn, &out));
-            GUARD(s2n_conn_post_handshake_hashes_update(conn));
         }
 
         /* Actually send the record. We could block here. Assume the caller will call flush before coming back. */
@@ -799,6 +797,9 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
     /* We're done sending the last record, reset everything */
     GUARD(s2n_stuffer_wipe(&conn->out));
     GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+
+    /* Update the secrets, if necessary */
+    GUARD(s2n_tls13_handle_secrets(conn));
 
     /* Advance the state machine */
     GUARD(s2n_advance_message(conn));
@@ -863,10 +864,8 @@ static int s2n_handshake_conn_update_hashes(struct s2n_connection *conn)
     handshake_record.size = TLS_HANDSHAKE_HEADER_LENGTH + handshake_message_length;
     notnull_check(handshake_record.data);
 
-    GUARD(s2n_conn_pre_handshake_hashes_update(conn));
     /* MD5 and SHA sum the handshake data too */
     GUARD(s2n_conn_update_handshake_hashes(conn, &handshake_record));
-    GUARD(s2n_conn_post_handshake_hashes_update(conn));
 
     return 0;
 }
@@ -1076,6 +1075,9 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
 
             return r;
         }
+
+        /* Update the secrets, if necessary */
+        GUARD(s2n_tls13_handle_secrets(conn));
 
         /* Advance the state machine */
         GUARD(s2n_advance_message(conn));
