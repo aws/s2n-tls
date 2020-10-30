@@ -23,12 +23,11 @@
 void s2n_stuffer_init_with_data_harness()
 {
     struct s2n_stuffer *stuffer = can_fail_malloc(sizeof(*stuffer));
-    struct s2n_blob *blob      = cbmc_allocate_s2n_blob();
+    struct s2n_blob *blob = cbmc_allocate_s2n_blob();
 
     __CPROVER_assume(s2n_blob_is_valid(blob));
 
     struct s2n_blob old_blob = *blob;
-    
     
     if (s2n_stuffer_init_with_data(stuffer, blob) == S2N_SUCCESS) {
         assert(s2n_stuffer_is_valid(stuffer));
