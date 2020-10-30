@@ -237,6 +237,7 @@ int main(int argc, char **argv)
     int p[2];
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
     EXPECT_NOT_NULL(config = s2n_config_new());

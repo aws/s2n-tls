@@ -63,7 +63,7 @@ static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct 
     GUARD(s2n_stuffer_reserve_uint16(out, &group_list_len));
 
     /* Send KEM groups list first */
-    if (s2n_is_tls13_enabled() && !s2n_is_in_fips_mode()) {
+    if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13 && !s2n_is_in_fips_mode()) {
         for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
             GUARD(s2n_stuffer_write_uint16(out, kem_pref->tls13_kem_groups[i]->iana_id));
         }
@@ -98,7 +98,7 @@ static int s2n_client_supported_groups_recv_iana_id(struct s2n_connection *conn,
     }
 
     /* Return early if in FIPS mode, or if TLS 1.3 is disabled, so as to ignore PQ IDs */
-    if (s2n_is_in_fips_mode() || !s2n_is_tls13_enabled()) {
+    if (s2n_is_in_fips_mode() || s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         return S2N_SUCCESS;
     }
 

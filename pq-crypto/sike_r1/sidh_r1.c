@@ -6,7 +6,7 @@
 
 #include "sike_r1_namespace.h"
 #include "P503_internal_r1.h"
-#include "pq-crypto/pq_random.h"
+#include "pq-crypto/s2n_pq_random.h"
 #include "utils/s2n_safety.h"
 
 static void clear_words(void* mem, digit_t nwords)
@@ -63,7 +63,7 @@ int random_mod_order_B(unsigned char* random_digits)
     unsigned long long nbytes = NBITS_TO_NBYTES(OBOB_BITS-1);
 
     clear_words((void*)random_digits, MAXWORDS_ORDER);
-    GUARD_AS_POSIX(get_random_bytes(random_digits, nbytes));
+    GUARD_AS_POSIX(s2n_get_random_bytes(random_digits, nbytes));
     random_digits[nbytes-1] &= MASK_BOB;     // Masking last byte
 
     return S2N_SUCCESS;

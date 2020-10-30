@@ -107,12 +107,6 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
 
-    if (!s2n_is_tls13_supported()) {
-        END_TEST();
-    }
-
-    EXPECT_SUCCESS(s2n_enable_tls13());
-
     /* Create a pipe */
     struct s2n_test_io_pair io_pair;
     EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
@@ -134,7 +128,7 @@ int main(int argc, char **argv)
 
     struct s2n_cert_chain_and_key *chain_and_key;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+                S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
@@ -147,6 +141,7 @@ int main(int argc, char **argv)
 
     /* Negotiate the handshake. */
     EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
+    EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS13);
 
     char buffer[0xffff];
     for (int i = 1; i < 0xffff; i += 100) {

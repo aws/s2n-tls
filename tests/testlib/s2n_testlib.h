@@ -59,8 +59,6 @@ int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn);
 int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn);
 int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_t version);
 
-int s2n_unsafe_set_drbg_seed(const struct s2n_blob *seed);
-
 #define S2N_MAX_TEST_PEM_SIZE 4096
 
 /* These paths assume that the unit tests are run from inside the unit/ directory.
@@ -113,11 +111,15 @@ int s2n_unsafe_set_drbg_seed(const struct s2n_blob *seed);
 
 /* OCSP Stapled Response Testing files */
 #define S2N_OCSP_SERVER_CERT                   "../pems/ocsp/server_cert.pem"
+#define S2N_OCSP_SERVER_ECDSA_CERT             "../pems/ocsp/server_ecdsa_cert.pem"
+
 #define S2N_OCSP_SERVER_KEY                    "../pems/ocsp/server_key.pem"
 #define S2N_OCSP_CA_CERT                       "../pems/ocsp/ca_cert.pem"
 #define S2N_OCSP_CA_KEY                        "../pems/ocsp/ca_key.pem"
 #define S2N_OCSP_RESPONSE_DER                  "../pems/ocsp/ocsp_response.der"
 #define S2N_OCSP_RESPONSE_NO_NEXT_UPDATE_DER   "../pems/ocsp/ocsp_response_no_next_update.der"
+#define S2N_OCSP_RESPONSE_REVOKED_DER          "../pems/ocsp/ocsp_response_revoked.der"
+#define S2N_OCSP_RESPONSE_WRONG_SIGNER_DER     "../pems/ocsp/ocsp_response_wrong_signer.der"
 #define S2N_OCSP_RESPONSE_CERT                 "../pems/ocsp/ocsp_cert.pem"
 
 #define S2N_ALLIGATOR_SAN_CERT                 "../pems/sni/alligator_cert.pem"
@@ -170,3 +172,7 @@ int s2n_public_ecc_keys_are_equal(struct s2n_ecc_evp_params *params_1, struct s2
 extern const s2n_parsed_extension EMPTY_PARSED_EXTENSIONS[S2N_PARSED_EXTENSIONS_COUNT];
 #define EXPECT_PARSED_EXTENSION_LIST_EMPTY(list) EXPECT_BYTEARRAY_EQUAL(list.parsed_extensions, EMPTY_PARSED_EXTENSIONS, sizeof(EMPTY_PARSED_EXTENSIONS))
 #define EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(list) EXPECT_BYTEARRAY_NOT_EQUAL(list.parsed_extensions, EMPTY_PARSED_EXTENSIONS, sizeof(EMPTY_PARSED_EXTENSIONS))
+
+int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params);
+int s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params);
+int s2n_kem_recv_ciphertext_fuzz_test_init(const char *kat_file_path, struct s2n_kem_params *kem_params);

@@ -121,6 +121,7 @@ inline static uint64_t rdtsc(){
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 /*
  * disable everything in this test if the compiler target isn't Intel x86 or x86_64. There's inline asm
  * that can't really be replaced with an analog for other architectures.
@@ -143,7 +144,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_new(&record_mac));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    EXPECT_OK(s2n_get_urandom_data(&r));
+    EXPECT_OK(s2n_get_public_random_data(&r));
 
     /* Emulate TLS1.2 */
     conn->actual_protocol_version = S2N_TLS12;

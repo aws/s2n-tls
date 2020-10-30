@@ -61,6 +61,7 @@ static int configure_tls13_connection(struct s2n_connection *conn)
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     struct s2n_cert_chain_and_key *chain_and_key;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,

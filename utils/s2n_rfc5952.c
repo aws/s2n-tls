@@ -63,7 +63,7 @@ S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
          *   5/ Print the remaining 16-bit fields in lowercase hex, no leading zeroes
          */
 
-        uint16_t octets[8];
+        uint16_t octets[8] = { 0 };
 
         int longest_run_start = 0;
         int longest_run_length = 0;

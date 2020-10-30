@@ -20,6 +20,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Test each combination of s2n_pkey_types to validate that only keys of
      * the same type can be compared */

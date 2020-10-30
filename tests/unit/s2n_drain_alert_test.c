@@ -35,6 +35,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
     uint8_t client_hello_message[] = {
         /* Protocol version TLS 1.2 */
         0x03, 0x03,

@@ -35,6 +35,7 @@ int main(int argc, char **argv)
     uint64_t mock_time;
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_set_monotonic_clock(config, mock_clock, &mock_time));

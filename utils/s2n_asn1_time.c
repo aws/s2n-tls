@@ -176,7 +176,7 @@ static S2N_RESULT process_state(parser_state *state, char current_char, struct p
                 *state = ON_SUBSECOND;
                 return S2N_RESULT_OK;
             }
-        /* fall through */
+            FALL_THROUGH;
         case ON_TIMEZONE:
             if (current_char == 'Z' || current_char == 'z') {
                 args->local_time_assumed = 0;

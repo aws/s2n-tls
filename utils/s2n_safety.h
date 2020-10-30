@@ -289,6 +289,15 @@
  */
 #define CHECKED_MEMSET( d , c , n )                 __S2N_ENSURE_SAFE_MEMSET((d), (c), (n), ENSURE_REF)
 
+/**
+ * Marks a case of a switch statement as able to fall through to the next case
+ */
+#if (defined(__clang__) && __clang_major__ >= 10) || (defined(__GNUC__) && __GNUC__ >= 7)
+#    define FALL_THROUGH __attribute__((fallthrough))
+#else
+#    define FALL_THROUGH ((void)0)
+#endif
+
 /* Returns `true` if s2n is in unit test mode, `false` otherwise */
 bool s2n_in_unit_test();
 

@@ -21,6 +21,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     EXPECT_FALSE(s2n_kem_preferences_includes_tls13_kem_group(NULL, TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2));
     EXPECT_FALSE(s2n_kem_preferences_includes_tls13_kem_group(&kem_preferences_null, TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2));

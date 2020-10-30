@@ -28,7 +28,7 @@ void *bounded_calloc(size_t num, size_t size)
 void *bounded_malloc(size_t size)
 {
     __CPROVER_assume(size <= MAX_MALLOC);
-    return malloc(size);
+    return (size == 0) ? NULL : malloc(size);
 }
 
 void *can_fail_calloc(size_t num, size_t size) { return nondet_bool() ? NULL : bounded_calloc(num, size); }

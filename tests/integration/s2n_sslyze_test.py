@@ -45,7 +45,7 @@ def run_sslyze_scan(endpoint, port, scan_output_location, enter_fips_mode=False)
     s2nd_cmd = ["../../bin/s2nd"]
     s2nd_cmd.extend([str(endpoint), str(port), "-n", "-s", "--parallelize"])
     
-    s2nd_ciphers = "test_all"
+    s2nd_ciphers = "test_all_tls12"
     if enter_fips_mode == True:
         s2nd_ciphers = "test_all_fips"
         s2nd_cmd.append("--enter-fips-mode")

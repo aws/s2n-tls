@@ -17,6 +17,8 @@ SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 TESTS=$(SRCS:.c=)
 CRYPTO_LDFLAGS = -L$(LIBCRYPTO_ROOT)/lib
+SHELL:=/bin/bash
+
 
 ifndef LIBFUZZER_ROOT
     export LIBFUZZER_ROOT = $(shell echo "../../fuzz_dependencies")
@@ -56,17 +58,17 @@ ld-preload :
 	${MAKE} -C LD_PRELOAD
 
 $(TESTS)::
-	@${CC} ${CFLAGS} $@.c -o $@  ${LDFLAGS} > /dev/null
+	@${CC} ${CFLAGS} $@.c -o $@  ${LDFLAGS}
 
 run_tests:: $(FUZZ_TESTS) ld-preload
-	@( fail_count=0; for test_name in ${FUZZ_TESTS} ; do \
+	{ set -e; \
+	for test_name in ${FUZZ_TESTS} ; do \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}; \
 	export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}; \
 	export LIBCRYPTO_ROOT=${LIBCRYPTO_ROOT}; \
-	./runFuzzTest.sh $${test_name} ${FUZZ_TIMEOUT_SEC} || fail_count=`expr $$fail_count + 1`; done; \
-	exit $${fail_count}; \
-	)
-	@./calcTotalCov.sh
+	./runFuzzTest.sh $${test_name} ${FUZZ_TIMEOUT_SEC}; done; \
+	}
+	./calcTotalCov.sh
 
 .PHONY : clean
 clean: decruft

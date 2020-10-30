@@ -401,7 +401,7 @@ int s2n_compute_weight_of_encrypt_decrypt_keys(struct s2n_config *config,
 struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *config)
 {
     uint8_t num_encrypt_decrypt_keys = 0;
-    uint8_t encrypt_decrypt_keys_index[S2N_MAX_TICKET_KEYS];
+    uint8_t encrypt_decrypt_keys_index[S2N_MAX_TICKET_KEYS] = { 0 };
     struct s2n_ticket_key *ticket_key = NULL;
 
     uint64_t now;

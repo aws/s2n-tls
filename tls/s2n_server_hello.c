@@ -60,10 +60,6 @@ static int s2n_hello_retry_validate(struct s2n_connection *conn) {
 }
 
 static int s2n_client_detect_downgrade_mechanism(struct s2n_connection *conn) {
-    if (!s2n_is_tls13_enabled()) {
-        return 0;
-    }
-
     notnull_check(conn);
     uint8_t *downgrade_bytes = &conn->secure.server_random[S2N_TLS_RANDOM_DATA_LEN - S2N_DOWNGRADE_PROTECTION_SIZE];
 
@@ -82,10 +78,6 @@ static int s2n_client_detect_downgrade_mechanism(struct s2n_connection *conn) {
 }
 
 static int s2n_server_add_downgrade_mechanism(struct s2n_connection *conn) {
-    if (!s2n_is_tls13_enabled()) {
-        return 0;
-    }
-
     notnull_check(conn);
     uint8_t *downgrade_bytes = &conn->secure.server_random[S2N_TLS_RANDOM_DATA_LEN - S2N_DOWNGRADE_PROTECTION_SIZE];
 

@@ -236,6 +236,7 @@ int async_pkey_fn(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     char dhparams_pem[S2N_MAX_TEST_PEM_SIZE];
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));

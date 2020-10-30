@@ -107,26 +107,43 @@ static int s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provided_data
     return 0;
 }
 
-static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
+static int s2n_drbg_mix_in_entropy(struct s2n_drbg *drbg, struct s2n_blob *entropy, struct s2n_blob *ps)
 {
     notnull_check(drbg);
     notnull_check(drbg->ctx);
-    s2n_stack_blob(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
+    notnull_check(entropy);
 
-    if (drbg->entropy_generator) {
-        GUARD_AS_POSIX(drbg->entropy_generator(&blob));
-    } else {
-        GUARD_AS_POSIX(s2n_get_urandom_data(&blob));
-    }
+    gte_check(entropy->size, ps->size);
 
     for (int i = 0; i < ps->size; i++) {
-        blob.data[i] ^= ps->data[i];
+        entropy->data[i] ^= ps->data[i];
     }
 
-    GUARD(s2n_drbg_update(drbg, &blob));
+    GUARD(s2n_drbg_update(drbg, entropy));
+
+    return 0;
+}
+
+static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
+{
+    s2n_stack_blob(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
+
+    GUARD_AS_POSIX(s2n_get_seed_entropy(&blob));
+    GUARD(s2n_drbg_mix_in_entropy(drbg, &blob, ps));
 
     drbg->bytes_used = 0;
-    drbg->generation += 1;
+
+    return 0;
+}
+
+static int s2n_drbg_mix(struct s2n_drbg *drbg, struct s2n_blob *ps)
+{
+    s2n_stack_blob(blob, s2n_drbg_seed_size(drbg), S2N_DRBG_MAX_SEED_SIZE);
+
+    GUARD_AS_POSIX(s2n_get_mix_entropy(&blob));
+    GUARD(s2n_drbg_mix_in_entropy(drbg, &blob, ps));
+
+    drbg->mixes += 1;
 
     return 0;
 }
@@ -134,28 +151,21 @@ static int s2n_drbg_seed(struct s2n_drbg *drbg, struct s2n_blob *ps)
 int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization_string, const s2n_drbg_mode mode)
 {
     notnull_check(drbg);
-    S2N_ERROR_IF(mode == S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR && !s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
-    S2N_ERROR_IF(drbg->entropy_generator != NULL && !s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
-
-    if (mode == S2N_AES_128_CTR_NO_DF_PR || mode == S2N_AES_256_CTR_NO_DF_PR) {
-        drbg->use_prediction_resistance = 1;
-    } else if ( mode == S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR) {
-        drbg->use_prediction_resistance = 0;
-    } else {
-        S2N_ERROR(S2N_ERR_DRBG);
-    }
 
     drbg->ctx = EVP_CIPHER_CTX_new();
     S2N_ERROR_IF(!drbg->ctx, S2N_ERR_DRBG);
 
     s2n_evp_ctx_init(drbg->ctx);
 
-    if (mode == S2N_AES_128_CTR_NO_DF_PR) {
-        GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, NULL, NULL), S2N_ERR_DRBG);
-    } else if (mode == S2N_AES_256_CTR_NO_DF_PR || mode == S2N_DANGEROUS_AES_256_CTR_NO_DF_NO_PR) {
-        GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_256_ecb(), NULL, NULL, NULL), S2N_ERR_DRBG);
-    } else {
-        S2N_ERROR(S2N_ERR_DRBG);
+    switch(mode) {
+        case S2N_AES_128_CTR_NO_DF_PR:
+            GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_128_ecb(), NULL, NULL, NULL), S2N_ERR_DRBG);
+            break;
+        case S2N_AES_256_CTR_NO_DF_PR:
+            GUARD_OSSL(EVP_EncryptInit_ex(drbg->ctx, EVP_aes_256_ecb(), NULL, NULL, NULL), S2N_ERR_DRBG);
+            break;
+        default:
+            S2N_ERROR(S2N_ERR_DRBG);
     }
 
     lte_check(s2n_drbg_key_size(drbg), S2N_DRBG_MAX_KEY_SIZE);
@@ -173,13 +183,8 @@ int s2n_drbg_instantiate(struct s2n_drbg *drbg, struct s2n_blob *personalization
 
     memcpy_check(ps.data, personalization_string->data, MIN(ps.size, personalization_string->size));
 
-    /* Seed / update the DRBG */
+    /* Seed the DRBG */
     GUARD(s2n_drbg_seed(drbg, &ps));
-
-    /* After initial seeding, pivot to RDRAND if available and not overridden */
-    if (drbg->entropy_generator == NULL && s2n_cpu_supports_rdrand()) {
-        drbg->entropy_generator = s2n_get_rdrand_data;
-    }
 
     return 0;
 }
@@ -192,13 +197,8 @@ int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
 
     S2N_ERROR_IF(blob->size > S2N_DRBG_GENERATE_LIMIT, S2N_ERR_DRBG_REQUEST_SIZE);
 
-    /* If either use_prediction_resistance is set, or if we reach the definitely-need-to-reseed limit, then reseed */
-    if (drbg->use_prediction_resistance || drbg->bytes_used + blob->size + S2N_DRBG_BLOCK_SIZE >= S2N_DRBG_RESEED_LIMIT) {
-        GUARD(s2n_drbg_seed(drbg, &zeros));
-    } else if (!drbg->use_prediction_resistance && !s2n_in_unit_test()) {
-        S2N_ERROR(S2N_ERR_NOT_IN_UNIT_TEST);
-    }
-
+    /* Always mix in additional entropy, for prediction resistance */
+    GUARD(s2n_drbg_mix(drbg, &zeros));
     GUARD(s2n_drbg_bits(drbg, blob));
     GUARD(s2n_drbg_update(drbg, &zeros));
 

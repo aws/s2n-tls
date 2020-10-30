@@ -124,7 +124,7 @@ static int s2n_config_init(struct s2n_config *config)
     config->async_pkey_cb = NULL;
 
     GUARD(s2n_config_setup_default(config));
-    if (s2n_is_tls13_enabled()) {
+    if (s2n_use_default_tls13_config()) {
        GUARD(s2n_config_setup_tls13(config));
     } else if (s2n_is_in_fips_mode()) {
         GUARD(s2n_config_setup_fips(config));
@@ -159,6 +159,9 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
                                                      struct s2n_blob *name,
                                                      struct s2n_cert_chain_and_key *cert_key_pair)
 {
+    notnull_check(config);
+    notnull_check(name);
+
     struct s2n_map *domain_name_to_cert_map = config->domain_name_to_cert_map;
     /* s2n_map does not allow zero-size key */
     if (name->size == 0) {
@@ -228,7 +231,7 @@ static int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, s
 
 struct s2n_config *s2n_fetch_default_config(void)
 {
-    if (s2n_is_tls13_enabled()) {
+    if (s2n_use_default_tls13_config()) {
         return &s2n_default_tls13_config;
     }
     if (s2n_is_in_fips_mode()) {

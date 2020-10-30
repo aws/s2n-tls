@@ -18,31 +18,51 @@
 #include "tls/s2n_tls13.h"
 #include "crypto/s2n_rsa_signing.h"
 
-int s2n_is_tls13_supported()
+bool s2n_use_default_tls13_config_flag = false;
+
+bool s2n_use_default_tls13_config()
 {
-    return s2n_is_rsa_pss_signing_supported();
+    return s2n_use_default_tls13_config_flag;
 }
 
-int s2n_is_tls13_enabled()
-{
-    return s2n_highest_protocol_version == S2N_TLS13;
-}
-
-/* ** WARNING **
- * Not all TLS 1.3 features are supported and may cause unknown behaviour.
- * This function is not public and should only be used for testing
- * and integration purposes.
- **/
+/* Allow TLS1.3 to be negotiated, and use the default TLS1.3 security policy.
+ * This is NOT the default behavior, and this method is deprecated.
+ *
+ * Please consider using the default behavior and configuring
+ * TLS1.2/TLS1.3 via explicit security policy instead.
+ */
 int s2n_enable_tls13()
 {
     s2n_highest_protocol_version = S2N_TLS13;
-    return 0;
+    s2n_use_default_tls13_config_flag = true;
+    return S2N_SUCCESS;
 }
 
+/* Do NOT allow TLS1.3 to be negotiated, regardless of security policy.
+ * This is NOT the default behavior, and this method is deprecated.
+ *
+ * Please consider using the default behavior and configuring
+ * TLS1.2/TLS1.3 via explicit security policy instead.
+ */
 int s2n_disable_tls13()
 {
+    ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS12;
-    return 0;
+    s2n_use_default_tls13_config_flag = false;
+    return S2N_SUCCESS;
+}
+
+/* Reset S2N to the default protocol version behavior.
+ *
+ * This method is intended for use in existing unit tests when the APIs
+ * to enable/disable TLS1.3 have already been called.
+ */
+int s2n_reset_tls13()
+{
+    ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    s2n_highest_protocol_version = S2N_TLS13;
+    s2n_use_default_tls13_config_flag = false;
+    return S2N_SUCCESS;
 }
 
 /* Returns whether a uint16 iana value is a valid TLS 1.3 cipher suite */

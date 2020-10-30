@@ -26,6 +26,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     uint8_t empty_cert_len = 3;
     uint8_t certificate_context_len = 1;

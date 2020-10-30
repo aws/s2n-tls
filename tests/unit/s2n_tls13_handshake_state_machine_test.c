@@ -314,42 +314,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test: TLS1.3 client fails on a server cipher change spec when using QUIC */
-    {
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-        EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
-        conn->actual_protocol_version = S2N_TLS13;
-
-        struct s2n_stuffer input;
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
-
-        EXPECT_SUCCESS(s2n_setup_handler_to_expect(SERVER_CHANGE_CIPHER_SPEC, S2N_CLIENT));
-
-        for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
-            int handshake = valid_tls13_handshakes[i];
-
-            conn->handshake.handshake_type = handshake;
-            conn->in_status = ENCRYPTED;
-
-            for (size_t j = 1; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
-                conn->handshake.message_number = j;
-
-                EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_CHANGE_CIPHER_SPEC, 0));
-                EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_read_io(conn), S2N_ERR_BAD_MESSAGE);
-
-                EXPECT_EQUAL(conn->handshake.message_number, j);
-                EXPECT_FALSE(unexpected_handler_called);
-                EXPECT_FALSE(expected_handler_called);
-
-                EXPECT_SUCCESS(s2n_stuffer_wipe(&input));
-            }
-        }
-
-        EXPECT_SUCCESS(s2n_stuffer_free(&input));
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
-
     /* Test: TLS1.3 server can receive a client cipher change request at any time. */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
@@ -382,42 +346,6 @@ int main(int argc, char **argv)
 
                 EXPECT_FALSE(unexpected_handler_called);
                 EXPECT_TRUE(expected_handler_called);
-
-                EXPECT_SUCCESS(s2n_stuffer_wipe(&input));
-            }
-        }
-
-        EXPECT_SUCCESS(s2n_stuffer_free(&input));
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
-
-    /* Test: TLS1.3 server fails on a client cipher change spec when using QUIC */
-    {
-        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-        EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
-        conn->actual_protocol_version = S2N_TLS13;
-
-        struct s2n_stuffer input;
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
-
-        EXPECT_SUCCESS(s2n_setup_handler_to_expect(CLIENT_CHANGE_CIPHER_SPEC, S2N_SERVER));
-
-        for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
-            int handshake = valid_tls13_handshakes[i];
-
-            conn->handshake.handshake_type = handshake;
-            conn->in_status = ENCRYPTED;
-
-            for (size_t j = 1; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
-                conn->handshake.message_number = j;
-
-                EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_CHANGE_CIPHER_SPEC, 0));
-                EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_read_io(conn), S2N_ERR_BAD_MESSAGE);
-
-                EXPECT_EQUAL(conn->handshake.message_number, j);
-                EXPECT_FALSE(unexpected_handler_called);
-                EXPECT_FALSE(expected_handler_called);
 
                 EXPECT_SUCCESS(s2n_stuffer_wipe(&input));
             }

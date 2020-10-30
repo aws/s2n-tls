@@ -26,6 +26,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
     /* s2n_sequence_number_to_uint64 */
     {
         /* Converts zero */

@@ -87,6 +87,7 @@ int main(int argc, char **argv)
     ssize_t ret = 0;
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));

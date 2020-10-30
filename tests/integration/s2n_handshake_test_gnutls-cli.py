@@ -38,7 +38,7 @@ def sigalg_str_from_list(sigalgs):
     # strip the first nine bytes from each name for "SIGN-RSA", 11 for "SIGN-ECDSA"
     return ":".join(x[9:] if x.startswith("SIGN-RSA") else x[11:] for x in sigalgs)
 
-def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, enter_fips_mode=False):
+def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, ssl_version, enter_fips_mode=False):
     # Fire up s2nd
     s2nd_cmd = ["../../bin/s2nd", str(endpoint), str(port)]
     s2nd_ciphers = "test_all_tls12"
@@ -85,13 +85,16 @@ def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, enter
 
     # Read it
     found = 0
+    right_version = 0
     for line in range(0, 50):
         output = s2nd.stdout.readline().decode("utf-8")
         if output.strip() == written_str:
             found = 1
             break
+        if ACTUAL_VERSION_STR.format(ssl_version or S2N_TLS12) in output:
+            right_version = 1
 
-    if found == 0:
+    if found == 0 or right_version == 0:
         return HANDSHAKE_RC(False, gnutls_initial_stdout_str)
 
     # Write the cipher name from s2n
@@ -115,7 +118,7 @@ def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, enter
 
 def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests, mfl_extension_test, fips_mode,
         other_prefix=None):
-    ret = try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, fips_mode)
+    ret = try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, ssl_version, fips_mode)
 
     prefix = other_prefix or ""
     if mfl_extension_test:

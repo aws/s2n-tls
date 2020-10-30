@@ -4,14 +4,14 @@ FROM ubuntu:${UBUNTU_VERSION}
 
 WORKDIR /opt/s2n
 
-ARG OPENSSL_VERSION=openssl-1.1.1
 ARG GCC_VERSION=9
 ARG ZSH_THEME=cypher
 
-ENV S2N_LIBCRYPTO=${OPENSSL_VERSION} \
-    GCC_VERSION=${GCC_VERSION} \
+ENV GCC_VERSION=${GCC_VERSION} \
     BUILD_S2N=true \
-    TESTS=integration
+    S2N_COVERAGE=false \
+    TESTS=integration \
+    LATEST_CLANG=true
 
 # The `s2n_setup_env` assumes bash, not sh
 SHELL ["/bin/bash", "-c"]
@@ -43,16 +43,17 @@ RUN set -eux; \
   source $ZSH/init.sh\n\
   \n\
   # s2n setup\n\
-  export S2N_LIBCRYPTO='"$S2N_LIBCRYPTO"$'\n\
   export BUILD_S2N=true\n\
   export GCC_VERSION='"$GCC_VERSION"$'\n\
   export TESTS=integration\n\
   export TEST_DEPS_DIR=/opt/s2n/test-deps\n\
+  export PATH=$TEST_DEPS_DIR/clang/bin:$PATH\n\
   cd /home/s2n-dev/s2n && source /opt/s2n/codebuild/bin/s2n_setup_env.sh\n\
   ' > /home/s2n-dev/.zshrc; \
   chown -R s2n-dev:s2n-dev /home/s2n-dev; \
   rm -rf /var/lib/apt/lists/*; \
   apt-get clean; \
+  rm -rf /tmp/*; \
   echo done
 
 ADD codebuild codebuild
@@ -61,10 +62,21 @@ ADD codebuild codebuild
 RUN set -eux; \
   export LD_LIBRARY_PATH=""; \
   . codebuild/bin/s2n_setup_env.sh; \
-  codebuild/bin/s2n_install_test_dependencies.sh; \
+  export PATH=$TEST_DEPS_DIR/clang/bin:$PATH; \
+  TESTS=integration codebuild/bin/s2n_install_test_dependencies.sh; \
+  TESTS=benchmark codebuild/bin/s2n_install_test_dependencies.sh; \
+  TESTS=fuzz codebuild/bin/s2n_install_test_dependencies.sh; \
+  TESTS=unit BUILD_S2N=false S2N_LIBCRYPTO=openssl-1.0.2 codebuild/bin/install_default_dependencies.sh; \
+  TESTS=unit BUILD_S2N=false S2N_LIBCRYPTO=openssl-1.0.2-fips codebuild/bin/install_default_dependencies.sh; \
+  TESTS=unit BUILD_S2N=false S2N_LIBCRYPTO=libressl codebuild/bin/install_default_dependencies.sh; \
+  TESTS=unit BUILD_S2N=false S2N_LIBCRYPTO=boringssl codebuild/bin/install_default_dependencies.sh; \
   rm -rf /var/lib/apt/lists/*; \
   apt-get clean; \
+  rm -rf /tmp/*; \
   echo done
+
+ARG OPENSSL_VERSION=openssl-1.1.1
+ENV S2N_LIBCRYPTO=${OPENSSL_VERSION}
 
 USER s2n-dev
 WORKDIR /home/s2n-dev/s2n

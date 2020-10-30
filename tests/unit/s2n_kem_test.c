@@ -136,6 +136,7 @@ static int check_client_server_agreed_kem(const uint8_t iana_value[S2N_TLS_CIPHE
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
     if (s2n_is_in_fips_mode()) {
         /* There is no support for PQ KEMs while in FIPS mode */
         END_TEST();

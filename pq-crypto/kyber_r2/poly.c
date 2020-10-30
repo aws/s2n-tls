@@ -64,13 +64,11 @@ void PQCLEAN_KYBER512_CLEAN_poly_decompress(poly *r, const uint8_t *a) {
 *              - const poly *a:    pointer to input polynomial
 **************************************************/
 void PQCLEAN_KYBER512_CLEAN_poly_tobytes(uint8_t *r, poly *a) {
-    int16_t t0, t1;
-
     PQCLEAN_KYBER512_CLEAN_poly_csubq(a);
 
     for (size_t i = 0; i < KYBER_N / 2; i++) {
-        t0 = a->coeffs[2 * i];
-        t1 = a->coeffs[2 * i + 1];
+        int16_t t0 = a->coeffs[2 * i];
+        int16_t t1 = a->coeffs[2 * i + 1];
         r[3 * i]     = t0 & 0xff;
         r[3 * i + 1] = (uint8_t)((t0 >> 8) | ((t1 & 0xf) << 4));
         r[3 * i + 2] = (uint8_t)(t1 >> 4);

@@ -22,6 +22,7 @@ import uuid
 
 from common.s2n_test_scenario import Mode, Version, run_scenarios
 from common.s2n_test_reporting import Result
+from s2n_test_constants import NUM_EXPECTED_LINES_OUTPUT, ACTUAL_VERSION_STR
 
 
 def get_error(process, line_limit=10):
@@ -35,7 +36,7 @@ def get_error(process, line_limit=10):
     return error
 
 
-def wait_for_output(output, marker, line_limit=10):
+def wait_for_output(output, marker, line_limit=NUM_EXPECTED_LINES_OUTPUT):
     for count in range(line_limit):
         line = output.readline().decode("utf-8")
         if marker in line:
@@ -136,8 +137,7 @@ def run_connection_test(get_peer, scenarios, test_func=basic_write_test):
 def get_s2n_cmd(scenario):
     mode_char = 'c' if scenario.s2n_mode.is_client() else 'd'
 
-    s2n_cmd = [ "../../bin/s2n%c" % mode_char,
-                "-c", "test_all" ]
+    s2n_cmd = [ "../../bin/s2n%c" % mode_char ]
 
     if scenario.s2n_mode.is_server():
         s2n_cmd.extend(["--key", scenario.cert.key])
@@ -147,7 +147,9 @@ def get_s2n_cmd(scenario):
         s2n_cmd.append("--echo")
 
     if scenario.version is Version.TLS13:
-        s2n_cmd.append("--tls13")
+        s2n_cmd.extend(["-c", "test_all"])
+    else:
+        s2n_cmd.extend(["-c", "test_all_tls12"])
 
     s2n_cmd.extend(scenario.s2n_flags)
     s2n_cmd.extend([str(scenario.host), str(scenario.port)])
@@ -163,6 +165,10 @@ S2N_SIGNALS = {
 def get_s2n(scenario):
     s2n_cmd = get_s2n_cmd(scenario)
     s2n = get_process(s2n_cmd)
+
+    if (scenario.s2n_mode is Mode.client):
+        if not wait_for_output(s2n.stdout, ACTUAL_VERSION_STR.format(scenario.version.value)):
+            raise AssertionError("s2n %s: %s" % (scenario.s2n_mode, "Wrong negotiated version: {}".format(get_error(s2n))))
 
     if not wait_for_output(s2n.stdout, S2N_SIGNALS[scenario.s2n_mode]):
         raise AssertionError("s2n %s: %s" % (scenario.s2n_mode, get_error(s2n)))

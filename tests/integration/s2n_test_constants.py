@@ -16,6 +16,10 @@
 import collections
 from enum import Enum
 
+# Number of lines of output to stdout s2nc or s2nd are expected
+# to produce after a successful handshake
+NUM_EXPECTED_LINES_OUTPUT = 11
+
 class OCSP(Enum):
     ENABLED = 1
     DISABLED = 2
@@ -26,6 +30,8 @@ S2N_TLS10 = 31
 S2N_TLS11 = 32
 S2N_TLS12 = 33
 S2N_TLS13 = 34
+
+ACTUAL_VERSION_STR = "Actual protocol version: {}"
 
 # namedtuple makes iterating through ciphers across client libraries easier. The openssl_1_1_1_compatible flag is for
 # s_client tests. s_client won't be able to use those ciphers.
@@ -102,11 +108,15 @@ OPENSSL_1_0_2_TEST_CIPHERS = list(filter(lambda x: "CHACHA20" not in x.openssl_n
 # Test ciphers to use when s2n is built with Openssl 1.0.2 libcrypto that is linked with a FIPS module.
 OPENSSL_1_0_2_FIPS_TEST_CIPHERS = list(filter(lambda x: x.openssl_fips_compatible == True, ALL_TEST_CIPHERS))
 
-# Test ciphers to use when s2n is built with LibreSSL, AWS-LC or BoringSSL libcrypto. s2n does not implement the
-# ChaCha20-Poly1305 cipher offered by these libcryptos.
+# Test ciphers to use when s2n is built with BoringSSL. All ciphers should be avilable.
+BORINGSSL_TEST_CIPHERS = ALL_TEST_CIPHERS
+
+# Test ciphers to use when s2n is built with AWS-LC. All ciphers should be avilable.
+AWSLC_TEST_CIPHERS = ALL_TEST_CIPHERS
+
+# Test ciphers to use when s2n is built with LibreSSL. LibreSSL does not have the
+# ChaCha20-Poly1305 cipher.
 LIBRESSL_TEST_CIPHERS = list(filter(lambda x: "CHACHA20" not in x.openssl_name, ALL_TEST_CIPHERS))
-BORINGSSL_TEST_CIPHERS = list(filter(lambda x: "CHACHA20" not in x.openssl_name, ALL_TEST_CIPHERS))
-AWSLC_TEST_CIPHERS = list(filter(lambda x: "CHACHA20" not in x.openssl_name, ALL_TEST_CIPHERS))
 
 # Dictionary to look up ciphers to use by libcrypto s2n is built with.
 # Libcrypto string will be an argument to test scripts.

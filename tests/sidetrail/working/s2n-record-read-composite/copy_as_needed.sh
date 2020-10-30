@@ -44,7 +44,7 @@ mkdir -p tls
 cp $S2N_BASE/tls/s2n_cbc.c tls/
 cp $S2N_BASE/tls/s2n_record_read_composite.c tls/
 patch -p5 < ../patches/cbc.patch
-patch -p5 < record_read.patch
+patch -p1 < record_read.patch
 
 mkdir -p utils
 cp $S2N_BASE/utils/s2n_safety.c utils/

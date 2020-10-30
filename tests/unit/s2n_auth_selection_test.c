@@ -65,6 +65,7 @@ static int s2n_test_auth_combo(struct s2n_connection *conn,
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     struct s2n_cert_chain_and_key *rsa_cert_chain;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,

@@ -3,7 +3,7 @@
 #include "params.h"
 #include "poly.h"
 #include "polyvec.h"
-#include "../pq_random.h"
+#include "../s2n_pq_random.h"
 #include "utils/s2n_safety.h"
 #include "symmetric.h"
 
@@ -115,11 +115,10 @@ static void unpack_ciphertext(polyvec *b, poly *v, const uint8_t *c) {
 **************************************************/
 static size_t rej_uniform(int16_t *r, size_t len, const uint8_t *buf, size_t buflen) {
     size_t ctr, pos;
-    uint16_t val;
 
     ctr = pos = 0;
     while (ctr < len && pos + 2 <= buflen) {
-        val = (uint16_t)(buf[pos] | ((uint16_t)buf[pos + 1] << 8));
+        uint16_t val = (uint16_t)(buf[pos] | ((uint16_t)buf[pos + 1] << 8));
         pos += 2;
 
         if (val < 19 * KYBER_Q) {
@@ -189,7 +188,7 @@ int PQCLEAN_KYBER512_CLEAN_indcpa_keypair(uint8_t *pk, uint8_t *sk) {
     uint8_t *noiseseed = buf + KYBER_SYMBYTES;
     uint8_t nonce = 0;
 
-    GUARD_AS_POSIX(get_random_bytes(buf, KYBER_SYMBYTES));
+    GUARD_AS_POSIX(s2n_get_random_bytes(buf, KYBER_SYMBYTES));
     hash_g(buf, buf, KYBER_SYMBYTES);
 
     gen_a(a, publicseed);

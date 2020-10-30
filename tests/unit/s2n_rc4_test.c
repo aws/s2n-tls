@@ -41,6 +41,7 @@ int main(int argc, char **argv)
     struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     if (s2n_is_in_fips_mode()) {
         /* Skip when FIPS mode is set as FIPS mode does not support RC4 */
@@ -48,7 +49,7 @@ int main(int argc, char **argv)
     }
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    EXPECT_OK(s2n_get_urandom_data(&r));
+    EXPECT_OK(s2n_get_public_random_data(&r));
 
     /* Peer and we are in sync */
     conn->server = &conn->secure;

@@ -338,6 +338,7 @@ int main(int argc, char **argv)
         initialize_cache();
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -376,8 +377,9 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_get_session_id_length(conn), MAX_KEY_LEN);
         EXPECT_EQUAL(s2n_connection_get_session_id(conn, session_id_from_server, MAX_KEY_LEN), s2n_connection_get_session_id_length(conn));
 
-        /* Make sure we did a full handshake */
+        /* Make sure we did a full TLS1.2 handshake */
         EXPECT_TRUE(IS_FULL_HANDSHAKE(conn->handshake.handshake_type));
+        EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
 
         /* Ensure the message was delivered */
         EXPECT_SUCCESS(bytes_read = s2n_recv(conn, buffer, sizeof(buffer), &blocked));

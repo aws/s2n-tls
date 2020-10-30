@@ -59,7 +59,7 @@ keypair_ov <- verify crypto_kem_keypair_fun_name
   , aes256_enc_ov
   , aes256_free_ks_ov
   , generate_sparse_rep_DV_R_ov
-  , get_random_bytes_ov
+  , s2n_get_random_bytes_ov
   , gf2x_mod_mul_ov
   ]
   keypair_spec;
@@ -69,7 +69,7 @@ crypto_kem_enc_ov <- verify crypto_kem_enc_fun_name
   , aes256_enc_ov
   , aes256_free_ks_ov
   , generate_sparse_rep_T1_N_ov
-  , get_random_bytes_ov
+  , s2n_get_random_bytes_ov
   , gf2x_add_left_ov
   , gf2x_mod_mul_ov
   , parallel_hash_ov

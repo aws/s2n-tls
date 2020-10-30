@@ -47,6 +47,12 @@ def cleanup_processes(*processes):
         p.kill()
         p.wait()
 
+def validate_version(expected_version, output):
+    for line in output.splitlines():
+        if ACTUAL_VERSION_STR.format(expected_version or S2N_TLS10) in line:
+            return 0
+    return -1
+
 def validate_data_transfer(expected_data, s_client_out, s2nd_out):
     """
     Verify that the application data written between s_client and s2nd is encrypted and decrypted successfuly.
@@ -160,7 +166,7 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
 
     s2nd_cmd.extend([str(endpoint), str(port)])
 
-    s2nd_ciphers = "test_all"
+    s2nd_ciphers = "test_all_tls12"
     if server_cipher_pref is not None:
         s2nd_ciphers = server_cipher_pref
     if enter_fips_mode == True:
@@ -224,6 +230,9 @@ def try_handshake(endpoint, port, cipher, ssl_version, server_name=None, strict_
     cleanup_processes(s2nd, s_client)
 
     if validate_data_transfer(data_to_validate, s_client_out, s2nd_out) != 0:
+        return -1
+
+    if validate_version(ssl_version, s2nd_out) != 0:
         return -1
 
     if resume is True:

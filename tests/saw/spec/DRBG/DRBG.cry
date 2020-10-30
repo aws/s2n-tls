@@ -80,7 +80,18 @@ drbg_reseed : {ps_size}
 drbg_reseed drbg entropy ps = drbg''
   where
     drbg' = drbg_update (entropy ^ (ps # zero)) drbg
-    drbg'' = { v = drbg'.v, ctx = drbg'.ctx, bytes_used = 0}
+    drbg'' = { v = drbg'.v, ctx = drbg'.ctx, bytes_used = 0 }
+
+drbg_mix : {ps_size}
+           (ps_size <= seedlen)
+        => s2n_drbg
+        -> [seedlen]
+        -> [ps_size]
+	-> s2n_drbg
+drbg_mix drbg entropy ps = drbg''
+  where
+    drbg' = drbg_update (entropy ^ (ps # zero)) drbg
+    drbg'' = { v = drbg'.v, ctx = drbg'.ctx, bytes_used = drbg'.bytes_used }
 
 drbg_uninstantiate : s2n_drbg -> s2n_drbg
 drbg_uninstantiate drbg = zero
@@ -101,11 +112,8 @@ drbg_generate : {n, blocks} (fin n, fin blocks, n >= 1, n <= 8192,
                 ([n], s2n_drbg)
 drbg_generate drbg entropy reseed_p = (take enc_result, drbg_out)
   where
-    // Re-seed if we have exceeded the limit, or if reseed_p is set
-    drbg_r =
-      if reseed_p \/ drbg.bytes_used + `n / 8 + `blocksize >= `reseed_limit then
-        drbg_reseed drbg entropy (zero : [256])
-      else drbg
+    // Always mix in additional entropy
+    drbg_r = drbg_mix drbg entropy (zero : [256])
     // Encrypt v+1, v+2, ..., v + ceil (n / blocklen)
     (enc_result, drbg_v) = drbg_generate_internal `{blocks=blocks} drbg_r
     // Update the drbg state

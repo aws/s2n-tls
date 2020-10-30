@@ -11,7 +11,7 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Enough to get full coverage with 9 minutes of runtime.
+# Enough to get full coverage with 11 minutes of runtime.
 MAX_BLOB_SIZE = 4
 DEFINES += -DMAX_BLOB_SIZE=$(MAX_BLOB_SIZE)
 
@@ -26,6 +26,7 @@ PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(PROOF_STUB)/mlock.c
 PROOF_SOURCES += $(PROOF_STUB)/munlock.c
+PROOF_SOURCES += $(PROOF_STUB)/posix_memalign_override.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 PROOF_SOURCES += $(PROOF_STUB)/sysconf.c
 
@@ -38,6 +39,7 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
 
 # We abstract these functions because manual inspection demonstrates they are unreachable.
+REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
 REMOVE_FUNCTION_BODY += s2n_blob_slice
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe
 

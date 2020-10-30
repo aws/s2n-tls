@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
 
             EXPECT_SUCCESS(s2n_server_cookie_extension.send(server_conn, &stuffer));
 
-            EXPECT_SUCCESS(s2n_disable_tls13());
+            client_conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_server_cookie_extension.recv(client_conn, &stuffer));
             EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->cookie_stuffer), 0);
 
