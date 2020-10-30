@@ -115,7 +115,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
     }
 
-    /* Test maximum record length size */
+    /* Test maximum record length size (with padding) */
     {
         EXPECT_EQUAL(S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH, 16385);
 
@@ -132,19 +132,113 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_tls13_parse_record_type(&stuffer, &record_type));
         EXPECT_EQUAL(record_type, 0x16);
+        /* There was no data before the record type */
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
 
-        /* top it up over the limit */
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+    }
+
+    /* Test maximum record length size (without padding) */
+    {
+        struct s2n_stuffer stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
+
+        /* fill up stuffer to before the limit */
+        while (s2n_stuffer_data_available(&stuffer) < S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 0x16));
+        }
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH);
+
+        EXPECT_SUCCESS(s2n_tls13_parse_record_type(&stuffer, &record_type));
+        EXPECT_EQUAL(record_type, 0x16);
+        /* The last byte is stripped as the content type */
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH - 1);
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+    }
+
+    /* Certain versions of Java can generate inner plaintexts with lengths up to
+     * S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH + 16 (See JDK-8221253)
+     * However, after the padding is stripped, the result will always be no more than
+     * S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH - 1
+     */
+
+    /* Test slightly overlarge record for compatibility (with padding) */
+    {
+
+        struct s2n_stuffer stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
+
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 0x16));
-
-        /* fill up stuffer still after the limit */
-        while (s2n_stuffer_data_available(&stuffer) < S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH + 1) {
+        /* fill up stuffer the limit  + 16 */
+        while (s2n_stuffer_data_available(&stuffer) < S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH + 16) {
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 0x00));
         }
-        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH + 1);
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH + 16);
+        EXPECT_SUCCESS(s2n_tls13_parse_record_type(&stuffer, &record_type));
+        EXPECT_EQUAL(record_type, 0x16);
+        /* There was no data before the record type */
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
 
+        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+    }
+
+    /* Test slightly overlarge record for compatibility (without padding) */
+    {
+        struct s2n_stuffer stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
+
+        /* fill up stuffer to before the limit */
+        while (s2n_stuffer_data_available(&stuffer) < S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 0x16));
+        }
+        /* pad up stuffer the limit  + 16 */
+        while (s2n_stuffer_data_available(&stuffer) < S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH + 16) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 0x00));
+        }
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH + 16);
+
+        EXPECT_SUCCESS(s2n_tls13_parse_record_type(&stuffer, &record_type));
+        EXPECT_EQUAL(record_type, 0x16);
+        /* The last byte is stripped as the content type */
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH - 1);
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+    }
+
+    /* Test slightly overlarge record for compatibility (with too much inner data) */
+    {
+        struct s2n_stuffer stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
+
+        /* Finally, do this with an overall length which should pass, but too much data before the padding */
+        /* fill up stuffer to the maximum amount of data */
+        while (s2n_stuffer_data_available(&stuffer) < S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 0x00));
+        }
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 0x16)); /* Record type */
+        /* 16 bytes of padding*/
+        while (s2n_stuffer_data_available(&stuffer) < S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH + 16) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 0x00));
+        }
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH + 16);
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_parse_record_type(&stuffer, &record_type), S2N_ERR_MAX_INNER_PLAINTEXT_SIZE);
 
+        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+    }
+
+    /* Test slightly overlarge + 1 record for compatibility (with padding) */
+    {
+        struct s2n_stuffer stuffer;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
+
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 0x16));
+        while (s2n_stuffer_data_available(&stuffer) < S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH + 17) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 0x00));
+        }
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH + 17);
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_parse_record_type(&stuffer, &record_type), S2N_ERR_MAX_INNER_PLAINTEXT_SIZE);
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
     }
 
