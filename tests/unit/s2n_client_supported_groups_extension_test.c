@@ -30,6 +30,7 @@
 int main()
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Test s2n_extension_should_send_if_ecc_enabled */
     {
@@ -223,9 +224,9 @@ int main()
         }
         /* Test that send does not send KEM group IDs for versions != TLS 1.3 */
         {
-            EXPECT_FALSE(s2n_is_tls13_enabled());
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_EQUAL(s2n_connection_get_protocol_version(conn), S2N_TLS12);
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer = {0}, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
@@ -420,9 +421,9 @@ int main()
         /* Test recv - server doesn't recognize PQ group IDs when TLS 1.3 is disabled */
         {
             EXPECT_SUCCESS(s2n_disable_tls13());
-            EXPECT_FALSE(s2n_is_tls13_enabled());
             struct s2n_connection *client_conn;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_EQUAL(s2n_connection_get_protocol_version(client_conn), S2N_TLS12);
             client_conn->security_policy_override = &test_pq_security_policy_sike_bike;
 
             const struct s2n_ecc_preferences *client_ecc_pref = NULL;

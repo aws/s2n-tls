@@ -41,7 +41,6 @@
 #include <s2n.h>
 #include "common.h"
 
-#include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 
 #define MAX_CERTIFICATES 50
@@ -281,8 +280,6 @@ void usage()
     fprintf(stderr, "    Disable session ticket for resumption.\n");
     fprintf(stderr, "  -C,--corked-io\n");
     fprintf(stderr, "    Turn on corked io\n");
-    fprintf(stderr, "  --tls13\n");
-    fprintf(stderr, "    Turn on experimental TLS1.3 support.\n");
     fprintf(stderr, "  --non-blocking\n");
     fprintf(stderr, "    Set the non-blocking flag on the connection's socket.\n");
     fprintf(stderr, "  -w --https-server\n");
@@ -407,7 +404,6 @@ int main(int argc, char *const *argv)
     struct conn_settings conn_settings = { 0 };
     int fips_mode = 0;
     int parallelize = 0;
-    int use_tls13 = 0;
     int non_blocking = 0;
     long int bytes = 0;
     conn_settings.session_ticket = 1;
@@ -519,7 +515,7 @@ int main(int argc, char *const *argv)
             conn_settings.session_ticket = 0;
             break;
         case '3':
-            use_tls13 = 1;
+            /* Do nothing -- this argument is deprecated */
             break;
         case 'X':
             if (optarg == NULL) {
@@ -628,10 +624,6 @@ int main(int argc, char *const *argv)
         fprintf(stderr, "Error entering FIPS mode. s2nd is not linked with a FIPS-capable libcrypto.\n");
         exit(1);
 #endif
-    }
-
-    if (use_tls13) {
-        GUARD_EXIT(s2n_enable_tls13(), "Error enabling TLS1.3");
     }
 
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");

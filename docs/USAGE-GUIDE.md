@@ -277,9 +277,7 @@ an error "category". See [Error Handling](#error-handling) for more detail.
 typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
 ```
 
-**s2n_mode** is used to declare connections as server or client type,
-respectively.  At this time, s2n does not function as a client and only
-S2N_SERVER should be used.
+**s2n_mode** is used to declare connections as server or client type, respectively.
 
 ### s2n_blocked_status
 
@@ -853,9 +851,11 @@ terminate handshake early with fatal handshake failure alert.
 ```c
 int s2n_config_set_alert_behavior(struct s2n_config *config, s2n_alert_behavior alert_behavior);
 ```
-Sets whether or not a should terminate connection on WARNING alert from peer. `alert_behavior` can take the following values:
-- `S2N_ALERT_FAIL_ON_WARNINGS` - default behavior: s2n will terminate conneciton if peer sends WARNING alert.
+Sets whether or not a connection should terminate on receiving a WARNING alert from its peer. `alert_behavior` can take the following values:
+- `S2N_ALERT_FAIL_ON_WARNINGS` - default behavior: s2n will terminate the connection if its peer sends a WARNING alert.
 - `S2N_ALERT_IGNORE_WARNINGS` - with the exception of `close_notify` s2n will ignore all WARNING alerts and keep communicating with its peer.
+
+This setting is ignored in TLS1.3. TLS1.3 terminates a connection for all alerts except user_canceled.
 
 ## Certificate-related functions
 

@@ -1,7 +1,7 @@
 #ifndef SIKE_R2_KEM_H
 #define SIKE_R2_KEM_H
 
-#include "../pq_utils.h"
+#include "../s2n_pq_utils.h"
 
 #define SIKE_P434_R2_PUBLIC_KEY_BYTES 330
 #define SIKE_P434_R2_SECRET_KEY_BYTES 374

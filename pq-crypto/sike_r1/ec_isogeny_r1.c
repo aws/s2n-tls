@@ -284,11 +284,10 @@ void xDBLADD(point_proj_t P, point_proj_t Q, const f2elm_t *xPQ, const f2elm_t *
 static void swap_points(point_proj_t P, point_proj_t Q, const digit_t option)
 { // Swap points.
   // If option = 0 then P <- P and Q <- Q, else if option = 0xFF...FF then P <- Q and Q <- P
-    digit_t temp;
     unsigned int i;
 
     for (i = 0; i < NWORDS_FIELD; i++) {
-        temp = option & (P->X.e[0][i] ^ Q->X.e[0][i]);
+        digit_t temp = option & (P->X.e[0][i] ^ Q->X.e[0][i]);
         P->X.e[0][i] = temp ^ P->X.e[0][i]; 
         Q->X.e[0][i] = temp ^ Q->X.e[0][i]; 
         temp = option & (P->Z.e[0][i] ^ Q->Z.e[0][i]);
@@ -309,8 +308,7 @@ static void LADDER3PT(const f2elm_t *xP, const f2elm_t *xQ, const f2elm_t *xPQ, 
     point_proj_t R0 = {0}, R2 = {0};
     f2elm_t _A24 = {0};
     f2elm_t *A24=&_A24;
-    digit_t mask;
-    int i, nbits, bit, swap, prevbit = 0;
+    int i, nbits, prevbit = 0;
 
     if (AliceOrBob == ALICE) {
         nbits = OALICE_BITS;
@@ -336,10 +334,10 @@ static void LADDER3PT(const f2elm_t *xP, const f2elm_t *xQ, const f2elm_t *xPQ, 
 
     // Main loop
     for (i = 0; i < nbits; i++) {
-        bit = (m[i >> LOG2RADIX] >> (i & (RADIX-1))) & 1;
-        swap = bit ^ prevbit;
+        int bit = (m[i >> LOG2RADIX] >> (i & (RADIX-1))) & 1;
+        int swap = bit ^ prevbit;
         prevbit = bit;
-        mask = 0 - (digit_t)swap;
+        digit_t mask = 0 - (digit_t)swap;
 
         swap_points(R, R2, mask);
         xDBLADD(R0, R2, &R->X, A24);

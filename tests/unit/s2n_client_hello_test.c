@@ -49,6 +49,7 @@ int main(int argc, char **argv)
     struct s2n_cert_chain_and_key *chain_and_key, *ecdsa_chain_and_key;
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
@@ -488,7 +489,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
             EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
-            EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS12);
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));

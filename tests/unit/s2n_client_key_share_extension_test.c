@@ -531,7 +531,7 @@ int main(int argc, char **argv)
     /* Test s2n_client_key_share_extension.recv */
     {
         /* Test that s2n_client_key_share_extension.recv is a no-op
-         * if tls1.3 not enabled AND in use  */
+         * if not using TLS1.3 */
         {
             struct s2n_connection *client_conn, *server_conn;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -542,16 +542,6 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_client_key_share_extension.send(client_conn, &key_share_extension));
             uint16_t key_share_extension_size = s2n_stuffer_data_available(&key_share_extension);
-
-            EXPECT_SUCCESS(s2n_disable_tls13());
-            server_conn->actual_protocol_version = S2N_TLS12;
-            EXPECT_SUCCESS(s2n_client_key_share_extension.recv(server_conn, &key_share_extension));
-            EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), key_share_extension_size);
-
-            EXPECT_SUCCESS(s2n_disable_tls13());
-            server_conn->actual_protocol_version = S2N_TLS13;
-            EXPECT_SUCCESS(s2n_client_key_share_extension.recv(server_conn, &key_share_extension));
-            EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), key_share_extension_size);
 
             EXPECT_SUCCESS(s2n_enable_tls13());
             server_conn->actual_protocol_version = S2N_TLS12;

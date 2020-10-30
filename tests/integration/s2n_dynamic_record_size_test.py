@@ -14,7 +14,19 @@
 #
 
 """
-Dynamic record size tests using s2nc against Openssl s_server
+This is an integration test for the use of dynamic record sizes in TLS connections.
+
+The function s2n_connection_set_dynamic_record_threshold can be used to dynamically change the size of TCP packets to
+optimize for both latency and throughput. This is done by first setting a threshold, until this threshold has been
+met the connection uses small TLS records that fit into a single TCP segment (mss). This optimizes the connection
+for low latency. Once the number of bytes transferred in the connection has met this threshold, the size of the
+records can exceed this maximum bound - in order to optimize throughput.
+
+This test sets up an s2nc connection against OpenSSL s_server to transfer a test file using each of the cipher
+suites supported. In each connection, we test:
+ - That all segment sizes before the threshold is met are less than the mss (usually mss = 1460B, but if the mss cannot
+ be obtained a default of 65496B is used).
+ - That at least one segment size after the threshold has been met is greater than 1500B.
 """
 
 import argparse
@@ -36,6 +48,7 @@ PROTO_VERS_TO_S_SERVER_ARG = {
 test_file = './data/test_buf'
 file_size = os.path.getsize(test_file)
 
+
 def cleanup_processes(*processes):
     for p in processes:
         p.kill()
@@ -50,6 +63,7 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
     :param int port: port for Openssl s_server to listen on
     :param str cipher: ciphers for Openssl s_server to use. See https://www.openssl.org/docs/man1.0.2/apps/ciphers.html
     :param int ssl_version: SSL version for Openssl s_server to use
+    :param int threshold: the number of bytes sent before switch over from low latency to high throughput
     :param str server_cert: path to certificate for Openssl s_server to use
     :param str server_key: path to private key for Openssl s_server to use
     :param str sig_algs: Signature algorithms for Openssl s_server to accept
@@ -124,17 +138,20 @@ def try_dynamic_record(endpoint, port, cipher, ssl_version, threshold, server_ce
 
     # Read from s2nc until we get successful connection message
     found = 0
-    seperators = 0
-    for line in range(0, 10):
+    right_version = 0
+    for line in range(0, NUM_EXPECTED_LINES_OUTPUT):
         output = s2nc.stdout.readline().decode("utf-8")
         if output.strip() == "Connected to {}:{}".format(endpoint, port):
             found = 1
+        if ACTUAL_VERSION_STR.format(ssl_version or S2N_TLS12) in output:
+            right_version = 1
 
-    if not found:
+    if not found or not right_version:
         sys.stderr.write("= TEST FAILED =\ns_server cmd: {}\n s_server STDERR: {}\n\ns2nc cmd: {}\nSTDERR {}\n".format(" ".join(s_server_cmd), s_server.stderr.read().decode("utf-8"), " ".join(s2nc_cmd), s2nc.stderr.read().decode("utf-8")))
-        return -1   
+        return -1
 
     return 0
+
 
 def print_result(result_prefix, return_code):
     suffix = ""
@@ -147,13 +164,13 @@ def print_result(result_prefix, return_code):
         if sys.stdout.isatty():
             suffix = "\033[31;1mFAILED\033[0m"
         else:
-            suffix ="FAILED"
+            suffix = "FAILED"
 
     print(result_prefix + suffix)
 
+
 def run_test(host, port, ssl_version, cipher, threshold):
     cipher_name = cipher.openssl_name
-
     failed = 0
     tcpdump_filter = "dst port " + str(port)
     tcpdump_cmd = ["sudo", "tcpdump", "-l", "-i", "lo", "-n", "-B", "65535", tcpdump_filter]
@@ -173,10 +190,7 @@ def run_test(host, port, ssl_version, cipher, threshold):
         failed += ret
     if 0 == ret:
         # print("\nAnalyzing tcpdump results for cipher {}".format(cipher_name))
-        # Case 1: first half of application data is optimized for latency
-        failed += analyze_latency_dump(out_array)
-        # Case 2: second half of application data is optimize for throughput
-        failed += analyze_throughput_dump(out_array)
+        failed += analyze_tcp_dump(out_array, threshold)
         result_prefix = "Cipher: %-28s Vers: %-8s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
         print_result(result_prefix, failed)
 
@@ -200,53 +214,53 @@ def test(host, port, test_ciphers, threshold):
 
     return failed
 
-def analyze_latency_dump(array):
-    failed = 0
+
+def analyze_tcp_dump(array, threshold):
+    """
+    This function iterates though each line of the TCP dump and reads the length of each segment, to check that it is
+    the correct size. It keeps account the total bytes_transferred and therefore tests that all segment sizes before
+    the threshold is met are less than the maximum segment size (mss). Once this threshold has been met, it tests
+    that the segment size has been increased by verifying that at least one segment is greater than MTU_bytes.
+
+    The mss is read from the first message in the TCP dump, however if this cannot be found a default value is used.
+
+    :param list array: this is an array of strings where each list element is a segment from the TCP dump
+    :param int threshold: the number of bytes sent before switch over from low latency to high throughput mode
+    """
+    failed = 1
+    bytes_transferred = 0
+    array_len = len(array)
+    MTU_bytes = 1500
+    # get the mss from first message
     mss = get_local_mtu() - 40
     first_line = array[0]
-    if ("mss" in first_line):
+    if "mss" in first_line:
         mss_pos = first_line.find("mss")
         mss_str = first_line[mss_pos : mss_pos + 10]
         mss = int(mss_str[4 : mss_str.find(',')])
     else:
-        print ("use default mss")
-    # print("mss={}".format(mss))
-    
-    for i in range(0, 18):
-        output = array[i]
-        # print(output)
-        pos = output.find("length")
+        print ("using default mss")
+
+    for i in range(0, array_len):
+        # record the length of each packet in TCP dump
+        pos = array[i].find("length")
         if pos < 0:
             continue
-        length = output[pos + 6 : len(output)]
-        # Tcp package size should always <= mss
-        if int(length) > mss:
-            failed = 1
+        length = array[i][pos + 6 : len(array[i])]
+        bytes_transferred += int(length)
+        # print ("Packet:",i, "packet size:", length, "bytes transferred:",bytes_transferred, "threshold met:", bytes_transferred > threshold)
+        # optimized for latency - before the threshold has been met, the TCP packet size should always <= mss
+        if bytes_transferred < threshold and int(length) > mss:
+            # if this condition has been met, the length of a segment is greater than the mss, but the threshold has
+            # not been met, so we return with failed = 1
+            break
+        elif bytes_transferred > threshold and int(length) > MTU_bytes:
+            # optimized for throughput - after the threshold has been met TCP packet size can exceed MTU, which results in segementation
+            failed = 0  # we just need a single packet to be larger than MTU_bytes to show dynamic record size.
             break
 
     return failed
 
-def analyze_throughput_dump(array):
-    failed = 1
-    array_len = len(array)
-
-    for i in range(18, 36):
-        if i >= array_len:
-            print("Array len is ", array_len, ", expecting >= ", i)
-            print(array)
-            return failed
-        output = array[i]
-        # print(output)
-        pos = output.find("length")
-        if pos < 0:
-            continue
-        length = output[pos + 6 : len(output)]
-        # Tcp package size can exceed MTU, which results in segementation
-        if int(length) > 1500:
-            failed = 0
-            break
-
-    return failed
 
 def get_local_mtu():
     cmd = ["ifconfig", "lo"]
@@ -284,7 +298,14 @@ def main():
     
     failed = 0
     print("\n\tRunning s2n dynamic record size tests\n\t")
-    failed += test(host, port, test_ciphers, int(file_size / 2))
+    # Set the threshold - the number of bytes transferred in low latency mode before switching to high throughput
+    threshold = 10000
+    # test that the file size of the test file is greater than the threshold (otherwise we cannot implement the test)
+    if file_size < threshold:
+        failed = 1
+        print ("test file: %s file size too small (less than threshold of 10KB)" % test_file)
+        return failed
+    failed += test(host, port, test_ciphers, threshold)
 
     # Recover localhost MTU
     subprocess.call(["sudo", "ifconfig", "lo", "mtu", str(local_mtu)])
@@ -296,4 +317,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-

@@ -62,9 +62,6 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
     s2n_config_set_protocol_preferences(client_config, protocols, count);
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);
-    client_conn->server_protocol_version = S2N_TLS12;
-    client_conn->client_protocol_version = S2N_TLS12;
-    client_conn->actual_protocol_version = S2N_TLS12;
 
     s2n_connection_set_read_fd(client_conn, readfd);
     s2n_connection_set_write_fd(client_conn, writefd);
@@ -89,7 +86,6 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
         s2n_send(client_conn, buffer, i, &blocked);
     }
 
-    /* cppcheck-suppress unreadVariable */
     int shutdown_rc= -1;
     if(!result) {
         do {
@@ -143,6 +139,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_size));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
     /** Test no client ALPN request */
     /* Create a pipe */
@@ -166,9 +163,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(close(server_to_client[0]));
 
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-    conn->server_protocol_version = S2N_TLS12;
-    conn->client_protocol_version = S2N_TLS12;
-    conn->actual_protocol_version = S2N_TLS12;
 
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 

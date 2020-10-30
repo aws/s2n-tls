@@ -68,8 +68,11 @@ int s2n_stuffer_read_expected_str(struct s2n_stuffer *stuffer, const char *expec
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     notnull_check(expected);
     size_t expected_length = strlen(expected);
+    if (expected_length == 0) {
+        return S2N_SUCCESS;
+    }
     ENSURE_POSIX(s2n_stuffer_data_available(stuffer) >= expected_length, S2N_ERR_STUFFER_OUT_OF_DATA);
-    uint8_t *actual =  stuffer->blob.data + stuffer->read_cursor;
+    uint8_t *actual = stuffer->blob.data + stuffer->read_cursor;
     notnull_check(actual);
     ENSURE_POSIX(!memcmp(actual, expected, expected_length), S2N_ERR_STUFFER_NOT_FOUND);
     stuffer->read_cursor += expected_length;
@@ -83,6 +86,9 @@ int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char *target)
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     notnull_check(target);
     const int len = strlen(target);
+    if (len == 0) {
+        return S2N_SUCCESS;
+    }
     while (s2n_stuffer_data_available(stuffer) >= len) {
         GUARD(s2n_stuffer_skip_to_char(stuffer, target[0]));
         GUARD(s2n_stuffer_skip_read(stuffer, len));

@@ -24,7 +24,6 @@ static const uint8_t SERVER_TRANSPORT_PARAMS[] = "server transport params";
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_enable_tls13());
 
     const uint8_t *transport_params = NULL;
     uint16_t transport_params_len = 0;
@@ -40,6 +39,7 @@ int main(int argc, char **argv)
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
     struct s2n_config *config;
     EXPECT_NOT_NULL(config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));

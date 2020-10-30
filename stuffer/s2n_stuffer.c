@@ -25,8 +25,10 @@
 
 bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer)
 {
-    /* Note that we do not assert any properties on the alloced, growable, and tainted fields,
-    * as all possible combinations of boolean values in those fields are valid */
+    /**
+     * Note that we do not assert any properties on the alloced, growable, and tainted fields,
+     * as all possible combinations of boolean values in those fields are valid.
+     */
     return S2N_OBJECT_PTR_IS_READABLE(stuffer) &&
            s2n_blob_is_valid(&stuffer->blob) &&
            /* <= is valid because we can have a fully written/read stuffer */
@@ -37,9 +39,27 @@ bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer)
 
 bool s2n_stuffer_reservation_is_valid(const struct s2n_stuffer_reservation* reservation)
 {
-    return S2N_OBJECT_PTR_IS_READABLE(reservation) &&
-           s2n_stuffer_is_valid(reservation->stuffer) &&
-           S2N_MEM_IS_WRITABLE(reservation->stuffer->blob.data + reservation->write_cursor, reservation->length);
+    /**
+     * Note that we need two dereferences here to decrease proof complexity
+     * for CBMC (see https://github.com/awslabs/s2n/issues/2290). We can roll back
+     * this change once CBMC can handle common subexpression elimination.
+     */
+    if (!S2N_OBJECT_PTR_IS_READABLE(reservation)) {
+        return false;
+    }
+    const struct s2n_stuffer_reservation reserve_obj = *reservation;
+    if (!s2n_stuffer_is_valid(reserve_obj.stuffer)) {
+        return false;
+    }
+    const struct s2n_stuffer stuffer_obj = *(reserve_obj.stuffer);
+    if (stuffer_obj.blob.size < reserve_obj.length) {
+        return false;
+    }
+    return S2N_IMPLIES(
+        reserve_obj.length > 0,
+        (reserve_obj.write_cursor < stuffer_obj.write_cursor &&
+         S2N_MEM_IS_WRITABLE(stuffer_obj.blob.data + reserve_obj.write_cursor, reserve_obj.length))
+    );
 }
 
 int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in)
@@ -225,7 +245,7 @@ int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out
     GUARD(s2n_stuffer_skip_read(stuffer, out->size));
 
     void *ptr = stuffer->blob.data + stuffer->read_cursor - out->size;
-    notnull_check(ptr);
+    ENSURE_POSIX(S2N_MEM_IS_READABLE(ptr, out->size), S2N_ERR_NULL);
 
     memcpy_check(out->data, ptr, out->size);
     memset_check(ptr, 0, out->size);
@@ -291,7 +311,7 @@ int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t * data, c
     GUARD(s2n_stuffer_skip_write(stuffer, size));
 
     void *ptr = stuffer->blob.data + stuffer->write_cursor - size;
-    notnull_check(ptr);
+    ENSURE_POSIX(S2N_MEM_IS_READABLE(ptr, size), S2N_ERR_NULL);
 
     if (ptr == data) {
         POSTCONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
@@ -309,7 +329,7 @@ int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec* io
     PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
     notnull_check(iov);
     void *ptr = s2n_stuffer_raw_write(stuffer, size);
-    notnull_check(ptr);
+    ENSURE_POSIX(S2N_MEM_IS_READABLE(ptr, size), S2N_ERR_NULL);
 
     size_t size_left = size, to_skip = offs;
     for (int i = 0; i < iov_count; i++) {

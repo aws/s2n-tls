@@ -191,7 +191,7 @@ static inline int s2n_record_encrypt(
 
 int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const struct iovec *in, int in_count, size_t offs, size_t to_write)
 {
-    struct s2n_blob iv;
+    struct s2n_blob iv = { 0 };
     uint8_t padding = 0;
     uint16_t block_size = 0;
     uint8_t aad_iv[S2N_TLS_MAX_IV_LEN] = { 0 };
@@ -337,7 +337,31 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         /* For TLS1.1/1.2; write the IV with random data */
         if (conn->actual_protocol_version > S2N_TLS10) {
             GUARD_AS_POSIX(s2n_get_public_random_data(&iv));
-            GUARD(s2n_stuffer_write(&conn->out, &iv));
+            if (cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
+                /* Write a separate random block to the record. This will be used along with the previously generated
+                 * iv blob to generate the final explicit_iv for this record.
+                 *
+                 * How? Openssl's AES-CBC stitched encrypt populates the first block of application data with:
+                 * AES(Key, XOR(iv, initial_block))
+                 *
+                 * If we make initial_block a random block unrelated to random_iv, explicit IV for this record
+                 * is random value based on the two random blobs we just generated:
+                 * AES(Key, XOR(random_iv, explicit_iv_placeholder) == AES(Key, XOR(random_iv, random_iv2))
+                 *
+                 * NOTE: We can't use the same random IV blob as both the initial block and IV since it will result in:
+                 * AES(Key, XOR(random_iv, random_iv)) == AES(Key, 0), which will be shared by all records in this session.
+                 */
+                struct s2n_blob explicit_iv_placeholder;
+                uint8_t zero_block[S2N_TLS_MAX_IV_LEN] = { 0 };
+                GUARD(s2n_blob_init(&explicit_iv_placeholder, zero_block, block_size));
+                GUARD_AS_POSIX(s2n_get_public_random_data(&explicit_iv_placeholder));
+                GUARD(s2n_stuffer_write(&conn->out, &explicit_iv_placeholder));
+            } else {
+                /* We can write the explicit IV directly to the record for non composite CBC because
+                 * s2n starts AES *after* the explicit IV.
+                 */
+                GUARD(s2n_stuffer_write(&conn->out, &iv));
+            }
         }
     }
 

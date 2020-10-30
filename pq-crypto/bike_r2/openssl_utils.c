@@ -34,11 +34,10 @@ _INLINE_ void
 reverse_endian(OUT uint8_t *res, IN const uint8_t *in, IN const uint32_t n)
 {
   uint32_t i;
-  uint64_t tmp;
 
   for(i = 0; i < (n / 2); i++)
   {
-    tmp            = in[i];
+    uint64_t tmp            = in[i];
     res[i]         = in[n - 1 - i];
     res[n - 1 - i] = tmp;
   }

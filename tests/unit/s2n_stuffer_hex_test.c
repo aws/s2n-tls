@@ -30,6 +30,7 @@ int main(int argc, char **argv)
     uint64_t u64;
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Create a 100 byte stuffer */
     EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &b));

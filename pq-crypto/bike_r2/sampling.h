@@ -9,7 +9,7 @@
 #pragma once
 
 #include "aes_ctr_prf.h"
-#include "pq-crypto/pq_random.h"
+#include "pq-crypto/s2n_pq_random.h"
 #include "utils/s2n_result.h"
 #include "utilities.h"
 
@@ -22,7 +22,7 @@ typedef enum
 _INLINE_ ret_t
 get_seeds(OUT seeds_t *seeds)
 {
-  if(s2n_result_is_ok(get_random_bytes(seeds->seed[0].raw, sizeof(seeds_t))))
+  if(s2n_result_is_ok(s2n_get_random_bytes(seeds->seed[0].raw, sizeof(seeds_t))))
   {
     return SUCCESS;
   }
@@ -34,7 +34,7 @@ get_seeds(OUT seeds_t *seeds)
 
 // Return's an array of r pseudorandom bits
 // No restrictions exist for the top or bottom bits -
-// in case an odd number is requried then set must_be_odd=1
+// in case an odd number is required then set must_be_odd=1
 // Uses the provided prf context
 ret_t
 sample_uniform_r_bits_with_fixed_prf_context(OUT r_t *r,
@@ -44,7 +44,7 @@ sample_uniform_r_bits_with_fixed_prf_context(OUT r_t *r,
 
 // Return's an array of r pseudorandom bits
 // No restrictions exist for the top or bottom bits -
-// in case an odd number is  requried then set must_be_odd=1
+// in case an odd number is  required then set must_be_odd=1
 _INLINE_ ret_t
 sample_uniform_r_bits(OUT r_t *r,
                       IN const seed_t *      seed,

@@ -164,6 +164,7 @@ static int assert_kex_fips_checks(struct s2n_cipher_suite *cipher_suite, const c
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
 #if !defined(S2N_NO_PQ)
 

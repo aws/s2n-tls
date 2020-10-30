@@ -40,6 +40,7 @@ int s2n_flip_random_bit(struct s2n_blob *blob) {
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Don't use RSA-PSS certs if unsupported */
 #if !RSA_PSS_CERTS_SUPPORTED

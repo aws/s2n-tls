@@ -161,6 +161,7 @@ int main(int argc, char **argv)
         "531be2441d7c63e2b9729d145c11d84af35957727565a4");
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     DEFER_CLEANUP(struct s2n_tls13_keys secrets = {0}, s2n_tls13_keys_free);
 

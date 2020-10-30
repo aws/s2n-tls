@@ -443,12 +443,16 @@ int s2n_send_empty_cert_chain(struct s2n_stuffer *out)
 
 static int s2n_does_cert_san_match_hostname(const struct s2n_cert_chain_and_key *chain_and_key, const struct s2n_blob *dns_name)
 {
+    notnull_check(chain_and_key);
+    notnull_check(dns_name);
+
     struct s2n_array *san_names = chain_and_key->san_names;
     uint32_t len = 0;
     GUARD_AS_POSIX(s2n_array_num_elements(san_names, &len));
     for (uint32_t i = 0; i < len; i++) {
         struct s2n_blob *san_name = NULL;
         GUARD_AS_POSIX(s2n_array_get(san_names, i, (void **)&san_name));
+        notnull_check(san_name);
         if ((dns_name->size == san_name->size) && (strncasecmp((const char *) dns_name->data, (const char *) san_name->data, dns_name->size) == 0)) {
             return 1;
         }
@@ -459,12 +463,16 @@ static int s2n_does_cert_san_match_hostname(const struct s2n_cert_chain_and_key 
 
 static int s2n_does_cert_cn_match_hostname(const struct s2n_cert_chain_and_key *chain_and_key, const struct s2n_blob *dns_name)
 {
+    notnull_check(chain_and_key);
+    notnull_check(dns_name);
+
     struct s2n_array *cn_names = chain_and_key->cn_names;
     uint32_t len = 0;
     GUARD_AS_POSIX(s2n_array_num_elements(cn_names, &len));
     for (uint32_t i = 0; i < len; i++) {
         struct s2n_blob *cn_name = NULL;
         GUARD_AS_POSIX(s2n_array_get(cn_names, i, (void **)&cn_name));
+        notnull_check(cn_name);
         if ((dns_name->size == cn_name->size) && (strncasecmp((const char *) dns_name->data, (const char *) cn_name->data, dns_name->size) == 0)) {
             return 1;
         }

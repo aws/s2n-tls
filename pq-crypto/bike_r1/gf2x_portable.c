@@ -19,7 +19,7 @@
 void
 gf2x_mul_1x1(uint64_t *c, uint64_t a, uint64_t b)
 {
-  uint64_t       h = 0, l = 0, g1, g2, u[8];
+  uint64_t       h = 0, l = 0, u[8];
   const uint64_t w = 64;
   const uint64_t s = 3;
   // Multiplying 64 bits by 7 can results in an overflow of 3 bits.
@@ -41,8 +41,8 @@ gf2x_mul_1x1(uint64_t *c, uint64_t a, uint64_t b)
   h = (u[(a >> 3) & 7] >> 61);
   for(uint32_t i = (2 * s); i < w; i += (2 * s))
   {
-    g1 = u[(a >> i) & 7];
-    g2 = u[(a >> (i + s)) & 7];
+    uint64_t g1 = u[(a >> i) & 7];
+    uint64_t g2 = u[(a >> (i + s)) & 7];
 
     l ^= (g1 << i) ^ (g2 << (i + s));
     h ^= (g1 >> (w - i)) ^ (g2 >> (w - (i + s)));

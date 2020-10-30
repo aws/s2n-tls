@@ -37,6 +37,7 @@ static int s2n_test_enable_extension(struct s2n_connection *conn)
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Test should_send */
     {

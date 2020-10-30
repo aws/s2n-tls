@@ -117,8 +117,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
     }
 
-    /* Server selects highest supported version shared by client (when server uses TLS1.2)
-     * but retains the client's requested version. */
+    /* Server does not process the extension if using TLS1.2. */
     {
         EXPECT_SUCCESS(s2n_disable_tls13());
         struct s2n_connection *server_conn;
@@ -137,9 +136,9 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_enable_tls13());
         EXPECT_SUCCESS(s2n_client_supported_versions_extension.recv(server_conn, &extension));
-        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->client_protocol_version, S2N_UNKNOWN_PROTOCOL_VERSION);
         EXPECT_EQUAL(server_conn->server_protocol_version, S2N_TLS12);
-        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_UNKNOWN_PROTOCOL_VERSION);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));

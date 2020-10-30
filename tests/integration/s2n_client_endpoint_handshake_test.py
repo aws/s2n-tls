@@ -78,7 +78,7 @@ def try_client_handshake(endpoint, arguments, expected_cipher):
     if expected_cipher:
         expected_output += expected_cipher
 
-    for line in range(0, 10):
+    for line in range(0, NUM_EXPECTED_LINES_OUTPUT):
         output = str(s2nc.stdout.readline().decode("utf-8"))
         if expected_output in output:
             found = 1
@@ -99,7 +99,7 @@ def well_known_endpoints_test(use_corked_io, tls13_enabled):
     opt_list = []
 
     if tls13_enabled:
-        arguments += ["--tls13", "--ciphers", "default_tls13"]
+        arguments += ["--ciphers", "default_tls13"]
         opt_list += ["TLS 1.3"]
     if use_corked_io:
         arguments += ["-C"]

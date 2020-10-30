@@ -13,6 +13,8 @@
 # permissions and limitations under the License.
 #
 
+from s2n_test_constants import NUM_EXPECTED_LINES_OUTPUT, ACTUAL_VERSION_STR, S2N_TLS12
+
 """
 PQ Handshake tests: s2nd and s2nc negotiate a handshake using BIKE or SIKE KEMs
 """
@@ -55,6 +57,9 @@ pq_handshake_test_vectors = [
     {"client_ciphers": "KMS-TLS-1-0-2018-10", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
 ]
 
+def validate_version(expected_version, line):
+    return ACTUAL_VERSION_STR.format(expected_version or S2N_TLS12) in line
+
 def print_result(result_prefix, return_code):
     print(result_prefix, end="")
     if return_code == 0:
@@ -81,21 +86,27 @@ def do_pq_handshake(client_ciphers, server_ciphers, expected_cipher, expected_ke
 
     client_kem_found = False
     client_cipher_found = False
+    client_version_correct = False
     server_kem_found = False
     server_cipher_found = False
+    server_version_correct = False
 
-    for i in range(0, 10):
+    for i in range(0, NUM_EXPECTED_LINES_OUTPUT):
         client_line = str(s2nc.stdout.readline().decode("utf-8"))
         if expected_kem_output in client_line:
             client_kem_found = True
         if expected_cipher_output in client_line:
             client_cipher_found = True
+        if validate_version(S2N_TLS12, client_line):
+            client_version_correct = True
 
         server_line = str(s2nd.stdout.readline().decode("utf-8"))
         if expected_kem_output in server_line:
             server_kem_found = True
         if expected_cipher_output in server_line:
             server_cipher_found = True
+        if validate_version(S2N_TLS12, server_line):
+            server_version_correct = True
 
     s2nc.kill()
     s2nc.wait()
@@ -104,6 +115,9 @@ def do_pq_handshake(client_ciphers, server_ciphers, expected_cipher, expected_ke
     s2nd.wait()
 
     if not (client_kem_found and server_kem_found and client_cipher_found and server_cipher_found):
+        return 1
+
+    if not (client_version_correct and server_version_correct):
         return 1
 
     return 0

@@ -38,41 +38,43 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
 
+S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *output, uint32_t length)
+{
+    while (s2n_stuffer_data_available(output) < length) {
+        uint32_t remaining = length - s2n_stuffer_data_available(output);
+
+        errno = 0;
+        int r = s2n_connection_recv_stuffer(output, conn, remaining);
+        if (r == 0) {
+            conn->closed = 1;
+            BAIL(S2N_ERR_CLOSED);
+        } else if (r < 0) {
+            if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                BAIL(S2N_ERR_IO_BLOCKED);
+            }
+            BAIL(S2N_ERR_IO);
+        }
+        conn->wire_bytes_in += r;
+    }
+
+    return S2N_RESULT_OK;
+}
+
 int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int *isSSLv2)
 {
-    int r;
-
     *isSSLv2 = 0;
 
     /* If the record has already been decrypted, then leave it alone */
     if (conn->in_status == PLAINTEXT) {
         /* Only application data packets count as plaintext */
         *record_type = TLS_APPLICATION_DATA;
-        return 0;
+        return S2N_SUCCESS;
     }
     GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
 
     /* Read the record until we at least have a header */
-    while (s2n_stuffer_data_available(&conn->header_in) < S2N_TLS_RECORD_HEADER_LENGTH) {
-        int remaining = S2N_TLS_RECORD_HEADER_LENGTH - s2n_stuffer_data_available(&conn->header_in);
+    GUARD_AS_POSIX(s2n_read_in_bytes(conn, &conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH));
 
-        if (s2n_connection_is_managed_corked(conn)) {
-            GUARD(s2n_socket_set_read_size(conn, remaining));
-        }
-
-        errno = 0;
-        r = s2n_connection_recv_stuffer(&conn->header_in, conn, remaining);
-        if (r == 0) {
-            conn->closed = 1;
-            S2N_ERROR(S2N_ERR_CLOSED);
-        } else if (r < 0) {
-            if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                S2N_ERROR(S2N_ERR_IO_BLOCKED);
-            }
-            S2N_ERROR(S2N_ERR_IO);
-        }
-        conn->wire_bytes_in += r;
-    }
     uint16_t fragment_length;
 
     /* If the first bit is set then this is an SSLv2 record */
@@ -92,26 +94,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     }
 
     /* Read enough to have the whole record */
-    while (s2n_stuffer_data_available(&conn->in) < fragment_length) {
-        int remaining = fragment_length - s2n_stuffer_data_available(&conn->in);
-
-        if (s2n_connection_is_managed_corked(conn)) {
-            GUARD(s2n_socket_set_read_size(conn, remaining));
-        }
-
-        errno = 0;
-        r = s2n_connection_recv_stuffer(&conn->in, conn, remaining);
-        if (r == 0) {
-            conn->closed = 1;
-            S2N_ERROR(S2N_ERR_CLOSED);
-        } else if (r < 0) {
-            if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                S2N_ERROR(S2N_ERR_IO_BLOCKED);
-            }
-            S2N_ERROR(S2N_ERR_IO);
-        }
-        conn->wire_bytes_in += r;
-    }
+    GUARD_AS_POSIX(s2n_read_in_bytes(conn, &conn->in, fragment_length));
 
     if (*isSSLv2) {
         return 0;

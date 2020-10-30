@@ -80,12 +80,6 @@ void KeccakF1600_StatePermute(uint64_t * state)
         uint64_t Ama, Ame, Ami, Amo, Amu;
         uint64_t Asa, Ase, Asi, Aso, Asu;
         uint64_t BCa, BCe, BCi, BCo, BCu;
-        uint64_t Da, De, Di, Do, Du;
-        uint64_t Eba, Ebe, Ebi, Ebo, Ebu;
-        uint64_t Ega, Ege, Egi, Ego, Egu;
-        uint64_t Eka, Eke, Eki, Eko, Eku;
-        uint64_t Ema, Eme, Emi, Emo, Emu;
-        uint64_t Esa, Ese, Esi, Eso, Esu;
 
         //copyFromState(A, state)
         Aba = state[ 0];
@@ -114,8 +108,14 @@ void KeccakF1600_StatePermute(uint64_t * state)
         Aso = state[23];
         Asu = state[24];
 
-        for( round = 0; round < NROUNDS; round += 2 )
-        {
+        for( round = 0; round < NROUNDS; round += 2 ) {
+            uint64_t Da, De, Di, Do, Du;
+            uint64_t Eba, Ebe, Ebi, Ebo, Ebu;
+            uint64_t Ega, Ege, Egi, Ego, Egu;
+            uint64_t Eka, Eke, Eki, Eko, Eku;
+            uint64_t Ema, Eme, Emi, Emo, Emu;
+            uint64_t Esa, Ese, Esi, Eso, Esu;
+
             //    prepareTheta
             BCa = Aba^Aga^Aka^Ama^Asa;
             BCe = Abe^Age^Ake^Ame^Ase;
@@ -413,7 +413,6 @@ void cshake256_simple(unsigned char *output, unsigned long long outlen, uint16_t
 {
   uint64_t s[25];
   unsigned char t[SHAKE256_RATE];
-  unsigned int i;
 
   cshake256_simple_absorb(s, cstm, in, inlen);
 
@@ -424,7 +423,7 @@ void cshake256_simple(unsigned char *output, unsigned long long outlen, uint16_t
   if(outlen%SHAKE256_RATE)
   {
     keccak_squeezeblocks(t, 1, s, SHAKE256_RATE);
-    for (i = 0; i < outlen%SHAKE256_RATE; i++)
+    for (unsigned int i = 0; i < outlen%SHAKE256_RATE; i++)
       output[i] = t[i];
   }
 }

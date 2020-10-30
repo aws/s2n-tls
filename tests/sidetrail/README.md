@@ -132,7 +132,7 @@ To build the image, start with `s2n/codebuild/spec/sidetrail/Dockerfile`
 
 ```shell
 cd $S2N
-docker build -f codebuild/spec/sidetrail/Dockerfile --tag sidetrail2 .
+docker build -f codebuild/spec/sidetrail/Dockerfile --tag sidetrail .
 ```
 
 This step takes about 25 minutes on my laptop.

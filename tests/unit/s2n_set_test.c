@@ -44,6 +44,7 @@ int main(int argc, char **argv)
     struct array_element* ep = NULL;
 
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
     EXPECT_NULL(s2n_set_new(element_size, NULL));
 
     struct s2n_set* set = NULL;

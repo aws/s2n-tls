@@ -35,12 +35,11 @@ static uint32_t load32_littleendian(const uint8_t *x) {
 *              - const uint8_t *buf: pointer to input byte array
 **************************************************/
 void PQCLEAN_KYBER512_CLEAN_cbd(poly *r, const uint8_t *buf) {
-    uint32_t d, t;
     int16_t a, b;
 
     for (size_t i = 0; i < KYBER_N / 8; i++) {
-        t = load32_littleendian(buf + 4 * i);
-        d  = t & 0x55555555;
+        uint32_t t = load32_littleendian(buf + 4 * i);
+        uint32_t d  = t & 0x55555555;
         d += (t >> 1) & 0x55555555;
 
         for (size_t j = 0; j < 8; j++) {

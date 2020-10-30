@@ -623,6 +623,7 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     GUARD(s2n_prf(conn, &master_secret, &label, &server_random, &client_random, NULL, &out));
     GUARD(s2n_stuffer_init_with_data(&key_material, &out));
 
+    ENSURE_POSIX(conn->secure.cipher_suite->available, S2N_ERR_PRF_INVALID_ALGORITHM);
     GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
     GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
 

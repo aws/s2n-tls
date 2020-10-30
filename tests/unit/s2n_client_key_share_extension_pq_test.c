@@ -35,6 +35,7 @@
 
 int main() {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
     END_TEST();
     return 0;
 }

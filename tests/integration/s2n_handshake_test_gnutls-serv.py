@@ -77,11 +77,13 @@ def try_gnutls_handshake(endpoint, port, priority_str, session_tickets, ocsp):
 
     # Read it
     found = 0
+    right_version = 0
     for line in range(0, 50):
         output = s2nc.stdout.readline().decode("utf-8")
         if output.strip().startswith("Connected to"):
             found = 1
-            break
+        if ACTUAL_VERSION_STR.format(S2N_TLS12) in output:
+            right_version = 1
 
     gnutls_serv.kill()
     gnutls_serv.communicate()
@@ -91,7 +93,7 @@ def try_gnutls_handshake(endpoint, port, priority_str, session_tickets, ocsp):
     s2nc.communicate()
     s2nc.wait()
 
-    return found == 1
+    return found == 1 and right_version == 1
 
 def handshake(endpoint, port, cipher, session_tickets, ocsp):
     success = try_gnutls_handshake(endpoint, port, cipher.gnutls_priority_str + ":+VERS-TLS1.2:+SIGN-ALL:+SHA1", session_tickets, ocsp)

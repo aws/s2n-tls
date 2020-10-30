@@ -52,7 +52,7 @@ To fix this, regenerate the patch file.
 
 5. Restore all other changed files using `git checkout`.
 
-6. Some of the current patch files were not generated following this standard procedure, and hence are invoked using `-p5`, instead of the `-p1` this procuedure will generate.
+6. Some of the current patch files were not generated following this standard procedure, and hence are invoked using `-p5`, instead of the `-p1` this procedure will generate.
    You may need to change the `./copy_as_needed.sh` files to use the correct `-p` level.
    
 7. Rerun the proofs using the docker container to ensure they work.

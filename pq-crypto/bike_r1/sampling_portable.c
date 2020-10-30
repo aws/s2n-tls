@@ -24,7 +24,6 @@ secure_set_bits(IN OUT uint64_t * a,
   assert(weight <= MAX_WEIGHT);
   uint64_t qw_pos[MAX_WEIGHT];
   uint64_t bit_pos[MAX_WEIGHT];
-  uint64_t tmp = 0;
 
   // 1. Identify the QW position of each value and the bit position inside this
   // QW.
@@ -37,7 +36,7 @@ secure_set_bits(IN OUT uint64_t * a,
   // 2. Fill each QW in a constant time.
   for(uint32_t qw = 0; qw < (a_len_bytes / 8); qw++)
   {
-    tmp = 0;
+    uint64_t tmp = 0;
     for(uint32_t j = 0; j < weight; j++)
     {
       uint64_t mask = (-1ULL) + (!secure_cmp32(qw_pos[j], qw));

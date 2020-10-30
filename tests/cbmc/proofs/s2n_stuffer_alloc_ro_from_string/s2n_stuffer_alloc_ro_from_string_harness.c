@@ -46,15 +46,6 @@ void s2n_stuffer_alloc_ro_from_string_harness()
         assert(stuffer->blob.size == length + 1);
         assert(stuffer->write_cursor == length);
         assert(stuffer->high_water_mark == length);
-    } else {
-        assert(stuffer->blob.data == NULL);
-        assert(stuffer->blob.size == 0);
-        assert(stuffer->read_cursor == 0);
-        assert(stuffer->write_cursor == 0);
-        assert(stuffer->high_water_mark == 0);
-        assert(stuffer->alloced == 0);
-        assert(stuffer->growable == 0);
-        assert(stuffer->tainted == 0);
     }
     assert(s2n_stuffer_is_valid(stuffer));
 }

@@ -382,7 +382,6 @@ int s2n_kem_group_free(struct s2n_kem_group_params *kem_group_params) {
 
 int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_iana_to_kem **compatible_params)
 {
-    /* cppcheck-suppress knownConditionTrueFalse */
     ENSURE_POSIX(kem_mapping[0].kem_count > 0, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
     for (int i = 0; i < s2n_array_len(kem_mapping); i++) {
@@ -396,7 +395,6 @@ int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], 
 }
 
 int s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_kem **kem) {
-    /* cppcheck-suppress knownConditionTrueFalse */
     ENSURE_POSIX(kem_mapping[0].kem_count > 0, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
     for (int i = 0; i < s2n_array_len(kem_mapping); i++) {

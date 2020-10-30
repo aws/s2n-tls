@@ -439,7 +439,7 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
     notnull_check(conn);
     notnull_check(extension);
 
-    if (!s2n_is_tls13_enabled() || conn->actual_protocol_version < S2N_TLS13) {
+    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         return S2N_SUCCESS;
     }
 

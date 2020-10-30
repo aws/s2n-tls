@@ -1,1 +1,1 @@
-../aws-templates-for-cbmc-proofs/template-for-repository/stubs/README.md
+../templates/template-for-repository/stubs/README.md

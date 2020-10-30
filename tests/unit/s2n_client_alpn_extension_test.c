@@ -20,6 +20,7 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+    EXPECT_SUCCESS(s2n_disable_tls13());
 
     const char *protocols[] = { "protocol1", "protocol2", "protocol3" };
     const uint8_t protocols_count = s2n_array_len(protocols);
