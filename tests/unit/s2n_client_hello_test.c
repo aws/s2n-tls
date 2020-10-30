@@ -206,6 +206,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(session_id_length, 0);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
+                EXPECT_SUCCESS(s2n_config_free(config));
             }
 
             EXPECT_SUCCESS(s2n_disable_tls13());

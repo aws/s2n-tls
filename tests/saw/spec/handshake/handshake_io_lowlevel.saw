@@ -158,11 +158,11 @@ let setup_connection = do {
    crucible_points_to (ocsp_status_size cak) (crucible_term status_size);
    crucible_equal (crucible_term status_size) (crucible_term {{zero : [32]}});
 
-   config_bitfield_value <- crucible_fresh_var "config_bitfield" (llvm_int 8);
+   config_bitfield_value <- crucible_fresh_var "config_bitfield" (llvm_int 16);
    crucible_points_to (config_bitfield config) (crucible_term config_bitfield_value);
    // The following line could be made more precise, we only care that the use_tickets
    // bit is zero 
-   crucible_equal (crucible_term config_bitfield_value) (crucible_term {{zero : [8]}});
+   crucible_equal (crucible_term config_bitfield_value) (crucible_term {{zero : [16]}});
 
    session_ticket_status <- crucible_fresh_var "session_ticket_status" (llvm_int 32);
    crucible_points_to (conn_session_ticket_status pconn) (crucible_term session_ticket_status);
