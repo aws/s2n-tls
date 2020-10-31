@@ -199,6 +199,14 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
     GUARD(s2n_handshake_get_hash_state(conn, secrets.hash_algorithm, &hash_state));
     GUARD(s2n_tls13_derive_handshake_secrets(&secrets, &shared_secret, &hash_state, &client_hs_secret, &server_hs_secret));
 
+    /* trigger secret callbacks */
+    if (conn->secret_cb && conn->config->quic_enabled) {
+        GUARD(conn->secret_cb(conn->secret_cb_context, conn, S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET,
+                client_hs_secret.data, client_hs_secret.size));
+        GUARD(conn->secret_cb(conn->secret_cb_context, conn, S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET,
+                server_hs_secret.data, server_hs_secret.size));
+    }
+
     /* produce handshake traffic keys and configure record algorithm */
     s2n_tls13_key_blob(server_hs_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
     struct s2n_blob server_hs_iv = { .data = conn->secure.server_implicit_iv, .size = S2N_TLS13_FIXED_IV_LEN };
@@ -249,14 +257,17 @@ static int s2n_tls13_handle_application_secret(struct s2n_connection *conn, s2n_
 
     uint8_t *app_secret_data, *implicit_iv_data;
     struct s2n_session_key *session_key;
+    s2n_secret_type_t secret_type;
     if (mode == S2N_CLIENT) {
         app_secret_data = conn->secure.client_app_secret;
         implicit_iv_data = conn->secure.client_implicit_iv;
         session_key = &conn->secure.client_key;
+        secret_type = S2N_CLIENT_APPLICATION_TRAFFIC_SECRET;
     } else {
         app_secret_data = conn->secure.server_app_secret;
         implicit_iv_data = conn->secure.server_implicit_iv;
         session_key = &conn->secure.server_key;
+        secret_type = S2N_SERVER_APPLICATION_TRAFFIC_SECRET;
     }
 
     /* use frozen hashes during the server finished state */
@@ -266,6 +277,12 @@ static int s2n_tls13_handle_application_secret(struct s2n_connection *conn, s2n_
     /* calculate secret */
     struct s2n_blob app_secret = { .data = app_secret_data, .size = keys.size };
     GUARD(s2n_tls13_derive_application_secret(&keys, hash_state, &app_secret, mode));
+
+    /* trigger secret callback */
+    if (conn->secret_cb && conn->config->quic_enabled) {
+        GUARD(conn->secret_cb(conn->secret_cb_context, conn, secret_type,
+                app_secret.data, app_secret.size));
+    }
 
     /* derive key from secret */
     s2n_tls13_key_blob(app_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);

@@ -67,6 +67,17 @@ int s2n_connection_get_quic_transport_parameters(struct s2n_connection *conn,
     return S2N_SUCCESS;
 }
 
+int s2n_connection_set_secret_callback(struct s2n_connection *conn, s2n_secret_cb cb_func, void *ctx)
+{
+    notnull_check(conn);
+    notnull_check(cb_func);
+
+    conn->secret_cb = cb_func;
+    conn->secret_cb_context = ctx;
+
+    return S2N_SUCCESS;
+}
+
 /* When using QUIC, S2N reads unencrypted handshake messages instead of encrypted records.
  * This method sets up the S2N input buffers to match the results of using s2n_read_full_record.
  */
