@@ -619,7 +619,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     if (IS_TLS13_HANDSHAKE(conn)) {
         /* Use middlebox compatibility mode for TLS1.3 by default.
          * For now, only disable it when QUIC support is enabled. */
-        if (!conn->quic_enabled) {
+        if (!conn->config->quic_enabled) {
             conn->handshake.handshake_type |= MIDDLEBOX_COMPAT;
         }
         conn->handshake.handshake_type |= FULL_HANDSHAKE;
@@ -779,7 +779,7 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
         out.data = s2n_stuffer_raw_read(&conn->handshake.io, out.size);
         notnull_check(out.data);
 
-        if (conn->quic_enabled) {
+        if (conn->config->quic_enabled) {
             GUARD_AS_POSIX(s2n_quic_write_handshake_message(conn, &out));
         } else {
             GUARD(s2n_record_write(conn, record_type, &out));
@@ -947,7 +947,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
 
     /* Fill conn->in stuffer necessary for the handshake.
      * If using TCP, read a record. If using QUIC, read a message. */
-    if (conn->quic_enabled) {
+    if (conn->config->quic_enabled) {
         record_type = TLS_HANDSHAKE;
         GUARD_AS_POSIX(s2n_quic_read_handshake_message(conn, &message_type));
     } else {
@@ -968,7 +968,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
          * due to a peer operating in middlebox compatibility mode.
          * However, when operating in QUIC mode, S2N should not accept ANY CCS messages,
          * including these unexpected ones.*/
-        if (!IS_TLS13_HANDSHAKE(conn) || conn->quic_enabled) {
+        if (!IS_TLS13_HANDSHAKE(conn) || conn->config->quic_enabled) {
             ENSURE_POSIX(EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC, S2N_ERR_BAD_MESSAGE);
             ENSURE_POSIX(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);
         }

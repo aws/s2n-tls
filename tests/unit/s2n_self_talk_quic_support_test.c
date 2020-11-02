@@ -42,6 +42,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+    EXPECT_SUCCESS(s2n_config_enable_quic(config));
     EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
     EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -50,10 +51,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
     EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
     EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
-
-    /* Enable quic */
-    EXPECT_SUCCESS(s2n_connection_enable_quic(client_conn));
-    EXPECT_SUCCESS(s2n_connection_enable_quic(server_conn));
 
     /* Setup quic transport parameters */
     EXPECT_SUCCESS(s2n_connection_set_quic_transport_parameters(client_conn,
