@@ -123,6 +123,7 @@ static int s2n_config_init(struct s2n_config *config)
     config->max_verify_cert_chain_depth_set = 0;
     config->cert_tiebreak_cb = NULL;
     config->async_pkey_cb = NULL;
+    config->cert_req_dss_legacy_compat_enabled = 0;
 
     GUARD(s2n_config_setup_default(config));
     if (s2n_use_default_tls13_config()) {
@@ -840,4 +841,11 @@ int s2n_config_get_num_default_certs(struct s2n_config *config)
     }
 
     return num_certs;
+}
+
+int s2n_config_enable_cert_req_dss_legacy_compat(struct s2n_config *config)
+{
+    notnull_check(config);
+    config->cert_req_dss_legacy_compat_enabled = 1;
+    return S2N_SUCCESS;
 }

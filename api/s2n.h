@@ -433,6 +433,13 @@ extern int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_conn
 S2N_API
 extern int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
 
+/* s2n_config_enable_cert_req_dss_legacy_compat adds a dss cert type in the server certificate request when being called.
+ * It only sends the dss cert type in the cert request but does not succeed the handshake if a dss cert is received.
+ * Please DO NOT call this api unless you know you actually need legacy DSS certificate type compatibility
+ */
+S2N_API
+extern int s2n_config_enable_cert_req_dss_legacy_compat(struct s2n_config *config);
+
 #ifdef __cplusplus
 }
 #endif
