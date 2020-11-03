@@ -211,8 +211,13 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
     GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
     GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
 
-    GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.server_key, &server_hs_key));
-    GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.client_key, &client_hs_key));
+    if (conn->mode == S2N_CLIENT) {
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.server_key, &server_hs_key));
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.client_key, &client_hs_key));
+    } else {
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &server_hs_key));
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &client_hs_key));
+    }
 
     /* calculate server + client finished keys and store them in handshake struct */
     struct s2n_blob server_finished_key = { .data = conn->handshake.server_finished, .size = secrets.size };
@@ -240,6 +245,7 @@ static int s2n_tls13_handle_application_secret(struct s2n_connection *conn, s2n_
 {
     /* get tls13 key context */
     s2n_tls13_connection_keys(keys, conn);
+    bool is_sending_secret = (mode == conn->mode);
 
     uint8_t *app_secret_data, *implicit_iv_data;
     struct s2n_session_key *session_key;
@@ -267,7 +273,11 @@ static int s2n_tls13_handle_application_secret(struct s2n_connection *conn, s2n_
     GUARD(s2n_tls13_derive_traffic_keys(&keys, &app_secret, &app_key, &app_iv));
 
     /* update record algorithm secrets */
-    GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(session_key, &app_key));
+    if (is_sending_secret) {
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(session_key, &app_key));
+    } else {
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(session_key, &app_key));
+    }
 
     /* According to https://tools.ietf.org/html/rfc8446#section-5.3:
      * Each sequence number is set to zero at the beginning of a connection and
