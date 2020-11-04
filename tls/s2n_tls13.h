@@ -17,14 +17,21 @@
 
 #include "api/s2n.h"
 #include "tls/s2n_crypto.h"
+#include "utils/s2n_compiler.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-S2N_API
-__attribute__((deprecated("The use of TLS1.3 is configured through security policies")))
-extern int s2n_enable_tls13();
+#if S2N_GCC_VERSION_AT_LEAST(4, 5, 0)
+    S2N_API
+    __attribute__((deprecated("The use of TLS1.3 is configured through security policies")))
+    extern int s2n_enable_tls13();
+#else
+    S2N_API
+    __attribute__((deprecated))
+    extern int s2n_enable_tls13();
+#endif
 
 #ifdef __cplusplus
 }
