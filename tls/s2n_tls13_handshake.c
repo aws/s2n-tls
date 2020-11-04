@@ -211,8 +211,13 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
     GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
     GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
 
-    GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.server_key, &server_hs_key));
-    GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.client_key, &client_hs_key));
+    if (conn->mode == S2N_CLIENT) {
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.server_key, &server_hs_key));
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.client_key, &client_hs_key));
+    } else {
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &server_hs_key));
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &client_hs_key));
+    }
 
     /* calculate server + client finished keys and store them in handshake struct */
     struct s2n_blob server_finished_key = { .data = conn->handshake.server_finished, .size = secrets.size };
@@ -236,43 +241,61 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
     return 0;
 }
 
-/*
- * This must be called after ServerFinished
- */
-int s2n_tls13_handle_application_secrets(struct s2n_connection *conn)
+static int s2n_tls13_handle_application_secret(struct s2n_connection *conn, s2n_mode mode)
 {
     /* get tls13 key context */
     s2n_tls13_connection_keys(keys, conn);
+    bool is_sending_secret = (mode == conn->mode);
 
-    /* produce application secrets */
-    struct s2n_blob client_app_secret = { .data = conn->secure.client_app_secret, .size = keys.size };
-    struct s2n_blob server_app_secret = { .data = conn->secure.server_app_secret, .size = keys.size };
+    uint8_t *app_secret_data, *implicit_iv_data;
+    struct s2n_session_key *session_key;
+    if (mode == S2N_CLIENT) {
+        app_secret_data = conn->secure.client_app_secret;
+        implicit_iv_data = conn->secure.client_implicit_iv;
+        session_key = &conn->secure.client_key;
+    } else {
+        app_secret_data = conn->secure.server_app_secret;
+        implicit_iv_data = conn->secure.server_implicit_iv;
+        session_key = &conn->secure.server_key;
+    }
 
     /* use frozen hashes during the server finished state */
     struct s2n_hash_state *hash_state;
     GUARD_NONNULL(hash_state = &conn->handshake.server_finished_copy);
-    GUARD(s2n_tls13_derive_application_secrets(&keys, hash_state, &client_app_secret, &server_app_secret));
 
-    s2n_tls13_key_blob(s_app_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
-    struct s2n_blob s_app_iv = { .data = conn->secure.server_implicit_iv, .size = S2N_TLS13_FIXED_IV_LEN };
-    GUARD(s2n_tls13_derive_traffic_keys(&keys, &server_app_secret, &s_app_key, &s_app_iv));
+    /* calculate secret */
+    struct s2n_blob app_secret = { .data = app_secret_data, .size = keys.size };
+    GUARD(s2n_tls13_derive_application_secret(&keys, hash_state, &app_secret, mode));
 
-    s2n_tls13_key_blob(c_app_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
-    struct s2n_blob c_app_iv = { .data = conn->secure.client_implicit_iv, .size = S2N_TLS13_FIXED_IV_LEN };
-    GUARD(s2n_tls13_derive_traffic_keys(&keys, &client_app_secret, &c_app_key, &c_app_iv));
+    /* derive key from secret */
+    s2n_tls13_key_blob(app_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
+    struct s2n_blob app_iv = { .data = implicit_iv_data, .size = S2N_TLS13_FIXED_IV_LEN };
+    GUARD(s2n_tls13_derive_traffic_keys(&keys, &app_secret, &app_key, &app_iv));
 
     /* update record algorithm secrets */
-    GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.server_key, &s_app_key));
-    GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.client_key, &c_app_key));
+    if (is_sending_secret) {
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(session_key, &app_key));
+    } else {
+        GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(session_key, &app_key));
+    }
 
     /* According to https://tools.ietf.org/html/rfc8446#section-5.3:
      * Each sequence number is set to zero at the beginning of a connection and
      * whenever the key is changed
      */
-    GUARD(s2n_zero_sequence_number(conn, S2N_CLIENT));
-    GUARD(s2n_zero_sequence_number(conn, S2N_SERVER));
+    GUARD(s2n_zero_sequence_number(conn, mode));
 
-    return 0;
+    return S2N_SUCCESS;
+}
+
+/* The application secrets are derived from the master secret, so the
+ * master secret must be handled BEFORE the application secrets.
+ */
+static int s2n_tls13_handle_master_secret(struct s2n_connection *conn)
+{
+    s2n_tls13_connection_keys(keys, conn);
+    GUARD(s2n_tls13_extract_master_secret(&keys));
+    return S2N_SUCCESS;
 }
 
 int s2n_tls13_handle_secrets(struct s2n_connection *conn)
@@ -289,8 +312,18 @@ int s2n_tls13_handle_secrets(struct s2n_connection *conn)
             conn->server = &conn->secure;
             conn->client = &conn->secure;
             break;
+        case SERVER_FINISHED:
+            if (conn->mode == S2N_SERVER) {
+                GUARD(s2n_tls13_handle_master_secret(conn));
+                GUARD(s2n_tls13_handle_application_secret(conn, S2N_SERVER));
+            }
+            break;
         case CLIENT_FINISHED:
-            GUARD(s2n_tls13_handle_application_secrets(conn));
+            if (conn->mode == S2N_CLIENT) {
+                GUARD(s2n_tls13_handle_master_secret(conn));
+                GUARD(s2n_tls13_handle_application_secret(conn, S2N_SERVER));
+            }
+            GUARD(s2n_tls13_handle_application_secret(conn, S2N_CLIENT));
             break;
         default:
             break;
