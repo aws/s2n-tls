@@ -5,6 +5,7 @@ if (NOT MSVC)
     find_package(Threads REQUIRED)
 endif()
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/modules")
 find_dependency(LibCrypto)
 
 if (BUILD_SHARED_LIBS)
