@@ -172,8 +172,13 @@ int s2n_tls13_parse_record_type(struct s2n_stuffer *stuffer, uint8_t *record_typ
      * The presence of padding does not change the overall record size
      * limitations: the full encoded TLSInnerPlaintext MUST NOT exceed 2^14
      * + 1 octets
+     *
+     * Certain versions of Java can generate inner plaintexts with lengths up to
+     * S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH + 16 (See JDK-8221253)
+     * However, after the padding is stripped, the result will always be no more than
+     * S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH - 1
      */
-    S2N_ERROR_IF(bytes_left > S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH, S2N_ERR_MAX_INNER_PLAINTEXT_SIZE);
+    S2N_ERROR_IF(bytes_left > S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH + 16, S2N_ERR_MAX_INNER_PLAINTEXT_SIZE);
 
     /* set cursor to the end of the stuffer */
     GUARD(s2n_stuffer_skip_read(stuffer, bytes_left));
@@ -197,6 +202,9 @@ int s2n_tls13_parse_record_type(struct s2n_stuffer *stuffer, uint8_t *record_typ
     /* only the original plaintext should remain */
     /* now reset the read cursor at where it should be */
     GUARD(s2n_stuffer_reread(stuffer));
+
+    /* Even in the incorrect case above with up to 16 extra bytes, we should never see too much data after unpadding */
+    S2N_ERROR_IF(s2n_stuffer_data_available(stuffer) > S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH - 1, S2N_ERR_MAX_INNER_PLAINTEXT_SIZE);
 
     return 0;
 }
