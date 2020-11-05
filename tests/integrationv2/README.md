@@ -7,34 +7,30 @@ have all the dependencies installed correctly. The integration test dependencies
  * libs2n (should be in the lib/ directory)
  * openssl (based on the S2N_LIBCRYPTO env var)
  * tox
+ * Compiled Java SSLSocketClient for the Java provider
 
 ## Run all tests
 
-The fastest way to run the integrationv2 tests is to run `make` in the integrationv2 directory.
+The fastest way to run the integrationv2 tests is to run `make` from the S2N root directory.
 
 ```
-ubuntu@host:tests/integrationv2/ $ make
+ubuntu@host:s2n_root/ $ make -C tests/integrationv2 all
 ```
 
-This will automatically setup your PATH and LD_LIBRARY_PATH environment. It will execute `tox` to setup your
+The Makefile automatically sets your PATH and LD_LIBRARY_PATH environment. It will execute `tox` to setup your
 Python environment. Then all the integration tests will be collected and executed.
 
 **Note** If you are running the dynamic record size test you will need to use `sudo`.
 
 ## Run one test
 
-You can run the entire test suite using `sudo make`. You need to use `sudo` if you plan on running the dynamic
-record tests.
-
 If you only want to run a single test, you can set the `TOX_TEST_NAME` environment variable:
 
 ```
-ubuntu@host:tests/integrationv2$ TOX_TEST_NAME=test_happy_path.py::test_s2n_server_happy_path make
+ubuntu@host:s2n_root/ $ TOX_TEST_NAME=test_happy_path.py::test_s2n_server_happy_path make -C tests/integrationv2 test_single
 ```
 
-This will setup your environment correctly, and execute the single test.
-
-# A toy example
+# Writing tests
 
 The happy path test combines thousands of parameters, and has to validate that the
 combinations match. Below is a simple test that demonstrates how lists of parameters
