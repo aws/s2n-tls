@@ -37,8 +37,11 @@ public class SSLSocketClient {
             socket.startHandshake();
             System.out.println("Starting handshake");
 
-            while (stdIn.read(buffer) != -1) {
-                out.write(buffer);
+            while (true) {
+                int read = stdIn.read(buffer);
+                if (read == -1)
+                    break;
+                out.write(buffer, 0, read);
             }
             out.flush();
 
