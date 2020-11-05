@@ -165,9 +165,7 @@ int echo(struct s2n_connection *conn, int sockfd)
                 s2n_errno = S2N_ERR_T_OK;
                 bytes_read = s2n_recv(conn, buffer, STDIO_BUFSIZE, &blocked);
                 if (bytes_read == 0) {
-                    if (blocked == S2N_NOT_BLOCKED) {
-                        return 0;
-                    }
+                    return 0;
                 }
                 if (bytes_read < 0) {
                     if (s2n_error_get_type(s2n_errno) == S2N_ERR_T_BLOCKED) {
@@ -235,7 +233,7 @@ int echo(struct s2n_connection *conn, int sockfd)
                                 S2N_ERROR_PRESERVE_ERRNO();
                             }
                         } else {
-                            // Don't modify the counts if we were blocked from sending
+                            // Only modify the counts if we successfully wrote the data
                             bytes_read -= bytes_written;
                             buf_ptr += bytes_written;
                         }
