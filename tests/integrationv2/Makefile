@@ -63,6 +63,8 @@ test_signature_algorithms:
 	$(call run_tox,$@.py)
 test_version_negotiation:
 	$(call run_tox,$@.py)
+test_single:
+	$(call run_tox,$(TOX_TEST_NAME))
 
 .PHONY : test_client_authentication test_dynamic_record_sizes test_key_update test_happy_path test_session_resumption test_sni_match test_well_known_endpoints test_compatibility_with_oqs_openssl test_fragmentation test_hello_retry_requests test_pq_handshake test_signature_algorithms test_version_negotiation
 all: test_client_authentication test_dynamic_record_sizes test_key_update test_happy_path test_session_resumption test_sni_match test_well_known_endpoints test_compatibility_with_oqs_openssl test_fragmentation test_hello_retry_requests test_pq_handshake test_signature_algorithms test_version_negotiation
