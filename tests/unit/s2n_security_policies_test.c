@@ -294,16 +294,16 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_null);
 
         if (s2n_pq_is_enabled()) {
-            EXPECT_STRING_EQUAL(test_all_policy_name, "test_all");
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, test_all_policy_name));
+            EXPECT_STRING_EQUAL(TEST_ALL, "test_all");
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, TEST_ALL));
             EXPECT_EQUAL(config->security_policy, &security_policy_test_all);
             EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_test_all);
             EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_kms_pq_tls_1_0_2020_07);
             EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
             EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
 
-            EXPECT_STRING_EQUAL(test_all_tls12_policy_name, "test_all_tls12");
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, test_all_tls12_policy_name));
+            EXPECT_STRING_EQUAL(TEST_ALL_TLS12, "test_all_tls12");
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, TEST_ALL_TLS12));
             EXPECT_EQUAL(config->security_policy, &security_policy_test_all_tls12);
             EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_test_all_tls12);
             EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_kms_pq_tls_1_0_2020_07);
@@ -331,16 +331,16 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20140601);
             EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20140601);
         } else {
-            EXPECT_STRING_EQUAL(test_all_policy_name, "test_all_no_pq");
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, test_all_policy_name));
+            EXPECT_STRING_EQUAL(TEST_ALL, "test_all_no_pq");
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, TEST_ALL));
             EXPECT_EQUAL(config->security_policy, &security_policy_test_all_no_pq);
             EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_test_all_no_pq);
             EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
             EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
             EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
 
-            EXPECT_STRING_EQUAL(test_all_tls12_policy_name, "test_all_tls12_no_pq");
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, test_all_tls12_policy_name));
+            EXPECT_STRING_EQUAL(TEST_ALL_TLS12, "test_all_tls12_no_pq");
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, TEST_ALL_TLS12));
             EXPECT_EQUAL(config->security_policy, &security_policy_test_all_tls12_no_pq);
             EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_test_all_tls12_no_pq);
             EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
@@ -398,8 +398,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
 
         if (s2n_pq_is_enabled()) {
-            EXPECT_STRING_EQUAL(test_all_policy_name, "test_all");
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_all_policy_name));
+            EXPECT_STRING_EQUAL(TEST_ALL, "test_all");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, TEST_ALL));
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
             EXPECT_EQUAL(security_policy, &security_policy_test_all);
             EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_test_all);
@@ -407,8 +407,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20200207);
             EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
 
-            EXPECT_STRING_EQUAL(test_all_tls12_policy_name, "test_all_tls12");
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_all_tls12_policy_name));
+            EXPECT_STRING_EQUAL(TEST_ALL_TLS12, "test_all_tls12");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, TEST_ALL_TLS12));
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
             EXPECT_EQUAL(security_policy, &security_policy_test_all_tls12);
             EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_test_all_tls12);
@@ -440,8 +440,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20140601);
             EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20140601);
         } else {
-            EXPECT_STRING_EQUAL(test_all_policy_name, "test_all_no_pq");
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_all_policy_name));
+            EXPECT_STRING_EQUAL(TEST_ALL, "test_all_no_pq");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, TEST_ALL));
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
             EXPECT_EQUAL(security_policy, &security_policy_test_all_no_pq);
             EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_test_all_no_pq);
@@ -449,8 +449,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20200207);
             EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
 
-            EXPECT_STRING_EQUAL(test_all_tls12_policy_name, "test_all_tls12_no_pq");
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_all_tls12_policy_name));
+            EXPECT_STRING_EQUAL(TEST_ALL_TLS12, "test_all_tls12_no_pq");
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, TEST_ALL_TLS12));
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
             EXPECT_EQUAL(security_policy, &security_policy_test_all_tls12_no_pq);
             EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_test_all_tls12_no_pq);
