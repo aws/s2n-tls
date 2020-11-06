@@ -371,6 +371,39 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
         S2N_ERROR_IF(op_code <= 0, S2N_ERR_CERT_UNTRUSTED);
         validator->state = VALIDATED;
+
+        /* Check to ensure certificate signatures appear in certificate_signature_preferences.
+         * Additionally we only want this check to apply in TLS1.3 */
+        if (conn->config->security_policy->certificate_signature_preferences &&
+                conn->actual_protocol_version >= S2N_TLS13) {
+            
+            STACK_OF(X509) *validated_chain = X509_STORE_CTX_get1_chain(validator->store_ctx);
+
+            if (!validated_chain) {
+                goto clean_up;
+            }
+
+            const int certs_in_chain = sk_X509_num(validated_chain);
+
+            if (!certs_in_chain) {
+                goto clean_up;
+            }
+
+            /* Do not validate the root certificate */
+            for (int i = 0; i < certs_in_chain - 1; i++) {
+                bool out = 0;
+                X509 *cert = sk_X509_value(validated_chain, i);
+
+                GUARD_AS_POSIX(s2n_is_certificate_sig_scheme_supported(cert, 
+                        conn->config->security_policy->certificate_signature_preferences, &out));
+                S2N_ERROR_IF(out == false, S2N_ERR_CERT_UNTRUSTED);
+            }
+
+            clean_up:
+            if (validated_chain) {
+                wipe_cert_chain(validated_chain);
+            }
+        }
     }
 
     if (conn->actual_protocol_version >= S2N_TLS13) {
@@ -548,4 +581,27 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
 
     return ret_val;
 #endif /* S2N_OCSP_STAPLING_SUPPORTED */
+}
+
+S2N_RESULT s2n_is_certificate_sig_scheme_supported(X509 *x509_cert, const struct s2n_signature_preferences *signature_preferences, bool *out) {
+
+    ENSURE_REF(signature_preferences);
+    ENSURE_REF(x509_cert);
+    ENSURE_REF(out);
+
+    int nid = X509_get_signature_nid(x509_cert);
+    /* TODO: add method to differentiate between rsa_pss_pss certs and rsa_pss_rsae certs */
+    const struct s2n_signature_scheme *candidate = {0};
+
+    for (int i = 0; i < signature_preferences->count; i++) {
+        candidate = signature_preferences->signature_schemes[i];
+
+        if (candidate->libcrypto_nid == nid) {
+            *out = true;
+            return S2N_RESULT_OK;
+        }
+    }
+
+    *out = false;
+    return S2N_RESULT_OK;
 }

@@ -17,6 +17,8 @@
 
 #include "api/s2n.h"
 
+#include "tls/s2n_signature_scheme.h"
+
 #include <openssl/x509v3.h>
 
 /* one day, BoringSSL/AWS-LC, may add ocsp stapling support. Let's future proof this a bit by grabbing a definition
@@ -87,7 +89,7 @@ void s2n_x509_trust_store_wipe(struct s2n_x509_trust_store *store);
 /** Initialize the validator in unsafe mode. No validity checks for OCSP, host checks, or X.509 will be performed. */
 int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *validator);
 
-/** Initialize the validator in safe mode. Will use trust store to validate x.509 cerficiates, ocsp responses, and will call
+/** Initialize the validator in safe mode. Will use trust store to validate x.509 certificates, ocsp responses, and will call
  *  the verify host callback to determine if a subject name or alternative name from the cert should be trusted.
  *  Returns 0 on success, and an S2N_ERR_* on failure.
  */
@@ -122,5 +124,5 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x509_validator *validator,  struct s2n_connection *conn,
                                                                                 const uint8_t *ocsp_response, uint32_t size);
 
-
-
+/* Checks to see if a certificate has a signature algorithm that's in our certificate_signature_preferences list */
+S2N_RESULT s2n_is_certificate_sig_scheme_supported(X509 *x509_cert, const struct s2n_signature_preferences *signature_preferences, bool *out);

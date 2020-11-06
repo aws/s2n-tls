@@ -131,7 +131,12 @@ int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn
     GUARD(s2n_stuffer_read_uint16(in, &actual_iana_val));
 
     const struct s2n_signature_preferences *signature_preferences = NULL;
-    GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
+
+    if (conn->config->security_policy->certificate_signature_preferences && conn->actual_protocol_version >= S2N_TLS13) {
+        signature_preferences = conn->config->security_policy->certificate_signature_preferences;
+    } else {
+        GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
+    }
     notnull_check(signature_preferences);
 
     for (size_t i = 0; i < signature_preferences->count; i++) {

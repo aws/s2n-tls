@@ -130,6 +130,8 @@ int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_
 #define S2N_ONE_TRAILING_BYTE_CERT_BIN         "../pems/one_trailing_byte_cert.bin"
 #define S2N_TWO_TRAILING_BYTE_CERT_BIN         "../pems/two_trailing_byte_cert.bin"
 
+#define S2N_SHA1_ROOT_SIGNATURE_CERT_CHAIN     "../pems/rsa_sha1_root_signature_chain.pem"
+
 #define S2N_DEFAULT_TEST_CERT_CHAIN  S2N_RSA_2048_PKCS1_CERT_CHAIN
 #define S2N_DEFAULT_TEST_PRIVATE_KEY S2N_RSA_2048_PKCS1_KEY
 

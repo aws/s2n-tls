@@ -202,6 +202,7 @@ int main(int argc, char **argv)
             .kem_preferences = security_policy->kem_preferences,
             .signature_preferences = &test_preferences,
             .ecc_preferences = security_policy->ecc_preferences,
+            .certificate_signature_preferences = &test_preferences,
         };
 
         config->security_policy = &test_security_policy;
@@ -246,6 +247,22 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_get_and_validate_negotiated_signature_scheme(conn, &choice, &result));
             EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha224.iana_value);
             EXPECT_BYTEARRAY_EQUAL(&result, &s2n_rsa_pkcs1_sha224, sizeof(struct s2n_signature_scheme));
+
+            s2n_stuffer_reread(&choice);
+            conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_get_and_validate_negotiated_signature_scheme(conn, &choice, &result),
+                    S2N_ERR_INVALID_SIGNATURE_SCHEME);
+        }
+
+        /* Test: Invalidate SHA-1 signatures in not TLS1.3 */
+        {
+            s2n_stuffer_wipe(&choice);
+            s2n_stuffer_write_uint16(&choice, s2n_rsa_pkcs1_sha1.iana_value);
+
+            conn->actual_protocol_version = S2N_TLS12;
+            EXPECT_SUCCESS(s2n_get_and_validate_negotiated_signature_scheme(conn, &choice, &result));
+            EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha1.iana_value);
+            EXPECT_BYTEARRAY_EQUAL(&result, &s2n_rsa_pkcs1_sha1, sizeof(struct s2n_signature_scheme));
 
             s2n_stuffer_reread(&choice);
             conn->actual_protocol_version = S2N_TLS13;
