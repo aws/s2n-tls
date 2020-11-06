@@ -164,7 +164,7 @@ ifndef COV_TOOL
 endif
 
 # Determine if cpuid.h is available
-TRY_COMPILE_CPUID := $(shell echo "\#include <cpuid.h>\nint main() { return 0; }" | $(CC) -fsyntax-only -xc - > /dev/null 2>&1; echo $$?)
+TRY_COMPILE_CPUID := $(shell echo "\#include <cpuid.h>\nint main() { return 0; }" | $(CC) -o test_cpuid.o -xc - > /dev/null 2>&1; echo $$?; rm test_cpuid.o > /dev/null 2>&1)
 ifeq ($(TRY_COMPILE_CPUID), 0)
 	DEFAULT_CFLAGS += -DS2N_CPUID_AVAILABLE
 endif
