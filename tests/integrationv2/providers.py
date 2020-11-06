@@ -157,12 +157,15 @@ class S2N(Provider):
             cmd_line.append('-r')
 
         cipher_prefs = 'test_all_tls12'
-        if self.options.cipher is Ciphers.KMS_PQ_TLS_1_0_2019_06:
-            cipher_prefs = 'KMS-PQ-TLS-1-0-2019-06'
-        elif self.options.cipher is Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11:
-            cipher_prefs = 'PQ-SIKE-TEST-TLS-1-0-2019-11'
-        elif self.options.protocol is Protocols.TLS13:
+        if self.options.protocol is Protocols.TLS13:
             cipher_prefs = 'test_all'
+
+        if self.options.cipher is Ciphers.KMS_PQ_TLS_1_0_2019_06 or \
+                self.options.cipher is Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11 or \
+                self.options.cipher is Ciphers.KMS_PQ_TLS_1_0_2020_07 or \
+                self.options.cipher is Ciphers.KMS_PQ_TLS_1_0_2020_02 or \
+                self.options.cipher is Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02:
+            cipher_prefs = self.options.cipher.name
 
         cmd_line.extend(['-c', cipher_prefs])
 
