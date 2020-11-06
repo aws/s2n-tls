@@ -19,6 +19,7 @@
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_kem.h"
 #include "utils/s2n_safety.h"
+#include "pq-crypto/s2n_pq.h"
 
 #define KAT_FILE_NAME "../unit/kats/sike_r2.kat"
 
@@ -34,7 +35,16 @@ int s2n_fuzz_init(int *argc, char **argv[]) {
 }
 
 int s2n_fuzz_test(const uint8_t *buf, size_t len) {
+    /* Test the portable C code */
+    GUARD_AS_POSIX(s2n_disable_sikep434r2_asm());
     GUARD(s2n_kem_recv_ciphertext_fuzz_test(buf, len, &kem_params));
+
+    /* Test the assembly, if available; if not, don't bother testing the C again */
+    GUARD_AS_POSIX(s2n_try_enable_sikep434r2_asm());
+    if (s2n_sikep434r2_asm_is_enabled()) {
+        GUARD(s2n_kem_recv_ciphertext_fuzz_test(buf, len, &kem_params));
+    }
+
     return S2N_SUCCESS;
 }
 

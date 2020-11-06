@@ -10,12 +10,12 @@
 // Inputs: a, b in [0, 2*p434-1]
 // Output: c in [0, 2*p434-1]
 void fpadd434(const digit_t *a, const digit_t *b, digit_t *c) {
-#if !defined(S2N_NO_PQ_ASM)
-    if (s2n_check_sike434_r2_asm_compatibility()) {
+#if defined(S2N_SIKEP434R2_ASM)
+    if (s2n_sikep434r2_asm_is_enabled()) {
         fpadd434_asm(a, b, c);
         return;
     }
-#endif /* S2N_NO_PQ_ASM */
+#endif
 
 	unsigned int i, carry = 0;
 	digit_t mask;
@@ -40,12 +40,12 @@ void fpadd434(const digit_t *a, const digit_t *b, digit_t *c) {
 // Inputs: a, b in [0, 2*p434-1]
 // Output: c in [0, 2*p434-1]
 void fpsub434(const digit_t *a, const digit_t *b, digit_t *c) {
-#if !defined(S2N_NO_PQ_ASM)
-    if (s2n_check_sike434_r2_asm_compatibility()) {
+#if defined(S2N_SIKEP434R2_ASM)
+    if (s2n_sikep434r2_asm_is_enabled()) {
         fpsub434_asm(a, b, c);
         return;
     }
-#endif /* S2N_NO_PQ_ASM */
+#endif
 
 	unsigned int i, borrow = 0;
 	digit_t mask;
@@ -137,13 +137,13 @@ void digit_x_digit(const digit_t a, const digit_t b, digit_t *c) {
 
 // Multiprecision comba multiply, c = a*b, where lng(a) = lng(b) = nwords.
 void mp_mul(const digit_t *a, const digit_t *b, digit_t *c, const unsigned int nwords) {
-#if !defined(S2N_NO_PQ_ASM)
-    if (s2n_check_sike434_r2_asm_compatibility()) {
+#if defined(S2N_SIKEP434R2_ASM)
+    if (s2n_sikep434r2_asm_is_enabled()) {
         UNREFERENCED_PARAMETER(nwords);
         mul434_asm(a, b, c);
         return;
     }
-#endif /* S2N_NO_PQ_ASM */
+#endif
 
 	unsigned int i, j, carry;
 	digit_t t = 0, u = 0, v = 0, UV[2];
@@ -181,12 +181,12 @@ void mp_mul(const digit_t *a, const digit_t *b, digit_t *c, const unsigned int n
 // If ma < 2^448*p434, the output mc is in the range [0, 2*p434-1].
 // ma is assumed to be in Montgomery representation.
 void rdc_mont(const digit_t *ma, digit_t *mc) {
-#if !defined(S2N_NO_PQ_ASM)
-    if (s2n_check_sike434_r2_asm_compatibility()) {
+#if defined(S2N_SIKEP434R2_ASM)
+    if (s2n_sikep434r2_asm_is_enabled()) {
         rdc434_asm(ma, mc);
         return;
     }
-#endif /* S2N_NO_PQ_ASM */
+#endif
 
 	unsigned int i, j, carry, count = p434_ZERO_WORDS;
 	digit_t UV[2], t = 0, u = 0, v = 0;

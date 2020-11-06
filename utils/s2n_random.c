@@ -28,11 +28,9 @@
 #include <errno.h>
 #include <time.h>
 
-#include "utils/s2n_compiler.h"
 #include "s2n.h"
 
-/* clang can define gcc version to be < 4.3, but cpuid.h exists for most releases */
-#if ((defined(__x86_64__) || defined(__i386__)) && (defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,3,0)))
+#if defined(S2N_CPUID_AVAILABLE)
 #include <cpuid.h>
 #endif
 
@@ -81,9 +79,8 @@ static s2n_rand_cleanup_callback s2n_rand_cleanup_cb = s2n_rand_cleanup_impl;
 static s2n_rand_seed_callback s2n_rand_seed_cb = s2n_rand_urandom_impl;
 static s2n_rand_mix_callback s2n_rand_mix_cb = s2n_rand_urandom_impl;
 
-bool s2n_cpu_supports_rdrand()
-{
-#if ((defined(__x86_64__) || defined(__i386__)) && (defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,3,0)))
+bool s2n_cpu_supports_rdrand() {
+#if defined(S2N_CPUID_AVAILABLE)
     uint32_t eax, ebx, ecx, edx;
     if (!__get_cpuid(1, &eax, &ebx, &ecx, &edx)) {
         return false;

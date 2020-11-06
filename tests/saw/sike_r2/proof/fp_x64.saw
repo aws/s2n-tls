@@ -54,107 +54,85 @@ let mp_mul_single_new_spec n m = do {
     return ();
 };
 
-// This doesn't really prove much about the functionality of s2n_cpuid() since
-// the cpuid assembly instruction isn't provable
-//  https://github.com/GaloisInc/macaw/blob/master/x86_symbolic/src/Data/Macaw/X86/Crucible.hs#L244
-let cpuid_spec = do {
-    (eax, eaxp) <- ptr_to_fresh "eax" (llvm_array 1 i32);
-    (ebx, ebxp) <- ptr_to_fresh "ebx" (llvm_array 1 i32);
-    (ecx, ecxp) <- ptr_to_fresh "ecx" (llvm_array 1 i32);
-    (edx, edxp) <- ptr_to_fresh "edx" (llvm_array 1 i32);
-    leaf <- crucible_fresh_var "leaf" i32;
-
-    crucible_execute_func [eaxp, ebxp, ecxp, edxp, crucible_term leaf];
-
-    points_to_fresh eaxp "_eax" (llvm_array 1 i32);
-    points_to_fresh ebxp "_ebc" (llvm_array 1 i32);
-    points_to_fresh ecxp "_ecx" (llvm_array 1 i32);
-    points_to_fresh edxp "_edx" (llvm_array 1 i32);
-
-    return ();
-};
-
 // For any machine on which we are running the x86_64 proofs,
-// s2n_check_sike434_r2_asm_compatibility() should always return 1
-let check_sike434_r2_asm_compatibility_spec = do {
+// s2n_sikep434r2_asm_is_enabled() should always return 1 (true)
+let s2n_sikep434r2_asm_is_enabled_spec = do {
     crucible_execute_func [];
-    crucible_return (crucible_term {{ 1 : [32] }});
+    crucible_return (crucible_term {{ 1 : [1] }});
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // Proof commands
 
-// Functions relying on the cpuid assembly call aren't provable, so we just override with the specs
-cpuid_ov <- crucible_llvm_unsafe_assume_spec m "s2n_cpuid" cpuid_spec;
-sike434_asm_compat_ov <- crucible_llvm_unsafe_assume_spec m "s2n_check_sike434_r2_asm_compatibility" check_sike434_r2_asm_compatibility_spec;
+s2n_sikep434r2_asm_is_enabled_ov <- crucible_llvm_unsafe_assume_spec m "s2n_sikep434r2_asm_is_enabled" s2n_sikep434r2_asm_is_enabled_spec;
 
 ///////////////////////////////////////////////////////////////////////////////
 // fpadd
 
 fpadd_asm_ov <- verify_asm fpadd_asm_fun_name fpadd_spec;
-fpadd_ov <- verify fpadd_fun_name [sike434_asm_compat_ov, fpadd_asm_ov] fpadd_spec;
+fpadd_ov <- verify fpadd_fun_name [s2n_sikep434r2_asm_is_enabled_ov, fpadd_asm_ov] fpadd_spec;
 
 fpadd_asm_left_ov <- verify_asm fpadd_asm_fun_name fpadd_left_spec;
-fpadd_left_ov <- verify fpadd_fun_name [sike434_asm_compat_ov, fpadd_asm_left_ov] fpadd_left_spec;
+fpadd_left_ov <- verify fpadd_fun_name [s2n_sikep434r2_asm_is_enabled_ov, fpadd_asm_left_ov] fpadd_left_spec;
 
 fpadd_asm_right_ov <- verify_asm fpadd_asm_fun_name fpadd_right_spec;
-fpadd_right_ov <- verify fpadd_fun_name [sike434_asm_compat_ov, fpadd_asm_right_ov] fpadd_right_spec;
+fpadd_right_ov <- verify fpadd_fun_name [s2n_sikep434r2_asm_is_enabled_ov, fpadd_asm_right_ov] fpadd_right_spec;
 
 fpadd_asm_same_ov <- verify_asm fpadd_asm_fun_name fpadd_same_spec;
-fpadd_same_ov <- verify fpadd_fun_name [sike434_asm_compat_ov, fpadd_asm_same_ov] fpadd_same_spec;
+fpadd_same_ov <- verify fpadd_fun_name [s2n_sikep434r2_asm_is_enabled_ov, fpadd_asm_same_ov] fpadd_same_spec;
 
 fpadd_asm_pair_ov <- verify_asm fpadd_asm_fun_name fpadd_pair_spec;
-fpadd_pair_ov <- verify fpadd_fun_name [sike434_asm_compat_ov, fpadd_asm_pair_ov] fpadd_pair_spec;
+fpadd_pair_ov <- verify fpadd_fun_name [s2n_sikep434r2_asm_is_enabled_ov, fpadd_asm_pair_ov] fpadd_pair_spec;
 
 ///////////////////////////////////////////////////////////////////////////////
 // fpsub
 
 fpsub_asm_ov <- verify_asm fpsub_asm_fun_name fpsub_spec;
-fpsub_ov <- verify fpsub_fun_name [sike434_asm_compat_ov, fpsub_asm_ov] fpsub_spec;
+fpsub_ov <- verify fpsub_fun_name [s2n_sikep434r2_asm_is_enabled_ov, fpsub_asm_ov] fpsub_spec;
 
 fpsub_asm_left_ov <- verify_asm fpsub_asm_fun_name fpsub_left_spec;
-fpsub_left_ov <- verify fpsub_fun_name [sike434_asm_compat_ov, fpsub_asm_left_ov] fpsub_left_spec;
+fpsub_left_ov <- verify fpsub_fun_name [s2n_sikep434r2_asm_is_enabled_ov, fpsub_asm_left_ov] fpsub_left_spec;
 
 fpsub_asm_right_ov <- verify_asm fpsub_asm_fun_name fpsub_right_spec;
-fpsub_right_ov <- verify fpsub_fun_name [sike434_asm_compat_ov, fpsub_asm_right_ov] fpsub_right_spec;
+fpsub_right_ov <- verify fpsub_fun_name [s2n_sikep434r2_asm_is_enabled_ov, fpsub_asm_right_ov] fpsub_right_spec;
 
 fpsub_asm_same_ov <- verify_asm fpsub_asm_fun_name fpsub_same_spec;
-fpsub_same_ov <- verify fpsub_fun_name [sike434_asm_compat_ov, fpsub_asm_same_ov] fpsub_same_spec;
+fpsub_same_ov <- verify fpsub_fun_name [s2n_sikep434r2_asm_is_enabled_ov, fpsub_asm_same_ov] fpsub_same_spec;
 
 ///////////////////////////////////////////////////////////////////////////////
 // rdc_mont
 
 rdc_mont_asm_ov <- verify_asm rdc_asm_fun_name rdc_mont_spec;
-rdc_mont_ov <- verify rdc_mont_fun_name [sike434_asm_compat_ov, rdc_mont_asm_ov] rdc_mont_spec;
+rdc_mont_ov <- verify rdc_mont_fun_name [s2n_sikep434r2_asm_is_enabled_ov, rdc_mont_asm_ov] rdc_mont_spec;
 
 ///////////////////////////////////////////////////////////////////////////////
 // mp_mul
 
 mul_asm_ov <- verify_asm mp_mul_asm_fun_name (mp_mul_asm_spec nwords_field twice_nwords_field);
-mul_ov <- verify mp_mul_fun_name [sike434_asm_compat_ov, mul_asm_ov] (mp_mul_new_spec nwords_field twice_nwords_field);
+mul_ov <- verify mp_mul_fun_name [s2n_sikep434r2_asm_is_enabled_ov, mul_asm_ov] (mp_mul_new_spec nwords_field twice_nwords_field);
 
 mul_asm_single_ov <- verify_asm mp_mul_asm_fun_name
     (mp_mul_asm_single_spec nwords_field twice_nwords_field);
 mul_single_ov <- verify mp_mul_fun_name
-    [sike434_asm_compat_ov, mul_asm_single_ov] (mp_mul_single_new_spec nwords_field twice_nwords_field);
+    [s2n_sikep434r2_asm_is_enabled_ov, mul_asm_single_ov] (mp_mul_single_new_spec nwords_field twice_nwords_field);
 
 ///////////////////////////////////////////////////////////////////////////////
 // mp_add
 
 mp_add_asm_ov <- verify_asm mp_add_asm_fun_name mp_addfast_spec;
-mp_addfast_ov <- verify mp_addfast_fun_name [sike434_asm_compat_ov, mp_add_asm_ov] mp_addfast_spec;
+mp_addfast_ov <- verify mp_addfast_fun_name [s2n_sikep434r2_asm_is_enabled_ov, mp_add_asm_ov] mp_addfast_spec;
 
 ///////////////////////////////////////////////////////////////////////////////
 // mp_subaddx2
 
 mp_subaddx2_asm_left_ov <- verify_asm mp_subaddx2_asm_fun_name mp_subaddfast_left_spec;
-mp_subaddfast_left_ov <- verify mp_subaddfast_fun_name [sike434_asm_compat_ov, mp_subaddx2_asm_left_ov] mp_subaddfast_left_spec;
+mp_subaddfast_left_ov <- verify mp_subaddfast_fun_name [s2n_sikep434r2_asm_is_enabled_ov, mp_subaddx2_asm_left_ov] mp_subaddfast_left_spec;
 
 ///////////////////////////////////////////////////////////////////////////////
 // mp_dblsubx2
 
 mp_dblsubx2_asm_ov <- verify_asm mp_dblsubx2_asm_fun_name mp_dblsubfast_spec;
-mp_dblsubfast_ov <- verify mp_dblsubfast_fun_name [sike434_asm_compat_ov, mp_dblsubx2_asm_ov] mp_dblsubfast_spec;
+mp_dblsubfast_ov <- verify mp_dblsubfast_fun_name [s2n_sikep434r2_asm_is_enabled_ov, mp_dblsubx2_asm_ov] mp_dblsubfast_spec;
 
 let fast_ovs =
   [ mp_addfast_ov

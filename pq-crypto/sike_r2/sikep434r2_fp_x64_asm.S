@@ -14,21 +14,21 @@
 #define reg_p3  rdx
 
 // Define addition instructions
-#ifdef _ADX_
+#ifdef S2N_ADX
 
 #define ADD1    adox
 #define ADC1    adox
 #define ADD2    adcx
 #define ADC2    adcx
 
-#else // _ADX_
+#else // S2N_ADX
 
 #define ADD1    add
 #define ADC1    adc
 #define ADD2    add
 #define ADC2    adc
 
-#endif // _ADX_
+#endif // S2N_ADX
 
 // The constants below (asm_p434, asm_p434p1, and asm_p434x2) are duplicated from
 // P434.c, and correspond to the arrays p434, p434p1, and p434x2. The values are
@@ -214,7 +214,7 @@ fpsub434_asm:
 // Temps:   regs T0:T9
 /////////////////////////////////////////////////////////////////
 
-#ifdef _ADX_
+#ifdef S2N_ADX
 .macro MUL192_SCHOOL M0, M1, C, T0, T1, T2, T3, T4, T5, T6
     mov    rdx, \M0
     mulx   \T0, \T1, \M1     // T0:T1 = A0*B0
@@ -329,7 +329,7 @@ fpsub434_asm:
     mov    56\C, \T8         // C7_final
 .endm 
 
-#else // _ADX_
+#else // S2N_ADX
 
 .macro MUL192_SCHOOL M0, M1, C, T0, T1, T2, T3, T4, T5, T6
     mov    rdx, \M0
@@ -439,7 +439,7 @@ fpsub434_asm:
     adc    \T8, 0
     mov    56\C, \T8         // C7_final
 .endm
-#endif // _ADX_
+#endif // S2N_ADX
 
 //*****************************************************************************
 //  434-bit multiplication using Karatsuba (one level), schoolbook (one level)
@@ -607,7 +607,7 @@ mul434_asm:
     ADC1   \T4, rax            // T4 <- C4_final
 .endm
 
-#ifdef _ADX_
+#ifdef S2N_ADX
 .macro MUL128x256_SCHOOL M0, M1, T0, T1, T2, T3, T4, T5, T6 
     mov    rdx, \M0
     mulx   \T1, \T0, \M1       // T0 <- C0_final    
@@ -637,7 +637,7 @@ mul434_asm:
     ADC1   \T5, rax 
 .endm
 
-#else // _ADX_
+#else // S2N_ADX
 
 .macro MUL128x256_SCHOOL M0, M1, T0, T1, T2, T3, T4, T5, T6 
     mov    rdx, \M0
@@ -665,7 +665,7 @@ mul434_asm:
     adc    \T4, rdx  
     adc    \T5, 0 
 .endm
-#endif // _ADX_
+#endif // S2N_ADX
 
 //**************************************************************************************
 //  Montgomery reduction

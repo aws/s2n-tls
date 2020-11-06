@@ -21,6 +21,7 @@
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_kem.h"
 #include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 
 #define RSP_FILE "kats/sike_r2.kat"
 
@@ -35,7 +36,16 @@ int main(int argc, char **argv, char **envp) {
         END_TEST();
     }
 
+    /* Test the portable C code */
+    EXPECT_OK(s2n_disable_sikep434r2_asm());
+    EXPECT_FALSE(s2n_sikep434r2_asm_is_enabled());
     EXPECT_SUCCESS(s2n_test_kem_with_kat(&s2n_sike_p434_r2, RSP_FILE));
+
+    /* Test the assembly, if available; if not, don't bother testing the C again */
+    EXPECT_OK(s2n_try_enable_sikep434r2_asm());
+    if (s2n_sikep434r2_asm_is_enabled()) {
+        EXPECT_SUCCESS(s2n_test_kem_with_kat(&s2n_sike_p434_r2, RSP_FILE));
+    }
 
 #endif
 
