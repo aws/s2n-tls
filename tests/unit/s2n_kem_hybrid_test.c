@@ -102,6 +102,10 @@ int main() {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
 
+    if (!s2n_pq_is_enabled()) {
+        END_TEST();
+    }
+
     for (size_t i = 0; i < s2n_array_len(test_vectors); i++) {
         const struct s2n_kem_hybrid_test_vector vector = test_vectors[i];
         const struct s2n_kem *kem = vector.kem;
@@ -111,21 +115,16 @@ int main() {
         uint32_t server_key_msg_len = vector.server_key_msg_len;
         uint32_t client_key_msg_len = vector.client_key_msg_len;
 
-        if (s2n_pq_is_enabled()) {
-            /* Test the C code */
-            EXPECT_OK(vector.disable_asm());
+        /* Test the C code */
+        EXPECT_OK(vector.disable_asm());
+        EXPECT_SUCCESS(s2n_test_hybrid_ecdhe_kem_with_kat(kem, cipher_suite, security_policy_name,
+                kat_file, server_key_msg_len, client_key_msg_len));
+
+        /* Test the assembly, if available */
+        EXPECT_OK(vector.enable_asm());
+        if (vector.asm_is_enabled()) {
             EXPECT_SUCCESS(s2n_test_hybrid_ecdhe_kem_with_kat(kem, cipher_suite, security_policy_name,
                     kat_file, server_key_msg_len, client_key_msg_len));
-
-            /* Test the assembly, if available */
-            EXPECT_OK(vector.enable_asm());
-            if (vector.asm_is_enabled()) {
-                EXPECT_SUCCESS(s2n_test_hybrid_ecdhe_kem_with_kat(kem, cipher_suite, security_policy_name,
-                        kat_file, server_key_msg_len, client_key_msg_len));
-            }
-        } else {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_test_hybrid_ecdhe_kem_with_kat(kem, cipher_suite, security_policy_name,
-                    kat_file, server_key_msg_len, client_key_msg_len), S2N_ERR_PQ_DISABLED);
         }
     }
 

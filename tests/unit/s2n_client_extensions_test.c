@@ -1311,10 +1311,6 @@ int main(int argc, char **argv)
         if (s2n_pq_is_enabled()) {
             EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
                     client_hello_len, "KMS-PQ-TLS-1-0-2020-02", TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2, &io_pair));
-        } else {
-            EXPECT_FAILURE_WITH_ERRNO(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
-                    client_hello_len, "KMS-PQ-TLS-1-0-2020-02", TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2, &io_pair),
-                    S2N_ERR_PQ_DISABLED);
         }
     }
 
@@ -1361,10 +1357,6 @@ int main(int argc, char **argv)
         if (s2n_pq_is_enabled()) {
             EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
                     client_hello_len, "KMS-PQ-TLS-1-0-2019-06", TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1, &io_pair));
-        } else {
-            EXPECT_FAILURE_WITH_ERRNO(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
-                    client_hello_len, "KMS-PQ-TLS-1-0-2019-06", TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R1, &io_pair),
-                    S2N_ERR_PQ_DISABLED);
         }
     }
 
@@ -1411,10 +1403,6 @@ int main(int argc, char **argv)
         if (s2n_pq_is_enabled()) {
             EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
                     client_hello_len, "KMS-PQ-TLS-1-0-2020-02", TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2, &io_pair));
-        } else {
-            EXPECT_FAILURE_WITH_ERRNO(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
-                    client_hello_len, "KMS-PQ-TLS-1-0-2020-02", TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2, &io_pair),
-                    S2N_ERR_PQ_DISABLED);
         }
     }
 
@@ -1446,9 +1434,6 @@ int main(int argc, char **argv)
         if (s2n_pq_is_enabled()) {
             EXPECT_SUCCESS(negotiate_kem(NULL, 0, client_hello_message, client_hello_len,
                     "KMS-PQ-TLS-1-0-2020-02", TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2, &io_pair));
-        } else {
-            EXPECT_FAILURE_WITH_ERRNO(negotiate_kem(NULL, 0, client_hello_message, client_hello_len,
-                    "KMS-PQ-TLS-1-0-2020-02", TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R2, &io_pair), S2N_ERR_PQ_DISABLED);
         }
     }
 
@@ -1493,9 +1478,6 @@ int main(int argc, char **argv)
         if (s2n_pq_is_enabled()) {
             EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
                     client_hello_len, "KMS-PQ-TLS-1-0-2020-02", -1, &io_pair));
-        } else {
-            EXPECT_FAILURE_WITH_ERRNO(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
-                    client_hello_len, "KMS-PQ-TLS-1-0-2020-02", -1, &io_pair), S2N_ERR_PQ_DISABLED);
         }
     }
 
@@ -1540,9 +1522,6 @@ int main(int argc, char **argv)
         if (s2n_pq_is_enabled()) {
             EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
                     client_hello_len, "KMS-PQ-TLS-1-0-2019-06", -1, &io_pair));
-        } else {
-            EXPECT_FAILURE_WITH_ERRNO(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
-                    client_hello_len, "KMS-PQ-TLS-1-0-2019-06", -1, &io_pair), S2N_ERR_PQ_DISABLED);
         }
     }
 
@@ -1587,9 +1566,6 @@ int main(int argc, char **argv)
         if (s2n_pq_is_enabled()) {
             EXPECT_SUCCESS(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
                     client_hello_len, "KMS-PQ-TLS-1-0-2019-06", -1, &io_pair));
-        } else {
-            EXPECT_FAILURE_WITH_ERRNO(negotiate_kem(client_extensions, client_extensions_len, client_hello_message,
-                    client_hello_len, "KMS-PQ-TLS-1-0-2019-06", -1, &io_pair), S2N_ERR_PQ_DISABLED);
         }
     }
 
