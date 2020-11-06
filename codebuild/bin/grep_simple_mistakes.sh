@@ -83,7 +83,6 @@ done
 # part of BEGIN_TEST().
 S2N_FILES_TEST_ALL_POLICY_CHECK=$(find "$PWD" -type f -name "s2n*.[ch]" -path "*")
 for file in $S2N_FILES_TEST_ALL_POLICY_CHECK; do
-  printf "$file\\n"
   TEST_ALL_CONFIG=`grep -rne 's2n_config_set_cipher_preferences(.*, "test_all")' $file`
   TEST_ALL_CONN=`grep -rne 's2n_connection_set_cipher_preferences(.*, "test_all")' $file`
   TEST_ALL_TLS12_CONFIG=`grep -rne 's2n_config_set_cipher_preferences(.*, "test_all_tls12")' $file`
