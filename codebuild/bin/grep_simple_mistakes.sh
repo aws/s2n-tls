@@ -88,22 +88,26 @@ for file in $S2N_FILES_TEST_ALL_POLICY_CHECK; do
   TEST_ALL_TLS12_CONFIG=`grep -rne 's2n_config_set_cipher_preferences(.*, "test_all_tls12")' $file`
   TEST_ALL_TLS12_CONN=`grep -rne 's2n_connection_set_cipher_preferences(.*, "test_all_tls12")' $file`
 
-    if [ "${#TEST_ALL_CONFIG}" != "0" ]; then
+  if [ "${#TEST_ALL_CONFIG}" != "0" ]; then
     FAILED=1
     printf "\e[1;34mGrep for 's2n_config_set_cipher_preferences(*, \"test_all\")' check failed in $file:\e[0m\n$TEST_ALL_CONFIG\n\n"
   fi
+
   if [ "${#TEST_ALL_CONN}" != "0" ]; then
     FAILED=1
     printf "\e[1;34mGrep for 's2n_connection_set_cipher_preferences(*, \"test_all\")' check failed in $file:\e[0m\n$TEST_ALL_CONN\n\n"
   fi
+
   if [ "${#TEST_ALL_TLS12_CONFIG}" != "0" ]; then
     FAILED=1
     printf "\e[1;34mGrep for 's2n_config_set_cipher_preferences(*, \"test_all_tls12\")' check failed in $file:\e[0m\n$TEST_ALL_TLS12_CONFIG\n\n"
   fi
-    if [ "${#TEST_ALL_TLS12_CONN}" != "0" ]; then
+
+  if [ "${#TEST_ALL_TLS12_CONN}" != "0" ]; then
     FAILED=1
     printf "\e[1;34mGrep for 's2n_connection_set_cipher_preferences(*, \"test_all_tls12\")' check failed in $file:\e[0m\n$TEST_ALL_TLS12_CONN\n\n"
   fi
+
 done
 
 if [ $FAILED == 1 ]; then
