@@ -36,7 +36,7 @@ static S2N_RESULT s2n_noop_asm() {
     return S2N_RESULT_OK;
 }
 
-static bool no_asm_available() {
+static bool s2n_no_asm_available() {
     return false;
 }
 
@@ -48,7 +48,7 @@ static const struct s2n_kem_hybrid_test_vector test_vectors[] = {
             .kat_file = "kats/hybrid_ecdhe_bike_r1.kat",
             .server_key_msg_len = 2875,
             .client_key_msg_len = 2610,
-            .asm_is_enabled = no_asm_available,
+            .asm_is_enabled = s2n_no_asm_available,
             .enable_asm = s2n_noop_asm,
             .disable_asm = s2n_noop_asm,
         },
@@ -59,7 +59,7 @@ static const struct s2n_kem_hybrid_test_vector test_vectors[] = {
             .kat_file = "kats/hybrid_ecdhe_bike_r2.kat",
             .server_key_msg_len = 3279,
             .client_key_msg_len = 3014,
-            .asm_is_enabled = no_asm_available,
+            .asm_is_enabled = s2n_no_asm_available,
             .enable_asm = s2n_noop_asm,
             .disable_asm = s2n_noop_asm,
         },
@@ -70,7 +70,7 @@ static const struct s2n_kem_hybrid_test_vector test_vectors[] = {
             .kat_file = "kats/hybrid_ecdhe_sike_r1.kat",
             .server_key_msg_len = 711,
             .client_key_msg_len = 470,
-            .asm_is_enabled = no_asm_available,
+            .asm_is_enabled = s2n_no_asm_available,
             .enable_asm = s2n_noop_asm,
             .disable_asm = s2n_noop_asm,
         },
@@ -92,7 +92,7 @@ static const struct s2n_kem_hybrid_test_vector test_vectors[] = {
             .kat_file = "kats/hybrid_ecdhe_kyber_r2.kat",
             .server_key_msg_len = 1133,
             .client_key_msg_len = 804,
-            .asm_is_enabled = no_asm_available,
+            .asm_is_enabled = s2n_no_asm_available,
             .enable_asm = s2n_noop_asm,
             .disable_asm = s2n_noop_asm,
         },

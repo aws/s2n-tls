@@ -275,11 +275,6 @@
 #define GUARD_AS_RESULT( x )                        __S2N_ENSURE((x) >= S2N_SUCCESS, return S2N_RESULT_ERROR)
 
 /**
- * Ensures `x` is strictly 0, otherwise the function will return an `S2N_RESULT_ERROR`
- */
-#define GUARD_POSIX_STRICT_AS_RESULT( x )           __S2N_ENSURE((x) == S2N_SUCCESS, return S2N_RESULT_ERROR)
-
-/**
  * Ensures `x` is OK (S2N_RESULT), otherwise the function will return a POSIX error (`-1`)
  */
 #define GUARD_AS_POSIX( x )                         __S2N_ENSURE(s2n_result_is_ok(x), return S2N_FAILURE)

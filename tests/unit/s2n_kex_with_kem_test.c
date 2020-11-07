@@ -107,8 +107,8 @@ int main() {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
 
-    /* If the security policy does not contain any KEMs, the hybrid KEX should not allow for a
-     * PQ connection (this will be the case if PQ is disabled). */
+    /* If the security policy does not contain any KEMs (which will be the case for default security
+     * policies, or if PQ is disabled), the hybrid KEX should not allow for a PQ connection. */
     {
         struct s2n_connection *conn;
         GUARD_NONNULL(conn = s2n_connection_new(S2N_CLIENT));

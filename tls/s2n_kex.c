@@ -41,15 +41,17 @@ static int s2n_check_ecdhe(const struct s2n_cipher_suite *cipher_suite, struct s
 
 static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
-    notnull_check(conn);
+    /* The return value is treated like a bool, so we avoid using GUARD, notnull_check, etc. */
+    if (conn == NULL || cipher_suite == NULL) {
+        return 0;
+    }
 
     const struct s2n_kem_preferences *kem_preferences = NULL;
     if (s2n_connection_get_kem_preferences(conn, &kem_preferences) != S2N_SUCCESS) {
         return 0;
     }
-    notnull_check(kem_preferences);
 
-    if (kem_preferences->kem_count == 0) {
+    if (kem_preferences == NULL || kem_preferences->kem_count == 0) {
         return 0;
     }
 
@@ -58,7 +60,7 @@ static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n
     if (s2n_cipher_suite_to_kem(cipher_suite->iana_value, &supported_params) != 0) {
         return 0;
     }
-    if (supported_params->kem_count == 0) {
+    if (supported_params == NULL || supported_params->kem_count == 0) {
         return 0;
     }
 
@@ -67,15 +69,13 @@ static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n
     if (client_kem_pref_list == NULL || client_kem_pref_list->data == NULL) {
         /* If the client did not send a PQ KEM extension, then the server can pick its preferred parameter */
         if (s2n_choose_kem_without_peer_pref_list(cipher_suite->iana_value, kem_preferences->kems,
-                                                  kem_preferences->kem_count, &chosen_kem)
-            != 0) {
+                kem_preferences->kem_count, &chosen_kem) != 0) {
             return 0;
         }
     } else {
         /* If the client did send a PQ KEM extension, then the server must find a mutually supported parameter. */
         if (s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, client_kem_pref_list, kem_preferences->kems,
-                                               kem_preferences->kem_count, &chosen_kem)
-            != 0) {
+                kem_preferences->kem_count, &chosen_kem) != 0) {
             return 0;
         }
     }

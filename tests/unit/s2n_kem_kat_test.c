@@ -30,7 +30,7 @@ static S2N_RESULT s2n_noop_asm() {
     return S2N_RESULT_OK;
 }
 
-static bool no_asm_available() {
+static bool s2n_no_asm_available() {
     return false;
 }
 
@@ -38,21 +38,21 @@ static const struct s2n_kem_test_vector test_vectors[] = {
         {
             .kem = &s2n_bike1_l1_r1,
             .kat_file = "kats/bike_r1.kat",
-            .asm_is_enabled = no_asm_available,
+            .asm_is_enabled = s2n_no_asm_available,
             .enable_asm = s2n_noop_asm,
             .disable_asm = s2n_noop_asm,
         },
         {
             .kem = &s2n_bike1_l1_r2,
             .kat_file = "kats/bike_r2.kat",
-            .asm_is_enabled = no_asm_available,
+            .asm_is_enabled = s2n_no_asm_available,
             .enable_asm = s2n_noop_asm,
             .disable_asm = s2n_noop_asm,
         },
         {
             .kem = &s2n_sike_p503_r1,
             .kat_file = "kats/sike_r1.kat",
-            .asm_is_enabled = no_asm_available,
+            .asm_is_enabled = s2n_no_asm_available,
             .enable_asm = s2n_noop_asm,
             .disable_asm = s2n_noop_asm,
         },
@@ -66,14 +66,14 @@ static const struct s2n_kem_test_vector test_vectors[] = {
         {
             .kem = &s2n_kyber_512_r2,
             .kat_file = "kats/kyber_r2.kat",
-            .asm_is_enabled = no_asm_available,
+            .asm_is_enabled = s2n_no_asm_available,
             .enable_asm = s2n_noop_asm,
             .disable_asm = s2n_noop_asm,
         },
         {
             .kem = &s2n_kyber_512_90s_r2,
             .kat_file = "kats/kyber_90s_r2.kat",
-            .asm_is_enabled = no_asm_available,
+            .asm_is_enabled = s2n_no_asm_available,
             .enable_asm = s2n_noop_asm,
             .disable_asm = s2n_noop_asm,
         },
@@ -98,8 +98,6 @@ int main() {
                 EXPECT_SUCCESS(s2n_test_kem_with_kat(kem, vector.kat_file));
             }
         } else {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_test_kem_with_kat(kem, vector.kat_file), S2N_ERR_PQ_DISABLED);
-
             uint8_t *public_key = (uint8_t *)malloc(kem->public_key_length);
             uint8_t *private_key = (uint8_t *)malloc(kem->private_key_length);
             uint8_t *client_shared_secret = (uint8_t *)malloc(kem->shared_secret_key_length);
