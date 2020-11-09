@@ -90,22 +90,22 @@ for file in $S2N_FILES_TEST_ALL_POLICY_CHECK; do
 
   if [ "${#TEST_ALL_CONFIG}" != "0" ]; then
     FAILED=1
-    printf "\e[1;34mGrep for 's2n_config_set_cipher_preferences(*, \"test_all\")' check failed in $file:\e[0m\n$TEST_ALL_CONFIG\n\n"
+    printf "\e[1;34mGrep for 's2n_config_set_cipher_preferences(*, \"test_all\")' check failed in $file:\e[0m\n${TEST_ALL_CONFIG}\nDid you intend to use TEST_ALL? (See s2n_test.h)\n\n"
   fi
 
   if [ "${#TEST_ALL_CONN}" != "0" ]; then
     FAILED=1
-    printf "\e[1;34mGrep for 's2n_connection_set_cipher_preferences(*, \"test_all\")' check failed in $file:\e[0m\n$TEST_ALL_CONN\n\n"
+    printf "\e[1;34mGrep for 's2n_connection_set_cipher_preferences(*, \"test_all\")' check failed in $file:\e[0m\n${TEST_ALL_CONN}\nDid you intend to use TEST_ALL? (See s2n_test.h)\n\n"
   fi
 
   if [ "${#TEST_ALL_TLS12_CONFIG}" != "0" ]; then
     FAILED=1
-    printf "\e[1;34mGrep for 's2n_config_set_cipher_preferences(*, \"test_all_tls12\")' check failed in $file:\e[0m\n$TEST_ALL_TLS12_CONFIG\n\n"
+    printf "\e[1;34mGrep for 's2n_config_set_cipher_preferences(*, \"test_all_tls12\")' check failed in $file:\e[0m\n${TEST_ALL_TLS12_CONFIG}\nDid you intend to use TEST_ALL_TLS12? (See s2n_test.h)\n\n"
   fi
 
   if [ "${#TEST_ALL_TLS12_CONN}" != "0" ]; then
     FAILED=1
-    printf "\e[1;34mGrep for 's2n_connection_set_cipher_preferences(*, \"test_all_tls12\")' check failed in $file:\e[0m\n$TEST_ALL_TLS12_CONN\n\n"
+    printf "\e[1;34mGrep for 's2n_connection_set_cipher_preferences(*, \"test_all_tls12\")' check failed in $file:\e[0m\n${TEST_ALL_TLS12_CONN}\nDid you intend to use TEST_ALL_TLS12? (See s2n_test.h)\n\n"
   fi
 
 done

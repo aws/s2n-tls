@@ -29,6 +29,11 @@
 #include "pq-crypto/s2n_pq.h"
 
 int test_count;
+
+/* These strings are initialized in BEGIN_TEST() to the appropriate security policy
+ * (aka cipher pref) version based on whether or not post-quantum crypto is enabled.
+ * Unit tests should use these strings instead of "test_all" or "test_all_tls12"
+ * literals. */
 const char *TEST_ALL;
 const char *TEST_ALL_TLS12;
 
