@@ -110,7 +110,7 @@ static int s2n_low_level_hash_new(struct s2n_hash_state *state)
 
     state->is_ready_for_input = 0;
     state->currently_in_hash = 0;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_low_level_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
@@ -263,7 +263,7 @@ static int s2n_evp_hash_new(struct s2n_hash_state *state)
     state->is_ready_for_input = 0;
     state->currently_in_hash = 0;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_evp_hash_allow_md5_for_fips(struct s2n_hash_state *state)
@@ -490,22 +490,25 @@ int s2n_hash_new(struct s2n_hash_state *state)
 
     notnull_check_ptr(state->hash_impl->alloc);
 
-    return state->hash_impl->alloc(state);
+    GUARD(state->hash_impl->alloc(state));
+    POSTCONDITION_POSIX(s2n_hash_state_is_valid(state));
+    return S2N_SUCCESS;
 }
 
 bool s2n_hash_state_is_valid(struct s2n_hash_state *state)
 {
-    return (state != NULL);
+    return (state != NULL) && (state->hash_impl != NULL);
 }
 
 int s2n_hash_allow_md5_for_fips(struct s2n_hash_state *state)
 {
+    PRECONDITION_POSIX(s2n_hash_state_is_valid(state));
     /* Ensure that hash_impl is set, as it may have been reset for s2n_hash_state on s2n_connection_wipe.
      * When in FIPS mode, the EVP API's must be used for hashes.
      */
     GUARD(s2n_hash_set_impl(state));
 
-    notnull_check(state->hash_impl->allow_md5_for_fips);
+    notnull_check_ptr(state->hash_impl->allow_md5_for_fips);
 
     return state->hash_impl->allow_md5_for_fips(state);
 }

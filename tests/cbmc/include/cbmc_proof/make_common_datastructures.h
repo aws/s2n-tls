@@ -20,6 +20,7 @@
 
 #include "api/s2n.h"
 #include "crypto/s2n_dhe.h"
+#include "crypto/s2n_hash.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_array.h"
 #include "utils/s2n_blob.h"
@@ -96,3 +97,8 @@ bool s2n_set_is_bounded(const struct s2n_set *set, const size_t max_len, const s
  * Properly allocates s2n_dh_params for CBMC proofs.
  */
 struct s2n_dh_params *cbmc_allocate_dh_params();
+
+/*
+ * Properly allocates s2n_hash_state for CBMC proofs.
+ */
+struct s2n_hash_state* cbmc_allocate_s2n_hash_state();
