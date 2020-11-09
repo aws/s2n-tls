@@ -24,6 +24,7 @@
 
 int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
 {
+    notnull_check(out);
     switch(hash_alg) {
     case S2N_HASH_NONE:       *out = S2N_HMAC_NONE;   break;
     case S2N_HASH_MD5:        *out = S2N_HMAC_MD5;    break;
@@ -36,7 +37,7 @@ int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
