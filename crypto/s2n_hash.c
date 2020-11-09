@@ -41,6 +41,7 @@ int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
 
 int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
 {
+    notnull_check(out);
     switch (alg) {
     case S2N_HASH_NONE:     *out = 0;                    break;
     case S2N_HASH_MD5:      *out = MD5_DIGEST_LENGTH;    break;
@@ -53,7 +54,7 @@ int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* NOTE: s2n_hash_const_time_get_currently_in_hash_block takes advantage of the fact that
