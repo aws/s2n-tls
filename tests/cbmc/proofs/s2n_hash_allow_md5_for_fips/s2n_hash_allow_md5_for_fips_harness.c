@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
+#include <cbmc_proof/make_common_datastructures.h>
+
 #include "api/s2n.h"
 #include "crypto/s2n_hash.h"
-
-#include <cbmc_proof/make_common_datastructures.h>
 
 void s2n_hash_allow_md5_for_fips_harness()
 {
@@ -25,8 +25,7 @@ void s2n_hash_allow_md5_for_fips_harness()
     __CPROVER_assume(s2n_hash_state_is_valid(state));
 
     /* Operation under verification. */
-    if(s2n_hash_allow_md5_for_fips(state) == S2N_SUCCESS)
-    {
+    if (s2n_hash_allow_md5_for_fips(state) == S2N_SUCCESS) {
         /* Post-conditions. */
         assert(s2n_hash_state_is_valid(state));
         assert(IMPLIES(s2n_is_in_fips_mode(), state->hash_impl->allow_md5_for_fips != NULL));

@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
+#include <cbmc_proof/cbmc_utils.h>
+
 #include "api/s2n.h"
 #include "crypto/s2n_hash.h"
-
-#include <cbmc_proof/cbmc_utils.h>
 
 void s2n_hash_is_available_harness()
 {

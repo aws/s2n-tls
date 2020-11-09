@@ -101,4 +101,4 @@ struct s2n_dh_params *cbmc_allocate_dh_params();
 /*
  * Properly allocates s2n_hash_state for CBMC proofs.
  */
-struct s2n_hash_state* cbmc_allocate_s2n_hash_state();
+struct s2n_hash_state *cbmc_allocate_s2n_hash_state();

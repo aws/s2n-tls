@@ -13,22 +13,21 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-#include "crypto/s2n_hash.h"
-
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/proof_allocators.h>
+
+#include "api/s2n.h"
+#include "crypto/s2n_hash.h"
 
 void s2n_hash_digest_size_harness()
 {
     /* Non-deterministic inputs. */
     s2n_hash_algorithm alg;
-    size_t alg_size;
-    uint8_t *out = bounded_malloc(alg_size);
+    size_t             alg_size;
+    uint8_t *          out = bounded_malloc(alg_size);
 
     /* Operation under verification. */
-    if(s2n_hash_digest_size(alg, out) == S2N_SUCCESS)
-    {
+    if (s2n_hash_digest_size(alg, out) == S2N_SUCCESS) {
         /* Post-conditions. */
         assert(IMPLIES(alg == S2N_HASH_NONE, *out == 0));
         assert(IMPLIES(alg == S2N_HASH_MD5, *out == MD5_DIGEST_LENGTH));

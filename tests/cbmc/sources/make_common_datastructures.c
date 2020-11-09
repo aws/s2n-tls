@@ -15,10 +15,7 @@
 
 #include <cbmc_proof/make_common_datastructures.h>
 
-bool s2n_blob_is_bounded(const struct s2n_blob *blob, const size_t max_size)
-{
-    return (blob->size <= max_size);
-}
+bool s2n_blob_is_bounded(const struct s2n_blob *blob, const size_t max_size) { return (blob->size <= max_size); }
 
 bool s2n_stuffer_is_bounded(const struct s2n_stuffer *stuffer, const size_t max_size)
 {
@@ -84,7 +81,7 @@ struct s2n_stuffer_reservation *cbmc_allocate_s2n_stuffer_reservation()
     return reservation;
 }
 
-struct s2n_array* cbmc_allocate_s2n_array()
+struct s2n_array *cbmc_allocate_s2n_array()
 {
     struct s2n_array *array = can_fail_malloc(sizeof(*array));
     if (array != NULL) { ensure_s2n_blob_has_allocated_fields(&array->mem); }
@@ -98,7 +95,7 @@ static int nondet_comparator(const void *a, const void *b)
     return nondet_int();
 }
 
-struct s2n_set* cbmc_allocate_s2n_set()
+struct s2n_set *cbmc_allocate_s2n_set()
 {
     struct s2n_set *set = can_fail_malloc(sizeof(*set));
     if (set != NULL) {
@@ -136,9 +133,6 @@ struct s2n_dh_params *cbmc_allocate_dh_params()
 struct s2n_hash_state* cbmc_allocate_s2n_hash_state()
 {
     struct s2n_hash_state *state = malloc(sizeof(*state));
-    if(state != NULL)
-    {
-        state->hash_impl = malloc(sizeof(*(state->hash_impl)));
-    }
+    if (state != NULL) { state->hash_impl = malloc(sizeof(*(state->hash_impl))); }
     return state;
 }

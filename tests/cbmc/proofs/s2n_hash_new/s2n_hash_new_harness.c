@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
+#include <cbmc_proof/make_common_datastructures.h>
+
 #include "api/s2n.h"
 #include "crypto/s2n_hash.h"
-
-#include <cbmc_proof/make_common_datastructures.h>
 
 void s2n_hash_new_harness()
 {
@@ -24,8 +24,7 @@ void s2n_hash_new_harness()
     struct s2n_hash_state *state = cbmc_allocate_s2n_hash_state();
 
     /* Operation under verification. */
-    if(s2n_hash_new(state) == S2N_SUCCESS)
-    {
+    if (s2n_hash_new(state) == S2N_SUCCESS) {
         /* Post-conditions. */
         assert(s2n_hash_state_is_valid(state));
     }
