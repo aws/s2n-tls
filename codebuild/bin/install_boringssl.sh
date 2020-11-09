@@ -27,15 +27,19 @@ fi
 BUILD_DIR=$1
 INSTALL_DIR=$2
 source codebuild/bin/jobs.sh
-
 cd "$BUILD_DIR"
-git clone https://github.com/google/boringssl.git
-cd boringssl
 
 # BoringSSL doesn't have tags or versions in the Github repo.
 # This commit represents the latest version that S2N is compatible
 # with. It prevents our build system from breaking when BoringSSL
 # is updated.
+mkdir boringssl
+cd boringssl
+git init
+git remote add origin https://github.com/google/boringssl.git
+git fetch origin --depth=1 3743aafdacff2f7b083615a043a37101f740fa53
+git reset --hard FETCH_HEAD
+
 git checkout 3743aafdacff2f7b083615a043a37101f740fa53
 mkdir ../build
 cd ../build
