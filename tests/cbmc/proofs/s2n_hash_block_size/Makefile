@@ -11,11 +11,11 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Expected runtime is less than 5 seconds.
+# Expected runtime is less than 20 seconds.
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = s2n_hash_hmac_alg_harness
+HARNESS_ENTRY = s2n_hash_block_size_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(HARNESS_FILE)

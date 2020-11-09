@@ -63,6 +63,7 @@ int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
  * If this ever becomes untrue, this would require fixing*/
 int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size)
 {
+    notnull_check(block_size);
     switch(alg) {
     case S2N_HASH_NONE:       *block_size = 64;   break;
     case S2N_HASH_MD5:        *block_size = 64;   break;
@@ -75,7 +76,7 @@ int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size)
     default:
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* Return true if hash algorithm is available, false otherwise. */
