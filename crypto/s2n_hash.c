@@ -258,8 +258,8 @@ static int s2n_low_level_hash_free(struct s2n_hash_state *state)
 
 static int s2n_evp_hash_new(struct s2n_hash_state *state)
 {
-    notnull_check(state->digest.high_level.evp.ctx = S2N_EVP_MD_CTX_NEW());
-    notnull_check(state->digest.high_level.evp_md5_secondary.ctx = S2N_EVP_MD_CTX_NEW());
+    notnull_check_ptr(state->digest.high_level.evp.ctx = S2N_EVP_MD_CTX_NEW());
+    notnull_check_ptr(state->digest.high_level.evp_md5_secondary.ctx = S2N_EVP_MD_CTX_NEW());
     state->is_ready_for_input = 0;
     state->currently_in_hash = 0;
 
@@ -429,7 +429,7 @@ static int s2n_evp_hash_reset(struct s2n_hash_state *state)
     }
 
     GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp.ctx), S2N_ERR_HASH_WIPE_FAILED);
-    
+
     if (state->alg == S2N_HASH_MD5_SHA1) {
         GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp_md5_secondary.ctx), S2N_ERR_HASH_WIPE_FAILED);
     }
@@ -477,19 +477,25 @@ static int s2n_hash_set_impl(struct s2n_hash_state *state)
 {
     state->hash_impl = s2n_is_in_fips_mode() ? &s2n_evp_hash : &s2n_low_level_hash;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_hash_new(struct s2n_hash_state *state)
 {
+    notnull_check(state);
     /* Set hash_impl on initial hash creation.
      * When in FIPS mode, the EVP API's must be used for hashes.
      */
     GUARD(s2n_hash_set_impl(state));
 
-    notnull_check(state->hash_impl->alloc);
+    notnull_check_ptr(state->hash_impl->alloc);
 
     return state->hash_impl->alloc(state);
+}
+
+bool s2n_hash_state_is_valid(struct s2n_hash_state *state)
+{
+    return (state != NULL);
 }
 
 int s2n_hash_allow_md5_for_fips(struct s2n_hash_state *state)
