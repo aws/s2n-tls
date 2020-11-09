@@ -372,10 +372,10 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_config_enable_quic(config));
 
                 const uint8_t expected_secrets_handled[S2N_SECRET_TYPE_COUNT] = {
-                        [S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET] = 1,
-                        [S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET] = 1,
-                        [S2N_CLIENT_APPLICATION_TRAFFIC_SECRET] = 1,
-                        [S2N_SERVER_APPLICATION_TRAFFIC_SECRET] = 1,
+                    [S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET] = 1,
+                    [S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET] = 1,
+                    [S2N_CLIENT_APPLICATION_TRAFFIC_SECRET] = 1,
+                    [S2N_SERVER_APPLICATION_TRAFFIC_SECRET] = 1,
                 };
 
                 for (s2n_mode mode = 0; mode <= 1; mode++) {
