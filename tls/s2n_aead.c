@@ -22,23 +22,23 @@
 
 /* Derive the AAD for an AEAD mode cipher suite from the connection state, per
  * RFC 5246 section 6.2.3.3 */
-int s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t * sequence_number, uint8_t content_type, uint16_t record_length, struct s2n_stuffer *ad)
+S2N_RESULT s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t * sequence_number, uint8_t content_type, uint16_t record_length, struct s2n_stuffer *ad)
 {
     /* ad = seq_num || record_type || version || length */
-    GUARD(s2n_stuffer_write_bytes(ad, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-    GUARD(s2n_stuffer_write_uint8(ad, content_type));
-    GUARD(s2n_stuffer_write_uint8(ad, conn->actual_protocol_version / 10));
-    GUARD(s2n_stuffer_write_uint8(ad, conn->actual_protocol_version % 10));
-    GUARD(s2n_stuffer_write_uint16(ad, record_length));
+    GUARD_AS_RESULT(s2n_stuffer_write_bytes(ad, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+    GUARD_AS_RESULT(s2n_stuffer_write_uint8(ad, content_type));
+    GUARD_AS_RESULT(s2n_stuffer_write_uint8(ad, conn->actual_protocol_version / 10));
+    GUARD_AS_RESULT(s2n_stuffer_write_uint8(ad, conn->actual_protocol_version % 10));
+    GUARD_AS_RESULT(s2n_stuffer_write_uint16(ad, record_length));
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 /* Prepares an AAD (additional authentication data) for a TLS 1.3 AEAD record */
-int s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, struct s2n_stuffer *additional_data)
+S2N_RESULT s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, struct s2n_stuffer *additional_data)
 {
-    gt_check(tag_length, 0);
-    notnull_check(additional_data);
+    ENSURE_GT(tag_length, 0);
+    ENSURE_REF(additional_data);
 
     /*
      * tls1.3 additional_data = opaque_type || legacy_record_version || length
@@ -67,12 +67,12 @@ int s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, struct s
      */
 
     uint16_t length = record_length + tag_length;
-    S2N_ERROR_IF(length > (1 << 14) + 256, S2N_ERR_RECORD_LIMIT);
+    ENSURE(length <= (1 << 14) + 256, S2N_ERR_RECORD_LIMIT);
 
-    GUARD(s2n_stuffer_write_uint8(additional_data, TLS_APPLICATION_DATA)); /* fixed to 0x17 */
-    GUARD(s2n_stuffer_write_uint8(additional_data, 3)); /* TLS record layer              */
-    GUARD(s2n_stuffer_write_uint8(additional_data, 3)); /* version fixed at 1.2 (0x0303) */
-    GUARD(s2n_stuffer_write_uint16(additional_data, length));
+    GUARD_AS_RESULT(s2n_stuffer_write_uint8(additional_data, TLS_APPLICATION_DATA)); /* fixed to 0x17 */
+    GUARD_AS_RESULT(s2n_stuffer_write_uint8(additional_data, 3)); /* TLS record layer              */
+    GUARD_AS_RESULT(s2n_stuffer_write_uint8(additional_data, 3)); /* version fixed at 1.2 (0x0303) */
+    GUARD_AS_RESULT(s2n_stuffer_write_uint16(additional_data, length));
 
-    return 0;
+    return S2N_RESULT_OK;
 }

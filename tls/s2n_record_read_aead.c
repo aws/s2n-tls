@@ -91,9 +91,9 @@ int s2n_record_parse_aead(
     GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
 
     if (is_tls13_record) {
-        GUARD(s2n_tls13_aead_aad_init(payload_length, cipher_suite->record_alg->cipher->io.aead.tag_size, &ad_stuffer));
+        GUARD_AS_POSIX(s2n_tls13_aead_aad_init(payload_length, cipher_suite->record_alg->cipher->io.aead.tag_size, &ad_stuffer));
     } else {
-        GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, payload_length, &ad_stuffer));
+        GUARD_AS_POSIX(s2n_aead_aad_init(conn, sequence_number, content_type, payload_length, &ad_stuffer));
     }
 
     /* Decrypt stuff! */

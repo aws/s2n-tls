@@ -327,9 +327,9 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         struct s2n_stuffer ad_stuffer = {0};
         GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
         if (is_tls13_record) {
-            GUARD(s2n_tls13_aead_aad_init(data_bytes_to_take + TLS13_CONTENT_TYPE_LENGTH, cipher_suite->record_alg->cipher->io.aead.tag_size, &ad_stuffer));
+            GUARD_AS_POSIX(s2n_tls13_aead_aad_init(data_bytes_to_take + TLS13_CONTENT_TYPE_LENGTH, cipher_suite->record_alg->cipher->io.aead.tag_size, &ad_stuffer));
         } else {
-            GUARD(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &ad_stuffer));
+            GUARD_AS_POSIX(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &ad_stuffer));
         }
     } else if (cipher_suite->record_alg->cipher->type == S2N_CBC || cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
         s2n_blob_init(&iv, implicit_iv, block_size);
