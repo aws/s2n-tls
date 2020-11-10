@@ -236,7 +236,8 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_ASYNC_ALREADY_APPLIED, "Async operation was already applied to connection, cannot apply it again") \
     ERR_ENTRY(S2N_ERR_INVALID_HELLO_RETRY, "Invalid hello retry request") \
     ERR_ENTRY(S2N_ERR_INVALID_STATE, "Invalid state, this is the result of invalid use of an API. Check the API documentation for the function that raised this error for more info.") \
-
+    ERR_ENTRY(S2N_ERR_INVALID_PSK_VECTOR_LEN, "Invalid psk identity vector size") \
+    ERR_ENTRY(S2N_ERR_INVALID_PSK_IDENTITY, "PSK Identity must be unique, duplicate psk identity value found") \
 /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) case ERR: return str;

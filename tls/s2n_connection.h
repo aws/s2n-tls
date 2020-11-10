@@ -340,3 +340,4 @@ int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **
 uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn);
 /* `none` keyword represents a list of empty keyshares */
 int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn, const char* curve_name);
+int s2n_connection_set_client_psk_identities(struct s2n_connection *conn, struct s2n_psk_identity *psk_vec, uint16_t vlen);
