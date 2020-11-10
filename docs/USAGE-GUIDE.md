@@ -370,7 +370,7 @@ This string is useful to include when reporting issues to the s2n development te
 Example:
 
 ```
-if (s2n_config_set_versioned_security_policy(config, version) < 0) {
+if (s2n_config_set_security_policy(config, policy) < 0) {
     printf("Setting security policy failed! %s : %s", s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"));
     return S2N_FAILURE;
 }
@@ -494,11 +494,11 @@ int s2n_config_free(struct s2n_config *config);
 ### s2n\_config\_set\_security\_policy
 
 ```c
-int s2n_config_set_versioned_security_policy(struct s2n_config *config,
-                                      const char *version);
+int s2n_config_set_security_policy(struct s2n_config *config,
+                                      const struct s2n_security_policy *policy);
 ```
 
-**s2n_config_set_versioned_security_policy** S2N makes opinionated decisions about which ciphers,
+**s2n_config_set_security_policy** S2N makes opinionated decisions about which ciphers,
 key encapsualtion mechanisms, signature algorithms, and curves can be used together. These
 combinations are called *security policies*. This function is simply a wrapper for
 *s2n_config_set_cipher_preferences*. The name better describes the behavior behind the scenes.
@@ -1109,10 +1109,10 @@ is supported by a given cipher preferences. It returns
 ### s2n\_connection\_set\_security\_policy
 
 ```c
-int s2n_connection_set_versioned_security_policy(struct s2n_connection *conn, const char *version);
+int s2n_connection_set_security_policy(struct s2n_connection *conn, const struct s2n_security_policy *policy);
 ```
 
-**s2n_connection_set_versioned_security_policy** sets the security policy override for the
+**s2n_connection_set_security_policy** sets the security policy override for the
 s2n_connection. Calling this function is not necessary unless you want to set the
 security policy on the connection to something different than what is in the s2n_config.
 This function is a wrapper for **s2n_connection_set_cipher_preferences**.
