@@ -1347,3 +1347,40 @@ int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn,
 
     S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 }
+
+
+static int s2n_connection_check_unique_identity(struct s2n_connection *conn, const char* psk_identity, size_t psk_len) {
+    notnull_check(conn);
+    notnull_check(psk_identity);
+
+    for (int i = 0; i < psk_len; i++) {
+        S2N_ERROR_IF(strcmp(conn->initial.client_psk_config.psk_vec[i].identity, psk_identity) == 0, S2N_ERR_INVALID_PSK_IDENTITY);
+    }
+
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_set_client_psk_identities(struct s2n_connection *conn, struct s2n_psk_identity *psk_vec, size_t vlen)
+{
+    notnull_check(conn);
+    notnull_check(psk_vec);
+    S2N_ERROR_IF(vlen > S2N_PSK_VECTOR_MAX_SIZE, S2N_ERR_INVALID_PSK_VECTOR_LEN);
+
+    for (size_t i = 0; i < vlen; i++) {
+        /* Identity must be not ne a NULL value and must unique to a PSK */
+        notnull_check(psk_vec[i].identity);
+        GUARD(s2n_connection_check_unique_identity(conn, psk_vec[i].identity, i));
+        conn->initial.client_psk_config.psk_vec[i].identity = psk_vec[i].identity;
+    
+        /* For identities established externally, an obfuscated_ticket_age of 0 SHOULD be used. */ 
+        conn->initial.client_psk_config.psk_vec[i].obfuscated_ticket_age = 0;
+        
+        /* Hash algorithm MUST default to SHA-256 if no such algorithm is defined. */
+        if (psk_vec->hash_algorithm == S2N_HASH_NONE) {
+            conn->initial.client_psk_config.psk_vec[i].hash_algorithm = S2N_HASH_SHA256;
+        } else {
+            conn->initial.client_psk_config.psk_vec[i].hash_algorithm = psk_vec[i].hash_algorithm;
+        }
+    }
+    return S2N_SUCCESS;
+}
