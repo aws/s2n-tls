@@ -20,7 +20,6 @@
 #include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_signature_scheme.h"
 #include "tls/s2n_ecc_preferences.h"
-#include "utils/s2n_annotations.h"
 
 struct s2n_security_policy {
     uint8_t minimum_protocol_version;
