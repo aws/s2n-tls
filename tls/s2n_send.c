@@ -93,6 +93,7 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
     ssize_t user_data_sent, total_size = 0;
 
     S2N_ERROR_IF(conn->closed, S2N_ERR_CLOSED);
+    S2N_ERROR_IF(conn->config->quic_enabled, S2N_ERR_UNSUPPORTED_WITH_QUIC);
 
     /* Flush any pending I/O */
     GUARD(s2n_flush(conn, blocked));

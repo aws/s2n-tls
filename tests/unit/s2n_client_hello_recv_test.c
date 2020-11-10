@@ -30,6 +30,7 @@
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_client_hello.h"
+#include "tls/s2n_quic_support.h"
 
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
@@ -375,6 +376,59 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_BAD_MESSAGE);
 
         s2n_connection_free(server_conn);
+    }
+
+    /* Test that S2N will reject a ClientHello with legacy_session_id set when running with QUIC.
+     * https://tools.ietf.org/html/draft-ietf-quic-tls-32#section-8.4*/
+    {
+        EXPECT_SUCCESS(s2n_reset_tls13());
+
+        const size_t test_session_id_len = 10;
+
+        struct s2n_config *quic_config;
+        EXPECT_NOT_NULL(quic_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_enable_quic(quic_config));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(quic_config, tls13_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(quic_config, "default_tls13"));
+
+        /* Succeeds without a session id */
+        {
+            EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, quic_config));
+
+            EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, quic_config));
+
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                    s2n_stuffer_data_available(&client_conn->handshake.io)));
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+
+            s2n_connection_free(client_conn);
+            s2n_connection_free(server_conn);
+        }
+
+        /* Fails with a session id */
+        {
+            EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, quic_config));
+
+            EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, quic_config));
+
+            /* Directly set session id, which is not set by default when using QUIC */
+            client_conn->session_id_len = test_session_id_len;
+
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                    s2n_stuffer_data_available(&client_conn->handshake.io)));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_BAD_MESSAGE);
+
+            s2n_connection_free(client_conn);
+            s2n_connection_free(server_conn);
+        }
+
+        s2n_config_free(quic_config);
     }
 
     /* Test that curve selection will be NIST P-256 when tls12 client does not sending curve extension. */

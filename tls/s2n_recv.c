@@ -127,6 +127,8 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
     }
     *blocked = S2N_BLOCKED_ON_READ;
 
+    S2N_ERROR_IF(conn->config->quic_enabled, S2N_ERR_UNSUPPORTED_WITH_QUIC);
+
     while (size && !conn->closed) {
         int isSSLv2 = 0;
         uint8_t record_type;

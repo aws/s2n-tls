@@ -230,7 +230,7 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
 
     GUARD(s2n_extension_list_parse(in, &conn->client_hello.extensions));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_process_client_hello(struct s2n_connection *conn)
@@ -261,13 +261,22 @@ int s2n_process_client_hello(struct s2n_connection *conn)
 
     /* for pre TLS 1.3 connections, protocol selection is not done in supported_versions extensions, so do it here */
     if (conn->actual_protocol_version < S2N_TLS13) {
-        ENSURE_POSIX(!conn->config->quic_enabled, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
         conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
     }
 
     if (conn->client_protocol_version < security_policy->minimum_protocol_version) {
         GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
         S2N_ERROR(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+    }
+
+    if (conn->config->quic_enabled) {
+        ENSURE_POSIX(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+
+        /* In TLS1.3, legacy_session_id is only set to indicate middlebox compatability mode.
+         * When running with QUIC, S2N does not support middlebox compatability mode.
+         * https://tools.ietf.org/html/draft-ietf-quic-tls-32#section-8.4
+         */
+        ENSURE_POSIX(conn->session_id_len == 0, S2N_ERR_BAD_MESSAGE);
     }
 
     /* Find potential certificate matches before we choose the cipher. */

@@ -31,6 +31,7 @@ int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequenc
 int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request)
 {
     notnull_check(conn);
+    ENSURE_POSIX(!conn->config->quic_enabled, S2N_ERR_BAD_MESSAGE);
 
     uint8_t key_update_request;
     GUARD(s2n_stuffer_read_uint8(request, &key_update_request));
