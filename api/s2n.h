@@ -332,6 +332,10 @@ extern const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *co
 S2N_API
 extern const uint8_t *s2n_connection_get_sct_list(struct s2n_connection *conn, uint32_t *length);
 
+struct s2n_psk_identity;
+S2N_API
+extern int s2n_connection_set_client_psk_identities(struct s2n_connection *conn, struct s2n_psk_identity *psk_vec, uint16_t vlen); 
+
 typedef enum { S2N_NOT_BLOCKED = 0, S2N_BLOCKED_ON_READ, S2N_BLOCKED_ON_WRITE, S2N_BLOCKED_ON_APPLICATION_INPUT } s2n_blocked_status;
 S2N_API
 extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked);

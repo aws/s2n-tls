@@ -108,6 +108,7 @@
 #define TLS_EXTENSION_SUPPORTED_VERSIONS   43
 #define TLS_EXTENSION_COOKIE               44
 #define TLS_EXTENSION_KEY_SHARE            51
+#define TLS_EXTENSION_PRESHARED_KEY        41
 
 /* QUIC-TLS extension from https://tools.ietf.org/html/draft-ietf-quic-tls-29#section-8.2 */
 #define TLS_QUIC_TRANSPORT_PARAMETERS      65535
