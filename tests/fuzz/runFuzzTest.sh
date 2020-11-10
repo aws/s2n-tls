@@ -31,7 +31,8 @@ FUZZ_TIMEOUT_SEC=$2
 MIN_TEST_PER_SEC="1000"
 MIN_FEATURES_COVERED="100"
 
-if [[ $TEST_NAME == *_negative_test ]];
+# Failures for negative tests on AFL can be ignored.
+if [[ $TEST_NAME == *_negative_test && "$AFL_FUZZ" != "true" ]];
 then
     EXPECTED_TEST_FAILURE=1
 else
@@ -41,7 +42,7 @@ fi
 ASAN_OPTIONS+="symbolize=1"
 LSAN_OPTIONS+="log_threads=1"
 UBSAN_OPTIONS+="print_stacktrace=1"
-NUM_CPU_THREADS=`nproc`
+NUM_CPU_THREADS=$(nproc)
 LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -print_final_stats=1 -jobs=${NUM_CPU_THREADS} -workers=${NUM_CPU_THREADS} -max_total_time=${FUZZ_TIMEOUT_SEC}"
 
 TEST_SPECIFIC_OVERRIDES="${PWD}/LD_PRELOAD/${TEST_NAME}_overrides.so"
@@ -83,24 +84,33 @@ TEMP_CORPUS_DIR="$(mktemp -d)"
 cp -r ./corpus/${TEST_NAME}/. "${TEMP_CORPUS_DIR}"
 
 # Run AFL instead of libfuzzer if AFL_FUZZ is set. Not compatible with fuzz coverage.
-if [[ "$AFL_FUZZ" == "true" && "$FUZZ_COVERAGE" != "true" ]]; then
-    printf "Running %-s %-40s for %5d sec... " "${FIPS_TEST_MSG}" ${TEST_NAME} ${FUZZ_TIMEOUT_SEC}
+if [[ ${AFL_FUZZ} == "true" && ${FUZZ_COVERAGE} != "true" ]]; then
+    unset LD_PRELOAD
+    # See https://aflplus.plus/docs/env_variables/
+    export AFL_NO_UI=true
+    export AFL_HARDEN=true
+    printf "Running AFL %-s %-40s for %5d sec... " "${FIPS_TEST_MSG}" ${TEST_NAME} ${FUZZ_TIMEOUT_SEC}
     mkdir -p results/${TEST_NAME}
     set +e
-    timeout ${FUZZ_TIMEOUT_SEC} ${LIBFUZZER_INSTALL_DIR}/afl-fuzz -i corpus/${TEST_NAME} -o results/${TEST_NAME} -m none ./${TEST_NAME}
-    returncode = $?
+    timeout ${FUZZ_TIMEOUT_SEC} ${LIBFUZZER_INSTALL_DIR}/afl-fuzz -i corpus/${TEST_NAME} -o results/${TEST_NAME} -m none ./${TEST_NAME}  2>&1> ./results/${TEST_NAME}/console_output.log
+    returncode=$?
     # See the timeout man page for specifics
-    if [[ "$returncode" -ne 124 ]]; then
-	    echo "AFL exited with an unexpected return value: $returncode"
+    if [[ ${returncode} -ne 124 ]]; then
+	    printf "\033[33;1mWARNING!\033[0m AFL exited with an unexpected return value: %8d" ${returncode}
     fi
     set -e
-    CRASH_COUNT=`sed -n -e 's/^unique_crashes *: //p' ./results/${TEST_NAME}/fuzzer_stats`
-    TEST_COUNT=`sed -n -e 's/^execs_done *: //p' ./results/${TEST_NAME}/fuzzer_stats`
-    TESTS_PER_SEC=`sed -n -e 's/^execs_per_sec *: //p' ./results/${TEST_NAME}/fuzzer_stats`
+    CRASH_COUNT=$(sed -n -e 's/^unique_crashes *: //p' ./results/${TEST_NAME}/fuzzer_stats)
+    TEST_COUNT=$(sed -n -e 's/^execs_done *: //p' ./results/${TEST_NAME}/fuzzer_stats)
+    FLOAT_TESTS_PER_SEC=$(sed -n -e 's/^execs_per_sec *: //p' ./results/${TEST_NAME}/fuzzer_stats)
+    TESTS_PER_SEC=$(echo "($FLOAT_TESTS_PER_SEC+.5)/1"|bc)
+
+    if [[ ${TESTS_PER_SEC} -lt 10 ]]; then
+        printf "\033[33;1mWARNING!\033[0m %10d tests, only %6d tests per second; test is too slow.\n" ${TEST_COUNT} ${TESTS_PER_SEC}
+    fi
     if [[ ${CRASH_COUNT} -gt 0 ]]; then
         ACTUAL_TEST_FAILURE=1
     fi
-    if [[ $ACTUAL_TEST_FAILURE == $EXPECTED_TEST_FAILURE ]]; then
+    if [[ ${ACTUAL_TEST_FAILURE} == ${EXPECTED_TEST_FAILURE} ]]; then
         printf "\033[32;1mPASSED\033[0m %8d tests, %.1f test/sec\n" ${TEST_COUNT} ${TESTS_PER_SEC}
         exit 0
     else
