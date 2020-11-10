@@ -31,7 +31,7 @@ extern "C" {
 #include <stdio.h>
 #include <sys/uio.h>
 
-#include "utils/s2n_annotations.h"
+#include "utils/s2n_compiler.h"
 
 /* Function return code  */
 #define S2N_SUCCESS 0
@@ -216,7 +216,8 @@ extern int s2n_config_set_max_cert_chain_depth(struct s2n_config *config, uint16
 
 S2N_API
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);
-S2N_DEPRECATED
+
+S2N_DEPRECATED("Cipher preferences are set through security policies")
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
 S2N_API
 extern int s2n_config_set_security_policy(struct s2n_config *config, const struct s2n_security_policy *policy);
@@ -327,7 +328,7 @@ extern int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding
 S2N_API
 extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
 
-S2N_DEPRECATED
+S2N_DEPRECATED("Cipher preferences are set through security policies")
 extern int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
 S2N_API
 extern int s2n_connection_set_security_policy(struct s2n_connection *conn, const struct s2n_security_policy *policy);

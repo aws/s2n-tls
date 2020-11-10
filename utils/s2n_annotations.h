@@ -17,6 +17,3 @@
 /* For compilation purposes, these annotations are no-ops */
 #define S2N_PUBLIC_INPUT(__a)
 #define S2N_INVARIENT(__a)
-
-/* Help declare the visibility of functions */
-#define S2N_DEPRECATED __attribute__((deprecated))

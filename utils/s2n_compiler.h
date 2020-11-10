@@ -22,3 +22,9 @@
 #define S2N_GCC_VERSION_AT_LEAST(major, minor, patch_level) \
     ((S2N_GCC_VERSION) >= ((major) * 10000 + (minor) * 100 + (patch_level)))
 
+
+#if S2N_GCC_VERSION_AT_LEAST(4, 5, 0)
+#   define S2N_DEPRECATED(msg) __attribute__((deprecated(msg)))
+#else
+#   define S2N_DEPRECATED(msg) __attribute__((deprecated))
+#endif
