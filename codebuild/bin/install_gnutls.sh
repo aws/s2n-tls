@@ -36,7 +36,7 @@ case "$DISTRO" in
   "ubuntu")
     sudo apt-get -qq install libgmp3-dev -y
     ;;
-  "redhat"|"fedora"|"centos"|"amazon linux")
+  "amazon linux")
     sudo yum install -y gmp-devel
     ;;
 "darwin" )

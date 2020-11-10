@@ -36,7 +36,7 @@ mono() {
 
 symlink_all_the_things() {
     # Package owners should be doing this.
-    # Note the version number at the end allows for upgrades to superceeded these.
+    # Note the version number at the end allows for upgrades to supersede these.
     update-alternatives --install /usr/bin/pip pip3 /usr/bin/pip3 300
     update-alternatives --install /usr/bin/ninja ninja /usr/bin/ninja-build 170
     update-alternatives --install /usr/bin/cmake cmake /usr/bin/cmake3 313

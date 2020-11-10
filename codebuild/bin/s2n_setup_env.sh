@@ -59,7 +59,7 @@
   #  VERSION_CODENAME = "bionic"
   if [[ -f "/etc/os-release" ]]; then
     # AL2 doesn't provide a codename.
-     . /etc/os-release
+    . /etc/os-release
     export DISTRO=$(echo "$NAME"|tr "[:upper:]" "[:lower:]")
     export VERSION_ID=${VERSION_ID:-"unknown"}
     export VERSION_CODENAME=${VERSION_CODENAME:-"unknown"}

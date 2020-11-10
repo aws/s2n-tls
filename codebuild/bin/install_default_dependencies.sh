@@ -70,7 +70,7 @@ if [[ "$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "A
         "ubuntu")
           apt-get -y install tox
           ;;
-        "redhat"|"fedora"|"centos"|"amazon linux")
+        "amazon linux")
           yum install -y python3-pip
           python3 -m pip install --user tox          ;;
         "apple")
@@ -122,7 +122,7 @@ if [[ ! -x `which cmake` ]]; then
     "ubuntu")
         apt-get -y install cmake
         ;;
-    "redhat"|"fedora"|"centos"|"amazon linux")
+    "amazon linux")
         yum install -y cmake3
         update-alternatives --install /usr/bin/cmake cmake /usr/bin/cmake3 30
         ;;

@@ -34,7 +34,7 @@ if [ "$#" -ne "0" ]; then
 fi
 
 case "$OS_NAME" in
-  "ubuntu"|"fedora"|"redhat"|"centos"|"amazon linux")
+  "amazon linux")
     which shellcheck || install_shellcheck
     ;;
   "darwin" )

@@ -32,11 +32,11 @@ ifeq ($(OPENSSL_0_9_8_INSTALL_DIR),)
 	OPENSSL_0_9_8_INSTALL_DIR:=${CURDIR}/../../test-deps/openssl-0.9.8
 endif
 
-.PHONY : all
-ifdef S2N_NO_PQ
 TESTS = tls13 client_endpoints dynamic_record old_s_client s_client s_server gnutls_cli gnutls_serv
-else
-TESTS = tls13 client_endpoints dynamic_record old_s_client s_client s_server gnutls_cli gnutls_serv pq_handshake
+
+.PHONY : all
+ifndef S2N_NO_PQ
+TESTS += pq_handshake
 endif
 
 ifneq (S2N_NO_SSLYZE, "true")
