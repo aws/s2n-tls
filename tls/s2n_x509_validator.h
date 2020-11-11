@@ -124,5 +124,11 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x509_validator *validator,  struct s2n_connection *conn,
                                                                                 const uint8_t *ocsp_response, uint32_t size);
 
+/**
+ * Validates that each certificate in a peer's cert chain contains only signature algorithms in a security policy's
+ * certificate_signatures_preference list.
+ */
+s2n_cert_validation_code s2n_x509_validator_validate_certificate_signatures(struct s2n_x509_validator *validator,  struct s2n_connection *conn);
+
 /* Checks to see if a certificate has a signature algorithm that's in our certificate_signature_preferences list */
-S2N_RESULT s2n_is_certificate_sig_scheme_supported(X509 *x509_cert, const struct s2n_signature_preferences *signature_preferences, bool *out);
+S2N_RESULT s2n_is_certificate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert, bool *out);

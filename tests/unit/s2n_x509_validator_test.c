@@ -1484,6 +1484,8 @@ int main(int argc, char **argv) {
         s2n_pkey_type pkey_type;
         EXPECT_EQUAL(S2N_CERT_OK,
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+        EXPECT_EQUAL(S2N_CERT_OK,
+                     s2n_x509_validator_validate_certificate_signatures(&validator, connection));
         s2n_stuffer_free(&chain_stuffer);
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
@@ -1523,9 +1525,11 @@ int main(int argc, char **argv) {
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type;
-        EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED,
+        EXPECT_EQUAL(S2N_CERT_OK,
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
         s2n_stuffer_free(&chain_stuffer);
+        EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED,
+                     s2n_x509_validator_validate_certificate_signatures(&validator, connection));
         
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);

@@ -27,7 +27,7 @@ const struct s2n_signature_scheme s2n_rsa_pkcs1_md5_sha1 = {
         .iana_value = TLS_SIGNATURE_SCHEME_PRIVATE_INTERNAL_RSA_PKCS1_MD5_SHA1,
         .hash_alg = S2N_HASH_MD5_SHA1,
         .sig_alg = S2N_SIGNATURE_RSA,
-        .libcrypto_nid = NID_undef,
+        .libcrypto_nid = NID_md5_sha1,
         .signature_curve = NULL, /* Elliptic Curve not needed for RSA */
         .maximum_protocol_version = S2N_TLS12, /* TLS1.3 does not support pkcs1 or sha1 */
 };

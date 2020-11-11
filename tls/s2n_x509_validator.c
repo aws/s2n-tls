@@ -371,39 +371,6 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
         S2N_ERROR_IF(op_code <= 0, S2N_ERR_CERT_UNTRUSTED);
         validator->state = VALIDATED;
-
-        /* Check to ensure certificate signatures appear in certificate_signature_preferences.
-         * Additionally we only want this check to apply in TLS1.3 */
-        if (conn->config->security_policy->certificate_signature_preferences &&
-                conn->actual_protocol_version >= S2N_TLS13) {
-            
-            STACK_OF(X509) *validated_chain = X509_STORE_CTX_get1_chain(validator->store_ctx);
-
-            if (!validated_chain) {
-                goto clean_up;
-            }
-
-            const int certs_in_chain = sk_X509_num(validated_chain);
-
-            if (!certs_in_chain) {
-                goto clean_up;
-            }
-
-            /* Do not validate the root certificate */
-            for (int i = 0; i < certs_in_chain - 1; i++) {
-                bool out = 0;
-                X509 *cert = sk_X509_value(validated_chain, i);
-
-                GUARD_AS_POSIX(s2n_is_certificate_sig_scheme_supported(cert, 
-                        conn->config->security_policy->certificate_signature_preferences, &out));
-                S2N_ERROR_IF(out == false, S2N_ERR_CERT_UNTRUSTED);
-            }
-
-            clean_up:
-            if (validated_chain) {
-                wipe_cert_chain(validated_chain);
-            }
-        }
     }
 
     if (conn->actual_protocol_version >= S2N_TLS13) {
@@ -583,21 +550,55 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
 #endif /* S2N_OCSP_STAPLING_SUPPORTED */
 }
 
-S2N_RESULT s2n_is_certificate_sig_scheme_supported(X509 *x509_cert, const struct s2n_signature_preferences *signature_preferences, bool *out) {
+DEFINE_POINTER_CLEANUP_FUNC(STACK_OF(X509)*, wipe_cert_chain);
 
-    ENSURE_REF(signature_preferences);
+s2n_cert_validation_code s2n_x509_validator_validate_certificate_signatures(struct s2n_x509_validator *validator,  struct s2n_connection *conn)
+{
+    if (validator->skip_cert_validation || !conn->config->security_policy->certificate_signature_preferences) {
+        return S2N_CERT_OK;
+    }
+    S2N_ERROR_IF((validator->state != VALIDATED && validator->state != OCSP_VALIDATED), S2N_ERR_INVALID_STATE);
+    
+    DEFER_CLEANUP(STACK_OF(X509) *validated_chain = X509_STORE_CTX_get1_chain(validator->store_ctx), wipe_cert_chain_pointer);
+
+    const int certs_in_chain = sk_X509_num(validated_chain);
+
+    /* Do not validate the root certificate */
+    int certs_to_validate = certs_in_chain - 1;
+    
+    for (int i = 0; i < certs_to_validate; i++) {
+        bool out = 0;
+        X509 *cert = sk_X509_value(validated_chain, i);
+
+        GUARD_AS_POSIX(s2n_is_certificate_sig_scheme_supported(conn, cert, &out));
+        if(out == false) {
+            return S2N_CERT_ERR_UNTRUSTED;
+        }
+    }
+
+    return S2N_CERT_OK;
+}
+
+S2N_RESULT s2n_is_certificate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert, bool *out)
+{
+    ENSURE_REF(conn);
     ENSURE_REF(x509_cert);
     ENSURE_REF(out);
 
     int nid = X509_get_signature_nid(x509_cert);
-    /* TODO: add method to differentiate between rsa_pss_pss certs and rsa_pss_rsae certs */
+    
     const struct s2n_signature_scheme *candidate = {0};
-
-    for (int i = 0; i < signature_preferences->count; i++) {
-        candidate = signature_preferences->signature_schemes[i];
+    /* TODO: add method to differentiate between rsa_pss_pss certs and rsa_pss_rsae certs */
+    for (int i = 0; i < conn->config->security_policy->certificate_signature_preferences->count; i++) {
+        candidate = conn->config->security_policy->certificate_signature_preferences->signature_schemes[i];
 
         if (candidate->libcrypto_nid == nid) {
-            *out = true;
+            /* SHA-1 algorithms are not supported in certificate signatures in TLS1.3 */
+            if (conn->actual_protocol_version >= S2N_TLS13 && candidate->hash_alg == S2N_HASH_SHA1) {
+                *out = false;
+            } else {
+                *out = true;
+            }
             return S2N_RESULT_OK;
         }
     }
