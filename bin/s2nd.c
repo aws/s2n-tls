@@ -41,8 +41,7 @@
 #include <s2n.h>
 #include "common.h"
 
-#include "tls/s2n_connection.h"
-#include "tls/s2n_tls13.h"
+#include "tls/s2n_security_policies.h"
 #include "utils/s2n_safety.h"
 
 #define MAX_CERTIFICATES 50
@@ -684,6 +683,8 @@ int main(int argc, char *const *argv)
     GUARD_EXIT(s2n_config_add_dhparams(config, dhparams), "Error adding DH parameters");
 
     const struct s2n_security_policy *policy;
+    /* Using unsupported function to prevent changing the s2nc/s2nd interface for integration tests */
+    /* https://github.com/awslabs/s2n/issues/2378 */
     GUARD_EXIT(s2n_find_security_policy_from_version(cipher_prefs, &policy), "Error finding security policy");
     GUARD_EXIT(s2n_config_set_security_policy(config, policy),"Error setting security policy");
 

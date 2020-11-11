@@ -57,6 +57,7 @@ const struct s2n_security_policy security_policy_20190802 = {
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
+const struct s2n_security_policy *S2N_SECURITY_POLICY_20190802 = &security_policy_20190802;
 
 const struct s2n_security_policy security_policy_20170405 = {
     .minimum_protocol_version = S2N_TLS10,
@@ -65,6 +66,7 @@ const struct s2n_security_policy security_policy_20170405 = {
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
+const struct s2n_security_policy *S2N_SECURITY_POLICY_20170405 = &security_policy_20170405;
 
 const struct s2n_security_policy security_policy_elb_2015_04 = {
     .minimum_protocol_version = S2N_TLS10,

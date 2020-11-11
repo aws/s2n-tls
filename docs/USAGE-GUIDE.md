@@ -500,8 +500,7 @@ int s2n_config_set_security_policy(struct s2n_config *config,
 
 **s2n_config_set_security_policy** S2N makes opinionated decisions about which ciphers,
 key encapsualtion mechanisms, signature algorithms, and curves can be used together. These
-combinations are called *security policies*. This function is simply a wrapper for
-*s2n_config_set_cipher_preferences*. The name better describes the behavior behind the scenes.
+combinations are called *security policies*. 
 
 ### s2n\_config\_set\_cipher\_preferences
 
