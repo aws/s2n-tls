@@ -78,4 +78,4 @@ extern const struct s2n_signature_preferences s2n_signature_preferences_20200207
 extern const struct s2n_signature_preferences s2n_signature_preferences_20201021;
 extern const struct s2n_signature_preferences s2n_signature_preferences_null;
 
-extern const struct s2n_signature_preferences s2n_certificate_signature_preferences_20190801;
+extern const struct s2n_signature_preferences s2n_certificate_signature_preferences_20201110;

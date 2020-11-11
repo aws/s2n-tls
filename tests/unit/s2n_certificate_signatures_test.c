@@ -42,7 +42,6 @@ int main(int argc, char **argv)
     bool out;
     BIO* certBio;
     size_t certLen;
-    struct s2n_connection *conn;
     
     const struct s2n_signature_scheme* const test_sig_scheme_list[] = {
         &s2n_ecdsa_sha256,
@@ -57,8 +56,7 @@ int main(int argc, char **argv)
     /* s2n_is_certificate_sig_scheme_supported() */
     {
         struct s2n_config *config = s2n_config_new();
-
-        conn = s2n_connection_new(S2N_CLIENT);
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         s2n_connection_set_config(conn, config);
 
         const struct s2n_security_policy *security_policy = NULL;
@@ -153,8 +151,10 @@ int main(int argc, char **argv)
             BIO_free(certBio);
             X509_free(cert);
         }
-    }
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
 
+    }
     END_TEST();
     return S2N_SUCCESS;
 }

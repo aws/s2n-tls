@@ -37,7 +37,7 @@ const struct s2n_security_policy security_policy_20190801 = {
      * name because customers use it.
      */
     .signature_preferences = &s2n_signature_preferences_20200207,
-    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20190801,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 

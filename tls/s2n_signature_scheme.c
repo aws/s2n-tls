@@ -311,7 +311,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_null = {
 };
 
 /* TLS1.3 supported signature schemes, without SHA-1 legacy algorithms */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20190801[] = {
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20201110[] = {
         /* RSA PSS */
         &s2n_rsa_pss_pss_sha256,
         &s2n_rsa_pss_pss_sha384,
@@ -335,7 +335,7 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20190801[] = {
         &s2n_ecdsa_sha224,
 };
 
-const struct s2n_signature_preferences s2n_certificate_signature_preferences_20190801 = {
-    .count = s2n_array_len(s2n_sig_scheme_pref_list_20190801),
-    .signature_schemes = s2n_sig_scheme_pref_list_20190801,
+const struct s2n_signature_preferences s2n_certificate_signature_preferences_20201110 = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_20201110),
+    .signature_schemes = s2n_sig_scheme_pref_list_20201110,
 };

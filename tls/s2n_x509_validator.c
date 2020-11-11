@@ -28,6 +28,7 @@
 
 #include <openssl/err.h>
 #include <openssl/asn1.h>
+#include <openssl/x509.h>
 
 #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 #include <openssl/ocsp.h>
@@ -587,14 +588,13 @@ S2N_RESULT s2n_is_certificate_sig_scheme_supported(struct s2n_connection *conn, 
 
     int nid = X509_get_signature_nid(x509_cert);
     
-    const struct s2n_signature_scheme *candidate = {0};
     /* TODO: add method to differentiate between rsa_pss_pss certs and rsa_pss_rsae certs */
     for (int i = 0; i < conn->config->security_policy->certificate_signature_preferences->count; i++) {
-        candidate = conn->config->security_policy->certificate_signature_preferences->signature_schemes[i];
 
-        if (candidate->libcrypto_nid == nid) {
+        if (conn->config->security_policy->certificate_signature_preferences->signature_schemes[i]->libcrypto_nid == nid) {
             /* SHA-1 algorithms are not supported in certificate signatures in TLS1.3 */
-            if (conn->actual_protocol_version >= S2N_TLS13 && candidate->hash_alg == S2N_HASH_SHA1) {
+            if (conn->actual_protocol_version >= S2N_TLS13 &&
+                conn->config->security_policy->certificate_signature_preferences->signature_schemes[i]->hash_alg == S2N_HASH_SHA1) {
                 *out = false;
             } else {
                 *out = true;
