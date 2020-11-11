@@ -27,6 +27,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_quic_support.h"
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/extensions/s2n_server_key_share.h"
@@ -39,20 +40,35 @@
 #include "tls/s2n_tls13_handshake.c"
 #include "tls/s2n_handshake_transcript.c"
 
+#define S2N_SECRET_TYPE_COUNT 5
+
 static int s2n_tls13_conn_copy_server_finished_hash(struct s2n_connection *conn);
+
+static int s2n_setup_tls13_secrets_prereqs(struct s2n_connection *conn)
+{
+    conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+    GUARD(s2n_tls13_conn_copy_server_finished_hash(conn));
+
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    notnull_check(ecc_pref);
+
+    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+    conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+    GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
+    GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+
+    return S2N_SUCCESS;
+}
 
 static int s2n_test_tls13_handle_secrets(s2n_mode mode, uint8_t version, message_type_t *update_points, size_t update_points_len)
 {
     for (size_t i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
         struct s2n_connection *conn;
         notnull_check(conn = s2n_connection_new(mode));
-
-        const struct s2n_ecc_preferences *ecc_pref = NULL;
-        GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-        notnull_check(ecc_pref);
+        GUARD(s2n_setup_tls13_secrets_prereqs(conn));
 
         conn->actual_protocol_version = version;
-        conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         s2n_tls13_connection_keys(client_secrets, conn);
 
@@ -64,13 +80,6 @@ static int s2n_test_tls13_handle_secrets(s2n_mode mode, uint8_t version, message
         /* verify that that is the initial secret state */
         conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
         conn->handshake.message_number = i;
-
-        GUARD(s2n_tls13_conn_copy_server_finished_hash(conn));
-
-        conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-        conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-        GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
-        GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
 
         GUARD(s2n_tls13_handle_secrets(conn));
 
@@ -89,6 +98,39 @@ static int s2n_test_tls13_handle_secrets(s2n_mode mode, uint8_t version, message
         }
 
         GUARD(s2n_connection_free(conn));
+    }
+
+    return S2N_SUCCESS;
+}
+
+
+static int s2n_test_secret_handler(void* context, struct s2n_connection *conn,
+                                          s2n_secret_type_t secret_type,
+                                          uint8_t *secret, uint8_t secret_size)
+{
+    uint8_t *secrets_handled = (uint8_t *) context;
+    secrets_handled[secret_type] += 1;
+
+    switch(secret_type) {
+        case S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET:
+            eq_check(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
+            break;
+        case S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET:
+            eq_check(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
+            break;
+        case S2N_SERVER_APPLICATION_TRAFFIC_SECRET:
+            if (conn->mode == S2N_SERVER) {
+                eq_check(s2n_conn_get_current_message_type(conn), SERVER_FINISHED);
+            } else {
+                eq_check(s2n_conn_get_current_message_type(conn), CLIENT_FINISHED);
+            }
+            break;
+        case S2N_CLIENT_APPLICATION_TRAFFIC_SECRET:
+            eq_check(s2n_conn_get_current_message_type(conn), CLIENT_FINISHED);
+            break;
+        case S2N_CLIENT_EARLY_TRAFFIC_SECRET:
+            S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+            break;
     }
 
     return S2N_SUCCESS;
@@ -292,6 +334,74 @@ int main(int argc, char **argv)
             message_type_t server_secret_update_points[] = { SERVER_HELLO, SERVER_FINISHED };
             EXPECT_SUCCESS(s2n_test_tls13_handle_secrets(S2N_SERVER, S2N_TLS13,
                     server_secret_update_points, s2n_array_len(server_secret_update_points)));
+        }
+
+        /* Test: secret handlers called when QUIC enabled */
+        {
+            /* Test: secret handlers NOT called when QUIC NOT enabled */
+            {
+                const uint8_t expected_secrets_handled[S2N_SECRET_TYPE_COUNT] = { 0 };
+                for (uint8_t version = S2N_TLS12; version <= S2N_TLS13; version++) {
+                    for (s2n_mode mode = 0; mode <= 1; mode++) {
+                        uint8_t secrets_handled[S2N_SECRET_TYPE_COUNT] = { 0 };
+
+                        for (size_t i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
+                            struct s2n_connection *conn;
+                            EXPECT_NOT_NULL(conn = s2n_connection_new(mode));
+                            EXPECT_SUCCESS(s2n_setup_tls13_secrets_prereqs(conn));
+
+                            conn->actual_protocol_version = version;
+                            conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
+                            conn->handshake.message_number = i;
+
+                            EXPECT_SUCCESS(s2n_connection_set_secret_callback(conn, s2n_test_secret_handler, secrets_handled));
+                            GUARD(s2n_tls13_handle_secrets(conn));
+
+                            EXPECT_SUCCESS(s2n_connection_free(conn));
+                        }
+
+                        EXPECT_BYTEARRAY_EQUAL(secrets_handled, expected_secrets_handled, sizeof(expected_secrets_handled));
+                    }
+                }
+            }
+
+            /* Test: secret handlers called when QUIC enabled */
+            {
+                struct s2n_config *config;
+                EXPECT_NOT_NULL(config = s2n_config_new());
+                EXPECT_SUCCESS(s2n_config_enable_quic(config));
+
+                const uint8_t expected_secrets_handled[S2N_SECRET_TYPE_COUNT] = {
+                    [S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET] = 1,
+                    [S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET] = 1,
+                    [S2N_CLIENT_APPLICATION_TRAFFIC_SECRET] = 1,
+                    [S2N_SERVER_APPLICATION_TRAFFIC_SECRET] = 1,
+                };
+
+                for (s2n_mode mode = 0; mode <= 1; mode++) {
+                    uint8_t secrets_handled[S2N_SECRET_TYPE_COUNT] = { 0 };
+
+                    for (size_t i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
+                        struct s2n_connection *conn;
+                        EXPECT_NOT_NULL(conn = s2n_connection_new(mode));
+                        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+                        EXPECT_SUCCESS(s2n_setup_tls13_secrets_prereqs(conn));
+
+                        conn->actual_protocol_version = S2N_TLS13;
+                        conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
+                        conn->handshake.message_number = i;
+
+                        EXPECT_SUCCESS(s2n_connection_set_secret_callback(conn, s2n_test_secret_handler, secrets_handled));
+                        GUARD(s2n_tls13_handle_secrets(conn));
+
+                        EXPECT_SUCCESS(s2n_connection_free(conn));
+                    }
+
+                    EXPECT_BYTEARRAY_EQUAL(secrets_handled, expected_secrets_handled, sizeof(expected_secrets_handled));
+                }
+
+                EXPECT_SUCCESS(s2n_config_free(config));
+            }
         }
     }
 

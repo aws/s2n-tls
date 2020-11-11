@@ -18,8 +18,26 @@
 
 #include "tls/s2n_quic_support.h"
 
+#define S2N_MODE_COUNT 2
+#define S2N_SECRET_TYPE_COUNT 5
+
 static const uint8_t CLIENT_TRANSPORT_PARAMS[] = "client transport params";
 static const uint8_t SERVER_TRANSPORT_PARAMS[] = "server transport params";
+
+static int s2n_test_secret_handler(void* context, struct s2n_connection *conn,
+                                   s2n_secret_type_t secret_type,
+                                   uint8_t *secret, uint8_t secret_size)
+{
+    /* Verify context passed through correctly */
+    struct s2n_blob (*secrets)[S2N_SECRET_TYPE_COUNT] = context;
+    EXPECT_NOT_NULL(secrets);
+
+    /* Save secret for later */
+    EXPECT_SUCCESS(s2n_alloc(&secrets[conn->mode][secret_type], secret_size));
+    EXPECT_MEMCPY_SUCCESS(secrets[conn->mode][secret_type].data, secret, secret_size);
+
+    return S2N_SUCCESS;
+}
 
 int main(int argc, char **argv)
 {
@@ -58,6 +76,11 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_quic_transport_parameters(server_conn,
             SERVER_TRANSPORT_PARAMS, sizeof(SERVER_TRANSPORT_PARAMS)));
 
+    /* Set secret handler */
+    struct s2n_blob secrets[S2N_MODE_COUNT][S2N_SECRET_TYPE_COUNT] = { 0 };
+    EXPECT_SUCCESS(s2n_connection_set_secret_callback(client_conn, s2n_test_secret_handler, secrets));
+    EXPECT_SUCCESS(s2n_connection_set_secret_callback(server_conn, s2n_test_secret_handler, secrets));
+
     /* Do handshake */
     EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -84,6 +107,16 @@ int main(int argc, char **argv)
     /* Verify handshake not MIDDLEBOX_COMPAT (QUIC does not use middlebox compat mode) */
     EXPECT_FALSE(IS_MIDDLEBOX_COMPAT_MODE(client_conn->handshake.handshake_type));
     EXPECT_FALSE(IS_MIDDLEBOX_COMPAT_MODE(server_conn->handshake.handshake_type));
+
+    /* Verify secret handler collected secrets */
+    for (size_t i = 1; i < S2N_SECRET_TYPE_COUNT; i++) {
+        EXPECT_NOT_EQUAL(secrets[S2N_CLIENT][i].size, 0);
+        EXPECT_EQUAL(secrets[S2N_CLIENT][i].size, secrets[S2N_SERVER][i].size);
+        EXPECT_BYTEARRAY_EQUAL(secrets[S2N_CLIENT][i].data, secrets[S2N_SERVER][i].data, secrets[S2N_SERVER][i].size);
+
+        EXPECT_SUCCESS(s2n_free(&secrets[S2N_CLIENT][i]));
+        EXPECT_SUCCESS(s2n_free(&secrets[S2N_SERVER][i]));
+    }
 
     EXPECT_SUCCESS(s2n_connection_free(server_conn));
     EXPECT_SUCCESS(s2n_connection_free(client_conn));

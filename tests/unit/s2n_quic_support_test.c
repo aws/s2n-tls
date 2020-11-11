@@ -20,6 +20,12 @@
 
 static const uint8_t TEST_DATA[] = "test";
 
+static int s2n_test_noop_secret_handler(void* context, struct s2n_connection *conn,
+        s2n_secret_type_t secret_type, uint8_t *secret, uint8_t secret_size)
+{
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -124,6 +130,55 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_quic_transport_parameters(conn, &data_buffer, &data_buffer_len));
             EXPECT_EQUAL(data_buffer, conn->peer_quic_transport_parameters.data);
             EXPECT_EQUAL(data_buffer_len, conn->peer_quic_transport_parameters.size);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
+
+    /* Test s2n_connection_set_secret_callback */
+    {
+        uint8_t test_context;
+
+        /* Safety checks */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_secret_callback(NULL, s2n_test_noop_secret_handler, &test_context), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_secret_callback(conn, NULL, &test_context), S2N_ERR_NULL);
+
+            EXPECT_EQUAL(conn->secret_cb, NULL);
+            EXPECT_EQUAL(conn->secret_cb_context, NULL);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Succeeds with NULL context */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_EQUAL(conn->secret_cb, NULL);
+            EXPECT_EQUAL(conn->secret_cb_context, NULL);
+
+            EXPECT_SUCCESS(s2n_connection_set_secret_callback(conn, s2n_test_noop_secret_handler, NULL));
+
+            EXPECT_EQUAL(conn->secret_cb, s2n_test_noop_secret_handler);
+            EXPECT_NULL(conn->secret_cb_context);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Succeeds with context */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_EQUAL(conn->secret_cb, NULL);
+            EXPECT_EQUAL(conn->secret_cb_context, NULL);
+
+            EXPECT_SUCCESS(s2n_connection_set_secret_callback(conn, s2n_test_noop_secret_handler, &test_context));
+
+            EXPECT_EQUAL(conn->secret_cb, s2n_test_noop_secret_handler);
+            EXPECT_EQUAL(conn->secret_cb_context, &test_context);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }

@@ -27,13 +27,13 @@
 #include "tls/s2n_crypto.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_prf.h"
+#include "tls/s2n_quic_support.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
 #include "tls/s2n_key_update.h"
 #include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_security_policies.h"
-
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
@@ -60,6 +60,10 @@ struct s2n_connection {
 
     /* The user defined context associated with connection */
     void *context;
+
+    /* The user defined secret callback and context */
+    s2n_secret_cb secret_cb;
+    void *secret_cb_context;
 
     /* The send and receive callbacks don't have to be the same (e.g. two pipes) */
     s2n_send_fn *send;
