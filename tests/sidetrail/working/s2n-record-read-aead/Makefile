@@ -20,6 +20,7 @@ extras += utils/s2n_blob.c
 extras += utils/s2n_ensure.c
 extras += utils/s2n_mem.c
 extras += utils/s2n_safety.c
+extras += utils/s2n_result.c
 goals  += s2n_record_parse_wrapper@s2n_record_read_wrapper.c
 #goals += test_leakage@s2n_record_read_wrapper.c
 full_self_comp += true
