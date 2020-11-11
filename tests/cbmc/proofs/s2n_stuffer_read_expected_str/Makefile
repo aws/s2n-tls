@@ -15,10 +15,11 @@
 MAX_STRING_LEN = 10
 DEFINES += -DMAX_STRING_LEN=$(MAX_STRING_LEN)
 
+PROOF_UID = s2n_stuffer_read_expected_str
 HARNESS_ENTRY = s2n_stuffer_read_expected_str_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c

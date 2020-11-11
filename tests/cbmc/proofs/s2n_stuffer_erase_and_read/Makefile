@@ -15,10 +15,11 @@
 #Use the default set of CBMC flags
 CHECKFLAGS +=
 
+PROOF_UID = s2n_stuffer_erase_and_read
 HARNESS_ENTRY = s2n_stuffer_erase_and_read_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
