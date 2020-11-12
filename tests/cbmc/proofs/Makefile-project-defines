@@ -21,8 +21,13 @@
 
 # Preprocessor include paths -I...
 INCLUDES += -I$(CBMC_ROOT)/include
+INCLUDES += -I$(CBMC_ROOT)/aws-verification-model-for-libcrypto/include
 INCLUDES += -I$(SRCDIR)
 INCLUDES += -I$(SRCDIR)/api
+INCLUDES += -I$(SRCDIR)/crypto
+
+# OpenSSL Model Source
+OPENSSL_SOURCE = $(CBMC_ROOT)/aws-verification-model-for-libcrypto/source
 
 # Preprocessor definitions -D...
 
