@@ -17,25 +17,31 @@
 set -e
 source codebuild/bin/s2n_setup_env.sh
 
-if [ -f "/etc/lsb-release" ]; then
-    source /etc/lsb-release
-fi
-
 usage() {
     echo "install_shellcheck.sh"
     exit 1
+}
+
+install_shellcheck() {
+   wget "https://github.com/koalaman/shellcheck/releases/download/v0.7.1/shellcheck-v0.7.1.linux.$ARCH.tar.xz" -O /tmp/shellcheck.tar.xz
+   tar -Jxf /tmp/shellcheck.tar.xz -C /tmp
+   mv /tmp/shellcheck-v*/shellcheck /usr/local/bin/
+   chmod 755 /usr/local/bin/shellcheck
 }
 
 if [ "$#" -ne "0" ]; then
     usage
 fi
 
-if [ "$OS_NAME" == "linux" ]; then
-    which shellcheck || (sudo apt-get -qq update && sudo apt-get -qq install shellcheck -y)
-elif [ "$OS_NAME" == "darwin" ]; then
-    # Installing an existing package is a "failure" in brew
+case "$OS_NAME" in
+  "amazon linux")
+    which shellcheck || install_shellcheck
+    ;;
+  "darwin" )
     brew install shellcheck || true ;
-else
-    echo "Invalid platform! $OS_NAME"
-    usage
-fi
+    ;;
+  *)
+    echo "Unknown platfom"
+    exit 255
+    ;;
+esac

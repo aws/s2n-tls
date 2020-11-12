@@ -15,32 +15,39 @@
 #
 
 set -e
+source codebuild/bin/s2n_setup_env.sh
 
 usage() {
     echo "install_gnutls.sh build_dir install_dir os_name"
     exit 1
 }
 
-if [ "$#" -ne "3" ]; then
+if [ "$#" -ne "2" ]; then
     usage
 fi
 
 GNUTLS_BUILD_DIR=$1
 GNUTLS_INSTALL_DIR=$2
-OS_NAME=$3
 
 source codebuild/bin/jobs.sh
 
 # libgmp is needed for libnettle
-if [ "$OS_NAME" == "linux" ]; then
+case "$DISTRO" in
+  "ubuntu")
     sudo apt-get -qq install libgmp3-dev -y
-elif [ "$OS_NAME" == "osx" ]; then
+    ;;
+  "amazon linux")
+    sudo yum install -y gmp-devel
+    ;;
+"darwin" )
     # Installing an existing package is a "failure" in brew
-    brew install gmp || true ;
-else
+    brew install gmp || true 
+    ;;
+*)
     echo "Invalid platform! $OS_NAME"
     usage
-fi
+    ;;
+esac
 
 cd "$GNUTLS_BUILD_DIR"
 

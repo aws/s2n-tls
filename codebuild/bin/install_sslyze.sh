@@ -13,15 +13,25 @@
 # permissions and limitations under the License.
 #
 
-set -ex
+set -e
+. codebuild/bin/s2n_setup_env.sh
 
-python3 -m pip install --user --upgrade pip setuptools
+aarch64_install() {
+        echo "sslyze has a dependency on nassl, which will not build on ARM."
+}
 
-# Version 3.0.0 introduces backwards incompatible changes in the JSON we parse.
-# If we upgrade, the json format changes, breaking either Travis OR Codebuild.
-python3 -m pip install --user "sslyze<3.0.0"
-
-sudo ln -s /root/.local/bin/sslyze /usr/bin/sslyze || true
-
-which sslyze
-sslyze --version
+case "$ARCH" in
+  "aarch64")
+        aarch64_install
+        exit 1
+        ;;
+  *)
+        python3 -m pip install --user --upgrade pip setuptools
+        # Version 3.0.0 introduces backwards incompatible changes in the JSON we parse.
+        # TODO: unpin the version and update the json parsing sslyze output.
+        python3 -m pip install --user "sslyze<3.0.0"
+        sudo ln -s /root/.local/bin/sslyze /usr/bin/sslyze || true
+        which sslyze
+        sslyze --version
+        ;;
+esac
