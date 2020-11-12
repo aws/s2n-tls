@@ -24,13 +24,14 @@ void s2n_hash_is_available_harness()
     s2n_hash_algorithm alg;
 
     /* Operation under verification. */
-    assert(IMPLIES(alg == S2N_HASH_MD5, s2n_hash_is_available(alg) == !s2n_is_in_fips_mode()));
-    assert(IMPLIES(alg == S2N_HASH_MD5_SHA1, s2n_hash_is_available(alg) == !s2n_is_in_fips_mode()));
-    assert(IMPLIES(alg == S2N_HASH_NONE, s2n_hash_is_available(alg)));
-    assert(IMPLIES(alg == S2N_HASH_SHA1, s2n_hash_is_available(alg)));
-    assert(IMPLIES(alg == S2N_HASH_SHA224, s2n_hash_is_available(alg)));
-    assert(IMPLIES(alg == S2N_HASH_SHA256, s2n_hash_is_available(alg)));
-    assert(IMPLIES(alg == S2N_HASH_SHA384, s2n_hash_is_available(alg)));
-    assert(IMPLIES(alg == S2N_HASH_SHA512, s2n_hash_is_available(alg)));
-    assert(IMPLIES(alg == S2N_HASH_SENTINEL, !s2n_hash_is_available(alg)));
+    bool is_available = s2n_hash_is_available(alg);
+    assert(IMPLIES(alg == S2N_HASH_MD5, is_available == !s2n_is_in_fips_mode()));
+    assert(IMPLIES(alg == S2N_HASH_MD5_SHA1, is_available == !s2n_is_in_fips_mode()));
+    assert(IMPLIES(alg == S2N_HASH_NONE, is_available));
+    assert(IMPLIES(alg == S2N_HASH_SHA1, is_available));
+    assert(IMPLIES(alg == S2N_HASH_SHA224, is_available));
+    assert(IMPLIES(alg == S2N_HASH_SHA256, is_available));
+    assert(IMPLIES(alg == S2N_HASH_SHA384, is_available));
+    assert(IMPLIES(alg == S2N_HASH_SHA512, is_available));
+    assert(IMPLIES(alg == S2N_HASH_SENTINEL, !is_available));
 }
