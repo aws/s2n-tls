@@ -19,6 +19,7 @@
 
 #include "tls/s2n_key_update.h"
 #include "tls/s2n_post_handshake.h"
+#include "tls/s2n_quic_support.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_cipher_suites.h"
@@ -40,6 +41,7 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
+
     /* s2n_key_update_write */
     {
         /* Tests s2n_key_update_write writes as expected */
@@ -71,6 +73,30 @@ int main(int argc, char **argv)
     }
     /* s2n_key_update_recv */
     {
+        /* Key update message not allowed when running with QUIC */
+        {
+            const size_t test_data_len = 10;
+            DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&input, test_data_len));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&input, test_data_len));
+
+            struct s2n_config *quic_config;
+            EXPECT_NOT_NULL(quic_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_enable_quic(quic_config));
+
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, quic_config));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_recv(conn, &input), S2N_ERR_BAD_MESSAGE);
+
+            /* Verify method was a no-op and the message was not read */
+            EXPECT_EQUAL(s2n_stuffer_data_available(&input), test_data_len);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(quic_config));
+        }
+
         /* Key update message received contains invalid key update request */
         {
             DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
