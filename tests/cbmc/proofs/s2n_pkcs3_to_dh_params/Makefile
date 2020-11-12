@@ -11,7 +11,8 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Expected runtime is 10 seconds.
+# Expected runtime is 7 seconds.
+
 MAX_BLOB_SIZE = 10
 DEFINES += -DMAX_BLOB_SIZE=$(MAX_BLOB_SIZE)
 
@@ -21,9 +22,10 @@ HARNESS_ENTRY = s2n_pkcs3_to_dh_params_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(OPENSSL_SOURCE)/dh_override.c
+PROOF_SOURCES += $(OPENSSL_SOURCE)/bn_override.c
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
-PROOF_SOURCES += $(PROOF_SOURCE)/openssl/dh_overrides.c
 PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(PROOF_STUB)/sysconf.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
@@ -37,10 +39,7 @@ PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
 
 UNWINDSET +=
 
-# These functions are unnecessary for the proof, as the first is an OpenSSL
-# function and the second interacts with OpenSSL functions. Since OpenSSL
-# is not emulated by CBMC, these do not fall within the scope of the proof.
-REMOVE_FUNCTION_BODY += DECLARE_ASN1_ITEM
-REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_dhe_c_s2n_check_p_g_dh_params
+# We abstract this function because manual inspection demonstrates it is unreachable.
+REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
 
 include ../Makefile.common

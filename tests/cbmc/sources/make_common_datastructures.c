@@ -81,11 +81,10 @@ struct s2n_stuffer_reservation *cbmc_allocate_s2n_stuffer_reservation()
     return reservation;
 }
 
-struct s2n_array* cbmc_allocate_s2n_array() {
+struct s2n_array *cbmc_allocate_s2n_array()
+{
     struct s2n_array *array = can_fail_malloc(sizeof(*array));
-    if(array != NULL) {
-        ensure_s2n_blob_has_allocated_fields(&array->mem);
-    }
+    if (array != NULL) { ensure_s2n_blob_has_allocated_fields(&array->mem); }
     return array;
 }
 
@@ -96,10 +95,11 @@ static int nondet_comparator(const void *a, const void *b)
     return nondet_int();
 }
 
-struct s2n_set* cbmc_allocate_s2n_set() {
+struct s2n_set *cbmc_allocate_s2n_set()
+{
     struct s2n_set *set = can_fail_malloc(sizeof(*set));
-    if(set != NULL) {
-        set->data = cbmc_allocate_s2n_array();
+    if (set != NULL) {
+        set->data       = cbmc_allocate_s2n_array();
         set->comparator = nondet_comparator;
     }
     return set;
@@ -113,4 +113,19 @@ bool s2n_array_is_bounded(const struct s2n_array *array, const size_t max_len, c
 bool s2n_set_is_bounded(const struct s2n_set *set, const size_t max_len, const size_t max_element_size)
 {
     return s2n_array_is_bounded(set->data, max_len, max_element_size);
+}
+
+struct s2n_dh_params *cbmc_allocate_dh_params()
+{
+    struct s2n_dh_params *dh_params = malloc(sizeof(*dh_params));
+    if (dh_params != NULL) {
+        dh_params->dh = malloc(sizeof(*(dh_params->dh)));
+        if (dh_params->dh != NULL) {
+            dh_params->dh->pub_key  = malloc(sizeof(*(dh_params->dh->pub_key)));
+            dh_params->dh->priv_key = malloc(sizeof(*(dh_params->dh->priv_key)));
+            dh_params->dh->p        = malloc(sizeof(*(dh_params->dh->p)));
+            dh_params->dh->g        = malloc(sizeof(*(dh_params->dh->g)));
+        }
+    }
+    return dh_params;
 }

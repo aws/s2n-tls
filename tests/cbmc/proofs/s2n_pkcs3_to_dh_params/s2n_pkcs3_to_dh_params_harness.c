@@ -33,18 +33,22 @@
 void s2n_pkcs3_to_dh_params_harness()
 {
     /* Non-deterministic inputs. */
-    struct s2n_dh_params dh_params = { 0 };
-    struct s2n_blob *    pkcs3     = cbmc_allocate_s2n_blob();
+    struct s2n_dh_params *dh_params = cbmc_allocate_dh_params();
+    struct s2n_blob *     pkcs3     = cbmc_allocate_s2n_blob();
+
+    /* Assumptions. */
     __CPROVER_assume(s2n_blob_is_valid(pkcs3));
+    __CPROVER_assume(s2n_blob_is_bounded(pkcs3, MAX_BLOB_SIZE));
+    nondet_s2n_mem_init();
+
+    /* Save previous state. */
     uint8_t *                     old_data = pkcs3->data;
     struct store_byte_from_buffer old_byte;
     save_byte_from_blob(pkcs3, &old_byte);
-    __CPROVER_assume(s2n_blob_is_bounded(pkcs3, MAX_BLOB_SIZE));
-
-    nondet_s2n_mem_init();
 
     /* Operation under verification. */
-    if (s2n_pkcs3_to_dh_params(&dh_params, pkcs3) == S2N_SUCCESS) {
+    if (s2n_pkcs3_to_dh_params(dh_params, pkcs3) == S2N_SUCCESS) {
+        /* Postconditions. */
         assert(pkcs3->data == old_data);
         assert_byte_from_blob_matches(pkcs3, &old_byte);
     }
