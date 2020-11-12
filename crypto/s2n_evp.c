@@ -37,7 +37,7 @@ int s2n_digest_is_md5_allowed_for_fips(struct s2n_evp_digest *evp_digest)
 #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
     if (s2n_is_in_fips_mode() && EVP_MD_CTX_test_flags(evp_digest->ctx, EVP_MD_CTX_FLAG_NON_FIPS_ALLOW)) {
         /* s2n is in FIPS mode and the EVP digest allows MD5. */
-        return S2N_FAILURE;
+        return 1;
     }
 #endif
     return S2N_SUCCESS;
