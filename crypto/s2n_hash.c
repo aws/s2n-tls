@@ -261,8 +261,8 @@ static int s2n_low_level_hash_free(struct s2n_hash_state *state)
 
 static int s2n_evp_hash_new(struct s2n_hash_state *state)
 {
-    notnull_check_ptr(state->digest.high_level.evp.ctx = S2N_EVP_MD_CTX_NEW());
-    notnull_check_ptr(state->digest.high_level.evp_md5_secondary.ctx = S2N_EVP_MD_CTX_NEW());
+    notnull_check(state->digest.high_level.evp.ctx = S2N_EVP_MD_CTX_NEW());
+    notnull_check(state->digest.high_level.evp_md5_secondary.ctx = S2N_EVP_MD_CTX_NEW());
     state->is_ready_for_input = 0;
     state->currently_in_hash = 0;
 
@@ -491,7 +491,7 @@ int s2n_hash_new(struct s2n_hash_state *state)
      */
     GUARD(s2n_hash_set_impl(state));
 
-    notnull_check_ptr(state->hash_impl->alloc);
+    notnull_check(state->hash_impl->alloc);
 
     GUARD(state->hash_impl->alloc(state));
     POSTCONDITION_POSIX(s2n_hash_state_is_valid(state));
@@ -508,7 +508,7 @@ int s2n_hash_allow_md5_for_fips(struct s2n_hash_state *state)
      */
     GUARD(s2n_hash_set_impl(state));
 
-    notnull_check_ptr(state->hash_impl->allow_md5_for_fips);
+    notnull_check(state->hash_impl->allow_md5_for_fips);
 
     return state->hash_impl->allow_md5_for_fips(state);
 }
