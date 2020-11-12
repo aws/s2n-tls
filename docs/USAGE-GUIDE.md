@@ -370,8 +370,8 @@ This string is useful to include when reporting issues to the s2n development te
 Example:
 
 ```
-if (s2n_config_set_security_policy(config, policy) < 0) {
-    printf("Setting security policy failed! %s : %s", s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"));
+if (s2n_config_set_cipher_preferences(config, prefs) < 0) {
+    printf("Setting cipher prefs failed! %s : %s", s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"));
     return S2N_FAILURE;
 }
 ```
@@ -491,26 +491,14 @@ int s2n_config_free(struct s2n_config *config);
 
 **s2n_config_free** frees the memory associated with an **s2n_config** object.
 
-### s2n\_config\_set\_security\_policy
-
-```c
-int s2n_config_set_security_policy(struct s2n_config *config,
-                                      const struct s2n_security_policy *policy);
-```
-
-**s2n_config_set_security_policy** S2N makes opinionated decisions about which ciphers,
-key encapsualtion mechanisms, signature algorithms, and curves can be used together. These
-combinations are called *security policies*. 
-
 ### s2n\_config\_set\_cipher\_preferences
 
 ```c
-S2N_DEPRECATED
 int s2n_config_set_cipher_preferences(struct s2n_config *config,
                                       const char *version);
 ```
 
-*This API is deprecated* **s2n_config_set_cipher_preferences** sets the security policy that includes the cipher/kem/signature/ecc preferences and protocol version.
+**s2n_config_set_cipher_preferences** sets the security policy that includes the cipher/kem/signature/ecc preferences and protocol version.
 
 The following chart maps the security policy version to protocol version and ciphertsuites supported:
 
@@ -1104,27 +1092,13 @@ is supported by a given cipher preferences. It returns
 -  0 if it does not
 - -1 on any other errors
 
-
-### s2n\_connection\_set\_security\_policy
-
-```c
-int s2n_connection_set_security_policy(struct s2n_connection *conn, const struct s2n_security_policy *policy);
-```
-
-**s2n_connection_set_security_policy** sets the security policy override for the
-s2n_connection. Calling this function is not necessary unless you want to set the
-security policy on the connection to something different than what is in the s2n_config.
-This function is a wrapper for **s2n_connection_set_cipher_preferences**.
-
-
 ### s2n\_connection\_set\_cipher\_preferences
 
 ```c
-S2N_DEPRECATED
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
 ```
 
-*This API is deprecated* **s2n_connection_set_cipher_preferences** sets the cipher preference override for the
+**s2n_connection_set_cipher_preferences** sets the cipher preference override for the
 s2n_connection. Calling this function is not necessary unless you want to set the
 cipher preferences on the connection to something different than what is in the s2n_config.
 
