@@ -23,7 +23,7 @@ void s2n_hash_block_size_harness()
 {
     /* Non-deterministic inputs. */
     s2n_hash_algorithm alg;
-    size_t             block_length;
+    uint64_t           block_length;
     uint64_t *         block_size = bounded_malloc(block_length);
 
     /* Operation under verification. */

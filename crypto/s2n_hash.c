@@ -24,7 +24,7 @@
 
 int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
 {
-    notnull_check(out);
+    PRECONDITION_POSIX(S2N_MEM_IS_READABLE(out, sizeof(*out)));
     switch(hash_alg) {
     case S2N_HASH_NONE:       *out = S2N_HMAC_NONE;   break;
     case S2N_HASH_MD5:        *out = S2N_HMAC_MD5;    break;
@@ -63,7 +63,7 @@ int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
  * If this ever becomes untrue, this would require fixing*/
 int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size)
 {
-    notnull_check(block_size);
+    PRECONDITION_POSIX(S2N_MEM_IS_READABLE(block_size, sizeof(*block_size)));
     switch(alg) {
     case S2N_HASH_NONE:       *block_size = 64;   break;
     case S2N_HASH_MD5:        *block_size = 64;   break;
