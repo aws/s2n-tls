@@ -34,10 +34,11 @@ cd "$DOWNLOAD_DIR"
 curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/yices-2.6.1-x86_64-pc-linux-gnu-static-gmp.tar.gz --output yices.tar.gz
 tar -xf yices.tar.gz
 
-curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/z3-2017-04-04-Ubuntu14.04-64 --output z3
+curl --retry 3 https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/z3-4.8.8-x64-ubuntu-16.04.zip --output z3.zip
+unzip z3.zip
 
 mkdir -p "$INSTALL_DIR"/bin
-mv z3 "$INSTALL_DIR"/bin
+mv z3-4.8.8-x64-ubuntu-16.04/bin/* "$INSTALL_DIR"/bin
 mv yices-2.6.1/bin/* "$INSTALL_DIR"/bin
 chmod +x  "$INSTALL_DIR"/bin/*
 

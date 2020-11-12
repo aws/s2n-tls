@@ -15,7 +15,7 @@ let asm_globals =
 
 let verify_asm func spec =
     if do_prove then
-        crucible_llvm_verify_x86 m "../../s2n/lib/libs2n.so" func asm_globals false spec
+        crucible_llvm_verify_x86 m "../../s2n/lib/libs2n.so" func asm_globals false spec w4
     else
         crucible_llvm_unsafe_assume_spec m func spec;
 
