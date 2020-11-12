@@ -30,7 +30,7 @@
  * and a few functions have been left omitted since they do not affect
  * the proof.
  */
-void s2n_pkcs3_to_dh_params_harness()
+void s2n_pkcs3_to_dh_params_openssl_1_1_0_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_dh_params *dh_params = cbmc_allocate_dh_params();
