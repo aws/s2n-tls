@@ -32,6 +32,7 @@ ALL_TEST_CURVES = [
     Curves.X25519,
     Curves.P256,
     Curves.P384,
+    Curves.P521
 ]
 
 

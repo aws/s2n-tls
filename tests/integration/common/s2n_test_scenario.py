@@ -151,7 +151,8 @@ class Curve():
 ALL_CURVES = [
     Curve("X25519", Version.TLS13),
     Curve("P-256", Version.SSLv3),
-    Curve("P-384", Version.SSLv3)
+    Curve("P-384", Version.SSLv3),
+    Curve("P-521", Version.SSLv3)
 ]
 
 # Older versions of Openssl, do not support X25519. Current versions of LibreSSL and BoringSSL use a different API

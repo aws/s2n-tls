@@ -33,6 +33,8 @@ from s2n_test_constants import *
 # A container to make passing the return values from an attempted handshake more convenient
 HANDSHAKE_RC = collections.namedtuple('HANDSHAKE_RC', 'handshake_success gnutls_stdout')
 
+LIBCRYPTO_SUPPORT_X25519 = ['openssl-1.1.1']
+
 # Helper to print just the SHA256 portion of SIGN-RSA-SHA256
 def sigalg_str_from_list(sigalgs):
     # strip the first nine bytes from each name for "SIGN-RSA", 11 for "SIGN-ECDSA"
@@ -116,18 +118,22 @@ def try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, ssl_v
     s2nd.wait()
     return HANDSHAKE_RC(True, gnutls_initial_stdout_str)
 
-def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests, mfl_extension_test, fips_mode,
+def handshake(endpoint, port, cipher_name, ssl_version, priority_str, digests, curves, mfl_extension_test, fips_mode,
         other_prefix=None):
     ret = try_gnutls_handshake(endpoint, port, priority_str, mfl_extension_test, ssl_version, fips_mode)
 
     prefix = other_prefix or ""
     if mfl_extension_test:
         prefix += "MFL: %-10s Cipher: %-10s Vers: %-10s ... " % (mfl_extension_test, cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
-    elif len(digests) == 0:
-        prefix += "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
-    else:
+    elif digests:
         # strip the first nine bytes from each name for "SIGN-RSA", 11 for "SIGN-ECDSA"
         prefix += "Digests: %-40s Vers: %-10s ... " % (sigalg_str_from_list(digests), S2N_PROTO_VERS_TO_STR[ssl_version])
+    elif curves:
+         # strip the first 6 bytes of each curve name ("CURVE-")
+         curve_string = ":".join([x[6:] for x in curves])
+         prefix += "Curves: %-40s Vers: %-10s ... " % (curve_string, S2N_PROTO_VERS_TO_STR[ssl_version])
+    else:
+        prefix += "Cipher: %-30s Vers: %-10s ... " % (cipher_name, S2N_PROTO_VERS_TO_STR[ssl_version])
 
     suffix = ""
     if ret.handshake_success == True:
@@ -194,9 +200,9 @@ def main():
                 cipher_priority_str = cipher_priority_str + ":%NO_EXTENSIONS"
 
             # Add the SSL version to make the cipher priority string fully qualified
-            complete_priority_str = cipher_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[ssl_version] + ":+SIGN-ALL"
+            complete_priority_str = cipher_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[ssl_version] + ":+SIGN-ALL" + ":+CURVE-ALL"
 
-            async_result = threadpool.apply_async(handshake, (host, port + port_offset, cipher_name, ssl_version, complete_priority_str, [], 0, fips_mode))
+            async_result = threadpool.apply_async(handshake, (host, port + port_offset, cipher_name, ssl_version, complete_priority_str, [], [], 0, fips_mode))
             port_offset += 1
             results.append(async_result)
 
@@ -217,8 +223,8 @@ def main():
             for cipher in filter(lambda x: x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256" or x.openssl_name == "DHE-RSA-AES128-GCM-SHA256", ALL_TEST_CIPHERS):
                 if fips_mode and cipher.openssl_fips_compatible == False:
                     continue
-                complete_priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + ":+".join(permutation)
-                async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation, 0, fips_mode))
+                complete_priority_str = cipher.gnutls_priority_str + ":+CURVE-ALL" + ":+VERS-TLS1.2:+" + ":+".join(permutation)
+                async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation, [], 0, fips_mode))
                 port_offset += 1
                 results.append(async_result)
 
@@ -238,8 +244,8 @@ def main():
             for cipher in filter(lambda x: x.openssl_name == "ECDHE-ECDSA-AES128-SHA", ALL_TEST_CIPHERS):
                 if fips_mode and cipher.openssl_fips_compatible == False:
                     continue
-                complete_priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + ":+".join(permutation)
-                async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation, 0, fips_mode))
+                complete_priority_str = cipher.gnutls_priority_str + ":+CURVE-ALL" + ":+VERS-TLS1.2:+" + ":+".join(permutation)
+                async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, permutation, [], 0, fips_mode))
                 port_offset += 1
                 results.append(async_result)
 
@@ -267,8 +273,8 @@ def main():
             sig_algs = "SIGN-ALL"
             if len(sig_algs_to_remove) > 0:
                 sig_algs += ":!" + sig_algs_to_remove
-            priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + sig_algs
-            rc = handshake(host, port, cipher.openssl_name, S2N_TLS12, priority_str, [], 0, fips_mode, "Preferences found: %-40s "
+            priority_str = cipher.gnutls_priority_str + ":+CURVE-ALL" + ":+VERS-TLS1.2:+" + sig_algs
+            rc = handshake(host, port, cipher.openssl_name, S2N_TLS12, priority_str, [], [], 0, fips_mode, "Preferences found: %-40s "
                     % (sigalg_str_from_list(current_preferences_found)))
             if rc.handshake_success == False:
                 print("Failed to negotiate " + expected_sigalg + " as expected! Priority string: "
@@ -304,8 +310,8 @@ def main():
             sig_algs = "SIGN-ALL"
             if len(sig_algs_to_remove) > 0:
                 sig_algs += ":!" + sig_algs_to_remove
-            priority_str = cipher.gnutls_priority_str + ":+VERS-TLS1.2:+" + sig_algs
-            rc = handshake(host, port, cipher.openssl_name, S2N_TLS12, priority_str, [], 0, fips_mode, "Preferences found: %-40s "
+            priority_str = cipher.gnutls_priority_str + ":+CURVE-ALL" + ":+VERS-TLS1.2:+" + sig_algs
+            rc = handshake(host, port, cipher.openssl_name, S2N_TLS12, priority_str, [], [], 0, fips_mode, "Preferences found: %-40s "
                     % (sigalg_str_from_list(current_preferences_found)))
             if rc.handshake_success == False:
                 print("Failed to negotiate " + expected_sigalg + " as expected! Priority string: " +
@@ -326,6 +332,27 @@ def main():
                         " Priority string: " + priority_str)
                 return -1
 
+    # Produce permutations of every curve s2n supports in every possible order
+    curves = ["CURVE-SECP256R1", "CURVE-SECP384R1"]
+    if not fips_mode:
+        curves.append("CURVE-SECP521R1")
+    for size in range(1, len(curves) + 1):
+        print("\n\tTesting named curve preferences of size: " + str(size))
+        threadpool = create_thread_pool()
+        port_offset = 0
+        results = []
+        for permutation in itertools.permutations(curves,size):
+            # Use an arbitrary ECDHE kx cipher
+            cipher = [x for x in ALL_TEST_CIPHERS if x.openssl_name == "ECDHE-RSA-AES128-GCM-SHA256"][0]
+            complete_priority_str = cipher.gnutls_priority_str + ":+SIGN-ALL" + ":+VERS-TLS1.2:+" + ":+".join(permutation)
+            async_result = threadpool.apply_async(handshake, (host, port + port_offset, cipher.openssl_name, S2N_TLS12, complete_priority_str, [], permutation, 0, fips_mode))
+            port_offset += 1
+            results.append(async_result)
+        threadpool.close()
+        threadpool.join()
+        for async_result in results:
+            if async_result.get().handshake_success == False:
+                return -1
 
     print("\n\tTesting handshakes with Max Fragment Length Extension")
     for ssl_version in [S2N_TLS10, S2N_TLS11, S2N_TLS12]:
@@ -335,8 +362,8 @@ def main():
         results = []
         for mfl_extension_test in [512, 1024, 2048, 4096]:
             cipher = test_ciphers[0]
-            complete_priority_str = cipher.gnutls_priority_str + ":+" + S2N_PROTO_VERS_TO_GNUTLS[ssl_version] + ":+SIGN-ALL"
-            async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, ssl_version, complete_priority_str, [], mfl_extension_test, fips_mode))
+            complete_priority_str = cipher.gnutls_priority_str + ":+CURVE-ALL" + ":+" + S2N_PROTO_VERS_TO_GNUTLS[ssl_version] + ":+SIGN-ALL"
+            async_result = threadpool.apply_async(handshake,(host, port + port_offset, cipher.openssl_name, ssl_version, complete_priority_str, [], [], mfl_extension_test, fips_mode))
             port_offset += 1
             results.append(async_result)
 

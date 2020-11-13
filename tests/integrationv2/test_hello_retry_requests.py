@@ -15,6 +15,7 @@ HRR_CLIENT_KEYSHARES = [
     ["-K", "none"],
     ["-K", "secp256r1"],
     ["-K", "secp256r1:secp384r1"],
+    ["-K", "secp256r1:secp384r1:secp521r1"]
 ]
 
 
@@ -22,7 +23,8 @@ HRR_CLIENT_KEYSHARES = [
 CURVE_NAMES = {
     "X25519": "x25519",
     "P-256": "secp256r1",
-    "P-384": "secp384r1"
+    "P-384": "secp384r1",
+    "P-521": "secp521r1"
 }
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
