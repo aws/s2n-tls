@@ -299,16 +299,16 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(config->security_policy, &security_policy_test_all);
             EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_test_all);
             EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_kms_pq_tls_1_0_2020_07);
-            EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
-            EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
+            EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20201021);
+            EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_test_all);
 
             EXPECT_STRING_EQUAL(TEST_ALL_TLS12, "test_all_tls12");
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, TEST_ALL_TLS12));
             EXPECT_EQUAL(config->security_policy, &security_policy_test_all_tls12);
             EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_test_all_tls12);
             EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_kms_pq_tls_1_0_2020_07);
-            EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20140601);
-            EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20140601);
+            EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20201021);
+            EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20201021);
 
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "KMS-PQ-TLS-1-0-2020-07"));
             EXPECT_EQUAL(config->security_policy, &security_policy_kms_pq_tls_1_0_2020_07);
@@ -336,16 +336,16 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(config->security_policy, &security_policy_test_all_no_pq);
             EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_test_all_no_pq);
             EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
-            EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
-            EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
+            EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20201021);
+            EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_test_all);
 
             EXPECT_STRING_EQUAL(TEST_ALL_TLS12, "test_all_tls12_no_pq");
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, TEST_ALL_TLS12));
             EXPECT_EQUAL(config->security_policy, &security_policy_test_all_tls12_no_pq);
             EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_test_all_tls12_no_pq);
             EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
-            EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20140601);
-            EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20140601);
+            EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20201021);
+            EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20201021);
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "KMS-PQ-TLS-1-0-2020-07"), S2N_ERR_PQ_DISABLED);
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "KMS-PQ-TLS-1-0-2020-02"), S2N_ERR_PQ_DISABLED);
@@ -404,8 +404,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(security_policy, &security_policy_test_all);
             EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_test_all);
             EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_kms_pq_tls_1_0_2020_07);
-            EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20200207);
-            EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
+            EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20201021);
+            EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_test_all);
 
             EXPECT_STRING_EQUAL(TEST_ALL_TLS12, "test_all_tls12");
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, TEST_ALL_TLS12));
@@ -413,8 +413,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(security_policy, &security_policy_test_all_tls12);
             EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_test_all_tls12);
             EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_kms_pq_tls_1_0_2020_07);
-            EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20140601);
-            EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20140601);
+            EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20201021);
+            EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20201021);
 
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2020-07"));
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
@@ -446,8 +446,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(security_policy, &security_policy_test_all_no_pq);
             EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_test_all_no_pq);
             EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_null);
-            EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20200207);
-            EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
+            EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20201021);
+            EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_test_all);
 
             EXPECT_STRING_EQUAL(TEST_ALL_TLS12, "test_all_tls12_no_pq");
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, TEST_ALL_TLS12));
@@ -455,8 +455,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(security_policy, &security_policy_test_all_tls12_no_pq);
             EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_test_all_tls12_no_pq);
             EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_null);
-            EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20140601);
-            EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20140601);
+            EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20201021);
+            EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20201021);
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2020-07"), S2N_ERR_PQ_DISABLED);
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "KMS-PQ-TLS-1-0-2020-02"), S2N_ERR_PQ_DISABLED);
@@ -468,6 +468,25 @@ int main(int argc, char **argv)
 
         s2n_config_free(config);
         s2n_connection_free(conn);
+    }
+
+    /* test_all_no_pq security policies should use the same version, sig prefs, and ecc prefs as their counterparts */
+    {
+        EXPECT_EQUAL(security_policy_test_all.minimum_protocol_version, security_policy_test_all_no_pq.minimum_protocol_version);
+        EXPECT_EQUAL(security_policy_test_all.signature_preferences, security_policy_test_all_no_pq.signature_preferences);
+        EXPECT_EQUAL(security_policy_test_all.ecc_preferences, security_policy_test_all_no_pq.ecc_preferences);
+        EXPECT_EQUAL(security_policy_test_all.cipher_preferences, &cipher_preferences_test_all);
+        EXPECT_EQUAL(security_policy_test_all.kem_preferences, &kem_preferences_kms_pq_tls_1_0_2020_07);
+        EXPECT_EQUAL(security_policy_test_all_no_pq.cipher_preferences, &cipher_preferences_test_all_no_pq);
+        EXPECT_EQUAL(security_policy_test_all_no_pq.kem_preferences, &kem_preferences_null);
+
+        EXPECT_EQUAL(security_policy_test_all_tls12.minimum_protocol_version, security_policy_test_all_tls12_no_pq.minimum_protocol_version);
+        EXPECT_EQUAL(security_policy_test_all_tls12.signature_preferences, security_policy_test_all_tls12_no_pq.signature_preferences);
+        EXPECT_EQUAL(security_policy_test_all_tls12.ecc_preferences, security_policy_test_all_tls12_no_pq.ecc_preferences);
+        EXPECT_EQUAL(security_policy_test_all_tls12.cipher_preferences, &cipher_preferences_test_all_tls12);
+        EXPECT_EQUAL(security_policy_test_all_tls12.kem_preferences, &kem_preferences_kms_pq_tls_1_0_2020_07);
+        EXPECT_EQUAL(security_policy_test_all_tls12_no_pq.cipher_preferences, &cipher_preferences_test_all_tls12_no_pq);
+        EXPECT_EQUAL(security_policy_test_all_tls12_no_pq.kem_preferences, &kem_preferences_null);
     }
 
     /* All signature preferences are valid */
