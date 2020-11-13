@@ -5,3 +5,5 @@ gotos
 html
 logs
 property.xml
+
+.litani_cache_dir
