@@ -50,9 +50,10 @@ let ptr_to_fresh_readonly n ty = do {
     return (x, p);
 };
 
-let yices_hash_unint =
-    unint_yices [ "hash_init_c_state"
+let z3_hash_unint =
+    w4_unint_z3 [ "hash_init_c_state"
                 , "hash_update_c_state"
+                , "hash_update_c_state_unbounded"
                 , "hash_digest_c_state"
                 ];
 
@@ -172,6 +173,23 @@ let hash_update_spec msg_size = do {
     crucible_return (crucible_term {{ 0 : [32] }});
 };
 
+let hash_update_unbounded_spec = do {
+    pstate <- crucible_alloc (llvm_struct "struct.s2n_hash_state");
+    (st0, _) <- setup_hash_state pstate;
+
+    size <- crucible_fresh_var "size" (llvm_int 32);
+    pmsg <- crucible_symbolic_alloc true 1 {{ (0 # size) : [64] }};
+    msg <- crucible_fresh_cryptol_var "msg" {| ByteArray |};
+    crucible_points_to_array_prefix pmsg msg {{ (0 # size) : [64] }};
+
+    crucible_execute_func [pstate, pmsg, (crucible_term size)];
+
+    let st1 = {{ hash_update_c_state_unbounded st0 msg size }};
+    update_hash_state pstate st1;
+
+    crucible_return (crucible_term {{ 0 : [32] }});
+};
+
 let hash_digest_spec digest_size = do {
     pstate <- crucible_alloc (llvm_struct "struct.s2n_hash_state");
     (dgst, pdgst) <- ptr_to_fresh "out" (llvm_array digest_size (llvm_int 8));
@@ -281,22 +299,24 @@ let hmac_invariants
 ////////////////////////////////////////////////////////////////
 
 let hmac_init_spec
-      key_size
       (cfg : { name            : String
              , hmac_alg        : Term
              , digest_size     : Int
              , block_size      : Int
              , hash_block_size : Int
              }) = do {
-    (key0, pkey) <- ptr_to_fresh_readonly "key" (llvm_array key_size (llvm_int 8));
-
     alg0 <- crucible_fresh_var "alg" (llvm_int 32);
     hash_block_size0 <- crucible_fresh_var "hash_block_size" (llvm_int 16);
     block_size0 <- crucible_fresh_var "block_size" (llvm_int 16);
     digest_size0 <- crucible_fresh_var "digest_size" (llvm_int 8);
     (pstate, st0) <- setup_hmac_state alg0 hash_block_size0 block_size0 digest_size0;
 
-    crucible_execute_func [pstate, crucible_term (cfg.hmac_alg), pkey, crucible_term {{ `key_size : [32] }}];
+    klen <- crucible_fresh_var "klen" (llvm_int 32);
+    pkey <- crucible_symbolic_alloc true 1 {{ (0 # klen) : [64] }};
+    key <- crucible_fresh_cryptol_var "key" {| ByteArray |};
+    crucible_points_to_array_prefix pkey key {{ (0 # klen) : [64] }};
+
+    crucible_execute_func [pstate, crucible_term (cfg.hmac_alg), pkey, (crucible_term klen)];
 
     let block_size      = cfg.block_size;
     let hash_block_size = cfg.hash_block_size;
@@ -304,12 +324,11 @@ let hmac_init_spec
     let alg0            = cfg.hmac_alg;
 
     let st1 = {{
-      hmac_init_c_state
-        `{key_size=key_size
-         ,block_size=block_size
+      hmac_init_c_state_unbounded
+        `{block_size=block_size
          ,hash_block_size=hash_block_size
          ,digest_size=digest_size}
-        st0 alg0 key0
+        st0 alg0 key klen
     }};
     check_hmac_state pstate st1;
     hmac_invariants st1 cfg;
@@ -317,15 +336,12 @@ let hmac_init_spec
 };
 
 let hmac_update_spec
-      msg_size
       (cfg : { name            : String
              , hmac_alg        : Term
              , digest_size     : Int
              , block_size      : Int
              , hash_block_size : Int
              }) = do {
-    (msg, pmsg) <- ptr_to_fresh_readonly "msg" (llvm_array msg_size (llvm_int 8));
-
     let digest_size = cfg.digest_size;
     let block_size = cfg.block_size;
     let hash_block_size = cfg.hash_block_size;
@@ -337,10 +353,14 @@ let hmac_update_spec
 
     hmac_invariants st0 cfg;
 
-    let size = {{ `msg_size : [32] }};
-    crucible_execute_func [pstate, pmsg, crucible_term size];
+    size <- crucible_fresh_var "size" (llvm_int 32);
+    pmsg <- crucible_symbolic_alloc true 1 {{ (0 # size) : [64] }};
+    msg <- crucible_fresh_cryptol_var "msg" {| ByteArray |};
+    crucible_points_to_array_prefix pmsg msg {{ (0 # size) : [64] }};
 
-    let st1 = {{ hmac_update_c_state st0 msg }};
+    crucible_execute_func [pstate, pmsg, (crucible_term size)];
+
+    let st1 = {{ hmac_update_c_state_unbounded st0 msg size }};
     check_hmac_state pstate st1;
     hmac_invariants st1 cfg;
 
