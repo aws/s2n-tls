@@ -586,9 +586,14 @@ S2N_RESULT s2n_is_certificate_sig_scheme_supported(struct s2n_connection *conn, 
     ENSURE_REF(x509_cert);
     ENSURE_REF(out);
 
-    int nid = X509_get_signature_nid(x509_cert);
-    
-    /* TODO: add method to differentiate between rsa_pss_pss certs and rsa_pss_rsae certs */
+    int nid = 0;
+
+    #if !defined(LIBRESSL_VERSION_NUMBER)
+        nid = X509_get_signature_nid(x509_cert);
+    #else
+        nid = OBJ_obj2nid(x509_cert->sig_alg->algorithm);
+    #endif
+
     for (int i = 0; i < conn->config->security_policy->certificate_signature_preferences->count; i++) {
 
         if (conn->config->security_policy->certificate_signature_preferences->signature_schemes[i]->libcrypto_nid == nid) {
