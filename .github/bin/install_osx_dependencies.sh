@@ -11,16 +11,31 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-#
 
-set -e
+set -ex
+pushd "$(pwd)"
 
-# Upload Code Coverage Information to CodeCov.io
-if [[ "$CODECOV_IO_UPLOAD" == "true" ]]; then
-    if [[ "$FUZZ_COVERAGE" == "true" ]]; then
-        bash <(curl -s https://codecov.io/bash) -f coverage/fuzz/codecov.txt -F ${TESTS};
-    else
-        bash <(curl -s https://codecov.io/bash) -F ${TESTS};
-    fi
+usage() {
+    echo "install_awslc.sh build_dir install_dir"
+    exit 1
+}
+
+if [ "$#" -ne "2" ]; then
+    usage
 fi
 
+BUILD_DIR=$1
+INSTALL_DIR=$2
+source codebuild/bin/jobs.sh
+
+cd "$BUILD_DIR"
+git clone https://github.com/awslabs/aws-lc.git
+mkdir build
+cd build
+
+cmake ../aws-lc -GNinja -DBUILD_SHARED_LIBS=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
+ninja -j "${JOBS}" install
+
+popd
+
+exit 0

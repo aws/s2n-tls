@@ -20,6 +20,7 @@ find_path(LibCrypto_INCLUDE_DIR
     HINTS
         ${CMAKE_PREFIX_PATH}/include 
         ${CMAKE_INSTALL_PREFIX}/include
+        /usr/local/opt/openssl/include
     )
 find_library(LibCrypto_SHARED_LIBRARY
     NAMES libcrypto.so libcrypto.dylib
@@ -34,6 +35,8 @@ find_library(LibCrypto_SHARED_LIBRARY
     ${CMAKE_INSTALL_PREFIX}
     ${CMAKE_INSTALL_PREFIX}/lib64
     ${CMAKE_INSTALL_PREFIX}/lib
+    /usr/local/opt/openssl/lib
+    /usr/lib64
     )
 find_library(LibCrypto_STATIC_LIBRARY
     NAMES libcrypto.a
@@ -48,6 +51,8 @@ find_library(LibCrypto_STATIC_LIBRARY
     ${CMAKE_INSTALL_PREFIX}
     ${CMAKE_INSTALL_PREFIX}/lib64
     ${CMAKE_INSTALL_PREFIX}/lib
+    /usr/local/opt/openssl/lib
+    /usr/lib64
     )
 
 if (BUILD_SHARED_LIBS)

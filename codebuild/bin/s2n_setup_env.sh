@@ -50,28 +50,28 @@
 : "${GB_INSTALL_DIR:=$TEST_DEPS_DIR/gb}"
 : "${FUZZ_TIMEOUT_SEC:=10}"
 
-  # Set some environment vars for OS, Distro and architecture.
-  # Standardized as part of systemd http://0pointer.de/blog/projects/os-release
-  # Samples:
-  #  OS_NAME = "linux"
-  #  DISTRO="ubuntu"
-  #  VERSION_ID = "18.04"
-  #  VERSION_CODENAME = "bionic"
-  if [[ -f "/etc/os-release" ]]; then
-    # AL2 doesn't provide a codename.
-    . /etc/os-release
-    export DISTRO=$(echo "$NAME"|tr "[:upper:]" "[:lower:]")
-    export VERSION_ID=${VERSION_ID:-"unknown"}
-    export VERSION_CODENAME=${VERSION_CODENAME:-"unknown"}
-  elif [[ -x "/usr/bin/sw_vers" ]]; then
-    export DISTRO="apple"
-    export VERSION_ID=$(sw_vers -productVersion|sed 's/:[[:space:]]*/=/g')
-    export VERSION_CODENAME="unknown"  # not queriable via CLI
-  else
-    export DISTRO="unknown"
-    export VERSION_ID="unknown"
-    export VERSION_CODENAME="unknown"
-  fi
+# Set some environment vars for OS, Distro and architecture.
+# Standardized as part of systemd http://0pointer.de/blog/projects/os-release
+# Samples:
+#  OS_NAME = "linux"
+#  DISTRO="ubuntu"
+#  VERSION_ID = "18.04"
+#  VERSION_CODENAME = "bionic"
+if [[ -f "/etc/os-release" ]]; then
+  # AL2 doesn't provide a codename.
+  . /etc/os-release
+  export DISTRO=$(echo "$NAME"|tr "[:upper:]" "[:lower:]")
+  export VERSION_ID=${VERSION_ID:-"unknown"}
+  export VERSION_CODENAME=${VERSION_CODENAME:-"unknown"}
+elif [[ -x "/usr/bin/sw_vers" ]]; then
+  export DISTRO="apple"
+  export VERSION_ID=$(sw_vers -productVersion|sed 's/:[[:space:]]*/=/g')
+  export VERSION_CODENAME="unknown"  # not queriable via CLI
+else
+  export DISTRO="unknown"
+  export VERSION_ID="unknown"
+  export VERSION_CODENAME="unknown"
+fi
 export OS_NAME=$(uname -s|tr "[:upper:]" "[:lower:]")
 export ARCH=$(uname -m)
 

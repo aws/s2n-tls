@@ -13,7 +13,7 @@
 # permissions and limitations under the License.
 #
 
-set -ex
+set -eu
 pushd "$(pwd)"
 
 usage() {
@@ -28,9 +28,14 @@ fi
 BUILD_DIR=$1
 INSTALL_DIR=$2
 PLATFORM=$3
+RELEASE=0.9.8zh
+
+# Changing LD_LIBRARY_PATH and expecting OS utils to work is a trap.
+OLD_LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
+unset LD_LIBRARY_PATH
 
 cd "$BUILD_DIR"
-wget https://www.openssl.org/source/old/0.9.x/openssl-0.9.8zh.tar.gz
+curl --retry 3 -L https://www.openssl.org/source/old/0.9.x/openssl-${RELEASE}.tar.gz --output openssl-${RELEASE}.tar.gz
 tar xzvf openssl-0.9.8zh.tar.gz
 cd openssl-0.9.8zh
 
@@ -51,5 +56,6 @@ make install
 
 popd
 
+export LD_LIBRARY_PATH=$OLD_LD_LIBRARY_PATH
 exit 0
 

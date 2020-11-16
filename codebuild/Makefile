@@ -1,4 +1,4 @@
-#!/bin/bash
+#
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -12,15 +12,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
+SHELL:=/bin/bash
 
-set -e
+.PHONY: test
+test: yq_lint
+	@./test_specs.sh
+	@echo "Rebuilding spec files"
+	@./create_batch.sh 2>&1 > /dev/null
+	@echo "Success"
 
-# Upload Code Coverage Information to CodeCov.io
-if [[ "$CODECOV_IO_UPLOAD" == "true" ]]; then
-    if [[ "$FUZZ_COVERAGE" == "true" ]]; then
-        bash <(curl -s https://codecov.io/bash) -f coverage/fuzz/codecov.txt -F ${TESTS};
-    else
-        bash <(curl -s https://codecov.io/bash) -F ${TESTS};
-    fi
-fi
-
+yq_lint:
+	@echo "Checking yaml formatting"
+	@yq -c '.[]' ./spec/*.yml 2>&1 > /dev/null

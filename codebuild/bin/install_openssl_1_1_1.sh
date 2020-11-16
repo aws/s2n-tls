@@ -13,7 +13,7 @@
 # permissions and limitations under the License.
 #
 
-set -ex
+set -eu
 pushd "$(pwd)"
 
 usage() {
