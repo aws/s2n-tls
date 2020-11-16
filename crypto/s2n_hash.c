@@ -502,7 +502,7 @@ bool s2n_hash_state_is_valid(struct s2n_hash_state *state) { return (state != NU
 
 int s2n_hash_allow_md5_for_fips(struct s2n_hash_state *state)
 {
-    PRECONDITION_POSIX(s2n_hash_state_is_valid(state));
+    notnull_check(state);
     /* Ensure that hash_impl is set, as it may have been reset for s2n_hash_state on s2n_connection_wipe.
      * When in FIPS mode, the EVP API's must be used for hashes.
      */

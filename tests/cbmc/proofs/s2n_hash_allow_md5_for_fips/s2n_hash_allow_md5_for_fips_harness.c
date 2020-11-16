@@ -22,7 +22,6 @@ void s2n_hash_allow_md5_for_fips_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_hash_state *state = cbmc_allocate_s2n_hash_state();
-    __CPROVER_assume(s2n_hash_state_is_valid(state));
 
     /* Operation under verification. */
     if (s2n_hash_allow_md5_for_fips(state) == S2N_SUCCESS) {
