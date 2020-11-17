@@ -33,6 +33,4 @@ struct s2n_map {
 
     /* Pointer to the hash-table, should be capacity * sizeof(struct s2n_map_entry) */
     struct s2n_map_entry *table;
-
-    struct s2n_hash_state sha256;
 };
