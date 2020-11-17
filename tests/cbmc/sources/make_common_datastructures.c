@@ -129,3 +129,17 @@ struct s2n_dh_params *cbmc_allocate_dh_params()
     }
     return dh_params;
 }
+
+struct s2n_hash_state* cbmc_allocate_s2n_hash_state()
+{
+    struct s2n_hash_state *state = malloc(sizeof(*state));
+    if (state != NULL)
+    {
+        state->hash_impl = malloc(sizeof(*(state->hash_impl)));
+        state->digest.high_level.evp.md = malloc(sizeof(*(state->digest.high_level.evp.md)));
+        state->digest.high_level.evp.ctx = malloc(sizeof(*(state->digest.high_level.evp.ctx)));
+        state->digest.high_level.evp_md5_secondary.md = malloc(sizeof(*(state->digest.high_level.evp_md5_secondary.md)));
+        state->digest.high_level.evp_md5_secondary.ctx = malloc(sizeof(*(state->digest.high_level.evp_md5_secondary.ctx)));
+    }
+    return state;
+}
