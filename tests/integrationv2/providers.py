@@ -113,6 +113,9 @@ class S2N(Provider):
     """
     def __init__(self, options: ProviderOptions):
         self.ready_to_send_input_marker = None
+        self.tls12_pq_cipher_prefs = [Ciphers.KMS_PQ_TLS_1_0_2019_06, Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11,
+                                      Ciphers.KMS_PQ_TLS_1_0_2020_07, Ciphers.KMS_PQ_TLS_1_0_2020_02,
+                                      Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02]
         Provider.__init__(self, options)
 
     @classmethod
@@ -159,12 +162,7 @@ class S2N(Provider):
         cipher_prefs = 'test_all_tls12'
         if self.options.protocol is Protocols.TLS13:
             cipher_prefs = 'test_all'
-
-        if self.options.cipher is Ciphers.KMS_PQ_TLS_1_0_2019_06 or \
-                self.options.cipher is Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11 or \
-                self.options.cipher is Ciphers.KMS_PQ_TLS_1_0_2020_07 or \
-                self.options.cipher is Ciphers.KMS_PQ_TLS_1_0_2020_02 or \
-                self.options.cipher is Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02:
+        if self.options.cipher in self.tls12_pq_cipher_prefs:
             cipher_prefs = self.options.cipher.name
 
         cmd_line.extend(['-c', cipher_prefs])
