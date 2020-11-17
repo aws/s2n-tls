@@ -296,7 +296,7 @@ static int s2n_ecc_evp_write_point_data_snug(const EC_POINT *point, const EC_GRO
 static EC_POINT *s2n_ecc_evp_blob_to_point(struct s2n_blob *blob, const EC_KEY *ec_key) {
     const EC_GROUP *group = EC_KEY_get0_group(ec_key);
     EC_POINT *point = EC_POINT_new(group);
-    ENSURE_OSSL(point != NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    ENSURE_PTR_OSSL(point != NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     if (EC_POINT_oct2point(group, point, blob->data, blob->size, NULL) != 1) {
         EC_POINT_free(point);

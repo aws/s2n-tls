@@ -109,6 +109,11 @@
 #define ENSURE_OSSL( condition , error )           __S2N_ENSURE((condition), BAIL_OSSL(error))
 
 /**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL_PTR_OSSL` with an `error`
+ */
+#define ENSURE_PTR_OSSL( condition , error )           __S2N_ENSURE((condition), BAIL_PTR_OSSL(error))
+
+/**
  * Ensures the `condition` is `true`, otherwise the function will `BAIL_PTR` with an `error`
  */
 #define ENSURE_PTR( condition , error )             __S2N_ENSURE((condition), BAIL_PTR(error))
