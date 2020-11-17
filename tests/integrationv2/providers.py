@@ -170,7 +170,7 @@ class S2N(Provider):
                 self.options.cipher is Ciphers.KMS_PQ_TLS_1_0_2020_07 or \
                 self.options.cipher is Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11 or \
                 self.options.cipher is Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02:
-            assert get_flag(S2N_NO_PQ) is False
+            assert get_flag(S2N_NO_PQ, False) is False
             cipher_prefs = self.options.cipher.name
 
         cmd_line.extend(['-c', cipher_prefs])
