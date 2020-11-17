@@ -138,6 +138,8 @@ BAIL(S2N_ERR_BAD_MESSAGE);
 
 the macro will set s2n_errno correctly, as well as some useful debug strings, and return `S2N_RESULT_ERROR`.
 
+Several of the above macros have `OSSL` variants which must be used when handling error results from libcrypto (ex: `GUARD_OSSL` or `BAIL_OSSL`). These versions properly manage the libcrypto error queue and failure to use them may create problems for other users of libcrypto in the same process.
+
 ### Safety checking
 
 [utils/s2n_safety.h](https://github.com/awslabs/s2n/blob/main/utils/s2n_safety.h) provides several more convenience macros intended to make safety and bounds checking easier. There are checked versions of memcpy (`CHECKED_MEMCPY`) and memset (`CHECKED_MEMSET`), as well as predicate testers like `ENSURE`, `ENSURE_GTE`, `ENSURE_INCLUSIVE_RANGE`, `ENSURE_EXCLUSIVE_RANGE` for performing simple comparisons in a systematic, error-handled, way.
