@@ -44,6 +44,11 @@
 #define BAIL_POSIX( x )                              do { _S2N_ERROR( ( x ) ); return S2N_FAILURE; } while (0)
 
 /**
+ * Sets the global `errno` and the crypto error. Then returns with a POSIX error (`-1`)
+ */
+#define BAIL_OSSL( x )                              do { _S2N_ERROR( ( x ) ); s2n_save_crypto_error(); return S2N_FAILURE; } while (0)
+
+/**
  * Sets the global `errno` and returns with a `NULL` pointer value
  */
 #define BAIL_PTR( x )                                do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
@@ -92,6 +97,11 @@
  * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with an `error`
  */
 #define ENSURE_POSIX( condition , error )           __S2N_ENSURE((condition), BAIL_POSIX(error))
+
+/**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL_OSSL` with an `error`
+ */
+#define ENSURE_OSSL( condition , error )           __S2N_ENSURE((condition), BAIL_OSSL(error))
 
 /**
  * Ensures the `condition` is `true`, otherwise the function will `BAIL_PTR` with an `error`
@@ -210,7 +220,7 @@
  *
  * Note: this currently accepts POSIX error signals but will transition to accept s2n_result
  */
-#define GUARD_OSSL( x, error )                      GUARD_POSIX_OSSL((x), (error))
+#define GUARD_OSSL(x, error)                        ENSURE_OSSL((x) == _OSSL_SUCCESS, error)
 
 /**
  * Ensures `x` is ok, otherwise the function will return an `S2N_RESULT_ERROR`
@@ -262,12 +272,6 @@
  * Ensures `x` is not `NULL`, otherwise the function will return a POSIX error (`-1`)
  */
 #define GUARD_POSIX_NONNULL( x )                    __S2N_ENSURE((x) != NULL, return S2N_FAILURE)
-
-/**
- * Ensures `x` is not a OpenSSL error, otherwise the function will `BAIL` with `error`
- */
-/* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
-#define GUARD_POSIX_OSSL( x , error )               ENSURE_POSIX((x) == _OSSL_SUCCESS, error)
 
 /**
  * Ensures `x` is not a POSIX error, otherwise the function will return a `S2N_RESULT_ERROR`

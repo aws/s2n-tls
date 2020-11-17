@@ -103,7 +103,7 @@ one place.
 
 ### Error handling and Macros
 
-As may also be clear from the above examples, s2n has some conventions for how errors are handled. Firstly, s2n functions should always return `S2N_RESULT_ERROR` or `NULL` on error, and `S2N_RESULT_OK` or a valid pointer on success. s2n also includes a thread local variable: s2n_errno, for indicating the cause of the error. This follows the convention set by libc (with errno), getaddrinfo (gai_errno), net-snmp (snmp_errno), and countless other libraries.
+As may also be clear from the above examples, s2n has some conventions for how errors are handled. Firstly, s2n functions should always return `S2N_RESULT_ERROR` or `NULL` on error, and `S2N_RESULT_OK` or a valid pointer on success. s2n also includes a thread local variable: `s2n_errno`, for indicating the cause of the error. This follows the convention set by libc (with errno), getaddrinfo (gai_errno), net-snmp (snmp_errno), and countless other libraries. Additionally, in the case of errors from the underlying crypto implementations (such as openssl), the thread local variable `s2n_libcrypto_error` will be set to the error from the underlying implemention.
 
 In s2n, we **always** check return values. Because of that, the coding pattern:
 

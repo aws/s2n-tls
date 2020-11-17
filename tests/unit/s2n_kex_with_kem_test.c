@@ -154,7 +154,7 @@ static int assert_kex_fips_checks(struct s2n_cipher_suite *cipher_suite, const c
                   (s2n_errno != S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
 
     GUARD(s2n_connection_free(server_conn));
-    s2n_errno = 0;
+    s2n_clear_error();
     s2n_debug_str = NULL;
 
     return ret_val;

@@ -21,6 +21,7 @@
 #include <unistd.h>
 
 #include <openssl/crypto.h>
+#include <openssl/err.h>
 
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
@@ -54,6 +55,7 @@ int test_count;
 #define END_TEST()   do { \
                         EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(false));      \
                         EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup());       \
+                        EXPECT_TRUE_WITHOUT_COUNT(ERR_peek_error() == 0); \
                         if (isatty(fileno(stdout))) { \
                             if (test_count) { \
                                 fprintf(stdout, "\033[32;1mPASSED\033[0m %10d tests\n", test_count ); \
@@ -84,19 +86,24 @@ int test_count;
                           s2n_print_stacktrace(stderr); \
                           /* isatty will overwrite errno on failure */ \
                           int real_errno = errno; \
+                          /* Capture libcrypto errors */ \
+                          unsigned long crypto_error; \
+                          const char * crypto_error_file; \
+                          int crypto_error_line; \
+                          crypto_error = ERR_peek_last_error_line(&crypto_error_file, &crypto_error_line); \
                           if (isatty(fileno(stderr))) { \
                             errno = real_errno; \
-                            fprintf(stderr, "\033[31;1mFAILED test %d\033[0m\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno); \
+                            fprintf(stderr, "\033[31;1mFAILED test %d\033[0m\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n libcrypto Error: %lx (%s line %d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno, crypto_error, crypto_error_file, crypto_error_line); \
                           } \
                           else { \
                             errno = real_errno; \
-                            fprintf(stderr, "FAILED test %d\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno); \
+                            fprintf(stderr, "FAILED test %d\n%s (%s line %d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n libcrypto Error: %lx (%s line %d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno, crypto_error, crypto_error_file, crypto_error_line); \
                           } \
                         } while(0)
 
 #define RESET_ERRNO() \
     do { \
-        s2n_errno = 0; \
+        s2n_clear_error(); \
         s2n_debug_str = NULL; \
         errno = 0; \
     } while(0);

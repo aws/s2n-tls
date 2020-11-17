@@ -51,6 +51,9 @@ extern "C" {
 S2N_API
 extern __thread int s2n_errno;
 
+S2N_API
+extern __thread unsigned long s2n_libcrypto_error;
+
 typedef enum {
     S2N_ERR_T_OK=0,
     S2N_ERR_T_IO,
@@ -98,7 +101,9 @@ extern const char *s2n_strerror(int error, const char *lang);
 S2N_API
 extern const char *s2n_strerror_debug(int error, const char *lang);
 S2N_API
-extern const char *s2n_strerror_name(int error); 
+extern const char *s2n_strerror_name(int error);
+S2N_API
+extern void s2n_clear_error();
 
 struct s2n_stacktrace;
 S2N_API

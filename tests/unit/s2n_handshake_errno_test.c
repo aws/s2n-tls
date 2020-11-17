@@ -57,7 +57,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_negotiate(conn, &blocked), -1);
         EXPECT_EQUAL(errno, ENOENT);
         EXPECT_EQUAL(s2n_errno, S2N_ERR_IO);
-        s2n_errno = 0;
+        s2n_clear_error();
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_negotiate(conn, &blocked), -1);
         EXPECT_EQUAL(errno, 0);
         EXPECT_EQUAL(s2n_errno, S2N_ERR_IO);
-        s2n_errno = 0;
+        s2n_clear_error();
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
