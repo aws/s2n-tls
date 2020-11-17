@@ -33,7 +33,7 @@
  * We currently support the following, more will be supported
  * when the relevant TLS 1.3 features are worked on.
  *
- * [ ] binder_key
+ * [x] binder_key
  * [ ] client_early_traffic_secret
  * [ ] early_exporter_master_secret
  * [x] client_handshake_traffic_secret
@@ -138,6 +138,38 @@ int s2n_tls13_keys_free(struct s2n_tls13_keys *keys) {
 }
 
 /*
+ * Derives binder_key from PSK.
+ */
+int s2n_tls13_derive_binder_key_secret(struct s2n_tls13_keys *keys, struct s2n_psk *psk)
+{
+    notnull_check(keys);
+    notnull_check(psk);
+
+    struct s2n_blob *early_secret = &keys->extract_secret;
+    struct s2n_blob *binder_key = &keys->derive_secret;
+
+    /* Extract the early secret */
+    GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &zero_length_blob,
+            &psk->secret, early_secret));
+
+    /* Choose the correct label for the psk type */
+    const struct s2n_blob *label_blob;
+    if (psk->type == S2N_PSK_TYPE_EXTERNAL) {
+        label_blob = &s2n_tls13_label_external_psk_binder_key;
+    } else {
+        label_blob = &s2n_tls13_label_resumption_psk_binder_key;
+    }
+
+    /* Derive the binder_key */
+    s2n_tls13_key_blob(message_digest, keys->size);
+    GUARD(s2n_tls13_transcript_message_hash(keys, &zero_length_blob, &message_digest));
+    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, early_secret,
+        label_blob, &message_digest, binder_key));
+
+    return S2N_SUCCESS;
+}
+
+/*
  * Derives early secrets
  */
 int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *keys)
@@ -149,7 +181,7 @@ int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *keys)
     /* Early Secret */
     GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &zero_length_blob, &psk_ikm, &keys->extract_secret));
 
-    /* binder, client_early_traffic_secret, early_exporter_master_secret can be derived here */
+    /* client_early_traffic_secret and early_exporter_master_secret can be derived here */
 
     /* derive next secret */
     s2n_tls13_key_blob(message_digest, keys->size);

@@ -281,5 +281,28 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
+    /* Verify binder_key calculation matches session resumption values from
+     * https://tools.ietf.org/html/rfc8448#section-4 */
+    {
+        S2N_BLOB_FROM_HEX(resumption_secret,
+            "4ecd0eb6ec3b4d87f5d6028f922ca4c5851a277fd41311c9e62d2c9492e1c4f3");
+        S2N_BLOB_FROM_HEX(expected_resumption_early_secret,
+            "9b2188e9b2fc6d64d71dc329900e20bb41915000f678aa839cbb797cb7d8332c");
+        S2N_BLOB_FROM_HEX(expected_binder_key,
+            "69fe131a3bbad5d63c64eebcc30e395b9d8107726a13d074e389dbc8a4e47256");
+
+        DEFER_CLEANUP(struct s2n_psk test_psk, s2n_psk_free);
+        EXPECT_SUCCESS(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
+        EXPECT_SUCCESS(s2n_psk_new_secret(&test_psk, resumption_secret.data, resumption_secret.size));
+
+        DEFER_CLEANUP(struct s2n_tls13_keys test_keys, s2n_tls13_keys_free);
+        GUARD(s2n_tls13_keys_init(&test_keys, test_psk.hash_alg));
+
+        EXPECT_SUCCESS(s2n_tls13_derive_binder_key_secret(&test_keys, &test_psk));
+
+        S2N_BLOB_EXPECT_EQUAL(test_keys.extract_secret, expected_resumption_early_secret);
+        S2N_BLOB_EXPECT_EQUAL(test_keys.derive_secret, expected_binder_key);
+    }
+
     END_TEST();
 }

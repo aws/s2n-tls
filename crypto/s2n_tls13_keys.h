@@ -19,9 +19,9 @@
 
 #include "crypto/s2n_hmac.h"
 #include "crypto/s2n_hkdf.h"
-#include "crypto/s2n_tls13_keys.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_tls_parameters.h"
+#include "tls/s2n_psk.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
@@ -73,6 +73,7 @@ extern const struct s2n_blob s2n_tls13_label_traffic_secret_iv;
 
 int s2n_tls13_keys_init(struct s2n_tls13_keys *handshake, s2n_hmac_algorithm alg);
 int s2n_tls13_keys_free(struct s2n_tls13_keys *keys);
+int s2n_tls13_derive_binder_key_secret(struct s2n_tls13_keys *keys, struct s2n_psk *psk);
 int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *handshake);
 int s2n_tls13_derive_handshake_secrets(struct s2n_tls13_keys *handshake,
                                         const struct s2n_blob *ecdhe,
