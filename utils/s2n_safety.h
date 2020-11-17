@@ -49,6 +49,11 @@
 #define BAIL_OSSL( x )                              do { _S2N_ERROR( ( x ) ); s2n_save_crypto_error(); return S2N_FAILURE; } while (0)
 
 /**
+ * Sets the global `errno` and the crypto error. Then a `NULL` pointer value
+ */
+#define BAIL_PTR_OSSL( x )                              do { _S2N_ERROR( ( x ) ); s2n_save_crypto_error(); return NULL; } while (0)
+
+/**
  * Sets the global `errno` and returns with a `NULL` pointer value
  */
 #define BAIL_PTR( x )                                do { _S2N_ERROR( ( x ) ); return NULL; } while (0)

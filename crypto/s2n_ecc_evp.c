@@ -114,11 +114,11 @@ static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *nam
 
     DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(named_curve->libcrypto_nid, NULL),
                   EVP_PKEY_CTX_free_pointer);
-    S2N_ERROR_IF(pctx == NULL, S2N_ERR_ECDHE_GEN_KEY);
+    ENSURE_OSSL(pctx != NULL, S2N_ERR_ECDHE_GEN_KEY);
 
     GUARD_OSSL(EVP_PKEY_keygen_init(pctx), S2N_ERR_ECDHE_GEN_KEY);
     GUARD_OSSL(EVP_PKEY_keygen(pctx, evp_pkey), S2N_ERR_ECDHE_GEN_KEY);
-    S2N_ERROR_IF(evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
+    ENSURE_OSSL(evp_pkey != NULL, S2N_ERR_ECDHE_GEN_KEY);
 
     return 0;
 }
@@ -127,21 +127,21 @@ static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *nam
 static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey) {
 
     DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL), EVP_PKEY_CTX_free_pointer);
-    S2N_ERROR_IF(pctx == NULL, S2N_ERR_ECDHE_GEN_KEY);
+    ENSURE_OSSL(pctx != NULL, S2N_ERR_ECDHE_GEN_KEY);
 
     GUARD_OSSL(EVP_PKEY_paramgen_init(pctx), S2N_ERR_ECDHE_GEN_KEY);
     GUARD_OSSL(EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, named_curve->libcrypto_nid), S2N_ERR_ECDHE_GEN_KEY);
 
     DEFER_CLEANUP(EVP_PKEY *params = NULL, EVP_PKEY_free_pointer);
     GUARD_OSSL(EVP_PKEY_paramgen(pctx, &params), S2N_ERR_ECDHE_GEN_KEY);
-    S2N_ERROR_IF(params == NULL, S2N_ERR_ECDHE_GEN_KEY);
+    ENSURE_OSSL(params != NULL, S2N_ERR_ECDHE_GEN_KEY);
 
     DEFER_CLEANUP(EVP_PKEY_CTX *kctx = EVP_PKEY_CTX_new(params, NULL), EVP_PKEY_CTX_free_pointer);
-    S2N_ERROR_IF(kctx == NULL, S2N_ERR_ECDHE_GEN_KEY);
+    ENSURE_OSSL(kctx != NULL, S2N_ERR_ECDHE_GEN_KEY);
 
     GUARD_OSSL(EVP_PKEY_keygen_init(kctx), S2N_ERR_ECDHE_GEN_KEY);
     GUARD_OSSL(EVP_PKEY_keygen(kctx, evp_pkey), S2N_ERR_ECDHE_GEN_KEY);
-    S2N_ERROR_IF(evp_pkey == NULL, S2N_ERR_ECDHE_GEN_KEY);
+    ENSURE_OSSL(evp_pkey != NULL, S2N_ERR_ECDHE_GEN_KEY);
 
     return 0;
 }
@@ -163,14 +163,14 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
      */
     if (iana_id == TLS_EC_CURVE_SECP_256_R1 || iana_id == TLS_EC_CURVE_SECP_384_R1) {
         DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(peer_public), EC_KEY_free_pointer);
-        S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+        ENSURE_OSSL(ec_key != NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
         GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_SHARED_SECRET);
     }
 
     size_t shared_secret_size;
 
     DEFER_CLEANUP(EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(own_key, NULL), EVP_PKEY_CTX_free_pointer);
-    S2N_ERROR_IF(ctx == NULL, S2N_ERR_ECDHE_SHARED_SECRET);
+    ENSURE_OSSL(ctx != NULL, S2N_ERR_ECDHE_SHARED_SECRET);
 
     GUARD_OSSL(EVP_PKEY_derive_init(ctx), S2N_ERR_ECDHE_SHARED_SECRET);
     GUARD_OSSL(EVP_PKEY_derive_set_peer(ctx, peer_public), S2N_ERR_ECDHE_SHARED_SECRET);
@@ -179,7 +179,7 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
 
     if (EVP_PKEY_derive(ctx, shared_secret->data, &shared_secret_size) != 1) {
         GUARD(s2n_free(shared_secret));
-        S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
+        BAIL_OSSL(S2N_ERR_ECDHE_SHARED_SECRET);
     }
 
     return 0;
@@ -218,7 +218,7 @@ int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_e
     struct s2n_blob client_public_blob = {0};
 
     DEFER_CLEANUP(EVP_PKEY *peer_key = EVP_PKEY_new(), EVP_PKEY_free_pointer);
-    S2N_ERROR_IF(peer_key == NULL, S2N_ERR_BAD_MESSAGE);
+    ENSURE_OSSL(peer_key != NULL, S2N_ERR_BAD_MESSAGE);
     GUARD(s2n_stuffer_read_uint8(Yc_in, &client_public_len));
     client_public_blob.size = client_public_len;
     client_public_blob.data = s2n_stuffer_raw_read(Yc_in, client_public_blob.size);
@@ -226,10 +226,10 @@ int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_e
 
 #if EVP_APIS_SUPPORTED
     if (ecc_evp_params->negotiated_curve->libcrypto_nid == NID_X25519) {
-        GUARD(EVP_PKEY_set_type(peer_key, ecc_evp_params->negotiated_curve->libcrypto_nid));
+        GUARD_OSSL(EVP_PKEY_set_type(peer_key, ecc_evp_params->negotiated_curve->libcrypto_nid), S2N_FAILURE);
     } else {
         DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL), EVP_PKEY_CTX_free_pointer);
-        S2N_ERROR_IF(pctx == NULL, S2N_ERR_ECDHE_SERIALIZING);
+        ENSURE_OSSL(pctx != NULL, S2N_ERR_ECDHE_SERIALIZING);
         GUARD_OSSL(EVP_PKEY_paramgen_init(pctx), S2N_ERR_ECDHE_SERIALIZING);
         GUARD_OSSL(EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, ecc_evp_params->negotiated_curve->libcrypto_nid), S2N_ERR_ECDHE_SERIALIZING);
         GUARD_OSSL(EVP_PKEY_paramgen(pctx, &peer_key), S2N_ERR_ECDHE_SERIALIZING);
@@ -239,14 +239,14 @@ int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_e
 #else
     DEFER_CLEANUP(EC_KEY *ec_key = EC_KEY_new_by_curve_name(ecc_evp_params->negotiated_curve->libcrypto_nid),
                   EC_KEY_free_pointer);
-    S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    ENSURE_OSSL(ec_key != NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     DEFER_CLEANUP(EC_POINT *point = s2n_ecc_evp_blob_to_point(&client_public_blob, ec_key), EC_POINT_free_pointer);
-    S2N_ERROR_IF(point == NULL, S2N_ERR_BAD_MESSAGE);
+    ENSURE_OSSL(point != NULL, S2N_ERR_BAD_MESSAGE);
 
     int success = EC_KEY_set_public_key(ec_key, point);
     GUARD_OSSL(EVP_PKEY_set1_EC_KEY(peer_key, ec_key), S2N_ERR_ECDHE_SERIALIZING);
-    S2N_ERROR_IF(success == 0, S2N_ERR_BAD_MESSAGE);
+    GUARD_OSSL(success, S2N_ERR_BAD_MESSAGE);
 #endif
 
     return s2n_ecc_evp_compute_shared_secret(ecc_evp_params->evp_pkey, peer_key,
@@ -281,27 +281,26 @@ int s2n_ecc_evp_compute_shared_secret_as_client(struct s2n_ecc_evp_params *ecc_e
 #if (!EVP_APIS_SUPPORTED)
 static int s2n_ecc_evp_calculate_point_length(const EC_POINT *point, const EC_GROUP *group, uint8_t *length) {
     size_t ret = EC_POINT_point2oct(group, point, POINT_CONVERSION_UNCOMPRESSED, NULL, 0, NULL);
-    S2N_ERROR_IF(ret == 0, S2N_ERR_ECDHE_SERIALIZING);
-    S2N_ERROR_IF(ret > UINT8_MAX, S2N_ERR_ECDHE_SERIALIZING);
+    ENSURE_OSSL(ret > 0, S2N_ERR_ECDHE_SERIALIZING);
+    ENSURE_OSSL(ret <= UINT8_MAX, S2N_ERR_ECDHE_SERIALIZING);
     *length = (uint8_t)ret;
     return 0;
 }
 
 static int s2n_ecc_evp_write_point_data_snug(const EC_POINT *point, const EC_GROUP *group, struct s2n_blob *out) {
     size_t ret = EC_POINT_point2oct(group, point, POINT_CONVERSION_UNCOMPRESSED, out->data, out->size, NULL);
-    S2N_ERROR_IF(ret != out->size, S2N_ERR_ECDHE_SERIALIZING);
+    ENSURE_OSSL(ret == out->size, S2N_ERR_ECDHE_SERIALIZING);
     return 0;
 }
 
 static EC_POINT *s2n_ecc_evp_blob_to_point(struct s2n_blob *blob, const EC_KEY *ec_key) {
     const EC_GROUP *group = EC_KEY_get0_group(ec_key);
     EC_POINT *point = EC_POINT_new(group);
-    if (point == NULL) {
-        S2N_ERROR_PTR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
-    }
+    ENSURE_OSSL(point != NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+
     if (EC_POINT_oct2point(group, point, blob->data, blob->size, NULL) != 1) {
         EC_POINT_free(point);
-        S2N_ERROR_PTR(S2N_ERR_BAD_MESSAGE);
+        BAIL_PTR_OSSL(S2N_ERR_BAD_MESSAGE);
     }
     return point;
 }
@@ -361,7 +360,7 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     size_t size = EVP_PKEY_get1_tls_encodedpoint(ecc_evp_params->evp_pkey, &encoded_point);
     if (size != ecc_evp_params->negotiated_curve->share_size) {
         OPENSSL_free(encoded_point);
-        S2N_ERROR(S2N_ERR_ECDHE_SERIALIZING);
+        BAIL_OSSL(S2N_ERR_ECDHE_SERIALIZING);
     }
     else {
         point_blob.data = s2n_stuffer_raw_write(out, ecc_evp_params->negotiated_curve->share_size);
@@ -374,11 +373,11 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     struct s2n_blob point_blob = {0};
 
     DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(ecc_evp_params->evp_pkey), EC_KEY_free_pointer);
-    S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    ENSURE_OSSL(ec_key != NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
     GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_SERIALIZING);
     const EC_POINT *point = EC_KEY_get0_public_key(ec_key);
     const EC_GROUP *group = EC_KEY_get0_group(ec_key);
-    S2N_ERROR_IF(point == NULL || group == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    ENSURE_OSSL(point != NULL && group != NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     GUARD(s2n_ecc_evp_calculate_point_length(point, group, &point_len));
     S2N_ERROR_IF(point_len != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
@@ -426,12 +425,12 @@ int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_e
         if (ecc_evp_params->evp_pkey == NULL) {
             ecc_evp_params->evp_pkey = EVP_PKEY_new();
         }
-        S2N_ERROR_IF(ecc_evp_params->evp_pkey == NULL, S2N_ERR_BAD_MESSAGE);
-        GUARD(EVP_PKEY_set_type(ecc_evp_params->evp_pkey, ecc_evp_params->negotiated_curve->libcrypto_nid));
+        ENSURE_OSSL(ecc_evp_params->evp_pkey != NULL, S2N_ERR_BAD_MESSAGE);
+        GUARD_OSSL(EVP_PKEY_set_type(ecc_evp_params->evp_pkey, ecc_evp_params->negotiated_curve->libcrypto_nid), S2N_FAILURE);
     }
     else {
         DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL), EVP_PKEY_CTX_free_pointer);
-        S2N_ERROR_IF(pctx == NULL, S2N_ERR_ECDHE_SERIALIZING);
+        ENSURE_OSSL(pctx != NULL, S2N_ERR_ECDHE_SERIALIZING);
         GUARD_OSSL(EVP_PKEY_paramgen_init(pctx), S2N_ERR_ECDHE_SERIALIZING);
         GUARD_OSSL(EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, ecc_evp_params->negotiated_curve->libcrypto_nid), S2N_ERR_ECDHE_SERIALIZING);
         GUARD_OSSL(EVP_PKEY_paramgen(pctx, &ecc_evp_params->evp_pkey), S2N_ERR_ECDHE_SERIALIZING);
@@ -442,15 +441,15 @@ int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_e
     if (ecc_evp_params->evp_pkey == NULL) {
         ecc_evp_params->evp_pkey = EVP_PKEY_new();
     }
-    S2N_ERROR_IF(ecc_evp_params->evp_pkey == NULL, S2N_ERR_BAD_MESSAGE);
+    ENSURE_OSSL(ecc_evp_params->evp_pkey != NULL, S2N_ERR_BAD_MESSAGE);
     /* Create a key to store the point */
     DEFER_CLEANUP(EC_KEY *ec_key = EC_KEY_new_by_curve_name(ecc_evp_params->negotiated_curve->libcrypto_nid),
                   EC_KEY_free_pointer);
-    S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    ENSURE_OSSL(ec_key != NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     /* Parse and store the server public point */
     DEFER_CLEANUP(EC_POINT *point = s2n_ecc_evp_blob_to_point(point_blob, ec_key), EC_POINT_free_pointer);
-    S2N_ERROR_IF(point == NULL, S2N_ERR_BAD_MESSAGE);
+    ENSURE_OSSL(point != NULL, S2N_ERR_BAD_MESSAGE);
 
     /* Set the point as the public key */
     int success = EC_KEY_set_public_key(ec_key, point);
@@ -458,7 +457,7 @@ int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_e
     GUARD_OSSL(EVP_PKEY_set1_EC_KEY(ecc_evp_params->evp_pkey,ec_key), S2N_ERR_ECDHE_SERIALIZING);
 
     /* EC_KEY_set_public_key returns 1 on success, 0 on failure */
-    S2N_ERROR_IF(success == 0, S2N_ERR_BAD_MESSAGE);
+    GUARD_OSSL(success, S2N_ERR_BAD_MESSAGE);
 
 #endif
     return 0;
