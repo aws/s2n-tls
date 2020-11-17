@@ -38,13 +38,11 @@ static S2N_RESULT s2n_map_slot(const struct s2n_map *map, struct s2n_blob *key, 
         uint32_t u32[8];
     } digest;
 
-    struct s2n_hash_state sha256;
-
+    DEFER_CLEANUP(struct s2n_hash_state sha256 = {0}, s2n_hash_free);
     GUARD_AS_RESULT(s2n_hash_new(&sha256));
     GUARD_AS_RESULT(s2n_hash_init(&sha256, S2N_HASH_SHA256));
     GUARD_AS_RESULT(s2n_hash_update(&sha256, key->data, key->size));
     GUARD_AS_RESULT(s2n_hash_digest(&sha256, digest.u8, sizeof(digest)));
-    GUARD_AS_RESULT(s2n_hash_free(&sha256));
 
     *slot = digest.u32[0] % map->capacity;
     return S2N_RESULT_OK;
