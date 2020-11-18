@@ -29,13 +29,33 @@ if get_flag(S2N_NO_PQ, False) is False:
         {
             "endpoint": "kms.us-east-1.amazonaws.com",
             "cipher_preference_version": Ciphers.KMS_PQ_TLS_1_0_2019_06,
-            "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384"
+            "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384",
+            "expected_kem": "BIKE1r1-Level1",
         },
         {
             "endpoint": "kms.us-east-1.amazonaws.com",
             "cipher_preference_version": Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11,
-            "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384"
-        }
+            "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384",
+            "expected_kem": "SIKEp503r1-KEM",
+        },
+        {
+            "endpoint": "kms.us-east-1.amazonaws.com",
+            "cipher_preference_version": Ciphers.KMS_PQ_TLS_1_0_2020_07,
+            "expected_cipher": "ECDHE-KYBER-RSA-AES256-GCM-SHA384",
+            "expected_kem": "kyber512r2",
+        },
+        {
+            "endpoint": "kms.us-east-1.amazonaws.com",
+            "cipher_preference_version": Ciphers.KMS_PQ_TLS_1_0_2020_02,
+            "expected_cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384",
+            "expected_kem": "BIKE1r2-Level1",
+        },
+        {
+            "endpoint": "kms.us-east-1.amazonaws.com",
+            "cipher_preference_version": Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02,
+            "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384",
+            "expected_kem": "SIKEp434r2-KEM",
+        },
     ]
 
     ENDPOINTS.extend(pq_endpoints)
@@ -71,3 +91,6 @@ def test_well_known_endpoints(managed_process, protocol, endpoint):
 
         if 'expected_cipher' in endpoint:
             assert bytes(endpoint['expected_cipher'].encode('utf-8')) in results.stdout
+
+        if 'expected_kem' in endpoint:
+            assert bytes(endpoint['expected_kem'].encode('utf-8')) in results.stdout

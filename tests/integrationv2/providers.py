@@ -1,7 +1,7 @@
 import pytest
 import threading
 
-from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates
+from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates, TLS12_PQ_CIPHER_PREFS
 from global_flags import get_flag, S2N_PROVIDER_VERSION
 
 
@@ -157,12 +157,10 @@ class S2N(Provider):
             cmd_line.append('-r')
 
         cipher_prefs = 'test_all_tls12'
-        if self.options.cipher is Ciphers.KMS_PQ_TLS_1_0_2019_06:
-            cipher_prefs = 'KMS-PQ-TLS-1-0-2019-06'
-        elif self.options.cipher is Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11:
-            cipher_prefs = 'PQ-SIKE-TEST-TLS-1-0-2019-11'
-        elif self.options.protocol is Protocols.TLS13:
+        if self.options.protocol is Protocols.TLS13:
             cipher_prefs = 'test_all'
+        if self.options.cipher in TLS12_PQ_CIPHER_PREFS:
+            cipher_prefs = self.options.cipher.name
 
         cmd_line.extend(['-c', cipher_prefs])
 
