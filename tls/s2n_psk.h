@@ -22,9 +22,8 @@
 #include "utils/s2n_result.h"
 
 typedef enum {
-    S2N_PSK_TYPE_UNKNOWN_TYPE = 0,
+    S2N_PSK_TYPE_RESUMPTION,
     S2N_PSK_TYPE_EXTERNAL,
-    S2N_PSK_TYPE_RESUMPTION
 } s2n_psk_type;
 
 struct s2n_psk {
