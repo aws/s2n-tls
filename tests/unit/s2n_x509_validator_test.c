@@ -31,6 +31,7 @@ static int fetch_not_expired_ocsp_timestamp(void *data, uint64_t *timestamp) {
     *timestamp = 1552824239000000000;
     return 0;
 }
+#endif /* S2N_OCSP_STAPLING_SUPPORTED */
 
 static int read_file(struct s2n_stuffer *file_output, const char *path, uint32_t max_len) {
     FILE *fd = fopen(path, "rb");
@@ -48,7 +49,6 @@ static int read_file(struct s2n_stuffer *file_output, const char *path, uint32_t
 
     return -1;
 }
-#endif /* S2N_OCSP_STAPLING_SUPPORTED */
 
 static uint32_t write_pem_file_to_stuffer_as_chain(struct s2n_stuffer *chain_out_stuffer, const char *pem_data) {
     struct s2n_stuffer chain_in_stuffer = {0}, cert_stuffer = {0};
@@ -1407,6 +1407,56 @@ int main(int argc, char **argv) {
         /* Expect no crash. */
     }
 
+    /* Test one trailing byte in cert validator */
+    {
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init_no_x509_validation(&validator);
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+
+        struct s2n_stuffer chain_stuffer;
+        EXPECT_SUCCESS(read_file(&chain_stuffer, S2N_ONE_TRAILING_BYTE_CERT_BIN, S2N_MAX_TEST_PEM_SIZE));
+        uint32_t chain_len = s2n_stuffer_data_available(&chain_stuffer);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, chain_len);
+
+        struct s2n_pkey public_key_out;
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type;
+        EXPECT_EQUAL(S2N_CERT_OK,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
+        EXPECT_EQUAL(S2N_PKEY_TYPE_RSA, pkey_type);
+        s2n_connection_free(connection);
+        s2n_pkey_free(&public_key_out);
+        s2n_x509_validator_wipe(&validator);
+    }
+
+    /* Test two trailing byte in cert validator */
+    {
+        struct s2n_x509_validator validator;
+        s2n_x509_validator_init_no_x509_validation(&validator);
+        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(connection);
+
+        struct s2n_stuffer chain_stuffer;
+        EXPECT_SUCCESS(read_file(&chain_stuffer, S2N_TWO_TRAILING_BYTE_CERT_BIN, S2N_MAX_TEST_PEM_SIZE));
+        uint32_t chain_len = s2n_stuffer_data_available(&chain_stuffer);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, chain_len);
+
+        struct s2n_pkey public_key_out;
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type;
+
+        /* Expect to return S2N_CERT_ERR_UNTRUSTED */
+        EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
+        s2n_connection_free(connection);
+        s2n_pkey_free(&public_key_out);
+        s2n_x509_validator_wipe(&validator);
+    }
 
     END_TEST();
 }
