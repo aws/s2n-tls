@@ -239,6 +239,11 @@ class Ciphers(object):
     PQ_SIKE_TEST_TLS_1_0_2020_02 = Cipher("PQ-SIKE-TEST-TLS-1-0-2020-02", Protocols.TLS10, False, False)
 
 
+TLS12_PQ_CIPHER_PREFS = [Ciphers.KMS_PQ_TLS_1_0_2019_06, Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11,
+                         Ciphers.KMS_PQ_TLS_1_0_2020_07, Ciphers.KMS_PQ_TLS_1_0_2020_02,
+                         Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02]
+
+
 class Curve(object):
     def __init__(self, name, min_protocol=Protocols.SSLv3):
         self.name = name
