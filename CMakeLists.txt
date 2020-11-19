@@ -239,6 +239,10 @@ file(GLOB S2N_SRC
 add_library(${PROJECT_NAME} ${S2N_HEADERS} ${S2N_SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
 
+# As long as the ABI isn't stable, set the SO version to 0unstable
+set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES VERSION 1.0.0)
+set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES SOVERSION 0unstable)
+
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
