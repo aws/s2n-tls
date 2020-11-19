@@ -15,8 +15,8 @@
 
 #include "crypto/s2n_evp.h"
 #include "crypto/s2n_fips.h"
-
 #include "error/s2n_errno.h"
+#include "utils/s2n_safety.h"
 
 int s2n_digest_allow_md5_for_fips(struct s2n_evp_digest *evp_digest)
 {
@@ -35,6 +35,8 @@ int s2n_digest_allow_md5_for_fips(struct s2n_evp_digest *evp_digest)
 int s2n_digest_is_md5_allowed_for_fips(struct s2n_evp_digest *evp_digest)
 {
 #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
+    PRECONDITION_POSIX(evp_digest != NULL);
+    PRECONDITION_POSIX(evp_digest->ctx != NULL);
     if (s2n_is_in_fips_mode() && EVP_MD_CTX_test_flags(evp_digest->ctx, EVP_MD_CTX_FLAG_NON_FIPS_ALLOW)) {
         /* s2n is in FIPS mode and the EVP digest allows MD5. */
         return 1;
