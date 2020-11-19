@@ -289,10 +289,11 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20140601);
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
-        EXPECT_EQUAL(config->security_policy, &security_policy_20190801);
+        EXPECT_EQUAL(config->security_policy, &security_policy_20201110);
         EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_20190801);
         EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
         EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
+        EXPECT_EQUAL(config->security_policy->certificate_signature_preferences, &s2n_certificate_signature_preferences_20201110);
         EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20190801"));
@@ -340,10 +341,11 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
         EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-        EXPECT_EQUAL(security_policy, &security_policy_20190801);
+        EXPECT_EQUAL(security_policy, &security_policy_20201110);
         EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_20190801);
         EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_null);
         EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20200207);
+        EXPECT_EQUAL(security_policy->certificate_signature_preferences, &s2n_certificate_signature_preferences_20201110);
         EXPECT_EQUAL(security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
 
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20190801"));
@@ -391,6 +393,40 @@ int main(int argc, char **argv)
                 if (min_version < S2N_TLS13) {
                     EXPECT_NULL(scheme->signature_curve);
                     EXPECT_NOT_EQUAL(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
+                }
+            }
+        }
+    }
+
+    /* Certificate preferences list needs to allow all the rsa pss signature schemes as we currently don't differentiate
+     * between these schemes.
+     */
+    {
+        const struct s2n_signature_scheme* const rsa_pss_sig_scheme_list[] = {
+            &s2n_rsa_pss_pss_sha256,
+            &s2n_rsa_pss_pss_sha384,
+            &s2n_rsa_pss_pss_sha512,
+            &s2n_rsa_pss_rsae_sha256,
+            &s2n_rsa_pss_rsae_sha384,
+            &s2n_rsa_pss_rsae_sha512,
+        };
+
+        for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
+            security_policy = security_policy_selection[i].security_policy;
+            EXPECT_NOT_NULL(security_policy);
+
+            if (security_policy->certificate_signature_preferences != NULL) {
+
+                for (size_t j = 0; j < s2n_array_len(rsa_pss_sig_scheme_list); j++) {
+                    const struct s2n_signature_scheme *scheme = rsa_pss_sig_scheme_list[j];
+                    bool contains = false;
+                    for (size_t k = 0; k < security_policy->certificate_signature_preferences->count; k++) {
+                        if (scheme == security_policy->certificate_signature_preferences->signature_schemes[k]) {
+                            contains = true;
+                            break;
+                        }
+                    }
+                    EXPECT_TRUE(contains);
                 }
             }
         }

@@ -18,7 +18,7 @@
 #include <s2n.h>
 
 #include <openssl/x509.h>
- #include <openssl/pem.h>
+#include <openssl/pem.h>
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"

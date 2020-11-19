@@ -500,7 +500,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config,
 
 **s2n_config_set_cipher_preferences** sets the security policy that includes the cipher/kem/signature/ecc preferences and protocol version.
 
-The following chart maps the security policy version to protocol version and ciphertsuites supported:
+The following chart maps the security policy version to protocol version and ciphersuites supported:
 
 |    version     | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3  | AES-CBC | ChaCha20-Poly1305 | ECDSA | AES-GCM | 3DES | RC4 | DHE | ECDHE |
 |----------------|-------|--------|--------|--------|---------|---------|-------------------|-------|---------|------|-----|-----|-------|
@@ -567,6 +567,9 @@ The following chart maps the security policy version to the signature scheme sup
 |   "20190801"   |      X       |     X    |      X        |    X     |
 |   "20190802"   |      X       |     X    |      X        |    X     |
 |   "20200207"   |      X       |     X    |      X        |    X     |
+
+Note that currently the default_tls13 security policy supports SHA-1 legacy algorithms in Certificate Verify messages, 
+but it will not support SHA-1 Legacy algorithms in certificate signatures. 
 
 The following chart maps the security policy version to the supported curves/groups: 
 

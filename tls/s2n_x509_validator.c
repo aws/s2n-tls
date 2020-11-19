@@ -371,6 +371,11 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         op_code = X509_verify_cert(validator->store_ctx);
 
         S2N_ERROR_IF(op_code <= 0, S2N_ERR_CERT_UNTRUSTED);
+
+        s2n_cert_validation_code validation_code = S2N_ERR_CERT_UNTRUSTED;
+        GUARD_AS_POSIX(s2n_x509_validator_validate_certificate_signatures(conn, validator, &validation_code));
+        S2N_ERROR_IF(validation_code != S2N_CERT_OK, S2N_ERR_CERT_UNTRUSTED);
+
         validator->state = VALIDATED;
     }
 
@@ -553,31 +558,37 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
 
 DEFINE_POINTER_CLEANUP_FUNC(STACK_OF(X509)*, wipe_cert_chain);
 
-s2n_cert_validation_code s2n_x509_validator_validate_certificate_signatures(struct s2n_x509_validator *validator,  struct s2n_connection *conn)
+S2N_RESULT s2n_x509_validator_validate_certificate_signatures(struct s2n_connection *conn, struct s2n_x509_validator *validator,
+                                                                             s2n_cert_validation_code *validation_code)
 {
-    if (validator->skip_cert_validation || !conn->config->security_policy->certificate_signature_preferences) {
-        return S2N_CERT_OK;
+    ENSURE_REF(conn);
+    ENSURE_REF(validator);
+
+    if (conn->config->security_policy->certificate_signature_preferences == NULL) {
+        *validation_code = S2N_CERT_OK;
+        return S2N_RESULT_OK;
     }
-    S2N_ERROR_IF((validator->state != VALIDATED && validator->state != OCSP_VALIDATED), S2N_ERR_INVALID_STATE);
     
     DEFER_CLEANUP(STACK_OF(X509) *validated_chain = X509_STORE_CTX_get1_chain(validator->store_ctx), wipe_cert_chain_pointer);
 
     const int certs_in_chain = sk_X509_num(validated_chain);
 
     /* Do not validate the root certificate */
-    int certs_to_validate = certs_in_chain - 1;
+    unsigned int certs_to_validate = certs_in_chain - 1;
     
-    for (int i = 0; i < certs_to_validate; i++) {
-        bool out = 0;
+    for (size_t i = 0; i < certs_to_validate; i++) {
+        bool out = false;
         X509 *cert = sk_X509_value(validated_chain, i);
 
-        GUARD_AS_POSIX(s2n_is_certificate_sig_scheme_supported(conn, cert, &out));
+        GUARD_RESULT(s2n_is_certificate_sig_scheme_supported(conn, cert, &out));
         if(out == false) {
-            return S2N_CERT_ERR_UNTRUSTED;
+            *validation_code = S2N_CERT_ERR_UNTRUSTED;
+            return S2N_RESULT_OK;
         }
     }
 
-    return S2N_CERT_OK;
+    *validation_code = S2N_CERT_OK;
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_is_certificate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert, bool *out)
@@ -588,13 +599,14 @@ S2N_RESULT s2n_is_certificate_sig_scheme_supported(struct s2n_connection *conn, 
 
     int nid = 0;
 
-    #if !defined(LIBRESSL_VERSION_NUMBER)
-        nid = X509_get_signature_nid(x509_cert);
-    #else
+    #if defined(LIBRESSL_VERSION_NUMBER) && (LIBRESSL_VERSION_NUMBER < 0x02070000f)
+        ENSURE_REF(x509_cert->sig_alg);
         nid = OBJ_obj2nid(x509_cert->sig_alg->algorithm);
+    #else
+        nid = X509_get_signature_nid(x509_cert);
     #endif
 
-    for (int i = 0; i < conn->config->security_policy->certificate_signature_preferences->count; i++) {
+    for (size_t i = 0; i < conn->config->security_policy->certificate_signature_preferences->count; i++) {
 
         if (conn->config->security_policy->certificate_signature_preferences->signature_schemes[i]->libcrypto_nid == nid) {
             /* SHA-1 algorithms are not supported in certificate signatures in TLS1.3 */
