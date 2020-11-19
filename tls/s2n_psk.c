@@ -62,6 +62,9 @@ int s2n_psk_free(struct s2n_psk *psk)
     return S2N_SUCCESS;
 }
 
+/* The binder hash is computed by hashing the concatenation of the current transcript
+ * and a partial ClientHello that does not include the binders themselves.
+ */
 int s2n_psk_calculate_binder_hash(struct s2n_connection *conn, s2n_hash_algorithm hash_alg,
         const struct s2n_blob *partial_client_hello, struct s2n_blob *output_binder_hash)
 {
@@ -101,6 +104,11 @@ static int s2n_tls13_keys_init_with_psk(struct s2n_tls13_keys *keys, struct s2n_
     return S2N_SUCCESS;
 }
 
+/* The binder is computed in the same way as the Finished message
+ * (https://tools.ietf.org/html/rfc8446#section-4.4.4) but with the BaseKey being the binder_key
+ * derived via the key schedule from the corresponding PSK which is being offered
+ * (https://tools.ietf.org/html/rfc8446#section-7.1)
+ */
 int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_hash,
         struct s2n_blob *output_binder)
 {
