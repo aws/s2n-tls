@@ -130,6 +130,35 @@ struct s2n_dh_params *cbmc_allocate_dh_params()
     return dh_params;
 }
 
+EVP_MD_CTX* cbmc_allocate_EVP_MD_CTX() {
+    EVP_MD_CTX *ctx = malloc(sizeof(*ctx));
+    if (ctx != NULL) {
+        ctx->digest = malloc(sizeof(*(ctx->digest)));
+        ctx->md_data = malloc(EVP_MAX_MD_SIZE);
+        ctx->pctx = malloc(sizeof(*(ctx->pctx)));
+        if (ctx->pctx != NULL) {
+            ctx->pctx->pkey = malloc(sizeof(*(ctx->pctx->pkey)));
+            if (ctx->pctx->pkey != NULL) {
+                ctx->pctx->pkey->ec_key = malloc(sizeof(*(ctx->pctx->pkey->ec_key)));
+                if (ctx->pctx->pkey->ec_key != NULL) {
+                    ctx->pctx->pkey->ec_key->group = malloc(sizeof(*(ctx->pctx->pkey->ec_key->group)));
+                    if (ctx->pctx->pkey->ec_key->group != NULL) {
+                        ctx->pctx->pkey->ec_key->group->order = malloc(sizeof(*(ctx->pctx->pkey->ec_key->group->order)));
+                        if (ctx->pctx->pkey->ec_key->group->order != NULL) {
+                            ctx->pctx->pkey->ec_key->group->order->d = malloc(sizeof(*(ctx->pctx->pkey->ec_key->group->order->d)));
+                        }
+                    }
+                    ctx->pctx->pkey->ec_key->priv_key = malloc(sizeof(*(ctx->pctx->pkey->ec_key->priv_key)));
+                    if (ctx->pctx->pkey->ec_key->priv_key != NULL) {
+                        ctx->pctx->pkey->ec_key->priv_key->d = malloc(sizeof(*(ctx->pctx->pkey->ec_key->priv_key->d)));
+                    }
+                }
+            }
+        }
+    }
+    return ctx;
+}
+
 struct s2n_hash_state* cbmc_allocate_s2n_hash_state()
 {
     struct s2n_hash_state *state = malloc(sizeof(*state));
@@ -137,9 +166,9 @@ struct s2n_hash_state* cbmc_allocate_s2n_hash_state()
     {
         state->hash_impl = malloc(sizeof(*(state->hash_impl)));
         state->digest.high_level.evp.md = malloc(sizeof(*(state->digest.high_level.evp.md)));
-        state->digest.high_level.evp.ctx = malloc(sizeof(*(state->digest.high_level.evp.ctx)));
+        state->digest.high_level.evp.ctx = cbmc_allocate_EVP_MD_CTX();
         state->digest.high_level.evp_md5_secondary.md = malloc(sizeof(*(state->digest.high_level.evp_md5_secondary.md)));
-        state->digest.high_level.evp_md5_secondary.ctx = malloc(sizeof(*(state->digest.high_level.evp_md5_secondary.ctx)));
+        state->digest.high_level.evp_md5_secondary.ctx = cbmc_allocate_EVP_MD_CTX();
     }
     return state;
 }
