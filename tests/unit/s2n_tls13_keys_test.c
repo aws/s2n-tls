@@ -298,7 +298,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_tls13_keys test_keys, s2n_tls13_keys_free);
         GUARD(s2n_tls13_keys_init(&test_keys, test_psk.hash_alg));
 
-        EXPECT_SUCCESS(s2n_tls13_derive_binder_key_secret(&test_keys, &test_psk));
+        EXPECT_SUCCESS(s2n_tls13_derive_binder_key(&test_keys, &test_psk));
 
         S2N_BLOB_EXPECT_EQUAL(test_keys.extract_secret, expected_resumption_early_secret);
         S2N_BLOB_EXPECT_EQUAL(test_keys.derive_secret, expected_binder_key);

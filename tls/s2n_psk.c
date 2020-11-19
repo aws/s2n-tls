@@ -126,7 +126,7 @@ int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_
     GUARD(s2n_blob_init(&psk_keys.extract_secret, psk->early_secret.data, psk_keys.size));
 
     /* Derive the binder key */
-    GUARD(s2n_tls13_derive_binder_key_secret(&psk_keys, psk));
+    GUARD(s2n_tls13_derive_binder_key(&psk_keys, psk));
     struct s2n_blob *binder_key = &psk_keys.derive_secret;
 
     /* Expand the binder key into the finished key */

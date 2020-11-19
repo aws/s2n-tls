@@ -140,7 +140,7 @@ int s2n_tls13_keys_free(struct s2n_tls13_keys *keys) {
 /*
  * Derives binder_key from PSK.
  */
-int s2n_tls13_derive_binder_key_secret(struct s2n_tls13_keys *keys, struct s2n_psk *psk)
+int s2n_tls13_derive_binder_key(struct s2n_tls13_keys *keys, struct s2n_psk *psk)
 {
     notnull_check(keys);
     notnull_check(psk);
