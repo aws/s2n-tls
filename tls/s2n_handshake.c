@@ -70,6 +70,8 @@ int s2n_handshake_parse_header(struct s2n_connection *conn, uint8_t * message_ty
 
 static int s2n_handshake_get_hash_state_ptr(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state **hash_state)
 {
+    notnull_check(conn);
+
     switch (hash_alg) {
     case S2N_HASH_MD5:
         *hash_state = &conn->handshake.md5;
