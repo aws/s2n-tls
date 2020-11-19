@@ -102,7 +102,8 @@ bool s2n_hash_is_available(s2n_hash_algorithm alg)
 
 int s2n_hash_is_ready_for_input(struct s2n_hash_state *state)
 {
-  return state->is_ready_for_input;
+    PRECONDITION_POSIX(s2n_hash_state_is_valid(state));
+    return state->is_ready_for_input;
 }
 
 static int s2n_low_level_hash_new(struct s2n_hash_state *state)
@@ -188,9 +189,10 @@ static int s2n_low_level_hash_update(struct s2n_hash_state *state, const void *d
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
+    S2N_ERROR_IF(size > (UINT64_MAX - state->currently_in_hash), S2N_ERR_INTEGER_OVERFLOW);
     state->currently_in_hash += size;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_low_level_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
@@ -246,7 +248,7 @@ static int s2n_low_level_hash_copy(struct s2n_hash_state *to, struct s2n_hash_st
 
 static int s2n_low_level_hash_reset(struct s2n_hash_state *state)
 {
-    /* hash_init resets the ready_for_input and currently_in_hash fields */
+    /* hash_init resets the ready_for_input and currently_in_hash fields. */
     return s2n_low_level_hash_init(state, state->alg);
 }
 
@@ -256,7 +258,7 @@ static int s2n_low_level_hash_free(struct s2n_hash_state *state)
      * being used. For the s2n_low_level_hash implementation, free is a no-op.
      */
     state->is_ready_for_input = 0;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_evp_hash_new(struct s2n_hash_state *state)
@@ -282,6 +284,8 @@ static int s2n_evp_hash_allow_md5_for_fips(struct s2n_hash_state *state)
 
 static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
 {
+    notnull_check(state->digest.high_level.evp.ctx);
+    notnull_check(state->digest.high_level.evp_md5_secondary.ctx);
     switch (alg) {
     case S2N_HASH_NONE:
         break;
@@ -304,6 +308,7 @@ static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm al
         GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha512(), NULL), S2N_ERR_HASH_INIT_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
+        notnull_check(state->digest.high_level.evp_md5_secondary.ctx);
         GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha1(), NULL), S2N_ERR_HASH_INIT_FAILED);
         GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp_md5_secondary.ctx, EVP_md5(), NULL), S2N_ERR_HASH_INIT_FAILED);
         break;
@@ -315,12 +320,16 @@ static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm al
     state->is_ready_for_input = 1;
     state->currently_in_hash = 0;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size)
 {
     S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
+    notnull_check(state->digest.high_level.evp.ctx);
+    notnull_check(state->digest.high_level.evp.ctx->digest);
+    notnull_check(state->digest.high_level.evp_md5_secondary.ctx);
+    notnull_check(state->digest.high_level.evp_md5_secondary.ctx->digest);
 
     switch (state->alg) {
     case S2N_HASH_NONE:
@@ -341,14 +350,19 @@ static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, u
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
+    S2N_ERROR_IF(size > (UINT64_MAX - state->currently_in_hash), S2N_ERR_INTEGER_OVERFLOW);
     state->currently_in_hash += size;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
 {
     S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
+    notnull_check(state->digest.high_level.evp.ctx);
+    notnull_check(state->digest.high_level.evp.ctx->digest);
+    notnull_check(state->digest.high_level.evp_md5_secondary.ctx);
+    notnull_check(state->digest.high_level.evp_md5_secondary.ctx->digest);
 
     unsigned int digest_size = size;
     uint8_t expected_digest_size;
@@ -369,12 +383,15 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
     case S2N_HASH_SHA256:
     case S2N_HASH_SHA384:
     case S2N_HASH_SHA512:
+        S2N_ERROR_IF(EVP_MD_CTX_size(state->digest.high_level.evp.ctx) > digest_size, S2N_ERR_HASH_DIGEST_FAILED);
         GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, out, &digest_size), S2N_ERR_HASH_DIGEST_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
         GUARD(s2n_hash_digest_size(S2N_HASH_SHA1, &sha1_digest_size));
         sha1_primary_digest_size = sha1_digest_size;
         md5_secondary_digest_size = digest_size - sha1_primary_digest_size;
+        S2N_ERROR_IF(EVP_MD_CTX_size(state->digest.high_level.evp.ctx) > sha1_digest_size, S2N_ERR_HASH_DIGEST_FAILED);
+        S2N_ERROR_IF(EVP_MD_CTX_size(state->digest.high_level.evp_md5_secondary.ctx) > md5_secondary_digest_size, S2N_ERR_HASH_DIGEST_FAILED);
 
         GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, ((uint8_t *) out) + MD5_DIGEST_LENGTH, &sha1_primary_digest_size), S2N_ERR_HASH_DIGEST_FAILED);
         GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp_md5_secondary.ctx, out, &md5_secondary_digest_size), S2N_ERR_HASH_DIGEST_FAILED);
@@ -385,11 +402,15 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
 
     state->currently_in_hash = 0;
     state->is_ready_for_input = 0;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
 {
+    notnull_check(to->digest.high_level.evp.ctx);
+    notnull_check(to->digest.high_level.evp.ctx->digest);
+    notnull_check(to->digest.high_level.evp_md5_secondary.ctx);
+    notnull_check(to->digest.high_level.evp_md5_secondary.ctx->digest);
     switch (from->alg) {
     case S2N_HASH_NONE:
         break;
@@ -421,7 +442,7 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
     to->is_ready_for_input = from->is_ready_for_input;
     to->currently_in_hash = from->currently_in_hash;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_evp_hash_reset(struct s2n_hash_state *state)
@@ -437,10 +458,16 @@ static int s2n_evp_hash_reset(struct s2n_hash_state *state)
         GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp_md5_secondary.ctx), S2N_ERR_HASH_WIPE_FAILED);
     }
 
+    /* ctx must be initialized before calling EVP_DigestInit_ex function in s2n_evp_hash_init.
+     * Per https://www.openssl.org/docs/man1.0.2/man3/EVP_DigestInit_ex.html.
+     */
+    GUARD(s2n_evp_hash_new(state));
+
     if (reset_md5_for_fips) {
         GUARD(s2n_hash_allow_md5_for_fips(state));
     }
-    /* hash_init resets the ready_for_input and currently_in_hash fields */
+
+    /* hash_init resets the ready_for_input and currently_in_hash fields. */
     return s2n_evp_hash_init(state, state->alg);
 }
 
@@ -448,10 +475,10 @@ static int s2n_evp_hash_free(struct s2n_hash_state *state)
 {
     S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp.ctx);
     S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp_md5_secondary.ctx);
-    state->digest.high_level.evp.ctx = NULL;
     state->digest.high_level.evp_md5_secondary.ctx = NULL;
+    state->digest.high_level.evp.ctx = NULL;
     state->is_ready_for_input = 0;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static const struct s2n_hash s2n_low_level_hash = {
@@ -515,6 +542,7 @@ int s2n_hash_allow_md5_for_fips(struct s2n_hash_state *state)
 
 int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
 {
+    notnull_check(state);
     /* Ensure that hash_impl is set, as it may have been reset for s2n_hash_state on s2n_connection_wipe.
      * When in FIPS mode, the EVP API's must be used for hashes.
      */
@@ -525,7 +553,7 @@ int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
         /* s2n will continue to initialize an "unavailable" hash when s2n is in FIPS mode and
          * FIPS is forcing the hash to be made available.
          */
-        notnull_check(state->hash_impl->init);
+        notnull_check_ptr(state->hash_impl->init);
 
         return state->hash_impl->init(state, alg);
     } else {
@@ -535,6 +563,9 @@ int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
 
 int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size)
 {
+    PRECONDITION_POSIX(s2n_hash_state_is_valid(state));
+    PRECONDITION_POSIX(size != 0);
+    PRECONDITION_POSIX(S2N_MEM_IS_READABLE(data, size));
     notnull_check(state->hash_impl->update);
 
     return state->hash_impl->update(state, data, size);
@@ -542,6 +573,8 @@ int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t siz
 
 int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
 {
+    PRECONDITION_POSIX(s2n_hash_state_is_valid(state));
+    PRECONDITION_POSIX(S2N_MEM_IS_READABLE(out, size));
     notnull_check(state->hash_impl->digest);
 
     return state->hash_impl->digest(state, out, size);
@@ -549,6 +582,8 @@ int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
 
 int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
 {
+    PRECONDITION_POSIX(s2n_hash_state_is_valid(to));
+    PRECONDITION_POSIX(s2n_hash_state_is_valid(from));
     notnull_check(from->hash_impl->copy);
 
     return from->hash_impl->copy(to, from);
@@ -556,18 +591,24 @@ int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
 
 int s2n_hash_reset(struct s2n_hash_state *state)
 {
+    notnull_check(state);
     /* Ensure that hash_impl is set, as it may have been reset for s2n_hash_state on s2n_connection_wipe.
      * When in FIPS mode, the EVP API's must be used for hashes.
      */
     GUARD(s2n_hash_set_impl(state));
 
-    notnull_check(state->hash_impl->reset);
+    notnull_check_ptr(state->hash_impl->reset);
 
     return state->hash_impl->reset(state);
 }
 
 int s2n_hash_free(struct s2n_hash_state *state)
 {
+    if (state == NULL)
+    {
+        return S2N_SUCCESS;
+    }
+    PRECONDITION_POSIX(s2n_hash_state_is_valid(state));
     /* Ensure that hash_impl is set, as it may have been reset for s2n_hash_state on s2n_connection_wipe.
      * When in FIPS mode, the EVP API's must be used for hashes.
      */
@@ -580,16 +621,20 @@ int s2n_hash_free(struct s2n_hash_state *state)
 
 int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t *out)
 {
+    PRECONDITION_POSIX(s2n_hash_state_is_valid(state));
+    PRECONDITION_POSIX(S2N_MEM_IS_READABLE(out, sizeof(*out)));
     S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
 
     *out = state->currently_in_hash;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 
 /* Calculate, in constant time, the number of bytes currently in the hash_block */
 int s2n_hash_const_time_get_currently_in_hash_block(struct s2n_hash_state *state, uint64_t *out)
 {
+    PRECONDITION_POSIX(s2n_hash_state_is_valid(state));
+    PRECONDITION_POSIX(S2N_MEM_IS_READABLE(out, sizeof(*out)));
     S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
     uint64_t hash_block_size;
     GUARD(s2n_hash_block_size(state->alg, &hash_block_size));
@@ -597,5 +642,5 @@ int s2n_hash_const_time_get_currently_in_hash_block(struct s2n_hash_state *state
     /* Requires that hash_block_size is a power of 2. This is true for all hashes we currently support
      * If this ever becomes untrue, this would require fixing this*/
     *out = state->currently_in_hash & (hash_block_size - 1);
-    return 0;
+    return S2N_SUCCESS;
 }
