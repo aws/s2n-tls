@@ -298,9 +298,9 @@ static int s2n_ecc_evp_write_point_data_snug(const EC_POINT *point, const EC_GRO
 
 static EC_POINT *s2n_ecc_evp_blob_to_point(struct s2n_blob *blob, const EC_KEY *ec_key) {
     const EC_GROUP *group = EC_KEY_get0_group(ec_key);
-    GUARD_PTR(OSSL_POSIX_PTR(group));
+    GUARD_RESULT_PTR(OSSL_PTR(group));
     EC_POINT *point = EC_POINT_new(group);
-    GUARD_PTR(OSSL_POSIX_PTR_WITH(point, S2N_ERR_ECDHE_UNSUPPORTED_CURVE));
+    GUARD_RESULT_PTR(OSSL_PTR_WITH(point, S2N_ERR_ECDHE_UNSUPPORTED_CURVE));
 
     if (EC_POINT_oct2point(group, point, blob->data, blob->size, NULL) != 1) {
         EC_POINT_free(point);
@@ -448,15 +448,15 @@ int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_e
     if (ecc_evp_params->evp_pkey == NULL) {
         ecc_evp_params->evp_pkey = EVP_PKEY_new();
     }
-    GUARD_AS_POSIX(OSSL_PTR_WITH(ecc_evp_params->evp_pkey, S2N_ERR_BAD_MESSAGE);
+    GUARD_AS_POSIX(OSSL_PTR_WITH(ecc_evp_params->evp_pkey, S2N_ERR_BAD_MESSAGE));
     /* Create a key to store the point */
     DEFER_CLEANUP(EC_KEY *ec_key = EC_KEY_new_by_curve_name(ecc_evp_params->negotiated_curve->libcrypto_nid),
                   EC_KEY_free_pointer);
-    GUARD_AS_POSIX(OSSL_PTR_WITH(ec_key, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    GUARD_AS_POSIX(OSSL_PTR_WITH(ec_key, S2N_ERR_ECDHE_UNSUPPORTED_CURVE));
 
     /* Parse and store the server public point */
     DEFER_CLEANUP(EC_POINT *point = s2n_ecc_evp_blob_to_point(point_blob, ec_key), EC_POINT_free_pointer);
-    GUARD_AS_POSIX(OSSL_PTR_WITH(point, S2N_ERR_BAD_MESSAGE);
+    GUARD_AS_POSIX(OSSL_PTR_WITH(point, S2N_ERR_BAD_MESSAGE));
 
     /* Set the point as the public key */
     int success = EC_KEY_set_public_key(ec_key, point);
