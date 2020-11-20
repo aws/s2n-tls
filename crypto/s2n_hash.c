@@ -553,7 +553,7 @@ int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
         /* s2n will continue to initialize an "unavailable" hash when s2n is in FIPS mode and
          * FIPS is forcing the hash to be made available.
          */
-        notnull_check_ptr(state->hash_impl->init);
+        notnull_check(state->hash_impl->init);
 
         return state->hash_impl->init(state, alg);
     } else {
@@ -597,7 +597,7 @@ int s2n_hash_reset(struct s2n_hash_state *state)
      */
     GUARD(s2n_hash_set_impl(state));
 
-    notnull_check_ptr(state->hash_impl->reset);
+    notnull_check(state->hash_impl->reset);
 
     return state->hash_impl->reset(state);
 }
