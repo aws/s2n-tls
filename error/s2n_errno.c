@@ -246,6 +246,7 @@ static const char *no_such_error = "Internal s2n error";
 #define ERR_STR_CASE(ERR, str) case ERR: return str;
 #define ERR_NAME_CASE(ERR, str) case ERR: return #ERR;
 
+S2N_API
 void s2n_clear_error()
 {
     s2n_errno = S2N_ERR_T_OK;

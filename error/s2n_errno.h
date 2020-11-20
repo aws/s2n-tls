@@ -272,8 +272,8 @@ extern __thread const char *s2n_debug_str;
 #define STRING__LINE__ STRING_(__LINE__)
 
 #define _S2N_DEBUG_LINE     "Error encountered in " __FILE__ " line " STRING__LINE__
-#define _S2N_ERROR_EXPLICIT( x , debug_line )     do { s2n_debug_str = debug_line; s2n_errno = ( x ); if ( s2n_errno == S2N_ERR_LIBCRYPTO ) { s2n_save_crypto_error(); } else { s2n_libcrypto_error = 0; } s2n_calculate_stacktrace(); } while (0) 
-#define _S2N_ERROR( x )     _S2N_ERROR_EXPLICIT( ( x ) , _S2N_DEBUG_LINE )
+#define _S2N_ERROR_WITH_LOCATION( x , debug_line )     do { s2n_debug_str = debug_line; s2n_errno = ( x ); if ( s2n_errno == S2N_ERR_LIBCRYPTO ) { s2n_save_crypto_error(); } else { s2n_libcrypto_error = 0; } s2n_calculate_stacktrace(); } while (0) 
+#define _S2N_ERROR( x )     _S2N_ERROR_WITH_LOCATION( ( x ) , _S2N_DEBUG_LINE )
 #define S2N_ERROR( x )      do { _S2N_ERROR( ( x ) ); return -1; } while (0)
 #define S2N_ERROR_PRESERVE_ERRNO() do { return -1; } while (0)
 #define S2N_ERROR_PTR( x )  do { _S2N_ERROR( ( x ) ); return NULL; } while (0)

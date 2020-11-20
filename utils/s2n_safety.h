@@ -265,8 +265,7 @@
 /**
  * Ensures `x` is not a OpenSSL error, otherwise the function will `BAIL` with `error`
  */
-/* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
-#define GUARD_POSIX_OSSL( x , error )               GUARD_POSIX(OSSL_POSIX_WITH( (x) , error))
+#define GUARD_POSIX_OSSL( x , error )               GUARD_AS_POSIX(OSSL_RESULT_WITH( (x) , error))
 
 /**
  * Ensures `x` is not a POSIX error, otherwise the function will return a `S2N_RESULT_ERROR`
@@ -297,7 +296,7 @@ static inline S2N_RESULT ossl_ensure(bool check, int error, const char* debug_li
         return S2N_RESULT_OK;
     } else {
         /* set the initial errno to S2N_ERR_LIBCRYPTO in order for `_S2N_ERROR` to capture the libcrypto error */
-        _S2N_ERROR_EXPLICIT(S2N_ERR_LIBCRYPTO, debug_line);
+        _S2N_ERROR_WITH_LOCATION(S2N_ERR_LIBCRYPTO, debug_line);
         /* override the actual errno */
         s2n_errno = error;
         return S2N_RESULT_ERROR;
@@ -310,10 +309,6 @@ static inline S2N_RESULT ossl_ensure(bool check, int error, const char* debug_li
 #define OSSL_PTR(x)                                 OSSL_PTR_WITH( (x), S2N_ERR_LIBCRYPTO)
 #define OSSL_RESULT_WITH(x, err)                    ossl_ensure( (x) == _OSSL_SUCCESS, (err) , _S2N_DEBUG_LINE )
 #define OSSL_PTR_WITH(x, err)                       ossl_ensure( (x) != NULL, (err) , _S2N_DEBUG_LINE )
-#define OSSL_POSIX(x)                               S2N_RESULT_TO_POSIX(OSSL_RESULT( (x) ))
-#define OSSL_POSIX_PTR(x)                           S2N_RESULT_TO_POSIX(OSSL_PTR( (x) ))
-#define OSSL_POSIX_WITH(x, err)                     S2N_RESULT_TO_POSIX(OSSL_RESULT_WITH( (x) , err))
-#define OSSL_POSIX_PTR_WITH(x, err)                 S2N_RESULT_TO_POSIX(OSSL_PTR_WITH( (x) , err))
 #define OSSL_POSIX_ERROR(err)                       do { if (!s2n_result_is_ok(ossl_ensure(false,  err , _S2N_DEBUG_LINE ))) { return S2N_FAILURE; } } while (0)
 #define OSSL_PTR_ERROR(err)                         do { if (!s2n_result_is_ok(ossl_ensure(false,  err , _S2N_DEBUG_LINE ))) { return NULL; } } while (0)
 
