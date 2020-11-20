@@ -158,7 +158,7 @@ static int s2n_low_level_hash_init(struct s2n_hash_state *state, s2n_hash_algori
 
 static int s2n_low_level_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size)
 {
-    S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
+    ENSURE_POSIX(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
 
     switch (state->alg) {
     case S2N_HASH_NONE:
@@ -189,7 +189,7 @@ static int s2n_low_level_hash_update(struct s2n_hash_state *state, const void *d
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
-    S2N_ERROR_IF(size > (UINT64_MAX - state->currently_in_hash), S2N_ERR_INTEGER_OVERFLOW);
+    ENSURE_POSIX(size <= (UINT64_MAX - state->currently_in_hash), S2N_ERR_INTEGER_OVERFLOW);
     state->currently_in_hash += size;
 
     return S2N_SUCCESS;
@@ -197,7 +197,7 @@ static int s2n_low_level_hash_update(struct s2n_hash_state *state, const void *d
 
 static int s2n_low_level_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
 {
-    S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
+    ENSURE_POSIX(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
 
     switch (state->alg) {
     case S2N_HASH_NONE:
@@ -325,7 +325,7 @@ static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm al
 
 static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size)
 {
-    S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
+    ENSURE_POSIX(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
     notnull_check(state->digest.high_level.evp.ctx);
     notnull_check(state->digest.high_level.evp.ctx->digest);
     notnull_check(state->digest.high_level.evp_md5_secondary.ctx);
@@ -350,7 +350,7 @@ static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, u
         S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
 
-    S2N_ERROR_IF(size > (UINT64_MAX - state->currently_in_hash), S2N_ERR_INTEGER_OVERFLOW);
+    ENSURE_POSIX(size <= (UINT64_MAX - state->currently_in_hash), S2N_ERR_INTEGER_OVERFLOW);
     state->currently_in_hash += size;
 
     return S2N_SUCCESS;
@@ -358,7 +358,7 @@ static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, u
 
 static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
 {
-    S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
+    ENSURE_POSIX(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
     notnull_check(state->digest.high_level.evp.ctx);
     notnull_check(state->digest.high_level.evp.ctx->digest);
     notnull_check(state->digest.high_level.evp_md5_secondary.ctx);
@@ -383,15 +383,15 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
     case S2N_HASH_SHA256:
     case S2N_HASH_SHA384:
     case S2N_HASH_SHA512:
-        S2N_ERROR_IF(EVP_MD_CTX_size(state->digest.high_level.evp.ctx) > digest_size, S2N_ERR_HASH_DIGEST_FAILED);
+        ENSURE_POSIX(EVP_MD_CTX_size(state->digest.high_level.evp.ctx) <= digest_size, S2N_ERR_HASH_DIGEST_FAILED);
         GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, out, &digest_size), S2N_ERR_HASH_DIGEST_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
         GUARD(s2n_hash_digest_size(S2N_HASH_SHA1, &sha1_digest_size));
         sha1_primary_digest_size = sha1_digest_size;
         md5_secondary_digest_size = digest_size - sha1_primary_digest_size;
-        S2N_ERROR_IF(EVP_MD_CTX_size(state->digest.high_level.evp.ctx) > sha1_digest_size, S2N_ERR_HASH_DIGEST_FAILED);
-        S2N_ERROR_IF(EVP_MD_CTX_size(state->digest.high_level.evp_md5_secondary.ctx) > md5_secondary_digest_size, S2N_ERR_HASH_DIGEST_FAILED);
+        ENSURE_POSIX(EVP_MD_CTX_size(state->digest.high_level.evp.ctx) <= sha1_digest_size, S2N_ERR_HASH_DIGEST_FAILED);
+        ENSURE_POSIX(EVP_MD_CTX_size(state->digest.high_level.evp_md5_secondary.ctx) <= md5_secondary_digest_size, S2N_ERR_HASH_DIGEST_FAILED);
 
         GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, ((uint8_t *) out) + MD5_DIGEST_LENGTH, &sha1_primary_digest_size), S2N_ERR_HASH_DIGEST_FAILED);
         GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp_md5_secondary.ctx, out, &md5_secondary_digest_size), S2N_ERR_HASH_DIGEST_FAILED);
@@ -623,7 +623,7 @@ int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t 
 {
     PRECONDITION_POSIX(s2n_hash_state_is_valid(state));
     PRECONDITION_POSIX(S2N_MEM_IS_READABLE(out, sizeof(*out)));
-    S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
+    ENSURE_POSIX(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
 
     *out = state->currently_in_hash;
     return S2N_SUCCESS;
@@ -635,7 +635,7 @@ int s2n_hash_const_time_get_currently_in_hash_block(struct s2n_hash_state *state
 {
     PRECONDITION_POSIX(s2n_hash_state_is_valid(state));
     PRECONDITION_POSIX(S2N_MEM_IS_READABLE(out, sizeof(*out)));
-    S2N_ERROR_IF(!state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
+    ENSURE_POSIX(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
     uint64_t hash_block_size;
     GUARD(s2n_hash_block_size(state->alg, &hash_block_size));
 

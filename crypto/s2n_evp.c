@@ -25,7 +25,7 @@ int s2n_digest_allow_md5_for_fips(struct s2n_evp_digest *evp_digest)
      * to comply with the TLS 1.0 and 1.1 RFC's for the PRF. MD5 cannot be used
      * outside of the TLS 1.0 and 1.1 PRF when in FIPS mode.
      */
-    S2N_ERROR_IF(!s2n_is_in_fips_mode() || (evp_digest->ctx == NULL), S2N_ERR_ALLOW_MD5_FOR_FIPS_FAILED);
+    ENSURE_POSIX(s2n_is_in_fips_mode() && (evp_digest->ctx != NULL), S2N_ERR_ALLOW_MD5_FOR_FIPS_FAILED);
 
 #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
     EVP_MD_CTX_set_flags(evp_digest->ctx, EVP_MD_CTX_FLAG_NON_FIPS_ALLOW);
