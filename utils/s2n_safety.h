@@ -44,16 +44,6 @@
 #define BAIL_POSIX( x )                              do { _S2N_ERROR( ( x ) ); return S2N_FAILURE; } while (0)
 
 /**
- * Sets the global `errno` and the crypto error. Then returns with a POSIX error (`-1`)
- */
-#define BAIL_OSSL( x )                              do { _S2N_ERROR( ( x ) ); s2n_save_crypto_error(); return S2N_FAILURE; } while (0)
-
-/**
- * Sets the global `errno` and the crypto error. Then a `NULL` pointer value
- */
-#define BAIL_PTR_OSSL( x )                              do { _S2N_ERROR( ( x ) ); s2n_save_crypto_error(); return NULL; } while (0)
-
-/**
  * Sets the global `errno` and returns with a `NULL` pointer value
  */
 #define BAIL_PTR( x )                                do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
@@ -102,16 +92,6 @@
  * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with an `error`
  */
 #define ENSURE_POSIX( condition , error )           __S2N_ENSURE((condition), BAIL_POSIX(error))
-
-/**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL_OSSL` with an `error`
- */
-#define ENSURE_OSSL( condition , error )           __S2N_ENSURE((condition), BAIL_OSSL(error))
-
-/**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL_PTR_OSSL` with an `error`
- */
-#define ENSURE_PTR_OSSL( condition , error )           __S2N_ENSURE((condition), BAIL_PTR_OSSL(error))
 
 /**
  * Ensures the `condition` is `true`, otherwise the function will `BAIL_PTR` with an `error`
@@ -230,7 +210,7 @@
  *
  * Note: this currently accepts POSIX error signals but will transition to accept s2n_result
  */
-#define GUARD_OSSL(x, error)                        ENSURE_OSSL((x) == _OSSL_SUCCESS, error)
+#define GUARD_OSSL( x, error )                      GUARD_POSIX_OSSL((x), (error))
 
 /**
  * Ensures `x` is ok, otherwise the function will return an `S2N_RESULT_ERROR`
@@ -255,8 +235,7 @@
 /**
  * Ensures `x` is not a OpenSSL error, otherwise the function will `BAIL` with `error`
  */
-/* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
-#define GUARD_RESULT_OSSL( x , error )              ENSURE((x) == _OSSL_SUCCESS, error)
+#define GUARD_RESULT_OSSL(x, error)                 GUARD_RESULT(OSSL_RESULT_WITH((x), error))
 
 /**
  * Ensures `x` is not a POSIX error, otherwise return a POSIX error
@@ -284,6 +263,12 @@
 #define GUARD_POSIX_NONNULL( x )                    __S2N_ENSURE((x) != NULL, return S2N_FAILURE)
 
 /**
+ * Ensures `x` is not a OpenSSL error, otherwise the function will `BAIL` with `error`
+ */
+/* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
+#define GUARD_POSIX_OSSL( x , error )               GUARD_POSIX(OSSL_POSIX_WITH( (x) , error))
+
+/**
  * Ensures `x` is not a POSIX error, otherwise the function will return a `S2N_RESULT_ERROR`
  */
 #define GUARD_AS_RESULT( x )                        __S2N_ENSURE((x) >= S2N_SUCCESS, return S2N_RESULT_ERROR)
@@ -302,6 +287,35 @@
  * Performs a safe memset
  */
 #define CHECKED_MEMSET( d , c , n )                 __S2N_ENSURE_SAFE_MEMSET((d), (c), (n), ENSURE_REF)
+
+/**
+ * libcrypto specific error handling
+ */
+static inline S2N_RESULT ossl_ensure(bool check, int error)
+{
+    if (check) {
+        return S2N_RESULT_OK;
+    } else {
+        /* set the initial errno to S2N_ERR_LIBCRYPTO in order for `_S2N_ERROR` to capture the libcrypto error */
+        _S2N_ERROR(S2N_ERR_LIBCRYPTO);
+        /* override the actual errno */
+        s2n_errno = error;
+        return S2N_RESULT_ERROR;
+    }
+}
+
+/** Following macros should be used with GUARD* macros */
+/* TODO: Remove all of the POSIX variants once they are no longer needed. */
+#define OSSL_RESULT(x)                              OSSL_RESULT_WITH( (x), S2N_ERR_LIBCRYPTO)
+#define OSSL_PTR(x)                                 OSSL_PTR_WITH( (x), S2N_ERR_LIBCRYPTO)
+#define OSSL_RESULT_WITH(x, err)                    ossl_ensure( (x) == _OSSL_SUCCESS, (err))
+#define OSSL_PTR_WITH(x, err)                       ossl_ensure( (x) != NULL, (err))
+#define OSSL_POSIX(x)                               S2N_RESULT_TO_POSIX(OSSL_RESULT( (x) ))
+#define OSSL_POSIX_PTR(x)                           S2N_RESULT_TO_POSIX(OSSL_PTR( (x) ))
+#define OSSL_POSIX_WITH(x, err)                     S2N_RESULT_TO_POSIX(OSSL_RESULT_WITH( (x) , err))
+#define OSSL_POSIX_PTR_WITH(x, err)                 S2N_RESULT_TO_POSIX(OSSL_PTR_WITH( (x) , err))
+#define OSSL_POSIX_ERROR(err)                       do { if (!s2n_result_is_ok(ossl_ensure(false,  err))) { return S2N_FAILURE; } } while (0)
+#define OSSL_PTR_ERROR(err)                         do { if (!s2n_result_is_ok(ossl_ensure(false,  err))) { return NULL; } } while (0)
 
 /**
  * Marks a case of a switch statement as able to fall through to the next case

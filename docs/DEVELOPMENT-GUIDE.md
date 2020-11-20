@@ -103,7 +103,7 @@ one place.
 
 ### Error handling and Macros
 
-As may also be clear from the above examples, s2n has some conventions for how errors are handled. Firstly, s2n functions should always return `S2N_RESULT_ERROR` or `NULL` on error, and `S2N_RESULT_OK` or a valid pointer on success. s2n also includes a thread local variable: `s2n_errno`, for indicating the cause of the error. This follows the convention set by libc (with errno), getaddrinfo (gai_errno), net-snmp (snmp_errno), and countless other libraries. Additionally, in the case of errors from the underlying crypto implementations (such as openssl), the thread local variable `s2n_libcrypto_error` will be set to the error from the underlying implemention.
+As may also be clear from the above examples, s2n has some conventions for how errors are handled. Firstly, s2n functions should always return `S2N_RESULT_ERROR` or `NULL` on error, and `S2N_RESULT_OK` or a valid pointer on success. s2n also includes a thread local variable: s2n_errno, for indicating the cause of the error. This follows the convention set by libc (with errno), getaddrinfo (gai_errno), net-snmp (snmp_errno), and countless other libraries.
 
 In s2n, we **always** check return values. Because of that, the coding pattern:
 
@@ -138,7 +138,19 @@ BAIL(S2N_ERR_BAD_MESSAGE);
 
 the macro will set s2n_errno correctly, as well as some useful debug strings, and return `S2N_RESULT_ERROR`.
 
-Several of the above macros have `OSSL` variants which must be used when handling error results from libcrypto (ex: `GUARD_OSSL` or `BAIL_OSSL`). These versions properly manage the libcrypto error queue and failure to use them may create problems for other users of libcrypto in the same process.
+#### Crypto error handling
+
+The cryptography libraries used by s2n have their own error state which s2n needs to manage as well.
+All error handling for results from a cryptographic library must include one of the `OSSL` macros.
+There are three different ways to do this:
+
+* You can manually assemble an OSSL to S2N_RESULT macro with a GUARD macro (Preferred).
+  * ```GUARD_AS_POSIX(OSSL_POSIX(EVP_example_method_name_here()));```
+  * ```GUARD_AS_RESULT(OSSL_PTR_WITH(EVP_PKEY_new(), S2N_ERR_NOMEM));```
+  
+  This lets you use one macro pick what whether you want to check a return value or pointer and the other to select the return type for the containing method.
+* You can use a `GUARD_*_OSSL` macro directly. (This is equivalant the prior constructions but less flexible.)
+* You can use an if statement for a more complicated check and then call an `OSSL_*_ERROR` macro set the error code and immediately return.
 
 ### Safety checking
 

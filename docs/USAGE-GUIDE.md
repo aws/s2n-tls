@@ -366,8 +366,6 @@ explaining the error in English by calling s2n_strerror(s2n_errno, "EN").
 A string containing human readable error name, can be generated with `s2n_strerror_name`.
 A string containing internal debug information, including filename and line number, can be generated with `s2n_strerror_debug`.
 This string is useful to include when reporting issues to the s2n development team.
-Additionally, in the case of errors from the underlying crypto implementations (such as openssl),
-the thread local variable `s2n_libcrypto_error` will be set to the error from the underlying implemention.
 
 Example:
 
@@ -378,7 +376,7 @@ if (s2n_config_set_cipher_preferences(config, prefs) < 0) {
 }
 ```
 
-**NOTE**: To avoid possible confusion, s2n_errno should be cleared after processing an error: `s2n_clear_error();`
+**NOTE**: To avoid possible confusion, s2n_errno should be cleared after processing an error: `s2n_clear_error()`
 
 ### Stacktraces
 s2n has an mechanism to capture stacktraces when errors occur.
