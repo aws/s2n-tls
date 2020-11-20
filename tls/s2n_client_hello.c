@@ -396,7 +396,14 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     /* Write the extensions */
     GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_CLIENT_HELLO, conn, out));
 
-    return 0;
+    /* Once the message is complete, finish calculating the PSK binders.
+     *
+     * The PSK binders require all the sizes in the ClientHello to be written correctly,
+     * including the extension size and extension list size, and therefore have
+     * to be calculated AFTER we finish writing the entire extension list. */
+    GUARD_AS_POSIX(s2n_finish_psk_extension(conn));
+
+    return S2N_SUCCESS;
 }
 
 /* See http://www-archive.mozilla.org/projects/security/pki/nss/ssl/draft02.html 2.5 */

@@ -12,6 +12,9 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
+#include <sys/param.h>
+
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
@@ -64,6 +67,16 @@ struct s2n_array *s2n_array_new(uint32_t element_size)
     return array;
 }
 
+S2N_RESULT s2n_array_init(struct s2n_array *array, uint32_t element_size)
+{
+    ENSURE_REF(array);
+
+    CHECKED_MEMSET(array, 0, sizeof(struct s2n_array));
+    array->element_size = element_size;
+
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_array_pushback(struct s2n_array *array, void **element)
 {
     GUARD_RESULT(s2n_array_validate(array));
@@ -103,6 +116,7 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **elem
         /* Enlarge the array */
         uint32_t new_capacity = 0;
         GUARD_AS_RESULT(s2n_mul_overflow(current_capacity, 2, &new_capacity));
+        new_capacity = MAX(new_capacity, S2N_INITIAL_ARRAY_SIZE);
         GUARD_RESULT(s2n_array_enlarge(array, new_capacity));
     }
 
