@@ -172,3 +172,14 @@ struct s2n_hash_state* cbmc_allocate_s2n_hash_state()
     }
     return state;
 }
+
+struct s2n_evp_digest* cbmc_allocate_s2n_evp_digest()
+{
+    struct s2n_evp_digest *evp_digest = malloc(sizeof(*evp_digest));
+    if (evp_digest != NULL)
+    {
+        evp_digest->md = malloc(sizeof(*(evp_digest->md)));
+        evp_digest->ctx = malloc(sizeof(*(evp_digest->ctx)));
+    }
+    return evp_digest;
+}
