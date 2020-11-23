@@ -411,11 +411,13 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
     notnull_check(to->digest.high_level.evp.ctx->digest);
     notnull_check(to->digest.high_level.evp_md5_secondary.ctx);
     notnull_check(to->digest.high_level.evp_md5_secondary.ctx->digest);
+    bool is_md5_allowed_for_fips = false;
     switch (from->alg) {
     case S2N_HASH_NONE:
         break;
     case S2N_HASH_MD5:
-        if (s2n_digest_is_md5_allowed_for_fips(&from->digest.high_level.evp)) {
+        GUARD_AS_POSIX(s2n_digest_is_md5_allowed_for_fips(&from->digest.high_level.evp, &is_md5_allowed_for_fips));
+        if (is_md5_allowed_for_fips) {
             GUARD(s2n_hash_allow_md5_for_fips(to));
         }
         FALL_THROUGH;
@@ -427,7 +429,8 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
         GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx), S2N_ERR_HASH_COPY_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
-        if (s2n_digest_is_md5_allowed_for_fips(&from->digest.high_level.evp)) {
+        GUARD_AS_POSIX(s2n_digest_is_md5_allowed_for_fips(&from->digest.high_level.evp, &is_md5_allowed_for_fips));
+        if (is_md5_allowed_for_fips) {
             GUARD(s2n_hash_allow_md5_for_fips(to));
         }
         GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx), S2N_ERR_HASH_COPY_FAILED);
@@ -448,7 +451,9 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
 static int s2n_evp_hash_reset(struct s2n_hash_state *state)
 {
     int reset_md5_for_fips = 0;
-    if ((state->alg == S2N_HASH_MD5 || state->alg == S2N_HASH_MD5_SHA1) && s2n_digest_is_md5_allowed_for_fips(&state->digest.high_level.evp)) {
+    bool is_md5_allowed_for_fips = false;
+    GUARD_AS_POSIX(s2n_digest_is_md5_allowed_for_fips(&state->digest.high_level.evp, &is_md5_allowed_for_fips));
+    if ((state->alg == S2N_HASH_MD5 || state->alg == S2N_HASH_MD5_SHA1) && is_md5_allowed_for_fips) {
         reset_md5_for_fips = 1;
     }
 
@@ -548,8 +553,11 @@ int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
      */
     GUARD(s2n_hash_set_impl(state));
 
+    bool is_md5_allowed_for_fips = false;
+    GUARD_AS_POSIX(s2n_digest_is_md5_allowed_for_fips(&state->digest.high_level.evp, &is_md5_allowed_for_fips));
+
     if (s2n_hash_is_available(alg) ||
-       ((alg == S2N_HASH_MD5 || alg == S2N_HASH_MD5_SHA1) && s2n_digest_is_md5_allowed_for_fips(&state->digest.high_level.evp))) {
+       ((alg == S2N_HASH_MD5 || alg == S2N_HASH_MD5_SHA1) && is_md5_allowed_for_fips)) {
         /* s2n will continue to initialize an "unavailable" hash when s2n is in FIPS mode and
          * FIPS is forcing the hash to be made available.
          */
