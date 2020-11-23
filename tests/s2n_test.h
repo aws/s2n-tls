@@ -57,11 +57,11 @@ const char *TEST_ALL_TLS12;
     S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                    \
     EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                  \
     if (s2n_pq_is_enabled()) {                                 \
-        TEST_ALL = "test_all";                     \
-        TEST_ALL_TLS12 = "test_all_tls12";         \
+        TEST_ALL = "test_all";                                 \
+        TEST_ALL_TLS12 = "test_all_tls12";                     \
     } else {                                                   \
-        TEST_ALL = "test_all_no_pq";               \
-        TEST_ALL_TLS12 = "test_all_tls12_no_pq";   \
+        TEST_ALL = "test_all_no_pq";                           \
+        TEST_ALL_TLS12 = "test_all_tls12_no_pq";               \
     }                                                          \
     fprintf(stdout, "Running %-50s ... ", __FILE__);           \
   } while(0)
