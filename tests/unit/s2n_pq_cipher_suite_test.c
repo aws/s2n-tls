@@ -25,16 +25,15 @@
 int main() {
     BEGIN_TEST();
 
-    /* Assert that cipher_preferences_test_all_no_pq is equal to
-     * cipher_preferences_test_all without the PQ ciphers */
+    /* Assert that cipher_preferences_test_all_no_pq is equal to cipher_preferences_test_all without the PQ ciphers */
     {
         EXPECT_EQUAL(cipher_preferences_test_all_no_pq.count + NUM_PQ_CIPHER_SUITES, cipher_preferences_test_all.count);
 
         size_t num_found_pq_cipher_suites = 0;
         for (size_t i = 0; i < cipher_preferences_test_all.count; i++) {
             if (i < cipher_preferences_test_all_no_pq.count) {
-                /* Since the PQ ciphers are at the end of the test_all list, the two
-                 * lists should be identical up to that point. */
+                /* Since the PQ ciphers are at the end of the test_all list, the two lists
+                 * should be identical up to that point, and all suites should be non-PQ. */
                 EXPECT_EQUAL(cipher_preferences_test_all.suites[i], cipher_preferences_test_all_no_pq.suites[i]);
                 EXPECT_FALSE(s2n_kex_includes(cipher_preferences_test_all.suites[i]->key_exchange_alg, &s2n_kem));
             } else {
@@ -45,6 +44,13 @@ int main() {
         }
 
         EXPECT_EQUAL(num_found_pq_cipher_suites, NUM_PQ_CIPHER_SUITES);
+
+        /* For completeness, assert that cipher_preferences_test_all_no_pq is in IANA order. */
+        for (size_t i = 0; i < cipher_preferences_test_all_no_pq.count - 1; i++) {
+            int iana_memcmp = memcmp(cipher_preferences_test_all_no_pq.suites[i]->iana_value,
+                    cipher_preferences_test_all_no_pq.suites[i + 1]->iana_value, 2);
+            EXPECT_TRUE(iana_memcmp < 0);
+        }
     }
 
     /* Assert that cipher_preferences_test_all_tls12_no_pq is equal to cipher_preferences_test_all_tls12
@@ -55,8 +61,8 @@ int main() {
         size_t num_found_pq_cipher_suites = 0;
         for (size_t i = 0; i < cipher_preferences_test_all_tls12.count; i++) {
             if (i < cipher_preferences_test_all_tls12_no_pq.count) {
-                /* Since the PQ ciphers are at the end of the test_all_tls12 list, the two
-                 * lists should be identical up to that point. */
+                /* Since the PQ ciphers are at the end of the test_all_tls12 list, the two lists
+                 * should be identical up to that point, and all suites should be non-PQ. */
                 EXPECT_EQUAL(cipher_preferences_test_all_tls12.suites[i], cipher_preferences_test_all_tls12_no_pq.suites[i]);
                 EXPECT_FALSE(s2n_kex_includes(cipher_preferences_test_all_tls12.suites[i]->key_exchange_alg, &s2n_kem));
             } else {
@@ -67,8 +73,14 @@ int main() {
         }
 
         EXPECT_EQUAL(num_found_pq_cipher_suites, NUM_PQ_CIPHER_SUITES);
+
+        /* For completeness, assert that cipher_preferences_test_all_tls12_no_pq is in IANA order. */
+        for (size_t i = 0; i < cipher_preferences_test_all_tls12_no_pq.count - 1; i++) {
+            int iana_memcmp = memcmp(cipher_preferences_test_all_tls12_no_pq.suites[i]->iana_value,
+                    cipher_preferences_test_all_tls12_no_pq.suites[i + 1]->iana_value, 2);
+            EXPECT_TRUE(iana_memcmp < 0);
+        }
     }
 
     END_TEST();
-    return 0;
 }
