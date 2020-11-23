@@ -5,11 +5,9 @@ from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_NO_PQ
 
 
-"""
-These strings are initialized to the appropriate S2N security policy
-(aka cipher pref) version based on whether or not post-quantum crypto
-is enabled.
-"""
+# These strings are initialized to the appropriate S2N security policy
+# (aka cipher pref) version based on whether or not post-quantum crypto
+# is enabled.
 if get_flag(S2N_NO_PQ, False) is False:
     TEST_ALL = 'test_all'
     TEST_ALL_TLS12 = 'test_all_tls12'
