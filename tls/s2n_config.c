@@ -560,7 +560,6 @@ int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
     if (s2n_stuffer_alloc_ro_from_string(&dhparams_in_stuffer, dhparams_pem)) {
         s2n_free(&mem);
         S2N_ERROR_PRESERVE_ERRNO();
-
     }
     if (s2n_stuffer_growable_alloc(&dhparams_out_stuffer, strlen(dhparams_pem))) {
         s2n_free(&mem);
