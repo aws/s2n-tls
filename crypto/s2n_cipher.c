@@ -28,7 +28,11 @@ int s2n_session_key_alloc(struct s2n_session_key *key)
     notnull_check(key->evp_cipher_ctx = EVP_CIPHER_CTX_new());
 #if defined(S2N_CIPHER_AEAD_API_AVAILABLE)
     eq_check(key->evp_aead_ctx, NULL);
-    notnull_check(key->evp_aead_ctx = OPENSSL_malloc(sizeof(EVP_AEAD_CTX)));
+    key->evp_aead_ctx = OPENSSL_malloc(sizeof(EVP_AEAD_CTX));
+    if (key->evp_aead_ctx == NULL) {
+        EVP_CIPHER_CTX_free(key->evp_cipher_ctx);
+        S2N_ERROR_PRESERVE_ERRNO();
+    }
     EVP_AEAD_CTX_zero(key->evp_aead_ctx);
 #endif
 

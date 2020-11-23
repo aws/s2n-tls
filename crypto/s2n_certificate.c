@@ -41,7 +41,7 @@ int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type)
 
 int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, struct s2n_stuffer *chain_in_stuffer)
 {
-    struct s2n_stuffer cert_out_stuffer = {0};
+    DEFER_CLEANUP(struct s2n_stuffer cert_out_stuffer = {0}, s2n_stuffer_free);
     GUARD(s2n_stuffer_growable_alloc(&cert_out_stuffer, 2048));
 
     struct s2n_cert **insert = &cert_chain_out->head;
@@ -51,7 +51,6 @@ int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, st
 
         if (s2n_stuffer_certificate_from_pem(chain_in_stuffer, &cert_out_stuffer) < 0) {
             if (chain_size == 0) {
-                GUARD(s2n_stuffer_free(&cert_out_stuffer));
                 S2N_ERROR(S2N_ERR_NO_CERTIFICATE_IN_PEM);
             }
             break;
@@ -60,9 +59,11 @@ int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, st
         GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
         new_node = (struct s2n_cert *)(void *)mem.data;
 
-        GUARD(s2n_alloc(&new_node->raw, s2n_stuffer_data_available(&cert_out_stuffer)));
+        if (s2n_alloc(&new_node->raw, s2n_stuffer_data_available(&cert_out_stuffer))) {
+            GUARD(s2n_free(&mem));
+            S2N_ERROR_PRESERVE_ERRNO();
+        }
         if (s2n_stuffer_read(&cert_out_stuffer, &new_node->raw) != S2N_SUCCESS) {
-            GUARD(s2n_stuffer_free(&cert_out_stuffer));
             GUARD(s2n_free(&mem));
             S2N_ERROR_PRESERVE_ERRNO();
         }
@@ -73,8 +74,6 @@ int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, st
         *insert = new_node;
         insert = &new_node->next;
     } while (s2n_stuffer_data_available(chain_in_stuffer));
-
-    GUARD(s2n_stuffer_free(&cert_out_stuffer));
 
     /* Leftover data at this point means one of two things:
      * A bug in s2n's PEM parsing OR a malformed PEM in the user's chain.
@@ -160,36 +159,50 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
     chain_and_key = (struct s2n_cert_chain_and_key *)(void *)chain_and_key_mem.data;
 
     /* Allocate the memory for the chain and key */
-    GUARD_PTR(s2n_alloc(&cert_chain_mem, sizeof(struct s2n_cert_chain)));
+    if (s2n_alloc(&cert_chain_mem, sizeof(struct s2n_cert_chain))) {
+        goto cleanup_last;
+    }
     chain_and_key->cert_chain = (struct s2n_cert_chain *)(void *)cert_chain_mem.data;
 
-    GUARD_PTR(s2n_alloc(&pkey_mem, sizeof(s2n_cert_private_key)));
+    if (s2n_alloc(&pkey_mem, sizeof(s2n_cert_private_key))) {
+        goto cleanup_second;
+    }
     chain_and_key->private_key = (s2n_cert_private_key *)(void *)pkey_mem.data;
 
     chain_and_key->cert_chain->head = NULL;
-    GUARD_PTR(s2n_pkey_zero_init(chain_and_key->private_key));
+    if (s2n_pkey_zero_init(chain_and_key->private_key)) {
+        goto cleanup_all;
+    }
     memset(&chain_and_key->ocsp_status, 0, sizeof(chain_and_key->ocsp_status));
     memset(&chain_and_key->sct_list, 0, sizeof(chain_and_key->sct_list));
     chain_and_key->cn_names = s2n_array_new(sizeof(struct s2n_blob));
     if (!chain_and_key->cn_names) {
-        return NULL;
+        goto cleanup_all;
     }
 
     chain_and_key->san_names = s2n_array_new(sizeof(struct s2n_blob));
     if (!chain_and_key->san_names) {
-        return NULL;
+        goto cleanup_all;
     }
 
     chain_and_key->context = NULL;
 
     return chain_and_key;
+    cleanup_all:
+        s2n_free(&pkey_mem);
+    cleanup_second:
+        s2n_free(&cert_chain_mem);
+    cleanup_last:
+        s2n_free(&chain_and_key_mem);
+        return NULL;
 }
+DEFINE_POINTER_CLEANUP_FUNC(GENERAL_NAMES *, GENERAL_NAMES_free);
 
 int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
 {
     notnull_check(chain_and_key->san_names);
 
-    GENERAL_NAMES *san_names = X509_get_ext_d2i(x509_cert, NID_subject_alt_name, NULL, NULL);
+    DEFER_CLEANUP(GENERAL_NAMES *san_names = X509_get_ext_d2i(x509_cert, NID_subject_alt_name, NULL, NULL), GENERAL_NAMES_free_pointer);
     if (san_names == NULL) {
         /* No SAN extension */
         return 0;
@@ -209,12 +222,10 @@ int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_ke
             struct s2n_blob *san_blob = NULL;
             GUARD_AS_POSIX(s2n_array_pushback(chain_and_key->san_names, (void **)&san_blob));
             if (!san_blob) {
-                GENERAL_NAMES_free(san_names);
                 S2N_ERROR(S2N_ERR_NULL_SANS);
             }
 
             if (s2n_alloc(san_blob, san_str_len)) {
-                GENERAL_NAMES_free(san_names);
                 S2N_ERROR_PRESERVE_ERRNO();
             }
 
@@ -225,7 +236,6 @@ int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_ke
         }
     }
 
-    GENERAL_NAMES_free(san_names);
     return 0;
 }
 
@@ -237,6 +247,9 @@ int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_ke
  * A recent CAB thread proposed removing support for multiple CNs:
  * https://cabforum.org/pipermail/public/2016-April/007242.html
  */
+
+DEFINE_POINTER_CLEANUP_FUNC(unsigned char *, OPENSSL_free);
+
 int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
 {
     notnull_check(chain_and_key->cn_names);
@@ -262,7 +275,7 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
          * direct ASCII equivalent. Any non ASCII bytes in the string will fail later when we
          * actually compare hostnames.
          */
-        unsigned char *utf8_str;
+        DEFER_CLEANUP(unsigned char *utf8_str, OPENSSL_free_pointer);
         const int utf8_out_len = ASN1_STRING_to_UTF8(&utf8_str, asn1_str);
         if (utf8_out_len < 0) {
             /* On failure, ASN1_STRING_to_UTF8 does not allocate any memory */
@@ -274,19 +287,16 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
             struct s2n_blob *cn_name = NULL;
             GUARD_AS_POSIX(s2n_array_pushback(chain_and_key->cn_names, (void **)&cn_name));
             if (cn_name == NULL) {
-                OPENSSL_free(utf8_str);
                 S2N_ERROR(S2N_ERR_NULL_CN_NAME);
             }
 
             if (s2n_alloc(cn_name, utf8_out_len) < 0) {
-                OPENSSL_free(utf8_str);
                 S2N_ERROR_PRESERVE_ERRNO();
             }
             memcpy_check(cn_name->data, utf8_str, utf8_out_len);
             cn_name->size = utf8_out_len;
             /* normalize cn_name to lowercase */
             GUARD(s2n_blob_char_to_lower(cn_name));
-            OPENSSL_free(utf8_str);
         }
     }
 
