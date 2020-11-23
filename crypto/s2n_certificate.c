@@ -196,6 +196,7 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
         s2n_free(&chain_and_key_mem);
         return NULL;
 }
+
 DEFINE_POINTER_CLEANUP_FUNC(GENERAL_NAMES *, GENERAL_NAMES_free);
 
 int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
