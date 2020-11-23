@@ -626,6 +626,7 @@ static S2N_RESULT s2n_validate_security_policy_choice(const struct s2n_security_
     ENSURE_REF(policy->signature_preferences);
     ENSURE_REF(policy->ecc_preferences);
 
+    /* PQ will be disabled if s2n is operating in FIPS mode, or if the PQ crypto code was excluded during compilation. */
     if (!s2n_pq_is_enabled()) {
         ENSURE(policy->kem_preferences->kem_count == 0, S2N_ERR_PQ_DISABLED);
         ENSURE(policy->kem_preferences->kems == NULL, S2N_ERR_PQ_DISABLED);
