@@ -37,9 +37,10 @@ def test_s2n_server_low_latency(managed_process, multi_cipher, provider, protoco
     server_options = copy.copy(client_options)
     server_options.data_to_send = None
     server_options.mode = Provider.ServerMode
-    server_options.extra_flags=['--prefer-low-latency']
+    server_options.extra_flags = ['--prefer-low-latency']
     server_options.key = certificate.key
     server_options.cert = certificate.cert
+    server_options.cipher = None
 
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(provider, client_options, timeout=5)
@@ -86,6 +87,7 @@ def test_s2n_server_framented_data(managed_process, multi_cipher, provider, prot
     server_options.mode = Provider.ServerMode
     server_options.key = certificate.key
     server_options.cert = certificate.cert
+    server_options.cipher = None
 
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(provider, client_options, timeout=5)
