@@ -128,8 +128,8 @@ static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn,
 
         /* TODO: Validate obfuscated_ticket_age when using session tickets.
          *
-         * For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
-         * used, and servers MUST ignore the value.
+         * "For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
+         * used, and servers MUST ignore the value."
          */
         uint32_t obfuscated_ticket_age;
         GUARD_AS_RESULT(s2n_stuffer_read_uint32(wire_identities_in, &obfuscated_ticket_age));
@@ -226,10 +226,15 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
 {
     notnull_check(conn);
 
+    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
+        return S2N_SUCCESS;
+    }
+
     if (s2n_result_is_error(s2n_client_psk_recv_identities(conn, extension))) {
         /* https://tools.ietf.org/html/rfc8446#section-4.2.11:
          *   "If no acceptable PSKs are found, the server SHOULD perform a non-PSK
-         *   handshake if possible." */
+         *   handshake if possible."
+         */
         conn->psk_params.chosen_psk = NULL;
     }
 

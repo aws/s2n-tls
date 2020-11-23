@@ -484,6 +484,7 @@ int main(int argc, char **argv)
         }
 
         /* Receive an extension with an invalid binder */
+        /* Receive an extension when running with TLS1.2 */
         {
             const uint8_t identity = 0x12;
             const uint8_t identity_bytes[] = { identity };
@@ -512,6 +513,14 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
             EXPECT_SUCCESS(s2n_psk_new_identity(psk, identity_bytes, sizeof(identity_bytes)));
 
+            /* Should be a no-op if using TLS1.2 */
+            conn->actual_protocol_version = S2N_TLS12;
+            EXPECT_SUCCESS(s2n_client_psk_recv(conn, &extension));
+            EXPECT_NULL(conn->psk_params.chosen_psk);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&extension), sizeof(extension_data));
+
+            /* Should be a failure if using TLS1.3 */
+            conn->actual_protocol_version = S2N_TLS13;
             EXPECT_FAILURE_WITH_ERRNO(s2n_client_psk_recv(conn, &extension), S2N_ERR_BAD_MESSAGE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
