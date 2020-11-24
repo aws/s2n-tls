@@ -239,7 +239,6 @@ static S2N_RESULT s2n_psk_write_binder_list(struct s2n_connection *conn, const s
 {
     ENSURE_REF(conn);
     ENSURE_REF(partial_client_hello);
-    ENSURE_REF(out);
 
     struct s2n_psk_parameters *psk_params = &conn->psk_params;
     struct s2n_array *psk_list = &psk_params->psk_list;
@@ -249,19 +248,19 @@ static S2N_RESULT s2n_psk_write_binder_list(struct s2n_connection *conn, const s
     uint8_t binder_hashes_data[S2N_HASH_ALG_COUNT][S2N_TLS13_SECRET_MAX_LEN] = { 0 };
     struct s2n_blob binder_hashes[S2N_HASH_ALG_COUNT] = { 0 };
 
-    struct s2n_stuffer_reservation binder_list_size;
+    struct s2n_stuffer_reservation binder_list_size = { 0 };
     GUARD_AS_RESULT(s2n_stuffer_reserve_uint16(out, &binder_list_size));
 
     /* Write binder for every psk */
     for (size_t i = 0; i < psk_list->len; i++) {
-        struct s2n_psk *psk;
+        struct s2n_psk *psk = NULL;
         GUARD_RESULT(s2n_array_get(psk_list, i, (void**) &psk));
         ENSURE_REF(psk);
 
         /* Retrieve or calculate the binder hash. */
         struct s2n_blob *binder_hash = &binder_hashes[psk->hash_alg];
         if (binder_hash->size == 0) {
-            uint8_t hash_size;
+            uint8_t hash_size = 0;
             GUARD_AS_RESULT(s2n_hash_digest_size(psk->hash_alg, &hash_size));
             GUARD_AS_RESULT(s2n_blob_init(binder_hash, binder_hashes_data[psk->hash_alg], hash_size));
             GUARD_AS_RESULT(s2n_psk_calculate_binder_hash(conn, psk->hash_alg, partial_client_hello, binder_hash));
@@ -294,7 +293,7 @@ S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn)
     GUARD_AS_RESULT(s2n_stuffer_wipe_n(client_hello, psk_params->binder_list_size));
 
     /* Store the partial client hello for use in calculating the binder hash. */
-    struct s2n_blob partial_client_hello;
+    struct s2n_blob partial_client_hello = { 0 };
     GUARD_AS_RESULT(s2n_blob_init(&partial_client_hello, client_hello->blob.data,
             s2n_stuffer_data_available(client_hello)));
 

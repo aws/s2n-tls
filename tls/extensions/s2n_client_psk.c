@@ -57,7 +57,7 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
     uint16_t binder_list_size = SIZE_OF_BINDER_LIST_SIZE;
 
     for (size_t i = 0; i < psk_list->len; i++) {
-        struct s2n_psk *psk;
+        struct s2n_psk *psk = NULL;
         GUARD_AS_POSIX(s2n_array_get(psk_list, i, (void**) &psk));
         notnull_check(psk);
 
@@ -67,7 +67,7 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD(s2n_stuffer_write_uint32(out, psk->obfuscated_ticket_age));
 
         /* Calculate binder size */
-        uint8_t hash_size;
+        uint8_t hash_size = 0;
         GUARD(s2n_hash_digest_size(psk->hash_alg, &hash_size));
         binder_list_size += hash_size + SIZE_OF_BINDER_SIZE;
     }
@@ -94,8 +94,8 @@ static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const str
 
     *match = NULL;
 
-    for(size_t i = 0; i < known_psks->len; i++) {
-        struct s2n_psk *psk;
+    for (size_t i = 0; i < known_psks->len; i++) {
+        struct s2n_psk *psk = NULL;
         GUARD_RESULT(s2n_array_get(known_psks, i, (void**)&psk));
         ENSURE_REF(psk);
 
@@ -103,6 +103,8 @@ static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const str
             continue;
         }
 
+        ENSURE_REF(psk->identity.data);
+        ENSURE_REF(wire_identity->data);
         if (memcmp(psk->identity.data, wire_identity->data, wire_identity->size) == 0) {
             *match = psk;
             return S2N_RESULT_OK;
@@ -114,16 +116,17 @@ static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const str
 static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn, struct s2n_stuffer *wire_identities_in)
 {
     ENSURE_REF(conn);
+    ENSURE_REF(wire_identities_in);
 
     uint8_t wire_index = 0;
-    while(s2n_stuffer_data_available(wire_identities_in)) {
-        uint16_t identity_size;
+    while (s2n_stuffer_data_available(wire_identities_in)) {
+        uint16_t identity_size = 0;
         GUARD_AS_RESULT(s2n_stuffer_read_uint16(wire_identities_in, &identity_size));
 
         uint8_t *identity_data;
         ENSURE_REF(identity_data = s2n_stuffer_raw_read(wire_identities_in, identity_size));
 
-        struct s2n_blob identity;
+        struct s2n_blob identity = { 0 };
         GUARD_AS_RESULT(s2n_blob_init(&identity, identity_data, identity_size));
 
         /* TODO: Validate obfuscated_ticket_age when using session tickets.
@@ -131,7 +134,7 @@ static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn,
          * "For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
          * used, and servers MUST ignore the value."
          */
-        uint32_t obfuscated_ticket_age;
+        uint32_t obfuscated_ticket_age = 0;
         GUARD_AS_RESULT(s2n_stuffer_read_uint32(wire_identities_in, &obfuscated_ticket_age));
 
         /* TODO: Implement the callback to choose a PSK.
@@ -154,16 +157,17 @@ static S2N_RESULT s2n_client_psk_recv_binder_list(struct s2n_connection *conn, s
         struct s2n_stuffer *wire_binders_in)
 {
     ENSURE_REF(conn);
+    ENSURE_REF(wire_binders_in);
 
     uint8_t wire_index = 0;
-    while(s2n_stuffer_data_available(wire_binders_in)) {
-        uint8_t wire_binder_size;
+    while (s2n_stuffer_data_available(wire_binders_in)) {
+        uint8_t wire_binder_size = 0;
         GUARD_AS_RESULT(s2n_stuffer_read_uint8(wire_binders_in, &wire_binder_size));
 
         uint8_t *wire_binder_data;
         ENSURE_REF(wire_binder_data = s2n_stuffer_raw_read(wire_binders_in, wire_binder_size));
 
-        struct s2n_blob wire_binder;
+        struct s2n_blob wire_binder = { 0 };
         GUARD_AS_RESULT(s2n_blob_init(&wire_binder, wire_binder_data, wire_binder_size));
 
         if (wire_index == conn->psk_params.chosen_psk_wire_index) {
@@ -180,16 +184,16 @@ static S2N_RESULT s2n_client_psk_recv_identities(struct s2n_connection *conn, st
 {
     ENSURE_REF(conn);
 
-    uint16_t identity_list_size;
+    uint16_t identity_list_size = 0;
     GUARD_AS_RESULT(s2n_stuffer_read_uint16(extension, &identity_list_size));
 
     uint8_t *identity_list_data;
     ENSURE_REF(identity_list_data = s2n_stuffer_raw_read(extension, identity_list_size));
 
-    struct s2n_blob identity_list_blob;
+    struct s2n_blob identity_list_blob = { 0 };
     GUARD_AS_RESULT(s2n_blob_init(&identity_list_blob, identity_list_data, identity_list_size));
 
-    struct s2n_stuffer identity_list;
+    struct s2n_stuffer identity_list = { 0 };
     GUARD_AS_RESULT(s2n_stuffer_init(&identity_list, &identity_list_blob));
     GUARD_AS_RESULT(s2n_stuffer_skip_write(&identity_list, identity_list_blob.size));
 
@@ -198,16 +202,18 @@ static S2N_RESULT s2n_client_psk_recv_identities(struct s2n_connection *conn, st
 
 static S2N_RESULT s2n_client_psk_recv_binders(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    uint16_t binder_list_size;
+    ENSURE_REF(conn);
+
+    uint16_t binder_list_size = 0;
     GUARD_AS_RESULT(s2n_stuffer_read_uint16(extension, &binder_list_size));
 
     uint8_t *binder_list_data;
     ENSURE_REF(binder_list_data = s2n_stuffer_raw_read(extension, binder_list_size));
 
-    struct s2n_blob binder_list_blob;
+    struct s2n_blob binder_list_blob = { 0 };
     GUARD_AS_RESULT(s2n_blob_init(&binder_list_blob, binder_list_data, binder_list_size));
 
-    struct s2n_stuffer binder_list;
+    struct s2n_stuffer binder_list = { 0 };
     GUARD_AS_RESULT(s2n_stuffer_init(&binder_list, &binder_list_blob));
     GUARD_AS_RESULT(s2n_stuffer_skip_write(&binder_list, binder_list_blob.size));
 
@@ -215,8 +221,9 @@ static S2N_RESULT s2n_client_psk_recv_binders(struct s2n_connection *conn, struc
      * This is required to calculate the binder for the chosen PSK. */
     struct s2n_blob partial_client_hello = { 0 };
     const struct s2n_stuffer *client_hello = &conn->handshake.io;
-    uint16_t partial_client_hello_size = client_hello->write_cursor
-            - binder_list_blob.size - SIZE_OF_BINDER_LIST_SIZE;
+    uint32_t binders_size = binder_list_blob.size + SIZE_OF_BINDER_LIST_SIZE;
+    ENSURE_GTE(client_hello->write_cursor, binders_size);
+    uint16_t partial_client_hello_size = client_hello->write_cursor - binders_size;
     GUARD_AS_RESULT(s2n_blob_slice(&client_hello->blob, &partial_client_hello, 0, partial_client_hello_size));
 
     return s2n_client_psk_recv_binder_list(conn, &partial_client_hello, &binder_list);
