@@ -59,7 +59,7 @@ int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, st
         GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
         new_node = (struct s2n_cert *)(void *)mem.data;
 
-        if (s2n_alloc(&new_node->raw, s2n_stuffer_data_available(&cert_out_stuffer))) {
+        if (s2n_alloc(&new_node->raw, s2n_stuffer_data_available(&cert_out_stuffer)) != S2N_SUCCESS) {
             GUARD(s2n_free(&mem));
             S2N_ERROR_PRESERVE_ERRNO();
         }
@@ -159,42 +159,40 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
     chain_and_key = (struct s2n_cert_chain_and_key *)(void *)chain_and_key_mem.data;
 
     /* Allocate the memory for the chain and key */
-    if (s2n_alloc(&cert_chain_mem, sizeof(struct s2n_cert_chain))) {
-        goto cleanup_last;
+    if (s2n_alloc(&cert_chain_mem, sizeof(struct s2n_cert_chain)) != S2N_SUCCESS) {
+        goto cleanup;
     }
     chain_and_key->cert_chain = (struct s2n_cert_chain *)(void *)cert_chain_mem.data;
 
-    if (s2n_alloc(&pkey_mem, sizeof(s2n_cert_private_key))) {
-        goto cleanup_second;
+    if (s2n_alloc(&pkey_mem, sizeof(s2n_cert_private_key)) != S2N_SUCCESS) {
+        goto cleanup;
     }
     chain_and_key->private_key = (s2n_cert_private_key *)(void *)pkey_mem.data;
 
     chain_and_key->cert_chain->head = NULL;
-    if (s2n_pkey_zero_init(chain_and_key->private_key)) {
-        goto cleanup_all;
+    if (s2n_pkey_zero_init(chain_and_key->private_key) != S2N_SUCCESS) {
+        goto cleanup;
     }
     memset(&chain_and_key->ocsp_status, 0, sizeof(chain_and_key->ocsp_status));
     memset(&chain_and_key->sct_list, 0, sizeof(chain_and_key->sct_list));
     chain_and_key->cn_names = s2n_array_new(sizeof(struct s2n_blob));
     if (!chain_and_key->cn_names) {
-        goto cleanup_all;
+        goto cleanup;
     }
 
     chain_and_key->san_names = s2n_array_new(sizeof(struct s2n_blob));
     if (!chain_and_key->san_names) {
-        goto cleanup_all;
+        goto cleanup;
     }
 
     chain_and_key->context = NULL;
 
     return chain_and_key;
-    cleanup_all:
+    cleanup:
         s2n_free(&pkey_mem);
-    cleanup_second:
         s2n_free(&cert_chain_mem);
-    cleanup_last:
         s2n_free(&chain_and_key_mem);
-        return NULL;
+    return NULL;
 }
 
 DEFINE_POINTER_CLEANUP_FUNC(GENERAL_NAMES *, GENERAL_NAMES_free);

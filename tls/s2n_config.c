@@ -284,7 +284,7 @@ struct s2n_config *s2n_config_new(void)
     GUARD_PTR(s2n_alloc(&allocator, sizeof(struct s2n_config)));
 
     new_config = (struct s2n_config *)(void *)allocator.data;
-    if (s2n_config_init(new_config)) {
+    if (s2n_config_init(new_config) != S2N_SUCCESS) {
         s2n_free(&allocator);
         return NULL;
     }
@@ -557,11 +557,11 @@ int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
     GUARD(s2n_alloc(&mem, sizeof(struct s2n_dh_params)));
     config->dhparams = (struct s2n_dh_params *)(void *)mem.data;
 
-    if (s2n_stuffer_alloc_ro_from_string(&dhparams_in_stuffer, dhparams_pem)) {
+    if (s2n_stuffer_alloc_ro_from_string(&dhparams_in_stuffer, dhparams_pem) != S2N_SUCCESS) {
         s2n_free(&mem);
         S2N_ERROR_PRESERVE_ERRNO();
     }
-    if (s2n_stuffer_growable_alloc(&dhparams_out_stuffer, strlen(dhparams_pem))) {
+    if (s2n_stuffer_growable_alloc(&dhparams_out_stuffer, strlen(dhparams_pem)) != S2N_SUCCESS) {
         s2n_free(&mem);
         S2N_ERROR_PRESERVE_ERRNO();
     }
