@@ -536,7 +536,7 @@ int main(int argc, char **argv)
             };
 
             struct s2n_connection *client_conn;
-            EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             struct s2n_stuffer *client_out = &client_conn->handshake.io;
 
             struct s2n_connection *server_conn;

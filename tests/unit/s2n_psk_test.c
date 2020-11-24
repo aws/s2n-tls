@@ -454,7 +454,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            for (s2n_hash_algorithm hash_alg = S2N_HASH_SHA1; hash_alg < S2N_HASH_SHA384; hash_alg++) {
+            for (s2n_hash_algorithm hash_alg = S2N_HASH_SHA1; hash_alg <= S2N_HASH_SHA384; hash_alg++) {
                 struct s2n_psk *psk;
                 EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
                 EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_RESUMPTION));
@@ -472,7 +472,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&out, &binder_list_size));
             EXPECT_EQUAL(binder_list_size, s2n_stuffer_data_available(&out));
 
-            for (s2n_hash_algorithm hash_alg = S2N_HASH_SHA1; hash_alg < S2N_HASH_SHA384; hash_alg++) {
+            for (s2n_hash_algorithm hash_alg = S2N_HASH_SHA1; hash_alg <= S2N_HASH_SHA384; hash_alg++) {
                 uint8_t hash_size;
                 GUARD(s2n_hash_digest_size(hash_alg, &hash_size));
 
