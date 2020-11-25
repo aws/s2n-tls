@@ -20,8 +20,6 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_array.h"
 
-#define S2N_INITIAL_ARRAY_SIZE 16
-
 S2N_RESULT s2n_array_validate(const struct s2n_array *array)
 {
     uint32_t mem_size = 0;

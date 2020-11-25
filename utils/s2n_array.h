@@ -18,6 +18,8 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"
 
+#define S2N_INITIAL_ARRAY_SIZE 16
+
 struct s2n_array {
     /* Pointer to elements in array */
     struct s2n_blob mem;

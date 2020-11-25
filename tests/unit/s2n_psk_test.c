@@ -135,16 +135,16 @@ int main(int argc, char **argv)
     {
         uint8_t test_value[] = TEST_VALUE_1;
 
-        DEFER_CLEANUP(struct s2n_psk_parameters params, s2n_psk_parameters_free);
+        DEFER_CLEANUP(struct s2n_psk_parameters params = { 0 }, s2n_psk_parameters_free);
         EXPECT_OK(s2n_psk_parameters_init(&params));
 
-        struct s2n_psk *chosen_psk;
+        struct s2n_psk *chosen_psk = NULL;
         EXPECT_OK(s2n_array_pushback(&params.psk_list, (void**) &chosen_psk));
         EXPECT_SUCCESS(s2n_psk_init(chosen_psk, S2N_PSK_TYPE_EXTERNAL));
         EXPECT_SUCCESS(s2n_psk_new_identity(chosen_psk, test_value, sizeof(test_value)));
         params.chosen_psk = chosen_psk;
 
-        struct s2n_psk *other_psk;
+        struct s2n_psk *other_psk = NULL;
         EXPECT_OK(s2n_array_pushback(&params.psk_list, (void**) &other_psk));
         EXPECT_SUCCESS(s2n_psk_init(other_psk, S2N_PSK_TYPE_EXTERNAL));
         EXPECT_SUCCESS(s2n_psk_new_identity(other_psk, test_value, sizeof(test_value)));
@@ -165,18 +165,18 @@ int main(int argc, char **argv)
     {
         uint8_t test_value[] = TEST_VALUE_1;
 
-        DEFER_CLEANUP(struct s2n_psk_parameters params, s2n_psk_parameters_free);
+        DEFER_CLEANUP(struct s2n_psk_parameters params = { 0 }, s2n_psk_parameters_free);
         EXPECT_OK(s2n_psk_parameters_init(&params));
         params.binder_list_size = 1;
         params.chosen_psk_wire_index = 1;
 
-        struct s2n_psk *chosen_psk;
+        struct s2n_psk *chosen_psk = NULL;
         EXPECT_OK(s2n_array_pushback(&params.psk_list, (void**) &chosen_psk));
         EXPECT_SUCCESS(s2n_psk_init(chosen_psk, S2N_PSK_TYPE_EXTERNAL));
         EXPECT_SUCCESS(s2n_psk_new_identity(chosen_psk, test_value, sizeof(test_value)));
         params.chosen_psk = chosen_psk;
 
-        struct s2n_psk *other_psk;
+        struct s2n_psk *other_psk = NULL;
         EXPECT_OK(s2n_array_pushback(&params.psk_list, (void**) &other_psk));
         EXPECT_SUCCESS(s2n_psk_init(other_psk, S2N_PSK_TYPE_EXTERNAL));
         EXPECT_SUCCESS(s2n_psk_new_identity(other_psk, test_value, sizeof(test_value)));
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
         /* Verify params are wiped.
          * The params should be back to their initial state, but
          * the PSK list's memory should be left allocated so it can be reused. */
-        struct s2n_psk_parameters expected_params;
+        struct s2n_psk_parameters expected_params = { 0 };
         EXPECT_OK(s2n_psk_parameters_init(&expected_params));
         expected_params.psk_list.mem = params.psk_list.mem;
         EXPECT_BYTEARRAY_EQUAL(&expected_params, &params, sizeof(struct s2n_psk_parameters));
@@ -203,16 +203,16 @@ int main(int argc, char **argv)
     {
         uint8_t test_value[] = TEST_VALUE_1;
 
-        DEFER_CLEANUP(struct s2n_psk_parameters params, s2n_psk_parameters_free);
+        DEFER_CLEANUP(struct s2n_psk_parameters params = { 0 }, s2n_psk_parameters_free);
         EXPECT_OK(s2n_psk_parameters_init(&params));
 
-        struct s2n_psk *chosen_psk;
+        struct s2n_psk *chosen_psk = NULL;
         EXPECT_OK(s2n_array_pushback(&params.psk_list, (void**) &chosen_psk));
         EXPECT_SUCCESS(s2n_psk_init(chosen_psk, S2N_PSK_TYPE_EXTERNAL));
         EXPECT_SUCCESS(s2n_psk_new_identity(chosen_psk, test_value, sizeof(test_value)));
         params.chosen_psk = chosen_psk;
 
-        struct s2n_psk *other_psk;
+        struct s2n_psk *other_psk = NULL;
         EXPECT_OK(s2n_array_pushback(&params.psk_list, (void**) &other_psk));
         EXPECT_SUCCESS(s2n_psk_init(other_psk, S2N_PSK_TYPE_EXTERNAL));
         EXPECT_SUCCESS(s2n_psk_new_identity(other_psk, test_value, sizeof(test_value)));
@@ -354,16 +354,16 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            DEFER_CLEANUP(struct s2n_psk psk, s2n_psk_free);
+            DEFER_CLEANUP(struct s2n_psk psk = { 0 }, s2n_psk_free);
             EXPECT_SUCCESS(s2n_psk_init(&psk, S2N_PSK_TYPE_RESUMPTION));
             EXPECT_SUCCESS(s2n_psk_new_secret(&psk, resumption_secret.data, resumption_secret.size));
 
-            struct s2n_stuffer out;
+            struct s2n_stuffer out = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
 
             EXPECT_OK(s2n_psk_write_binder(conn, &psk, &binder_hash, &out));
 
-            uint8_t binder_size;
+            uint8_t binder_size = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &binder_size));
             EXPECT_EQUAL(binder_size, s2n_stuffer_data_available(&out));
             EXPECT_EQUAL(binder_size, finished_binder.size);
@@ -381,22 +381,22 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            struct s2n_psk *psk;
+            struct s2n_psk *psk = NULL;
             EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
             EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_RESUMPTION));
             EXPECT_SUCCESS(s2n_psk_new_identity(psk, identity.data, identity.size));
             EXPECT_SUCCESS(s2n_psk_new_secret(psk, resumption_secret.data, resumption_secret.size));
 
-            struct s2n_stuffer out;
+            struct s2n_stuffer out = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
 
             EXPECT_OK(s2n_psk_write_binder_list(conn, &client_hello_prefix, &out));
 
-            uint16_t binder_list_size;
+            uint16_t binder_list_size = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&out, &binder_list_size));
             EXPECT_EQUAL(binder_list_size, s2n_stuffer_data_available(&out));
 
-            uint8_t binder_size;
+            uint8_t binder_size = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &binder_size));
             EXPECT_EQUAL(binder_size, s2n_stuffer_data_available(&out));
             EXPECT_EQUAL(binder_size, finished_binder.size);
@@ -417,24 +417,24 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             for (uint8_t i = 0; i < psk_count; i++) {
-                struct s2n_psk *psk;
+                struct s2n_psk *psk = NULL;
                 EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
                 EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_RESUMPTION));
                 EXPECT_SUCCESS(s2n_psk_new_identity(psk, identity.data, identity.size));
                 EXPECT_SUCCESS(s2n_psk_new_secret(psk, resumption_secret.data, resumption_secret.size));
             }
 
-            struct s2n_stuffer out;
+            struct s2n_stuffer out = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
 
             EXPECT_OK(s2n_psk_write_binder_list(conn, &client_hello_prefix, &out));
 
-            uint16_t binder_list_size;
+            uint16_t binder_list_size = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&out, &binder_list_size));
             EXPECT_EQUAL(binder_list_size, s2n_stuffer_data_available(&out));
 
             for (uint8_t i = 0; i < psk_count; i++) {
-                uint8_t binder_size;
+                uint8_t binder_size = 0;
                 EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &binder_size));
                 EXPECT_EQUAL(binder_size, finished_binder.size);
 
@@ -455,7 +455,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             for (s2n_hash_algorithm hash_alg = S2N_HASH_SHA1; hash_alg <= S2N_HASH_SHA384; hash_alg++) {
-                struct s2n_psk *psk;
+                struct s2n_psk *psk = NULL;
                 EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
                 EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_RESUMPTION));
                 EXPECT_SUCCESS(s2n_psk_new_identity(psk, identity.data, identity.size));
@@ -463,20 +463,20 @@ int main(int argc, char **argv)
                 psk->hash_alg = hash_alg;
             }
 
-            struct s2n_stuffer out;
+            struct s2n_stuffer out = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
 
             EXPECT_OK(s2n_psk_write_binder_list(conn, &client_hello_prefix, &out));
 
-            uint16_t binder_list_size;
+            uint16_t binder_list_size = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&out, &binder_list_size));
             EXPECT_EQUAL(binder_list_size, s2n_stuffer_data_available(&out));
 
             for (s2n_hash_algorithm hash_alg = S2N_HASH_SHA1; hash_alg <= S2N_HASH_SHA384; hash_alg++) {
-                uint8_t hash_size;
+                uint8_t hash_size = 0;
                 GUARD(s2n_hash_digest_size(hash_alg, &hash_size));
 
-                uint8_t binder_size;
+                uint8_t binder_size = 0;
                 EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &binder_size));
                 EXPECT_EQUAL(binder_size, hash_size);
 
@@ -504,7 +504,7 @@ int main(int argc, char **argv)
             conn->psk_params.binder_list_size = full_client_hello.size - client_hello_prefix.size;
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&conn->handshake.io, conn->psk_params.binder_list_size));
 
-            struct s2n_psk *psk;
+            struct s2n_psk *psk = NULL;
             EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
             EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_RESUMPTION));
             EXPECT_SUCCESS(s2n_psk_new_identity(psk, identity.data, identity.size));
