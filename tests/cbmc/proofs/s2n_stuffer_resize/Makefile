@@ -14,10 +14,11 @@
 # Expected runtime is 40 seconds.
 CBMCFLAGS +=
 
-HARNESS_ENTRY = s2n_stuffer_resize_harness
+PROOF_UID = s2n_stuffer_resize
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c

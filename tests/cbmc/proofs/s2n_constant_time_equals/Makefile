@@ -18,10 +18,11 @@ DEFINES += -DMAX_ARR_LEN=$(MAX_ARR_LEN)
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = s2n_constant_time_equals_harness
+PROOF_UID = s2n_constant_time_equals
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
 
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
