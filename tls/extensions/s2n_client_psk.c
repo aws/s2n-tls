@@ -64,7 +64,7 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
         /* Write the identity */
         GUARD(s2n_stuffer_write_uint16(out, psk->identity.size));
         GUARD(s2n_stuffer_write(out, &psk->identity));
-        GUARD(s2n_stuffer_write_uint32(out, psk->obfuscated_ticket_age));
+        GUARD(s2n_stuffer_write_uint32(out, 0));
 
         /* Calculate binder size */
         uint8_t hash_size = 0;
@@ -129,7 +129,8 @@ static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn,
         struct s2n_blob identity = { 0 };
         GUARD_AS_RESULT(s2n_blob_init(&identity, identity_data, identity_size));
 
-        /* TODO: Validate obfuscated_ticket_age when using session tickets.
+        /* TODO: Validate obfuscated_ticket_age when using session tickets:
+         *       https://github.com/awslabs/s2n/issues/2417
          *
          * "For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
          * used, and servers MUST ignore the value."
@@ -137,7 +138,7 @@ static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn,
         uint32_t obfuscated_ticket_age = 0;
         GUARD_AS_RESULT(s2n_stuffer_read_uint32(wire_identities_in, &obfuscated_ticket_age));
 
-        /* TODO: Implement the callback to choose a PSK.
+        /* TODO: Implement the callback to choose a PSK: https://github.com/awslabs/s2n/issues/2397
          *
          * When we don't have a callback configured to choose a PSK, we should fall back to accepting
          * the first PSK identity that also exists in our list of supported PSKs. */
