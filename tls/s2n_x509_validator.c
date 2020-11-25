@@ -372,7 +372,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
         S2N_ERROR_IF(op_code <= 0, S2N_ERR_CERT_UNTRUSTED);
 
-        s2n_cert_validation_code validation_code = S2N_ERR_CERT_UNTRUSTED;
+        s2n_cert_validation_code validation_code;
         GUARD_AS_POSIX(s2n_x509_validator_validate_certificate_signatures(conn, validator, &validation_code));
         S2N_ERROR_IF(validation_code != S2N_CERT_OK, S2N_ERR_CERT_UNTRUSTED);
 
