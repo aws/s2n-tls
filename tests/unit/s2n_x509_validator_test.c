@@ -1424,6 +1424,13 @@ int main(int argc, char **argv) {
         uint32_t chain_len = s2n_stuffer_data_available(&chain_stuffer);
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, chain_len);
+
+        struct s2n_pkey public_key_out;
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type;
+        EXPECT_EQUAL(S2N_CERT_OK,
+                     s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+        s2n_stuffer_free(&chain_stuffer);
         EXPECT_EQUAL(S2N_PKEY_TYPE_RSA, pkey_type);
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
@@ -1442,6 +1449,11 @@ int main(int argc, char **argv) {
         uint32_t chain_len = s2n_stuffer_data_available(&chain_stuffer);
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, chain_len);
+
+        struct s2n_pkey public_key_out;
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type;
+
         /* Expect to return S2N_CERT_ERR_UNTRUSTED */
         EXPECT_EQUAL(S2N_CERT_ERR_UNTRUSTED,
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));

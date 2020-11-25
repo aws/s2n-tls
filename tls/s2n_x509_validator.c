@@ -580,7 +580,7 @@ S2N_RESULT s2n_x509_validator_validate_certificate_signatures(struct s2n_connect
         bool out = false;
         X509 *cert = sk_X509_value(validated_chain, i);
 
-        GUARD_RESULT(s2n_is_certificate_sig_scheme_supported(conn, cert, &out));
+        GUARD_RESULT(s2n_is_certificate_sig_scheme_supported(conn, cert, conn->config->security_policy->certificate_signature_preferences, &out));
         if(out == false) {
             *validation_code = S2N_CERT_ERR_UNTRUSTED;
             return S2N_RESULT_OK;
@@ -591,10 +591,11 @@ S2N_RESULT s2n_x509_validator_validate_certificate_signatures(struct s2n_connect
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_is_certificate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert, bool *out)
+S2N_RESULT s2n_is_certificate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert, const struct s2n_signature_preferences *cert_sig_preferences, bool *out)
 {
     ENSURE_REF(conn);
     ENSURE_REF(x509_cert);
+    ENSURE_REF(cert_sig_preferences);
     ENSURE_REF(out);
 
     int nid = 0;
@@ -606,12 +607,11 @@ S2N_RESULT s2n_is_certificate_sig_scheme_supported(struct s2n_connection *conn, 
         nid = X509_get_signature_nid(x509_cert);
     #endif
 
-    for (size_t i = 0; i < conn->config->security_policy->certificate_signature_preferences->count; i++) {
+    for (size_t i = 0; i < cert_sig_preferences->count; i++) {
 
-        if (conn->config->security_policy->certificate_signature_preferences->signature_schemes[i]->libcrypto_nid == nid) {
+        if (cert_sig_preferences->signature_schemes[i]->libcrypto_nid == nid) {
             /* SHA-1 algorithms are not supported in certificate signatures in TLS1.3 */
-            if (conn->actual_protocol_version >= S2N_TLS13 &&
-                conn->config->security_policy->certificate_signature_preferences->signature_schemes[i]->hash_alg == S2N_HASH_SHA1) {
+            if (conn->actual_protocol_version >= S2N_TLS13 && cert_sig_preferences->signature_schemes[i]->hash_alg == S2N_HASH_SHA1) {
                 *out = false;
             } else {
                 *out = true;

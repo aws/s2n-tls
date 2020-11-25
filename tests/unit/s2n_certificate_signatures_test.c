@@ -53,26 +53,24 @@ int main(int argc, char **argv)
         .signature_schemes = test_sig_scheme_list,
     };
 
+    const struct s2n_signature_scheme* const pss_sig_scheme_list[] = {
+        &s2n_rsa_pss_pss_sha256,
+        &s2n_rsa_pss_pss_sha384,
+        &s2n_rsa_pss_pss_sha512,
+        &s2n_rsa_pss_rsae_sha256,
+        &s2n_rsa_pss_rsae_sha384,
+        &s2n_rsa_pss_rsae_sha512,
+    };
+
+    const struct s2n_signature_preferences pss_certificate_signature_preferences = {
+        .count = s2n_array_len(pss_sig_scheme_list),
+        .signature_schemes = pss_sig_scheme_list,
+    };
+
     /* s2n_is_certificate_sig_scheme_supported() */
     {
-        struct s2n_config *config = s2n_config_new();
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-        s2n_connection_set_config(conn, config);
-
-        const struct s2n_security_policy *security_policy = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
-
-        struct s2n_security_policy test_security_policy = {
-            .minimum_protocol_version = security_policy->minimum_protocol_version,
-            .cipher_preferences = security_policy->cipher_preferences,
-            .kem_preferences = security_policy->kem_preferences,
-            .signature_preferences = security_policy->signature_preferences,
-            .certificate_signature_preferences = &test_certificate_signature_preferences,
-            .ecc_preferences = security_policy->ecc_preferences,
-        };
-
-        config->security_policy = &test_security_policy;
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         /* Certificate signature algorithm is in test certificate signature preferences list */
         {
@@ -85,7 +83,7 @@ int main(int argc, char **argv)
             cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL);
             S2N_ERROR_IF(cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
 
-            EXPECT_OK(s2n_is_certificate_sig_scheme_supported(conn, cert, &out));
+            EXPECT_OK(s2n_is_certificate_sig_scheme_supported(conn, cert, &test_certificate_signature_preferences, &out));
             EXPECT_TRUE(out);
 
             BIO_free(certBio);
@@ -103,7 +101,7 @@ int main(int argc, char **argv)
             cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL);
             S2N_ERROR_IF(cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
 
-            EXPECT_OK(s2n_is_certificate_sig_scheme_supported(conn, cert, &out));
+            EXPECT_OK(s2n_is_certificate_sig_scheme_supported(conn, cert, &test_certificate_signature_preferences, &out));
             EXPECT_FALSE(out);
 
             BIO_free(certBio);
@@ -124,7 +122,7 @@ int main(int argc, char **argv)
             cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL);
             S2N_ERROR_IF(cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
 
-            EXPECT_OK(s2n_is_certificate_sig_scheme_supported(conn, cert, &out));
+            EXPECT_OK(s2n_is_certificate_sig_scheme_supported(conn, cert, &test_certificate_signature_preferences, &out));
             EXPECT_FALSE(out);
 
             BIO_free(certBio);
@@ -145,15 +143,32 @@ int main(int argc, char **argv)
             cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL);
             S2N_ERROR_IF(cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
 
-            EXPECT_OK(s2n_is_certificate_sig_scheme_supported(conn, cert, &out));
+            EXPECT_OK(s2n_is_certificate_sig_scheme_supported(conn, cert, &test_certificate_signature_preferences, &out));
             EXPECT_TRUE(out);
 
             BIO_free(certBio);
             X509_free(cert);
         }
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-        EXPECT_SUCCESS(s2n_config_free(config));
 
+        /* RSA PSS certificates can be parsed */
+        {
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_PSS_2048_SHA256_LEAF_CERT, (char *)cert_file, S2N_MAX_TEST_PEM_SIZE));
+            certLen = strlen((const char*)cert_file);
+
+            /* Read the test certificates into an Openssl X509 struct */
+            certBio = BIO_new(BIO_s_mem());
+            BIO_write(certBio, cert_file, certLen);
+            cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL);
+            S2N_ERROR_IF(cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
+
+            EXPECT_OK(s2n_is_certificate_sig_scheme_supported(conn, cert, &pss_certificate_signature_preferences, &out));
+            EXPECT_TRUE(out);
+
+            BIO_free(certBio);
+            X509_free(cert);
+        }
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
     END_TEST();
     return S2N_SUCCESS;

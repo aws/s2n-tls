@@ -568,8 +568,8 @@ The following chart maps the security policy version to the signature scheme sup
 |   "20190802"   |      X       |     X    |      X        |    X     |
 |   "20200207"   |      X       |     X    |      X        |    X     |
 
-Note that currently the default_tls13 security policy supports SHA-1 legacy algorithms in Certificate Verify messages, 
-but it will not support SHA-1 Legacy algorithms in certificate signatures. 
+Note that currently the default_tls13 security policy supports SHA-1 legacy algorithms in Certificate Verify messages,
+but it will not support SHA-1 Legacy algorithms in certificate signatures.
 
 The following chart maps the security policy version to the supported curves/groups: 
 
