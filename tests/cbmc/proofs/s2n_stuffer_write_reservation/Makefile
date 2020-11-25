@@ -21,7 +21,7 @@ MAX_WRITE_NETWORK_ORDER = 9
 CBMCFLAGS +=
 
 PROOF_UID = s2n_stuffer_write_reservation
-HARNESS_ENTRY = s2n_stuffer_write_reservation_harness
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)

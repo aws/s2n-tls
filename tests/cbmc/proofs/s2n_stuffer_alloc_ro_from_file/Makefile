@@ -18,7 +18,7 @@ DEFINES += -DMAX_STRING_LEN=$(MAX_STRING_LEN)
 CBMCFLAGS +=
 
 PROOF_UID = s2n_stuffer_alloc_ro_from_file
-HARNESS_ENTRY = s2n_stuffer_alloc_ro_from_file_harness
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)

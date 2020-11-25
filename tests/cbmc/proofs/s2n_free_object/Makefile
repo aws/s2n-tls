@@ -14,7 +14,7 @@
 CHECKFLAGS +=
 
 PROOF_UID = s2n_free_object
-HARNESS_ENTRY = s2n_free_object_harness
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)

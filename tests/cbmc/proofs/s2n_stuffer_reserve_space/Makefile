@@ -17,7 +17,7 @@
 CBMCFLAGS +=
 
 PROOF_UID = s2n_stuffer_reserve_space
-HARNESS_ENTRY = s2n_stuffer_reserve_space_harness
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)

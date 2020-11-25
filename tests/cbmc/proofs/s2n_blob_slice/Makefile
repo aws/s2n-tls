@@ -15,7 +15,7 @@
 CBMCFLAGS +=
 
 PROOF_UID = s2n_blob_slice
-HARNESS_ENTRY = s2n_blob_slice_harness
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
