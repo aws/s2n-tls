@@ -18,6 +18,7 @@
 #include <s2n.h>
 
 #include "crypto/s2n_hash.h"
+#include "utils/s2n_array.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"
 
@@ -35,10 +36,24 @@ struct s2n_psk {
     struct s2n_blob early_secret;
 };
 
+struct s2n_psk_parameters {
+    struct s2n_array psk_list;
+    uint16_t binder_list_size;
+    uint8_t chosen_psk_wire_index;
+    struct s2n_psk *chosen_psk;
+};
+
 int s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type);
 int s2n_psk_new_identity(struct s2n_psk *psk, const uint8_t *identity, size_t identity_size);
 int s2n_psk_new_secret(struct s2n_psk *psk, const uint8_t *secret, size_t secret_size);
 int s2n_psk_free(struct s2n_psk *psk);
+
+S2N_RESULT s2n_psk_parameters_init(struct s2n_psk_parameters *params);
+S2N_RESULT s2n_psk_parameters_wipe(struct s2n_psk_parameters *params);
+S2N_RESULT s2n_psk_parameters_free_unused_psks(struct s2n_psk_parameters *params);
+int s2n_psk_parameters_free(struct s2n_psk_parameters *params);
+
+S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn);
 
 int s2n_psk_calculate_binder_hash(struct s2n_connection *conn, s2n_hash_algorithm hash_alg,
         const struct s2n_blob *partial_client_hello, struct s2n_blob *output_binder_hash);

@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
 #include "api/s2n.h"
 #include "error/s2n_errno.h"
 #include "utils/s2n_array.h"
@@ -51,10 +52,13 @@ void s2n_array_insert_harness()
         if (old_array.len != 0 && index == old_array.len) {
             assert_byte_from_blob_matches(&array->mem, &old_byte);
         }
+
+        /* Verify the array capacity increases by the correct amount. */
         uint32_t old_capacity = old_array.mem.size / old_array.element_size;
         if (old_array.len >= old_capacity) {
+            uint32_t expected_new_capacity = MAX(S2N_INITIAL_ARRAY_SIZE, old_capacity * 2) * old_array.element_size;
             uint32_t new_capacity = array->mem.size;
-            assert(array->mem.size == (2 * old_capacity * array->element_size));
+            assert(new_capacity == expected_new_capacity);
         }
     }
 }

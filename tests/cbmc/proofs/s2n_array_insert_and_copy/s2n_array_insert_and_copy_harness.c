@@ -50,10 +50,5 @@ void s2n_array_insert_and_copy_harness()
         if (old_array.len != 0 && index == old_array.len) {
             assert_byte_from_blob_matches(&array->mem, &old_byte);
         }
-        uint32_t old_capacity = old_array.mem.size / old_array.element_size;
-        if (old_array.len >= old_capacity) {
-            uint32_t new_capacity = array->mem.size;
-            assert(array->mem.size == (2 * old_capacity * array->element_size));
-        }
     }
 }

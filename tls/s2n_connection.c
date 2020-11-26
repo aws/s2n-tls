@@ -452,6 +452,7 @@ int s2n_connection_free(struct s2n_connection *conn)
 {
     GUARD(s2n_connection_wipe_keys(conn));
     GUARD(s2n_connection_free_keys(conn));
+    GUARD(s2n_psk_parameters_free(&conn->psk_params));
 
     GUARD(s2n_prf_free(conn));
 
@@ -627,6 +628,8 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     GUARD(s2n_stuffer_wipe(&conn->in));
     GUARD(s2n_stuffer_wipe(&conn->out));
 
+    GUARD_AS_POSIX(s2n_psk_parameters_wipe(&conn->psk_params));
+
     /* Wipe the I/O-related info and restore the original socket if necessary */
     GUARD(s2n_connection_wipe_io(conn));
 
@@ -699,6 +702,8 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Re-initialize hash and hmac states */
     GUARD(s2n_connection_init_hashes(conn));
     GUARD(s2n_connection_init_hmacs(conn));
+
+    GUARD_AS_POSIX(s2n_psk_parameters_init(&conn->psk_params));
 
     /* Require all handshakes hashes. This set can be reduced as the handshake progresses. */
     GUARD(s2n_handshake_require_all_hashes(&conn->handshake));

@@ -164,6 +164,9 @@ struct s2n_connection {
     /* Contains parameters needed during the handshake phase */
     struct s2n_handshake_parameters handshake_params;
 
+    /* Our PSK parameters */
+    struct s2n_psk_parameters psk_params;
+
     /* The PRF needs some storage elements to work with */
     struct s2n_prf_working_space prf_space;
 

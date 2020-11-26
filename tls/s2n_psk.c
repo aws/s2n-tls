@@ -14,11 +14,17 @@
  */
 
 #include "crypto/s2n_tls13_keys.h"
+
 #include "tls/s2n_handshake.h"
-#include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_psk.h"
-#include "utils/s2n_safety.h"
+#include "tls/s2n_tls13_handshake.h"
+#include "tls/s2n_tls.h"
+
+#include "utils/s2n_array.h"
 #include "utils/s2n_mem.h"
+#include "utils/s2n_safety.h"
+
+#define S2N_HASH_ALG_COUNT S2N_HASH_SENTINEL
 
 int s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type)
 {
@@ -53,12 +59,60 @@ int s2n_psk_new_secret(struct s2n_psk *psk, const uint8_t *secret, size_t secret
 
 int s2n_psk_free(struct s2n_psk *psk)
 {
-    notnull_check(psk);
+    if (psk == NULL) {
+        return S2N_SUCCESS;
+    }
 
     GUARD(s2n_free(&psk->early_secret));
     GUARD(s2n_free(&psk->identity));
     GUARD(s2n_free(&psk->secret));
 
+    return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_psk_parameters_init(struct s2n_psk_parameters *params)
+{
+    ENSURE_REF(params);
+    CHECKED_MEMSET(params, 0, sizeof(struct s2n_psk_parameters));
+    GUARD_RESULT(s2n_array_init(&params->psk_list, sizeof(struct s2n_psk)));
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_psk_parameters_free_unused_psks(struct s2n_psk_parameters *params)
+{
+    ENSURE_REF(params);
+    for (size_t i = 0; i < params->psk_list.len; i++) {
+        struct s2n_psk *psk;
+        GUARD_RESULT(s2n_array_get(&params->psk_list, i, (void**)&psk));
+
+        if(psk == params->chosen_psk) {
+            continue;
+        }
+        GUARD_AS_RESULT(s2n_psk_free(psk));
+    }
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_psk_parameters_wipe(struct s2n_psk_parameters *params)
+{
+    ENSURE_REF(params);
+
+    /* Free all PSKs */
+    GUARD_RESULT(s2n_psk_parameters_free_unused_psks(params));
+    GUARD_AS_RESULT(s2n_psk_free(params->chosen_psk));
+
+    struct s2n_blob psk_list_mem = params->psk_list.mem;
+    s2n_result result = s2n_psk_parameters_init(params);
+    params->psk_list.mem = psk_list_mem;
+
+    return result;
+}
+
+int s2n_psk_parameters_free(struct s2n_psk_parameters *params)
+{
+    notnull_check(params);
+    GUARD_AS_POSIX(s2n_psk_parameters_wipe(params));
+    GUARD(s2n_free(&params->psk_list.mem));
     return S2N_SUCCESS;
 }
 
@@ -122,7 +176,7 @@ int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_
     eq_check(output_binder->size, psk_keys.size);
 
     /* Make sure the early secret is saved on the psk structure for later use */
-    GUARD(s2n_alloc(&psk->early_secret, psk_keys.size));
+    GUARD(s2n_realloc(&psk->early_secret, psk_keys.size));
     GUARD(s2n_blob_init(&psk_keys.extract_secret, psk->early_secret.data, psk_keys.size));
 
     /* Derive the binder key */
@@ -162,4 +216,87 @@ int s2n_psk_verify_binder(struct s2n_connection *conn, struct s2n_psk *psk,
     GUARD(s2n_tls13_mac_verify(&psk_keys, &expected_binder, binder_to_verify));
 
     return S2N_SUCCESS;
+}
+
+static S2N_RESULT s2n_psk_write_binder(struct s2n_connection *conn, struct s2n_psk *psk,
+        const struct s2n_blob *binder_hash, struct s2n_stuffer *out)
+{
+    ENSURE_REF(binder_hash);
+
+    struct s2n_blob binder;
+    uint8_t binder_data[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
+    GUARD_AS_RESULT(s2n_blob_init(&binder, binder_data, binder_hash->size));
+
+    GUARD_AS_RESULT(s2n_psk_calculate_binder(psk, binder_hash, &binder));
+    GUARD_AS_RESULT(s2n_stuffer_write_uint8(out, binder.size));
+    GUARD_AS_RESULT(s2n_stuffer_write(out, &binder));
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_psk_write_binder_list(struct s2n_connection *conn, const struct s2n_blob *partial_client_hello,
+        struct s2n_stuffer *out)
+{
+    ENSURE_REF(conn);
+    ENSURE_REF(partial_client_hello);
+
+    struct s2n_psk_parameters *psk_params = &conn->psk_params;
+    struct s2n_array *psk_list = &psk_params->psk_list;
+
+    /* Setup memory to hold the binder hashes. We potentially need one for
+     * every hash algorithm. */
+    uint8_t binder_hashes_data[S2N_HASH_ALG_COUNT][S2N_TLS13_SECRET_MAX_LEN] = { 0 };
+    struct s2n_blob binder_hashes[S2N_HASH_ALG_COUNT] = { 0 };
+
+    struct s2n_stuffer_reservation binder_list_size = { 0 };
+    GUARD_AS_RESULT(s2n_stuffer_reserve_uint16(out, &binder_list_size));
+
+    /* Write binder for every psk */
+    for (size_t i = 0; i < psk_list->len; i++) {
+        struct s2n_psk *psk = NULL;
+        GUARD_RESULT(s2n_array_get(psk_list, i, (void**) &psk));
+        ENSURE_REF(psk);
+
+        /* Retrieve or calculate the binder hash. */
+        struct s2n_blob *binder_hash = &binder_hashes[psk->hash_alg];
+        if (binder_hash->size == 0) {
+            uint8_t hash_size = 0;
+            GUARD_AS_RESULT(s2n_hash_digest_size(psk->hash_alg, &hash_size));
+            GUARD_AS_RESULT(s2n_blob_init(binder_hash, binder_hashes_data[psk->hash_alg], hash_size));
+            GUARD_AS_RESULT(s2n_psk_calculate_binder_hash(conn, psk->hash_alg, partial_client_hello, binder_hash));
+        }
+
+        GUARD_RESULT(s2n_psk_write_binder(conn, psk, binder_hash, out));
+    }
+    GUARD_AS_RESULT(s2n_stuffer_write_vector_size(&binder_list_size));
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn)
+{
+    ENSURE_REF(conn);
+
+    if (!conn->psk_params.binder_list_size) {
+        return S2N_RESULT_OK;
+    }
+
+    struct s2n_stuffer *client_hello = &conn->handshake.io;
+    struct s2n_psk_parameters *psk_params = &conn->psk_params;
+
+    /* Fill in the correct message size. */
+    GUARD_AS_RESULT(s2n_handshake_finish_header(client_hello));
+
+    /* Remove the empty space allocated for the binder list.
+     * It was originally added to ensure the extension / extension list / message sizes
+     * were properly calculated. */
+    GUARD_AS_RESULT(s2n_stuffer_wipe_n(client_hello, psk_params->binder_list_size));
+
+    /* Store the partial client hello for use in calculating the binder hash. */
+    struct s2n_blob partial_client_hello = { 0 };
+    GUARD_AS_RESULT(s2n_blob_init(&partial_client_hello, client_hello->blob.data,
+            s2n_stuffer_data_available(client_hello)));
+
+    GUARD_RESULT(s2n_psk_write_binder_list(conn, &partial_client_hello, client_hello));
+    return S2N_RESULT_OK;
 }
