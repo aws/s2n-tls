@@ -408,9 +408,7 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
 static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
 {
     notnull_check(to->digest.high_level.evp.ctx);
-    notnull_check(EVP_MD_CTX_md(to->digest.high_level.evp.ctx));
     notnull_check(to->digest.high_level.evp_md5_secondary.ctx);
-    notnull_check(EVP_MD_CTX_md(to->digest.high_level.evp_md5_secondary.ctx));
     bool is_md5_allowed_for_fips = false;
     switch (from->alg) {
     case S2N_HASH_NONE:
@@ -426,9 +424,12 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
     case S2N_HASH_SHA256:
     case S2N_HASH_SHA384:
     case S2N_HASH_SHA512:
+        notnull_check(EVP_MD_CTX_md(to->digest.high_level.evp.ctx));
         GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx), S2N_ERR_HASH_COPY_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
+        notnull_check(EVP_MD_CTX_md(to->digest.high_level.evp.ctx));
+        notnull_check(EVP_MD_CTX_md(to->digest.high_level.evp_md5_secondary.ctx));
         GUARD_AS_POSIX(s2n_digest_is_md5_allowed_for_fips(&from->digest.high_level.evp, &is_md5_allowed_for_fips));
         if (is_md5_allowed_for_fips) {
             GUARD(s2n_hash_allow_md5_for_fips(to));
