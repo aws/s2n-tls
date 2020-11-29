@@ -615,7 +615,6 @@ int s2n_hash_free(struct s2n_hash_state *state)
     {
         return S2N_SUCCESS;
     }
-    PRECONDITION_POSIX(s2n_hash_state_is_valid(state));
     /* Ensure that hash_impl is set, as it may have been reset for s2n_hash_state on s2n_connection_wipe.
      * When in FIPS mode, the EVP API's must be used for hashes.
      */
