@@ -571,7 +571,6 @@ int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
 int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size)
 {
     PRECONDITION_POSIX(s2n_hash_state_is_valid(state));
-    PRECONDITION_POSIX(size != 0);
     PRECONDITION_POSIX(S2N_MEM_IS_READABLE(data, size));
     notnull_check(state->hash_impl->update);
 
