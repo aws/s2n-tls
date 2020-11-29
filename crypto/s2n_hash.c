@@ -326,9 +326,7 @@ static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, u
 {
     ENSURE_POSIX(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
     notnull_check(state->digest.high_level.evp.ctx);
-    notnull_check(EVP_MD_CTX_md(state->digest.high_level.evp.ctx));
     notnull_check(state->digest.high_level.evp_md5_secondary.ctx);
-    notnull_check(EVP_MD_CTX_md(state->digest.high_level.evp_md5_secondary.ctx));
 
     switch (state->alg) {
     case S2N_HASH_NONE:
@@ -339,9 +337,12 @@ static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, u
     case S2N_HASH_SHA256:
     case S2N_HASH_SHA384:
     case S2N_HASH_SHA512:
+        notnull_check(EVP_MD_CTX_md(state->digest.high_level.evp.ctx));
         GUARD_OSSL(EVP_DigestUpdate(state->digest.high_level.evp.ctx, data, size), S2N_ERR_HASH_UPDATE_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
+        notnull_check(EVP_MD_CTX_md(state->digest.high_level.evp.ctx));
+        notnull_check(EVP_MD_CTX_md(state->digest.high_level.evp_md5_secondary.ctx));
         GUARD_OSSL(EVP_DigestUpdate(state->digest.high_level.evp.ctx, data, size), S2N_ERR_HASH_UPDATE_FAILED);
         GUARD_OSSL(EVP_DigestUpdate(state->digest.high_level.evp_md5_secondary.ctx, data, size), S2N_ERR_HASH_UPDATE_FAILED);
         break;
