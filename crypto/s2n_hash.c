@@ -308,7 +308,6 @@ static int s2n_evp_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm al
         GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha512(), NULL), S2N_ERR_HASH_INIT_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
-        notnull_check(state->digest.high_level.evp_md5_secondary.ctx);
         GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp.ctx, EVP_sha1(), NULL), S2N_ERR_HASH_INIT_FAILED);
         GUARD_OSSL(EVP_DigestInit_ex(state->digest.high_level.evp_md5_secondary.ctx, EVP_md5(), NULL), S2N_ERR_HASH_INIT_FAILED);
         break;
@@ -327,9 +326,9 @@ static int s2n_evp_hash_update(struct s2n_hash_state *state, const void *data, u
 {
     ENSURE_POSIX(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
     notnull_check(state->digest.high_level.evp.ctx);
-    notnull_check(state->digest.high_level.evp.ctx->digest);
+    notnull_check(EVP_MD_CTX_md(state->digest.high_level.evp.ctx));
     notnull_check(state->digest.high_level.evp_md5_secondary.ctx);
-    notnull_check(state->digest.high_level.evp_md5_secondary.ctx->digest);
+    notnull_check(EVP_MD_CTX_md(state->digest.high_level.evp_md5_secondary.ctx));
 
     switch (state->alg) {
     case S2N_HASH_NONE:
@@ -360,9 +359,9 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
 {
     ENSURE_POSIX(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
     notnull_check(state->digest.high_level.evp.ctx);
-    notnull_check(state->digest.high_level.evp.ctx->digest);
+    notnull_check(EVP_MD_CTX_md(state->digest.high_level.evp.ctx));
     notnull_check(state->digest.high_level.evp_md5_secondary.ctx);
-    notnull_check(state->digest.high_level.evp_md5_secondary.ctx->digest);
+    notnull_check(EVP_MD_CTX_md(state->digest.high_level.evp_md5_secondary.ctx));
 
     unsigned int digest_size = size;
     uint8_t expected_digest_size;
@@ -408,9 +407,9 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
 static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
 {
     notnull_check(to->digest.high_level.evp.ctx);
-    notnull_check(to->digest.high_level.evp.ctx->digest);
+    notnull_check(EVP_MD_CTX_md(to->digest.high_level.evp.ctx));
     notnull_check(to->digest.high_level.evp_md5_secondary.ctx);
-    notnull_check(to->digest.high_level.evp_md5_secondary.ctx->digest);
+    notnull_check(EVP_MD_CTX_md(to->digest.high_level.evp_md5_secondary.ctx));
     bool is_md5_allowed_for_fips = false;
     switch (from->alg) {
     case S2N_HASH_NONE:
