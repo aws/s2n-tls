@@ -360,9 +360,7 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
 {
     ENSURE_POSIX(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
     notnull_check(state->digest.high_level.evp.ctx);
-    notnull_check(EVP_MD_CTX_md(state->digest.high_level.evp.ctx));
     notnull_check(state->digest.high_level.evp_md5_secondary.ctx);
-    notnull_check(EVP_MD_CTX_md(state->digest.high_level.evp_md5_secondary.ctx));
 
     unsigned int digest_size = size;
     uint8_t expected_digest_size;
@@ -383,10 +381,13 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
     case S2N_HASH_SHA256:
     case S2N_HASH_SHA384:
     case S2N_HASH_SHA512:
+        notnull_check(EVP_MD_CTX_md(state->digest.high_level.evp.ctx));
         ENSURE_POSIX(EVP_MD_CTX_size(state->digest.high_level.evp.ctx) <= digest_size, S2N_ERR_HASH_DIGEST_FAILED);
         GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, out, &digest_size), S2N_ERR_HASH_DIGEST_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
+        notnull_check(EVP_MD_CTX_md(state->digest.high_level.evp.ctx));
+        notnull_check(EVP_MD_CTX_md(state->digest.high_level.evp_md5_secondary.ctx));
         GUARD(s2n_hash_digest_size(S2N_HASH_SHA1, &sha1_digest_size));
         sha1_primary_digest_size = sha1_digest_size;
         md5_secondary_digest_size = digest_size - sha1_primary_digest_size;
@@ -424,7 +425,6 @@ static int s2n_evp_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *f
     case S2N_HASH_SHA256:
     case S2N_HASH_SHA384:
     case S2N_HASH_SHA512:
-        notnull_check(EVP_MD_CTX_md(to->digest.high_level.evp.ctx));
         GUARD_OSSL(EVP_MD_CTX_copy_ex(to->digest.high_level.evp.ctx, from->digest.high_level.evp.ctx), S2N_ERR_HASH_COPY_FAILED);
         break;
     case S2N_HASH_MD5_SHA1:
