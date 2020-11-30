@@ -398,40 +398,6 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Certificate preferences list needs to allow all the rsa pss signature schemes as we currently don't differentiate
-     * between these schemes.
-     */
-    {
-        const struct s2n_signature_scheme* const rsa_pss_sig_scheme_list[] = {
-            &s2n_rsa_pss_pss_sha256,
-            &s2n_rsa_pss_pss_sha384,
-            &s2n_rsa_pss_pss_sha512,
-            &s2n_rsa_pss_rsae_sha256,
-            &s2n_rsa_pss_rsae_sha384,
-            &s2n_rsa_pss_rsae_sha512,
-        };
-
-        for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
-            security_policy = security_policy_selection[i].security_policy;
-            EXPECT_NOT_NULL(security_policy);
-
-            if (security_policy->certificate_signature_preferences != NULL) {
-
-                for (size_t j = 0; j < s2n_array_len(rsa_pss_sig_scheme_list); j++) {
-                    const struct s2n_signature_scheme *scheme = rsa_pss_sig_scheme_list[j];
-                    bool contains = false;
-                    for (size_t k = 0; k < security_policy->certificate_signature_preferences->count; k++) {
-                        if (scheme == security_policy->certificate_signature_preferences->signature_schemes[k]) {
-                            contains = true;
-                            break;
-                        }
-                    }
-                    EXPECT_TRUE(contains);
-                }
-            }
-        }
-    }
-    
     /* Failure case when s2n_ecc_preference lists contains a curve not present in s2n_all_supported_curves_list */
     {
         const struct s2n_ecc_named_curve test_curve = {
@@ -498,6 +464,52 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&kem_preferences_kms_pq_tls_1_0_2020_07, 0), S2N_ERR_INVALID_SECURITY_POLICY);
         EXPECT_SUCCESS(s2n_validate_kem_preferences(&kem_preferences_kms_pq_tls_1_0_2020_07, 1));
 #endif
+    }
+
+    /* s2n_validate_certificate_signature_preferences will succeed if there are no rsa_pss schemes in the preference list */
+    {
+        const struct s2n_signature_scheme* const test_sig_scheme_pref_list[] = {
+            &s2n_rsa_pkcs1_sha256,
+        };
+
+        const struct s2n_signature_preferences test_certificate_signature_preferences = {
+            .count = s2n_array_len(test_sig_scheme_pref_list),
+            .signature_schemes = test_sig_scheme_pref_list,
+        };
+
+        EXPECT_SUCCESS(s2n_validate_certificate_signature_preferences(&test_certificate_signature_preferences));
+    }
+    /* s2n_validate_certificate_signature_preferences will succeed if all rsa_pss schemes are included in the preference list */
+    {
+        const struct s2n_signature_scheme* const test_sig_scheme_pref_list[] = {
+            &s2n_rsa_pss_pss_sha256,
+            &s2n_rsa_pss_pss_sha384,
+            &s2n_rsa_pss_pss_sha512,
+            &s2n_rsa_pss_rsae_sha256,
+            &s2n_rsa_pss_rsae_sha384,
+            &s2n_rsa_pss_rsae_sha512,
+        };
+
+        const struct s2n_signature_preferences test_certificate_signature_preferences = {
+            .count = s2n_array_len(test_sig_scheme_pref_list),
+            .signature_schemes = test_sig_scheme_pref_list,
+        };
+
+        EXPECT_SUCCESS(s2n_validate_certificate_signature_preferences(&test_certificate_signature_preferences));
+    }
+     /* s2n_validate_certificate_signature_preferences will fail if not all rsa_pss schemes are included in the preference list */
+    {
+        const struct s2n_signature_scheme* const test_sig_scheme_pref_list[] = {
+            &s2n_rsa_pss_pss_sha256,
+            &s2n_rsa_pss_pss_sha384,
+        };
+
+        const struct s2n_signature_preferences test_certificate_signature_preferences = {
+            .count = s2n_array_len(test_sig_scheme_pref_list),
+            .signature_schemes = test_sig_scheme_pref_list,
+        };
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_validate_certificate_signature_preferences(&test_certificate_signature_preferences), S2N_ERR_INVALID_SECURITY_POLICY);
     }
 
     END_TEST();

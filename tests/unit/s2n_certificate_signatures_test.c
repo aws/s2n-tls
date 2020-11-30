@@ -150,7 +150,7 @@ int main(int argc, char **argv)
             X509_free(cert);
         }
 
-        /* RSA PSS certificates can be parsed */
+        /* RSA PSS certificate signatures can be parsed */
         {
             EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_PSS_2048_SHA256_LEAF_CERT, (char *)cert_file, S2N_MAX_TEST_PEM_SIZE));
             certLen = strlen((const char*)cert_file);

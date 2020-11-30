@@ -372,9 +372,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
         S2N_ERROR_IF(op_code <= 0, S2N_ERR_CERT_UNTRUSTED);
 
-        s2n_cert_validation_code validation_code;
-        GUARD_AS_POSIX(s2n_x509_validator_validate_certificate_signatures(conn, validator, &validation_code));
-        S2N_ERROR_IF(validation_code != S2N_CERT_OK, S2N_ERR_CERT_UNTRUSTED);
+        GUARD_AS_POSIX(s2n_x509_validator_validate_certificate_signatures(conn, validator));
 
         validator->state = VALIDATED;
     }
@@ -558,14 +556,15 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
 
 DEFINE_POINTER_CLEANUP_FUNC(STACK_OF(X509)*, wipe_cert_chain);
 
-S2N_RESULT s2n_x509_validator_validate_certificate_signatures(struct s2n_connection *conn, struct s2n_x509_validator *validator,
-                                                                             s2n_cert_validation_code *validation_code)
+S2N_RESULT s2n_x509_validator_validate_certificate_signatures(struct s2n_connection *conn, struct s2n_x509_validator *validator)
 {
     ENSURE_REF(conn);
     ENSURE_REF(validator);
 
-    if (conn->config->security_policy->certificate_signature_preferences == NULL) {
-        *validation_code = S2N_CERT_OK;
+    const struct s2n_security_policy *security_policy;
+    GUARD_AS_RESULT(s2n_connection_get_security_policy(conn, &security_policy));
+
+    if (security_policy->certificate_signature_preferences == NULL) {
         return S2N_RESULT_OK;
     }
     
@@ -580,14 +579,10 @@ S2N_RESULT s2n_x509_validator_validate_certificate_signatures(struct s2n_connect
         bool out = false;
         X509 *cert = sk_X509_value(validated_chain, i);
 
-        GUARD_RESULT(s2n_is_certificate_sig_scheme_supported(conn, cert, conn->config->security_policy->certificate_signature_preferences, &out));
-        if(out == false) {
-            *validation_code = S2N_CERT_ERR_UNTRUSTED;
-            return S2N_RESULT_OK;
-        }
+        GUARD_RESULT(s2n_is_certificate_sig_scheme_supported(conn, cert, security_policy->certificate_signature_preferences, &out));
+        ENSURE(out == true, S2N_ERR_CERT_UNTRUSTED);
     }
 
-    *validation_code = S2N_CERT_OK;
     return S2N_RESULT_OK;
 }
 

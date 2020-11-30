@@ -19,6 +19,8 @@
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
+#define NUM_RSA_PSS_SCHEMES 6
+
 const struct s2n_security_policy security_policy_20170210 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20170210,
@@ -655,6 +657,11 @@ int s2n_security_policies_init()
         notnull_check(ecc_preference);
         GUARD(s2n_check_ecc_preferences_curves_list(ecc_preference));
 
+        const struct s2n_signature_preferences *certificate_signature_preference = security_policy->certificate_signature_preferences;
+        if (certificate_signature_preference != NULL) {
+            GUARD(s2n_validate_certificate_signature_preferences(security_policy->certificate_signature_preferences));
+        }
+
         if (security_policy != &security_policy_null) {
             /* catch any offending security policy that does not support P-256 */
             S2N_ERROR_IF(!s2n_ecc_preferences_includes_curve(ecc_preference, TLS_EC_CURVE_SECP_256_R1), S2N_ERR_INVALID_SECURITY_POLICY);
@@ -791,5 +798,22 @@ int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferenc
         ENSURE_POSIX(kem_preferences->kems == NULL, S2N_ERR_INVALID_SECURITY_POLICY);
     }
 
+    return S2N_SUCCESS;
+}
+
+int s2n_validate_certificate_signature_preferences(const struct s2n_signature_preferences *certificate_signature_preferences)
+{
+    notnull_check(certificate_signature_preferences);
+
+    size_t rsa_pss_scheme_count = 0;
+
+    for (size_t i = 0; i < certificate_signature_preferences->count; i++) {
+        if (certificate_signature_preferences->signature_schemes[i]->libcrypto_nid == NID_rsassaPss) {
+            rsa_pss_scheme_count++;
+        }
+    }
+
+    /* Require all rsa pss signature schemes or none */
+    ENSURE_POSIX(rsa_pss_scheme_count == NUM_RSA_PSS_SCHEMES || rsa_pss_scheme_count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
     return S2N_SUCCESS;
 }
