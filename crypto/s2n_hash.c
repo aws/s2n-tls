@@ -464,11 +464,6 @@ static int s2n_evp_hash_reset(struct s2n_hash_state *state)
         GUARD_OSSL(S2N_EVP_MD_CTX_RESET(state->digest.high_level.evp_md5_secondary.ctx), S2N_ERR_HASH_WIPE_FAILED);
     }
 
-    /* ctx must be initialized before calling EVP_DigestInit_ex function in s2n_evp_hash_init.
-     * Per https://www.openssl.org/docs/man1.0.2/man3/EVP_DigestInit_ex.html.
-     */
-    GUARD(s2n_evp_hash_new(state));
-
     if (reset_md5_for_fips) {
         GUARD(s2n_hash_allow_md5_for_fips(state));
     }
@@ -481,8 +476,8 @@ static int s2n_evp_hash_free(struct s2n_hash_state *state)
 {
     S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp.ctx);
     S2N_EVP_MD_CTX_FREE(state->digest.high_level.evp_md5_secondary.ctx);
-    state->digest.high_level.evp_md5_secondary.ctx = NULL;
     state->digest.high_level.evp.ctx = NULL;
+    state->digest.high_level.evp_md5_secondary.ctx = NULL;
     state->is_ready_for_input = 0;
     return S2N_SUCCESS;
 }
