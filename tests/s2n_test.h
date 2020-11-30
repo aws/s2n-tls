@@ -153,6 +153,19 @@ int test_count;
         RESET_ERRNO(); \
     } while(0)
 
+#define EXPECT_NULL_WITH_ERRNO_NO_RESET( function_call, err ) \
+    do { \
+        EXPECT_NULL( (function_call) ); \
+        EXPECT_EQUAL(s2n_errno, err); \
+        EXPECT_NOT_NULL(s2n_debug_str); \
+    } while(0)
+
+#define EXPECT_NULL_WITH_ERRNO( function_call, err ) \
+    do { \
+        EXPECT_NULL_WITH_ERRNO_NO_RESET( function_call, err ); \
+        RESET_ERRNO(); \
+    } while(0)
+
 #define EXPECT_SUCCESS( function_call )  EXPECT_NOT_EQUAL( (function_call) ,  -1 )
 /* for use with S2N_RESULT */
 #define EXPECT_OK( function_call )  EXPECT_TRUE( s2n_result_is_ok(function_call) )

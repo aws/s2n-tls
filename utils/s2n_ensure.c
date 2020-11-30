@@ -23,5 +23,6 @@ void* s2n_ensure_memcpy_trace(void *restrict to, const void *restrict from, size
         return NULL;
     }
 
-    return memcpy(to, from, size);
+    /* use memmove instead of memcpy since it'll handle overlapping regions and not result in UB */
+    return memmove(to, from, size);
 }

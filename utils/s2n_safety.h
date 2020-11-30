@@ -24,284 +24,12 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_ensure.h"
 #include "utils/s2n_result.h"
-
-/* Success signal value for OpenSSL functions */
-#define _OSSL_SUCCESS 1
+#include "utils/s2n_safety_macros.h"
 
 /**
  * The goal of s2n_safety is to provide helpers to perform common
  * checks, which help with code readability.
  */
-
-/**
- * Sets the global `errno` and returns with a `S2N_RESULT_ERROR`
- */
-#define BAIL( x )                                    do { _S2N_ERROR( ( x ) ); return S2N_RESULT_ERROR; } while (0)
-
-/**
- * Sets the global `errno` and returns with a POSIX error (`-1`)
- */
-#define BAIL_POSIX( x )                              do { _S2N_ERROR( ( x ) ); return S2N_FAILURE; } while (0)
-
-/**
- * Sets the global `errno` and returns with a `NULL` pointer value
- */
-#define BAIL_PTR( x )                                do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
-
-/**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL` with an `error`
- */
-#define ENSURE( condition , error )                  __S2N_ENSURE((condition), BAIL(error))
-
-/**
- * Ensures the `result` is OK, otherwise the function will `BAIL` with an `error`
- */
-#define ENSURE_OK( result , error )                  __S2N_ENSURE(s2n_result_is_ok(result), BAIL(error))
-
-/**
- * Ensures `n` is greater than or equal to `min`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
- */
-#define ENSURE_GTE( n , min )                        ENSURE((n) >= (min), S2N_ERR_SAFETY)
-
-/**
- * Ensures `n` is less than or equal to `max`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
- */
-#define ENSURE_LTE( n , max )                        ENSURE((n) <= (max), S2N_ERR_SAFETY)
-
-/**
- * Ensures `n` is greater than `min`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
- */
-#define ENSURE_GT( n , min )                         ENSURE((n) > (min), S2N_ERR_SAFETY)
-
-/**
- * Ensures `n` is less than `min`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
- */
-#define ENSURE_LT( n , max )                         ENSURE((n) < (max), S2N_ERR_SAFETY)
-
-/**
- * Ensures `a` is equal to `b`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
- */
-#define ENSURE_EQ( a , b )                           ENSURE((a) == (b), S2N_ERR_SAFETY)
-
-/**
- * Ensures `a` is not equal to `b`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
- */
-#define ENSURE_NE( a , b )                           ENSURE((a) != (b), S2N_ERR_SAFETY)
-
-/**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with an `error`
- */
-#define ENSURE_POSIX( condition , error )           __S2N_ENSURE((condition), BAIL_POSIX(error))
-
-/**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL_PTR` with an `error`
- */
-#define ENSURE_PTR( condition , error )             __S2N_ENSURE((condition), BAIL_PTR(error))
-
-/**
- * Ensures `x` is not `NULL`, otherwise the function will `BAIL_PTR` with an `error`
- */
-#define ENSURE_REF_PTR( x )                         ENSURE_PTR(S2N_OBJECT_PTR_IS_READABLE(x), S2N_ERR_NULL)
-
-/**
- * Ensures `x` is a readable reference, otherwise the function will `BAIL` with `S2N_ERR_NULL`
- */
-#define ENSURE_REF( x )                             ENSURE(S2N_OBJECT_PTR_IS_READABLE(x), S2N_ERR_NULL)
-
-/**
- * Ensures `x` is a readable reference, otherwise the function will `BAIL_POSIX` with `S2N_ERR_NULL`
- */
-#define ENSURE_POSIX_REF( x )                       ENSURE_POSIX(S2N_OBJECT_PTR_IS_READABLE(x), S2N_ERR_NULL)
-
-/**
- * Ensures `x` is a mutable reference, otherwise the function will `BAIL` with `S2N_ERR_NULL`
- */
-#define ENSURE_MUT( x )                             ENSURE(S2N_OBJECT_PTR_IS_WRITABLE(x), S2N_ERR_NULL)
-
-/**
- * Ensures `x` is a mutable reference, otherwise the function will `BAIL_POSIX` with `S2N_ERR_NULL`
- */
-#define ENSURE_POSIX_MUT( x )                       ENSURE_POSIX(S2N_OBJECT_PTR_IS_WRITABLE(x), S2N_ERR_NULL)
-
-/**
- * Ensures `min <= n <= max`
- */
-#define ENSURE_INCLUSIVE_RANGE( min , n , max )      \
-  do {                                               \
-    __typeof( n ) __tmp_n = ( n );                   \
-    ENSURE_GTE(__tmp_n, min);                        \
-    ENSURE_LTE(__tmp_n, max);                        \
-  } while(0)
-
-/**
- * Ensures `min < n < max`
- */
-#define ENSURE_EXCLUSIVE_RANGE( min , n , max )      \
-  do {                                               \
-    __typeof( n ) __tmp_n = ( n );                   \
-    ENSURE_GT(__tmp_n, min);                         \
-    ENSURE_LT(__tmp_n, max);                         \
-  } while(0)
-
-/**
- * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
- */
-#define PRECONDITION( result )                      GUARD_RESULT(__S2N_ENSURE_PRECONDITION(result))
-
-/**
- * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
- */
-#define POSTCONDITION( result )                     GUARD_RESULT(__S2N_ENSURE_POSTCONDITION(result))
-
-/**
- * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
- */
-#define PRECONDITION_POSIX( result )                GUARD_AS_POSIX(__S2N_ENSURE_PRECONDITION(result))
-
-/**
- * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
- */
-#define POSTCONDITION_POSIX( result )               GUARD_AS_POSIX(__S2N_ENSURE_POSTCONDITION(result))
-
-/**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL` with an `error`.
- * When the code is built in debug mode, they are checked.
- * When the code is built in production mode, they are ignored.
- */
-#define DEBUG_ENSURE( condition, error )            __S2N_ENSURE_DEBUG((condition), BAIL(error))
-
-/**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with an `error`.
- * When the code is built in debug mode, they are checked.
- * When the code is built in production mode, they are ignored.
- */
-#define DEBUG_ENSURE_POSIX( condition, error )      __S2N_ENSURE_DEBUG((condition), BAIL_POSIX(error))
-
-/**
- * Ensures `x` is not an error, otherwise the function will return an error signal
- *
- * Note: this currently accepts POSIX error signals but will transition to accept s2n_result
- */
-#define GUARD( x )                                  GUARD_POSIX(x)
-
-/**
- * Ensures `x` is not an error, otherwise goto `label`
- *
- * Note: this currently accepts POSIX error signals but will transition to accept s2n_result
- */
-#define GUARD_GOTO( x , label )                     GUARD_POSIX_GOTO((x), (label))
-
-/**
- * Ensures `x` is not an error, otherwise the function will return `NULL`
- *
- * Note: this currently accepts POSIX error signals but will transition to accept s2n_result
- */
-#define GUARD_PTR( x )                              GUARD_POSIX_PTR(x)
-
-/**
- * Ensures `x` is not `NULL`, otherwise the function will return an error signal
- *
- * Note: this currently accepts POSIX error signals but will transition to accept s2n_result
- */
-#define GUARD_NONNULL( x )                          GUARD_POSIX_NONNULL(x)
-
-/**
- * Ensures `x` is not `NULL`, otherwise goto `label`
- *
- * Note: this currently accepts POSIX error signals but will transition to accept s2n_result
- */
-#define GUARD_NONNULL_GOTO( x , label )             __S2N_ENSURE((x) != NULL, goto label)
-
-/**
- * Ensures `x` is not `NULL`, otherwise the function will return `NULL`
- *
- * Note: this currently accepts POSIX error signals but will transition to accept s2n_result
- */
-#define GUARD_NONNULL_PTR( x )                      __S2N_ENSURE((x) != NULL, return NULL)
-
-/**
- * Ensures `x` is not a OpenSSL error, otherwise the function will return an error signal
- *
- * Note: this currently accepts POSIX error signals but will transition to accept s2n_result
- */
-#define GUARD_OSSL( x, error )                      GUARD_POSIX_OSSL((x), (error))
-
-/**
- * Ensures `x` is ok, otherwise the function will return an `S2N_RESULT_ERROR`
- */
-#define GUARD_RESULT( x )                           __S2N_ENSURE(s2n_result_is_ok(x), return S2N_RESULT_ERROR)
-
-/**
- * Ensures `x` is ok, otherwise goto `label`
- */
-#define GUARD_RESULT_GOTO( x, label )               __S2N_ENSURE(s2n_result_is_ok(x), goto label)
-
-/**
- * Ensures `x` is ok, otherwise the function will return `NULL`
- */
-#define GUARD_RESULT_PTR( x )                       __S2N_ENSURE(s2n_result_is_ok(x), return NULL)
-
-/**
- * Ensures `x` is not `NULL`, otherwise the function will return an `S2N_RESULT_ERROR`
- */
-#define GUARD_RESULT_NONNULL( x )                   __S2N_ENSURE((x) != NULL, return S2N_RESULT_ERROR)
-
-/**
- * Ensures `x` is not a OpenSSL error, otherwise the function will `BAIL` with `error`
- */
-/* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
-#define GUARD_RESULT_OSSL( x , error )              ENSURE((x) == _OSSL_SUCCESS, error)
-
-/**
- * Ensures `x` is not a POSIX error, otherwise return a POSIX error
- */
-#define GUARD_POSIX( x )                            __S2N_ENSURE((x) >= S2N_SUCCESS, return S2N_FAILURE)
-
-/**
- * Ensures `x` is strictly not a POSIX error (`-1`), otherwise goto `label`
- */
-#define GUARD_POSIX_STRICT( x )                     __S2N_ENSURE((x) == S2N_SUCCESS, return S2N_FAILURE)
-
-/**
- * Ensures `x` is not a POSIX error, otherwise goto `label`
- */
-#define GUARD_POSIX_GOTO( x , label )               __S2N_ENSURE((x) >= S2N_SUCCESS, goto label)
-
-/**
- * Ensures `x` is not a POSIX error, otherwise the function will return `NULL`
- */
-#define GUARD_POSIX_PTR( x )                        __S2N_ENSURE((x) >= S2N_SUCCESS, return NULL)
-
-/**
- * Ensures `x` is not `NULL`, otherwise the function will return a POSIX error (`-1`)
- */
-#define GUARD_POSIX_NONNULL( x )                    __S2N_ENSURE((x) != NULL, return S2N_FAILURE)
-
-/**
- * Ensures `x` is not a OpenSSL error, otherwise the function will `BAIL` with `error`
- */
-/* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
-#define GUARD_POSIX_OSSL( x , error )               ENSURE_POSIX((x) == _OSSL_SUCCESS, error)
-
-/**
- * Ensures `x` is not a POSIX error, otherwise the function will return a `S2N_RESULT_ERROR`
- */
-#define GUARD_AS_RESULT( x )                        __S2N_ENSURE((x) >= S2N_SUCCESS, return S2N_RESULT_ERROR)
-
-/**
- * Ensures `x` is OK (S2N_RESULT), otherwise the function will return a POSIX error (`-1`)
- */
-#define GUARD_AS_POSIX( x )                         __S2N_ENSURE(s2n_result_is_ok(x), return S2N_FAILURE)
-
-/**
- * Performs a safe memcpy
- */
-#define CHECKED_MEMCPY( d , s , n )                 __S2N_ENSURE_SAFE_MEMCPY((d), (s), (n), GUARD_RESULT_NONNULL)
-
-/**
- * Performs a safe memset
- */
-#define CHECKED_MEMSET( d , c , n )                 __S2N_ENSURE_SAFE_MEMSET((d), (c), (n), ENSURE_REF)
 
 /**
  * Marks a case of a switch statement as able to fall through to the next case
@@ -377,41 +105,263 @@ extern int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out);
 extern int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out);
 extern int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out);
 extern int s2n_sub_overflow(uint32_t a, uint32_t b, uint32_t* out);
+
+
 /* START COMPATIBILITY LAYER */
 
 /**
- * NOTE: This will be removed once everything is using s2n_result
+ * NOTE: This will be removed once everything is using the new safety macro
+ *       naming conventions
  */
+
+/**
+ * Sets the global `errno` and returns with a `S2N_RESULT_ERROR`
+ */
+#define BAIL( x )                                    RESULT_BAIL(x)
+
+/**
+ * Sets the global `errno` and returns with a POSIX error (`-1`)
+ */
+#define BAIL_POSIX( x )                              POSIX_BAIL(x)
+
+/**
+ * Sets the global `errno` and returns with a `NULL` pointer value
+ */
+#define BAIL_PTR( x )                                PTR_BAIL(x)
+
+/**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL` with an `error`
+ */
+#define ENSURE( condition , error )                  RESULT_ENSURE((condition), (error))
+
+/**
+ * Ensures the `result` is OK, otherwise the function will `BAIL` with an `error`
+ */
+#define ENSURE_OK( result , error )                  RESULT_ENSURE_OK((result), (error))
+
+/**
+ * Ensures `n` is greater than or equal to `min`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
+ */
+#define ENSURE_GTE( n , min )                        RESULT_ENSURE_GTE((n), (min))
+
+/**
+ * Ensures `n` is less than or equal to `max`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
+ */
+#define ENSURE_LTE( n , max )                        RESULT_ENSURE_LTE((n), (max))
+
+/**
+ * Ensures `n` is greater than `min`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
+ */
+#define ENSURE_GT( n , min )                         RESULT_ENSURE_GT((n), (min))
+
+/**
+ * Ensures `n` is less than `min`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
+ */
+#define ENSURE_LT( n , max )                         RESULT_ENSURE_LT((n), (max))
+
+/**
+ * Ensures `a` is equal to `b`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
+ */
+#define ENSURE_EQ( a , b )                           RESULT_ENSURE_EQ((a), (b))
+
+/**
+ * Ensures `a` is not equal to `b`, otherwise the function will `BAIL` with a `S2N_ERR_SAFETY` error
+ */
+#define ENSURE_NE( a , b )                           RESULT_ENSURE_NE((a), (b))
+
+/**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with an `error`
+ */
+#define ENSURE_POSIX( condition , error )           POSIX_ENSURE((condition), (error))
+
+/**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL_PTR` with an `error`
+ */
+#define ENSURE_PTR( condition , error )             PTR_ENSURE((condition), (error))
+
+/**
+ * Ensures `x` is not `NULL`, otherwise the function will `BAIL_PTR` with an `error`
+ */
+#define ENSURE_REF_PTR( x )                         PTR_ENSURE_REF(x)
+
+/**
+ * Ensures `x` is a readable reference, otherwise the function will `BAIL` with `S2N_ERR_NULL`
+ */
+#define ENSURE_REF( x )                             RESULT_ENSURE_REF(x)
+
+/**
+ * Ensures `x` is a readable reference, otherwise the function will `BAIL_POSIX` with `S2N_ERR_NULL`
+ */
+#define ENSURE_POSIX_REF( x )                       POSIX_ENSURE_REF(x)
+
+/**
+ * Ensures `x` is a mutable reference, otherwise the function will `BAIL` with `S2N_ERR_NULL`
+ */
+#define ENSURE_MUT( x )                             RESULT_ENSURE_MUT(x)
+
+/**
+ * Ensures `x` is a mutable reference, otherwise the function will `BAIL_POSIX` with `S2N_ERR_NULL`
+ */
+#define ENSURE_POSIX_MUT( x )                       POSIX_ENSURE_MUT(x)
+
+/**
+ * Ensures `min <= n <= max`
+ */
+#define ENSURE_INCLUSIVE_RANGE( min , n , max )     RESULT_ENSURE_INCLUSIVE_RANGE((min), (n), (max))
+
+/**
+ * Ensures `min < n < max`
+ */
+#define ENSURE_EXCLUSIVE_RANGE( min , n , max )     RESULT_ENSURE_EXCLUSIVE_RANGE((min), (n), (max))
+
+/**
+ * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
+ */
+#define PRECONDITION( result )                      RESULT_PRECONDITION(result)
+
+/**
+ * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
+ */
+#define POSTCONDITION( result )                     RESULT_POSTCONDITION(result)
+
+/**
+ * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
+ */
+#define PRECONDITION_POSIX( result )                POSIX_PRECONDITION(result)
+
+/**
+ * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
+ */
+#define POSTCONDITION_POSIX( result )               POSIX_POSTCONDITION(result)
+
+/**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL` with an `error`.
+ * When the code is built in debug mode, they are checked.
+ * When the code is built in production mode, they are ignored.
+ */
+#define DEBUG_ENSURE( condition, error )            RESULT_DEBUG_ENSURE((condition), (error))
+
+/**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with an `error`.
+ * When the code is built in debug mode, they are checked.
+ * When the code is built in production mode, they are ignored.
+ */
+#define DEBUG_ENSURE_POSIX( condition, error )      POSIX_DEBUG_ENSURE((condition), (error))
+
+/**
+ * Ensures `x` is not an error, otherwise the function will return an error signal
+ *
+ * Note: this currently accepts POSIX error signals but will transition to accept s2n_result
+ */
+#define GUARD( x )                                  POSIX_GUARD(x)
+
+/**
+ * Ensures `x` is not an error, otherwise the function will return `NULL`
+ *
+ * Note: this currently accepts POSIX error signals but will transition to accept s2n_result
+ */
+#define GUARD_PTR( x )                              PTR_GUARD_POSIX(x)
+
+/**
+ * Ensures `x` is not `NULL`, otherwise the function will return an error signal
+ *
+ * Note: this currently accepts POSIX error signals but will transition to accept s2n_result
+ */
+#define GUARD_NONNULL( x )                          POSIX_GUARD_PTR(x)
+
+/**
+ * Ensures `x` is not `NULL`, otherwise the function will return `NULL`
+ */
+#define GUARD_NONNULL_PTR( x )                      PTR_GUARD(x)
+
+/**
+ * Ensures `x` is not a OpenSSL error, otherwise the function will return an error signal
+ *
+ * Note: this currently accepts POSIX error signals but will transition to accept s2n_result
+ */
+#define GUARD_OSSL( x, error )                      POSIX_GUARD_OSSL((x), (error))
+
+/**
+ * Ensures `x` is ok, otherwise the function will return an `S2N_RESULT_ERROR`
+ */
+#define GUARD_RESULT( x )                           RESULT_GUARD(x)
+
+/**
+ * Ensures `x` is ok, otherwise the function will return `NULL`
+ */
+#define GUARD_RESULT_PTR( x )                       PTR_GUARD_RESULT(x)
+
+/**
+ * Ensures `x` is not `NULL`, otherwise the function will return an `S2N_RESULT_ERROR`
+ */
+#define GUARD_RESULT_NONNULL( x )                   RESULT_GUARD_PTR(x)
+
+/**
+ * Ensures `x` is not a OpenSSL error, otherwise the function will `BAIL` with `error`
+ */
+/* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
+#define GUARD_RESULT_OSSL( x , error )              RESULT_GUARD_OSSL((x), (error))
+
+/**
+ * Ensures `x` is not a POSIX error, otherwise return a POSIX error
+ */
+#define GUARD_POSIX( x )                            POSIX_GUARD(x)
+
+/**
+ * Ensures `x` is not a POSIX error, otherwise the function will return `NULL`
+ */
+#define GUARD_POSIX_PTR( x )                        PTR_GUARD_POSIX(x)
+
+/**
+ * Ensures `x` is not `NULL`, otherwise the function will return a POSIX error (`-1`)
+ */
+#define GUARD_POSIX_NONNULL( x )                    POSIX_GUARD_PTR(x)
+
+/**
+ * Ensures `x` is not a OpenSSL error, otherwise the function will `BAIL` with `error`
+ */
+/* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
+#define GUARD_POSIX_OSSL( x , error )               POSIX_GUARD_OSSL((x), (error))
+
+/**
+ * Ensures `x` is not a POSIX error, otherwise the function will return a `S2N_RESULT_ERROR`
+ */
+#define GUARD_AS_RESULT( x )                        RESULT_GUARD_POSIX(x)
+
+/**
+ * Ensures `x` is OK (S2N_RESULT), otherwise the function will return a POSIX error (`-1`)
+ */
+#define GUARD_AS_POSIX( x )                         POSIX_GUARD_RESULT(x)
+
+/**
+ * Performs a safe memcpy
+ */
+#define CHECKED_MEMCPY( d , s , n )                 RESULT_CHECKED_MEMCPY((d), (s), (n))
+
+/**
+ * Performs a safe memset
+ */
+#define CHECKED_MEMSET( d , c , n )                 RESULT_CHECKED_MEMSET((d), (c), (n))
 
 /* `NULL` check a pointer */
 
-/* Note: this macro is replaced by ENSURE_POSIX_REF */
-#define notnull_check(ptr)                          ENSURE_POSIX_REF(ptr)
-/* Note: this macro is replaced by ENSURE_REF_PTR */
-#define notnull_check_ptr(ptr)                      ENSURE_REF_PTR(ptr)
+/* Note: this macro is replaced by POSIX_ENSURE_REF */
+#define notnull_check(ptr)                          POSIX_ENSURE_REF(ptr)
+/* Note: this macro is replaced by PTR_ENSURE_REF */
+#define notnull_check_ptr(ptr)                      PTR_ENSURE_REF(ptr)
 
 /* Range check a number */
-#define gte_check( n , min )                        ENSURE_POSIX((n) >= (min), S2N_ERR_SAFETY)
-#define lte_check( n , max )                        ENSURE_POSIX((n) <= (max), S2N_ERR_SAFETY)
-#define gt_check( n , min )                         ENSURE_POSIX((n) > (min), S2N_ERR_SAFETY)
-#define lt_check( n , max )                         ENSURE_POSIX((n) < (max), S2N_ERR_SAFETY)
-#define eq_check( a , b )                           ENSURE_POSIX((a) == (b), S2N_ERR_SAFETY)
-#define ne_check( a , b )                           ENSURE_POSIX((a) != (b), S2N_ERR_SAFETY)
-#define inclusive_range_check( low, n, high )       \
-  do  {                                             \
-    __typeof( n ) __tmp_n = ( n );                  \
-    gte_check(__tmp_n, low);                        \
-    lte_check(__tmp_n, high);                       \
-  } while (0)
-#define exclusive_range_check( low, n, high )       \
-  do {                                              \
-    __typeof( n ) __tmp_n = ( n );                  \
-    gt_check(__tmp_n, low);                         \
-    lt_check(__tmp_n, high);                        \
-  } while (0)
+#define gte_check( n , min )                        POSIX_ENSURE_GTE((n), (min))
+#define lte_check( n , max )                        POSIX_ENSURE_LTE((n), (max))
+#define gt_check( n , min )                         POSIX_ENSURE_GT((n), (min))
+#define lt_check( n , max )                         POSIX_ENSURE_LT((n), (max))
+#define eq_check( a , b )                           POSIX_ENSURE_EQ((a), (b))
+#define ne_check( a , b )                           POSIX_ENSURE_NE((a), (b))
+#define inclusive_range_check( low, n, high )       POSIX_ENSURE_INCLUSIVE_RANGE((low), (n), (high))
+#define exclusive_range_check( low, n, high )       POSIX_ENSURE_EXCLUSIVE_RANGE((low), (n), (high))
 
-#define memcpy_check( d , s , n )                   __S2N_ENSURE_SAFE_MEMCPY((d), (s), (n), GUARD_POSIX_NONNULL)
+#define memcpy_check( d , s , n )                   POSIX_CHECKED_MEMCPY((d), (s), (n))
 /* This will fail to build if d is an array. Cast the array to a pointer first! */
-#define memset_check( d , c , n )                   __S2N_ENSURE_SAFE_MEMSET((d), (c), (n), ENSURE_POSIX_REF)
+#define memset_check( d , c , n )                   POSIX_CHECKED_MEMSET((d), (c), (n))
 
 /* END COMPATIBILITY LAYER */

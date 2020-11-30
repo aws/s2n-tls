@@ -15,11 +15,12 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <smack.h>
 #include "crypto/s2n_hash.h"
 #include "error/s2n_errno.h"
-#include <smack.h>
 #include "ct-verif.h"
 #include "sidetrail.h"
+#include "utils/s2n_safety.h"
 
 int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
 {
