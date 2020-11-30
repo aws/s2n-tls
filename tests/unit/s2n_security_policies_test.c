@@ -477,7 +477,7 @@ int main(int argc, char **argv)
             .signature_schemes = test_sig_scheme_pref_list,
         };
 
-        EXPECT_SUCCESS(s2n_validate_certificate_signature_preferences(&test_certificate_signature_preferences));
+        EXPECT_OK(s2n_validate_certificate_signature_preferences(&test_certificate_signature_preferences));
     }
     /* s2n_validate_certificate_signature_preferences will succeed if all rsa_pss schemes are included in the preference list */
     {
@@ -495,7 +495,7 @@ int main(int argc, char **argv)
             .signature_schemes = test_sig_scheme_pref_list,
         };
 
-        EXPECT_SUCCESS(s2n_validate_certificate_signature_preferences(&test_certificate_signature_preferences));
+        EXPECT_OK(s2n_validate_certificate_signature_preferences(&test_certificate_signature_preferences));
     }
      /* s2n_validate_certificate_signature_preferences will fail if not all rsa_pss schemes are included in the preference list */
     {
@@ -509,7 +509,7 @@ int main(int argc, char **argv)
             .signature_schemes = test_sig_scheme_pref_list,
         };
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_validate_certificate_signature_preferences(&test_certificate_signature_preferences), S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_ERROR_WITH_ERRNO(s2n_validate_certificate_signature_preferences(&test_certificate_signature_preferences), S2N_ERR_INVALID_SECURITY_POLICY);
     }
 
     END_TEST();

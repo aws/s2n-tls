@@ -659,7 +659,7 @@ int s2n_security_policies_init()
 
         const struct s2n_signature_preferences *certificate_signature_preference = security_policy->certificate_signature_preferences;
         if (certificate_signature_preference != NULL) {
-            GUARD(s2n_validate_certificate_signature_preferences(security_policy->certificate_signature_preferences));
+            GUARD_AS_POSIX(s2n_validate_certificate_signature_preferences(security_policy->certificate_signature_preferences));
         }
 
         if (security_policy != &security_policy_null) {
@@ -801,9 +801,9 @@ int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferenc
     return S2N_SUCCESS;
 }
 
-int s2n_validate_certificate_signature_preferences(const struct s2n_signature_preferences *certificate_signature_preferences)
+S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signature_preferences *certificate_signature_preferences)
 {
-    notnull_check(certificate_signature_preferences);
+    ENSURE_REF(certificate_signature_preferences);
 
     size_t rsa_pss_scheme_count = 0;
 
@@ -814,6 +814,6 @@ int s2n_validate_certificate_signature_preferences(const struct s2n_signature_pr
     }
 
     /* Require all rsa pss signature schemes or none */
-    ENSURE_POSIX(rsa_pss_scheme_count == NUM_RSA_PSS_SCHEMES || rsa_pss_scheme_count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
-    return S2N_SUCCESS;
+    ENSURE(rsa_pss_scheme_count == NUM_RSA_PSS_SCHEMES || rsa_pss_scheme_count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
+    return S2N_RESULT_OK;
 }
