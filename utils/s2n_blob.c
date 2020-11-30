@@ -48,7 +48,6 @@ int s2n_blob_zero(struct s2n_blob *b)
 {
     PRECONDITION_POSIX(s2n_blob_is_valid(b));
     memset_check(b->data, 0, MAX(b->allocated, b->size));
-    POSTCONDITION_POSIX(s2n_blob_is_valid(b));
     return S2N_SUCCESS;
 }
 
@@ -65,7 +64,6 @@ int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t of
     slice->growable = 0;
     slice->allocated = 0;
 
-    POSTCONDITION_POSIX(s2n_blob_is_valid(slice));
     return S2N_SUCCESS;
 }
 
@@ -75,7 +73,6 @@ int s2n_blob_char_to_lower(struct s2n_blob *b)
     for (size_t i = 0; i < b->size; i++) {
         b->data[i] = tolower(b->data[i]);
     }
-    POSTCONDITION_POSIX(s2n_blob_is_valid(b));
     return S2N_SUCCESS;
 }
 
@@ -120,6 +117,5 @@ int s2n_hex_string_to_bytes(const uint8_t *str, struct s2n_blob *blob)
         blob->data[i / 2] = high_nibble << 4 | low_nibble;
     }
 
-    POSTCONDITION_POSIX(s2n_blob_is_valid(blob));
     return S2N_SUCCESS;
 }
