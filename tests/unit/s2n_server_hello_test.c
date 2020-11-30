@@ -504,12 +504,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_reset_tls13());
 
         struct s2n_config *quic_config = s2n_config_new();
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(quic_config, "test_all"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(quic_config, TEST_ALL));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(quic_config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_enable_quic(quic_config));
 
         struct s2n_config *non_quic_config = s2n_config_new();
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(non_quic_config, "test_all"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(non_quic_config, TEST_ALL));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(non_quic_config, chain_and_key));
 
         /* Succeeds when negotiating TLS1.3 */

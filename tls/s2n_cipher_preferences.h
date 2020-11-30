@@ -43,8 +43,10 @@ extern const struct s2n_cipher_preferences cipher_preferences_20190120;
 extern const struct s2n_cipher_preferences cipher_preferences_20190121;
 extern const struct s2n_cipher_preferences cipher_preferences_20190122;
 extern const struct s2n_cipher_preferences cipher_preferences_test_all;
+extern const struct s2n_cipher_preferences cipher_preferences_test_all_no_pq;
 
 extern const struct s2n_cipher_preferences cipher_preferences_test_all_tls12;
+extern const struct s2n_cipher_preferences cipher_preferences_test_all_tls12_no_pq;
 extern const struct s2n_cipher_preferences cipher_preferences_test_all_fips;
 extern const struct s2n_cipher_preferences cipher_preferences_test_all_ecdsa;
 extern const struct s2n_cipher_preferences cipher_preferences_test_ecdsa_priority;

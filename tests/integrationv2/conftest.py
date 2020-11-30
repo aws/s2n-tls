@@ -23,6 +23,7 @@ def pytest_configure(config):
         set_flag(S2N_NO_PQ, True)
     if fips_mode is 1:
         set_flag(S2N_FIPS_MODE, True)
+        set_flag(S2N_NO_PQ, True)
 
     set_flag(S2N_PROVIDER_VERSION, config.getoption('provider-version', None))
 

@@ -77,6 +77,39 @@ for file in $S2N_FILES_ASSERT_NOTNULL_CHECK; do
   done < <(grep -rnE -A 1 "=\ss2n_stuffer_raw_read\(.*\)" $file)
 done
 
+# Assert that we do not set cipher preferences using the "test_all" or
+# "test_all_tls12" string literals. Tests should use the `TEST_ALL`
+# and `TEST_ALL_TLS12` strings that are initialized in s2n_test.h as
+# part of BEGIN_TEST().
+S2N_FILES_TEST_ALL_POLICY_CHECK=$(find "$PWD" -type f -name "s2n*.[ch]" -path "*")
+for file in $S2N_FILES_TEST_ALL_POLICY_CHECK; do
+  TEST_ALL_CONFIG=`grep -rne 's2n_config_set_cipher_preferences(.*, "test_all")' $file`
+  TEST_ALL_CONN=`grep -rne 's2n_connection_set_cipher_preferences(.*, "test_all")' $file`
+  TEST_ALL_TLS12_CONFIG=`grep -rne 's2n_config_set_cipher_preferences(.*, "test_all_tls12")' $file`
+  TEST_ALL_TLS12_CONN=`grep -rne 's2n_connection_set_cipher_preferences(.*, "test_all_tls12")' $file`
+
+  if [ "${#TEST_ALL_CONFIG}" != "0" ]; then
+    FAILED=1
+    printf "\e[1;34mGrep for 's2n_config_set_cipher_preferences(*, \"test_all\")' check failed in $file:\e[0m\n${TEST_ALL_CONFIG}\nDid you intend to use TEST_ALL? (See s2n_test.h)\n\n"
+  fi
+
+  if [ "${#TEST_ALL_CONN}" != "0" ]; then
+    FAILED=1
+    printf "\e[1;34mGrep for 's2n_connection_set_cipher_preferences(*, \"test_all\")' check failed in $file:\e[0m\n${TEST_ALL_CONN}\nDid you intend to use TEST_ALL? (See s2n_test.h)\n\n"
+  fi
+
+  if [ "${#TEST_ALL_TLS12_CONFIG}" != "0" ]; then
+    FAILED=1
+    printf "\e[1;34mGrep for 's2n_config_set_cipher_preferences(*, \"test_all_tls12\")' check failed in $file:\e[0m\n${TEST_ALL_TLS12_CONFIG}\nDid you intend to use TEST_ALL_TLS12? (See s2n_test.h)\n\n"
+  fi
+
+  if [ "${#TEST_ALL_TLS12_CONN}" != "0" ]; then
+    FAILED=1
+    printf "\e[1;34mGrep for 's2n_connection_set_cipher_preferences(*, \"test_all_tls12\")' check failed in $file:\e[0m\n${TEST_ALL_TLS12_CONN}\nDid you intend to use TEST_ALL_TLS12? (See s2n_test.h)\n\n"
+  fi
+
+done
+
 if [ $FAILED == 1 ]; then
   printf "\\033[31;1mFAILED Grep For Simple Mistakes check\\033[0m\\n"
   exit -1

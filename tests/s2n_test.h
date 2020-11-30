@@ -26,8 +26,16 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_result.h"
 #include "tls/s2n_tls13.h"
+#include "pq-crypto/s2n_pq.h"
 
 int test_count;
+
+/* These strings are initialized in BEGIN_TEST() to the appropriate security policy
+ * (aka cipher pref) version based on whether or not post-quantum crypto is enabled.
+ * Unit tests should use these strings instead of "test_all" or "test_all_tls12"
+ * literals. */
+const char *TEST_ALL;
+const char *TEST_ALL_TLS12;
 
 /* Macro definitions for calls that occur within BEGIN_TEST() and END_TEST() to preserve the SKIPPED test behavior
  * by ignoring the test_count, keeping it as 0 to indicate that a test was skipped. */
@@ -48,6 +56,13 @@ int test_count;
     EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));  \
     S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                    \
     EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                  \
+    if (s2n_pq_is_enabled()) {                                 \
+        TEST_ALL = "test_all";                                 \
+        TEST_ALL_TLS12 = "test_all_tls12";                     \
+    } else {                                                   \
+        TEST_ALL = "test_all_no_pq";                           \
+        TEST_ALL_TLS12 = "test_all_tls12_no_pq";               \
+    }                                                          \
     fprintf(stdout, "Running %-50s ... ", __FILE__);           \
   } while(0)
 

@@ -1,8 +1,19 @@
 import pytest
 import threading
 
-from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates, TLS12_PQ_CIPHER_PREFS
-from global_flags import get_flag, S2N_PROVIDER_VERSION
+from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates
+from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_NO_PQ
+
+
+# These strings are initialized to the appropriate S2N security policy
+# (aka cipher pref) version based on whether or not post-quantum crypto
+# is enabled.
+if get_flag(S2N_NO_PQ, False) is False:
+    TEST_ALL = 'test_all'
+    TEST_ALL_TLS12 = 'test_all_tls12'
+else:
+    TEST_ALL = 'test_all_no_pq'
+    TEST_ALL_TLS12 = 'test_all_tls12_no_pq'
 
 
 class Provider(object):
@@ -126,6 +137,9 @@ class S2N(Provider):
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
+        if cipher.pq and get_flag(S2N_NO_PQ, False) is True:
+            return False
+
         return True
 
     def setup_client(self):
@@ -156,10 +170,12 @@ class S2N(Provider):
         if self.options.reconnect is True:
             cmd_line.append('-r')
 
-        cipher_prefs = 'test_all_tls12'
+        # If the test provided a cipher (security policy) that is compatible with
+        # s2n, we'll use it. Otherwise, default to the appropriate `test_all` policy.
+        cipher_prefs = TEST_ALL_TLS12
         if self.options.protocol is Protocols.TLS13:
-            cipher_prefs = 'test_all'
-        if self.options.cipher in TLS12_PQ_CIPHER_PREFS:
+            cipher_prefs = TEST_ALL
+        if (self.options.cipher is not None) and (self.options.cipher.s2n is True):
             cipher_prefs = self.options.cipher.name
 
         cmd_line.extend(['-c', cipher_prefs])
@@ -193,10 +209,15 @@ class S2N(Provider):
         if self.options.insecure is True:
             cmd_line.append('--insecure')
 
-        if self.options.protocol == Protocols.TLS13:
-            cmd_line.extend(['-c', 'test_all'])
-        else:
-            cmd_line.extend(['-c', 'test_all_tls12'])
+        # If the test provided a cipher (security policy) that is compatible with
+        # s2n, we'll use it. Otherwise, default to the appropriate `test_all` policy.
+        cipher_prefs = TEST_ALL_TLS12
+        if self.options.protocol is Protocols.TLS13:
+            cipher_prefs = TEST_ALL
+        if (self.options.cipher is not None) and (self.options.cipher.s2n is True):
+            cipher_prefs = self.options.cipher.name
+
+        cmd_line.extend(['-c', cipher_prefs])
 
         if self.options.use_client_auth is True:
             cmd_line.append('-m')
@@ -434,20 +455,20 @@ class JavaSSL(Provider):
 
     def setup_server(self):
         pytest.skip('JavaSSL does not support server mode at this time')
-    
+
     def setup_client(self):
         self.ready_to_send_input_marker = "Starting handshake"
         cmd_line = ['java', "-classpath", "bin", "SSLSocketClient"]
 
         if self.options.port is not None:
             cmd_line.extend([self.options.port])
-        
+
         if self.options.cert is not None:
             cmd_line.extend([self.options.cert.cert])
-        
+
         if self.options.protocol is not None:
             cmd_line.extend([self.options.protocol.name])
-        
+
         if self.options.cipher.iana_standard_name is not None:
             cmd_line.extend([self.options.cipher.iana_standard_name])
 

@@ -55,8 +55,10 @@ extern const struct s2n_security_policy security_policy_20190214;
 extern const struct s2n_security_policy security_policy_20190801;
 extern const struct s2n_security_policy security_policy_20190802;
 extern const struct s2n_security_policy security_policy_test_all;
+extern const struct s2n_security_policy security_policy_test_all_no_pq;
 
 extern const struct s2n_security_policy security_policy_test_all_tls12;
+extern const struct s2n_security_policy security_policy_test_all_tls12_no_pq;
 extern const struct s2n_security_policy security_policy_test_all_fips;
 extern const struct s2n_security_policy security_policy_test_all_ecdsa;
 extern const struct s2n_security_policy security_policy_test_ecdsa_priority;
