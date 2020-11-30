@@ -78,10 +78,9 @@ int main(int argc, char **argv)
             certLen = strlen((const char*)cert_file);
 
             /* Read the test certificates into an Openssl X509 struct */
-            certBio = BIO_new(BIO_s_mem());
-            BIO_write(certBio, cert_file, certLen);
-            cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL);
-            S2N_ERROR_IF(cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
+            EXPECT_NOT_NULL(certBio = BIO_new(BIO_s_mem()));
+            EXPECT_SUCCESS(BIO_write(certBio, cert_file, certLen));
+            EXPECT_NOT_NULL(cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL));
 
             EXPECT_OK(s2n_is_certificate_sig_scheme_supported(conn, cert, &test_certificate_signature_preferences, &out));
             EXPECT_TRUE(out);
@@ -96,10 +95,9 @@ int main(int argc, char **argv)
             certLen = strlen((const char*)cert_file);
 
             /* Read the test certificates into an Openssl X509 struct */
-            certBio = BIO_new(BIO_s_mem());
-            BIO_write(certBio, cert_file, certLen);
-            cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL);
-            S2N_ERROR_IF(cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
+            EXPECT_NOT_NULL(certBio = BIO_new(BIO_s_mem()));
+            EXPECT_SUCCESS(BIO_write(certBio, cert_file, certLen));
+            EXPECT_NOT_NULL(cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL));
 
             EXPECT_OK(s2n_is_certificate_sig_scheme_supported(conn, cert, &test_certificate_signature_preferences, &out));
             EXPECT_FALSE(out);
@@ -117,10 +115,9 @@ int main(int argc, char **argv)
             certLen = strlen((const char*)cert_file);
 
             /* Read the test certificates into an Openssl X509 struct */
-            certBio = BIO_new(BIO_s_mem());
-            BIO_write(certBio, cert_file, certLen);
-            cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL);
-            S2N_ERROR_IF(cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
+            EXPECT_NOT_NULL(certBio = BIO_new(BIO_s_mem()));
+            EXPECT_SUCCESS(BIO_write(certBio, cert_file, certLen));
+            EXPECT_NOT_NULL(cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL));
 
             EXPECT_OK(s2n_is_certificate_sig_scheme_supported(conn, cert, &test_certificate_signature_preferences, &out));
             EXPECT_FALSE(out);
@@ -138,10 +135,9 @@ int main(int argc, char **argv)
             certLen = strlen((const char*)cert_file);
 
             /* Read the test certificates into an Openssl X509 struct */
-            certBio = BIO_new(BIO_s_mem());
-            BIO_write(certBio, cert_file, certLen);
-            cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL);
-            S2N_ERROR_IF(cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
+            EXPECT_NOT_NULL(certBio = BIO_new(BIO_s_mem()));
+            EXPECT_SUCCESS(BIO_write(certBio, cert_file, certLen));
+            EXPECT_NOT_NULL(cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL));
 
             EXPECT_OK(s2n_is_certificate_sig_scheme_supported(conn, cert, &test_certificate_signature_preferences, &out));
             EXPECT_TRUE(out);
@@ -156,10 +152,9 @@ int main(int argc, char **argv)
             certLen = strlen((const char*)cert_file);
 
             /* Read the test certificates into an Openssl X509 struct */
-            certBio = BIO_new(BIO_s_mem());
-            BIO_write(certBio, cert_file, certLen);
-            cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL);
-            S2N_ERROR_IF(cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
+            EXPECT_NOT_NULL(certBio = BIO_new(BIO_s_mem()));
+            EXPECT_SUCCESS(BIO_write(certBio, cert_file, certLen));
+            EXPECT_NOT_NULL(cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL));
 
             EXPECT_OK(s2n_is_certificate_sig_scheme_supported(conn, cert, &pss_certificate_signature_preferences, &out));
             EXPECT_TRUE(out);
