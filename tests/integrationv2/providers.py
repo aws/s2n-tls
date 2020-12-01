@@ -175,7 +175,7 @@ class S2N(Provider):
         cipher_prefs = TEST_ALL_TLS12
         if self.options.protocol is Protocols.TLS13:
             cipher_prefs = TEST_ALL
-        if (self.options.cipher is not None) and (self.options.cipher.s2n is True):
+        if self.options.cipher and self.options.cipher.s2n:
             cipher_prefs = self.options.cipher.name
 
         cmd_line.extend(['-c', cipher_prefs])
@@ -214,7 +214,7 @@ class S2N(Provider):
         cipher_prefs = TEST_ALL_TLS12
         if self.options.protocol is Protocols.TLS13:
             cipher_prefs = TEST_ALL
-        if (self.options.cipher is not None) and (self.options.cipher.s2n is True):
+        if self.options.cipher and self.options.cipher.s2n:
             cipher_prefs = self.options.cipher.name
 
         cmd_line.extend(['-c', cipher_prefs])
