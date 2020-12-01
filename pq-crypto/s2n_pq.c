@@ -109,7 +109,7 @@ S2N_RESULT s2n_disable_sikep434r2_asm() {
 }
 
 S2N_RESULT s2n_try_enable_sikep434r2_asm() {
-    if (s2n_cpu_supports_sikep434r2_asm()) {
+    if (s2n_pq_is_enabled() && s2n_cpu_supports_sikep434r2_asm()) {
         sikep434r2_asm_enabled = true;
     }
     return S2N_RESULT_OK;
