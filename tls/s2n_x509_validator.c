@@ -375,7 +375,6 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         op_code = X509_verify_cert(validator->store_ctx);
 
         S2N_ERROR_IF(op_code <= 0, S2N_ERR_CERT_UNTRUSTED);
-
         validator->state = VALIDATED;
     }
 

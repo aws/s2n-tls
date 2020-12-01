@@ -659,7 +659,7 @@ int s2n_security_policies_init()
 
         const struct s2n_signature_preferences *certificate_signature_preference = security_policy->certificate_signature_preferences;
         if (certificate_signature_preference != NULL) {
-            GUARD_AS_POSIX(s2n_validate_certificate_signature_preferences(security_policy->certificate_signature_preferences));
+            GUARD_AS_POSIX(s2n_validate_certificate_signature_preferences(certificate_signature_preference));
         }
 
         if (security_policy != &security_policy_null) {
