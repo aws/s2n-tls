@@ -148,7 +148,7 @@ There are three different ways to do this:
   * ```GUARD_AS_POSIX(OSSL_POSIX(EVP_example_method_name_here()));```
   * ```GUARD_AS_RESULT(OSSL_PTR_WITH(EVP_PKEY_new(), S2N_ERR_NOMEM));```
   
-  This lets you use one macro pick what whether you want to check a return value or pointer and the other to select the return type for the containing method.
+  This lets you use one macro pick to check a return value or pointer and the other to select the return type for the containing method.
 * You can use a `GUARD_*_OSSL` macro directly. (This is equivalant the prior constructions but less flexible.)
 * You can use an if statement for a more complicated check and then call an `OSSL_*_ERROR` macro set the error code and immediately return.
 
@@ -444,4 +444,3 @@ We are happy to accept contributions to s2n. We suggest the following general pr
 * When you're ready, and when all tests are passing, create a pull request to the master awslabs s2n repository.
 * All changes to s2n go through code review and legal review. All submissions and contributions are made under the terms of the Apache Software License 2.0. For larger contributions, we may ask you to sign a contributor license agreement.
 * s2n undergoes periodic government and commercial security analyses, including code audits and penetration tests. To participate in these analyses, we may ask you to sign a Non-Disclosure Agreement.
-
