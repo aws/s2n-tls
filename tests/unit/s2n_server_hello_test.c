@@ -539,7 +539,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, non_quic_config));
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, TEST_ALL_TLS12));
 
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, non_quic_config));

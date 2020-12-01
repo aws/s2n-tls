@@ -387,7 +387,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "test_all_tls12"));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, TEST_ALL_TLS12));
 
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
@@ -479,7 +479,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, TEST_ALL_TLS12));
 
             GUARD(s2n_connection_get_security_policy(server_conn, &security_policy));
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
