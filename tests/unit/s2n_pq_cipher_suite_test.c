@@ -26,6 +26,9 @@ const struct s2n_cipher_suite *pq_cipher_suites[NUM_PQ_CIPHER_SUITES] = {
 };
 #else
 #define NUM_PQ_CIPHER_SUITES 0
+const struct s2n_cipher_suite *pq_cipher_suites[1] = {
+        NULL,
+};
 #endif
 
 int main() {
@@ -48,13 +51,11 @@ int main() {
             }
         }
 
-#if !defined(S2N_NO_PQ)
         /* The leftover suites on cipher_preferences_test_all should be PQ */
         for (size_t j = 0; j < NUM_PQ_CIPHER_SUITES; j++) {
             EXPECT_EQUAL(cipher_preferences_test_all.suites[i+j], pq_cipher_suites[j]);
             EXPECT_TRUE(s2n_kex_includes(cipher_preferences_test_all.suites[i+j]->key_exchange_alg, &s2n_kem));
         }
-#endif
     }
 
     {
@@ -74,13 +75,11 @@ int main() {
             }
         }
 
-#if !defined(S2N_NO_PQ)
         /* The leftover suites on cipher_preferences_test_all_tls12 should be PQ */
         for (size_t j = 0; j < NUM_PQ_CIPHER_SUITES; j++) {
             EXPECT_EQUAL(cipher_preferences_test_all_tls12.suites[i+j], pq_cipher_suites[j]);
             EXPECT_TRUE(s2n_kex_includes(cipher_preferences_test_all_tls12.suites[i+j]->key_exchange_alg, &s2n_kem));
         }
-#endif
     }
 
     END_TEST();
