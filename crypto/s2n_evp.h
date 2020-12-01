@@ -18,6 +18,7 @@
 #include <openssl/evp.h>
 
 #include "crypto/s2n_openssl.h"
+#include "utils/s2n_result.h"
 
 struct s2n_evp_digest {
     const EVP_MD *md;
@@ -41,4 +42,4 @@ struct s2n_evp_hmac_state {
 #endif
 
 extern int s2n_digest_allow_md5_for_fips(struct s2n_evp_digest *evp_digest);
-extern int s2n_digest_is_md5_allowed_for_fips(struct s2n_evp_digest *evp_digest);
+extern S2N_RESULT s2n_digest_is_md5_allowed_for_fips(struct s2n_evp_digest *evp_digest, bool *out);
