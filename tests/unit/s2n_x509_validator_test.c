@@ -1463,7 +1463,7 @@ int main(int argc, char **argv) {
         s2n_x509_validator_wipe(&validator);
     }
 
-    /* Test validator trusts a SHA-1 root signature with no SHA-1 signatures on the other certificates */
+    /* Test validator trusts a SHA-1 root signature with no SHA-1 signatures on the other certificates in the chain */
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init_empty(&trust_store);

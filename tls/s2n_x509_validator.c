@@ -329,6 +329,10 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
             S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
         }
 
+        if (!validator->skip_cert_validation) {
+            GUARD_AS_POSIX(s2n_validate_certificate_signature(conn, server_cert));
+        }
+
         /* Pull the public key from the first certificate */
         if (sk_X509_num(validator->cert_chain_from_wire) == 1) {
             S2N_ERROR_IF(s2n_asn1der_to_public_key_and_type(&public_key, pkey_type, &asn1cert) < 0, S2N_ERR_CERT_UNTRUSTED);
@@ -371,8 +375,6 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         op_code = X509_verify_cert(validator->store_ctx);
 
         S2N_ERROR_IF(op_code <= 0, S2N_ERR_CERT_UNTRUSTED);
-
-        GUARD_AS_POSIX(s2n_x509_validator_validate_certificate_signatures(conn, validator));
 
         validator->state = VALIDATED;
     }
@@ -554,12 +556,10 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
 #endif /* S2N_OCSP_STAPLING_SUPPORTED */
 }
 
-DEFINE_POINTER_CLEANUP_FUNC(STACK_OF(X509)*, wipe_cert_chain);
-
-S2N_RESULT s2n_x509_validator_validate_certificate_signatures(struct s2n_connection *conn, struct s2n_x509_validator *validator)
+S2N_RESULT s2n_validate_certificate_signature(struct s2n_connection *conn, X509 *x509_cert)
 {
     ENSURE_REF(conn);
-    ENSURE_REF(validator);
+    ENSURE_REF(x509_cert);
 
     const struct s2n_security_policy *security_policy;
     GUARD_AS_RESULT(s2n_connection_get_security_policy(conn, &security_policy));
@@ -567,21 +567,21 @@ S2N_RESULT s2n_x509_validator_validate_certificate_signatures(struct s2n_connect
     if (security_policy->certificate_signature_preferences == NULL) {
         return S2N_RESULT_OK;
     }
-    
-    DEFER_CLEANUP(STACK_OF(X509) *validated_chain = X509_STORE_CTX_get1_chain(validator->store_ctx), wipe_cert_chain_pointer);
 
-    const int certs_in_chain = sk_X509_num(validated_chain);
+    X509_NAME *issuer_name = X509_get_issuer_name(x509_cert);
+    ENSURE_REF(issuer_name);
 
-    /* Do not validate the root certificate */
-    unsigned int certs_to_validate = certs_in_chain - 1;
-    
-    for (size_t i = 0; i < certs_to_validate; i++) {
-        bool out = false;
-        X509 *cert = sk_X509_value(validated_chain, i);
+    X509_NAME *subject_name = X509_get_subject_name(x509_cert);
+    ENSURE_REF(subject_name);
 
-        GUARD_RESULT(s2n_is_certificate_sig_scheme_supported(conn, cert, security_policy->certificate_signature_preferences, &out));
-        ENSURE(out == true, S2N_ERR_CERT_UNTRUSTED);
+    /* Do not validate any self-signed certificates */
+    if (X509_NAME_cmp(issuer_name, subject_name) == 0) {
+        return S2N_RESULT_OK;
     }
+
+    bool out = false;
+    GUARD_RESULT(s2n_is_certificate_sig_scheme_supported(conn, x509_cert, security_policy->certificate_signature_preferences, &out));
+    ENSURE(out == true, S2N_ERR_CERT_UNTRUSTED);
 
     return S2N_RESULT_OK;
 }
