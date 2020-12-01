@@ -2,13 +2,13 @@ import pytest
 import threading
 
 from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates
-from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_NO_PQ
+from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_NO_PQ, S2N_FIPS_MODE
 
 
 # These strings are initialized to the appropriate S2N security policy
 # (aka cipher pref) version based on whether or not post-quantum crypto
 # is enabled.
-if get_flag(S2N_NO_PQ, False) is False:
+if get_flag(S2N_NO_PQ, False) is False and get_flag(S2N_FIPS_MODE, False) is False:
     TEST_ALL = 'test_all'
     TEST_ALL_TLS12 = 'test_all_tls12'
 else:
@@ -137,7 +137,7 @@ class S2N(Provider):
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
-        if cipher.pq and get_flag(S2N_NO_PQ, False) is True:
+        if cipher.pq and (get_flag(S2N_NO_PQ, False) or get_flag(S2N_FIPS_MODE, False)):
             return False
 
         return True
