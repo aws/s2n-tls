@@ -1463,11 +1463,11 @@ int main(int argc, char **argv) {
         s2n_x509_validator_wipe(&validator);
     }
 
-    /* Test validator trusts a SHA-1 root signature with no SHA-1 signatures on the other certificates in the chain */
+    /* Test validator trusts a SHA-1 signature in a certificate chain if certificate validation is off */
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init_empty(&trust_store);
-        EXPECT_EQUAL(0, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_SHA1_ROOT_SIGNATURE_CERT_CHAIN, NULL));
+        EXPECT_EQUAL(0, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_RSA_2048_PKCS1_CERT_CHAIN, NULL));
 
         struct s2n_x509_validator validator;
         s2n_x509_validator_init(&validator, &trust_store, 1);
@@ -1485,7 +1485,7 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
         
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_SHA1_ROOT_SIGNATURE_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem, S2N_TLS13);
         EXPECT_TRUE(chain_len > 0);
@@ -1494,6 +1494,7 @@ int main(int argc, char **argv) {
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type;
+        validator.skip_cert_validation = 1;
         EXPECT_EQUAL(S2N_CERT_OK,
                      s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
 
@@ -1506,7 +1507,7 @@ int main(int argc, char **argv) {
         s2n_x509_trust_store_wipe(&trust_store);
     }
 
-    /* Test validator does not trust a SHA-1 signature in a certificate that is not the root certificate */
+    /* Test validator does not trust a SHA-1 signature in a certificate chain */
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init_empty(&trust_store);

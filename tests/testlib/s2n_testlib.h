@@ -130,12 +130,8 @@ int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_
 #define S2N_ONE_TRAILING_BYTE_CERT_BIN         "../pems/one_trailing_byte_cert.bin"
 #define S2N_TWO_TRAILING_BYTE_CERT_BIN         "../pems/two_trailing_byte_cert.bin"
 
-/* This is a certificate chain with a legacy SHA-1 signature on the root certificate and
- * a SHA-256 signature on the intermediate certificate. This is used to prove
- * that our certificate validation code does not fail a root certificate signed with SHA-1.
- */
-#define S2N_SHA1_ROOT_SIGNATURE_CERT_CHAIN     "../pems/rsa_1024_sha1_root_signature_chain.pem"
-/* The CA certificate from the chain above */
+/* This is a certificate with a legacy SHA-1 signature on the root certificate. This is used to prove
+ * that our certificate validation code does not fail a root certificate signed with SHA-1. */
 #define S2N_SHA1_ROOT_SIGNATURE_CA_CERT        "../pems/rsa_1024_sha1_CA_cert.pem"
 
 #define S2N_DEFAULT_TEST_CERT_CHAIN  S2N_RSA_2048_PKCS1_CERT_CHAIN

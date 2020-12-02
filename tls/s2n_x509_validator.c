@@ -578,19 +578,16 @@ S2N_RESULT s2n_validate_certificate_signature(struct s2n_connection *conn, X509 
         return S2N_RESULT_OK;
     }
 
-    bool out = false;
-    GUARD_RESULT(s2n_is_certificate_sig_scheme_supported(conn, x509_cert, security_policy->certificate_signature_preferences, &out));
-    ENSURE(out == true, S2N_ERR_CERT_UNTRUSTED);
+    GUARD_RESULT(s2n_validate_sig_scheme_supported(conn, x509_cert, security_policy->certificate_signature_preferences));
 
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_is_certificate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert, const struct s2n_signature_preferences *cert_sig_preferences, bool *out)
+S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert, const struct s2n_signature_preferences *cert_sig_preferences)
 {
     ENSURE_REF(conn);
     ENSURE_REF(x509_cert);
     ENSURE_REF(cert_sig_preferences);
-    ENSURE_REF(out);
 
     int nid = 0;
 
@@ -605,15 +602,12 @@ S2N_RESULT s2n_is_certificate_sig_scheme_supported(struct s2n_connection *conn, 
 
         if (cert_sig_preferences->signature_schemes[i]->libcrypto_nid == nid) {
             /* SHA-1 algorithms are not supported in certificate signatures in TLS1.3 */
-            if (conn->actual_protocol_version >= S2N_TLS13 && cert_sig_preferences->signature_schemes[i]->hash_alg == S2N_HASH_SHA1) {
-                *out = false;
-            } else {
-                *out = true;
-            }
+            ENSURE(!(conn->actual_protocol_version >= S2N_TLS13 &&
+                    cert_sig_preferences->signature_schemes[i]->hash_alg == S2N_HASH_SHA1), S2N_ERR_CERT_UNTRUSTED);
+
             return S2N_RESULT_OK;
         }
     }
 
-    *out = false;
-    return S2N_RESULT_OK;
+    BAIL(S2N_ERR_CERT_UNTRUSTED);
 }

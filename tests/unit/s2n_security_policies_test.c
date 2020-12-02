@@ -466,6 +466,25 @@ int main(int argc, char **argv)
 #endif
     }
 
+    /* Checks that NUM_RSA_PSS_SCHEMES accurately represents the number of rsa_pss signature schemes usable in a
+     * certificate_signature_preferences list */
+    {
+        for (int i = 0; security_policy_selection[i].version != NULL; i++) {
+            security_policy = security_policy_selection[i].security_policy;
+            EXPECT_NOT_NULL(security_policy);
+
+            if (security_policy->certificate_signature_preferences != NULL) {
+                size_t num_rsa_pss = 0;
+                for (size_t j = 0; j < security_policy->certificate_signature_preferences->count; j++) {
+                    if (security_policy->certificate_signature_preferences->signature_schemes[j]->libcrypto_nid == NID_rsassaPss) {
+                        num_rsa_pss +=1;
+                    }
+                }
+                EXPECT_TRUE(num_rsa_pss <= NUM_RSA_PSS_SCHEMES);
+            }
+        }
+    }
+
     /* s2n_validate_certificate_signature_preferences will succeed if there are no rsa_pss schemes in the preference list */
     {
         const struct s2n_signature_scheme* const test_sig_scheme_pref_list[] = {
@@ -479,6 +498,7 @@ int main(int argc, char **argv)
 
         EXPECT_OK(s2n_validate_certificate_signature_preferences(&test_certificate_signature_preferences));
     }
+
     /* s2n_validate_certificate_signature_preferences will succeed if all rsa_pss schemes are included in the preference list */
     {
         const struct s2n_signature_scheme* const test_sig_scheme_pref_list[] = {
@@ -497,7 +517,8 @@ int main(int argc, char **argv)
 
         EXPECT_OK(s2n_validate_certificate_signature_preferences(&test_certificate_signature_preferences));
     }
-     /* s2n_validate_certificate_signature_preferences will fail if not all rsa_pss schemes are included in the preference list */
+
+    /* s2n_validate_certificate_signature_preferences will fail if not all rsa_pss schemes are included in the preference list */
     {
         const struct s2n_signature_scheme* const test_sig_scheme_pref_list[] = {
             &s2n_rsa_pss_pss_sha256,

@@ -21,6 +21,9 @@
 #include "tls/s2n_signature_scheme.h"
 #include "tls/s2n_ecc_preferences.h"
 
+/* Kept up-to-date by s2n_security_policies_test */
+#define NUM_RSA_PSS_SCHEMES 6
+
 struct s2n_security_policy {
     uint8_t minimum_protocol_version;
     const struct s2n_cipher_preferences *cipher_preferences;

@@ -19,8 +19,6 @@
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
-#define NUM_RSA_PSS_SCHEMES 6
-
 const struct s2n_security_policy security_policy_20170210 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20170210,
@@ -813,7 +811,9 @@ S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signa
         }
     }
 
-    /* Require all rsa pss signature schemes or none */
+    /* The Openssl function used to parse signatures off certificates does not differentiate between any rsa pss
+     * signature schemes. Therefore a security policy with a certificate signatures preference list must include
+     * all rsa_pss signature schemes. */
     ENSURE(rsa_pss_scheme_count == NUM_RSA_PSS_SCHEMES || rsa_pss_scheme_count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
     return S2N_RESULT_OK;
 }

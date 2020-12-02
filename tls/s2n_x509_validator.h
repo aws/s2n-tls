@@ -131,4 +131,4 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
 S2N_RESULT s2n_validate_certificate_signature(struct s2n_connection *conn, X509 *x509_cert);
 
 /* Checks to see if a certificate has a signature algorithm that's in our certificate_signature_preferences list */
-S2N_RESULT s2n_is_certificate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert, const struct s2n_signature_preferences *cert_sig_preferences, bool *out);
+S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert, const struct s2n_signature_preferences *cert_sig_preferences);
