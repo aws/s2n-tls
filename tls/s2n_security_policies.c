@@ -18,7 +18,6 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
-#include "pq-crypto/s2n_pq.h"
 
 const struct s2n_security_policy security_policy_20170210 = {
     .minimum_protocol_version = S2N_TLS10,
