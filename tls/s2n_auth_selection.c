@@ -179,10 +179,10 @@ int s2n_is_sig_scheme_valid_for_auth(struct s2n_connection *conn, const struct s
 
     GUARD(s2n_certs_exist_for_sig_scheme(conn, sig_scheme));
 
+    /* For the client side, signature algorithm does not need to match the cipher suite. */
     if (conn->mode == S2N_SERVER) {
         GUARD(s2n_is_sig_alg_valid_for_cipher_suite(sig_scheme->sig_alg, cipher_suite));
     }
-
     return S2N_SUCCESS;
 }
 
