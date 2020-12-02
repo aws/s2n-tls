@@ -25,7 +25,7 @@ void s2n_array_init_harness()
 {
     /* Non-deterministic inputs. */
     uint32_t element_size;
-    struct s2n_array *array = can_fail_malloc(sizeof(struct s2n_array));
+    struct s2n_array *array = cbmc_allocate_s2n_array();
 
     nondet_s2n_mem_init();
 
@@ -34,7 +34,7 @@ void s2n_array_init_harness()
 
         /* Post-conditions. */
         assert(s2n_result_is_ok(s2n_array_validate(array)));
-        assert_all_zeroes(array, element_size);
+        assert_all_zeroes((uint8_t*) &array->mem, sizeof(array->mem));
         assert(array->element_size == element_size);
         assert(array->len == 0);
     }

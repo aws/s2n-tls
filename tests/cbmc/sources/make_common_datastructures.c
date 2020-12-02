@@ -83,7 +83,7 @@ struct s2n_stuffer_reservation *cbmc_allocate_s2n_stuffer_reservation()
 
 struct s2n_array *cbmc_allocate_s2n_array()
 {
-    struct s2n_array *array = can_fail_malloc(sizeof(*array));
+    struct s2n_array *array = malloc(sizeof(*array));
     if (array != NULL) { ensure_s2n_blob_has_allocated_fields(&array->mem); }
     return array;
 }
