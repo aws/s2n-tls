@@ -205,7 +205,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert_chain_for_other_curve));
         }
 
-        /* Test: If cipher suite specifies auth type, auth type must be valid for sig alg */
+        /* Test: If cipher suite specifies auth type, auth type must be valid for sig alg on server */
         {
             s2n_connection_set_config(conn, all_certs_config);
 
@@ -222,6 +222,25 @@ int main(int argc, char **argv)
             EXPECT_FAILURE(s2n_is_sig_scheme_valid_for_auth(conn, RSA_PSS_PSS_SIG_SCHEME));
             EXPECT_FAILURE(s2n_is_sig_scheme_valid_for_auth(conn, RSA_PSS_RSAE_SIG_SCHEME));
             EXPECT_SUCCESS(s2n_is_sig_scheme_valid_for_auth(conn, ECDSA_SIG_SCHEME));
+        }
+
+        /* Test: If cipher suite specifies auth type, auth type does not need to be valid for sig alg on client */
+        {
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(client_conn);
+
+            /* RSA auth type */
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, rsa_cert_config));
+            client_conn->secure.cipher_suite = ECDSA_AUTH_CIPHER_SUITE;
+            EXPECT_SUCCESS(s2n_is_sig_scheme_valid_for_auth(client_conn, RSA_PKCS1_SIG_SCHEME));
+            EXPECT_SUCCESS(s2n_is_sig_scheme_valid_for_auth(client_conn, RSA_PSS_RSAE_SIG_SCHEME));
+
+            /* ECDSA auth type */
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, ecdsa_cert_config));
+            client_conn->secure.cipher_suite = RSA_AUTH_CIPHER_SUITE;
+            EXPECT_SUCCESS(s2n_is_sig_scheme_valid_for_auth(client_conn, ECDSA_SIG_SCHEME));
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
         }
 
         /* Test: RSA-PSS requires a non-ephemeral kex */
