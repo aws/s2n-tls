@@ -38,9 +38,9 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     uint8_t cert_file[S2N_MAX_TEST_PEM_SIZE] = {0};
-    X509 *cert;
-    BIO* certBio;
-    size_t certLen;
+    X509 *cert = NULL;
+    BIO* certBio = NULL;
+    size_t certLen = 0;
     
     const struct s2n_signature_scheme* const test_sig_scheme_list[] = {
         &s2n_ecdsa_sha256,

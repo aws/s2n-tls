@@ -469,7 +469,7 @@ int main(int argc, char **argv)
     /* Checks that NUM_RSA_PSS_SCHEMES accurately represents the number of rsa_pss signature schemes usable in a
      * certificate_signature_preferences list */
     {
-        for (int i = 0; security_policy_selection[i].version != NULL; i++) {
+        for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
             security_policy = security_policy_selection[i].security_policy;
             EXPECT_NOT_NULL(security_policy);
 
