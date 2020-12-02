@@ -160,7 +160,7 @@ int s2n_pkcs3_to_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *pkc
 int s2n_dh_p_g_Ys_to_dh_params(struct s2n_dh_params *server_dh_params, struct s2n_blob *p, struct s2n_blob *g,
                                struct s2n_blob *Ys)
 {
-    notnull_check(server_dh_params);
+    ENSURE_POSIX_REF(server_dh_params);
     PRECONDITION_POSIX(s2n_blob_is_valid(p));
     PRECONDITION_POSIX(s2n_blob_is_valid(g));
     PRECONDITION_POSIX(s2n_blob_is_valid(Ys));
@@ -228,7 +228,7 @@ int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_param
     GUARD(s2n_alloc(shared_key, DH_size(server_dh_params->dh)));
 
     const BIGNUM *client_pub_key_bn = s2n_get_Ys_dh_param(&client_params);
-    notnull_check(client_pub_key_bn);
+    ENSURE_POSIX_REF(client_pub_key_bn);
     client_pub_key_size             = BN_num_bytes(client_pub_key_bn);
     GUARD(s2n_stuffer_write_uint16(Yc_out, client_pub_key_size));
     client_pub_key = s2n_stuffer_raw_write(Yc_out, client_pub_key_size);
