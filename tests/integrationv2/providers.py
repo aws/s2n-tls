@@ -158,9 +158,9 @@ class S2N(Provider):
 
         # If the test provided a cipher (security policy) that is compatible with
         # s2n, we'll use it. Otherwise, default to the appropriate `test_all` policy.
-        cipher_prefs = "test_all_tls12"
+        cipher_prefs = 'test_all_tls12'
         if self.options.protocol is Protocols.TLS13:
-            cipher_prefs = "test_all"
+            cipher_prefs = 'test_all'
         if self.options.cipher and self.options.cipher.s2n:
             cipher_prefs = self.options.cipher.name
 
@@ -197,9 +197,9 @@ class S2N(Provider):
 
         # If the test provided a cipher (security policy) that is compatible with
         # s2n, we'll use it. Otherwise, default to the appropriate `test_all` policy.
-        cipher_prefs = "test_all_tls12"
+        cipher_prefs = 'test_all_tls12'
         if self.options.protocol is Protocols.TLS13:
-            cipher_prefs = "test_all"
+            cipher_prefs = 'test_all'
         if self.options.cipher and self.options.cipher.s2n:
             cipher_prefs = self.options.cipher.name
 
