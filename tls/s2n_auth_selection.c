@@ -164,7 +164,8 @@ int s2n_is_cipher_suite_valid_for_auth(struct s2n_connection *conn, struct s2n_c
 
 /* A signature algorithm is valid if:
  * - At least one compatible cert is configured.
- * - The signature algorithm is allowed by the cipher suite's auth method (if present).
+ * - The signature algorithm is allowed by the cipher suite's auth method
+ *   (if running as a pre-TLS1.3 server).
  *
  * This method is called by the both server and client when choosing a signature algorithm.
  */
@@ -177,7 +178,10 @@ int s2n_is_sig_scheme_valid_for_auth(struct s2n_connection *conn, const struct s
     notnull_check(cipher_suite);
 
     GUARD(s2n_certs_exist_for_sig_scheme(conn, sig_scheme));
-    GUARD(s2n_is_sig_alg_valid_for_cipher_suite(sig_scheme->sig_alg, cipher_suite));
+
+    if (conn->mode == S2N_SERVER) {
+        GUARD(s2n_is_sig_alg_valid_for_cipher_suite(sig_scheme->sig_alg, cipher_suite));
+    }
 
     return S2N_SUCCESS;
 }
