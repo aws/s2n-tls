@@ -464,14 +464,6 @@ const struct s2n_security_policy security_policy_test_all = {
     .ecc_preferences = &s2n_ecc_preferences_test_all,
 };
 
-const struct s2n_security_policy security_policy_test_all_no_pq = {
-        .minimum_protocol_version = S2N_SSLv3,
-        .cipher_preferences = &cipher_preferences_test_all_no_pq,
-        .kem_preferences = &kem_preferences_null,
-        .signature_preferences = &s2n_signature_preferences_20201021,
-        .ecc_preferences = &s2n_ecc_preferences_test_all,
-};
-
 const struct s2n_security_policy security_policy_test_all_tls12 = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_all_tls12,
@@ -482,14 +474,6 @@ const struct s2n_security_policy security_policy_test_all_tls12 = {
 #endif
     .signature_preferences = &s2n_signature_preferences_20201021,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
-};
-
-const struct s2n_security_policy security_policy_test_all_tls12_no_pq = {
-        .minimum_protocol_version = S2N_SSLv3,
-        .cipher_preferences = &cipher_preferences_test_all_tls12_no_pq,
-        .kem_preferences = &kem_preferences_null,
-        .signature_preferences = &s2n_signature_preferences_20201021,
-        .ecc_preferences = &s2n_ecc_preferences_20201021,
 };
 
 const struct s2n_security_policy security_policy_test_all_fips = {
@@ -605,13 +589,11 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="20200207", .security_policy=&security_policy_test_all_tls13, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20201021", .security_policy=&security_policy_20201021, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="test_all", .security_policy=&security_policy_test_all, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="test_all_no_pq", .security_policy=&security_policy_test_all_no_pq, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="test_all_fips", .security_policy=&security_policy_test_all_fips, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="test_all_ecdsa", .security_policy=&security_policy_test_all_ecdsa, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="test_all_rsa_kex", .security_policy=&security_policy_test_all_rsa_kex, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="test_ecdsa_priority", .security_policy=&security_policy_test_ecdsa_priority, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="test_all_tls12", .security_policy=&security_policy_test_all_tls12, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="test_all_tls12_no_pq", .security_policy=&security_policy_test_all_tls12_no_pq, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="test_all_tls13", .security_policy=&security_policy_test_all_tls13, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="null", .security_policy=&security_policy_null, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version=NULL, .security_policy=NULL, .ecc_extension_required=0, .pq_kem_extension_required=0 }
@@ -632,36 +614,16 @@ int s2n_find_security_policy_from_version(const char *version, const struct s2n_
     S2N_ERROR(S2N_ERR_INVALID_SECURITY_POLICY);
 }
 
-static S2N_RESULT s2n_validate_security_policy_choice(const struct s2n_security_policy *policy)
-{
-    ENSURE_REF(policy);
-    ENSURE_REF(policy->cipher_preferences);
-    ENSURE_REF(policy->kem_preferences);
-    ENSURE_REF(policy->signature_preferences);
-    ENSURE_REF(policy->ecc_preferences);
-
-    /* PQ will be disabled if s2n is operating in FIPS mode, or if the PQ crypto code was excluded during compilation. */
-    if (!s2n_pq_is_enabled()) {
-        ENSURE(policy->kem_preferences->kem_count == 0, S2N_ERR_PQ_DISABLED);
-        ENSURE(policy->kem_preferences->kems == NULL, S2N_ERR_PQ_DISABLED);
-        ENSURE(policy->kem_preferences->tls13_kem_group_count == 0, S2N_ERR_PQ_DISABLED);
-        ENSURE(policy->kem_preferences->tls13_kem_groups == NULL, S2N_ERR_PQ_DISABLED);
-
-        for (size_t i = 0; i < policy->cipher_preferences->count; i++) {
-            const struct s2n_kex *kex = policy->cipher_preferences->suites[i]->key_exchange_alg;
-            ENSURE(s2n_kex_includes(kex, &s2n_kem) == false, S2N_ERR_PQ_DISABLED);
-        }
-    }
-
-    return S2N_RESULT_OK;
-}
-
 int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
 {
     const struct s2n_security_policy *security_policy = NULL;
     GUARD(s2n_find_security_policy_from_version(version, &security_policy));
-    notnull_check(security_policy);
-    GUARD_AS_POSIX(s2n_validate_security_policy_choice(security_policy));
+    ENSURE_POSIX_REF(security_policy);
+    ENSURE_POSIX_REF(security_policy->cipher_preferences);
+    ENSURE_POSIX_REF(security_policy->kem_preferences);
+    ENSURE_POSIX_REF(security_policy->signature_preferences);
+    ENSURE_POSIX_REF(security_policy->ecc_preferences);
+
     config->security_policy = security_policy;
     return 0;
 }
@@ -670,8 +632,12 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
 {
     const struct s2n_security_policy *security_policy = NULL;
     GUARD(s2n_find_security_policy_from_version(version, &security_policy));
-    notnull_check(security_policy);
-    GUARD_AS_POSIX(s2n_validate_security_policy_choice(security_policy));
+    ENSURE_POSIX_REF(security_policy);
+    ENSURE_POSIX_REF(security_policy->cipher_preferences);
+    ENSURE_POSIX_REF(security_policy->kem_preferences);
+    ENSURE_POSIX_REF(security_policy->signature_preferences);
+    ENSURE_POSIX_REF(security_policy->ecc_preferences);
+
     conn->security_policy_override = security_policy;
     return 0;
 }
