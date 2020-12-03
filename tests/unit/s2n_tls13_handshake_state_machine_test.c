@@ -156,6 +156,42 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test: A non-FULL_HANDSHAKE form of every valid, negotiated handshake exists */
+    {
+        uint32_t handshake_type_original, handshake_type_fh;
+        message_type_t *messages_original, *messages_fh;
+
+        for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
+
+            handshake_type_original = valid_tls13_handshakes[i];
+            messages_original = tls13_handshakes[handshake_type_original];
+
+            /* Ignore INITIAL and FULL_HANDSHAKE handshakes */
+            if (!IS_NEGOTIATED(handshake_type_original) || IS_FULL_HANDSHAKE(handshake_type_original)) {
+                continue;
+            }
+
+            /* FULL_HANDSHAKE form of the handshake */
+            handshake_type_fh = handshake_type_original | FULL_HANDSHAKE;
+            messages_fh = tls13_handshakes[handshake_type_fh];
+
+            for (size_t j = 0, j_fh = 0; j < S2N_MAX_HANDSHAKE_LENGTH && j_fh < S2N_MAX_HANDSHAKE_LENGTH; j++, j_fh++) {
+                /* The original handshake cannot contain authentication messages */
+                EXPECT_NOT_EQUAL(messages_original[j], SERVER_CERT);
+                EXPECT_NOT_EQUAL(messages_original[j], SERVER_CERT_VERIFY);
+
+                 /* Skip authentication messages in the FULL_HANDSHAKE handshake */
+                 while (messages_fh[j_fh] == SERVER_CERT ||
+                         messages_fh[j_fh] == SERVER_CERT_VERIFY) {
+                     j_fh++;
+                 }
+
+                /* The handshakes must be otherwise equivalent */
+                EXPECT_EQUAL(messages_original[j], messages_fh[j_fh]);
+            }
+        }
+    }
+
     /* Test: When using TLS 1.3, use the new state machine and handshakes */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
@@ -586,6 +622,28 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS12;
         conn->handshake.handshake_type = INITIAL | HELLO_RETRY_REQUEST;
         EXPECT_FAILURE_WITH_ERRNO(s2n_conn_set_handshake_type(conn), S2N_ERR_INVALID_HELLO_RETRY);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test: s2n_conn_set_handshake_type does not set FULL_HANDSHAKE if a pre-shared key has been chosen. */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        struct s2n_psk *psk = NULL;
+
+        EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
+
+        conn->actual_protocol_version = S2N_TLS13;
+        conn->psk_params.chosen_psk = psk;
+
+        EXPECT_SUCCESS(s2n_conn_set_handshake_type(conn));
+
+        EXPECT_FALSE(conn->handshake.handshake_type & FULL_HANDSHAKE);
+
+        conn->psk_params.chosen_psk = NULL;
+
+        EXPECT_SUCCESS(s2n_conn_set_handshake_type(conn));
+        EXPECT_TRUE(conn->handshake.handshake_type & FULL_HANDSHAKE);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
