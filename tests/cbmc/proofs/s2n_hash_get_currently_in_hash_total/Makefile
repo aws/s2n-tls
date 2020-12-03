@@ -15,7 +15,8 @@
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = s2n_hash_get_currently_in_hash_total_harness
+PROOF_UID = s2n_hash_get_currently_in_hash_total
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(HARNESS_FILE)

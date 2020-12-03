@@ -39,5 +39,9 @@ void s2n_hash_const_time_get_currently_in_hash_block_harness()
         /* Post-conditions. */
         assert(s2n_hash_state_is_valid(state));
         assert(state->is_ready_for_input);
+        uint64_t hash_block_size = 0;
+        s2n_hash_block_size(state->alg, &hash_block_size);
+        /* Checks whether hash_block_size is power of two. */
+        assert(hash_block_size && (!(hash_block_size & (hash_block_size - 1))));
     }
 }

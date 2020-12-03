@@ -15,7 +15,8 @@
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = s2n_hash_const_time_get_currently_in_hash_block_harness
+PROOF_UID = s2n_hash_const_time_get_currently_in_hash_block
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(HARNESS_FILE)
