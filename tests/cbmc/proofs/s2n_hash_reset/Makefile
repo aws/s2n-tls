@@ -15,10 +15,11 @@
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = s2n_hash_reset_harness
+PROOF_UID = s2n_hash_reset
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(OPENSSL_SOURCE)/bn_override.c
 PROOF_SOURCES += $(OPENSSL_SOURCE)/ec_override.c
 PROOF_SOURCES += $(OPENSSL_SOURCE)/evp_override.c
@@ -35,6 +36,7 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
 # We abstract these functions because manual inspection demonstrates they are unreachable.
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_evp_hash_free
+REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_evp_hash_new
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_low_level_hash_free
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_low_level_hash_new
 
