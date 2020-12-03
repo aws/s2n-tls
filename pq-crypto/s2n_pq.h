@@ -18,8 +18,10 @@
 #include <stdbool.h>
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
+#include "crypto/s2n_fips.h"
 
 bool s2n_sikep434r2_asm_is_enabled(void);
+bool s2n_pq_is_enabled(void);
 S2N_RESULT s2n_disable_sikep434r2_asm(void);
 S2N_RESULT s2n_try_enable_sikep434r2_asm(void);
 S2N_RESULT s2n_pq_init(void);

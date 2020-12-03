@@ -85,11 +85,9 @@ def test_s2nd_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, p
     server_options.mode = Provider.ServerMode
     server_options.key = certificate.key
     server_options.cert = certificate.cert
+    # When the protocol is set to TLS13, the s2n server provider will default to using
+    # all ciphers, not just the TLS13 ciphers. This is the desired behavior for this test.
     server_options.protocol = Protocols.TLS13
-
-    # Allow the server to use all ciphers, don't limit to TLS13 even though we are
-    # forcing the protocol to be TLS13
-    server_options.extra_flags = ['-c', 'test_all']
 
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(provider, client_options, timeout=5)

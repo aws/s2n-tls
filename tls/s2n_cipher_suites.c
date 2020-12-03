@@ -861,6 +861,7 @@ static struct s2n_cipher_suite *s2n_all_tls12_cipher_suites[] = {
 #if !defined(S2N_NO_PQ)
     &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x04 */
     &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x08 */
+    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,   /* 0xFF,0x0C */
 #endif
 };
 

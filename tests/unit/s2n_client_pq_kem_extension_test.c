@@ -25,15 +25,16 @@ int main(int argc, char **argv)
 
 #if !defined(S2N_NO_PQ)
 
-    const char* pq_security_policies[] = {
+    const char *pq_security_policy_versions[] = {
+            "KMS-PQ-TLS-1-0-2019-06",
             "KMS-PQ-TLS-1-0-2020-02",
-            "KMS-PQ-TLS-1-0-2020-07"
+            "KMS-PQ-TLS-1-0-2020-07",
     };
 
-    for (size_t policy_index = 0; policy_index < s2n_array_len(pq_security_policies); policy_index++) {
-        const char *pq_security_policy = pq_security_policies[policy_index];
-        const struct s2n_security_policy *security_policy;
-        EXPECT_SUCCESS(s2n_find_security_policy_from_version(pq_security_policy, &security_policy));
+    for (size_t policy_index = 0; policy_index < s2n_array_len(pq_security_policy_versions); policy_index++) {
+        const char *pq_security_policy_version = pq_security_policy_versions[policy_index];
+        const struct s2n_security_policy *security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version(pq_security_policy_version, &security_policy));
         const struct s2n_kem_preferences *kem_preferences = security_policy->kem_preferences;
 
         /* Test should_send */
@@ -45,7 +46,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_client_pq_kem_extension.should_send(conn));
 
             /* Use cipher preferences that do include PQ */
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, pq_security_policy));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, pq_security_policy_version));
             EXPECT_TRUE(s2n_client_pq_kem_extension.should_send(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -55,7 +56,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, pq_security_policy));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, pq_security_policy_version));
 
             struct s2n_stuffer stuffer;
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
@@ -83,7 +84,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, pq_security_policy));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, pq_security_policy_version));
 
             struct s2n_stuffer stuffer;
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
@@ -103,7 +104,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, pq_security_policy));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, pq_security_policy_version));
 
             struct s2n_stuffer stuffer;
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));

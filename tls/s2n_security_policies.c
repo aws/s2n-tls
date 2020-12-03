@@ -615,21 +615,29 @@ int s2n_find_security_policy_from_version(const char *version, const struct s2n_
 
 int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
 {
-    GUARD(s2n_find_security_policy_from_version(version, &config->security_policy));
-    notnull_check(&config->security_policy->cipher_preferences);
-    notnull_check(&config->security_policy->kem_preferences);
-    notnull_check(&config->security_policy->signature_preferences);
-    notnull_check(&config->security_policy->ecc_preferences);
+    const struct s2n_security_policy *security_policy = NULL;
+    GUARD(s2n_find_security_policy_from_version(version, &security_policy));
+    ENSURE_POSIX_REF(security_policy);
+    ENSURE_POSIX_REF(security_policy->cipher_preferences);
+    ENSURE_POSIX_REF(security_policy->kem_preferences);
+    ENSURE_POSIX_REF(security_policy->signature_preferences);
+    ENSURE_POSIX_REF(security_policy->ecc_preferences);
+
+    config->security_policy = security_policy;
     return 0;
 }
 
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version)
 {
-    GUARD(s2n_find_security_policy_from_version(version, &conn->security_policy_override));
-    notnull_check(&conn->security_policy_override->cipher_preferences);
-    notnull_check(&conn->security_policy_override->kem_preferences);
-    notnull_check(&conn->security_policy_override->signature_preferences);
-    notnull_check(&conn->security_policy_override->ecc_preferences);
+    const struct s2n_security_policy *security_policy = NULL;
+    GUARD(s2n_find_security_policy_from_version(version, &security_policy));
+    ENSURE_POSIX_REF(security_policy);
+    ENSURE_POSIX_REF(security_policy->cipher_preferences);
+    ENSURE_POSIX_REF(security_policy->kem_preferences);
+    ENSURE_POSIX_REF(security_policy->signature_preferences);
+    ENSURE_POSIX_REF(security_policy->ecc_preferences);
+
+    conn->security_policy_override = security_policy;
     return 0;
 }
 
