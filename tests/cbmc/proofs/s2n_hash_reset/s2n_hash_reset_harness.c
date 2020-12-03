@@ -29,5 +29,6 @@ void s2n_hash_reset_harness()
     {
         /* Post-conditions. */
         assert(s2n_hash_state_is_valid(state));
+        assert(state->hash_impl->reset != NULL);
     }
 }
