@@ -28,6 +28,7 @@
 
 #include <openssl/err.h>
 #include <openssl/asn1.h>
+#include <openssl/x509.h>
 
 #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 #include <openssl/ocsp.h>
@@ -328,6 +329,10 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
             S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
         }
 
+        if (!validator->skip_cert_validation) {
+            GUARD_AS_POSIX(s2n_validate_certificate_signature(conn, server_cert));
+        }
+
         /* Pull the public key from the first certificate */
         if (sk_X509_num(validator->cert_chain_from_wire) == 1) {
             S2N_ERROR_IF(s2n_asn1der_to_public_key_and_type(&public_key, pkey_type, &asn1cert) < 0, S2N_ERR_CERT_UNTRUSTED);
@@ -548,4 +553,61 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
 
     return ret_val;
 #endif /* S2N_OCSP_STAPLING_SUPPORTED */
+}
+
+S2N_RESULT s2n_validate_certificate_signature(struct s2n_connection *conn, X509 *x509_cert)
+{
+    ENSURE_REF(conn);
+    ENSURE_REF(x509_cert);
+
+    const struct s2n_security_policy *security_policy;
+    GUARD_AS_RESULT(s2n_connection_get_security_policy(conn, &security_policy));
+
+    if (security_policy->certificate_signature_preferences == NULL) {
+        return S2N_RESULT_OK;
+    }
+
+    X509_NAME *issuer_name = X509_get_issuer_name(x509_cert);
+    ENSURE_REF(issuer_name);
+
+    X509_NAME *subject_name = X509_get_subject_name(x509_cert);
+    ENSURE_REF(subject_name);
+
+    /* Do not validate any self-signed certificates */
+    if (X509_NAME_cmp(issuer_name, subject_name) == 0) {
+        return S2N_RESULT_OK;
+    }
+
+    GUARD_RESULT(s2n_validate_sig_scheme_supported(conn, x509_cert, security_policy->certificate_signature_preferences));
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert, const struct s2n_signature_preferences *cert_sig_preferences)
+{
+    ENSURE_REF(conn);
+    ENSURE_REF(x509_cert);
+    ENSURE_REF(cert_sig_preferences);
+
+    int nid = 0;
+
+    #if defined(LIBRESSL_VERSION_NUMBER) && (LIBRESSL_VERSION_NUMBER < 0x02070000f)
+        ENSURE_REF(x509_cert->sig_alg);
+        nid = OBJ_obj2nid(x509_cert->sig_alg->algorithm);
+    #else
+        nid = X509_get_signature_nid(x509_cert);
+    #endif
+
+    for (size_t i = 0; i < cert_sig_preferences->count; i++) {
+
+        if (cert_sig_preferences->signature_schemes[i]->libcrypto_nid == nid) {
+            /* SHA-1 algorithms are not supported in certificate signatures in TLS1.3 */
+            ENSURE(!(conn->actual_protocol_version >= S2N_TLS13 &&
+                    cert_sig_preferences->signature_schemes[i]->hash_alg == S2N_HASH_SHA1), S2N_ERR_CERT_UNTRUSTED);
+
+            return S2N_RESULT_OK;
+        }
+    }
+
+    BAIL(S2N_ERR_CERT_UNTRUSTED);
 }

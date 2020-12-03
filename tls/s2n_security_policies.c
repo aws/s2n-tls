@@ -27,6 +27,15 @@ const struct s2n_security_policy security_policy_20170210 = {
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
+const struct s2n_security_policy security_policy_20201110 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_20190801,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+};
+
 const struct s2n_security_policy security_policy_20190801 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20190801,
@@ -525,7 +534,7 @@ const struct s2n_security_policy security_policy_null = {
 
 struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="default", .security_policy=&security_policy_20170210, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="default_tls13", .security_policy=&security_policy_20190801, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="default_tls13", .security_policy=&security_policy_20201110, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="default_fips", .security_policy=&security_policy_20170405, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="ELBSecurityPolicy-TLS-1-0-2015-04", .security_policy=&security_policy_elb_2015_04, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     /* Not a mistake. TLS-1-0-2015-05 and 2016-08 are equivalent */
@@ -653,6 +662,11 @@ int s2n_security_policies_init()
         const struct s2n_ecc_preferences *ecc_preference = security_policy->ecc_preferences;
         notnull_check(ecc_preference);
         GUARD(s2n_check_ecc_preferences_curves_list(ecc_preference));
+
+        const struct s2n_signature_preferences *certificate_signature_preference = security_policy->certificate_signature_preferences;
+        if (certificate_signature_preference != NULL) {
+            GUARD_AS_POSIX(s2n_validate_certificate_signature_preferences(certificate_signature_preference));
+        }
 
         if (security_policy != &security_policy_null) {
             /* catch any offending security policy that does not support P-256 */
@@ -791,4 +805,23 @@ int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferenc
     }
 
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signature_preferences *certificate_signature_preferences)
+{
+    ENSURE_REF(certificate_signature_preferences);
+
+    size_t rsa_pss_scheme_count = 0;
+
+    for (size_t i = 0; i < certificate_signature_preferences->count; i++) {
+        if (certificate_signature_preferences->signature_schemes[i]->libcrypto_nid == NID_rsassaPss) {
+            rsa_pss_scheme_count++;
+        }
+    }
+
+    /* The Openssl function used to parse signatures off certificates does not differentiate between any rsa pss
+     * signature schemes. Therefore a security policy with a certificate signatures preference list must include
+     * all rsa_pss signature schemes. */
+    ENSURE(rsa_pss_scheme_count == NUM_RSA_PSS_SCHEMES || rsa_pss_scheme_count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
+    return S2N_RESULT_OK;
 }

@@ -500,7 +500,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config,
 
 **s2n_config_set_cipher_preferences** sets the security policy that includes the cipher/kem/signature/ecc preferences and protocol version.
 
-The following chart maps the security policy version to protocol version and ciphertsuites supported:
+The following chart maps the security policy version to protocol version and ciphersuites supported:
 
 |    version     | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3  | AES-CBC | ChaCha20-Poly1305 | ECDSA | AES-GCM | 3DES | RC4 | DHE | ECDHE |
 |----------------|-------|--------|--------|--------|---------|---------|-------------------|-------|---------|------|-----|-----|-------|
@@ -528,14 +528,14 @@ The following chart maps the security policy version to protocol version and cip
 
 The "default" and "default_tls13" version is special in that it will be updated with future s2n changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change. 
 
-"20160411" follows the same general preference order as "default". The main difference is it has a CBC cipher suite at the top. This is to accomodate certain Java clients that have poor GCM implementations. Users of s2n who have found GCM to be hurting performance for their clients should consider this version.
+"20160411" follows the same general preference order as "default". The main difference is it has a CBC cipher suite at the top. This is to accommodate certain Java clients that have poor GCM implementations. Users of s2n who have found GCM to be hurting performance for their clients should consider this version.
 
-"20170405" is a FIPS compliant cipher suite preference list based on approved algorithms in the [FIPS 140-2 Annex A](http://csrc.nist.gov/publications/fips/fips140-2/fips1402annexa.pdf). Similarly to "20160411", this perference list has CBC cipher suites at the top to accomodate certain Java clients. Users of s2n who plan to enable FIPS mode should consider this version.
+"20170405" is a FIPS compliant cipher suite preference list based on approved algorithms in the [FIPS 140-2 Annex A](http://csrc.nist.gov/publications/fips/fips140-2/fips1402annexa.pdf). Similarly to "20160411", this preference list has CBC cipher suites at the top to accommodate certain Java clients. Users of s2n who plan to enable FIPS mode should consider this version.
 
 s2n does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n follows the following order:
 
 *NOTE*: All ChaCha20-Poly1305 cipher suites will not be available if s2n is not built with an Openssl 1.1.1 libcrypto. The
-underlying encrpyt/decrypt functions are not available in older versions.
+underlying encrypt/decrypt functions are not available in older versions.
 
 1. Always prefer the highest protocol version supported
 2. Always use forward secrecy where possible. Prefer ECDHE over DHE. 
@@ -567,6 +567,9 @@ The following chart maps the security policy version to the signature scheme sup
 |   "20190801"   |      X       |     X    |      X        |    X     |
 |   "20190802"   |      X       |     X    |      X        |    X     |
 |   "20200207"   |      X       |     X    |      X        |    X     |
+
+Note that the default_tls13 security policy will never support legacy SHA-1 algorithms in TLS1.3, but will support 
+legacy SHA-1 algorithms in CertificateVerify messages if TLS1.2 has been negotiated.
 
 The following chart maps the security policy version to the supported curves/groups: 
 
