@@ -69,9 +69,9 @@ S2N_RESULT s2n_array_init(struct s2n_array *array, uint32_t element_size)
 {
     ENSURE_REF(array);
 
-    CHECKED_MEMSET(array, 0, sizeof(struct s2n_array));
-    array->element_size = element_size;
+    *array = (struct s2n_array){.element_size = element_size};
 
+    GUARD_RESULT(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 
