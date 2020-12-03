@@ -19,7 +19,7 @@ PROOF_UID = s2n_hash_is_ready_for_input
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 
 PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_hash.c
