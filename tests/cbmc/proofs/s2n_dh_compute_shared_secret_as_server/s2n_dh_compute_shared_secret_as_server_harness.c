@@ -27,8 +27,8 @@ void s2n_dh_compute_shared_secret_as_server_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_dh_params *server_dh_params = cbmc_allocate_dh_params();
-    struct s2n_stuffer *     Yc_in     = cbmc_allocate_s2n_stuffer();
-    struct s2n_blob *     shared_key     = cbmc_allocate_s2n_blob();
+    struct s2n_stuffer *  Yc_in            = cbmc_allocate_s2n_stuffer();
+    struct s2n_blob *     shared_key       = cbmc_allocate_s2n_blob();
 
     /* Assumptions. */
     __CPROVER_assume(s2n_stuffer_is_valid(Yc_in));
