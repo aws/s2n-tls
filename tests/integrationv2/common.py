@@ -239,6 +239,7 @@ class Ciphers(object):
     KMS_PQ_TLS_1_0_2020_07 = Cipher("KMS-PQ-TLS-1-0-2020-07", Protocols.TLS10, False, False, s2n=True, pq=True)
     PQ_SIKE_TEST_TLS_1_0_2019_11 = Cipher("PQ-SIKE-TEST-TLS-1-0-2019-11", Protocols.TLS10, False, False, s2n=True, pq=True)
     PQ_SIKE_TEST_TLS_1_0_2020_02 = Cipher("PQ-SIKE-TEST-TLS-1-0-2020-02", Protocols.TLS10, False, False, s2n=True, pq=True)
+    PQ_TEST_TLS_1_0_2020_12 = Cipher("PQ-TEST-TLS-1-0-2020-12", Protocols.TLS10, False, False, s2n=True, pq=True)
 
 
 class Curve(object):
@@ -259,6 +260,21 @@ class Curves(object):
     P256 = Curve("P-256")
     P384 = Curve("P-384")
     P521 = Curve("P-521")
+
+
+class KemGroup(object):
+    def __init__(self, oqs_name):
+        self.oqs_name = oqs_name
+
+    def __str__(self):
+        return self.oqs_name
+
+
+class KemGroups(object):
+    # oqs_openssl does not support x25519 based KEM groups
+    P256_KYBER512R2 = KemGroup("p256_kyber512")
+    P256_BIKE1L1FOR2 = KemGroup("p256_bike1l1fo")
+    P256_SIKEP434R2 = KemGroup("p256_sikep434")
 
 
 class Signature(object):

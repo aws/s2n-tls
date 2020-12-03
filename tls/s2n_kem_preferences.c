@@ -51,6 +51,21 @@ const struct s2n_kem *pq_kems_sike_r2r1[2] = {
     &s2n_sike_p503_r1,
 };
 
+const struct s2n_kem_group *pq_kem_groups_r2[] = {
+#if EVP_APIS_SUPPORTED
+        &s2n_x25519_kyber_512_r2,
+        &s2n_secp256r1_kyber_512_r2,
+        &s2n_x25519_bike1_l1_r2,
+        &s2n_secp256r1_bike1_l1_r2,
+        &s2n_x25519_sike_p434_r2,
+        &s2n_secp256r1_sike_p434_r2,
+#else
+        &s2n_secp256r1_kyber_512_r2,
+        &s2n_secp256r1_bike1_l1_r2,
+        &s2n_secp256r1_sike_p434_r2,
+#endif
+};
+
 /* Includes only round 1 PQ KEM params */
 const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2019_06 = {
     .kem_count = s2n_array_len(pq_kems_r1),
@@ -88,6 +103,13 @@ const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2020_02 = 
     .kems = pq_kems_sike_r2r1,
     .tls13_kem_group_count = 0,
     .tls13_kem_groups = NULL,
+};
+
+const struct s2n_kem_preferences kem_preferences_pq_test_tls_1_0_2020_12 = {
+    .kem_count = s2n_array_len(pq_kems_r2r1_2020_07),
+    .kems = pq_kems_r2r1_2020_07,
+    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_r2),
+    .tls13_kem_groups = pq_kem_groups_r2,
 };
 
 #endif
