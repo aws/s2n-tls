@@ -119,6 +119,9 @@ int nondet_compare(const void *const a, const void *const b)
 }
 
 int __CPROVER_uninterpreted_compare(const void *const a, const void *const b);
+bool __CPROVER_uninterpreted_equals(const void *const a, const void *const b);
+uint64_t __CPROVER_uninterpreted_hasher(const void *const a);
+
 int uninterpreted_compare(const void *const a, const void *const b)
 {
     assert(a != NULL);
@@ -140,8 +143,6 @@ bool nondet_equals(const void *const a, const void *const b)
     return nondet_bool();
 }
 
-bool     __CPROVER_uninterpreted_equals(const void *const a, const void *const b);
-uint64_t __CPROVER_uninterpreted_hasher(const void *const a);
 /**
  * Add assumptions that equality is reflexive and symmetric. Don't bother with
  * transitivity because it doesn't cause any spurious proof failures on hash-table
