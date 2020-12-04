@@ -125,7 +125,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
 
         security_policy = NULL;
-        EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-TEST-TLS-1-0-2020-12", &security_policy));
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-TLS-1-0-2020-12", &security_policy));
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_TRUE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_EQUAL(5, security_policy->kem_preferences->kem_count);
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-SIKE-TEST-TLS-1-0-2020-02", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
         EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2020-02", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
         EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("KMS-PQ-TLS-1-0-2020-07", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-TEST-TLS-1-0-2020-12", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("PQ-TLS-1-0-2020-12", &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
 #endif
 
         security_policy = NULL;

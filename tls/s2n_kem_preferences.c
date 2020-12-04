@@ -105,7 +105,7 @@ const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2020_02 = 
     .tls13_kem_groups = NULL,
 };
 
-const struct s2n_kem_preferences kem_preferences_pq_test_tls_1_0_2020_12 = {
+const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2020_12 = {
     .kem_count = s2n_array_len(pq_kems_r2r1_2020_07),
     .kems = pq_kems_r2r1_2020_07,
     .tls13_kem_group_count = s2n_array_len(pq_kem_groups_r2),

@@ -44,7 +44,7 @@ extern const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_02;
 extern const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_07;
 extern const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2019_11;
 extern const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2020_02;
-extern const struct s2n_kem_preferences kem_preferences_pq_test_tls_1_0_2020_12;
+extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2020_12;
 
 #endif
 

@@ -309,35 +309,35 @@ int main() {
 
     /* Server supports all KEM groups; client sends a PQ key share and an EC key share; server chooses
      * to negotiate client's first choice PQ without HRR. */
-    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_pq_test_tls_1_0_2020_12, &security_policy_pq_test_tls_1_0_2020_12, expected_kyber_group, NULL, true, false));
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_pq_tls_1_0_2020_12, &security_policy_pq_tls_1_0_2020_12, expected_kyber_group, NULL, true, false));
 
     /* Server supports only one KEM group and it is the client's first choice; client sends a PQ share
      * and an EC share; server chooses to negotiate PQ without HRR. */
-    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_pq_test_tls_1_0_2020_12, &kyber_test_policy, expected_kyber_group, NULL, true, false));
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_pq_tls_1_0_2020_12, &kyber_test_policy, expected_kyber_group, NULL, true, false));
 
     /* Server supports only one KEM group and it is *not* the client's first choice; client sends
      * only a PQ key share for its first choice (no ECC shares sent); server sends HRR and
      * negotiates a mutually supported PQ group. */
-    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_pq_test_tls_1_0_2020_12, &bike_test_policy, expected_bike_group, NULL, false, true));
-    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_pq_test_tls_1_0_2020_12, &sike_test_policy, expected_sike_group, NULL, false, true));
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_pq_tls_1_0_2020_12, &bike_test_policy, expected_bike_group, NULL, false, true));
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_pq_tls_1_0_2020_12, &sike_test_policy, expected_sike_group, NULL, false, true));
 
     /* Server supports only one KEM group and it is *not* the client's first choice; client sends
      * a key share for its first PQ choice, and a share for its first EC choice; server chooses
      * to negotiate EC to avoid additional round trips. */
-    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_pq_test_tls_1_0_2020_12, &bike_test_policy, NULL, expected_curve, true, false));
-    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_pq_test_tls_1_0_2020_12, &sike_test_policy, NULL, expected_curve, true, false));
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_pq_tls_1_0_2020_12, &bike_test_policy, NULL, expected_curve, true, false));
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_pq_tls_1_0_2020_12, &sike_test_policy, NULL, expected_curve, true, false));
 
     /* Server does not support PQ; client sends a PQ key share and an EC key share; server should negotiate EC without HRR. */
-    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_pq_test_tls_1_0_2020_12, &security_policy_test_all_tls13, NULL, expected_curve, true, false));
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_pq_tls_1_0_2020_12, &security_policy_test_all_tls13, NULL, expected_curve, true, false));
 
     /* Server does not support PQ; client sends a PQ key share, but no EC shares; server should negotiate EC and send HRR. */
-    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_pq_test_tls_1_0_2020_12, &security_policy_test_all_tls13, NULL, expected_curve, false, true));
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_pq_tls_1_0_2020_12, &security_policy_test_all_tls13, NULL, expected_curve, false, true));
 
     /* Server supports PQ, but client does not. Client sent an EC share, EC should be negotiated without HRR */
-    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_test_all_tls13, &security_policy_pq_test_tls_1_0_2020_12, NULL, expected_curve, true, false));
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_test_all_tls13, &security_policy_pq_tls_1_0_2020_12, NULL, expected_curve, true, false));
 
     /* Server supports PQ, but client does not. Client did not send any EC shares, EC should be negotiated after exchanging HRR */
-    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_test_all_tls13, &security_policy_pq_test_tls_1_0_2020_12, NULL, expected_curve, false, true));
+    EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(&security_policy_test_all_tls13, &security_policy_pq_tls_1_0_2020_12, NULL, expected_curve, false, true));
 
 #endif
 

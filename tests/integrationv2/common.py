@@ -239,7 +239,7 @@ class Ciphers(object):
     KMS_PQ_TLS_1_0_2020_07 = Cipher("KMS-PQ-TLS-1-0-2020-07", Protocols.TLS10, False, False, s2n=True, pq=True)
     PQ_SIKE_TEST_TLS_1_0_2019_11 = Cipher("PQ-SIKE-TEST-TLS-1-0-2019-11", Protocols.TLS10, False, False, s2n=True, pq=True)
     PQ_SIKE_TEST_TLS_1_0_2020_02 = Cipher("PQ-SIKE-TEST-TLS-1-0-2020-02", Protocols.TLS10, False, False, s2n=True, pq=True)
-    PQ_TEST_TLS_1_0_2020_12 = Cipher("PQ-TEST-TLS-1-0-2020-12", Protocols.TLS10, False, False, s2n=True, pq=True)
+    PQ_TLS_1_0_2020_12 = Cipher("PQ-TLS-1-0-2020-12", Protocols.TLS10, False, False, s2n=True, pq=True)
 
 
 class Curve(object):

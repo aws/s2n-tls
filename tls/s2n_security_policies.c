@@ -331,10 +331,10 @@ const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_07 = {
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
-const struct s2n_security_policy security_policy_pq_test_tls_1_0_2020_12 = {
+const struct s2n_security_policy security_policy_pq_tls_1_0_2020_12 = {
         .minimum_protocol_version = S2N_TLS10,
-        .cipher_preferences = &cipher_preferences_pq_test_tls_1_0_2020_12,
-        .kem_preferences = &kem_preferences_pq_test_tls_1_0_2020_12,
+        .cipher_preferences = &cipher_preferences_pq_tls_1_0_2020_12,
+        .kem_preferences = &kem_preferences_pq_tls_1_0_2020_12,
         .signature_preferences = &s2n_signature_preferences_20200207,
         .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
@@ -582,7 +582,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="KMS-PQ-TLS-1-0-2020-07", .security_policy=&security_policy_kms_pq_tls_1_0_2020_07, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="PQ-SIKE-TEST-TLS-1-0-2019-11", .security_policy=&security_policy_pq_sike_test_tls_1_0_2019_11, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="PQ-SIKE-TEST-TLS-1-0-2020-02", .security_policy=&security_policy_pq_sike_test_tls_1_0_2020_02, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="PQ-TEST-TLS-1-0-2020-12", .security_policy=&security_policy_pq_test_tls_1_0_2020_12, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="PQ-TLS-1-0-2020-12", .security_policy=&security_policy_pq_tls_1_0_2020_12, .ecc_extension_required=0, .pq_kem_extension_required=0 },
 #endif
     { .version="KMS-FIPS-TLS-1-2-2018-10", .security_policy=&security_policy_kms_fips_tls_1_2_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20140601", .security_policy=&security_policy_20140601, .ecc_extension_required=0, .pq_kem_extension_required=0 },
