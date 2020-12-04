@@ -78,7 +78,7 @@ EXPECTED_RESULTS = {
     # The expected kem_group string for this case purposefully excludes a curve;
     # depending on how s2n was compiled, the curve may be either x25519 or p256.
     (Ciphers.PQ_TEST_TLS_1_0_2020_12, Ciphers.PQ_TEST_TLS_1_0_2020_12):
-        {"cipher": "AES256_GCM_SHA384", "kem": "NONE", "kem_group": "_kyber-512-r2"},
+        {"cipher": "TLS_AES_256_GCM_SHA384", "kem": "NONE", "kem_group": "_kyber-512-r2"},
     (Ciphers.PQ_TEST_TLS_1_0_2020_12, Ciphers.KMS_PQ_TLS_1_0_2020_07):
         {"cipher": "ECDHE-KYBER-RSA-AES256-GCM-SHA384", "kem": "kyber512r2", "kem_group": "NONE"},
     (Ciphers.KMS_PQ_TLS_1_0_2020_07, Ciphers.PQ_TEST_TLS_1_0_2020_12):
