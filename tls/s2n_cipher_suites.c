@@ -28,6 +28,7 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
+#include "tls/s2n_psk.h"
 
 /*************************
  * S2n Record Algorithms *
@@ -1227,15 +1228,27 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
                 continue;
             }
 
+            /* For TLS1.3 when PSKs are present, the server must consider the hash algorithm associated with the chosen PSK,
+             * when choosing a cipher suite. Serve MUST reject any cipher suite without a matching hash algorithm and 
+             * continue to the next candidate. 
+             * */     
+            if (conn->actual_protocol_version >= S2N_TLS13 && conn->psk_params.chosen_psk != NULL) {
+                s2n_hmac_algorithm chosen_psk_hmac_alg;
+                GUARD(s2n_hash_hmac_alg(conn->psk_params.chosen_psk->hash_alg, &chosen_psk_hmac_alg));
+                if (match->prf_alg != chosen_psk_hmac_alg) {
+                    continue;
+                }
+            }
+
             conn->secure.cipher_suite = match;
-            return 0;
+            return S2N_SUCCESS;
         }
     }
 
     /* Settle for a cipher with a higher required proto version, if it was set */
     if (higher_vers_match) {
         conn->secure.cipher_suite = higher_vers_match;
-        return 0;
+        return S2N_SUCCESS;
     }
 
     S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);

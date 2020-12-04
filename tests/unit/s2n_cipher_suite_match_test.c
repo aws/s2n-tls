@@ -24,6 +24,19 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_security_policies.h"
 
+static int s2n_conn_set_chosen_psk(struct s2n_connection *conn) {
+    EXPECT_NOT_NULL(conn);
+
+    uint8_t psk_identity[] = "psk identity";
+    EXPECT_OK(s2n_psk_parameters_init(&conn->psk_params));
+    EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &conn->psk_params.chosen_psk));
+    EXPECT_SUCCESS(s2n_psk_init(conn->psk_params.chosen_psk, S2N_PSK_TYPE_EXTERNAL));
+    EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
+    EXPECT_SUCCESS(s2n_psk_new_identity(conn->psk_params.chosen_psk, psk_identity, sizeof(psk_identity)));
+
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -670,6 +683,44 @@ int main(int argc, char **argv)
                         S2N_ERR_CIPHER_NOT_SUPPORTED);
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            }
+        }
+        {
+            /* For TLS1.3 connections when a chosen PSK is present, a cipher suite with matching 
+             * hash algorithm must be selected */ 
+            {
+                EXPECT_SUCCESS(s2n_enable_tls13());
+                s2n_connection_set_cipher_preferences(conn, "test_all");
+                conn->actual_protocol_version = S2N_TLS13;
+
+                EXPECT_SUCCESS(s2n_conn_set_chosen_psk(conn));
+
+                s2n_hmac_algorithm chosen_psk_hmac_alg;
+                EXPECT_SUCCESS(s2n_hash_hmac_alg(conn->psk_params.chosen_psk->hash_alg, &chosen_psk_hmac_alg));
+                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
+                EXPECT_EQUAL(conn->secure.cipher_suite->prf_alg, chosen_psk_hmac_alg);
+
+                EXPECT_SUCCESS(s2n_connection_wipe(conn));
+                EXPECT_SUCCESS(s2n_disable_tls13());
+            }
+
+            /* For TLS1.3 connections with PSKs if there is no matching hash algorithm with chosen PSK, 
+             * the server MUST fail on setting a cipher */ 
+            {
+                EXPECT_SUCCESS(s2n_enable_tls13());
+                s2n_connection_set_cipher_preferences(conn, "test_all");
+                conn->actual_protocol_version = S2N_TLS13;
+
+                EXPECT_SUCCESS(s2n_conn_set_chosen_psk(conn));
+
+                /* S2N_HASH_SHA1 is not a matching hash algorithm for the cipher suites present in wire_ciphers_with_tls13 */ 
+                conn->psk_params.chosen_psk->hash_alg = S2N_HASH_SHA1;
+                EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13), S2N_ERR_CIPHER_NOT_SUPPORTED);
+                EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_null_cipher_suite);
+
+                EXPECT_SUCCESS(s2n_connection_wipe(conn));
+                EXPECT_SUCCESS(s2n_disable_tls13());
+
             }
         }
 
