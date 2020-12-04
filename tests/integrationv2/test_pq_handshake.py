@@ -132,7 +132,7 @@ def assert_s2n_negotiation_parameters(s2n_results, expected_result):
         assert bytes(("KEM: " + expected_result['kem']).encode('utf-8')) in s2n_results.stdout
         # Purposefully leave off the "KEM Group: " prefix in order to perform partial matches
         # without specifying the curve.
-        assert bytes(expected_result['kem_group']).encode('utf-8') in s2n_results.stdout
+        assert bytes(expected_result['kem_group'].encode('utf-8')) in s2n_results.stdout
 
 
 @pytest.mark.uncollect_if(func=invalid_pq_handshake_test_parameters)
