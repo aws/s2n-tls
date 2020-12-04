@@ -14,7 +14,7 @@
 #
 
 
-set -ex
+set -e
 
 # Install missing test dependencies. If the install directory already exists, cached artifacts will be used
 # for that dependency.
@@ -23,23 +23,21 @@ if [[ ! -d test-deps ]]; then
     mkdir test-deps ;
 fi
 
-#Install & Run shell check before installing dependencies
-echo "Installing ShellCheck..."
-codebuild/bin/install_shellcheck.sh
-echo "Running ShellCheck..."
-find ./codebuild -type f -name '*.sh' -exec shellcheck -Cnever -s bash {} \;
 
-if [[ "$OS_NAME" == "linux" ]]; then
+if [[ "$DISTRO" == "ubuntu" ]]; then
     # Only run ubuntu install outside of CodeBuild
     if [ ! "${CODEBUILD_BUILD_NUMBER}" ]; then
         codebuild/bin/install_ubuntu_dependencies.sh;
     fi
+    # Install & Run shell check.
+    echo "Installing ShellCheck..."
+    codebuild/bin/install_shellcheck.sh
+    echo "Running ShellCheck..."
+    find ./codebuild -type f -name '*.sh' -exec shellcheck -Cnever -s bash {} \;
 fi
 
 if [[ "$OS_NAME" == "darwin" ]]; then
     codebuild/bin/install_osx_dependencies.sh;
 fi
-
-codebuild/bin/install_default_dependencies.sh
 
 echo "Success"
