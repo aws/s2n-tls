@@ -91,10 +91,10 @@ class Cert(object):
         if self.algorithm != 'EC':
             return True
 
-        return curve.name[:-3] == self.name[:-3]
+        return curve.name[-3:] == self.name[-3:]
 
     def compatible_with_sigalg(self, sigalg):
-        if self.algorithm is 'EC':
+        if self.algorithm == 'EC':
             if '384' in self.name and 'p256' in sigalg.name:
                 return False
 
@@ -177,12 +177,17 @@ class Cipher(object):
         self.iana_standard_name = iana_standard_name
         self.s2n = s2n
         self.pq = pq
-        self.algorithm = 'ANY'
 
-        if 'ECDSA' in name:
+        if self.min_version >= Protocols.TLS13:
+            self.algorithm = 'ANY'
+        elif iana_standard_name is None:
+            self.algorithm = 'ANY'
+        elif 'ECDSA' in iana_standard_name:
             self.algorithm = 'EC'
-        elif 'RSA' in name:
+        elif 'RSA' in iana_standard_name:
             self.algorithm = 'RSA'
+        else:
+            pytest.fail("Unknown signature algorithm on cipher")
 
     def __eq__(self, other):
         return self.name == other

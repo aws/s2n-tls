@@ -131,6 +131,8 @@ def test_s2n_client_signature_algorithms(managed_process, cipher, provider, prot
         data_to_send=random_bytes,
         insecure=True,
         use_client_auth=client_auth,
+        client_key_file=certificate.key,
+        client_certificate_file=certificate.cert,
         protocol=protocol)
 
     server_options = copy.copy(client_options)
