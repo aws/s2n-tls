@@ -6,11 +6,11 @@
  * (ndrucker@amazon.com, gueron@amazon.com, dkostic@amazon.com)
  */
 
-#include "bike_r2_kem.h"
 #include "decode.h"
 #include "gf2x.h"
 #include "sampling.h"
 #include "sha.h"
+#include "tls/s2n_kem.h"
 
 _INLINE_ void
 split_e(OUT split_e_t *splitted_e, IN const e_t *e)

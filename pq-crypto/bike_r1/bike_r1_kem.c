@@ -12,6 +12,7 @@
 #include "gf2x.h"
 #include "parallel_hash.h"
 #include "sampling.h"
+#include "tls/s2n_kem.h"
 
 _INLINE_ void
 split_e(OUT split_e_t *splitted_e, IN const e_t *e)

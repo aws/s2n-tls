@@ -234,7 +234,7 @@ int main(int argc, char **argv)
                     kem_public_key_size public_key_size = kem_pref->tls13_kem_groups[0]->kem->public_key_length;
                     EXPECT_SUCCESS(s2n_alloc(&client_params->kem_params.public_key, public_key_size));
 
-                    EXPECT_SUCCESS(s2n_kem_generate_keypair(&client_params->kem_params));
+                    EXPECT_OK(s2n_kem_generate_keypair(&client_params->kem_params));
                     EXPECT_NOT_NULL(client_params->kem_params.private_key.data);
                     EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params->ecc_params));
                     EXPECT_NOT_NULL(client_params->ecc_params.evp_pkey);

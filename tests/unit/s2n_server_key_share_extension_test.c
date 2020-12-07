@@ -830,7 +830,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_alloc(&conn->secure.client_kem_group_params[1].kem_params.public_key,
                         s2n_secp256r1_bike1_l1_r2.kem->public_key_length));
-                EXPECT_SUCCESS(s2n_kem_generate_keypair(&conn->secure.client_kem_group_params[1].kem_params));
+                EXPECT_OK(s2n_kem_generate_keypair(&conn->secure.client_kem_group_params[1].kem_params));
                 EXPECT_SUCCESS(s2n_server_key_share_send_check_pq_hybrid(conn));
             }
 
@@ -869,7 +869,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params->ecc_params));
                 EXPECT_SUCCESS(s2n_alloc(&client_params->kem_params.public_key, kem_group->kem->public_key_length));
-                EXPECT_SUCCESS(s2n_kem_generate_keypair(&client_params->kem_params));
+                EXPECT_OK(s2n_kem_generate_keypair(&client_params->kem_params));
 
                 EXPECT_SUCCESS(s2n_server_key_share_extension.send(conn, &stuffer));
 

@@ -1,5 +1,3 @@
-#include "kyber_90s_r2_kem.h"
-
 #include "indcpa.h"
 #include "params.h"
 #include "symmetric.h"
@@ -7,9 +5,9 @@
 
 #include "../s2n_pq_random.h"
 #include "utils/s2n_safety.h"
+#include "tls/s2n_kem.h"
 
 #include <stdlib.h>
-
 
 /*************************************************
 * Name:        crypto_kem_keypair

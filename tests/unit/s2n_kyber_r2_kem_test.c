@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-#include "pq-crypto/kyber_r2/kyber_r2_kem.h"
 
 int main(int argc, char **argv)
 {

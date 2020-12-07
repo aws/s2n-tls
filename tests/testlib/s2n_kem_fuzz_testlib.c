@@ -18,7 +18,6 @@
 #include "tls/s2n_kem.h"
 #include "tests/testlib/s2n_nist_kats.h"
 
-
 int s2n_kem_recv_ciphertext_fuzz_test_init(const char *kat_file_path, struct s2n_kem_params *kem_params) {
     notnull_check(kat_file_path);
     notnull_check(kem_params);
