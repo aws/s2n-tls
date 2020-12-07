@@ -51,8 +51,6 @@ test_sni_match:
 	$(call run_tox,$@.py)
 test_well_known_endpoints:
 	$(call run_tox,$@.py)
-# TODO Remove this target from CI, then from Makefile
-test_compatibility_with_oqs_openssl: ;
 test_fragmentation:
 	$(call run_tox,$@.py)
 test_hello_retry_requests:
