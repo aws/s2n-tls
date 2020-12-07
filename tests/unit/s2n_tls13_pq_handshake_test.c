@@ -25,7 +25,7 @@
 /* Include C file directly to access static functions */
 #include "tls/s2n_handshake_io.c"
 
-static int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_policy,
+int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_policy,
         const struct s2n_security_policy *server_sec_policy, const struct s2n_kem_group *expected_kem_group,
         const struct s2n_ecc_named_curve *expected_curve, bool should_send_ec_shares, bool hrr_expected) {
     /* XOR check: can expect to negotiate either a KEM group, or a classic EC curve, but not both/neither */
