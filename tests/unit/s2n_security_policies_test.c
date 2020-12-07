@@ -244,8 +244,6 @@ int main(int argc, char **argv)
             "CloudFront-TLS-1-1-2016",
             "CloudFront-TLS-1-2-2018",
             "CloudFront-TLS-1-2-2019",
-            /* CloudFront undocumented */
-            "CloudFront-TLS-1-2-2020",
         };
         for (size_t i = 0; i < s2n_array_len(tls13_security_policy_strings); i++) {
             security_policy = NULL;
