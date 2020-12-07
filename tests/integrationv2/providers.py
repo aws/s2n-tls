@@ -147,9 +147,9 @@ class S2N(Provider):
 
         if self.options.insecure is True:
             cmd_line.append('--insecure')
-        elif self.options.client_trust_store is not None:
-            cmd_line.extend(['-f', self.options.client_trust_store])
-        elif self.options.cert is not None:
+        elif self.options.trust_store:
+            cmd_line.extend(['-f', self.options.trust_store])
+        elif self.options.cert:
             cmd_line.extend(['-f', self.options.cert])
 
         if self.options.reconnect is True:
@@ -165,10 +165,11 @@ class S2N(Provider):
 
         cmd_line.extend(['-c', cipher_prefs])
 
-        if self.options.client_key_file:
-            cmd_line.extend(['--key', self.options.client_key_file])
-        if self.options.client_certificate_file:
-            cmd_line.extend(['--cert', self.options.client_certificate_file])
+        if self.options.use_client_auth:
+            if self.options.key:
+                cmd_line.extend(['--key', self.options.key])
+            if self.options.cert:
+                cmd_line.extend(['--cert', self.options.cert])
 
         if self.options.extra_flags is not None:
             cmd_line.extend(self.options.extra_flags)
@@ -193,10 +194,10 @@ class S2N(Provider):
 
         if self.options.insecure is True:
             cmd_line.append('--insecure')
-        elif self.options.client_trust_store is not None:
-            cmd_line.extend(['-t', self.options.client_trust_store])
-        elif self.options.client_certificate_file is not None:
-            cmd_line.extend(['-t', self.options.client_certificate_file])
+        elif self.options.trust_store:
+            cmd_line.extend(['-t', self.options.trust_store])
+        elif self.options.cert:
+            cmd_line.extend(['-t', self.options.cert])
 
         # If the test provided a cipher (security policy) that is compatible with
         # s2n, we'll use it. Otherwise, default to the appropriate `test_all` policy.
@@ -347,9 +348,11 @@ class OpenSSL(Provider):
         if self.options.curve is not None:
             cmd_line.extend(['-curves', str(self.options.curve)])
 
-        if self.options.use_client_auth is True:
-            cmd_line.extend(['-key', self.options.client_key_file])
-            cmd_line.extend(['-cert', self.options.client_certificate_file])
+        if self.options.use_client_auth:
+            if self.options.key:
+                cmd_line.extend(['-key', self.options.key])
+            if self.options.cert:
+                cmd_line.extend(['-cert', self.options.cert])
 
         if self.options.reconnect is True:
             cmd_line.append('-reconnect')
@@ -450,8 +453,10 @@ class JavaSSL(Provider):
         if self.options.port is not None:
             cmd_line.extend([self.options.port])
 
-        if self.options.cert is not None:
-            cmd_line.extend([self.options.cert.cert])
+        if self.options.trust_store:
+            cmd_line.extend([self.options.trust_store])
+        elif self.options.cert:
+            cmd_line.extend([self.options.cert])
 
         if self.options.protocol is not None:
             cmd_line.extend([self.options.protocol.name])

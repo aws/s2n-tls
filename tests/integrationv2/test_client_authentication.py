@@ -57,8 +57,9 @@ def test_client_auth_with_s2n_server(managed_process, cipher, provider, protocol
         cipher=cipher,
         data_to_send=random_bytes,
         use_client_auth=True,
-        client_key_file=client_certificate.key,
-        client_certificate_file=client_certificate.cert,
+        key=client_certificate.key,
+        cert=client_certificate.cert,
+        trust_store=certificate.cert,
         insecure=False,
         protocol=protocol)
 
@@ -67,7 +68,7 @@ def test_client_auth_with_s2n_server(managed_process, cipher, provider, protocol
     server_options.mode = Provider.ServerMode
     server_options.key = certificate.key
     server_options.cert = certificate.cert
-    server_options.client_trust_store = client_certificate.cert
+    server_options.trust_store = client_certificate.cert
 
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(provider, client_options, timeout=5)
@@ -108,8 +109,9 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, ci
         cipher=cipher,
         data_to_send=b'',
         use_client_auth=True,
-        client_key_file=client_certificate.key,
-        client_certificate_file=client_certificate.cert,
+        key=client_certificate.key,
+        cert=client_certificate.cert,
+        trust_store=certificate.cert,
         insecure=False,
         protocol=protocol)
 
@@ -120,7 +122,7 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, ci
     server_options.cert = certificate.cert
 
     # Tell the server to expect the wrong certificate
-    server_options.client_certificate_file=Certificates.RSA_2048_SHA256_WILDCARD.cert
+    server_options.trust_store=Certificates.RSA_2048_SHA256_WILDCARD.cert
 
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(OpenSSL, client_options, timeout=5)
@@ -160,7 +162,7 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, protocol, 
         cipher=cipher,
         data_to_send=random_bytes,
         use_client_auth=True,
-        client_trust_store=certificate.cert,
+        trust_store=certificate.cert,
         insecure=False,
         protocol=protocol)
 
@@ -211,9 +213,9 @@ def test_client_auth_with_s2n_client_with_cert(managed_process, cipher, protocol
         cipher=cipher,
         data_to_send=random_bytes,
         use_client_auth=True,
-        client_key_file=client_certificate.key,
-        client_certificate_file=client_certificate.cert,
-        client_trust_store=certificate.cert,
+        key=client_certificate.key,
+        cert=client_certificate.cert,
+        trust_store=certificate.cert,
         insecure=False,
         protocol=protocol)
 
@@ -222,6 +224,7 @@ def test_client_auth_with_s2n_client_with_cert(managed_process, cipher, protocol
     server_options.mode = Provider.ServerMode
     server_options.key = certificate.key
     server_options.cert = certificate.cert
+    server_options.trust_store = client_certificate.cert
 
     server = managed_process(provider, server_options, timeout=5)
     client = managed_process(S2N, client_options, timeout=5)

@@ -374,10 +374,8 @@ class ProviderOptions(object):
             insecure=False,
             data_to_send=None,
             use_client_auth=False,
-            client_key_file=None,
-            client_certificate_file=None,
             extra_flags=None,
-            client_trust_store=None,
+            trust_store=None,
             reconnects_before_exit=None,
             reconnect=None,
             verify_hostname=None,
@@ -406,6 +404,8 @@ class ProviderOptions(object):
         # Path to a certificate PEM
         self.cert = cert
 
+        self.trust_store = trust_store
+
         # Boolean whether to use a resumption ticket
         self.use_session_ticket = use_session_ticket
 
@@ -420,9 +420,6 @@ class ProviderOptions(object):
 
         # Parameters to configure client authentication
         self.use_client_auth = use_client_auth
-        self.client_certificate_file = client_certificate_file
-        self.client_trust_store = client_trust_store
-        self.client_key_file = client_key_file
 
         # Reconnects on the server side (includes first connection)
         self.reconnects_before_exit = reconnects_before_exit

@@ -28,7 +28,7 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
         host="localhost",
         port=port,
         cipher=cipher,
-        cert=certificate,
+        cert=certificate.cert,
         curve=curve,
         data_to_send=random_bytes,
         insecure=True,
