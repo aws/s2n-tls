@@ -115,7 +115,7 @@ static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm a
     GUARD(s2n_hash_update(&state->outer_just_key, key, klen));
     GUARD(s2n_hash_update(&state->outer_just_key, state->xor_pad, state->xor_pad_size));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static int s2n_tls_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
@@ -142,11 +142,12 @@ static int s2n_tls_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm al
     }
 
     GUARD(s2n_hash_update(&state->outer_just_key, state->xor_pad, state->xor_pad_size));
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_hmac_xor_pad_size(s2n_hmac_algorithm hmac_alg, uint16_t *xor_pad_size)
 {
+    PRECONDITION_POSIX(S2N_MEM_IS_WRITABLE(xor_pad_size, sizeof(*xor_pad_size)));
     switch(hmac_alg) {
     case S2N_HMAC_NONE:       *xor_pad_size = 64;   break;
     case S2N_HMAC_MD5:        *xor_pad_size = 64;   break;
@@ -160,11 +161,12 @@ int s2n_hmac_xor_pad_size(s2n_hmac_algorithm hmac_alg, uint16_t *xor_pad_size)
     default:
         S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
     }
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_hmac_hash_block_size(s2n_hmac_algorithm hmac_alg, uint16_t *block_size)
 {
+    PRECONDITION_POSIX(S2N_MEM_IS_WRITABLE(block_size, sizeof(*block_size)));
     switch(hmac_alg) {
     case S2N_HMAC_NONE:       *block_size = 64;   break;
     case S2N_HMAC_MD5:        *block_size = 64;   break;
@@ -178,7 +180,7 @@ int s2n_hmac_hash_block_size(s2n_hmac_algorithm hmac_alg, uint16_t *block_size)
     default:
         S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
     }
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_hmac_new(struct s2n_hmac_state *state)
