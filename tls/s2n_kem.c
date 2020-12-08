@@ -483,27 +483,27 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
 /* IF S2N_NO_PQ was defined at compile time, the PQ KEM code will have been entirely excluded
  * from compilation. We define stubs of these functions here to error if they are called. */
 /* sikep503r1 */
-int SIKE_P503_r1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
-int SIKE_P503_r1_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN  const unsigned char *pk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
-int SIKE_P503_r1_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
+int SIKE_P503_r1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
+int SIKE_P503_r1_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN  const unsigned char *pk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
+int SIKE_P503_r1_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
 /* sikep434r2 */
-int SIKE_P434_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
-int SIKE_P434_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
-int SIKE_P434_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
+int SIKE_P434_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
+int SIKE_P434_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
+int SIKE_P434_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
 /* bike1l1r1 */
-int BIKE1_L1_R1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
-int BIKE1_L1_R1_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
-int BIKE1_L1_R1_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
+int BIKE1_L1_R1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
+int BIKE1_L1_R1_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
+int BIKE1_L1_R1_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
 /* bike1l1r2*/
-int BIKE1_L1_R2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
-int BIKE1_L1_R2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
-int BIKE1_L1_R2_crypto_kem_dec(OUT unsigned char * ss, IN const unsigned char *ct, IN const unsigned char *sk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
+int BIKE1_L1_R2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
+int BIKE1_L1_R2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
+int BIKE1_L1_R2_crypto_kem_dec(OUT unsigned char * ss, IN const unsigned char *ct, IN const unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
 /* kyber512r2 */
-int kyber_512_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
-int kyber_512_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
-int kyber_512_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
+int kyber_512_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
+int kyber_512_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
+int kyber_512_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
 /* kyber512r2 90's version*/
-int kyber_512_90s_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
-int kyber_512_90s_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
-int kyber_512_90s_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { BAIL_POSIX(S2N_ERR_PQ_DISABLED); }
+int kyber_512_90s_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
+int kyber_512_90s_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
+int kyber_512_90s_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
 #endif
