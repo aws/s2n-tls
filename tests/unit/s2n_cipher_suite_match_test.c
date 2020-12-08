@@ -700,6 +700,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
                 EXPECT_EQUAL(conn->secure.cipher_suite->prf_alg, chosen_psk_hmac_alg);
 
+                EXPECT_SUCCESS(s2n_psk_parameters_free(&conn->psk_params));
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
                 EXPECT_SUCCESS(s2n_disable_tls13());
             }
@@ -718,6 +719,7 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13), S2N_ERR_CIPHER_NOT_SUPPORTED);
                 EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_null_cipher_suite);
 
+                EXPECT_SUCCESS(s2n_psk_parameters_free(&conn->psk_params));
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
                 EXPECT_SUCCESS(s2n_disable_tls13());
 
