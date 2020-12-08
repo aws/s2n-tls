@@ -85,6 +85,16 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
     return S2N_SUCCESS;
 }
 
+/* Match a PSK identity received from the client against the server's known PSK identities.
+ *
+ * While both the client's offered identities and whether a match was found are public, we should make an attempt
+ * to keep the server's known identities a secret. We will make comparisons to the server's identities constant
+ * time (to hide partial matches) and not end the search early when a match is found (to hide the ordering).
+ *
+ * Keeping these comparisons constant time is not high priority. There's no known attack using these timings,
+ * and an attacker could probably guess the server's known identities just by observing the public identities
+ * sent by clients.
+ */
 static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const struct s2n_blob *wire_identity,
         struct s2n_psk **match)
 {
@@ -99,15 +109,13 @@ static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const str
         GUARD_RESULT(s2n_array_get(known_psks, i, (void**)&psk));
         ENSURE_REF(psk);
 
-        if (wire_identity->size != psk->identity.size) {
-            continue;
-        }
-
         ENSURE_REF(psk->identity.data);
         ENSURE_REF(wire_identity->data);
-        if (memcmp(psk->identity.data, wire_identity->data, wire_identity->size) == 0) {
+
+        uint32_t compare_size = MIN(wire_identity->size, psk->identity.size);
+        if (s2n_constant_time_equals(psk->identity.data, wire_identity->data, compare_size)
+            & (psk->identity.size == wire_identity->size) & (!*match)) {
             *match = psk;
-            return S2N_RESULT_OK;
         }
     }
     return S2N_RESULT_OK;
