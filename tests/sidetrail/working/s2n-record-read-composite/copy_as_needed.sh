@@ -47,11 +47,11 @@ patch -p5 < ../patches/cbc.patch
 patch -p1 < record_read.patch
 
 mkdir -p utils
+cp $S2N_BASE/utils/s2n_result.c utils/
 cp $S2N_BASE/utils/s2n_safety.c utils/
-cp $S2N_BASE/utils/s2n_safety.h utils/
-cp ../stubs/s2n_mem.c utils/
 patch -p1 < ../patches/safety.patch
 
 cp ../stubs/s2n_annotations.h utils/
 cp ../stubs/s2n_ensure.h utils/
 cp ../stubs/s2n_ensure.c utils/
+cp ../stubs/s2n_mem.c utils/
