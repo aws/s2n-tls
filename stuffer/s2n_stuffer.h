@@ -21,6 +21,7 @@
 #include <sys/uio.h>
 
 #include "utils/s2n_blob.h"
+#include "utils/s2n_result.h"
 
 #define S2N_MIN_STUFFER_GROWTH_IN_BYTES 1024
 
@@ -59,7 +60,7 @@ struct s2n_stuffer {
 #define s2n_stuffer_space_remaining( s )  ((s)->blob.size - (s)->write_cursor)
 #define s2n_stuffer_is_wiped( s )         ((s)->high_water_mark == 0)
 /* Check basic validity constraints on the stuffer: e.g. that cursors point within the blob */
-extern bool s2n_stuffer_is_valid(const struct s2n_stuffer* stuffer);
+extern S2N_RESULT s2n_stuffer_validate(const struct s2n_stuffer* stuffer);
 
 /* Initialize and destroying stuffers */
 extern int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in);
@@ -121,7 +122,7 @@ struct s2n_stuffer_reservation {
     uint8_t length;
 };
 /* Check basic validity constraints on the s2n_stuffer_reservation: e.g. stuffer validity. */
-extern bool s2n_stuffer_reservation_is_valid(const struct s2n_stuffer_reservation* reservation);
+extern S2N_RESULT s2n_stuffer_reservation_validate(const struct s2n_stuffer_reservation* reservation);
 extern int s2n_stuffer_reserve_uint16(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
 extern int s2n_stuffer_reserve_uint24(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
 extern int s2n_stuffer_write_vector_size(struct s2n_stuffer_reservation *reservation);

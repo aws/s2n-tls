@@ -274,7 +274,7 @@ int s2n_mem_cleanup(void)
 
 int s2n_free(struct s2n_blob *b)
 {
-    PRECONDITION_POSIX(s2n_blob_is_valid(b));
+    PRECONDITION_POSIX(s2n_blob_validate(b));
 
     /* To avoid memory leaks, don't exit the function until the memory
        has been freed */

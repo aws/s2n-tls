@@ -102,6 +102,7 @@ static int s2n_check_pub_key_dh_params(struct s2n_dh_params *dh_params)
 static int s2n_set_p_g_Ys_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *p, struct s2n_blob *g,
                                     struct s2n_blob *Ys)
 {
+    ENSURE_POSIX((p->size <= INT_MAX) && (g->size <= INT_MAX) && (Ys->size <= INT_MAX), S2N_ERR_INTEGER_OVERFLOW);
     BIGNUM *bn_p  = BN_bin2bn(( const unsigned char * )p->data, p->size, NULL);
     BIGNUM *bn_g  = BN_bin2bn(( const unsigned char * )g->data, g->size, NULL);
     BIGNUM *bn_Ys = BN_bin2bn(( const unsigned char * )Ys->data, Ys->size, NULL);
@@ -134,7 +135,7 @@ int s2n_check_all_dh_params(struct s2n_dh_params *dh_params)
 int s2n_pkcs3_to_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *pkcs3)
 {
     notnull_check(dh_params);
-    PRECONDITION_POSIX(s2n_blob_is_valid(pkcs3));
+    PRECONDITION_POSIX(s2n_blob_validate(pkcs3));
 
     uint8_t *original_ptr = pkcs3->data;
     dh_params->dh         = d2i_DHparams(NULL, ( const unsigned char ** )( void * )&pkcs3->data, pkcs3->size);
@@ -161,9 +162,9 @@ int s2n_dh_p_g_Ys_to_dh_params(struct s2n_dh_params *server_dh_params, struct s2
                                struct s2n_blob *Ys)
 {
     ENSURE_POSIX_REF(server_dh_params);
-    PRECONDITION_POSIX(s2n_blob_is_valid(p));
-    PRECONDITION_POSIX(s2n_blob_is_valid(g));
-    PRECONDITION_POSIX(s2n_blob_is_valid(Ys));
+    PRECONDITION_POSIX(s2n_blob_validate(p));
+    PRECONDITION_POSIX(s2n_blob_validate(g));
+    PRECONDITION_POSIX(s2n_blob_validate(Ys));
 
     server_dh_params->dh = DH_new();
     ENSURE_POSIX(server_dh_params->dh != NULL, S2N_ERR_DH_PARAMS_CREATE);
@@ -177,8 +178,8 @@ int s2n_dh_p_g_Ys_to_dh_params(struct s2n_dh_params *server_dh_params, struct s2
 int s2n_dh_params_to_p_g_Ys(struct s2n_dh_params *server_dh_params, struct s2n_stuffer *out, struct s2n_blob *output)
 {
     GUARD(s2n_check_all_dh_params(server_dh_params));
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(out));
-    PRECONDITION_POSIX(s2n_blob_is_valid(output));
+    PRECONDITION_POSIX(s2n_stuffer_validate(out));
+    PRECONDITION_POSIX(s2n_blob_validate(output));
 
     const BIGNUM *bn_p  = s2n_get_p_dh_param(server_dh_params);
     const BIGNUM *bn_g  = s2n_get_g_dh_param(server_dh_params);

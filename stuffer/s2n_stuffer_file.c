@@ -28,7 +28,7 @@
 
 int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const uint32_t len, uint32_t *bytes_written)
 {
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    PRECONDITION_POSIX(s2n_stuffer_validate(stuffer));
     /* Make sure we have enough space to write */
     GUARD(s2n_stuffer_skip_write(stuffer, len));
 
@@ -50,7 +50,7 @@ int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const u
 
 int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uint32_t len, uint32_t *bytes_sent)
 {
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
+    PRECONDITION_POSIX(s2n_stuffer_validate(stuffer));
 
     /* Make sure we even have the data */
     GUARD(s2n_stuffer_skip_read(stuffer, len));
@@ -72,7 +72,7 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uin
 
 int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)
 {
-    PRECONDITION_POSIX(S2N_OBJECT_PTR_IS_WRITABLE(stuffer));
+    ENSURE_POSIX_MUT(stuffer);
     struct stat st = {0};
 
     ENSURE_POSIX(fstat(rfd, &st) >= 0, S2N_ERR_FSTAT);
@@ -90,7 +90,7 @@ int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)
 
 int s2n_stuffer_alloc_ro_from_file(struct s2n_stuffer *stuffer, const char *file)
 {
-    PRECONDITION_POSIX(S2N_OBJECT_PTR_IS_WRITABLE(stuffer));
+    ENSURE_POSIX_MUT(stuffer);
     notnull_check(file);
     int fd;
 
