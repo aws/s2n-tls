@@ -17,17 +17,16 @@ set -ex
 pushd "$(pwd)"
 
 usage() {
-    echo "install_openssl_1_1_x_master.sh build_dir install_dir travis_platform"
+    echo "install_openssl_1_1_x_master.sh build_dir install_dir"
     exit 1
 }
 
-if [ "$#" -ne "3" ]; then
+if [ "$#" -ne "2" ]; then
     usage
 fi
 
 BUILD_DIR=$1
 INSTALL_DIR=$2
-PLATFORM=$3
 
 cd "$BUILD_DIR"
 
@@ -35,14 +34,8 @@ git clone https://github.com/openssl/openssl.git
 
 cd openssl
 
-if [ "$PLATFORM" == "linux" ]; then
-    CONFIGURE="./config -d"
-elif [ "$PLATFORM" == "osx" ]; then
-    CONFIGURE="./Configure darwin64-x86_64-cc"
-else
-    echo "Invalid platform! $PLATFORM"
-    usage
-fi
+# This should work across all platforms we support.
+CONFIGURE="./config -d"
 
 # Use g3 to get debug symbols in libcrypto to chase memory leaks
 $CONFIGURE -g3 -fPIC              \

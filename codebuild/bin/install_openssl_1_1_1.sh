@@ -17,17 +17,16 @@ set -ex
 pushd "$(pwd)"
 
 usage() {
-    echo "install_openssl_1_1_1.sh build_dir install_dir os_name"
+    echo "install_openssl_1_1_1.sh build_dir install_dir"
     exit 1
 }
 
-if [ "$#" -ne "3" ]; then
+if [ "$#" -ne "2" ]; then
     usage
 fi
 
 BUILD_DIR=$1
 INSTALL_DIR=$2
-OS_NAME=$3
 source codebuild/bin/jobs.sh
 RELEASE=1_1_1g
 
@@ -36,14 +35,8 @@ curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_${RELEASE}.
 unzip OpenSSL_${RELEASE}.zip
 cd openssl-OpenSSL_${RELEASE}
 
-if [ "$OS_NAME" == "linux" ]; then
-    CONFIGURE="./config -d"
-elif [ "$OS_NAME" == "osx" ]; then
-    CONFIGURE="./Configure darwin64-x86_64-cc"
-else
-    echo "Invalid platform! $OS_NAME"
-    usage
-fi
+# This should work across all platforms we support.
+CONFIGURE="./config -d"
 
 # Use g3 to get debug symbols in libcrypto to chase memory leaks
 $CONFIGURE -g3 -fPIC              \
