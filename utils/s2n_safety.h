@@ -144,24 +144,27 @@
   } while(0)
 
 /**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL` with a `S2N_ERR_PRECONDITION_VIOLATION` error
+ * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
  */
-#define PRECONDITION( condition )                   __S2N_ENSURE_CONDITION((condition), BAIL(S2N_ERR_PRECONDITION_VIOLATION))
+#define PRECONDITION( result )                      GUARD_RESULT(__S2N_ENSURE_PRECONDITION(result))
 
 /**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL` with a `S2N_ERR_POSTCONDITION_VIOLATION` error
+ * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
  */
-#define POSTCONDITION( condition )                  __S2N_ENSURE_CONDITION((condition), BAIL(S2N_ERR_POSTCONDITION_VIOLATION))
+#define POSTCONDITION( result )                     GUARD_RESULT(__S2N_ENSURE_POSTCONDITION(result))
 
 /**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with a `S2N_ERR_PRECONDITION_VIOLATION` error
+ * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
  */
-#define PRECONDITION_POSIX( condition )             __S2N_ENSURE_CONDITION((condition), BAIL_POSIX(S2N_ERR_PRECONDITION_VIOLATION))
+#define PRECONDITION_POSIX( result )                GUARD_AS_POSIX(__S2N_ENSURE_PRECONDITION(result))
 
 /**
- * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with a `S2N_ERR_POSTCONDITION_VIOLATION` error
+ * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
  */
-#define POSTCONDITION_POSIX( condition )            __S2N_ENSURE_CONDITION((condition), BAIL_POSIX(S2N_ERR_POSTCONDITION_VIOLATION))
+#define POSTCONDITION_POSIX( result )               GUARD_AS_POSIX(__S2N_ENSURE_POSTCONDITION(result))
+
+#define DEBUG_ENSURE( condition, error )            __S2N_ENSURE_DEBUG((condition), BAIL(error))
+#define DEBUG_ENSURE_POSIX( condition, error )      __S2N_ENSURE_DEBUG((condition), BAIL_POSIX(error))
 
 /**
  * Ensures `x` is not an error, otherwise the function will return an error signal

@@ -19,7 +19,7 @@
 
 #include <error/s2n_errno.h>
 
-#include "s2n_rfc5952.h"
+#include "utils/s2n_rfc5952.h"
 #include "utils/s2n_safety.h"
 
 static uint8_t dec[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };

@@ -78,16 +78,16 @@
 
 #include <s2n.h>
 #include <stdbool.h>
-#include "s2n_result.h"
+#include "utils/s2n_result.h"
 
 /* returns true when the result is S2N_RESULT_OK */
-bool s2n_result_is_ok(s2n_result result)
+inline bool s2n_result_is_ok(s2n_result result)
 {
     return result.__error_signal == S2N_SUCCESS;
 }
 
 /* returns true when the result is S2N_RESULT_ERROR */
-bool s2n_result_is_error(s2n_result result)
+inline bool s2n_result_is_error(s2n_result result)
 {
     return result.__error_signal == S2N_FAILURE;
 }
