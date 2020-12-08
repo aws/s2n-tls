@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include "s2n_annotations.h"
+#include "utils/s2n_annotations.h"
 #include "sidetrail.h"
 
 void __VERIFIER_assume(int);
@@ -26,8 +26,10 @@ void *memcpy(void *str1, const void *str2, size_t n);
 void *s2n_sidetrail_memset(void * ptr, int value, size_t num);
 
 #define __S2N_ENSURE( cond, action )                       __VERIFIER_assume((cond))
+#define __S2N_ENSURE_DEBUG( cond, action )                 __VERIFIER_assume((cond))
 
-#define __S2N_ENSURE_CONDITION( cond, action )             (void) 0
+#define __S2N_ENSURE_PRECONDITION( result )                S2N_RESULT_OK
+#define __S2N_ENSURE_POSTCONDITION( result )               S2N_RESULT_OK
 
 #define __S2N_ENSURE_SAFE_MEMCPY( d , s , n , guard )      do { memcpy((d), (s), (n)); } while(0)
 
