@@ -26,20 +26,22 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Null blob is not valid */
-    EXPECT_FALSE(s2n_blob_is_valid(NULL));
+    EXPECT_ERROR(s2n_blob_validate(NULL));
 
+#ifndef NDEBUG
     /* Invalid blob is not valid */
     struct s2n_blob b1 = {.data = 0, .size = 101 };
-    EXPECT_FALSE(s2n_blob_is_valid(&b1));
+    EXPECT_ERROR(s2n_blob_validate(&b1));
+#endif
 
     /* Size of 0 is OK if data is null */
     struct s2n_blob b2 = {.data = 0, .size = 0 };
-    EXPECT_TRUE(s2n_blob_is_valid(&b2));
+    EXPECT_OK(s2n_blob_validate(&b2));
 
     /* Valid blob is valid */
     uint8_t array[12];
     struct s2n_blob b3 = {.data = array, .size = sizeof(array)};
-    EXPECT_TRUE(s2n_blob_is_valid(&b3));
+    EXPECT_OK(s2n_blob_validate(&b3));
 
     /* Null blob is not growable */
     EXPECT_FALSE(s2n_blob_is_growable(NULL));
