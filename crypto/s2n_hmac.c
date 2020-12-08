@@ -28,9 +28,27 @@
 
 #include <stdint.h>
 
+int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
+{
+    PRECONDITION_POSIX(S2N_MEM_IS_READABLE(out, sizeof(*out)));
+    switch(hash_alg) {
+    case S2N_HASH_NONE:       *out = S2N_HMAC_NONE;   break;
+    case S2N_HASH_MD5:        *out = S2N_HMAC_MD5;    break;
+    case S2N_HASH_SHA1:       *out = S2N_HMAC_SHA1;   break;
+    case S2N_HASH_SHA224:     *out = S2N_HMAC_SHA224; break;
+    case S2N_HASH_SHA256:     *out = S2N_HMAC_SHA256; break;
+    case S2N_HASH_SHA384:     *out = S2N_HMAC_SHA384; break;
+    case S2N_HASH_SHA512:     *out = S2N_HMAC_SHA512; break;
+    case S2N_HASH_MD5_SHA1:   /* Fall through ... */
+    default:
+        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
+    }
+    return S2N_SUCCESS;
+}
 
 int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *out)
 {
+    PRECONDITION_POSIX(S2N_MEM_IS_READABLE(out, sizeof(*out)));
     switch(hmac_alg) {
     case S2N_HMAC_NONE:       *out = S2N_HASH_NONE;   break;
     case S2N_HMAC_MD5:        *out = S2N_HASH_MD5;    break;
@@ -44,7 +62,7 @@ int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *out)
     default:
         S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
     }
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_hmac_digest_size(s2n_hmac_algorithm hmac_alg, uint8_t *out)
@@ -52,13 +70,13 @@ int s2n_hmac_digest_size(s2n_hmac_algorithm hmac_alg, uint8_t *out)
     s2n_hash_algorithm hash_alg;
     GUARD(s2n_hmac_hash_alg(hmac_alg, &hash_alg));
     GUARD(s2n_hash_digest_size(hash_alg, out));
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* Return 1 if hmac algorithm is available, 0 otherwise. */
-int s2n_hmac_is_available(s2n_hmac_algorithm hmac_alg)
+bool s2n_hmac_is_available(s2n_hmac_algorithm hmac_alg)
 {
-    int is_available = 0;
+    bool is_available = false;
     switch(hmac_alg) {
     case S2N_HMAC_MD5:
     case S2N_HMAC_SSLv3_MD5:
@@ -66,13 +84,13 @@ int s2n_hmac_is_available(s2n_hmac_algorithm hmac_alg)
         /* Set is_available to 0 if in FIPS mode, as MD5/SSLv3 algs are not available in FIPS mode. */
         is_available = !s2n_is_in_fips_mode();
         break;
-    case S2N_HMAC_NONE:    
+    case S2N_HMAC_NONE:
     case S2N_HMAC_SHA1:
     case S2N_HMAC_SHA224:
     case S2N_HMAC_SHA256:
     case S2N_HMAC_SHA384:
     case S2N_HMAC_SHA512:
-        is_available = 1;
+        is_available = true;
         break;
     default:
         S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
@@ -103,7 +121,7 @@ static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm a
 static int s2n_tls_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
 {
     memset(&state->xor_pad, 0, sizeof(state->xor_pad));
-    
+
     if (klen > state->xor_pad_size) {
         GUARD(s2n_hash_update(&state->outer, key, klen));
         GUARD(s2n_hash_digest(&state->outer, state->digest_pad, state->digest_size));
@@ -223,9 +241,9 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
      * value that is congruent to 0 modulo all of our HMAC block sizes, that is also
      * at least 16k smaller than 2^32. It therefore has no effect on the mathematical
      * result, and no valid record size can cause it to overflow.
-     * 
+     *
      * The value was found with the following python code;
-     * 
+     *
      * x = (2 ** 32) - (2 ** 14)
      * while True:
      *   if x % 40 | x % 48 | x % 64 | x % 128 == 0:
@@ -291,7 +309,7 @@ int s2n_hmac_free(struct s2n_hmac_state *state)
 int s2n_hmac_reset(struct s2n_hmac_state *state)
 {
     GUARD(s2n_hash_copy(&state->inner, &state->inner_just_key));
-    
+
     uint64_t bytes_in_hash;
     GUARD(s2n_hash_get_currently_in_hash_total(&state->inner, &bytes_in_hash));
     /* The length of the key is not private, so don't need to do tricky math here */
@@ -328,7 +346,7 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
 }
 
 
-/* Preserve the handlers for hmac state pointers to avoid re-allocation 
+/* Preserve the handlers for hmac state pointers to avoid re-allocation
  * Only valid if the HMAC is in EVP mode
  */
 int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac)
