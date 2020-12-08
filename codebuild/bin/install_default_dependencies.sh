@@ -16,6 +16,7 @@
 set -ex
 source codebuild/bin/s2n_setup_env.sh
 
+OPENSSL_1_1_1_DEFAULT_VERSION="1.1.1g"
 
  # Install latest version of clang, clang++, and llvm-symbolizer. Needed for fuzzing.
 if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" || "$LATEST_CLANG" == "true" ]]; then
@@ -33,7 +34,7 @@ fi
 if [[ ("$S2N_LIBCRYPTO" == "openssl-1.1.1") || ("$TESTS" == "integration" || "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ) ]]; then
     if [[ ! -x "$OPENSSL_1_1_1_INSTALL_DIR/bin/openssl" ]]; then
       mkdir -p "$OPENSSL_1_1_1_INSTALL_DIR"||true
-      codebuild/bin/install_openssl_1_1_1.sh "$(mktemp -d)" "$OPENSSL_1_1_1_INSTALL_DIR" > /dev/null ;
+      codebuild/bin/install_openssl_1_1_1.sh "$(mktemp -d)" "$OPENSSL_1_1_1_INSTALL_DIR" "$OPENSSL_1_1_1_DEFAULT_VERSION" > /dev/null ;
     fi
 fi
 
