@@ -27,9 +27,9 @@ void s2n_stuffer_extract_blob_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(s2n_blob_is_valid(blob));
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(blob)));
 
     nondet_s2n_mem_init();
 
@@ -40,7 +40,7 @@ void s2n_stuffer_extract_blob_harness()
 
     /* Operation under verification. */
     if (s2n_stuffer_extract_blob(stuffer, blob) == S2N_SUCCESS) {
-        assert(s2n_blob_is_valid(blob));
+        assert(s2n_result_is_ok(s2n_blob_validate(blob)));
         assert(blob->size == s2n_stuffer_data_available(stuffer));
         if (blob->size > 0) {
             uint32_t index;
@@ -50,6 +50,6 @@ void s2n_stuffer_extract_blob_harness()
     }
 
     /* Post-conditions. */
-    assert(s2n_stuffer_is_valid(stuffer));
+    assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
 }

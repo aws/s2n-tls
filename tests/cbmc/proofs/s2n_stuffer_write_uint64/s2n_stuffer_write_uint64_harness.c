@@ -27,7 +27,7 @@ void s2n_stuffer_write_uint64_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     uint64_t src;
     uint32_t index;
 
@@ -49,7 +49,7 @@ void s2n_stuffer_write_uint64_harness()
         assert(stuffer->blob.data[ index ] == untouched_byte);
         /* Ensure uint was correctly written to the stuffer */
         assert(be64toh(*(( uint64_t * )(stuffer->blob.data + old_stuffer.write_cursor))) == src);
-        assert(s2n_stuffer_is_valid(stuffer));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     }
     assert(stuffer->alloced == old_stuffer.alloced);
     assert(stuffer->growable == old_stuffer.growable);

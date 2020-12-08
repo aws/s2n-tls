@@ -27,17 +27,14 @@ void s2n_hash_digest_harness()
     void* out = bounded_malloc(size);
 
     /* Assumptions. */
-    __CPROVER_assume(s2n_hash_state_is_valid(state));
-    if (state != NULL)
-    {
-        __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(state);
-    }
+    __CPROVER_assume(s2n_result_is_ok(s2n_hash_state_validate(state)));
+    __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(state);
 
     /* Operation under verification. */
     if (s2n_hash_digest(state, out, size) == S2N_SUCCESS)
     {
         /* Post-conditions. */
-        assert(s2n_hash_state_is_valid(state));
+        assert(s2n_result_is_ok(s2n_hash_state_validate(state)));
         assert(state->hash_impl->digest != NULL);
     }
 }

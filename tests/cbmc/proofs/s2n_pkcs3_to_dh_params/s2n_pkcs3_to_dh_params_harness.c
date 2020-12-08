@@ -37,7 +37,7 @@ void s2n_pkcs3_to_dh_params_harness()
     struct s2n_blob *     pkcs3     = cbmc_allocate_s2n_blob();
 
     /* Assumptions. */
-    __CPROVER_assume(s2n_blob_is_valid(pkcs3));
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(pkcs3)));
     __CPROVER_assume(s2n_blob_is_bounded(pkcs3, MAX_BLOB_SIZE));
     nondet_s2n_mem_init();
 

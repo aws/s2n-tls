@@ -24,7 +24,7 @@
 void s2n_realloc_harness()
 {
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(s2n_blob_is_valid(blob));
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(blob)));
     uint32_t size;
     size_t   index;
     __CPROVER_assume(index < blob->size || (blob->size == 0 && index == 0));
@@ -36,7 +36,7 @@ void s2n_realloc_harness()
     if (blob->size > 0) { old_data = blob->data[ index ]; }
 
     if (s2n_realloc(blob, size) == S2N_SUCCESS) {
-        assert(s2n_blob_is_valid(blob));
+        assert(s2n_result_is_ok(s2n_blob_validate(blob)));
         assert(blob->allocated >= size);
         assert(blob->size == size);
         if (size >= old_blob.size) {

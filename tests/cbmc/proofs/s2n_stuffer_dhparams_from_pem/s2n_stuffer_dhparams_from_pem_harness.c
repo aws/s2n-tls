@@ -28,11 +28,11 @@ void s2n_stuffer_dhparams_from_pem_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *pem = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(pem));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(pem)));
     __CPROVER_assume(s2n_blob_is_bounded(&pem->blob, MAX_BLOB_SIZE));
 
     struct s2n_stuffer *asn1 = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(asn1));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(asn1)));
 
     nondet_s2n_mem_init();
 
@@ -40,6 +40,6 @@ void s2n_stuffer_dhparams_from_pem_harness()
     s2n_stuffer_dhparams_from_pem(pem, asn1);
 
     /* Post-conditions. */
-    assert(s2n_stuffer_is_valid(pem));
-    assert(s2n_stuffer_is_valid(asn1));
+    assert(s2n_result_is_ok(s2n_stuffer_validate(pem)));
+    assert(s2n_result_is_ok(s2n_stuffer_validate(asn1)));
 }

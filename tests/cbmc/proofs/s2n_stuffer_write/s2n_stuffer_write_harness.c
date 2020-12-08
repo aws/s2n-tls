@@ -26,9 +26,9 @@ void s2n_stuffer_write_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(s2n_blob_is_valid(blob));
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(blob)));
     uint32_t index;
 
     nondet_s2n_mem_init();
@@ -55,7 +55,7 @@ void s2n_stuffer_write_harness()
         assert(stuffer->write_cursor == old_stuffer.write_cursor + blob->size);
         assert(stuffer->blob.data[ index ] == untouched_byte);
         assert(stuffer->high_water_mark == MAX(old_stuffer.write_cursor + blob->size, old_stuffer.high_water_mark));
-        assert(s2n_stuffer_is_valid(stuffer));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     } else {
         assert(stuffer->write_cursor == old_stuffer.write_cursor);
         assert(stuffer->high_water_mark == old_stuffer.high_water_mark);

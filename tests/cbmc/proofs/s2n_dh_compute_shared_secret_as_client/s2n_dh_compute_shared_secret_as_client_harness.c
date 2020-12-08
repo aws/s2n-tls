@@ -36,6 +36,6 @@ void s2n_dh_compute_shared_secret_as_client_harness()
     /* Operation under verification. */
     if (s2n_dh_compute_shared_secret_as_client(server_dh_params, Yc_out, shared_key) == S2N_SUCCESS) {
         /* Postconditions. */
-        assert(s2n_stuffer_is_valid(Yc_out));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(Yc_out)));
     }
 }

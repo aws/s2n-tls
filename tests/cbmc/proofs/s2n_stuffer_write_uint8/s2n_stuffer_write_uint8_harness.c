@@ -26,7 +26,7 @@ void s2n_stuffer_write_uint8_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     uint8_t  src;
     uint32_t index;
 
@@ -48,7 +48,7 @@ void s2n_stuffer_write_uint8_harness()
         assert(stuffer->blob.data[ index ] == untouched_byte);
         /* Ensure uint was correctly written to the stuffer */
         assert(stuffer->blob.data[ old_stuffer.write_cursor ] == src);
-        assert(s2n_stuffer_is_valid(stuffer));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     } else {
         assert(stuffer->write_cursor == old_stuffer.write_cursor);
         assert(stuffer->high_water_mark == old_stuffer.high_water_mark);

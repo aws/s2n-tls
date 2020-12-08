@@ -22,12 +22,12 @@ void s2n_hash_is_ready_for_input_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_hash_state *state = cbmc_allocate_s2n_hash_state();
-    __CPROVER_assume(s2n_hash_state_is_valid(state));
+    __CPROVER_assume(s2n_result_is_ok(s2n_hash_state_validate(state)));
 
     /* Operation under verification. */
     if(s2n_hash_is_ready_for_input(state))
     {
         /* Post-conditions. */
-        assert(s2n_hash_state_is_valid(state));
+        assert(s2n_result_is_ok(s2n_hash_state_validate(state)));
     }
 }
