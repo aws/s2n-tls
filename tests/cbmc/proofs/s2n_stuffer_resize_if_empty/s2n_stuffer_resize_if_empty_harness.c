@@ -29,7 +29,7 @@ void s2n_stuffer_resize_if_empty_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     uint32_t size;
 
     nondet_s2n_mem_init();
@@ -55,5 +55,5 @@ void s2n_stuffer_resize_if_empty_harness()
     }
 
     /* Post-conditions. */
-    assert(s2n_stuffer_is_valid(stuffer));
+    assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 }

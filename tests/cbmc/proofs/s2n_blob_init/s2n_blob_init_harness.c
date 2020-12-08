@@ -32,5 +32,5 @@ void s2n_blob_init_harness()
     __CPROVER_assume(S2N_IMPLIES(size != 0, data != NULL));
 
     /* Operation under verification. */
-    if (s2n_blob_init(blob, data, size) == S2N_SUCCESS) { assert(s2n_blob_is_valid(blob)); }
+    if (s2n_blob_init(blob, data, size) == S2N_SUCCESS) { assert(s2n_result_is_ok(s2n_blob_validate(blob))); }
 }

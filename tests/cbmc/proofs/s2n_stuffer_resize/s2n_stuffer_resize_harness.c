@@ -25,7 +25,7 @@ void s2n_stuffer_resize_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     uint32_t size;
 
     nondet_s2n_mem_init();
@@ -40,7 +40,7 @@ void s2n_stuffer_resize_harness()
         assert(!stuffer->tainted);
         assert(stuffer->growable);
         assert(stuffer->blob.size == size);
-        assert(s2n_stuffer_is_valid(stuffer));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 
         if (size == old_stuffer.blob.size) {
             assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);

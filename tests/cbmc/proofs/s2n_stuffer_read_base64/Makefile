@@ -36,6 +36,7 @@ PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_base64.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_network_order.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
 
@@ -44,6 +45,6 @@ REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
 REMOVE_FUNCTION_BODY += s2n_blob_slice
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe
 
-UNWINDSET += s2n_stuffer_read_base64.23:$(MAX_BLOB_SIZE)
+UNWINDSET += s2n_stuffer_read_base64.19:$(MAX_BLOB_SIZE)
 
 include ../Makefile.common

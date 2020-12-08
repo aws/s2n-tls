@@ -13,9 +13,6 @@
 
 # Expected runtime is 7 seconds.
 
-MAX_BLOB_SIZE = 10
-DEFINES += -DMAX_BLOB_SIZE=$(MAX_BLOB_SIZE)
-
 CHECKFLAGS +=
 
 PROOF_UID = s2n_dh_p_g_Ys_to_dh_params
@@ -34,6 +31,7 @@ PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_dhe.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 UNWINDSET +=
 

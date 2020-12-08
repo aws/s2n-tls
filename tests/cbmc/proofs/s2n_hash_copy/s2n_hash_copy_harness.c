@@ -26,8 +26,8 @@ void s2n_hash_copy_harness()
     struct s2n_hash_state *from = cbmc_allocate_s2n_hash_state();
 
     /* Assumptions. */
-    __CPROVER_assume(s2n_hash_state_is_valid(to));
-    __CPROVER_assume(s2n_hash_state_is_valid(from));
+    __CPROVER_assume(s2n_result_is_ok(s2n_hash_state_validate(to)));
+    __CPROVER_assume(s2n_result_is_ok(s2n_hash_state_validate(from)));
     __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(to);
     __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(from);
 
@@ -35,8 +35,8 @@ void s2n_hash_copy_harness()
     if (s2n_hash_copy(to, from) == S2N_SUCCESS)
     {
         /* Post-conditions. */
-        assert(s2n_hash_state_is_valid(to));
-        assert(s2n_hash_state_is_valid(from));
+        assert(s2n_result_is_ok(s2n_hash_state_validate(to)));
+        assert(s2n_result_is_ok(s2n_hash_state_validate(from)));
         assert(from->hash_impl->copy != NULL);
     }
 }

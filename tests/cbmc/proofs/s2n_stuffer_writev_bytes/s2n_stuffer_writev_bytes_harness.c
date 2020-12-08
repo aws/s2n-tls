@@ -27,7 +27,7 @@ void s2n_stuffer_writev_bytes_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 
     size_t iov_count;
     __CPROVER_assume(iov_count < MAX_IOVEC_SIZE);
@@ -50,6 +50,6 @@ void s2n_stuffer_writev_bytes_harness()
     /* Operation under verification. */
     if (s2n_stuffer_writev_bytes(stuffer, iov, iov_count, offs, size) == S2N_SUCCESS) {
         /* Post-conditions. */
-        assert(s2n_stuffer_is_valid(stuffer));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     }
 }

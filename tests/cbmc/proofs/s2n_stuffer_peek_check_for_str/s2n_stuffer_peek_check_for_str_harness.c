@@ -26,7 +26,7 @@ void s2n_stuffer_peek_check_for_str_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     char *expected = ensure_c_str_is_allocated(MAX_STRING_LEN);
 
     /* Store a byte from the stuffer to compare after the read */
@@ -41,5 +41,5 @@ void s2n_stuffer_peek_check_for_str_harness()
         assert(!memcmp(actual, expected, expected_length));
     }
     assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);
-    assert(s2n_stuffer_is_valid(stuffer));
+    assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 }

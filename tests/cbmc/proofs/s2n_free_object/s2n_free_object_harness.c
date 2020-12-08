@@ -22,21 +22,29 @@
 
 void s2n_free_object_harness()
 {
+    /* Non-deterministic inputs. */
     uint32_t size;
-    uint8_t *data     = can_fail_malloc(size);
-    uint8_t *old_data = data;
+    uint8_t *data = bounded_malloc(size);
 
     nondet_s2n_mem_init();
 
-    if (s2n_free_object(&data, size) == S2N_SUCCESS) { assert(data == NULL); }
+    uint8_t *old_data = data;
+
+    /* Operation under verification. */
+    if (s2n_free_object(&data, size) == S2N_SUCCESS) {
+        assert(data == NULL);
+    }
 
 #pragma CPROVER check push
 #pragma CPROVER check disable "pointer"
-    /* Verify that the memory was zeroed */
+    /*
+     * Regardless of the result of s2n_free, verify that the
+     * data pointed to in the blob was zeroed.
+    */
     if (size > 0 && old_data != NULL) {
         size_t i;
         __CPROVER_assume(i < size);
-        assert(old_data[ i ] == 0);
+        assert(old_data[i] == 0);
     }
 #pragma CPROVER check pop
 }

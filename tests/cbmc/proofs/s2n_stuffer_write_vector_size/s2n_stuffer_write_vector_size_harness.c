@@ -28,7 +28,7 @@ void s2n_stuffer_write_vector_size_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer_reservation *reservation = cbmc_allocate_s2n_stuffer_reservation();
-    __CPROVER_assume(s2n_stuffer_reservation_is_valid(reservation));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_reservation_validate(reservation)));
 
     nondet_s2n_mem_init();
 
@@ -37,7 +37,7 @@ void s2n_stuffer_write_vector_size_harness()
 
     /* Operation under verification. */
     if (s2n_stuffer_write_vector_size(reservation) == S2N_SUCCESS) {
-        assert(s2n_stuffer_reservation_is_valid(reservation));
+        assert(s2n_result_is_ok(s2n_stuffer_reservation_validate(reservation)));
         assert(reservation->stuffer->write_cursor == old_stuffer_reservation.stuffer->write_cursor);
     } else {
         assert(reservation->stuffer->write_cursor == old_stuffer_reservation.stuffer->write_cursor);

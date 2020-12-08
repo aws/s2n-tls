@@ -31,13 +31,13 @@ void s2n_dh_params_to_p_g_Ys_harness()
     struct s2n_blob *     output     = cbmc_allocate_s2n_blob();
 
     /* Assumptions. */
-    __CPROVER_assume(s2n_stuffer_is_valid(out));
-    __CPROVER_assume(s2n_blob_is_valid(output));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(out)));
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(output)));
     nondet_s2n_mem_init();
 
     /* Operation under verification. */
     if (s2n_dh_params_to_p_g_Ys(server_dh_params, out, output) == S2N_SUCCESS) {
         /* Postconditions. */
-        assert(s2n_stuffer_is_valid(out));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(out)));
     }
 }

@@ -25,7 +25,7 @@ void s2n_blob_char_to_lower_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(s2n_blob_is_valid(blob));
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(blob)));
     __CPROVER_assume(s2n_blob_is_bounded(blob, BLOB_SIZE));
 
     /* Save previous state. */
@@ -45,5 +45,5 @@ void s2n_blob_char_to_lower_harness()
     assert(blob->size == old_blob.size);
     assert(blob->allocated == old_blob.allocated);
     assert(blob->growable == old_blob.growable);
-    assert(s2n_blob_is_valid(blob));
+    assert(s2n_result_is_ok(s2n_blob_validate(blob)));
 }

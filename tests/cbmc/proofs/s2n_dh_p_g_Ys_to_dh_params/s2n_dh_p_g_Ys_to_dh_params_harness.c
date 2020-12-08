@@ -32,19 +32,16 @@ void s2n_dh_p_g_Ys_to_dh_params_harness()
     struct s2n_blob *     Ys               = cbmc_allocate_s2n_blob();
 
     /* Assumptions. */
-    __CPROVER_assume(s2n_blob_is_valid(p));
-    __CPROVER_assume(s2n_blob_is_bounded(p, MAX_BLOB_SIZE));
-    __CPROVER_assume(s2n_blob_is_valid(g));
-    __CPROVER_assume(s2n_blob_is_bounded(g, MAX_BLOB_SIZE));
-    __CPROVER_assume(s2n_blob_is_valid(Ys));
-    __CPROVER_assume(s2n_blob_is_bounded(Ys, MAX_BLOB_SIZE));
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(p)));
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(g)));
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(Ys)));
     nondet_s2n_mem_init();
 
     /* Operation under verification. */
     if (s2n_dh_p_g_Ys_to_dh_params(server_dh_params, p, g, Ys) == S2N_SUCCESS) {
         /* Postconditions. */
-        assert(s2n_blob_is_valid(p));
-        assert(s2n_blob_is_valid(g));
-        assert(s2n_blob_is_valid(Ys));
+        assert(s2n_result_is_ok(s2n_blob_validate(p)));
+        assert(s2n_result_is_ok(s2n_blob_validate(g)));
+        assert(s2n_result_is_ok(s2n_blob_validate(Ys)));
     }
 }

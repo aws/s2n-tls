@@ -26,7 +26,7 @@ void s2n_stuffer_write_uint24_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     uint32_t src;
     uint32_t index;
 
@@ -51,7 +51,7 @@ void s2n_stuffer_write_uint24_harness()
         assert((( uint32_t )stuffer->blob.data[ old_stuffer.write_cursor ]) << 16
                | (( uint32_t )stuffer->blob.data[ old_stuffer.write_cursor + 1 ]) << 8
                | (( uint32_t )stuffer->blob.data[ old_stuffer.write_cursor + 2 ]) == (src & 0xFFFFFF));
-        assert(s2n_stuffer_is_valid(stuffer));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     } else {
         assert(stuffer->write_cursor == old_stuffer.write_cursor);
         assert(stuffer->high_water_mark == old_stuffer.high_water_mark);
