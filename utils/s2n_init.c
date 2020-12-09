@@ -28,7 +28,10 @@
 #include "openssl/opensslv.h"
 
 #include "pq-crypto/s2n_pq.h"
-static int s2n_initialized = 0;
+
+#include <pthread.h>
+
+static pthread_once_t s2n_globals_initialized = PTHREAD_ONCE_INIT;
 
 static void s2n_cleanup_atexit(void);
 
@@ -37,32 +40,43 @@ unsigned long s2n_get_openssl_version(void)
     return OPENSSL_VERSION_NUMBER;
 }
 
+/* Global process state initialization. */
+static void s2n_init_global(void)
+{
+    GUARD_POSIX_VOID(s2n_fips_init());
+    GUARD_POSIX_VOID(s2n_mem_init());
+    GUARD_POSIX_VOID(s2n_cipher_suites_init());
+    GUARD_POSIX_VOID(s2n_security_policies_init());
+    GUARD_POSIX_VOID(s2n_config_defaults_init());
+    GUARD_POSIX_VOID(s2n_extension_type_init());
+    GUARD_RESULT_VOID(s2n_pq_init());
+}
+
+/* Per thread initialization. */
+static int s2n_init_thread(void)
+{
+    GUARD_AS_POSIX(s2n_rand_init());
+    return 0;
+}
+
 int s2n_init(void)
 {
-    /* s2n has already been initialized be a previous call to setup the library.
-     * This can occur when multiple components within a process have a dependency on s2n
-     * and try to initialize the library on process start.
-     */
-    if (s2n_initialized) {
-        return 0;
+    // Initialize per process state, once.
+    pthread_once(&s2n_globals_initialized, s2n_init_global);
+
+    // Bail now if any global library initialization failed.
+    if (s2n_errno != S2N_ERR_OK) {
+        return -1;
     }
 
-    POSIX_GUARD(s2n_fips_init());
-    POSIX_GUARD(s2n_mem_init());
-    POSIX_GUARD_RESULT(s2n_rand_init());
-    POSIX_GUARD(s2n_cipher_suites_init());
-    POSIX_GUARD(s2n_security_policies_init());
-    POSIX_GUARD(s2n_config_defaults_init());
-    POSIX_GUARD(s2n_extension_type_init());
-    POSIX_GUARD_RESULT(s2n_pq_init());
-
     POSIX_ENSURE_OK(atexit(s2n_cleanup_atexit), S2N_ERR_ATEXIT);
+
+    GUARD_POSIX(s2n_init_thread());
 
     if (getenv("S2N_PRINT_STACKTRACE")) {
         s2n_stack_traces_enabled_set(true);
     }
 
-    s2n_initialized = 1;
     return 0;
 }
 
@@ -74,7 +88,6 @@ int s2n_cleanup(void)
     /* This isn't strictly necessary as it isn't currently possible to call s2n_init() again after a call to
      * s2n_cleanup().
      */
-    s2n_initialized = 0;
     return 0;
 }
 

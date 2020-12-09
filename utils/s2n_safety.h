@@ -297,6 +297,11 @@ extern int s2n_sub_overflow(uint32_t a, uint32_t b, uint32_t* out);
 #define GUARD_RESULT_NONNULL( x )                   RESULT_GUARD_PTR(x)
 
 /**
+ * Ensures `x` is ok, otherwise the function will return
+ */
+#define GUARD_RESULT_VOID( x )                   __S2N_ENSURE(s2n_result_is_ok(x), return)
+
+/**
  * Ensures `x` is not a OpenSSL error, otherwise the function will `BAIL` with `error`
  */
 /* TODO: use the OSSL error code in error reporting https://github.com/awslabs/s2n/issues/705 */
@@ -316,6 +321,12 @@ extern int s2n_sub_overflow(uint32_t a, uint32_t b, uint32_t* out);
  * Ensures `x` is not `NULL`, otherwise the function will return a POSIX error (`-1`)
  */
 #define GUARD_POSIX_NONNULL( x )                    POSIX_GUARD_PTR(x)
+
+/**
+ * Ensures `x` is not a POSIX error, otherwise the function will return
+ */
+#define GUARD_POSIX_VOID( x )                       __S2N_ENSURE((x) >= S2N_SUCCESS, return )
+
 
 /**
  * Ensures `x` is not a OpenSSL error, otherwise the function will `BAIL` with `error`
