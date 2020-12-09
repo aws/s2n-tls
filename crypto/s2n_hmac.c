@@ -90,7 +90,7 @@ bool s2n_hmac_is_available(s2n_hmac_algorithm hmac_alg)
     case S2N_HMAC_SHA512:
         return true;
     default:
-        S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
+        return false;
     }
     return false;
 }
