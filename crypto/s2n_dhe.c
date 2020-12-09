@@ -102,7 +102,9 @@ static int s2n_check_pub_key_dh_params(struct s2n_dh_params *dh_params)
 static int s2n_set_p_g_Ys_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *p, struct s2n_blob *g,
                                     struct s2n_blob *Ys)
 {
-    ENSURE_POSIX((p->size <= INT_MAX) && (g->size <= INT_MAX) && (Ys->size <= INT_MAX), S2N_ERR_INTEGER_OVERFLOW);
+    ENSURE_POSIX(p->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    ENSURE_POSIX(g->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    ENSURE_POSIX(Ys->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
     BIGNUM *bn_p  = BN_bin2bn(( const unsigned char * )p->data, p->size, NULL);
     BIGNUM *bn_g  = BN_bin2bn(( const unsigned char * )g->data, g->size, NULL);
     BIGNUM *bn_Ys = BN_bin2bn(( const unsigned char * )Ys->data, Ys->size, NULL);
