@@ -163,7 +163,18 @@
  */
 #define POSTCONDITION_POSIX( result )               GUARD_AS_POSIX(__S2N_ENSURE_POSTCONDITION(result))
 
+/**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL` with an `error`.
+ * When the code is built in debug mode, they are checked.
+ * When the code is built in production mode, they are ignored.
+ */
 #define DEBUG_ENSURE( condition, error )            __S2N_ENSURE_DEBUG((condition), BAIL(error))
+
+/**
+ * Ensures the `condition` is `true`, otherwise the function will `BAIL_POSIX` with an `error`.
+ * When the code is built in debug mode, they are checked.
+ * When the code is built in production mode, they are ignored.
+ */
 #define DEBUG_ENSURE_POSIX( condition, error )      __S2N_ENSURE_DEBUG((condition), BAIL_POSIX(error))
 
 /**
