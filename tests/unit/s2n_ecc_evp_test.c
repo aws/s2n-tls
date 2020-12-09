@@ -34,6 +34,7 @@ int main(int argc, char **argv) {
             /* Server generates a key */
             evp_params.negotiated_curve = s2n_all_supported_curves_list[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&evp_params));
+            EXPECT_NOT_NULL(evp_params.evp_pkey);
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&evp_params));
         }
     }
@@ -44,6 +45,7 @@ int main(int argc, char **argv) {
             /* Server generates a key */
             evp_params.negotiated_curve = NULL;
             EXPECT_FAILURE(s2n_ecc_evp_generate_ephemeral_key(&evp_params));
+            EXPECT_NULL(evp_params.evp_pkey);
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&evp_params));
         }
     }
@@ -58,10 +60,12 @@ int main(int argc, char **argv) {
             /* Server generates a key */
             server_params.negotiated_curve = s2n_all_supported_curves_list[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_params));
+            EXPECT_NOT_NULL(server_params.evp_pkey);
 
             /* Client generates a key */
             client_params.negotiated_curve = s2n_all_supported_curves_list[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params));
+            EXPECT_NOT_NULL(client_params.evp_pkey);
 
             /* Compute shared secret for server */
             EXPECT_SUCCESS(
@@ -100,10 +104,12 @@ int main(int argc, char **argv) {
                 server_params.negotiated_curve = s2n_all_supported_curves_list[j];
 
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_params));
+                EXPECT_NOT_NULL(server_params.evp_pkey);
 
                 /* Client generates a key */
                 client_params.negotiated_curve = s2n_all_supported_curves_list[i];
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params));
+                EXPECT_NOT_NULL(client_params.evp_pkey);
 
                 /* Compute shared secret for server */
                 EXPECT_FAILURE(
@@ -131,6 +137,7 @@ int main(int argc, char **argv) {
             /* Server generates a key for a given curve */
             test_params.negotiated_curve = s2n_all_supported_curves_list[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&test_params));
+            EXPECT_NOT_NULL(test_params.evp_pkey);
             EXPECT_SUCCESS(s2n_ecc_evp_write_params_point(&test_params, &wire));
 
             /* Verify output is of the right length */
@@ -162,6 +169,7 @@ int main(int argc, char **argv) {
             /* Server generates a key for a given curve */
             write_params.negotiated_curve = s2n_all_supported_curves_list[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&write_params));
+            EXPECT_NOT_NULL(write_params.evp_pkey);
             EXPECT_SUCCESS(s2n_ecc_evp_write_params_point(&write_params, &wire));
 
             /* Read point back in */
@@ -191,6 +199,7 @@ int main(int argc, char **argv) {
 
             /* Server generates a key for a given curve */
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&write_params));
+            EXPECT_NOT_NULL(write_params.evp_pkey);
             EXPECT_SUCCESS(s2n_ecc_evp_write_params_point(&write_params, &wire));
 
             /* Read point back in */
@@ -221,6 +230,7 @@ int main(int argc, char **argv) {
 
             /* Server generates a key for a given curve */
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&write_params));
+            EXPECT_NOT_NULL(write_params.evp_pkey);
 
              /* Write params points to wire */
             EXPECT_SUCCESS(s2n_ecc_evp_write_params(&write_params, &wire, &ecdh_params_sent));
@@ -256,6 +266,7 @@ int main(int argc, char **argv) {
 
             /* Server generates a key for a given curve */
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_params));
+            EXPECT_NOT_NULL(server_params.evp_pkey);
 
             /* Server sends the public */
             EXPECT_SUCCESS(s2n_ecc_evp_write_params(&server_params, &wire, &ecdh_params_sent));
@@ -271,6 +282,7 @@ int main(int argc, char **argv) {
              /* Client generates its key for the given curve */
             client_params.negotiated_curve =s2n_all_supported_curves_list[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params));
+            EXPECT_NOT_NULL(client_params.evp_pkey);
         
             /* Compute shared secret for the server */
             EXPECT_SUCCESS(
@@ -305,6 +317,7 @@ int main(int argc, char **argv) {
             /* Server generates a key for a given curve */
             server_params.negotiated_curve = s2n_all_supported_curves_list[i];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_params));
+            EXPECT_NOT_NULL(server_params.evp_pkey);
             /* Server sends the public */
             EXPECT_SUCCESS(s2n_ecc_evp_write_params(&server_params, &wire, &ecdh_params_sent));
             /* Client reads the public */

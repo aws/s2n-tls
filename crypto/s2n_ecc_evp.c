@@ -375,7 +375,6 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
 
     DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(ecc_evp_params->evp_pkey), EC_KEY_free_pointer);
     S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
-    GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_SERIALIZING);
     const EC_POINT *point = EC_KEY_get0_public_key(ec_key);
     const EC_GROUP *group = EC_KEY_get0_group(ec_key);
     S2N_ERROR_IF(point == NULL || group == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
