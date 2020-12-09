@@ -186,3 +186,11 @@ int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) 
 
     return 0;
 }
+
+S2N_RESULT s2n_pq_noop_asm() {
+    return S2N_RESULT_OK;
+}
+
+bool s2n_pq_no_asm_available() {
+    return false;
+}
