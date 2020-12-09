@@ -689,7 +689,7 @@ int main(int argc, char **argv)
             /* For TLS1.3 connections when a chosen PSK is present, a cipher suite with matching 
              * hash algorithm must be selected */ 
             {
-                EXPECT_SUCCESS(s2n_enable_tls13());
+                EXPECT_SUCCESS(s2n_reset_tls13());
                 s2n_connection_set_cipher_preferences(conn, "test_all");
                 conn->actual_protocol_version = S2N_TLS13;
 
@@ -702,13 +702,12 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_psk_parameters_free(&conn->psk_params));
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
-                EXPECT_SUCCESS(s2n_disable_tls13());
             }
 
             /* For TLS1.3 connections with PSKs if there is no matching hash algorithm with chosen PSK, 
              * the server MUST fail on setting a cipher */ 
             {
-                EXPECT_SUCCESS(s2n_enable_tls13());
+                EXPECT_SUCCESS(s2n_reset_tls13());
                 s2n_connection_set_cipher_preferences(conn, "test_all");
                 conn->actual_protocol_version = S2N_TLS13;
 
@@ -721,8 +720,6 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_psk_parameters_free(&conn->psk_params));
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
-                EXPECT_SUCCESS(s2n_disable_tls13());
-
             }
         }
 
