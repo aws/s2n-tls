@@ -19,13 +19,14 @@
 #include "crypto/s2n_hash.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
+#include "tls/extensions/s2n_client_psk.h"
 
+#include "utils/s2n_bitmap.h"
 #include "utils/s2n_safety.h"
 
 #define SIZE_OF_BINDER_SIZE sizeof(uint8_t)
 #define SIZE_OF_BINDER_LIST_SIZE sizeof(uint16_t)
 
-static bool s2n_client_psk_should_send(struct s2n_connection *conn);
 static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
@@ -38,7 +39,7 @@ const s2n_extension_type s2n_client_psk_extension = {
     .if_missing = s2n_extension_noop_if_missing,
 };
 
-static bool s2n_client_psk_should_send(struct s2n_connection *conn)
+bool s2n_client_psk_should_send(struct s2n_connection *conn)
 {
     return conn && s2n_connection_get_protocol_version(conn) >= S2N_TLS13
             && conn->psk_params.psk_list.len;
@@ -235,6 +236,24 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
     notnull_check(conn);
 
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
+        return S2N_SUCCESS;
+    }
+
+    /* https://tools.ietf.org/html/rfc8446#section-4.2.9:
+     * If clients offer "pre_shared_key" without a "psk_key_exchange_modes" extension,
+     * servers MUST abort the handshake.
+     */
+    S2N_ERROR_IF(conn->psk_ke_mode == S2N_PSK_KE_UNKNOWN, S2N_ERR_MISSING_EXTENSION);
+
+    if (conn->psk_ke_mode == S2N_PSK_DHE_KE) {
+        s2n_extension_type_id key_share_id;
+        GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_KEY_SHARE, &key_share_id));
+        /* A key_share extension must have been received in order to use a pre-shared key
+         * in (EC)DHE key exchange mode.
+         */
+        S2N_ERROR_IF(!S2N_CBIT_TEST(conn->extension_requests_received, key_share_id), S2N_ERR_MISSING_EXTENSION);
+    } else {
+        /* s2n currently only supports pre-shared keys in (EC)DHE key exchange mode. */
         return S2N_SUCCESS;
     }
 

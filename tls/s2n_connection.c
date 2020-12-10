@@ -52,6 +52,8 @@
 #include "utils/s2n_socket.h"
 #include "utils/s2n_timer.h"
 
+#include "extensions/s2n_psk_key_exchange_modes.h"
+
 #define S2N_SET_KEY_SHARE_LIST_EMPTY(keyshares) (keyshares |= 1)
 #define S2N_SET_KEY_SHARE_REQUEST(keyshares, i) (keyshares |= ( 1 << ( i + 1 )))
 
@@ -722,6 +724,9 @@ int s2n_connection_wipe(struct s2n_connection *conn)
         conn->client_protocol_version = s2n_highest_protocol_version;
         conn->actual_protocol_version = s2n_highest_protocol_version;
     }
+
+    /* Initialize pre-shared key exchange mode to unknown value */
+    conn->psk_ke_mode = S2N_PSK_KE_UNKNOWN;
 
     return 0;
 }

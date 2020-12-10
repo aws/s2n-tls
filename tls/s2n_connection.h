@@ -35,6 +35,7 @@
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_security_policies.h"
 
+#include "extensions/s2n_psk_key_exchange_modes.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
 
@@ -166,6 +167,7 @@ struct s2n_connection {
 
     /* Our PSK parameters */
     struct s2n_psk_parameters psk_params;
+    s2n_psk_key_exchange_mode psk_ke_mode;
 
     /* The PRF needs some storage elements to work with */
     struct s2n_prf_working_space prf_space;
