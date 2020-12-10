@@ -34,12 +34,12 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_psk_init(&psk, S2N_PSK_TYPE_EXTERNAL));
         EXPECT_EQUAL(psk.type, S2N_PSK_TYPE_EXTERNAL);
-        EXPECT_EQUAL(psk.hash_alg, S2N_HASH_SHA256);
+        EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA256);
         EXPECT_EQUAL(psk.obfuscated_ticket_age, 0);
 
         EXPECT_SUCCESS(s2n_psk_init(&psk, S2N_PSK_TYPE_RESUMPTION));
         EXPECT_EQUAL(psk.type, S2N_PSK_TYPE_RESUMPTION);
-        EXPECT_EQUAL(psk.hash_alg, S2N_HASH_SHA256);
+        EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA256);
         EXPECT_EQUAL(psk.obfuscated_ticket_age, 0);
     }
 
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
             uint8_t hash_value_data[SHA256_DIGEST_LENGTH];
             EXPECT_SUCCESS(s2n_blob_init(&hash_value, hash_value_data, sizeof(hash_value_data)));
 
-            EXPECT_SUCCESS(s2n_psk_calculate_binder_hash(conn, S2N_HASH_SHA256, &client_hello_prefix, &hash_value));
+            EXPECT_SUCCESS(s2n_psk_calculate_binder_hash(conn, S2N_HMAC_SHA256, &client_hello_prefix, &hash_value));
             S2N_BLOB_EXPECT_EQUAL(hash_value, binder_hash);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -454,13 +454,13 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            for (s2n_hash_algorithm hash_alg = S2N_HASH_SHA1; hash_alg <= S2N_HASH_SHA384; hash_alg++) {
+            for (s2n_hmac_algorithm hmac_alg = S2N_HMAC_SHA1; hmac_alg <= S2N_HMAC_SHA384; hmac_alg++) {
                 struct s2n_psk *psk = NULL;
                 EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
                 EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_RESUMPTION));
                 EXPECT_SUCCESS(s2n_psk_new_identity(psk, identity.data, identity.size));
                 EXPECT_SUCCESS(s2n_psk_new_secret(psk, resumption_secret.data, resumption_secret.size));
-                psk->hash_alg = hash_alg;
+                psk->hmac_alg = hmac_alg;
             }
 
             struct s2n_stuffer out = { 0 };
@@ -472,9 +472,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&out, &binder_list_size));
             EXPECT_EQUAL(binder_list_size, s2n_stuffer_data_available(&out));
 
-            for (s2n_hash_algorithm hash_alg = S2N_HASH_SHA1; hash_alg <= S2N_HASH_SHA384; hash_alg++) {
+            for (s2n_hmac_algorithm hmac_alg = S2N_HMAC_SHA1; hmac_alg <= S2N_HMAC_SHA384; hmac_alg++) {
                 uint8_t hash_size = 0;
-                GUARD(s2n_hash_digest_size(hash_alg, &hash_size));
+                GUARD(s2n_hmac_digest_size(hmac_alg, &hash_size));
 
                 uint8_t binder_size = 0;
                 EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &binder_size));
@@ -484,7 +484,7 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(binder_data = s2n_stuffer_raw_read(&out, binder_size));
                 /* We can only actually verify the result for SHA256; we don't have known
                  * values for any other hash. */
-                if (hash_alg == S2N_HASH_SHA256) {
+                if (hmac_alg == S2N_HMAC_SHA256) {
                     EXPECT_BYTEARRAY_EQUAL(binder_data, finished_binder.data, binder_size);
                 }
             }

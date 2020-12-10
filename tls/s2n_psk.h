@@ -31,7 +31,7 @@ struct s2n_psk {
     s2n_psk_type type;
     struct s2n_blob identity;
     struct s2n_blob secret;
-    s2n_hash_algorithm hash_alg;
+    s2n_hmac_algorithm hmac_alg;
     uint32_t obfuscated_ticket_age;
     struct s2n_blob early_secret;
 };
@@ -55,7 +55,7 @@ int s2n_psk_parameters_free(struct s2n_psk_parameters *params);
 
 S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn);
 
-int s2n_psk_calculate_binder_hash(struct s2n_connection *conn, s2n_hash_algorithm hash_alg,
+int s2n_psk_calculate_binder_hash(struct s2n_connection *conn, s2n_hmac_algorithm hmac_alg,
         const struct s2n_blob *partial_client_hello, struct s2n_blob *output_binder_hash);
 int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_hash,
         struct s2n_blob *output_binder);

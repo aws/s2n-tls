@@ -68,7 +68,7 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
 
         /* Calculate binder size */
         uint8_t hash_size = 0;
-        GUARD(s2n_hash_digest_size(psk->hash_alg, &hash_size));
+        GUARD(s2n_hmac_digest_size(psk->hmac_alg, &hash_size));
         binder_list_size += hash_size + SIZE_OF_BINDER_SIZE;
     }
 
