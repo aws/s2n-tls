@@ -24,7 +24,7 @@
 void s2n_free_harness()
 {
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(s2n_blob_is_valid(blob));
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(blob)));
 
     nondet_s2n_mem_init();
 

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_safety.h"
+#include "utils/s2n_safety.h"
 
 void* s2n_ensure_memcpy_trace(void *restrict to, const void *restrict from, size_t size, const char *debug_str)
 {

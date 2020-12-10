@@ -26,7 +26,7 @@ void s2n_stuffer_skip_write_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     uint32_t data_len;
 
     nondet_s2n_mem_init();
@@ -42,7 +42,7 @@ void s2n_stuffer_skip_write_harness()
         assert(stuffer->write_cursor == old_stuffer.write_cursor + data_len);
         assert(stuffer->high_water_mark == MAX(old_stuffer.write_cursor + data_len, old_stuffer.high_water_mark));
         if (old_stuffer.blob.size > 0) { assert_byte_from_blob_matches(&stuffer->blob, &old_byte_from_stuffer); }
-        assert(s2n_stuffer_is_valid(stuffer));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     } else {
         assert(stuffer->write_cursor == old_stuffer.write_cursor);
         assert(stuffer->high_water_mark == old_stuffer.high_water_mark);

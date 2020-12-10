@@ -25,9 +25,9 @@ void s2n_blob_slice_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(s2n_blob_is_valid(blob));
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(blob)));
     struct s2n_blob *slice = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(s2n_blob_is_valid(slice));
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(slice)));
     uint32_t offset;
     uint32_t size;
 
@@ -49,7 +49,7 @@ void s2n_blob_slice_harness()
     } else {
         assert_blob_equivalence(slice, &old_slice, &old_byte_from_slice);
     }
-    assert(s2n_blob_is_valid(slice));
-    assert(s2n_blob_is_valid(blob));
+    assert(s2n_result_is_ok(s2n_blob_validate(slice)));
+    assert(s2n_result_is_ok(s2n_blob_validate(blob)));
     assert_blob_equivalence(blob, &old_blob, &old_byte_from_blob);
 }

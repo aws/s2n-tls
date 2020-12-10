@@ -31,13 +31,11 @@ void s2n_dh_compute_shared_secret_as_server_harness()
     struct s2n_blob *     shared_key       = cbmc_allocate_s2n_blob();
 
     /* Assumptions. */
-    __CPROVER_assume(s2n_stuffer_is_valid(Yc_in));
-    __CPROVER_assume(s2n_blob_is_valid(shared_key));
     nondet_s2n_mem_init();
 
     /* Operation under verification. */
     if (s2n_dh_compute_shared_secret_as_server(server_dh_params, Yc_in, shared_key) == S2N_SUCCESS) {
         /* Postconditions. */
-        assert(s2n_stuffer_is_valid(Yc_in));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(Yc_in)));
     }
 }

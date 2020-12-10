@@ -12,9 +12,9 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-#include "s2n_str.h"
 #include <string.h>
 #include <sys/param.h>
+#include "utils/s2n_str.h"
 
 char *s2n_strcpy(char *buf, char *last, const char *str) {
 

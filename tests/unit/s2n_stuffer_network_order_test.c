@@ -221,18 +221,18 @@ int main(int argc, char **argv)
 
         /* Should throw an error if reservation has wrong size */
         reservation.length = sizeof(uint64_t);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_write_reservation(&reservation, 0), S2N_ERR_PRECONDITION_VIOLATION);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_write_reservation(&reservation, 0), S2N_ERR_SAFETY);
         EXPECT_EQUAL(stuffer.write_cursor, expected_write_cursor);
         reservation.length = sizeof(uint16_t);
 
         /* Should throw an error if value length does not match reservation length */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_write_reservation(&reservation, UINT32_MAX), S2N_ERR_PRECONDITION_VIOLATION);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_write_reservation(&reservation, UINT32_MAX), S2N_ERR_SAFETY);
         EXPECT_EQUAL(stuffer.write_cursor, expected_write_cursor);
 
         /* Should throw an error if rewriting would require an invalid stuffer state.
          * ( A write cursor being greater than the high water mark is an invalid stuffer state.) */
         reservation.write_cursor = stuffer.high_water_mark + 1;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_write_reservation(&reservation, 0), S2N_ERR_PRECONDITION_VIOLATION);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_write_reservation(&reservation, 0), S2N_ERR_SAFETY);
         EXPECT_EQUAL(stuffer.write_cursor, expected_write_cursor);
 
         /* Happy case: successfully rewrites a uint16_t */

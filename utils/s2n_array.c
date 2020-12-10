@@ -24,7 +24,7 @@ S2N_RESULT s2n_array_validate(const struct s2n_array *array)
 {
     uint32_t mem_size = 0;
     ENSURE_REF(array);
-    ENSURE(s2n_blob_is_valid(&array->mem), S2N_ERR_SAFETY);
+    GUARD_RESULT(s2n_blob_validate(&array->mem));
     ENSURE_NE(array->element_size, 0);
     GUARD_AS_RESULT(s2n_mul_overflow(array->len, array->element_size, &mem_size));
     ENSURE_GTE(array->mem.size, mem_size);

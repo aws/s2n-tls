@@ -15,7 +15,7 @@
 
 #include "utils/s2n_asn1_time.h"
 #include "utils/s2n_result.h"
-#include "s2n_safety.h"
+#include "utils/s2n_safety.h"
 
 #include <time.h>
 #include <ctype.h>

@@ -26,7 +26,7 @@ void s2n_hash_allow_md5_for_fips_harness()
     /* Operation under verification. */
     if (s2n_hash_allow_md5_for_fips(state) == S2N_SUCCESS) {
         /* Post-conditions. */
-        assert(s2n_hash_state_is_valid(state));
+        assert(s2n_result_is_ok(s2n_hash_state_validate(state)));
         assert(IMPLIES(s2n_is_in_fips_mode(), state->hash_impl->allow_md5_for_fips != NULL));
     }
     assert(IMPLIES(state != NULL && !s2n_is_in_fips_mode(), state->hash_impl->allow_md5_for_fips == NULL));

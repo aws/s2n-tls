@@ -32,16 +32,16 @@ void s2n_stuffer_alloc_ro_from_file_harness()
     /* Store a byte from the stuffer to compare if the write fails */
     struct s2n_stuffer            old_stuffer;
     struct store_byte_from_buffer old_byte_from_stuffer;
-    if (s2n_stuffer_is_valid(stuffer)) {
+    if (s2n_result_is_ok(s2n_stuffer_validate(stuffer))) {
         old_stuffer = *stuffer;
         save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
     }
 
     /* Operation under verification. */
     if (s2n_stuffer_alloc_ro_from_file(stuffer, file) == S2N_SUCCESS) {
-        assert(s2n_stuffer_is_valid(stuffer));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     } else {
-        if (s2n_stuffer_is_valid(stuffer) && errno != EBADF
+        if (s2n_result_is_ok(s2n_stuffer_validate(stuffer)) && errno != EBADF
             && /* The stuffer might not be equivalent if close() fails. */
             errno != EINTR && errno != EIO) {
             assert_stuffer_equivalence(stuffer, &old_stuffer, &old_byte_from_stuffer);

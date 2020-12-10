@@ -112,22 +112,22 @@ static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stu
 
 static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, const char *keyword)
 {
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(pem));
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(asn1));
+    PRECONDITION_POSIX(s2n_stuffer_validate(pem));
+    PRECONDITION_POSIX(s2n_stuffer_validate(asn1));
     notnull_check(keyword);
 
     GUARD(s2n_stuffer_pem_read_begin(pem, keyword));
     GUARD(s2n_stuffer_pem_read_contents(pem, asn1));
     GUARD(s2n_stuffer_pem_read_end(pem, keyword));
 
-    POSTCONDITION_POSIX(s2n_stuffer_is_valid(pem));
-    POSTCONDITION_POSIX(s2n_stuffer_is_valid(asn1));
+    POSTCONDITION_POSIX(s2n_stuffer_validate(pem));
+    POSTCONDITION_POSIX(s2n_stuffer_validate(asn1));
     return S2N_SUCCESS;
 }
 
 int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1) {
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(pem));
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(asn1));
+    PRECONDITION_POSIX(s2n_stuffer_validate(pem));
+    PRECONDITION_POSIX(s2n_stuffer_validate(asn1));
     int rc;
 
     rc = s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS1_RSA_PRIVATE_KEY);

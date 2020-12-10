@@ -74,8 +74,8 @@ bool s2n_is_base64_char(unsigned char c)
  */
 int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out)
 {
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(out));
+    PRECONDITION_POSIX(s2n_stuffer_validate(stuffer));
+    PRECONDITION_POSIX(s2n_stuffer_validate(out));
     int bytes_this_round = 3;
     s2n_stack_blob(o, 4, 4);
 
@@ -147,8 +147,8 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
 
 int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in)
 {
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(stuffer));
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(in));
+    PRECONDITION_POSIX(s2n_stuffer_validate(stuffer));
+    PRECONDITION_POSIX(s2n_stuffer_validate(in));
     s2n_stack_blob(o, 4, 4);
     s2n_stack_blob(i, 3, 3);
 

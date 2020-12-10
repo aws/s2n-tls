@@ -26,7 +26,7 @@ void s2n_stuffer_growable_alloc_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     uint32_t size;
 
     /* Save previous state from stuffer. */
@@ -40,7 +40,7 @@ void s2n_stuffer_growable_alloc_harness()
         assert(stuffer->growable);
         assert(stuffer->alloced);
         assert(stuffer->blob.size == size);
-        assert(s2n_stuffer_is_valid(stuffer));
+        assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     } else {
         assert(stuffer->blob.data == NULL);
         assert(stuffer->blob.size == 0);

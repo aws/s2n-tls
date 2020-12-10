@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_annotations.h"
-#include "s2n_safety.h"
+#include "utils/s2n_annotations.h"
+#include "utils/s2n_safety.h"
 #include "sidetrail.h"
 
 void* s2n_sidetrail_memset(void* ptr, int value, size_t num)

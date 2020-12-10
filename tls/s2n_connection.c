@@ -542,8 +542,8 @@ void *s2n_connection_get_ctx(struct s2n_connection *conn)
 int s2n_connection_release_buffers(struct s2n_connection *conn)
 {
     notnull_check(conn);
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(&conn->out));
-    PRECONDITION_POSIX(s2n_stuffer_is_valid(&conn->in));
+    PRECONDITION_POSIX(s2n_stuffer_validate(&conn->out));
+    PRECONDITION_POSIX(s2n_stuffer_validate(&conn->in));
 
     ENSURE_POSIX(s2n_stuffer_is_consumed(&conn->out), S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
     GUARD(s2n_stuffer_resize(&conn->out, 0));
@@ -551,8 +551,8 @@ int s2n_connection_release_buffers(struct s2n_connection *conn)
     ENSURE_POSIX(s2n_stuffer_is_consumed(&conn->in), S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
     GUARD(s2n_stuffer_resize(&conn->in, 0));
 
-    POSTCONDITION_POSIX(s2n_stuffer_is_valid(&conn->out));
-    POSTCONDITION_POSIX(s2n_stuffer_is_valid(&conn->in));
+    POSTCONDITION_POSIX(s2n_stuffer_validate(&conn->out));
+    POSTCONDITION_POSIX(s2n_stuffer_validate(&conn->in));
     return S2N_SUCCESS;
 }
 

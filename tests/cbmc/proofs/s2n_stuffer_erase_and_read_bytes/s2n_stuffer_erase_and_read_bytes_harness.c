@@ -25,8 +25,8 @@ void s2n_stuffer_erase_and_read_bytes_harness()
 {
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     struct s2n_blob *   blob    = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(s2n_stuffer_is_valid(stuffer));
-    __CPROVER_assume(s2n_blob_is_valid(blob));
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(blob)));
     struct s2n_stuffer            old_stuffer = *stuffer;
     struct s2n_blob               old_blob    = *blob;
     struct store_byte_from_buffer old_byte;
@@ -59,6 +59,6 @@ void s2n_stuffer_erase_and_read_bytes_harness()
     assert(blob->growable == old_blob.growable);
     assert(blob->size == old_blob.size);
 
-    assert(s2n_stuffer_is_valid(stuffer));
-    assert(s2n_blob_is_valid(blob));
+    assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
+    assert(s2n_result_is_ok(s2n_blob_validate(blob)));
 }
