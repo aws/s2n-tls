@@ -71,7 +71,9 @@ static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct 
 
     /* Then send curve list */
     for (size_t i = 0; i < ecc_pref->count; i++) {
-        GUARD(s2n_stuffer_write_uint16(out, ecc_pref->ecc_curves[i]->iana_id));
+        if (ecc_pref->ecc_curves[i]->available) {
+            GUARD(s2n_stuffer_write_uint16(out, ecc_pref->ecc_curves[i]->iana_id));
+        }
     }
 
     GUARD(s2n_stuffer_write_vector_size(&group_list_len));
@@ -91,7 +93,7 @@ static int s2n_client_supported_groups_recv_iana_id(struct s2n_connection *conn,
 
     for (size_t i = 0; i < ecc_pref->count; i++) {
         const struct s2n_ecc_named_curve *supported_curve = ecc_pref->ecc_curves[i];
-        if (iana_id == supported_curve->iana_id) {
+        if (supported_curve->available && iana_id == supported_curve->iana_id) {
             conn->secure.mutually_supported_curves[i] = supported_curve;
             return S2N_SUCCESS;
         }
@@ -150,7 +152,7 @@ static int s2n_choose_supported_group(struct s2n_connection *conn) {
 
     for (size_t i = 0; i < ecc_pref->count; i++) {
         const struct s2n_ecc_named_curve *candidate_curve = conn->secure.mutually_supported_curves[i];
-        if (candidate_curve != NULL) {
+        if (candidate_curve != NULL && candidate_curve->available) {
             conn->secure.server_ecc_evp_params.negotiated_curve = candidate_curve;
             return S2N_SUCCESS;
         }

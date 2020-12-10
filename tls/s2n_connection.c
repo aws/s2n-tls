@@ -1344,7 +1344,7 @@ int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn,
     notnull_check(ecc_pref);
 
     for (size_t i = 0; i < ecc_pref->count; i++) {
-        if (!strcmp(ecc_pref->ecc_curves[i]->name, curve_name)) {
+        if (ecc_pref->ecc_curves[i]->available && !strcmp(ecc_pref->ecc_curves[i]->name, curve_name)) {
             S2N_SET_KEY_SHARE_REQUEST(conn->preferred_key_shares, i);
             return S2N_SUCCESS;
         }

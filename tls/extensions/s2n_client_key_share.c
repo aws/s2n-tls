@@ -95,9 +95,12 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     notnull_check(ecc_pref);
 
+    int selected_curve_index = -1;
+    GUARD(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+
     struct s2n_ecc_evp_params *ecc_evp_params = NULL;
-    ecc_evp_params = &conn->secure.client_ecc_evp_params[0];
-    ecc_evp_params->negotiated_curve = ecc_pref->ecc_curves[0];
+    ecc_evp_params = &conn->secure.client_ecc_evp_params[selected_curve_index];
+    ecc_evp_params->negotiated_curve = ecc_pref->ecc_curves[selected_curve_index];
     GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
 
     return S2N_SUCCESS;
@@ -208,7 +211,7 @@ static int s2n_send_hrr_ecc_keyshare(struct s2n_connection *conn, struct s2n_stu
             S2N_ERR_INVALID_HELLO_RETRY);
 
     for (size_t i = 0; i < ecc_pref->count; i++) {
-        if (ecc_pref->ecc_curves[i]->iana_id == server_negotiated_curve->iana_id) {
+        if (ecc_pref->ecc_curves[i]->available && ecc_pref->ecc_curves[i]->iana_id == server_negotiated_curve->iana_id) {
             ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
             ENSURE_POSIX(ecc_evp_params->evp_pkey == NULL, S2N_ERR_INVALID_HELLO_RETRY);
         }
@@ -336,7 +339,7 @@ static int s2n_client_key_share_recv_ecc(struct s2n_connection *conn, struct s2n
     const struct s2n_ecc_named_curve *curve = NULL;
     struct s2n_ecc_evp_params *client_ecc_params = NULL;
     for (size_t i = 0; i < ecc_pref->count; i++) {
-        if (curve_iana_id == ecc_pref->ecc_curves[i]->iana_id) {
+        if (ecc_pref->ecc_curves[i]->available && curve_iana_id == ecc_pref->ecc_curves[i]->iana_id) {
             curve = ecc_pref->ecc_curves[i];
             client_ecc_params = &conn->secure.client_ecc_evp_params[i];
             break;
@@ -500,12 +503,15 @@ uint32_t s2n_extensions_client_key_share_size(struct s2n_connection *conn)
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     notnull_check(ecc_pref);
 
+    int selected_curve_index = -1;
+    GUARD(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+
     uint32_t s2n_client_key_share_extension_size = S2N_SIZE_OF_EXTENSION_TYPE
             + S2N_SIZE_OF_EXTENSION_DATA_SIZE
             + S2N_SIZE_OF_CLIENT_SHARES_SIZE;
 
     s2n_client_key_share_extension_size += S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIZE_OF_NAMED_GROUP;
-    s2n_client_key_share_extension_size += ecc_pref->ecc_curves[0]->share_size;
+    s2n_client_key_share_extension_size += ecc_pref->ecc_curves[selected_curve_index]->share_size;
 
     return s2n_client_key_share_extension_size;
 }

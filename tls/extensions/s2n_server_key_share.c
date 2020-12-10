@@ -114,7 +114,7 @@ int s2n_server_key_share_send_check_ecdhe(struct s2n_connection *conn) {
 
     struct s2n_ecc_evp_params *client_params = NULL;
     for (size_t i = 0; i < ecc_pref->count; i++) {
-        if (server_curve == ecc_pref->ecc_curves[i]) {
+        if (ecc_pref->ecc_curves[i]->available && server_curve == ecc_pref->ecc_curves[i]) {
             client_params = &conn->secure.client_ecc_evp_params[i];
             break;
         }
@@ -244,7 +244,7 @@ static int s2n_server_key_share_recv_ecc(struct s2n_connection *conn, uint16_t n
     size_t supported_curve_index = 0;
 
     for (size_t i = 0; i < ecc_pref->count; i++) {
-        if (named_group_iana == ecc_pref->ecc_curves[i]->iana_id) {
+        if (ecc_pref->ecc_curves[i]->available && named_group_iana == ecc_pref->ecc_curves[i]->iana_id) {
             supported_curve_index = i;
             break;
         }

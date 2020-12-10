@@ -31,6 +31,7 @@
 #define X25519_SHARE_SIZE (32)
 
 struct s2n_ecc_named_curve {
+    unsigned int available:1;
     /* See https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8 */
     uint16_t iana_id;
     /* See nid_list in openssl/ssl/t1_lib.c */
@@ -40,10 +41,10 @@ struct s2n_ecc_named_curve {
     int (*generate_key) (const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 };
 
-extern const struct s2n_ecc_named_curve s2n_ecc_curve_secp256r1;
-extern const struct s2n_ecc_named_curve s2n_ecc_curve_secp384r1;
-extern const struct s2n_ecc_named_curve s2n_ecc_curve_secp521r1;
-extern const struct s2n_ecc_named_curve s2n_ecc_curve_x25519;
+extern struct s2n_ecc_named_curve s2n_ecc_curve_secp256r1;
+extern struct s2n_ecc_named_curve s2n_ecc_curve_secp384r1;
+extern struct s2n_ecc_named_curve s2n_ecc_curve_secp521r1;
+extern struct s2n_ecc_named_curve s2n_ecc_curve_x25519;
 
 /* BoringSSL only supports using EVP_PKEY_X25519 with "modern" EC EVP APIs. BoringSSL has a note to possibly add this in
  * the future. See https://github.com/google/boringssl/blob/master/crypto/evp/p_x25519_asn1.c#L233
@@ -56,7 +57,7 @@ extern const struct s2n_ecc_named_curve s2n_ecc_curve_x25519;
     #define S2N_ECC_EVP_SUPPORTED_CURVES_COUNT 3
 #endif
 
-extern const struct s2n_ecc_named_curve *const s2n_all_supported_curves_list[];
+extern struct s2n_ecc_named_curve *s2n_all_supported_curves_list[];
 extern const size_t s2n_all_supported_curves_list_len;
 
 struct s2n_ecc_evp_params {
@@ -64,6 +65,7 @@ struct s2n_ecc_evp_params {
     EVP_PKEY *evp_pkey;
 };
 
+int s2n_ecc_evp_init(void);
 int s2n_ecc_evp_generate_ephemeral_key(struct s2n_ecc_evp_params *ecc_evp_params);
 int s2n_ecc_evp_compute_shared_secret_from_params(struct s2n_ecc_evp_params *private_ecc_evp_params,
                                                   struct s2n_ecc_evp_params *public_ecc_evp_params,

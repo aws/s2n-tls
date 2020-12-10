@@ -26,6 +26,7 @@
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
+#include "crypto/s2n_fips.h"
 
 #define TLS_EC_CURVE_TYPE_NAMED 3
 
@@ -47,11 +48,13 @@ static EC_POINT *s2n_ecc_evp_blob_to_point(struct s2n_blob *blob, const EC_KEY *
 static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret);
+static bool s2n_ecc_evp_is_available(uint16_t query_iana_id);
 
 /* IANA values can be found here: https://tools.ietf.org/html/rfc8446#appendix-B.3.1.4 */
 
-const struct s2n_ecc_named_curve s2n_ecc_curve_secp256r1 =
+struct s2n_ecc_named_curve s2n_ecc_curve_secp256r1 =
 {
+        .available = 0,
         .iana_id = TLS_EC_CURVE_SECP_256_R1,
         .libcrypto_nid = NID_X9_62_prime256v1,
         .name = "secp256r1",
@@ -59,8 +62,9 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_secp256r1 =
         .generate_key = s2n_ecc_evp_generate_key_nist_curves,
 };
 
-const struct s2n_ecc_named_curve s2n_ecc_curve_secp384r1 =
+struct s2n_ecc_named_curve s2n_ecc_curve_secp384r1 =
 {
+        .available = 0,
         .iana_id = TLS_EC_CURVE_SECP_384_R1,
         .libcrypto_nid = NID_secp384r1,
         .name = "secp384r1",
@@ -68,8 +72,9 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_secp384r1 =
         .generate_key = s2n_ecc_evp_generate_key_nist_curves,
 };
 
-const struct s2n_ecc_named_curve s2n_ecc_curve_secp521r1 =
+struct s2n_ecc_named_curve s2n_ecc_curve_secp521r1 =
 {
+        .available = 0,
         .iana_id = TLS_EC_CURVE_SECP_521_R1,
         .libcrypto_nid = NID_secp521r1,
         .name = "secp521r1",
@@ -78,7 +83,8 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_secp521r1 =
 };
 
 #if EVP_APIS_SUPPORTED
-const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {
+struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {
+    .available = 0,
     .iana_id = TLS_EC_CURVE_ECDH_X25519,
     .libcrypto_nid = NID_X25519,
     .name = "x25519",
@@ -86,13 +92,13 @@ const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {
     .generate_key = s2n_ecc_evp_generate_key_x25519,
 };
 #else
-const struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {0};
+struct s2n_ecc_named_curve s2n_ecc_curve_x25519 = {0};
 #endif
 
 /* All curves that s2n supports. New curves MUST be added here.
  * This list is a super set of all the curves present in s2n_ecc_preferences list.
  */
-const struct s2n_ecc_named_curve *const s2n_all_supported_curves_list[] = {
+struct s2n_ecc_named_curve *s2n_all_supported_curves_list[] = {
     &s2n_ecc_curve_secp256r1,
     &s2n_ecc_curve_secp384r1,
 #if EVP_APIS_SUPPORTED
@@ -180,6 +186,31 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
     if (EVP_PKEY_derive(ctx, shared_secret->data, &shared_secret_size) != 1) {
         GUARD(s2n_free(shared_secret));
         S2N_ERROR(S2N_ERR_ECDHE_SHARED_SECRET);
+    }
+
+    return 0;
+}
+
+static bool s2n_ecc_evp_is_available(uint16_t query_iana_id) {
+    switch (query_iana_id) {
+    case TLS_EC_CURVE_SECP_521_R1:
+        return !s2n_is_in_fips_mode();
+    case TLS_EC_CURVE_SECP_256_R1:
+    case TLS_EC_CURVE_SECP_384_R1:
+        return true;
+    case TLS_EC_CURVE_ECDH_X25519:
+        return s2n_is_evp_apis_supported();
+    }
+    return false;
+}
+
+int s2n_ecc_evp_init(void) {
+    for (size_t i = 0; i < s2n_all_supported_curves_list_len; i++) {
+        struct s2n_ecc_named_curve *named_curve = s2n_all_supported_curves_list[i];
+        named_curve->available = 0;
+        if (s2n_ecc_evp_is_available(named_curve->iana_id)) {
+            named_curve->available = 1;
+        }
     }
 
     return 0;

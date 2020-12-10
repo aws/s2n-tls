@@ -109,3 +109,16 @@ bool s2n_ecc_preferences_includes_curve(const struct s2n_ecc_preferences *ecc_pr
     return false;
 }
 
+int s2n_ecc_preference_first_available_curve_index(const struct s2n_ecc_preferences *ecc_preferences, int *index) {
+    notnull_check(ecc_preferences);
+    notnull_check(index);
+
+    for (size_t i = 0; i < ecc_preferences->count; i++) {
+        if (ecc_preferences->ecc_curves[i]->available) {
+            *index = i;
+            return S2N_SUCCESS;
+        }
+    }
+
+    S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+}

@@ -62,7 +62,10 @@ static int setup_connection(struct s2n_connection *conn, const struct s2n_kem *k
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
     GUARD_NONNULL(ecc_preferences);
 
-    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+    int selected_curve_index = -1;
+    GUARD(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+
+    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[selected_curve_index];
     conn->secure.kem_params.kem = kem;
     conn->secure.cipher_suite = cipher_suite;
     conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha384;

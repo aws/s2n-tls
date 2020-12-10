@@ -98,7 +98,7 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
 
     if (named_curve != NULL) {
         for (size_t i = 0; i < ecc_pref->count; i++) {
-            if (ecc_pref->ecc_curves[i] == named_curve) {
+            if (ecc_pref->ecc_curves[i]->available && ecc_pref->ecc_curves[i] == named_curve) {
                 match_found = true;
                 ENSURE_POSIX(conn->secure.client_ecc_evp_params[i].evp_pkey == NULL, S2N_ERR_INVALID_HELLO_RETRY);
                 break;

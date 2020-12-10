@@ -78,7 +78,7 @@ int s2n_tls13_compute_ecc_shared_secret(struct s2n_connection *conn, struct s2n_
      * this can be simplified if we get an index or a pointer to a specific key */
     int selection = -1;
     for (int i = 0; i < ecc_preferences->count; i++) {
-        if (server_key->negotiated_curve->iana_id == ecc_preferences->ecc_curves[i]->iana_id) {
+        if (server_key->negotiated_curve->available && server_key->negotiated_curve->iana_id == ecc_preferences->ecc_curves[i]->iana_id) {
             selection = i;
             break;
         }

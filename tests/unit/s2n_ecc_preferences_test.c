@@ -16,6 +16,7 @@
 #include "s2n_test.h"
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_tls_parameters.h"
+#include "crypto/s2n_fips.h"
 
 int main(int argc, char **argv) {
     BEGIN_TEST();
