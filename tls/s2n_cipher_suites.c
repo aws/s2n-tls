@@ -1220,24 +1220,24 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
                 }
             }
 
+            /* For TLS1.3 when PSKs are present, the server must consider the hash algorithm associated with the chosen PSK
+             * when choosing a cipher suite. Server MUST reject any cipher suite without a matching hash algorithm and 
+             * continue to the next candidate. 
+             * */     
+            if (conn->actual_protocol_version >= S2N_TLS13 && conn->psk_params.chosen_psk != NULL) {
+                s2n_hmac_algorithm chosen_psk_hmac_alg;
+                GUARD(s2n_hash_hmac_alg(conn->psk_params.chosen_psk->hash_alg, &chosen_psk_hmac_alg));
+                if (match->prf_alg != chosen_psk_hmac_alg) {
+                    continue;
+                }
+            }
+
             /* Don't immediately choose a cipher the connection shouldn't be able to support */
             if (conn->actual_protocol_version < match->minimum_required_tls_version) {
                 if (!higher_vers_match) {
                     higher_vers_match = match;
                 }
                 continue;
-            }
-
-            /* For TLS1.3 when PSKs are present, the server must consider the hash algorithm associated with the chosen PSK
-             * when choosing a cipher suite. Server MUST reject any cipher suite without a matching hash algorithm and 
-             * continue to the next candidate. 
-             * */     
-            if (conn->psk_params.chosen_psk != NULL) {
-                s2n_hmac_algorithm chosen_psk_hmac_alg;
-                GUARD(s2n_hash_hmac_alg(conn->psk_params.chosen_psk->hash_alg, &chosen_psk_hmac_alg));
-                if (match->prf_alg != chosen_psk_hmac_alg) {
-                    continue;
-                }
             }
 
             conn->secure.cipher_suite = match;

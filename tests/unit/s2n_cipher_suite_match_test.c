@@ -689,8 +689,8 @@ int main(int argc, char **argv)
             /* For TLS1.3 connections when a chosen PSK is present, a cipher suite with matching 
              * hash algorithm must be selected */ 
             {
-                EXPECT_SUCCESS(s2n_reset_tls13());
                 s2n_connection_set_cipher_preferences(conn, "test_all");
+                conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
                 conn->actual_protocol_version = S2N_TLS13;
 
                 EXPECT_SUCCESS(s2n_conn_set_chosen_psk(conn));
@@ -698,6 +698,7 @@ int main(int argc, char **argv)
                 s2n_hmac_algorithm chosen_psk_hmac_alg;
                 EXPECT_SUCCESS(s2n_hash_hmac_alg(conn->psk_params.chosen_psk->hash_alg, &chosen_psk_hmac_alg));
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
+                EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
                 EXPECT_EQUAL(conn->secure.cipher_suite->prf_alg, chosen_psk_hmac_alg);
 
                 EXPECT_SUCCESS(s2n_psk_parameters_free(&conn->psk_params));
@@ -707,8 +708,8 @@ int main(int argc, char **argv)
             /* For TLS1.3 connections with PSKs if there is no matching hash algorithm with chosen PSK, 
              * the server MUST fail on setting a cipher */ 
             {
-                EXPECT_SUCCESS(s2n_reset_tls13());
                 s2n_connection_set_cipher_preferences(conn, "test_all");
+                conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
                 conn->actual_protocol_version = S2N_TLS13;
 
                 EXPECT_SUCCESS(s2n_conn_set_chosen_psk(conn));
@@ -717,6 +718,98 @@ int main(int argc, char **argv)
                 conn->psk_params.chosen_psk->hash_alg = S2N_HASH_SHA1;
                 EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13), S2N_ERR_CIPHER_NOT_SUPPORTED);
                 EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_null_cipher_suite);
+
+                EXPECT_SUCCESS(s2n_psk_parameters_free(&conn->psk_params));
+                EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            }
+
+            /* If chosen PSK is not set, PSK hash match check MUST be skipped */
+            {
+                s2n_connection_set_cipher_preferences(conn, "test_all");
+                conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+                conn->actual_protocol_version = S2N_TLS12;
+
+                EXPECT_SUCCESS(s2n_conn_set_chosen_psk(conn));
+                conn->psk_params.chosen_psk = NULL;
+
+                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
+                EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_rsa_with_aes_128_cbc_sha);
+                EXPECT_EQUAL(conn->secure.cipher_suite->prf_alg, S2N_HMAC_SHA256);
+
+                EXPECT_SUCCESS(s2n_psk_parameters_free(&conn->psk_params));
+                EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            }
+
+            /* If chosen PSK is set (incorrectly) for version <= TLS1.2, PSK hash match check MUST be skipped */
+            {
+                s2n_connection_set_cipher_preferences(conn, "test_all");
+                conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+                conn->actual_protocol_version = S2N_TLS12;
+
+                EXPECT_SUCCESS(s2n_conn_set_chosen_psk(conn));
+                conn->psk_params.chosen_psk->hash_alg = S2N_HASH_SHA512;
+
+                s2n_hmac_algorithm chosen_psk_hmac_alg;
+                EXPECT_SUCCESS(s2n_hash_hmac_alg(conn->psk_params.chosen_psk->hash_alg, &chosen_psk_hmac_alg));
+
+                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
+                EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_rsa_with_aes_128_cbc_sha);
+                EXPECT_EQUAL(conn->secure.cipher_suite->prf_alg, S2N_HMAC_SHA256);
+                EXPECT_NOT_EQUAL(conn->secure.cipher_suite->prf_alg, chosen_psk_hmac_alg);
+
+
+                EXPECT_SUCCESS(s2n_psk_parameters_free(&conn->psk_params));
+                EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            }
+
+            /* For a matching cipher suite, skip PSK hash match check for tls versions not supported i.e tls versions <= TLS1.2 */
+            {
+                s2n_connection_set_cipher_preferences(conn, "test_all");
+                conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+                conn->actual_protocol_version = S2N_TLS10;
+
+                uint8_t test_wire_ciphers[] = {
+                    TLS_AES_128_GCM_SHA256, /* tls 1.3 */
+                    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, /* tls 1.2 */
+                    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, /* ssl v3 */
+                };
+
+                EXPECT_SUCCESS(s2n_conn_set_chosen_psk(conn));
+                conn->psk_params.chosen_psk->hash_alg = S2N_HASH_SHA384;
+                s2n_hmac_algorithm chosen_psk_hmac_alg;
+                EXPECT_SUCCESS(s2n_hash_hmac_alg(conn->psk_params.chosen_psk->hash_alg, &chosen_psk_hmac_alg));
+
+                /* Skip check for PSK hash match for TLS versions less than or equal to tls 1.2 */
+                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 3));
+                EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_ecdhe_rsa_with_aes_128_cbc_sha);
+                EXPECT_EQUAL(conn->secure.cipher_suite->prf_alg, S2N_HMAC_SHA256);
+                EXPECT_NOT_EQUAL(conn->secure.cipher_suite->prf_alg, chosen_psk_hmac_alg);
+
+                EXPECT_SUCCESS(s2n_psk_parameters_free(&conn->psk_params));
+                EXPECT_SUCCESS(s2n_connection_wipe(conn));
+            }
+
+            /* For no matching cipher suite present, choose the highest version match and skip PSK hash match check for tls versions
+             * not supported (PSK is supported only in versions >= TLS1.3) */
+            {
+                s2n_connection_set_cipher_preferences(conn, "test_all");
+                conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
+                conn->actual_protocol_version = S2N_TLS10;
+
+                uint8_t test_wire_ciphers[] = {
+                    TLS_AES_128_GCM_SHA256, /* tls 1.3 */
+                    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, /* tls 1.2 */
+                };
+
+                EXPECT_SUCCESS(s2n_conn_set_chosen_psk(conn));
+                conn->psk_params.chosen_psk->hash_alg = S2N_HASH_SHA384;
+                s2n_hmac_algorithm chosen_psk_hmac_alg;
+                EXPECT_SUCCESS(s2n_hash_hmac_alg(conn->psk_params.chosen_psk->hash_alg, &chosen_psk_hmac_alg));
+
+                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 2));
+                EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_ecdhe_rsa_with_aes_128_gcm_sha256);
+                EXPECT_EQUAL(conn->secure.cipher_suite->prf_alg, S2N_HMAC_SHA256);
+                EXPECT_NOT_EQUAL(conn->secure.cipher_suite->prf_alg, chosen_psk_hmac_alg);
 
                 EXPECT_SUCCESS(s2n_psk_parameters_free(&conn->psk_params));
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
