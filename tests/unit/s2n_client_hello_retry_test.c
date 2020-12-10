@@ -57,11 +57,13 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(ecc_pref);
 
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-            conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+            int selected_curve_index = -1;
+            EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[selected_curve_index];
+            conn->secure.client_ecc_evp_params[selected_curve_index].negotiated_curve = ecc_pref->ecc_curves[selected_curve_index];
 
             EXPECT_NULL(conn->secure.client_ecc_evp_params->evp_pkey);
-            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[selected_curve_index]));
             EXPECT_NOT_NULL(conn->secure.client_ecc_evp_params->evp_pkey);
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);

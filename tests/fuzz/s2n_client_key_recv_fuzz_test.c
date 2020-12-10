@@ -120,7 +120,9 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     notnull_check(ecc_preferences);
 
     if (server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_ecdhe_client_key_recv || server_conn->secure.cipher_suite->key_exchange_alg->client_key_recv == s2n_hybrid_client_key_recv) {
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+        int selected_curve_index = -1;
+        EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_preferences, &selected_curve_index));
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[selected_curve_index];
         s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.server_ecc_evp_params);
     }
 

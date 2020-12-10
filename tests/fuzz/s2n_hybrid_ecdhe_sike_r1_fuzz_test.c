@@ -50,7 +50,9 @@ static int setup_connection(struct s2n_connection *server_conn)
     GUARD(s2n_connection_get_ecc_preferences(server_conn, &ecc_preferences));
     notnull_check(ecc_preferences);
 
-    server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+    int selected_curve_index = -1;
+    EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_preferences, &selected_curve_index));
+    server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[selected_curve_index];
     server_conn->secure.server_ecc_evp_params.evp_pkey = NULL;
     server_conn->secure.kem_params.kem = &s2n_sike_p503_r1;
     server_conn->secure.cipher_suite = &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384;

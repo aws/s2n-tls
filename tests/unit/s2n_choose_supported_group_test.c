@@ -95,13 +95,16 @@ int main() {
                 EXPECT_NULL(server_conn->secure.mutually_supported_kem_groups[i]);
             }
 
-            server_conn->secure.mutually_supported_curves[1] = ecc_pref->ecc_curves[1];
+            int selected_curve_index = -1;
+            EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+
+            server_conn->secure.mutually_supported_curves[selected_curve_index] = ecc_pref->ecc_curves[selected_curve_index];
             EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
 
             EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
             EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
             EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
-            EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[1]);
+            EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[selected_curve_index]);
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
 
@@ -121,19 +124,24 @@ int main() {
             EXPECT_EQUAL(kem_pref, &kem_preferences_null);
 
             for (size_t i = 0; i < ecc_pref->count; i++) {
-                server_conn->secure.mutually_supported_curves[i] = ecc_pref->ecc_curves[i];
+                if (ecc_pref->ecc_curves[i]->available) {
+                    server_conn->secure.mutually_supported_curves[i] = ecc_pref->ecc_curves[i];
+                }
             }
 
             for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
                 EXPECT_NULL(server_conn->secure.mutually_supported_kem_groups[i]);
             }
 
+            int selected_curve_index = -1;
+            EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+
             EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
 
             EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
             EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
             EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
-            EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
+            EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[selected_curve_index]);
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
     }
@@ -183,19 +191,24 @@ int main() {
             EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
 
             for (size_t i = 0; i < ecc_pref->count; i++) {
-                server_conn->secure.mutually_supported_curves[i] = ecc_pref->ecc_curves[i];
+                if (ecc_pref->ecc_curves[i]->available) {
+                    server_conn->secure.mutually_supported_curves[i] = ecc_pref->ecc_curves[i];
+                }
             }
 
             for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
                 EXPECT_NULL(server_conn->secure.mutually_supported_kem_groups[i]);
             }
 
+            int selected_curve_index = -1;
+            EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+
             EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
 
             EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
             EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
             EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
-            EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
+            EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[selected_curve_index]);
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
 
@@ -221,7 +234,9 @@ int main() {
             EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
 
             for (size_t i = 0; i < ecc_pref->count; i++) {
-                server_conn->secure.mutually_supported_curves[i] = ecc_pref->ecc_curves[i];
+                if (ecc_pref->ecc_curves[i]->available) {
+                    server_conn->secure.mutually_supported_curves[i] = ecc_pref->ecc_curves[i];
+                }
             }
 
             for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
@@ -259,7 +274,9 @@ int main() {
             EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
 
             for (size_t i = 0; i < ecc_pref->count; i++) {
-                server_conn->secure.mutually_supported_curves[i] = ecc_pref->ecc_curves[i];
+                if (ecc_pref->ecc_curves[i]->available) {
+                    server_conn->secure.mutually_supported_curves[i] = ecc_pref->ecc_curves[i];
+                }
             }
 
             for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {

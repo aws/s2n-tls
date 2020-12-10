@@ -56,10 +56,13 @@ int main() {
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
         EXPECT_NOT_NULL(ecc_pref);
 
+        int selected_curve_index = -1;
+        EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+
         EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
         EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-        server_conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.client_ecc_evp_params[0]));
+        server_conn->secure.client_ecc_evp_params[selected_curve_index].negotiated_curve = ecc_pref->ecc_curves[selected_curve_index];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.client_ecc_evp_params[selected_curve_index]));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn),
                 S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
@@ -82,10 +85,13 @@ int main() {
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
         EXPECT_NOT_NULL(ecc_pref);
 
+        int selected_curve_index = -1;
+        EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+
         EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[1];
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[selected_curve_index];
         EXPECT_NULL(server_conn->secure.mutually_supported_curves[0]);
-        server_conn->secure.mutually_supported_curves[1] = ecc_pref->ecc_curves[1];
+        server_conn->secure.mutually_supported_curves[1] = ecc_pref->ecc_curves[selected_curve_index];
         for (size_t i = 0; i < ecc_pref->count; i++) {
             EXPECT_NULL(server_conn->secure.client_ecc_evp_params[i].evp_pkey);
             EXPECT_NULL(server_conn->secure.client_ecc_evp_params[i].negotiated_curve);
@@ -93,7 +99,7 @@ int main() {
 
         EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
 
-        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[1]);
+        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[selected_curve_index]);
         EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
         EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
 
@@ -111,21 +117,35 @@ int main() {
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
         EXPECT_NOT_NULL(ecc_pref);
 
+        int selected_curve_index1 = -1, selected_curve_index2 = -1;
+        for (size_t i = 0; i < ecc_pref->count; i++) {
+            if (ecc_pref->ecc_curves[i]->available) {
+                if (selected_curve_index1 == -1) {
+                    selected_curve_index1 = i;
+                } else {
+                    selected_curve_index2 = i;
+                    break;
+                }
+            }
+        }
+        EXPECT_NOT_EQUAL(selected_curve_index1, -1);
+        EXPECT_NOT_EQUAL(selected_curve_index2, -1);
+
         /* Server would have initially chosen curve[0] when processing the supported_groups extension */
         EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-        server_conn->secure.mutually_supported_curves[0] = ecc_pref->ecc_curves[0];
-        server_conn->secure.mutually_supported_curves[1] = ecc_pref->ecc_curves[1];
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[selected_curve_index1];
+        server_conn->secure.mutually_supported_curves[selected_curve_index1] = ecc_pref->ecc_curves[selected_curve_index1];
+        server_conn->secure.mutually_supported_curves[selected_curve_index2] = ecc_pref->ecc_curves[selected_curve_index2];
 
-        EXPECT_NULL(server_conn->secure.client_ecc_evp_params[0].evp_pkey);
-        EXPECT_NULL(server_conn->secure.client_ecc_evp_params[0].negotiated_curve);
-        server_conn->secure.client_ecc_evp_params[1].negotiated_curve = ecc_pref->ecc_curves[1];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.client_ecc_evp_params[1]));
+        EXPECT_NULL(server_conn->secure.client_ecc_evp_params[selected_curve_index1].evp_pkey);
+        EXPECT_NULL(server_conn->secure.client_ecc_evp_params[selected_curve_index1].negotiated_curve);
+        server_conn->secure.client_ecc_evp_params[selected_curve_index2].negotiated_curve = ecc_pref->ecc_curves[selected_curve_index2];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.client_ecc_evp_params[selected_curve_index2]));
 
         EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
 
         /* Server should have updated it's choice to curve[1] after taking received keyshares into account */
-        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[1]);
+        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[selected_curve_index2]);
         EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
         EXPECT_FALSE(s2n_is_hello_retry_handshake(server_conn));
 
@@ -143,21 +163,35 @@ int main() {
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_pref));
         EXPECT_NOT_NULL(ecc_pref);
 
+        int selected_curve_index1 = -1, selected_curve_index2 = -1;
+        for (size_t i = 0; i < ecc_pref->count; i++) {
+            if (ecc_pref->ecc_curves[i]->available) {
+                if (selected_curve_index1 == -1) {
+                    selected_curve_index1 = i;
+                } else {
+                    selected_curve_index2 = i;
+                    break;
+                }
+            }
+        }
+        EXPECT_NOT_EQUAL(selected_curve_index1, -1);
+        EXPECT_NOT_EQUAL(selected_curve_index2, -1);
+
         /* Server would have initially chosen curve[0] when processing the supported_groups extension */
         EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-        server_conn->secure.mutually_supported_curves[0] = ecc_pref->ecc_curves[0];
-        server_conn->secure.mutually_supported_curves[1] = ecc_pref->ecc_curves[1];
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[selected_curve_index1];
+        server_conn->secure.mutually_supported_curves[selected_curve_index1] = ecc_pref->ecc_curves[selected_curve_index1];
+        server_conn->secure.mutually_supported_curves[selected_curve_index2] = ecc_pref->ecc_curves[selected_curve_index2];
 
-        server_conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.client_ecc_evp_params[0]));
-        server_conn->secure.client_ecc_evp_params[1].negotiated_curve = ecc_pref->ecc_curves[1];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.client_ecc_evp_params[1]));
+        server_conn->secure.client_ecc_evp_params[selected_curve_index1].negotiated_curve = ecc_pref->ecc_curves[selected_curve_index1];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.client_ecc_evp_params[selected_curve_index1]));
+        server_conn->secure.client_ecc_evp_params[selected_curve_index2].negotiated_curve = ecc_pref->ecc_curves[selected_curve_index2];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_conn->secure.client_ecc_evp_params[selected_curve_index2]));
 
         EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
 
         /* Server should still prefer curve[0] after taking received keyshares into account */
-        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
+        EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[selected_curve_index1]);
         EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
         EXPECT_FALSE(s2n_is_hello_retry_handshake(server_conn));
 
@@ -203,7 +237,9 @@ int main() {
             EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
             EXPECT_NOT_NULL(kem_pref);
 
-            server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+            int selected_curve_index = -1;
+            EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+            server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[selected_curve_index];
             server_conn->secure.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn),
@@ -550,16 +586,20 @@ int main() {
                 struct s2n_ecc_evp_params *client_params = &server_conn->secure.client_ecc_evp_params[i];
                 const struct s2n_ecc_named_curve *curve = ecc_pref->ecc_curves[i];
 
-                server_conn->secure.mutually_supported_curves[i] = curve;
+                if (curve->available) {
+                    server_conn->secure.mutually_supported_curves[i] = curve;
 
-                client_params->negotiated_curve = curve;
-                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(client_params));
+                    client_params->negotiated_curve = curve;
+                    EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(client_params));
+                }
             }
 
+            int selected_curve_index = -1;
+            EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
             EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
 
             /* Server should update it's choice to curve[0], no HRR */
-            EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
+            EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[selected_curve_index]);
             EXPECT_NULL(server_params->kem_group);
             EXPECT_NULL(server_params->kem_params.kem);
             EXPECT_NULL(server_params->ecc_params.negotiated_curve);

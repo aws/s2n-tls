@@ -63,7 +63,7 @@ static int setup_connection(struct s2n_connection *conn, const struct s2n_kem *k
     GUARD_NONNULL(ecc_preferences);
 
     int selected_curve_index = -1;
-    GUARD(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+    GUARD(s2n_ecc_preference_first_available_curve_index(ecc_preferences, &selected_curve_index));
 
     conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[selected_curve_index];
     conn->secure.kem_params.kem = kem;

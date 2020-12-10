@@ -113,6 +113,9 @@ int main() {
                 EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
                 EXPECT_NOT_NULL(ecc_preferences);
 
+                int selected_curve_index = -1;
+                EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_preferences, &selected_curve_index));
+
                 DEFER_CLEANUP(struct s2n_stuffer key_share_extension = {0}, s2n_stuffer_free);
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 1024));
                 EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
@@ -126,9 +129,9 @@ int main() {
                  * should be sent (as per default s2n behavior). */
                 uint16_t iana_value, share_size;
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &iana_value));
-                EXPECT_EQUAL(iana_value, ecc_preferences->ecc_curves[0]->iana_id);
+                EXPECT_EQUAL(iana_value, ecc_preferences->ecc_curves[selected_curve_index]->iana_id);
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &share_size));
-                EXPECT_EQUAL(share_size, ecc_preferences->ecc_curves[0]->share_size);
+                EXPECT_EQUAL(share_size, ecc_preferences->ecc_curves[selected_curve_index]->share_size);
                 EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, share_size));
 
                 /* If all the sizes/bytes were correctly written, there should be nothing left over */
@@ -196,8 +199,11 @@ int main() {
                         EXPECT_EQUAL(kem_group_params->ecc_params.negotiated_curve, test_kem_group->curve);
                         EXPECT_NOT_NULL(kem_group_params->ecc_params.evp_pkey);
 
-                        struct s2n_ecc_evp_params *ecc_params = &conn->secure.client_ecc_evp_params[0];
-                        EXPECT_EQUAL(ecc_params->negotiated_curve, ecc_pref->ecc_curves[0]);
+                        int selected_curve_index = -1;
+                        EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+
+                        struct s2n_ecc_evp_params *ecc_params = &conn->secure.client_ecc_evp_params[selected_curve_index];
+                        EXPECT_EQUAL(ecc_params->negotiated_curve, ecc_pref->ecc_curves[selected_curve_index]);
                         EXPECT_NOT_NULL(ecc_params->evp_pkey);
 
                         /* Next, assert that the client didn't generate/save any hybrid or ECC params that it shouldn't have */
@@ -249,9 +255,9 @@ int main() {
                         /* Assert that the ECC key share is correct: IANA ID || size || share */
                         uint16_t ecc_iana_value, ecc_share_size;
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &ecc_iana_value));
-                        EXPECT_EQUAL(ecc_iana_value, ecc_pref->ecc_curves[0]->iana_id);
+                        EXPECT_EQUAL(ecc_iana_value, ecc_pref->ecc_curves[selected_curve_index]->iana_id);
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &ecc_share_size));
-                        EXPECT_EQUAL(ecc_share_size, ecc_pref->ecc_curves[0]->share_size);
+                        EXPECT_EQUAL(ecc_share_size, ecc_pref->ecc_curves[selected_curve_index]->share_size);
                         EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, ecc_share_size));
 
                         /* If all the sizes/bytes were correctly written, there should be nothing left over */

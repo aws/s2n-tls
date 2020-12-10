@@ -122,12 +122,15 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
             EXPECT_NOT_NULL(ecc_preferences);
 
+            int selected_curve_index = -1;
+            EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_preferences, &selected_curve_index));
+
             /* should contain only the default supported curve */
             uint16_t iana_value, share_size;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &iana_value));
-            EXPECT_EQUAL(iana_value, ecc_preferences->ecc_curves[0]->iana_id);
+            EXPECT_EQUAL(iana_value, ecc_preferences->ecc_curves[selected_curve_index]->iana_id);
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &share_size));
-            EXPECT_EQUAL(share_size, ecc_preferences->ecc_curves[0]->share_size);
+            EXPECT_EQUAL(share_size, ecc_preferences->ecc_curves[selected_curve_index]->share_size);
 
             EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, share_size));
 
@@ -293,6 +296,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
             EXPECT_NOT_NULL(ecc_preferences);
 
+            int selected_curve_index = -1;
+            EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_preferences, &selected_curve_index));
+
             /* ClientHello1 should contain empty keyshare list */
             for (size_t i = 0; i < ecc_preferences->count; i++) {
                 struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
@@ -306,7 +312,7 @@ int main(int argc, char **argv)
             EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
             EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
-            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[selected_curve_index];
 
             EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
 
@@ -447,11 +453,14 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &ecc_preferences));
             EXPECT_NOT_NULL(ecc_preferences);
 
+            int selected_curve_index = -1;
+            EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_preferences, &selected_curve_index));
+
             /* Setup the client to have received a HelloRetryRequest */
             memcpy_check(client_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
             EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(client_conn));
-            client_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+            client_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[selected_curve_index];
 
             /* During HRR, A key_share list with a single key_share entry,
             * corresponding to the server negotiated curve is sent by the client */
@@ -470,7 +479,7 @@ int main(int argc, char **argv)
             }
 
 
-            server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+            server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[selected_curve_index];
             EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
 
             EXPECT_SUCCESS(s2n_client_key_share_extension.recv(server_conn, &key_share_extension));
@@ -613,8 +622,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
             EXPECT_NOT_NULL(ecc_pref);
 
-            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&key_share_extension, ecc_pref->ecc_curves[0]->share_size * 10));
-            EXPECT_SUCCESS(s2n_write_named_curve(&key_share_extension, ecc_pref->ecc_curves[0]));
+            int selected_curve_index = -1;
+            EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&key_share_extension, ecc_pref->ecc_curves[selected_curve_index]->share_size * 10));
+            EXPECT_SUCCESS(s2n_write_named_curve(&key_share_extension, ecc_pref->ecc_curves[selected_curve_index]));
 
             EXPECT_FAILURE(s2n_client_key_share_extension.recv(conn, &key_share_extension));
 
@@ -634,10 +646,15 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
             EXPECT_NOT_NULL(ecc_pref);
 
+            int selected_curve_index = -1;
+            EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+
             /* Write curve with huge length */
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);
             EXPECT_SUCCESS(s2n_write_key_share(&key_share_extension,
-                                               ecc_pref->ecc_curves[0]->iana_id, ecc_pref->ecc_curves[0]->share_size * 10, ecc_pref->ecc_curves[0]));
+                                               ecc_pref->ecc_curves[selected_curve_index]->iana_id,
+                                               ecc_pref->ecc_curves[selected_curve_index]->share_size * 10,
+                                               ecc_pref->ecc_curves[selected_curve_index]));
             S2N_WRITE_DATA_LENGTH(&key_share_extension);
 
             EXPECT_FAILURE(s2n_client_key_share_extension.recv(conn, &key_share_extension));
@@ -658,9 +675,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
             EXPECT_NOT_NULL(ecc_pref);
 
+            int selected_curve_index = -1;
+            EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+
             /* Write only first curve */
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);
-            EXPECT_SUCCESS(s2n_write_named_curve(&key_share_extension, ecc_pref->ecc_curves[0]));
+            EXPECT_SUCCESS(s2n_write_named_curve(&key_share_extension, ecc_pref->ecc_curves[selected_curve_index]));
             S2N_WRITE_DATA_LENGTH(&key_share_extension);
 
             EXPECT_SUCCESS(s2n_client_key_share_extension.recv(conn, &key_share_extension));
@@ -669,16 +689,18 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), 0);
 
             /* should have initialized first curve */
-            struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[0];
+            struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[selected_curve_index];
             EXPECT_NOT_NULL(ecc_evp_params->negotiated_curve);
             EXPECT_NOT_NULL(ecc_evp_params->evp_pkey);
-            EXPECT_EQUAL(ecc_evp_params->negotiated_curve, ecc_pref->ecc_curves[0]);
+            EXPECT_EQUAL(ecc_evp_params->negotiated_curve, ecc_pref->ecc_curves[selected_curve_index]);
 
             /* should not have initialized any other curves */
-            for (int i = 1; i < ecc_pref->count; i++) {
-                ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
-                EXPECT_NULL(ecc_evp_params->negotiated_curve);
-                EXPECT_NULL(ecc_evp_params->evp_pkey);
+            for (int i = 0; i < ecc_pref->count; i++) {
+                if (i != selected_curve_index) {
+                    ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
+                    EXPECT_NULL(ecc_evp_params->negotiated_curve);
+                    EXPECT_NULL(ecc_evp_params->evp_pkey);
+                }
             }
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
@@ -726,13 +748,16 @@ int main(int argc, char **argv)
 
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);
 
+            int selected_curve_index = -1;
+            EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+
             /* Write unsupported curves */
             /* 0 -> unallocated_RESERVED */
             EXPECT_SUCCESS(s2n_write_key_share(&key_share_extension,
-                                               0, ecc_pref->ecc_curves[0]->share_size, ecc_pref->ecc_curves[0]));
+                                               0, ecc_pref->ecc_curves[selected_curve_index]->share_size, ecc_pref->ecc_curves[selected_curve_index]));
             /* 0xFF01 -> obsolete_RESERVED */
             EXPECT_SUCCESS(s2n_write_key_share(&key_share_extension,
-                                               65281, ecc_pref->ecc_curves[0]->share_size, ecc_pref->ecc_curves[0]));
+                                               65281, ecc_pref->ecc_curves[selected_curve_index]->share_size, ecc_pref->ecc_curves[selected_curve_index]));
 
             S2N_WRITE_DATA_LENGTH(&key_share_extension);
 
@@ -764,10 +789,26 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
             EXPECT_NOT_NULL(ecc_pref);
 
+            int selected_curve_index1 = -1, selected_curve_index2 = -1;
+            for (size_t i = 0; i < ecc_pref->count; i++) {
+                if (ecc_pref->ecc_curves[i]->available) {
+                    if (selected_curve_index1 == -1) {
+                        selected_curve_index1 = i;
+                    } else {
+                        selected_curve_index2 = i;
+                        break;
+                    }
+                }
+            }
+            EXPECT_NOT_EQUAL(selected_curve_index1, -1);
+            EXPECT_NOT_EQUAL(selected_curve_index2, -1);
+
             /* Write supported curve, but with a different curve's size */
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);
             EXPECT_SUCCESS(s2n_write_key_share(&key_share_extension,
-                                               ecc_pref->ecc_curves[0]->iana_id, ecc_pref->ecc_curves[1]->share_size, ecc_pref->ecc_curves[1]));
+                                               ecc_pref->ecc_curves[selected_curve_index1]->iana_id,
+                                               ecc_pref->ecc_curves[selected_curve_index2]->share_size,
+                                               ecc_pref->ecc_curves[selected_curve_index2]));
             S2N_WRITE_DATA_LENGTH(&key_share_extension);
 
             EXPECT_SUCCESS(s2n_client_key_share_extension.recv(conn, &key_share_extension));
@@ -841,9 +882,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
             EXPECT_NOT_NULL(ecc_pref);
 
+            int selected_curve_index = -1;
+            EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+
             /* Write first curve */
             S2N_PREPARE_DATA_LENGTH(&key_share_extension);
-            EXPECT_SUCCESS(s2n_write_named_curve(&key_share_extension, ecc_pref->ecc_curves[0]));
+            EXPECT_SUCCESS(s2n_write_named_curve(&key_share_extension, ecc_pref->ecc_curves[selected_curve_index]));
             S2N_WRITE_DATA_LENGTH(&key_share_extension);
 
             /* Mess up point by erasing most of it */

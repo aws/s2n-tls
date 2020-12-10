@@ -66,8 +66,10 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
 
     /* Generate ephemeral keys for all supported curves */
     for (int i = 0; i < ecc_preferences->count; i++) {
-        client_conn->secure.client_ecc_evp_params[i].negotiated_curve = ecc_preferences->ecc_curves[i];
-        GUARD(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[i]));
+        if (ecc_preferences->ecc_curves[i]->available) {
+            client_conn->secure.client_ecc_evp_params[i].negotiated_curve = ecc_preferences->ecc_curves[i];
+            GUARD(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[i]));
+        }
     }
 
     /* Run Test

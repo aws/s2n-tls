@@ -53,10 +53,13 @@ static int s2n_setup_tls13_secrets_prereqs(struct s2n_connection *conn)
     GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     notnull_check(ecc_pref);
 
-    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-    conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
+    int selected_curve_index = -1;
+    EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+    conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[selected_curve_index];
+    conn->secure.client_ecc_evp_params[selected_curve_index].negotiated_curve = ecc_pref->ecc_curves[selected_curve_index];
+
     GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
-    GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+    GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[selected_curve_index]));
 
     return S2N_SUCCESS;
 }
@@ -170,7 +173,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_extensions_client_key_share_recv(server_conn, &client_hello_key_share));
 
         /* Server configures the "negotiated_curve" */
-        server_conn->secure.server_ecc_evp_params.negotiated_curve = server_ecc_preferences->ecc_curves[0];
+        int selected_curve_index = -1;
+        EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(server_ecc_preferences, &selected_curve_index));
+        server_conn->secure.server_ecc_evp_params.negotiated_curve = server_ecc_preferences->ecc_curves[selected_curve_index];
 
         /* Server sends ServerHello key_share */
         EXPECT_SUCCESS(s2n_extensions_server_key_share_send(server_conn, &server_hello_key_share));

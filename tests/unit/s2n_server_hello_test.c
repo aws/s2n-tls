@@ -110,9 +110,11 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(ecc_preferences);
         /* configure these parameters so server hello can be sent */
         conn->actual_protocol_version = S2N_TLS13;
-        conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
-        conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_preferences->ecc_curves[0];
-        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+        int selected_curve_index = -1;
+        EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_preferences, &selected_curve_index));
+        conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[selected_curve_index];
+        conn->secure.client_ecc_evp_params[selected_curve_index].negotiated_curve = ecc_preferences->ecc_curves[selected_curve_index];
+        EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[selected_curve_index]));
 
         struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
         EXPECT_SUCCESS(s2n_server_hello_send(conn));

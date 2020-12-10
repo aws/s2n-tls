@@ -309,7 +309,10 @@ int main()
 
                 /* If in FIPS mode, s2n_client_supported_groups_extension.send will not have sent PQ IDs */
                 if (s2n_is_in_fips_mode()) {
-                    EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, server_ecc_pref->ecc_curves[0]);
+                    int selected_curve_index = -1;
+                    EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(server_ecc_pref, &selected_curve_index));
+
+                    EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, server_ecc_pref->ecc_curves[selected_curve_index]);
                     EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
                     EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
                     EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
@@ -361,6 +364,9 @@ int main()
                 EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(server_conn, &server_ecc_pref));
                 EXPECT_NOT_NULL(server_ecc_pref);
 
+                int selected_curve_index = -1;
+                EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(server_ecc_pref, &selected_curve_index));
+
                 DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
@@ -373,7 +379,7 @@ int main()
 
                 EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(server_conn, &stuffer));
 
-                EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, server_ecc_pref->ecc_curves[0]);
+                EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, server_ecc_pref->ecc_curves[selected_curve_index]);
                 EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
                 EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
                 EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
@@ -438,6 +444,9 @@ int main()
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
             server_conn->security_policy_override = &test_pq_security_policy_sike_bike;
 
+            int selected_curve_index = -1;
+            EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(client_ecc_pref, &selected_curve_index));
+
             /* Manually craft a supported_groups extension with one PQ ID and one ECC ID, because
              * s2n_client_supported_groups_extension.send will ignore PQ IDs when TLS 1.3 is disabled */
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
@@ -445,7 +454,7 @@ int main()
             struct s2n_stuffer_reservation group_list_len = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &group_list_len));
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, client_kem_pref->tls13_kem_groups[0]->iana_id));
-            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, client_ecc_pref->ecc_curves[0]->iana_id));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, client_ecc_pref->ecc_curves[selected_curve_index]->iana_id));
             GUARD(s2n_stuffer_write_vector_size(&group_list_len));
 
             EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
@@ -455,7 +464,7 @@ int main()
 
             EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(server_conn, &stuffer));
 
-            EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, client_ecc_pref->ecc_curves[0]);
+            EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, client_ecc_pref->ecc_curves[selected_curve_index]);
             EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
             EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
             EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
@@ -484,6 +493,9 @@ int main()
                 EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
                 server_conn->security_policy_override = &test_pq_security_policy_sike_bike;
 
+                int selected_curve_index = -1;
+                EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(client_ecc_pref, &selected_curve_index));
+
                 /* Manually craft a supported_groups extension with one PQ ID and one ECC ID, because
                  * s2n_client_supported_groups_extension.send will ignore PQ IDs when FIPS is enabled */
                 DEFER_CLEANUP(struct s2n_stuffer stuffer = {0}, s2n_stuffer_free);
@@ -491,7 +503,7 @@ int main()
                 struct s2n_stuffer_reservation group_list_len = {0};
                 EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &group_list_len));
                 EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, client_kem_pref->tls13_kem_groups[0]->iana_id));
-                EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, client_ecc_pref->ecc_curves[0]->iana_id));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, client_ecc_pref->ecc_curves[selected_curve_index]->iana_id));
                 GUARD(s2n_stuffer_write_vector_size(&group_list_len));
 
                 EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
@@ -501,7 +513,7 @@ int main()
 
                 EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(server_conn, &stuffer));
 
-                EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve,client_ecc_pref->ecc_curves[0]);
+                EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve,client_ecc_pref->ecc_curves[selected_curve_index]);
                 EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
                 EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
                 EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_params.kem);
@@ -526,11 +538,14 @@ int main()
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
         EXPECT_NOT_NULL(ecc_pref);
 
+        int selected_curve_index = -1;
+        EXPECT_SUCCESS(s2n_ecc_preference_first_available_curve_index(ecc_pref, &selected_curve_index));
+
         EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(conn, &stuffer));
 
         EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
         EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(conn, &stuffer));
-        EXPECT_EQUAL(conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
+        EXPECT_EQUAL(conn->secure.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[selected_curve_index]);
         EXPECT_NULL(conn->secure.server_kem_group_params.kem_group);
         EXPECT_NULL(conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
         EXPECT_NULL(conn->secure.server_kem_group_params.kem_params.kem);
