@@ -184,7 +184,7 @@ int s2n_hmac_new(struct s2n_hmac_state *state)
     GUARD(s2n_hash_new(&state->outer));
     GUARD(s2n_hash_new(&state->outer_just_key));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
@@ -226,7 +226,7 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
     memset(&state->xor_pad, 0, sizeof(state->xor_pad));
     GUARD(s2n_hmac_reset(state));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
@@ -282,7 +282,7 @@ int s2n_hmac_digest_two_compression_rounds(struct s2n_hmac_state *state, void *o
      */
     const uint8_t space_left = (state->hash_block_size == 128) ? 17 : 9;
     if (state->currently_in_hash_block > (state->hash_block_size - space_left)) {
-        return 0;
+        return S2N_SUCCESS;
     }
 
     /* Can't reuse a hash after it has been finalized, so reset and push another block in */
@@ -299,7 +299,7 @@ int s2n_hmac_free(struct s2n_hmac_state *state)
     GUARD(s2n_hash_free(&state->outer));
     GUARD(s2n_hash_free(&state->outer_just_key));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_hmac_reset(struct s2n_hmac_state *state)
@@ -310,12 +310,12 @@ int s2n_hmac_reset(struct s2n_hmac_state *state)
     GUARD(s2n_hash_get_currently_in_hash_total(&state->inner, &bytes_in_hash));
     /* The length of the key is not private, so don't need to do tricky math here */
     state->currently_in_hash_block = bytes_in_hash % state->hash_block_size;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_hmac_digest_verify(const void *a, const void *b, uint32_t len)
 {
-    return 0 - !s2n_constant_time_equals(a, b, len);
+    return S2N_SUCCESS - !s2n_constant_time_equals(a, b, len);
 }
 
 int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
@@ -338,7 +338,7 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
     memcpy_check(to->xor_pad, from->xor_pad, sizeof(to->xor_pad));
     memcpy_check(to->digest_pad, from->digest_pad, sizeof(to->digest_pad));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 
@@ -351,7 +351,7 @@ int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_
     backup->inner_just_key = hmac->inner_just_key.digest.high_level;
     backup->outer = hmac->outer.digest.high_level;
     backup->outer_just_key = hmac->outer_just_key.digest.high_level;
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac)
@@ -360,5 +360,5 @@ int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s
     hmac->inner_just_key.digest.high_level = backup->inner_just_key;
     hmac->outer.digest.high_level = backup->outer;
     hmac->outer_just_key.digest.high_level = backup->outer_just_key;
-    return 0;
+    return S2N_SUCCESS;
 }
