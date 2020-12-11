@@ -48,7 +48,7 @@ static int s2n_psk_key_exchange_modes_send(struct s2n_connection *conn, struct s
     GUARD(s2n_stuffer_write_uint8(out, PSK_KEY_EXCHANGE_MODE_SIZE));
 
     /* s2n currently only supports pre-shared keys with (EC)DHE key establishment */
-    GUARD(s2n_stuffer_write_uint8(out, S2N_PSK_DHE_KE));
+    GUARD(s2n_stuffer_write_uint8(out, TLS_PSK_DHE_KE_MODE));
 
     return S2N_SUCCESS;
 }
@@ -73,11 +73,9 @@ static int s2n_psk_key_exchange_modes_recv(struct s2n_connection *conn, struct s
         GUARD(s2n_stuffer_read_uint8(extension, &wire_psk_ke_mode));
         
         /* s2n currently only supports pre-shared keys with (EC)DHE key establishment */
-        if (wire_psk_ke_mode == S2N_PSK_DHE_KE) {
-            conn->psk_ke_mode = S2N_PSK_DHE_KE;
+        if (wire_psk_ke_mode == TLS_PSK_DHE_KE_MODE) {
+            conn->psk_params.psk_ke_mode = S2N_PSK_DHE_KE;
             return S2N_SUCCESS;
-        } else if (wire_psk_ke_mode == S2N_PSK_KE && conn->psk_ke_mode == S2N_PSK_KE_UNKNOWN) {
-            conn->psk_ke_mode = S2N_PSK_KE;
         }
     }
 

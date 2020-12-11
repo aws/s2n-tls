@@ -19,10 +19,4 @@
 #include "tls/s2n_connection.h"
 #include "stuffer/s2n_stuffer.h"
 
-typedef enum {
-    S2N_PSK_KE_UNKNOWN=-1,
-    S2N_PSK_KE=0,
-    S2N_PSK_DHE_KE,
-} s2n_psk_key_exchange_mode;
-
 extern const s2n_extension_type s2n_psk_key_exchange_modes_extension;

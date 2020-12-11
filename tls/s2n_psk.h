@@ -27,6 +27,12 @@ typedef enum {
     S2N_PSK_TYPE_EXTERNAL,
 } s2n_psk_type;
 
+typedef enum {
+    S2N_PSK_KE_UNKNOWN = 0,
+    S2N_PSK_KE,
+    S2N_PSK_DHE_KE,
+} s2n_psk_key_exchange_mode;
+
 struct s2n_psk {
     s2n_psk_type type;
     struct s2n_blob identity;
@@ -41,6 +47,7 @@ struct s2n_psk_parameters {
     uint16_t binder_list_size;
     uint8_t chosen_psk_wire_index;
     struct s2n_psk *chosen_psk;
+    s2n_psk_key_exchange_mode psk_ke_mode;
 };
 
 int s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type);

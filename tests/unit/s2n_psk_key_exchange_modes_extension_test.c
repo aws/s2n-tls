@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 
         uint8_t psk_ke_mode = S2N_PSK_KE_UNKNOWN;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &psk_ke_mode));
-        EXPECT_EQUAL(psk_ke_mode, S2N_PSK_DHE_KE);
+        EXPECT_EQUAL(psk_ke_mode, TLS_PSK_DHE_KE_MODE);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&out));
@@ -56,15 +56,15 @@ int main(int argc, char **argv)
 
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_EQUAL(conn->psk_ke_mode, S2N_PSK_KE_UNKNOWN);
+            EXPECT_EQUAL(conn->psk_params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);
 
             /* Incorrect protocol version */
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, PSK_KEY_EXCHANGE_MODE_SIZE));
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, S2N_PSK_DHE_KE));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, TLS_PSK_DHE_KE_MODE));
 
             EXPECT_SUCCESS(s2n_psk_key_exchange_modes_extension.recv(conn, &out));
-            EXPECT_EQUAL(conn->psk_ke_mode, S2N_PSK_KE_UNKNOWN);
+            EXPECT_EQUAL(conn->psk_params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
@@ -77,57 +77,61 @@ int main(int argc, char **argv)
 
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_EQUAL(conn->psk_ke_mode, S2N_PSK_KE_UNKNOWN);
+            EXPECT_EQUAL(conn->psk_params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);
 
             conn->actual_protocol_version = S2N_TLS13;
 
             /* Incorrect length */
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, PSK_KEY_EXCHANGE_MODE_SIZE + 1));
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, S2N_PSK_DHE_KE));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, TLS_PSK_DHE_KE_MODE));
 
             EXPECT_SUCCESS(s2n_psk_key_exchange_modes_extension.recv(conn, &out));
-            EXPECT_EQUAL(conn->psk_ke_mode, S2N_PSK_KE_UNKNOWN);
+            EXPECT_EQUAL(conn->psk_params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
         }
 
-        /* Receives valid psk_ke exchange mode */
+        /* Receives valid psk_ke mode */
         {
             struct s2n_stuffer out = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
 
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_EQUAL(conn->psk_ke_mode, S2N_PSK_KE_UNKNOWN);
+            EXPECT_EQUAL(conn->psk_params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);
 
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, PSK_KEY_EXCHANGE_MODE_SIZE));
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, S2N_PSK_KE));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, TLS_PSK_KE_MODE));
 
             EXPECT_SUCCESS(s2n_psk_key_exchange_modes_extension.recv(conn, &out));
-            EXPECT_EQUAL(conn->psk_ke_mode, S2N_PSK_KE);
+
+            /* s2n currently does not support the psk_ke mode */
+            EXPECT_EQUAL(conn->psk_params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
         }
 
-           /* Receives list of psk key exchange modes */
+           /* Receives list of supported and unsupported psk key exchange modes */
         {
             struct s2n_stuffer out = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
 
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_EQUAL(conn->psk_ke_mode, S2N_PSK_KE_UNKNOWN);
+            EXPECT_EQUAL(conn->psk_params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);
 
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, PSK_KEY_EXCHANGE_MODE_SIZE + 1));
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, S2N_PSK_KE));
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, S2N_PSK_DHE_KE));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, TLS_PSK_KE_MODE));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, TLS_PSK_DHE_KE_MODE));
 
             EXPECT_SUCCESS(s2n_psk_key_exchange_modes_extension.recv(conn, &out));
-            EXPECT_EQUAL(conn->psk_ke_mode, S2N_PSK_DHE_KE);
+
+            /* s2n chooses the only currently supported psk key exchange mode */
+            EXPECT_EQUAL(conn->psk_params.psk_ke_mode, S2N_PSK_DHE_KE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));

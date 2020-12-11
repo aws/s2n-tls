@@ -239,13 +239,16 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
         return S2N_SUCCESS;
     }
 
+    s2n_extension_type_id psk_ke_mode_id;
+    GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES, &psk_ke_mode_id));
     /* https://tools.ietf.org/html/rfc8446#section-4.2.9:
      * If clients offer "pre_shared_key" without a "psk_key_exchange_modes" extension,
-     * servers MUST abort the handshake.
+     * servers MUST abort the handshake. We can safely do this check here because s2n_client_psk is
+     * required to be the last extension sent in the list.
      */
-    S2N_ERROR_IF(conn->psk_ke_mode == S2N_PSK_KE_UNKNOWN, S2N_ERR_MISSING_EXTENSION);
+    S2N_ERROR_IF(!S2N_CBIT_TEST(conn->extension_requests_received, psk_ke_mode_id), S2N_ERR_MISSING_EXTENSION);
 
-    if (conn->psk_ke_mode == S2N_PSK_DHE_KE) {
+    if (conn->psk_params.psk_ke_mode == S2N_PSK_DHE_KE) {
         s2n_extension_type_id key_share_id;
         GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_KEY_SHARE, &key_share_id));
         /* A key_share extension must have been received in order to use a pre-shared key
