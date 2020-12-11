@@ -97,7 +97,7 @@ index 7af7e61..e6382ce 100644
 
  extern int s2n_hmac_digest_size(s2n_hmac_algorithm alg, uint8_t *out);
  extern bool s2n_hmac_is_available(s2n_hmac_algorithm alg);
-@@ -72,7 +72,7 @@ extern int s2n_hmac_digest_verify(const void *a, const void *b, uint32_t len);
+@@ -72,5 +72,5 @@ extern int s2n_hmac_digest_verify(const void *a, const void *b, uint32_t len);
  extern int s2n_hmac_free(struct s2n_hmac_state *state);
  extern int s2n_hmac_reset(struct s2n_hmac_state *state);
  extern int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from);
