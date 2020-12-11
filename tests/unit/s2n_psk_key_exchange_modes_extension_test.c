@@ -114,7 +114,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
         }
 
-           /* Receives list of supported and unsupported psk key exchange modes */
+        /* Receives list of supported and unsupported psk key exchange modes */
         {
             struct s2n_stuffer out = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
