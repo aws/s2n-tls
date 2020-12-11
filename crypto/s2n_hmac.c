@@ -179,12 +179,24 @@ int s2n_hmac_hash_block_size(s2n_hmac_algorithm hmac_alg, uint16_t *block_size)
 
 int s2n_hmac_new(struct s2n_hmac_state *state)
 {
+    notnull_check(state);
     GUARD(s2n_hash_new(&state->inner));
     GUARD(s2n_hash_new(&state->inner_just_key));
     GUARD(s2n_hash_new(&state->outer));
     GUARD(s2n_hash_new(&state->outer_just_key));
 
     return S2N_SUCCESS;
+}
+
+
+S2N_RESULT s2n_hmac_state_validate(struct s2n_hmac_state *state)
+{
+    ENSURE_REF(state);
+    GUARD_RESULT(s2n_hash_state_validate(&state->inner));
+    GUARD_RESULT(s2n_hash_state_validate(&state->inner_just_key));
+    GUARD_RESULT(s2n_hash_state_validate(&state->outer));
+    GUARD_RESULT(s2n_hash_state_validate(&state->outer_just_key));
+    return S2N_RESULT_OK;
 }
 
 int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
