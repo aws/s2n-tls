@@ -625,6 +625,23 @@ bool s2n_is_hello_retry_handshake(struct s2n_connection *conn)
     return conn->handshake.handshake_type & HELLO_RETRY_REQUEST;
 }
 
+S2N_RESULT s2n_conn_set_tls13_handshake_type(struct s2n_connection *conn) {
+    ENSURE_REF(conn);
+
+    /* Use middlebox compatibility mode for TLS1.3 by default.
+    * For now, only disable it when QUIC support is enabled. */
+    if (!conn->config->quic_enabled) {
+        conn->handshake.handshake_type |= MIDDLEBOX_COMPAT;
+    }
+    if (conn->psk_params.chosen_psk != NULL) {
+        /* A pre-shared key is incompatible with client auth */
+        ENSURE(!(conn->handshake.handshake_type & CLIENT_AUTH), S2N_ERR_HANDSHAKE_STATE);
+    } else {
+        conn->handshake.handshake_type |= FULL_HANDSHAKE;
+    }
+    return S2N_RESULT_OK;
+}
+
 int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 {
     if (conn->handshake.handshake_type & HELLO_RETRY_REQUEST) {
@@ -649,15 +666,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     }
 
     if (IS_TLS13_HANDSHAKE(conn)) {
-        /* Use middlebox compatibility mode for TLS1.3 by default.
-         * For now, only disable it when QUIC support is enabled. */
-        if (!conn->config->quic_enabled) {
-            conn->handshake.handshake_type |= MIDDLEBOX_COMPAT;
-        }
-        if (conn->psk_params.chosen_psk == NULL) {
-            conn->handshake.handshake_type |= FULL_HANDSHAKE;
-        }        
-
+        GUARD_AS_POSIX(s2n_conn_set_tls13_handshake_type(conn));
         return 0;
     }
 
@@ -1066,6 +1075,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         if (conn->mode == S2N_CLIENT
                 && client_cert_auth_type == S2N_CERT_AUTH_OPTIONAL
                 && message_type == TLS_CERT_REQ) {
+            ENSURE_POSIX(conn->handshake.handshake_type & FULL_HANDSHAKE, S2N_ERR_HANDSHAKE_STATE);
             conn->handshake.handshake_type |= CLIENT_AUTH;
         }
 

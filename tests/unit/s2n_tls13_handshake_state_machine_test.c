@@ -493,6 +493,23 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
+
+        /* Error if a client receives a client cert request in non-FULL_HANDSHAKE mode */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            conn->actual_protocol_version = S2N_TLS13;
+            GUARD(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL));
+
+            struct s2n_stuffer input;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
+
+            EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_HANDSHAKE, TLS_CERT_REQ));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_read_io(conn), S2N_ERR_HANDSHAKE_STATE);
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&input));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
     }
 
     /* Test: TLS 1.3 MIDDLEBOX_COMPAT handshakes all follow CCS middlebox compatibility rules.
@@ -626,7 +643,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test: s2n_conn_set_handshake_type does not set FULL_HANDSHAKE if a pre-shared key has been chosen. */
+    /* Test: s2n_conn_set_tls13_handshake_type does not set FULL_HANDSHAKE if 
+     * a pre-shared key has been chosen. */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         struct s2n_psk *psk = NULL;
@@ -636,14 +654,32 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS13;
         conn->psk_params.chosen_psk = psk;
 
-        EXPECT_SUCCESS(s2n_conn_set_handshake_type(conn));
+        EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
+        EXPECT_OK(s2n_conn_set_tls13_handshake_type(conn));
 
         EXPECT_FALSE(conn->handshake.handshake_type & FULL_HANDSHAKE);
 
         conn->psk_params.chosen_psk = NULL;
 
-        EXPECT_SUCCESS(s2n_conn_set_handshake_type(conn));
+        EXPECT_OK(s2n_conn_set_tls13_handshake_type(conn));
         EXPECT_TRUE(conn->handshake.handshake_type & FULL_HANDSHAKE);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test: s2n_conn_set_tls13_handshake_type errors if a pre-shared key is 
+     * chosen but client auth is required */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        struct s2n_psk *psk = NULL;
+
+        EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
+
+        conn->psk_params.chosen_psk = psk;
+        conn->handshake.handshake_type |= CLIENT_AUTH;
+        EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
+
+        EXPECT_ERROR_WITH_ERRNO(s2n_conn_set_tls13_handshake_type(conn), S2N_ERR_HANDSHAKE_STATE);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }

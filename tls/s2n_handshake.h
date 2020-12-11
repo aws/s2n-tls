@@ -204,6 +204,7 @@ struct s2n_handshake {
 
 extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 extern int s2n_conn_set_handshake_type(struct s2n_connection *conn);
+S2N_RESULT s2n_conn_set_tls13_handshake_type(struct s2n_connection *conn);
 extern int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn);
 extern int s2n_conn_set_handshake_read_block(struct s2n_connection *conn);
 extern int s2n_conn_clear_handshake_read_block(struct s2n_connection *conn);
