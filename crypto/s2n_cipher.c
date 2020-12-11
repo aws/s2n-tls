@@ -41,13 +41,15 @@ int s2n_session_key_alloc(struct s2n_session_key *key)
 
 int s2n_session_key_free(struct s2n_session_key *key)
 {
-    notnull_check(key->evp_cipher_ctx);
-    EVP_CIPHER_CTX_free(key->evp_cipher_ctx);
-    key->evp_cipher_ctx = NULL;
+    if (key->evp_cipher_ctx != NULL) {
+        EVP_CIPHER_CTX_free(key->evp_cipher_ctx);
+        key->evp_cipher_ctx = NULL;
+    }
 #if defined(S2N_CIPHER_AEAD_API_AVAILABLE)
-    notnull_check(key->evp_aead_ctx);
-    EVP_AEAD_CTX_free(key->evp_aead_ctx);
-    key->evp_aead_ctx = NULL;
+    if (key->evp_aead_ctx != NULL) {
+        EVP_AEAD_CTX_free(key->evp_aead_ctx);
+        key->evp_aead_ctx = NULL;
+    }
 #endif
 
     return 0;

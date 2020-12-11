@@ -529,7 +529,7 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
 int s2n_decrypt_session_ticket(struct s2n_connection *conn)
 {
     struct s2n_ticket_key *key;
-    struct s2n_session_key aes_ticket_key = {0};
+    DEFER_CLEANUP(struct s2n_session_key aes_ticket_key = {0}, s2n_session_key_free);
     struct s2n_blob aes_key_blob = {0};
     struct s2n_stuffer *from;
 
@@ -580,9 +580,6 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn)
     GUARD(s2n_stuffer_write_bytes(&state, en_data, S2N_STATE_SIZE_IN_BYTES));
 
     GUARD(s2n_deserialize_resumption_state(conn, &state));
-
-    GUARD(s2n_aes256_gcm.destroy_key(&aes_ticket_key));
-    GUARD(s2n_session_key_free(&aes_ticket_key));
 
     uint64_t now;
     GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &now));
