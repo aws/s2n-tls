@@ -19,7 +19,6 @@
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_kem.h"
 #include "utils/s2n_safety.h"
-#include "pq-crypto/bike_r1/bike_r1_kem.h"
 
 #define KAT_FILE_NAME "../unit/kats/bike_r1.kat"
 

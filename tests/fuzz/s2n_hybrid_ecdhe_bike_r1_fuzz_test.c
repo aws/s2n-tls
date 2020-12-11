@@ -22,7 +22,6 @@
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_openssl.h"
 #include "error/s2n_errno.h"
-#include "pq-crypto/bike_r1/bike_r1_kem.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tests/s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
@@ -66,7 +65,7 @@ int s2n_fuzz_init(int *argc, char **argv[])
 {
     struct s2n_blob *public_key = &server_kem_params.public_key;
     GUARD(s2n_alloc(public_key, BIKE1_L1_R1_PUBLIC_KEY_BYTES));
-    GUARD(s2n_kem_generate_keypair(&server_kem_params));
+    GUARD_AS_POSIX(s2n_kem_generate_keypair(&server_kem_params));
     GUARD(s2n_free(public_key));
 
     return S2N_SUCCESS;

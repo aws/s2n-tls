@@ -14,7 +14,6 @@
  */
 
 #include "s2n_test.h"
-#include "pq-crypto/sike_r2/sike_r2_kem.h"
 #include "pq-crypto/s2n_pq.h"
 
 int main(int argc, char **argv)

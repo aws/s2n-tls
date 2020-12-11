@@ -33,7 +33,6 @@
 #include "utils/s2n_safety.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_security_policies.h"
-#include "pq-crypto/bike_r2/bike_r2_kem.h"
 
 static struct s2n_kem_params server_kem_params = {.kem = &s2n_bike1_l1_r2};
 
@@ -66,7 +65,7 @@ int s2n_fuzz_init(int *argc, char **argv[])
 {
     struct s2n_blob *public_key = &server_kem_params.public_key;
     GUARD(s2n_alloc(public_key, BIKE1_L1_R2_PUBLIC_KEY_BYTES));
-    GUARD(s2n_kem_generate_keypair(&server_kem_params));
+    GUARD_AS_POSIX(s2n_kem_generate_keypair(&server_kem_params));
     GUARD(s2n_free(public_key));
 
     return S2N_SUCCESS;

@@ -156,7 +156,7 @@ int main(int argc, char **argv)
         struct s2n_kem_params server_kem_params = { 0 };
         server_kem_params.kem = &s2n_test_kem;
         EXPECT_SUCCESS(s2n_alloc(&server_kem_params.public_key, TEST_PUBLIC_KEY_LENGTH));
-        EXPECT_SUCCESS(s2n_kem_generate_keypair(&server_kem_params));
+        EXPECT_OK(s2n_kem_generate_keypair(&server_kem_params));
         EXPECT_EQUAL(TEST_PUBLIC_KEY_LENGTH, server_kem_params.public_key.size);
         EXPECT_EQUAL(TEST_PRIVATE_KEY_LENGTH, server_kem_params.private_key.size);
         EXPECT_BYTEARRAY_EQUAL(TEST_PUBLIC_KEY, server_kem_params.public_key.data, TEST_PUBLIC_KEY_LENGTH);
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_blob ciphertext = { 0 }, s2n_free);
         GUARD(s2n_alloc(&ciphertext, TEST_CIPHERTEXT_LENGTH));
 
-        EXPECT_SUCCESS(s2n_kem_encapsulate(&client_kem_params, &ciphertext));
+        EXPECT_OK(s2n_kem_encapsulate(&client_kem_params, &ciphertext));
         EXPECT_EQUAL(TEST_SHARED_SECRET_LENGTH, client_kem_params.shared_secret.size);
         EXPECT_EQUAL(TEST_CIPHERTEXT_LENGTH, ciphertext.size);
         EXPECT_BYTEARRAY_EQUAL(TEST_SHARED_SECRET, client_kem_params.shared_secret.data, TEST_SHARED_SECRET_LENGTH);
@@ -187,7 +187,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(0, client_kem_params.private_key.allocated);
         EXPECT_NULL(client_kem_params.private_key.data);
 
-        EXPECT_SUCCESS(s2n_kem_decapsulate(&server_kem_params, &ciphertext));
+        EXPECT_OK(s2n_kem_decapsulate(&server_kem_params, &ciphertext));
         EXPECT_EQUAL(TEST_SHARED_SECRET_LENGTH, server_kem_params.shared_secret.size);
         EXPECT_BYTEARRAY_EQUAL(TEST_SHARED_SECRET, server_kem_params.shared_secret.data, TEST_SHARED_SECRET_LENGTH);
         /* Decaps shouldn't modify the public or private keys */
