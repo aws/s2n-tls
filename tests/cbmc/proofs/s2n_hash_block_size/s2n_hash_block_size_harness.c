@@ -16,7 +16,6 @@
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/proof_allocators.h>
 
-#include "api/s2n.h"
 #include "crypto/s2n_hash.h"
 
 void s2n_hash_block_size_harness()
@@ -29,13 +28,19 @@ void s2n_hash_block_size_harness()
     /* Operation under verification. */
     if (s2n_hash_block_size(alg, block_size) == S2N_SUCCESS) {
         /* Post-conditions. */
-        assert(IMPLIES(alg == S2N_HASH_NONE, *block_size == 64));
-        assert(IMPLIES(alg == S2N_HASH_MD5, *block_size == 64));
-        assert(IMPLIES(alg == S2N_HASH_SHA1, *block_size == 64));
-        assert(IMPLIES(alg == S2N_HASH_SHA224, *block_size == 64));
-        assert(IMPLIES(alg == S2N_HASH_SHA256, *block_size == 64));
-        assert(IMPLIES(alg == S2N_HASH_SHA384, *block_size == 128));
-        assert(IMPLIES(alg == S2N_HASH_SHA512, *block_size == 128));
-        assert(IMPLIES(alg == S2N_HASH_MD5_SHA1, *block_size == 64));
+        switch(alg) {
+            case S2N_HASH_NONE:
+            case S2N_HASH_MD5:
+            case S2N_HASH_SHA1:
+            case S2N_HASH_SHA224:
+            case S2N_HASH_SHA256:
+            case S2N_HASH_MD5_SHA1:
+                assert(*block_size == 64); break;
+            case S2N_HASH_SHA384:
+            case S2N_HASH_SHA512:
+                assert(*block_size == 128); break;
+            default:
+                __CPROVER_assert(0, "Unssuported algorithm.");
+        }
     }
 }

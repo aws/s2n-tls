@@ -21,21 +21,25 @@
 void s2n_hmac_digest_size_harness()
 {
     /* Non-deterministic inputs. */
-    s2n_hmac_algorithm alg;
+    s2n_hmac_algorithm hmac_alg;
     size_t             alg_size;
     uint8_t *          out = bounded_malloc(alg_size);
 
     /* Operation under verification. */
-    if (s2n_hmac_digest_size(alg, out) == S2N_SUCCESS) {
+    if (s2n_hmac_digest_size(hmac_alg, out) == S2N_SUCCESS) {
         /* Post-conditions. */
-        assert(IMPLIES(alg == S2N_HMAC_NONE, *out == 0));
-        assert(IMPLIES(alg == S2N_HMAC_MD5, *out == MD5_DIGEST_LENGTH));
-        assert(IMPLIES(alg == S2N_HMAC_SHA1, *out == SHA_DIGEST_LENGTH));
-        assert(IMPLIES(alg == S2N_HMAC_SHA224, *out == SHA224_DIGEST_LENGTH));
-        assert(IMPLIES(alg == S2N_HMAC_SHA256, *out == SHA256_DIGEST_LENGTH));
-        assert(IMPLIES(alg == S2N_HMAC_SHA384, *out == SHA384_DIGEST_LENGTH));
-        assert(IMPLIES(alg == S2N_HMAC_SHA512, *out == SHA512_DIGEST_LENGTH));
-        assert(IMPLIES(alg == S2N_HMAC_SSLv3_MD5, *out == MD5_DIGEST_LENGTH));
-        assert(IMPLIES(alg == S2N_HMAC_SSLv3_SHA1, *out == SHA_DIGEST_LENGTH));
+        switch (hmac_alg) {
+        case S2N_HMAC_NONE:       assert(*out == 0);                    break;
+        case S2N_HMAC_MD5:        assert(*out == MD5_DIGEST_LENGTH);    break;
+        case S2N_HMAC_SHA1:       assert(*out == SHA_DIGEST_LENGTH);    break;
+        case S2N_HMAC_SHA224:     assert(*out == SHA224_DIGEST_LENGTH); break;
+        case S2N_HMAC_SHA256:     assert(*out == SHA256_DIGEST_LENGTH); break;
+        case S2N_HMAC_SHA384:     assert(*out == SHA384_DIGEST_LENGTH); break;
+        case S2N_HMAC_SHA512:     assert(*out == SHA512_DIGEST_LENGTH); break;
+        case S2N_HMAC_SSLv3_MD5:  assert(*out == MD5_DIGEST_LENGTH);    break;
+        case S2N_HMAC_SSLv3_SHA1: assert(*out == SHA_DIGEST_LENGTH);    break;
+        default:
+            __CPROVER_assert(0, "Unssuported algorithm.");
+        }
     }
 }

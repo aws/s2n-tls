@@ -28,14 +28,20 @@ void s2n_hmac_hash_block_size_harness()
     /* Operation under verification. */
     if (s2n_hmac_hash_block_size(hmac_alg, block_size) == S2N_SUCCESS) {
         /* Post-conditions. */
-        assert(IMPLIES(hmac_alg == S2N_HMAC_NONE, *block_size == 64));
-        assert(IMPLIES(hmac_alg == S2N_HMAC_MD5, *block_size == 64));
-        assert(IMPLIES(hmac_alg == S2N_HMAC_SHA1, *block_size == 64));
-        assert(IMPLIES(hmac_alg == S2N_HMAC_SHA224, *block_size == 64));
-        assert(IMPLIES(hmac_alg == S2N_HMAC_SHA256, *block_size == 64));
-        assert(IMPLIES(hmac_alg == S2N_HMAC_SHA384, *block_size == 128));
-        assert(IMPLIES(hmac_alg == S2N_HMAC_SHA512, *block_size == 128));
-        assert(IMPLIES(hmac_alg == S2N_HMAC_SSLv3_MD5, *block_size == 64));
-        assert(IMPLIES(hmac_alg == S2N_HMAC_SSLv3_SHA1, *block_size == 64));
+        switch(hmac_alg) {
+            case S2N_HMAC_NONE:
+            case S2N_HMAC_MD5:
+            case S2N_HMAC_SHA1:
+            case S2N_HMAC_SHA224:
+            case S2N_HMAC_SSLv3_MD5:
+            case S2N_HMAC_SSLv3_SHA1:
+            case S2N_HMAC_SHA256:
+                assert(*block_size == 64); break;
+            case S2N_HMAC_SHA384:
+            case S2N_HMAC_SHA512:
+                assert(*block_size == 128); break;
+            default:
+                __CPROVER_assert(0, "Unssuported algorithm.");
+        }
     }
 }

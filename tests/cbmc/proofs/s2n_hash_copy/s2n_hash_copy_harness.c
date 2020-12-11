@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
 #include "crypto/s2n_hash.h"
 
 #include <cbmc_proof/make_common_datastructures.h>

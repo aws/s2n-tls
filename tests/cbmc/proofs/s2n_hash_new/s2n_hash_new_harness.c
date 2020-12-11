@@ -15,7 +15,6 @@
 
 #include <cbmc_proof/make_common_datastructures.h>
 
-#include "api/s2n.h"
 #include "crypto/s2n_hash.h"
 
 void s2n_hash_new_harness()

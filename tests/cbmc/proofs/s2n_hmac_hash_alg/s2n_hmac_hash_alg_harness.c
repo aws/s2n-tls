@@ -21,20 +21,24 @@
 void s2n_hmac_hash_alg_harness()
 {
     /* Non-deterministic inputs. */
-    s2n_hmac_algorithm alg;
+    s2n_hmac_algorithm hmac_alg;
     s2n_hash_algorithm *out = malloc(sizeof(*out));
 
     /* Operation under verification. */
-    if (s2n_hmac_hash_alg(alg, out) == S2N_SUCCESS) {
+    if (s2n_hmac_hash_alg(hmac_alg, out) == S2N_SUCCESS) {
         /* Post-conditions. */
-        assert(IMPLIES(alg == S2N_HMAC_NONE, *out == S2N_HASH_NONE));
-        assert(IMPLIES(alg == S2N_HMAC_MD5, *out == S2N_HASH_MD5));
-        assert(IMPLIES(alg == S2N_HMAC_SHA1, *out == S2N_HASH_SHA1));
-        assert(IMPLIES(alg == S2N_HMAC_SHA224, *out == S2N_HASH_SHA224));
-        assert(IMPLIES(alg == S2N_HMAC_SHA256, *out == S2N_HASH_SHA256));
-        assert(IMPLIES(alg == S2N_HMAC_SHA384, *out == S2N_HASH_SHA384));
-        assert(IMPLIES(alg == S2N_HMAC_SHA512, *out == S2N_HASH_SHA512));
-        assert(IMPLIES(alg == S2N_HMAC_SSLv3_MD5, *out == S2N_HASH_MD5));
-        assert(IMPLIES(alg == S2N_HMAC_SSLv3_SHA1, *out == S2N_HASH_SHA1));
+        switch(hmac_alg) {
+        case S2N_HMAC_NONE:       assert(*out == S2N_HASH_NONE);   break;
+        case S2N_HMAC_MD5:        assert(*out == S2N_HASH_MD5);    break;
+        case S2N_HMAC_SHA1:       assert(*out == S2N_HASH_SHA1);   break;
+        case S2N_HMAC_SHA224:     assert(*out == S2N_HASH_SHA224); break;
+        case S2N_HMAC_SHA256:     assert(*out == S2N_HASH_SHA256); break;
+        case S2N_HMAC_SHA384:     assert(*out == S2N_HASH_SHA384); break;
+        case S2N_HMAC_SHA512:     assert(*out == S2N_HASH_SHA512); break;
+        case S2N_HMAC_SSLv3_MD5:  assert(*out == S2N_HASH_MD5);    break;
+        case S2N_HMAC_SSLv3_SHA1: assert(*out == S2N_HASH_SHA1);   break;
+        default:
+            __CPROVER_assert(0, "Unssuported algorithm.");
+        }
     }
 }
