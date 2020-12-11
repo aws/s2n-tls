@@ -183,3 +183,24 @@ struct s2n_evp_digest* cbmc_allocate_s2n_evp_digest()
     }
     return evp_digest;
 }
+
+
+struct s2n_hmac_state* cbmc_allocate_s2n_hmac_state()
+{
+    struct s2n_hmac_state *state = malloc(sizeof(*state));
+    if (state != NULL) {
+        struct s2n_hash_state *inner = cbmc_allocate_s2n_hash_state();
+        __CPROVER_assume(inner != NULL); /* Declared on stack. */
+        state->inner = *inner;
+        struct s2n_hash_state *inner_just_key = cbmc_allocate_s2n_hash_state();
+        __CPROVER_assume(inner_just_key != NULL); /* Declared on stack. */
+        state->inner_just_key = *inner_just_key;
+        struct s2n_hash_state *outer = cbmc_allocate_s2n_hash_state();
+        __CPROVER_assume(outer != NULL); /* Declared on stack. */
+        state->outer = *outer;
+        struct s2n_hash_state *outer_just_key = cbmc_allocate_s2n_hash_state();
+        __CPROVER_assume(outer_just_key != NULL); /* Declared on stack. */
+        state->outer_just_key = *outer_just_key;
+    }
+    return state;
+}
