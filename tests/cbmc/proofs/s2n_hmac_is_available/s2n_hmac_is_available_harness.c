@@ -16,22 +16,31 @@
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/proof_allocators.h>
 
+#include "crypto/s2n_fips.h"
 #include "crypto/s2n_hmac.h"
 
 void s2n_hmac_is_available_harness()
 {
     /* Non-deterministic inputs. */
-    s2n_hmac_algorithm alg;
+    s2n_hmac_algorithm hmac_alg;
 
     /* Operation under verification. */
-    bool is_available = s2n_hmac_is_available(alg);
-    assert(IMPLIES(alg == S2N_HMAC_MD5, is_available == !s2n_is_in_fips_mode()));
-    assert(IMPLIES(alg == S2N_HMAC_SSLv3_MD5, is_available == !s2n_is_in_fips_mode()));
-    assert(IMPLIES(alg == S2N_HMAC_SSLv3_SHA1, is_available == !s2n_is_in_fips_mode()));
-    assert(IMPLIES(alg == S2N_HMAC_NONE, is_available));
-    assert(IMPLIES(alg == S2N_HMAC_SHA1, is_available));
-    assert(IMPLIES(alg == S2N_HASH_SHA224, is_available));
-    assert(IMPLIES(alg == S2N_HASH_SHA256, is_available));
-    assert(IMPLIES(alg == S2N_HASH_SHA384, is_available));
-    assert(IMPLIES(alg == S2N_HASH_SHA512, is_available));
+    bool is_available = s2n_hmac_is_available(hmac_alg);
+
+    /* Postconditions. */
+    switch (hmac_alg) {
+        case S2N_HASH_MD5:
+        case S2N_HMAC_SSLv3_MD5:
+        case S2N_HMAC_SSLv3_SHA1:
+            assert(is_available == !s2n_is_in_fips_mode()); break;
+        case S2N_HASH_NONE:
+        case S2N_HASH_SHA1:
+        case S2N_HASH_SHA224:
+        case S2N_HASH_SHA256:
+        case S2N_HASH_SHA384:
+        case S2N_HASH_SHA512:
+            assert(is_available); break;
+        default:
+            __CPROVER_assert(!is_available, "Unssuported algorithm.");
+    }
 }

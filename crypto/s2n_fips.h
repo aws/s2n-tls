@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <stdbool.h>
+
 #pragma once
 
 extern int s2n_fips_init(void);

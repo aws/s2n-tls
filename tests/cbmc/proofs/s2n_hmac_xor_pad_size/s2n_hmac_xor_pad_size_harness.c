@@ -27,15 +27,19 @@ void s2n_hmac_xor_pad_size_harness()
 
     /* Operation under verification. */
     if (s2n_hmac_xor_pad_size(hmac_alg, xor_pad_size) == S2N_SUCCESS) {
-        /* Post-conditions. */
-        assert(IMPLIES(hmac_alg == S2N_HMAC_NONE, *xor_pad_size == 64));
-        assert(IMPLIES(hmac_alg == S2N_HMAC_MD5, *xor_pad_size == 64));
-        assert(IMPLIES(hmac_alg == S2N_HMAC_SHA1, *xor_pad_size == 64));
-        assert(IMPLIES(hmac_alg == S2N_HMAC_SHA224, *xor_pad_size == 64));
-        assert(IMPLIES(hmac_alg == S2N_HMAC_SHA256, *xor_pad_size == 64));
-        assert(IMPLIES(hmac_alg == S2N_HMAC_SHA384, *xor_pad_size == 128));
-        assert(IMPLIES(hmac_alg == S2N_HMAC_SHA512, *xor_pad_size == 128));
-        assert(IMPLIES(hmac_alg == S2N_HMAC_SSLv3_MD5, *xor_pad_size == 48));
-        assert(IMPLIES(hmac_alg == S2N_HMAC_SSLv3_SHA1, *xor_pad_size == 40));
+        /* Postconditions. */
+        switch (hmac_alg) {
+            case S2N_HASH_NONE:       assert(*xor_pad_size == 64);  break;
+            case S2N_HASH_MD5:        assert(*xor_pad_size == 64);  break;
+            case S2N_HASH_SHA1:       assert(*xor_pad_size == 64);  break;
+            case S2N_HASH_SHA224:     assert(*xor_pad_size == 64);  break;
+            case S2N_HASH_SHA256:     assert(*xor_pad_size == 64);  break;
+            case S2N_HASH_SHA384:     assert(*xor_pad_size == 128); break;
+            case S2N_HASH_SHA512:     assert(*xor_pad_size == 128); break;
+            case S2N_HMAC_SSLv3_MD5:  assert(*xor_pad_size == 48);  break;
+            case S2N_HMAC_SSLv3_SHA1: assert(*xor_pad_size == 40);  break;
+            default:
+                __CPROVER_assert(0, "Unssuported algorithm.");
+        }
     }
 }
