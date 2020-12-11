@@ -82,8 +82,8 @@ def test_s2n_server_signature_algorithms(managed_process, cipher, provider, prot
         data_to_send=random_bytes,
         insecure=False,
         use_client_auth=client_auth,
-        client_key_file=certificate.key,
-        client_certificate_file=certificate.cert,
+        key=certificate.key,
+        cert=certificate.cert,
         extra_flags=['-sigalgs', signature.name],
         protocol=protocol)
 
@@ -131,6 +131,8 @@ def test_s2n_client_signature_algorithms(managed_process, cipher, provider, prot
         data_to_send=random_bytes,
         insecure=True,
         use_client_auth=client_auth,
+        key=certificate.key,
+        cert=certificate.cert,
         protocol=protocol)
 
     server_options = copy.copy(client_options)
@@ -138,19 +140,20 @@ def test_s2n_client_signature_algorithms(managed_process, cipher, provider, prot
     server_options.mode = Provider.ServerMode
     server_options.key = certificate.key
     server_options.cert = certificate.cert
+    server_options.trust_store = certificate.cert
     server_options.extra_flags=['-sigalgs', signature.name]
 
     if client_auth is True:
-        client_options.client_trust_store = Certificates.RSA_2048_SHA256_WILDCARD.cert
+        client_options.trust_store = Certificates.RSA_2048_SHA256_WILDCARD.cert
         server_options.key = Certificates.RSA_2048_SHA256_WILDCARD.key
         server_options.cert = Certificates.RSA_2048_SHA256_WILDCARD.cert
 
         if signature.sig_type == 'RSA-PSS':
-            client_options.client_trust_store = Certificates.RSA_PSS_2048_SHA256.cert
+            client_options.trust_store = Certificates.RSA_PSS_2048_SHA256.cert
             server_options.key = Certificates.RSA_PSS_2048_SHA256.key
             server_options.cert = Certificates.RSA_PSS_2048_SHA256.cert
         elif signature.sig_type == 'ECDSA':
-            client_options.client_trust_store = Certificates.ECDSA_256.cert
+            client_options.trust_store = Certificates.ECDSA_256.cert
             server_options.key = Certificates.ECDSA_256.key
             server_options.cert = Certificates.ECDSA_256.cert
 

@@ -51,14 +51,14 @@ def test_well_known_endpoints(managed_process, protocol, endpoint, provider, cip
         host=endpoint,
         port=port,
         insecure=False,
-        client_trust_store=TRUST_STORE_BUNDLE,
+        trust_store=TRUST_STORE_BUNDLE,
         protocol=protocol,
         cipher=cipher)
 
     if get_flag(S2N_FIPS_MODE) is True:
-        client_options.client_trust_store = "../integration/trust-store/ca-bundle.trust.crt"
+        client_options.trust_store = "../integration/trust-store/ca-bundle.trust.crt"
     else:
-        client_options.client_trust_store = "../integration/trust-store/ca-bundle.crt"
+        client_options.trust_store = "../integration/trust-store/ca-bundle.crt"
 
     client = managed_process(provider, client_options, timeout=5)
 
