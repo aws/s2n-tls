@@ -147,20 +147,6 @@ int s2n_psk_calculate_binder_hash(struct s2n_connection *conn, s2n_hmac_algorith
     return S2N_SUCCESS;
 }
 
-static int s2n_tls13_keys_init_with_psk(struct s2n_tls13_keys *keys, struct s2n_psk *psk)
-{
-    notnull_check(keys);
-
-    keys->hmac_algorithm = psk->hmac_alg;
-    GUARD(s2n_hmac_hash_alg(psk->hmac_alg, &keys->hash_algorithm));
-    GUARD(s2n_hmac_digest_size(keys->hmac_algorithm, &keys->size));
-    GUARD(s2n_blob_init(&keys->extract_secret, keys->extract_secret_bytes, keys->size));
-    GUARD(s2n_blob_init(&keys->derive_secret, keys->derive_secret_bytes, keys->size));
-    GUARD(s2n_hmac_new(&keys->hmac));
-
-    return S2N_SUCCESS;
-}
-
 /* The binder is computed in the same way as the Finished message
  * (https://tools.ietf.org/html/rfc8446#section-4.4.4) but with the BaseKey being the binder_key
  * derived via the key schedule from the corresponding PSK which is being offered
@@ -174,7 +160,7 @@ int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_
     notnull_check(output_binder);
 
     DEFER_CLEANUP(struct s2n_tls13_keys psk_keys, s2n_tls13_keys_free);
-    GUARD(s2n_tls13_keys_init_with_psk(&psk_keys, psk));
+    GUARD(s2n_tls13_keys_init(&psk_keys, psk->hmac_alg));
     eq_check(binder_hash->size, psk_keys.size);
     eq_check(output_binder->size, psk_keys.size);
 
@@ -203,7 +189,7 @@ int s2n_psk_verify_binder(struct s2n_connection *conn, struct s2n_psk *psk,
     notnull_check(binder_to_verify);
 
     DEFER_CLEANUP(struct s2n_tls13_keys psk_keys, s2n_tls13_keys_free);
-    GUARD(s2n_tls13_keys_init_with_psk(&psk_keys, psk));
+    GUARD(s2n_tls13_keys_init(&psk_keys, psk->hmac_alg));
     eq_check(binder_to_verify->size, psk_keys.size);
 
     /* Calculate the binder hash from the transcript */
