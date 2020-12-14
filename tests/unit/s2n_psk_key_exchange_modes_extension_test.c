@@ -138,5 +138,29 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Functional test */
+    {
+        struct s2n_stuffer out = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+
+        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn;
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_EQUAL(server_conn->psk_params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);
+
+        server_conn->actual_protocol_version = S2N_TLS13;
+        client_conn->actual_protocol_version = S2N_TLS13;
+
+        EXPECT_SUCCESS(s2n_psk_key_exchange_modes_extension.send(client_conn, &out));
+        EXPECT_SUCCESS(s2n_psk_key_exchange_modes_extension.recv(server_conn, &out));
+
+        EXPECT_EQUAL(server_conn->psk_params.psk_ke_mode, S2N_PSK_DHE_KE);
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_stuffer_free(&out));
+    }
+
     END_TEST();
 }
