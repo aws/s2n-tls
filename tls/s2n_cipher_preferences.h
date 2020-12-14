@@ -84,8 +84,6 @@ extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_0
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_1_2016_legacy;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2018_legacy;
 extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2019_legacy;
-/* CloudFront undocumented policies for testing */
-extern const struct s2n_cipher_preferences cipher_preferences_cloudfront_tls_1_2_2020;
 
 extern const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10;
 
