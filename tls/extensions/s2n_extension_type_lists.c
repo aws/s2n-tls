@@ -31,6 +31,7 @@
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/extensions/s2n_client_pq_kem.h"
 #include "tls/extensions/s2n_client_psk.h"
+#include "tls/extensions/s2n_psk_key_exchange_modes.h"
 #include "tls/extensions/s2n_client_renegotiation_info.h"
 #include "tls/extensions/s2n_ec_point_format.h"
 #include "tls/extensions/s2n_quic_transport_params.h"
@@ -62,6 +63,7 @@ static const s2n_extension_type *const client_hello_extensions[] = {
         &s2n_client_renegotiation_info_extension,
         &s2n_client_cookie_extension,
         &s2n_quic_transport_parameters_extension,
+        &s2n_psk_key_exchange_modes_extension,
         &s2n_client_psk_extension /* MUST be last */
 };
 
