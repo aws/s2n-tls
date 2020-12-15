@@ -65,6 +65,10 @@ static const struct s2n_kem_test_vector test_vectors[] = {
         },
 };
 
+/* EXPECT_SUCCESS checks explicitly function_call != -1; the PQ KEM functions may return
+ * any non-zero int to indicate failure.*/
+#define EXPECT_PQ_KEM_SUCCESS( function_call )  EXPECT_EQUAL( (function_call) ,  0 )
+
 int main() {
     BEGIN_TEST();
 
@@ -90,9 +94,9 @@ int main() {
         if (s2n_pq_is_enabled()) {
             /* Test the C code */
             EXPECT_OK(vector.disable_asm());
-            EXPECT_SUCCESS(kem->generate_keypair(public_key.data, private_key.data));
-            EXPECT_SUCCESS(kem->encapsulate(ciphertext.data, client_shared_secret.data, public_key.data));
-            EXPECT_SUCCESS(kem->decapsulate(server_shared_secret.data, ciphertext.data, private_key.data));
+            EXPECT_PQ_KEM_SUCCESS(kem->generate_keypair(public_key.data, private_key.data));
+            EXPECT_PQ_KEM_SUCCESS(kem->encapsulate(ciphertext.data, client_shared_secret.data, public_key.data));
+            EXPECT_PQ_KEM_SUCCESS(kem->decapsulate(server_shared_secret.data, ciphertext.data, private_key.data));
             EXPECT_BYTEARRAY_EQUAL(server_shared_secret.data, client_shared_secret.data, kem->shared_secret_key_length);
 
             /* Test the assembly, if available */
@@ -104,16 +108,16 @@ int main() {
                 EXPECT_SUCCESS(s2n_blob_zero(&server_shared_secret));
                 EXPECT_SUCCESS(s2n_blob_zero(&ciphertext));
 
-                EXPECT_SUCCESS(kem->generate_keypair(public_key.data, private_key.data));
-                EXPECT_SUCCESS(kem->encapsulate(ciphertext.data, client_shared_secret.data, public_key.data));
-                EXPECT_SUCCESS(kem->decapsulate(server_shared_secret.data, ciphertext.data, private_key.data));
+                EXPECT_PQ_KEM_SUCCESS(kem->generate_keypair(public_key.data, private_key.data));
+                EXPECT_PQ_KEM_SUCCESS(kem->encapsulate(ciphertext.data, client_shared_secret.data, public_key.data));
+                EXPECT_PQ_KEM_SUCCESS(kem->decapsulate(server_shared_secret.data, ciphertext.data, private_key.data));
                 EXPECT_BYTEARRAY_EQUAL(server_shared_secret.data, client_shared_secret.data, kem->shared_secret_key_length);
             }
         } else {
 #if defined(S2N_NO_PQ)
-            EXPECT_FAILURE_WITH_ERRNO(kem->generate_keypair(public_key, private_key), S2N_ERR_UNIMPLEMENTED);
-            EXPECT_FAILURE_WITH_ERRNO(kem->encapsulate(ciphertext, client_shared_secret, public_key), S2N_ERR_UNIMPLEMENTED);
-            EXPECT_FAILURE_WITH_ERRNO(kem->decapsulate(server_shared_secret, ciphertext, private_key), S2N_ERR_UNIMPLEMENTED);
+            EXPECT_FAILURE_WITH_ERRNO(kem->generate_keypair(public_key.data, private_key.data), S2N_ERR_UNIMPLEMENTED);
+            EXPECT_FAILURE_WITH_ERRNO(kem->encapsulate(ciphertext.data, client_shared_secret.data, public_key.data), S2N_ERR_UNIMPLEMENTED);
+            EXPECT_FAILURE_WITH_ERRNO(kem->decapsulate(server_shared_secret.data, ciphertext.data, private_key.data), S2N_ERR_UNIMPLEMENTED);
 #endif
         }
     }
