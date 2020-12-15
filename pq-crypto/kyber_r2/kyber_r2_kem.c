@@ -6,6 +6,7 @@
 #include "../s2n_pq_random.h"
 #include "utils/s2n_safety.h"
 #include "tls/s2n_kem.h"
+#include "pq-crypto/s2n_pq.h"
 
 #include <stdlib.h>
 
@@ -21,6 +22,7 @@
 * Returns 0 (success)
 **************************************************/
 int kyber_512_r2_crypto_kem_keypair(uint8_t *pk, uint8_t *sk) {
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     size_t i;
     PQCLEAN_KYBER512_CLEAN_indcpa_keypair(pk, sk);
     for (i = 0; i < KYBER_INDCPA_PUBLICKEYBYTES; i++) {
@@ -44,6 +46,7 @@ int kyber_512_r2_crypto_kem_keypair(uint8_t *pk, uint8_t *sk) {
 * Returns 0 (success)
 **************************************************/
 int kyber_512_r2_crypto_kem_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk) {
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     uint8_t  kr[2 * KYBER_SYMBYTES];                                   /* Will contain key, coins */
     uint8_t buf[2 * KYBER_SYMBYTES];
 
@@ -75,6 +78,7 @@ int kyber_512_r2_crypto_kem_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk) {
 * On failure, ss will contain a pseudo-random value.
 **************************************************/
 int kyber_512_r2_crypto_kem_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk) {
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     size_t i;
     uint8_t fail;
     uint8_t cmp[KYBER_CIPHERTEXTBYTES];
