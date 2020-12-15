@@ -28,9 +28,6 @@
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_security_policies.h"
 
-#define LENGTH 3
-#define STUFFER_SIZE (LENGTH * TLS_SIGNATURE_SCHEME_LEN + 10)
-
 #define RSA_CIPHER_SUITE &s2n_rsa_with_rc4_128_md5
 #define ECDSA_CIPHER_SUITE &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha
 #define TLS13_CIPHER_SUITE &s2n_tls13_aes_128_gcm_sha256
@@ -42,8 +39,35 @@ const struct s2n_signature_scheme *const test_signature_schemes[] = {
 };
 
 const struct s2n_signature_preferences test_preferences = {
-        .count = LENGTH,
+        .count = s2n_array_len(test_signature_schemes),
         .signature_schemes = test_signature_schemes,
+};
+
+#define LENGTH s2n_array_len(test_signature_schemes)
+#define STUFFER_SIZE (LENGTH * TLS_SIGNATURE_SCHEME_LEN + 10)
+
+const struct s2n_signature_scheme *const test_rsa_pkcs1_signature_schemes[] = {
+        /* RSA PKCS1 */
+        &s2n_rsa_pkcs1_sha256,
+        &s2n_rsa_pkcs1_sha384,
+        &s2n_rsa_pkcs1_sha512,
+        &s2n_rsa_pkcs1_sha224,
+};
+
+const struct s2n_signature_preferences test_rsa_pkcs1_preferences = {
+        .count = s2n_array_len(test_rsa_pkcs1_signature_schemes),
+        .signature_schemes = test_rsa_pkcs1_signature_schemes,
+};
+
+const struct s2n_signature_scheme *const test_sha1_signature_schemes[] = {
+        /* SHA-1 Legacy */
+        &s2n_rsa_pkcs1_sha1,
+        &s2n_ecdsa_sha1,
+};
+
+const struct s2n_signature_preferences test_sha1_preferences = {
+        .count = s2n_array_len(test_sha1_signature_schemes),
+        .signature_schemes = test_sha1_signature_schemes,
 };
 
 int main(int argc, char **argv)
@@ -316,49 +340,251 @@ int main(int argc, char **argv)
 
     /* s2n_choose_default_sig_scheme */
     {
-        struct s2n_config *config = s2n_config_new();
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert_chain));
+            /* Test s2n_choose_default_sig_scheme for versions <= TLS1.2 and SERVER mode */
+            {
+                struct s2n_config *config = s2n_config_new();
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert_chain));
 
-        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+                struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-        const struct s2n_security_policy *security_policy = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
+                struct s2n_signature_scheme result;
 
-        struct s2n_security_policy test_security_policy = {
-            .minimum_protocol_version = security_policy->minimum_protocol_version,
-            .cipher_preferences = security_policy->cipher_preferences,
-            .kem_preferences = security_policy->kem_preferences,
-            .signature_preferences = &test_preferences,
-            .ecc_preferences = security_policy->ecc_preferences,
-        };
+                conn->secure.cipher_suite = RSA_CIPHER_SUITE;
+                conn->actual_protocol_version = S2N_TLS10;
+                struct s2n_signature_scheme expected = (s2n_is_in_fips_mode()) ? s2n_rsa_pkcs1_sha1 : s2n_rsa_pkcs1_md5_sha1;
+                EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
+                EXPECT_EQUAL(result.iana_value, expected.iana_value);
 
-        config->security_policy = &test_security_policy;
+                conn->secure.cipher_suite = ECDSA_CIPHER_SUITE;
+                conn->actual_protocol_version = S2N_TLS10;
+                EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
+                EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
 
-        struct s2n_signature_scheme result;
+                conn->secure.cipher_suite = RSA_CIPHER_SUITE;
+                conn->actual_protocol_version = S2N_TLS12;
+                EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
+                EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha1.iana_value);
 
-        conn->secure.cipher_suite = RSA_CIPHER_SUITE;
-        conn->actual_protocol_version = S2N_TLS10;
-        struct s2n_signature_scheme expected = (s2n_is_in_fips_mode()) ? s2n_rsa_pkcs1_sha1 : s2n_rsa_pkcs1_md5_sha1;
-        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
-        EXPECT_EQUAL(result.iana_value, expected.iana_value);
+                s2n_connection_free(conn);
+                s2n_config_free(config);
+            }
 
-        conn->secure.cipher_suite = ECDSA_CIPHER_SUITE;
-        conn->actual_protocol_version = S2N_TLS10;
-        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
-        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+            /* Test s2n_choose_default_sig_scheme for versions <= TLS1.2 and CLIENT mode */
+            { 
+                struct s2n_config *config = s2n_config_new();
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
 
-        conn->secure.cipher_suite = RSA_CIPHER_SUITE;
-        conn->actual_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
-        EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha1.iana_value);
+                struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-        s2n_connection_free(conn);
-        s2n_config_free(config);
+                struct s2n_signature_scheme result;
+
+                conn->secure.client_cert_pkey_type = S2N_PKEY_TYPE_RSA;
+                conn->actual_protocol_version = S2N_TLS10;
+                struct s2n_signature_scheme expected = (s2n_is_in_fips_mode()) ? s2n_rsa_pkcs1_sha1 : s2n_rsa_pkcs1_md5_sha1;
+                EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
+                EXPECT_EQUAL(result.iana_value, expected.iana_value);
+                EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_md5_sha1.iana_value);
+
+                conn->secure.client_cert_pkey_type = S2N_PKEY_TYPE_RSA;
+                conn->actual_protocol_version = S2N_TLS12;
+                EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
+                EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha1.iana_value);
+
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert_chain));
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+                conn->secure.client_cert_pkey_type = S2N_PKEY_TYPE_ECDSA;
+                conn->actual_protocol_version = S2N_TLS10;
+                EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
+                EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+
+                s2n_connection_free(conn);
+                s2n_config_free(config);
+
+            }
+
+            /* Test s2n_choose_default_sig_scheme for versions >= TLS1.3 and SERVER mode */
+            {
+                struct s2n_config *config = s2n_config_new();
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert_chain));
+
+                struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+                const struct s2n_security_policy *security_policy = NULL;
+                EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+                EXPECT_NOT_NULL(security_policy);
+
+                struct s2n_security_policy test_security_policy = {
+                    .minimum_protocol_version = security_policy->minimum_protocol_version,
+                    .cipher_preferences = security_policy->cipher_preferences,
+                    .kem_preferences = security_policy->kem_preferences,
+                    .signature_preferences = &test_preferences,
+                    .ecc_preferences = security_policy->ecc_preferences,
+                };
+
+                config->security_policy = &test_security_policy;
+
+                struct s2n_signature_scheme result;
+
+                conn->secure.cipher_suite = NULL;
+                EXPECT_FAILURE_WITH_ERRNO(s2n_choose_default_sig_scheme(conn, &result), S2N_ERR_NULL);
+
+                conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+                conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
+                EXPECT_EQUAL(result.iana_value, test_preferences.signature_schemes[0]->iana_value);
+
+                s2n_connection_free(conn);
+                s2n_config_free(config);
+            }
+
+            /* Test s2n_choose_default_sig_scheme for versions >= TLS1.3 and CLIENT mode */
+            {
+                struct s2n_config *config = s2n_config_new();
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert_chain));
+
+                struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+                const struct s2n_security_policy *security_policy = NULL;
+                EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+                EXPECT_NOT_NULL(security_policy);
+
+                struct s2n_security_policy test_security_policy = {
+                    .minimum_protocol_version = security_policy->minimum_protocol_version,
+                    .cipher_preferences = security_policy->cipher_preferences,
+                    .kem_preferences = security_policy->kem_preferences,
+                    .signature_preferences = &test_preferences,
+                    .ecc_preferences = security_policy->ecc_preferences,
+                };
+
+                config->security_policy = &test_security_policy;
+
+                struct s2n_signature_scheme result;
+
+                conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
+                EXPECT_EQUAL(result.iana_value, test_signature_schemes[0]->iana_value);
+
+                s2n_connection_free(conn);
+                s2n_config_free(config);
+            }
+
+            /* Test that s2n_choose_default_sig_scheme skips RSA PKCS1 signatures for versions >= TLS1.3 */
+            {
+                struct s2n_config *config = s2n_config_new();
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert_chain));
+
+                struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+                const struct s2n_security_policy *security_policy = NULL;
+                EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+                EXPECT_NOT_NULL(security_policy);
+
+                struct s2n_security_policy test_security_policy = {
+                    .minimum_protocol_version = security_policy->minimum_protocol_version,
+                    .cipher_preferences = security_policy->cipher_preferences,
+                    .kem_preferences = security_policy->kem_preferences,
+                    .signature_preferences = &test_rsa_pkcs1_preferences,
+                    .ecc_preferences = security_policy->ecc_preferences,
+                };
+
+                config->security_policy = &test_security_policy;
+
+                struct s2n_signature_scheme result;
+    
+                conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+                conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_FAILURE_WITH_ERRNO(s2n_choose_default_sig_scheme(conn, &result),
+                                          S2N_ERR_INVALID_SIGNATURE_SCHEME);
+
+                s2n_connection_free(conn);
+                s2n_config_free(config);
+            }
+        
+            /* Test that s2n_choose_default_sig_scheme skips legacy SHA1 signatures for versions >= TLS1.3 */
+            {
+                struct s2n_config *config = s2n_config_new();
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert_chain));
+
+                struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+                const struct s2n_security_policy *security_policy = NULL;
+                EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+                EXPECT_NOT_NULL(security_policy);
+
+                struct s2n_security_policy test_security_policy = {
+                    .minimum_protocol_version = security_policy->minimum_protocol_version,
+                    .cipher_preferences = security_policy->cipher_preferences,
+                    .kem_preferences = security_policy->kem_preferences,
+                    .signature_preferences = &test_sha1_preferences,
+                    .ecc_preferences = security_policy->ecc_preferences,
+                };
+
+                config->security_policy = &test_security_policy;
+
+                struct s2n_signature_scheme result;
+    
+                conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+                conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_FAILURE_WITH_ERRNO(s2n_choose_default_sig_scheme(conn, &result),
+                                          S2N_ERR_INVALID_SIGNATURE_SCHEME);
+
+                s2n_connection_free(conn);
+                s2n_config_free(config);
+            }
+
+            /* Test error case when client_cert_pkey_type is invalid for CLIENT mode */
+            { 
+                struct s2n_config *config = s2n_config_new();
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
+
+                struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+                struct s2n_signature_scheme result;
+
+                conn->secure.client_cert_pkey_type = S2N_PKEY_TYPE_RSA_PSS;
+                conn->actual_protocol_version = S2N_TLS12;
+                EXPECT_FAILURE_WITH_ERRNO(s2n_choose_default_sig_scheme(conn, &result),
+                                          S2N_ERR_INVALID_SIGNATURE_SCHEME);
+
+                s2n_connection_free(conn);
+                s2n_config_free(config);
+            }
+            
+            /* Test error case for invalid cipher suite auth method in versions <= TLS1.2 for SERVER mode */
+            { 
+                struct s2n_config *config = s2n_config_new();
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
+
+                struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+                struct s2n_signature_scheme result;
+
+                struct s2n_cipher_suite test_cipher_suite = {
+                    .auth_method = S2N_AUTHENTICATION_METHOD_TLS13, /* invalid auth method for testing */
+                };
+
+                conn->secure.cipher_suite = &test_cipher_suite;
+                conn->actual_protocol_version = S2N_TLS12;
+                EXPECT_FAILURE_WITH_ERRNO(s2n_choose_default_sig_scheme(conn, &result),
+                                          S2N_ERR_INVALID_SIGNATURE_SCHEME);
+
+                s2n_connection_free(conn);
+                s2n_config_free(config);
+            }
     }
-
     /* s2n_choose_sig_scheme_from_peer_preference_list */
     {
         struct s2n_config *config = s2n_config_new();
@@ -427,7 +653,7 @@ int main(int argc, char **argv)
 
         /* Test: no shared valid signature schemes, using TLS1.2 */
         {
-            conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
+            conn->secure.cipher_suite = RSA_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS12;
 
             /* Peer list contains no signature schemes that we support */

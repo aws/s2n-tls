@@ -174,13 +174,12 @@ int s2n_is_sig_scheme_valid_for_auth(struct s2n_connection *conn, const struct s
     notnull_check(conn);
     notnull_check(sig_scheme);
 
-    struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
-    notnull_check(cipher_suite);
-
     GUARD(s2n_certs_exist_for_sig_scheme(conn, sig_scheme));
 
     /* For the client side, signature algorithm does not need to match the cipher suite. */
     if (conn->mode == S2N_SERVER) {
+        struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
+        notnull_check(cipher_suite);
         GUARD(s2n_is_sig_alg_valid_for_cipher_suite(sig_scheme->sig_alg, cipher_suite));
     }
     return S2N_SUCCESS;

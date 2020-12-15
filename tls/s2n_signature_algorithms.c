@@ -107,11 +107,27 @@ static int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_
     GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
     notnull_check(signature_preferences);
 
-    struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
-    notnull_check(cipher_suite);
+    if (conn->mode == S2N_SERVER) {
+        struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
+        notnull_check(cipher_suite);
+    }
 
     for (size_t i = 0; i < signature_preferences->count; i++) {
         const struct s2n_signature_scheme *candidate = signature_preferences->signature_schemes[i];
+
+        /* From RFC https://tools.ietf.org/html/rfc8446#section-4.4.3:
+         * For TLS1.3 RSA signatures MUST use an RSASSA-PSS algorithm, regardless of whether RSASSA-PKCS1-v1_5 
+         * algorithms appear in "signature_algorithms". The SHA-1 algorithm MUST NOT be used in any signatures of
+         * CertificateVerify messages. All SHA-1 signature algorithms in this specification are defined
+         * solely for use in legacy certificates and are not valid for CertificateVerify signatures.
+         * */
+        if (candidate->hash_alg == S2N_HASH_SHA1) {
+            continue;
+        }
+
+        if (candidate->sig_alg == S2N_SIGNATURE_RSA) {
+           continue;
+        }
 
         if (s2n_is_signature_scheme_usable(conn, candidate) != S2N_SUCCESS) {
             continue;
@@ -122,6 +138,64 @@ static int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_
     }
 
     S2N_ERROR(S2N_ERR_INVALID_SIGNATURE_SCHEME);
+}
+
+static int s2n_default_sig_scheme_server(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out)
+{
+    notnull_check(conn);
+    notnull_check(conn->secure.cipher_suite);
+    notnull_check(sig_scheme_out);
+
+    s2n_authentication_method cipher_suite_auth_method = conn->secure.cipher_suite->auth_method;
+    S2N_ERROR_IF(
+        (cipher_suite_auth_method != S2N_AUTHENTICATION_ECDSA && cipher_suite_auth_method != S2N_AUTHENTICATION_RSA),
+        S2N_ERR_INVALID_SIGNATURE_SCHEME);
+
+    /* Default our signature digest algorithms. For TLS 1.2 this default is different and may be
+     * overridden by the signature_algorithms extension. If the server chooses an ECDHE_ECDSA
+     * cipher suite, this will be overridden to SHA1.
+     */
+    *sig_scheme_out = s2n_rsa_pkcs1_md5_sha1;
+
+    if (cipher_suite_auth_method == S2N_AUTHENTICATION_ECDSA) {
+        *sig_scheme_out = s2n_ecdsa_sha1;
+    }
+
+    /* Default RSA Hash Algorithm is SHA1 (instead of MD5_SHA1) if TLS 1.2 or FIPS mode */
+    if ((conn->actual_protocol_version >= S2N_TLS12 || s2n_is_in_fips_mode())
+            && (sig_scheme_out->sig_alg == S2N_SIGNATURE_RSA)) {
+        *sig_scheme_out = s2n_rsa_pkcs1_sha1;
+    }
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_default_sig_scheme_client(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out)
+{
+    notnull_check(conn);
+    notnull_check(sig_scheme_out);
+
+    s2n_pkey_type client_cert_pkey_type = conn->secure.client_cert_pkey_type;
+    S2N_ERROR_IF((client_cert_pkey_type != S2N_PKEY_TYPE_RSA && client_cert_pkey_type != S2N_PKEY_TYPE_ECDSA),
+                 S2N_ERR_INVALID_SIGNATURE_SCHEME);
+
+    /* Default our signature digest algorithms. For TLS 1.2 this default is different and may be
+     * overridden by the signature_algorithms extension. If the server chooses an ECDHE_ECDSA
+     * cipher suite, this will be overridden to SHA1.
+     */
+    *sig_scheme_out = s2n_rsa_pkcs1_md5_sha1;
+
+    if (client_cert_pkey_type == S2N_PKEY_TYPE_ECDSA) {
+        *sig_scheme_out = s2n_ecdsa_sha1;
+    }
+
+    /* Default RSA Hash Algorithm is SHA1 (instead of MD5_SHA1) if TLS 1.2 or FIPS mode */
+    if ((conn->actual_protocol_version == S2N_TLS12 || s2n_is_in_fips_mode())
+            && (sig_scheme_out->sig_alg == S2N_SIGNATURE_RSA)) {
+        *sig_scheme_out = s2n_rsa_pkcs1_sha1;
+    }
+
+    return S2N_SUCCESS;
 }
 
 int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn, struct s2n_stuffer *in,
@@ -167,25 +241,17 @@ int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn
 int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out)
 {
     notnull_check(conn);
-    notnull_check(conn->secure.cipher_suite);
     notnull_check(sig_scheme_out);
 
-    s2n_authentication_method cipher_suite_auth_method = conn->secure.cipher_suite->auth_method;
-
-    /* Default our signature digest algorithms. For TLS 1.2 this default is different and may be
-     * overridden by the signature_algorithms extension. If the server chooses an ECDHE_ECDSA
-     * cipher suite, this will be overridden to SHA1.
-     */
-    *sig_scheme_out = s2n_rsa_pkcs1_md5_sha1;
-
-    if (cipher_suite_auth_method == S2N_AUTHENTICATION_ECDSA) {
-        *sig_scheme_out = s2n_ecdsa_sha1;
-    }
-
-    /* Default RSA Hash Algorithm is SHA1 (instead of MD5_SHA1) if TLS 1.2 or FIPS mode */
-    if ((conn->actual_protocol_version >= S2N_TLS12 || s2n_is_in_fips_mode())
-            && (sig_scheme_out->sig_alg == S2N_SIGNATURE_RSA)) {
-        *sig_scheme_out = s2n_rsa_pkcs1_sha1;
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        if (conn->mode == S2N_SERVER) {
+            GUARD(s2n_default_sig_scheme_server(conn, sig_scheme_out));
+        } else {
+            GUARD(s2n_default_sig_scheme_client(conn, sig_scheme_out));
+        }
+    } else {
+        /* Pick a default signature algorithm in TLS 1.3 https://tools.ietf.org/html/rfc8446#section-4.4.2.2 */
+        GUARD(s2n_tls13_default_sig_scheme(conn, sig_scheme_out));
     }
 
     return S2N_SUCCESS;
@@ -199,12 +265,7 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
 
     struct s2n_signature_scheme chosen_scheme;
 
-    if (conn->actual_protocol_version < S2N_TLS13) {
-        GUARD(s2n_choose_default_sig_scheme(conn, &chosen_scheme));
-    } else {
-        /* Pick a default signature algorithm in TLS 1.3 https://tools.ietf.org/html/rfc8446#section-4.4.2.2 */
-        GUARD(s2n_tls13_default_sig_scheme(conn, &chosen_scheme));
-    }
+    GUARD(s2n_choose_default_sig_scheme(conn, &chosen_scheme));
 
     /* SignatureScheme preference list was first added in TLS 1.2. It will be empty in older TLS versions. */
     if (peer_wire_prefs != NULL && peer_wire_prefs->len > 0) {
