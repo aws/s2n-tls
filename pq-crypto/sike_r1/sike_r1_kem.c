@@ -10,11 +10,13 @@
 #include "pq-crypto/s2n_pq_random.h"
 #include "utils/s2n_safety.h"
 #include "tls/s2n_kem.h"
+#include "pq-crypto/s2n_pq.h"
 
 int SIKE_P503_r1_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 { // SIKE's key generation
   // Outputs: secret key sk (SIKE_P503_R1_SECRET_KEY_BYTES = MSG_BYTES + SECRETKEY_B_BYTES + SIKE_P503_R1_PUBLIC_KEY_BYTES bytes)
   //          public key pk (SIKE_P503_R1_PUBLIC_KEY_BYTES bytes)
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     digit_t _sk[SECRETKEY_B_BYTES/sizeof(digit_t)];
 
@@ -38,6 +40,8 @@ int SIKE_P503_r1_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsi
   // Input:   public key pk         (SIKE_P503_R1_PUBLIC_KEY_BYTES bytes)
   // Outputs: shared secret ss      (SIKE_P503_R1_SHARED_SECRET_BYTES bytes)
   //          ciphertext message ct (SIKE_P503_R1_CIPHERTEXT_BYTES = SIKE_P503_R1_PUBLIC_KEY_BYTES + MSG_BYTES bytes)
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+
     const uint16_t G = 0;
     const uint16_t H = 1;
     const uint16_t P = 2;
@@ -78,6 +82,8 @@ int SIKE_P503_r1_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, cons
   // Input:   secret key sk         (SIKE_P503_R1_SECRET_KEY_BYTES = MSG_BYTES + SECRETKEY_B_BYTES + SIKE_P503_R1_PUBLIC_KEY_BYTES bytes)
   //          ciphertext message ct (SIKE_P503_R1_CIPHERTEXT_BYTES = SIKE_P503_R1_PUBLIC_KEY_BYTES + MSG_BYTES bytes)
   // Outputs: shared secret ss      (SIKE_P503_R1_SHARED_SECRET_BYTES bytes)
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+
     const uint16_t G = 0;
     const uint16_t H = 1;
     const uint16_t P = 2;
