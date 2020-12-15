@@ -7,5 +7,3 @@
 [submodule "tests/litani"]
 	path = tests/litani
 	url = https://github.com/awslabs/aws-build-accumulator
-	update = rebase
-	branch = mainline

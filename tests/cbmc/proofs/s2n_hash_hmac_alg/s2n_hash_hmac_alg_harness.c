@@ -16,26 +16,32 @@
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/proof_allocators.h>
 
-#include "api/s2n.h"
-#include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
 
 void s2n_hash_hmac_alg_harness()
 {
     /* Non-deterministic inputs. */
     s2n_hash_algorithm hash_alg;
-    size_t             alg_size;
-    uint8_t *          out = bounded_malloc(alg_size);
+    s2n_hmac_algorithm *out = malloc(sizeof(*out));
+
+    /* Save previous state. */
+    s2n_hmac_algorithm old_out = (out) ? *out : -1;
 
     /* Operation under verification. */
     if (s2n_hash_hmac_alg(hash_alg, out) == S2N_SUCCESS) {
         /* Post-conditions. */
-        assert(IMPLIES(hash_alg == S2N_HASH_NONE, *out == S2N_HMAC_NONE));
-        assert(IMPLIES(hash_alg == S2N_HASH_MD5, *out == S2N_HMAC_MD5));
-        assert(IMPLIES(hash_alg == S2N_HASH_SHA1, *out == S2N_HMAC_SHA1));
-        assert(IMPLIES(hash_alg == S2N_HASH_SHA224, *out == S2N_HMAC_SHA224));
-        assert(IMPLIES(hash_alg == S2N_HASH_SHA256, *out == S2N_HMAC_SHA256));
-        assert(IMPLIES(hash_alg == S2N_HASH_SHA384, *out == S2N_HMAC_SHA384));
-        assert(IMPLIES(hash_alg == S2N_HASH_SHA512, *out == S2N_HMAC_SHA512));
+        switch(hash_alg) {
+        case S2N_HASH_NONE:       assert(*out == S2N_HMAC_NONE);   break;
+        case S2N_HASH_MD5:        assert(*out == S2N_HMAC_MD5);    break;
+        case S2N_HASH_SHA1:       assert(*out == S2N_HMAC_SHA1);   break;
+        case S2N_HASH_SHA224:     assert(*out == S2N_HMAC_SHA224); break;
+        case S2N_HASH_SHA256:     assert(*out == S2N_HMAC_SHA256); break;
+        case S2N_HASH_SHA384:     assert(*out == S2N_HMAC_SHA384); break;
+        case S2N_HASH_SHA512:     assert(*out == S2N_HMAC_SHA512); break;
+        default:
+            __CPROVER_assert(0, "Unssuported algorithm.");
+        }
+    } else {
+        assert(IMPLIES(out != NULL && hash_alg == S2N_HASH_MD5_SHA1, *out == old_out));
     }
 }

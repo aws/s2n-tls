@@ -15,7 +15,7 @@
 
 CBMCFLAGS +=
 
-PROOF_UID = s2n_hash_hmac_alg
+PROOF_UID = s2n_hmac_hash_alg
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 

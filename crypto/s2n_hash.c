@@ -22,27 +22,9 @@
 
 #include "utils/s2n_safety.h"
 
-int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
-{
-    ENSURE_POSIX(S2N_MEM_IS_READABLE(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
-    switch(hash_alg) {
-    case S2N_HASH_NONE:       *out = S2N_HMAC_NONE;   break;
-    case S2N_HASH_MD5:        *out = S2N_HMAC_MD5;    break;
-    case S2N_HASH_SHA1:       *out = S2N_HMAC_SHA1;   break;
-    case S2N_HASH_SHA224:     *out = S2N_HMAC_SHA224; break;
-    case S2N_HASH_SHA256:     *out = S2N_HMAC_SHA256; break;
-    case S2N_HASH_SHA384:     *out = S2N_HMAC_SHA384; break;
-    case S2N_HASH_SHA512:     *out = S2N_HMAC_SHA512; break;
-    case S2N_HASH_MD5_SHA1:   /* Fall through ... */
-    default:
-        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
-    }
-    return S2N_SUCCESS;
-}
-
 int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
 {
-    notnull_check(out);
+    ENSURE_POSIX(S2N_MEM_IS_WRITABLE(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
     switch (alg) {
     case S2N_HASH_NONE:     *out = 0;                    break;
     case S2N_HASH_MD5:      *out = MD5_DIGEST_LENGTH;    break;
@@ -63,7 +45,7 @@ int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
  * If this ever becomes untrue, this would require fixing*/
 int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size)
 {
-    ENSURE_POSIX(S2N_MEM_IS_READABLE(block_size, sizeof(*block_size)), S2N_ERR_PRECONDITION_VIOLATION);
+    ENSURE_POSIX(S2N_MEM_IS_WRITABLE(block_size, sizeof(*block_size)), S2N_ERR_PRECONDITION_VIOLATION);
     switch(alg) {
     case S2N_HASH_NONE:       *block_size = 64;   break;
     case S2N_HASH_MD5:        *block_size = 64;   break;
@@ -623,7 +605,7 @@ int s2n_hash_free(struct s2n_hash_state *state)
 int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t *out)
 {
     PRECONDITION_POSIX(s2n_hash_state_validate(state));
-    ENSURE_POSIX(S2N_MEM_IS_READABLE(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
+    ENSURE_POSIX(S2N_MEM_IS_WRITABLE(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
     ENSURE_POSIX(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
 
     *out = state->currently_in_hash;
@@ -635,7 +617,7 @@ int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t 
 int s2n_hash_const_time_get_currently_in_hash_block(struct s2n_hash_state *state, uint64_t *out)
 {
     PRECONDITION_POSIX(s2n_hash_state_validate(state));
-    ENSURE_POSIX(S2N_MEM_IS_READABLE(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
+    ENSURE_POSIX(S2N_MEM_IS_WRITABLE(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
     ENSURE_POSIX(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
     uint64_t hash_block_size;
     GUARD(s2n_hash_block_size(state->alg, &hash_block_size));

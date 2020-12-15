@@ -18,7 +18,6 @@
 #include <cbmc_proof/proof_allocators.h>
 #include <string.h>
 
-#include "api/s2n.h"
 #include "error/s2n_errno.h"
 #include "utils/s2n_blob.h"
 

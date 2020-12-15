@@ -15,7 +15,7 @@
 
 #include <cbmc_proof/make_common_datastructures.h>
 
-#include "api/s2n.h"
+#include "crypto/s2n_fips.h"
 #include "crypto/s2n_evp.h"
 #include "utils/s2n_result.h"
 

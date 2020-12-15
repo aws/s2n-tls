@@ -15,7 +15,7 @@
 
 #include <cbmc_proof/make_common_datastructures.h>
 
-#include "api/s2n.h"
+#include "crypto/s2n_fips.h"
 #include "crypto/s2n_evp.h"
 
 void s2n_digest_allow_md5_for_fips_harness()
