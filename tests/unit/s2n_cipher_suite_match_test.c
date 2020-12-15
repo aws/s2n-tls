@@ -800,7 +800,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 2));
                 EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_ecdhe_rsa_with_aes_128_gcm_sha256);
                 EXPECT_EQUAL(conn->secure.cipher_suite->prf_alg, S2N_HMAC_SHA256);
-                EXPECT_NOT_EQUAL(conn->secure.cipher_suite->prf_alg,  conn->psk_params.chosen_psk->hmac_alg);
+                EXPECT_NOT_EQUAL(conn->secure.cipher_suite->prf_alg, conn->psk_params.chosen_psk->hmac_alg);
 
                 EXPECT_SUCCESS(s2n_psk_parameters_free(&conn->psk_params));
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
