@@ -16,7 +16,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-#include "crypto/s2n_hash.h"
+#include "crypto/s2n_hmac.h"
 #include "tls/extensions/s2n_client_psk.h"
 
 /* Include source to test static methods. */
@@ -26,7 +26,7 @@
 #define TEST_BYTES_SIZE 0x00, 0x03
 
 struct s2n_psk_test_case {
-    s2n_hash_algorithm hash_alg;
+    s2n_hmac_algorithm hmac_alg;
     uint8_t hash_size;
     const uint8_t* identity;
     size_t identity_size;
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
             EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
             EXPECT_SUCCESS(s2n_psk_new_identity(psk, test_identity, sizeof(test_identity)));
-            psk->hash_alg = S2N_HASH_SHA384;
+            psk->hmac_alg = S2N_HMAC_SHA384;
 
             EXPECT_SUCCESS(s2n_client_psk_extension.send(conn, &out));
 
@@ -116,9 +116,9 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             struct s2n_psk_test_case test_cases[] = {
-                    { .hash_alg = S2N_HASH_SHA224, .hash_size = SHA224_DIGEST_LENGTH,
+                    { .hmac_alg = S2N_HMAC_SHA224, .hash_size = SHA224_DIGEST_LENGTH,
                             .identity = test_identity, .identity_size = sizeof(test_identity) },
-                    { .hash_alg = S2N_HASH_SHA384, .hash_size = SHA384_DIGEST_LENGTH,
+                    { .hmac_alg = S2N_HMAC_SHA384, .hash_size = SHA384_DIGEST_LENGTH,
                             .identity = test_identity_2, .identity_size =  sizeof(test_identity_2)},
             };
 
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
                 EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
                 EXPECT_SUCCESS(s2n_psk_new_identity(psk, test_cases[i].identity, test_cases[i].identity_size));
-                psk->hash_alg = test_cases[i].hash_alg;
+                psk->hmac_alg = test_cases[i].hmac_alg;
 
                 binder_list_size += test_cases[i].hash_size
                         + sizeof(uint8_t) /* size of binder size */;
@@ -353,7 +353,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_psk_init(&psk, S2N_PSK_TYPE_EXTERNAL));
         EXPECT_SUCCESS(s2n_psk_new_secret(&psk, secret_data, sizeof(secret_data)));
 
-        EXPECT_SUCCESS(s2n_psk_calculate_binder_hash(conn, psk.hash_alg, &partial_client_hello, &binder_hash));
+        EXPECT_SUCCESS(s2n_psk_calculate_binder_hash(conn, psk.hmac_alg, &partial_client_hello, &binder_hash));
         EXPECT_SUCCESS(s2n_psk_calculate_binder(&psk, &binder_hash, &valid_binder));
 
         struct s2n_stuffer wire_binders_in = { 0 };

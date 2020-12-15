@@ -1225,9 +1225,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
              * continue to the next candidate. 
              * */     
             if (conn->actual_protocol_version >= S2N_TLS13 && conn->psk_params.chosen_psk != NULL) {
-                s2n_hmac_algorithm chosen_psk_hmac_alg = { 0 };
-                GUARD(s2n_hash_hmac_alg(conn->psk_params.chosen_psk->hash_alg, &chosen_psk_hmac_alg));
-                if (match->prf_alg != chosen_psk_hmac_alg) {
+                if (match->prf_alg != conn->psk_params.chosen_psk->hmac_alg) {
                     continue;
                 }
             }

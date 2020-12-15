@@ -695,11 +695,9 @@ int main(int argc, char **argv)
 
                 EXPECT_OK(s2n_conn_set_chosen_psk(conn));
 
-                s2n_hmac_algorithm chosen_psk_hmac_alg = { 0 };
-                EXPECT_SUCCESS(s2n_hash_hmac_alg(conn->psk_params.chosen_psk->hash_alg, &chosen_psk_hmac_alg));
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
                 EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
-                EXPECT_EQUAL(conn->secure.cipher_suite->prf_alg, chosen_psk_hmac_alg);
+                EXPECT_EQUAL(conn->secure.cipher_suite->prf_alg, conn->psk_params.chosen_psk->hmac_alg);
 
                 EXPECT_SUCCESS(s2n_psk_parameters_free(&conn->psk_params));
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -715,7 +713,7 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_conn_set_chosen_psk(conn));
 
                 /* S2N_HASH_SHA1 is not a matching hash algorithm for the cipher suites present in wire_ciphers_with_tls13 */ 
-                conn->psk_params.chosen_psk->hash_alg = S2N_HASH_SHA1;
+                conn->psk_params.chosen_psk->hmac_alg = S2N_HASH_SHA1;
                 EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13), S2N_ERR_CIPHER_NOT_SUPPORTED);
                 EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_null_cipher_suite);
 
@@ -747,15 +745,12 @@ int main(int argc, char **argv)
                 conn->actual_protocol_version = S2N_TLS12;
 
                 EXPECT_OK(s2n_conn_set_chosen_psk(conn));
-                conn->psk_params.chosen_psk->hash_alg = S2N_HASH_SHA512;
-
-                s2n_hmac_algorithm chosen_psk_hmac_alg = { 0 };
-                EXPECT_SUCCESS(s2n_hash_hmac_alg(conn->psk_params.chosen_psk->hash_alg, &chosen_psk_hmac_alg));
+                conn->psk_params.chosen_psk->hmac_alg = S2N_HASH_SHA512;
 
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
                 EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_rsa_with_aes_128_cbc_sha);
                 EXPECT_EQUAL(conn->secure.cipher_suite->prf_alg, S2N_HMAC_SHA256);
-                EXPECT_NOT_EQUAL(conn->secure.cipher_suite->prf_alg, chosen_psk_hmac_alg);
+                EXPECT_NOT_EQUAL(conn->secure.cipher_suite->prf_alg, conn->psk_params.chosen_psk->hmac_alg);
 
 
                 EXPECT_SUCCESS(s2n_psk_parameters_free(&conn->psk_params));
@@ -775,15 +770,13 @@ int main(int argc, char **argv)
                 };
 
                 EXPECT_OK(s2n_conn_set_chosen_psk(conn));
-                conn->psk_params.chosen_psk->hash_alg = S2N_HASH_SHA384;
-                s2n_hmac_algorithm chosen_psk_hmac_alg = { 0 };
-                EXPECT_SUCCESS(s2n_hash_hmac_alg(conn->psk_params.chosen_psk->hash_alg, &chosen_psk_hmac_alg));
+                conn->psk_params.chosen_psk->hmac_alg = S2N_HASH_SHA384;
 
                 /* Skip check for PSK hash match for TLS versions less than or equal to tls 1.2 */
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 3));
                 EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_ecdhe_rsa_with_aes_128_cbc_sha);
                 EXPECT_EQUAL(conn->secure.cipher_suite->prf_alg, S2N_HMAC_SHA256);
-                EXPECT_NOT_EQUAL(conn->secure.cipher_suite->prf_alg, chosen_psk_hmac_alg);
+                EXPECT_NOT_EQUAL(conn->secure.cipher_suite->prf_alg, conn->psk_params.chosen_psk->hmac_alg);
 
                 EXPECT_SUCCESS(s2n_psk_parameters_free(&conn->psk_params));
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -802,14 +795,12 @@ int main(int argc, char **argv)
                 };
 
                 EXPECT_OK(s2n_conn_set_chosen_psk(conn));
-                conn->psk_params.chosen_psk->hash_alg = S2N_HASH_SHA384;
-                s2n_hmac_algorithm chosen_psk_hmac_alg = { 0 };
-                EXPECT_SUCCESS(s2n_hash_hmac_alg(conn->psk_params.chosen_psk->hash_alg, &chosen_psk_hmac_alg));
+                conn->psk_params.chosen_psk->hmac_alg = S2N_HASH_SHA384;
 
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 2));
                 EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_ecdhe_rsa_with_aes_128_gcm_sha256);
                 EXPECT_EQUAL(conn->secure.cipher_suite->prf_alg, S2N_HMAC_SHA256);
-                EXPECT_NOT_EQUAL(conn->secure.cipher_suite->prf_alg, chosen_psk_hmac_alg);
+                EXPECT_NOT_EQUAL(conn->secure.cipher_suite->prf_alg, conn->psk_params.chosen_psk->hmac_alg);
 
                 EXPECT_SUCCESS(s2n_psk_parameters_free(&conn->psk_params));
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));

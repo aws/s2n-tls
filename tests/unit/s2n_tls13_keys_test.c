@@ -296,7 +296,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_psk_new_secret(&test_psk, resumption_secret.data, resumption_secret.size));
 
         DEFER_CLEANUP(struct s2n_tls13_keys test_keys, s2n_tls13_keys_free);
-        GUARD(s2n_tls13_keys_init(&test_keys, test_psk.hash_alg));
+        GUARD(s2n_tls13_keys_init(&test_keys, test_psk.hmac_alg));
 
         EXPECT_SUCCESS(s2n_tls13_derive_binder_key(&test_keys, &test_psk));
 

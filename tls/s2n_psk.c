@@ -31,7 +31,7 @@ int s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type)
     notnull_check(psk);
 
     memset_check(psk, 0, sizeof(struct s2n_psk));
-    psk->hash_alg = S2N_HASH_SHA256;
+    psk->hmac_alg = S2N_HMAC_SHA256;
     psk->type = type;
 
     return S2N_SUCCESS;
@@ -119,7 +119,7 @@ int s2n_psk_parameters_free(struct s2n_psk_parameters *params)
 /* The binder hash is computed by hashing the concatenation of the current transcript
  * and a partial ClientHello that does not include the binders themselves.
  */
-int s2n_psk_calculate_binder_hash(struct s2n_connection *conn, s2n_hash_algorithm hash_alg,
+int s2n_psk_calculate_binder_hash(struct s2n_connection *conn, s2n_hmac_algorithm hmac_alg,
         const struct s2n_blob *partial_client_hello, struct s2n_blob *output_binder_hash)
 {
     notnull_check(partial_client_hello);
@@ -128,6 +128,9 @@ int s2n_psk_calculate_binder_hash(struct s2n_connection *conn, s2n_hash_algorith
     /* Retrieve the current transcript.
      * The current transcript will be empty unless this handshake included a HelloRetryRequest. */
     struct s2n_hash_state current_hash_state = {0};
+
+    s2n_hash_algorithm hash_alg;
+    GUARD(s2n_hmac_hash_alg(hmac_alg, &hash_alg));
     GUARD(s2n_handshake_get_hash_state(conn, hash_alg, &current_hash_state));
 
     /* Copy the current transcript to avoid modifying the original. */
@@ -140,20 +143,6 @@ int s2n_psk_calculate_binder_hash(struct s2n_connection *conn, s2n_hash_algorith
 
     /* Get the transcript digest */
     GUARD(s2n_hash_digest(&hash_copy, output_binder_hash->data, output_binder_hash->size));
-
-    return S2N_SUCCESS;
-}
-
-static int s2n_tls13_keys_init_with_psk(struct s2n_tls13_keys *keys, struct s2n_psk *psk)
-{
-    notnull_check(keys);
-
-    keys->hash_algorithm = psk->hash_alg;
-    GUARD(s2n_hash_hmac_alg(keys->hash_algorithm, &keys->hmac_algorithm));
-    GUARD(s2n_hash_digest_size(keys->hash_algorithm, &keys->size));
-    GUARD(s2n_blob_init(&keys->extract_secret, keys->extract_secret_bytes, keys->size));
-    GUARD(s2n_blob_init(&keys->derive_secret, keys->derive_secret_bytes, keys->size));
-    GUARD(s2n_hmac_new(&keys->hmac));
 
     return S2N_SUCCESS;
 }
@@ -171,7 +160,7 @@ int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_
     notnull_check(output_binder);
 
     DEFER_CLEANUP(struct s2n_tls13_keys psk_keys, s2n_tls13_keys_free);
-    GUARD(s2n_tls13_keys_init_with_psk(&psk_keys, psk));
+    GUARD(s2n_tls13_keys_init(&psk_keys, psk->hmac_alg));
     eq_check(binder_hash->size, psk_keys.size);
     eq_check(output_binder->size, psk_keys.size);
 
@@ -200,12 +189,12 @@ int s2n_psk_verify_binder(struct s2n_connection *conn, struct s2n_psk *psk,
     notnull_check(binder_to_verify);
 
     DEFER_CLEANUP(struct s2n_tls13_keys psk_keys, s2n_tls13_keys_free);
-    GUARD(s2n_tls13_keys_init_with_psk(&psk_keys, psk));
+    GUARD(s2n_tls13_keys_init(&psk_keys, psk->hmac_alg));
     eq_check(binder_to_verify->size, psk_keys.size);
 
     /* Calculate the binder hash from the transcript */
     s2n_tls13_key_blob(binder_hash, psk_keys.size);
-    GUARD(s2n_psk_calculate_binder_hash(conn, psk->hash_alg, partial_client_hello, &binder_hash));
+    GUARD(s2n_psk_calculate_binder_hash(conn, psk->hmac_alg, partial_client_hello, &binder_hash));
 
     /* Calculate the expected binder from the binder hash */
     s2n_tls13_key_blob(expected_binder, psk_keys.size);
@@ -258,12 +247,12 @@ static S2N_RESULT s2n_psk_write_binder_list(struct s2n_connection *conn, const s
         ENSURE_REF(psk);
 
         /* Retrieve or calculate the binder hash. */
-        struct s2n_blob *binder_hash = &binder_hashes[psk->hash_alg];
+        struct s2n_blob *binder_hash = &binder_hashes[psk->hmac_alg];
         if (binder_hash->size == 0) {
             uint8_t hash_size = 0;
-            GUARD_AS_RESULT(s2n_hash_digest_size(psk->hash_alg, &hash_size));
-            GUARD_AS_RESULT(s2n_blob_init(binder_hash, binder_hashes_data[psk->hash_alg], hash_size));
-            GUARD_AS_RESULT(s2n_psk_calculate_binder_hash(conn, psk->hash_alg, partial_client_hello, binder_hash));
+            GUARD_AS_RESULT(s2n_hmac_digest_size(psk->hmac_alg, &hash_size));
+            GUARD_AS_RESULT(s2n_blob_init(binder_hash, binder_hashes_data[psk->hmac_alg], hash_size));
+            GUARD_AS_RESULT(s2n_psk_calculate_binder_hash(conn, psk->hmac_alg, partial_client_hello, binder_hash));
         }
 
         GUARD_RESULT(s2n_psk_write_binder(conn, psk, binder_hash, out));
