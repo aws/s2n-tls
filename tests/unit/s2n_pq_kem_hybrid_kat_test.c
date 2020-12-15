@@ -91,7 +91,6 @@ static const struct s2n_kem_hybrid_test_vector test_vectors[] = {
 
 int main() {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
 
     if (!s2n_pq_is_enabled()) {
         END_TEST();

@@ -72,33 +72,42 @@ int main() {
         const struct s2n_kem_test_vector vector = test_vectors[i];
         const struct s2n_kem *kem = vector.kem;
 
-        uint8_t *public_key = (uint8_t *)malloc(kem->public_key_length);
-        uint8_t *private_key = (uint8_t *)malloc(kem->private_key_length);
-        uint8_t *client_shared_secret = (uint8_t *)malloc(kem->shared_secret_key_length);
-        uint8_t *server_shared_secret = (uint8_t *)malloc(kem->shared_secret_key_length);
-        uint8_t *ciphertext = (uint8_t *)malloc(kem->ciphertext_length);
+        DEFER_CLEANUP(struct s2n_blob public_key = { 0 }, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&public_key, kem->public_key_length));
+
+        DEFER_CLEANUP(struct s2n_blob private_key = { 0 }, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&private_key, kem->private_key_length));
+
+        DEFER_CLEANUP(struct s2n_blob client_shared_secret = { 0 }, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&client_shared_secret, kem->shared_secret_key_length));
+
+        DEFER_CLEANUP(struct s2n_blob server_shared_secret = { 0 }, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&server_shared_secret, kem->shared_secret_key_length));
+
+        DEFER_CLEANUP(struct s2n_blob ciphertext = { 0 }, s2n_free);
+        EXPECT_SUCCESS(s2n_alloc(&ciphertext, kem->ciphertext_length));
 
         if (s2n_pq_is_enabled()) {
             /* Test the C code */
             EXPECT_OK(vector.disable_asm());
-            EXPECT_SUCCESS(kem->generate_keypair(public_key, private_key));
-            EXPECT_SUCCESS(kem->encapsulate(ciphertext, client_shared_secret, public_key));
-            EXPECT_SUCCESS(kem->decapsulate(server_shared_secret, ciphertext, private_key));
-            EXPECT_BYTEARRAY_EQUAL(server_shared_secret, client_shared_secret, kem->shared_secret_key_length);
+            EXPECT_SUCCESS(kem->generate_keypair(public_key.data, private_key.data));
+            EXPECT_SUCCESS(kem->encapsulate(ciphertext.data, client_shared_secret.data, public_key.data));
+            EXPECT_SUCCESS(kem->decapsulate(server_shared_secret.data, ciphertext.data, private_key.data));
+            EXPECT_BYTEARRAY_EQUAL(server_shared_secret.data, client_shared_secret.data, kem->shared_secret_key_length);
 
             /* Test the assembly, if available */
             EXPECT_OK(vector.enable_asm());
             if (vector.asm_is_enabled()) {
-                memset_check(public_key, 0, kem->public_key_length);
-                memset_check(private_key, 0, kem->private_key_length);
-                memset_check(client_shared_secret, 0, kem->shared_secret_key_length);
-                memset_check(server_shared_secret, 0, kem->shared_secret_key_length);
-                memset_check(ciphertext, 0, kem->ciphertext_length);
+                EXPECT_SUCCESS(s2n_blob_zero(&public_key));
+                EXPECT_SUCCESS(s2n_blob_zero(&private_key));
+                EXPECT_SUCCESS(s2n_blob_zero(&client_shared_secret));
+                EXPECT_SUCCESS(s2n_blob_zero(&server_shared_secret));
+                EXPECT_SUCCESS(s2n_blob_zero(&ciphertext));
 
-                EXPECT_SUCCESS(kem->generate_keypair(public_key, private_key));
-                EXPECT_SUCCESS(kem->encapsulate(ciphertext, client_shared_secret, public_key));
-                EXPECT_SUCCESS(kem->decapsulate(server_shared_secret, ciphertext, private_key));
-                EXPECT_BYTEARRAY_EQUAL(server_shared_secret, client_shared_secret, kem->shared_secret_key_length);
+                EXPECT_SUCCESS(kem->generate_keypair(public_key.data, private_key.data));
+                EXPECT_SUCCESS(kem->encapsulate(ciphertext.data, client_shared_secret.data, public_key.data));
+                EXPECT_SUCCESS(kem->decapsulate(server_shared_secret.data, ciphertext.data, private_key.data));
+                EXPECT_BYTEARRAY_EQUAL(server_shared_secret.data, client_shared_secret.data, kem->shared_secret_key_length);
             }
         } else {
 #if defined(S2N_NO_PQ)
@@ -107,12 +116,6 @@ int main() {
             EXPECT_FAILURE_WITH_ERRNO(kem->decapsulate(server_shared_secret, ciphertext, private_key), S2N_ERR_UNIMPLEMENTED);
 #endif
         }
-
-        free(public_key);
-        free(private_key);
-        free(client_shared_secret);
-        free(server_shared_secret);
-        free(ciphertext);
     }
 
     END_TEST();
