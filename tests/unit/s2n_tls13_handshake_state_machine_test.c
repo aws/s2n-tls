@@ -667,21 +667,42 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test: s2n_conn_set_tls13_handshake_type errors if a pre-shared key is 
-     * chosen but client auth is required */
+    /* Test: s2n_conn_set_tls13_handshake_type ignores client auth type if a pre-shared key is
+     * chosen and s2n is a client. */
     {
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+
+        struct s2n_psk *psk = NULL;
+        EXPECT_OK(s2n_array_pushback(&client_conn->psk_params.psk_list, (void**) &psk));
+        client_conn->psk_params.chosen_psk = psk;
+        EXPECT_NOT_NULL(client_conn->psk_params.chosen_psk);
+
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED));
+
+        EXPECT_OK(s2n_conn_set_tls13_handshake_type(client_conn));
+        EXPECT_FALSE(client_conn->handshake.handshake_type & CLIENT_AUTH);
+        EXPECT_FALSE(client_conn->handshake.handshake_type & FULL_HANDSHAKE);
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+    }
+
+     /* Test: s2n_conn_set_tls13_handshake_type ignores client auth type if a pre-shared key is
+     * chosen and s2n is a server. */
+    {
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
         struct s2n_psk *psk = NULL;
 
-        EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
+        EXPECT_OK(s2n_array_pushback(&server_conn->psk_params.psk_list, (void**) &psk));
+        server_conn->psk_params.chosen_psk = psk;
+        EXPECT_NOT_NULL(server_conn->psk_params.chosen_psk);
 
-        conn->psk_params.chosen_psk = psk;
-        conn->handshake.handshake_type |= CLIENT_AUTH;
-        EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED));
 
-        EXPECT_ERROR_WITH_ERRNO(s2n_conn_set_tls13_handshake_type(conn), S2N_ERR_HANDSHAKE_STATE);
+        EXPECT_OK(s2n_conn_set_tls13_handshake_type(server_conn));
+        EXPECT_FALSE(server_conn->handshake.handshake_type & CLIENT_AUTH);
+        EXPECT_FALSE(server_conn->handshake.handshake_type & FULL_HANDSHAKE);
 
-        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
     /* Test: TLS1.3 handshake type name maximum size is set correctly.
