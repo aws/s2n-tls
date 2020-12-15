@@ -11,7 +11,6 @@
 #include "sampling.h"
 #include "sha.h"
 #include "tls/s2n_kem.h"
-#include "pq-crypto/s2n_pq.h"
 
 _INLINE_ void
 split_e(OUT split_e_t *splitted_e, IN const e_t *e)
@@ -212,8 +211,6 @@ get_ss(OUT ss_t *out, IN const r_t *in0, IN const r_t *in1, IN const ct_t *ct)
 int
 BIKE1_L1_R2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
 {
-  ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-
   notnull_check(sk);
   notnull_check(pk);
 
@@ -285,8 +282,6 @@ BIKE1_L1_R2_crypto_kem_enc(OUT unsigned char *     ct,
                            OUT unsigned char *     ss,
                            IN const unsigned char *pk)
 {
-  ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-
   DMSG("  Enter crypto_kem_enc.\n");
 
   // Convert to the types that are used by this implementation
@@ -327,8 +322,6 @@ BIKE1_L1_R2_crypto_kem_dec(OUT unsigned char *     ss,
                            IN const unsigned char *ct,
                            IN const unsigned char *sk)
 {
-  ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-
   DMSG("  Enter crypto_kem_dec.\n");
 
   // Convert to the types used by this implementation

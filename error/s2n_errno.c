@@ -238,7 +238,6 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_INVALID_STATE, "Invalid state, this is the result of invalid use of an API. Check the API documentation for the function that raised this error for more info.") \
     ERR_ENTRY(S2N_ERR_UNSUPPORTED_WITH_QUIC, "Functionality not supported when running with QUIC support enabled") \
     ERR_ENTRY(S2N_ERR_PQ_CRYPTO, "An error occurred in a post-quantum crypto function.") \
-    ERR_ENTRY(S2N_ERR_PQ_DISABLED, "Post-quantum crypto is disabled.") \
 
 /* clang-format on */
 
