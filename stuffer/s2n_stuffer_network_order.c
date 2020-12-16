@@ -28,7 +28,7 @@ int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, const uint64_t 
     uint8_t *data = stuffer->blob.data + stuffer->write_cursor - length;
 
     for (int i = 0; i < length; i++) {
-        S2N_INVARIENT(i <= length);
+        S2N_INVARIANT(i <= length);
         uint8_t shift = (length - i - 1) * CHAR_BIT;
         data[i] = (input >> (shift)) & UINT8_MAX;
     }
