@@ -243,7 +243,7 @@ int main(int argc, char **argv)
                 0x00, 0x01,             /* identity */
                 0x00, 0x00, 0x00, 0x00, /* ticket_age */
         };
-        const uint8_t wire_identities_match_index = 2;
+        const uint16_t wire_identities_match_index = 2;
 
         /* Receive an empty list */
         {
