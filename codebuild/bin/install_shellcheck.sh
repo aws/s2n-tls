@@ -41,7 +41,7 @@ case "$OS_NAME" in
     brew install shellcheck || true ;
     ;;
   *)
-    echo "Unknown platfom"
+    echo "Unknown platform"
     exit 255
     ;;
 esac

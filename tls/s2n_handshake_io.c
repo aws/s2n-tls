@@ -357,8 +357,6 @@ static message_type_t handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_LENGTH]
 /*
  * This selection of handshakes resembles the standard set, but with changes made to support tls1.3.
  *
- * These are just the basic handshakes. At the moment hello retries, session resumption, and early data are not supported.
- *
  * The CHANGE_CIPHER_SPEC messages are included only for middlebox compatibility.
  * See https://tools.ietf.org/html/rfc8446#appendix-D.4
  */
@@ -371,6 +369,38 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
     [INITIAL | HELLO_RETRY_REQUEST] = {
             CLIENT_HELLO,
             HELLO_RETRY_MSG
+    },
+
+    [NEGOTIATED] = {
+            CLIENT_HELLO,
+            SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
+            CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
+    [NEGOTIATED | MIDDLEBOX_COMPAT] = {
+            CLIENT_HELLO,
+            SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
+            CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
+    [NEGOTIATED | HELLO_RETRY_REQUEST] = {
+            CLIENT_HELLO,
+            HELLO_RETRY_MSG,
+            CLIENT_HELLO,
+            SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
+            CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
+    [NEGOTIATED | HELLO_RETRY_REQUEST | MIDDLEBOX_COMPAT] = {
+            CLIENT_HELLO,
+            HELLO_RETRY_MSG, SERVER_CHANGE_CIPHER_SPEC,
+            CLIENT_CHANGE_CIPHER_SPEC, CLIENT_HELLO,
+            SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
+            CLIENT_FINISHED,
+            APPLICATION_DATA
     },
 
     [NEGOTIATED | FULL_HANDSHAKE] = {
@@ -593,10 +623,10 @@ bool s2n_is_hello_retry_handshake(struct s2n_connection *conn)
     return conn->handshake.handshake_type & HELLO_RETRY_REQUEST;
 }
 
-int s2n_conn_set_handshake_type(struct s2n_connection *conn)
-{
+static S2N_RESULT s2n_conn_set_tls13_handshake_type(struct s2n_connection *conn) {
+    ENSURE_REF(conn);
+
     if (conn->handshake.handshake_type & HELLO_RETRY_REQUEST) {
-        ENSURE_POSIX(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
         conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
     } else {
         conn->handshake.handshake_type = INITIAL;
@@ -604,6 +634,44 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
     /* A handshake type has been negotiated */
     conn->handshake.handshake_type |= NEGOTIATED;
+
+    if (conn->psk_params.chosen_psk == NULL) {
+        conn->handshake.handshake_type |= FULL_HANDSHAKE;
+    }
+
+    s2n_cert_auth_type client_cert_auth_type;
+    GUARD_AS_RESULT(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
+
+    if (conn->mode == S2N_CLIENT && client_cert_auth_type == S2N_CERT_AUTH_REQUIRED
+            && conn->handshake.handshake_type & FULL_HANDSHAKE) {
+        /* If we're a client, and Client Auth is REQUIRED, then the Client must expect the CLIENT_CERT_REQ Message */
+        conn->handshake.handshake_type |= CLIENT_AUTH;
+    } else if (conn->mode == S2N_SERVER && client_cert_auth_type != S2N_CERT_AUTH_NONE
+            && conn->handshake.handshake_type & FULL_HANDSHAKE) {
+        /* If we're a server, and Client Auth is REQUIRED or OPTIONAL, then the server must send the CLIENT_CERT_REQ Message*/
+        conn->handshake.handshake_type |= CLIENT_AUTH;
+    }
+
+    /* Use middlebox compatibility mode for TLS1.3 by default.
+    * For now, only disable it when QUIC support is enabled. */
+    if (!conn->config->quic_enabled) {
+        conn->handshake.handshake_type |= MIDDLEBOX_COMPAT;
+    }
+
+    return S2N_RESULT_OK;
+}
+
+int s2n_conn_set_handshake_type(struct s2n_connection *conn)
+{
+    if (IS_TLS13_HANDSHAKE(conn)) {
+        GUARD_AS_POSIX(s2n_conn_set_tls13_handshake_type(conn));
+        return S2N_SUCCESS;
+    }
+
+    S2N_ERROR_IF(conn->handshake.handshake_type & HELLO_RETRY_REQUEST, S2N_ERR_INVALID_HELLO_RETRY);
+
+    /* A handshake type has been negotiated */
+    conn->handshake.handshake_type = NEGOTIATED;
 
     s2n_cert_auth_type client_cert_auth_type;
     GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
@@ -614,17 +682,6 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     } else if (conn->mode == S2N_SERVER && client_cert_auth_type != S2N_CERT_AUTH_NONE) {
         /* If we're a server, and Client Auth is REQUIRED or OPTIONAL, then the server must send the CLIENT_CERT_REQ Message*/
         conn->handshake.handshake_type |= CLIENT_AUTH;
-    }
-
-    if (IS_TLS13_HANDSHAKE(conn)) {
-        /* Use middlebox compatibility mode for TLS1.3 by default.
-         * For now, only disable it when QUIC support is enabled. */
-        if (!conn->config->quic_enabled) {
-            conn->handshake.handshake_type |= MIDDLEBOX_COMPAT;
-        }
-        conn->handshake.handshake_type |= FULL_HANDSHAKE;
-
-        return 0;
     }
 
     if (conn->config->use_tickets) {
@@ -1032,6 +1089,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         if (conn->mode == S2N_CLIENT
                 && client_cert_auth_type == S2N_CERT_AUTH_OPTIONAL
                 && message_type == TLS_CERT_REQ) {
+            ENSURE_POSIX(conn->handshake.handshake_type & FULL_HANDSHAKE, S2N_ERR_HANDSHAKE_STATE);
             conn->handshake.handshake_type |= CLIENT_AUTH;
         }
 
