@@ -45,7 +45,7 @@ struct s2n_psk {
 struct s2n_psk_parameters {
     struct s2n_array psk_list;
     uint16_t binder_list_size;
-    uint8_t chosen_psk_wire_index;
+    uint16_t chosen_psk_wire_index;
     struct s2n_psk *chosen_psk;
     s2n_psk_key_exchange_mode psk_ke_mode;
 };

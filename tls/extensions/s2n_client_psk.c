@@ -127,7 +127,7 @@ static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn,
     ENSURE_REF(conn);
     ENSURE_REF(wire_identities_in);
 
-    uint8_t wire_index = 0;
+    uint16_t wire_index = 0;
     while (s2n_stuffer_data_available(wire_identities_in) > 0) {
         uint16_t identity_size = 0;
         GUARD_AS_RESULT(s2n_stuffer_read_uint16(wire_identities_in, &identity_size));
@@ -169,7 +169,7 @@ static S2N_RESULT s2n_client_psk_recv_binder_list(struct s2n_connection *conn, s
     ENSURE_REF(conn);
     ENSURE_REF(wire_binders_in);
 
-    uint8_t wire_index = 0;
+    uint16_t wire_index = 0;
     while (s2n_stuffer_data_available(wire_binders_in) > 0) {
         uint8_t wire_binder_size = 0;
         GUARD_AS_RESULT(s2n_stuffer_read_uint8(wire_binders_in, &wire_binder_size));
