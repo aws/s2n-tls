@@ -141,7 +141,11 @@ This step takes about 25 minutes on my laptop.
 
 ```shell
 cd $S2N
-docker run -it -v `pwd`:/home/s2n --entrypoint /bin/bash sidetrail
+docker run -u `id -u` \
+           -v `pwd`:/home/s2n \
+           -w /home/s2n/tests/sidetrail/working \
+           --entrypoint /bin/bash \
+           -it sidetrail
 ```
 
 You will now be presented with a docker shell.
@@ -157,9 +161,8 @@ If you do not source this file when you begin working, SideTrail may appear to r
 ### Running a proof inside docker
 
 ```shell
-cd /home/s2n/tests/sidetrail/working
 cd <testname>
-./clean.sh ; ./run.sh
+./clean.sh && ./run.sh
 ```
 
 You should see output that looks something like this 
