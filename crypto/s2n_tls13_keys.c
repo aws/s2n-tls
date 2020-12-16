@@ -172,14 +172,19 @@ int s2n_tls13_derive_binder_key(struct s2n_tls13_keys *keys, struct s2n_psk *psk
 /*
  * Derives early secrets
  */
-int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *keys)
+int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *keys, struct s2n_psk *psk)
 {
     notnull_check(keys);
 
-    s2n_tls13_key_blob(psk_ikm, keys->size); /* in 1-RTT, PSK is 0-filled of key length */
+    if (psk == NULL) {
+        /* in 1-RTT, PSK is 0-filled of key length */
+        s2n_tls13_key_blob(psk_ikm, keys->size);
 
-    /* Early Secret */
-    GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &zero_length_blob, &psk_ikm, &keys->extract_secret));
+        /* Early Secret */
+        GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &zero_length_blob, &psk_ikm, &keys->extract_secret));
+    } else {
+        keys->extract_secret = psk->early_secret;
+    }
 
     /* client_early_traffic_secret and early_exporter_master_secret can be derived here */
 
@@ -189,7 +194,7 @@ int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *keys)
     GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
         &s2n_tls13_label_derived_secret, &message_digest, &keys->derive_secret));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /*

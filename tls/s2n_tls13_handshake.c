@@ -189,7 +189,7 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
     GUARD(s2n_tls13_compute_shared_secret(conn, &shared_secret));
 
     /* derive early secrets */
-    GUARD(s2n_tls13_derive_early_secrets(&secrets));
+    GUARD(s2n_tls13_derive_early_secrets(&secrets, conn->psk_params.chosen_psk));
 
     /* produce handshake secrets */
     s2n_stack_blob(client_hs_secret, secrets.size, S2N_TLS13_SECRET_MAX_LEN);
