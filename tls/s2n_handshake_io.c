@@ -670,10 +670,8 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
     S2N_ERROR_IF(conn->handshake.handshake_type & HELLO_RETRY_REQUEST, S2N_ERR_INVALID_HELLO_RETRY);
 
-    conn->handshake.handshake_type = INITIAL;
-
     /* A handshake type has been negotiated */
-    conn->handshake.handshake_type |= NEGOTIATED;
+    conn->handshake.handshake_type = NEGOTIATED;
 
     s2n_cert_auth_type client_cert_auth_type;
     GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
