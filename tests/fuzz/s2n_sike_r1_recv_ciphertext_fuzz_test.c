@@ -28,14 +28,21 @@
  * prepending SIKE_P503_R1_CIPHERTEXT_BYTES as two hex-encoded bytes. */
 static struct s2n_kem_params kem_params = { .kem = &s2n_sike_p503_r1 };
 
-int s2n_fuzz_init(int *argc, char **argv[]) {
+int s2n_fuzz_init(int *argc, char **argv[])
+{
     GUARD(s2n_kem_recv_ciphertext_fuzz_test_init(KAT_FILE_NAME, &kem_params));
     return S2N_SUCCESS;
 }
 
-int s2n_fuzz_test(const uint8_t *buf, size_t len) {
+int s2n_fuzz_test(const uint8_t *buf, size_t len)
+{
     GUARD(s2n_kem_recv_ciphertext_fuzz_test(buf, len, &kem_params));
     return S2N_SUCCESS;
 }
 
-S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test, NULL)
+static void s2n_fuzz_cleanup()
+{
+    s2n_kem_free(&kem_params);
+}
+
+S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test, s2n_fuzz_cleanup)
