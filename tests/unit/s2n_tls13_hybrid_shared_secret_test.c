@@ -408,7 +408,8 @@ int main(int argc, char **argv) {
              * the client & server traffic secrets */
             DEFER_CLEANUP(struct s2n_tls13_keys secrets = {0}, s2n_tls13_keys_free);
             EXPECT_SUCCESS(s2n_tls13_keys_init(&secrets, test_vector->cipher_suite->prf_alg));
-            EXPECT_SUCCESS(s2n_tls13_derive_early_secrets(&secrets));
+            struct s2n_psk *psk = NULL;
+            EXPECT_SUCCESS(s2n_tls13_derive_early_secrets(&secrets, psk));
 
             DEFER_CLEANUP(struct s2n_hash_state hash_state, s2n_hash_free);
             EXPECT_SUCCESS(s2n_hash_new(&hash_state));
