@@ -304,7 +304,7 @@ int main(int argc, char **argv)
         S2N_BLOB_EXPECT_EQUAL(test_keys.derive_secret, expected_binder_key);
     }
 
-    /* Tests s2n_tls13_derive_early_secrets produces the correct secret when a psk is set. Values
+    /* Test s2n_tls13_derive_early_secrets produces the correct secret when a psk is set. Values
      * are taken from https://tools.ietf.org/html/rfc8448#section-4 */
     {
         S2N_BLOB_FROM_HEX(resumption_early_secret,
@@ -322,6 +322,20 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_tls13_derive_early_secrets(&test_keys, &test_psk));
 
         S2N_BLOB_EXPECT_EQUAL(test_keys.derive_secret, expected_derived_secret);
+    }
+
+    /* s2n_tls13_derive_early_secrets will error using a psk with an empty early secret */
+    {
+        struct s2n_blob empty_blob = { .data = NULL, .size = 0 };
+
+        DEFER_CLEANUP(struct s2n_psk test_psk = {0}, s2n_psk_free);
+        EXPECT_SUCCESS(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
+        test_psk.early_secret = empty_blob;
+
+        DEFER_CLEANUP(struct s2n_tls13_keys test_keys = {0}, s2n_tls13_keys_free);
+        EXPECT_SUCCESS(s2n_tls13_keys_init(&test_keys, test_psk.hmac_alg));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_derive_early_secrets(&test_keys, &test_psk), S2N_ERR_SAFETY);
     }
 
     END_TEST();
