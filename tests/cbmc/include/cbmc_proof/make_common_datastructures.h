@@ -119,3 +119,8 @@ struct s2n_evp_digest* cbmc_allocate_s2n_evp_digest();
  * Properly allocates s2n_hmac_state for CBMC proofs.
  */
 struct s2n_hmac_state* cbmc_allocate_s2n_hmac_state();
+
+/*
+ * Properly allocates s2n_hmac_state for CBMC proofs.
+ */
+struct s2n_hmac_evp_backup* cbmc_allocate_s2n_hmac_evp_backup();
