@@ -229,7 +229,7 @@ $l@107 -> 33
 We see several different values for `$l` and `$l.shadow` at various points.
 To see why the assertion failed, we need to check the maximum difference between `$l` and `$l.shadow`,
 and if it exceeds our `__VERIFIER_ASSERT_MAX_LEAKAGE` bound.
-For this particular case, the maximum difference in the model was close too `100`,
+For this particular case, the maximum difference in the model was close to `100`,
 so bumping `__VERIFIER_ASSERT_MAX_LEAKAGE` up to `100` resolved the issue.
 
 ## What to do if the proof gets really slow
