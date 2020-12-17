@@ -9,11 +9,13 @@
 #include "fips202.h"
 #include "utils/s2n_safety.h"
 #include "tls/s2n_kem.h"
+#include "pq-crypto/s2n_pq.h"
 
 int SIKE_P434_r2_crypto_kem_keypair(unsigned char *pk, unsigned char *sk) {
     // SIKE's key generation
     // Outputs: secret key sk (CRYPTO_SECRETKEYBYTES = MSG_BYTES + SECRETKEY_B_BYTES + CRYPTO_PUBLICKEYBYTES bytes)
     //          public key pk (CRYPTO_PUBLICKEYBYTES bytes)
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     digit_t _sk[(SECRETKEY_B_BYTES / sizeof(digit_t)) + 1];
 
@@ -37,6 +39,7 @@ int SIKE_P434_r2_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsi
     // Input:   public key pk         (CRYPTO_PUBLICKEYBYTES bytes)
     // Outputs: shared secret ss      (CRYPTO_BYTES bytes)
     //          ciphertext message ct (CRYPTO_CIPHERTEXTBYTES = CRYPTO_PUBLICKEYBYTES + MSG_BYTES bytes)
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     union {
         unsigned char b[SECRETKEY_A_BYTES];
@@ -75,6 +78,7 @@ int SIKE_P434_r2_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, cons
     // Input:   secret key sk         (CRYPTO_SECRETKEYBYTES = MSG_BYTES + SECRETKEY_B_BYTES + CRYPTO_PUBLICKEYBYTES bytes)
     //          ciphertext message ct (CRYPTO_CIPHERTEXTBYTES = CRYPTO_PUBLICKEYBYTES + MSG_BYTES bytes)
     // Outputs: shared secret ss      (CRYPTO_BYTES bytes)
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     union {
         unsigned char b[SECRETKEY_A_BYTES];

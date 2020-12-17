@@ -13,6 +13,7 @@
 #include "parallel_hash.h"
 #include "sampling.h"
 #include "tls/s2n_kem.h"
+#include "pq-crypto/s2n_pq.h"
 
 _INLINE_ void
 split_e(OUT split_e_t *splitted_e, IN const e_t *e)
@@ -155,6 +156,8 @@ get_ss(OUT ss_t *out, IN const e_t *e)
 int
 BIKE1_L1_R1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
 {
+  ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+
   // Convert to this implementation types
   pk_t *l_pk = (pk_t *)pk;
 
@@ -211,6 +214,7 @@ BIKE1_L1_R1_crypto_kem_enc(OUT unsigned char *     ct,
                            IN const unsigned char *pk)
 {
   DMSG("  Enter crypto_kem_enc.\n");
+  ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
   // Convert to this implementation types
   const pk_t *l_pk = (const pk_t *)pk;
@@ -265,6 +269,7 @@ BIKE1_L1_R1_crypto_kem_dec(OUT unsigned char *     ss,
                            IN const unsigned char *sk)
 {
   DMSG("  Enter crypto_kem_dec.\n");
+  ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
   // Convert to this implementation types
   const ct_t *l_ct = (const ct_t *)ct;
