@@ -65,7 +65,7 @@ struct s2n_ecc_evp_params {
     EVP_PKEY *evp_pkey;
 };
 
-int s2n_ecc_evp_init(void);
+int s2n_ecc_evp_curves_init(void);
 int s2n_ecc_evp_generate_ephemeral_key(struct s2n_ecc_evp_params *ecc_evp_params);
 int s2n_ecc_evp_compute_shared_secret_from_params(struct s2n_ecc_evp_params *private_ecc_evp_params,
                                                   struct s2n_ecc_evp_params *public_ecc_evp_params,

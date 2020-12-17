@@ -101,7 +101,7 @@ bool s2n_ecc_preferences_includes_curve(const struct s2n_ecc_preferences *ecc_pr
     }
 
     for (size_t i = 0; i < ecc_preferences->count; i++) {
-        if (query_iana_id == ecc_preferences->ecc_curves[i]->iana_id) {
+        if (ecc_preferences->ecc_curves[i]->available && query_iana_id == ecc_preferences->ecc_curves[i]->iana_id) {
             return true;
         }
     }

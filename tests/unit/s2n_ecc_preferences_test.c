@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
 
         EXPECT_TRUE(s2n_ecc_preferences_includes_curve(&s2n_ecc_preferences_20201021, TLS_EC_CURVE_SECP_256_R1));
         EXPECT_TRUE(s2n_ecc_preferences_includes_curve(&s2n_ecc_preferences_20201021, TLS_EC_CURVE_SECP_384_R1));
-        EXPECT_TRUE(s2n_ecc_preferences_includes_curve(&s2n_ecc_preferences_20201021, TLS_EC_CURVE_SECP_521_R1));
+        EXPECT_EQUAL(s2n_ecc_preferences_includes_curve(&s2n_ecc_preferences_20201021, TLS_EC_CURVE_SECP_521_R1), !s2n_is_in_fips_mode());
         EXPECT_FALSE(s2n_ecc_preferences_includes_curve(&s2n_ecc_preferences_20201021, TLS_EC_CURVE_ECDH_X25519));
     }
 

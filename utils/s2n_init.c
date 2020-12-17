@@ -39,10 +39,11 @@ unsigned long s2n_get_openssl_version(void)
 int s2n_init(void)
 {
     GUARD_POSIX(s2n_fips_init());
+
     GUARD_POSIX(s2n_mem_init());
     GUARD_AS_POSIX(s2n_rand_init());
     GUARD_POSIX(s2n_cipher_suites_init());
-    GUARD_POSIX(s2n_ecc_evp_init());
+    GUARD_POSIX(s2n_ecc_evp_curves_init());         /* s2n_ecc_evp_curves_init is dependency of s2n_fips_init function */
     GUARD_POSIX(s2n_security_policies_init());
     GUARD_POSIX(s2n_config_defaults_init());
     GUARD_POSIX(s2n_extension_type_init());

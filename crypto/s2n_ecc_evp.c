@@ -48,7 +48,7 @@ static EC_POINT *s2n_ecc_evp_blob_to_point(struct s2n_blob *blob, const EC_KEY *
 static int s2n_ecc_evp_generate_key_nist_curves(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey);
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret);
-static bool s2n_ecc_evp_is_available(uint16_t query_iana_id);
+static bool s2n_ecc_evp_curve_is_available(uint16_t query_iana_id);
 
 /* IANA values can be found here: https://tools.ietf.org/html/rfc8446#appendix-B.3.1.4 */
 
@@ -191,7 +191,7 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
     return 0;
 }
 
-static bool s2n_ecc_evp_is_available(uint16_t query_iana_id) {
+static bool s2n_ecc_evp_curve_is_available(uint16_t query_iana_id) {
     switch (query_iana_id) {
     case TLS_EC_CURVE_SECP_521_R1:
         return !s2n_is_in_fips_mode();
@@ -204,11 +204,11 @@ static bool s2n_ecc_evp_is_available(uint16_t query_iana_id) {
     return false;
 }
 
-int s2n_ecc_evp_init(void) {
+int s2n_ecc_evp_curves_init(void) {
     for (size_t i = 0; i < s2n_all_supported_curves_list_len; i++) {
         struct s2n_ecc_named_curve *named_curve = s2n_all_supported_curves_list[i];
         named_curve->available = 0;
-        if (s2n_ecc_evp_is_available(named_curve->iana_id)) {
+        if (s2n_ecc_evp_curve_is_available(named_curve->iana_id)) {
             named_curve->available = 1;
         }
     }
