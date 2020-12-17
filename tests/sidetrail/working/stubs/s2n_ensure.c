@@ -22,7 +22,7 @@ void* s2n_sidetrail_memset(void* ptr, int value, size_t num)
     uint8_t* p = (uint8_t*)(ptr);
     __VERIFIER_assert(num >= 0);
     for (int i = 0; i < num; ++i) {
-        S2N_INVARIENT(i <= num);
+        S2N_INVARIANT(i <= num);
         p[i] = value;
     }
 }

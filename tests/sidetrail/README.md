@@ -90,7 +90,7 @@ In addition to the standard `assert()/assume()/` annotations supported through S
 1. `__VERIFIER_ASSUME_LEAKAGE(arg)`: When the timing-modeling transformation encounters this call, it increments the leakage tracking variables by "arg"
 2. `S2N_PUBLIC_INPUT(arg)`: the argument given here is taken to be public. 
    All other variables are assumed private by default.
-3. `S2N_INVARIENT(arg)`: asserts that the given argument is an invariant of the loop, and as such holds on each execution of the loop, and at loop exit.
+3. `S2N_INVARIANT(arg)`: asserts that the given argument is an invariant of the loop, and as such holds on each execution of the loop, and at loop exit.
 4. `__VERIFIER_ASSERT_MAX_LEAKAGE(arg)`: asserts that the given function is time-balanced, with a leakage of less than "arg" time units. 
 
 ### The gory details
@@ -141,7 +141,11 @@ This step takes about 25 minutes on my laptop.
 
 ```shell
 cd $S2N
-docker run -it -v `pwd`:/home/s2n --entrypoint /bin/bash sidetrail
+docker run -u `id -u` \
+           -v `pwd`:/home/s2n \
+           -w /home/s2n/tests/sidetrail/working \
+           --entrypoint /bin/bash \
+           -it sidetrail
 ```
 
 You will now be presented with a docker shell.
@@ -157,9 +161,8 @@ If you do not source this file when you begin working, SideTrail may appear to r
 ### Running a proof inside docker
 
 ```shell
-cd /home/s2n/tests/sidetrail/working
 cd <testname>
-./clean.sh ; ./run.sh
+./clean.sh && ./run.sh
 ```
 
 You should see output that looks something like this 
