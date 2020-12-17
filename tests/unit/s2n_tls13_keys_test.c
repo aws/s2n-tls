@@ -167,9 +167,8 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_tls13_keys_init(&secrets, S2N_HMAC_SHA256));
 
-    struct s2n_psk *psk = NULL;
     /* Derive Early Secrets */
-    EXPECT_SUCCESS(s2n_tls13_derive_early_secrets(&secrets, psk));
+    EXPECT_SUCCESS(s2n_tls13_derive_early_secrets(&secrets, NULL));
 
     S2N_BLOB_EXPECT_EQUAL(secrets.extract_secret, expected_early_secret);
     S2N_BLOB_EXPECT_EQUAL(secrets.derive_secret, expect_derived_handshake_secret);
@@ -305,18 +304,19 @@ int main(int argc, char **argv)
         S2N_BLOB_EXPECT_EQUAL(test_keys.derive_secret, expected_binder_key);
     }
 
-    /* Tests s2n_tls13_derive_early_secrets produces the correct secret when a psk is set. */
+    /* Tests s2n_tls13_derive_early_secrets produces the correct secret when a psk is set. Values
+     * are taken from https://tools.ietf.org/html/rfc8448#section-4 */
     {
         S2N_BLOB_FROM_HEX(resumption_early_secret,
             "9b2188e9b2fc6d64d71dc329900e20bb41915000f678aa839cbb797cb7d8332c");
         S2N_BLOB_FROM_HEX(expected_derived_secret,
             "5f1790bbd82c5e7d376ed2e1e52f8e6038c9346db61b43be9a52f77ef3998e80");
 
-        DEFER_CLEANUP(struct s2n_psk test_psk, s2n_psk_free);
+        DEFER_CLEANUP(struct s2n_psk test_psk = {0}, s2n_psk_free);
         EXPECT_SUCCESS(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
         test_psk.early_secret = resumption_early_secret;
 
-        DEFER_CLEANUP(struct s2n_tls13_keys test_keys, s2n_tls13_keys_free);
+        DEFER_CLEANUP(struct s2n_tls13_keys test_keys = {0}, s2n_tls13_keys_free);
         EXPECT_SUCCESS(s2n_tls13_keys_init(&test_keys, test_psk.hmac_alg));
 
         EXPECT_SUCCESS(s2n_tls13_derive_early_secrets(&test_keys, &test_psk));

@@ -176,11 +176,11 @@ int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *keys, struct s2n_psk *
 {
     notnull_check(keys);
 
+    /* Early Secret */
     if (psk == NULL) {
         /* in 1-RTT, PSK is 0-filled of key length */
         s2n_tls13_key_blob(psk_ikm, keys->size);
 
-        /* Early Secret */
         GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &zero_length_blob, &psk_ikm, &keys->extract_secret));
     } else {
         keys->extract_secret = psk->early_secret;
