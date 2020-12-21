@@ -323,11 +323,11 @@ int s2n_hmac_free(struct s2n_hmac_state *state)
 int s2n_hmac_reset(struct s2n_hmac_state *state)
 {
     PRECONDITION_POSIX(s2n_hmac_state_validate(state));
+    ENSURE_POSIX(state->hash_block_size != 0, S2N_ERR_PRECONDITION_VIOLATION);
     GUARD(s2n_hash_copy(&state->inner, &state->inner_just_key));
 
     uint64_t bytes_in_hash;
     GUARD(s2n_hash_get_currently_in_hash_total(&state->inner, &bytes_in_hash));
-    ENSURE_POSIX(state->hash_block_size != 0, S2N_ERR_INTEGER_OVERFLOW);
     bytes_in_hash %= state->hash_block_size;
     ENSURE_POSIX(bytes_in_hash <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     /* The length of the key is not private, so don't need to do tricky math here */
