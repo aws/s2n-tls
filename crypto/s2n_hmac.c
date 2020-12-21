@@ -243,6 +243,7 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
 int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
 {
     PRECONDITION_POSIX(s2n_hmac_state_validate(state));
+    ENSURE_POSIX(state->hash_block_size != 0, S2N_ERR_PRECONDITION_VIOLATION);
     /* Keep track of how much of the current hash block is full
      *
      * Why the 4294949760 constant in this code? 4294949760 is the highest 32-bit
@@ -264,7 +265,6 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
      * input. On some platforms, including Intel, the operation can take a
      * smaller number of cycles if the input is "small".
      */
-    ENSURE_POSIX(state->hash_block_size != 0, S2N_ERR_INTEGER_OVERFLOW);
     ENSURE_POSIX(size <= UINT32_MAX - 4294949760, S2N_ERR_INTEGER_OVERFLOW);
     uint32_t value = (4294949760 + size) % state->hash_block_size;
     ENSURE_POSIX(state->currently_in_hash_block <= UINT32_MAX - value, S2N_ERR_INTEGER_OVERFLOW);

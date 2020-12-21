@@ -12,11 +12,10 @@ index 3405781..3beeacf 100644
  #include <stdint.h>
 
  int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
-@@ -264,11 +267,7 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
+@@ -265,10 +267,7 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
       * input. On some platforms, including Intel, the operation can take a
       * smaller number of cycles if the input is "small".
       */
--    ENSURE_POSIX(state->hash_block_size != 0, S2N_ERR_INTEGER_OVERFLOW);
 -    ENSURE_POSIX(size <= UINT32_MAX - 4294949760, S2N_ERR_INTEGER_OVERFLOW);
 -    uint32_t value = (4294949760 + size) % state->hash_block_size;
 -    ENSURE_POSIX(state->currently_in_hash_block <= UINT32_MAX - value, S2N_ERR_INTEGER_OVERFLOW);
