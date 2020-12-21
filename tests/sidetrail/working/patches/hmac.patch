@@ -12,7 +12,22 @@ index 3405781..3beeacf 100644
  #include <stdint.h>
 
  int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
-@@ -265,10 +267,7 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
+@@ -191,10 +194,10 @@ int s2n_hmac_new(struct s2n_hmac_state *state)
+ S2N_RESULT s2n_hmac_state_validate(struct s2n_hmac_state *state)
+ {
+     ENSURE_REF(state);
+-    GUARD_RESULT(s2n_hash_state_validate(&state->inner));
+-    GUARD_RESULT(s2n_hash_state_validate(&state->inner_just_key));
+-    GUARD_RESULT(s2n_hash_state_validate(&state->outer));
+-    GUARD_RESULT(s2n_hash_state_validate(&state->outer_just_key));
++    //GUARD_RESULT(s2n_hash_state_validate(&state->inner));
++    //GUARD_RESULT(s2n_hash_state_validate(&state->inner_just_key));
++    //GUARD_RESULT(s2n_hash_state_validate(&state->outer));
++    //GUARD_RESULT(s2n_hash_state_validate(&state->outer_just_key));
+     return S2N_RESULT_OK;
+ }
+
+@@ -265,10 +268,7 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
       * input. On some platforms, including Intel, the operation can take a
       * smaller number of cycles if the input is "small".
       */
@@ -24,7 +39,7 @@ index 3405781..3beeacf 100644
      state->currently_in_hash_block %= state->hash_block_size;
 
      return s2n_hash_update(&state->inner, in, size);
-@@ -361,8 +360,8 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
+@@ -361,8 +361,8 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
      GUARD(s2n_hash_copy(&to->outer_just_key, &from->outer_just_key));
 
 
@@ -35,7 +50,7 @@ index 3405781..3beeacf 100644
      POSTCONDITION_POSIX(s2n_hmac_state_validate(to));
      POSTCONDITION_POSIX(s2n_hmac_state_validate(from));
      return S2N_SUCCESS;
-@@ -372,25 +371,25 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
+@@ -372,25 +372,25 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
  /* Preserve the handlers for hmac state pointers to avoid re-allocation
   * Only valid if the HMAC is in EVP mode
   */
