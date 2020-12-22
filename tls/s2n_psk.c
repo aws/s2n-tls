@@ -26,12 +26,12 @@
 
 #define S2N_HASH_ALG_COUNT S2N_HASH_SENTINEL
 
-int s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type)
+int s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type, s2n_hmac_algorithm hmac_alg)
 {
     notnull_check(psk);
 
     memset_check(psk, 0, sizeof(struct s2n_psk));
-    psk->hmac_alg = S2N_HMAC_SHA256;
+    psk->hmac_alg = hmac_alg;
     psk->type = type;
 
     return S2N_SUCCESS;
@@ -286,5 +286,23 @@ S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn)
             s2n_stuffer_data_available(client_hello)));
 
     GUARD_RESULT(s2n_psk_write_binder_list(conn, &partial_client_hello, client_hello));
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_connection_set_psks(struct s2n_connection *conn, struct s2n_pre_shared_key *psk_vec, size_t *psk_vec_length)
+{
+    ENSURE_REF(conn);
+    ENSURE_REF(psk_vec);
+    ENSURE_REF(psk_vec_length);
+
+    for (size_t i = 0; i < *psk_vec_length; i++) {
+        struct s2n_psk *psk = NULL;
+        GUARD_RESULT(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
+
+        GUARD_AS_RESULT(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL, psk_vec[i].hmac));
+        GUARD_AS_RESULT(s2n_psk_new_identity(psk, psk_vec[i].identity.identity, psk_vec[i].identity.identity_length));
+        GUARD_AS_RESULT(s2n_psk_new_secret(psk, psk_vec[i].secret, psk_vec[i].secret_len));
+    }
+
     return S2N_RESULT_OK;
 }

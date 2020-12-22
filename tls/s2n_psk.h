@@ -33,6 +33,18 @@ typedef enum {
     S2N_PSK_DHE_KE,
 } s2n_psk_key_exchange_mode;
 
+struct s2n_psk_identity{
+    uint8_t *identity;
+    size_t identity_length;
+};
+
+struct s2n_pre_shared_key {
+    struct s2n_psk_identity identity;
+    uint8_t *secret;
+    size_t secret_len;
+    s2n_hmac_algorithm hmac;
+};
+
 struct s2n_psk {
     s2n_psk_type type;
     struct s2n_blob identity;
@@ -50,7 +62,9 @@ struct s2n_psk_parameters {
     s2n_psk_key_exchange_mode psk_ke_mode;
 };
 
-int s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type);
+S2N_RESULT s2n_connection_set_psks(struct s2n_connection *conn, struct s2n_pre_shared_key *psk_vec, size_t *psk_vec_length);
+
+int s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type, s2n_hmac_algorithm hmac_alg);
 int s2n_psk_new_identity(struct s2n_psk *psk, const uint8_t *identity, size_t identity_size);
 int s2n_psk_new_secret(struct s2n_psk *psk, const uint8_t *secret, size_t secret_size);
 int s2n_psk_free(struct s2n_psk *psk);

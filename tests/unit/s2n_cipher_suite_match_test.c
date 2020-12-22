@@ -30,7 +30,7 @@ static s2n_result s2n_conn_set_chosen_psk(struct s2n_connection *conn) {
     uint8_t psk_identity[] = "psk identity";
     GUARD_RESULT(s2n_psk_parameters_init(&conn->psk_params));
     GUARD_RESULT(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &conn->psk_params.chosen_psk));
-    GUARD_AS_RESULT(s2n_psk_init(conn->psk_params.chosen_psk, S2N_PSK_TYPE_EXTERNAL));
+    GUARD_AS_RESULT(s2n_psk_init(conn->psk_params.chosen_psk, S2N_PSK_TYPE_EXTERNAL, S2N_HMAC_SHA256));
     ENSURE_REF(conn->psk_params.chosen_psk);
     GUARD_AS_RESULT(s2n_psk_new_identity(conn->psk_params.chosen_psk, psk_identity, sizeof(psk_identity)));
 
