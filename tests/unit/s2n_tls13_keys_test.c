@@ -313,7 +313,7 @@ int main(int argc, char **argv)
             "5f1790bbd82c5e7d376ed2e1e52f8e6038c9346db61b43be9a52f77ef3998e80");
 
         DEFER_CLEANUP(struct s2n_psk test_psk = { 0 }, s2n_psk_free);
-        EXPECT_SUCCESS(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
+        EXPECT_SUCCESS(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION, S2N_HMAC_SHA256));
         test_psk.early_secret = resumption_early_secret;
 
         DEFER_CLEANUP(struct s2n_tls13_keys test_keys = { 0 }, s2n_tls13_keys_free);
