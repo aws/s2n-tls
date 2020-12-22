@@ -354,8 +354,10 @@ let hmac_update_spec
     hmac_invariants st0 cfg;
 
     size <- crucible_fresh_var "size" (llvm_int 32);
-    crucible_precond {{ size <= 17535 }};
-    crucible_precond {{ st0.currently_in_hash_block <= 4294967295 - ((4294949760 + size) % (0 # st0.hash_block_size)) }};
+    let uint32_max = {{~0 : [32]}};
+    let highest_32_bit = {{4294949760 : [32]}};
+    crucible_precond {{ size <= uint32_max - highest_32_bit }};
+    crucible_precond {{ st0.currently_in_hash_block <= uint32_max - ((highest_32_bit + size) % (0 # st0.hash_block_size)) }};
 
     pmsg <- crucible_symbolic_alloc true 1 {{ (0 # size) : [64] }};
     msg <- crucible_fresh_cryptol_var "msg" {| ByteArray |};
