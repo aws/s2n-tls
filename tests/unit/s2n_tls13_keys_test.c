@@ -329,7 +329,7 @@ int main(int argc, char **argv)
         struct s2n_blob empty_blob = { .data = NULL, .size = 0 };
 
         DEFER_CLEANUP(struct s2n_psk test_psk = { 0 }, s2n_psk_free);
-        EXPECT_SUCCESS(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
+        EXPECT_SUCCESS(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION, S2N_HMAC_SHA256));
         test_psk.early_secret = empty_blob;
 
         DEFER_CLEANUP(struct s2n_tls13_keys test_keys = { 0 }, s2n_tls13_keys_free);
