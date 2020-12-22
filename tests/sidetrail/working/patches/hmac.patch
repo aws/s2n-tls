@@ -21,18 +21,19 @@ index 3405781..3beeacf 100644
 -    GUARD_RESULT(s2n_hash_state_validate(&state->outer));
 -    GUARD_RESULT(s2n_hash_state_validate(&state->outer_just_key));
 +    //GUARD_RESULT(s2n_hash_state_validate(&state->inner));
-+    //GUARD_RESULT(s2n_hash_state_validate(&state->inner_just_key));
++    //GUARD_RESULT(s2n_hash_state_valiLdate(&state->inner_just_key));
 +    //GUARD_RESULT(s2n_hash_state_validate(&state->outer));
 +    //GUARD_RESULT(s2n_hash_state_validate(&state->outer_just_key));
      return S2N_RESULT_OK;
  }
 
-@@ -265,10 +268,7 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
+@@ -265,11 +265,7 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
       * input. On some platforms, including Intel, the operation can take a
       * smaller number of cycles if the input is "small".
       */
--    ENSURE_POSIX(size <= UINT32_MAX - 4294949760, S2N_ERR_INTEGER_OVERFLOW);
--    uint32_t value = (4294949760 + size) % state->hash_block_size;
+-    const uint32_t HIGHEST_32_BIT = 4294949760;
+-    ENSURE_POSIX(size <= UINT32_MAX - HIGHEST_32_BIT, S2N_ERR_INTEGER_OVERFLOW);
+-    uint32_t value = (HIGHEST_32_BIT + size) % state->hash_block_size;
 -    ENSURE_POSIX(state->currently_in_hash_block <= UINT32_MAX - value, S2N_ERR_INTEGER_OVERFLOW);
 -    state->currently_in_hash_block += value;
 +    state->currently_in_hash_block += (size) % state->hash_block_size;
