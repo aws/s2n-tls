@@ -23,11 +23,13 @@
 typedef struct {
     uint16_t extension_type;
     struct s2n_blob extension;
+    uint16_t wire_index;
 } s2n_parsed_extension;
 
 typedef struct {
     s2n_parsed_extension parsed_extensions[S2N_PARSED_EXTENSIONS_COUNT];
     struct s2n_blob raw; /* Needed by some ClientHello APIs */
+    uint16_t count;
 } s2n_parsed_extensions_list;
 
 typedef enum {

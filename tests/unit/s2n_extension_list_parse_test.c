@@ -90,7 +90,7 @@ int main()
     /* Test that parse clears existing parsed_extensions */
     {
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1));
 
         parsed_extension_list.parsed_extensions[0].extension_type = 0xFF;
@@ -111,7 +111,7 @@ int main()
     /* Test parse empty extension list - no extension list size */
     {
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1));
 
         EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
@@ -121,6 +121,7 @@ int main()
 
         EXPECT_EQUAL(parsed_extension_list.raw.data, stuffer.blob.data);
         EXPECT_EQUAL(parsed_extension_list.raw.size, 0);
+        EXPECT_EQUAL(parsed_extension_list.count, 0);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
     }
@@ -128,7 +129,7 @@ int main()
     /* Test parse empty extension list - with extension list size */
     {
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Write zero size */
@@ -140,6 +141,7 @@ int main()
         EXPECT_PARSED_EXTENSION_LIST_EMPTY(parsed_extension_list);
         EXPECT_RAW_EQUAL(parsed_extension_list, stuffer);
         EXPECT_EQUAL(parsed_extension_list.raw.size, 0);
+        EXPECT_EQUAL(parsed_extension_list.count, 0);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
     }
@@ -147,7 +149,7 @@ int main()
     /* Test parse with insufficient data to match extension list size */
     {
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, 100));
@@ -164,7 +166,7 @@ int main()
     /* Test parse with insufficient data for even one extension */
     {
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Extension list size */
@@ -184,7 +186,7 @@ int main()
     /* Test parse single extension in list */
     {
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
@@ -203,6 +205,7 @@ int main()
         EXPECT_RAW_EQUAL(parsed_extension_list, stuffer);
 
         EXPECT_PARSED_EXTENSION_EQUAL(parsed_extension_list, test_extension.iana_value, test_data, sizeof(test_data));
+        EXPECT_EQUAL(parsed_extension_list.count, 1);
         CLEAR_PARSED_EXTENSION(parsed_extension_list, test_extension.iana_value);
         EXPECT_PARSED_EXTENSION_LIST_EMPTY(parsed_extension_list);
 
@@ -212,7 +215,7 @@ int main()
     /* Test parse single extension in list - malformed extension size */
     {
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
@@ -238,7 +241,7 @@ int main()
     /* Test parse single extension in list - extension is empty */
     {
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
@@ -253,6 +256,7 @@ int main()
         EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
 
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+        EXPECT_EQUAL(parsed_extension_list.count, 1);
         EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(parsed_extension_list);
         EXPECT_RAW_EQUAL(parsed_extension_list, stuffer);
 
@@ -266,7 +270,7 @@ int main()
     /* Test parse single extension in list - ignore unknown extensions */
     {
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
@@ -282,6 +286,7 @@ int main()
         EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
 
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+        EXPECT_EQUAL(parsed_extension_list.count, 0);
         EXPECT_PARSED_EXTENSION_LIST_EMPTY(parsed_extension_list);
         EXPECT_RAW_EQUAL(parsed_extension_list, stuffer);
 
@@ -291,7 +296,7 @@ int main()
     /* Test error on duplicate extensions */
     {
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
@@ -314,7 +319,7 @@ int main()
     /* Test error on duplicate extensions - extensions are empty */
     {
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         /* Reserve size */
@@ -337,7 +342,7 @@ int main()
     /* Test parse multiple extensions */
     {
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         s2n_extension_type test_extension_2 = empty_test_extension;
@@ -365,11 +370,49 @@ int main()
         EXPECT_PARSED_EXTENSION_EQUAL(parsed_extension_list, test_extension_2.iana_value, test_data, 0);
         EXPECT_PARSED_EXTENSION_EQUAL(parsed_extension_list, test_extension_3.iana_value, other_test_data, sizeof(other_test_data));
         EXPECT_RAW_EQUAL(parsed_extension_list, stuffer);
+        EXPECT_EQUAL(parsed_extension_list.count, 3);
 
         CLEAR_PARSED_EXTENSION(parsed_extension_list, test_extension.iana_value);
         CLEAR_PARSED_EXTENSION(parsed_extension_list, test_extension_2.iana_value);
         CLEAR_PARSED_EXTENSION(parsed_extension_list, test_extension_3.iana_value);
         EXPECT_PARSED_EXTENSION_LIST_EMPTY(parsed_extension_list);
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+    }
+
+    /* Test parsed extensions assigned correct indexes */
+    {
+        s2n_parsed_extensions_list parsed_extension_list = { 0 };
+        struct s2n_stuffer stuffer = { 0 };
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+        s2n_extension_type test_extension_2 = test_extension;
+        test_extension_2.iana_value = TLS_EXTENSION_SIGNATURE_ALGORITHMS;
+        s2n_extension_type test_extension_3 = test_extension;
+        test_extension_3.iana_value = TLS_EXTENSION_ALPN;
+
+        /* Reserve size */
+        struct s2n_stuffer_reservation extension_list_size = {0};
+        EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
+        /* Write extensions */
+        EXPECT_SUCCESS(s2n_extension_send(&test_extension, conn, &stuffer));
+        EXPECT_SUCCESS(s2n_extension_send(&test_extension_2, conn, &stuffer));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, S2N_UNKNOWN_EXTENSION_IANA));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, 0));
+        EXPECT_SUCCESS(s2n_extension_send(&test_extension_3, conn, &stuffer));
+        /* Check / write size */
+        EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > extension_list_size.length);
+        EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
+
+        EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
+
+        uint16_t expected_order[] = { test_extension.iana_value, test_extension_2.iana_value, test_extension_3.iana_value };
+        for (size_t i = 0; i < s2n_array_len(expected_order); i++) {
+            s2n_extension_type_id id;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(expected_order[i], &id));
+            EXPECT_EQUAL(parsed_extension_list.parsed_extensions[id].wire_index, i);
+        }
+        EXPECT_EQUAL(parsed_extension_list.count, 3);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
     }
