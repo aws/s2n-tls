@@ -255,9 +255,9 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
     s2n_extension_type_id psk_ext_id;
     GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PRE_SHARED_KEY, &psk_ext_id));
     ne_check(conn->client_hello.extensions.count, 0);
-    uint16_t last_index = conn->client_hello.extensions.count - 1;
-    uint16_t extension_index = conn->client_hello.extensions.parsed_extensions[psk_ext_id].wire_index;
-    ENSURE_POSIX(extension_index == last_index, S2N_ERR_UNSUPPORTED_EXTENSION);
+    uint16_t last_wire_index = conn->client_hello.extensions.count - 1;
+    uint16_t extension_wire_index = conn->client_hello.extensions.parsed_extensions[psk_ext_id].wire_index;
+    ENSURE_POSIX(extension_wire_index == last_wire_index, S2N_ERR_UNSUPPORTED_EXTENSION);
 
     /* https://tools.ietf.org/html/rfc8446#section-4.2.9:
      * If clients offer "pre_shared_key" without a "psk_key_exchange_modes" extension,
