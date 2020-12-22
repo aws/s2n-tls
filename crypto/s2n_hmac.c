@@ -265,8 +265,9 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
      * input. On some platforms, including Intel, the operation can take a
      * smaller number of cycles if the input is "small".
      */
-    ENSURE_POSIX(size <= UINT32_MAX - 4294949760, S2N_ERR_INTEGER_OVERFLOW);
-    uint32_t value = (4294949760 + size) % state->hash_block_size;
+    const uint32_t HIGHEST_32_BIT = 4294949760;
+    ENSURE_POSIX(size <= UINT32_MAX - HIGHEST_32_BIT, S2N_ERR_INTEGER_OVERFLOW);
+    uint32_t value = (HIGHEST_32_BIT + size) % state->hash_block_size;
     ENSURE_POSIX(state->currently_in_hash_block <= UINT32_MAX - value, S2N_ERR_INTEGER_OVERFLOW);
     state->currently_in_hash_block += value;
     state->currently_in_hash_block %= state->hash_block_size;
@@ -311,11 +312,12 @@ int s2n_hmac_digest_two_compression_rounds(struct s2n_hmac_state *state, void *o
 
 int s2n_hmac_free(struct s2n_hmac_state *state)
 {
-    if (!state) { return S2N_SUCCESS; }
-    GUARD(s2n_hash_free(&state->inner));
-    GUARD(s2n_hash_free(&state->inner_just_key));
-    GUARD(s2n_hash_free(&state->outer));
-    GUARD(s2n_hash_free(&state->outer_just_key));
+    if (state) {
+        GUARD(s2n_hash_free(&state->inner));
+        GUARD(s2n_hash_free(&state->inner_just_key));
+        GUARD(s2n_hash_free(&state->outer));
+        GUARD(s2n_hash_free(&state->outer_just_key));
+    }
 
     return S2N_SUCCESS;
 }
@@ -337,8 +339,6 @@ int s2n_hmac_reset(struct s2n_hmac_state *state)
 
 int s2n_hmac_digest_verify(const void *a, const void *b, uint32_t len)
 {
-    ENSURE_POSIX((a == NULL) || S2N_MEM_IS_READABLE(a, len), S2N_ERR_PRECONDITION_VIOLATION);
-    ENSURE_POSIX((b == NULL) || S2N_MEM_IS_READABLE(b, len), S2N_ERR_PRECONDITION_VIOLATION);
     return S2N_SUCCESS - !s2n_constant_time_equals(a, b, len);
 }
 
