@@ -60,8 +60,8 @@ bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, const uint32
     S2N_PUBLIC_INPUT(a);
     S2N_PUBLIC_INPUT(b);
     S2N_PUBLIC_INPUT(len);
-    ENSURE_POSIX((a == NULL) || S2N_MEM_IS_READABLE(a, len), S2N_ERR_PRECONDITION_VIOLATION);
-    ENSURE_POSIX((b == NULL) || S2N_MEM_IS_READABLE(b, len), S2N_ERR_PRECONDITION_VIOLATION);
+    ENSURE_POSIX((a == NULL) || S2N_MEM_IS_READABLE(a, len), S2N_ERR_SAFETY);
+    ENSURE_POSIX((b == NULL) || S2N_MEM_IS_READABLE(b, len), S2N_ERR_SAFETY);
 
     if (len != 0 && (a == NULL || b == NULL)) {
         return false;
