@@ -452,6 +452,7 @@ int main(int argc, char **argv)
 
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            conn->client_hello.extensions.count = 1;
 
             /* The psk key exchange modes and keyshare extensions need to be received to use a psk */
             conn->psk_params.psk_ke_mode = S2N_PSK_DHE_KE;
@@ -507,6 +508,7 @@ int main(int argc, char **argv)
 
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            conn->client_hello.extensions.count = 1;
 
             /* The psk_ke_modes and keyshare extensions need to be received to use a psk */
             conn->psk_params.psk_ke_mode = S2N_PSK_DHE_KE;
@@ -547,6 +549,7 @@ int main(int argc, char **argv)
 
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            conn->client_hello.extensions.count = 1;
 
             /* Setup the extension */
             struct s2n_stuffer extension = { 0 };
@@ -568,6 +571,7 @@ int main(int argc, char **argv)
             const uint8_t extension_data[] = { 0 };
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            conn->client_hello.extensions.count = 1;
 
             /* Setup the extension */
             struct s2n_stuffer extension = { 0 };
@@ -591,6 +595,7 @@ int main(int argc, char **argv)
             const uint8_t extension_data[] = { 0 };
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            conn->client_hello.extensions.count = 1;
 
             /* Setup the extension */
             struct s2n_stuffer extension = { 0 };
@@ -608,6 +613,26 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&extension));
         }
 
+        /* The extension does not appear last in the extension list */
+        {
+            s2n_extension_type_id psk_ext_id;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PRE_SHARED_KEY, &psk_ext_id));
+
+            struct s2n_stuffer extension = { 0 };
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+            conn->client_hello.extensions.count = 2;
+            conn->client_hello.extensions.parsed_extensions[psk_ext_id].wire_index = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_psk_recv(conn, &extension), S2N_ERR_UNSUPPORTED_EXTENSION);
+
+            conn->client_hello.extensions.count = 5;
+            conn->client_hello.extensions.parsed_extensions[psk_ext_id].wire_index = 1;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_psk_recv(conn, &extension), S2N_ERR_UNSUPPORTED_EXTENSION);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
         /* Receive a valid extension */
         {
             const uint8_t client_hello_prefix_data[] = {
@@ -623,6 +648,7 @@ int main(int argc, char **argv)
             struct s2n_connection *server_conn;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
             struct s2n_stuffer *server_in = &server_conn->handshake.io;
+            server_conn->client_hello.extensions.count = 1;
 
             /* The psk key exchange modes and keyshare extensions need to be received to use a psk */
             server_conn->psk_params.psk_ke_mode = S2N_PSK_DHE_KE;

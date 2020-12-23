@@ -247,22 +247,34 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
         return S2N_SUCCESS;
     }
 
+    /* https://tools.ietf.org/html/rfc8446#section-4.2.11
+     * The "pre_shared_key" extension MUST be the last extension in the ClientHello.
+     * Servers MUST check that it is the last extension and otherwise fail the handshake
+     * with an "illegal_parameter" alert.
+     */
+    s2n_extension_type_id psk_ext_id;
+    GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PRE_SHARED_KEY, &psk_ext_id));
+    ne_check(conn->client_hello.extensions.count, 0);
+    uint16_t last_wire_index = conn->client_hello.extensions.count - 1;
+    uint16_t extension_wire_index = conn->client_hello.extensions.parsed_extensions[psk_ext_id].wire_index;
+    ENSURE_POSIX(extension_wire_index == last_wire_index, S2N_ERR_UNSUPPORTED_EXTENSION);
+
     /* https://tools.ietf.org/html/rfc8446#section-4.2.9:
      * If clients offer "pre_shared_key" without a "psk_key_exchange_modes" extension,
      * servers MUST abort the handshake. We can safely do this check here because s2n_client_psk is
      * required to be the last extension sent in the list.
      */
-    s2n_extension_type_id psk_ke_mode_id;
-    GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES, &psk_ke_mode_id));
-    S2N_ERROR_IF(!S2N_CBIT_TEST(conn->extension_requests_received, psk_ke_mode_id), S2N_ERR_MISSING_EXTENSION);
+    s2n_extension_type_id psk_ke_mode_ext_id;
+    GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES, &psk_ke_mode_ext_id));
+    ENSURE_POSIX(S2N_CBIT_TEST(conn->extension_requests_received, psk_ke_mode_ext_id), S2N_ERR_MISSING_EXTENSION);
 
     if (conn->psk_params.psk_ke_mode == S2N_PSK_DHE_KE) {
-        s2n_extension_type_id key_share_id;
-        GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_KEY_SHARE, &key_share_id));
+        s2n_extension_type_id key_share_ext_id;
+        GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_KEY_SHARE, &key_share_ext_id));
         /* A key_share extension must have been received in order to use a pre-shared key
          * in (EC)DHE key exchange mode.
          */
-        S2N_ERROR_IF(!S2N_CBIT_TEST(conn->extension_requests_received, key_share_id), S2N_ERR_MISSING_EXTENSION);
+        ENSURE_POSIX(S2N_CBIT_TEST(conn->extension_requests_received, key_share_ext_id), S2N_ERR_MISSING_EXTENSION);
     } else {
         /* s2n currently only supports pre-shared keys in (EC)DHE key exchange mode. If we receive keys with any other
          * exchange mode we fall back to a full handshake.
