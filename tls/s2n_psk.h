@@ -34,7 +34,7 @@ typedef enum {
 } s2n_psk_key_exchange_mode;
 
 typedef enum {
-    S2N_PSK_HMAC_SHA224 = 3,
+    S2N_PSK_HMAC_SHA224 = 0,
     S2N_PSK_HMAC_SHA256,
     S2N_PSK_HMAC_SHA384,
 } s2n_psk_hmac;
@@ -87,5 +87,3 @@ int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_
         struct s2n_blob *output_binder);
 int s2n_psk_verify_binder(struct s2n_connection *conn, struct s2n_psk *psk,
         const struct s2n_blob *partial_client_hello, struct s2n_blob *binder_to_verify);
-
-int s2n_psk_to_hmac_alg(s2n_psk_hmac psk_hmac_alg, s2n_hmac_algorithm *out);

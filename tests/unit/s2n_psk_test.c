@@ -628,7 +628,7 @@ int main(int argc, char **argv)
             struct s2n_pre_shared_key first_psk = { first_identity, secret_0, sizeof(secret_0), S2N_PSK_HMAC_SHA384 };
 
             struct s2n_psk_identity second_identity = { identity_1, sizeof(identity_1) };
-            struct s2n_pre_shared_key second_psk = { second_identity, secret_1, sizeof(secret_1), S2N_PSK_HMAC_SHA256 };
+            struct s2n_pre_shared_key second_psk = { second_identity, secret_1, sizeof(secret_1), S2N_PSK_HMAC_SHA384 };
 
             /* Safety checks */
             {
@@ -660,9 +660,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(internal_psk->identity.size, first_identity.identity_length);
                 EXPECT_BYTEARRAY_EQUAL(internal_psk->secret.data, first_psk.secret, first_psk.secret_len);
                 EXPECT_EQUAL(internal_psk->secret.size, first_psk.secret_len);
-                s2n_hmac_algorithm out = 0;
-                EXPECT_SUCCESS(s2n_psk_to_hmac_alg(first_psk.hmac, &out));
-                EXPECT_EQUAL(internal_psk->hmac_alg, out);
+                EXPECT_EQUAL(internal_psk->hmac_alg, S2N_HMAC_SHA384);
                 EXPECT_EQUAL(internal_psk->obfuscated_ticket_age, 0);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -675,7 +673,7 @@ int main(int argc, char **argv)
                 size_t num_psks = 2;
                 struct s2n_pre_shared_key psks[2] = { first_psk, second_psk };
 
-                EXPECT_SUCCESS(s2n_connection_set_external_psks(conn, &psks[0], num_psks));
+                EXPECT_SUCCESS(s2n_connection_set_external_psks(conn, psks, num_psks));
 
                 for (size_t i = 0; i < num_psks; i++) {
                     struct s2n_psk *internal_psk = NULL;
@@ -687,9 +685,7 @@ int main(int argc, char **argv)
                     EXPECT_EQUAL(internal_psk->identity.size, psks[i].identity.identity_length);
                     EXPECT_BYTEARRAY_EQUAL(internal_psk->secret.data, psks[i].secret, psks[i].secret_len);
                     EXPECT_EQUAL(internal_psk->secret.size, psks[i].secret_len);
-                    s2n_hmac_algorithm out = 0;
-                    EXPECT_SUCCESS(s2n_psk_to_hmac_alg(psks[i].hmac, &out));
-                    EXPECT_EQUAL(internal_psk->hmac_alg, out);
+                    EXPECT_EQUAL(internal_psk->hmac_alg, S2N_HMAC_SHA384);
                     EXPECT_EQUAL(internal_psk->obfuscated_ticket_age, 0);
                 }
 
@@ -703,7 +699,7 @@ int main(int argc, char **argv)
                 size_t num_psks = 3;
                 struct s2n_pre_shared_key psks[3] = { first_psk, second_psk, first_psk };
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_external_psks(conn, &psks[0], num_psks), S2N_ERR_DUPLICATE_IDENTITIES);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_external_psks(conn, psks, num_psks), S2N_ERR_DUPLICATE_IDENTITIES);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
