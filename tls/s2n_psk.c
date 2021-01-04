@@ -26,12 +26,12 @@
 
 #define S2N_HASH_ALG_COUNT S2N_HASH_SENTINEL
 
-int s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type, s2n_hmac_algorithm hmac_alg)
+int s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type)
 {
     notnull_check(psk);
 
     memset_check(psk, 0, sizeof(struct s2n_psk));
-    psk->hmac_alg = hmac_alg;
+    psk->hmac_alg = S2N_HMAC_SHA256;
     psk->type = type;
 
     return S2N_SUCCESS;
@@ -289,20 +289,44 @@ S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_connection_set_psks(struct s2n_connection *conn, struct s2n_pre_shared_key *psk_vec, size_t *psk_vec_length)
+int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_pre_shared_key *psk_vec, size_t psk_vec_length)
 {
-    ENSURE_REF(conn);
-    ENSURE_REF(psk_vec);
-    ENSURE_REF(psk_vec_length);
+    notnull_check(conn);
+    notnull_check(psk_vec);
+    gt_check(psk_vec_length, 0);
 
-    for (size_t i = 0; i < *psk_vec_length; i++) {
-        struct s2n_psk *psk = NULL;
-        GUARD_RESULT(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
+    for (size_t i = 0; i < psk_vec_length; i++) {
+        /* Check for duplicate identities */
+        size_t array_len = conn->psk_params.psk_list.len;
+        for (size_t j = 0; j < array_len; j++) {
+            struct s2n_psk *psk = NULL;
+            GUARD_AS_POSIX(s2n_array_get(&conn->psk_params.psk_list, j, (void**) &psk));
+            if (psk->identity.size == psk_vec[i].identity.identity_length) {
+                S2N_ERROR_IF(s2n_constant_time_equals(psk->identity.data, psk_vec[i].identity.identity_data, psk->identity.size), S2N_ERR_DUPLICATE_IDENTITIES);
+            }
+        }
+        struct s2n_psk *new_psk = NULL;
+        GUARD_AS_POSIX(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &new_psk));
 
-        GUARD_AS_RESULT(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL, psk_vec[i].hmac));
-        GUARD_AS_RESULT(s2n_psk_new_identity(psk, psk_vec[i].identity.identity, psk_vec[i].identity.identity_length));
-        GUARD_AS_RESULT(s2n_psk_new_secret(psk, psk_vec[i].secret, psk_vec[i].secret_len));
+        GUARD(s2n_psk_init(new_psk, S2N_PSK_TYPE_EXTERNAL));
+        GUARD(s2n_psk_new_identity(new_psk, psk_vec[i].identity.identity_data, psk_vec[i].identity.identity_length));
+        GUARD(s2n_psk_new_secret(new_psk, psk_vec[i].secret, psk_vec[i].secret_len));
+        s2n_hmac_algorithm out = 0;
+        GUARD(s2n_psk_to_hmac_alg(psk_vec[i].hmac, &out));
+        new_psk->hmac_alg = out;
     }
 
-    return S2N_RESULT_OK;
+    return S2N_SUCCESS;
+}
+
+int s2n_psk_to_hmac_alg(s2n_psk_hmac psk_hmac_alg, s2n_hmac_algorithm *out)
+{
+    switch(psk_hmac_alg) {
+    case S2N_PSK_HMAC_SHA224:     *out = S2N_HMAC_SHA224; break;
+    case S2N_PSK_HMAC_SHA256:     *out = S2N_HMAC_SHA256; break;
+    case S2N_PSK_HMAC_SHA384:     *out = S2N_HMAC_SHA384; break;
+    default:
+        S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
+    }
+    return S2N_SUCCESS;
 }
