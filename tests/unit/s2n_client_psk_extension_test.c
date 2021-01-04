@@ -158,6 +158,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
                 EXPECT_SUCCESS(s2n_psk_new_identity(psk, test_cases[i].identity, test_cases[i].identity_size));
                 psk->hmac_alg = test_cases[i].hmac_alg;
+
                 binder_list_size += test_cases[i].hash_size
                         + sizeof(uint8_t) /* size of binder size */;
             }
