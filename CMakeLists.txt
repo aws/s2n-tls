@@ -252,7 +252,7 @@ if (BUILD_TESTING)
         target_include_directories(${test_case_name} PRIVATE ./)
         target_include_directories(${test_case_name} PRIVATE tests)
         target_link_libraries(${test_case_name} PRIVATE testss2n)
-        target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -D_POSIX_C_SOURCE=200809L -std=gnu99)
+        target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -Wno-deprecated -D_POSIX_C_SOURCE=200809L -std=gnu99)
         add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
 
         set_property(
