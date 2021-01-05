@@ -17,13 +17,12 @@
 
 #include "tls/extensions/s2n_client_pq_kem.h"
 #include "tls/s2n_security_policies.h"
+#include "pq-crypto/s2n_pq.h"
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
-
-#if !defined(S2N_NO_PQ)
 
     const char *pq_security_policy_versions[] = {
             "KMS-PQ-TLS-1-0-2019-06",
@@ -47,7 +46,11 @@ int main(int argc, char **argv)
 
             /* Use cipher preferences that do include PQ */
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, pq_security_policy_version));
-            EXPECT_TRUE(s2n_client_pq_kem_extension.should_send(conn));
+            if (s2n_pq_is_enabled()) {
+                EXPECT_TRUE(s2n_client_pq_kem_extension.should_send(conn));
+            } else {
+                EXPECT_FALSE(s2n_client_pq_kem_extension.should_send(conn));
+            }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -112,15 +115,21 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_pq_kem_extension.send(conn, &stuffer));
 
             EXPECT_SUCCESS(s2n_client_pq_kem_extension.recv(conn, &stuffer));
-            EXPECT_EQUAL(conn->secure.client_pq_kem_extension.size, kem_preferences->kem_count * sizeof(kem_extension_size));
-            EXPECT_NOT_NULL(conn->secure.client_pq_kem_extension.data);
-            EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+
+            if (s2n_pq_is_enabled()) {
+                EXPECT_EQUAL(conn->secure.client_pq_kem_extension.size,kem_preferences->kem_count * sizeof(kem_extension_size));
+                EXPECT_NOT_NULL(conn->secure.client_pq_kem_extension.data);
+                EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+            } else {
+                /* Server should ignore the extension is PQ is disabled */
+                EXPECT_EQUAL(conn->secure.client_pq_kem_extension.size, 0);
+                EXPECT_NULL(conn->secure.client_pq_kem_extension.data);
+            }
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
     }
-#endif
 
     END_TEST();
 }

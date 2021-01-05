@@ -23,7 +23,7 @@
 
 #include "utils/s2n_safety.h"
 
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 #include "crypto/s2n_ecc_evp.h"
 
 #define TEST_PUBLIC_KEY_LENGTH 2
@@ -34,8 +34,6 @@ const uint8_t TEST_PRIVATE_KEY[] = { 3, 3, 3 };
 const uint8_t TEST_SHARED_SECRET[] = { 4, 4, 4, 4 };
 #define TEST_CIPHERTEXT_LENGTH 5
 const uint8_t TEST_CIPHERTEXT[] = { 5, 5, 5, 5, 5 };
-
-#if !defined(S2N_NO_PQ)
 
 static const uint8_t kyber_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384 };
 static const uint8_t bike_iana[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 };
@@ -83,14 +81,12 @@ int assert_kem_params_free(struct s2n_kem_params *kem_params) {
 
 int s2n_test_generate_keypair(unsigned char *public_key, unsigned char *private_key)
 {
-    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     memset(public_key, TEST_PUBLIC_KEY_LENGTH, TEST_PUBLIC_KEY_LENGTH);
     memset(private_key, TEST_PRIVATE_KEY_LENGTH, TEST_PRIVATE_KEY_LENGTH);
     return 0;
 }
 int s2n_test_encrypt(unsigned char *ciphertext, unsigned char *shared_secret, const unsigned char *public_key)
 {
-    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     GUARD(memcmp(public_key, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH));
     memset(ciphertext, TEST_CIPHERTEXT_LENGTH, TEST_CIPHERTEXT_LENGTH);
     memset(shared_secret, TEST_SHARED_SECRET_LENGTH, TEST_SHARED_SECRET_LENGTH);
@@ -98,7 +94,6 @@ int s2n_test_encrypt(unsigned char *ciphertext, unsigned char *shared_secret, co
 }
 int s2n_test_decrypt(unsigned char *shared_secret, const unsigned char *ciphertext, const unsigned char *private_key)
 {
-    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
     GUARD(memcmp(ciphertext, TEST_CIPHERTEXT, TEST_CIPHERTEXT_LENGTH));
     GUARD(memcmp(private_key, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH));
     memset(shared_secret, TEST_SHARED_SECRET_LENGTH, TEST_SHARED_SECRET_LENGTH);
@@ -117,8 +112,6 @@ const struct s2n_kem s2n_test_kem = {
 
 static int check_client_server_agreed_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], uint8_t *client_kem_ids, const uint8_t num_client_kems,
         const struct s2n_kem *server_kem_pref_list[], const uint8_t num_server_supported_kems, kem_extension_size expected_kem_id) {
-    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
-
     const struct s2n_kem *negotiated_kem = NULL;
     struct s2n_blob client_kem_blob = { 0 };
     /* Each KEM ID is 2 bytes */
@@ -131,18 +124,10 @@ static int check_client_server_agreed_kem(const uint8_t iana_value[S2N_TLS_CIPHE
     return 0;
 }
 
-#endif
-
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
-    if (s2n_is_in_fips_mode()) {
-        /* There is no support for PQ KEMs while in FIPS mode */
-        END_TEST();
-    }
-
-#if !defined(S2N_NO_PQ)
 
     {
         /* Regression test for network parsing data of expected sizes */
@@ -666,8 +651,6 @@ int main(int argc, char **argv)
         kem_extension_size non_existant_kem_id = 65535;
         EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(non_existant_kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     }
-
-#endif
 
     END_TEST();
 }

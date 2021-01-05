@@ -14,7 +14,7 @@
  */
 
 #include "tls/s2n_kex.h"
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_client_key_exchange.h"
@@ -41,23 +41,27 @@ static int s2n_check_ecdhe(const struct s2n_cipher_suite *cipher_suite, struct s
 
 static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
-    notnull_check(conn);
-    /* There is no support for PQ KEMs while in FIPS mode */
-    if (s2n_is_in_fips_mode()) {
+    /* The int return value is treated like a bool; avoid using notnull_check(), etc */
+    if (cipher_suite == NULL || conn == NULL) {
+        return 0;
+    }
+
+    if (!s2n_pq_is_enabled()) {
         return 0;
     }
 
     const struct s2n_kem_preferences *kem_preferences = NULL;
-    GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
-    notnull_check(kem_preferences);
+    if (s2n_connection_get_kem_preferences(conn, &kem_preferences) != S2N_SUCCESS) {
+        return 0;
+    }
 
-    if (kem_preferences->kem_count == 0) {
+    if (kem_preferences == NULL || kem_preferences->kem_count == 0) {
         return 0;
     }
 
     const struct s2n_iana_to_kem *supported_params = NULL;
     /* If the cipher suite has no supported KEMs return false */
-    if (s2n_cipher_suite_to_kem(cipher_suite->iana_value, &supported_params) != 0) {
+    if (s2n_cipher_suite_to_kem(cipher_suite->iana_value, &supported_params) != S2N_SUCCESS) {
         return 0;
     }
     if (supported_params->kem_count == 0) {
@@ -69,15 +73,13 @@ static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n
     if (client_kem_pref_list == NULL || client_kem_pref_list->data == NULL) {
         /* If the client did not send a PQ KEM extension, then the server can pick its preferred parameter */
         if (s2n_choose_kem_without_peer_pref_list(cipher_suite->iana_value, kem_preferences->kems,
-                                                  kem_preferences->kem_count, &chosen_kem)
-            != 0) {
+                kem_preferences->kem_count, &chosen_kem) != S2N_SUCCESS) {
             return 0;
         }
     } else {
         /* If the client did send a PQ KEM extension, then the server must find a mutually supported parameter. */
         if (s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, client_kem_pref_list, kem_preferences->kems,
-                                               kem_preferences->kem_count, &chosen_kem)
-            != 0) {
+                kem_preferences->kem_count, &chosen_kem) != S2N_SUCCESS) {
             return 0;
         }
     }
@@ -87,9 +89,10 @@ static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n
 
 static int s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
+    notnull_check(cipher_suite);
     notnull_check(conn);
-    /* There is no support for PQ KEMs while in FIPS mode */
-    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     const struct s2n_kem_preferences *kem_preferences = NULL;
     GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));

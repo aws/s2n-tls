@@ -22,7 +22,7 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 #include "tls/s2n_tls13.h"
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 
 #define S2N_IS_KEY_SHARE_LIST_EMPTY(preferred_key_shares) (preferred_key_shares & 1)
 #define S2N_IS_KEY_SHARE_REQUESTED(preferred_key_shares, i) ((preferred_key_shares >> (i + 1)) & 1)
@@ -107,8 +107,8 @@ static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_
     notnull_check(out);
     notnull_check(kem_group_params);
 
-    /* This function should never be called when in FIPS mode */
-    ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+    /* This function should never be called when PQ is disabled */
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     const struct s2n_kem_group *kem_group = kem_group_params->kem_group;
     notnull_check(kem_group);
@@ -144,8 +144,8 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
     notnull_check(conn);
     notnull_check(out);
 
-    /* Client should skip sending PQ groups/key shares if in FIPS mode */
-    if (s2n_is_in_fips_mode()) {
+    /* Client should skip sending PQ groups/key shares if PQ is disabled */
+    if (!s2n_pq_is_enabled()) {
         return S2N_SUCCESS;
     }
 
@@ -227,9 +227,9 @@ static int s2n_send_hrr_pq_hybrid_keyshare(struct s2n_connection *conn, struct s
     notnull_check(conn);
     notnull_check(out);
 
-    /* If in FIPS mode, the client should not have sent any PQ IDs
+    /* If PQ is disabled, the client should not have sent any PQ IDs
      * in the supported_groups list of the initial ClientHello */
-    ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     const struct s2n_kem_preferences *kem_pref = NULL;
     GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
@@ -377,7 +377,10 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
     GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
     notnull_check(kem_pref);
 
-    ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+    /* Ignore key share if PQ is not enabled */
+    if (!s2n_pq_is_enabled()) {
+        return S2N_SUCCESS;
+    }
 
     const struct s2n_kem_group *kem_group = NULL;
     struct s2n_kem_group_params *client_kem_group_params = NULL;
@@ -476,9 +479,7 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
         /* Try to parse the share as ECC, then as PQ/hybrid; will ignore
          * shares for unrecognized groups. */
         GUARD(s2n_client_key_share_recv_ecc(conn, &key_share, named_group, &match_found));
-        if (!s2n_is_in_fips_mode()) {
-            GUARD(s2n_client_key_share_recv_pq_hybrid(conn, &key_share, named_group, &match_found));
-        }
+        GUARD(s2n_client_key_share_recv_pq_hybrid(conn, &key_share, named_group, &match_found));
     }
 
     /* If there were no matching key shares, then we received an empty key share extension

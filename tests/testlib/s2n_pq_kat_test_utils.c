@@ -19,7 +19,7 @@
 #include "tests/testlib/s2n_nist_kats.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 #include "pq-crypto/s2n_pq_random.h"
 
 /* We include s2n_drbg.c directly in order to access the static functions in our entropy callbacks. */
@@ -103,7 +103,7 @@ S2N_RESULT s2n_get_random_bytes_for_pq_kat_tests(uint8_t *buffer, uint32_t num_b
 }
 
 int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) {
-    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     ENSURE_POSIX(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
     notnull_check(kem);

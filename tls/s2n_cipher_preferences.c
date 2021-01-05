@@ -1007,8 +1007,6 @@ const struct s2n_cipher_preferences cipher_preferences_kms_tls_1_0_2018_10 = {
     .suites = cipher_suites_kms_tls_1_0_2018_10,
 };
 
-#if !defined(S2N_NO_PQ)
-
 struct s2n_cipher_suite *cipher_suites_kms_pq_tls_1_0_2019_06[] = {
     &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
@@ -1107,8 +1105,6 @@ const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2020_12 = {
         .count = s2n_array_len(cipher_suites_pq_tls_1_0_2020_12),
         .suites = cipher_suites_pq_tls_1_0_2020_12,
 };
-
-#endif
 
 struct s2n_cipher_suite *cipher_suites_kms_fips_tls_1_2_2018_10[] = {
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,

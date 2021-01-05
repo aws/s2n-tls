@@ -22,7 +22,7 @@
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "utils/s2n_safety.h"
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 
 /* From RFC5246 7.4.1.2. */
 #define S2N_TLS_COMPRESSION_METHOD_NULL 0
@@ -107,9 +107,9 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     }
 
     if (kem_group != NULL) {
-        /* If in FIPS mode, the client should not have sent any PQ IDs
+        /* If PQ is disabled, the client should not have sent any PQ IDs
          * in the supported_groups list of the initial ClientHello */
-        ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+        ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
         for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
             if (kem_pref->tls13_kem_groups[i] == kem_group) {

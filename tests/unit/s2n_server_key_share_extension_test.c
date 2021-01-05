@@ -27,17 +27,14 @@
 #include "testlib/s2n_nist_kats.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 
 #define HELLO_RETRY_MSG_NO 1
 
 int s2n_server_key_share_send_check_pq_hybrid(struct s2n_connection *conn);
 int s2n_server_key_share_send_check_ecdhe(struct s2n_connection *conn);
-
-#if !defined(S2N_NO_PQ)
 static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_group *kem_group, struct s2n_blob *pq_private_key,
         struct s2n_stuffer *pq_shared_secret, struct s2n_stuffer *key_share_payload);
-#endif /* !defined(S2N_NO_PQ) */
 
 int main(int argc, char **argv)
 {
@@ -514,7 +511,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_disable_tls13());
     }
 
-#if !defined(S2N_NO_PQ)
     {
         const struct s2n_kem_group *test_kem_groups[] = {
                 &s2n_secp256r1_sike_p434_r2,
@@ -568,8 +564,9 @@ int main(int argc, char **argv)
         {
             EXPECT_SUCCESS(s2n_enable_tls13());
 
-            /* PQ KEMs are disabled in FIPs mode; test that we use the correct error */
-            if (s2n_is_in_fips_mode()) {
+            /* If PQ is disabled, the client will not have sent PQ IDs/keyshares in the ClientHello;
+             * if the server responded with a PQ keyshare, we should error. */
+            if (!s2n_pq_is_enabled()) {
                 struct s2n_connection *client_conn = NULL;
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
                 client_conn->security_policy_override = &test_security_policy;
@@ -581,14 +578,13 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_init(&iana_stuffer, &iana_blob));
                 EXPECT_SUCCESS(s2n_stuffer_write_uint16(&iana_stuffer,test_security_policy.kem_preferences->tls13_kem_groups[0]->iana_id));
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.recv(client_conn, &iana_stuffer),
-                        S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.recv(client_conn, &iana_stuffer), S2N_ERR_PQ_DISABLED);
 
                 EXPECT_SUCCESS(s2n_connection_free(client_conn));
             }
 
             /* Test s2n_server_key_share_extension.recv with KAT pq key shares */
-            if (!s2n_is_in_fips_mode()) {
+            if (s2n_pq_is_enabled()) {
                 {
                     for (size_t i = 0; i < s2n_array_len(test_kem_groups); i++) {
                         const struct s2n_kem_group *kem_group = test_kem_groups[i];
@@ -792,12 +788,11 @@ int main(int argc, char **argv)
 
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-            if (s2n_is_in_fips_mode()) {
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn),
-                        S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+            if (!s2n_pq_is_enabled()) {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_PQ_DISABLED);
             }
 
-            if (!s2n_is_in_fips_mode()) {
+            if (s2n_pq_is_enabled()) {
                 conn->security_policy_override = &security_policy_sike_bike;
 
                 EXPECT_FAILURE(s2n_server_key_share_send_check_pq_hybrid(conn));
@@ -838,7 +833,7 @@ int main(int argc, char **argv)
         }
 
         /* Test s2n_server_key_share_extension.send sends key share success (PQ) */
-        if (!s2n_is_in_fips_mode()) {
+        if (s2n_pq_is_enabled()) {
             for (size_t i = 0; i < S2N_SUPPORTED_KEM_GROUPS_COUNT; i++) {
                 struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -968,13 +963,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
     }
-#endif /* !defined(S2N_NO_PQ) */
 
     END_TEST();
     return 0;
 }
 
-#if !defined(S2N_NO_PQ)
 static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_group *kem_group, struct s2n_blob *pq_private_key,
         struct s2n_stuffer *pq_shared_secret, struct s2n_stuffer *key_share_payload) {
     FILE *kat_file = fopen("kats/tls13_server_hybrid_key_share_recv.kat", "r");
@@ -1010,4 +1003,3 @@ static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_gr
     fclose(kat_file);
     return S2N_SUCCESS;
 }
-#endif /* !defined(S2N_NO_PQ) */

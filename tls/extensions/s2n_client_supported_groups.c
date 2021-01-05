@@ -24,7 +24,7 @@
 #include "tls/s2n_security_policies.h"
 
 #include "utils/s2n_safety.h"
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 #include "tls/s2n_tls13.h"
 
 static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct s2n_stuffer *out);
@@ -63,7 +63,7 @@ static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct 
     GUARD(s2n_stuffer_reserve_uint16(out, &group_list_len));
 
     /* Send KEM groups list first */
-    if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13 && !s2n_is_in_fips_mode()) {
+    if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13 && s2n_pq_is_enabled()) {
         for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
             GUARD(s2n_stuffer_write_uint16(out, kem_pref->tls13_kem_groups[i]->iana_id));
         }
@@ -97,8 +97,8 @@ static int s2n_client_supported_groups_recv_iana_id(struct s2n_connection *conn,
         }
     }
 
-    /* Return early if in FIPS mode, or if TLS 1.3 is disabled, so as to ignore PQ IDs */
-    if (s2n_is_in_fips_mode() || s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
+    /* Return early if PQ is disabled, or if TLS version is less than 1.3, so as to ignore PQ IDs */
+    if (!s2n_pq_is_enabled() || s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         return S2N_SUCCESS;
     }
 
@@ -135,7 +135,7 @@ static int s2n_choose_supported_group(struct s2n_connection *conn) {
     conn->secure.server_kem_group_params.kem_params.kem = NULL;
     conn->secure.server_ecc_evp_params.negotiated_curve = NULL;
 
-    /* Prefer to negotiate hybrid PQ over ECC. If in FIPS mode, we will never choose a
+    /* Prefer to negotiate hybrid PQ over ECC. If PQ is disabled, we will never choose a
      * PQ group because the mutually_supported_kem_groups array will not have been
      * populated with anything. */
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {

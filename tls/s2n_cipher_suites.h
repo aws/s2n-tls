@@ -31,14 +31,9 @@
 #define S2N_KEY_EXCHANGE_ECC      0x04  /* Elliptic curve cryptography */
 
 #define S2N_MAX_POSSIBLE_RECORD_ALGS    2
-#if !defined(S2N_NO_PQ)
-#define S2N_PQ_CIPHER_SUITE_COUNT       3
-#else
-#define S2N_PQ_CIPHER_SUITE_COUNT       0
-#endif
 
 /* Kept up-to-date by s2n_cipher_suite_match_test */
-#define S2N_CIPHER_SUITE_COUNT          (36 + S2N_PQ_CIPHER_SUITE_COUNT)
+#define S2N_CIPHER_SUITE_COUNT          39
 
 
 /* Record algorithm flags that can be OR'ed */

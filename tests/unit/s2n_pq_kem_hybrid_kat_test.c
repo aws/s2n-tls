@@ -93,6 +93,8 @@ int main() {
     BEGIN_TEST();
 
     if (!s2n_pq_is_enabled()) {
+        /* The KAT tests rely on the low-level PQ crypto functions;
+         * there is nothing to test if PQ is disabled. */
         END_TEST();
     }
 
