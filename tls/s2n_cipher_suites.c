@@ -1103,6 +1103,15 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     cipher_suite = s2n_cipher_suite_from_wire(wire);
     ENSURE_POSIX(cipher_suite != NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
+    /* From RFC section: https://tools.ietf.org/html/rfc8446#section-4.2.11:
+     * Client MUST verify that the server selected a cipher suite indicating a Hash
+     * associated with the chosen PSK if it exists. 
+     * */
+    if (conn->psk_params.chosen_psk) {
+        ENSURE_POSIX(cipher_suite->prf_alg == conn->psk_params.chosen_psk->hmac_alg,
+                     S2N_ERR_CIPHER_NOT_SUPPORTED);
+    }
+
     /* Verify cipher suite sent in server hello is the same as sent in hello retry */
     if (s2n_is_hello_retry_handshake(conn) && !s2n_is_hello_retry_message(conn)) {
         ENSURE_POSIX(conn->secure.cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_CIPHER_NOT_SUPPORTED);
