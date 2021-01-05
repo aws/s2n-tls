@@ -41,6 +41,7 @@
 #include "tls/s2n_handshake_transcript.c"
 
 #define S2N_SECRET_TYPE_COUNT 5
+#define S2N_TEST_PSK_COUNT 10
 
 static int s2n_tls13_conn_copy_server_finished_hash(struct s2n_connection *conn);
 
@@ -312,6 +313,50 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&server_hello_key_share));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* Test: s2n_tls13_handle_handshake_secrets */
+    {
+        /* PSKs are cleaned up */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+            const struct s2n_ecc_preferences *ecc_preferences = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
+            EXPECT_NOT_NULL(ecc_preferences);
+
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
+            conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_preferences->ecc_curves[0];
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+
+            const uint8_t psk_data[] = "test";
+            struct s2n_psk *test_psks[S2N_TEST_PSK_COUNT] = { 0 };
+            for (size_t i = 0; i < S2N_TEST_PSK_COUNT; i++) {
+                struct s2n_psk *psk = NULL;
+                EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
+                EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
+                EXPECT_SUCCESS(s2n_psk_new_identity(psk, psk_data, sizeof(psk_data)));
+                EXPECT_NOT_EQUAL(psk->identity.size, 0);
+                EXPECT_NOT_EQUAL(psk->identity.data, NULL);
+                test_psks[i] = psk;
+            }
+            EXPECT_EQUAL(conn->psk_params.psk_list.len, S2N_TEST_PSK_COUNT);
+
+            EXPECT_SUCCESS(s2n_tls13_handle_handshake_secrets(conn));
+
+            /* Verify all PSKs are cleaned up */
+            for (size_t i = 0; i < S2N_TEST_PSK_COUNT; i++) {
+                struct s2n_psk *psk = test_psks[i];
+                EXPECT_EQUAL(psk->identity.size, 0);
+                EXPECT_EQUAL(psk->identity.data, NULL);
+            }
+            EXPECT_EQUAL(conn->psk_params.psk_list.len, 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
     }
 
     /* Test: s2n_tls13_handle_secrets */

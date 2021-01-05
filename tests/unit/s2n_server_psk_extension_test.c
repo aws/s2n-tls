@@ -27,29 +27,6 @@
 uint8_t test_identity[] = "test identity";
 uint8_t test_secret[] = "test secret";
 
-static s2n_result validate_psk_is_wiped(struct s2n_psk *psk)
-{
-    ENSURE_EQ(psk->identity.data, NULL);
-    ENSURE_EQ(psk->identity.size, 0);
-    ENSURE_EQ(psk->secret.data, NULL);
-    ENSURE_EQ(psk->secret.size, 0);
-    ENSURE_EQ(psk->early_secret.data, NULL);
-    ENSURE_EQ(psk->early_secret.size, 0);
-
-    return S2N_RESULT_OK;
-}
-
-static s2n_result validate_psk_is_not_wiped(struct s2n_psk *psk)
-{
-    ENSURE_REF(psk->identity.data);
-    ENSURE_NE(psk->identity.size, 0);
-    ENSURE_REF(psk->secret.data);
-    ENSURE_NE(psk->secret.size, 0);
-
-    return S2N_RESULT_OK;
-}
-
-
 static s2n_result setup_client_psks(struct s2n_connection *client_conn)
 {
     ENSURE_REF(client_conn);
@@ -272,17 +249,6 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(conn->psk_params.chosen_psk->secret.data, test_secret, sizeof(test_secret));
             EXPECT_EQUAL(conn->psk_params.chosen_psk->hmac_alg, TEST_PSK_HMAC);
 
-            /* Validate that the chosen PSK is not wiped and PSKs not chosen are wiped */
-            for (size_t i = 0; i < conn->psk_params.psk_list.len; i++) {
-                struct s2n_psk *psk = NULL;
-                EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, i, (void**)&psk));
-                if (i == conn->psk_params.chosen_psk_wire_index) {
-                    EXPECT_OK(validate_psk_is_not_wiped(psk));
-                } else {
-                    EXPECT_OK(validate_psk_is_wiped(psk));
-                }
-            }
-
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out)); 
         }
@@ -339,17 +305,6 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_conn->psk_params.chosen_psk->secret.size, sizeof(test_secret));
         EXPECT_BYTEARRAY_EQUAL(client_conn->psk_params.chosen_psk->secret.data, test_secret, sizeof(test_secret));
         EXPECT_EQUAL(client_conn->psk_params.chosen_psk->hmac_alg, TEST_PSK_HMAC);
-
-        /* Validate that the chosen PSK is not wiped and PSKs not chosen are wiped */
-        for (size_t i = 0; i < client_conn->psk_params.psk_list.len; i++) {
-            struct s2n_psk *psk = NULL;
-            EXPECT_OK(s2n_array_get(&client_conn->psk_params.psk_list, i, (void**)&psk));
-            if (i == client_conn->psk_params.chosen_psk_wire_index) {
-                EXPECT_OK(validate_psk_is_not_wiped(psk));
-            } else {
-                EXPECT_OK(validate_psk_is_wiped(psk));
-            }
-        }
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));

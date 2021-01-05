@@ -299,9 +299,6 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
         GUARD_AS_POSIX(s2n_client_psk_recv_binders(conn, extension));
     }
 
-    /* At this point, we have either chosen a PSK or fallen back to a full handshake.
-     * Wipe any PSKs not chosen. */
-    GUARD_AS_POSIX(s2n_psk_parameters_free_unused_psks(&conn->psk_params));
-
+    /* At this point, we have either chosen a PSK or fallen back to a full handshake. */
     return S2N_SUCCESS;
 }

@@ -57,7 +57,6 @@ int s2n_psk_free(struct s2n_psk *psk);
 
 S2N_RESULT s2n_psk_parameters_init(struct s2n_psk_parameters *params);
 S2N_RESULT s2n_psk_parameters_wipe(struct s2n_psk_parameters *params);
-S2N_RESULT s2n_psk_parameters_free_unused_psks(struct s2n_psk_parameters *params);
 int s2n_psk_parameters_free(struct s2n_psk_parameters *params);
 
 S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn);
