@@ -139,11 +139,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
 
             struct s2n_connection *server_conn = NULL;
-            struct s2n_connection *client_conn = NULL;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
-            EXPECT_OK(setup_client_psks(client_conn));
             EXPECT_OK(setup_server_psks(server_conn));
 
             server_conn->psk_params.chosen_psk_wire_index = TEST_PSK_WIRE_INDEX;
@@ -154,7 +151,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(chosen_psk_wire_index, server_conn->psk_params.chosen_psk_wire_index);
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-            EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
         }
     }
@@ -273,7 +269,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->psk_params.chosen_psk->identity.size, sizeof(test_identity));
             EXPECT_BYTEARRAY_EQUAL(conn->psk_params.chosen_psk->identity.data, test_identity, sizeof(test_identity));
             EXPECT_EQUAL(conn->psk_params.chosen_psk->secret.size, sizeof(test_secret));
-            EXPECT_BYTEARRAY_EQUAL(conn->psk_params.chosen_psk->secret.data, test_secret,sizeof(test_secret));
+            EXPECT_BYTEARRAY_EQUAL(conn->psk_params.chosen_psk->secret.data, test_secret, sizeof(test_secret));
             EXPECT_EQUAL(conn->psk_params.chosen_psk->hmac_alg, TEST_PSK_HMAC);
 
             /* Validate that the chosen PSK is not wiped and PSKs not chosen are wiped */

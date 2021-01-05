@@ -146,8 +146,8 @@ int main(int argc, char **argv)
                 TLS_AES_128_GCM_SHA256,
             };
 
-            /* S2N_HASH_SHA1 is not a matching hash algorithm */
-            conn->psk_params.chosen_psk->hmac_alg = S2N_HASH_SHA1;
+            /* S2N_HMAC_SHA1 is not a matching hmac algorithm */
+            conn->psk_params.chosen_psk->hmac_alg = S2N_HMAC_SHA1;
             EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_client(conn, valid_tls13_wire_ciphers),
                                       S2N_ERR_CIPHER_NOT_SUPPORTED);
             EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_null_cipher_suite);
@@ -811,8 +811,8 @@ int main(int argc, char **argv)
 
                 EXPECT_OK(s2n_conn_set_chosen_psk(conn));
 
-                /* S2N_HASH_SHA1 is not a matching hash algorithm for the cipher suites present in wire_ciphers_with_tls13 */ 
-                conn->psk_params.chosen_psk->hmac_alg = S2N_HASH_SHA1;
+                /* S2N_HMAC_SHA1 is not a matching hmac algorithm for the cipher suites present in wire_ciphers_with_tls13 */ 
+                conn->psk_params.chosen_psk->hmac_alg = S2N_HMAC_SHA1;
                 EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13), S2N_ERR_CIPHER_NOT_SUPPORTED);
                 EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_null_cipher_suite);
 
