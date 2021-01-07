@@ -12,35 +12,16 @@ index 3405781..3beeacf 100644
  #include <stdint.h>
 
  int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
-@@ -191,10 +194,10 @@ int s2n_hmac_new(struct s2n_hmac_state *state)
- S2N_RESULT s2n_hmac_state_validate(struct s2n_hmac_state *state)
- {
-     ENSURE_REF(state);
--    GUARD_RESULT(s2n_hash_state_validate(&state->inner));
--    GUARD_RESULT(s2n_hash_state_validate(&state->inner_just_key));
--    GUARD_RESULT(s2n_hash_state_validate(&state->outer));
--    GUARD_RESULT(s2n_hash_state_validate(&state->outer_just_key));
-+    //GUARD_RESULT(s2n_hash_state_validate(&state->inner));
-+    //GUARD_RESULT(s2n_hash_state_valiLdate(&state->inner_just_key));
-+    //GUARD_RESULT(s2n_hash_state_validate(&state->outer));
-+    //GUARD_RESULT(s2n_hash_state_validate(&state->outer_just_key));
-     return S2N_RESULT_OK;
- }
-
-@@ -265,11 +265,7 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
-      * input. On some platforms, including Intel, the operation can take a
-      * smaller number of cycles if the input is "small".
-      */
--    const uint32_t HIGHEST_32_BIT = 4294949760;
--    ENSURE_POSIX(size <= UINT32_MAX - HIGHEST_32_BIT, S2N_ERR_INTEGER_OVERFLOW);
--    uint32_t value = (HIGHEST_32_BIT + size) % state->hash_block_size;
--    ENSURE_POSIX(state->currently_in_hash_block <= UINT32_MAX - value, S2N_ERR_INTEGER_OVERFLOW);
+@@ -269,7 +272,7 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
+     ENSURE_POSIX(size <= (UINT32_MAX - HIGHEST_32_BIT), S2N_ERR_INTEGER_OVERFLOW);
+     uint32_t value = (HIGHEST_32_BIT + size) % state->hash_block_size;
+     ENSURE_POSIX(value <= (UINT32_MAX - state->currently_in_hash_block), S2N_ERR_INTEGER_OVERFLOW);
 -    state->currently_in_hash_block += value;
 +    state->currently_in_hash_block += (size) % state->hash_block_size;
      state->currently_in_hash_block %= state->hash_block_size;
 
      return s2n_hash_update(&state->inner, in, size);
-@@ -361,8 +361,8 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
+@@ -361,8 +364,8 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
      GUARD(s2n_hash_copy(&to->outer_just_key, &from->outer_just_key));
 
 
@@ -51,7 +32,7 @@ index 3405781..3beeacf 100644
      POSTCONDITION_POSIX(s2n_hmac_state_validate(to));
      POSTCONDITION_POSIX(s2n_hmac_state_validate(from));
      return S2N_SUCCESS;
-@@ -372,25 +372,25 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
+@@ -372,25 +375,25 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
  /* Preserve the handlers for hmac state pointers to avoid re-allocation
   * Only valid if the HMAC is in EVP mode
   */

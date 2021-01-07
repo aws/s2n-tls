@@ -266,9 +266,9 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
      * smaller number of cycles if the input is "small".
      */
     const uint32_t HIGHEST_32_BIT = 4294949760;
-    ENSURE_POSIX(size <= UINT32_MAX - HIGHEST_32_BIT, S2N_ERR_INTEGER_OVERFLOW);
+    ENSURE_POSIX(size <= (UINT32_MAX - HIGHEST_32_BIT), S2N_ERR_INTEGER_OVERFLOW);
     uint32_t value = (HIGHEST_32_BIT + size) % state->hash_block_size;
-    ENSURE_POSIX(state->currently_in_hash_block <= UINT32_MAX - value, S2N_ERR_INTEGER_OVERFLOW);
+    ENSURE_POSIX(value <= (UINT32_MAX - state->currently_in_hash_block), S2N_ERR_INTEGER_OVERFLOW);
     state->currently_in_hash_block += value;
     state->currently_in_hash_block %= state->hash_block_size;
 
