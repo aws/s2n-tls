@@ -317,7 +317,7 @@ int main(int argc, char **argv)
 
     /* Test: s2n_tls13_handle_handshake_secrets */
     {
-        /* PSKs are cleaned up */
+        /* PSKs are wiped */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -347,7 +347,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_tls13_handle_handshake_secrets(conn));
 
-            /* Verify all PSKs are cleaned up */
+            /* Verify all PSKs are wiped */
             for (size_t i = 0; i < S2N_TEST_PSK_COUNT; i++) {
                 struct s2n_psk *psk = test_psks[i];
                 EXPECT_EQUAL(psk->identity.size, 0);
