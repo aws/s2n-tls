@@ -99,7 +99,7 @@ ifdef GCC_VERSION
 	ifneq ("$(GCC_VERSION)","NONE")
 		CC=gcc-$(GCC_VERSION)
 		# Make doesn't support greater than checks, this uses `test` to compare values, then `echo $$?` to return the value of test's
-		# exit code and finally using the built in make `ifeq` to check if it was true and then add the extra flag.
+		# exit code and finally uses the built in make `ifeq` to check if it was true and then adds the extra flag.
 		ifeq ($(shell test $(GCC_VERSION) -gt 7; echo $$?), 0)
 			CFLAGS += -Wimplicit-fallthrough
 		endif
