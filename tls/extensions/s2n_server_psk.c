@@ -88,8 +88,5 @@ static int s2n_server_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *
     GUARD_AS_POSIX(s2n_array_get(&conn->psk_params.psk_list, conn->psk_params.chosen_psk_wire_index,
                                  (void **)&conn->psk_params.chosen_psk));
 
-    /* Wipe the PSKs not chosen */
-    GUARD_AS_POSIX(s2n_psk_parameters_free_unused_psks(&conn->psk_params));
-
     return S2N_SUCCESS;
 }

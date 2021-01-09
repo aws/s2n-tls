@@ -444,7 +444,6 @@ int main(int argc, char **argv)
 
         /* Receive an extension with no valid identity */
         {
-            const size_t psk_count = 10;
             const uint8_t extension_data[] = {
                     0x00, 0x00,             /* identity list size */
                     0x00, 0x00,             /* binder list size */
@@ -468,26 +467,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension, 0));
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&extension, extension_data, sizeof(extension_data)));
 
-            /* Allocate some memory for the PSKs so that we can verify they're cleaned up later. */
-            for (size_t i = 0; i < psk_count; i++) {
-                struct s2n_psk *psk = NULL;
-                EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
-                EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
-                EXPECT_SUCCESS(s2n_psk_new_identity(psk, test_bytes_data, sizeof(test_bytes_data)));
-            }
-
             /* Verify it is successful, but no PSK is chosen */
             EXPECT_SUCCESS(s2n_client_psk_recv(conn, &extension));
             EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, 0);
             EXPECT_EQUAL(conn->psk_params.chosen_psk, NULL);
-
-            /* Verify all PSKs are cleaned up */
-            for (size_t i = 0; i < psk_count; i++) {
-                struct s2n_psk *psk = NULL;
-                EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, i, (void**) &psk));
-                EXPECT_EQUAL(psk->identity.size, 0);
-                EXPECT_EQUAL(psk->identity.data, NULL);
-            }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&extension));
@@ -685,14 +668,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_psk_recv(server_conn, server_in));
             EXPECT_EQUAL(server_conn->psk_params.chosen_psk, shared_psk);
             EXPECT_EQUAL(server_conn->psk_params.chosen_psk_wire_index, 0);
-
-            /* Verify the unused key is cleaned up */
-            EXPECT_EQUAL(other_server_psk->identity.data, NULL);
-            EXPECT_EQUAL(other_server_psk->identity.size, 0);
-
-            /* Verify the chosen key is NOT cleaned up */
-            EXPECT_NOT_EQUAL(shared_psk->identity.data, NULL);
-            EXPECT_NOT_EQUAL(shared_psk->identity.size, 0);
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
