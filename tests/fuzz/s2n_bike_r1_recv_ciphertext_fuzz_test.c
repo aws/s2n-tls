@@ -28,31 +28,21 @@
  * prepending BIKE1_L1_R1_CIPHERTEXT_BYTES as two hex-encoded bytes. */
 static struct s2n_kem_params kem_params = { .kem = &s2n_bike1_l1_r1 };
 
-int s2n_fuzz_init(int *argc, char **argv[]) {
+int s2n_fuzz_init(int *argc, char **argv[])
+{
     GUARD(s2n_kem_recv_ciphertext_fuzz_test_init(KAT_FILE_NAME, &kem_params));
     return S2N_SUCCESS;
 }
 
-int s2n_fuzz_test(const uint8_t *buf, size_t len) {
-    struct s2n_stuffer ciphertext = { 0 };
-    GUARD(s2n_stuffer_growable_alloc(&ciphertext, 8192));
-    GUARD(s2n_stuffer_write_bytes(&ciphertext, buf, len));
-
-    /* We do not GUARD s2n_kem_recv_ciphertext; it will likely fail. */
-    s2n_kem_recv_ciphertext(&ciphertext, &kem_params);
-
-    /* We do not GUARD decapsulate for BIKE1_L1_R1; there is a non-zero
-     * chance the decoding may fail if the inputs are not valid. */
-    uint8_t ss_buf[BIKE1_L1_R1_SHARED_SECRET_BYTES] = { 0 };
-    kem_params.kem->decapsulate(ss_buf, ciphertext.blob.data, kem_params.private_key.data);
-
-    /* Clean up */
-    GUARD(s2n_stuffer_free(&ciphertext));
-    if (kem_params.shared_secret.allocated) {
-        GUARD(s2n_free(&kem_params.shared_secret));
-    }
-
+int s2n_fuzz_test(const uint8_t *buf, size_t len)
+{
+    GUARD(s2n_kem_recv_ciphertext_fuzz_test(buf, len, &kem_params));
     return S2N_SUCCESS;
 }
 
-S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test, NULL)
+static void s2n_fuzz_cleanup()
+{
+    s2n_kem_free(&kem_params);
+}
+
+S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test, s2n_fuzz_cleanup)
