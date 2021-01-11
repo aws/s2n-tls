@@ -42,16 +42,34 @@ int s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n
     GUARD(s2n_stuffer_alloc(&ciphertext, len));
     GUARD(s2n_stuffer_write_bytes(&ciphertext, buf, len));
 
-    /* Don't GUARD here; this will probably fail. We should fuzz this
-     * top-level function regardless of whether or not PQ is enabled. */
+    /* Don't GUARD the call to recv_ciphertext().
+     * recv_ciphertext() parses the would-be ciphertext bytes from the
+     * handshake, then passes them to the KEM's decaps function.
+     * recv_ciphertext() may fail appropriately during parsing if the
+     * ciphertext bytes do not correspond to TLS specification (e.g.
+     * improperly length-encoded).
+     *
+     * All but one of the KEM's decaps functions are written in such
+     * a way that they should never fail, regardless of the input provided
+     * by the fuzzer. If the fuzzer-provided "ciphertext" is not a
+     * valid PQ ciphertext (and it probably won't be), the decaps function
+     * should still succeed and return 0, but the output plaintext will
+     * be garbage. Therefore, if recv_ciphertext() fails for these KEMs,
+     * it should not have been due to S2N_ERR_PQ_CRYPTO.
+     *
+     * The one exception is BIKE1L1R1, which does not guarantee this
+     * property. If provided an invalid ciphertext input, BIKE1L1R1
+     * will likely fail (return non-zero) and set S2N_ERR_PQ_CRYPTO.
+     *
+     * If PQ is not enabled, then recv_ciphertext() should always fail. */
     int recv_ciphertext_ret = s2n_kem_recv_ciphertext(&ciphertext, kem_params);
 
-    /* The recv_ciphertext() function may fail, but as long as PQ is enabled,
-     * it should never fail due to S2N_ERR_PQ_CRYPTO (the only exception is
-     * BIKE1L1R1, which may fail due to a PQ_CRYPTO error because of the way
-     * that KEM's decaps function is written). */
     if (s2n_pq_is_enabled() && recv_ciphertext_ret != S2N_SUCCESS && kem_params->kem != &s2n_bike1_l1_r1) {
-            ne_check(s2n_errno, S2N_ERR_PQ_CRYPTO);
+        ne_check(s2n_errno, S2N_ERR_PQ_CRYPTO);
+    }
+
+    if (!s2n_pq_is_enabled()) {
+        ne_check(recv_ciphertext_ret, S2N_SUCCESS);
     }
 
     /* Shared secret may have been alloc'ed in recv_ciphertext */
