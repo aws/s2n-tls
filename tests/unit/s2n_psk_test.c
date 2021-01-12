@@ -246,10 +246,10 @@ int main(int argc, char **argv)
 
             struct s2n_psk_parameters *params = &conn->psk_params;
 
-            struct s2n_psk *fist_psk = NULL;
-            EXPECT_OK(s2n_array_pushback(&params->psk_list, (void**) &fist_psk));
-            EXPECT_SUCCESS(s2n_psk_init(fist_psk, S2N_PSK_TYPE_EXTERNAL));
-            EXPECT_SUCCESS(s2n_psk_new_secret(fist_psk, test_value, sizeof(test_value)));
+            struct s2n_psk *first_psk = NULL;
+            EXPECT_OK(s2n_array_pushback(&params->psk_list, (void**) &first_psk));
+            EXPECT_SUCCESS(s2n_psk_init(first_psk, S2N_PSK_TYPE_EXTERNAL));
+            EXPECT_SUCCESS(s2n_psk_new_secret(first_psk, test_value, sizeof(test_value)));
 
             struct s2n_psk *second_psk = NULL;
             EXPECT_OK(s2n_array_pushback(&params->psk_list, (void**) &second_psk));

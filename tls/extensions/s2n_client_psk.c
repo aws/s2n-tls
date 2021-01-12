@@ -87,10 +87,10 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
         GUARD_AS_POSIX(s2n_array_get(psk_list, i, (void**) &psk));
         notnull_check(psk);
 
-        /* From https://tools.ietf.org/html/rfc8446#section-4.1.4:
-         *   In its updated ClientHello, the client SHOULD NOT offer
-         *   any pre-shared keys associated with a hash other than that of the
-         *   selected cipher suite.
+        /*= https://tools.ietf.org/html/rfc8446#section-4.1.4
+         *# In its updated ClientHello, the client SHOULD NOT offer
+         *# any pre-shared keys associated with a hash other than that of the
+         *# selected cipher suite.
          */
         if (s2n_is_hello_retry_handshake(conn) && conn->secure.cipher_suite->prf_alg != psk->hmac_alg) {
             continue;

@@ -227,7 +227,7 @@ int main(int argc, char **argv)
 
             uint16_t identity_list_size = 0;
             uint16_t identity_size = 0;
-            uint8_t *identity_data;
+            uint8_t *identity_data = NULL;
             uint32_t obfuscated_ticket_age = 0;
 
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&out, &identity_list_size));
