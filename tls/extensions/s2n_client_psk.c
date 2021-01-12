@@ -138,10 +138,13 @@ static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn,
         struct s2n_blob identity = { 0 };
         GUARD_AS_RESULT(s2n_blob_init(&identity, identity_data, identity_size));
 
+        /* TODO: Validate obfuscated_ticket_age when using session tickets:
+         *
+         *       https://github.com/awslabs/s2n/issues/2417
+         */
+
         /**
          *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
-         *= type=TODO
-         *= tracking-issue=2417
          *# For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
          *# used, and servers MUST ignore the value.
          */
