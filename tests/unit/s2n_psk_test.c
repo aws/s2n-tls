@@ -274,7 +274,16 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
         }
 
-        /* On a retry, do not write binders for PSKs that do not match the cipher suite */
+        /* On a retry, do not write binders for PSKs that do not match the cipher suite.
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+         *= type=test
+         *# In addition, in its updated ClientHello, the client SHOULD NOT offer
+         *# any pre-shared keys associated with a hash other than that of the
+         *# selected cipher suite.  This allows the client to avoid having to
+         *# compute partial hash transcripts for multiple hashes in the second
+         *# ClientHello.
+         */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));

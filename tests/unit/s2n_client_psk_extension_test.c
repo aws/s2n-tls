@@ -191,7 +191,14 @@ int main(int argc, char **argv)
         }
 
         /* On the second ClientHello after a retry request,
-         * do not send any PSKs that do not match the cipher suite. */
+         * do not send any PSKs that do not match the cipher suite.
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+         *= type=test
+         *# In addition, in its updated ClientHello, the client SHOULD NOT offer
+         *# any pre-shared keys associated with a hash other than that of the
+         *# selected cipher suite.
+         */
         {
             struct s2n_stuffer out = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));

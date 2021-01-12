@@ -246,10 +246,11 @@ static S2N_RESULT s2n_psk_write_binder_list(struct s2n_connection *conn, const s
         GUARD_RESULT(s2n_array_get(psk_list, i, (void**) &psk));
         ENSURE_REF(psk);
 
-        /*= https://tools.ietf.org/html/rfc8446#section-4.1.4
-         *# In its updated ClientHello, the client SHOULD NOT offer
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+         *# In addition, in its updated ClientHello, the client SHOULD NOT offer
          *# any pre-shared keys associated with a hash other than that of the
-         *# selected cipher suite. This allows the client to avoid having to
+         *# selected cipher suite.  This allows the client to avoid having to
          *# compute partial hash transcripts for multiple hashes in the second
          *# ClientHello.
          */
