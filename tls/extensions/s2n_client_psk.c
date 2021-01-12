@@ -138,11 +138,10 @@ static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn,
         struct s2n_blob identity = { 0 };
         GUARD_AS_RESULT(s2n_blob_init(&identity, identity_data, identity_size));
 
-        /* TODO: Validate obfuscated_ticket_age when using session tickets:
-         *       https://github.com/awslabs/s2n/issues/2417
-         *
-         * "For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
-         * used, and servers MUST ignore the value."
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+         *# For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
+         *# used, and servers MUST ignore the value.
          */
         uint32_t obfuscated_ticket_age = 0;
         GUARD_AS_RESULT(s2n_stuffer_read_uint32(wire_identities_in, &obfuscated_ticket_age));
@@ -247,10 +246,12 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
         return S2N_SUCCESS;
     }
 
-    /* https://tools.ietf.org/html/rfc8446#section-4.2.11
-     * The "pre_shared_key" extension MUST be the last extension in the ClientHello.
-     * Servers MUST check that it is the last extension and otherwise fail the handshake
-     * with an "illegal_parameter" alert.
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+     *# The "pre_shared_key" extension MUST be the last extension in the
+     *# ClientHello (this facilitates implementation as described below).
+     *# Servers MUST check that it is the last extension and otherwise fail
+     *# the handshake with an "illegal_parameter" alert.
      */
     s2n_extension_type_id psk_ext_id;
     GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PRE_SHARED_KEY, &psk_ext_id));
@@ -259,9 +260,12 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
     uint16_t extension_wire_index = conn->client_hello.extensions.parsed_extensions[psk_ext_id].wire_index;
     ENSURE_POSIX(extension_wire_index == last_wire_index, S2N_ERR_UNSUPPORTED_EXTENSION);
 
-    /* https://tools.ietf.org/html/rfc8446#section-4.2.9:
-     * If clients offer "pre_shared_key" without a "psk_key_exchange_modes" extension,
-     * servers MUST abort the handshake. We can safely do this check here because s2n_client_psk is
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.9
+     *# If clients offer "pre_shared_key" without a "psk_key_exchange_modes" extension,
+     *# servers MUST abort the handshake.
+     *
+     * We can safely do this check here because s2n_client_psk is
      * required to be the last extension sent in the list.
      */
     s2n_extension_type_id psk_ke_mode_ext_id;
@@ -283,18 +287,21 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
     }
 
     if (s2n_result_is_error(s2n_client_psk_recv_identities(conn, extension))) {
-        /* https://tools.ietf.org/html/rfc8446#section-4.2.11:
-         *   "If no acceptable PSKs are found, the server SHOULD perform a non-PSK
-         *   handshake if possible."
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+         *# If no acceptable PSKs are found, the server SHOULD perform a non-PSK
+         *# handshake if possible.
          */
         conn->psk_params.chosen_psk = NULL;
     }
 
     if (conn->psk_params.chosen_psk) {
-        /* https://tools.ietf.org/html/rfc8446#section-4.2.11:
-         *   "Prior to accepting PSK key establishment, the server MUST validate
-         *   the corresponding binder value. If this value is not present or does
-         *   not validate, the server MUST abort the handshake."
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+         *# Prior to accepting PSK key establishment, the server MUST validate
+         *# the corresponding binder value (see Section 4.2.11.2 below).  If this
+         *# value is not present or does not validate, the server MUST abort the
+         *# handshake.
          */
         GUARD_AS_POSIX(s2n_client_psk_recv_binders(conn, extension));
     }
