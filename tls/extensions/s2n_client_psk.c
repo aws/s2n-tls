@@ -41,8 +41,33 @@ const s2n_extension_type s2n_client_psk_extension = {
 
 bool s2n_client_psk_should_send(struct s2n_connection *conn)
 {
-    return conn && s2n_connection_get_protocol_version(conn) >= S2N_TLS13
-            && conn->psk_params.psk_list.len;
+    if (conn == NULL) {
+        return false;
+    }
+
+    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
+        return false;
+    }
+
+    /* If this is NOT the second ClientHello after a retry, then all PSKs are viable.
+     * Send the extension if any PSKs are configured.
+     */
+    if (!s2n_is_hello_retry_handshake(conn)) {
+        return conn->psk_params.psk_list.len > 0;
+    }
+
+    /* If this is the second ClientHello after a retry, then only PSKs that match the cipher suite
+     * are viable. Only send the extension if at least one configured PSK matches the cipher suite.
+     */
+    for (size_t i = 0; i < conn->psk_params.psk_list.len; i++) {
+        struct s2n_psk *psk = NULL;
+        if (s2n_result_is_ok(s2n_array_get(&conn->psk_params.psk_list, i, (void**) &psk))
+                && psk != NULL
+                && conn->secure.cipher_suite->prf_alg == psk->hmac_alg) {
+            return true;
+        }
+    }
+    return false;
 }
 
 static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -61,6 +86,16 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
         struct s2n_psk *psk = NULL;
         GUARD_AS_POSIX(s2n_array_get(psk_list, i, (void**) &psk));
         notnull_check(psk);
+
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+         *# In addition, in its updated ClientHello, the client SHOULD NOT offer
+         *# any pre-shared keys associated with a hash other than that of the
+         *# selected cipher suite.
+         */
+        if (s2n_is_hello_retry_handshake(conn) && conn->secure.cipher_suite->prf_alg != psk->hmac_alg) {
+            continue;
+        }
 
         /* Write the identity */
         GUARD(s2n_stuffer_write_uint16(out, psk->identity.size));

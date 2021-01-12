@@ -62,6 +62,35 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS13;
         EXPECT_TRUE(s2n_client_psk_extension.should_send(conn));
 
+        /* Only send the extension after a retry if at least one PSK matches the cipher suite */
+        {
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            const s2n_hmac_algorithm matching_hmac_alg = conn->secure.cipher_suite->prf_alg;
+            const s2n_hmac_algorithm different_hmac_alg = conn->secure.cipher_suite->prf_alg + 1;
+
+            /* Do send if the PSK does NOT match the cipher suite, but this is NOT a retry */
+            conn->handshake.handshake_type = INITIAL;
+            psk->hmac_alg = different_hmac_alg;
+            EXPECT_TRUE(s2n_client_psk_extension.should_send(conn));
+
+            /* Do send if the PSK matches the cipher suite */
+            conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
+            psk->hmac_alg = matching_hmac_alg;
+            EXPECT_TRUE(s2n_client_psk_extension.should_send(conn));
+
+            /* Do NOT send if the PSK does NOT match the cipher suite */
+            conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
+            psk->hmac_alg = different_hmac_alg;
+            EXPECT_FALSE(s2n_client_psk_extension.should_send(conn));
+
+            /* Do send if there are two PSKs, and one matches the cipher suite */
+            conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
+            psk->hmac_alg = different_hmac_alg;
+            EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
+            psk->hmac_alg = matching_hmac_alg;
+            EXPECT_TRUE(s2n_client_psk_extension.should_send(conn));
+        }
+
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
@@ -155,6 +184,74 @@ int main(int argc, char **argv)
 
             EXPECT_EQUAL(s2n_stuffer_data_available(&out),
                     binder_list_size /* binder list size */
+                    + sizeof(uint16_t)) /* size of binder list size */;
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_stuffer_free(&out));
+        }
+
+        /* On the second ClientHello after a retry request,
+         * do not send any PSKs that do not match the cipher suite.
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+         *= type=test
+         *# In addition, in its updated ClientHello, the client SHOULD NOT offer
+         *# any pre-shared keys associated with a hash other than that of the
+         *# selected cipher suite.
+         */
+        {
+            struct s2n_stuffer out = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+
+            const struct s2n_psk_test_case matching_psk = {
+                    .hmac_alg = S2N_HMAC_SHA384, .hash_size = SHA384_DIGEST_LENGTH,
+                    .identity = test_identity, .identity_size = sizeof(test_identity)
+            };
+            const struct s2n_psk_test_case non_matching_psk = {
+                    .hmac_alg = S2N_HMAC_SHA224, .hash_size = SHA224_DIGEST_LENGTH,
+                    .identity = test_identity, .identity_size = sizeof(test_identity)
+            };
+            struct s2n_psk_test_case test_cases[] = { matching_psk, non_matching_psk };
+
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            EXPECT_EQUAL(conn->secure.cipher_suite->prf_alg, matching_psk.hmac_alg);
+
+            for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+                struct s2n_psk *psk = NULL;
+                EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
+                EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
+                EXPECT_SUCCESS(s2n_psk_new_identity(psk, test_cases[i].identity, test_cases[i].identity_size));
+                psk->hmac_alg = test_cases[i].hmac_alg;
+            }
+
+            EXPECT_SUCCESS(s2n_client_psk_extension.send(conn, &out));
+
+            /* The identity list should only contain the matching psk's identity.
+             * It should NOT contain the non-matching psk. */
+
+            uint16_t identity_list_size = 0;
+            uint16_t identity_size = 0;
+            uint8_t *identity_data = NULL;
+            uint32_t obfuscated_ticket_age = 0;
+
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&out, &identity_list_size));
+            EXPECT_EQUAL(identity_list_size, sizeof(identity_size) + matching_psk.identity_size + sizeof(obfuscated_ticket_age));
+
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&out, &identity_size));
+            EXPECT_EQUAL(identity_size, matching_psk.identity_size);
+            EXPECT_NOT_NULL(identity_data = s2n_stuffer_raw_read(&out, identity_size));
+            EXPECT_BYTEARRAY_EQUAL(identity_data, matching_psk.identity, matching_psk.identity_size);
+
+            EXPECT_SUCCESS(s2n_stuffer_read_uint32(&out, &obfuscated_ticket_age));
+
+            /* The binder list should only reserve space for the matching psk's binder.
+             * It should NOT reserve space for the binder for the non-matching psk. */
+            EXPECT_EQUAL(s2n_stuffer_data_available(&out),
+                    matching_psk.hash_size
+                    + sizeof(uint8_t) /* size of binder size */
                     + sizeof(uint16_t)) /* size of binder list size */;
 
             EXPECT_SUCCESS(s2n_connection_free(conn));

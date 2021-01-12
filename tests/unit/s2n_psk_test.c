@@ -198,6 +198,104 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(params.psk_list.mem.size, 0);
     }
 
+    /* Test s2n_psk_write_binder_list */
+    {
+        uint8_t test_value[] = TEST_VALUE_1;
+
+        struct s2n_blob client_hello_prefix = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&client_hello_prefix, test_value, sizeof(test_value)));
+
+        /* Write two binders.
+         * There are no available test vectors for multiple PSKs, but we should at least
+         * verify that we write something relatively sane for this use case. */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+            struct s2n_stuffer out = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+
+            struct s2n_psk_parameters *params = &conn->psk_params;
+
+            struct s2n_psk *first_psk = NULL;
+            EXPECT_OK(s2n_array_pushback(&params->psk_list, (void**) &first_psk));
+            EXPECT_SUCCESS(s2n_psk_init(first_psk, S2N_PSK_TYPE_EXTERNAL));
+            EXPECT_SUCCESS(s2n_psk_new_secret(first_psk, test_value, sizeof(test_value)));
+
+            struct s2n_psk *second_psk = NULL;
+            EXPECT_OK(s2n_array_pushback(&params->psk_list, (void**) &second_psk));
+            EXPECT_SUCCESS(s2n_psk_init(second_psk, S2N_PSK_TYPE_EXTERNAL));
+            EXPECT_SUCCESS(s2n_psk_new_secret(second_psk, test_value, sizeof(test_value)));
+
+            EXPECT_OK(s2n_psk_write_binder_list(conn, &client_hello_prefix, &out));
+
+            uint16_t binder_list_size = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&out, &binder_list_size));
+            EXPECT_EQUAL(binder_list_size, s2n_stuffer_data_available(&out));
+
+            /* After reading both binders, the buffer should be empty. */
+            for (int i = 0; i < 2; i++) {
+                uint8_t binder_size = 0;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &binder_size));
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&out, binder_size));
+            }
+            EXPECT_EQUAL(s2n_stuffer_data_available(&out), 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_stuffer_free(&out));
+        }
+
+        /* On a retry, do not write binders for PSKs that do not match the cipher suite.
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+         *= type=test
+         *# In addition, in its updated ClientHello, the client SHOULD NOT offer
+         *# any pre-shared keys associated with a hash other than that of the
+         *# selected cipher suite.  This allows the client to avoid having to
+         *# compute partial hash transcripts for multiple hashes in the second
+         *# ClientHello.
+         */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
+            struct s2n_stuffer out = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+
+            struct s2n_psk_parameters *params = &conn->psk_params;
+
+            struct s2n_psk *other_psk = NULL;
+            EXPECT_OK(s2n_array_pushback(&params->psk_list, (void**) &other_psk));
+            EXPECT_SUCCESS(s2n_psk_init(other_psk, S2N_PSK_TYPE_EXTERNAL));
+            EXPECT_SUCCESS(s2n_psk_new_secret(other_psk, test_value, sizeof(test_value)));
+            other_psk->hmac_alg = conn->secure.cipher_suite->prf_alg - 1;
+
+            struct s2n_psk *matching_psk = NULL;
+            EXPECT_OK(s2n_array_pushback(&params->psk_list, (void**) &matching_psk));
+            EXPECT_SUCCESS(s2n_psk_init(matching_psk, S2N_PSK_TYPE_EXTERNAL));
+            EXPECT_SUCCESS(s2n_psk_new_secret(matching_psk, test_value, sizeof(test_value)));
+            matching_psk->hmac_alg = conn->secure.cipher_suite->prf_alg;
+
+            EXPECT_OK(s2n_psk_write_binder_list(conn, &client_hello_prefix, &out));
+
+            uint16_t binder_list_size = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&out, &binder_list_size));
+            EXPECT_EQUAL(binder_list_size, s2n_stuffer_data_available(&out));
+
+            /* There should only be one binder in the list
+             * (the other PSK was ignored because it didn't match the cipher suite)
+             * so that one binder should fill the rest of the stuffer. */
+            uint8_t binder_size = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &binder_size));
+            EXPECT_EQUAL(binder_size, s2n_stuffer_data_available(&out));
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_stuffer_free(&out));
+        }
+    }
+
     /* Test binder calculations with known values */
     {
         /* Test Vectors from https://tools.ietf.org/html/rfc8448#section-4 */

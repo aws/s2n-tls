@@ -233,6 +233,18 @@ static S2N_RESULT s2n_psk_write_binder_list(struct s2n_connection *conn, const s
         GUARD_RESULT(s2n_array_get(psk_list, i, (void**) &psk));
         ENSURE_REF(psk);
 
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+         *# In addition, in its updated ClientHello, the client SHOULD NOT offer
+         *# any pre-shared keys associated with a hash other than that of the
+         *# selected cipher suite.  This allows the client to avoid having to
+         *# compute partial hash transcripts for multiple hashes in the second
+         *# ClientHello.
+         */
+        if (s2n_is_hello_retry_handshake(conn) && conn->secure.cipher_suite->prf_alg != psk->hmac_alg) {
+            continue;
+        }
+
         /* Retrieve or calculate the binder hash. */
         struct s2n_blob *binder_hash = &binder_hashes[psk->hmac_alg];
         if (binder_hash->size == 0) {
