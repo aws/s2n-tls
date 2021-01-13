@@ -301,11 +301,10 @@ static int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac psk_hmac_alg)
     return S2N_SUCCESS;
 }
 
-int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_pre_shared_key *psk_vec, size_t psk_vec_length)
+int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_external_psk *psk_vec, size_t psk_vec_length)
 {
     notnull_check(conn);
     notnull_check(psk_vec);
-    gt_check(psk_vec_length, 0);
     
     /* Remove all previously-set external psks */
     for (size_t i = conn->psk_params.psk_list.len; i > 0; i--) {
@@ -313,6 +312,7 @@ int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_pre
         size_t index = i - 1;
         struct s2n_psk *psk = NULL;
         GUARD_AS_POSIX(s2n_array_get(&conn->psk_params.psk_list, index, (void**) &psk));
+        ENSURE_POSIX_REF(psk);
         if (psk->type == S2N_PSK_TYPE_EXTERNAL) {
             GUARD_AS_POSIX(s2n_array_remove(&conn->psk_params.psk_list, index));
         }
@@ -324,17 +324,17 @@ int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_pre
         for (size_t j = 0; j < array_len; j++) {
             struct s2n_psk *psk = NULL;
             GUARD_AS_POSIX(s2n_array_get(&conn->psk_params.psk_list, j, (void**) &psk));
-            if (psk->identity.size == psk_vec[i].identity.length) {
-                ENSURE_POSIX(memcmp(psk->identity.data, psk_vec[i].identity.data, psk->identity.size) != 0, S2N_ERR_DUPLICATE_PSK_IDENTITIES);
+            if (psk->identity.size == psk_vec[i].identity_length) {
+                ENSURE_POSIX(memcmp(psk->identity.data, psk_vec[i].identity, psk->identity.size) != 0, S2N_ERR_DUPLICATE_IDENTITIES);
             }
         }
 
         struct s2n_psk *new_psk = NULL;
         GUARD_AS_POSIX(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &new_psk));
-
+        ENSURE_POSIX_REF(new_psk);
         GUARD(s2n_psk_init(new_psk, S2N_PSK_TYPE_EXTERNAL));
-        GUARD(s2n_psk_new_identity(new_psk, psk_vec[i].identity.data, psk_vec[i].identity.length));
-        GUARD(s2n_psk_new_secret(new_psk, psk_vec[i].secret, psk_vec[i].secret_len));
+        GUARD(s2n_psk_new_identity(new_psk, psk_vec[i].identity, psk_vec[i].identity_length));
+        GUARD(s2n_psk_new_secret(new_psk, psk_vec[i].secret, psk_vec[i].secret_length));
         GUARD(s2n_psk_set_hmac(new_psk, psk_vec[i].hmac));
     }
 

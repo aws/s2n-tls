@@ -39,15 +39,11 @@ typedef enum {
     S2N_PSK_HMAC_SHA384,
 } s2n_psk_hmac;
 
-struct s2n_psk_identity {
-    uint8_t *data;
-    size_t length;
-};
-
-struct s2n_pre_shared_key {
-    struct s2n_psk_identity identity;
+struct s2n_external_psk {
+    uint8_t *identity;
+    size_t identity_length;
     uint8_t *secret;
-    size_t secret_len;
+    size_t secret_length;
     s2n_psk_hmac hmac;
 };
 
@@ -68,8 +64,8 @@ struct s2n_psk_parameters {
     s2n_psk_key_exchange_mode psk_ke_mode;
 };
 
-/* This function will become an extern function and moved to s2n.h once we release the psk API. */
-int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_pre_shared_key *psk_vec, size_t psk_vec_length);
+/* This function will be labeled S2N_API and become a publicly visible api once we release the psk API. */
+int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_external_psk *psk_vec, size_t psk_vec_length);
 
 int s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type);
 int s2n_psk_new_identity(struct s2n_psk *psk, const uint8_t *identity, size_t identity_size);
