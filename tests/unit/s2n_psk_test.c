@@ -651,17 +651,17 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_connection_set_external_psks(conn, &first_psk, num_psks));
                 
-                struct s2n_psk *internal_psk = NULL;
-                EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &internal_psk));
-                EXPECT_NOT_NULL(internal_psk);
+                struct s2n_psk *test_psk = NULL;
+                EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &test_psk));
+                EXPECT_NOT_NULL(test_psk);
 
-                EXPECT_EQUAL(internal_psk->type, S2N_PSK_TYPE_EXTERNAL);
-                EXPECT_BYTEARRAY_EQUAL(internal_psk->identity.data, first_identity.identity_data, first_identity.identity_length);
-                EXPECT_EQUAL(internal_psk->identity.size, first_identity.identity_length);
-                EXPECT_BYTEARRAY_EQUAL(internal_psk->secret.data, first_psk.secret, first_psk.secret_len);
-                EXPECT_EQUAL(internal_psk->secret.size, first_psk.secret_len);
-                EXPECT_EQUAL(internal_psk->hmac_alg, S2N_HMAC_SHA384);
-                EXPECT_EQUAL(internal_psk->obfuscated_ticket_age, 0);
+                EXPECT_EQUAL(test_psk->type, S2N_PSK_TYPE_EXTERNAL);
+                EXPECT_BYTEARRAY_EQUAL(test_psk->identity.data, first_identity.data, first_identity.length);
+                EXPECT_EQUAL(test_psk->identity.size, first_identity.length);
+                EXPECT_BYTEARRAY_EQUAL(test_psk->secret.data, first_psk.secret, first_psk.secret_len);
+                EXPECT_EQUAL(test_psk->secret.size, first_psk.secret_len);
+                EXPECT_EQUAL(test_psk->hmac_alg, S2N_HMAC_SHA384);
+                EXPECT_EQUAL(test_psk->obfuscated_ticket_age, 0);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
@@ -676,17 +676,17 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_external_psks(conn, psks, num_psks));
 
                 for (size_t i = 0; i < num_psks; i++) {
-                    struct s2n_psk *internal_psk = NULL;
-                    EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, i, (void**) &internal_psk));
-                    EXPECT_NOT_NULL(internal_psk);
+                    struct s2n_psk *test_psk = NULL;
+                    EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, i, (void**) &test_psk));
+                    EXPECT_NOT_NULL(test_psk);
 
-                    EXPECT_EQUAL(internal_psk->type, S2N_PSK_TYPE_EXTERNAL);
-                    EXPECT_BYTEARRAY_EQUAL(internal_psk->identity.data, psks[i].identity.identity_data, psks[i].identity.identity_length);
-                    EXPECT_EQUAL(internal_psk->identity.size, psks[i].identity.identity_length);
-                    EXPECT_BYTEARRAY_EQUAL(internal_psk->secret.data, psks[i].secret, psks[i].secret_len);
-                    EXPECT_EQUAL(internal_psk->secret.size, psks[i].secret_len);
-                    EXPECT_EQUAL(internal_psk->hmac_alg, S2N_HMAC_SHA384);
-                    EXPECT_EQUAL(internal_psk->obfuscated_ticket_age, 0);
+                    EXPECT_EQUAL(test_psk->type, S2N_PSK_TYPE_EXTERNAL);
+                    EXPECT_BYTEARRAY_EQUAL(test_psk->identity.data, psks[i].identity.data, psks[i].identity.length);
+                    EXPECT_EQUAL(test_psk->identity.size, psks[i].identity.length);
+                    EXPECT_BYTEARRAY_EQUAL(test_psk->secret.data, psks[i].secret, psks[i].secret_len);
+                    EXPECT_EQUAL(test_psk->secret.size, psks[i].secret_len);
+                    EXPECT_EQUAL(test_psk->hmac_alg, S2N_HMAC_SHA384);
+                    EXPECT_EQUAL(test_psk->obfuscated_ticket_age, 0);
                 }
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -699,7 +699,48 @@ int main(int argc, char **argv)
                 size_t num_psks = 3;
                 struct s2n_pre_shared_key psks[3] = { first_psk, second_psk, first_psk };
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_external_psks(conn, psks, num_psks), S2N_ERR_DUPLICATE_IDENTITIES);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_external_psks(conn, psks, num_psks), S2N_ERR_DUPLICATE_PSK_IDENTITIES);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+
+            /* Ensures existing external psks are deleted and existing resumption psks are not deleted */
+            {
+                struct s2n_connection *conn;
+                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+                /* Add previously set external and resumption psks */
+                struct s2n_psk *external_psk = NULL;
+                EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &external_psk));
+                EXPECT_SUCCESS(s2n_psk_init(external_psk, S2N_PSK_TYPE_EXTERNAL));
+
+                struct s2n_psk *resumption_psk = NULL;
+                EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &resumption_psk));
+                EXPECT_SUCCESS(s2n_psk_init(resumption_psk, S2N_PSK_TYPE_RESUMPTION));
+
+                size_t num_psks = 2;
+                struct s2n_pre_shared_key psks[2] = { first_psk, second_psk };
+
+                EXPECT_SUCCESS(s2n_connection_set_external_psks(conn, psks, num_psks));
+
+                EXPECT_EQUAL(conn->psk_params.psk_list.len, num_psks + 1);
+
+                /* Check resumption psk was not deleted */
+                struct s2n_psk *test_psk = NULL;
+                EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &test_psk));
+                EXPECT_NOT_NULL(test_psk);
+                EXPECT_EQUAL(test_psk->type, S2N_PSK_TYPE_RESUMPTION);
+
+                /* Check previously-set external psk is deleted and newest psks have been set */
+                test_psk = NULL;
+                EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 1, (void**) &test_psk));
+                EXPECT_NOT_NULL(test_psk);
+                EXPECT_EQUAL(test_psk->type, S2N_PSK_TYPE_EXTERNAL);
+
+                test_psk = NULL;
+                EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 2, (void**) &test_psk));
+                EXPECT_NOT_NULL(test_psk);
+                EXPECT_EQUAL(test_psk->type, S2N_PSK_TYPE_EXTERNAL);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
