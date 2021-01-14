@@ -1437,7 +1437,7 @@ int main(int argc, char **argv) {
         s2n_x509_validator_wipe(&validator);
     }
 
-    /* Test two trailing byte in cert validator */
+    /* Test more trailing bytes in cert validator for negative case */
     {
         struct s2n_x509_validator validator;
         s2n_x509_validator_init_no_x509_validation(&validator);
@@ -1445,7 +1445,7 @@ int main(int argc, char **argv) {
         EXPECT_NOT_NULL(connection);
 
         struct s2n_stuffer chain_stuffer;
-        EXPECT_SUCCESS(read_file(&chain_stuffer, S2N_TWO_TRAILING_BYTE_CERT_BIN, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(read_file(&chain_stuffer, S2N_FOUR_TRAILING_BYTE_CERT_BIN, S2N_MAX_TEST_PEM_SIZE));
         uint32_t chain_len = s2n_stuffer_data_available(&chain_stuffer);
         EXPECT_TRUE(chain_len > 0);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, chain_len);
