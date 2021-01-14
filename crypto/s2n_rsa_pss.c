@@ -41,12 +41,17 @@ int s2n_is_rsa_pss_certs_supported()
 
 #if RSA_PSS_CERTS_SUPPORTED
 
-static int s2n_rsa_pss_size(const struct s2n_pkey *key)
+static S2N_RESULT s2n_rsa_pss_size(const struct s2n_pkey *key, uint32_t *size_out)
 {
-    notnull_check(key);
+    ENSURE_REF(key);
+    ENSURE_REF(size_out);
 
     /* For more info, see: https://www.openssl.org/docs/man1.1.0/man3/EVP_PKEY_size.html */
-    return EVP_PKEY_size(key->pkey);
+    const int size = EVP_PKEY_size(key->pkey);
+    GUARD_AS_RESULT(size);
+    *size_out = size;
+
+    return S2N_RESULT_OK;
 }
 
 static int s2n_rsa_is_private_key(RSA *rsa_key)

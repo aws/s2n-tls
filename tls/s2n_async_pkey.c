@@ -262,7 +262,8 @@ S2N_RESULT s2n_async_pkey_sign_sync(struct s2n_connection *conn, s2n_signature_a
     const struct s2n_pkey *pkey = conn->handshake_params.our_chain_and_key->private_key;
     DEFER_CLEANUP(struct s2n_blob signed_content = { 0 }, s2n_free);
 
-    uint32_t maximum_signature_length = s2n_pkey_size(pkey);
+    uint32_t maximum_signature_length = 0;
+    GUARD_RESULT(s2n_pkey_size(pkey, &maximum_signature_length));
     GUARD_AS_RESULT(s2n_alloc(&signed_content, maximum_signature_length));
 
     GUARD_AS_RESULT(s2n_pkey_sign(pkey, sig_alg, digest, &signed_content));
@@ -378,7 +379,8 @@ S2N_RESULT s2n_async_pkey_sign_perform(struct s2n_async_pkey_op *op, s2n_cert_pr
 
     struct s2n_async_pkey_sign_data *sign = &op->op.sign;
 
-    uint32_t maximum_signature_length = s2n_pkey_size(pkey);
+    uint32_t maximum_signature_length = 0;
+    GUARD_RESULT(s2n_pkey_size(pkey, &maximum_signature_length));
     GUARD_AS_RESULT(s2n_alloc(&sign->signature, maximum_signature_length));
 
     GUARD_AS_RESULT(s2n_pkey_sign(pkey, sign->sig_alg, &sign->digest, &sign->signature));
