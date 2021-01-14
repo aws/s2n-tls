@@ -564,14 +564,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension, 0));
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&extension, extension_data, sizeof(extension_data)));
 
-            /* Allocate some memory for the PSKs so that we can verify they're cleaned up later. */
-            for (size_t i = 0; i < psk_count; i++) {
-                struct s2n_psk *psk = NULL;
-                EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
-                EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
-                EXPECT_SUCCESS(s2n_psk_new_identity(psk, test_bytes_data, sizeof(test_bytes_data)));
-            }
-
             /* Verify it is successful, but no PSK is chosen */
             EXPECT_SUCCESS(s2n_client_psk_recv(conn, &extension));
             EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, 0);

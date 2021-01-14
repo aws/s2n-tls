@@ -303,8 +303,8 @@ static int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac psk_hmac_alg)
 
 int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_external_psk *psk_vec, size_t psk_vec_length)
 {
-    notnull_check(conn);
-    notnull_check(psk_vec);
+    ENSURE_POSIX_REF(conn);
+    ENSURE_POSIX_REF(psk_vec);
     
     /* Remove all previously-set external psks */
     for (size_t i = conn->psk_params.psk_list.len; i > 0; i--) {
@@ -314,6 +314,7 @@ int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_ext
         GUARD_AS_POSIX(s2n_array_get(&conn->psk_params.psk_list, index, (void**) &psk));
         ENSURE_POSIX_REF(psk);
         if (psk->type == S2N_PSK_TYPE_EXTERNAL) {
+            GUARD(s2n_psk_free(psk));
             GUARD_AS_POSIX(s2n_array_remove(&conn->psk_params.psk_list, index));
         }
     }
@@ -324,8 +325,9 @@ int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_ext
         for (size_t j = 0; j < array_len; j++) {
             struct s2n_psk *psk = NULL;
             GUARD_AS_POSIX(s2n_array_get(&conn->psk_params.psk_list, j, (void**) &psk));
+            ENSURE_POSIX_REF(psk);
             if (psk->identity.size == psk_vec[i].identity_length) {
-                ENSURE_POSIX(memcmp(psk->identity.data, psk_vec[i].identity, psk->identity.size) != 0, S2N_ERR_DUPLICATE_IDENTITIES);
+                ENSURE_POSIX(memcmp(psk->identity.data, psk_vec[i].identity, psk->identity.size) != 0, S2N_ERR_DUPLICATE_PSK_IDENTITIES);
             }
         }
 

@@ -131,36 +131,6 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(&expected_params, &params, sizeof(struct s2n_psk_parameters));
     }
 
-    /* Test s2n_psk_parameters_free_unused_psks */
-    {
-        uint8_t test_value[] = TEST_VALUE_1;
-
-        DEFER_CLEANUP(struct s2n_psk_parameters params = { 0 }, s2n_psk_parameters_free);
-        EXPECT_OK(s2n_psk_parameters_init(&params));
-
-        struct s2n_psk *chosen_psk = NULL;
-        EXPECT_OK(s2n_array_pushback(&params.psk_list, (void**) &chosen_psk));
-        EXPECT_SUCCESS(s2n_psk_init(chosen_psk, S2N_PSK_TYPE_EXTERNAL));
-        EXPECT_SUCCESS(s2n_psk_new_identity(chosen_psk, test_value, sizeof(test_value)));
-        params.chosen_psk = chosen_psk;
-
-        struct s2n_psk *other_psk = NULL;
-        EXPECT_OK(s2n_array_pushback(&params.psk_list, (void**) &other_psk));
-        EXPECT_SUCCESS(s2n_psk_init(other_psk, S2N_PSK_TYPE_EXTERNAL));
-        EXPECT_SUCCESS(s2n_psk_new_identity(other_psk, test_value, sizeof(test_value)));
-
-        EXPECT_ERROR_WITH_ERRNO(s2n_psk_parameters_free_unused_psks(NULL), S2N_ERR_NULL);
-        EXPECT_OK(s2n_psk_parameters_free_unused_psks(&params));
-
-        /* Chosen PSKs should NOT be freed. */
-        EXPECT_NOT_EQUAL(chosen_psk->identity.data, NULL);
-        EXPECT_NOT_EQUAL(chosen_psk->identity.size, 0);
-
-        /* Not chosen PSKs should be freed. */
-        EXPECT_EQUAL(other_psk->identity.data, NULL);
-        EXPECT_EQUAL(other_psk->identity.size, 0);
-    }
-
     /* Test s2n_psk_parameters_wipe */
     {
         uint8_t test_value[] = TEST_VALUE_1;
@@ -694,7 +664,7 @@ int main(int argc, char **argv)
                 size_t num_psks = 3;
                 struct s2n_external_psk psks[3] = { first_psk, second_psk, first_psk };
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_external_psks(conn, psks, num_psks), S2N_ERR_DUPLICATE_IDENTITIES);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_external_psks(conn, psks, num_psks), S2N_ERR_DUPLICATE_PSK_IDENTITIES);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
@@ -722,6 +692,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_connection_set_external_psks(conn, psks, num_psks));
 
+                /* The list should now contain one resumption psk and two new external psks */
                 EXPECT_EQUAL(conn->psk_params.psk_list.len, num_psks + 1);
 
                 /* Check resumption psk was not deleted */
