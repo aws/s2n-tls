@@ -633,9 +633,7 @@ def elliptic_curve_test(host, port, libcrypto_version, fips_mode, **kwargs):
     Acceptance test for supported elliptic curves. Tests all possible supported curves with unsupported curves mixed in
     for noise.
     """
-    supported_curves = ["P-256", "P-384"]
-    if not fips_mode:
-        supported_curves.append("P-521")
+    supported_curves = ["P-256", "P-384", "P-521"]
     unsupported_curves = ["B-163", "K-409"]
     print("\n\tRunning elliptic curve tests:")
     print("\tExpected supported:   " + str(supported_curves))
