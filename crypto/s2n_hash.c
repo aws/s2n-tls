@@ -505,7 +505,6 @@ int s2n_hash_new(struct s2n_hash_state *state)
 S2N_RESULT s2n_hash_state_validate(struct s2n_hash_state *state)
 {
     ENSURE_REF(state);
-    ENSURE_REF(state->hash_impl);
     return S2N_RESULT_OK;
 }
 

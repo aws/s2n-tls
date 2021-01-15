@@ -22,6 +22,7 @@
 #include "crypto/s2n_dhe.h"
 #include "crypto/s2n_evp.h"
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_hmac.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_array.h"
 #include "utils/s2n_blob.h"
@@ -113,3 +114,13 @@ struct s2n_hash_state *cbmc_allocate_s2n_hash_state();
  * Properly allocates s2n_evp_digest for CBMC proofs.
  */
 struct s2n_evp_digest* cbmc_allocate_s2n_evp_digest();
+
+/*
+ * Properly allocates s2n_hmac_state for CBMC proofs.
+ */
+struct s2n_hmac_state* cbmc_allocate_s2n_hmac_state();
+
+/*
+ * Properly allocates s2n_hmac_state for CBMC proofs.
+ */
+struct s2n_hmac_evp_backup* cbmc_allocate_s2n_hmac_evp_backup();

@@ -183,3 +183,60 @@ struct s2n_evp_digest* cbmc_allocate_s2n_evp_digest()
     }
     return evp_digest;
 }
+
+
+struct s2n_hmac_state* cbmc_allocate_s2n_hmac_state()
+{
+    struct s2n_hmac_state *state = malloc(sizeof(*state));
+    if (state != NULL) {
+        struct s2n_hash_state *inner = cbmc_allocate_s2n_hash_state();
+        __CPROVER_assume(inner != NULL); /* Declared on stack. */
+        state->inner = *inner;
+        struct s2n_hash_state *inner_just_key = cbmc_allocate_s2n_hash_state();
+        __CPROVER_assume(inner_just_key != NULL); /* Declared on stack. */
+        state->inner_just_key = *inner_just_key;
+        struct s2n_hash_state *outer = cbmc_allocate_s2n_hash_state();
+        __CPROVER_assume(outer != NULL); /* Declared on stack. */
+        state->outer = *outer;
+        struct s2n_hash_state *outer_just_key = cbmc_allocate_s2n_hash_state();
+        __CPROVER_assume(outer_just_key != NULL); /* Declared on stack. */
+        state->outer_just_key = *outer_just_key;
+    }
+    return state;
+}
+
+struct s2n_hmac_evp_backup* cbmc_allocate_s2n_hmac_evp_backup()
+{
+    struct s2n_hmac_evp_backup *backup = malloc(sizeof(*backup));
+    if(backup != NULL) {
+        /* inner */
+        struct s2n_evp_digest *inner_evp = cbmc_allocate_s2n_evp_digest();
+        __CPROVER_assume(inner_evp != NULL);
+        backup->inner.evp = *inner_evp;
+        struct s2n_evp_digest *inner_evp_md5_secondary = cbmc_allocate_s2n_evp_digest();
+        __CPROVER_assume(inner_evp_md5_secondary != NULL);
+        backup->inner.evp_md5_secondary = *inner_evp_md5_secondary;
+        /* inner_just_key */
+        struct s2n_evp_digest *inner_just_key_evp = cbmc_allocate_s2n_evp_digest();
+        __CPROVER_assume(inner_just_key_evp != NULL);
+        backup->inner_just_key.evp = *inner_just_key_evp;
+        struct s2n_evp_digest *inner_just_key_evp_md5_secondary = cbmc_allocate_s2n_evp_digest();
+        __CPROVER_assume(inner_just_key_evp_md5_secondary != NULL);
+        backup->inner_just_key.evp_md5_secondary = *inner_just_key_evp_md5_secondary;
+        /* outer */
+        struct s2n_evp_digest *outer_evp = cbmc_allocate_s2n_evp_digest();
+        __CPROVER_assume(outer_evp != NULL);
+        backup->outer.evp = *outer_evp;
+        struct s2n_evp_digest *outer_evp_md5_secondary = cbmc_allocate_s2n_evp_digest();
+        __CPROVER_assume(outer_evp_md5_secondary != NULL);
+        backup->outer.evp_md5_secondary = *outer_evp_md5_secondary;
+        /* outer_just_key */
+        struct s2n_evp_digest *outer_just_key_evp = cbmc_allocate_s2n_evp_digest();
+        __CPROVER_assume(outer_just_key_evp != NULL);
+        backup->outer_just_key.evp = *outer_just_key_evp;
+        struct s2n_evp_digest *outer_just_key_evp_md5_secondary = cbmc_allocate_s2n_evp_digest();
+        __CPROVER_assume(outer_just_key_evp_md5_secondary != NULL);
+        backup->outer_just_key.evp_md5_secondary = *outer_just_key_evp_md5_secondary;
+    }
+    return backup;
+}
