@@ -49,7 +49,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
 
     /* Read the KEX data */
     struct s2n_kex_raw_server_data kex_data = {0};
-    GUARD(s2n_kex_server_key_recv_read_data(key_exchange, conn, &data_to_verify, &kex_data));
+    GUARD_AS_POSIX(s2n_kex_server_key_recv_read_data(key_exchange, conn, &data_to_verify, &kex_data));
 
     /* Add common signature data */
     struct s2n_signature_scheme active_sig_scheme;
@@ -81,7 +81,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     GUARD(s2n_pkey_free(&conn->secure.server_public_key));
 
     /* Parse the KEX data into whatever form needed and save it to the connection object */
-    GUARD(s2n_kex_server_key_recv_parse_data(key_exchange, conn, &kex_data));
+    GUARD_AS_POSIX(s2n_kex_server_key_recv_parse_data(key_exchange, conn, &kex_data));
     return 0;
 }
 
@@ -209,10 +209,10 @@ int s2n_hybrid_server_key_recv_read_data(struct s2n_connection *conn, struct s2n
     notnull_check(total_data_to_verify->data);
 
     struct s2n_blob data_to_verify_0 = {0};
-    GUARD(s2n_kex_server_key_recv_read_data(hybrid_kex_0, conn, &data_to_verify_0, raw_server_data));
+    GUARD_AS_POSIX(s2n_kex_server_key_recv_read_data(hybrid_kex_0, conn, &data_to_verify_0, raw_server_data));
 
     struct s2n_blob data_to_verify_1 = {0};
-    GUARD(s2n_kex_server_key_recv_read_data(hybrid_kex_1, conn, &data_to_verify_1, raw_server_data));
+    GUARD_AS_POSIX(s2n_kex_server_key_recv_read_data(hybrid_kex_1, conn, &data_to_verify_1, raw_server_data));
 
     total_data_to_verify->size = data_to_verify_0.size + data_to_verify_1.size;
     return 0;
@@ -226,8 +226,8 @@ int s2n_hybrid_server_key_recv_parse_data(struct s2n_connection *conn, struct s2
     const struct s2n_kex *hybrid_kex_0 = kex->hybrid[0];
     const struct s2n_kex *hybrid_kex_1 = kex->hybrid[1];
 
-    GUARD(s2n_kex_server_key_recv_parse_data(hybrid_kex_0, conn, raw_server_data));
-    GUARD(s2n_kex_server_key_recv_parse_data(hybrid_kex_1, conn, raw_server_data));
+    GUARD_AS_POSIX(s2n_kex_server_key_recv_parse_data(hybrid_kex_0, conn, raw_server_data));
+    GUARD_AS_POSIX(s2n_kex_server_key_recv_parse_data(hybrid_kex_1, conn, raw_server_data));
     return 0;
 }
 
@@ -241,7 +241,7 @@ int s2n_server_key_send(struct s2n_connection *conn)
     struct s2n_blob data_to_sign = {0};
 
     /* Call the negotiated key exchange method to send it's data */
-    GUARD(s2n_kex_server_key_send(key_exchange, conn, &data_to_sign));
+    GUARD_AS_POSIX(s2n_kex_server_key_send(key_exchange, conn, &data_to_sign));
 
     /* Add common signature data */
     if (conn->actual_protocol_version == S2N_TLS12) {
@@ -315,10 +315,10 @@ int s2n_hybrid_server_key_send(struct s2n_connection *conn, struct s2n_blob *tot
     notnull_check(total_data_to_sign->data);
 
     struct s2n_blob data_to_verify_0 = {0};
-    GUARD(s2n_kex_server_key_send(hybrid_kex_0, conn, &data_to_verify_0));
+    GUARD_AS_POSIX(s2n_kex_server_key_send(hybrid_kex_0, conn, &data_to_verify_0));
 
     struct s2n_blob data_to_verify_1 = {0};
-    GUARD(s2n_kex_server_key_send(hybrid_kex_1, conn, &data_to_verify_1));
+    GUARD_AS_POSIX(s2n_kex_server_key_send(hybrid_kex_1, conn, &data_to_verify_1));
 
     total_data_to_sign->size = data_to_verify_0.size + data_to_verify_1.size;
     return 0;
