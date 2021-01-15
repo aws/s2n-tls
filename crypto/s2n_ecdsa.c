@@ -22,6 +22,7 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
+#include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
 #include "crypto/s2n_ecdsa.h"
@@ -30,12 +31,19 @@
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_pkey.h"
 
-int s2n_ecdsa_der_signature_size(const struct s2n_pkey *pkey)
+S2N_RESULT s2n_ecdsa_der_signature_size(const struct s2n_pkey *pkey, uint32_t *size_out)
 {
-    const struct s2n_ecdsa_key *ecdsa_key = &pkey->key.ecdsa_key;
-    notnull_check(ecdsa_key->ec_key);
+    ENSURE_REF(pkey);
+    ENSURE_REF(size_out);
 
-    return ECDSA_size(ecdsa_key->ec_key);
+    const struct s2n_ecdsa_key *ecdsa_key = &pkey->key.ecdsa_key;
+    ENSURE_REF(ecdsa_key->ec_key);
+
+    const int size = ECDSA_size(ecdsa_key->ec_key);
+    GUARD_AS_RESULT(size);
+    *size_out = size;
+
+    return S2N_RESULT_OK;
 }
 
 static int s2n_ecdsa_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
@@ -102,7 +110,9 @@ static int s2n_ecdsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pke
     GUARD(s2n_hash_update(&state_in, input, sizeof(input)));
     GUARD(s2n_hash_update(&state_out, input, sizeof(input)));
 
-    GUARD(s2n_alloc(&signature, s2n_ecdsa_der_signature_size(priv)));
+    uint32_t size = 0;
+    GUARD_AS_POSIX(s2n_ecdsa_der_signature_size(priv, &size));
+    GUARD(s2n_alloc(&signature, size));
 
     GUARD(s2n_ecdsa_sign(priv, S2N_SIGNATURE_ECDSA, &state_in, &signature));
     GUARD(s2n_ecdsa_verify(pub, S2N_SIGNATURE_ECDSA, &state_out, &signature));

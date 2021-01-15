@@ -21,15 +21,17 @@
 
 #include "tls/s2n_tls.h"
 #include "tls/s2n_connection.h"
+#include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
 const uint8_t test_signature_data[] = "I signed this";
 const uint32_t test_signature_size = sizeof(test_signature_data);
 const uint32_t test_max_signature_size = 2 * sizeof(test_signature_data);
 
-static int test_size(const struct s2n_pkey *pkey)
+static S2N_RESULT test_size(const struct s2n_pkey *pkey, uint32_t *size_out)
 {
-    return test_max_signature_size;
+    *size_out = test_max_signature_size;
+    return S2N_RESULT_OK;
 }
 
 static int test_sign(const struct s2n_pkey *priv_key, s2n_signature_algorithm sig_alg,

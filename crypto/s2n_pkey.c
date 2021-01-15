@@ -21,6 +21,7 @@
 #include "crypto/s2n_rsa_pss.h"
 #include "crypto/s2n_pkey.h"
 
+#include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
 int s2n_pkey_zero_init(struct s2n_pkey *pkey) 
@@ -61,11 +62,15 @@ int s2n_pkey_check_key_exists(const struct s2n_pkey *pkey)
     return pkey->check_key(pkey);
 }
 
-int s2n_pkey_size(const struct s2n_pkey *pkey)
+S2N_RESULT s2n_pkey_size(const struct s2n_pkey *pkey, uint32_t *size_out)
 {
-    notnull_check(pkey->size);
+    ENSURE_REF(pkey);
+    ENSURE_REF(pkey->size);
+    ENSURE_REF(size_out);
 
-    return pkey->size(pkey);
+    GUARD_RESULT(pkey->size(pkey, size_out));
+
+    return S2N_RESULT_OK;
 }
 
 int s2n_pkey_sign(const struct s2n_pkey *pkey, s2n_signature_algorithm sig_alg,

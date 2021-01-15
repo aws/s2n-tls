@@ -23,6 +23,7 @@
 #include "crypto/s2n_rsa.h"
 
 #include "utils/s2n_blob.h"
+#include "utils/s2n_result.h"
 
 /* Public/Private Key Type */
 typedef enum {
@@ -43,7 +44,7 @@ struct s2n_pkey {
     } key;
     EVP_PKEY *pkey;
 
-    int (*size)(const struct s2n_pkey *key);
+    S2N_RESULT (*size)(const struct s2n_pkey *key, uint32_t *size_out);
     int (*sign)(const struct s2n_pkey *priv_key, s2n_signature_algorithm sig_alg,
             struct s2n_hash_state *digest, struct s2n_blob *signature);
     int (*verify)(const struct s2n_pkey *pub_key, s2n_signature_algorithm sig_alg,
@@ -59,7 +60,7 @@ int s2n_pkey_zero_init(struct s2n_pkey *pkey);
 int s2n_pkey_setup_for_type(struct s2n_pkey *pkey, s2n_pkey_type pkey_type);
 int s2n_pkey_check_key_exists(const struct s2n_pkey *pkey);
 
-int s2n_pkey_size(const struct s2n_pkey *pkey);
+S2N_RESULT s2n_pkey_size(const struct s2n_pkey *pkey, uint32_t *size_out);
 int s2n_pkey_sign(const struct s2n_pkey *pkey, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *digest, struct s2n_blob *signature);
 int s2n_pkey_verify(const struct s2n_pkey *pkey, s2n_signature_algorithm sig_alg,

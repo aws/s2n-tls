@@ -260,8 +260,9 @@ int s2n_rsa_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
      */
     memcpy_check(conn->secure.rsa_premaster_secret, client_hello_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN);
 
-    int encrypted_size = s2n_pkey_size(&conn->secure.server_public_key);
-    S2N_ERROR_IF(encrypted_size < 0 || encrypted_size > 0xffff, S2N_ERR_SIZE_MISMATCH);
+    uint32_t encrypted_size = 0;
+    GUARD_AS_POSIX(s2n_pkey_size(&conn->secure.server_public_key, &encrypted_size));
+    S2N_ERROR_IF(encrypted_size > 0xffff, S2N_ERR_SIZE_MISMATCH);
 
     if (conn->actual_protocol_version > S2N_SSLv3) {
         GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, encrypted_size));
