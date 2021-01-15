@@ -121,7 +121,7 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(conn->secure.client_pq_kem_extension.data);
                 EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
             } else {
-                /* Server should ignore the extension is PQ is disabled */
+                /* Server should ignore the extension if PQ is disabled */
                 EXPECT_EQUAL(conn->secure.client_pq_kem_extension.size, 0);
                 EXPECT_NULL(conn->secure.client_pq_kem_extension.data);
             }
