@@ -191,7 +191,7 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
     /* derive early secrets */
     GUARD(s2n_tls13_derive_early_secrets(&secrets, conn->psk_params.chosen_psk));
     /* since early secrets have been computed, PSKs are no longer needed and can be cleaned up */
-    GUARD_AS_POSIX(s2n_psk_parameters_wipe(&conn->psk_params));
+    GUARD(s2n_psk_parameters_wipe(&conn->psk_params));
 
     /* produce handshake secrets */
     s2n_stack_blob(client_hs_secret, secrets.size, S2N_TLS13_SECRET_MAX_LEN);
