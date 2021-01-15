@@ -130,11 +130,15 @@ static int s2n_certs_exist_for_sig_scheme(struct s2n_connection *conn, const str
 
 static int s2n_certs_exist_for_auth_method(struct s2n_connection *conn, s2n_authentication_method auth_method)
 {
+    if (auth_method == S2N_AUTHENTICATION_METHOD_SENTINEL) {
+        return S2N_SUCCESS;
+    }
+
     s2n_authentication_method auth_method_for_cert_type;
     for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
         GUARD(s2n_get_auth_method_for_cert_type(i, &auth_method_for_cert_type));
 
-        if (auth_method != S2N_AUTHENTICATION_METHOD_SENTINEL && auth_method != auth_method_for_cert_type) {
+        if (auth_method != auth_method_for_cert_type) {
             continue;
         }
 
@@ -145,11 +149,10 @@ static int s2n_certs_exist_for_auth_method(struct s2n_connection *conn, s2n_auth
     S2N_ERROR(S2N_ERR_CERT_TYPE_UNSUPPORTED);
 }
 
-/* A cipher suite is valid if:
- * - At least one compatible cert is configured
+/* TLS1.3 ciphers are always valid, as they don't include an auth method.
  *
- * TLS1.3 ciphers are valid if ANY certs are configured, as authentication
- * method is not tied to cipher suites in TLS1.3.
+ * A pre-TLS1.3 cipher suite is valid if:
+ * - At least one compatible cert is configured
  *
  * This method is called by the server when choosing a cipher suite.
  */

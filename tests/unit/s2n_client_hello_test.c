@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
             EXPECT_TRUE(s2n_stuffer_data_available(&conn->handshake.io) > 0);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(conn), S2N_ERR_CIPHER_NOT_SUPPORTED);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(conn), S2N_ERR_INVALID_SIGNATURE_SCHEME);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
