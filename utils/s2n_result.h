@@ -44,5 +44,10 @@ S2N_RESULT_MUST_USE bool s2n_result_is_error(s2n_result result);
 /* used in function declarations to signal function fallibility */
 #define S2N_RESULT S2N_RESULT_MUST_USE s2n_result
 
+/* The DEFER_CLEANUP macro discards the result of its cleanup function.
+ * We need a version of s2n_result which can be ignored.
+ */
+#define S2N_CLEANUP_RESULT s2n_result
+
 /* converts the S2N_RESULT into posix error codes */
 #define S2N_RESULT_TO_POSIX( x ) (s2n_result_is_ok(x) ? S2N_SUCCESS : S2N_FAILURE)

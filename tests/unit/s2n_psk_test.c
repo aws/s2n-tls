@@ -151,8 +151,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_psk_init(other_psk, S2N_PSK_TYPE_EXTERNAL));
         EXPECT_SUCCESS(s2n_psk_new_identity(other_psk, test_value, sizeof(test_value)));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_parameters_wipe(NULL), S2N_ERR_NULL);
-        EXPECT_SUCCESS(s2n_psk_parameters_wipe(&params));
+        EXPECT_ERROR_WITH_ERRNO(s2n_psk_parameters_wipe(NULL), S2N_ERR_NULL);
+        EXPECT_OK(s2n_psk_parameters_wipe(&params));
 
         /* Verify params are wiped.
          * The params should be back to their initial state. */
