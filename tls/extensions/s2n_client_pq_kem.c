@@ -21,6 +21,7 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
+#include "pq-crypto/s2n_pq.h"
 
 #include "utils/s2n_safety.h"
 
@@ -41,7 +42,8 @@ static bool s2n_client_pq_kem_should_send(struct s2n_connection *conn)
 {
     const struct s2n_security_policy *security_policy;
     return s2n_connection_get_security_policy(conn, &security_policy) == S2N_SUCCESS
-            && s2n_pq_kem_is_extension_required(security_policy);
+            && s2n_pq_kem_is_extension_required(security_policy)
+            && s2n_pq_is_enabled();
 }
 
 static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -62,6 +64,11 @@ static int s2n_client_pq_kem_recv(struct s2n_connection *conn, struct s2n_stuffe
 {
     uint16_t size_of_all;
     struct s2n_blob *proposed_kems = &conn->secure.client_pq_kem_extension;
+
+    /* Ignore extension if PQ is disabled */
+    if (!s2n_pq_is_enabled()) {
+        return S2N_SUCCESS;
+    }
 
     GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
     if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all % sizeof(kem_extension_size)) {

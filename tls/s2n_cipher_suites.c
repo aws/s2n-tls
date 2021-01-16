@@ -29,6 +29,7 @@
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 #include "tls/s2n_psk.h"
+#include "pq-crypto/s2n_pq.h"
 
 /*************************
  * S2n Record Algorithms *
@@ -809,11 +810,9 @@ static struct s2n_cipher_suite *s2n_all_cipher_suites[] = {
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
     &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
     &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
-#if !defined(S2N_NO_PQ)
     &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x04 */
     &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x08 */
     &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,   /* 0xFF,0x0C */
-#endif
 };
 
 /* All supported ciphers. Exposed for integration testing. */
@@ -859,11 +858,9 @@ static struct s2n_cipher_suite *s2n_all_tls12_cipher_suites[] = {
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,   /* 0xCC,0xA8 */
     &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256, /* 0xCC,0xA9 */
     &s2n_dhe_rsa_with_chacha20_poly1305_sha256,     /* 0xCC,0xAA */
-#if !defined(S2N_NO_PQ)
     &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x04 */
     &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,    /* 0xFF,0x08 */
     &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,   /* 0xFF,0x0C */
-#endif
 };
 
 const struct s2n_cipher_preferences cipher_preferences_test_all_tls12 = {
@@ -1017,6 +1014,12 @@ int s2n_cipher_suites_init(void)
                 cur_suite->record_alg = cur_suite->all_record_algs[j];
                 break;
             }
+        }
+
+        /* Mark PQ cipher suites as unavailable if PQ is disabled */
+        if (s2n_kex_includes(cur_suite->key_exchange_alg, &s2n_kem) && !s2n_pq_is_enabled()) {
+            cur_suite->available = 0;
+            cur_suite->record_alg = NULL;
         }
 
         /* Initialize SSLv3 cipher suite if SSLv3 utilizes a different record algorithm */

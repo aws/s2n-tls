@@ -20,7 +20,7 @@
 
 #include "utils/s2n_safety.h"
 
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 
 static int s2n_server_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -38,7 +38,7 @@ static int s2n_server_key_share_generate_pq_hybrid(struct s2n_connection *conn, 
     notnull_check(out);
     notnull_check(conn);
 
-    ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     struct s2n_kem_group_params *server_kem_group_params = &conn->secure.server_kem_group_params;
 
@@ -71,7 +71,7 @@ static int s2n_server_key_share_generate_pq_hybrid(struct s2n_connection *conn, 
 int s2n_server_key_share_send_check_pq_hybrid(struct s2n_connection *conn) {
     notnull_check(conn);
 
-    ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     notnull_check(conn->secure.server_kem_group_params.kem_group);
     notnull_check(conn->secure.server_kem_group_params.kem_params.kem);
@@ -167,9 +167,9 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
     notnull_check(conn);
     notnull_check(extension);
 
-    /* If in FIPS mode, the client should not have sent any PQ IDs
+    /* If PQ is disabled, the client should not have sent any PQ IDs
      * in the supported_groups list of the initial ClientHello */
-    ENSURE_POSIX(s2n_is_in_fips_mode() == false, S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     const struct s2n_kem_preferences *kem_pref = NULL;
     GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));

@@ -19,7 +19,7 @@
 #include <string.h>
 
 #include "crypto/s2n_ecc_evp.h"
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_security_policies.h"
@@ -226,7 +226,7 @@ int main(int argc, char **argv)
             TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
             TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
             TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384,
-            TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384,
+            TLS_ECDHE_SIKE_RSA_WITH_AES_256_GCM_SHA384,
             TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384,
         };
         const uint8_t cipher_count = sizeof(wire_ciphers) / S2N_TLS_CIPHER_SUITE_LEN;
@@ -359,11 +359,27 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_rsa_wire_choice));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-#if !defined(S2N_NO_PQ)
-        if (!s2n_is_in_fips_mode()) {
-            /* There is no support for PQ KEMs while in FIPS mode */
-            /* Test that clients that support PQ ciphers can negotiate them. */
-            const uint8_t expected_pq_wire_choice[] = {TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384};
+        /* Test that PQ cipher suites are marked available/unavailable appropriately in s2n_cipher_suites_init() */
+        {
+            const struct s2n_cipher_suite *pq_suites[] = {
+                    &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
+                    &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
+                    &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
+            };
+
+            for (size_t i = 0; i < s2n_array_len(pq_suites); i++) {
+                if (s2n_pq_is_enabled()) {
+                    EXPECT_EQUAL(pq_suites[i]->available, 1);
+                    EXPECT_NOT_NULL(pq_suites[i]->record_alg);
+                } else {
+                    EXPECT_EQUAL(pq_suites[i]->available, 0);
+                    EXPECT_NULL(pq_suites[i]->record_alg);
+                }
+            }
+        }
+
+        /* Test that clients that support PQ ciphers can negotiate them. */
+        {
             uint8_t client_extensions_data[] = {
                     0xFE, 0x01, /* PQ KEM extension ID */
                     0x00, 0x04, /* Total extension length in bytes */
@@ -377,7 +393,14 @@ int main(int argc, char **argv)
             conn->secure.client_pq_kem_extension.data = client_extensions_data;
             conn->secure.client_pq_kem_extension.size = client_extensions_len;
             EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
-            EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(expected_pq_wire_choice));
+            const uint8_t bike_cipher[] = {TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384};
+            const uint8_t ecc_cipher[] = {TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384};
+            if (s2n_pq_is_enabled()) {
+                EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(bike_cipher));
+            } else {
+                EXPECT_EQUAL(conn->secure.cipher_suite, s2n_cipher_suite_from_wire(ecc_cipher));
+            }
+
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
             /* Test cipher preferences that use PQ cipher suites that require TLS 1.2 fall back to classic ciphers if a client
@@ -395,7 +418,6 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
             }
         }
-#endif
 
         /* Clean+free to setup for ECDSA tests */
         EXPECT_SUCCESS(s2n_config_free(server_config));

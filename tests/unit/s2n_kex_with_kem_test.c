@@ -23,11 +23,10 @@
 #include "tls/s2n_kem.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_security_policies.h"
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 
 #include "utils/s2n_safety.h"
 
-#if !defined(S2N_NO_PQ)
 static struct s2n_kex s2n_test_kem_kex = {
         .server_key_recv_read_data = &s2n_kem_server_key_recv_read_data,
         .server_key_recv_parse_data = &s2n_kem_server_key_recv_parse_data,
@@ -52,8 +51,6 @@ static struct s2n_cipher_suite kyber_test_suite = {
 };
 
 static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *security_policy_version, const struct s2n_kem *negotiated_kem) {
-    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
-
     struct s2n_connection *client_conn;
     struct s2n_connection *server_conn;
 
@@ -130,12 +127,7 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *se
     return 0;
 }
 
-static int assert_kex_fips_checks(struct s2n_cipher_suite *cipher_suite, const char *security_policy_version, const struct s2n_kem *negotiated_kem) {
-    if (!s2n_is_in_fips_mode()) {
-        /* This function should only be called when FIPS mode is enabled */
-        return S2N_FAILURE;
-    }
-
+static int assert_pq_disabled_checks(struct s2n_cipher_suite *cipher_suite, const char *security_policy_version, const struct s2n_kem *negotiated_kem) {
     struct s2n_connection *server_conn;
     GUARD_NONNULL(server_conn = s2n_connection_new(S2N_SERVER));
     const struct s2n_security_policy *security_policy = NULL;
@@ -145,13 +137,13 @@ static int assert_kex_fips_checks(struct s2n_cipher_suite *cipher_suite, const c
     server_conn->secure.cipher_suite = cipher_suite;
     server_conn->security_policy_override = security_policy;
 
-    /* If in FIPS mode:
+    /* If PQ is disabled:
      * s2n_check_kem() (s2n_hybrid_ecdhe_kem.connection_supported) should return 0
      * s2n_configure_kem() (s2n_hybrid_ecdhe_kem.configure_connection) should return -1 and
-     *     set s2n_errno to S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS */
+     *     set s2n_errno to S2N_ERR_PQ_DISABLED */
     int ret_val = (s2n_hybrid_ecdhe_kem.connection_supported(cipher_suite, server_conn) != 0) &&
                   (s2n_hybrid_ecdhe_kem.configure_connection(cipher_suite, server_conn) != S2N_FAILURE) &&
-                  (s2n_errno != S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+                  (s2n_errno != S2N_ERR_PQ_DISABLED);
 
     GUARD(s2n_connection_free(server_conn));
     s2n_errno = 0;
@@ -159,29 +151,25 @@ static int assert_kex_fips_checks(struct s2n_cipher_suite *cipher_suite, const c
 
     return ret_val;
 }
-#endif
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
 
-#if !defined(S2N_NO_PQ)
+    if (!s2n_pq_is_enabled()) {
+        /* Verify s2n_check_kem() and s2n_configure_kem() are performing their pq-enabled checks appropriately. */
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r2));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p503_r1));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r2));
 
-    if (s2n_is_in_fips_mode()) {
-        /* There is no support for PQ KEMs while in FIPS mode. So we verify functions s2n_check_kem() and
-         * s2n_configure_kem() (in s2n_kex.c) are performing their FIPS checks appropriately. */
-        EXPECT_SUCCESS(assert_kex_fips_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p503_r1));
-        EXPECT_SUCCESS(assert_kex_fips_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r2));
-        EXPECT_SUCCESS(assert_kex_fips_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p503_r1));
-        EXPECT_SUCCESS(assert_kex_fips_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r2));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r2));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r1));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r2));
 
-        EXPECT_SUCCESS(assert_kex_fips_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r1));
-        EXPECT_SUCCESS(assert_kex_fips_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r2));
-        EXPECT_SUCCESS(assert_kex_fips_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r1));
-        EXPECT_SUCCESS(assert_kex_fips_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r2));
-
-        EXPECT_SUCCESS(assert_kex_fips_checks(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_kyber_512_r2));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_kyber_512_r2));
     } else {
         /* KMS-PQ-TLS-1-0-2019-06 supports only Round 1 KEMs
          * KMS-PQ-TLS-1-0-2020-02 supports Round 1 and Round 2 KEMs */
@@ -229,8 +217,6 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_sike_p503_r1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_sike_p434_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     }
-
-#endif
 
     END_TEST();
 }

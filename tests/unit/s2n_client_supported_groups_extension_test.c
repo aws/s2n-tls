@@ -24,7 +24,7 @@
 
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 #include "tls/s2n_tls13.h"
 
 int main()
@@ -80,7 +80,6 @@ int main()
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-#if !defined(S2N_NO_PQ)
     {
         /* Define various PQ security policies to test different configurations */
         /* SIKE, BIKE*/
@@ -199,13 +198,13 @@ int main()
             uint16_t length;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &length));
             uint16_t expected_length = ecc_pref->count * sizeof(uint16_t);
-            if (!s2n_is_in_fips_mode()) {
+            if (s2n_pq_is_enabled()) {
                 expected_length += kem_pref->tls13_kem_group_count * sizeof(uint16_t);
             }
             EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
             EXPECT_EQUAL(length, expected_length);
 
-            if (!s2n_is_in_fips_mode()) {
+            if (s2n_pq_is_enabled()) {
                 uint16_t kem_id;
                 for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
                     EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &kem_id));
@@ -307,8 +306,8 @@ int main()
 
                 EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(server_conn, &stuffer));
 
-                /* If in FIPS mode, s2n_client_supported_groups_extension.send will not have sent PQ IDs */
-                if (s2n_is_in_fips_mode()) {
+                /* If PQ is disabled, s2n_client_supported_groups_extension.send will not have sent PQ IDs */
+                if (!s2n_pq_is_enabled()) {
                     EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, server_ecc_pref->ecc_curves[0]);
                     EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
                     EXPECT_NULL(server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
@@ -464,9 +463,9 @@ int main()
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
 
-        /* Test recv - server doesn't recognize PQ group IDs when FIPS is enabled */
+        /* Test recv - server doesn't recognize PQ group IDs when PQ is disabled */
         {
-            if (s2n_is_in_fips_mode()) {
+            if (!s2n_pq_is_enabled()) {
                 EXPECT_SUCCESS(s2n_enable_tls13());
                 struct s2n_connection *client_conn;
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -485,7 +484,7 @@ int main()
                 server_conn->security_policy_override = &test_pq_security_policy_sike_bike;
 
                 /* Manually craft a supported_groups extension with one PQ ID and one ECC ID, because
-                 * s2n_client_supported_groups_extension.send will ignore PQ IDs when FIPS is enabled */
+                 * s2n_client_supported_groups_extension.send will ignore PQ IDs when PQ is disabled */
                 DEFER_CLEANUP(struct s2n_stuffer stuffer = {0}, s2n_stuffer_free);
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
                 struct s2n_stuffer_reservation group_list_len = {0};
@@ -512,7 +511,6 @@ int main()
             }
         }
     }
-#endif
 
     /* Test recv */
     {

@@ -480,7 +480,7 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
 }
 
 #if defined(S2N_NO_PQ)
-/* IF S2N_NO_PQ was defined at compile time, the PQ KEM code will have been entirely excluded
+/* If S2N_NO_PQ was defined at compile time, the PQ KEM code will have been entirely excluded
  * from compilation. We define stubs of these functions here to error if they are called. */
 /* sikep503r1 */
 int SIKE_P503_r1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
