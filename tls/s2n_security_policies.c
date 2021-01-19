@@ -477,8 +477,8 @@ const struct s2n_security_policy security_policy_test_all_fips = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_test_all_fips,
     .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .signature_preferences = &s2n_signature_preferences_20201021,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
 };
 
 const struct s2n_security_policy security_policy_test_all_ecdsa = {
