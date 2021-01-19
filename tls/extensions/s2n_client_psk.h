@@ -22,3 +22,9 @@
 extern const s2n_extension_type s2n_client_psk_extension;
 
 bool s2n_client_psk_should_send(struct s2n_connection *conn);
+
+S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const struct s2n_blob *wire_identity,
+        struct s2n_psk **match);
+int s2n_choose_psk(struct s2n_connection *conn, 
+                   struct s2n_psk_identity *identities, size_t identities_length, 
+                   struct s2n_chosen_psk *chosen_psk);

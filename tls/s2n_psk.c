@@ -279,12 +279,24 @@ S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-static int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac psk_hmac_alg)
+int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac psk_hmac_alg)
 {
     switch(psk_hmac_alg) {
         case S2N_PSK_HMAC_SHA224:     psk->hmac_alg = S2N_HMAC_SHA224; break;
         case S2N_PSK_HMAC_SHA256:     psk->hmac_alg = S2N_HMAC_SHA256; break;
         case S2N_PSK_HMAC_SHA384:     psk->hmac_alg = S2N_HMAC_SHA384; break;
+        default:
+            S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
+    }
+    return S2N_SUCCESS;
+}
+
+int s2n_external_psk_set_hmac(struct s2n_external_psk *external_psk, s2n_hmac_algorithm hmac_alg)
+{
+    switch(hmac_alg) {
+        case S2N_HMAC_SHA224:     external_psk->hmac = S2N_PSK_HMAC_SHA224; break;
+        case S2N_HMAC_SHA256:     external_psk->hmac = S2N_PSK_HMAC_SHA256; break;
+        case S2N_HMAC_SHA384:     external_psk->hmac = S2N_PSK_HMAC_SHA384; break;
         default:
             S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
     }
@@ -329,6 +341,16 @@ int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_ext
         GUARD(s2n_psk_new_secret(new_psk, psk_vec[i].secret, psk_vec[i].secret_length));
         GUARD(s2n_psk_set_hmac(new_psk, psk_vec[i].hmac));
     }
+
+    return S2N_SUCCESS;
+}
+
+int s2n_config_choose_psk_cb(struct s2n_connection *conn, s2n_psk_selection_callback cb)
+{
+    notnull_check(conn);
+    notnull_check(cb);
+
+    conn->config->psk_selection_cb = cb;
 
     return S2N_SUCCESS;
 }

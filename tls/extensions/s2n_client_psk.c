@@ -18,6 +18,7 @@
 
 #include "crypto/s2n_hash.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_psk.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/extensions/s2n_client_psk.h"
 
@@ -26,6 +27,9 @@
 
 #define SIZE_OF_BINDER_SIZE sizeof(uint8_t)
 #define SIZE_OF_BINDER_LIST_SIZE sizeof(uint16_t)
+#define S2N_MAX_IDENTITY_SIZE 1000
+#define S2N_MAX_SECRET_SIZE 1000
+#define S2N_MAX_WIRE_INDEX 65535
 
 static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -131,7 +135,7 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
  * and an attacker could probably guess the server's known identities just by observing the public identities
  * sent by clients.
  */
-static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const struct s2n_blob *wire_identity,
+S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const struct s2n_blob *wire_identity,
         struct s2n_psk **match)
 {
     ENSURE_REF(match);
@@ -157,21 +161,79 @@ static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const str
     return S2N_RESULT_OK;
 }
 
+int s2n_choose_psk(struct s2n_connection *conn, 
+                   struct s2n_psk_identity *identities, size_t identities_length,
+                   struct s2n_chosen_psk *chosen_psk)
+{
+    notnull_check(conn);
+    notnull_check(identities);
+    notnull_check(chosen_psk);
+
+    struct s2n_array *known_psks = &conn->psk_params.psk_list;
+
+    for (size_t i = 0; i < identities_length; i++) {
+        struct s2n_blob wire_identity = { 0 };
+        GUARD(s2n_blob_init(&wire_identity, identities[ i ].data, identities[ i ].length));
+
+        struct s2n_psk *local_match = NULL;
+        GUARD_AS_POSIX(s2n_match_psk_identity(known_psks, &wire_identity, &local_match));
+
+        if (local_match != NULL) {
+            chosen_psk->external_psk.identity_length = local_match->identity.size;
+            memcpy_check(chosen_psk->external_psk.identity, local_match->identity.data, local_match->identity.size);
+            chosen_psk->external_psk.secret_length = local_match->secret.size;
+            memcpy_check(chosen_psk->external_psk.secret, local_match->secret.data, local_match->secret.size);
+            GUARD(s2n_external_psk_set_hmac(&chosen_psk->external_psk, local_match->hmac_alg));
+            chosen_psk->wire_index = i;
+            break;
+        }
+    }
+
+    return S2N_SUCCESS;
+}
+
+static S2N_RESULT s2n_count_psk_identities(struct s2n_stuffer *input, uint16_t *identity_count)
+{
+    ENSURE_REF(input);
+
+    *identity_count = 0;
+    while (s2n_stuffer_data_available(input) > 0) {
+        uint16_t identity_size = 0;
+        GUARD_AS_RESULT(s2n_stuffer_read_uint16(input, &identity_size));
+        GUARD_AS_RESULT(s2n_stuffer_skip_read(input, identity_size));
+        GUARD_AS_RESULT(s2n_stuffer_skip_read(input, sizeof(uint32_t)));
+        (*identity_count)++;
+    }
+    GUARD_AS_RESULT(s2n_stuffer_reread(input));
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn, struct s2n_stuffer *wire_identities_in)
 {
     ENSURE_REF(conn);
     ENSURE_REF(wire_identities_in);
+    ENSURE_EQ(conn->psk_params.chosen_psk, NULL);
+    ENSURE_EQ(conn->psk_params.chosen_psk_wire_index, 0);
+
+    uint16_t identities_count = 0;
+    GUARD_RESULT(s2n_count_psk_identities(wire_identities_in, &identities_count));
+
+    if (identities_count == 0) { return S2N_RESULT_OK; }
+
+    DEFER_CLEANUP(struct s2n_blob wire_identities_blob = { 0 }, s2n_free);
+    GUARD_AS_RESULT(s2n_alloc(&wire_identities_blob, identities_count * sizeof(struct s2n_psk_identity)));
+    struct s2n_psk_identity *wire_identities = ( struct s2n_psk_identity * )wire_identities_blob.data;
 
     uint16_t wire_index = 0;
     while (s2n_stuffer_data_available(wire_identities_in) > 0) {
         uint16_t identity_size = 0;
         GUARD_AS_RESULT(s2n_stuffer_read_uint16(wire_identities_in, &identity_size));
 
-        uint8_t *identity_data;
-        ENSURE_REF(identity_data = s2n_stuffer_raw_read(wire_identities_in, identity_size));
+        uint8_t *identity_data = s2n_stuffer_raw_read(wire_identities_in, identity_size);
+        ENSURE_REF(identity_data);
 
-        struct s2n_blob identity = { 0 };
-        GUARD_AS_RESULT(s2n_blob_init(&identity, identity_data, identity_size));
+        wire_identities[wire_index].data = identity_data;
+        wire_identities[wire_index].length = identity_size;
 
         /**
          *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
@@ -181,19 +243,40 @@ static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn,
         uint32_t obfuscated_ticket_age = 0;
         GUARD_AS_RESULT(s2n_stuffer_read_uint32(wire_identities_in, &obfuscated_ticket_age));
 
-        /* TODO: Implement the callback to choose a PSK: https://github.com/awslabs/s2n/issues/2397
-         *
-         * When we don't have a callback configured to choose a PSK, we should fall back to accepting
-         * the first PSK identity that also exists in our list of supported PSKs. */
-        GUARD_RESULT(s2n_match_psk_identity(&conn->psk_params.psk_list, &identity, &conn->psk_params.chosen_psk));
-
-        if (conn->psk_params.chosen_psk) {
-            conn->psk_params.chosen_psk_wire_index = wire_index;
-            return S2N_RESULT_OK;
-        }
-
         wire_index++;
     }
+
+    struct s2n_chosen_psk chosen_psk  = { 0 };
+    uint8_t external_identity[ S2N_MAX_IDENTITY_SIZE ] = { 0 };
+    uint8_t external_secret[ S2N_MAX_SECRET_SIZE ] = { 0 };
+    chosen_psk.external_psk.identity = external_identity;
+    chosen_psk.external_psk.secret = external_secret;
+    chosen_psk.wire_index = S2N_MAX_WIRE_INDEX;
+
+    if (conn->config->psk_selection_cb) {
+        conn->config->psk_selection_cb(conn, wire_identities, identities_count, &chosen_psk);
+    } else {
+        GUARD_AS_RESULT(s2n_config_choose_psk_cb(conn, s2n_choose_psk));
+        ENSURE_REF(conn->config->psk_selection_cb);
+        conn->config->psk_selection_cb(conn, wire_identities, identities_count, &chosen_psk);
+    }
+
+    if (chosen_psk.wire_index < S2N_MAX_WIRE_INDEX) {
+        struct s2n_psk params_chosen_psk = { 0 };
+        GUARD_AS_RESULT(s2n_blob_init(&params_chosen_psk.identity, chosen_psk.external_psk.identity,
+                                    chosen_psk.external_psk.identity_length));
+        GUARD_AS_RESULT(s2n_blob_init(&params_chosen_psk.secret, chosen_psk.external_psk.secret,
+                                    chosen_psk.external_psk.secret_length));
+        params_chosen_psk.type = S2N_PSK_TYPE_EXTERNAL;
+        params_chosen_psk.obfuscated_ticket_age = 0;
+        params_chosen_psk.early_secret.data = NULL;
+        params_chosen_psk.early_secret.size = 0;
+        GUARD_AS_RESULT(s2n_psk_set_hmac(&params_chosen_psk, chosen_psk.external_psk.hmac));
+
+        conn->psk_params.chosen_psk_wire_index = chosen_psk.wire_index;
+        conn->psk_params.chosen_psk = &params_chosen_psk;
+    }
+
     return S2N_RESULT_OK;
 }
 

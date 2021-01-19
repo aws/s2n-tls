@@ -123,6 +123,7 @@ static int s2n_config_init(struct s2n_config *config)
     config->max_verify_cert_chain_depth_set = 0;
     config->cert_tiebreak_cb = NULL;
     config->async_pkey_cb = NULL;
+    config->psk_selection_cb = NULL;
     config->cert_req_dss_legacy_compat_enabled = 0;
 
     GUARD(s2n_config_setup_default(config));

@@ -23,6 +23,8 @@
 
 /* Include source to test static intermediate functions */
 #include "tls/s2n_psk.c"
+/* Include source for callback function */
+#include "tls/extensions/s2n_client_psk.c"
 
 int main(int argc, char **argv)
 {
@@ -722,6 +724,61 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
         }
+    }
+
+    /* Test: s2n_psk_set_hmac */
+    {
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+        struct s2n_psk *psk = NULL;
+        EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, ( void ** )&psk));
+        uint8_t test_identity[] = "test identity";
+        EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
+        EXPECT_SUCCESS(s2n_psk_new_identity(psk, test_identity, sizeof(test_identity)));
+
+        s2n_psk_hmac psk_hmac_alg = -1;
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_hmac(psk, psk_hmac_alg), S2N_ERR_HMAC_INVALID_ALGORITHM);
+
+        psk_hmac_alg = S2N_PSK_HMAC_SHA224;
+        EXPECT_SUCCESS(s2n_psk_set_hmac(psk, psk_hmac_alg));
+        EXPECT_EQUAL(psk->hmac_alg, S2N_HMAC_SHA224);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test: s2n_external_psk_set_hmac */
+    {
+        uint8_t identity[] = "identity";
+        uint8_t secret[] = "secret";
+        struct s2n_external_psk external_psk = { identity, sizeof(identity), secret, sizeof(secret),
+                                                 S2N_PSK_HMAC_SHA256 };
+
+        s2n_hmac_algorithm hmac_alg = S2N_HMAC_NONE;
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_external_psk_set_hmac(&external_psk, hmac_alg), S2N_ERR_HMAC_INVALID_ALGORITHM);
+
+        hmac_alg = S2N_HMAC_SHA224;
+        EXPECT_SUCCESS(s2n_external_psk_set_hmac(&external_psk, hmac_alg));
+        EXPECT_EQUAL(external_psk.hmac, S2N_PSK_HMAC_SHA224);
+    }
+
+    /* Test callback to select PSK */
+    {
+        struct s2n_connection *conn = NULL;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+        /* Safety checks */
+        {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_choose_psk_cb(NULL, s2n_choose_psk), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_choose_psk_cb(conn, NULL), S2N_ERR_NULL);
+        }
+
+        EXPECT_NULL(conn->config->psk_selection_cb);
+        EXPECT_SUCCESS(s2n_config_choose_psk_cb(conn, s2n_choose_psk));
+        EXPECT_EQUAL(conn->config->psk_selection_cb, s2n_choose_psk);
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     END_TEST();
