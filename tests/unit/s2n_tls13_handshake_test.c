@@ -341,6 +341,8 @@ int main(int argc, char **argv)
                 EXPECT_NOT_EQUAL(psk->identity.size, 0);
                 EXPECT_NOT_EQUAL(psk->identity.data, NULL);
             }
+
+            EXPECT_NOT_EQUAL(conn->psk_params.psk_list.mem.allocated, 0);
             EXPECT_EQUAL(conn->psk_params.psk_list.len, S2N_TEST_PSK_COUNT);
 
             EXPECT_SUCCESS(s2n_tls13_handle_handshake_secrets(conn));
