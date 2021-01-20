@@ -21,7 +21,7 @@ env:
 phases:
   install:
     runtime-versions:
-      python: 3.7
+      python: 3.x
     commands:
       - echo Entered the install phase...
       - apt-key list
