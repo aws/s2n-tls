@@ -1,11 +1,13 @@
 #include <stddef.h>
 #include <stdint.h>
-#include "kem.h"
 #include "params.h"
-#include "rng.h"
 #include "symmetric.h"
 #include "verify.h"
 #include "indcpa.h"
+#include "tls/s2n_kem.h"
+#include "utils/s2n_safety.h"
+#include "pq-crypto/s2n_pq_random.h"
+#include "pq-crypto/s2n_pq.h"
 
 /*************************************************
 * Name:        crypto_kem_keypair
@@ -20,15 +22,16 @@
 *
 * Returns 0 (success)
 **************************************************/
-int crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
+int kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 {
+  ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
   size_t i;
-  indcpa_keypair(pk, sk);
+  GUARD(indcpa_keypair(pk, sk));
   for(i=0;i<KYBER_INDCPA_PUBLICKEYBYTES;i++)
     sk[i+KYBER_INDCPA_SECRETKEYBYTES] = pk[i];
   hash_h(sk+KYBER_SECRETKEYBYTES-2*KYBER_SYMBYTES, pk, KYBER_PUBLICKEYBYTES);
   /* Value z for pseudo-random output on reject */
-  randombytes(sk+KYBER_SECRETKEYBYTES-KYBER_SYMBYTES, KYBER_SYMBYTES);
+  GUARD_AS_POSIX(s2n_get_random_bytes(sk+KYBER_SECRETKEYBYTES-KYBER_SYMBYTES, KYBER_SYMBYTES));
   return 0;
 }
 
@@ -47,15 +50,16 @@ int crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 *
 * Returns 0 (success)
 **************************************************/
-int crypto_kem_enc(unsigned char *ct,
+int kyber_512_r3_crypto_kem_enc(unsigned char *ct,
                    unsigned char *ss,
                    const unsigned char *pk)
 {
+  ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
   uint8_t buf[2*KYBER_SYMBYTES];
   /* Will contain key, coins */
   uint8_t kr[2*KYBER_SYMBYTES];
 
-  randombytes(buf, KYBER_SYMBYTES);
+  GUARD_AS_POSIX(s2n_get_random_bytes(buf, KYBER_SYMBYTES));
   /* Don't release system RNG output */
   hash_h(buf, buf, KYBER_SYMBYTES);
 
@@ -90,10 +94,11 @@ int crypto_kem_enc(unsigned char *ct,
 *
 * On failure, ss will contain a pseudo-random value.
 **************************************************/
-int crypto_kem_dec(unsigned char *ss,
+int kyber_512_r3_crypto_kem_dec(unsigned char *ss,
                    const unsigned char *ct,
                    const unsigned char *sk)
 {
+  ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
   size_t i;
   int fail;
   uint8_t buf[2*KYBER_SYMBYTES];

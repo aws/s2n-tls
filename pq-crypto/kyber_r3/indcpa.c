@@ -4,9 +4,10 @@
 #include "indcpa.h"
 #include "poly.h"
 #include "polyvec.h"
-#include "rng.h"
 #include "ntt.h"
 #include "symmetric.h"
+#include "pq-crypto/s2n_pq_random.h"
+#include "utils/s2n_safety.h"
 
 /*************************************************
 * Name:        pack_pk
@@ -215,7 +216,7 @@ void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
 *              - uint8_t *sk: pointer to output private key
                               (of length KYBER_INDCPA_SECRETKEYBYTES bytes)
 **************************************************/
-void indcpa_keypair(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
+int indcpa_keypair(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
                     uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES])
 {
   unsigned int i;
@@ -225,7 +226,7 @@ void indcpa_keypair(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
   uint8_t nonce = 0;
   polyvec a[KYBER_K], e, pkpv, skpv;
 
-  randombytes(buf, KYBER_SYMBYTES);
+  GUARD_AS_POSIX(s2n_get_random_bytes(buf, KYBER_SYMBYTES));
   hash_g(buf, buf, KYBER_SYMBYTES);
 
   gen_a(a, publicseed);
@@ -249,6 +250,8 @@ void indcpa_keypair(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
 
   pack_sk(sk, &skpv);
   pack_pk(pk, &pkpv, publicseed);
+
+  return 0;
 }
 
 /*************************************************
