@@ -285,6 +285,12 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     /* Now choose the ciphers we have certs for. */
     GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
 
+    /* If we're using a PSK, we don't need to choose a signature algorithm or certificate,
+     * because no additional auth is required. */
+    if (conn->psk_params.chosen_psk != NULL) {
+        return S2N_SUCCESS;
+    }
+
     /* And set the signature and hash algorithm used for key exchange signatures */
     GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn,
         &conn->handshake_params.client_sig_hash_algs,
@@ -293,7 +299,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     /* And finally, set the certs specified by the final auth + sig_alg combo. */
     GUARD(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_client_hello_recv(struct s2n_connection *conn)
