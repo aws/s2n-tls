@@ -452,7 +452,7 @@ int s2n_connection_free(struct s2n_connection *conn)
 {
     GUARD(s2n_connection_wipe_keys(conn));
     GUARD(s2n_connection_free_keys(conn));
-    GUARD(s2n_psk_parameters_free(&conn->psk_params));
+    GUARD_AS_POSIX(s2n_psk_parameters_wipe(&conn->psk_params));
 
     GUARD(s2n_prf_free(conn));
 

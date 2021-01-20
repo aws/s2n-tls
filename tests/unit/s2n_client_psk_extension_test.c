@@ -313,7 +313,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(match, expected_match);
         }
 
-        EXPECT_SUCCESS(s2n_psk_parameters_free(&params));
+        EXPECT_OK(s2n_psk_parameters_wipe(&params));
     }
 
     /* Test: s2n_client_psk_recv_identity_list */

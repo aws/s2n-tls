@@ -333,7 +333,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
 
             const uint8_t psk_data[] = "test";
-            struct s2n_psk *test_psks[S2N_TEST_PSK_COUNT] = { 0 };
             for (size_t i = 0; i < S2N_TEST_PSK_COUNT; i++) {
                 struct s2n_psk *psk = NULL;
                 EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
@@ -341,18 +340,15 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_psk_new_identity(psk, psk_data, sizeof(psk_data)));
                 EXPECT_NOT_EQUAL(psk->identity.size, 0);
                 EXPECT_NOT_EQUAL(psk->identity.data, NULL);
-                test_psks[i] = psk;
             }
+
+            EXPECT_NOT_EQUAL(conn->psk_params.psk_list.mem.allocated, 0);
             EXPECT_EQUAL(conn->psk_params.psk_list.len, S2N_TEST_PSK_COUNT);
 
             EXPECT_SUCCESS(s2n_tls13_handle_handshake_secrets(conn));
 
-            /* Verify all PSKs are wiped */
-            for (size_t i = 0; i < S2N_TEST_PSK_COUNT; i++) {
-                struct s2n_psk *psk = test_psks[i];
-                EXPECT_EQUAL(psk->identity.size, 0);
-                EXPECT_EQUAL(psk->identity.data, NULL);
-            }
+            /* Verify PSKs are wiped */
+            EXPECT_EQUAL(conn->psk_params.psk_list.mem.allocated, 0);
             EXPECT_EQUAL(conn->psk_params.psk_list.len, 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));

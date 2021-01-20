@@ -78,7 +78,7 @@ S2N_RESULT s2n_psk_parameters_init(struct s2n_psk_parameters *params)
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_psk_parameters_wipe(struct s2n_psk_parameters *params)
+S2N_CLEANUP_RESULT s2n_psk_parameters_wipe(struct s2n_psk_parameters *params)
 {
     ENSURE_REF(params);
 
@@ -87,20 +87,10 @@ S2N_RESULT s2n_psk_parameters_wipe(struct s2n_psk_parameters *params)
         GUARD_RESULT(s2n_array_get(&params->psk_list, i, (void**)&psk));
         GUARD_AS_RESULT(s2n_psk_free(psk));
     }
+    GUARD_AS_RESULT(s2n_free(&params->psk_list.mem));
+    GUARD_RESULT(s2n_psk_parameters_init(params));
 
-    struct s2n_blob psk_list_mem = params->psk_list.mem;
-    s2n_result result = s2n_psk_parameters_init(params);
-    params->psk_list.mem = psk_list_mem;
-
-    return result;
-}
-
-int s2n_psk_parameters_free(struct s2n_psk_parameters *params)
-{
-    notnull_check(params);
-    GUARD_AS_POSIX(s2n_psk_parameters_wipe(params));
-    GUARD(s2n_free(&params->psk_list.mem));
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 /* The binder hash is computed by hashing the concatenation of the current transcript
