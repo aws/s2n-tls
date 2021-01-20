@@ -128,7 +128,7 @@ int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_
 #define S2N_DHPARAMS_2048 "../pems/dhparams_2048.pem"
 
 #define S2N_ONE_TRAILING_BYTE_CERT_BIN         "../pems/one_trailing_byte_cert.bin"
-#define S2N_TWO_TRAILING_BYTE_CERT_BIN         "../pems/two_trailing_byte_cert.bin"
+#define S2N_FOUR_TRAILING_BYTE_CERT_BIN        "../pems/four_trailing_byte_cert.bin"
 
 /* This is a certificate with a legacy SHA-1 signature on the root certificate. This is used to prove
  * that our certificate validation code does not fail a root certificate signed with SHA-1. */
