@@ -2,15 +2,11 @@
 #define PARAMS_H
 #define KYBER_K 2
 
-
-//#define KYBER_90S /* Uncomment this if you want the 90S variant */
-
 /* Don't change parameters below this line */
-#define KYBER_NAMESPACE(s) PQCLEAN_KYBER512_CLEAN##s
+#define S2N_KYBER_512_R3_NAMESPACE(s) S2N_KYBER_512_R3_CLEAN##s
 
 #define KYBER_N 256
 #define KYBER_Q 3329
-
 
 #define KYBER_SYMBYTES 32   /* size in bytes of hashes, and seeds */
 #define KYBER_SSBYTES  32   /* size in bytes of shared key */
