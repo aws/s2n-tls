@@ -103,6 +103,10 @@ int main(int argc, char **argv)
         "dce71df4deda4ab42c309572cb7fffee5454b78f07"
         "18");
 
+    S2N_BLOB_FROM_HEX(client_finished, 
+        "14000020a8ec436d677634ae525ac"
+        "1fcebe11a039ec17694fac6e98527b642f2edd5ce61");
+
     S2N_BLOB_FROM_HEX(expect_server_finished_verify,
         "9b9b141d906337fbd2cbdce71df4"
         "deda4ab42c309572cb7fffee5454b78f0718");
@@ -137,6 +141,14 @@ int main(int argc, char **argv)
     S2N_BLOB_FROM_HEX(expect_derived_server_application_traffic_secret,
         "a11af9f05531f856ad47116b45a9"
         "50328204b4f44bfb6b3a4b4f1f3fcb631643");
+
+    S2N_BLOB_FROM_HEX(expect_derived_master_resumption_secret, 
+        "7df235f2031d2a051287d02b0241"
+        "b0bfdaf86cc856231f2d5aba46c434ec196c");
+
+    S2N_BLOB_FROM_HEX(expected_session_ticket_secret, 
+        "4ecd0eb6ec3b4d87f5d6028f922c"
+        "a4c5851a277fd41311c9e62d2c9492e1c4f3");
 
     S2N_BLOB_FROM_HEX(expect_handshake_traffic_server_key,
         "3fce516009c21727d0f2e4e86ee403bc");
@@ -237,6 +249,25 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_tls13_derive_application_secret(&secrets, &hash_state, &server_application_secret, S2N_SERVER));
     S2N_BLOB_EXPECT_EQUAL(expect_derived_server_application_traffic_secret, server_application_secret);
+
+    /* Update handshake hashes with Client Finished */
+    EXPECT_SUCCESS(s2n_hash_update(&hash_state, client_finished.data, client_finished.size));
+    
+    /* Test session resumption secret */
+    s2n_tls13_key_blob(master_resumption_secret, secrets.size);
+    EXPECT_SUCCESS(s2n_tls13_derive_resumption_master_secret(&secrets, &hash_state, &master_resumption_secret));
+
+    S2N_BLOB_EXPECT_EQUAL(expect_derived_master_resumption_secret, master_resumption_secret);
+
+    /* Test individual session resumption ticket secret */
+    s2n_tls13_key_blob(session_ticket_secret, secrets.size);
+    uint8_t nonce[2] = {0};
+    struct s2n_blob ticket_nonce = {0};
+    EXPECT_SUCCESS(s2n_blob_init(&ticket_nonce, nonce, sizeof(nonce)));
+
+    EXPECT_OK(s2n_tls13_derive_session_ticket_secret(&secrets, &master_resumption_secret, &ticket_nonce, &session_ticket_secret));
+
+    S2N_BLOB_EXPECT_EQUAL(expected_session_ticket_secret, session_ticket_secret);
 
     /* Test Traffic Keys */
     s2n_tls13_key_blob(handshake_traffic_client_key, 16);
