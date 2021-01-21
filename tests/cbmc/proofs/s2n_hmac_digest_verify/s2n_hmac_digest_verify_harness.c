@@ -14,7 +14,6 @@
  */
 
 #include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "crypto/s2n_hmac.h"
 
@@ -25,10 +24,10 @@ void s2n_hmac_digest_verify_harness()
     uint32_t alen;
     uint32_t blen;
     __CPROVER_assume(len <= MAX_ARR_LEN);
-    __CPROVER_assume(alen <= MAX_ARR_LEN);
-    __CPROVER_assume(blen <= MAX_ARR_LEN);
-    uint8_t *a = bounded_malloc(alen);
-    uint8_t *b = bounded_malloc(blen);
+    __CPROVER_assume(alen >= len);
+    __CPROVER_assume(blen >= len);
+    uint8_t *a = malloc(alen);
+    uint8_t *b = malloc(blen);
 
     /* Check logical equivalence of s2n_constant_time_equals against element equality */
     if (s2n_hmac_digest_verify(a, b, len) == S2N_SUCCESS) {
