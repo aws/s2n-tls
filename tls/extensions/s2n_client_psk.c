@@ -149,7 +149,7 @@ static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn,
 
     DEFER_CLEANUP(struct s2n_blob wire_identities_blob = { 0 }, s2n_free);
     GUARD_AS_RESULT(s2n_alloc(&wire_identities_blob, identities_count * sizeof(struct s2n_psk_identity)));
-    struct s2n_psk_identity *wire_identities = (struct s2n_psk_identity*) wire_identities_blob.data;
+    struct s2n_psk_identity *wire_identities = (struct s2n_psk_identity*) (void *)wire_identities_blob.data;
 
     uint16_t wire_index = 0;
     while (s2n_stuffer_data_available(wire_identities_in) > 0) {

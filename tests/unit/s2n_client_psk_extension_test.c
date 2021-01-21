@@ -313,7 +313,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&wire_identities_in));
         }
 
-        /*  Test psk identities count for identities list containing multiple psk identities */
+        /* Test psk identities count for identities list containing multiple psk identities */
         {
             struct s2n_stuffer wire_identities_in = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_alloc(&wire_identities_in, sizeof(wire_identites)));

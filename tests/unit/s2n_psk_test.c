@@ -743,10 +743,10 @@ int main(int argc, char **argv)
 
         s2n_psk_hmac psk_hmac_alg = -1;
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_hmac(psk, psk_hmac_alg), S2N_ERR_HMAC_INVALID_ALGORITHM);
+        EXPECT_ERROR_WITH_ERRNO(s2n_psk_set_hmac(psk, psk_hmac_alg), S2N_ERR_HMAC_INVALID_ALGORITHM);
 
         psk_hmac_alg = S2N_PSK_HMAC_SHA224;
-        EXPECT_SUCCESS(s2n_psk_set_hmac(psk, psk_hmac_alg));
+        EXPECT_OK(s2n_psk_set_hmac(psk, psk_hmac_alg));
         EXPECT_EQUAL(psk->hmac_alg, S2N_HMAC_SHA224);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -851,7 +851,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* Choose psk from a list without a match */
+        /* Select psk identity from a list without a match */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -868,7 +868,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* Choose psk from a list with an immediate match */
+        /* Select psk identity from a list with an immediate match */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -890,7 +890,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* Choose psk with a match later in the list */
+        /* Select psk identity with a match later in the list */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
