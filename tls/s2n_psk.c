@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
+
 #include "crypto/s2n_tls13_keys.h"
 
 #include "tls/s2n_handshake.h"
@@ -279,24 +281,12 @@ S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac psk_hmac_alg)
+static int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac psk_hmac_alg)
 {
     switch(psk_hmac_alg) {
         case S2N_PSK_HMAC_SHA224:     psk->hmac_alg = S2N_HMAC_SHA224; break;
         case S2N_PSK_HMAC_SHA256:     psk->hmac_alg = S2N_HMAC_SHA256; break;
         case S2N_PSK_HMAC_SHA384:     psk->hmac_alg = S2N_HMAC_SHA384; break;
-        default:
-            S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
-    }
-    return S2N_SUCCESS;
-}
-
-int s2n_external_psk_set_hmac(struct s2n_external_psk *external_psk, s2n_hmac_algorithm hmac_alg)
-{
-    switch(hmac_alg) {
-        case S2N_HMAC_SHA224:     external_psk->hmac = S2N_PSK_HMAC_SHA224; break;
-        case S2N_HMAC_SHA256:     external_psk->hmac = S2N_PSK_HMAC_SHA256; break;
-        case S2N_HMAC_SHA384:     external_psk->hmac = S2N_PSK_HMAC_SHA384; break;
         default:
             S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
     }
@@ -345,12 +335,65 @@ int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_ext
     return S2N_SUCCESS;
 }
 
-int s2n_config_choose_psk_cb(struct s2n_connection *conn, s2n_psk_selection_callback cb)
+/* Match a PSK identity received from the client against the server's known PSK identities.
+ *
+ * While both the client's offered identities and whether a match was found are public, we should make an attempt
+ * to keep the server's known identities a secret. We will make comparisons to the server's identities constant
+ * time (to hide partial matches) and not end the search early when a match is found (to hide the ordering).
+ *
+ * Keeping these comparisons constant time is not high priority. There's no known attack using these timings,
+ * and an attacker could probably guess the server's known identities just by observing the public identities
+ * sent by clients.
+ */
+S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const struct s2n_blob *wire_identity,
+        struct s2n_psk **match)
+{
+    ENSURE_REF(match);
+    ENSURE_REF(wire_identity);
+    ENSURE_REF(known_psks);
+
+    *match = NULL;
+
+    for (size_t i = 0; i < known_psks->len; i++) {
+        struct s2n_psk *psk = NULL;
+        GUARD_RESULT(s2n_array_get(known_psks, i, (void**)&psk));
+        ENSURE_REF(psk);
+
+        ENSURE_REF(psk->identity.data);
+        ENSURE_REF(wire_identity->data);
+
+        uint32_t compare_size = MIN(wire_identity->size, psk->identity.size);
+        if (s2n_constant_time_equals(psk->identity.data, wire_identity->data, compare_size)
+            & (psk->identity.size == wire_identity->size) & (!*match)) {
+            *match = psk;
+        }
+    }
+    return S2N_RESULT_OK;
+}
+
+int s2n_select_psk_identity(struct s2n_connection *conn, 
+                   struct s2n_psk_identity *identities, size_t identities_length,
+                   uint16_t *chosen_wire_index)
 {
     notnull_check(conn);
-    notnull_check(cb);
+    notnull_check(identities);
+    notnull_check(chosen_wire_index);
 
-    conn->config->psk_selection_cb = cb;
+    struct s2n_array *known_psks = &conn->psk_params.psk_list;
 
-    return S2N_SUCCESS;
+    for (size_t i = 0; i < identities_length; i++) {
+        struct s2n_blob wire_identity = { 0 };
+        GUARD(s2n_blob_init(&wire_identity, identities[i].data, identities[i].length));
+
+        struct s2n_psk *local_match = NULL;
+        GUARD_AS_POSIX(s2n_match_psk_identity(known_psks, &wire_identity, &local_match));
+
+        if (local_match != NULL) {
+            *chosen_wire_index = i;
+            return S2N_SUCCESS;
+        }
+    }
+
+    S2N_ERROR(S2N_ERR_VALID_PSK_IDENTITY_NOT_FOUND);
 }
+

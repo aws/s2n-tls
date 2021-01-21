@@ -24,6 +24,7 @@
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
+#include "tls/s2n_psk.h"
 #include "utils/s2n_safety.h"
 #include "crypto/s2n_hkdf.h"
 #include "utils/s2n_map.h"
@@ -857,5 +858,15 @@ int s2n_config_enable_cert_req_dss_legacy_compat(struct s2n_config *config)
 {
     notnull_check(config);
     config->cert_req_dss_legacy_compat_enabled = 1;
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_psk_selection_callback(struct s2n_connection *conn, s2n_psk_selection_callback cb)
+{
+    notnull_check(conn);
+    notnull_check(cb);
+
+    conn->config->psk_selection_cb = cb;
+
     return S2N_SUCCESS;
 }

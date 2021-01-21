@@ -56,14 +56,9 @@ struct s2n_psk {
     struct s2n_blob early_secret;
 };
 
-struct s2n_chosen_psk { 
-    struct s2n_external_psk external_psk;
-    uint16_t wire_index;
-};
-
 struct s2n_psk_identity {
     uint8_t *data;
-    size_t length;
+    uint16_t length;
 };
 
 struct s2n_psk_parameters {
@@ -93,11 +88,15 @@ int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_
         struct s2n_blob *output_binder);
 int s2n_psk_verify_binder(struct s2n_connection *conn, struct s2n_psk *psk,
         const struct s2n_blob *partial_client_hello, struct s2n_blob *binder_to_verify);
-int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac psk_hmac_alg);
-int s2n_external_psk_set_hmac(struct s2n_external_psk *external_psk, s2n_hmac_algorithm hmac_alg);
+
+S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const struct s2n_blob *wire_identity,
+                                  struct s2n_psk **match);
+int s2n_select_psk_identity(struct s2n_connection *conn, struct s2n_psk_identity *identities, size_t identities_length,
+                            uint16_t *chosen_wire_index);
 
 typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn, 
                                           struct s2n_psk_identity *identities, size_t identities_length,
-                                          struct s2n_chosen_psk *chosen_psk);                     
+                                          uint16_t *chosen_wire_index);                     
 /* This function will be labeled S2N_API and become a publicly visible api once we release the psk API. */
-int s2n_config_choose_psk_cb(struct s2n_connection *conn, s2n_psk_selection_callback cb); 
+int s2n_config_set_psk_selection_callback(struct s2n_connection *conn, s2n_psk_selection_callback cb);
+
