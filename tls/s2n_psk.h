@@ -89,11 +89,6 @@ int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_
 int s2n_psk_verify_binder(struct s2n_connection *conn, struct s2n_psk *psk,
         const struct s2n_blob *partial_client_hello, struct s2n_blob *binder_to_verify);
 
-S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const struct s2n_blob *wire_identity,
-                                  struct s2n_psk **match);
-int s2n_select_psk_identity(struct s2n_connection *conn, struct s2n_psk_identity *identities, size_t identities_length,
-                            uint16_t *chosen_wire_index);
-
 typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn, 
                                           struct s2n_psk_identity *identities, size_t identities_length,
                                           uint16_t *chosen_wire_index);                     

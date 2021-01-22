@@ -22,11 +22,16 @@
 #define TEST_VALUE_1 "test value"
 #define TEST_VALUE_2 "another"
 
-#define TEST_BYTES 0x01, 0xFF, 0x23
-#define TEST_BYTES_SIZE 0x00, 0x03
+static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, struct s2n_psk_identity *identities,
+                                                 size_t identities_length, uint16_t *chosen_wire_index)
+{
+    notnull_check(conn);
+    notnull_check(identities);
+    notnull_check(chosen_wire_index);
 
-#define TEST_BYTES_2 0x0A, 0x0B, 0x0C
-#define TEST_BYTES_SIZE_2 0x00, 0x03
+    *chosen_wire_index = 0;
+    return S2N_SUCCESS;
+}
 
 int main(int argc, char **argv)
 {
@@ -757,167 +762,14 @@ int main(int argc, char **argv)
 
         /* Safety checks */
         {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(NULL, s2n_select_psk_identity), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(NULL, s2n_test_select_psk_identity_callback), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(conn, NULL), S2N_ERR_NULL);
         }
 
         EXPECT_NULL(conn->config->psk_selection_cb);
-        EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(conn, s2n_select_psk_identity));
-        EXPECT_EQUAL(conn->config->psk_selection_cb, s2n_select_psk_identity);
+        EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(conn, s2n_test_select_psk_identity_callback));
+        EXPECT_EQUAL(conn->config->psk_selection_cb, s2n_test_select_psk_identity_callback);
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
-
-    /* Test: s2n_match_psk_identity */
-    {
-        struct s2n_psk_parameters params = { 0 };
-        EXPECT_OK(s2n_psk_parameters_init(&params));
-
-        struct s2n_array *known_psks = &params.psk_list;
-        uint8_t test_identity[] = "test identity";
-        uint8_t test_identity_2[] = "test another identity";
-
-        struct s2n_blob wire_identity = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&wire_identity, test_identity, sizeof(test_identity)));
-
-        /* Test: No known PSKs */
-        {
-            struct s2n_psk *match = NULL;
-            EXPECT_OK(s2n_match_psk_identity(known_psks, &wire_identity, &match));
-            EXPECT_NULL(match);
-        }
-
-        /* Test: No match exists */
-        {
-            struct s2n_psk *different_identity = NULL;
-            EXPECT_OK(s2n_array_pushback(known_psks, (void**) &different_identity));
-            EXPECT_SUCCESS(s2n_psk_init(different_identity, S2N_PSK_TYPE_EXTERNAL));
-            EXPECT_SUCCESS(s2n_psk_new_identity(different_identity, test_identity_2, sizeof(test_identity_2)));
-
-            struct s2n_psk *match = NULL;
-            EXPECT_OK(s2n_match_psk_identity(known_psks, &wire_identity, &match));
-            EXPECT_NULL(match);
-        }
-
-        struct s2n_psk *expected_match = NULL;
-
-        /* Test: Match exists */
-        {
-            EXPECT_OK(s2n_array_pushback(known_psks, (void**) &expected_match));
-            EXPECT_SUCCESS(s2n_psk_init(expected_match, S2N_PSK_TYPE_EXTERNAL));
-            EXPECT_SUCCESS(s2n_psk_new_identity(expected_match, test_identity, sizeof(test_identity)));
-
-            struct s2n_psk *match = NULL;
-            EXPECT_OK(s2n_match_psk_identity(known_psks, &wire_identity, &match));
-            EXPECT_EQUAL(match, expected_match);
-        }
-
-        /* Test: Multiple matches exist */
-        {
-            struct s2n_psk *another_match = NULL;
-            EXPECT_OK(s2n_array_pushback(known_psks, (void**) &another_match));
-            EXPECT_SUCCESS(s2n_psk_init(another_match, S2N_PSK_TYPE_EXTERNAL));
-            EXPECT_SUCCESS(s2n_psk_new_identity(another_match, test_identity, sizeof(test_identity)));
-
-            struct s2n_psk *match = NULL;
-            EXPECT_OK(s2n_match_psk_identity(known_psks, &wire_identity, &match));
-            EXPECT_EQUAL(match, expected_match);
-        }
-
-        EXPECT_OK(s2n_psk_parameters_wipe(&params));
-    }
-
-    /* Test: s2n_select_psk_identity */
-    { 
-        uint8_t test_bytes_data[] = { TEST_BYTES };        
-        uint8_t test_bytes_data_2[] = { TEST_BYTES_2 };
-        /* Safety checks */
-        {
-            struct s2n_psk_identity psk_identities[] = { 0 };
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-
-            uint16_t chosen_wire_index = 0;
-            size_t psk_identities_length = 0; 
-
-            EXPECT_FAILURE_WITH_ERRNO(s2n_select_psk_identity(NULL, psk_identities, psk_identities_length, &chosen_wire_index),
-                                      S2N_ERR_NULL);
-
-            EXPECT_FAILURE_WITH_ERRNO(s2n_select_psk_identity(conn, NULL, psk_identities_length, &chosen_wire_index), S2N_ERR_NULL);
-
-            EXPECT_FAILURE_WITH_ERRNO(s2n_select_psk_identity(conn, psk_identities, psk_identities_length, NULL), S2N_ERR_NULL);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-
-        /* Select psk identity from a list without a match */
-        {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-
-            struct s2n_psk_identity psk_identities[] = { 0 };
-            psk_identities[0].data = test_bytes_data;
-            psk_identities[0].length = sizeof(test_bytes_data);
-
-            uint16_t chosen_wire_index = 0;
-            size_t psk_identities_length = sizeof(psk_identities)/sizeof(struct s2n_psk_identity);
-
-            EXPECT_FAILURE_WITH_ERRNO(s2n_select_psk_identity(conn, psk_identities, psk_identities_length, &chosen_wire_index),
-                                      S2N_ERR_VALID_PSK_IDENTITY_NOT_FOUND);
-            EXPECT_EQUAL(chosen_wire_index, 0);
-            EXPECT_EQUAL(conn->psk_params.chosen_psk, NULL);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-
-        /* Select psk identity from a list with an immediate match */
-        {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-
-            struct s2n_psk_identity psk_identities[] = { 0 };
-            psk_identities[0].data = test_bytes_data;
-            psk_identities[0].length = sizeof(test_bytes_data);
-        
-            struct s2n_psk *match_psk = NULL;
-            EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void **) &match_psk));
-            EXPECT_SUCCESS(s2n_psk_init(match_psk, S2N_PSK_TYPE_EXTERNAL));
-            EXPECT_SUCCESS(s2n_psk_new_identity(match_psk, test_bytes_data, sizeof(test_bytes_data)));
-
-            uint16_t chosen_wire_index = 999;
-            size_t psk_identities_length = sizeof(psk_identities)/sizeof(struct s2n_psk_identity);
-
-            EXPECT_SUCCESS(s2n_select_psk_identity(conn, psk_identities, psk_identities_length, &chosen_wire_index));
-            EXPECT_EQUAL(chosen_wire_index, 0);
-            EXPECT_EQUAL(conn->psk_params.chosen_psk, match_psk);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-
-        /* Select psk identity with a match later in the list */
-        {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-
-            struct s2n_psk_identity psk_identities[2] = { 0 };
-            psk_identities[0].data = test_bytes_data;
-            psk_identities[0].length = sizeof(test_bytes_data);
-            psk_identities[1].data = test_bytes_data_2;
-            psk_identities[1].length = sizeof(test_bytes_data_2);
-
-            struct s2n_psk *match_psk = NULL;
-            EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void **) &match_psk));
-            EXPECT_SUCCESS(s2n_psk_init(match_psk, S2N_PSK_TYPE_EXTERNAL));
-            EXPECT_SUCCESS(s2n_psk_new_identity(match_psk, test_bytes_data_2, sizeof(test_bytes_data_2)));
-
-            uint16_t chosen_wire_index = 0;
-            size_t psk_identities_length = sizeof(psk_identities)/sizeof(struct s2n_psk_identity);
-
-            EXPECT_SUCCESS(s2n_select_psk_identity(conn, psk_identities, psk_identities_length, &chosen_wire_index));
-            EXPECT_EQUAL(chosen_wire_index, 1);
-            EXPECT_EQUAL(conn->psk_params.chosen_psk, match_psk);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
     }
 
     END_TEST();
