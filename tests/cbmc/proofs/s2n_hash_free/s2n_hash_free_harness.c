@@ -29,10 +29,9 @@ void s2n_hash_free_harness()
         /* Post-conditions. */
         if (state != NULL) {
             assert(state->hash_impl->free != NULL);
-            assert(IMPLIES(!s2n_is_in_fips_mode(), state->is_ready_for_input == 0));
             assert(IMPLIES(s2n_is_in_fips_mode(), state->digest.high_level.evp.ctx == NULL));
             assert(IMPLIES(s2n_is_in_fips_mode(), state->digest.high_level.evp_md5_secondary.ctx == NULL));
-            assert(IMPLIES(s2n_is_in_fips_mode(), state->is_ready_for_input == 0));
+            assert(state->is_ready_for_input == 0);
         }
     }
 }

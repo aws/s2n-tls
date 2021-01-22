@@ -29,25 +29,21 @@ void s2n_hmac_free_harness()
         /* Post-conditions. */
         if (state != NULL) {
             assert(state->inner.hash_impl->free != NULL);
-            assert(IMPLIES(!s2n_is_in_fips_mode(), state->inner.is_ready_for_input == 0));
             assert(IMPLIES(s2n_is_in_fips_mode(), state->inner.digest.high_level.evp.ctx == NULL));
             assert(IMPLIES(s2n_is_in_fips_mode(), state->inner.digest.high_level.evp_md5_secondary.ctx == NULL));
-            assert(IMPLIES(s2n_is_in_fips_mode(), state->inner.is_ready_for_input == 0));
+            assert(state->inner.is_ready_for_input == 0);
             assert(state->inner_just_key.hash_impl->free != NULL);
-            assert(IMPLIES(!s2n_is_in_fips_mode(), state->inner_just_key.is_ready_for_input == 0));
             assert(IMPLIES(s2n_is_in_fips_mode(), state->inner_just_key.digest.high_level.evp.ctx == NULL));
             assert(IMPLIES(s2n_is_in_fips_mode(), state->inner_just_key.digest.high_level.evp_md5_secondary.ctx == NULL));
-            assert(IMPLIES(s2n_is_in_fips_mode(), state->inner_just_key.is_ready_for_input == 0));
+            assert(state->inner_just_key.is_ready_for_input == 0);
             assert(state->outer.hash_impl->free != NULL);
-            assert(IMPLIES(!s2n_is_in_fips_mode(), state->outer.is_ready_for_input == 0));
             assert(IMPLIES(s2n_is_in_fips_mode(), state->outer.digest.high_level.evp.ctx == NULL));
             assert(IMPLIES(s2n_is_in_fips_mode(), state->outer.digest.high_level.evp_md5_secondary.ctx == NULL));
-            assert(IMPLIES(s2n_is_in_fips_mode(), state->outer.is_ready_for_input == 0));
+            assert(state->outer.is_ready_for_input == 0);
             assert(state->outer_just_key.hash_impl->free != NULL);
-            assert(IMPLIES(!s2n_is_in_fips_mode(), state->outer_just_key.is_ready_for_input == 0));
             assert(IMPLIES(s2n_is_in_fips_mode(), state->outer_just_key.digest.high_level.evp.ctx == NULL));
             assert(IMPLIES(s2n_is_in_fips_mode(), state->outer_just_key.digest.high_level.evp_md5_secondary.ctx == NULL));
-            assert(IMPLIES(s2n_is_in_fips_mode(), state->outer_just_key.is_ready_for_input == 0));
+            assert(state->outer_just_key.is_ready_for_input == 0);
         }
     }
 }
