@@ -31,6 +31,14 @@
 __thread int s2n_errno;
 __thread const char *s2n_debug_str;
 
+/**
+ * Returns the address of the thread-local `s2n_errno` variable
+ */
+int *s2n_errno_location()
+{
+    return &s2n_errno;
+}
+
 static const char *no_such_language = "Language is not supported for error translation";
 static const char *no_such_error = "Internal s2n error";
 

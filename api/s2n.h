@@ -51,6 +51,15 @@ extern "C" {
 S2N_API
 extern __thread int s2n_errno;
 
+/**
+ * Returns the address of the thread-local `s2n_errno` variable
+ *
+ * This function can be used instead of trying to resolve `s2n_errno` directly
+ * in runtimes where thread-local variables may not be easily accessible.
+ */
+S2N_API
+extern int *s2n_errno_location();
+
 typedef enum {
     S2N_ERR_T_OK=0,
     S2N_ERR_T_IO,
