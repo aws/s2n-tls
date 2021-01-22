@@ -65,13 +65,12 @@ void poly_decompress(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES]) {
 **************************************************/
 void poly_tobytes(uint8_t r[KYBER_POLYBYTES], poly *a) {
     unsigned int i;
-    uint16_t t0, t1;
 
     poly_csubq(a);
 
     for (i = 0; i < KYBER_N / 2; i++) {
-        t0 = a->coeffs[2 * i];
-        t1 = a->coeffs[2 * i + 1];
+        uint16_t t0 = a->coeffs[2 * i];
+        uint16_t t1 = a->coeffs[2 * i + 1];
         r[3 * i + 0] = (t0 >> 0);
         r[3 * i + 1] = (t0 >> 8) | (t1 << 4);
         r[3 * i + 2] = (t1 >> 4);
