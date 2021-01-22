@@ -138,18 +138,22 @@ static int assert_pq_disabled_checks(struct s2n_cipher_suite *cipher_suite, cons
     server_conn->security_policy_override = security_policy;
 
     /* If PQ is disabled:
-     * s2n_check_kem() (s2n_hybrid_ecdhe_kem.connection_supported) should return 0
-     * s2n_configure_kem() (s2n_hybrid_ecdhe_kem.configure_connection) should return -1 and
+     * s2n_check_kem() (s2n_hybrid_ecdhe_kem.connection_supported) should indicate that the connection is not supported
+     * s2n_configure_kem() (s2n_hybrid_ecdhe_kem.configure_connection) should return S2N_RESULT_ERROR
      *     set s2n_errno to S2N_ERR_PQ_DISABLED */
-    int ret_val = (s2n_hybrid_ecdhe_kem.connection_supported(cipher_suite, server_conn) != 0) &&
-                  (s2n_hybrid_ecdhe_kem.configure_connection(cipher_suite, server_conn) != S2N_FAILURE) &&
-                  (s2n_errno != S2N_ERR_PQ_DISABLED);
+    bool connection_supported = true;
+    GUARD_AS_POSIX(s2n_hybrid_ecdhe_kem.connection_supported(cipher_suite, server_conn, &connection_supported));
+    eq_check(connection_supported, false);
+
+    eq_check(s2n_result_is_error(s2n_hybrid_ecdhe_kem.configure_connection(cipher_suite, server_conn)), true);
+
+    eq_check(s2n_errno, S2N_ERR_PQ_DISABLED);
 
     GUARD(s2n_connection_free(server_conn));
     s2n_errno = 0;
     s2n_debug_str = NULL;
 
-    return ret_val;
+    return S2N_SUCCESS;
 }
 
 int main(int argc, char **argv)

@@ -724,7 +724,9 @@ skip_cache_lookup:
     /* If we get this far, it's a full handshake */
     conn->handshake.handshake_type |= FULL_HANDSHAKE;
 
-    if (s2n_kex_is_ephemeral(conn->secure.cipher_suite->key_exchange_alg)) {
+    bool is_ephemeral = false;
+    GUARD_AS_POSIX(s2n_kex_is_ephemeral(conn->secure.cipher_suite->key_exchange_alg, &is_ephemeral));
+    if (is_ephemeral) {
         conn->handshake.handshake_type |= TLS12_PERFECT_FORWARD_SECRECY;
     }
 
