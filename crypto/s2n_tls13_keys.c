@@ -352,11 +352,11 @@ int s2n_tls13_derive_resumption_master_secret(struct s2n_tls13_keys *keys, struc
     notnull_check(secret_blob);
 
     /* Sanity check that input hash is of expected type */
-    S2N_ERROR_IF(keys->hash_algorithm != hashes->alg, S2N_ERR_HASH_INVALID_ALGORITHM);
+    ENSURE_POSIX(keys->hash_algorithm == hashes->alg, S2N_ERR_HASH_INVALID_ALGORITHM);
 
     s2n_tls13_key_blob(message_digest, keys->size);
 
-    /* copy the hashes into the message_digest */
+    /* Copy the hashes into the message_digest */
     DEFER_CLEANUP(struct s2n_hash_state hkdf_hash_copy, s2n_hash_free);
     GUARD(s2n_hash_new(&hkdf_hash_copy));
     GUARD(s2n_hash_copy(&hkdf_hash_copy, hashes));
@@ -369,7 +369,8 @@ int s2n_tls13_derive_resumption_master_secret(struct s2n_tls13_keys *keys, struc
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_tls13_derive_session_ticket_secret(struct s2n_tls13_keys *keys, struct s2n_blob *resumption_secret, struct s2n_blob *ticket_nonce, struct s2n_blob *secret_blob)
+S2N_RESULT s2n_tls13_derive_session_ticket_secret(struct s2n_tls13_keys *keys, struct s2n_blob *resumption_secret, 
+        struct s2n_blob *ticket_nonce, struct s2n_blob *secret_blob)
 {
     ENSURE_REF(keys);
     ENSURE_REF(resumption_secret);

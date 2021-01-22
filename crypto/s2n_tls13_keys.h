@@ -89,4 +89,5 @@ int s2n_tls13_calculate_finished_mac(struct s2n_tls13_keys *keys, struct s2n_blo
 int s2n_tls13_update_application_traffic_secret(struct s2n_tls13_keys *keys, struct s2n_blob *old_secret, struct s2n_blob *new_secret);
 
 int s2n_tls13_derive_resumption_master_secret(struct s2n_tls13_keys *keys, struct s2n_hash_state *hashes, struct s2n_blob *secret_blob);
-S2N_RESULT s2n_tls13_derive_session_ticket_secret(struct s2n_tls13_keys *keys, struct s2n_blob *resumption_secret, struct s2n_blob *ticket_nonce, struct s2n_blob *secret_blob);
+S2N_RESULT s2n_tls13_derive_session_ticket_secret(struct s2n_tls13_keys *keys, struct s2n_blob *resumption_secret,
+        struct s2n_blob *ticket_nonce, struct s2n_blob *secret_blob);

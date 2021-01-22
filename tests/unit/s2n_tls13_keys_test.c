@@ -145,6 +145,8 @@ int main(int argc, char **argv)
     S2N_BLOB_FROM_HEX(expect_derived_master_resumption_secret, 
         "7df235f2031d2a051287d02b0241"
         "b0bfdaf86cc856231f2d5aba46c434ec196c");
+    
+    S2N_BLOB_FROM_HEX(ticket_nonce, "0000");
 
     S2N_BLOB_FROM_HEX(expected_session_ticket_secret, 
         "4ecd0eb6ec3b4d87f5d6028f922c"
@@ -261,9 +263,6 @@ int main(int argc, char **argv)
 
     /* Test individual session resumption ticket secret */
     s2n_tls13_key_blob(session_ticket_secret, secrets.size);
-    uint8_t nonce[2] = {0};
-    struct s2n_blob ticket_nonce = {0};
-    EXPECT_SUCCESS(s2n_blob_init(&ticket_nonce, nonce, sizeof(nonce)));
 
     EXPECT_OK(s2n_tls13_derive_session_ticket_secret(&secrets, &master_resumption_secret, &ticket_nonce, &session_ticket_secret));
 
