@@ -378,6 +378,9 @@ if (s2n_config_set_cipher_preferences(config, prefs) < 0) {
 
 **NOTE**: To avoid possible confusion, s2n_errno should be cleared after processing an error: `s2n_errno = S2N_ERR_T_OK`
 
+When using s2n outside of `C`, the address of the thread-local `s2n_errno` may be obtained by calling the `int *s2n_errno_location()` function.
+This will ensure that the same TLS mechanisms are used with which s2n was compiled.
+
 ### Stacktraces
 s2n has an mechanism to capture stacktraces when errors occur.
 This mechanism is off by default, but can be enabled in code by calling `s2n_stack_traces_enabled_set()`.
