@@ -200,6 +200,7 @@ S2N_RESULT s2n_hmac_state_validate(struct s2n_hmac_state *state)
 
 int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
 {
+    notnull_check(state);
     if (!s2n_hmac_is_available(alg)) {
         /* Prevent hmacs from being used if they are not available. */
         S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
