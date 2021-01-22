@@ -16,10 +16,6 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-#include "crypto/s2n_hmac.h"
-#include "tls/s2n_psk.h"
-#include "tls/extensions/s2n_client_psk.h"
-
 /* Include source to test static methods. */
 #include "tls/extensions/s2n_client_psk.c"
 
@@ -338,7 +334,6 @@ int main(int argc, char **argv)
 
             EXPECT_OK(s2n_client_psk_recv_identity_list(conn, &empty_wire_identities_in));
             EXPECT_NULL(conn->psk_params.chosen_psk);
-            EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -352,10 +347,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_alloc(&wire_identities_in, sizeof(wire_identites)));
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&wire_identities_in, wire_identites, sizeof(wire_identites)));
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_client_psk_recv_identity_list(conn, &wire_identities_in),
-                                      S2N_ERR_VALID_PSK_IDENTITY_NOT_FOUND);
+            EXPECT_OK(s2n_client_psk_recv_identity_list(conn, &wire_identities_in));
             EXPECT_NULL(conn->psk_params.chosen_psk);
-            EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&wire_identities_in));

@@ -173,19 +173,28 @@ static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn,
         wire_index++;
     }
 
+    bool default_callback = false; 
     /* Make sure we have a psk_selection_cb before proceeding */
     if (!conn->config->psk_selection_cb) {
         GUARD_AS_RESULT(s2n_config_set_psk_selection_callback(conn, s2n_select_psk_identity));
         ENSURE_REF(conn->config->psk_selection_cb);
+        default_callback = true; 
     }
 
-    GUARD_AS_RESULT(conn->config->psk_selection_cb(conn, wire_identities, identities_count,
-                                         &conn->psk_params.chosen_psk_wire_index));
+    if (conn->config->psk_selection_cb(conn, wire_identities, identities_count,
+                                       &conn->psk_params.chosen_psk_wire_index) != S2N_SUCCESS) {
+        /* If psk selection fails, fall back to a full handshake */
+        return S2N_RESULT_OK;
+    }
+    ENSURE_LTE(conn->psk_params.chosen_psk_wire_index, identities_count);
 
-    struct s2n_blob chosen_wire_identity = { 0 };
-    GUARD_AS_RESULT(s2n_blob_init(&chosen_wire_identity, wire_identities[conn->psk_params.chosen_psk_wire_index].data,
-                                  wire_identities[conn->psk_params.chosen_psk_wire_index].length));
-    GUARD_RESULT(s2n_match_psk_identity(&conn->psk_params.psk_list, &chosen_wire_identity, &conn->psk_params.chosen_psk));
+    if (!default_callback) {
+        struct s2n_blob chosen_wire_identity = { 0 };
+        GUARD_AS_RESULT(s2n_blob_init(&chosen_wire_identity, wire_identities[conn->psk_params.chosen_psk_wire_index].data,
+                                    wire_identities[conn->psk_params.chosen_psk_wire_index].length));
+        GUARD_RESULT(s2n_match_psk_identity(&conn->psk_params.psk_list, &chosen_wire_identity, &conn->psk_params.chosen_psk));
+    }
+    ENSURE_REF(conn->psk_params.chosen_psk);
 
     return S2N_RESULT_OK;
 }

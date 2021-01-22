@@ -390,6 +390,7 @@ int s2n_select_psk_identity(struct s2n_connection *conn,
 
         if (local_match != NULL) {
             *chosen_wire_index = i;
+            conn->psk_params.chosen_psk = local_match;
             return S2N_SUCCESS;
         }
     }
