@@ -863,7 +863,8 @@ int main(int argc, char **argv)
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_select_psk_identity(conn, psk_identities, psk_identities_length, &chosen_wire_index),
                                       S2N_ERR_VALID_PSK_IDENTITY_NOT_FOUND);
-            EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, 0);
+            EXPECT_EQUAL(chosen_wire_index, 0);
+            EXPECT_EQUAL(conn->psk_params.chosen_psk, NULL);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -887,6 +888,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_select_psk_identity(conn, psk_identities, psk_identities_length, &chosen_wire_index));
             EXPECT_EQUAL(chosen_wire_index, 0);
+            EXPECT_EQUAL(conn->psk_params.chosen_psk, match_psk);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -912,6 +914,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_select_psk_identity(conn, psk_identities, psk_identities_length, &chosen_wire_index));
             EXPECT_EQUAL(chosen_wire_index, 1);
+            EXPECT_EQUAL(conn->psk_params.chosen_psk, match_psk);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
