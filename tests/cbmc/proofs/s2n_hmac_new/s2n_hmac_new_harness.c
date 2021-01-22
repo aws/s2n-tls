@@ -13,26 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include <assert.h>
+#include <cbmc_proof/make_common_datastructures.h>
 
-#include "utils/s2n_safety.h"
+#include "crypto/s2n_hmac.h"
+#include "utils/s2n_result.h"
 
-void s2n_constant_time_equals_harness()
+void s2n_hmac_new_harness()
 {
     /* Non-deterministic inputs. */
-    uint32_t len;
-    uint32_t alen;
-    uint32_t blen;
-    __CPROVER_assume(len < MAX_ARR_LEN);
-    __CPROVER_assume(alen >= len);
-    __CPROVER_assume(blen >= len);
-    uint8_t *a = malloc(alen);
-    uint8_t *b = malloc(blen);
+    struct s2n_hmac_state *state = cbmc_allocate_s2n_hmac_state();
 
-    /* Check logical equivalence of s2n_constant_time_equals against element equality */
-    if (s2n_constant_time_equals(a, b, len)) {
-        /* clang-format off */
-        assert(__CPROVER_forall { size_t i; (i >=0 && i < len) ==> (a[i] == b[i]) });
-        /* clang-format on */
+    /* Operation under verification. */
+    if (s2n_hmac_new(state) == S2N_SUCCESS) {
+        /* Post-conditions. */
+        assert(s2n_result_is_ok(s2n_hmac_state_validate(state)));
     }
 }

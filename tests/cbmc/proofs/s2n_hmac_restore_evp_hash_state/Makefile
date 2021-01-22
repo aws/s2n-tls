@@ -11,21 +11,24 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-# Expected runtime is 6 seconds.
-MAX_ARR_LEN = 10
-DEFINES += -DMAX_ARR_LEN=$(MAX_ARR_LEN)
+# Expected runtime is less than 5 seconds.
 
 CBMCFLAGS +=
 
-PROOF_UID = s2n_constant_time_equals
+PROOF_UID = s2n_hmac_restore_evp_hash_state
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
+PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
+PROOF_SOURCES += $(PROOF_STUB)/s2n_is_in_fips_mode.c
 
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
+PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_hash.c
+PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_hmac.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
-UNWINDSET += s2n_constant_time_equals.6:$(call addone,$(MAX_ARR_LEN))
+UNWINDSET +=
 
 include ../Makefile.common
