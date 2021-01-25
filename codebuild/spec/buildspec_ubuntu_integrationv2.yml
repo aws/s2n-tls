@@ -21,8 +21,7 @@ env:
 phases:
   install:
     runtime-versions:
-      # This must be pinned to 3.7 because of old sslyze
-      python: 3.7
+      python: 3.x
     commands:
       - echo Entered the install phase...
       - echo "We need a test PPA for gcc-9."
