@@ -77,7 +77,7 @@ S2N_RESULT s2n_protocol_preferences_append(struct s2n_blob *application_protocol
 
     GUARD_RESULT(s2n_protocol_preferences_write(&protocol_stuffer, protocol, protocol_len));
 
-    // ensure the application_protocols gets updated if we reallocate
+    /* ensure the application_protocols gets updated if we reallocate */
     *application_protocols = protocol_stuffer.blob;
     application_protocols->size = protocol_stuffer.write_cursor;
 
