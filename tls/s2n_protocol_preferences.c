@@ -19,6 +19,9 @@
 
 S2N_RESULT s2n_protocol_preferences_write(struct s2n_stuffer *protocol_stuffer, const uint8_t *protocol, size_t protocol_len)
 {
+    ENSURE_MUT(protocol_stuffer);
+    ENSURE_REF(protocol);
+
     /**
      *= https://tools.ietf.org/rfc/rfc7301#section-3.1
      *# Empty strings
@@ -38,16 +41,16 @@ S2N_RESULT s2n_protocol_preferences_write(struct s2n_stuffer *protocol_stuffer, 
 
 S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, const char *const *protocols, int protocol_count)
 {
-    ENSURE_REF(application_protocols);
+    ENSURE_MUT(application_protocols);
 
-    DEFER_CLEANUP(struct s2n_stuffer protocol_stuffer = { 0 }, s2n_stuffer_free);
-
-    GUARD_AS_RESULT(s2n_free(application_protocols));
-
+    /* NULL value indicates no preference so free the previous blob */
     if (protocols == NULL || protocol_count == 0) {
-        /* NULL value indicates no preference, so nothing to do */
+        GUARD_AS_RESULT(s2n_free(application_protocols));
+
         return S2N_RESULT_OK;
     }
+
+    DEFER_CLEANUP(struct s2n_stuffer protocol_stuffer = { 0 }, s2n_stuffer_free);
 
     GUARD_AS_RESULT(s2n_stuffer_growable_alloc(&protocol_stuffer, 256));
     for (size_t i = 0; i < protocol_count; i++) {
@@ -63,17 +66,20 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
 
 S2N_RESULT s2n_protocol_preferences_append(struct s2n_blob *application_protocols, const uint8_t *protocol, size_t protocol_len)
 {
-    ENSURE_REF(application_protocols);
+    ENSURE_MUT(application_protocols);
     ENSURE_REF(protocol);
 
     struct s2n_stuffer protocol_stuffer = {0};
     GUARD_AS_RESULT(s2n_stuffer_init(&protocol_stuffer, application_protocols));
+    protocol_stuffer.alloced = true;
     protocol_stuffer.growable = true;
     GUARD_AS_RESULT(s2n_stuffer_skip_write(&protocol_stuffer, application_protocols->size));
 
     GUARD_RESULT(s2n_protocol_preferences_write(&protocol_stuffer, protocol, protocol_len));
 
-    GUARD_AS_RESULT(s2n_stuffer_extract_blob(&protocol_stuffer, application_protocols));
+    // ensure the application_protocols gets updated if we reallocate
+    *application_protocols = protocol_stuffer.blob;
+    application_protocols->size = protocol_stuffer.write_cursor;
 
     return S2N_RESULT_OK;
 }
