@@ -332,5 +332,3 @@ int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_ext
 
     return S2N_SUCCESS;
 }
-
-
