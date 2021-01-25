@@ -19,9 +19,16 @@
 
 S2N_RESULT s2n_protocol_preferences_write(struct s2n_stuffer *protocol_stuffer, const uint8_t *protocol, size_t protocol_len)
 {
-    ENSURE(protocol_len <= 255, S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG);
+    /**
+     *= https://tools.ietf.org/rfc/rfc7301#section-3.1
+     *# Empty strings
+     *# MUST NOT be included and byte strings MUST NOT be truncated.
+     */
+    ENSURE(protocol_len != 0, S2N_ERR_INVALID_APPLICATION_PROTOCOL);
+    ENSURE(protocol_len <= 255, S2N_ERR_INVALID_APPLICATION_PROTOCOL);
+
     uint32_t extension_len = s2n_stuffer_data_available(protocol_stuffer) + /* len prefix */ 1 + protocol_len;
-    ENSURE(extension_len <= UINT16_MAX, S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG);
+    ENSURE(extension_len <= UINT16_MAX, S2N_ERR_INVALID_APPLICATION_PROTOCOL);
 
     GUARD_AS_RESULT(s2n_stuffer_write_uint8(protocol_stuffer, protocol_len));
     GUARD_AS_RESULT(s2n_stuffer_write_bytes(protocol_stuffer, protocol, protocol_len));

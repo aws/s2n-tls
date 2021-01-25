@@ -51,8 +51,13 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->application_protocols.size, prev_size + 1 /* len prefix */ + 255);
         prev_size = config->application_protocols.size;
 
-        /* should limit the length of the protocol value */
         const uint8_t oversized[256] = { 0 };
+
+        /* should not allow empty protocol values */
+        EXPECT_FAILURE(s2n_config_append_protocol_preference(config, (const uint8_t *)oversized, 0));
+        EXPECT_EQUAL(config->application_protocols.size, prev_size);
+
+        /* should limit the length of the protocol value */
         EXPECT_FAILURE(s2n_config_append_protocol_preference(config, (const uint8_t *)oversized, 265));
         EXPECT_EQUAL(config->application_protocols.size, prev_size);
 
@@ -88,8 +93,13 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->application_protocols_overridden.size, prev_size + 1 /* len prefix */ + 255);
         prev_size = conn->application_protocols_overridden.size;
 
-        /* should limit the length of the protocol value */
         const uint8_t oversized[256] = { 0 };
+
+        /* should not allow empty protocol values */
+        EXPECT_FAILURE(s2n_connection_append_protocol_preference(conn, (const uint8_t *)oversized, 0));
+        EXPECT_EQUAL(conn->application_protocols_overridden.size, prev_size);
+
+        /* should limit the length of the protocol value */
         EXPECT_FAILURE(s2n_connection_append_protocol_preference(conn, (const uint8_t *)oversized, 265));
         EXPECT_EQUAL(conn->application_protocols_overridden.size, prev_size);
 
