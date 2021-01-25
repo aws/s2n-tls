@@ -219,6 +219,19 @@ S2N_API
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);
 S2N_API
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
+
+/**
+ * Appends the provided application protocol to the preference list
+ *
+ * The data provided in `protocol` parameter will be copied into an internal buffer
+ *
+ * @param config The configuration object being updated
+ * @param protocol A pointer to a slice of bytes
+ * @param protocol_len The length of bytes that should be read from `protocol`. Note this value cannot exceed `255`.
+ */
+S2N_API
+extern int s2n_config_append_protocol_preference(struct s2n_config *config, const uint8_t *protocol, size_t protocol_len);
+
 S2N_API
 extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count);
 typedef enum { S2N_STATUS_REQUEST_NONE = 0, S2N_STATUS_REQUEST_OCSP = 1 } s2n_status_request_type;
@@ -328,6 +341,19 @@ extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
 
 S2N_API
 extern int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
+
+/**
+ * Appends the provided application protocol to the preference list
+ *
+ * The data provided in `protocol` parameter will be copied into an internal buffer
+ *
+ * @param conn The connection object being updated
+ * @param protocol A pointer to a slice of bytes
+ * @param protocol_len The length of bytes that should be read from `protocol`. Note this value cannot exceed `255`.
+ */
+S2N_API
+extern int s2n_connection_append_protocol_preference(struct s2n_connection *conn, const uint8_t *protocol, size_t protocol_len);
+
 S2N_API
 extern int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char * const *protocols, int protocol_count);
 S2N_API

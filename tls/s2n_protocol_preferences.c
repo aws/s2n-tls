@@ -17,39 +17,76 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 
-int s2n_blob_set_protocol_preferences(struct s2n_blob *application_protocols, const char *const *protocols, int protocol_count)
+S2N_RESULT s2n_protocol_preferences_write(struct s2n_stuffer *protocol_stuffer, const uint8_t *protocol, size_t protocol_len)
 {
-    struct s2n_stuffer protocol_stuffer = {0};
+    ENSURE(protocol_len <= 255, S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG);
+    uint32_t extension_len = s2n_stuffer_data_available(protocol_stuffer) + /* len prefix */ 1 + protocol_len;
+    ENSURE(extension_len <= UINT16_MAX, S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG);
 
-    GUARD(s2n_free(application_protocols));
+    GUARD_AS_RESULT(s2n_stuffer_write_uint8(protocol_stuffer, protocol_len));
+    GUARD_AS_RESULT(s2n_stuffer_write_bytes(protocol_stuffer, protocol, protocol_len));
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, const char *const *protocols, int protocol_count)
+{
+    ENSURE_REF(application_protocols);
+
+    DEFER_CLEANUP(struct s2n_stuffer protocol_stuffer = { 0 }, s2n_stuffer_free);
+
+    GUARD_AS_RESULT(s2n_free(application_protocols));
 
     if (protocols == NULL || protocol_count == 0) {
         /* NULL value indicates no preference, so nothing to do */
-        return 0;
+        return S2N_RESULT_OK;
     }
 
-    GUARD(s2n_stuffer_growable_alloc(&protocol_stuffer, 256));
-    for (int i = 0; i < protocol_count; i++) {
+    GUARD_AS_RESULT(s2n_stuffer_growable_alloc(&protocol_stuffer, 256));
+    for (size_t i = 0; i < protocol_count; i++) {
+        const uint8_t * protocol = (const uint8_t *)protocols[i];
         size_t length = strlen(protocols[i]);
-        uint8_t protocol[255];
-
-        S2N_ERROR_IF(length > 255 || (s2n_stuffer_data_available(&protocol_stuffer) + length + 1) > 65535, S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG);
-        memcpy_check(protocol, protocols[i], length);
-        GUARD(s2n_stuffer_write_uint8(&protocol_stuffer, length));
-        GUARD(s2n_stuffer_write_bytes(&protocol_stuffer, protocol, length));
+        GUARD_RESULT(s2n_protocol_preferences_write(&protocol_stuffer, protocol, length));
     }
 
-    GUARD(s2n_stuffer_extract_blob(&protocol_stuffer, application_protocols));
-    GUARD(s2n_stuffer_free(&protocol_stuffer));
-    return 0;
+    GUARD_AS_RESULT(s2n_stuffer_extract_blob(&protocol_stuffer, application_protocols));
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_protocol_preferences_append(struct s2n_blob *application_protocols, const uint8_t *protocol, size_t protocol_len)
+{
+    ENSURE_REF(application_protocols);
+    ENSURE_REF(protocol);
+
+    struct s2n_stuffer protocol_stuffer = {0};
+    GUARD_AS_RESULT(s2n_stuffer_init(&protocol_stuffer, application_protocols));
+    protocol_stuffer.growable = true;
+    GUARD_AS_RESULT(s2n_stuffer_skip_write(&protocol_stuffer, application_protocols->size));
+
+    GUARD_RESULT(s2n_protocol_preferences_write(&protocol_stuffer, protocol, protocol_len));
+
+    GUARD_AS_RESULT(s2n_stuffer_extract_blob(&protocol_stuffer, application_protocols));
+
+    return S2N_RESULT_OK;
 }
 
 int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *const *protocols, int protocol_count)
 {
-    return s2n_blob_set_protocol_preferences(&config->application_protocols, protocols, protocol_count);
+    return S2N_RESULT_TO_POSIX(s2n_protocol_preferences_set(&config->application_protocols, protocols, protocol_count));
+}
+
+int s2n_config_append_protocol_preference(struct s2n_config *config, const uint8_t *protocol, size_t protocol_len)
+{
+    return S2N_RESULT_TO_POSIX(s2n_protocol_preferences_append(&config->application_protocols, protocol, protocol_len));
 }
 
 int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char * const *protocols, int protocol_count)
 {
-    return s2n_blob_set_protocol_preferences(&conn->application_protocols_overridden, protocols, protocol_count);
+    return S2N_RESULT_TO_POSIX(s2n_protocol_preferences_set(&conn->application_protocols_overridden, protocols, protocol_count));
+}
+
+int s2n_connection_append_protocol_preference(struct s2n_connection *conn, const uint8_t *protocol, size_t protocol_len)
+{
+    return S2N_RESULT_TO_POSIX(s2n_protocol_preferences_append(&conn->application_protocols_overridden, protocol, protocol_len));
 }
