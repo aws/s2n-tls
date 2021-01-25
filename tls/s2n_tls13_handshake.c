@@ -325,7 +325,7 @@ static int s2n_tls13_handle_resumption_master_secret(struct s2n_connection *conn
     GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
     
     struct s2n_blob resumption_master_secret = {0};
-    GUARD(s2n_blob_init(&resumption_master_secret, conn->secure.resumption_master_secret, keys.size));
+    GUARD(s2n_blob_init(&resumption_master_secret, conn->resumption_master_secret, keys.size));
     GUARD(s2n_tls13_derive_resumption_master_secret(&keys, &hash_state, &resumption_master_secret));
     return S2N_SUCCESS;
 }

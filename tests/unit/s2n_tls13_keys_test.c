@@ -258,14 +258,11 @@ int main(int argc, char **argv)
     /* Test session resumption secret */
     s2n_tls13_key_blob(master_resumption_secret, secrets.size);
     EXPECT_SUCCESS(s2n_tls13_derive_resumption_master_secret(&secrets, &hash_state, &master_resumption_secret));
-
     S2N_BLOB_EXPECT_EQUAL(expect_derived_master_resumption_secret, master_resumption_secret);
 
     /* Test individual session resumption ticket secret */
     s2n_tls13_key_blob(session_ticket_secret, secrets.size);
-
     EXPECT_OK(s2n_tls13_derive_session_ticket_secret(&secrets, &master_resumption_secret, &ticket_nonce, &session_ticket_secret));
-
     S2N_BLOB_EXPECT_EQUAL(expected_session_ticket_secret, session_ticket_secret);
 
     /* Test Traffic Keys */
