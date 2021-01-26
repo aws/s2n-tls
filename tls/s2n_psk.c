@@ -16,7 +16,6 @@
 #include "crypto/s2n_tls13_keys.h"
 
 #include "tls/s2n_handshake.h"
-#include "tls/s2n_psk.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_tls.h"
 

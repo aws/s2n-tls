@@ -247,7 +247,6 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_PQ_CRYPTO, "An error occurred in a post-quantum crypto function.") \
     ERR_ENTRY(S2N_ERR_PQ_DISABLED, "Post-quantum crypto is disabled.") \
     ERR_ENTRY(S2N_ERR_DUPLICATE_PSK_IDENTITIES, "The list of pre-shared keys provided contains duplicate psk identities.") \
-    ERR_ENTRY(S2N_ERR_VALID_PSK_IDENTITY_NOT_FOUND, "No valid psk identity found.") \
 
 /* clang-format on */
 

@@ -24,7 +24,6 @@
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
-#include "tls/s2n_psk.h"
 #include "utils/s2n_safety.h"
 #include "crypto/s2n_hkdf.h"
 #include "utils/s2n_map.h"

@@ -57,7 +57,7 @@ static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, st
         }
     }
 
-    S2N_ERROR(S2N_ERR_VALID_PSK_IDENTITY_NOT_FOUND);
+    return S2N_FAILURE;
 }
 
 int main(int argc, char **argv)
@@ -66,6 +66,7 @@ int main(int argc, char **argv)
 
     uint8_t test_bytes_data[] = { TEST_BYTES };
     uint8_t test_bytes_data_2[] = { TEST_BYTES_2 };
+    uint8_t test_zero_bytes[] = { 0 };
     uint8_t test_identity[] = "test identity";
     uint8_t test_identity_2[] = "another identity";
     uint8_t test_secret[] = "test secret";
@@ -407,8 +408,7 @@ int main(int argc, char **argv)
 
             struct s2n_psk_identity psk_identities[] = { 0 };
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_select_psk_identity(conn, psk_identities, 0),
-                                      S2N_ERR_VALID_PSK_IDENTITY_NOT_FOUND);
+            EXPECT_OK(s2n_select_psk_identity(conn, psk_identities, 0));
             EXPECT_EQUAL(conn->psk_params.chosen_psk, NULL);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -426,8 +426,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
             EXPECT_SUCCESS(s2n_psk_new_identity(psk, test_bytes_data, sizeof(test_bytes_data)));
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_select_psk_identity(conn, psk_identities, 0),
-                                    S2N_ERR_VALID_PSK_IDENTITY_NOT_FOUND);
+            EXPECT_OK(s2n_select_psk_identity(conn, psk_identities, 0));
             EXPECT_EQUAL(conn->psk_params.chosen_psk, NULL);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -443,8 +442,7 @@ int main(int argc, char **argv)
             psk_identities[0].length = sizeof(test_bytes_data);
             size_t psk_identities_length = sizeof(psk_identities)/sizeof(struct s2n_psk_identity);
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_select_psk_identity(conn, psk_identities, psk_identities_length),
-                                    S2N_ERR_VALID_PSK_IDENTITY_NOT_FOUND);
+            EXPECT_OK(s2n_select_psk_identity(conn, psk_identities, psk_identities_length));
             EXPECT_EQUAL(conn->psk_params.chosen_psk, NULL);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -465,8 +463,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_psk_init(no_match_psk, S2N_PSK_TYPE_EXTERNAL));
             EXPECT_SUCCESS(s2n_psk_new_identity(no_match_psk, test_bytes_data_2, sizeof(test_bytes_data_2)));
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_select_psk_identity(conn, psk_identities, psk_identities_length),
-                                      S2N_ERR_VALID_PSK_IDENTITY_NOT_FOUND);
+            EXPECT_OK(s2n_select_psk_identity(conn, psk_identities, psk_identities_length));
             EXPECT_EQUAL(conn->psk_params.chosen_psk, NULL);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -484,7 +481,6 @@ int main(int argc, char **argv)
             psk_identities[1].length = sizeof(test_bytes_data_2);
                 
             struct s2n_psk *no_match_psk = NULL;
-            uint8_t test_zero_bytes[3] = { 0 };
             EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void **) &no_match_psk));
             EXPECT_SUCCESS(s2n_psk_init(no_match_psk, S2N_PSK_TYPE_EXTERNAL));
             EXPECT_SUCCESS(s2n_psk_new_identity(no_match_psk, test_zero_bytes, sizeof(test_zero_bytes)));
@@ -513,6 +509,36 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
+            struct s2n_psk_identity psk_identities[2] = { 0 };
+            psk_identities[0].data = test_bytes_data;
+            psk_identities[0].length = sizeof(test_bytes_data);
+            psk_identities[1].data = test_bytes_data_2;
+            psk_identities[1].length = sizeof(test_bytes_data_2);
+
+            struct s2n_psk *no_match_psk = NULL;
+            EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void **) &no_match_psk));
+            EXPECT_SUCCESS(s2n_psk_init(no_match_psk, S2N_PSK_TYPE_EXTERNAL));
+            EXPECT_SUCCESS(s2n_psk_new_identity(no_match_psk, test_zero_bytes, sizeof(test_zero_bytes)));
+
+            struct s2n_psk *match_psk = NULL;
+            EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void **) &match_psk));
+            EXPECT_SUCCESS(s2n_psk_init(match_psk, S2N_PSK_TYPE_EXTERNAL));
+            EXPECT_SUCCESS(s2n_psk_new_identity(match_psk, test_bytes_data_2, sizeof(test_bytes_data_2)));
+
+            size_t psk_identities_length = sizeof(psk_identities)/sizeof(struct s2n_psk_identity);
+
+            EXPECT_OK(s2n_select_psk_identity(conn, psk_identities, psk_identities_length));
+            EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, 1);
+            EXPECT_EQUAL(conn->psk_params.chosen_psk, match_psk);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Select the first psk identity match when there are duplicates in the list */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
             struct s2n_psk_identity psk_identities[3] = { 0 };
             psk_identities[0].data = test_bytes_data;
             psk_identities[0].length = sizeof(test_bytes_data);
@@ -522,7 +548,6 @@ int main(int argc, char **argv)
             psk_identities[2].length = sizeof(test_bytes_data_2);
 
             struct s2n_psk *no_match_psk = NULL;
-            uint8_t test_zero_bytes[3] = { 0 };
             EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void **) &no_match_psk));
             EXPECT_SUCCESS(s2n_psk_init(no_match_psk, S2N_PSK_TYPE_EXTERNAL));
             EXPECT_SUCCESS(s2n_psk_new_identity(no_match_psk, test_zero_bytes, sizeof(test_zero_bytes)));
@@ -668,8 +693,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_psk_init(no_match_psk, S2N_PSK_TYPE_EXTERNAL));
             EXPECT_SUCCESS(s2n_psk_new_identity(no_match_psk, test_bytes_data_2, sizeof(test_bytes_data_2)));
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_client_psk_recv_identity_list(conn, &wire_identities_in),
-                                    S2N_ERR_VALID_PSK_IDENTITY_NOT_FOUND);
+            EXPECT_ERROR_WITH_ERRNO(s2n_client_psk_recv_identity_list(conn, &wire_identities_in), S2N_ERR_NULL);
             EXPECT_NULL(conn->psk_params.chosen_psk);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));

@@ -165,6 +165,7 @@ static S2N_RESULT s2n_select_psk_identity(struct s2n_connection *conn, struct s2
     ENSURE_REF(identities);
 
     struct s2n_array *known_psks = &conn->psk_params.psk_list;
+    conn->psk_params.chosen_psk = NULL;
 
     for (size_t i = 0; i < identities_length; i++) {
         struct s2n_blob wire_identity = { 0 };
@@ -173,14 +174,16 @@ static S2N_RESULT s2n_select_psk_identity(struct s2n_connection *conn, struct s2
         struct s2n_psk *local_match = NULL;
         GUARD_RESULT(s2n_match_psk_identity(known_psks, &wire_identity, &local_match));
 
-        if (local_match != NULL) {
+        /* When a local match is found we do not end this loop early in an attempt
+         * to keep the server's known identities a secret and hide its ordering.
+         */
+        if (local_match != NULL && conn->psk_params.chosen_psk == NULL) {
             conn->psk_params.chosen_psk_wire_index = i;
             conn->psk_params.chosen_psk = local_match;
-            return S2N_RESULT_OK;
         }
     }
 
-    BAIL(S2N_ERR_VALID_PSK_IDENTITY_NOT_FOUND);
+    return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_count_psk_identities(struct s2n_stuffer *input, uint16_t *identity_count)
