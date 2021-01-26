@@ -5,17 +5,25 @@
 *********************************************************************************************/ 
 
 #include <string.h>
-#include "sha3/fips202.h"
+#include "fips202.h"
+#include "utils/s2n_safety.h"
+#include "tls/s2n_kem.h"
+#include "pq-crypto/s2n_pq.h"
+#include "pq-crypto/s2n_pq_random.h"
+#include "sikep434r3.h"
+#include "fpx.h"
+#include "api.h"
 
-
-int crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
-{ // SIKE's key generation
-  // Outputs: secret key sk (CRYPTO_SECRETKEYBYTES = MSG_BYTES + SECRETKEY_B_BYTES + CRYPTO_PUBLICKEYBYTES bytes)
-  //          public key pk (CRYPTO_PUBLICKEYBYTES bytes) 
+/* SIKE's key generation
+ * Outputs: secret key sk (CRYPTO_SECRETKEYBYTES = MSG_BYTES + SECRETKEY_B_BYTES + CRYPTO_PUBLICKEYBYTES bytes)
+ *          public key pk (CRYPTO_PUBLICKEYBYTES bytes) */
+int sike_p434_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
+{
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     // Generate lower portion of secret key sk <- s||SK
-    randombytes(sk, MSG_BYTES);
-    random_mod_order_B(sk + MSG_BYTES);
+    GUARD_AS_POSIX(s2n_get_random_bytes(sk, MSG_BYTES));
+    GUARD(random_mod_order_B(sk + MSG_BYTES));
 
     // Generate public key pk
     EphemeralKeyGeneration_B(sk + MSG_BYTES, pk);
@@ -26,19 +34,21 @@ int crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
     return 0;
 }
 
+/* SIKE's encapsulation
+ * Input:   public key pk         (CRYPTO_PUBLICKEYBYTES bytes)
+ * Outputs: shared secret ss      (CRYPTO_BYTES bytes)
+ *          ciphertext message ct (CRYPTO_CIPHERTEXTBYTES = CRYPTO_PUBLICKEYBYTES + MSG_BYTES bytes) */
+int sike_p434_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsigned char *pk)
+{
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
-int crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsigned char *pk)
-{ // SIKE's encapsulation
-  // Input:   public key pk         (CRYPTO_PUBLICKEYBYTES bytes)
-  // Outputs: shared secret ss      (CRYPTO_BYTES bytes)
-  //          ciphertext message ct (CRYPTO_CIPHERTEXTBYTES = CRYPTO_PUBLICKEYBYTES + MSG_BYTES bytes)
     unsigned char ephemeralsk[SECRETKEY_A_BYTES];
     unsigned char jinvariant[FP2_ENCODED_BYTES];
     unsigned char h[MSG_BYTES];
     unsigned char temp[CRYPTO_CIPHERTEXTBYTES+MSG_BYTES];
 
     // Generate ephemeralsk <- G(m||pk) mod oA 
-    randombytes(temp, MSG_BYTES);
+    GUARD_AS_POSIX(s2n_get_random_bytes(temp, MSG_BYTES));
     memcpy(&temp[MSG_BYTES], pk, CRYPTO_PUBLICKEYBYTES);
     shake256(ephemeralsk, SECRETKEY_A_BYTES, temp, CRYPTO_PUBLICKEYBYTES+MSG_BYTES);
     ephemeralsk[SECRETKEY_A_BYTES - 1] &= MASK_ALICE;
@@ -58,12 +68,14 @@ int crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsigned char *pk
     return 0;
 }
 
+/* SIKE's decapsulation
+ * Input:   secret key sk         (CRYPTO_SECRETKEYBYTES = MSG_BYTES + SECRETKEY_B_BYTES + CRYPTO_PUBLICKEYBYTES bytes)
+ *          ciphertext message ct (CRYPTO_CIPHERTEXTBYTES = CRYPTO_PUBLICKEYBYTES + MSG_BYTES bytes)
+ * Outputs: shared secret ss      (CRYPTO_BYTES bytes) */
+int sike_p434_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, const unsigned char *sk)
+{
+    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
-int crypto_kem_dec(unsigned char *ss, const unsigned char *ct, const unsigned char *sk)
-{ // SIKE's decapsulation
-  // Input:   secret key sk         (CRYPTO_SECRETKEYBYTES = MSG_BYTES + SECRETKEY_B_BYTES + CRYPTO_PUBLICKEYBYTES bytes)
-  //          ciphertext message ct (CRYPTO_CIPHERTEXTBYTES = CRYPTO_PUBLICKEYBYTES + MSG_BYTES bytes) 
-  // Outputs: shared secret ss      (CRYPTO_BYTES bytes)
     unsigned char ephemeralsk_[SECRETKEY_A_BYTES];
     unsigned char jinvariant_[FP2_ENCODED_BYTES];
     unsigned char h_[MSG_BYTES];

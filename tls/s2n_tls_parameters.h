@@ -70,6 +70,9 @@
 #define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R2 23
 #define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_90S_R2 24
 
+/* TODO FIXME */
+#define TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3 200
+
 /* TLS 1.3 hybrid post-quantum definitions are from the proposed reserved range defined
  * in https://tools.ietf.org/html/draft-stebila-tls-hybrid-design. Values for interoperability
  * are defined in https://docs.google.com/spreadsheets/d/12YarzaNv3XQNLnvDsWLlRKwtZFhRrDdWf36YlzwrPeg/edit#gid=0. */
