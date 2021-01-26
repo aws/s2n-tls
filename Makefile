@@ -157,6 +157,24 @@ DEV_VERSION ?= ubuntu_18.04_$(DEV_OPENSSL_VERSION)_gcc9
 dev:
 	@docker run -it --rm --ulimit memlock=-1 -v `pwd`:/home/s2n-dev/s2n $(DEV_IMAGE):$(DEV_VERSION)
 
+$(DESTDIR)/usr/lib64:
+	@mkdir -p $(DESTDIR)/usr/lib64
+
+$(DESTDIR)/usr/include:
+	@mkdir -p $(DESTDIR)/usr/include
+
+install: libs $(DESTDIR)/usr/lib64 $(DESTDIR)/usr/include
+	@cp lib/libs2n.* $(DESTDIR)/usr/lib64/
+	@cp api/s2n.* $(DESTDIR)/usr/include/
+
+~/rpmbuild/SOURCES:
+	@mkdir -p ~/rpmbuild/SOURCES
+
+.PHONY: rpm
+rpm: ~/rpmbuild/SOURCES
+	@cp rpm/*.patch ~/rpmbuild/SOURCES/
+	@rpmbuild -ba ./rpm/s2n-tls.spec
+
 .PHONY : clean
 clean:
 	$(MAKE) -C pq-crypto clean
