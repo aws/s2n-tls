@@ -13,24 +13,45 @@
 
 #include <stdint.h>
 #include <assert.h>
+#include <stddef.h>
+#include <string.h>
 #include "fips202.h"
-#include "../config.h"
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define NROUNDS 24
 #define ROL(a, offset) ((a << offset) ^ (a >> (64-offset)))
 
+/*************************************************
+ * Name:        load64
+ *
+ * Description: Load 8 bytes into uint64_t in little-endian order
+ *
+ * Arguments:   - const uint8_t *x: pointer to input byte array
+ *
+ * Returns the loaded 64-bit unsigned integer
+ **************************************************/
+static uint64_t load64(const uint8_t *x) {
+    uint64_t r = 0;
+    for (size_t i = 0; i < 8; ++i) {
+        r |= (uint64_t)x[i] << 8 * i;
+    }
 
-static uint64_t load64(const unsigned char *x)
-{
-  return LETOH_64(*((uint64_t*)x));
+    return r;
 }
 
-
-static void store64(uint8_t *x, uint64_t u)
-{
-  *(uint64_t*)x = HTOLE_64(u);
+/*************************************************
+ * Name:        store64
+ *
+ * Description: Store a 64-bit integer to a byte array in little-endian order
+ *
+ * Arguments:   - uint8_t *x: pointer to the output byte array
+ *              - uint64_t u: input 64-bit unsigned integer
+ **************************************************/
+static void store64(uint8_t *x, uint64_t u) {
+    for (size_t i = 0; i < 8; ++i) {
+        x[i] = (uint8_t) (u >> 8 * i);
+    }
 }
-
 
 static const uint64_t KeccakF_RoundConstants[NROUNDS] = 
 {
@@ -60,8 +81,7 @@ static const uint64_t KeccakF_RoundConstants[NROUNDS] =
     (uint64_t)0x8000000080008008ULL
 };
 
-
-void KeccakF1600_StatePermute(uint64_t * state)
+static void KeccakF1600_StatePermute(uint64_t * state)
 {
   int round;
 
@@ -328,10 +348,6 @@ void KeccakF1600_StatePermute(uint64_t * state)
         #undef    round
 }
 
-#include <string.h>
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
-
 static void keccak_absorb(uint64_t *s, unsigned int r, const unsigned char *m, unsigned long long int mlen, unsigned char p)
 {
   unsigned long long i;
@@ -357,7 +373,6 @@ static void keccak_absorb(uint64_t *s, unsigned int r, const unsigned char *m, u
     s[i] ^= load64(t + 8 * i);
 }
 
-
 static void keccak_squeezeblocks(unsigned char *h, unsigned long long int nblocks, uint64_t *s, unsigned int r)
 {
   unsigned int i;
@@ -373,60 +388,6 @@ static void keccak_squeezeblocks(unsigned char *h, unsigned long long int nblock
     nblocks--;
   }
 }
-
-
-/********** SHAKE128 ***********/
-
-void shake128_absorb(uint64_t *s, const unsigned char *input, unsigned int inputByteLen)
-{
-	keccak_absorb(s, SHAKE128_RATE, input, inputByteLen, 0x1F);
-}
-
-
-void shake128_squeezeblocks(unsigned char *output, unsigned long long nblocks, uint64_t *s)
-{
-	keccak_squeezeblocks(output, nblocks, s, SHAKE128_RATE);
-}
-
-
-void shake128(unsigned char *output, unsigned long long outlen, const unsigned char *input,  unsigned long long inlen)
-{
-  uint64_t s[25] = {0};
-  unsigned char t[SHAKE128_RATE];
-  unsigned long long nblocks = outlen/SHAKE128_RATE;
-  size_t i;
-  
-  /* Absorb input */
-  keccak_absorb(s, SHAKE128_RATE, input, inlen, 0x1F);
-
-  /* Squeeze output */
-  keccak_squeezeblocks(output, nblocks, s, SHAKE128_RATE);
-
-  output += nblocks*SHAKE128_RATE;
-  outlen -= nblocks*SHAKE128_RATE;
-
-  if (outlen) 
-  {
-    keccak_squeezeblocks(t, 1, s, SHAKE128_RATE);
-    for (i = 0; i < outlen; i++)
-      output[i] = t[i];
-  }
-}
-
-
-/********** SHAKE256 ***********/
-
-void shake256_absorb(uint64_t *s, const unsigned char *input, unsigned int inputByteLen)
-{
-	keccak_absorb(s, SHAKE256_RATE, input, inputByteLen, 0x1F);
-}
-
-
-void shake256_squeezeblocks(unsigned char *output, unsigned long long nblocks, uint64_t *s)
-{
-	keccak_squeezeblocks(output, nblocks, s, SHAKE256_RATE);
-}
-
 
 void shake256(unsigned char *output, unsigned long long outlen, const unsigned char *input,  unsigned long long inlen)
 {
