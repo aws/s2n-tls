@@ -24,6 +24,13 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
 
+static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, struct s2n_psk_identity *identities,
+                                                 size_t identities_length, uint16_t *chosen_wire_index)
+{
+    *chosen_wire_index = 0;
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -127,6 +134,23 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_disable_tls13());
         }
+    }
+
+    /* Test setting the callback to select PSK identity */
+    {
+        struct s2n_connection *conn = NULL;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+        /* Safety checks */
+        {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(NULL, s2n_test_select_psk_identity_callback), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(conn, NULL), S2N_ERR_NULL);
+        }
+
+        EXPECT_NULL(conn->config->psk_selection_cb);
+        EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(conn, s2n_test_select_psk_identity_callback));
+        EXPECT_EQUAL(conn->config->psk_selection_cb, s2n_test_select_psk_identity_callback);
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     END_TEST();

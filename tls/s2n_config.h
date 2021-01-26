@@ -22,6 +22,7 @@
 #include "tls/s2n_x509_validator.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_set.h"
+#include "tls/s2n_psk.h"
 
 #define S2N_MAX_TICKET_KEYS 48
 #define S2N_MAX_TICKET_KEY_HASHES 500 /* 10KB */
@@ -101,6 +102,7 @@ struct s2n_config {
     uint16_t max_verify_cert_chain_depth;
 
     s2n_async_pkey_fn async_pkey_cb;
+    s2n_psk_selection_callback psk_selection_cb;
 };
 
 int s2n_config_defaults_init(void);

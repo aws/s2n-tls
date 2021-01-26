@@ -16,13 +16,11 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-#include "tls/s2n_psk.h"
+/* Include source to test static intermediate functions */
+#include "tls/s2n_psk.c"
 
 #define TEST_VALUE_1 "test value"
 #define TEST_VALUE_2 "another"
-
-/* Include source to test static intermediate functions */
-#include "tls/s2n_psk.c"
 
 int main(int argc, char **argv)
 {
@@ -722,6 +720,28 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
         }
+    }
+
+    /* Test: s2n_psk_set_hmac */
+    {
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+        struct s2n_psk *psk = NULL;
+        EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void **) &psk));
+        uint8_t test_identity[] = "test identity";
+        EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
+        EXPECT_SUCCESS(s2n_psk_new_identity(psk, test_identity, sizeof(test_identity)));
+
+        s2n_psk_hmac psk_hmac_alg = -1;
+
+        EXPECT_ERROR_WITH_ERRNO(s2n_psk_set_hmac(psk, psk_hmac_alg), S2N_ERR_HMAC_INVALID_ALGORITHM);
+
+        psk_hmac_alg = S2N_PSK_HMAC_SHA224;
+        EXPECT_OK(s2n_psk_set_hmac(psk, psk_hmac_alg));
+        EXPECT_EQUAL(psk->hmac_alg, S2N_HMAC_SHA224);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     END_TEST();

@@ -123,6 +123,7 @@ static int s2n_config_init(struct s2n_config *config)
     config->max_verify_cert_chain_depth_set = 0;
     config->cert_tiebreak_cb = NULL;
     config->async_pkey_cb = NULL;
+    config->psk_selection_cb = NULL;
     config->cert_req_dss_legacy_compat_enabled = 0;
 
     GUARD(s2n_config_setup_default(config));
@@ -856,5 +857,15 @@ int s2n_config_enable_cert_req_dss_legacy_compat(struct s2n_config *config)
 {
     notnull_check(config);
     config->cert_req_dss_legacy_compat_enabled = 1;
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_psk_selection_callback(struct s2n_connection *conn, s2n_psk_selection_callback cb)
+{
+    notnull_check(conn);
+    notnull_check(cb);
+
+    conn->config->psk_selection_cb = cb;
+
     return S2N_SUCCESS;
 }
