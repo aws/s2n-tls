@@ -317,6 +317,19 @@ static int s2n_tls13_handle_master_secret(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
+static int s2n_tls13_handle_resumption_master_secret(struct s2n_connection *conn)
+{
+    s2n_tls13_connection_keys(keys, conn);
+    
+    struct s2n_hash_state hash_state = {0};
+    GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
+    
+    struct s2n_blob resumption_master_secret = {0};
+    GUARD(s2n_blob_init(&resumption_master_secret, conn->resumption_master_secret, keys.size));
+    GUARD(s2n_tls13_derive_resumption_master_secret(&keys, &hash_state, &resumption_master_secret));
+    return S2N_SUCCESS;
+}
+
 int s2n_tls13_handle_secrets(struct s2n_connection *conn)
 {
     notnull_check(conn);
@@ -343,6 +356,7 @@ int s2n_tls13_handle_secrets(struct s2n_connection *conn)
                 GUARD(s2n_tls13_handle_application_secret(conn, S2N_SERVER));
             }
             GUARD(s2n_tls13_handle_application_secret(conn, S2N_CLIENT));
+            GUARD(s2n_tls13_handle_resumption_master_secret(conn));
             break;
         default:
             break;
