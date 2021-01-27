@@ -20,6 +20,7 @@
 #include "stuffer/s2n_stuffer.h"
 
 #define S2N_SERIALIZED_FORMAT_VERSION   1
+#define S2N_TLS13_SERIALIZED_FORMAT_VERSION   2
 #define S2N_STATE_LIFETIME_IN_NANOS     54000000000000      /* 15 hours */
 #define S2N_STATE_SIZE_IN_BYTES         (1 + 8 + 1 + S2N_TLS_CIPHER_SUITE_LEN + S2N_TLS_SECRET_LEN)
 #define S2N_TLS_SESSION_CACHE_TTL       (6 * 60 * 60)
@@ -50,6 +51,11 @@ struct s2n_ticket_key {
 struct s2n_ticket_key_weight {
     double key_weight;
     uint8_t key_index;
+};
+
+struct s2n_ticket_fields {
+    struct s2n_blob session_secret;
+    uint32_t ticket_age_add;
 };
 
 extern struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t *name);
