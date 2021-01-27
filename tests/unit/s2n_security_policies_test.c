@@ -124,6 +124,36 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r2r1_2020_07);
         EXPECT_NOT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_r2);
+
+        security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-TLS-1-1-2021-01-25", &security_policy));
+        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
+        EXPECT_TRUE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_EQUAL(5, security_policy->kem_preferences->kem_count);
+        EXPECT_NOT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r2r1_2020_07);
+        EXPECT_NOT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_r2);
+
+        security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-TLS-1-0-2021-01-26", &security_policy));
+        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
+        EXPECT_TRUE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_EQUAL(5, security_policy->kem_preferences->kem_count);
+        EXPECT_NOT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r2r1_2020_07);
+        EXPECT_NOT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_r2);
+
+        security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-TLS-1-0-2021-01-27", &security_policy));
+        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
+        EXPECT_TRUE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_EQUAL(5, security_policy->kem_preferences->kem_count);
+        EXPECT_NOT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r2r1_2020_07);
+        EXPECT_NOT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_r2);
 #if EVP_APIS_SUPPORTED
         EXPECT_EQUAL(6, security_policy->kem_preferences->tls13_kem_group_count);
 #else
