@@ -47,7 +47,7 @@ static int s2n_client_max_frag_len_send(struct s2n_connection *conn, struct s2n_
 
 static int s2n_client_max_frag_len_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    // we accept mfl only when enabled in s2n_config or in the connection
+    /* we accept mfl only when enabled in s2n_config or in the connection */
     if (!(conn->config->accept_mfl || conn->accept_mfl)) {
         return S2N_SUCCESS;
     }
