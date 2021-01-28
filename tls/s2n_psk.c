@@ -296,15 +296,15 @@ int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_ext
     ENSURE_POSIX_REF(psk_vec);
     
     /* Remove all previously-set external psks */
+    /* The loop iterates from len to 1 instead of from len-1 to 0 to avoid size_t underflowing */
     for (size_t i = conn->psk_params.psk_list.len; i > 0; i--) {
-        /* This index variable along with the loop condition keep size_t i from underflowing */
-        size_t index = i - 1;
+        size_t i_index = i - 1;
         struct s2n_psk *psk = NULL;
-        GUARD_AS_POSIX(s2n_array_get(&conn->psk_params.psk_list, index, (void**) &psk));
+        GUARD_AS_POSIX(s2n_array_get(&conn->psk_params.psk_list, i_index, (void**) &psk));
         ENSURE_POSIX_REF(psk);
         if (psk->type == S2N_PSK_TYPE_EXTERNAL) {
             GUARD(s2n_psk_free(psk));
-            GUARD_AS_POSIX(s2n_array_remove(&conn->psk_params.psk_list, index));
+            GUARD_AS_POSIX(s2n_array_remove(&conn->psk_params.psk_list, i_index));
         }
     }
 
