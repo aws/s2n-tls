@@ -19,8 +19,6 @@
 
 #include "stuffer/s2n_stuffer.h"
 
-#define S2N_SERIALIZED_FORMAT_VERSION   1
-#define S2N_TLS13_SERIALIZED_FORMAT_VERSION   2
 #define S2N_STATE_LIFETIME_IN_NANOS     54000000000000      /* 15 hours */
 #define S2N_STATE_SIZE_IN_BYTES         (1 + 8 + 1 + S2N_TLS_CIPHER_SUITE_LEN + S2N_TLS_SECRET_LEN)
 #define S2N_TLS_SESSION_CACHE_TTL       (6 * 60 * 60)
@@ -72,6 +70,11 @@ typedef enum {
     S2N_STATE_WITH_SESSION_ID = 0,
     S2N_STATE_WITH_SESSION_TICKET
 } s2n_client_tls_session_state_format;
+
+typedef enum {
+    S2N_TLS12_SERIALIZED_FORMAT_VERSION = 1,
+    S2N_TLS13_SERIALIZED_FORMAT_VERSION
+} s2n_serial_format_version;
 
 extern int s2n_allowed_to_cache_connection(struct s2n_connection *conn);
 extern int s2n_resume_from_cache(struct s2n_connection *conn);
