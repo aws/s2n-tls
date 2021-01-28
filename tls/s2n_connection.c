@@ -556,6 +556,14 @@ int s2n_connection_release_buffers(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
+int s2n_connection_accept_max_fragment_length(struct s2n_connection *conn) {
+    notnull_check(conn);
+
+    conn->accept_mfl = 1;
+
+    return 0;
+}
+
 int s2n_connection_free_handshake(struct s2n_connection *conn)
 {
     /* We are done with the handshake */

@@ -145,7 +145,7 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
     free(private_key);
 
     eq_check(negotiated_kem_id, expected_kem_id);
-    
+
     return 0;
 }
 
@@ -153,7 +153,7 @@ int main(int argc, char **argv)
 {
     char *cert_chain;
     char *private_key;
-    
+
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
 
@@ -206,7 +206,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        
+
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
@@ -261,7 +261,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        
+
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -374,7 +374,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-        
+
         EXPECT_SUCCESS(s2n_config_free(server_config));
     }
 
@@ -485,7 +485,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_errno, S2N_ERR_DUPLICATE_EXTENSION);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        
+
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -578,7 +578,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-        
+
         EXPECT_SUCCESS(s2n_config_free(server_config));
     }
 
@@ -659,11 +659,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
         s2n_negotiate(server_conn, &server_blocked);
         EXPECT_EQUAL(s2n_errno, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
-        
+
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(server_config));
-        
+
         /* Clear pipe since negotiation failed mid-handshake */
         EXPECT_SUCCESS(read(io_pair.client, buf, sizeof(buf)));
     }
@@ -696,7 +696,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
-        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_OCSP_STAPLING, 
+        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_OCSP_STAPLING,
                     server_ocsp_status, sizeof(server_ocsp_status)));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -714,7 +714,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        
+
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
@@ -779,11 +779,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-        
+
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
-    
+
     /* Test with s2n_config_set_extension_data(). Can be removed once API is deprecated */
     if(s2n_x509_ocsp_stapling_supported()) {
         struct s2n_connection *client_conn;
@@ -797,7 +797,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
         EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));
-        
+
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
@@ -805,7 +805,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
-        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_OCSP_STAPLING, 
+        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_OCSP_STAPLING,
                     server_ocsp_status, sizeof(server_ocsp_status)));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -867,7 +867,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
-        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_OCSP_STAPLING, 
+        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_OCSP_STAPLING,
                     server_ocsp_status, sizeof(server_ocsp_status)));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -889,7 +889,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        
+
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
@@ -988,7 +988,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
-        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, 
+        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY,
                     sct_list, sizeof(sct_list)));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -1040,7 +1040,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
-        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, 
+        EXPECT_SUCCESS(s2n_config_set_extension_data(server_config, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY,
                     sct_list, sizeof(sct_list)));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -1054,7 +1054,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        
+
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
@@ -1107,7 +1107,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        
+
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -1117,55 +1117,61 @@ int main(int argc, char **argv)
     /* Client requests 512, 1024, 2048, and 4096 maximum fragment lengths */
     for (uint8_t mfl_code = S2N_TLS_MAX_FRAG_LEN_512; mfl_code <= S2N_TLS_MAX_FRAG_LEN_4096; mfl_code++)
     {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
-        struct s2n_cert_chain_and_key *chain_and_key;
+        for (uint8_t connection_config = 0; connection_config <= 1; connection_config++) {
+            struct s2n_connection *client_conn;
+            struct s2n_connection *server_conn;
+            struct s2n_config *server_config;
+            struct s2n_config *client_config;
+            struct s2n_cert_chain_and_key *chain_and_key;
 
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
-        client_conn->actual_protocol_version = S2N_TLS12;
-        client_conn->server_protocol_version = S2N_TLS12;
-        client_conn->client_protocol_version = S2N_TLS12;
+            EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+            client_conn->actual_protocol_version = S2N_TLS12;
+            client_conn->server_protocol_version = S2N_TLS12;
+            client_conn->client_protocol_version = S2N_TLS12;
 
-        EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
-        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+            EXPECT_NOT_NULL(client_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
+            EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
 
-        EXPECT_SUCCESS(s2n_config_send_max_fragment_length(client_config, mfl_code));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+            EXPECT_SUCCESS(s2n_config_send_max_fragment_length(client_config, mfl_code));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        server_conn->actual_protocol_version = S2N_TLS12;
-        server_conn->server_protocol_version = S2N_TLS12;
-        server_conn->client_protocol_version = S2N_TLS12;
+            EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+            server_conn->actual_protocol_version = S2N_TLS12;
+            server_conn->server_protocol_version = S2N_TLS12;
+            server_conn->client_protocol_version = S2N_TLS12;
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_accept_max_fragment_length(server_config));
-        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+            EXPECT_NOT_NULL(server_config = s2n_config_new());
+            if (connection_config) {
+                EXPECT_SUCCESS(s2n_config_accept_max_fragment_length(server_config));
+            } else {
+                EXPECT_SUCCESS(s2n_connection_accept_max_fragment_length(server_conn));
+            }
+            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        /* Preference should be ignored as the TlS Maximum Fragment Length Extension is Set */
-        EXPECT_SUCCESS(s2n_connection_prefer_throughput(server_conn));
+            /* Preference should be ignored as the TlS Maximum Fragment Length Extension is Set */
+            EXPECT_SUCCESS(s2n_connection_prefer_throughput(server_conn));
 
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-        EXPECT_EQUAL(server_conn->max_outgoing_fragment_length, mfl_code_to_length[mfl_code]);
-        EXPECT_EQUAL(server_conn->mfl_code, mfl_code);
+            EXPECT_EQUAL(server_conn->max_outgoing_fragment_length, mfl_code_to_length[mfl_code]);
+            EXPECT_EQUAL(server_conn->mfl_code, mfl_code);
 
-        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
 
-        EXPECT_SUCCESS(s2n_config_free(server_config));
-        EXPECT_SUCCESS(s2n_config_free(client_config));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+            EXPECT_SUCCESS(s2n_config_free(server_config));
+            EXPECT_SUCCESS(s2n_config_free(client_config));
+        }
     }
 
     /* Client requests invalid maximum fragment length */
@@ -1211,7 +1217,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        
+
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -1260,7 +1266,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        
+
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
         EXPECT_SUCCESS(s2n_config_free(server_config));

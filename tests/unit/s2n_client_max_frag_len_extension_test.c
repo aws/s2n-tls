@@ -96,6 +96,40 @@ int main(int argc, char **argv)
 
     /* Test receive - invalid mfl code */
     {
+        for (uint8_t connection_config = 0; connection_config <= 1; connection_config++) {
+            struct s2n_config *config;
+            EXPECT_NOT_NULL(config = s2n_config_new());
+
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            if (connection_config) {
+                EXPECT_SUCCESS(s2n_config_accept_max_fragment_length(config));
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            } else {
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+                EXPECT_SUCCESS(s2n_connection_accept_max_fragment_length(conn));
+            }
+
+            struct s2n_stuffer stuffer;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+            /* Send invalid mfl code */
+            conn->config->mfl_code = UINT8_MAX;
+            EXPECT_SUCCESS(s2n_client_max_frag_len_extension.send(conn, &stuffer));
+
+            /* Ignore invalid mfl code */
+            EXPECT_SUCCESS(s2n_client_max_frag_len_extension.recv(conn, &stuffer));
+            EXPECT_EQUAL(conn->mfl_code, S2N_TLS_MAX_FRAG_LEN_EXT_NONE);
+            EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_DEFAULT_FRAGMENT_LENGTH);
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+    }
+
+    /* Test receive - s2n_config_accept_max_fragment_length */
+    {
         struct s2n_config *config;
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_accept_max_fragment_length(config));
@@ -107,29 +141,29 @@ int main(int argc, char **argv)
         struct s2n_stuffer stuffer;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-        /* Send invalid mfl code */
-        conn->config->mfl_code = UINT8_MAX;
+        EXPECT_SUCCESS(s2n_config_send_max_fragment_length(conn->config, S2N_TLS_MAX_FRAG_LEN_512));
         EXPECT_SUCCESS(s2n_client_max_frag_len_extension.send(conn, &stuffer));
 
-        /* Ignore invalid mfl code */
+        /* Accept valid mfl code */
         EXPECT_SUCCESS(s2n_client_max_frag_len_extension.recv(conn, &stuffer));
-        EXPECT_EQUAL(conn->mfl_code, S2N_TLS_MAX_FRAG_LEN_EXT_NONE);
-        EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_DEFAULT_FRAGMENT_LENGTH);
+        EXPECT_EQUAL(conn->mfl_code, S2N_TLS_MAX_FRAG_LEN_512);
+        EXPECT_EQUAL(conn->max_outgoing_fragment_length, mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_512]);
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
     }
 
-    /* Test receive */
+    /* Test receive - s2n_connection_accept_max_fragment_length */
     {
         struct s2n_config *config;
         EXPECT_NOT_NULL(config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_accept_max_fragment_length(config));
 
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+        EXPECT_SUCCESS(s2n_connection_accept_max_fragment_length(conn));
 
         struct s2n_stuffer stuffer;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));

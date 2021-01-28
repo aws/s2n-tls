@@ -1231,6 +1231,17 @@ to the s2n_client_hello structure holding the client hello message sent by the c
 NULL is returned if the connection has not yet received and parsed the client hello.
 Earliest point during the handshake when this structure is available for use is in the client_hello_callback (see **s2n_config_set_client_hello_cb**).
 
+### s2n\_connection\_accept\_max\_fragment\_length
+
+```c
+int s2n_connection_accept_max_fragment_length(struct s2n_connection *conn);
+```
+
+For a given s2n_connection,, **s2n_connection_accept_max_fragment_length** allows the server to opt-in to accept
+client's TLS maximum fragment length extension requests.
+If this API is not called, and client requests the extension, server will ignore the
+request and continue TLS handshake with default maximum fragment length of 8k bytes
+
 ### s2n\_client\_hello\_get\_raw\_message
 
 ```c

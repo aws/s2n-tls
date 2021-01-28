@@ -101,6 +101,9 @@ struct s2n_connection {
     /* whether the connection address is ipv6 or not */
     unsigned ipv6:1;
 
+    /* if true, server will accept client's Maximum Fragment Length request for this request */
+    unsigned accept_mfl:1;
+
     /* Whether server_name extension was used to make a decision on cert selection.
      * RFC6066 Section 3 states that server which used server_name to make a decision
      * on certificate or security settings has to send an empty server_name.

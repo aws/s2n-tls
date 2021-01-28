@@ -236,6 +236,8 @@ S2N_API
 extern int s2n_config_send_max_fragment_length(struct s2n_config *config, s2n_max_frag_len mfl_code);
 S2N_API
 extern int s2n_config_accept_max_fragment_length(struct s2n_config *config);
+S2N_API
+extern int s2n_connection_accept_max_fragment_length(struct s2n_connection *conn);
 
 S2N_API
 extern int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs);
