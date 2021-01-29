@@ -23,7 +23,7 @@ void s2n_hmac_update_harness()
     /* Non-deterministic inputs. */
     struct s2n_hmac_state *state = cbmc_allocate_s2n_hmac_state();
     uint32_t size;
-    void *in = bounded_malloc(size);
+    void *in = malloc(size);
 
     /* Assumptions. */
     __CPROVER_assume(s2n_result_is_ok(s2n_hmac_state_validate(state)));
