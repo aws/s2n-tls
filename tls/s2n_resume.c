@@ -545,7 +545,8 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_ticket_fi
     } else {
         uint8_t s_data[S2N_TLS13_MAX_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = {0};
         /* TLS1.3 session resumption ticket size varies based on session secret size */
-        GUARD(s2n_blob_init(&state_blob, s_data, sizeof(S2N_TLS13_STATE_SIZE_IN_BYTES + ticket_fields->session_secret.size)));
+        GUARD(s2n_blob_init(&state_blob, s_data, S2N_TLS13_STATE_SIZE_IN_BYTES + 
+                ticket_fields->session_secret.size + S2N_TLS_GCM_TAG_LEN));
         GUARD(s2n_stuffer_init(&state, &state_blob));
         GUARD_AS_POSIX(s2n_tls13_serialize_resumption_state(conn, ticket_fields, &state));
     }
