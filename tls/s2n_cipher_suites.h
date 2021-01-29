@@ -32,9 +32,8 @@
 
 #define S2N_MAX_POSSIBLE_RECORD_ALGS    2
 
-/* Kept up-to-date by s2n_cipher_suite_match_test */
+/* Kept up-to-date by s2n_cipher_suite_test */
 #define S2N_CIPHER_SUITE_COUNT          39
-
 
 /* Record algorithm flags that can be OR'ed */
 #define S2N_TLS12_AES_GCM_AEAD_NONCE     0x01

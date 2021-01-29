@@ -40,45 +40,6 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
-    {
-        struct s2n_connection *conn;
-        uint8_t wire[2];
-        int count;
-        int cipher_suite_order;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-
-        char *cert_chain;
-        char *private_key;
-        EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(conn->config, cert_chain, private_key));
-
-        /* Test that all cipher suites that s2n negotiates are listed in IANA order */
-        const uint8_t cipher_suite_count = cipher_preferences_test_all.count;
-        for (int i = 0; i < cipher_suite_count-1; ++i) {
-            cipher_suite_order = memcmp(cipher_preferences_test_all.suites[i]->iana_value, cipher_preferences_test_all.suites[i+1]->iana_value, 2);
-            EXPECT_TRUE(cipher_suite_order < 0);
-        }
-        
-        count = 0;
-        for (int i = 0; i < 0xffff; i++) {
-            wire[0] = (i >> 8);
-            wire[1] = i & 0xff;
-
-            struct s2n_cipher_suite *s = s2n_cipher_suite_from_wire(wire);
-            if (s != NULL) {
-                count++;
-            }
-        }
-
-        EXPECT_EQUAL(count, S2N_CIPHER_SUITE_COUNT);
-
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-        free(private_key);
-        free(cert_chain);
-    }
 
     /* Test client cipher selection */
     {

@@ -1197,7 +1197,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
 
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
             /* We have a match */
-            struct s2n_cipher_suite *match = s2n_cipher_suite_from_wire(ours);
+            struct s2n_cipher_suite *match = security_policy->cipher_preferences->suites[i];
 
             /* Never use TLS1.3 ciphers on a pre-TLS1.3 connection, and vice versa */
             if ((conn->actual_protocol_version >= S2N_TLS13) != (match->minimum_required_tls_version >= S2N_TLS13)) {
