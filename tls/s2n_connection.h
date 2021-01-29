@@ -110,6 +110,12 @@ struct s2n_connection {
     /* If write fd is broken */
     unsigned write_fd_broken:1;
 
+    /* Locks to prevent users from calling methods recursively.
+     * This can be an easy mistake to make when implementing send/receive callbacks.
+     */
+    unsigned send_lock:1;
+    unsigned recv_lock:1;
+
     /* Track request extensions to ensure correct response extension behavior.
      *
      * We need to track client and server extensions separately because some
