@@ -51,14 +51,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->application_protocols.size, prev_size + 1 /* len prefix */ + 255);
         prev_size = config->application_protocols.size;
 
-        const uint8_t oversized[256] = { 0 };
-
         /* should not allow empty protocol values */
-        EXPECT_FAILURE(s2n_config_append_protocol_preference(config, (const uint8_t *)oversized, 0));
-        EXPECT_EQUAL(config->application_protocols.size, prev_size);
-
-        /* should limit the length of the protocol value */
-        EXPECT_FAILURE(s2n_config_append_protocol_preference(config, (const uint8_t *)oversized, 265));
+        EXPECT_FAILURE(s2n_config_append_protocol_preference(config, (const uint8_t *)large_value, 0));
         EXPECT_EQUAL(config->application_protocols.size, prev_size);
 
         EXPECT_SUCCESS(s2n_config_free(config));
@@ -93,14 +87,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->application_protocols_overridden.size, prev_size + 1 /* len prefix */ + 255);
         prev_size = conn->application_protocols_overridden.size;
 
-        const uint8_t oversized[256] = { 0 };
-
         /* should not allow empty protocol values */
-        EXPECT_FAILURE(s2n_connection_append_protocol_preference(conn, (const uint8_t *)oversized, 0));
-        EXPECT_EQUAL(conn->application_protocols_overridden.size, prev_size);
-
-        /* should limit the length of the protocol value */
-        EXPECT_FAILURE(s2n_connection_append_protocol_preference(conn, (const uint8_t *)oversized, 265));
+        EXPECT_FAILURE(s2n_connection_append_protocol_preference(conn, (const uint8_t *)large_value, 0));
         EXPECT_EQUAL(conn->application_protocols_overridden.size, prev_size);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -118,6 +106,10 @@ int main(int argc, char **argv)
         /* should copy the preference list */
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
         EXPECT_EQUAL(config->application_protocols.size, (1 /* len prefix */ + 9) * protocols_count);
+
+        /* should correctly free the old list list */
+        EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, 1));
+        EXPECT_EQUAL(config->application_protocols.size, 1 /* len prefix */ + 9);
 
         /* should clear the preference list */
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, NULL, protocols_count));
@@ -148,6 +140,10 @@ int main(int argc, char **argv)
         /* should copy the preference list */
         EXPECT_SUCCESS(s2n_connection_set_protocol_preferences(conn, protocols, protocols_count));
         EXPECT_EQUAL(conn->application_protocols_overridden.size, (1 /* len prefix */ + 9) * protocols_count);
+
+        /* should correctly free the old list */
+        EXPECT_SUCCESS(s2n_connection_set_protocol_preferences(conn, protocols, 1));
+        EXPECT_EQUAL(conn->application_protocols_overridden.size, 1 /* len prefix */ + 9);
 
         /* should clear the preference list */
         EXPECT_SUCCESS(s2n_connection_set_protocol_preferences(conn, NULL, protocols_count));

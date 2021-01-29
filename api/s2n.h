@@ -226,11 +226,11 @@ extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const ch
  * The data provided in `protocol` parameter will be copied into an internal buffer
  *
  * @param config The configuration object being updated
- * @param protocol A pointer to a slice of bytes
- * @param protocol_len The length of bytes that should be read from `protocol`. Note this value cannot exceed `255`.
+ * @param protocol A pointer to a byte array value
+ * @param protocol_len The length of bytes that should be read from `protocol`. Note: this value cannot be 0, otherwise an error will be returned.
  */
 S2N_API
-extern int s2n_config_append_protocol_preference(struct s2n_config *config, const uint8_t *protocol, size_t protocol_len);
+extern int s2n_config_append_protocol_preference(struct s2n_config *config, const uint8_t *protocol, uint8_t protocol_len);
 
 S2N_API
 extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count);
@@ -349,10 +349,10 @@ extern int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, co
  *
  * @param conn The connection object being updated
  * @param protocol A pointer to a slice of bytes
- * @param protocol_len The length of bytes that should be read from `protocol`. Note this value cannot exceed `255`.
+ * @param protocol_len The length of bytes that should be read from `protocol`. Note: this value cannot be 0, otherwise an error will be returned.
  */
 S2N_API
-extern int s2n_connection_append_protocol_preference(struct s2n_connection *conn, const uint8_t *protocol, size_t protocol_len);
+extern int s2n_connection_append_protocol_preference(struct s2n_connection *conn, const uint8_t *protocol, uint8_t protocol_len);
 
 S2N_API
 extern int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char * const *protocols, int protocol_count);

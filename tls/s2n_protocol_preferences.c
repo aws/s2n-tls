@@ -17,9 +17,9 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 
-S2N_RESULT s2n_protocol_preferences_write(struct s2n_stuffer *protocol_stuffer, const uint8_t *protocol, size_t protocol_len)
+S2N_RESULT s2n_protocol_preferences_append(struct s2n_blob *application_protocols, const uint8_t *protocol, uint8_t protocol_len)
 {
-    ENSURE_MUT(protocol_stuffer);
+    ENSURE_MUT(application_protocols);
     ENSURE_REF(protocol);
 
     /**
@@ -28,13 +28,18 @@ S2N_RESULT s2n_protocol_preferences_write(struct s2n_stuffer *protocol_stuffer, 
      *# MUST NOT be included and byte strings MUST NOT be truncated.
      */
     ENSURE(protocol_len != 0, S2N_ERR_INVALID_APPLICATION_PROTOCOL);
-    ENSURE(protocol_len <= 255, S2N_ERR_INVALID_APPLICATION_PROTOCOL);
 
-    uint32_t extension_len = s2n_stuffer_data_available(protocol_stuffer) + /* len prefix */ 1 + protocol_len;
-    ENSURE(extension_len <= UINT16_MAX, S2N_ERR_INVALID_APPLICATION_PROTOCOL);
+    uint32_t prev_len = application_protocols->size;
+    uint32_t new_len = prev_len + /* len prefix */ 1 + protocol_len;
+    ENSURE(new_len <= UINT16_MAX, S2N_ERR_INVALID_APPLICATION_PROTOCOL);
 
-    GUARD_AS_RESULT(s2n_stuffer_write_uint8(protocol_stuffer, protocol_len));
-    GUARD_AS_RESULT(s2n_stuffer_write_bytes(protocol_stuffer, protocol, protocol_len));
+    GUARD_AS_RESULT(s2n_realloc(application_protocols, new_len));
+
+    struct s2n_stuffer protocol_stuffer = {0};
+    GUARD_AS_RESULT(s2n_stuffer_init(&protocol_stuffer, application_protocols));
+    GUARD_AS_RESULT(s2n_stuffer_skip_write(&protocol_stuffer, prev_len));
+    GUARD_AS_RESULT(s2n_stuffer_write_uint8(&protocol_stuffer, protocol_len));
+    GUARD_AS_RESULT(s2n_stuffer_write_bytes(&protocol_stuffer, protocol, protocol_len));
 
     return S2N_RESULT_OK;
 }
@@ -46,40 +51,31 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
     /* NULL value indicates no preference so free the previous blob */
     if (protocols == NULL || protocol_count == 0) {
         GUARD_AS_RESULT(s2n_free(application_protocols));
-
         return S2N_RESULT_OK;
     }
 
-    DEFER_CLEANUP(struct s2n_stuffer protocol_stuffer = { 0 }, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_blob new_protocols = { 0 }, s2n_free);
 
-    GUARD_AS_RESULT(s2n_stuffer_growable_alloc(&protocol_stuffer, 256));
     for (size_t i = 0; i < protocol_count; i++) {
         const uint8_t * protocol = (const uint8_t *)protocols[i];
         size_t length = strlen(protocols[i]);
-        GUARD_RESULT(s2n_protocol_preferences_write(&protocol_stuffer, protocol, length));
+
+        /**
+         *= https://tools.ietf.org/rfc/rfc7301#section-3.1
+         *# Empty strings
+         *# MUST NOT be included and byte strings MUST NOT be truncated.
+         */
+        ENSURE(length < 256, S2N_ERR_INVALID_APPLICATION_PROTOCOL);
+
+        GUARD_RESULT(s2n_protocol_preferences_append(&new_protocols, protocol, (uint8_t)length));
     }
 
-    GUARD_AS_RESULT(s2n_stuffer_extract_blob(&protocol_stuffer, application_protocols));
+    /* now we can free the previous list since we've validated all new input */
+    GUARD_AS_RESULT(s2n_free(application_protocols));
 
-    return S2N_RESULT_OK;
-}
-
-S2N_RESULT s2n_protocol_preferences_append(struct s2n_blob *application_protocols, const uint8_t *protocol, size_t protocol_len)
-{
-    ENSURE_MUT(application_protocols);
-    ENSURE_REF(protocol);
-
-    struct s2n_stuffer protocol_stuffer = {0};
-    GUARD_AS_RESULT(s2n_stuffer_init(&protocol_stuffer, application_protocols));
-    protocol_stuffer.alloced = true;
-    protocol_stuffer.growable = true;
-    GUARD_AS_RESULT(s2n_stuffer_skip_write(&protocol_stuffer, application_protocols->size));
-
-    GUARD_RESULT(s2n_protocol_preferences_write(&protocol_stuffer, protocol, protocol_len));
-
-    /* ensure the application_protocols gets updated if we reallocate */
-    *application_protocols = protocol_stuffer.blob;
-    application_protocols->size = protocol_stuffer.write_cursor;
+    *application_protocols = new_protocols;
+    /* zero out new_protocols so we don't free what we just allocated */
+    new_protocols = (struct s2n_blob){ 0 };
 
     return S2N_RESULT_OK;
 }
@@ -89,7 +85,7 @@ int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *c
     return S2N_RESULT_TO_POSIX(s2n_protocol_preferences_set(&config->application_protocols, protocols, protocol_count));
 }
 
-int s2n_config_append_protocol_preference(struct s2n_config *config, const uint8_t *protocol, size_t protocol_len)
+int s2n_config_append_protocol_preference(struct s2n_config *config, const uint8_t *protocol, uint8_t protocol_len)
 {
     return S2N_RESULT_TO_POSIX(s2n_protocol_preferences_append(&config->application_protocols, protocol, protocol_len));
 }
@@ -99,7 +95,7 @@ int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const c
     return S2N_RESULT_TO_POSIX(s2n_protocol_preferences_set(&conn->application_protocols_overridden, protocols, protocol_count));
 }
 
-int s2n_connection_append_protocol_preference(struct s2n_connection *conn, const uint8_t *protocol, size_t protocol_len)
+int s2n_connection_append_protocol_preference(struct s2n_connection *conn, const uint8_t *protocol, uint8_t protocol_len)
 {
     return S2N_RESULT_TO_POSIX(s2n_protocol_preferences_append(&conn->application_protocols_overridden, protocol, protocol_len));
 }
