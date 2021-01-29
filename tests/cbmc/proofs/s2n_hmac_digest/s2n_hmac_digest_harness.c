@@ -13,26 +13,32 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_hash.h"
+#include "crypto/s2n_hmac.h"
 
 #include <cbmc_proof/make_common_datastructures.h>
+#include <cbmc_proof/proof_allocators.h>
 
-void s2n_hash_digest_harness()
+void s2n_hmac_digest_harness()
 {
     /* Non-deterministic inputs. */
-    struct s2n_hash_state *state = cbmc_allocate_s2n_hash_state();
+    struct s2n_hmac_state *state = cbmc_allocate_s2n_hmac_state();
     uint32_t size;
     void* out = malloc(size);
 
     /* Assumptions. */
-    __CPROVER_assume(s2n_result_is_ok(s2n_hash_state_validate(state)));
-    __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(state);
+    __CPROVER_assume(s2n_result_is_ok(s2n_hmac_state_validate(state)));
+    __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(&state->inner);
+    __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(&state->outer);
+    __CPROVER_file_local_s2n_hash_c_s2n_hash_set_impl(&state->outer_just_key);
 
     /* Operation under verification. */
-    if (s2n_hash_digest(state, out, size) == S2N_SUCCESS)
+    if (s2n_hmac_digest(state, out, size) == S2N_SUCCESS)
     {
         /* Post-conditions. */
-        assert(s2n_result_is_ok(s2n_hash_state_validate(state)));
-        assert(state->hash_impl->digest != NULL);
+        assert(s2n_result_is_ok(s2n_hmac_state_validate(state)));
+        assert(state->inner.hash_impl->digest != NULL);
+        assert(state->outer.hash_impl->digest != NULL);
+        assert(state->outer.hash_impl->update != NULL);
+        assert(state->outer_just_key.hash_impl->copy != NULL);
     }
 }
