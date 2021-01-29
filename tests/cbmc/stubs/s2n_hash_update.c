@@ -22,7 +22,7 @@
 int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size)
 {
     PRECONDITION_POSIX(s2n_hash_state_validate(state));
-    ENSURE_POSIX(size == 0 || S2N_MEM_IS_READABLE(data, size), S2N_ERR_PRECONDITION_VIOLATION);
+    ENSURE_POSIX(S2N_MEM_IS_READABLE(data, size), S2N_ERR_PRECONDITION_VIOLATION);
     notnull_check(state->hash_impl->update);
 
     /* return state->hash_impl->update(state, data, size); */

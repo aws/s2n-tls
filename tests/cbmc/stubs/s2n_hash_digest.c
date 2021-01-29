@@ -22,7 +22,7 @@
 int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size)
 {
     PRECONDITION_POSIX(s2n_hash_state_validate(state));
-    ENSURE_POSIX(size == 0 || S2N_MEM_IS_READABLE(out, size), S2N_ERR_PRECONDITION_VIOLATION);
+    ENSURE_POSIX(S2N_MEM_IS_READABLE(out, size), S2N_ERR_PRECONDITION_VIOLATION);
     notnull_check(state->hash_impl->digest);
 
     /* return state->hash_impl->digest(state, out, size); */
