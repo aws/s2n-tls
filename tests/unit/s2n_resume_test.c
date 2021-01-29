@@ -140,46 +140,6 @@ int main(int argc, char **argv)
             
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-
-        /* Test secret that is too large */
-        {
-            S2N_BLOB_FROM_HEX(large_secret,
-            "ee85dd54781bd4d8a100589a9fe6ac9a3797b811e977f549cd"
-            "531be2441d7c63e2b9729d145c11d84af35957727565a400");
-
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            conn->actual_protocol_version = S2N_TLS13;
-
-            DEFER_CLEANUP(struct s2n_stuffer output = {0}, s2n_stuffer_free);
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-
-            struct s2n_ticket_fields ticket_fields = { .ticket_age_add = 1, .session_secret = large_secret };
-
-            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_serialize_resumption_state(conn, &ticket_fields, &output), S2N_ERR_SAFETY);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-
-         /* Test secret that is too small */
-        {
-            S2N_BLOB_FROM_HEX(small_secret,
-            "18df06843d13a08bf2a449844c5f8a"
-            "478001bc4d4c627984d5a41d");
-
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            conn->actual_protocol_version = S2N_TLS13;
-
-            DEFER_CLEANUP(struct s2n_stuffer output = {0}, s2n_stuffer_free);
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-
-            struct s2n_ticket_fields ticket_fields = { .ticket_age_add = 1, .session_secret = small_secret };
-
-            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_serialize_resumption_state(conn, &ticket_fields, &output), S2N_ERR_SAFETY);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
     }
     END_TEST();
 }

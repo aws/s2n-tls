@@ -21,6 +21,15 @@
 
 #define S2N_STATE_LIFETIME_IN_NANOS     54000000000000      /* 15 hours */
 #define S2N_STATE_SIZE_IN_BYTES         (1 + 8 + 1 + S2N_TLS_CIPHER_SUITE_LEN + S2N_TLS_SECRET_LEN)
+
+#define S2N_TLS13_STATE_SIZE_IN_BYTES   sizeof(uint8_t) +  /* serialization format */  \
+                                        sizeof(uint8_t) +  /* protocol version */      \
+                                        sizeof(uint16_t) + /* cipher suite */          \
+                                        sizeof(uint64_t) + /* ticket issue time */     \
+                                        sizeof(uint32_t)   /* ticket age add */
+
+#define S2N_TLS13_MAX_STATE_SIZE_IN_BYTES   S2N_TLS13_STATE_SIZE_IN_BYTES + S2N_TLS_SECRET_LEN
+
 #define S2N_TLS_SESSION_CACHE_TTL       (6 * 60 * 60)
 #define S2N_TICKET_KEY_NAME_LEN         16
 #define S2N_TICKET_AAD_IMPLICIT_LEN     12
@@ -57,7 +66,7 @@ struct s2n_ticket_fields {
 };
 
 extern struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t *name);
-extern int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *to);
+extern int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_ticket_fields *ticket_fields, struct s2n_stuffer *to);
 extern int s2n_decrypt_session_ticket(struct s2n_connection *conn);
 extern int s2n_encrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *to); 
 extern int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *from); 

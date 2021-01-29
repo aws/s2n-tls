@@ -65,7 +65,7 @@ static int s2n_serialize_resumption_state(struct s2n_connection *conn, struct s2
     return 0;
 }
 
-S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *conn, struct s2n_ticket_fields *ticket_fields,
+static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *conn, struct s2n_ticket_fields *ticket_fields,
         struct s2n_stuffer *out)
 {
     ENSURE_REF(conn);
@@ -82,8 +82,6 @@ S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *conn, str
     GUARD_AS_RESULT(s2n_stuffer_write_bytes(out, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     GUARD_AS_RESULT(s2n_stuffer_write_uint64(out, current_time));
     GUARD_AS_RESULT(s2n_stuffer_write_uint32(out, ticket_fields->ticket_age_add));
-    ENSURE((ticket_fields->session_secret.size >= MIN_TLS13_SECRET_LEN) &&
-            (ticket_fields->session_secret.size <= MAX_TLS13_SECRET_LEN), S2N_ERR_SAFETY);
     GUARD_AS_RESULT(s2n_stuffer_write_uint8(out, ticket_fields->session_secret.size));
     GUARD_AS_RESULT(s2n_stuffer_write_bytes(out, ticket_fields->session_secret.data, ticket_fields->session_secret.size));
 
@@ -502,7 +500,7 @@ struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint
     return NULL;
 }
 
-int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *to)
+int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_ticket_fields *ticket_fields, struct s2n_stuffer *to)
 {
     struct s2n_ticket_key *key;
     struct s2n_session_key aes_ticket_key = {0};
@@ -516,11 +514,6 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     struct s2n_blob aad_blob = {0};
     GUARD(s2n_blob_init(&aad_blob, aad_data, sizeof(aad_data)));
     struct s2n_stuffer aad = {0};
-
-    uint8_t s_data[S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = { 0 };
-    struct s2n_blob state_blob = {0};
-    GUARD(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
-    struct s2n_stuffer state = {0};
 
     key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
 
@@ -541,8 +534,21 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     GUARD(s2n_stuffer_write_bytes(&aad, key->implicit_aad, S2N_TICKET_AAD_IMPLICIT_LEN));
     GUARD(s2n_stuffer_write_bytes(&aad, key->key_name, S2N_TICKET_KEY_NAME_LEN));
 
-    GUARD(s2n_stuffer_init(&state, &state_blob));
-    GUARD(s2n_serialize_resumption_state(conn, &state));
+    struct s2n_blob state_blob = {0};
+    struct s2n_stuffer state = {0};
+
+    if (ticket_fields == NULL) {
+        uint8_t s_data[S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = { 0 };
+        GUARD(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
+        GUARD(s2n_stuffer_init(&state, &state_blob));
+        GUARD(s2n_serialize_resumption_state(conn, &state));
+    } else {
+        uint8_t s_data[S2N_TLS13_MAX_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = {0};
+        /* TLS1.3 session resumption ticket size varies based on session secret size */
+        GUARD(s2n_blob_init(&state_blob, s_data, sizeof(S2N_TLS13_STATE_SIZE_IN_BYTES + ticket_fields->session_secret.size)));
+        GUARD(s2n_stuffer_init(&state, &state_blob));
+        GUARD_AS_POSIX(s2n_tls13_serialize_resumption_state(conn, ticket_fields, &state));
+    }
 
     GUARD(s2n_aes256_gcm.io.aead.encrypt(&aes_ticket_key, &iv, &aad_blob, &state_blob, &state_blob));
 
@@ -630,7 +636,7 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn)
 
 int s2n_encrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *to)
 {
-    return s2n_encrypt_session_ticket(conn, to);
+    return s2n_encrypt_session_ticket(conn, NULL, to);
 }
 
 
