@@ -119,15 +119,6 @@ struct s2n_connection {
     s2n_extension_bitfield extension_requests_sent;
     s2n_extension_bitfield extension_requests_received;
 
-    /* Locks to prevent users from calling methods recursively.
-     * This can be an easy mistake to make when implementing send/receive callbacks.
-     */
-    unsigned send_lock:1;
-    unsigned recv_lock:1;
-
-    /* Key update data */
-    unsigned key_update_pending:1;
-
     /* Is this connection a client or a server connection */
     s2n_mode mode;
 
@@ -324,6 +315,9 @@ struct s2n_connection {
     /* Cookie extension data */
     struct s2n_stuffer cookie_stuffer;
 
+    /* Key update data */
+    unsigned key_update_pending:1;
+
     /* Bitmap to represent preferred list of keyshare for client to generate and send keyshares in the ClientHello message.
      * The least significant bit (lsb), if set, indicates that the client must send an empty keyshare list.
      * Each bit value in the bitmap indiciates the corresponding curve in the ecc_preferences list for which a key share needs to be generated.
@@ -331,6 +325,12 @@ struct s2n_connection {
      * Setting and manipulating this value requires security_policy to be configured prior.
      * */
     uint8_t preferred_key_shares;
+
+    /* Flags to prevent users from calling methods recursively.
+     * This can be an easy mistake to make when implementing send/receive callbacks.
+     */
+    bool send_in_use;
+    bool recv_in_use;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);

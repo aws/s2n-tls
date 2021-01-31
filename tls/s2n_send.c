@@ -205,10 +205,10 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
 
 ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked)
 {
-    ENSURE_POSIX(!conn->send_lock, S2N_ERR_CONCURRENT_CALLS);
-    conn->send_lock = true;
+    ENSURE_POSIX(!conn->send_in_use, S2N_ERR_REENTRANCY);
+    conn->send_in_use = true;
     ssize_t result = s2n_sendv_with_offset_impl(conn, bufs, count, offs, blocked);
-    conn->send_lock = false;
+    conn->send_in_use = false;
     return result;
 }
 

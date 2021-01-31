@@ -27,7 +27,7 @@ int s2n_expect_concurrent_error_recv_fn(void *io_context, uint8_t *buf, uint32_t
 
     s2n_blocked_status blocked = 0;
     ssize_t result = s2n_recv(conn, buf, len, &blocked);
-    EXPECT_FAILURE_WITH_ERRNO(result, S2N_ERR_CONCURRENT_CALLS);
+    EXPECT_FAILURE_WITH_ERRNO(result, S2N_ERR_REENTRANCY);
     return result;
 }
 

@@ -247,7 +247,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_PQ_CRYPTO, "An error occurred in a post-quantum crypto function") \
     ERR_ENTRY(S2N_ERR_PQ_DISABLED, "Post-quantum crypto is disabled") \
     ERR_ENTRY(S2N_ERR_DUPLICATE_PSK_IDENTITIES, "The list of pre-shared keys provided contains duplicate psk identities") \
-    ERR_ENTRY(S2N_ERR_CONCURRENT_CALLS, "Cannot handle multiple concurrent invocations using the same connection") \
+    ERR_ENTRY(S2N_ERR_REENTRANCY, "Original execution must complete before method can be called again") \
 
 /* clang-format on */
 

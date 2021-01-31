@@ -206,10 +206,10 @@ ssize_t s2n_recv_impl(struct s2n_connection * conn, void *buf, ssize_t size, s2n
 
 ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_blocked_status * blocked)
 {
-    ENSURE_POSIX(!conn->recv_lock, S2N_ERR_CONCURRENT_CALLS);
-    conn->recv_lock = true;
+    ENSURE_POSIX(!conn->recv_in_use, S2N_ERR_REENTRANCY);
+    conn->recv_in_use = true;
     ssize_t result = s2n_recv_impl(conn, buf, size, blocked);
-    conn->recv_lock = false;
+    conn->recv_in_use = false;
     return result;
 }
 
