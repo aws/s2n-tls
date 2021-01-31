@@ -22,10 +22,14 @@ int main()
 {
     BEGIN_TEST();
 
-    /* Test: s2n_cipher_suite_from_wire */
+    /* Test: s2n_all_cipher_suites */
     {
-        /* Test: all cipher suites in s2n_all_cipher_suites are in IANA order
-         * (Required for s2n_cipher_suite_from_wire to perform a search) */
+        /* Test: S2N_CIPHER_SUITE_COUNT matches the number of cipher suites in s2n_all_cipher_suites */
+        {
+            EXPECT_EQUAL(cipher_preferences_test_all.count, S2N_CIPHER_SUITE_COUNT);
+        }
+
+        /* Test: all cipher suites in s2n_all_cipher_suites are in IANA order */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -40,42 +44,31 @@ int main()
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* Test: all possible cipher suites are supported */
+        /* Test: all possible cipher suites are in s2n_all_cipher_suites */
         {
             const struct s2n_security_policy *security_policy = NULL;
             const struct s2n_cipher_preferences *cipher_preferences = NULL;
-            for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
-                security_policy = security_policy_selection[i].security_policy;
+            for (size_t policy_index = 0; security_policy_selection[policy_index].version != NULL; policy_index++) {
+                security_policy = security_policy_selection[policy_index].security_policy;
                 cipher_preferences = security_policy->cipher_preferences;
-                for (size_t j = 0; j < cipher_preferences->count; j++) {
-                    struct s2n_cipher_suite *cipher_suite = s2n_cipher_suite_from_wire(cipher_preferences->suites[j]->iana_value);
-
-                    if (cipher_preferences->suites[j] == &s2n_null_cipher_suite) {
-                        EXPECT_NULL(cipher_suite);
+                for (size_t cipher_index = 0; cipher_index < cipher_preferences->count; cipher_index++) {
+                    /* The null cipher suite is just a placeholder, and is not included */
+                    if (cipher_preferences->suites[cipher_index] == &s2n_null_cipher_suite) {
                         continue;
                     }
 
-                    EXPECT_NOT_NULL(cipher_suite);
-                    EXPECT_EQUAL(cipher_suite, cipher_preferences->suites[j]);
+                    const struct s2n_cipher_suite *match = NULL;
+                    for (size_t all_index = 0; all_index < cipher_preferences_test_all.count; all_index++) {
+                        if (0 == memcmp(cipher_preferences->suites[cipher_index]->iana_value,
+                                        cipher_preferences_test_all.suites[all_index]->iana_value,
+                                        S2N_TLS_CIPHER_SUITE_LEN)) {
+                            match = cipher_preferences_test_all.suites[all_index];
+                        }
+                    }
+                    EXPECT_NOT_NULL(match);
+                    EXPECT_EQUAL(match, cipher_preferences->suites[cipher_index]);
                 }
             }
-        }
-
-        /* Test: S2N_CIPHER_SUITE_COUNT matches the number of supported cipher suites */
-        {
-            uint8_t wire[2] = { 0 };
-            size_t actual_cipher_suite_count = 0;
-            for (int i = 0; i < 0xffff; i++) {
-                wire[0] = (i >> 8);
-                wire[1] = i & 0xff;
-
-                struct s2n_cipher_suite *s = s2n_cipher_suite_from_wire(wire);
-                if (s != NULL) {
-                    actual_cipher_suite_count++;
-                }
-            }
-            EXPECT_EQUAL(cipher_preferences_test_all.count, S2N_CIPHER_SUITE_COUNT);
-            EXPECT_EQUAL(actual_cipher_suite_count, S2N_CIPHER_SUITE_COUNT);
         }
     }
 
