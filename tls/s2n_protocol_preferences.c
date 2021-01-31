@@ -73,9 +73,12 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
     /* now we can free the previous list since we've validated all new input */
     GUARD_AS_RESULT(s2n_free(application_protocols));
 
+    /* update the connection/config application_protocols with the newly allocated blob */
     *application_protocols = new_protocols;
-    /* zero out new_protocols so we don't free what we just allocated */
+
+    /* zero out new_protocols so we no longer refer to what we just allocated */
     new_protocols = (struct s2n_blob){ 0 };
+    GUARD_AS_RESULT(s2n_free(&new_protocols));
 
     return S2N_RESULT_OK;
 }
