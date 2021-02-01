@@ -23,8 +23,9 @@ void mp_sub434_p2(const digit_t* a, const digit_t* b, digit_t* c)
     }
 }
 
+/* Multiprecision subtraction with correction with 4*p, c = a-b+4p. */
 void mp_sub434_p4(const digit_t* a, const digit_t* b, digit_t* c)
-{ // Multiprecision subtraction with correction with 4*p, c = a-b+4p.
+{
     unsigned int i, borrow = 0;
 
     for (i = 0; i < NWORDS_FIELD; i++) {
