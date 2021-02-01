@@ -1,7 +1,7 @@
 #include "fips202.h"
 #include "symmetric.h"
-
 #include <stdlib.h>
+
 /*************************************************
 * Name:        kyber_shake128_absorb
 *

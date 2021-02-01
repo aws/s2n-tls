@@ -7,19 +7,16 @@
 
 #define gen_matrix S2N_KYBER_512_R3_NAMESPACE(_gen_matrix)
 void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed);
+
 #define indcpa_keypair S2N_KYBER_512_R3_NAMESPACE(_indcpa_keypair)
-int indcpa_keypair(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
-                    uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES]);
+int indcpa_keypair(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES], uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES]);
 
 #define indcpa_enc S2N_KYBER_512_R3_NAMESPACE(_indcpa_enc)
-void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
-                const uint8_t m[KYBER_INDCPA_MSGBYTES],
-                const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
-                const uint8_t coins[KYBER_SYMBYTES]);
+void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES], const uint8_t m[KYBER_INDCPA_MSGBYTES],
+        const uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES], const uint8_t coins[KYBER_SYMBYTES]);
 
 #define indcpa_dec S2N_KYBER_512_R3_NAMESPACE(_indcpa_dec)
-void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
-                const uint8_t c[KYBER_INDCPA_BYTES],
-                const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES]);
+void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES], const uint8_t c[KYBER_INDCPA_BYTES],
+        const uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES]);
 
 #endif

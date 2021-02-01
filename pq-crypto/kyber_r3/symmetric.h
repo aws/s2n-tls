@@ -2,10 +2,7 @@
 #define SYMMETRIC_H
 
 #include "params.h"
-
-
 #include "fips202.h"
-
 #include <stdint.h>
 
 typedef shake128ctx keccak_state;
@@ -30,6 +27,5 @@ void PQCLEAN_KYBER512_CLEAN_shake256_prf(uint8_t *output, size_t outlen, const u
 #define XOF_BLOCKBYTES 168
 
 typedef keccak_state xof_state;
-
 
 #endif /* SYMMETRIC_H */

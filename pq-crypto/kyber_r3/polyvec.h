@@ -11,28 +11,28 @@ typedef struct {
 
 #define polyvec_compress S2N_KYBER_512_R3_NAMESPACE(_polyvec_compress)
 void polyvec_compress(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES], polyvec *a);
+
 #define polyvec_decompress S2N_KYBER_512_R3_NAMESPACE(_polyvec_decompress)
-void polyvec_decompress(polyvec *r,
-                        const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES]);
+void polyvec_decompress(polyvec *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES]);
 
 #define polyvec_tobytes S2N_KYBER_512_R3_NAMESPACE(_polyvec_tobytes)
 void polyvec_tobytes(uint8_t r[KYBER_POLYVECBYTES], polyvec *a);
+
 #define polyvec_frombytes S2N_KYBER_512_R3_NAMESPACE(_polyvec_frombytes)
 void polyvec_frombytes(polyvec *r, const uint8_t a[KYBER_POLYVECBYTES]);
 
 #define polyvec_ntt S2N_KYBER_512_R3_NAMESPACE(_polyvec_ntt)
 void polyvec_ntt(polyvec *r);
+
 #define polyvec_invntt_tomont S2N_KYBER_512_R3_NAMESPACE(_polyvec_invntt_tomont)
 void polyvec_invntt_tomont(polyvec *r);
 
-#define polyvec_pointwise_acc_montgomery \
-    S2N_KYBER_512_R3_NAMESPACE(_polyvec_pointwise_acc_montgomery)
-void polyvec_pointwise_acc_montgomery(poly *r,
-                                      const polyvec *a,
-                                      const polyvec *b);
+#define polyvec_pointwise_acc_montgomery S2N_KYBER_512_R3_NAMESPACE(_polyvec_pointwise_acc_montgomery)
+void polyvec_pointwise_acc_montgomery(poly *r, const polyvec *a, const polyvec *b);
 
 #define polyvec_reduce S2N_KYBER_512_R3_NAMESPACE(_polyvec_reduce)
 void polyvec_reduce(polyvec *r);
+
 #define polyvec_csubq S2N_KYBER_512_R3_NAMESPACE(_polyvec_csubq)
 void polyvec_csubq(polyvec *r);
 

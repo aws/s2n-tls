@@ -25,9 +25,8 @@
 int kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 {
     ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-    size_t i;
     GUARD(indcpa_keypair(pk, sk));
-    for(i=0;i<KYBER_INDCPA_PUBLICKEYBYTES;i++) {
+    for(size_t i = 0; i < KYBER_INDCPA_PUBLICKEYBYTES; i++) {
         sk[i + KYBER_INDCPA_SECRETKEYBYTES] = pk[i];
     }
     hash_h(sk+KYBER_SECRETKEYBYTES-2*KYBER_SYMBYTES, pk, KYBER_PUBLICKEYBYTES);
@@ -51,9 +50,7 @@ int kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 *
 * Returns 0 (success)
 **************************************************/
-int kyber_512_r3_crypto_kem_enc(unsigned char *ct,
-                   unsigned char *ss,
-                   const unsigned char *pk)
+int kyber_512_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsigned char *pk)
 {
     ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     uint8_t buf[2*KYBER_SYMBYTES];
@@ -95,12 +92,9 @@ int kyber_512_r3_crypto_kem_enc(unsigned char *ct,
 *
 * On failure, ss will contain a pseudo-random value.
 **************************************************/
-int kyber_512_r3_crypto_kem_dec(unsigned char *ss,
-                   const unsigned char *ct,
-                   const unsigned char *sk)
+int kyber_512_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, const unsigned char *sk)
 {
     ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-    size_t i;
     int fail;
     uint8_t buf[2*KYBER_SYMBYTES];
     /* Will contain key, coins */
@@ -111,7 +105,7 @@ int kyber_512_r3_crypto_kem_dec(unsigned char *ss,
     indcpa_dec(buf, ct, sk);
 
     /* Multitarget countermeasure for coins + contributory KEM */
-    for(i=0;i<KYBER_SYMBYTES;i++) {
+    for(size_t i = 0; i < KYBER_SYMBYTES; i++) {
         buf[KYBER_SYMBYTES + i] = sk[KYBER_SECRETKEYBYTES - 2 * KYBER_SYMBYTES + i];
     }
     hash_g(kr, buf, 2*KYBER_SYMBYTES);

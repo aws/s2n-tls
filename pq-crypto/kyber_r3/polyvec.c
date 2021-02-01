@@ -44,8 +44,7 @@ void polyvec_compress(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES], polyvec *a) {
 *              - const uint8_t *a: pointer to input byte array
 *                                  (of length KYBER_POLYVECCOMPRESSEDBYTES)
 **************************************************/
-void polyvec_decompress(polyvec *r,
-                        const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES]) {
+void polyvec_decompress(polyvec *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES]) {
     unsigned int i, j, k;
 
     uint16_t t[4];
@@ -136,9 +135,7 @@ void polyvec_invntt_tomont(polyvec *r) {
 *            - const polyvec *a: pointer to first input vector of polynomials
 *            - const polyvec *b: pointer to second input vector of polynomials
 **************************************************/
-void polyvec_pointwise_acc_montgomery(poly *r,
-                                      const polyvec *a,
-                                      const polyvec *b) {
+void polyvec_pointwise_acc_montgomery(poly *r, const polyvec *a, const polyvec *b) {
     unsigned int i;
     poly t;
 
