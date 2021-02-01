@@ -188,6 +188,9 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
             GUARD(try_handshake(server_conn, client_conn));
 
             EXPECT_STRING_EQUAL(s2n_connection_get_cipher(server_conn), expected_cipher->name);
+            uint8_t iana_value[2] = { 0, 0 };
+            EXPECT_SUCCESS(s2n_connection_get_cipher_iana_value(server_conn, &iana_value[0], &iana_value[1]));
+            EXPECT_EQUAL(memcmp(expected_cipher->iana_value, iana_value, sizeof(iana_value)), 0);
 
             EXPECT_EQUAL(server_conn->handshake_params.our_chain_and_key, expected_cert_chain);
             EXPECT_EQUAL(server_conn->secure.conn_sig_scheme.sig_alg, expected_sig_alg);
