@@ -34,7 +34,8 @@ int random_mod_order_B(unsigned char* random_digits)
 
 /* Alice's ephemeral public key generation
  * Input:  a private key PrivateKeyA in the range [0, 2^eA - 1].
- * Output: the public key PublicKeyA consisting of 3 elements in GF(p^2) which are encoded by removing leading 0 bytes. */
+ * Output: the public key PublicKeyA consisting of 3 elements in GF(p^2) which are encoded
+ *     by removing leading 0 bytes. */
 int EphemeralKeyGeneration_A(const unsigned char* PrivateKeyA, unsigned char* PublicKeyA)
 {
     point_proj_t R, phiP = {0}, phiQ = {0}, phiR = {0}, pts[MAX_INT_POINTS_ALICE];
@@ -107,7 +108,8 @@ int EphemeralKeyGeneration_A(const unsigned char* PrivateKeyA, unsigned char* Pu
 
 /* Bob's ephemeral public key generation
  * Input:  a private key PrivateKeyB in the range [0, 2^Floor(Log(2,oB)) - 1].
- * Output: the public key PublicKeyB consisting of 3 elements in GF(p^2) which are encoded by removing leading 0 bytes. */
+ * Output: the public key PublicKeyB consisting of 3 elements in GF(p^2) which are encoded
+ *     by removing leading 0 bytes. */
 int EphemeralKeyGeneration_B(const unsigned char* PrivateKeyB, unsigned char* PublicKeyB)
 {
     point_proj_t R, phiP = {0}, phiQ = {0}, phiR = {0}, pts[MAX_INT_POINTS_BOB];
@@ -183,8 +185,10 @@ int EphemeralKeyGeneration_B(const unsigned char* PrivateKeyB, unsigned char* Pu
  * It produces a shared secret key SharedSecretA using her secret key PrivateKeyA and Bob's public key PublicKeyB
  * Inputs: Alice's PrivateKeyA is an integer in the range [0, oA-1].
  *     Bob's PublicKeyB consists of 3 elements in GF(p^2) encoded by removing leading 0 bytes.
- * Output: a shared secret SharedSecretA that consists of one element in GF(p^2) encoded by removing leading 0 bytes.   */
-int EphemeralSecretAgreement_A(const unsigned char* PrivateKeyA, const unsigned char* PublicKeyB, unsigned char* SharedSecretA)
+ * Output: a shared secret SharedSecretA that consists of one element in GF(p^2) encoded
+ *     by removing leading 0 bytes.   */
+int EphemeralSecretAgreement_A(const unsigned char* PrivateKeyA, const unsigned char* PublicKeyB,
+        unsigned char* SharedSecretA)
 {
     point_proj_t R, pts[MAX_INT_POINTS_ALICE];
     f2elm_t coeff[3], PKB[3], _jinv;
@@ -245,8 +249,10 @@ int EphemeralSecretAgreement_A(const unsigned char* PrivateKeyA, const unsigned 
  * It produces a shared secret key SharedSecretB using his secret key PrivateKeyB and Alice's public key PublicKeyA
  * Inputs: Bob's PrivateKeyB is an integer in the range [0, 2^Floor(Log(2,oB)) - 1].
  *     Alice's PublicKeyA consists of 3 elements in GF(p^2) encoded by removing leading 0 bytes.
- * Output: a shared secret SharedSecretB that consists of one element in GF(p^2) encoded by removing leading 0 bytes.   */
-int EphemeralSecretAgreement_B(const unsigned char* PrivateKeyB, const unsigned char* PublicKeyA, unsigned char* SharedSecretB)
+ * Output: a shared secret SharedSecretB that consists of one element in GF(p^2) encoded
+ *     by removing leading 0 bytes.   */
+int EphemeralSecretAgreement_B(const unsigned char* PrivateKeyB, const unsigned char* PublicKeyA,
+        unsigned char* SharedSecretB)
 {
     point_proj_t R, pts[MAX_INT_POINTS_BOB];
     f2elm_t coeff[3], PKB[3], _jinv;

@@ -344,7 +344,8 @@ static void KeccakF1600_StatePermute(uint64_t * state)
     state[24] = Asu;
 }
 
-static void keccak_absorb(uint64_t *s, unsigned int r, const unsigned char *m, unsigned long long int mlen, unsigned char p)
+static void keccak_absorb(uint64_t *s, unsigned int r, const unsigned char *m, unsigned long long int mlen,
+        unsigned char p)
 {
     unsigned long long i;
     unsigned char t[200];
