@@ -325,6 +325,12 @@ struct s2n_connection {
      * Setting and manipulating this value requires security_policy to be configured prior.
      * */
     uint8_t preferred_key_shares;
+
+    /* Flags to prevent users from calling methods recursively.
+     * This can be an easy mistake to make when implementing send/receive callbacks.
+     */
+    bool send_in_use;
+    bool recv_in_use;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);

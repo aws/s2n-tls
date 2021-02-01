@@ -117,7 +117,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     return 0;
 }
 
-ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_blocked_status * blocked)
+ssize_t s2n_recv_impl(struct s2n_connection * conn, void *buf, ssize_t size, s2n_blocked_status * blocked)
 {
     ssize_t bytes_read = 0;
     struct s2n_blob out = {.data = (uint8_t *) buf };
@@ -202,6 +202,15 @@ ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_bloc
     }
 
     return bytes_read;
+}
+
+ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_blocked_status * blocked)
+{
+    ENSURE_POSIX(!conn->recv_in_use, S2N_ERR_REENTRANCY);
+    conn->recv_in_use = true;
+    ssize_t result = s2n_recv_impl(conn, buf, size, blocked);
+    conn->recv_in_use = false;
+    return result;
 }
 
 uint32_t s2n_peek(struct s2n_connection *conn) {
