@@ -400,7 +400,7 @@ void shake256(unsigned char *output, unsigned long long outlen, const unsigned c
     }
 
     /* Absorb input */
-    keccak_absorb(s, SHAKE256_RATE, input, inlen, 0x1F)
+    keccak_absorb(s, SHAKE256_RATE, input, inlen, 0x1F);
 
     /* Squeeze output */
     keccak_squeezeblocks(output, nblocks, s, SHAKE256_RATE);
