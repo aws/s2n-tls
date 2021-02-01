@@ -61,7 +61,8 @@ __inline static void encode_to_bytes(const digit_t* x, unsigned char* enc, int n
 #endif
 }
 
-/* Conversion of GF(p^2) element from Montgomery to standard representation, and encoding by removing leading 0 bytes */
+/* Conversion of GF(p^2) element from Montgomery to standard representation,
+ * and encoding by removing leading 0 bytes */
 void fp2_encode(const f2elm_t *x, unsigned char *enc)
 {
     f2elm_t t;

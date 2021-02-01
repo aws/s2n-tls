@@ -42,4 +42,5 @@ void get_A(const f2elm_t *xP, const f2elm_t *xQ, const f2elm_t *xR, f2elm_t *A);
 void j_inv(const f2elm_t *A, const f2elm_t *C, f2elm_t *jinv);
 
 #define LADDER3PT S2N_SIKE_P434_R3_NAMESPACE(LADDER3PT)
-void LADDER3PT(const f2elm_t *xP, const f2elm_t *xQ, const f2elm_t *xPQ, const digit_t *m, const unsigned int AliceOrBob, point_proj_t R, const f2elm_t *A);
+void LADDER3PT(const f2elm_t *xP, const f2elm_t *xQ, const f2elm_t *xPQ, const digit_t *m,
+        const unsigned int AliceOrBob, point_proj_t R, const f2elm_t *A);
