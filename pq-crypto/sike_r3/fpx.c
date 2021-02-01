@@ -25,8 +25,9 @@ int8_t ct_compare(const uint8_t *a, const uint8_t *b, unsigned int len)
 {
     uint8_t r = 0;
 
-    for (unsigned int i = 0; i < len; i++)
+    for (unsigned int i = 0; i < len; i++) {
         r |= a[i] ^ b[i];
+    }
 
     return (-(int8_t)r) >> (8*sizeof(uint8_t)-1);
 }
@@ -35,8 +36,9 @@ int8_t ct_compare(const uint8_t *a, const uint8_t *b, unsigned int len)
  * If selector = -1 then load r with a, else if selector = 0 then keep r. */
 void ct_cmov(uint8_t *r, const uint8_t *a, unsigned int len, int8_t selector)
 {
-    for (unsigned int i = 0; i < len; i++)
+    for (unsigned int i = 0; i < len; i++) {
         r[i] ^= selector & (a[i] ^ r[i]);
+    }
 }
 
 /* Encoding digits to bytes according to endianness */
@@ -46,8 +48,10 @@ __inline static void encode_to_bytes(const digit_t* x, unsigned char* enc, int n
     int ndigits = nbytes / sizeof(digit_t);
     int rem = nbytes % sizeof(digit_t);
 
-    for (int i = 0; i < ndigits; i++)
+    for (int i = 0; i < ndigits; i++) {
         ((digit_t*)enc)[i] = BSWAP_DIGIT(x[i]);
+    }
+
     if (rem) {
         digit_t ld = BSWAP_DIGIT(x[ndigits]);
         memcpy(enc + ndigits*sizeof(digit_t), (unsigned char*)&ld, rem);
@@ -108,8 +112,9 @@ void copy_words(const digit_t* a, digit_t* c, const unsigned int nwords)
 {
     unsigned int i;
         
-    for (i = 0; i < nwords; i++)                      
+    for (i = 0; i < nwords; i++) {
         c[i] = a[i];
+    }
 }
 
 /* Multiprecision squaring, c = a^2 mod p. */
@@ -166,8 +171,9 @@ static unsigned int mp_sub(const digit_t* a, const digit_t* b, digit_t* c, const
 {
     unsigned int i, borrow = 0;
 
-    for (i = 0; i < nwords; i++)
+    for (i = 0; i < nwords; i++) {
         SUBC(borrow, a[i], b[i], borrow, c[i]);
+    }
 
     return borrow;
 }
@@ -179,8 +185,9 @@ __inline static void mp_subaddfast(const digit_t* a, const digit_t* b, digit_t* 
     felm_t t1;
 
     digit_t mask = 0 - (digit_t)mp_sub(a, b, c, 2*NWORDS_FIELD);
-    for (int i = 0; i < NWORDS_FIELD; i++)
-        t1[i] = ((const digit_t*)PRIME)[i] & mask;
+    for (int i = 0; i < NWORDS_FIELD; i++) {
+        t1[i] = ((const digit_t *) PRIME)[i] & mask;
+    }
     mp_addfast((digit_t*)&c[NWORDS_FIELD], t1, (digit_t*)&c[NWORDS_FIELD]);
 }
 
@@ -219,70 +226,134 @@ static void fpinv_chain_mont(felm_t a)
     // Precomputed table
     fpsqr_mont(a, tt);
     fpmul_mont(a, tt, t[0]);
-    for (i = 0; i <= 29; i++) fpmul_mont(t[i], tt, t[i+1]);
+    for (i = 0; i <= 29; i++) {
+        fpmul_mont(t[i], tt, t[i + 1]);
+    }
 
     fpcopy(a, tt);
-    for (i = 0; i < 7; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 7; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[5], tt, tt);
-    for (i = 0; i < 10; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 10; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[14], tt, tt);
-    for (i = 0; i < 6; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 6; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[3], tt, tt);
-    for (i = 0; i < 6; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 6; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[23], tt, tt);
-    for (i = 0; i < 6; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 6; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[13], tt, tt);
-    for (i = 0; i < 6; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 6; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[24], tt, tt);
-    for (i = 0; i < 6; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 6; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[7], tt, tt);
-    for (i = 0; i < 8; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 8; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[12], tt, tt);
-    for (i = 0; i < 8; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 8; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[30], tt, tt);
-    for (i = 0; i < 6; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 6; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[1], tt, tt);
-    for (i = 0; i < 6; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 6; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[30], tt, tt);
-    for (i = 0; i < 7; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 7; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[21], tt, tt);
-    for (i = 0; i < 9; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 9; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[2], tt, tt);
-    for (i = 0; i < 9; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 9; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[19], tt, tt);
-    for (i = 0; i < 9; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 9; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[1], tt, tt);
-    for (i = 0; i < 7; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 7; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[24], tt, tt);
-    for (i = 0; i < 6; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 6; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[26], tt, tt);
-    for (i = 0; i < 6; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 6; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[16], tt, tt);
-    for (i = 0; i < 7; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 7; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[10], tt, tt);
-    for (i = 0; i < 7; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 7; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[6], tt, tt);
-    for (i = 0; i < 7; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 7; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[0], tt, tt);
-    for (i = 0; i < 9; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 9; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[20], tt, tt);
-    for (i = 0; i < 8; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 8; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[9], tt, tt);
-    for (i = 0; i < 6; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 6; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[25], tt, tt);
-    for (i = 0; i < 9; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 9; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[30], tt, tt);
-    for (i = 0; i < 6; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 6; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[26], tt, tt);
-    for (i = 0; i < 6; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 6; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(a, tt, tt);
-    for (i = 0; i < 7; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 7; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[28], tt, tt);
-    for (i = 0; i < 6; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 6; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[6], tt, tt);
-    for (i = 0; i < 6; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 6; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[10], tt, tt);
-    for (i = 0; i < 9; i++) fpsqr_mont(tt, tt);
+    for (i = 0; i < 9; i++) {
+        fpsqr_mont(tt, tt);
+    }
     fpmul_mont(t[22], tt, tt);
     for (j = 0; j < 35; j++) {
         for (i = 0; i < 6; i++) fpsqr_mont(tt, tt);
@@ -349,8 +420,9 @@ void decode_to_digits(const unsigned char* x, digit_t* dec, int nbytes, int ndig
     dec[ndigits - 1] = 0;
     memcpy((unsigned char*)dec, x, nbytes);
 #ifdef _BIG_ENDIAN_
-    for (int i = 0; i < ndigits; i++)
+    for (int i = 0; i < ndigits; i++) {
         dec[i] = BSWAP_DIGIT(dec[i]);
+    }
 #endif
 }
 
@@ -358,16 +430,18 @@ void fpcopy(const felm_t a, felm_t c)
 {
     unsigned int i;
 
-    for (i = 0; i < NWORDS_FIELD; i++)
+    for (i = 0; i < NWORDS_FIELD; i++) {
         c[i] = a[i];
+    }
 }
 
 void fpzero(felm_t a)
 {
     unsigned int i;
 
-    for (i = 0; i < NWORDS_FIELD; i++)
+    for (i = 0; i < NWORDS_FIELD; i++) {
         a[i] = 0;
+    }
 }
 
 void fp2add(const f2elm_t *a, const f2elm_t *b, f2elm_t *c)
