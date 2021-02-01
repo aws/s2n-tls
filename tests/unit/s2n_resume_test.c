@@ -289,5 +289,54 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         }
     }
+
+    /* s2n_config_set_requested_new_ticket_count */
+    {
+        struct s2n_connection *conn;
+        struct s2n_config *config;
+        uint8_t num_tickets = 1;
+
+        EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_EQUAL(conn->tickets_to_send, 0);
+
+        EXPECT_SUCCESS(s2n_config_set_requested_new_ticket_count(config, num_tickets));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+        EXPECT_EQUAL(conn->tickets_to_send, num_tickets);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* s2n_connection_request_new_tickets */
+    {
+        /* s2n_connection_request_new_tickets sets new number of session tickets */
+        {
+            struct s2n_connection *conn;
+            uint8_t original_num_tickets = 1;
+            uint8_t new_num_tickets = 10;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            conn->tickets_to_send = original_num_tickets;
+
+            EXPECT_SUCCESS(s2n_connection_request_new_tickets(conn, new_num_tickets));
+
+            EXPECT_EQUAL(conn->tickets_to_send, original_num_tickets + new_num_tickets);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* s2n_connection_request_new_tickets will catch an overflow error */
+        {
+            struct s2n_connection *conn;
+            uint8_t original_num_tickets = UINT8_MAX;
+            uint8_t new_num_tickets = 1;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            conn->tickets_to_send = original_num_tickets;
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_request_new_tickets(conn, new_num_tickets), S2N_ERR_INTEGER_OVERFLOW);
+            
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
     END_TEST();
 }

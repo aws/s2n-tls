@@ -98,6 +98,8 @@ struct s2n_config {
 
     uint8_t mfl_code;
 
+    uint8_t initial_tickets_to_send;
+
     struct s2n_x509_trust_store trust_store;
     uint16_t max_verify_cert_chain_depth;
 

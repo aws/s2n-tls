@@ -331,6 +331,8 @@ struct s2n_connection {
      */
     bool send_in_use;
     bool recv_in_use;
+    
+    uint8_t tickets_to_send;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);

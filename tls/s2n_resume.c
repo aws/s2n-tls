@@ -751,3 +751,22 @@ int s2n_config_store_ticket_key(struct s2n_config *config, struct s2n_ticket_key
     GUARD_AS_POSIX(s2n_set_add(config->ticket_keys, key));
     return S2N_SUCCESS;
 }
+
+int s2n_config_set_requested_new_ticket_count(struct s2n_config *config, uint8_t num)
+{
+    notnull_check(config);
+
+    config->initial_tickets_to_send = num;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_request_new_tickets(struct s2n_connection *conn, uint8_t num) {
+    notnull_check(conn);
+
+    uint16_t out = conn->tickets_to_send + num;
+    ENSURE_POSIX(out <= UINT8_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    conn->tickets_to_send = out;
+
+    return S2N_SUCCESS;
+}
