@@ -164,7 +164,7 @@ void mp_mul(const digit_t* a, const digit_t* b, digit_t* c, const unsigned int n
 {
     unsigned int i, j;
     digit_t t = 0, u = 0, v = 0, UV[2];
-    unsigned int carry = 0;
+    unsigned int carry;
     
     for (i = 0; i < nwords; i++) {
         for (j = 0; j <= i; j++) {
@@ -245,6 +245,9 @@ void rdc_mont(digit_t* ma, digit_t* mc)
         u = t;
         t = 0;
     }
+
+    /* `carry` isn't read after this, but it's still a necessary argument to the macro */
+    /* cppcheck-suppress unreadVariable */
     ADDC(0, v, ma[2*NWORDS_FIELD-1], carry, v); 
     mc[NWORDS_FIELD-1] = v;
 }
