@@ -3,7 +3,7 @@
 #define KYBER_K 2
 
 /* Don't change parameters below this line */
-#define S2N_KYBER_512_R3_NAMESPACE(s) S2N_KYBER_512_R3_CLEAN##s
+#define S2N_KYBER_512_R3_NAMESPACE(s) s2n_kyber_512_r3_clean##s
 
 #define KYBER_N 256
 #define KYBER_Q 3329

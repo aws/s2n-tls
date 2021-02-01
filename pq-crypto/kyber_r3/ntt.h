@@ -17,9 +17,6 @@ void ntt(int16_t poly[256]);
 void invntt(int16_t poly[256]);
 
 #define basemul S2N_KYBER_512_R3_NAMESPACE(_basemul)
-void basemul(int16_t r[2],
-             const int16_t a[2],
-             const int16_t b[2],
-             int16_t zeta);
+void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta);
 
 #endif

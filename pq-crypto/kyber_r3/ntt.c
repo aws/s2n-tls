@@ -3,42 +3,6 @@
 #include "ntt.h"
 #include "reduce.h"
 
-/* Code to generate zetas and zetas_inv used in the number-theoretic transform:
-
-#define KYBER_ROOT_OF_UNITY 17
-
-static const uint16_t tree[128] = {
-  0, 64, 32, 96, 16, 80, 48, 112, 8, 72, 40, 104, 24, 88, 56, 120,
-  4, 68, 36, 100, 20, 84, 52, 116, 12, 76, 44, 108, 28, 92, 60, 124,
-  2, 66, 34, 98, 18, 82, 50, 114, 10, 74, 42, 106, 26, 90, 58, 122,
-  6, 70, 38, 102, 22, 86, 54, 118, 14, 78, 46, 110, 30, 94, 62, 126,
-  1, 65, 33, 97, 17, 81, 49, 113, 9, 73, 41, 105, 25, 89, 57, 121,
-  5, 69, 37, 101, 21, 85, 53, 117, 13, 77, 45, 109, 29, 93, 61, 125,
-  3, 67, 35, 99, 19, 83, 51, 115, 11, 75, 43, 107, 27, 91, 59, 123,
-  7, 71, 39, 103, 23, 87, 55, 119, 15, 79, 47, 111, 31, 95, 63, 127
-};
-
-void init_ntt() {
-  unsigned int i, j, k;
-  int16_t tmp[128];
-
-  tmp[0] = MONT;
-  for(i = 1; i < 128; ++i)
-    tmp[i] = fqmul(tmp[i-1], KYBER_ROOT_OF_UNITY*MONT % KYBER_Q);
-
-  for(i = 0; i < 128; ++i)
-    zetas[i] = tmp[tree[i]];
-
-  k = 0;
-  for(i = 64; i >= 1; i >>= 1)
-    for(j = i; j < 2*i; ++j)
-      zetas_inv[k++] = -tmp[128 - tree[j]];
-
-  zetas_inv[127] = MONT * (MONT * (KYBER_Q - 1) * ((KYBER_Q - 1)/128) % KYBER_Q) % KYBER_Q;
-}
-
-*/
-
 const int16_t zetas[128] = {
     2285, 2571, 2970, 1812, 1493, 1422, 287, 202, 3158, 622, 1577, 182, 962,
     2127, 1855, 1468, 573, 2004, 264, 383, 2500, 1458, 1727, 3199, 2648, 1017,
@@ -148,10 +112,7 @@ void invntt(int16_t r[256]) {
 *              - const int16_t b[2]: pointer to the second factor
 *              - int16_t zeta:       integer defining the reduction polynomial
 **************************************************/
-void basemul(int16_t r[2],
-             const int16_t a[2],
-             const int16_t b[2],
-             int16_t zeta) {
+void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta) {
     r[0]  = fqmul(a[1], b[1]);
     r[0]  = fqmul(r[0], zeta);
     r[0] += fqmul(a[0], b[0]);
