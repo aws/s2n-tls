@@ -305,6 +305,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
         EXPECT_EQUAL(conn->tickets_to_send, num_tickets);
 
+        EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
