@@ -115,7 +115,11 @@
 #define TLS_PSK_KE_MODE     0
 #define TLS_PSK_DHE_KE_MODE 1
 
-/* QUIC-TLS extension from https://tools.ietf.org/html/draft-ietf-quic-tls-34#section-10 */
+/**
+ *= https://tools.ietf.org/id/draft-ietf-quic-tls-34.txt#section-10
+ *# IANA has registered a codepoint of 57 (or 0x39) for the
+ *# quic_transport_parameters extension
+ */
 #define TLS_QUIC_TRANSPORT_PARAMETERS      57
 
 /* TLS Signature Algorithms - RFC 5246 7.4.1.4.1 */
