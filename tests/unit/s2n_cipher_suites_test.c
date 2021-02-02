@@ -17,7 +17,6 @@
 
 #include "tls/s2n_cipher_suites.h"
 
-/* This test checks that the compiler correctly implements deferred cleanup */
 int main()
 {
     BEGIN_TEST();
