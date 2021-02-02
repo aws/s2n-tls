@@ -193,7 +193,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_NUM_DEFAULT_CERTIFICATES, "exceeded max default certificates or provided no default") \
     ERR_ENTRY(S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE, "setting multiple default certificates per auth type is not allowed") \
     ERR_ENTRY(S2N_ERR_INVALID_CIPHER_PREFERENCES, "Invalid Cipher Preferences version") \
-    ERR_ENTRY(S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG, "Application protocol name is too long") \
+    ERR_ENTRY(S2N_ERR_INVALID_APPLICATION_PROTOCOL, "The supplied application protocol name is invalid") \
     ERR_ENTRY(S2N_ERR_KEY_MISMATCH, "public and private key do not match") \
     ERR_ENTRY(S2N_ERR_SEND_SIZE, "Retried s2n_send() size is invalid") \
     ERR_ENTRY(S2N_ERR_CORK_SET_ON_UNMANAGED, "Attempt to set connection cork management on unmanaged IO") \
