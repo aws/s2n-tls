@@ -115,8 +115,13 @@
 #define TLS_PSK_KE_MODE     0
 #define TLS_PSK_DHE_KE_MODE 1
 
-/* QUIC-TLS extension from https://tools.ietf.org/html/draft-ietf-quic-tls-29#section-8.2 */
-#define TLS_QUIC_TRANSPORT_PARAMETERS      65535
+/**
+ *= https://tools.ietf.org/id/draft-ietf-quic-tls-32.txt#8.2
+ *#   enum {
+ *#      quic_transport_parameters(0xffa5), (65535)
+ *#   } ExtensionType;
+ */
+#define TLS_QUIC_TRANSPORT_PARAMETERS      0xffa5
 
 /* TLS Signature Algorithms - RFC 5246 7.4.1.4.1 */
 /* https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16 */
