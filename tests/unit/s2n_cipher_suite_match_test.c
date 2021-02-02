@@ -96,11 +96,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         }
 
-        /**
+        /** Clients MUST verify
          *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
          *= type=test
-         *# The server MUST ensure that it selects a compatible PSK
-         *# (if any) and cipher suite.
+         *# that the server selected a cipher suite
+         *# indicating a Hash associated with the PSK
          **/
         {
             /* If chosen PSK is set, test error case for incorrect hash match */
