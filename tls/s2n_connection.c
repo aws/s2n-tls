@@ -231,8 +231,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
      * is received, the stuffer will be resized according to the cookie length */
     GUARD_PTR(s2n_stuffer_growable_alloc(&conn->cookie_stuffer, 0));
 
-    conn->application_protocols_overridden = (struct s2n_blob){ 0 };
-
     return conn;
 }
 

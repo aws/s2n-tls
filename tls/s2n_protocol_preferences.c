@@ -56,6 +56,19 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
 
     DEFER_CLEANUP(struct s2n_blob new_protocols = { 0 }, s2n_free);
 
+    /* Allocate enough space to avoid a reallocation for every entry
+     *
+     * We assume that each protocol is most likely 8 bytes or less.
+     * If it ends up being larger, we will expand the blob automatically
+     * in the append method.
+     */
+    GUARD_AS_RESULT(s2n_realloc(&new_protocols, protocol_count * 8));
+
+    /* set the size back to 0 so we start at the beginning.
+     * s2n_realloc will just update the size field here
+     */
+    GUARD_AS_RESULT(s2n_realloc(&new_protocols, 0));
+
     for (size_t i = 0; i < protocol_count; i++) {
         const uint8_t * protocol = (const uint8_t *)protocols[i];
         size_t length = strlen(protocols[i]);
@@ -78,6 +91,12 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
 
     /* zero out new_protocols so we no longer refer to what we just allocated */
     new_protocols = (struct s2n_blob){ 0 };
+
+    /* even though we've used DEFER_CLEANUP above, static analysis tools
+     * like cppcheck don't understand that the new assignment will be consumed
+     * at the end of the function. Here we free it even though DEFER_CLEANUP will
+     * also free it. This is OK since s2n_free will be a no-op on empty blobs.
+     */
     GUARD_AS_RESULT(s2n_free(&new_protocols));
 
     return S2N_RESULT_OK;
