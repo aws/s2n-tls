@@ -33,10 +33,9 @@ int main()
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            int cipher_suite_order;
             const uint8_t cipher_suite_count = cipher_preferences_test_all.count;
             for (size_t i = 0; i < cipher_suite_count - 1; i++) {
-                cipher_suite_order = memcmp(cipher_preferences_test_all.suites[i]->iana_value,
+                int cipher_suite_order = memcmp(cipher_preferences_test_all.suites[i]->iana_value,
                         cipher_preferences_test_all.suites[i + 1]->iana_value, 2);
                 EXPECT_TRUE(cipher_suite_order < 0);
             }
