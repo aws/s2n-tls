@@ -61,6 +61,7 @@ int main()
                         if (0 == memcmp(cipher_preferences->suites[cipher_index]->iana_value,
                                         cipher_preferences_test_all.suites[all_index]->iana_value,
                                         S2N_TLS_CIPHER_SUITE_LEN)) {
+                            EXPECT_NULL(match);
                             match = cipher_preferences_test_all.suites[all_index];
                         }
                     }

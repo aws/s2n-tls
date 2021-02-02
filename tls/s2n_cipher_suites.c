@@ -1088,6 +1088,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
         const uint8_t *ours = security_policy->cipher_preferences->suites[i]->iana_value;
         if (memcmp(wire, ours, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
             cipher_suite = security_policy->cipher_preferences->suites[i];
+            break;
         }
     }
     ENSURE_POSIX(cipher_suite != NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
