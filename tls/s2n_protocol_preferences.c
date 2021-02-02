@@ -35,7 +35,7 @@ S2N_RESULT s2n_protocol_preferences_append(struct s2n_blob *application_protocol
 
     GUARD_AS_RESULT(s2n_realloc(application_protocols, new_len));
 
-    struct s2n_stuffer protocol_stuffer = {0};
+    struct s2n_stuffer protocol_stuffer = { 0 };
     GUARD_AS_RESULT(s2n_stuffer_init(&protocol_stuffer, application_protocols));
     GUARD_AS_RESULT(s2n_stuffer_skip_write(&protocol_stuffer, prev_len));
     GUARD_AS_RESULT(s2n_stuffer_write_uint8(&protocol_stuffer, protocol_len));
@@ -89,15 +89,11 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
     /* update the connection/config application_protocols with the newly allocated blob */
     *application_protocols = new_protocols;
 
-    /* zero out new_protocols so we no longer refer to what we just allocated */
-    new_protocols = (struct s2n_blob){ 0 };
-
-    /* even though we've used DEFER_CLEANUP above, static analysis tools
-     * like cppcheck don't understand that the new assignment will be consumed
-     * at the end of the function. Here we free it even though DEFER_CLEANUP will
-     * also free it. This is OK since s2n_free will be a no-op on empty blobs.
+    /* zero out new_protocols so the DEFER_CLEANUP from above doesn't free
+     * the blob that we created and assigned to application_protocols
      */
-    GUARD_AS_RESULT(s2n_free(&new_protocols));
+    /* cppcheck-suppress unreadVariable */
+    new_protocols = (struct s2n_blob){ 0 };
 
     return S2N_RESULT_OK;
 }
