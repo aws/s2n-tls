@@ -291,7 +291,7 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
 s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
         uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_pkey_type *pkey_type, struct s2n_pkey *public_key_out) {
     S2N_ERROR_IF(!validator->skip_cert_validation && !s2n_x509_trust_store_has_certs(validator->trust_store), S2N_ERR_CERT_UNTRUSTED);
-    S2N_ERROR_IF(validator->state != INIT, S2N_ERR_INVALID_STATE);
+    S2N_ERROR_IF(validator->state != INIT, S2N_ERR_SAFETY);
 
     struct s2n_blob cert_chain_blob = {.data = cert_chain_in, .size = cert_chain_len};
     DEFER_CLEANUP(struct s2n_stuffer cert_chain_in_stuffer = {0}, s2n_stuffer_free);
@@ -398,7 +398,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
         return S2N_CERT_OK;
     }
 
-    S2N_ERROR_IF(validator->state != VALIDATED, S2N_ERR_INVALID_STATE);
+    S2N_ERROR_IF(validator->state != VALIDATED, S2N_ERR_SAFETY);
 
 #if !S2N_OCSP_STAPLING_SUPPORTED
     /* Default to safety */

@@ -978,16 +978,21 @@ const char *s2n_connection_get_cipher(struct s2n_connection *conn)
     notnull_check_ptr(conn);
     notnull_check_ptr(conn->secure.cipher_suite);
 
+    /* ensure we've negotiated a cipher suite */
+    ENSURE_PTR(memcmp(conn->secure.cipher_suite->iana_value, s2n_null_cipher_suite.iana_value, sizeof(s2n_null_cipher_suite.iana_value)) != 0, S2N_ERR_INVALID_STATE);
+
     return conn->secure.cipher_suite->name;
 }
 
 int s2n_connection_get_cipher_iana_value(struct s2n_connection *conn, uint8_t *first, uint8_t *second)
 {
     ENSURE_POSIX_REF(conn);
-    /* ensure we've negotiated a cipher suite */
-    ENSURE_POSIX(conn->secure.cipher_suite != NULL, S2N_ERR_INVALID_STATE);
+    ENSURE_POSIX_REF(conn->secure.cipher_suite);
     ENSURE_POSIX_MUT(first);
     ENSURE_POSIX_MUT(second);
+
+    /* ensure we've negotiated a cipher suite */
+    ENSURE_POSIX(memcmp(conn->secure.cipher_suite->iana_value, s2n_null_cipher_suite.iana_value, sizeof(s2n_null_cipher_suite.iana_value)) != 0, S2N_ERR_INVALID_STATE);
 
     const uint8_t *iana_value = conn->secure.cipher_suite->iana_value;
     *first = iana_value[0];
