@@ -25,6 +25,11 @@ phases:
     commands:
       - echo Entered the install phase...
       - echo "We need a test PPA for gcc-9."
+      - |
+        if [ -d "third-party-src" ]; then
+          cd third-party-src;
+        fi
+      - $CB_BIN_DIR/install_ubuntu_dependencies.sh
       - add-apt-repository ppa:ubuntu-toolchain-r/test -y
       - apt-get update -o Acquire::CompressionTypes::Order::=gz
       - apt-get update -y
