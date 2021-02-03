@@ -752,7 +752,7 @@ int s2n_config_store_ticket_key(struct s2n_config *config, struct s2n_ticket_key
     return S2N_SUCCESS;
 }
 
-int s2n_config_set_requested_new_ticket_count(struct s2n_config *config, uint8_t num)
+int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num)
 {
     notnull_check(config);
 
@@ -761,7 +761,7 @@ int s2n_config_set_requested_new_ticket_count(struct s2n_config *config, uint8_t
     return S2N_SUCCESS;
 }
 
-int s2n_connection_request_new_tickets(struct s2n_connection *conn, uint8_t num) {
+int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num) {
     notnull_check(conn);
 
     uint16_t out = conn->tickets_to_send + num;
