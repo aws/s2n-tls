@@ -24,8 +24,6 @@ phases:
       python: 3.x
     commands:
       - echo Entered the install phase...
-      # Update Yarn Debian key, see https://github.com/yarnpkg/yarn/issues/7866
-      - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg  | apt-key add -
       - apt-key list
       - add-apt-repository ppa:ubuntu-toolchain-r/test -y
       - apt-get update -o Acquire::CompressionTypes::Order::=gz
