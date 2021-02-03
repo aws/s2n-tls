@@ -1074,42 +1074,31 @@ int s2n_cipher_suites_cleanup(void)
     return 0;
 }
 
-struct s2n_cipher_suite *s2n_cipher_suite_from_wire(const uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN])
-{
-    int low = 0;
-    int top = (sizeof(s2n_all_cipher_suites) / sizeof(struct s2n_cipher_suite *)) - 1;
-    /* Perform a textbook binary search */
-    while (low <= top) {
-        /* Check in the middle */
-        int mid = low + ((top - low) / 2);
-        int m = memcmp(s2n_all_cipher_suites[mid]->iana_value, cipher_suite, 2);
-
-        if (m == 0) {
-            return s2n_all_cipher_suites[mid];
-        } else if (m > 0) {
-            top = mid - 1;
-        } else if (m < 0) {
-            low = mid + 1;
-        }
-    }
-
-    return NULL;
-}
-
 int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN])
 {
     notnull_check(conn);
     notnull_check(conn->secure.cipher_suite);
-    struct s2n_cipher_suite *cipher_suite;
 
-    /* See if the cipher is one we support */
-    cipher_suite = s2n_cipher_suite_from_wire(wire);
+    const struct s2n_security_policy *security_policy;
+    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    notnull_check(security_policy);
+
+    struct s2n_cipher_suite *cipher_suite = NULL;
+    for (size_t i = 0; i < security_policy->cipher_preferences->count; i++) {
+        const uint8_t *ours = security_policy->cipher_preferences->suites[i]->iana_value;
+        if (memcmp(wire, ours, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
+            cipher_suite = security_policy->cipher_preferences->suites[i];
+            break;
+        }
+    }
     ENSURE_POSIX(cipher_suite != NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
+    ENSURE_POSIX(cipher_suite->available, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
-    /* From RFC section: https://tools.ietf.org/html/rfc8446#section-4.2.11:
-     * Client MUST verify that the server selected a cipher suite indicating a Hash
-     * associated with the chosen PSK if it exists. 
-     * */
+    /** Clients MUST verify
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+     *# that the server selected a cipher suite
+     *# indicating a Hash associated with the PSK
+     **/
     if (conn->psk_params.chosen_psk) {
         ENSURE_POSIX(cipher_suite->prf_alg == conn->psk_params.chosen_psk->hmac_alg,
                      S2N_ERR_CIPHER_NOT_SUPPORTED);
@@ -1120,29 +1109,8 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
         ENSURE_POSIX(conn->secure.cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_CIPHER_NOT_SUPPORTED);
         return S2N_SUCCESS;
     }
+
     conn->secure.cipher_suite = cipher_suite;
-
-    /* Verify the cipher was part of the originally offered list */
-    const struct s2n_cipher_preferences *cipher_prefs;
-    GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_prefs));
-
-    uint8_t found = 0;
-
-    for (int i = 0; i < cipher_prefs->count; i++ ) {
-        /* The client sends all "available" ciphers in the preference list to the server.
-           The server must pick one of the ciphers offered by the client. */
-        if (cipher_prefs->suites[i]->available) {
-            const uint8_t *server_iana_value = conn->secure.cipher_suite->iana_value;
-            const uint8_t *client_iana_value = cipher_prefs->suites[i]->iana_value;
-
-            if (memcmp(server_iana_value, client_iana_value, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
-                found = 1;
-                break;
-            }
-        }
-    }
-
-    S2N_ERROR_IF(found != 1, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
     /* For SSLv3 use SSLv3-specific ciphers */
     if (conn->actual_protocol_version == S2N_SSLv3) {
@@ -1197,7 +1165,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
 
         if (s2n_wire_ciphers_contain(ours, wire, count, cipher_suite_len)) {
             /* We have a match */
-            struct s2n_cipher_suite *match = s2n_cipher_suite_from_wire(ours);
+            struct s2n_cipher_suite *match = security_policy->cipher_preferences->suites[i];
 
             /* Never use TLS1.3 ciphers on a pre-TLS1.3 connection, and vice versa */
             if ((conn->actual_protocol_version >= S2N_TLS13) != (match->minimum_required_tls_version >= S2N_TLS13)) {
