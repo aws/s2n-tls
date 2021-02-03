@@ -25,6 +25,8 @@ phases:
     commands:
       - echo Entered the install phase...
       - echo "We need a test PPA for gcc-9."
+      # Update Yarn Debian key, see https://github.com/yarnpkg/yarn/issues/7866
+      - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg  | apt-key add -
       - add-apt-repository ppa:ubuntu-toolchain-r/test -y
       - apt-get update -o Acquire::CompressionTypes::Order::=gz
       - apt-get update -y
