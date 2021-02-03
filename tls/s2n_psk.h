@@ -44,11 +44,6 @@ struct s2n_psk {
 S2N_RESULT s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type);
 S2N_CLEANUP_RESULT s2n_psk_wipe(struct s2n_psk *psk);
 
-struct s2n_psk_identity {
-    uint8_t *data;
-    uint16_t length;
-};
-
 struct s2n_psk_parameters {
     struct s2n_array psk_list;
     uint16_t binder_list_size;
@@ -60,6 +55,17 @@ S2N_RESULT s2n_psk_parameters_init(struct s2n_psk_parameters *params);
 S2N_RESULT s2n_psk_parameters_offered_psks_size(struct s2n_psk_parameters *params, uint32_t *size);
 S2N_CLEANUP_RESULT s2n_psk_parameters_wipe(struct s2n_psk_parameters *params);
 
+struct s2n_offered_psk {
+    struct s2n_blob identity;
+    s2n_psk_type type;
+};
+
+struct s2n_offered_psk_list {
+    struct s2n_stuffer wire_data;
+};
+S2N_RESULT s2n_offered_psk_list_get_index(struct s2n_offered_psk_list *list, uint16_t index,
+        struct s2n_offered_psk *offered_psk);
+
 S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn);
 
 int s2n_psk_calculate_binder_hash(struct s2n_connection *conn, s2n_hmac_algorithm hmac_alg,
@@ -68,12 +74,6 @@ int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_
         struct s2n_blob *output_binder);
 int s2n_psk_verify_binder(struct s2n_connection *conn, struct s2n_psk *psk,
         const struct s2n_blob *partial_client_hello, struct s2n_blob *binder_to_verify);
-
-typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn,
-                                          struct s2n_psk_identity *identities, size_t identities_length,
-                                          uint16_t *chosen_wire_index);
-/* This function will be labeled S2N_API and become a publicly visible api once we release the psk API. */
-int s2n_config_set_psk_selection_callback(struct s2n_connection *conn, s2n_psk_selection_callback cb);
 
 /* Public Interface -- will be made visible and moved to s2n.h when the PSK feature is released */
 
@@ -91,3 +91,19 @@ int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secr
 int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac);
 
 int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk);
+
+struct s2n_offered_psk;
+struct s2n_offered_psk* s2n_offered_psk_new();
+int s2n_offered_psk_free(struct s2n_offered_psk **psk);
+int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t** identity, uint16_t *size);
+int s2n_offered_psk_get_type(struct s2n_offered_psk *psk, s2n_psk_type *type);
+
+struct s2n_offered_psk_list;
+bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list);
+int s2n_offered_psk_list_next(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
+int s2n_offered_psk_list_reset(struct s2n_offered_psk_list *psk_list);
+
+typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn,
+                                          struct s2n_offered_psk_list *psk_list,
+                                          uint16_t *chosen_wire_index);
+int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb);
