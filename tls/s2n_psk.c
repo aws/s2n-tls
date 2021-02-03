@@ -25,20 +25,34 @@
 
 #define S2N_HASH_ALG_COUNT S2N_HASH_SENTINEL
 
-int s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type)
+S2N_RESULT s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type)
 {
-    notnull_check(psk);
+    ENSURE_MUT(psk);
 
-    memset_check(psk, 0, sizeof(struct s2n_psk));
+    CHECKED_MEMSET(psk, 0, sizeof(struct s2n_psk));
     psk->hmac_alg = S2N_HMAC_SHA256;
     psk->type = type;
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_psk_new_identity(struct s2n_psk *psk, const uint8_t *identity, size_t identity_size)
+struct s2n_psk* s2n_external_psk_new()
+{
+    DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
+    GUARD_PTR(s2n_alloc(&mem, sizeof(struct s2n_psk)));
+
+    struct s2n_psk *psk = (struct s2n_psk*)(void*) mem.data;
+    GUARD_RESULT_PTR(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
+
+    mem = (struct s2n_blob){ 0 };
+    return psk;
+}
+
+int s2n_psk_set_identity(struct s2n_psk *psk, const uint8_t *identity, uint16_t identity_size)
 {
     notnull_check(psk);
+    notnull_check(identity);
+    ENSURE_POSIX(identity_size != 0, S2N_ERR_INVALID_ARGUMENT);
 
     GUARD(s2n_realloc(&psk->identity, identity_size));
     memcpy_check(psk->identity.data, identity, identity_size);
@@ -46,9 +60,11 @@ int s2n_psk_new_identity(struct s2n_psk *psk, const uint8_t *identity, size_t id
     return S2N_SUCCESS;
 }
 
-int s2n_psk_new_secret(struct s2n_psk *psk, const uint8_t *secret, size_t secret_size)
+int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secret_size)
 {
     notnull_check(psk);
+    notnull_check(secret);
+    ENSURE_POSIX(secret_size != 0, S2N_ERR_INVALID_ARGUMENT);
 
     GUARD(s2n_realloc(&psk->secret, secret_size));
     memcpy_check(psk->secret.data, secret, secret_size);
@@ -56,17 +72,26 @@ int s2n_psk_new_secret(struct s2n_psk *psk, const uint8_t *secret, size_t secret
     return S2N_SUCCESS;
 }
 
-int s2n_psk_free(struct s2n_psk *psk)
+S2N_CLEANUP_RESULT s2n_psk_wipe(struct s2n_psk *psk)
+{
+    if (psk == NULL) {
+        return S2N_RESULT_OK;
+    }
+
+    GUARD_AS_RESULT(s2n_free(&psk->early_secret));
+    GUARD_AS_RESULT(s2n_free(&psk->identity));
+    GUARD_AS_RESULT(s2n_free(&psk->secret));
+
+    return S2N_RESULT_OK;
+}
+
+int s2n_psk_free(struct s2n_psk **psk)
 {
     if (psk == NULL) {
         return S2N_SUCCESS;
     }
-
-    GUARD(s2n_free(&psk->early_secret));
-    GUARD(s2n_free(&psk->identity));
-    GUARD(s2n_free(&psk->secret));
-
-    return S2N_SUCCESS;
+    GUARD_AS_POSIX(s2n_psk_wipe(*psk));
+    return s2n_free_object((uint8_t **) psk, sizeof(struct s2n_psk));
 }
 
 S2N_RESULT s2n_psk_parameters_init(struct s2n_psk_parameters *params)
@@ -84,7 +109,7 @@ S2N_CLEANUP_RESULT s2n_psk_parameters_wipe(struct s2n_psk_parameters *params)
     for (size_t i = 0; i < params->psk_list.len; i++) {
         struct s2n_psk *psk;
         GUARD_RESULT(s2n_array_get(&params->psk_list, i, (void**)&psk));
-        GUARD_AS_RESULT(s2n_psk_free(psk));
+        GUARD_RESULT(s2n_psk_wipe(psk));
     }
     GUARD_AS_RESULT(s2n_free(&params->psk_list.mem));
     GUARD_RESULT(s2n_psk_parameters_init(params));
@@ -278,55 +303,70 @@ S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac psk_hmac_alg)
+int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac)
 {
-    switch(psk_hmac_alg) {
+    notnull_check(psk);
+    switch(hmac) {
         case S2N_PSK_HMAC_SHA224:     psk->hmac_alg = S2N_HMAC_SHA224; break;
         case S2N_PSK_HMAC_SHA256:     psk->hmac_alg = S2N_HMAC_SHA256; break;
         case S2N_PSK_HMAC_SHA384:     psk->hmac_alg = S2N_HMAC_SHA384; break;
         default:
-            BAIL(S2N_ERR_HMAC_INVALID_ALGORITHM);
+            S2N_ERROR(S2N_ERR_HMAC_INVALID_ALGORITHM);
     }
-    return S2N_RESULT_OK;
+    return S2N_SUCCESS;
 }
 
-int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_external_psk *psk_vec, size_t psk_vec_length)
+int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_psk **psk_list, uint16_t psk_list_len)
 {
-    ENSURE_POSIX_REF(conn);
-    ENSURE_POSIX_REF(psk_vec);
+    notnull_check(conn);
     
     /* Remove all previously-set external psks */
     /* The loop iterates from len to 1 instead of from len-1 to 0 to avoid size_t underflowing */
     for (size_t i = conn->psk_params.psk_list.len; i > 0; i--) {
         size_t i_index = i - 1;
+
         struct s2n_psk *psk = NULL;
         GUARD_AS_POSIX(s2n_array_get(&conn->psk_params.psk_list, i_index, (void**) &psk));
-        ENSURE_POSIX_REF(psk);
+        notnull_check(psk);
+
         if (psk->type == S2N_PSK_TYPE_EXTERNAL) {
-            GUARD(s2n_psk_free(psk));
+            GUARD_AS_POSIX(s2n_psk_wipe(psk));
             GUARD_AS_POSIX(s2n_array_remove(&conn->psk_params.psk_list, i_index));
         }
     }
 
-    for (size_t i = 0; i < psk_vec_length; i++) {
+    if (psk_list_len == 0) {
+        return S2N_SUCCESS;
+    }
+
+    notnull_check(psk_list);
+    for (size_t i = 0; i < psk_list_len; i++) {
+        notnull_check(psk_list[i]);
+
         /* Check for duplicate identities */
         size_t array_len = conn->psk_params.psk_list.len;
         for (size_t j = 0; j < array_len; j++) {
-            struct s2n_psk *psk = NULL;
-            GUARD_AS_POSIX(s2n_array_get(&conn->psk_params.psk_list, j, (void**) &psk));
-            ENSURE_POSIX_REF(psk);
-            if (psk->identity.size == psk_vec[i].identity_length) {
-                ENSURE_POSIX(memcmp(psk->identity.data, psk_vec[i].identity, psk->identity.size) != 0, S2N_ERR_DUPLICATE_PSK_IDENTITIES);
-            }
+            struct s2n_psk *old_psk = NULL;
+            GUARD_AS_POSIX(s2n_array_get(&conn->psk_params.psk_list, j, (void**) &old_psk));
+            notnull_check(old_psk);
+
+            bool duplicate = old_psk->identity.size == psk_list[i]->identity.size
+                    && memcmp(old_psk->identity.data, psk_list[i]->identity.data, old_psk->identity.size) == 0;
+            ENSURE_POSIX(!duplicate, S2N_ERR_DUPLICATE_PSK_IDENTITIES);
         }
 
         struct s2n_psk *new_psk = NULL;
         GUARD_AS_POSIX(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &new_psk));
-        ENSURE_POSIX_REF(new_psk);
-        GUARD(s2n_psk_init(new_psk, S2N_PSK_TYPE_EXTERNAL));
-        GUARD(s2n_psk_new_identity(new_psk, psk_vec[i].identity, psk_vec[i].identity_length));
-        GUARD(s2n_psk_new_secret(new_psk, psk_vec[i].secret, psk_vec[i].secret_length));
-        GUARD_AS_POSIX(s2n_psk_set_hmac(new_psk, psk_vec[i].hmac));
+        notnull_check(new_psk);
+
+        if (s2n_result_is_error(s2n_psk_init(new_psk, S2N_PSK_TYPE_EXTERNAL))
+                || s2n_psk_set_identity(new_psk, psk_list[i]->identity.data, psk_list[i]->identity.size) != S2N_SUCCESS
+                || s2n_psk_set_secret(new_psk, psk_list[i]->secret.data, psk_list[i]->secret.size) != S2N_SUCCESS) {
+            GUARD_AS_POSIX(s2n_psk_wipe(new_psk));
+            GUARD_AS_POSIX(s2n_array_remove(&conn->psk_params.psk_list, conn->psk_params.psk_list.len - 1));
+            S2N_ERROR_PRESERVE_ERRNO();
+        }
+        new_psk->hmac_alg = psk_list[i]->hmac_alg;
     }
 
     return S2N_SUCCESS;
