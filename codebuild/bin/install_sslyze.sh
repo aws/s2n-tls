@@ -28,7 +28,7 @@ case "$ARCH" in
   *)
         python3 -m pip install --user --upgrade pip setuptools
         # Version 3.0.0 introduces backwards incompatible changes in the JSON we parse.
-        # TODO: unpin the version and update the json parsing sslyze output.
+        # TODO: unpin the sslyze version and update the json parsing sslyze output.
         python3 -m pip install --user "sslyze<3.0.0"
         sudo ln -s /root/.local/bin/sslyze /usr/bin/sslyze || true
         which sslyze
