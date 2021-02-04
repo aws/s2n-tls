@@ -44,6 +44,9 @@ struct s2n_psk* s2n_external_psk_new()
     struct s2n_psk *psk = (struct s2n_psk*)(void*) mem.data;
     GUARD_RESULT_PTR(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
 
+    /* At this point we have succeeded, so zero-init mem to
+     * stop DEFER_CLEANUP from freeing the allocated memory. */
+    /* cppcheck-suppress unreadVariable */
     mem = (struct s2n_blob){ 0 };
     return psk;
 }
