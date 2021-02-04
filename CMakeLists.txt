@@ -149,13 +149,12 @@ check_c_source_compiles("
 
     int main() {
         char val = 'A';
-        int result = 0;
         switch (val) {
             case 'A' :
-                result++;
+                val++;
                 FALL_THROUGH;
             case 'B' :
-                result *= 2;
+                val *= 2;
                 break;
             default :
                 break;
