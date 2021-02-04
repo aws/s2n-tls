@@ -21,7 +21,7 @@
 /* To test static function */
 #include "tls/s2n_resume.c"
 
-#define S2N_TLS13_STATE_SIZE_WITHOUT_SECRET    S2N_MAX_STATE_SIZE_IN_BYTES - S2N_TLS_SECRET_LEN
+#define S2N_TLS13_STATE_SIZE_WITHOUT_SECRET S2N_MAX_STATE_SIZE_IN_BYTES - S2N_TLS_SECRET_LEN
 
 int main(int argc, char **argv)
 {
@@ -209,8 +209,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
-        /* Check session ticket size is correct for TLS13. The contents of the output will be
-         * tested once the TLS1.3 deserialization function is written. */
+        /* Check session ticket size is correct for a small secret in TLS13 session resumption. The 
+         * contents of the encrypted output will be tested once the TLS1.3 deserialization function
+         * is written. */
         {
             struct s2n_connection *conn;
             struct s2n_config *config;
@@ -218,6 +219,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
 
+            /* Setting up session resumption encryption key */
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
             EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *)ticket_key_name),
@@ -234,10 +236,53 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_init(&output, &blob));
             struct s2n_ticket_fields ticket_fields = { .ticket_age_add = 1, .session_secret = test_session_secret };
 
+            /* This secret is smaller than the maximum secret length */
+            EXPECT_TRUE(ticket_fields.session_secret.size < S2N_TLS_SECRET_LEN);
+
             EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &ticket_fields, &output));
 
             uint32_t expected_size = S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN + 
                         S2N_TLS13_STATE_SIZE_WITHOUT_SECRET + test_session_secret.size + S2N_TLS_GCM_TAG_LEN;
+            EXPECT_EQUAL(expected_size, s2n_stuffer_data_available(&output));
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
+        /* Check session ticket size is correct for the maximum size secret in TLS13 session resumption. The 
+         * contents of the encrypted output will be tested once the TLS1.3 deserialization function
+         * is written. */
+        {
+            struct s2n_connection *conn;
+            struct s2n_config *config;
+            uint64_t current_time;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_NOT_NULL(config = s2n_config_new());
+
+            /* Setting up session resumption encryption key */
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
+            EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
+            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *)ticket_key_name),
+                         ticket_key.data, sizeof(ticket_key), current_time/ONE_SEC_IN_NANOS));
+
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            conn->actual_protocol_version = S2N_TLS13;
+
+            uint8_t data[S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN + S2N_MAX_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = { 0 };
+            struct s2n_blob blob = { 0 };
+            struct s2n_stuffer output = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&blob, data, sizeof(data)));
+            EXPECT_SUCCESS(s2n_stuffer_init(&output, &blob));
+            struct s2n_ticket_fields ticket_fields = { .ticket_age_add = 1, .session_secret = test_master_secret };
+
+            /* This secret is equal to the maximum secret length */
+            EXPECT_EQUAL(ticket_fields.session_secret.size, S2N_TLS_SECRET_LEN);
+
+            EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &ticket_fields, &output));
+
+            uint32_t expected_size = S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN + 
+                        S2N_TLS13_STATE_SIZE_WITHOUT_SECRET + S2N_TLS_SECRET_LEN + S2N_TLS_GCM_TAG_LEN;
             EXPECT_EQUAL(expected_size, s2n_stuffer_data_available(&output));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));

@@ -45,6 +45,9 @@ int s2n_allowed_to_cache_connection(struct s2n_connection *conn)
 
 static int s2n_tls12_serialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *to)
 {
+    notnull_check(conn);
+    notnull_check(to);
+
     uint64_t now;
 
     S2N_ERROR_IF(s2n_stuffer_space_remaining(to) < S2N_STATE_SIZE_IN_BYTES, S2N_ERR_STUFFER_IS_FULL);
@@ -79,7 +82,7 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
     GUARD_AS_RESULT(s2n_stuffer_write_bytes(out, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     GUARD_AS_RESULT(s2n_stuffer_write_uint64(out, current_time));
     GUARD_AS_RESULT(s2n_stuffer_write_uint32(out, ticket_fields->ticket_age_add));
-    ENSURE(ticket_fields->session_secret.size <= UINT8_MAX, S2N_ERR_SAFETY);
+    ENSURE_LTE(ticket_fields->session_secret.size, UINT8_MAX);
     GUARD_AS_RESULT(s2n_stuffer_write_uint8(out, ticket_fields->session_secret.size));
     GUARD_AS_RESULT(s2n_stuffer_write_bytes(out, ticket_fields->session_secret.data, ticket_fields->session_secret.size));
 
@@ -143,7 +146,7 @@ static int s2n_client_serialize_resumption_state(struct s2n_connection *conn, st
    }
 
     /* Serialize session state */
-    GUARD(s2n_tls12_serialize_resumption_state(conn, to));
+    GUARD_AS_POSIX(s2n_serialize_resumption_state(conn, NULL, to));
 
     return 0;
 }
@@ -543,8 +546,8 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_ticket_fi
     GUARD(s2n_stuffer_write_bytes(&aad, key->implicit_aad, S2N_TICKET_AAD_IMPLICIT_LEN));
     GUARD(s2n_stuffer_write_bytes(&aad, key->key_name, S2N_TICKET_KEY_NAME_LEN));
 
-    struct s2n_blob state_blob = {0};
-    struct s2n_stuffer state = {0};
+    struct s2n_blob state_blob = { 0 };
+    struct s2n_stuffer state = { 0 };
 
     uint8_t s_data[S2N_MAX_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = { 0 };
     GUARD(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
