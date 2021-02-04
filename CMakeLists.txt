@@ -125,6 +125,10 @@ endif()
 
 # Probe for execinfo.h extensions (not present on some systems, notably android)
 include(CheckCSourceCompiles)
+
+# Ensure we can compile without warnings
+set (CMAKE_REQUIRED_FLAGS "-Werror")
+
 check_c_source_compiles("
     #include <execinfo.h>
     int main() {
