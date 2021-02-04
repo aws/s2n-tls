@@ -139,6 +139,26 @@ check_c_source_compiles("
     #include <cpuid.h>
     int main() { return 0; }" S2N_CPUID_AVAILABLE)
 
+# Determine if __attribute__((fallthrough)) is available
+check_c_source_compiles("
+    #define FALL_THROUGH __attribute__((fallthrough))
+
+    int main() {
+        char val = 'A';
+        int result = 0;
+        switch (val) {
+            case 'A' :
+                result++;
+                FALL_THROUGH;
+            case 'B' :
+                result *= 2;
+                break;
+            default :
+                break;
+        }
+        return 0;
+    }" FALL_THROUGH_SUPPORTED)
+
 if(APPLE)
     set(OS_LIBS c Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
@@ -214,6 +234,10 @@ endif()
 
 if(S2N_UNSAFE_FUZZING_MODE)
     target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1)
+endif()
+
+if (FALL_THROUGH_SUPPORTED)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_FALL_THROUGH_SUPPORTED)
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
