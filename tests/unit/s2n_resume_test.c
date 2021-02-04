@@ -329,10 +329,9 @@ int main(int argc, char **argv)
         /* Overflow error is caught */
         {
             struct s2n_connection *conn;
-            uint8_t original_num_tickets = UINT8_MAX;
             uint8_t new_num_tickets = 1;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            conn->tickets_to_send = original_num_tickets;
+            conn->tickets_to_send = UINT16_MAX;
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_add_new_tickets_to_send(conn, new_num_tickets), S2N_ERR_INTEGER_OVERFLOW);
             

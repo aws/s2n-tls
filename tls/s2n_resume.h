@@ -89,6 +89,7 @@ extern int s2n_allowed_to_cache_connection(struct s2n_connection *conn);
 extern int s2n_resume_from_cache(struct s2n_connection *conn);
 extern int s2n_store_to_cache(struct s2n_connection *conn);
 
-/* This function will be labeled S2N_API and become a publicly visible api once we release the psk API. */
+/* These functions will be labeled S2N_API and become a publicly visible api 
+ * once we release the session resumption API. */
 int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num);
 int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num);

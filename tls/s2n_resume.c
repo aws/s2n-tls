@@ -764,8 +764,8 @@ int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num)
 int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num) {
     notnull_check(conn);
 
-    uint16_t out = conn->tickets_to_send + num;
-    ENSURE_POSIX(out <= UINT8_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    uint32_t out = conn->tickets_to_send + num;
+    ENSURE_POSIX(out <= UINT16_MAX, S2N_ERR_INTEGER_OVERFLOW);
     conn->tickets_to_send = out;
 
     return S2N_SUCCESS;
