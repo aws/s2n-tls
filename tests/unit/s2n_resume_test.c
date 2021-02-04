@@ -21,12 +21,7 @@
 /* To test static function */
 #include "tls/s2n_resume.c"
 
-#define S2N_TLS13_STATE_SIZE_WITHOUT_KEY    sizeof(uint8_t)  +  /* serialization format */  \
-                                            sizeof(uint8_t)  +  /* protocol version */      \
-                                            sizeof(uint16_t) +  /* cipher suite */          \
-                                            sizeof(uint64_t) +  /* ticket issue time */     \
-                                            sizeof(uint32_t) +  /* ticket age add */        \
-                                            sizeof(uint8_t)     /* secret size */
+#define S2N_TLS13_STATE_SIZE_WITHOUT_SECRET    S2N_MAX_STATE_SIZE_IN_BYTES - S2N_TLS_SECRET_LEN
 
 int main(int argc, char **argv)
 {
@@ -202,13 +197,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, NULL, &output));
 
             /* Wiping the master secret to prove that the decryption function actually writes the master secret */
-            EXPECT_SUCCESS(s2n_stuffer_wipe(&secret_stuffer));
+            memset(conn->secure.master_secret, 0, test_master_secret.size);
 
             conn->client_ticket_to_decrypt = output;
             EXPECT_SUCCESS(s2n_decrypt_session_ticket(conn));
 
             /* Check decryption was successful by comparing master key */
-            EXPECT_BYTEARRAY_EQUAL(conn->secure.master_secret, test_master_secret.data, test_session_secret.size);
+            EXPECT_BYTEARRAY_EQUAL(conn->secure.master_secret, test_master_secret.data, test_master_secret.size);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
@@ -242,7 +237,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &ticket_fields, &output));
 
             uint32_t expected_size = S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN + 
-                        S2N_TLS13_STATE_SIZE_WITHOUT_KEY + test_session_secret.size + S2N_TLS_GCM_TAG_LEN;
+                        S2N_TLS13_STATE_SIZE_WITHOUT_SECRET + test_session_secret.size + S2N_TLS_GCM_TAG_LEN;
             EXPECT_EQUAL(expected_size, s2n_stuffer_data_available(&output));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));

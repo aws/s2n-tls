@@ -552,7 +552,7 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_ticket_fi
     GUARD_AS_POSIX(s2n_serialize_resumption_state(conn, ticket_fields, &state));
     
     /* Get the correct session resumption ticket size */
-    state_blob.size = state.write_cursor + S2N_TLS_GCM_TAG_LEN;
+    state_blob.size = s2n_stuffer_data_available(&state) + S2N_TLS_GCM_TAG_LEN;
 
     GUARD(s2n_aes256_gcm.io.aead.encrypt(&aes_ticket_key, &iv, &aad_blob, &state_blob, &state_blob));
 
