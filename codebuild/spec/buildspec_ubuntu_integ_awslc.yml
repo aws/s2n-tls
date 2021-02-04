@@ -27,6 +27,11 @@ phases:
       python: 3.7
     commands:
       - echo Entered the install phase...
+      - |
+        if [ -d "third-party-src" ]; then
+          cd third-party-src;
+        fi
+      - $CB_BIN_DIR/install_ubuntu_dependencies.sh
       - add-apt-repository ppa:ubuntu-toolchain-r/test -y
       # Add repo to get latest golang version. https://github.com/golang/go/wiki/Ubuntu
       - add-apt-repository ppa:longsleep/golang-backports -y
