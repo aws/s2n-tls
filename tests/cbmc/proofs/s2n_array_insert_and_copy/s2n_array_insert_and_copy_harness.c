@@ -13,13 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-#include "error/s2n_errno.h"
 #include "utils/s2n_array.h"
 #include "utils/s2n_result.h"
 
-#include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
 void s2n_array_insert_and_copy_harness()
@@ -29,7 +25,7 @@ void s2n_array_insert_and_copy_harness()
     __CPROVER_assume(s2n_result_is_ok(s2n_array_validate(array)));
     __CPROVER_assume(s2n_array_is_bounded(array, MAX_ARRAY_LEN, MAX_ARRAY_ELEMENT_SIZE));
     uint32_t index;
-    void *element = can_fail_malloc(array->element_size);
+    void *element = malloc(array->element_size);
 
     nondet_s2n_mem_init();
 

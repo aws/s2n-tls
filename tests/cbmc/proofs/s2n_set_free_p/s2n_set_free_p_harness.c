@@ -13,12 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
 #include "utils/s2n_set.h"
-#include "utils/s2n_result.h"
 
-#include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
 void s2n_set_free_p_harness()
