@@ -158,20 +158,22 @@ ifndef COV_TOOL
 	endif
 endif
 
+try_compile = $(shell cat $(1) | $(CC) -Werror -o tmp.o -xc - > /dev/null 2>&1; echo $$?; rm tmp.o > /dev/null 2>&1)
+
 # Determine if execinfo.h is available
-TRY_COMPILE_EXECINFO := $(shell cat $(S2N_ROOT)/tests/features/execinfo.c  | $(CC) -Werror -o test_exec_info.o -xc - > /dev/null 2>&1; echo $$?; rm test_exec_info.o > /dev/null 2>&1)
+TRY_COMPILE_EXECINFO := $(call try_compile,$(S2N_ROOT)/tests/features/execinfo.c)
 ifeq ($(TRY_COMPILE_EXECINFO), 0)
 	DEFAULT_CFLAGS += -DS2N_HAVE_EXECINFO
 endif
 
 # Determine if cpuid.h is available
-TRY_COMPILE_CPUID := $(shell cat $(S2N_ROOT)/tests/features/cpuid.c  | $(CC) -o test_cpuid.o -xc - > /dev/null 2>&1; echo $$?; rm test_cpuid.o > /dev/null 2>&1)
+TRY_COMPILE_CPUID := $(call try_compile,$(S2N_ROOT)/tests/features/cpuid.c)
 ifeq ($(TRY_COMPILE_CPUID), 0)
 	DEFAULT_CFLAGS += -DS2N_CPUID_AVAILABLE
 endif
 
 # Determine if __attribute__((fallthrough)) is available
-TRY_COMPILE_FALL_THROUGH := $(shell cat $(S2N_ROOT)/tests/features/fallthrough.c  | $(CC) -Werror -o test_fall_through.o -xc - > /dev/null 2>&1; echo $$?; rm test_fall_through.o > /dev/null 2>&1)
+TRY_COMPILE_FALL_THROUGH := $(call try_compile,$(S2N_ROOT)/tests/features/fallthrough.c)
 ifeq ($(TRY_COMPILE_FALL_THROUGH), 0)
 	DEFAULT_CFLAGS += -DS2N_FALL_THROUGH_SUPPORTED
 endif
