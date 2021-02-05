@@ -378,7 +378,8 @@ int main(int argc, char **argv)
         s2n_connection_free(server_conn);
     }
 
-    /* Test that S2N will reject a ClientHello with legacy_session_id set when running with QUIC.
+    /* Test that S2N will accept a ClientHello with legacy_session_id set when running with QUIC.
+     * Since this requirement is a SHOULD, we're accepting it for non-compliant endpoints.
      * https://tools.ietf.org/html/draft-ietf-quic-tls-32#section-8.4*/
     {
         EXPECT_SUCCESS(s2n_reset_tls13());
@@ -408,7 +409,7 @@ int main(int argc, char **argv)
             s2n_connection_free(server_conn);
         }
 
-        /* Fails with a session id */
+        /* Also, succeeds with a session id */
         {
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, quic_config));
@@ -422,7 +423,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_BAD_MESSAGE);
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
             s2n_connection_free(client_conn);
             s2n_connection_free(server_conn);
