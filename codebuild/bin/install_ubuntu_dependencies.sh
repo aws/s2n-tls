@@ -18,9 +18,6 @@
 
 set -ex
 
-# Update Yarn Debian key, see https://github.com/yarnpkg/yarn/issues/7866
-curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg  | apt-key add -
-
 add-apt-repository ppa:ubuntu-toolchain-r/test -y
 add-apt-repository ppa:longsleep/golang-backports -y
 apt-get update -o Acquire::CompressionTypes::Order::=gz
