@@ -69,7 +69,7 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, lifetime_hint_in_secs));
     GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, session_ticket_len));
 
-    GUARD(s2n_encrypt_session_ticket(conn, &to));
+    GUARD(s2n_encrypt_session_ticket(conn, NULL, &to));
     GUARD(s2n_stuffer_write(&conn->handshake.io, &to.blob));
 
     return 0;
