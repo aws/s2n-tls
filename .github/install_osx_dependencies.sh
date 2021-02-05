@@ -13,7 +13,17 @@
 # permissions and limitations under the License.
 #
 
-set -ex
+set -eu
+
+function brew_install_if_not_installed () {
+    brew list $1 &>/dev/null || brew install $1
+}
 
 brew update
-brew install cmake ninja gcc6 pkg-config ||  true
+
+brew_install_if_not_installed gnu-indent
+brew_install_if_not_installed coreutils
+brew_install_if_not_installed cppcheck
+brew_install_if_not_installed pkg-config  # for gnutls compilation
+brew_install_if_not_installed ninja
+brew_install_if_not_installed openssl@1.1 # for libcrypto
