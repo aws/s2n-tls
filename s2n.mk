@@ -170,7 +170,7 @@ ifeq ($(TRY_COMPILE_CPUID), 0)
 endif
 
 # Determine if __attribute__((fallthrough)) is available
-TRY_COMPILE_FALL_THROUGH := $(shell echo "\#define FALL_THROUGH __attribute__((fallthrough))\nint main()\n {\nchar val = 'A';\nswitch (val) {\ncase 'A' :\nval++;\nFALL_THROUGH;\ncase\n'B' :\nbreak;\ndefault :\nbreak;\nreturn 0;\n}" | $(CC) -Werror -o test_fall_through.o -xc - > /dev/null 2>&1; echo $$?; rm test_fall_through.o > /dev/null 2>&1)
+TRY_COMPILE_FALL_THROUGH := $(shell cat ./tests/features/fallthrough.c  | $(CC) -Werror -o test_fall_through.o -xc - > /dev/null 2>&1; echo $$?; rm test_fall_through.o > /dev/null 2>&1)
 ifeq ($(TRY_COMPILE_FALL_THROUGH), 0)
 	DEFAULT_CFLAGS += -DS2N_FALL_THROUGH_SUPPORTED
 endif

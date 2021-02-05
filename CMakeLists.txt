@@ -143,24 +143,14 @@ check_c_source_compiles("
     #include <cpuid.h>
     int main() { return 0; }" S2N_CPUID_AVAILABLE)
 
-# Determine if __attribute__((fallthrough)) is available
-check_c_source_compiles("
-    #define FALL_THROUGH __attribute__((fallthrough))
 
-    int main() {
-        char val = 'A';
-        switch (val) {
-            case 'A' :
-                val++;
-                FALL_THROUGH;
-            case 'B' :
-                val *= 2;
-                break;
-            default :
-                break;
-        }
-        return 0;
-    }" FALL_THROUGH_SUPPORTED)
+# Determine if __attribute__((fallthrough)) is available
+try_compile(
+        FALL_THROUGH_SUPPORTED
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/fallthrough.c"
+        COMPILE_DEFINITIONS "-Werror"
+)
 
 if(APPLE)
     set(OS_LIBS c Threads::Threads)
