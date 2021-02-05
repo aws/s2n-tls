@@ -126,23 +126,19 @@ endif()
 # Probe for execinfo.h extensions (not present on some systems, notably android)
 include(CheckCSourceCompiles)
 
-# Ensure we can compile without warnings
-set (CMAKE_REQUIRED_FLAGS "-Werror")
-
-check_c_source_compiles("
-    #include <execinfo.h>
-    int main() {
-        void *array[20];
-        int backtrace_size = backtrace(array, 20);
-        backtrace_symbols(array, backtrace_size);
-        return 0;
-    }" S2N_HAVE_EXECINFO)
+# Determine if execinfo.h is available
+try_compile(
+        S2N_HAVE_EXECINFO
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/execinfo.c"
+)
 
 # Determine if cpuid.h is available
-check_c_source_compiles("
-    #include <cpuid.h>
-    int main() { return 0; }" S2N_CPUID_AVAILABLE)
-
+try_compile(
+        S2N_CPUID_AVAILABLE
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/cpuid.c"
+)
 
 # Determine if __attribute__((fallthrough)) is available
 try_compile(
