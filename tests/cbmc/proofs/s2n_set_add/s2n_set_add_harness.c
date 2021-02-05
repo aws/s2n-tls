@@ -13,12 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
 #include "utils/s2n_set.h"
-#include "utils/s2n_result.h"
 
-#include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
 void s2n_set_add_harness()
@@ -28,7 +24,7 @@ void s2n_set_add_harness()
     __CPROVER_assume(s2n_result_is_ok(s2n_set_validate(set)));
     __CPROVER_assume(s2n_set_is_bounded(set, MAX_ARRAY_LEN, MAX_ARRAY_ELEMENT_SIZE));
     uint32_t index;
-    void *element = can_fail_malloc(set->data->element_size);
+    void *element = malloc(set->data->element_size);
 
     nondet_s2n_mem_init();
 

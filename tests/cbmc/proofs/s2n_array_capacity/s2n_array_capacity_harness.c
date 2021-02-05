@@ -13,12 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
 #include "utils/s2n_array.h"
 #include "utils/s2n_result.h"
 
-#include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
 void s2n_array_capacity_harness()
@@ -27,7 +24,7 @@ void s2n_array_capacity_harness()
     struct s2n_array *array = cbmc_allocate_s2n_array();
     __CPROVER_assume(s2n_result_is_ok(s2n_array_validate(array)));
     __CPROVER_assume(s2n_array_is_bounded(array, MAX_ARRAY_LEN, MAX_ARRAY_ELEMENT_SIZE));
-    uint32_t* capacity = can_fail_malloc(sizeof(*capacity));
+    uint32_t* capacity = malloc(sizeof(*capacity));
 
     /* Operation under verification. */
     if(s2n_result_is_ok(s2n_array_capacity(array, capacity))) {
