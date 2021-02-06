@@ -33,6 +33,11 @@ static int test_send(struct s2n_connection *conn, struct s2n_stuffer *out)
     return s2n_stuffer_skip_write(out, S2N_TEST_DATA_LEN);
 }
 
+static int test_send_too_much_data(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    return s2n_stuffer_skip_write(out, UINT16_MAX + 1);
+}
+
 static int test_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
 {
     return S2N_SUCCESS;
@@ -298,6 +303,21 @@ int main()
             EXPECT_FAILURE_WITH_ERRNO(s2n_extension_send(&extension_type_with_failure, &conn, &stuffer), S2N_ERR_UNIMPLEMENTED);
             /* cppcheck-suppress sizeofDivisionMemfunc */
             EXPECT_BITFIELD_CLEAR(conn.extension_requests_sent);
+
+            s2n_stuffer_free(&stuffer);
+        }
+
+        /* "send" writes more data than will fit in the extension size */
+        {
+            struct s2n_connection conn = { 0 };
+            struct s2n_stuffer stuffer = { 0 };
+            s2n_stuffer_growable_alloc(&stuffer, 0);
+
+            s2n_extension_type extension_type_with_too_much_data = test_extension_type;
+            extension_type_with_too_much_data.send = test_send_too_much_data;
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_extension_send(&extension_type_with_too_much_data, &conn, &stuffer),
+                    S2N_ERR_SIZE_MISMATCH);
 
             s2n_stuffer_free(&stuffer);
         }

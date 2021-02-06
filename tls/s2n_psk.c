@@ -319,13 +319,13 @@ int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac)
     return S2N_SUCCESS;
 }
 
-int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_psk **psk_list, uint16_t psk_list_len)
+int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_psk **psk_list, uint32_t psk_list_len)
 {
     notnull_check(conn);
     
     /* Remove all previously-set external psks */
     /* The loop iterates from len to 1 instead of from len-1 to 0 to avoid size_t underflowing */
-    for (size_t i = conn->psk_params.psk_list.len; i > 0; i--) {
+    for (uint32_t i = conn->psk_params.psk_list.len; i > 0; i--) {
         size_t i_index = i - 1;
 
         struct s2n_psk *psk = NULL;
@@ -343,7 +343,7 @@ int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_psk
     }
 
     notnull_check(psk_list);
-    for (size_t i = 0; i < psk_list_len; i++) {
+    for (uint32_t i = 0; i < psk_list_len; i++) {
         notnull_check(psk_list[i]);
 
         /* Check for duplicate identities */
