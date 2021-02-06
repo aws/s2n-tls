@@ -172,6 +172,10 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_client_psk_extension.send(conn, &out));
 
+            uint32_t offered_psks_size = 0;
+            EXPECT_OK(s2n_psk_parameters_offered_psks_size(&conn->psk_params, &offered_psks_size));
+            EXPECT_EQUAL(offered_psks_size, s2n_stuffer_data_available(&out));
+
             uint16_t identity_list_size = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&out, &identity_list_size));
 
@@ -224,6 +228,10 @@ int main(int argc, char **argv)
             }
 
             EXPECT_SUCCESS(s2n_client_psk_extension.send(conn, &out));
+
+            uint32_t offered_psks_size = 0;
+            EXPECT_OK(s2n_psk_parameters_offered_psks_size(&conn->psk_params, &offered_psks_size));
+            EXPECT_EQUAL(offered_psks_size, s2n_stuffer_data_available(&out));
 
             uint16_t identity_list_size = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&out, &identity_list_size));

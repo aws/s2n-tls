@@ -57,6 +57,7 @@ struct s2n_psk_parameters {
     s2n_psk_key_exchange_mode psk_ke_mode;
 };
 S2N_RESULT s2n_psk_parameters_init(struct s2n_psk_parameters *params);
+S2N_RESULT s2n_psk_parameters_offered_psks_size(struct s2n_psk_parameters *params, uint32_t *size);
 S2N_CLEANUP_RESULT s2n_psk_parameters_wipe(struct s2n_psk_parameters *params);
 
 S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn);
