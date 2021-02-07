@@ -817,8 +817,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             uint32_t offered_psks_size = 0;
+            struct s2n_psk *test_psk = NULL;
             while(offered_psks_size < UINT16_MAX) {
-                struct s2n_psk *test_psk = NULL;
                 EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &test_psk));
                 EXPECT_NOT_NULL(test_psk);
 
@@ -826,6 +826,9 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_psk_set_identity(test_psk, identity_1, sizeof(identity_1)));
                 EXPECT_OK(s2n_psk_parameters_offered_psks_size(&conn->psk_params, &offered_psks_size));
             }
+
+            /* Delete the last PSK that caused the list to exceed the allowed size */
+            EXPECT_OK(s2n_psk_wipe(test_psk));
             EXPECT_OK(s2n_array_remove(&conn->psk_params.psk_list, conn->psk_params.psk_list.len - 1));
             EXPECT_OK(s2n_psk_parameters_offered_psks_size(&conn->psk_params, &offered_psks_size));
             EXPECT_TRUE(offered_psks_size < UINT16_MAX);

@@ -382,7 +382,6 @@ int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_psk
         if (existing_psk->type == S2N_PSK_TYPE_EXTERNAL) {
             continue;
         }
-
         GUARD_AS_POSIX(s2n_array_insert_and_copy(&new_params.psk_list, new_params.psk_list.len, existing_psk));
     }
 
