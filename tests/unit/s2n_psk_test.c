@@ -740,7 +740,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* Too-large PSK not added to connection */
+        /* Huge PSK not added to client connection */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -749,7 +749,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_psk_set_secret(invalid_psk, secret_0, sizeof(secret_0)));
 
             /* PSK is invalid because it will not fit in the PSK extension */
-            uint16_t max_identity_size = S2N_MAX_EXTENSION_DATA_SIZE
+            uint16_t max_identity_size = S2N_MAX_OFFERED_PSK_LIST_SIZE
                     - sizeof(uint16_t)      /* identity list size */
                     - sizeof(uint16_t)      /* identity size */
                     - sizeof(uint32_t)      /* obfuscated age add */
@@ -765,6 +765,23 @@ int main(int argc, char **argv)
             /* Successful if smaller identity used */
             EXPECT_SUCCESS(s2n_psk_set_identity(invalid_psk, huge_identity, max_identity_size));
             EXPECT_SUCCESS(s2n_connection_set_external_psks(conn, &invalid_psk, 1));
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Huge PSK added to server connection */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+            DEFER_CLEANUP(struct s2n_psk *invalid_psk = s2n_external_psk_new(), s2n_psk_free);
+            EXPECT_SUCCESS(s2n_psk_set_secret(invalid_psk, secret_0, sizeof(secret_0)));
+            EXPECT_EQUAL(sizeof(huge_identity), UINT16_MAX);
+
+            EXPECT_SUCCESS(s2n_psk_set_identity(invalid_psk, huge_identity, sizeof(huge_identity)));
+
+            EXPECT_SUCCESS(s2n_connection_set_external_psks(conn, &invalid_psk, 1));
+            EXPECT_EQUAL(conn->psk_params.psk_list.len, 1);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -790,6 +807,38 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(test_psk->hmac_alg, S2N_HMAC_SHA384);
                 EXPECT_EQUAL(test_psk->obfuscated_ticket_age, 0);
             }
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Client rejects PSK that would make the PSK list too long */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+
+            uint32_t offered_psks_size = 0;
+            while(offered_psks_size < UINT16_MAX) {
+                struct s2n_psk *test_psk = NULL;
+                EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &test_psk));
+                EXPECT_NOT_NULL(test_psk);
+
+                EXPECT_OK(s2n_psk_init(test_psk, S2N_PSK_TYPE_RESUMPTION));
+                EXPECT_SUCCESS(s2n_psk_set_identity(test_psk, identity_1, sizeof(identity_1)));
+                EXPECT_OK(s2n_psk_parameters_offered_psks_size(&conn->psk_params, &offered_psks_size));
+            }
+            EXPECT_OK(s2n_array_remove(&conn->psk_params.psk_list, conn->psk_params.psk_list.len - 1));
+            EXPECT_OK(s2n_psk_parameters_offered_psks_size(&conn->psk_params, &offered_psks_size));
+            EXPECT_TRUE(offered_psks_size < UINT16_MAX);
+
+            uint32_t original_psk_count = conn->psk_params.psk_list.len;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_external_psks(conn, &first_psk, 1),
+                    S2N_ERR_PSKS_TOO_LONG);
+            EXPECT_EQUAL(conn->psk_params.psk_list.len, original_psk_count);
+
+            /* Server allows an arbitrarily long list */
+            conn->mode = S2N_SERVER;
+            EXPECT_SUCCESS(s2n_connection_set_external_psks(conn, &first_psk, 1));
+            EXPECT_EQUAL(conn->psk_params.psk_list.len, original_psk_count + 1);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }

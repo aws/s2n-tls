@@ -24,7 +24,7 @@
 #include "utils/s2n_safety.h"
 
 #define S2N_HASH_ALG_COUNT S2N_HASH_SENTINEL
-#define S2N_MAX_EXTENSION_DATA_SIZE (UINT16_MAX - sizeof(uint16_t) /* extension type */ - sizeof(uint16_t) /* extension size */)
+#define S2N_MAX_OFFERED_PSK_LIST_SIZE (UINT16_MAX - sizeof(uint16_t) /* extension type */ - sizeof(uint16_t) /* extension size */)
 
 S2N_RESULT s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type)
 {
@@ -417,10 +417,12 @@ int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_psk
         new_psk->hmac_alg = psk_list[i]->hmac_alg;
     }
 
-    /* Verify PSK list will fit in the extension */
-    uint32_t offered_psks_size = 0;
-    GUARD_AS_POSIX(s2n_psk_parameters_offered_psks_size(&new_params, &offered_psks_size));
-    ENSURE_POSIX(offered_psks_size <= S2N_MAX_EXTENSION_DATA_SIZE, S2N_ERR_PSKS_TOO_LONG);
+    /* Verify PSK list will fit in the ClientHello pre_shared_key extension */
+    if (conn->mode == S2N_CLIENT) {
+        uint32_t offered_psks_size = 0;
+        GUARD_AS_POSIX(s2n_psk_parameters_offered_psks_size(&new_params, &offered_psks_size));
+        ENSURE_POSIX(offered_psks_size <= S2N_MAX_OFFERED_PSK_LIST_SIZE, S2N_ERR_PSKS_TOO_LONG);
+    }
 
     /* Finally, swap the old PSK list for the new PSK list */
     GUARD_AS_POSIX(s2n_psk_parameters_wipe_external_psks(&conn->psk_params));
