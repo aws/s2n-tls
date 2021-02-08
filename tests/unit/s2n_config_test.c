@@ -153,5 +153,29 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
+    /*Test s2n_connection_set_config */
+    {
+        /* Test that tickets_to_send is set correctly */
+        {
+            struct s2n_connection *conn = NULL;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+            struct s2n_config *config;
+            uint8_t num_tickets = 1;
+
+            EXPECT_NOT_NULL(config = s2n_config_new());
+
+            config->initial_tickets_to_send = num_tickets;
+
+            EXPECT_EQUAL(conn->tickets_to_send, 0);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_EQUAL(conn->tickets_to_send, num_tickets);
+
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+    }
+
     END_TEST();
 }

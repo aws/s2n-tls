@@ -523,6 +523,7 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
             GUARD(s2n_x509_validator_set_max_chain_depth(&conn->x509_validator, config->max_verify_cert_chain_depth));
         }
     }
+    conn->tickets_to_send = config->initial_tickets_to_send;
 
     conn->config = config;
     return 0;
