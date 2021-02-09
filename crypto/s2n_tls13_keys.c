@@ -186,7 +186,7 @@ int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *keys, struct s2n_psk *
     } else {
         /* Sanity check that an early secret exists */
         ne_check(psk->early_secret.size, 0);
-        keys->extract_secret = psk->early_secret;
+        memcpy_check(keys->extract_secret.data, psk->early_secret.data, psk->early_secret.size);
     }
 
     /* client_early_traffic_secret and early_exporter_master_secret can be derived here */

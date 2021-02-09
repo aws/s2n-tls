@@ -170,12 +170,27 @@ S2N_CLEANUP_RESULT s2n_psk_parameters_wipe(struct s2n_psk_parameters *params)
     ENSURE_REF(params);
 
     for (size_t i = 0; i < params->psk_list.len; i++) {
-        struct s2n_psk *psk;
+        struct s2n_psk *psk = NULL;
         GUARD_RESULT(s2n_array_get(&params->psk_list, i, (void**)&psk));
         GUARD_RESULT(s2n_psk_wipe(psk));
     }
     GUARD_AS_RESULT(s2n_free(&params->psk_list.mem));
     GUARD_RESULT(s2n_psk_parameters_init(params));
+
+    return S2N_RESULT_OK;
+}
+
+S2N_CLEANUP_RESULT s2n_psk_parameters_wipe_secrets(struct s2n_psk_parameters *params)
+{
+    ENSURE_REF(params);
+
+    for (size_t i = 0; i < params->psk_list.len; i++) {
+        struct s2n_psk *psk = NULL;
+        GUARD_RESULT(s2n_array_get(&params->psk_list, i, (void**)&psk));
+        ENSURE_REF(psk);
+        GUARD_AS_RESULT(s2n_free(&psk->early_secret));
+        GUARD_AS_RESULT(s2n_free(&psk->secret));
+    }
 
     return S2N_RESULT_OK;
 }

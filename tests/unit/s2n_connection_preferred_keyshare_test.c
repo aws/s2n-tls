@@ -48,7 +48,7 @@ int main(int argc, char **argv)
     {
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-        /* Explicity set default security_policy */
+        /* Explicitly set default security_policy */
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
         const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_enable_tls13());
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-        /* Explicity set default_tls13 security_policy */
+        /* Explicitly set default_tls13 security_policy */
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20190801"));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_enable_tls13());
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-        /* Explicity set security_policy with ecc_preferences containing curves: p-256 and p-384 only. */
+        /* Explicitly set security_policy with ecc_preferences containing curves: p-256 and p-384 only. */
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20190802"));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
         /* x25519 is not present in the security_policy "20190802"  */

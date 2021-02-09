@@ -1016,6 +1016,27 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
     }
 
+    /* Test s2n_connection_is_session_resumed */
+    {
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
+        EXPECT_TRUE(s2n_connection_get_protocol_version(server_conn) == S2N_TLS12);
+        EXPECT_TRUE(server_conn->handshake.handshake_type == INITIAL);
+        EXPECT_FALSE(s2n_connection_is_session_resumed(server_conn));
+
+        server_conn->handshake.handshake_type = NEGOTIATED | WITH_SESSION_TICKET;
+        EXPECT_TRUE(s2n_connection_is_session_resumed(server_conn));
+
+        server_conn->actual_protocol_version = S2N_TLS13;
+        server_conn->handshake.handshake_type = INITIAL;
+        EXPECT_FALSE(s2n_connection_is_session_resumed(server_conn));
+
+        server_conn->handshake.handshake_type = NEGOTIATED | WITH_SESSION_TICKET;
+        EXPECT_FALSE(s2n_connection_is_session_resumed(server_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     free(cert_chain);
