@@ -59,7 +59,6 @@ comment:
 
 
 ignore:
-  - ".travis/**/*"
   - "test-deps/**/*"
   - "libcrypto-build/**/*"
   - "libcrypto-root/**/*"
