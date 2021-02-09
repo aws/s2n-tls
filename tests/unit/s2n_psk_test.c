@@ -759,7 +759,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_psk_set_identity(invalid_psk, huge_identity, max_identity_size + 1));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_external_psks(conn, &invalid_psk, 1),
-                    S2N_ERR_PSKS_TOO_LONG);
+                    S2N_ERR_OFFERED_PSKS_TOO_LONG);
             EXPECT_EQUAL(conn->psk_params.psk_list.len, 0);
 
             /* Successful if smaller identity used */
@@ -835,7 +835,7 @@ int main(int argc, char **argv)
 
             uint32_t original_psk_count = conn->psk_params.psk_list.len;
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_external_psks(conn, &first_psk, 1),
-                    S2N_ERR_PSKS_TOO_LONG);
+                    S2N_ERR_OFFERED_PSKS_TOO_LONG);
             EXPECT_EQUAL(conn->psk_params.psk_list.len, original_psk_count);
 
             /* Server allows an arbitrarily long list */

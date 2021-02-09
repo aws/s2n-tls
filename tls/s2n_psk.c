@@ -45,10 +45,7 @@ struct s2n_psk* s2n_external_psk_new()
     struct s2n_psk *psk = (struct s2n_psk*)(void*) mem.data;
     GUARD_RESULT_PTR(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
 
-    /* At this point we have succeeded, so zero-init mem to
-     * stop DEFER_CLEANUP from freeing the allocated memory. */
-    /* cppcheck-suppress unreadVariable */
-    mem = (struct s2n_blob){ 0 };
+    ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
     return psk;
 }
 
@@ -119,8 +116,9 @@ S2N_RESULT s2n_psk_parameters_offered_psks_size(struct s2n_psk_parameters *param
                                             + sizeof(uint8_t)   /* binder size */;
 
     for (uint32_t i = 0; i < params->psk_list.len; i++) {
-        struct s2n_psk *psk;
+        struct s2n_psk *psk = NULL;
         GUARD_RESULT(s2n_array_get(&params->psk_list, i, (void**)&psk));
+        ENSURE_REF(psk);
 
         GUARD_AS_RESULT(s2n_add_overflow(*size, static_size_per_identity, size));
         GUARD_AS_RESULT(s2n_add_overflow(*size, psk->identity.size, size));
@@ -352,8 +350,9 @@ static S2N_CLEANUP_RESULT s2n_psk_parameters_wipe_external_psks(struct s2n_psk_p
 
     /* Remove non-external PSKs to avoid wiping them */
     for (uint32_t i = params->psk_list.len; i > 0; i--) {
-        struct s2n_psk *psk;
+        struct s2n_psk *psk = NULL;
         GUARD_RESULT(s2n_array_get(&params->psk_list, i - 1, (void**)&psk));
+        ENSURE_REF(psk);
         if (psk->type == S2N_PSK_TYPE_EXTERNAL) {
             continue;
         }
@@ -420,17 +419,15 @@ int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_psk
     if (conn->mode == S2N_CLIENT) {
         uint32_t offered_psks_size = 0;
         GUARD_AS_POSIX(s2n_psk_parameters_offered_psks_size(&new_params, &offered_psks_size));
-        ENSURE_POSIX(offered_psks_size <= S2N_MAX_OFFERED_PSK_LIST_SIZE, S2N_ERR_PSKS_TOO_LONG);
+        ENSURE_POSIX(offered_psks_size <= S2N_MAX_OFFERED_PSK_LIST_SIZE, S2N_ERR_OFFERED_PSKS_TOO_LONG);
     }
 
     /* Finally, swap the old PSK list for the new PSK list */
-    GUARD_AS_POSIX(s2n_psk_parameters_wipe_external_psks(&conn->psk_params));
+    struct s2n_psk_parameters old_params = conn->psk_params;
     conn->psk_params = new_params;
 
-    /* At this point we have succeeded, so zero-init new_params to
-     * stop DEFER_CLEANUP from freeing the allocated memory. */
-    /* cppcheck-suppress unreadVariable */
-    new_params = (struct s2n_psk_parameters){ 0 };
+    ZERO_TO_DISABLE_DEFER_CLEANUP(new_params);
+    GUARD_AS_POSIX(s2n_psk_parameters_wipe_external_psks(&old_params));
 
     return S2N_SUCCESS;
 }
