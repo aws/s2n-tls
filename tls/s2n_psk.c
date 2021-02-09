@@ -344,11 +344,22 @@ int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac)
     return S2N_SUCCESS;
 }
 
-static S2N_CLEANUP_RESULT s2n_psk_parameters_wipe_external_psks(struct s2n_psk_parameters *params)
+/* In s2n_connection_set_external_psks, we create a copy of the original PSK list.
+ * - If s2n_connection_set_external_psks succeeds, we need to free any memory allocated for the original list.
+ * - If s2n_connection_set_external_psks fails, we need to free any memory allocated for the copy.
+ *
+ * The copy references the same resumption PSKs as the original, but different external PSKs. So when
+ * wiping either version of the list, we need to free any memory allocated for the external PSKs and
+ * the list itself, but NOT any memory allocated for the resumption PSKs. The other version of the list
+ * is still using the resumption PSKs. We handle this restriction in the cleanup function by removing resumption
+ * PSKs from the list before wiping the list.
+ */
+static S2N_CLEANUP_RESULT s2n_cleanup_after_set_external_psks(struct s2n_psk_parameters *params)
 {
     ENSURE_REF(params);
 
-    /* Remove non-external PSKs to avoid wiping them */
+    /* Remove non-external PSKs from the list to avoid wiping them when we wipe the list.
+     * They're still being referenced from another copy of the list. */
     for (uint32_t i = params->psk_list.len; i > 0; i--) {
         struct s2n_psk *psk = NULL;
         GUARD_RESULT(s2n_array_get(&params->psk_list, i - 1, (void**)&psk));
@@ -359,7 +370,7 @@ static S2N_CLEANUP_RESULT s2n_psk_parameters_wipe_external_psks(struct s2n_psk_p
         GUARD_RESULT(s2n_array_remove(&params->psk_list, i - 1));
     }
 
-    /* Wipe */
+    /* Wipe only the external PSKs and the list itself */
     GUARD_RESULT(s2n_psk_parameters_wipe(params));
     return S2N_RESULT_OK;
 }
@@ -369,7 +380,7 @@ int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_psk
     notnull_check(conn);
     
     /* To avoid corrupting existing PSKs on a failure, we will operate on a copy until successful */
-    DEFER_CLEANUP(struct s2n_psk_parameters new_params = { 0 }, s2n_psk_parameters_wipe_external_psks);
+    DEFER_CLEANUP(struct s2n_psk_parameters new_params = { 0 }, s2n_cleanup_after_set_external_psks);
     GUARD_AS_POSIX(s2n_psk_parameters_init(&new_params));
 
     /* Copy any non-external PSKs into the new list */
@@ -415,7 +426,7 @@ int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_psk
         new_psk->hmac_alg = psk_list[i]->hmac_alg;
     }
 
-    /* Verify PSK list will fit in the ClientHello pre_shared_key extension */
+    /* Verify the PSK list will fit in the ClientHello pre_shared_key extension */
     if (conn->mode == S2N_CLIENT) {
         uint32_t offered_psks_size = 0;
         GUARD_AS_POSIX(s2n_psk_parameters_offered_psks_size(&new_params, &offered_psks_size));
@@ -427,7 +438,7 @@ int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_psk
     conn->psk_params = new_params;
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(new_params);
-    GUARD_AS_POSIX(s2n_psk_parameters_wipe_external_psks(&old_params));
+    GUARD_AS_POSIX(s2n_cleanup_after_set_external_psks(&old_params));
 
     return S2N_SUCCESS;
 }
