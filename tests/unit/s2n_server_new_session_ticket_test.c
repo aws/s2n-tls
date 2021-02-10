@@ -102,7 +102,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(conn->tickets_sent == test_tickets_sent + 1);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
         }
-
     }
 }
