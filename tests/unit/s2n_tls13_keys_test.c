@@ -318,9 +318,9 @@ int main(int argc, char **argv)
         S2N_BLOB_FROM_HEX(expected_binder_key,
             "69fe131a3bbad5d63c64eebcc30e395b9d8107726a13d074e389dbc8a4e47256");
 
-        DEFER_CLEANUP(struct s2n_psk test_psk, s2n_psk_free);
-        EXPECT_SUCCESS(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
-        EXPECT_SUCCESS(s2n_psk_new_secret(&test_psk, resumption_secret.data, resumption_secret.size));
+        DEFER_CLEANUP(struct s2n_psk test_psk, s2n_psk_wipe);
+        EXPECT_OK(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
+        EXPECT_SUCCESS(s2n_psk_set_secret(&test_psk, resumption_secret.data, resumption_secret.size));
 
         DEFER_CLEANUP(struct s2n_tls13_keys test_keys, s2n_tls13_keys_free);
         EXPECT_SUCCESS(s2n_tls13_keys_init(&test_keys, test_psk.hmac_alg));
@@ -339,8 +339,8 @@ int main(int argc, char **argv)
         S2N_BLOB_FROM_HEX(expected_derived_secret,
             "5f1790bbd82c5e7d376ed2e1e52f8e6038c9346db61b43be9a52f77ef3998e80");
 
-        DEFER_CLEANUP(struct s2n_psk test_psk = { 0 }, s2n_psk_free);
-        EXPECT_SUCCESS(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
+        DEFER_CLEANUP(struct s2n_psk test_psk = { 0 }, s2n_psk_wipe);
+        EXPECT_OK(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
         test_psk.early_secret = resumption_early_secret;
 
         DEFER_CLEANUP(struct s2n_tls13_keys test_keys = { 0 }, s2n_tls13_keys_free);
@@ -355,8 +355,8 @@ int main(int argc, char **argv)
     {
         struct s2n_blob empty_blob = { .data = NULL, .size = 0 };
 
-        DEFER_CLEANUP(struct s2n_psk test_psk = { 0 }, s2n_psk_free);
-        EXPECT_SUCCESS(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
+        DEFER_CLEANUP(struct s2n_psk test_psk = { 0 }, s2n_psk_wipe);
+        EXPECT_OK(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
         test_psk.early_secret = empty_blob;
 
         DEFER_CLEANUP(struct s2n_tls13_keys test_keys = { 0 }, s2n_tls13_keys_free);

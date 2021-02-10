@@ -33,20 +33,6 @@ typedef enum {
     S2N_PSK_DHE_KE,
 } s2n_psk_key_exchange_mode;
 
-typedef enum {
-    S2N_PSK_HMAC_SHA224 = 0,
-    S2N_PSK_HMAC_SHA256,
-    S2N_PSK_HMAC_SHA384,
-} s2n_psk_hmac;
-
-struct s2n_external_psk {
-    uint8_t *identity;
-    size_t identity_length;
-    uint8_t *secret;
-    size_t secret_length;
-    s2n_psk_hmac hmac;
-};
-
 struct s2n_psk {
     s2n_psk_type type;
     struct s2n_blob identity;
@@ -55,6 +41,8 @@ struct s2n_psk {
     uint32_t obfuscated_ticket_age;
     struct s2n_blob early_secret;
 };
+S2N_RESULT s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type);
+S2N_CLEANUP_RESULT s2n_psk_wipe(struct s2n_psk *psk);
 
 struct s2n_psk_identity {
     uint8_t *data;
@@ -68,16 +56,8 @@ struct s2n_psk_parameters {
     struct s2n_psk *chosen_psk;
     s2n_psk_key_exchange_mode psk_ke_mode;
 };
-
-/* This function will be labeled S2N_API and become a publicly visible api once we release the psk API. */
-int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_external_psk *psk_vec, size_t psk_vec_length);
-
-int s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type);
-int s2n_psk_new_identity(struct s2n_psk *psk, const uint8_t *identity, size_t identity_size);
-int s2n_psk_new_secret(struct s2n_psk *psk, const uint8_t *secret, size_t secret_size);
-int s2n_psk_free(struct s2n_psk *psk);
-
 S2N_RESULT s2n_psk_parameters_init(struct s2n_psk_parameters *params);
+S2N_RESULT s2n_psk_parameters_offered_psks_size(struct s2n_psk_parameters *params, uint32_t *size);
 S2N_CLEANUP_RESULT s2n_psk_parameters_wipe(struct s2n_psk_parameters *params);
 
 S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn);
@@ -89,9 +69,25 @@ int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_
 int s2n_psk_verify_binder(struct s2n_connection *conn, struct s2n_psk *psk,
         const struct s2n_blob *partial_client_hello, struct s2n_blob *binder_to_verify);
 
-typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn, 
+typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn,
                                           struct s2n_psk_identity *identities, size_t identities_length,
-                                          uint16_t *chosen_wire_index);                     
+                                          uint16_t *chosen_wire_index);
 /* This function will be labeled S2N_API and become a publicly visible api once we release the psk API. */
 int s2n_config_set_psk_selection_callback(struct s2n_connection *conn, s2n_psk_selection_callback cb);
 
+/* Public Interface -- will be made visible and moved to s2n.h when the PSK feature is released */
+
+typedef enum {
+    S2N_PSK_HMAC_SHA224 = 0,
+    S2N_PSK_HMAC_SHA256,
+    S2N_PSK_HMAC_SHA384,
+} s2n_psk_hmac;
+
+struct s2n_psk;
+struct s2n_psk* s2n_external_psk_new();
+int s2n_psk_free(struct s2n_psk **psk);
+int s2n_psk_set_identity(struct s2n_psk *psk, const uint8_t *identity, uint16_t identity_size);
+int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secret_size);
+int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac);
+
+int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk);

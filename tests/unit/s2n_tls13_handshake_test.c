@@ -336,8 +336,8 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < S2N_TEST_PSK_COUNT; i++) {
                 struct s2n_psk *psk = NULL;
                 EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
-                EXPECT_SUCCESS(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
-                EXPECT_SUCCESS(s2n_psk_new_identity(psk, psk_data, sizeof(psk_data)));
+                EXPECT_OK(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
+                EXPECT_SUCCESS(s2n_psk_set_identity(psk, psk_data, sizeof(psk_data)));
                 EXPECT_NOT_EQUAL(psk->identity.size, 0);
                 EXPECT_NOT_EQUAL(psk->identity.data, NULL);
             }
