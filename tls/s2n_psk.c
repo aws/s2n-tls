@@ -18,13 +18,13 @@
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_tls.h"
+#include "tls/extensions/s2n_extension_type.h"
 
 #include "utils/s2n_array.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
 #define S2N_HASH_ALG_COUNT S2N_HASH_SENTINEL
-#define S2N_MAX_OFFERED_PSK_LIST_SIZE (UINT16_MAX - sizeof(uint16_t) /* extension type */ - sizeof(uint16_t) /* extension size */)
 
 S2N_RESULT s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type)
 {
@@ -103,6 +103,21 @@ S2N_RESULT s2n_psk_parameters_init(struct s2n_psk_parameters *params)
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_psk_offered_psk_size(struct s2n_psk *psk, uint32_t *size)
+{
+    *size = sizeof(uint16_t)    /* identity size */
+          + sizeof(uint32_t)    /* obfuscated ticket age */
+          + sizeof(uint8_t)     /* binder size */;
+
+    GUARD_AS_RESULT(s2n_add_overflow(*size, psk->identity.size, size));
+
+    uint8_t binder_size = 0;
+    GUARD_AS_RESULT(s2n_hmac_digest_size(psk->hmac_alg, &binder_size));
+    GUARD_AS_RESULT(s2n_add_overflow(*size, binder_size, size));
+
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_psk_parameters_offered_psks_size(struct s2n_psk_parameters *params, uint32_t *size)
 {
     ENSURE_REF(params);
@@ -111,21 +126,14 @@ S2N_RESULT s2n_psk_parameters_offered_psks_size(struct s2n_psk_parameters *param
     *size = sizeof(uint16_t)    /* identity list size */
           + sizeof(uint16_t)    /* binder list size */;
 
-    const uint32_t static_size_per_identity = sizeof(uint16_t)  /* identity size */
-                                            + sizeof(uint32_t)  /* obfuscated ticket age */
-                                            + sizeof(uint8_t)   /* binder size */;
-
     for (uint32_t i = 0; i < params->psk_list.len; i++) {
         struct s2n_psk *psk = NULL;
         GUARD_RESULT(s2n_array_get(&params->psk_list, i, (void**)&psk));
         ENSURE_REF(psk);
 
-        GUARD_AS_RESULT(s2n_add_overflow(*size, static_size_per_identity, size));
-        GUARD_AS_RESULT(s2n_add_overflow(*size, psk->identity.size, size));
-
-        uint8_t binder_size = 0;
-        GUARD_AS_RESULT(s2n_hmac_digest_size(psk->hmac_alg, &binder_size));
-        GUARD_AS_RESULT(s2n_add_overflow(*size, binder_size, size));
+        uint32_t psk_size = 0;
+        GUARD_RESULT(s2n_psk_offered_psk_size(psk, &psk_size));
+        GUARD_AS_RESULT(s2n_add_overflow(*size, psk_size, size));
     }
     return S2N_RESULT_OK;
 }
@@ -344,101 +352,44 @@ int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac)
     return S2N_SUCCESS;
 }
 
-/* In s2n_connection_set_external_psks, we create a copy of the original PSK list.
- * - If s2n_connection_set_external_psks succeeds, we need to free any memory allocated for the original list.
- * - If s2n_connection_set_external_psks fails, we need to free any memory allocated for the copy.
- *
- * The copy references the same resumption PSKs as the original, but different external PSKs. So when
- * wiping either version of the list, we need to free any memory allocated for the external PSKs and
- * the list itself, but NOT any memory allocated for the resumption PSKs. The other version of the list
- * is still using the resumption PSKs. We handle this restriction in the cleanup function by removing resumption
- * PSKs from the list before wiping the list.
- */
-static S2N_CLEANUP_RESULT s2n_cleanup_after_set_external_psks(struct s2n_psk_parameters *params)
-{
-    ENSURE_REF(params);
-
-    /* Remove non-external PSKs from the list to avoid wiping them when we wipe the list.
-     * They're still being referenced from another copy of the list. */
-    for (uint32_t i = params->psk_list.len; i > 0; i--) {
-        struct s2n_psk *psk = NULL;
-        GUARD_RESULT(s2n_array_get(&params->psk_list, i - 1, (void**)&psk));
-        ENSURE_REF(psk);
-        if (psk->type == S2N_PSK_TYPE_EXTERNAL) {
-            continue;
-        }
-        GUARD_RESULT(s2n_array_remove(&params->psk_list, i - 1));
-    }
-
-    /* Wipe only the external PSKs and the list itself */
-    GUARD_RESULT(s2n_psk_parameters_wipe(params));
-    return S2N_RESULT_OK;
-}
-
-int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_psk **psk_list, uint32_t psk_list_len)
+int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *input_psk)
 {
     notnull_check(conn);
+    notnull_check(input_psk);
+    struct s2n_array *psk_list = &conn->psk_params.psk_list;
     
-    /* To avoid corrupting existing PSKs on a failure, we will operate on a copy until successful */
-    DEFER_CLEANUP(struct s2n_psk_parameters new_params = { 0 }, s2n_cleanup_after_set_external_psks);
-    GUARD_AS_POSIX(s2n_psk_parameters_init(&new_params));
-
-    /* Copy any non-external PSKs into the new list */
-    for (uint32_t i = 0; i < conn->psk_params.psk_list.len; i++) {
+    /* Check for duplicate identities */
+    for (uint32_t j = 0; j < psk_list->len; j++) {
         struct s2n_psk *existing_psk = NULL;
-        GUARD_AS_POSIX(s2n_array_get(&conn->psk_params.psk_list, i, (void**) &existing_psk));
+        GUARD_AS_POSIX(s2n_array_get(psk_list, j, (void**) &existing_psk));
         notnull_check(existing_psk);
 
-        if (existing_psk->type == S2N_PSK_TYPE_EXTERNAL) {
-            continue;
-        }
-        GUARD_AS_POSIX(s2n_array_insert_and_copy(&new_params.psk_list, new_params.psk_list.len, existing_psk));
-    }
-
-    if (psk_list_len != 0) {
-        notnull_check(psk_list);
-    }
-
-    for (uint32_t i = 0; i < psk_list_len; i++) {
-        notnull_check(psk_list[i]);
-
-        /* Check for duplicate identities */
-        uint32_t array_len = new_params.psk_list.len;
-        for (uint32_t j = 0; j < array_len; j++) {
-            struct s2n_psk *existing_psk = NULL;
-            GUARD_AS_POSIX(s2n_array_get(&new_params.psk_list, j, (void**) &existing_psk));
-            notnull_check(existing_psk);
-
-            bool duplicate = existing_psk->identity.size == psk_list[i]->identity.size
-                    && memcmp(existing_psk->identity.data, psk_list[i]->identity.data, existing_psk->identity.size) == 0;
-            ENSURE_POSIX(!duplicate, S2N_ERR_DUPLICATE_PSK_IDENTITIES);
-        }
-
-        struct s2n_psk *new_psk = NULL;
-        GUARD_AS_POSIX(s2n_array_pushback(&new_params.psk_list, (void**) &new_psk));
-        notnull_check(new_psk);
-
-        GUARD_AS_POSIX(s2n_psk_init(new_psk, S2N_PSK_TYPE_EXTERNAL));
-        ENSURE_POSIX(s2n_psk_set_identity(new_psk, psk_list[i]->identity.data, psk_list[i]->identity.size) == S2N_SUCCESS,
-                S2N_ERR_INVALID_ARGUMENT);
-        ENSURE_POSIX(s2n_psk_set_secret(new_psk, psk_list[i]->secret.data, psk_list[i]->secret.size) == S2N_SUCCESS,
-                S2N_ERR_INVALID_ARGUMENT);
-        new_psk->hmac_alg = psk_list[i]->hmac_alg;
+        bool duplicate = existing_psk->identity.size == input_psk->identity.size
+                && memcmp(existing_psk->identity.data, input_psk->identity.data, existing_psk->identity.size) == 0;
+        ENSURE_POSIX(!duplicate, S2N_ERR_DUPLICATE_PSK_IDENTITIES);
     }
 
     /* Verify the PSK list will fit in the ClientHello pre_shared_key extension */
     if (conn->mode == S2N_CLIENT) {
-        uint32_t offered_psks_size = 0;
-        GUARD_AS_POSIX(s2n_psk_parameters_offered_psks_size(&new_params, &offered_psks_size));
-        ENSURE_POSIX(offered_psks_size <= S2N_MAX_OFFERED_PSK_LIST_SIZE, S2N_ERR_OFFERED_PSKS_TOO_LONG);
+        uint32_t list_size = 0;
+        GUARD_AS_POSIX(s2n_psk_parameters_offered_psks_size(&conn->psk_params, &list_size));
+
+        uint32_t psk_size = 0;
+        GUARD_AS_POSIX(s2n_psk_offered_psk_size(input_psk, &psk_size));
+
+        ENSURE_POSIX(list_size + psk_size + S2N_EXTENSION_HEADER_LENGTH <= UINT16_MAX, S2N_ERR_OFFERED_PSKS_TOO_LONG);
     }
 
-    /* Finally, swap the old PSK list for the new PSK list */
-    struct s2n_psk_parameters old_params = conn->psk_params;
-    conn->psk_params = new_params;
+    DEFER_CLEANUP(struct s2n_psk new_psk = { 0 }, s2n_psk_wipe);
+    ENSURE_POSIX(s2n_result_is_ok(s2n_psk_init(&new_psk, S2N_PSK_TYPE_EXTERNAL)), S2N_ERR_INVALID_ARGUMENT);
+    ENSURE_POSIX(s2n_psk_set_identity(&new_psk, input_psk->identity.data, input_psk->identity.size) == S2N_SUCCESS,
+            S2N_ERR_INVALID_ARGUMENT);
+    ENSURE_POSIX(s2n_psk_set_secret(&new_psk, input_psk->secret.data, input_psk->secret.size) == S2N_SUCCESS,
+            S2N_ERR_INVALID_ARGUMENT);
+    new_psk.hmac_alg = input_psk->hmac_alg;
 
-    ZERO_TO_DISABLE_DEFER_CLEANUP(new_params);
-    GUARD_AS_POSIX(s2n_cleanup_after_set_external_psks(&old_params));
+    GUARD_AS_POSIX(s2n_array_insert_and_copy(psk_list, psk_list->len, &new_psk));
+    ZERO_TO_DISABLE_DEFER_CLEANUP(new_psk);
 
     return S2N_SUCCESS;
 }

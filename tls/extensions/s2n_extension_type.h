@@ -22,6 +22,7 @@
 
 #define S2N_EXTENSION_TYPE_FIELD_LENGTH     2
 #define S2N_EXTENSION_LENGTH_FIELD_LENGTH   2
+#define S2N_EXTENSION_HEADER_LENGTH         (S2N_EXTENSION_TYPE_FIELD_LENGTH + S2N_EXTENSION_LENGTH_FIELD_LENGTH)
 
 /* The number of extensions supported by S2N */
 #define S2N_SUPPORTED_EXTENSIONS_COUNT          (sizeof(s2n_supported_extensions) / sizeof(s2n_supported_extensions[0]))

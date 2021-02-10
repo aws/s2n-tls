@@ -77,16 +77,17 @@ int s2n_config_set_psk_selection_callback(struct s2n_connection *conn, s2n_psk_s
 
 /* Public Interface -- will be made visible and moved to s2n.h when the PSK feature is released */
 
-struct s2n_psk;
 typedef enum {
     S2N_PSK_HMAC_SHA224 = 0,
     S2N_PSK_HMAC_SHA256,
     S2N_PSK_HMAC_SHA384,
 } s2n_psk_hmac;
 
+struct s2n_psk;
 struct s2n_psk* s2n_external_psk_new();
 int s2n_psk_free(struct s2n_psk **psk);
 int s2n_psk_set_identity(struct s2n_psk *psk, const uint8_t *identity, uint16_t identity_size);
 int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secret_size);
 int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac);
-int s2n_connection_set_external_psks(struct s2n_connection *conn, struct s2n_psk **psk_list, uint32_t psk_list_len);
+
+int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk);
