@@ -334,6 +334,7 @@ struct s2n_connection {
     bool recv_in_use;
     
     uint16_t tickets_to_send;
+    uint16_t tickets_sent;
 
     s2n_early_data_state early_data_state;
 };

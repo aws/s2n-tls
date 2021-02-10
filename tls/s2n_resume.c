@@ -81,7 +81,7 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
     GUARD_AS_RESULT(s2n_stuffer_write_uint8(out, conn->actual_protocol_version));
     GUARD_AS_RESULT(s2n_stuffer_write_bytes(out, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     GUARD_AS_RESULT(s2n_stuffer_write_uint64(out, current_time));
-    GUARD_AS_RESULT(s2n_stuffer_write_uint32(out, ticket_fields->ticket_age_add));
+    GUARD_AS_RESULT(s2n_stuffer_write_bytes(out, ticket_fields->ticket_age_add, sizeof(ticket_fields->ticket_age_add)));
     ENSURE_LTE(ticket_fields->session_secret.size, UINT8_MAX);
     GUARD_AS_RESULT(s2n_stuffer_write_uint8(out, ticket_fields->session_secret.size));
     GUARD_AS_RESULT(s2n_stuffer_write_bytes(out, ticket_fields->session_secret.data, ticket_fields->session_secret.size));
