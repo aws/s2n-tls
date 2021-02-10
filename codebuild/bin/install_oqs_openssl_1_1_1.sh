@@ -16,7 +16,7 @@
 set -ex
 
 usage() {
-    echo "install_oqs_openssl_1_1_1.sh build_dir install_dir travis_platform"
+    echo "install_oqs_openssl_1_1_1.sh build_dir install_dir platform"
     exit 1
 }
 
