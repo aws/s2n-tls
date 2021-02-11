@@ -16,46 +16,22 @@
 #include "s2n_test.h"
 
 #include "testlib/s2n_testlib.h"
-
-#include <unistd.h>
-#include <stdint.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <stdlib.h>
-
 #include <s2n.h>
-
-#include "crypto/s2n_fips.h"
-#include "crypto/s2n_rsa_pss.h"
-
-#include "tls/s2n_connection.h"
-#include "tls/s2n_handshake.h"
-#include "tls/s2n_security_policies.h"
-#include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_tls13.h"
-#include "utils/s2n_safety.h"
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_enable_tls13());
-
-    struct s2n_config *config = NULL;
-    EXPECT_NOT_NULL(config = s2n_config_new());
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
 
     struct s2n_connection *conn = NULL;
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+    EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all"));
 
-    uint8_t iana_value[2] = { 0, 0 };
+    uint8_t iana_value[2] = { 0 };
 
     /* Make sure the call fails before the connection has negotiated the cipher suite */
-    EXPECT_NULL(s2n_connection_get_cipher(conn));
     EXPECT_FAILURE(s2n_connection_get_cipher_iana_value(conn, &iana_value[0], &iana_value[1]));
 
-    const struct s2n_security_policy *security_policy = config->security_policy;
+    const struct s2n_security_policy *security_policy = conn->security_policy_override;
     EXPECT_NOT_NULL(security_policy);
 
     const struct s2n_cipher_preferences *cipher_preferences = security_policy->cipher_preferences;
@@ -72,9 +48,8 @@ int main(int argc, char **argv)
     }
 
     EXPECT_SUCCESS(s2n_connection_free(conn));
-    EXPECT_SUCCESS(s2n_config_free(config));
 
     END_TEST();
-    return 0;
+    return S2N_SUCCESS;
 }
 
