@@ -82,6 +82,7 @@ S2N_CLEANUP_RESULT s2n_psk_wipe(struct s2n_psk *psk)
     GUARD_AS_RESULT(s2n_free(&psk->early_secret));
     GUARD_AS_RESULT(s2n_free(&psk->identity));
     GUARD_AS_RESULT(s2n_free(&psk->secret));
+    GUARD_RESULT(s2n_early_data_config_free(&psk->early_data_config));
 
     return S2N_RESULT_OK;
 }
