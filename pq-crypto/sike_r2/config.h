@@ -40,6 +40,7 @@
 #define TARGET_x86 2
 #define TARGET_ARM 3
 #define TARGET_ARM64 4
+#define TARGET_PPC64 5
 
 #if defined(__x86_64__)
 #define TARGET TARGET_AMD64
@@ -61,6 +62,12 @@ typedef uint32_t digit_t;  // Unsigned 32-bit digit
 typedef uint16_t hdigit_t; // Unsigned 16-bit digit
 #elif defined(__aarch64__)
 #define TARGET TARGET_ARM64
+#define RADIX 64
+#define LOG2RADIX 6
+typedef uint64_t digit_t;  // Unsigned 64-bit digit
+typedef uint32_t hdigit_t; // Unsigned 32-bit digit
+#elif defined(__powerpc64__)
+#define TARGET TARGET_PPC64
 #define RADIX 64
 #define LOG2RADIX 6
 typedef uint64_t digit_t;  // Unsigned 64-bit digit
