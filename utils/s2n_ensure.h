@@ -67,4 +67,21 @@
     }                                                                            \
   } while(0)
 
+/**
+ * `restrict` is a part of the c99 standard and will work with any C compiler. If you're trying to
+ * compile with a C++ compiler `restrict` is invalid. However GCC and Clang support the use of
+ * `restrict` when compiling C++ code using `__restrict__`. Therefore if the compiler is GCC or
+ * Clang use `__restrict__` which will behave the same as `restrict` and allow g++ and clang++ to
+ * compile it.
+ *
+ * This is helpful for the benchmarks in tests/benchmark which use Google's Benchmark library and
+ * are all written in C++.
+ *
+ * https://gcc.gnu.org/onlinedocs/gcc/Restricted-Pointers.html
+ *
+ */
+#if defined(__GNUC__) || defined(__clang__)
+extern void* s2n_ensure_memcpy_trace(void *__restrict__ to, const void *__restrict__ from, size_t size, const char *debug_str);
+#else
 extern void* s2n_ensure_memcpy_trace(void *restrict to, const void *restrict from, size_t size, const char *debug_str);
+#endif
