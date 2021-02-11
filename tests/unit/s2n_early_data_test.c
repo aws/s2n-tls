@@ -80,28 +80,19 @@ int main(int argc, char **argv)
     /* Test s2n_psk_configure_early_data */
     {
         /* Safety */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_configure_early_data(NULL, 1, 1, 1, 1), S2N_ERR_NULL);
-
-        /* Set invalid protocol version */
-        {
-            struct s2n_psk psk = { 0 };
-            EXPECT_FAILURE_WITH_ERRNO(s2n_psk_configure_early_data(&psk, 1000, S2N_TLS12, 1, 1),
-                    S2N_ERR_INVALID_ARGUMENT);
-            EXPECT_EQUAL(psk.early_data_config.max_early_data, 0);
-        }
+        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_configure_early_data(NULL, 1, 1, 1), S2N_ERR_NULL);
 
         /* Set valid configuration */
         {
             uint32_t expected_max_early_data = 1000;
-            uint8_t expected_protocol_version = S2N_TLS13;
             uint8_t expected_cipher_suite[] = { 0x01, 0xAB };
 
             struct s2n_psk psk = { 0 };
-            EXPECT_SUCCESS(s2n_psk_configure_early_data(&psk, expected_max_early_data, expected_protocol_version,
+            EXPECT_SUCCESS(s2n_psk_configure_early_data(&psk, expected_max_early_data,
                     expected_cipher_suite[0], expected_cipher_suite[1]));
 
             EXPECT_EQUAL(psk.early_data_config.max_early_data, expected_max_early_data);
-            EXPECT_EQUAL(psk.early_data_config.protocol_version, expected_protocol_version);
+            EXPECT_EQUAL(psk.early_data_config.protocol_version, S2N_TLS13);
             EXPECT_BYTEARRAY_EQUAL(psk.early_data_config.cipher_suite_iana, expected_cipher_suite,
                     sizeof(expected_cipher_suite));
         }
