@@ -490,6 +490,8 @@ extern int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
 /**
  * Callback function for handling key log events
  *
+ * THIS SHOULD BE USED FOR DEBUGGING PURPOSES ONLY!
+ *
  * Each log line is formatted with the
  * [NSS Key Log Format](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format)
  * without a newline.
@@ -508,6 +510,8 @@ typedef int (*s2n_key_log_fn)(void *ctx, struct s2n_connection *conn, uint8_t *l
 
 /**
  * Sets a key logging callback on the provided config
+ *
+ * THIS SHOULD BE USED FOR DEBUGGING PURPOSES ONLY!
  *
  * Setting this function enables configurations to emit secrets in the
  * [NSS Key Log Format](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format)

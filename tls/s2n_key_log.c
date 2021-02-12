@@ -13,6 +13,32 @@
  * permissions and limitations under the License.
  */
 
+/**
+ * This module implements key logging as defined by the NSS Key Log Format
+ *
+ * See https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format
+ *
+ * This key log file is a series of lines. Comment lines begin with a sharp
+ * character ('#') and are ignored. Secrets follow the format
+ * <Label> <space> <ClientRandom> <space> <Secret> where:
+ *
+ *   <Label> describes the following secret.
+ *   <ClientRandom> is 32 bytes Random value from the Client Hello message, encoded as 64 hexadecimal characters.
+ *   <Secret> depends on the Label (see below).
+ *
+ * The following labels are defined, followed by a description of the secret:
+ *
+ *   RSA: 48 bytes for the premaster secret, encoded as 96 hexadecimal characters (removed in NSS 3.34)
+ *   CLIENT_RANDOM: 48 bytes for the master secret, encoded as 96 hexadecimal characters (for SSL 3.0, TLS 1.0, 1.1 and 1.2)
+ *   CLIENT_EARLY_TRAFFIC_SECRET: the hex-encoded early traffic secret for the client side (for TLS 1.3)
+ *   CLIENT_HANDSHAKE_TRAFFIC_SECRET: the hex-encoded handshake traffic secret for the client side (for TLS 1.3)
+ *   SERVER_HANDSHAKE_TRAFFIC_SECRET: the hex-encoded handshake traffic secret for the server side (for TLS 1.3)
+ *   CLIENT_TRAFFIC_SECRET_0: the first hex-encoded application traffic secret for the client side (for TLS 1.3)
+ *   SERVER_TRAFFIC_SECRET_0: the first hex-encoded application traffic secret for the server side (for TLS 1.3)
+ *   EARLY_EXPORTER_SECRET: the hex-encoded early exporter secret (for TLS 1.3).
+ *   EXPORTER_SECRET: the hex-encoded exporter secret (for TLS 1.3)
+ */
+
 #include <s2n.h>
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
@@ -23,8 +49,6 @@
 
 /* hex requires 2 chars per byte */
 #define HEX_ENCODING_SIZE 2
-
-/* https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format */
 
 S2N_RESULT s2n_key_log_hex_encode(struct s2n_stuffer *output, uint8_t *bytes, size_t len)
 {
@@ -86,7 +110,8 @@ S2N_RESULT s2n_key_log_tls13_secret(struct s2n_connection *conn, struct s2n_blob
             label_size = sizeof(server_traffic_label) - 1;
             break;
         default:
-            BAIL(S2N_ERR_SAFETY);
+            /* Ignore the secret types we don't understand */
+            return S2N_RESULT_OK;
     }
 
     const uint8_t len
@@ -114,12 +139,14 @@ S2N_RESULT s2n_key_log_tls13_secret(struct s2n_connection *conn, struct s2n_blob
 S2N_RESULT s2n_key_log_tls12_secret(struct s2n_connection *conn)
 {
     ENSURE_REF(conn);
+    ENSURE_REF(conn->config);
 
     /* only emit keys if the callback has been set */
     if (!conn->config->key_log_cb) {
         return S2N_RESULT_OK;
     }
 
+    /* CLIENT_RANDOM: 48 bytes for the master secret, encoded as 96 hexadecimal characters (for SSL 3.0, TLS 1.0, 1.1 and 1.2) */
     const uint8_t label[] = "CLIENT_RANDOM ";
     const uint8_t label_size = sizeof(label) - 1;
 
