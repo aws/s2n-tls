@@ -496,36 +496,36 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-            struct s2n_offered_psk_list wire_identity_list = { 0 };
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire_identity_list.wire_data, 0));
+            struct s2n_offered_psk_list client_identity_list = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_identity_list.wire_data, 0));
             for (size_t wire_i = 0; wire_i < test_cases[i].wire_identities_len; wire_i++) {
-                EXPECT_OK(s2n_write_test_identity(&wire_identity_list.wire_data, test_cases[i].wire_identities[wire_i]));
+                EXPECT_OK(s2n_write_test_identity(&client_identity_list.wire_data, test_cases[i].wire_identities[wire_i]));
             }
 
             struct s2n_psk *expected_chosen_psk = NULL;
             for (size_t local_i = 0; local_i < test_cases[i].local_identities_len; local_i++) {
-                struct s2n_psk *psk = NULL;
-                EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
-                EXPECT_NOT_NULL(psk);
-                EXPECT_SUCCESS(s2n_psk_set_identity(psk, test_cases[i].local_identities[local_i]->data,
+                struct s2n_psk *server_psk = NULL;
+                EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &server_psk));
+                EXPECT_NOT_NULL(server_psk);
+                EXPECT_SUCCESS(s2n_psk_set_identity(server_psk, test_cases[i].local_identities[local_i]->data,
                         test_cases[i].local_identities[local_i]->size));
 
                 if (local_i == test_cases[i].local_match_index) {
-                    expected_chosen_psk = psk;
+                    expected_chosen_psk = server_psk;
                 }
             }
 
             if (test_cases[i].match) {
-                EXPECT_OK(s2n_select_psk_identity(conn, &wire_identity_list));
+                EXPECT_OK(s2n_select_psk_identity(conn, &client_identity_list));
                 EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, test_cases[i].wire_match_index);
                 EXPECT_EQUAL(conn->psk_params.chosen_psk, expected_chosen_psk);
             } else {
-                EXPECT_ERROR(s2n_select_psk_identity(conn, &wire_identity_list));
+                EXPECT_ERROR(s2n_select_psk_identity(conn, &client_identity_list));
                 EXPECT_NULL(conn->psk_params.chosen_psk);
             }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_stuffer_free(&wire_identity_list.wire_data));
+            EXPECT_SUCCESS(s2n_stuffer_free(&client_identity_list.wire_data));
         }
     }
 
