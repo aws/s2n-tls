@@ -504,7 +504,7 @@ int main(int argc, char **argv)
 
             struct s2n_psk *expected_chosen_psk = NULL;
             for (size_t local_i = 0; local_i < test_cases[i].local_identities_len; local_i++) {
-                struct s2n_psk *psk;
+                struct s2n_psk *psk = NULL;
                 EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
                 EXPECT_NOT_NULL(psk);
                 EXPECT_SUCCESS(s2n_psk_set_identity(psk, test_cases[i].local_identities[local_i]->data,
