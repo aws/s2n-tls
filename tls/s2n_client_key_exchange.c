@@ -24,6 +24,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_kex.h"
+#include "tls/s2n_key_log.h"
 #include "tls/s2n_resume.h"
 
 #include "stuffer/s2n_stuffer.h"
@@ -93,6 +94,8 @@ static int s2n_calculate_keys(struct s2n_connection *conn, struct s2n_blob *shar
     if (s2n_allowed_to_cache_connection(conn)) {
         GUARD(s2n_store_to_cache(conn));
     }
+    /* log the secret, if needed */
+    s2n_result_ignore(s2n_key_log_tls12_secret(conn));
     return 0;
 }
 
