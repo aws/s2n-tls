@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <errno.h>
+#include <s2n.h>
 
 char *load_file_to_cstring(const char *path)
 {
@@ -61,4 +62,16 @@ char *load_file_to_cstring(const char *path)
     fclose(pem_file);
 
     return pem_out;
+}
+
+int key_log_callback(void *file, struct s2n_connection *conn, uint8_t *logline, size_t len) {
+    if (fwrite(logline, 1, len, (FILE *)file) != len) {
+        return S2N_FAILURE;
+    }
+
+    if (fprintf((FILE *)file, "\n") < 0) {
+        return S2N_FAILURE;
+    }
+
+    return fflush((FILE *)file);
 }

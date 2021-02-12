@@ -102,16 +102,16 @@ static int s2n_config_init(struct s2n_config *config)
 
     GUARD(s2n_config_setup_default(config));
     if (s2n_use_default_tls13_config()) {
-       GUARD(s2n_config_setup_tls13(config));
+        GUARD(s2n_config_setup_tls13(config));
     } else if (s2n_is_in_fips_mode()) {
         GUARD(s2n_config_setup_fips(config));
     }
 
-    notnull_check(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
+    GUARD_NONNULL(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
     GUARD_AS_POSIX(s2n_map_complete(config->domain_name_to_cert_map));
 
     s2n_x509_trust_store_init_empty(&config->trust_store);
-    s2n_x509_trust_store_from_system_defaults(&config->trust_store);
+    GUARD(s2n_x509_trust_store_from_system_defaults(&config->trust_store));
 
     return 0;
 }
