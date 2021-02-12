@@ -179,7 +179,6 @@ S2N_RESULT s2n_offered_psk_list_read_next(struct s2n_offered_psk_list *psk_list,
     GUARD_AS_RESULT(s2n_stuffer_skip_read(&psk_list->wire_data, sizeof(uint32_t)));
 
     GUARD_AS_RESULT(s2n_blob_init(&psk->identity, identity_data, identity_size));
-    psk->type = S2N_PSK_TYPE_EXTERNAL;
     return S2N_RESULT_OK;
 }
 
@@ -243,14 +242,6 @@ int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t** identity
     notnull_check(size);
     *identity = psk->identity.data;
     *size = psk->identity.size;
-    return S2N_SUCCESS;
-}
-
-int s2n_offered_psk_get_type(struct s2n_offered_psk *psk, s2n_psk_type *type)
-{
-    notnull_check(psk);
-    notnull_check(type);
-    *type = psk->type;
     return S2N_SUCCESS;
 }
 

@@ -253,37 +253,6 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Test s2n_offered_psk_get_type */
-    {
-        /* Safety checks */
-        {
-            struct s2n_offered_psk psk = { 0 };
-            s2n_psk_type type = 0;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_psk_get_type(NULL, &type), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_psk_get_type(&psk, NULL), S2N_ERR_NULL);
-        }
-
-        /* Resumption */
-        {
-            DEFER_CLEANUP(struct s2n_offered_psk *psk = s2n_offered_psk_new(), s2n_offered_psk_free);
-            psk->type = S2N_PSK_TYPE_RESUMPTION;
-
-            s2n_psk_type type = 0;
-            EXPECT_SUCCESS(s2n_offered_psk_get_type(psk, &type));
-            EXPECT_EQUAL(type, S2N_PSK_TYPE_RESUMPTION);
-        }
-
-        /* External */
-        {
-            DEFER_CLEANUP(struct s2n_offered_psk *psk = s2n_offered_psk_new(), s2n_offered_psk_free);
-            psk->type = S2N_PSK_TYPE_EXTERNAL;
-
-            s2n_psk_type type = 0;
-            EXPECT_SUCCESS(s2n_offered_psk_get_type(psk, &type));
-            EXPECT_EQUAL(type, S2N_PSK_TYPE_EXTERNAL);
-        }
-    }
-
     /* Test s2n_offered_psk_list_get_index */
     {
         /* Safety checks */
@@ -427,38 +396,28 @@ int main(int argc, char **argv)
         uint8_t *data = NULL;
         uint16_t data_size = 0;
         struct s2n_offered_psk psk = { 0 };
-        s2n_psk_type type = 0;
 
         EXPECT_TRUE(s2n_offered_psk_list_has_next(&identity_list));
         EXPECT_SUCCESS(s2n_offered_psk_list_next(&identity_list, &psk));
         EXPECT_SUCCESS(s2n_offered_psk_get_identity(&psk, &data, &data_size));
         EXPECT_EQUAL(data_size, sizeof(wire_identity_1));
         EXPECT_BYTEARRAY_EQUAL(data, wire_identity_1, sizeof(wire_identity_1));
-        EXPECT_SUCCESS(s2n_offered_psk_get_type(&psk, &type));
-        EXPECT_EQUAL(type, S2N_PSK_TYPE_EXTERNAL);
 
         EXPECT_TRUE(s2n_offered_psk_list_has_next(&identity_list));
         EXPECT_SUCCESS(s2n_offered_psk_list_next(&identity_list, &psk));
         EXPECT_SUCCESS(s2n_offered_psk_get_identity(&psk, &data, &data_size));
         EXPECT_EQUAL(data_size, sizeof(wire_identity_2));
         EXPECT_BYTEARRAY_EQUAL(data, wire_identity_2, sizeof(wire_identity_2));
-        EXPECT_SUCCESS(s2n_offered_psk_get_type(&psk, &type));
-        /* Currently, all offered PSKS are assumed to be external */
-        EXPECT_EQUAL(type, S2N_PSK_TYPE_EXTERNAL);
 
         EXPECT_OK(s2n_offered_psk_list_get_index(&identity_list, 1, &psk));
         EXPECT_SUCCESS(s2n_offered_psk_get_identity(&psk, &data, &data_size));
         EXPECT_EQUAL(data_size, sizeof(wire_identity_2));
         EXPECT_BYTEARRAY_EQUAL(data, wire_identity_2, sizeof(wire_identity_2));
-        EXPECT_SUCCESS(s2n_offered_psk_get_type(&psk, &type));
-        /* Currently, all offered PSKS are assumed to be external */
-        EXPECT_EQUAL(type, S2N_PSK_TYPE_EXTERNAL);
 
         EXPECT_OK(s2n_offered_psk_list_get_index(&identity_list, 0, &psk));
         EXPECT_SUCCESS(s2n_offered_psk_get_identity(&psk, &data, &data_size));
         EXPECT_EQUAL(data_size, sizeof(wire_identity_1));
         EXPECT_BYTEARRAY_EQUAL(data, wire_identity_1, sizeof(wire_identity_1));
-        EXPECT_SUCCESS(s2n_offered_psk_get_type(&psk, &type));
 
         EXPECT_SUCCESS(s2n_offered_psk_list_reset(&identity_list));
 
@@ -467,8 +426,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_offered_psk_get_identity(&psk, &data, &data_size));
         EXPECT_EQUAL(data_size, sizeof(wire_identity_1));
         EXPECT_BYTEARRAY_EQUAL(data, wire_identity_1, sizeof(wire_identity_1));
-        EXPECT_SUCCESS(s2n_offered_psk_get_type(&psk, &type));
-        EXPECT_EQUAL(type, S2N_PSK_TYPE_EXTERNAL);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&identity_list.wire_data));

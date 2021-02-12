@@ -57,7 +57,6 @@ S2N_CLEANUP_RESULT s2n_psk_parameters_wipe(struct s2n_psk_parameters *params);
 
 struct s2n_offered_psk {
     struct s2n_blob identity;
-    s2n_psk_type type;
 };
 
 struct s2n_offered_psk_list {
@@ -96,7 +95,6 @@ struct s2n_offered_psk;
 struct s2n_offered_psk* s2n_offered_psk_new();
 int s2n_offered_psk_free(struct s2n_offered_psk **psk);
 int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t** identity, uint16_t *size);
-int s2n_offered_psk_get_type(struct s2n_offered_psk *psk, s2n_psk_type *type);
 
 struct s2n_offered_psk_list;
 bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list);
