@@ -553,7 +553,9 @@ int main(int argc, char *const *argv)
 
     } while (reconnect >= 0);
 
-    fclose(key_log_file);
+    if (key_log_file) {
+        fclose(key_log_file);
+    }
 
     GUARD_EXIT(s2n_cleanup(), "Error running s2n_cleanup()");
 
