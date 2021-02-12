@@ -48,8 +48,8 @@ int s2n_server_nst_recv(struct s2n_connection *conn) {
 
 int s2n_server_nst_send(struct s2n_connection *conn)
 {
-    uint16_t session_ticket_len = S2N_TICKET_SIZE_IN_BYTES;
-    uint8_t data[S2N_TICKET_SIZE_IN_BYTES];
+    uint16_t session_ticket_len = S2N_TLS12_TICKET_SIZE_IN_BYTES;
+    uint8_t data[S2N_TLS12_TICKET_SIZE_IN_BYTES];
     struct s2n_blob entry = { .data = data, .size = sizeof(data) };
     struct s2n_stuffer to;
     uint32_t lifetime_hint_in_secs = (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
@@ -76,6 +76,28 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     return 0;
 }
 
+static S2N_RESULT s2n_generate_ticket_nonce(uint16_t value, struct s2n_blob *output)
+{
+    ENSURE_MUT(output);
+    ENSURE(output->size >= sizeof(uint16_t), S2N_ERR_SAFETY);
+
+    output->data[0] = (value >> 8) & 0xff;
+    output->data[1] = value & 0xff;
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_generate_ticket_age_add(struct s2n_blob *random_data, uint32_t *ticket_age_add)
+{
+    ENSURE_REF(random_data);
+    ENSURE_MUT(ticket_age_add);
+    ENSURE(random_data->size >= sizeof(uint32_t), S2N_ERR_SAFETY);
+
+    *ticket_age_add = random_data->data[3] | (random_data->data[2] << 8) | (random_data->data[1] << 16) | (random_data->data[0] << 24 );
+
+    return S2N_RESULT_OK;
+}
+
 int s2n_tls13_server_nst_send(struct s2n_connection *conn)
 {
     notnull_check(conn);
@@ -86,41 +108,34 @@ int s2n_tls13_server_nst_send(struct s2n_connection *conn)
     struct s2n_stuffer_reservation message_size = { 0 };
     GUARD(s2n_stuffer_reserve_uint24(&conn->handshake.io, &message_size));
 
-    /* Ticket lifetime is the minimum between key lifetime, session state lifetime, and one week */
-    uint32_t key_lifetime_in_secs = (conn->config->encrypt_decrypt_key_lifetime_in_nanos +
-            conn->config->decrypt_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
-    uint32_t session_state_lifetime_in_secs = conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS;
-
-    uint32_t minimum_key_and_session_lifetime = MIN(key_lifetime_in_secs, session_state_lifetime_in_secs);
-    uint32_t ticket_lifetime = MIN(minimum_key_and_session_lifetime, ONE_WEEK_IN_SECS);
-
-    GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, ticket_lifetime));
+    /* Ticket lifetime is the minimum of the decrypt key lifetime and the session state lifetime */
+    uint64_t ticket_lifetime_in_nanos = MIN(conn->config->decrypt_key_lifetime_in_nanos, conn->config->session_state_lifetime_in_nanos);
+    uint32_t ticket_lifetime_in_secs = ticket_lifetime_in_nanos / ONE_SEC_IN_NANOS;
+    GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, ticket_lifetime_in_secs));
 
     /* Get random data to use as ticket_age_add value */
     struct s2n_ticket_fields ticket_fields = { 0 };
+    uint8_t data[sizeof(uint32_t)] = { 0 };
     struct s2n_blob random_data = { 0 };
-    GUARD(s2n_blob_init(&random_data, ticket_fields.ticket_age_add, sizeof(ticket_fields.ticket_age_add)));
+    GUARD(s2n_blob_init(&random_data, data, sizeof(data)));
     GUARD_AS_POSIX(s2n_get_private_random_data(&random_data));
-    GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, random_data.data, sizeof(ticket_fields.ticket_age_add)));
+    GUARD_AS_POSIX(s2n_generate_ticket_age_add(&random_data, &ticket_fields.ticket_age_add));
+    GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, ticket_fields.ticket_age_add));
 
     /* Write ticket nonce */
-    GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, sizeof(conn->tickets_sent)));
-    GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, conn->tickets_sent));
+    uint8_t nonce_data[sizeof(uint16_t)] = { 0 };
+    struct s2n_blob nonce = { 0 };
+    GUARD(s2n_blob_init(&nonce, nonce_data, sizeof(nonce_data)));
+    GUARD_AS_POSIX(s2n_generate_ticket_nonce(conn->tickets_sent, &nonce));
+    GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, sizeof(nonce_data)));
+    GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, nonce.data, sizeof(nonce_data)));
 
     /* Derive individual session ticket secret */
     s2n_tls13_connection_keys(secrets, conn);
     s2n_stack_blob(ticket_secret, secrets.size, S2N_TLS13_SECRET_MAX_LEN);
-
-    uint8_t blob_data[sizeof(uint16_t)] = { 0 };
-    struct s2n_blob nonce_blob = { 0 };
-    struct s2n_stuffer ticket_nonce = { 0 };
-    GUARD(s2n_blob_init(&nonce_blob, blob_data, sizeof(conn->tickets_sent)));
-    GUARD(s2n_stuffer_init(&ticket_nonce, &nonce_blob));
-    GUARD(s2n_stuffer_write_uint16(&ticket_nonce, conn->tickets_sent));
-
     struct s2n_blob master_secret = { 0 };
     GUARD(s2n_blob_init(&master_secret, conn->resumption_master_secret, sizeof(conn->resumption_master_secret)));
-    GUARD_AS_POSIX(s2n_tls13_derive_session_ticket_secret(&secrets, &master_secret, &ticket_nonce.blob, &ticket_secret));
+    GUARD_AS_POSIX(s2n_tls13_derive_session_ticket_secret(&secrets, &master_secret, &nonce, &ticket_secret));
 
     ticket_fields.session_secret = ticket_secret;
 
@@ -143,7 +158,9 @@ int s2n_tls13_server_nst_send(struct s2n_connection *conn)
 
     GUARD(s2n_stuffer_write_vector_size(&message_size));
 
-    conn->tickets_sent++;
+    uint32_t tickets_sent = conn->tickets_sent + 1;
+    ENSURE_POSIX(tickets_sent <= UINT16_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    conn->tickets_sent = tickets_sent;
 
     return S2N_SUCCESS;
 }

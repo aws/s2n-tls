@@ -36,11 +36,13 @@
 #define S2N_TICKET_AAD_LEN              (S2N_TICKET_AAD_IMPLICIT_LEN + S2N_TICKET_KEY_NAME_LEN)
 #define S2N_AES256_KEY_LEN              32
 #define ONE_SEC_IN_NANOS                1000000000
-#define ONE_WEEK_IN_SECS                604800
-#define S2N_TICKET_SIZE_IN_BYTES        (S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN +     \
+
+#define S2N_TLS12_TICKET_SIZE_IN_BYTES  (S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN +     \
         S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN)
+
 #define S2N_MAX_TICKET_SIZE_IN_BYTES    (S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN +     \
         S2N_MAX_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN)
+
 #define S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS        7200000000000     /* 2 hours */
 #define S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS                46800000000000    /* 13 hours */
 #define S2N_STATE_FORMAT_LEN            1
@@ -66,7 +68,7 @@ struct s2n_ticket_key_weight {
 
 struct s2n_ticket_fields {
     struct s2n_blob session_secret;
-    uint8_t ticket_age_add[sizeof(uint32_t)];
+    uint32_t ticket_age_add;
 };
 
 extern struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t *name);

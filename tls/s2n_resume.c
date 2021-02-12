@@ -81,7 +81,7 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
     GUARD_AS_RESULT(s2n_stuffer_write_uint8(out, conn->actual_protocol_version));
     GUARD_AS_RESULT(s2n_stuffer_write_bytes(out, conn->secure.cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     GUARD_AS_RESULT(s2n_stuffer_write_uint64(out, current_time));
-    GUARD_AS_RESULT(s2n_stuffer_write_bytes(out, ticket_fields->ticket_age_add, sizeof(ticket_fields->ticket_age_add)));
+    GUARD_AS_RESULT(s2n_stuffer_write_uint32(out, ticket_fields->ticket_age_add));
     ENSURE_LTE(ticket_fields->session_secret.size, UINT8_MAX);
     GUARD_AS_RESULT(s2n_stuffer_write_uint8(out, ticket_fields->session_secret.size));
     GUARD_AS_RESULT(s2n_stuffer_write_bytes(out, ticket_fields->session_secret.data, ticket_fields->session_secret.size));
@@ -238,9 +238,9 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
     S2N_ERROR_IF(conn->session_id_len == 0, S2N_ERR_SESSION_ID_TOO_SHORT);
     S2N_ERROR_IF(conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN, S2N_ERR_SESSION_ID_TOO_LONG);
 
-    uint8_t data[S2N_TICKET_SIZE_IN_BYTES] = { 0 };
+    uint8_t data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
     struct s2n_blob entry = {0};
-    GUARD(s2n_blob_init(&entry, data, S2N_TICKET_SIZE_IN_BYTES));
+    GUARD(s2n_blob_init(&entry, data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
     uint64_t size = entry.size;
     int result = conn->config->cache_retrieve(conn, conn->config->cache_retrieve_data, conn->session_id, conn->session_id_len, entry.data, &size);
     if (result == S2N_CALLBACK_BLOCKED) {
@@ -260,9 +260,9 @@ int s2n_resume_from_cache(struct s2n_connection *conn)
 
 int s2n_store_to_cache(struct s2n_connection *conn)
 {
-    uint8_t data[S2N_TICKET_SIZE_IN_BYTES] = { 0 };
+    uint8_t data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
     struct s2n_blob entry = {0};
-    GUARD(s2n_blob_init(&entry, data, S2N_TICKET_SIZE_IN_BYTES));
+    GUARD(s2n_blob_init(&entry, data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
     struct s2n_stuffer to = {0};
 
     /* session_id_len should always be >0 since either the Client provided a SessionId or the Server generated a new

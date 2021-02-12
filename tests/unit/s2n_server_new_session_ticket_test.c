@@ -16,6 +16,8 @@
 #include "s2n_test.h"
 
 #include "tls/s2n_tls.h"
+/* To test static functions */
+#include "tls/s2n_server_new_session_ticket.c"
 
 int main(int argc, char **argv)
 {
@@ -73,8 +75,8 @@ int main(int argc, char **argv)
 
             uint32_t ticket_lifetime = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&conn->handshake.io, &ticket_lifetime));
-            uint32_t state_lifetime_in_secs = S2N_STATE_LIFETIME_IN_NANOS / ONE_SEC_IN_NANOS;
-            EXPECT_EQUAL(state_lifetime_in_secs, ticket_lifetime);
+            uint32_t key_lifetime_in_secs = S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS / ONE_SEC_IN_NANOS;
+            EXPECT_EQUAL(key_lifetime_in_secs, ticket_lifetime);
 
             /* Skipping random data */
             EXPECT_SUCCESS(s2n_stuffer_skip_read(&conn->handshake.io, sizeof(uint32_t)));
@@ -83,9 +85,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&conn->handshake.io, &ticket_nonce_len));
             EXPECT_EQUAL(sizeof(uint16_t), ticket_nonce_len);
 
-            uint16_t ticket_nonce = 0;
-            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&conn->handshake.io, &ticket_nonce));
-            EXPECT_EQUAL(ticket_nonce, test_tickets_sent);
+            uint8_t ticket_nonce[sizeof(uint16_t)] = { 0 };
+            uint8_t tickets_sent_array[sizeof(uint16_t)] = { 0 };
+            struct s2n_blob blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&blob, tickets_sent_array, sizeof(uint16_t)));
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&conn->handshake.io, ticket_nonce, ticket_nonce_len));
+            EXPECT_OK(s2n_generate_ticket_nonce(test_tickets_sent, &blob));
+            EXPECT_BYTEARRAY_EQUAL(ticket_nonce, tickets_sent_array, ticket_nonce_len);
 
             /* The TLS1.3 session ticket length cannot be tested here
              * because the session resumption ticket secret varies from 28-48 bytes. */
@@ -103,6 +109,59 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
+        }
+    }
+
+    /* s2n_generate_ticket_nonce */
+    {
+        /* Maximum value can be converted */
+        {
+            uint16_t test_value = UINT16_MAX;
+            uint8_t data[sizeof(uint16_t)] = { 0 };
+            struct s2n_blob blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&blob, data, sizeof(data)));
+            EXPECT_OK(s2n_generate_ticket_nonce(test_value, &blob));
+
+            EXPECT_EQUAL(data[0], UINT8_MAX);
+            EXPECT_EQUAL(data[1], UINT8_MAX);
+        }
+
+        /* Random value can be converted */
+        {
+            uint16_t test_value = UINT8_MAX;
+            uint8_t data[sizeof(uint16_t)] = { 0 };
+            struct s2n_blob blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&blob, data, sizeof(data)));
+            EXPECT_OK(s2n_generate_ticket_nonce(test_value, &blob));
+
+            EXPECT_EQUAL(data[0], 0);
+            EXPECT_EQUAL(data[1], UINT8_MAX);
+        }
+
+    }
+
+    /* s2n_generate_ticket_age_add */
+    {
+        /* Maximum value can be converted */
+        {
+            uint8_t data[] = { UINT8_MAX, UINT8_MAX, UINT8_MAX, UINT8_MAX};
+            uint32_t ticket_age_add = 0;
+            struct s2n_blob blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&blob, data, sizeof(data)));
+            EXPECT_OK(s2n_generate_ticket_age_add(&blob, &ticket_age_add));
+
+            EXPECT_EQUAL(ticket_age_add, UINT32_MAX);
+        }
+
+        /* Random value can be converted */
+        {
+            uint8_t data[] = { 0, 0, UINT8_MAX, UINT8_MAX};
+            uint32_t ticket_age_add = 0;
+            struct s2n_blob blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&blob, data, sizeof(data)));
+            EXPECT_OK(s2n_generate_ticket_age_add(&blob, &ticket_age_add));
+
+            EXPECT_EQUAL(ticket_age_add, UINT16_MAX);
         }
     }
 }
