@@ -441,6 +441,25 @@ S2N_API
 extern int s2n_connection_client_cert_used(struct s2n_connection *conn);
 S2N_API
 extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
+
+/**
+ * Returns the IANA value for the connection's negotiated cipher suite.
+ *
+ * The value is returned in the form of `first,second`, in order to closely match
+ * the values defined in the [IANA Registry](https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#table-tls-parameters-4).
+ * For example if the connection's negotiated cipher suite is `TLS_AES_128_GCM_SHA256`,
+ * which is registered as `0x13,0x01`, then `first = 0x13` and `second = 0x01`.
+ *
+ * This method will only succeed after the cipher suite has been negotiated with the peer.
+ *
+ * @param conn A pointer to the connection being read
+ * @param first A pointer to a single byte, which will be updated with the first byte in the registered IANA value.
+ * @param second A pointer to a single byte, which will be updated with the second byte in the registered IANA value.
+ * @return A POSIX error signal. If an error was returned, the values contained in `first` and `second` should be considered invalid.
+ */
+S2N_API
+extern int s2n_connection_get_cipher_iana_value(struct s2n_connection *conn, uint8_t *first, uint8_t *second);
+
 S2N_API
 extern int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, const char *version);
 S2N_API
