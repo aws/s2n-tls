@@ -41,6 +41,9 @@ S2N_RESULT_MUST_USE bool s2n_result_is_ok(s2n_result result);
 /* returns true when the result is S2N_RESULT_ERROR */
 S2N_RESULT_MUST_USE bool s2n_result_is_error(s2n_result result);
 
+/* ignores the returned result of a function */
+void s2n_result_ignore(s2n_result result);
+
 /* used in function declarations to signal function fallibility */
 #define S2N_RESULT S2N_RESULT_MUST_USE s2n_result
 

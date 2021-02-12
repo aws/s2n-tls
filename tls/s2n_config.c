@@ -868,3 +868,12 @@ int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_sel
     config->psk_selection_cb = cb;
     return S2N_SUCCESS;
 }
+
+int s2n_config_set_key_log_cb(struct s2n_config *config, s2n_key_log_fn callback, void *ctx) {
+    ENSURE_POSIX_MUT(config);
+
+    config->key_log_cb = callback;
+    config->key_log_ctx = ctx;
+
+    return S2N_SUCCESS;
+}

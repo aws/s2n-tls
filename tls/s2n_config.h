@@ -105,6 +105,9 @@ struct s2n_config {
 
     s2n_async_pkey_fn async_pkey_cb;
     s2n_psk_selection_callback psk_selection_cb;
+
+    s2n_key_log_fn key_log_cb;
+    void *key_log_ctx;
 };
 
 int s2n_config_defaults_init(void);
