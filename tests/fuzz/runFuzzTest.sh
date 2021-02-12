@@ -91,7 +91,7 @@ if [[ ${AFL_FUZZ} == "true" && ${FUZZ_COVERAGE} != "true" ]]; then
     returncode=$?
     # See the timeout man page for specifics
     if [[ ${returncode} -ne 124 ]]; then
-	    printf "\033[33;1mWARNING!\033[0m AFL exited with an unexpected return value: %8d" ${returncode}
+        printf "\033[33;1mWARNING!\033[0m AFL exited with an unexpected return value: %8d" ${returncode}
     fi
     set -e
     CRASH_COUNT=$(sed -n -e 's/^unique_crashes *: //p' ./results/${TEST_NAME}/fuzzer_stats)
