@@ -21,6 +21,6 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-S2N_RESULT s2n_key_log_tls12_secret(struct s2n_connection *conn, struct s2n_stuffer *output);
+S2N_RESULT s2n_key_log_tls12_secret(struct s2n_connection *conn);
 S2N_RESULT s2n_key_log_tls13_secret(struct s2n_connection *conn, struct s2n_blob *secret, s2n_secret_type_t secret_type);
 

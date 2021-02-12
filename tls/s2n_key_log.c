@@ -111,19 +111,36 @@ S2N_RESULT s2n_key_log_tls13_secret(struct s2n_connection *conn, struct s2n_blob
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_key_log_tls12_secret(struct s2n_connection *conn, struct s2n_stuffer *output)
+S2N_RESULT s2n_key_log_tls12_secret(struct s2n_connection *conn)
 {
     ENSURE_REF(conn);
-    ENSURE_MUT(output);
 
     /* only emit keys if the callback has been set */
     if (!conn->config->key_log_cb) {
         return S2N_RESULT_OK;
     }
 
-    /* const uint8_t client_random_label[] = "CLIENT_RANDOM "; */
+    const uint8_t label[] = "CLIENT_RANDOM ";
+    const uint8_t label_size = sizeof(label) - 1;
 
-    /* TODO */
+    const uint8_t len
+        = label_size
+        + S2N_TLS_RANDOM_DATA_LEN * HEX_ENCODING_SIZE
+        + 1 /* SPACE */
+        + S2N_TLS_SECRET_LEN * HEX_ENCODING_SIZE;
+
+    DEFER_CLEANUP(struct s2n_stuffer output, s2n_stuffer_free);
+    GUARD_AS_RESULT(s2n_stuffer_alloc(&output, len));
+
+    GUARD_AS_RESULT(s2n_stuffer_write_bytes(&output, label, label_size));
+    GUARD_RESULT(s2n_key_log_hex_encode(&output, conn->secure.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    GUARD_AS_RESULT(s2n_stuffer_write_uint8(&output, ' '));
+    GUARD_RESULT(s2n_key_log_hex_encode(&output, conn->secure.master_secret, S2N_TLS_SECRET_LEN));
+
+    uint8_t *data = s2n_stuffer_raw_read(&output, len);
+    ENSURE_REF(data);
+
+    conn->config->key_log_cb(conn->config->key_log_ctx, conn, data, len);
 
     return S2N_RESULT_OK;
 }
