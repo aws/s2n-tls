@@ -861,12 +861,10 @@ int s2n_config_enable_cert_req_dss_legacy_compat(struct s2n_config *config)
     return S2N_SUCCESS;
 }
 
-int s2n_config_set_psk_selection_callback(struct s2n_connection *conn, s2n_psk_selection_callback cb)
+int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb)
 {
-    notnull_check(conn);
+    notnull_check(config);
     notnull_check(cb);
-
-    conn->config->psk_selection_cb = cb;
-
+    config->psk_selection_cb = cb;
     return S2N_SUCCESS;
 }

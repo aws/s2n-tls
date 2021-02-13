@@ -153,6 +153,98 @@ S2N_CLEANUP_RESULT s2n_psk_parameters_wipe(struct s2n_psk_parameters *params)
     return S2N_RESULT_OK;
 }
 
+bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list)
+{
+    return psk_list != NULL && s2n_stuffer_data_available(&psk_list->wire_data) > 0;
+}
+
+S2N_RESULT s2n_offered_psk_list_read_next(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk)
+{
+    ENSURE_REF(psk_list);
+    ENSURE_MUT(psk);
+
+    uint16_t identity_size = 0;
+    GUARD_AS_RESULT(s2n_stuffer_read_uint16(&psk_list->wire_data, &identity_size));
+    ENSURE_GT(identity_size, 0);
+
+    uint8_t *identity_data = NULL;
+    identity_data = s2n_stuffer_raw_read(&psk_list->wire_data, identity_size);
+    ENSURE_REF(identity_data);
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+     *# For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
+     *# used, and servers MUST ignore the value.
+     */
+    GUARD_AS_RESULT(s2n_stuffer_skip_read(&psk_list->wire_data, sizeof(uint32_t)));
+
+    GUARD_AS_RESULT(s2n_blob_init(&psk->identity, identity_data, identity_size));
+    return S2N_RESULT_OK;
+}
+
+int s2n_offered_psk_list_next(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk)
+{
+    notnull_check(psk_list);
+    notnull_check(psk);
+    *psk = (struct s2n_offered_psk){ 0 };
+    ENSURE_POSIX(s2n_offered_psk_list_has_next(psk_list), S2N_ERR_STUFFER_OUT_OF_DATA);
+    ENSURE_POSIX(s2n_result_is_ok(s2n_offered_psk_list_read_next(psk_list, psk)), S2N_ERR_BAD_MESSAGE);
+    return S2N_SUCCESS;
+}
+
+int s2n_offered_psk_list_reset(struct s2n_offered_psk_list *psk_list)
+{
+    notnull_check(psk_list);
+    return s2n_stuffer_reread(&psk_list->wire_data);
+}
+
+S2N_RESULT s2n_offered_psk_list_get_index(struct s2n_offered_psk_list *psk_list, uint16_t index, struct s2n_offered_psk *psk)
+{
+    ENSURE_REF(psk_list);
+    ENSURE_MUT(psk);
+
+    /* We don't want to lose our original place in the list, so copy it */
+    struct s2n_offered_psk_list psk_list_copy = { .wire_data = psk_list->wire_data };
+    GUARD_AS_RESULT(s2n_offered_psk_list_reset(&psk_list_copy));
+
+    uint16_t count = 0;
+    while(count <= index) {
+        GUARD_AS_RESULT(s2n_offered_psk_list_next(&psk_list_copy, psk));
+        count++;
+    }
+    return S2N_RESULT_OK;
+}
+
+struct s2n_offered_psk* s2n_offered_psk_new()
+{
+    DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
+    GUARD_PTR(s2n_alloc(&mem, sizeof(struct s2n_offered_psk)));
+
+    struct s2n_offered_psk *psk = (struct s2n_offered_psk*)(void*) mem.data;
+    *psk = (struct s2n_offered_psk){ 0 };
+
+    ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
+    return psk;
+}
+
+int s2n_offered_psk_free(struct s2n_offered_psk **psk)
+{
+    if (psk == NULL) {
+        return S2N_SUCCESS;
+    }
+    return s2n_free_object((uint8_t **) psk, sizeof(struct s2n_offered_psk));
+}
+
+int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t** identity, uint16_t *size)
+{
+    notnull_check(psk);
+    notnull_check(identity);
+    notnull_check(size);
+    *identity = psk->identity.data;
+    *size = psk->identity.size;
+    return S2N_SUCCESS;
+}
+
 /* The binder hash is computed by hashing the concatenation of the current transcript
  * and a partial ClientHello that does not include the binders themselves.
  */
