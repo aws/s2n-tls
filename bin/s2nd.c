@@ -763,11 +763,14 @@ int main(int argc, char *const *argv)
     if (key_log_path) {
         key_log_file = fopen(key_log_path, "a");
         GUARD_EXIT(key_log_file == NULL ? S2N_FAILURE : S2N_SUCCESS, "Failed to open key log file");
-        GUARD_EXIT(s2n_config_set_key_log_cb(
-            config,
-            key_log_callback,
-            (void *)key_log_file),
-        "Failed to set key log callback");
+        GUARD_EXIT(
+            s2n_config_set_key_log_cb(
+                config,
+                key_log_callback,
+                (void *)key_log_file
+            ),
+            "Failed to set key log callback"
+        );
     }
 
     int fd;
