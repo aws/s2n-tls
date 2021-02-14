@@ -119,6 +119,70 @@ int main(int argc, char **argv)
         tls13_state_machine[i].handler[1] = s2n_test_handler;
     }
 
+    /* Test: A WITH_EARLY_DATA form of every non-full, non-retry handshake exists
+     *       and matches the non-WITH_EARLY_DATA form EXCEPT for the END_OF_EARLY_DATA
+     *       message and client CCS messages.
+     */
+    {
+        uint32_t original_handshake_type, early_data_handshake_type;
+        message_type_t *original_messages, *early_data_messages;
+
+        for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
+            original_handshake_type = valid_tls13_handshakes[i];
+            original_messages = tls13_handshakes[original_handshake_type];
+
+            /* WITH_EARLY_DATA form of the handshake */
+            early_data_handshake_type = original_handshake_type | WITH_EARLY_DATA;
+            early_data_messages = tls13_handshakes[early_data_handshake_type];
+
+            /* No handshake exists for INITIAL, FULL_HANDSHAKE, or HELLO_RETRY_REQUEST handshakes */
+            if (!IS_NEGOTIATED(original_handshake_type)
+                    || (IS_FULL_HANDSHAKE(original_handshake_type))
+                    || (original_handshake_type & HELLO_RETRY_REQUEST)) {
+                EXPECT_BYTEARRAY_EQUAL(early_data_messages, invalid_handshake, sizeof(invalid_handshake));
+                continue;
+            }
+
+            /* Ignore identical handshakes */
+            if (original_handshake_type == early_data_handshake_type) {
+                continue;
+            }
+
+            size_t end_of_early_data_messages = 0;
+            size_t j = 0, j_ed = 0;
+            while (j < S2N_MAX_HANDSHAKE_LENGTH && j_ed < S2N_MAX_HANDSHAKE_LENGTH) {
+                /* The original handshake must NOT contain END_OF_EARLY_DATA messages */
+                EXPECT_NOT_EQUAL(original_messages[j], END_OF_EARLY_DATA);
+
+                /* Count END_OF_EARLY_DATA messages in the WITH_EARLY_DATA handshake */
+                if (early_data_messages[j_ed] == END_OF_EARLY_DATA) {
+                    end_of_early_data_messages++;
+                    j_ed++;
+                    continue;
+                }
+
+                /* Skip client CCS message in both handshakes - they won't appear at the same point */
+                if (early_data_messages[j_ed] == CLIENT_CHANGE_CIPHER_SPEC) {
+                    j_ed++;
+                    continue;
+                }
+                if (original_messages[j] == CLIENT_CHANGE_CIPHER_SPEC) {
+                    j++;
+                    continue;
+                }
+
+                /* The handshakes must be otherwise equivalent */
+                EXPECT_EQUAL(original_messages[j], early_data_messages[j_ed]);
+                j++; j_ed++;
+            }
+            if (IS_NEGOTIATED(original_handshake_type)) {
+                EXPECT_EQUAL(end_of_early_data_messages, 1);
+            } else {
+                EXPECT_EQUAL(end_of_early_data_messages, 0);
+            }
+        }
+    }
+
     /* Test: A MIDDLEBOX_COMPAT form of every valid, negotiated handshake exists
      *       and matches the non-MIDDLEBOX_COMPAT form EXCEPT for CCS messages */
     {
@@ -166,14 +230,20 @@ int main(int argc, char **argv)
             handshake_type_original = valid_tls13_handshakes[i];
             messages_original = tls13_handshakes[handshake_type_original];
 
-            /* Ignore INITIAL and FULL_HANDSHAKE handshakes */
-            if (!IS_NEGOTIATED(handshake_type_original) || IS_FULL_HANDSHAKE(handshake_type_original)) {
-                continue;
-            }
-
             /* FULL_HANDSHAKE form of the handshake */
             handshake_type_fh = handshake_type_original | FULL_HANDSHAKE;
             messages_fh = tls13_handshakes[handshake_type_fh];
+
+            /* No FULL handshake exists for INITIAL or WITH_EARLY_DATA handshakes */
+            if (!IS_NEGOTIATED(handshake_type_original) || (IS_EARLY_DATA_HANDSHAKE(handshake_type_original))) {
+                EXPECT_BYTEARRAY_EQUAL(messages_fh, invalid_handshake, sizeof(invalid_handshake));
+                continue;
+            }
+
+            /* Ignore identical handshakes */
+            if (handshake_type_original == handshake_type_fh) {
+                continue;
+            }
 
             for (size_t j = 0, j_fh = 0; j < S2N_MAX_HANDSHAKE_LENGTH && j_fh < S2N_MAX_HANDSHAKE_LENGTH; j++, j_fh++) {
                 /* The original handshake cannot contain authentication messages */
@@ -513,21 +583,36 @@ int main(int argc, char **argv)
     }
 
     /* Test: TLS 1.3 MIDDLEBOX_COMPAT handshakes all follow CCS middlebox compatibility rules.
-     * RFC: https://tools.ietf.org/html/rfc8446#appendix-D.4 */
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#appendix-D.4
+     *= type=test
+     *# Field measurements [Ben17a] [Ben17b] [Res17a] [Res17b] have found
+     *# that a significant number of middleboxes misbehave when a TLS
+     *# client/server pair negotiates TLS 1.3.  Implementations can increase
+     *# the chance of making connections through those middleboxes by making
+     *# the TLS 1.3 handshake look more like a TLS 1.2 handshake:
+     */
     {
         bool change_cipher_spec_found;
         uint32_t handshake_type;
         message_type_t *messages;
 
-        /* Test: "If not offering early data, the client sends a dummy change_cipher_spec record immediately before
-         *       its second flight. This may either be before its second ClientHello or before its encrypted handshake flight." */
+        /*
+         *= https://tools.ietf.org/rfc/rfc8446#appendix-D.4
+         *= type=test
+         *# If not offering early data, the client sends a dummy
+         *# change_cipher_spec record (see the third paragraph of Section 5)
+         *# immediately before its second flight.  This may either be before
+         *# its second ClientHello or before its encrypted handshake flight.
+         **/
         for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
             change_cipher_spec_found = false;
             handshake_type = valid_tls13_handshakes[i];
             messages = tls13_handshakes[handshake_type];
 
-            /* Ignore INITIAL and non-MIDDLEBOX_COMPAT handshakes */
-            if (!IS_NEGOTIATED(handshake_type) || !IS_MIDDLEBOX_COMPAT_MODE(handshake_type)) {
+            /* Ignore INITIAL, non-MIDDLEBOX_COMPAT, and WITH_EARLY_DATA handshakes */
+            if (!IS_NEGOTIATED(handshake_type) || !IS_MIDDLEBOX_COMPAT_MODE(handshake_type)
+                    || IS_EARLY_DATA_HANDSHAKE(handshake_type)) {
                 continue;
             }
 
@@ -551,12 +636,46 @@ int main(int argc, char **argv)
             EXPECT_TRUE(change_cipher_spec_found);
         }
 
-        /* Test: "If offering early data, the [change_cipher_spec] record is placed immediately after the first ClientHello."
-         *
-         * TODO: This can't be tested yet because S2N doesn't support early data. */
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#appendix-D.4
+         *= type=test
+         *# If offering early data, the record is placed immediately after the
+         *# first ClientHello.
+         */
+        for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
+            change_cipher_spec_found = false;
+            handshake_type = valid_tls13_handshakes[i];
+            messages = tls13_handshakes[handshake_type];
 
-        /* Test: "The server sends a dummy change_cipher_spec record immediately after its first handshake message.
-         *       This may either be after a ServerHello or a HelloRetryRequest." */
+            /* Ignore INITIAL, non-MIDDLEBOX_COMPAT, and non-WITH_EARLY_DATA handshakes */
+            if (!IS_NEGOTIATED(handshake_type) || !IS_MIDDLEBOX_COMPAT_MODE(handshake_type)
+                    || !IS_EARLY_DATA_HANDSHAKE(handshake_type)) {
+                continue;
+            }
+
+            for (size_t j = 1; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
+
+                /* Was the last message the ClientHello? */
+                if (messages[j - 1] != CLIENT_HELLO) {
+                    continue;
+                }
+
+                EXPECT_EQUAL(messages[j], CLIENT_CHANGE_CIPHER_SPEC);
+
+                /* CCS message found. We are done with this handshake. */
+                change_cipher_spec_found = true;
+                break;
+            }
+            EXPECT_TRUE(change_cipher_spec_found);
+        }
+
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#appendix-D.4
+         *= type=test
+         *# The server sends a dummy change_cipher_spec record immediately
+         *# after its first handshake message.  This may either be after a
+         *# ServerHello or a HelloRetryRequest.
+         **/
         for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
             change_cipher_spec_found = false;
             handshake_type = valid_tls13_handshakes[i];
@@ -686,7 +805,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
-     /* Test: s2n_conn_set_tls13_handshake_type ignores client auth type if a pre-shared key is
+    /* Test: s2n_conn_set_tls13_handshake_type ignores client auth type if a pre-shared key is
      * chosen and s2n is a server. */
     {
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
@@ -701,6 +820,32 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_conn_set_tls13_handshake_type(server_conn));
         EXPECT_FALSE(server_conn->handshake.handshake_type & CLIENT_AUTH);
         EXPECT_FALSE(server_conn->handshake.handshake_type & FULL_HANDSHAKE);
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* Test: s2n_conn_set_tls13_handshake_type sets WITH_EARLY_DATA */
+    {
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        server_conn->actual_protocol_version = S2N_TLS13;
+
+        server_conn->early_data_state = S2N_EARLY_DATA_ACCEPTED;
+        EXPECT_OK(s2n_conn_set_tls13_handshake_type(server_conn));
+        EXPECT_TRUE(server_conn->handshake.handshake_type & WITH_EARLY_DATA);
+        EXPECT_TRUE(server_conn->handshake.handshake_type & NEGOTIATED);
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* Test: s2n_conn_set_tls13_handshake_type does not set WITH_EARLY_DATA if wrong state */
+    {
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        server_conn->actual_protocol_version = S2N_TLS13;
+
+        server_conn->early_data_state = S2N_EARLY_DATA_REJECTED;
+        EXPECT_OK(s2n_conn_set_tls13_handshake_type(server_conn));
+        EXPECT_FALSE(server_conn->handshake.handshake_type & WITH_EARLY_DATA);
+        EXPECT_TRUE(server_conn->handshake.handshake_type & NEGOTIATED);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
@@ -730,9 +875,9 @@ int main(int argc, char **argv)
         EXPECT_STRING_EQUAL("NEGOTIATED|FULL_HANDSHAKE|HELLO_RETRY_REQUEST", s2n_connection_get_handshake_type_name(conn));
 
         const char* all_flags_handshake_type_name = "NEGOTIATED|FULL_HANDSHAKE|CLIENT_AUTH|WITH_SESSION_TICKET|"
-                "NO_CLIENT_CERT|MIDDLEBOX_COMPAT";
+                "NO_CLIENT_CERT|MIDDLEBOX_COMPAT|WITH_EARLY_DATA";
         conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | WITH_SESSION_TICKET |
-                NO_CLIENT_CERT | MIDDLEBOX_COMPAT;
+                NO_CLIENT_CERT | MIDDLEBOX_COMPAT | WITH_EARLY_DATA;
         EXPECT_STRING_EQUAL(all_flags_handshake_type_name, s2n_connection_get_handshake_type_name(conn));
 
         const char *handshake_type_name;

@@ -32,6 +32,7 @@
 #define TLS_CLIENT_HELLO               1
 #define TLS_SERVER_HELLO               2
 #define TLS_SERVER_NEW_SESSION_TICKET  4
+#define TLS_END_OF_EARLY_DATA          5
 #define TLS_ENCRYPTED_EXTENSIONS       8
 #define TLS_CERTIFICATE               11
 #define TLS_SERVER_KEY                12
@@ -67,6 +68,7 @@ typedef enum {
     ENCRYPTED_EXTENSIONS,
     SERVER_CERT_VERIFY,
     HELLO_RETRY_MSG,
+    END_OF_EARLY_DATA,
 
     APPLICATION_DATA,
 } message_type_t;
@@ -185,6 +187,9 @@ struct s2n_handshake {
  * with some middleboxes: https://tools.ietf.org/html/rfc8446#appendix-D.4 */
 #define MIDDLEBOX_COMPAT            0x100
 #define IS_MIDDLEBOX_COMPAT_MODE( type ) ( (type) & MIDDLEBOX_COMPAT )
+
+#define WITH_EARLY_DATA             0x200
+#define IS_EARLY_DATA_HANDSHAKE( type ) ( (type) & WITH_EARLY_DATA )
 
     /* Which handshake message number are we processing */
     int message_number;

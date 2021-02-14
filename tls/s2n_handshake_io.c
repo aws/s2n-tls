@@ -100,6 +100,7 @@ static struct s2n_handshake_action tls13_state_machine[] = {
     [CLIENT_CERT]               = {TLS_HANDSHAKE, TLS_CERTIFICATE, 'C', {s2n_client_cert_recv, s2n_client_cert_send}},
     [CLIENT_CERT_VERIFY]        = {TLS_HANDSHAKE, TLS_CERT_VERIFY, 'C', {s2n_tls13_cert_verify_recv, s2n_tls13_cert_verify_send}},
     [CLIENT_FINISHED]           = {TLS_HANDSHAKE, TLS_FINISHED, 'C', {s2n_tls13_client_finished_recv, s2n_tls13_client_finished_send}},
+    [END_OF_EARLY_DATA]         = {TLS_HANDSHAKE, TLS_END_OF_EARLY_DATA, 'C', {s2n_end_of_early_data_recv, s2n_end_of_early_data_send}},
 
     /* Not used by TLS1.3, except to maintain middlebox compatibility */
     [CLIENT_CHANGE_CIPHER_SPEC] = {TLS_CHANGE_CIPHER_SPEC, 0, 'C', {s2n_basic_ccs_recv, s2n_ccs_send}},
@@ -129,11 +130,12 @@ static const char *message_names[] = {
     MESSAGE_NAME_ENTRY(SERVER_CHANGE_CIPHER_SPEC),
     MESSAGE_NAME_ENTRY(SERVER_FINISHED),
     MESSAGE_NAME_ENTRY(HELLO_RETRY_MSG),
+    MESSAGE_NAME_ENTRY(END_OF_EARLY_DATA),
     MESSAGE_NAME_ENTRY(APPLICATION_DATA),
 };
 
 /* Maximum number of valid handshakes */
-#define S2N_HANDSHAKES_COUNT        512
+#define S2N_HANDSHAKES_COUNT  1024
 
 /* Maximum number of messages in a handshake */
 #define S2N_MAX_HANDSHAKE_LENGTH    32
@@ -378,10 +380,24 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
             APPLICATION_DATA
     },
 
+    [NEGOTIATED | WITH_EARLY_DATA] = {
+            CLIENT_HELLO,
+            SERVER_HELLO, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
+            END_OF_EARLY_DATA, CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
     [NEGOTIATED | MIDDLEBOX_COMPAT] = {
             CLIENT_HELLO,
             SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
             CLIENT_CHANGE_CIPHER_SPEC, CLIENT_FINISHED,
+            APPLICATION_DATA
+    },
+
+    [NEGOTIATED | MIDDLEBOX_COMPAT | WITH_EARLY_DATA] = {
+            CLIENT_HELLO, CLIENT_CHANGE_CIPHER_SPEC,
+            SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
+            END_OF_EARLY_DATA, CLIENT_FINISHED,
             APPLICATION_DATA
     },
 
@@ -501,7 +517,7 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
 };
 /* clang-format on */
 
-#define MAX_HANDSHAKE_TYPE_LEN 152
+#define MAX_HANDSHAKE_TYPE_LEN 168
 static char handshake_type_str[S2N_HANDSHAKES_COUNT][MAX_HANDSHAKE_TYPE_LEN] = {0};
 
 static const char* handshake_type_names[] = {
@@ -514,6 +530,7 @@ static const char* handshake_type_names[] = {
     "NO_CLIENT_CERT|",
     "HELLO_RETRY_REQUEST|",
     "MIDDLEBOX_COMPAT|",
+    "WITH_EARLY_DATA|"
 };
 
 #define IS_TLS13_HANDSHAKE( conn )    ((conn)->actual_protocol_version == S2N_TLS13)
@@ -637,6 +654,10 @@ static S2N_RESULT s2n_conn_set_tls13_handshake_type(struct s2n_connection *conn)
 
     if (conn->psk_params.chosen_psk == NULL) {
         conn->handshake.handshake_type |= FULL_HANDSHAKE;
+    }
+
+    if (conn->early_data_state == S2N_EARLY_DATA_ACCEPTED) {
+        conn->handshake.handshake_type |= WITH_EARLY_DATA;
     }
 
     s2n_cert_auth_type client_cert_auth_type;
