@@ -25,6 +25,7 @@
 #include "tls/s2n_client_hello.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_crypto.h"
+#include "tls/s2n_early_data.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_quic_support.h"
@@ -333,6 +334,8 @@ struct s2n_connection {
     bool recv_in_use;
     
     uint16_t tickets_to_send;
+
+    s2n_early_data_state early_data_state;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);

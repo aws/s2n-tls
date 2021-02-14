@@ -21,6 +21,18 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"
 
+typedef enum {
+    S2N_UNKNOWN_EARLY_DATA_STATE = 0,
+    S2N_EARLY_DATA_REQUESTED,
+    S2N_EARLY_DATA_NOT_REQUESTED,
+    S2N_EARLY_DATA_ACCEPTED,
+    S2N_EARLY_DATA_REJECTED,
+    S2N_END_OF_EARLY_DATA,
+    S2N_EARLY_DATA_STATES_COUNT
+} s2n_early_data_state;
+
+S2N_RESULT s2n_connection_set_early_data_state(struct s2n_connection *conn, s2n_early_data_state state);
+
 struct s2n_early_data_config {
     uint32_t max_early_data_size;
     uint8_t protocol_version;
