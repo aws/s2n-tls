@@ -16,6 +16,8 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
+#include "tls/s2n_key_log.h"
+
 static int s2n_test_key_log_cb(void* context, struct s2n_connection *conn,
                                    uint8_t *logline, size_t len)
 {
@@ -161,6 +163,28 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_config_free(client_config));
+    }
+
+    /* Hex encoding function inverse pair */
+    {
+        uint8_t bytes[256] = { 0 };
+
+        for (size_t idx = 0; idx < sizeof(bytes); idx++) {
+            bytes[idx] = (uint8_t)idx;
+        }
+
+        DEFER_CLEANUP(struct s2n_stuffer encoded, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&encoded, sizeof(bytes) * 2));
+        EXPECT_OK(s2n_key_log_hex_encode(&encoded, bytes, sizeof(bytes)));
+
+        DEFER_CLEANUP(struct s2n_stuffer decoded, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&decoded, sizeof(bytes)));
+        EXPECT_SUCCESS(s2n_stuffer_read_hex(&encoded, &decoded, sizeof(bytes)));
+
+        uint8_t *out = s2n_stuffer_raw_read(&decoded, s2n_stuffer_data_available(&decoded));
+        EXPECT_NOT_NULL(out);
+
+        EXPECT_EQUAL(memcmp(bytes, out, sizeof(bytes)), 0);
     }
 
     END_TEST();

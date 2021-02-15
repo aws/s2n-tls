@@ -41,7 +41,14 @@ S2N_RESULT_MUST_USE bool s2n_result_is_ok(s2n_result result);
 /* returns true when the result is S2N_RESULT_ERROR */
 S2N_RESULT_MUST_USE bool s2n_result_is_error(s2n_result result);
 
-/* ignores the returned result of a function */
+/**
+ * Ignores the returned result of a function
+ *
+ * Generally, function results should always be checked. Using this function
+ * could cause the system to behave in unexpected ways. As such, this function
+ * should only be used in scenarios where the system state is not affected by
+ * errors.
+ */
 void s2n_result_ignore(s2n_result result);
 
 /* used in function declarations to signal function fallibility */
