@@ -110,9 +110,13 @@ int SIKE_P434_r2_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, cons
 
     // Generate shared secret ss <- H(m||ct) or output ss <- H(s||ct)
     EphemeralKeyGeneration_A(ephemeralsk_.d, c0_);
-    if (memcmp(c0_, ct, CRYPTO_PUBLICKEYBYTES) != 0) {
-        memcpy(temp, sk, MSG_BYTES);
-    }
+
+    // Note: This step deviates from the NIST supplied code by using constant time operations.
+    // We only want to copy the data if c0_ and ct are different
+    bool dont_copy = s2n_constant_time_equals(c0_, ct, CRYPTO_PUBLICKEYBYTES);
+    // The last argument to s2n_constant_time_copy_or_dont is dont and thus prevents the copy when non-zero/true
+    s2n_constant_time_copy_or_dont(temp, sk, MSG_BYTES, dont_copy);
+
     memcpy(&temp[MSG_BYTES], ct, CRYPTO_CIPHERTEXTBYTES);
     shake256(ss, CRYPTO_BYTES, temp, CRYPTO_CIPHERTEXTBYTES + MSG_BYTES);
 
