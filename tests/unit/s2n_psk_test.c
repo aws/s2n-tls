@@ -37,13 +37,13 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(psk.type, S2N_PSK_TYPE_EXTERNAL);
         EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA256);
         EXPECT_EQUAL(psk.obfuscated_ticket_age, 0);
-        EXPECT_EQUAL(psk.early_data_config.max_early_data, 0);
+        EXPECT_EQUAL(psk.early_data_config.max_early_data_size, 0);
 
         EXPECT_OK(s2n_psk_init(&psk, S2N_PSK_TYPE_RESUMPTION));
         EXPECT_EQUAL(psk.type, S2N_PSK_TYPE_RESUMPTION);
         EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA256);
         EXPECT_EQUAL(psk.obfuscated_ticket_age, 0);
-        EXPECT_EQUAL(psk.early_data_config.max_early_data, 0);
+        EXPECT_EQUAL(psk.early_data_config.max_early_data_size, 0);
     }
 
     /* Test s2n_external_psk_new */

@@ -29,11 +29,11 @@ S2N_CLEANUP_RESULT s2n_early_data_config_free(struct s2n_early_data_config *conf
     return S2N_RESULT_OK;
 }
 
-int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data,
+int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data_size,
         uint8_t cipher_suite_first_byte, uint8_t cipher_suite_second_byte)
 {
     notnull_check(psk);
-    psk->early_data_config.max_early_data = max_early_data;
+    psk->early_data_config.max_early_data_size = max_early_data_size;
     psk->early_data_config.protocol_version = S2N_TLS13;
     psk->early_data_config.cipher_suite_iana[0] = cipher_suite_first_byte;
     psk->early_data_config.cipher_suite_iana[1] = cipher_suite_second_byte;
