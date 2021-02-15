@@ -91,3 +91,9 @@ inline bool s2n_result_is_error(s2n_result result)
 {
     return result.__error_signal == S2N_FAILURE;
 }
+
+/* ignores the returned result of a function */
+inline void s2n_result_ignore(s2n_result result)
+{
+    /* noop */
+}

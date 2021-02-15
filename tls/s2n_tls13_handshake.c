@@ -15,6 +15,7 @@
 
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_key_log.h"
 #include "tls/s2n_security_policies.h"
 
 static int s2n_zero_sequence_number(struct s2n_connection *conn, s2n_mode mode)
@@ -209,6 +210,9 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
                 server_hs_secret.data, server_hs_secret.size));
     }
 
+    s2n_result_ignore(s2n_key_log_tls13_secret(conn, &client_hs_secret, S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET));
+    s2n_result_ignore(s2n_key_log_tls13_secret(conn, &server_hs_secret, S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET));
+
     /* produce handshake traffic keys and configure record algorithm */
     s2n_tls13_key_blob(server_hs_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
     struct s2n_blob server_hs_iv = { .data = conn->secure.server_implicit_iv, .size = S2N_TLS13_FIXED_IV_LEN };
@@ -285,6 +289,8 @@ static int s2n_tls13_handle_application_secret(struct s2n_connection *conn, s2n_
         GUARD(conn->secret_cb(conn->secret_cb_context, conn, secret_type,
                 app_secret.data, app_secret.size));
     }
+
+    s2n_result_ignore(s2n_key_log_tls13_secret(conn, &app_secret, secret_type));
 
     /* derive key from secret */
     s2n_tls13_key_blob(app_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);

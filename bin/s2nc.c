@@ -91,6 +91,8 @@ void usage()
                     "    The client will generate keyshares only for the curve names present in the ecc_preferences list configured in the security_policy.\n"
                     "    The curves currently supported by s2n are: `x25519`, `secp256r1` and `secp384r1`. Note that `none` represents a list of empty keyshares.\n"
                     "    By default, the client will generate keyshares for all curves present in the ecc_preferences list.\n");
+    fprintf(stderr, "  -L --key-log <path>\n");
+    fprintf(stderr, "    Enable NSS key logging into the provided path\n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -256,6 +258,8 @@ int main(int argc, char *const *argv)
     char keyshares[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT][S2N_MAX_ECC_CURVE_NAME_LENGTH];
     char *input = NULL;
     char *token = NULL;
+    const char *key_log_path = NULL;
+    FILE *key_log_file = NULL;
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -278,6 +282,8 @@ int main(int argc, char *const *argv)
         {"tls13", no_argument, 0, '3'},
         {"keyshares", required_argument, 0, 'K'},
         {"non-blocking", no_argument, 0, 'B'},
+        {"key-log", required_argument, 0, 'L'},
+        { 0 },
     };
 
     while (1) {
@@ -360,6 +366,9 @@ int main(int argc, char *const *argv)
             break;
         case 'B':
             non_blocking = 1;
+            break;
+        case 'L':
+            key_log_path = optarg;
             break;
         case '?':
         default:
@@ -458,6 +467,19 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(s2n_config_set_session_tickets_onoff(config, 1), "Error enabling session tickets");
         }
 
+        if (key_log_path) {
+            key_log_file = fopen(key_log_path, "a");
+            GUARD_EXIT(key_log_file == NULL ? S2N_FAILURE : S2N_SUCCESS, "Failed to open key log file");
+            GUARD_EXIT(
+                s2n_config_set_key_log_cb(
+                    config,
+                    key_log_callback,
+                    (void *)key_log_file
+                ),
+                "Failed to set key log callback"
+            );
+        }
+
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
 
         if (conn == NULL) {
@@ -532,6 +554,10 @@ int main(int argc, char *const *argv)
         reconnect--;
 
     } while (reconnect >= 0);
+
+    if (key_log_file) {
+        fclose(key_log_file);
+    }
 
     GUARD_EXIT(s2n_cleanup(), "Error running s2n_cleanup()");
 

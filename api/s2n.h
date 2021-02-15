@@ -487,6 +487,47 @@ extern int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_conn
 S2N_API
 extern int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
 
+/**
+ * Callback function for handling key log events
+ *
+ * THIS SHOULD BE USED FOR DEBUGGING PURPOSES ONLY!
+ *
+ * Each log line is formatted with the
+ * [NSS Key Log Format](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format)
+ * without a newline.
+ *
+ * # Safety
+ *
+ * * `ctx` MUST be cast into the same type of pointer that was originally created
+ * * `logline` bytes MUST be copied or discarded before this function returns
+ *
+ * @param ctx Context for the callback
+ * @param conn Connection for which the log line is being emitted
+ * @param logline Pointer to the log line data
+ * @param len Length of the log line data
+ */
+typedef int (*s2n_key_log_fn)(void *ctx, struct s2n_connection *conn, uint8_t *logline, size_t len);
+
+/**
+ * Sets a key logging callback on the provided config
+ *
+ * THIS SHOULD BE USED FOR DEBUGGING PURPOSES ONLY!
+ *
+ * Setting this function enables configurations to emit secrets in the
+ * [NSS Key Log Format](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format)
+ *
+ * # Safety
+ *
+ * * `callback` MUST cast `ctx` into the same type of pointer that was originally created
+ * * `ctx` MUST live for at least as long as it is set on the config
+ *
+ * @param config Config to set the callback
+ * @param callback The function that should be called for each secret log entry
+ * @param ctx The context to be passed when the callback is called
+ */
+S2N_API
+extern int s2n_config_set_key_log_cb(struct s2n_config *config, s2n_key_log_fn callback, void *ctx);
+
 /* s2n_config_enable_cert_req_dss_legacy_compat adds a dss cert type in the server certificate request when being called.
  * It only sends the dss cert type in the cert request but does not succeed the handshake if a dss cert is received.
  * Please DO NOT call this api unless you know you actually need legacy DSS certificate type compatibility
