@@ -117,8 +117,11 @@ int SIKE_P503_r1_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, cons
 
     // Generate shared secret ss <- H(m||ct) or output ss <- H(s||ct)
     EphemeralKeyGeneration_A(ephemeralsk_.d, c0_);
-    bool copy_or_dont = s2n_constant_time_equals(c0_, ct, SIKE_P503_R1_PUBLIC_KEY_BYTES);
-    s2n_constant_time_copy_or_dont(temp, sk, MSG_BYTES, copy_or_dont);
+
+    // We only want to copy the data if c0_ and ct are different
+    bool dont_copy = s2n_constant_time_equals(c0_, ct, SIKE_P503_R1_PUBLIC_KEY_BYTES);
+    // The last argument to s2n_constant_time_copy_or_dont is dont and thus prevents the copy when non-zero/true
+    s2n_constant_time_copy_or_dont(temp, sk, MSG_BYTES, dont_copy);
 
     memcpy(&temp[MSG_BYTES], ct, SIKE_P503_R1_CIPHERTEXT_BYTES);
     cshake256_simple(ss, SIKE_P503_R1_SHARED_SECRET_BYTES, H, temp, SIKE_P503_R1_CIPHERTEXT_BYTES+MSG_BYTES);
