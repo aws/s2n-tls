@@ -168,7 +168,12 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_generate_ticket_lifetime(conn, &min_lifetime));
         EXPECT_EQUAL(min_lifetime, conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS);        
 
-        /* Test: Both session state and decrypt key have longer lifetimes than a week */
+        /** Test: Both session state and decrypt key have longer lifetimes than a week
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+         *= type=test
+         *# Servers MUST NOT use any value greater than
+         *# 604800 seconds (7 days).
+         **/
         /* Note: We turn these integer literals into uint64_t values because otherwise
          * they will be interpreted as uint32_t values and an faulty integer overflow error
          * will be thrown. */

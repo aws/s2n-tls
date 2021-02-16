@@ -76,6 +76,12 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     return 0;
 }
 
+/** 
+ *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+ *# Indicates the lifetime in seconds as a 32-bit
+ *# unsigned integer in network byte order from the time of ticket
+ *# issuance. 
+ **/
 static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint32_t *ticket_lifetime) 
 {
     ENSURE_REF(conn);
@@ -94,6 +100,11 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
     return S2N_RESULT_OK;
 }
 
+/** 
+ *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+ *# A per-ticket value that is unique across all tickets
+ *# issued on this connection.
+ **/
 static S2N_RESULT s2n_generate_ticket_nonce(uint16_t value, struct s2n_blob *output)
 {
     ENSURE_MUT(output);
@@ -105,6 +116,12 @@ static S2N_RESULT s2n_generate_ticket_nonce(uint16_t value, struct s2n_blob *out
     return S2N_RESULT_OK;
 }
 
+/** 
+ *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+ *# A securely generated, random 32-bit value that is
+ *# used to obscure the age of the ticket that the client includes in
+ *# the "pre_shared_key" extension.
+ **/
 static S2N_RESULT s2n_generate_ticket_age_add(struct s2n_blob *random_data, uint32_t *ticket_age_add)
 {
     ENSURE_REF(random_data);
@@ -151,8 +168,8 @@ int s2n_tls13_server_nst_send(struct s2n_connection *conn)
     struct s2n_blob nonce = { 0 };
     GUARD(s2n_blob_init(&nonce, nonce_data, sizeof(nonce_data)));
     GUARD_AS_POSIX(s2n_generate_ticket_nonce(conn->tickets_sent, &nonce));
-    GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, sizeof(nonce_data)));
-    GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, nonce.data, sizeof(nonce_data)));
+    GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, nonce.size));
+    GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, nonce.data, nonce.size));
 
     /* Derive individual session ticket secret */
     s2n_tls13_connection_keys(secrets, conn);
@@ -171,6 +188,7 @@ int s2n_tls13_server_nst_send(struct s2n_connection *conn)
     GUARD(s2n_encrypt_session_ticket(conn, &ticket_fields, &session_ticket));
 
     /* Write session ticket */
+    ENSURE_POSIX(s2n_stuffer_data_available(&session_ticket) <= UINT8_MAX, S2N_ERR_SAFETY);
     GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, s2n_stuffer_data_available(&session_ticket)));
     GUARD(s2n_stuffer_write(&conn->handshake.io, &session_ticket.blob));
 
