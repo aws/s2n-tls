@@ -18,6 +18,8 @@
 #include <s2n.h>
 
 #include "crypto/s2n_hmac.h"
+#include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_early_data.h"
 #include "utils/s2n_array.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"
@@ -40,6 +42,7 @@ struct s2n_psk {
     s2n_hmac_algorithm hmac_alg;
     uint32_t obfuscated_ticket_age;
     struct s2n_blob early_secret;
+    struct s2n_early_data_config early_data_config;
 };
 S2N_RESULT s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type);
 S2N_CLEANUP_RESULT s2n_psk_wipe(struct s2n_psk *psk);
