@@ -49,7 +49,7 @@ int s2n_server_nst_recv(struct s2n_connection *conn) {
 int s2n_server_nst_send(struct s2n_connection *conn)
 {
     uint16_t session_ticket_len = S2N_TLS12_TICKET_SIZE_IN_BYTES;
-    uint8_t data[S2N_TLS12_TICKET_SIZE_IN_BYTES];
+    uint8_t data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
     struct s2n_blob entry = { .data = data, .size = sizeof(data) };
     struct s2n_stuffer to;
     uint32_t lifetime_hint_in_secs = (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
@@ -76,13 +76,31 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     return 0;
 }
 
+static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint32_t *ticket_lifetime) 
+{
+    ENSURE_REF(conn);
+    ENSURE_MUT(ticket_lifetime);
+
+    uint32_t key_lifetime_in_secs = conn->config->decrypt_key_lifetime_in_nanos / ONE_SEC_IN_NANOS;
+    uint32_t session_lifetime_in_secs = conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS;
+    uint32_t key_and_session_min_lifetime = MIN(key_lifetime_in_secs, session_lifetime_in_secs);
+    /** 
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+     *# Servers MUST NOT use any value greater than
+     *# 604800 seconds (7 days).
+     **/
+    *ticket_lifetime = MIN(key_and_session_min_lifetime, ONE_WEEK_IN_SEC);
+
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_generate_ticket_nonce(uint16_t value, struct s2n_blob *output)
 {
     ENSURE_MUT(output);
-    ENSURE(output->size >= sizeof(uint16_t), S2N_ERR_SAFETY);
 
-    output->data[0] = (value >> 8) & 0xff;
-    output->data[1] = value & 0xff;
+    struct s2n_stuffer stuffer = { 0 };
+    GUARD_AS_RESULT(s2n_stuffer_init(&stuffer, output));
+    GUARD_AS_RESULT(s2n_stuffer_write_uint16(&stuffer, value));
 
     return S2N_RESULT_OK;
 }
@@ -90,10 +108,12 @@ static S2N_RESULT s2n_generate_ticket_nonce(uint16_t value, struct s2n_blob *out
 static S2N_RESULT s2n_generate_ticket_age_add(struct s2n_blob *random_data, uint32_t *ticket_age_add)
 {
     ENSURE_REF(random_data);
-    ENSURE_MUT(ticket_age_add);
-    ENSURE(random_data->size >= sizeof(uint32_t), S2N_ERR_SAFETY);
+    ENSURE_REF(ticket_age_add);
 
-    *ticket_age_add = random_data->data[3] | (random_data->data[2] << 8) | (random_data->data[1] << 16) | (random_data->data[0] << 24 );
+    struct s2n_stuffer stuffer = { 0 };
+    GUARD_AS_RESULT(s2n_stuffer_init(&stuffer, random_data));
+    GUARD_AS_RESULT(s2n_stuffer_skip_write(&stuffer, random_data->size));
+    GUARD_AS_RESULT(s2n_stuffer_read_uint32(&stuffer, ticket_age_add));
 
     return S2N_RESULT_OK;
 }
@@ -108,9 +128,8 @@ int s2n_tls13_server_nst_send(struct s2n_connection *conn)
     struct s2n_stuffer_reservation message_size = { 0 };
     GUARD(s2n_stuffer_reserve_uint24(&conn->handshake.io, &message_size));
 
-    /* Ticket lifetime is the minimum of the decrypt key lifetime and the session state lifetime */
-    uint64_t ticket_lifetime_in_nanos = MIN(conn->config->decrypt_key_lifetime_in_nanos, conn->config->session_state_lifetime_in_nanos);
-    uint32_t ticket_lifetime_in_secs = ticket_lifetime_in_nanos / ONE_SEC_IN_NANOS;
+    uint32_t ticket_lifetime_in_secs = 0;
+    GUARD_AS_POSIX(s2n_generate_ticket_lifetime(conn, &ticket_lifetime_in_secs));
     GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, ticket_lifetime_in_secs));
 
     /* Get random data to use as ticket_age_add value */
@@ -118,6 +137,11 @@ int s2n_tls13_server_nst_send(struct s2n_connection *conn)
     uint8_t data[sizeof(uint32_t)] = { 0 };
     struct s2n_blob random_data = { 0 };
     GUARD(s2n_blob_init(&random_data, data, sizeof(data)));
+    /** 
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+     *#  The server MUST generate a fresh value
+     *#  for each ticket it sends.
+     **/
     GUARD_AS_POSIX(s2n_get_private_random_data(&random_data));
     GUARD_AS_POSIX(s2n_generate_ticket_age_add(&random_data, &ticket_fields.ticket_age_add));
     GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, ticket_fields.ticket_age_add));
@@ -132,12 +156,11 @@ int s2n_tls13_server_nst_send(struct s2n_connection *conn)
 
     /* Derive individual session ticket secret */
     s2n_tls13_connection_keys(secrets, conn);
-    s2n_stack_blob(ticket_secret, secrets.size, S2N_TLS13_SECRET_MAX_LEN);
     struct s2n_blob master_secret = { 0 };
     GUARD(s2n_blob_init(&master_secret, conn->resumption_master_secret, sizeof(conn->resumption_master_secret)));
-    GUARD_AS_POSIX(s2n_tls13_derive_session_ticket_secret(&secrets, &master_secret, &nonce, &ticket_secret));
-
-    ticket_fields.session_secret = ticket_secret;
+    uint8_t session_secret_data[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
+    GUARD(s2n_blob_init(&ticket_fields.session_secret, session_secret_data, secrets.size));
+    GUARD_AS_POSIX(s2n_tls13_derive_session_ticket_secret(&secrets, &master_secret, &nonce, &ticket_fields.session_secret));
 
     /* Create ticket */
     uint8_t ticket_data[S2N_MAX_TICKET_SIZE_IN_BYTES] = { 0 };
@@ -145,12 +168,10 @@ int s2n_tls13_server_nst_send(struct s2n_connection *conn)
     struct s2n_stuffer session_ticket = { 0 };
     GUARD(s2n_blob_init(&ticket_blob, ticket_data, sizeof(ticket_data)));
     GUARD(s2n_stuffer_init(&session_ticket, &ticket_blob));
-
     GUARD(s2n_encrypt_session_ticket(conn, &ticket_fields, &session_ticket));
 
-    /* Write session ticket length */
+    /* Write session ticket */
     GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, s2n_stuffer_data_available(&session_ticket)));
-
     GUARD(s2n_stuffer_write(&conn->handshake.io, &session_ticket.blob));
 
     /* Write size of new session ticket extensions */
@@ -158,9 +179,8 @@ int s2n_tls13_server_nst_send(struct s2n_connection *conn)
 
     GUARD(s2n_stuffer_write_vector_size(&message_size));
 
-    uint32_t tickets_sent = conn->tickets_sent + 1;
-    ENSURE_POSIX(tickets_sent <= UINT16_MAX, S2N_ERR_INTEGER_OVERFLOW);
-    conn->tickets_sent = tickets_sent;
+    ENSURE_POSIX(conn->tickets_sent < UINT16_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    conn->tickets_sent++;
 
     return S2N_SUCCESS;
 }
