@@ -148,6 +148,14 @@ try_compile(
         COMPILE_DEFINITIONS "-Werror"
 )
 
+# Determine if __restrict__ is available
+try_compile(
+        __RESTRICT__SUPPORTED
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/__restrict__.c"
+        COMPILE_DEFINITIONS "-Werror"
+)
+
 if(APPLE)
     set(OS_LIBS c Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
@@ -227,6 +235,10 @@ endif()
 
 if (FALL_THROUGH_SUPPORTED)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_FALL_THROUGH_SUPPORTED)
+endif()
+
+if (__RESTRICT__SUPPORTED)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N___RESTRICT__SUPPORTED)
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
