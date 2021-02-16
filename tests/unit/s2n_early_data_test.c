@@ -33,7 +33,7 @@ typedef struct {
  * every valid transition, we call this method again recursively. The recursion ends when we either
  * reach the end of a valid state sequence or encounter an invalid state sequence.
  */
-static S2N_RESULT s2n_test_all_early_data_sequences(struct s2n_connection *conn, size_t index,
+static S2N_RESULT s2n_test_all_early_data_sequences(struct s2n_connection *conn, size_t i,
         const s2n_early_state_sequence *valid_early_state_sequences, size_t valid_early_state_sequences_len)
 {
     s2n_early_data_state current_state = conn->early_data_state;
@@ -43,18 +43,18 @@ static S2N_RESULT s2n_test_all_early_data_sequences(struct s2n_connection *conn,
         bool actual_valid = s2n_result_is_ok(s2n_connection_set_early_data_state(conn, next_state));
         bool expected_valid = false;
 
-        size_t next_index = index + 1;
+        size_t next_i = i + 1;
         for (size_t j = 0; j < valid_early_state_sequences_len; j++) {
-            if (next_index < valid_early_state_sequences[j].len) {
-                expected_valid |= (valid_early_state_sequences[j].states[index] == current_state)
-                        && (valid_early_state_sequences[j].states[next_index] == next_state);
+            if (next_i < valid_early_state_sequences[j].len) {
+                expected_valid |= (valid_early_state_sequences[j].states[i] == current_state)
+                        && (valid_early_state_sequences[j].states[next_i] == next_state);
             }
         }
 
         ENSURE_EQ(actual_valid, expected_valid);
 
         if (expected_valid) {
-            GUARD_RESULT(s2n_test_all_early_data_sequences(conn, index + 1,
+            GUARD_RESULT(s2n_test_all_early_data_sequences(conn, i + 1,
                     valid_early_state_sequences, valid_early_state_sequences_len));
         }
     }
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
             {
                 const s2n_early_data_state invalid_seq[] = {
                         S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_ACCEPTED, S2N_END_OF_EARLY_DATA };
-                const s2n_early_state_sequence valid_early_state_sequences[] = {
+                const s2n_early_state_sequence test_early_state_sequences[] = {
                         { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
                         { .states = early_data_rejected_seq, .len = s2n_array_len(early_data_rejected_seq) },
                         { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
@@ -160,13 +160,13 @@ int main(int argc, char **argv)
                 struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
                 EXPECT_NOT_NULL(conn);
                 EXPECT_ERROR(s2n_test_all_early_data_sequences(conn, 0,
-                        valid_early_state_sequences, s2n_array_len(valid_early_state_sequences)));
+                        test_early_state_sequences, s2n_array_len(test_early_state_sequences)));
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
 
             /* Sanity check: removing one of the expected sequences causes test to fail */
             {
-                const s2n_early_state_sequence valid_early_state_sequences[] = {
+                const s2n_early_state_sequence test_early_state_sequences[] = {
                         { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
                         { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
                 };
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
                 struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
                 EXPECT_NOT_NULL(conn);
                 EXPECT_ERROR(s2n_test_all_early_data_sequences(conn, 0,
-                        valid_early_state_sequences, s2n_array_len(valid_early_state_sequences)));
+                        test_early_state_sequences, s2n_array_len(test_early_state_sequences)));
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
         }
