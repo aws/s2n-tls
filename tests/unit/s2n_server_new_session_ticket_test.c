@@ -230,7 +230,7 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
             uint32_t output = 0;
             struct s2n_blob blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&blob, test_cases[i].value, sizeof(sizeof(test_cases[i].value))));
+            EXPECT_SUCCESS(s2n_blob_init(&blob, test_cases[i].value, sizeof(test_cases[i].value)));
             EXPECT_OK(s2n_generate_ticket_age_add(&blob, &output));
 
             EXPECT_EQUAL(output, test_cases[i].expected_output);
