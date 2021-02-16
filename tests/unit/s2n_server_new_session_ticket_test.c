@@ -21,6 +21,9 @@
 
 #define ONE_HOUR_IN_NANOS   3600000000000
 #define TWO_HOURS_IN_NANOS  ONE_HOUR_IN_NANOS * 2
+#define TICKET_AGE_ADD_MARKER sizeof(uint8_t)  + /* message id  */ \
+                              SIZEOF_UINT24    + /* message len */ \
+                              sizeof(uint32_t)   /* ticket lifetime */
 
 int main(int argc, char **argv)
 {
@@ -142,6 +145,55 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_server_nst_send(conn), S2N_ERR_INTEGER_OVERFLOW);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
+        /** ticket_age_add values do not repeat after sending multiple new session tickets
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+         *= type=test
+         *#  The server MUST generate a fresh value
+         *#  for each ticket it sends.
+         **/
+        {
+            struct s2n_config *config;
+            uint64_t current_time;
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_NOT_NULL(config = s2n_config_new());
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+
+            /* Set up encryption key */
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
+            EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
+            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *)ticket_key_name),
+                         ticket_key.data, sizeof(ticket_key), current_time/ONE_SEC_IN_NANOS));
+
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            /* Set up master resumption secret */
+            struct s2n_blob secret = { 0 };
+            struct s2n_stuffer secret_stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&secret, conn->secure.master_secret, S2N_TLS_SECRET_LEN));
+            EXPECT_SUCCESS(s2n_stuffer_init(&secret_stuffer, &secret));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
+
+            EXPECT_SUCCESS(s2n_tls13_server_nst_send(conn));
+
+            uint32_t original_ticket_age_add = 0;
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&conn->handshake.io, TICKET_AGE_ADD_MARKER));
+            EXPECT_SUCCESS(s2n_stuffer_read_uint32(&conn->handshake.io, &original_ticket_age_add));
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->handshake.io));
+            EXPECT_SUCCESS(s2n_tls13_server_nst_send(conn));
+
+            uint32_t new_ticket_age_add = 0;
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&conn->handshake.io, TICKET_AGE_ADD_MARKER));
+            EXPECT_SUCCESS(s2n_stuffer_read_uint32(&conn->handshake.io, &new_ticket_age_add));
+
+            EXPECT_NOT_EQUAL(original_ticket_age_add, new_ticket_age_add);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
