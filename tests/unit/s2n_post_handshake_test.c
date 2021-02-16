@@ -89,6 +89,18 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn)); 
         }
+
+        /* post_handshake_recv will error when protocol version is not TLS1.3 */ 
+        {   
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            conn->actual_protocol_version = S2N_TLS12;
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn)); 
+        }
     }
 
     /* post_handshake_send */
