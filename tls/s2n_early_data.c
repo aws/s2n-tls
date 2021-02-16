@@ -15,9 +15,28 @@
 
 #include "tls/s2n_early_data.h"
 
+#include "tls/s2n_connection.h"
 #include "tls/s2n_psk.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
+
+const s2n_early_data_state valid_previous_states[] = {
+        [S2N_EARLY_DATA_REQUESTED]      = S2N_UNKNOWN_EARLY_DATA_STATE,
+        [S2N_EARLY_DATA_NOT_REQUESTED]  = S2N_UNKNOWN_EARLY_DATA_STATE,
+        [S2N_EARLY_DATA_REJECTED]       = S2N_EARLY_DATA_REQUESTED,
+        [S2N_EARLY_DATA_ACCEPTED]       = S2N_EARLY_DATA_REQUESTED,
+        [S2N_END_OF_EARLY_DATA]         = S2N_EARLY_DATA_ACCEPTED,
+};
+
+S2N_RESULT s2n_connection_set_early_data_state(struct s2n_connection *conn, s2n_early_data_state next_state)
+{
+    ENSURE_REF(conn);
+    ENSURE(next_state < S2N_EARLY_DATA_STATES_COUNT, S2N_ERR_INVALID_EARLY_DATA_STATE);
+    ENSURE(next_state != S2N_UNKNOWN_EARLY_DATA_STATE, S2N_ERR_INVALID_EARLY_DATA_STATE);
+    ENSURE(conn->early_data_state == valid_previous_states[next_state], S2N_ERR_INVALID_EARLY_DATA_STATE);
+    conn->early_data_state = next_state;
+    return S2N_RESULT_OK;
+}
 
 S2N_CLEANUP_RESULT s2n_early_data_config_free(struct s2n_early_data_config *config)
 {

@@ -20,6 +20,47 @@
 
 #define TEST_SIZE 10
 
+typedef struct {
+    const s2n_early_data_state *states;
+    size_t len;
+} s2n_early_state_sequence;
+
+/* We want to verify that applying s2n_connection_set_early_data_state to the current state
+ * can only produce valid state sequences.
+ *
+ * We check every possible next state and verify that the only transitions that
+ * s2n_connection_set_early_data_state allows are those in the valid state sequences. Then, for
+ * every valid transition, we call this method again recursively. The recursion ends when we either
+ * reach the end of a valid state sequence or encounter an invalid state sequence.
+ */
+static S2N_RESULT s2n_test_all_early_data_sequences(struct s2n_connection *conn, size_t i,
+        const s2n_early_state_sequence *valid_early_state_sequences, size_t valid_early_state_sequences_len)
+{
+    s2n_early_data_state current_state = conn->early_data_state;
+    for (s2n_early_data_state next_state = 0; next_state < S2N_EARLY_DATA_STATES_COUNT; next_state++) {
+        conn->early_data_state = current_state;
+
+        bool actual_valid = s2n_result_is_ok(s2n_connection_set_early_data_state(conn, next_state));
+        bool expected_valid = false;
+
+        size_t next_i = i + 1;
+        for (size_t j = 0; j < valid_early_state_sequences_len; j++) {
+            if (next_i < valid_early_state_sequences[j].len) {
+                expected_valid |= (valid_early_state_sequences[j].states[i] == current_state)
+                        && (valid_early_state_sequences[j].states[next_i] == next_state);
+            }
+        }
+
+        ENSURE_EQ(actual_valid, expected_valid);
+
+        if (expected_valid) {
+            GUARD_RESULT(s2n_test_all_early_data_sequences(conn, i + 1,
+                    valid_early_state_sequences, valid_early_state_sequences_len));
+        }
+    }
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_alloc_test_config_buffers(struct s2n_early_data_config *config)
 {
     GUARD_AS_RESULT(s2n_alloc(&config->application_protocol, TEST_SIZE));
@@ -43,6 +84,101 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     const uint8_t test_value[] = "test value";
     const uint8_t test_value_2[] = "more test data";
+
+    /* Test s2n_connection_set_early_data_state */
+    {
+        /* Safety check */
+        EXPECT_ERROR_WITH_ERRNO(s2n_connection_set_early_data_state(NULL, 0), S2N_ERR_NULL);
+
+        const s2n_early_data_state early_data_not_requested_seq[] = {
+                S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_NOT_REQUESTED };
+        const s2n_early_data_state early_data_rejected_seq[] = {
+                S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_REQUESTED, S2N_EARLY_DATA_REJECTED };
+        const s2n_early_data_state early_data_success_seq[] = {
+                S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_REQUESTED, S2N_EARLY_DATA_ACCEPTED, S2N_END_OF_EARLY_DATA };
+
+        /* Test known valid / invalid transitions */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+
+            conn->early_data_state = 0;
+            EXPECT_ERROR_WITH_ERRNO(s2n_connection_set_early_data_state(conn, S2N_UNKNOWN_EARLY_DATA_STATE),
+                    S2N_ERR_INVALID_EARLY_DATA_STATE);
+
+            conn->early_data_state = 0;
+            EXPECT_ERROR_WITH_ERRNO(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_STATES_COUNT),
+                    S2N_ERR_INVALID_EARLY_DATA_STATE);
+
+            conn->early_data_state = 0;
+            EXPECT_ERROR_WITH_ERRNO(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_STATES_COUNT + 1),
+                    S2N_ERR_INVALID_EARLY_DATA_STATE);
+
+            conn->early_data_state = 0;
+            EXPECT_OK(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REQUESTED));
+
+            conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+            EXPECT_OK(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REJECTED));
+
+            conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+            EXPECT_ERROR_WITH_ERRNO(s2n_connection_set_early_data_state(conn, S2N_END_OF_EARLY_DATA),
+                    S2N_ERR_INVALID_EARLY_DATA_STATE);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Test that only the expected sequences of states are possible.
+         * Given every possible sequence of early data states, test that s2n_connection_set_early_data_state
+         * can only be used to iterate through the known valid sequences. */
+        {
+            /* Test with the correct expected sequences */
+            {
+                const s2n_early_state_sequence valid_early_state_sequences[] = {
+                        { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
+                        { .states = early_data_rejected_seq, .len = s2n_array_len(early_data_rejected_seq) },
+                        { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
+                };
+
+                struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_OK(s2n_test_all_early_data_sequences(conn, 0,
+                        valid_early_state_sequences, s2n_array_len(valid_early_state_sequences)));
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+
+            /* Sanity check: adding an invalid expected sequence causes test to fail */
+            {
+                const s2n_early_data_state invalid_seq[] = {
+                        S2N_UNKNOWN_EARLY_DATA_STATE, S2N_EARLY_DATA_ACCEPTED, S2N_END_OF_EARLY_DATA };
+                const s2n_early_state_sequence test_early_state_sequences[] = {
+                        { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
+                        { .states = early_data_rejected_seq, .len = s2n_array_len(early_data_rejected_seq) },
+                        { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
+                        { .states = invalid_seq, .len = s2n_array_len(invalid_seq) },
+                };
+
+                struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_ERROR(s2n_test_all_early_data_sequences(conn, 0,
+                        test_early_state_sequences, s2n_array_len(test_early_state_sequences)));
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+
+            /* Sanity check: removing one of the expected sequences causes test to fail */
+            {
+                const s2n_early_state_sequence test_early_state_sequences[] = {
+                        { .states = early_data_not_requested_seq, .len = s2n_array_len(early_data_not_requested_seq) },
+                        { .states = early_data_success_seq, .len = s2n_array_len(early_data_success_seq) },
+                };
+
+                struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_ERROR(s2n_test_all_early_data_sequences(conn, 0,
+                        test_early_state_sequences, s2n_array_len(test_early_state_sequences)));
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+        }
+    }
 
     /* Test s2n_early_data_config_free */
     {
