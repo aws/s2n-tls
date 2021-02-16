@@ -178,6 +178,12 @@ ifeq ($(TRY_COMPILE_FALL_THROUGH), 0)
 	DEFAULT_CFLAGS += -DS2N_FALL_THROUGH_SUPPORTED
 endif
 
+# Determine if __restrict__ is available
+TRY_COMPILE__RESTRICT__ := $(call try_compile,$(S2N_ROOT)/tests/features/__restrict__.c)
+ifeq ($(TRY_COMPILE__RESTRICT__), 0)
+	DEFAULT_CFLAGS += -DS2N___RESTRICT__SUPPORTED
+endif
+
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1
 
 $(BITCODE_DIR)%.bc: %.c

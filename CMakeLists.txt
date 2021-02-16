@@ -148,6 +148,14 @@ try_compile(
         COMPILE_DEFINITIONS "-Werror"
 )
 
+# Determine if __restrict__ is available
+try_compile(
+        __RESTRICT__SUPPORTED
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/__restrict__.c"
+        COMPILE_DEFINITIONS "-Werror"
+)
+
 if(APPLE)
     set(OS_LIBS c Threads::Threads)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
@@ -229,6 +237,10 @@ if (FALL_THROUGH_SUPPORTED)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_FALL_THROUGH_SUPPORTED)
 endif()
 
+if (__RESTRICT__SUPPORTED)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N___RESTRICT__SUPPORTED)
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
 
 find_package(LibCrypto REQUIRED)
@@ -293,7 +305,29 @@ if (BUILD_TESTING)
     target_include_directories(s2nd PRIVATE $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
     target_include_directories(s2nd PRIVATE api)
     target_compile_options(s2nd PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)
+
+    if(BENCHMARK)
+        find_package(benchmark REQUIRED)
+        file(GLOB BENCHMARK_SRC "tests/benchmark/*.cc")
+        enable_language(CXX)
+        foreach(benchmark ${BENCHMARK_SRC})
+            string(REGEX REPLACE ".+\\/(.+)\\.cc" "\\1" benchmark_name ${benchmark})
+            add_executable(${benchmark_name} ${benchmark})
+            target_include_directories(${benchmark_name} PRIVATE api)
+            target_include_directories(${benchmark_name} PRIVATE tests)
+            target_link_libraries(${benchmark_name} PUBLIC ${PROJECT_NAME} testss2n benchmark::benchmark)
+
+            # Based off the flags in tests/benchmark/Makefile
+            target_compile_options(${benchmark_name} PRIVATE -pedantic -Wall -Werror -Wunused -Wcomment -Wchar-subscripts
+                    -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations
+                    -Wno-unknown-pragmas -Wformat-security -Wno-missing-braces -fvisibility=hidden -Wno-unreachable-code
+                    -Wno-unused-but-set-variable)
+        endforeach(benchmark)
+
+    endif()
 endif()
+
+
 
 #install the s2n files
 install(FILES ${API_HEADERS} DESTINATION "include/" COMPONENT Development)
