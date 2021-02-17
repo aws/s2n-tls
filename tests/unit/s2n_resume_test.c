@@ -188,7 +188,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
             conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
 
-            uint8_t data[S2N_TICKET_SIZE_IN_BYTES] = { 0 };
+            uint8_t data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
             struct s2n_blob blob = { 0 };
             struct s2n_stuffer output = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&blob, data, sizeof(data)));

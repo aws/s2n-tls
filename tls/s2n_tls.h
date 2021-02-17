@@ -57,6 +57,7 @@ extern int s2n_tls13_cert_verify_recv(struct s2n_connection *conn);
 extern int s2n_tls13_cert_verify_send(struct s2n_connection *conn);
 extern int s2n_server_nst_send(struct s2n_connection *conn);
 extern int s2n_server_nst_recv(struct s2n_connection *conn);
+extern int s2n_tls13_server_nst_send(struct s2n_connection *conn);
 extern int s2n_ccs_send(struct s2n_connection *conn);
 extern int s2n_basic_ccs_recv(struct s2n_connection *conn);
 extern int s2n_server_ccs_recv(struct s2n_connection *conn);

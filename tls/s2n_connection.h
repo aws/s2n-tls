@@ -305,7 +305,7 @@ struct s2n_connection {
     uint32_t ticket_lifetime_hint;
 
     /* Session ticket extension from client to attempt to decrypt as the server. */
-    uint8_t ticket_ext_data[S2N_TICKET_SIZE_IN_BYTES];
+    uint8_t ticket_ext_data[S2N_TLS12_TICKET_SIZE_IN_BYTES];
     struct s2n_stuffer client_ticket_to_decrypt;
 
     uint8_t resumption_master_secret[S2N_TLS13_SECRET_MAX_LEN];
@@ -334,6 +334,7 @@ struct s2n_connection {
     bool recv_in_use;
     
     uint16_t tickets_to_send;
+    uint16_t tickets_sent;
 
     s2n_early_data_state early_data_state;
 };
