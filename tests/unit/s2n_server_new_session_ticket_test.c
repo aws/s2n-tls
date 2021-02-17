@@ -37,8 +37,8 @@ int main(int argc, char **argv)
          *#        90b6c73bb50f9c3122ec844ad7c2b3e5 (32 octets)
          **/
         S2N_BLOB_FROM_HEX(ticket_key,
-        "4ecd0eb6ec3b4d87f5d6028f922ca4"
-        "c5851a277fd41311c9e62d2c9492e1c4f3");
+        "077709362c2e32df0ddc3f0dc47bba63"
+        "90b6c73bb50f9c3122ec844ad7c2b3e5");
         uint8_t ticket_key_name[16] = "2016.07.26.15\0";
 
         /**
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer secret_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&secret, conn->secure.master_secret, S2N_TLS_SECRET_LEN));
             EXPECT_SUCCESS(s2n_stuffer_init(&secret_stuffer, &secret));
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, test_master_secret.size));
             
             EXPECT_SUCCESS(s2n_tls13_server_nst_send(conn));
 
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer secret_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&secret, conn->secure.master_secret, S2N_TLS_SECRET_LEN));
             EXPECT_SUCCESS(s2n_stuffer_init(&secret_stuffer, &secret));
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, test_master_secret.size));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_server_nst_send(conn), S2N_ERR_INTEGER_OVERFLOW);
 
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer secret_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&secret, conn->secure.master_secret, S2N_TLS_SECRET_LEN));
             EXPECT_SUCCESS(s2n_stuffer_init(&secret_stuffer, &secret));
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, test_master_secret.size));
 
             EXPECT_SUCCESS(s2n_tls13_server_nst_send(conn));
 
