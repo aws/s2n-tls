@@ -115,6 +115,48 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(psk.secret.data, TEST_VALUE_2, sizeof(TEST_VALUE_2));
     }
 
+    /* Test s2n_psk_clone */
+    {
+        const uint8_t test_bad_value[] = "wrong";
+        const uint8_t test_identity[] = "identity";
+        const uint8_t test_secret[] = "secret";
+        const s2n_hmac_algorithm test_hmac = S2N_HMAC_SHA384;
+        const uint32_t test_early_data = 10;
+
+        struct s2n_psk *original = s2n_external_psk_new();
+        EXPECT_NOT_NULL(original);
+        EXPECT_SUCCESS(s2n_psk_set_identity(original, test_identity, sizeof(test_identity)));
+        EXPECT_SUCCESS(s2n_psk_set_secret(original, test_secret, sizeof(test_secret)));
+        EXPECT_SUCCESS(s2n_alloc(&original->early_secret, sizeof(test_bad_value)));
+        EXPECT_MEMCPY_SUCCESS(original->early_secret.data, test_bad_value, original->early_secret.size);
+        original->hmac_alg = test_hmac;
+        original->early_data_config.max_early_data_size = test_early_data;
+
+        DEFER_CLEANUP(struct s2n_psk *clone = s2n_external_psk_new(), s2n_psk_free);
+        EXPECT_SUCCESS(s2n_psk_set_identity(clone, test_bad_value, sizeof(test_bad_value)));
+        EXPECT_NOT_NULL(clone);
+
+        EXPECT_OK(s2n_psk_clone(clone, original));
+
+        /* Free the original to ensure they share no memory */
+        EXPECT_SUCCESS(s2n_psk_free(&original));
+
+        /* existing identity is replaced by original's identity */
+        EXPECT_EQUAL(clone->identity.size, sizeof(test_identity));
+        EXPECT_BYTEARRAY_EQUAL(clone->identity.data, test_identity, sizeof(test_identity));
+
+        /* new secret is allocated for original's secret */
+        EXPECT_EQUAL(clone->secret.size, sizeof(test_secret));
+        EXPECT_BYTEARRAY_EQUAL(clone->secret.data, test_secret, sizeof(test_secret));
+
+        /* early secret is ignored */
+        EXPECT_EQUAL(clone->early_secret.size, 0);
+
+        /* other values are copied */
+        EXPECT_EQUAL(clone->hmac_alg, test_hmac);
+        EXPECT_EQUAL(clone->early_data_config.max_early_data_size, test_early_data);
+    }
+
     /* Test s2n_psk_wipe */
     {
         const uint8_t test_value[] = TEST_VALUE_1;

@@ -312,5 +312,41 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(psk->early_data_config.context.allocated, 0);
     }
 
+    /* Test s2n_early_data_config_clone */
+    {
+        const uint8_t test_bad_value[] = "wrong";
+        const uint8_t test_apln[] = "protocol";
+        const uint8_t test_context[] = "context";
+        const uint32_t test_max_early_data = 10;
+        const uint8_t test_iana[] = { 0xab, 0x12 };
+
+        struct s2n_psk *original = s2n_external_psk_new();
+        EXPECT_NOT_NULL(original);
+        EXPECT_SUCCESS(s2n_psk_configure_early_data(original, test_max_early_data, test_iana[0], test_iana[1]));
+        EXPECT_SUCCESS(s2n_psk_set_application_protocol(original, test_apln, sizeof(test_apln)));
+        EXPECT_SUCCESS(s2n_psk_set_context(original, test_context, sizeof(test_context)));
+
+        DEFER_CLEANUP(struct s2n_psk *clone = s2n_external_psk_new(), s2n_psk_free);
+        EXPECT_SUCCESS(s2n_psk_set_application_protocol(clone, test_bad_value, sizeof(test_bad_value)));
+        EXPECT_NOT_NULL(clone);
+
+        EXPECT_OK(s2n_early_data_config_clone(clone, &original->early_data_config));
+
+        /* Free the original to ensure they share no memory */
+        EXPECT_SUCCESS(s2n_psk_free(&original));
+
+        /* existing alpn is replaced by original's alpn */
+        EXPECT_EQUAL(clone->early_data_config.application_protocol.size, sizeof(test_apln));
+        EXPECT_BYTEARRAY_EQUAL(clone->early_data_config.application_protocol.data, test_apln, sizeof(test_apln));
+
+        /* new context is allocated for original's context */
+        EXPECT_EQUAL(clone->early_data_config.context.size, sizeof(test_context));
+        EXPECT_BYTEARRAY_EQUAL(clone->early_data_config.context.data, test_context, sizeof(test_context));
+
+        /* other values are copied */
+        EXPECT_EQUAL(clone->early_data_config.max_early_data_size, test_max_early_data);
+        EXPECT_BYTEARRAY_EQUAL(clone->early_data_config.cipher_suite_iana, test_iana, 2);
+    }
+
     END_TEST();
 }

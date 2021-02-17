@@ -46,6 +46,7 @@ struct s2n_psk {
 };
 S2N_RESULT s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type);
 S2N_CLEANUP_RESULT s2n_psk_wipe(struct s2n_psk *psk);
+S2N_RESULT s2n_psk_clone(struct s2n_psk *new_psk, struct s2n_psk *original_psk);
 
 struct s2n_psk_parameters {
     struct s2n_array psk_list;

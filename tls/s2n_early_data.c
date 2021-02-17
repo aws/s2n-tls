@@ -82,3 +82,19 @@ int s2n_psk_set_context(struct s2n_psk *psk, const uint8_t *context, uint16_t si
     memcpy_check(context_blob->data, context, size);
     return S2N_SUCCESS;
 }
+
+S2N_RESULT s2n_early_data_config_clone(struct s2n_psk *new_psk, struct s2n_early_data_config *old_config)
+{
+    ENSURE_REF(old_config);
+
+    GUARD_AS_RESULT(s2n_psk_configure_early_data(new_psk, old_config->max_early_data_size,
+            old_config->cipher_suite_iana[0], old_config->cipher_suite_iana[1]));
+
+    GUARD_AS_RESULT(s2n_psk_set_application_protocol(new_psk, old_config->application_protocol.data,
+            old_config->application_protocol.size));
+
+    GUARD_AS_RESULT(s2n_psk_set_context(new_psk, old_config->context.data,
+            old_config->context.size));
+
+    return S2N_RESULT_OK;
+}

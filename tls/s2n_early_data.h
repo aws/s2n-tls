@@ -21,6 +21,8 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_result.h"
 
+struct s2n_psk;
+
 typedef enum {
     S2N_UNKNOWN_EARLY_DATA_STATE = 0,
     S2N_EARLY_DATA_REQUESTED,
@@ -41,10 +43,10 @@ struct s2n_early_data_config {
     struct s2n_blob context;
 };
 S2N_CLEANUP_RESULT s2n_early_data_config_free(struct s2n_early_data_config *config);
+S2N_RESULT s2n_early_data_config_clone(struct s2n_psk *new_psk, struct s2n_early_data_config *old_config);
 
 /* Public Interface -- will be made visible and moved to s2n.h when the 0RTT feature is released */
 
-struct s2n_psk;
 int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data_size,
         uint8_t cipher_suite_first_byte, uint8_t cipher_suite_second_byte);
 int s2n_psk_set_application_protocol(struct s2n_psk *psk, const uint8_t *application_protocol, uint8_t size);
