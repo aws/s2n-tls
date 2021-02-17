@@ -65,7 +65,7 @@ struct s2n_offered_psk {
 struct s2n_offered_psk_list {
     struct s2n_stuffer wire_data;
 };
-S2N_RESULT s2n_offered_psk_list_get_index(struct s2n_offered_psk_list *list, uint16_t index,
+S2N_RESULT s2n_offered_psk_list_get_index(struct s2n_offered_psk_list *list, uint16_t psk_index,
         struct s2n_offered_psk *offered_psk);
 
 S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn);
