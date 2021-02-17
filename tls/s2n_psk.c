@@ -73,6 +73,32 @@ int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secr
     return S2N_SUCCESS;
 }
 
+S2N_RESULT s2n_psk_clone(struct s2n_psk *new_psk, struct s2n_psk *original_psk)
+{
+    if (original_psk == NULL) {
+        return S2N_RESULT_OK;
+    }
+    ENSURE_REF(new_psk);
+
+    struct s2n_psk psk_copy = *new_psk;
+
+    /* Copy all fields from the old_config EXCEPT the blobs, which we need to reallocate. */
+    *new_psk = *original_psk;
+    new_psk->identity = psk_copy.identity;
+    new_psk->secret = psk_copy.secret;
+    new_psk->early_secret = psk_copy.early_secret;
+    new_psk->early_data_config = psk_copy.early_data_config;
+
+    /* Clone / realloc blobs */
+    GUARD_AS_RESULT(s2n_psk_set_identity(new_psk, original_psk->identity.data, original_psk->identity.size));
+    GUARD_AS_RESULT(s2n_psk_set_secret(new_psk, original_psk->secret.data, original_psk->secret.size));
+    GUARD_AS_RESULT(s2n_realloc(&new_psk->early_secret, original_psk->early_secret.size));
+    CHECKED_MEMCPY(new_psk->early_secret.data, original_psk->early_secret.data, original_psk->early_secret.size);
+    GUARD_RESULT(s2n_early_data_config_clone(new_psk, &original_psk->early_data_config));
+
+    return S2N_RESULT_OK;
+}
+
 S2N_CLEANUP_RESULT s2n_psk_wipe(struct s2n_psk *psk)
 {
     if (psk == NULL) {
@@ -474,15 +500,9 @@ int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *input
     }
 
     DEFER_CLEANUP(struct s2n_psk new_psk = { 0 }, s2n_psk_wipe);
-    ENSURE_POSIX(s2n_result_is_ok(s2n_psk_init(&new_psk, S2N_PSK_TYPE_EXTERNAL)), S2N_ERR_INVALID_ARGUMENT);
-    ENSURE_POSIX(s2n_psk_set_identity(&new_psk, input_psk->identity.data, input_psk->identity.size) == S2N_SUCCESS,
-            S2N_ERR_INVALID_ARGUMENT);
-    ENSURE_POSIX(s2n_psk_set_secret(&new_psk, input_psk->secret.data, input_psk->secret.size) == S2N_SUCCESS,
-            S2N_ERR_INVALID_ARGUMENT);
-    new_psk.hmac_alg = input_psk->hmac_alg;
-
+    ENSURE_POSIX(s2n_result_is_ok(s2n_psk_clone(&new_psk, input_psk)), S2N_ERR_INVALID_ARGUMENT);
     GUARD_AS_POSIX(s2n_array_insert_and_copy(psk_list, psk_list->len, &new_psk));
-    ZERO_TO_DISABLE_DEFER_CLEANUP(new_psk);
 
+    ZERO_TO_DISABLE_DEFER_CLEANUP(new_psk);
     return S2N_SUCCESS;
 }

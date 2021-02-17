@@ -1074,6 +1074,33 @@ int s2n_cipher_suites_cleanup(void)
     return 0;
 }
 
+S2N_RESULT s2n_iana_to_cipher_suite(const uint8_t iana[], struct s2n_cipher_suite **cipher_suite)
+{
+    ENSURE_REF(cipher_suite);
+    *cipher_suite = NULL;
+    ENSURE_REF(iana);
+
+    int low = 0;
+    int top = s2n_array_len(s2n_all_cipher_suites) - 1;
+
+    /* Perform a textbook binary search */
+    while (low <= top) {
+        /* Check in the middle */
+        size_t mid = low + ((top - low) / 2);
+        int m = memcmp(s2n_all_cipher_suites[mid]->iana_value, iana, S2N_TLS_CIPHER_SUITE_LEN);
+
+        if (m == 0) {
+            *cipher_suite = s2n_all_cipher_suites[mid];
+            return S2N_RESULT_OK;
+        } else if (m > 0) {
+            top = mid - 1;
+        } else if (m < 0) {
+            low = mid + 1;
+        }
+    }
+    return S2N_RESULT_OK;
+}
+
 int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN])
 {
     notnull_check(conn);
