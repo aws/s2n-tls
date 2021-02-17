@@ -199,7 +199,7 @@ int s2n_offered_psk_list_reset(struct s2n_offered_psk_list *psk_list)
     return s2n_stuffer_reread(&psk_list->wire_data);
 }
 
-S2N_RESULT s2n_offered_psk_list_get_index(struct s2n_offered_psk_list *psk_list, uint16_t index, struct s2n_offered_psk *psk)
+S2N_RESULT s2n_offered_psk_list_get_index(struct s2n_offered_psk_list *psk_list, uint16_t psk_index, struct s2n_offered_psk *psk)
 {
     ENSURE_REF(psk_list);
     ENSURE_MUT(psk);
@@ -209,7 +209,7 @@ S2N_RESULT s2n_offered_psk_list_get_index(struct s2n_offered_psk_list *psk_list,
     GUARD_AS_RESULT(s2n_offered_psk_list_reset(&psk_list_copy));
 
     uint16_t count = 0;
-    while(count <= index) {
+    while(count <= psk_index) {
         GUARD_AS_RESULT(s2n_offered_psk_list_next(&psk_list_copy, psk));
         count++;
     }
