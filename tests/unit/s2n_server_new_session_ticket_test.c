@@ -31,14 +31,24 @@ int main(int argc, char **argv)
     
     /* s2n_tls13_server_nst_send */
     {
-        /* Session ticket keys. Taken from test vectors in https://tools.ietf.org/html/rfc5869 */
-            uint8_t ticket_key_name[16] = "2016.07.26.15\0";
-            S2N_BLOB_FROM_HEX(ticket_key, 
-            "077709362c2e32df0ddc3f0dc47bba6390b6c73bb50f9c3122ec844ad7c2b3e5");
+        /**
+         *= https://tools.ietf.org/rfc/rfc5869#appendix-A.1
+         *# PRK  = 0x077709362c2e32df0ddc3f0dc47bba63
+         *#        90b6c73bb50f9c3122ec844ad7c2b3e5 (32 octets)
+         **/
+        S2N_BLOB_FROM_HEX(ticket_key,
+        "4ecd0eb6ec3b4d87f5d6028f922ca4"
+        "c5851a277fd41311c9e62d2c9492e1c4f3");
+        uint8_t ticket_key_name[16] = "2016.07.26.15\0";
 
-            S2N_BLOB_FROM_HEX(test_master_secret,
-            "ee85dd54781bd4d8a100589a9fe6ac9a3797b811e977f549cd"
-            "531be2441d7c63e2b9729d145c11d84af35957727565a4");
+        /**
+         *= https://tools.ietf.org/rfc/rfc8448#section-3
+         *# secret (32 octets):  18 df 06 84 3d 13 a0 8b f2 a4 49 84 4c 5f 8a
+         *# 47 80 01 bc 4d 4c 62 79 84 d5 a4 1d a8 d0 40 29 19
+         **/
+        S2N_BLOB_FROM_HEX(test_master_secret,
+        "18df06843d13a08bf2a449844c5f8a"
+        "478001bc4d4c627984d5a41da8d0402919");
 
         /* Check session ticket message is correctly written. The contents of the 
          * message will be tested more thoroughly once the s2n_tls13_server_nst_recv 
@@ -62,7 +72,7 @@ int main(int argc, char **argv)
             
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            /* Set up master resumption secret */
+            /* Set up master secret */
             struct s2n_blob secret = { 0 };
             struct s2n_stuffer secret_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&secret, conn->secure.master_secret, S2N_TLS_SECRET_LEN));
@@ -137,7 +147,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            /* Set up master resumption secret */
+            /* Set up master secret */
             struct s2n_blob secret = { 0 };
             struct s2n_stuffer secret_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&secret, conn->secure.master_secret, S2N_TLS_SECRET_LEN));
@@ -173,7 +183,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            /* Set up master resumption secret */
+            /* Set up master secret */
             struct s2n_blob secret = { 0 };
             struct s2n_stuffer secret_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&secret, conn->secure.master_secret, S2N_TLS_SECRET_LEN));
