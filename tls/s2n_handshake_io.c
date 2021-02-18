@@ -620,7 +620,7 @@ bool s2n_is_hello_retry_message(struct s2n_connection *conn)
 
 bool s2n_is_hello_retry_handshake(struct s2n_connection *conn)
 {
-    return conn->handshake.handshake_type & HELLO_RETRY_REQUEST;
+    return conn && (conn->handshake.handshake_type & HELLO_RETRY_REQUEST);
 }
 
 static S2N_RESULT s2n_conn_set_tls13_handshake_type(struct s2n_connection *conn) {

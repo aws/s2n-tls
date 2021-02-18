@@ -93,6 +93,29 @@ int main(int argc, char **argv)
         0x00, 0x00, 0x00, 0x00, /* ticket_age */
     };
 
+    /* Test: s2n_client_psk_is_missing */
+    {
+        struct s2n_connection *conn;
+        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+        /* Okay if early data not requested */
+        conn->early_data_state = S2N_EARLY_DATA_NOT_REQUESTED;
+        EXPECT_SUCCESS(s2n_client_psk_extension.if_missing(conn));
+
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+         *= type=test
+         *# When a PSK is used and early data is allowed for that PSK, the client
+         *# can send Application Data in its first flight of messages.  If the
+         *# client opts to do so, it MUST supply both the "pre_shared_key" and
+         *# "early_data" extensions.
+         */
+        conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_client_psk_extension.if_missing(conn), S2N_ERR_UNSUPPORTED_EXTENSION);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
     /* Test: s2n_client_psk_should_send */
     {
         struct s2n_psk *psk = NULL;
