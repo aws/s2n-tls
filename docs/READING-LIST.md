@@ -1,4 +1,4 @@
-# Useful Reading list for s2n
+# Useful Reading list for s2n-tls
 
 
 ## Books

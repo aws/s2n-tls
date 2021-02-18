@@ -1,16 +1,16 @@
-# Using s2n
+# Using s2n-tls
 
-s2n is a C library, and is built using Make. To clone the latest
-copy of s2n from git use:
+s2n-tls is a C library, and is built using Make. To clone the latest
+copy of s2n-tls from git use:
 
 ```shell
 git clone https://github.com/aws/s2n-tls.git
-cd s2n
+cd s2n-tls
 ```
 
-## Building s2n with existing libcrypto
+## Building s2n-tls with existing libcrypto
 ### make Instructions
-To build s2n with an existing libcrypto installation, store its root folder in the
+To build s2n-tls with an existing libcrypto installation, store its root folder in the
 `LIBCRYPTO_ROOT` environment variable.
 ```shell
 # /usr/local/ssl/lib should contain libcrypto.a
@@ -28,7 +28,7 @@ the default installation on your machine will be used.
 
 (Optional): Set the CMake variable `BUILD_SHARED_LIBS=ON` to build shared libraries. The default is static.
  
-We recommend an out-of-source build. Suppose you have a directory `s2n` which contains the s2n source code. At the same level
+We recommend an out-of-source build. Suppose you have a directory `s2n` which contains the s2n-tls source code. At the same level
 we can create a directory called `s2n-build`
 
 For example, we can build and install shared libs using ninja as our build system, and the system libcrypto implementation.
@@ -36,7 +36,7 @@ For example, we can build and install shared libs using ninja as our build syste
 ````shell
 mkdir s2n-build
 cd s2n-build
-cmake ../s2n -DBUILD_SHARED_LIBS=ON -GNinja
+cmake ../s2n-tls -DBUILD_SHARED_LIBS=ON -GNinja
 ninja
 ninja test 
 sudo ninja install
@@ -47,7 +47,7 @@ For another example, we can prepare an Xcode project using static libs using a l
 ````shell
 mkdir s2n-build
 cd s2n-build
-cmake ../s2n -DCMAKE_INSTALL_PREFIX=$HOME/s2n-user/builds/libcrypto-impl -G "Xcode"
+cmake ../s2n-tls -DCMAKE_INSTALL_PREFIX=$HOME/s2n-user/builds/libcrypto-impl -G "Xcode"
 # now open the project in Xcode and build from there, or use the Xcode CLI
 ````
 
@@ -56,14 +56,14 @@ Or, for unix style vanilla builds:
 ````shell
 mkdir s2n-build
 cd s2n-build
-cmake ../s2n
+cmake ../s2n-build
 make
 make test
 sudo make install
 ````
 
-### Consuming s2n via. CMake
-s2n ships with modern CMake finder scripts if CMake is used for the build. To take advantage of this from your CMake script, all you need to do to compile and link against s2n in your project is:
+### Consuming s2n-tls via. CMake
+s2n-tls ships with modern CMake finder scripts if CMake is used for the build. To take advantage of this from your CMake script, all you need to do to compile and link against s2n-tls in your project is:
 
 ````shell
 find_package(s2n)
@@ -74,12 +74,12 @@ target_link_libraries(yourExecutableOrLibrary AWS::s2n)
 ````
 
 And when invoking CMake for your project, do one of two things:
- 1. Set the `CMAKE_INSTALL_PREFIX` variable with the path to your s2n build.
+ 1. Set the `CMAKE_INSTALL_PREFIX` variable with the path to your s2n-tls build.
  2. If you have globally installed s2n, do nothing, it will automatically be found.
  
-## Building s2n with OpenSSL-1.1.1
+## Building s2n-tls with OpenSSL-1.1.1
 
-To build s2n with OpenSSL-1.1.1, do the following:
+To build s2n-tls with OpenSSL-1.1.1, do the following:
 
 ```shell
 # We keep the build artifacts in the -build directory
@@ -100,7 +100,7 @@ cd `tar ztf openssl-1.1.1-latest.tar.gz | head -n1 | cut -f1 -d/`
 make
 make install
 
-# Build s2n
+# Build s2n-tls
 cd ../../
 make
 ```
@@ -115,9 +115,9 @@ setarch i386 ./config -fPIC no-shared     \
         --prefix=`pwd`/../../libcrypto-root/
 ```
 
-## Building s2n with OpenSSL-1.0.2
+## Building s2n-tls with OpenSSL-1.0.2
 
-To build s2n with OpenSSL-1.0.2, do the following:
+To build s2n-tls with OpenSSL-1.0.2, do the following:
 
 ```shell
 # We keep the build artifacts in the -build directory
@@ -139,16 +139,16 @@ make depend
 make
 make install
 
-# Build s2n
+# Build s2n-tls
 cd ../../
 make
 ```
 
 **Mac Users:** please replace "./config" with "./Configure darwin64-x86_64-cc".
 
-## Building s2n with LibreSSL
+## Building s2n-tls with LibreSSL
 
-To build s2n with LibreSSL, do the following:
+To build s2n-tls with LibreSSL, do the following:
 
 ```shell
 # We keep the build artifacts in the -build directory
@@ -163,17 +163,17 @@ cd libressl-x.y.z
 ./configure --prefix=`pwd`/../../libcrypto-root/
 make CFLAGS=-fPIC install
 
-# Build s2n
+# Build s2n-tls
 cd ../../
 make
 ```
 
-once built, static and dynamic libraries for s2n will be available in the lib/
+once built, static and dynamic libraries for s2n-tls will be available in the lib/
 directory.
 
-## Building s2n with BoringSSL
+## Building s2n-tls with BoringSSL
 
-To build s2n with BoringSSL, you must check out a copy of the BoringSSL
+To build s2n-tls with BoringSSL, you must check out a copy of the BoringSSL
 directly via git. This procedure has been tested with
 fb68d6c901b98ffe15b8890d00bc819bf44c5f01 of BoringSSL.
 
@@ -196,18 +196,18 @@ mkdir ../../../libcrypto-root/lib/
 cp crypto/libcrypto.a ../../../libcrypto-root/lib/
 cp -r ../include/ ../../../libcrypto-root/include
 
-# Build s2n
+# Build s2n-tls
 cd ../../../
 make
 ```
 
-once built, static and dynamic libraries for s2n will be available in the lib/
+once built, static and dynamic libraries for s2n-tls will be available in the lib/
 directory.
 
 ## mlock() and system limits 
 
-Internally s2n uses mlock() to prevent memory from being swapped to disk. The
-s2n build tests may fail in some environments where the default limit on locked
+Internally s2n-tls uses mlock() to prevent memory from being swapped to disk. The
+s2n-tls build tests may fail in some environments where the default limit on locked
 memory is too low. To check this limit, run:
 
 ```shell
@@ -217,23 +217,23 @@ ulimit -l
 to raise the limit, consult the documentation for your platform.
 
 ### Disabling mlock()
-To disable s2n's mlock behavior, run your application with the `S2N_DONT_MLOCK` environment variable set. 
-s2n also reads this for unit tests. Try `S2N_DONT_MLOCK=1 make` if you're having mlock failures during unit tests.
+To disable s2n-tls's mlock behavior, run your application with the `S2N_DONT_MLOCK` environment variable set. 
+s2n-tls also reads this for unit tests. Try `S2N_DONT_MLOCK=1 make` if you're having mlock failures during unit tests.
 
-# s2n API
+# s2n-tls API
 
-The API exposed by s2n is the set of functions and declarations that
+The API exposed by s2n-tls is the set of functions and declarations that
 are in the "s2n.h" header file. Any functions and declarations that are in the "s2n.h" file
-are intended to be stable (API and ABI) within major version numbers of s2n releases. Other functions 
-and structures used in s2n internally can not be considered stable and their parameters, names, and 
+are intended to be stable (API and ABI) within major version numbers of s2n-tls releases. Other functions 
+and structures used in s2n-tls internally can not be considered stable and their parameters, names, and 
 sizes may change.
 
-At this time (Summer 2015), there has been no numbered release of s2n and all APIs are subject to change based
+At this time (Summer 2015), there has been no numbered release of s2n-tls and all APIs are subject to change based
 on the feedback and preferences of early adopters.
 
 ## Preprocessor macros
 
-s2n defines five preprocessor macros that are used to determine what 
+s2n-tls defines five preprocessor macros that are used to determine what 
 version of SSL/TLS is in use on a connection. 
 
 ```c
@@ -245,12 +245,12 @@ version of SSL/TLS is in use on a connection.
 ```
 
 These correspond to SSL2.0, SSL3.0, TLS1.0, TLS1.1 and TLS1.2 respectively.
-Note that s2n does not support SSL2.0 for sending and receiving encrypted data,
+Note that s2n-tls does not support SSL2.0 for sending and receiving encrypted data,
 but does accept SSL2.0 hello messages.
 
 ## Enums
 
-s2n defines the following enum types:
+s2n-tls defines the following enum types:
 
 ### s2n_error_type
 
@@ -267,7 +267,7 @@ typedef enum {
 } s2n_error_type;
 ```
 
-***s2n_error_type*** is used to help applications determine why an s2n function failed.
+***s2n_error_type*** is used to help applications determine why an s2n-tls function failed.
 This enum is optimized for use in C switch statements. Each value in the enum represents
 an error "category". See [Error Handling](#error-handling) for more detail.
 
@@ -286,8 +286,8 @@ typedef enum { S2N_NOT_BLOCKED, S2N_BLOCKED_ON_READ, S2N_BLOCKED_ON_WRITE } s2n_
 ```
 
 **s2n_blocked_status** is used in non-blocking mode to indicate in which
-direction s2n became blocked on I/O before it returned control to the caller.
-This allows an application to avoid retrying s2n operations until I/O is 
+direction s2n-tls became blocked on I/O before it returned control to the caller.
+This allows an application to avoid retrying s2n-tls operations until I/O is 
 possible in that direction.
 
 ### s2n_blinding
@@ -296,9 +296,9 @@ possible in that direction.
 typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
 ```
 
-**s2n_blinding** is used to opt-out of s2n's built-in blinding. Blinding is a
+**s2n_blinding** is used to opt-out of s2n-tls's built-in blinding. Blinding is a
 mitigation against timing side-channels which in some cases can leak information
-about encrypted data. By default s2n will cause a thread to sleep between 10 and 
+about encrypted data. By default s2n-tls will cause a thread to sleep between 10 and 
 30 seconds whenever tampering is detected. 
 
 Setting the **S2N_SELF_SERVICE_BLINDING** option with **s2n_connection_set_blinding**
@@ -324,13 +324,13 @@ supported status request type is OCSP, **S2N_STATUS_REQUEST_OCSP**.
 typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_OPTIONAL } s2n_cert_auth_type;
 ```
 **s2n_cert_auth_type** is used to declare what type of client certificiate authentication to use.
-Currently the default for s2n is for neither the server side or the client side to use Client (aka Mutual) authentication.
+Currently the default for s2n-tls is for neither the server side or the client side to use Client (aka Mutual) authentication.
 
 ## Opaque structures
 
-s2n defines several opaque structures that are used for managed objects. Because
+s2n-tls defines several opaque structures that are used for managed objects. Because
 these structures are opaque, they can only be safely referenced indirectly through
-pointers and their sizes may change with future versions of s2n.
+pointers and their sizes may change with future versions of s2n-tls.
 
 ```c
 struct s2n_config;
@@ -347,7 +347,7 @@ struct s2n_rsa_public_key;
 struct s2n_cert_public_key;
 ```
 
-**s2n_rsa_public_key** and **s2n_cert_public_key** can be used by consumers of s2n to get and set public keys through other API calls.
+**s2n_rsa_public_key** and **s2n_cert_public_key** can be used by consumers of s2n-tls to get and set public keys through other API calls.
 
 
 ## Error handling
@@ -358,14 +358,14 @@ const char *s2n_strerror_debug(int error, const char *lang);
 const char *s2n_strerror_name(int error);
 ````
 
-s2n functions that return 'int' return 0 to indicate success and -1 to indicate
-failure. s2n functions that return pointer types return NULL in the case of
-failure. When an s2n function returns a failure, s2n_errno will be set to a value
+s2n-tls functions that return 'int' return 0 to indicate success and -1 to indicate
+failure. s2n-tls functions that return pointer types return NULL in the case of
+failure. When an s2n-tls function returns a failure, s2n_errno will be set to a value
 corresponding to the error. This error value can be translated into a string
 explaining the error in English by calling s2n_strerror(s2n_errno, "EN").
 A string containing human readable error name, can be generated with `s2n_strerror_name`.
 A string containing internal debug information, including filename and line number, can be generated with `s2n_strerror_debug`.
-This string is useful to include when reporting issues to the s2n development team.
+This string is useful to include when reporting issues to the s2n-tls development team.
 
 Example:
 
@@ -378,11 +378,11 @@ if (s2n_config_set_cipher_preferences(config, prefs) < 0) {
 
 **NOTE**: To avoid possible confusion, s2n_errno should be cleared after processing an error: `s2n_errno = S2N_ERR_T_OK`
 
-When using s2n outside of `C`, the address of the thread-local `s2n_errno` may be obtained by calling the `int *s2n_errno_location()` function.
-This will ensure that the same TLS mechanisms are used with which s2n was compiled.
+When using s2n-tls outside of `C`, the address of the thread-local `s2n_errno` may be obtained by calling the `int *s2n_errno_location()` function.
+This will ensure that the same TLS mechanisms are used with which s2n-tls was compiled.
 
 ### Stacktraces
-s2n has an mechanism to capture stacktraces when errors occur.
+s2n-tls has an mechanism to capture stacktraces when errors occur.
 This mechanism is off by default, but can be enabled in code by calling `s2n_stack_traces_enabled_set()`.
 It can be enabled globally by setting the environment variable `S2N_PRINT_STACKTRACE=1`.
 Note that enabling stacktraces this can significantly slow down unit tests, and can cause failures on unit-tests (such as `s2n_cbc_verify`) that measure the timing of events.
@@ -399,7 +399,7 @@ int s2n_get_stacktrace(char*** trace, int* trace_size);
 
 ### Error categories
 
-s2n organizes errors into different "types" to allow applications to do logic on error values without catching all possibilities. 
+s2n-tls organizes errors into different "types" to allow applications to do logic on error values without catching all possibilities. 
 Applications using non-blocking I/O should check error type to determine if the I/O operation failed because it would block or for some other error. To retrieve the type for a given error use `s2n_error_get_type()`.
 Applications should perform any error handling logic using these high level types:
 
@@ -410,7 +410,7 @@ S2N_ERR_T_CLOSED, /* EOF */
 S2N_ERR_T_BLOCKED, /* Underlying I/O operation would block */
 S2N_ERR_T_ALERT, /* Incoming Alert */
 S2N_ERR_T_PROTO, /* Failure in some part of the TLS protocol. Ex: CBC verification failure */
-S2N_ERR_T_INTERNAL, /* Error internal to s2n. A precondition could have failed. */
+S2N_ERR_T_INTERNAL, /* Error internal to s2n-tls. A precondition could have failed. */
 S2N_ERR_T_USAGE /* User input error. Ex: Providing an invalid cipher preference version */
 ```
 
@@ -451,8 +451,8 @@ if (s2n_recv(conn, &blocked) < 0) {
 unsigned long s2n_get_openssl_version();
 ```
 
-**s2n_get_openssl_version** returns the version number of OpenSSL that s2n was compiled with. It can be used by 
-applications to validate at runtime that the versions of s2n and Openssl that they have loaded are correct.
+**s2n_get_openssl_version** returns the version number of OpenSSL that s2n-tls was compiled with. It can be used by 
+applications to validate at runtime that the versions of s2n-tls and Openssl that they have loaded are correct.
 
 
 ### s2n\_init
@@ -461,9 +461,9 @@ applications to validate at runtime that the versions of s2n and Openssl that th
 int s2n_init();
 ```
 
-**s2n_init** initializes the s2n library and should be called once in your application,
-before any other s2n functions are called. Failure to call s2n_init() will result
-in errors from other s2n functions.
+**s2n_init** initializes the s2n-tls library and should be called once in your application,
+before any other s2n-tls functions are called. Failure to call s2n_init() will result
+in errors from other s2n-tls functions.
 
 ### s2n\_cleanup
 
@@ -471,9 +471,9 @@ in errors from other s2n functions.
 int s2n_cleanup();
 ```
 
-**s2n_cleanup** cleans up any internal resources used by s2n. This function should be
+**s2n_cleanup** cleans up any internal resources used by s2n-tls. This function should be
 called from each thread or process that is created subsequent to calling **s2n_init**
-when that thread or process is done calling other s2n functions.
+when that thread or process is done calling other s2n-tls functions.
 
 ## Configuration-oriented functions
 
@@ -529,15 +529,15 @@ The following chart maps the security policy version to protocol version and cip
 |   "20190802"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
 |   "20200207"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |       |
 
-The "default" and "default_tls13" version is special in that it will be updated with future s2n changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change. 
+The "default" and "default_tls13" version is special in that it will be updated with future s2n-tls changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change. 
 
-"20160411" follows the same general preference order as "default". The main difference is it has a CBC cipher suite at the top. This is to accommodate certain Java clients that have poor GCM implementations. Users of s2n who have found GCM to be hurting performance for their clients should consider this version.
+"20160411" follows the same general preference order as "default". The main difference is it has a CBC cipher suite at the top. This is to accommodate certain Java clients that have poor GCM implementations. Users of s2n-tls who have found GCM to be hurting performance for their clients should consider this version.
 
-"20170405" is a FIPS compliant cipher suite preference list based on approved algorithms in the [FIPS 140-2 Annex A](http://csrc.nist.gov/publications/fips/fips140-2/fips1402annexa.pdf). Similarly to "20160411", this preference list has CBC cipher suites at the top to accommodate certain Java clients. Users of s2n who plan to enable FIPS mode should consider this version.
+"20170405" is a FIPS compliant cipher suite preference list based on approved algorithms in the [FIPS 140-2 Annex A](http://csrc.nist.gov/publications/fips/fips140-2/fips1402annexa.pdf). Similarly to "20160411", this preference list has CBC cipher suites at the top to accommodate certain Java clients. Users of s2n-tls who plan to enable FIPS mode should consider this version.
 
-s2n does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n follows the following order:
+s2n-tls does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n-tls follows the following order:
 
-*NOTE*: All ChaCha20-Poly1305 cipher suites will not be available if s2n is not built with an Openssl 1.1.1 libcrypto. The
+*NOTE*: All ChaCha20-Poly1305 cipher suites will not be available if s2n-tls is not built with an Openssl 1.1.1 libcrypto. The
 underlying encrypt/decrypt functions are not available in older versions.
 
 1. Always prefer the highest protocol version supported
@@ -637,14 +637,14 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
 
 **s2n_config_set_cert_chain_and_key_defaults** explicitly sets certificate chain and private key pairs to be used as defaults for each auth method (key type). A "default" certificate is used when there is not an SNI match with any other configured certificate. Only one certificate can be set as the default per auth method (one RSA default, one ECDSA default, etc.). All previous default certificates will be cleared and re-set when this API is called. This API is called for a specific **s2n_config** object.
 
-S2N will attempt to automatically choose default certificates for each auth method (key type) based on the order that **s2n_cert_chain_and_key** are added to the **s2n_config** using one of the APIs listed above. **s2n_config_set_cert_chain_and_key_defaults** can be called at any time; s2n will clear defaults and no longer attempt to automatically choose any default certificates.
+S2N will attempt to automatically choose default certificates for each auth method (key type) based on the order that **s2n_cert_chain_and_key** are added to the **s2n_config** using one of the APIs listed above. **s2n_config_set_cert_chain_and_key_defaults** can be called at any time; s2n-tls will clear defaults and no longer attempt to automatically choose any default certificates.
 
 ### s2n\_cert\_tiebreak\_callback
 ```c
 typedef struct s2n_cert_chain_and_key* (*s2n_cert_tiebreak_callback) (struct s2n_cert_chain_and_key *cert1, struct s2n_cert_chain_and_key *cert2, uint8_t *name, uint32_t name_len);
 ```
 
-**s2n_cert_tiebreak_callback** is invoked if s2n cannot resolve a conflict between two certificates with the same domain name. This function is invoked while certificates are added to an **s2n_config**.
+**s2n_cert_tiebreak_callback** is invoked if s2n-tls cannot resolve a conflict between two certificates with the same domain name. This function is invoked while certificates are added to an **s2n_config**.
 Currently, the only builtin resolution for domain name conflicts is certificate type(RSA, ECDSA, etc).
 The callback should return a pointer to the **s2n_cert_chain_and_key** that should be used for dns name **name**. If NULL is returned, the first certificate will be used.
 Typically an application will use properties like trust and expiry to implement tiebreaking.
@@ -843,14 +843,14 @@ that will be called after ClientHello was parsed.
 typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
 ```
 
-The callback function take as an input s2n connection, which received
+The callback function take as an input s2n-tls connection, which received
 ClientHello and context provided in **s2n_config_set_client_hello_cb**. The
 callback can get any ClientHello information from the connection and use
 **s2n_connection_set_config** call to change the config of the connection.
 
 If any of the properties of the connection were changed based on server_name
 extension the callback must return 1, otherwise the callback can return 0
-to continue handshake in s2n or it can return negative value to make s2n
+to continue handshake in s2n-tls or it can return negative value to make s2n-tls
 terminate handshake early with fatal handshake failure alert.
 
 ### s2n\_config\_set\_alert\_behavior
@@ -858,8 +858,8 @@ terminate handshake early with fatal handshake failure alert.
 int s2n_config_set_alert_behavior(struct s2n_config *config, s2n_alert_behavior alert_behavior);
 ```
 Sets whether or not a connection should terminate on receiving a WARNING alert from its peer. `alert_behavior` can take the following values:
-- `S2N_ALERT_FAIL_ON_WARNINGS` - default behavior: s2n will terminate the connection if its peer sends a WARNING alert.
-- `S2N_ALERT_IGNORE_WARNINGS` - with the exception of `close_notify` s2n will ignore all WARNING alerts and keep communicating with its peer.
+- `S2N_ALERT_FAIL_ON_WARNINGS` - default behavior: s2n-tls will terminate the connection if its peer sends a WARNING alert.
+- `S2N_ALERT_IGNORE_WARNINGS` - with the exception of `close_notify` s2n-tls will ignore all WARNING alerts and keep communicating with its peer.
 
 This setting is ignored in TLS1.3. TLS1.3 terminates a connection for all alerts except user_canceled.
 
@@ -923,7 +923,7 @@ Client Auth Related API's are not recommended for normal users. Use of these API
 
 1. Using these API's requires users to: Complete full x509 parsing and hostname validation in the application layer
 2. Application knowledge of TLS code points for certificate types
-3. Application dependency on libcrypto to give a libcrypto RSA struct back to s2n
+3. Application dependency on libcrypto to give a libcrypto RSA struct back to s2n-tls
 
 ### s2n\_config\_set\_client\_auth\_type and s2n\_connection\_set\_client\_auth\_type
 ```c
@@ -946,7 +946,7 @@ set the public keys found in the Certificate into **public_key_out**.
 
 ## Session Caching related calls
 
-s2n includes support for resuming from cached SSL/TLS session, provided 
+s2n-tls includes support for resuming from cached SSL/TLS session, provided 
 the caller sets (and implements) three callback functions.
 
 ### s2n\_config\_set\_cache\_store\_callback
@@ -1008,7 +1008,7 @@ int s2n_config_send_max_fragment_length(struct s2n_config *config, uint8_t mfl_c
 
 **s2n_config_send_max_fragment_length** allows the caller to set a TLS Maximum
 Fragment Length extension that will be used to fragment outgoing messages.
-s2n currently does not reject fragments larger than the configured maximum when
+s2n-tls currently does not reject fragments larger than the configured maximum when
 in server mode. The TLS negotiated maximum fragment length overrides the preference set
 by the **s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**.
 
@@ -1030,7 +1030,7 @@ request and continue TLS handshake with default maximum fragment length of 8k by
 struct s2n_connection * s2n_connection_new(s2n_mode mode);
 ```
 
-**s2n_connection_new** creates a new connection object. Each s2n SSL/TLS
+**s2n_connection_new** creates a new connection object. Each s2n-tls SSL/TLS
 connection uses one of these objects. These connection objects can be operated
 on by up to two threads at a time, one sender and one receiver, but neither
 sending nor receiving are atomic, so if these objects are being called by
@@ -1081,8 +1081,8 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn,
                                 int writefd);
 ```
 
-**s2n_connection_set_fd** sets the file-descriptor for an s2n connection. This
-file-descriptor should be active and connected. s2n also supports setting the
+**s2n_connection_set_fd** sets the file-descriptor for an s2n-tls connection. This
+file-descriptor should be active and connected. s2n-tls also supports setting the
 read and write file-descriptors to different values (for pipes or other unusual
 types of I/O).
 
@@ -1147,7 +1147,7 @@ name the client is using.
 int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blinding);
 ```
 
-**s2n_connection_set_blinding** can be used to configure s2n to either use
+**s2n_connection_set_blinding** can be used to configure s2n-tls to either use
 built-in blinding (set blinding to S2N_BUILT_IN_BLINDING) or self-service blinding
 (set blinding to S2N_SELF_SERVICE_BLINDING). 
 
@@ -1169,7 +1169,7 @@ int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uin
 ```
 
 **s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**
-change the behavior of s2n when sending data to prefer either throughput
+change the behavior of s2n-tls when sending data to prefer either throughput
 or low latency. Connections prefering low latency will be encrypted using small
 record sizes that can be decrypted sooner by the recipient. Connections
 prefering throughput will use large record sizes that minimize overhead.
@@ -1189,7 +1189,7 @@ uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);
 ```
 
 **s2n_connection_get_wire_bytes_in** and **s2n_connection_get_wire_bytes_out**
-return the number of bytes transmitted by s2n "on the wire", in and out
+return the number of bytes transmitted by s2n-tls "on the wire", in and out
 respectively. 
 
 ### s2n\_connection\_get\_protocol\_version
@@ -1205,7 +1205,7 @@ int s2n_connection_get_actual_protocol_version(struct s2n_connection *conn);
 number supported by the client, **s2n_connection_get_server_protocol_version**
 returns the protocol version number supported by the server and
 **s2n_connection_get_actual_protocol_version** returns the protocol version
-number actually used by s2n for the connection. **s2n_connection_get_client_hello_version**
+number actually used by s2n-tls for the connection. **s2n_connection_get_client_hello_version**
 returns the protocol version used to send the initial client hello message.
 
 Each version number value corresponds to the macros defined as **S2N_SSLv2**,
@@ -1351,7 +1351,7 @@ int s2n_connection_get_alert(struct s2n_connection *conn);
 ```
 
 If a connection was shut down by the peer, **s2n_connection_get_alert** returns
-the TLS alert code that caused a connection to be shut down. s2n considers all
+the TLS alert code that caused a connection to be shut down. s2n-tls considers all
 TLS alerts fatal and shuts down a connection whenever one is received.
 
 ### s2n\_connection\_get\_cipher
@@ -1361,7 +1361,7 @@ const char * s2n_connection_get_cipher(struct s2n_connection *conn);
 ```
 
 **s2n_connection_get_cipher** returns a string indicating the cipher suite
-negotiated by s2n for a connection in Openssl format, e.g. "ECDHE-RSA-AES128-GCM-SHA256".
+negotiated by s2n-tls for a connection in Openssl format, e.g. "ECDHE-RSA-AES128-GCM-SHA256".
 
 ### s2n\_connection\_get\_curve
 
@@ -1382,7 +1382,7 @@ Return the certificate that was used during the TLS handshake.
 - If **conn** is a server connection, the certificate selected will depend on the
   ServerName sent by the client and supported ciphers.
 - If **conn** is a client connection, the certificate sent in response to a CertificateRequest
-  message is returned. Currently s2n supports loading only one certificate in client mode. Note that
+  message is returned. Currently s2n-tls supports loading only one certificate in client mode. Note that
   not all TLS endpoints will request a certificate.
 
 This function returns NULL if the certificate selection phase of the handshake has not completed
@@ -1451,7 +1451,7 @@ this will allow for gradual and linear transition of a key from encrypt-decrypt 
 
 ### Asynchronous private key operations related calls
 
-When s2n is used in non-blocking mode, this set of functions allows user
+When s2n-tls is used in non-blocking mode, this set of functions allows user
 to move execution of CPU-heavy private key operations out of the main
 event loop, preventing **s2n_negotiate** blocking the loop for a few
 milliseconds each time the private key operation needs to be performed.
@@ -1566,15 +1566,15 @@ of sensitive data.
 
 ## I/O functions
 
-s2n supports both blocking and non-blocking I/O. To use s2n in non-blocking
+s2n-tls supports both blocking and non-blocking I/O. To use s2n-tls in non-blocking
 mode, set the underlying file descriptors as non-blocking (i.e. with
-**fcntl**). In blocking mode, each s2n I/O function will not return until it is
-complete. In non-blocking mode an s2n I/O function may return while there is
+**fcntl**). In blocking mode, each s2n-tls I/O function will not return until it is
+complete. In non-blocking mode an s2n-tls I/O function may return while there is
 still I/O pending. In this case the value of the **blocked** parameter will be set
 to either **S2N_BLOCKED_ON_READ** or **S2N_BLOCKED_ON_WRITE**, depending on the
-direction in which s2n is blocked.
+direction in which s2n-tls is blocked.
 
-s2n I/O functions should be called repeatedly until the **blocked** parameter is
+s2n-tls I/O functions should be called repeatedly until the **blocked** parameter is
 **S2N_NOT_BLOCKED**. 
 
 ### s2n\_negotiate
@@ -1698,7 +1698,7 @@ int s2n_connection_set_recv_ctx(struct s2n_connection *conn, void *ctx);
 int s2n_connection_set_send_ctx(struct s2n_connection *conn, void *ctx);
 ```
 
-s2n also provides an I/O abstraction layer in the event the application would
+s2n-tls also provides an I/O abstraction layer in the event the application would
 like to keep control over I/O operations. **s2n_connection_set_recv_cb** and
 **s2n_connection_set_send_cb** may be used to send or receive data with callbacks
 defined by the user. These may be blocking or nonblocking. 
@@ -1745,20 +1745,20 @@ extern int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_me
 ```
 
 
-**s2n_mem_set_callbacks** allows the caller to over-ride s2n's internal memory
+**s2n_mem_set_callbacks** allows the caller to over-ride s2n-tls's internal memory
 handling functions. To work correctly, **s2n_mem_set_callbacks** must be called
 before **s2n_init**. **s2n_mem_init_callback** should be a function that will
-be called when s2n is initialized.  **s2n_mem_cleanup_callback** will be called
+be called when s2n-tls is initialized.  **s2n_mem_cleanup_callback** will be called
 when **s2n_cleanup** is executed. **s2n_mem_malloc_callback** should be a
 function that can allocate at least **requested** bytes of memory and store the
 location of that memory in **\*ptr**, and the size of the allocated data in
 **\*allocated**. The function may choose to allocate more memory than was requested.
-s2n will consider all allocated memory available for use, and will attempt to
+s2n-tls will consider all allocated memory available for use, and will attempt to
 free all allocated memory when able. **s2n_mem_free_callback** should be a
 function that can free memory.
 
 # Examples
 
-To understand the API it may be easiest to see examples in action. s2n's [bin/](https://github.com/aws/s2n-tls/blob/main/bin/) directory
+To understand the API it may be easiest to see examples in action. s2n-tls's [bin/](https://github.com/aws/s2n-tls/blob/main/bin/) directory
 includes an example client (s2nc) and server (s2nd).
 
