@@ -4,7 +4,7 @@ s2n is a C library, and is built using Make. To clone the latest
 copy of s2n from git use:
 
 ```shell
-git clone https://github.com/awslabs/s2n.git
+git clone https://github.com/aws/s2n-tls.git
 cd s2n
 ```
 
@@ -1759,6 +1759,6 @@ function that can free memory.
 
 # Examples
 
-To understand the API it may be easiest to see examples in action. s2n's [bin/](https://github.com/awslabs/s2n/blob/main/bin/) directory
+To understand the API it may be easiest to see examples in action. s2n's [bin/](https://github.com/aws/s2n-tls/blob/main/bin/) directory
 includes an example client (s2nc) and server (s2nd).
 
