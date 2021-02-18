@@ -17,6 +17,47 @@
 #include "error/s2n_errno.h"
 #include "utils/s2n_safety.h"
 
+S2N_RESULT s2n_protocol_preference_read(struct s2n_stuffer *input, struct s2n_blob *protocol)
+{
+    ENSURE_REF(input);
+    ENSURE_REF(protocol);
+
+    uint8_t length = 0;
+    GUARD_AS_RESULT(s2n_stuffer_read_uint8(input, &length));
+    ENSURE_GT(length, 0);
+
+    uint8_t *data = s2n_stuffer_raw_read(input, length);
+    ENSURE_REF(data);
+
+    GUARD_AS_RESULT(s2n_blob_init(protocol, data, length));
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_protocol_preferences_contain(struct s2n_blob *application_protocols, struct s2n_blob *protocol, bool *match_found)
+{
+    ENSURE_REF(match_found);
+    *match_found = false;
+
+    ENSURE_REF(application_protocols);
+    ENSURE_REF(protocol);
+
+    struct s2n_stuffer app_protocols_stuffer = { 0 };
+    GUARD_AS_RESULT(s2n_stuffer_init(&app_protocols_stuffer, application_protocols));
+    GUARD_AS_RESULT(s2n_stuffer_skip_write(&app_protocols_stuffer, application_protocols->size));
+
+    while (s2n_stuffer_data_available(&app_protocols_stuffer) > 0) {
+        struct s2n_blob match_against = { 0 };
+        GUARD_RESULT(s2n_protocol_preference_read(&app_protocols_stuffer, &match_against));
+
+        if (match_against.size == protocol->size && memcmp(match_against.data, protocol->data, protocol->size) == 0) {
+            *match_found = true;
+            return S2N_RESULT_OK;
+        }
+    }
+
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_protocol_preferences_append(struct s2n_blob *application_protocols, const uint8_t *protocol, uint8_t protocol_len)
 {
     ENSURE_MUT(application_protocols);
