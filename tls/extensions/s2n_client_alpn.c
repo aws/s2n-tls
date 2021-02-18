@@ -19,6 +19,7 @@
 #include "tls/extensions/s2n_client_alpn.h"
 
 #include "tls/extensions/s2n_extension_type.h"
+#include "tls/s2n_protocol_preferences.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 
@@ -60,7 +61,6 @@ static int s2n_client_alpn_send(struct s2n_connection *conn, struct s2n_stuffer 
 static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     uint16_t size_of_all;
-    struct s2n_stuffer client_protos = {0};
     struct s2n_stuffer server_protos = {0};
 
     struct s2n_blob *server_app_protocols;
@@ -83,35 +83,23 @@ static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer 
     notnull_check(client_app_protocols.data);
 
     /* Find a matching protocol */
-    GUARD(s2n_stuffer_init(&client_protos, &client_app_protocols));
-    GUARD(s2n_stuffer_write(&client_protos, &client_app_protocols));
     GUARD(s2n_stuffer_init(&server_protos, server_app_protocols));
-    GUARD(s2n_stuffer_write(&server_protos, server_app_protocols));
+    GUARD(s2n_stuffer_skip_write(&server_protos, server_app_protocols->size));
 
-    while (s2n_stuffer_data_available(&server_protos)) {
-        uint8_t length;
-        uint8_t server_protocol[255];
-        GUARD(s2n_stuffer_read_uint8(&server_protos, &length));
-        GUARD(s2n_stuffer_read_bytes(&server_protos, server_protocol, length));
+    while (s2n_stuffer_data_available(&server_protos) > 0) {
+        struct s2n_blob server_protocol = { 0 };
+        ENSURE_POSIX(s2n_result_is_ok(s2n_protocol_preference_read(&server_protos, &server_protocol)),
+                S2N_ERR_BAD_MESSAGE);
 
-        while (s2n_stuffer_data_available(&client_protos)) {
-            uint8_t client_length;
-            GUARD(s2n_stuffer_read_uint8(&client_protos, &client_length));
-            S2N_ERROR_IF(client_length > s2n_stuffer_data_available(&client_protos), S2N_ERR_BAD_MESSAGE);
-            if (client_length != length) {
-                GUARD(s2n_stuffer_skip_read(&client_protos, client_length));
-            } else {
-                uint8_t client_protocol[255];
-                GUARD(s2n_stuffer_read_bytes(&client_protos, client_protocol, client_length));
-                if (memcmp(client_protocol, server_protocol, client_length) == 0) {
-                    memcpy_check(conn->application_protocol, client_protocol, client_length);
-                    conn->application_protocol[client_length] = '\0';
-                    return S2N_SUCCESS;
-                }
-            }
+        bool is_match = false;
+        ENSURE_POSIX(s2n_result_is_ok(s2n_protocol_preferences_contain(&client_app_protocols, &server_protocol, &is_match)),
+                S2N_ERR_BAD_MESSAGE);
+
+        if (is_match) {
+            memcpy_check(conn->application_protocol, server_protocol.data, server_protocol.size);
+            conn->application_protocol[server_protocol.size] = '\0';
+            return S2N_SUCCESS;
         }
-
-        GUARD(s2n_stuffer_reread(&client_protos));
     }
     return S2N_SUCCESS;
 }
