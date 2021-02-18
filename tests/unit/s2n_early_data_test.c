@@ -38,6 +38,11 @@ static S2N_RESULT s2n_test_all_early_data_sequences(struct s2n_connection *conn,
 {
     s2n_early_data_state current_state = conn->early_data_state;
     for (s2n_early_data_state next_state = 0; next_state < S2N_EARLY_DATA_STATES_COUNT; next_state++) {
+        /* We always allow no-op transitions, so ignore them */
+        if (next_state == current_state) {
+            continue;
+        }
+
         conn->early_data_state = current_state;
 
         bool actual_valid = s2n_result_is_ok(s2n_connection_set_early_data_state(conn, next_state));
@@ -103,8 +108,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             conn->early_data_state = 0;
-            EXPECT_ERROR_WITH_ERRNO(s2n_connection_set_early_data_state(conn, S2N_UNKNOWN_EARLY_DATA_STATE),
-                    S2N_ERR_INVALID_EARLY_DATA_STATE);
+            EXPECT_OK(s2n_connection_set_early_data_state(conn, S2N_UNKNOWN_EARLY_DATA_STATE));
 
             conn->early_data_state = 0;
             EXPECT_ERROR_WITH_ERRNO(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_STATES_COUNT),
