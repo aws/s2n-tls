@@ -77,6 +77,18 @@ for file in $S2N_FILES_ASSERT_NOTNULL_CHECK; do
   done < <(grep -rnE -A 1 "=\ss2n_stuffer_raw_read\(.*\)" $file)
 done
 
+# Assert that "index" is not a variable name. An "index" function exists in strings.h, and older compilers (<GCC 4.8) 
+# warn if any local variables called "index" are used because they are considered to shadow that declaration. 
+S2N_FILES_ASSERT_VARIABLE_NAME_INDEX=$(find "$PWD" -type f -name "s2n*.[ch]")
+for file in $S2N_FILES_ASSERT_VARIABLE_NAME_INDEX; do
+
+RESULT_VARIABLE_NAME_INDEX=`grep -rn '\(int\|uint[0-9]*_t\|size_t\|bool\|char\) \**index' $file`
+  if [ "${#RESULT_VARIABLE_NAME_INDEX}" != "0" ]; then
+  FAILED=1
+  printf "\e[1;34mGrep for varaiable name 'index' check failed in $file:\e[0m\n$RESULT_VARIABLE_NAME_INDEX\n\n"
+  fi
+done
+
 if [ $FAILED == 1 ]; then
   printf "\\033[31;1mFAILED Grep For Simple Mistakes check\\033[0m\\n"
   exit -1
