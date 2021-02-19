@@ -1,4 +1,4 @@
-c Development guide for s2n-tls 
+# Development guide for s2n-tls
 
 If you are curious about the internals of s2n-tls, or interested in contributing to
 s2n-tls, this document is for you. If instead you are interested in using s2n-tls in an application
@@ -430,4 +430,3 @@ We are happy to accept contributions to s2n-tls . We suggest the following gener
 * When you're ready, and when all tests are passing, create a pull request to the master awslabs s2n-tls repository.
 * All changes to s2n-tls go through code review and legal review. All submissions and contributions are made under the terms of the Apache Software License 2.0. For larger contributions, we may ask you to sign a contributor license agreement.
 * s2n-tls undergoes periodic government and commercial security analyses, including code audits and penetration tests. To participate in these analyses, we may ask you to sign a Non-Disclosure Agreement.
-
