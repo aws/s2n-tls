@@ -1287,6 +1287,9 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
         /* If the handshake has just ended, free up memory */
         if (ACTIVE_STATE(conn).writer == 'B') {
             GUARD(s2n_stuffer_resize(&conn->handshake.io, 0));
+
+            /* Send any pending new session tickets */
+            S2N_RESULT_TO_POSIX(s2n_tls13_server_nst_send(conn, blocked));
         }
     }
 

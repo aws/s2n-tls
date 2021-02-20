@@ -31,4 +31,4 @@ typedef enum {
 } keyupdate_request;
 
 int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request);
-int s2n_key_update_send(struct s2n_connection *conn);
+int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked);

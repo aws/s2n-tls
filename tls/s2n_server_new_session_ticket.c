@@ -25,11 +25,22 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_resume.h"
 #include "tls/s2n_tls13_handshake.h"
+#include "tls/s2n_record.h"
 
 #include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
+
+#define TLS13_MAX_NEW_SESSION_TICKET_SIZE sizeof(uint8_t)  + /* message type   */ \
+                                          SIZEOF_UINT24    + /* message length */ \
+                                          sizeof(uint32_t) + /* ticket lifetime */ \
+                                          sizeof(uint32_t) + /* ticket age add */ \
+                                          sizeof(uint8_t)  + /* nonce length */ \
+                                          sizeof(uint16_t) + /* nonce */ \
+                                          sizeof(uint8_t)  + /* ticket length */ \
+                                          S2N_MAX_TICKET_SIZE_IN_BYTES + /* ticket */ \
+                                          sizeof(uint16_t)   /* extensions length */
 
 int s2n_server_nst_recv(struct s2n_connection *conn) {
     GUARD(s2n_stuffer_read_uint32(&conn->handshake.io, &conn->ticket_lifetime_hint));
@@ -74,6 +85,31 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     GUARD(s2n_stuffer_write(&conn->handshake.io, &to.blob));
 
     return 0;
+}
+
+S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
+{
+    ENSURE_REF(conn);
+
+    if (conn->mode != S2N_SERVER || conn->actual_protocol_version < S2N_TLS13) {
+        return S2N_RESULT_OK;
+    }
+
+    ENSURE(conn->tickets_sent <= conn->tickets_to_send, S2N_ERR_INTEGER_OVERFLOW);
+    while (conn->tickets_to_send - conn->tickets_sent > 0) {
+        uint8_t nst_data[TLS13_MAX_NEW_SESSION_TICKET_SIZE] = { 0 };
+        struct s2n_blob nst_blob = { 0 };
+        struct s2n_stuffer nst_stuffer = { 0 };
+        GUARD_AS_RESULT(s2n_blob_init(&nst_blob, nst_data, sizeof(nst_data)));
+        GUARD_AS_RESULT(s2n_stuffer_init(&nst_stuffer, &nst_blob));
+
+        GUARD_AS_RESULT(s2n_tls13_server_nst_write(conn, &nst_stuffer));
+        nst_blob.size = s2n_stuffer_data_available(&nst_stuffer);
+
+        GUARD_AS_RESULT(s2n_record_write(conn, TLS_HANDSHAKE, &nst_blob));
+        GUARD_AS_RESULT(s2n_flush(conn, blocked));
+    }
+    return S2N_RESULT_OK;
 }
 
 /** 
@@ -135,19 +171,20 @@ static S2N_RESULT s2n_generate_ticket_age_add(struct s2n_blob *random_data, uint
     return S2N_RESULT_OK;
 }
 
-int s2n_tls13_server_nst_send(struct s2n_connection *conn)
+int s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_stuffer *output)
 {
     notnull_check(conn);
+    notnull_check(output);
 
     /* Write message type because session resumption in TLS13 is a post-handshake message */
-    GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, TLS_SERVER_NEW_SESSION_TICKET));
+    GUARD(s2n_stuffer_write_uint8(output, TLS_SERVER_NEW_SESSION_TICKET));
 
     struct s2n_stuffer_reservation message_size = { 0 };
-    GUARD(s2n_stuffer_reserve_uint24(&conn->handshake.io, &message_size));
+    GUARD(s2n_stuffer_reserve_uint24(output, &message_size));
 
     uint32_t ticket_lifetime_in_secs = 0;
     GUARD_AS_POSIX(s2n_generate_ticket_lifetime(conn, &ticket_lifetime_in_secs));
-    GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, ticket_lifetime_in_secs));
+    GUARD(s2n_stuffer_write_uint32(output, ticket_lifetime_in_secs));
 
     /* Get random data to use as ticket_age_add value */
     struct s2n_ticket_fields ticket_fields = { 0 };
@@ -161,15 +198,15 @@ int s2n_tls13_server_nst_send(struct s2n_connection *conn)
      **/
     GUARD_AS_POSIX(s2n_get_private_random_data(&random_data));
     GUARD_AS_POSIX(s2n_generate_ticket_age_add(&random_data, &ticket_fields.ticket_age_add));
-    GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, ticket_fields.ticket_age_add));
+    GUARD(s2n_stuffer_write_uint32(output, ticket_fields.ticket_age_add));
 
     /* Write ticket nonce */
     uint8_t nonce_data[sizeof(uint16_t)] = { 0 };
     struct s2n_blob nonce = { 0 };
     GUARD(s2n_blob_init(&nonce, nonce_data, sizeof(nonce_data)));
     GUARD_AS_POSIX(s2n_generate_ticket_nonce(conn->tickets_sent, &nonce));
-    GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, nonce.size));
-    GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, nonce.data, nonce.size));
+    GUARD(s2n_stuffer_write_uint8(output, nonce.size));
+    GUARD(s2n_stuffer_write_bytes(output, nonce.data, nonce.size));
 
     /* Derive individual session ticket secret */
     s2n_tls13_connection_keys(secrets, conn);
@@ -189,11 +226,11 @@ int s2n_tls13_server_nst_send(struct s2n_connection *conn)
 
     /* Write session ticket */
     ENSURE_POSIX(s2n_stuffer_data_available(&session_ticket) <= UINT8_MAX, S2N_ERR_SAFETY);
-    GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, s2n_stuffer_data_available(&session_ticket)));
-    GUARD(s2n_stuffer_write(&conn->handshake.io, &session_ticket.blob));
+    GUARD(s2n_stuffer_write_uint8(output, s2n_stuffer_data_available(&session_ticket)));
+    GUARD(s2n_stuffer_write(output, &session_ticket.blob));
 
     /* Write size of new session ticket extensions */
-    GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
+    GUARD(s2n_stuffer_write_uint16(output, 0));
 
     GUARD(s2n_stuffer_write_vector_size(&message_size));
 

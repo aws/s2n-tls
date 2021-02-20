@@ -169,10 +169,10 @@ int main(int argc, char **argv)
 
         /* Force Client to send a TLS 1.3 KeyUpdate Message over TLS 1.2 connection */
         client_conn->key_update_pending = 1;
-        EXPECT_SUCCESS(s2n_key_update_send(client_conn));
+        s2n_blocked_status blocked = 0;
+        EXPECT_SUCCESS(s2n_key_update_send(client_conn, &blocked));
 
         /* Next message sent will trigger key update message */
-        s2n_blocked_status blocked;
         char client_message[] = "client message";
         EXPECT_SUCCESS(s2n_send(client_conn, client_message, sizeof(client_message), &blocked));
 
