@@ -25,6 +25,10 @@
 #include "tls/s2n_post_handshake.h"
 #include "utils/s2n_safety.h"
 
+#define KEY_UPDATE_MESSAGE_SIZE sizeof(uint8_t) + /* message id */  \
+                                SIZEOF_UINT24   + /* message len */ \
+                                sizeof(uint8_t)   /* message */
+
 int s2n_key_update_write(struct s2n_blob *out);
 
 int main(int argc, char **argv)
@@ -100,6 +104,34 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn)); 
+        }
+
+        /* Functional test: Multiple post handshake messages can be received in the same record */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            uint8_t num_key_updates = 3;
+
+            /* Write three key update messages in one record. We cannot call s2n_post_handshake_send
+             * multiple times here because s2n only sends one handshake message per record */
+            for (size_t i = 0; i < num_key_updates; i++) {
+                uint8_t data[KEY_UPDATE_MESSAGE_SIZE] = { 0 };
+                struct s2n_blob key_update_message = { 0 };
+                EXPECT_SUCCESS(s2n_blob_init(&key_update_message, data, sizeof(data)));
+                EXPECT_SUCCESS(s2n_key_update_write(&key_update_message));
+                EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->out, key_update_message.data, key_update_message.size));
+            }
+
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), num_key_updates * (KEY_UPDATE_MESSAGE_SIZE));
+            EXPECT_SUCCESS(s2n_post_handshake_recv(conn));
+
+            /* All three key update messages have been read */
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
         }
     }
 
