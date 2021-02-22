@@ -82,29 +82,29 @@ S2N_RESULT s2n_array_pushback(struct s2n_array *array, void **element)
     return s2n_array_insert(array, array->len, element);
 }
 
-S2N_RESULT s2n_array_get(struct s2n_array *array, uint32_t index, void **element)
+S2N_RESULT s2n_array_get(struct s2n_array *array, uint32_t idx, void **element)
 {
     GUARD_RESULT(s2n_array_validate(array));
     ENSURE_REF(element);
-    ENSURE(index < array->len, S2N_ERR_ARRAY_INDEX_OOB);
-    *element = array->mem.data + (array->element_size * index);
+    ENSURE(idx < array->len, S2N_ERR_ARRAY_INDEX_OOB);
+    *element = array->mem.data + (array->element_size * idx);
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_array_insert_and_copy(struct s2n_array *array, uint32_t index, void* element)
+S2N_RESULT s2n_array_insert_and_copy(struct s2n_array *array, uint32_t idx, void* element)
 {
     void* insert_location = NULL;
-    GUARD_RESULT(s2n_array_insert(array, index, &insert_location));
+    GUARD_RESULT(s2n_array_insert(array, idx, &insert_location));
     CHECKED_MEMCPY(insert_location, element, array->element_size);
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **element)
+S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t idx, void **element)
 {
     GUARD_RESULT(s2n_array_validate(array));
     ENSURE_REF(element);
-    /* index == len is ok since we're about to add one element */
-    ENSURE(index <= array->len, S2N_ERR_ARRAY_INDEX_OOB);
+    /* idx == len is ok since we're about to add one element */
+    ENSURE(idx <= array->len, S2N_ERR_ARRAY_INDEX_OOB);
 
     /* We are about to add one more element to the array. Add capacity if necessary */
     uint32_t current_capacity = 0;
@@ -118,31 +118,31 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t index, void **elem
         GUARD_RESULT(s2n_array_enlarge(array, new_capacity));
     }
 
-    /* If we are adding at an existing index, slide everything down. */
-    if (index < array->len) {
-        memmove(array->mem.data + array->element_size * (index + 1),
-                array->mem.data + array->element_size * index,
-                (array->len - index) * array->element_size);
+    /* If we are adding at an existing idx, slide everything down. */
+    if (idx < array->len) {
+        memmove(array->mem.data + array->element_size * (idx + 1),
+                array->mem.data + array->element_size * idx,
+                (array->len - idx) * array->element_size);
     }
 
-    *element = array->mem.data + array->element_size * index;
+    *element = array->mem.data + array->element_size * idx;
     array->len++;
 
     GUARD_RESULT(s2n_array_validate(array));
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t index)
+S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t idx)
 {
     GUARD_RESULT(s2n_array_validate(array));
-    ENSURE(index < array->len, S2N_ERR_ARRAY_INDEX_OOB);
+    ENSURE(idx < array->len, S2N_ERR_ARRAY_INDEX_OOB);
 
     /* If the removed element is the last one, no need to move anything.
      * Otherwise, shift everything down */
-    if (index != array->len - 1) {
-        memmove(array->mem.data + array->element_size * index,
-                array->mem.data + array->element_size * (index + 1),
-                (array->len - index - 1) * array->element_size);
+    if (idx != array->len - 1) {
+        memmove(array->mem.data + array->element_size * idx,
+                array->mem.data + array->element_size * (idx + 1),
+                (array->len - idx - 1) * array->element_size);
     }
     array->len--;
 

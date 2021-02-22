@@ -24,19 +24,19 @@ void s2n_array_remove_harness()
     struct s2n_array *array = cbmc_allocate_s2n_array();
     __CPROVER_assume(s2n_result_is_ok(s2n_array_validate(array)));
     __CPROVER_assume(s2n_array_is_bounded(array, MAX_ARRAY_LEN, MAX_ARRAY_ELEMENT_SIZE));
-    uint32_t index;
+    uint32_t idx;
 
     struct s2n_array old_array = *array;
     struct store_byte_from_buffer old_byte;
     if (array->len != 0) save_byte_from_array(array->mem.data, array->len - 1, &old_byte);
 
     /* Operation under verification. */
-    if(s2n_result_is_ok(s2n_array_remove(array, index))) {
+    if(s2n_result_is_ok(s2n_array_remove(array, idx))) {
        /* Post-conditions. */
         assert(array->mem.data != NULL);
         assert(array->len == (old_array.len - 1));
-        assert(index < old_array.len);
-        if(array->len != 0 && index == old_array.len - 1) {
+        assert(idx < old_array.len);
+        if(array->len != 0 && idx == old_array.len - 1) {
             assert_byte_from_blob_matches(&array->mem, &old_byte);
         }
     }

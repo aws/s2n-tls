@@ -23,19 +23,19 @@ void s2n_set_get_harness()
     struct s2n_set *set = cbmc_allocate_s2n_set();
     __CPROVER_assume(s2n_result_is_ok(s2n_set_validate(set)));
     __CPROVER_assume(s2n_set_is_bounded(set, MAX_ARRAY_LEN, MAX_ARRAY_ELEMENT_SIZE));
-    uint32_t index;
+    uint32_t idx;
     void **element = malloc(sizeof(void *));
 
     /* Operation under verification. */
-    if(s2n_result_is_ok(s2n_set_get(set, index, element))) {
+    if(s2n_result_is_ok(s2n_set_get(set, idx, element))) {
         /*
          * In the case s2n_set_get is successful, we can ensure the array isn't empty
-         * and index is within bounds.
+         * and idx is within bounds.
          */
          assert(set->data->mem.data != NULL);
          assert(set->data->len != 0);
-         assert(index < set->data->len);
-         assert(*element == (set->data->mem.data + (set->data->element_size * index)));
+         assert(idx < set->data->len);
+         assert(*element == (set->data->mem.data + (set->data->element_size * idx)));
     }
 
     /* Post-condition. */

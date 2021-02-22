@@ -24,7 +24,7 @@ void s2n_array_insert_and_copy_harness()
     struct s2n_array *array = cbmc_allocate_s2n_array();
     __CPROVER_assume(s2n_result_is_ok(s2n_array_validate(array)));
     __CPROVER_assume(s2n_array_is_bounded(array, MAX_ARRAY_LEN, MAX_ARRAY_ELEMENT_SIZE));
-    uint32_t index;
+    uint32_t idx;
     void *element = malloc(array->element_size);
 
     nondet_s2n_mem_init();
@@ -34,16 +34,16 @@ void s2n_array_insert_and_copy_harness()
     save_byte_from_array(array->mem.data, array->len, &old_byte);
 
     /* Operation under verification. */
-    if (s2n_result_is_ok(s2n_array_insert_and_copy(array, index, element))) {
+    if (s2n_result_is_ok(s2n_array_insert_and_copy(array, idx, element))) {
        /*
         * In the case s2n_array_insert_and_copy is successful, we can ensure the array isn't empty
-        * and index is within bounds.
+        * and idx is within bounds.
         */
         assert(array->mem.data != NULL);
         assert(array->len == (old_array.len + 1));
-        assert(index < array->len);
+        assert(idx < array->len);
         assert(s2n_result_is_ok(s2n_array_validate(array)));
-        if (old_array.len != 0 && index == old_array.len) {
+        if (old_array.len != 0 && idx == old_array.len) {
             assert_byte_from_blob_matches(&array->mem, &old_byte);
         }
     }

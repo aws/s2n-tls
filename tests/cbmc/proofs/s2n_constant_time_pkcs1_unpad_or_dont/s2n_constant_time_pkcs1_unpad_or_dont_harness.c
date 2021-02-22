@@ -36,15 +36,15 @@ void s2n_constant_time_pkcs1_unpad_or_dont_harness()
     uint8_t *src  = can_fail_malloc(srclen);
     uint8_t  old_src_byte;
     uint8_t  old_dest_byte;
-    uint32_t index;
+    uint32_t idx;
 
     /* Pre-conditions. */
     __CPROVER_assume(dest != NULL);
     __CPROVER_assume(src != NULL);
     if (len != 0) {
-        __CPROVER_assume(index < len);
-        old_src_byte  = src[ srclen - len + index ];
-        old_dest_byte = dest[ index ];
+        __CPROVER_assume(idx < len);
+        old_src_byte  = src[ srclen - len + idx ];
+        old_dest_byte = dest[ idx ];
     }
 
     s2n_constant_time_pkcs1_unpad_or_dont(dest, src, srclen, len);
@@ -58,10 +58,10 @@ void s2n_constant_time_pkcs1_unpad_or_dont_harness()
         /* This statement is the inverse of the failure checks found in s2n_constant_time_pkcs1_unpad_or_dont. */
         if (srclen >= (len + 3) && src[ 0 ] == 0x00 && src[ 1 ] == 0x02 && src[ srclen - len - 1 ] == 0x00
             && has_zero == false) {
-            assert(dest[ index ] == old_src_byte);
+            assert(dest[ idx ] == old_src_byte);
         } else {
-            assert(dest[ index ] == old_dest_byte);
+            assert(dest[ idx ] == old_dest_byte);
         }
-        assert(src[ srclen - len + index ] == old_src_byte);
+        assert(src[ srclen - len + idx ] == old_src_byte);
     }
 }

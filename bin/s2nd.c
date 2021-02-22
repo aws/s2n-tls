@@ -169,13 +169,13 @@ int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, c
     S2N_ERROR_IF(key_size == 0 || key_size > MAX_KEY_LEN, S2N_ERR_INVALID_ARGUMENT);
     S2N_ERROR_IF(value_size == 0 || value_size > MAX_VAL_LEN, S2N_ERR_INVALID_ARGUMENT);
 
-    uint8_t index = ((const uint8_t *)key)[0];
+    uint8_t idx = ((const uint8_t *)key)[0];
 
-    memcpy(cache[index].key, key, key_size);
-    memcpy(cache[index].value, value, value_size);
+    memcpy(cache[idx].key, key, key_size);
+    memcpy(cache[idx].value, value, value_size);
 
-    cache[index].key_len = key_size;
-    cache[index].value_len = value_size;
+    cache[idx].key_len = key_size;
+    cache[idx].value_len = value_size;
 
     return 0;
 }
@@ -186,14 +186,14 @@ int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *
 
     S2N_ERROR_IF(key_size == 0 || key_size > MAX_KEY_LEN, S2N_ERR_INVALID_ARGUMENT);
 
-    uint8_t index = ((const uint8_t *)key)[0];
+    uint8_t idx = ((const uint8_t *)key)[0];
 
-    S2N_ERROR_IF(cache[index].key_len != key_size, S2N_ERR_INVALID_ARGUMENT);
-    S2N_ERROR_IF(memcmp(cache[index].key, key, key_size), S2N_ERR_INVALID_ARGUMENT);
-    S2N_ERROR_IF(*value_size < cache[index].value_len, S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(cache[idx].key_len != key_size, S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(memcmp(cache[idx].key, key, key_size), S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(*value_size < cache[idx].value_len, S2N_ERR_INVALID_ARGUMENT);
 
-    *value_size = cache[index].value_len;
-    memcpy(value, cache[index].value, cache[index].value_len);
+    *value_size = cache[idx].value_len;
+    memcpy(value, cache[idx].value, cache[idx].value_len);
 
     for (int i = 0; i < key_size; i++) {
         printf("%02x", ((const uint8_t *)key)[i]);
@@ -209,13 +209,13 @@ int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *ke
 
     S2N_ERROR_IF(key_size == 0 || key_size > MAX_KEY_LEN, S2N_ERR_INVALID_ARGUMENT);
 
-    uint8_t index = ((const uint8_t *)key)[0];
+    uint8_t idx = ((const uint8_t *)key)[0];
 
-    S2N_ERROR_IF(cache[index].key_len != 0 && cache[index].key_len != key_size, S2N_ERR_INVALID_ARGUMENT);
-    S2N_ERROR_IF(cache[index].key_len != 0 && memcmp(cache[index].key, key, key_size), S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(cache[idx].key_len != 0 && cache[idx].key_len != key_size, S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(cache[idx].key_len != 0 && memcmp(cache[idx].key, key, key_size), S2N_ERR_INVALID_ARGUMENT);
 
-    cache[index].key_len = 0;
-    cache[index].value_len = 0;
+    cache[idx].key_len = 0;
+    cache[idx].value_len = 0;
 
     return 0;
 }

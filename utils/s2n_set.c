@@ -90,27 +90,27 @@ S2N_RESULT s2n_set_add(struct s2n_set *set, void *element)
 {
     GUARD_RESULT(s2n_set_validate(set));
 
-    uint32_t index = 0;
-    GUARD_RESULT(s2n_set_binary_search(set, element, &index));
-    GUARD_RESULT(s2n_array_insert_and_copy(set->data, index, element));
+    uint32_t idx = 0;
+    GUARD_RESULT(s2n_set_binary_search(set, element, &idx));
+    GUARD_RESULT(s2n_array_insert_and_copy(set->data, idx, element));
 
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_set_get(struct s2n_set *set, uint32_t index, void **element)
+S2N_RESULT s2n_set_get(struct s2n_set *set, uint32_t idx, void **element)
 {
     GUARD_RESULT(s2n_set_validate(set));
     ENSURE_REF(element);
 
-    GUARD_RESULT(s2n_array_get(set->data, index, element));
+    GUARD_RESULT(s2n_array_get(set->data, idx, element));
 
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_set_remove(struct s2n_set *set, uint32_t index)
+S2N_RESULT s2n_set_remove(struct s2n_set *set, uint32_t idx)
 {
     GUARD_RESULT(s2n_set_validate(set));
-    GUARD_RESULT(s2n_array_remove(set->data, index));
+    GUARD_RESULT(s2n_array_remove(set->data, idx));
 
     return S2N_RESULT_OK;
 }

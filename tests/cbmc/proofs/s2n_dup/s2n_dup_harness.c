@@ -48,9 +48,9 @@ void s2n_dup_harness()
         assert(old_to.data == NULL);
         assert(to->size == from->size);
 
-        uint32_t index;
-        __CPROVER_assume(index < from->size);
-        assert(from->data[ index ] == to->data[ index ]);
+        uint32_t idx;
+        __CPROVER_assume(idx < from->size);
+        assert(from->data[ idx ] == to->data[ idx ]);
     }
     assert(s2n_result_is_ok(s2n_blob_validate(from)));
     assert(s2n_result_is_ok(s2n_blob_validate(to)));

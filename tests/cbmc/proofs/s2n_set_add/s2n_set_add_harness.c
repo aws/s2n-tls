@@ -23,7 +23,7 @@ void s2n_set_add_harness()
     struct s2n_set *set = cbmc_allocate_s2n_set();
     __CPROVER_assume(s2n_result_is_ok(s2n_set_validate(set)));
     __CPROVER_assume(s2n_set_is_bounded(set, MAX_ARRAY_LEN, MAX_ARRAY_ELEMENT_SIZE));
-    uint32_t index;
+    uint32_t idx;
     void *element = malloc(set->data->element_size);
 
     nondet_s2n_mem_init();
@@ -35,7 +35,7 @@ void s2n_set_add_harness()
     if(s2n_result_is_ok(s2n_set_add(set, element))) {
         /*
          * In the case s2n_set_add is successful, we can ensure the array isn't empty
-         * and index is within bounds.
+         * and idx is within bounds.
          */
          assert(set->data->mem.data != NULL);
          assert(set->data->len == (old_array.len + 1));
