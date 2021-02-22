@@ -82,7 +82,7 @@ done
 S2N_FILES_ASSERT_VARIABLE_NAME_INDEX=$(find "$PWD" -type f -name "s2n*.[ch]")
 for file in $S2N_FILES_ASSERT_VARIABLE_NAME_INDEX; do
 
-RESULT_VARIABLE_NAME_INDEX=`grep -v ' *[\/|\* ][\*|\/]' $file | grep ' \**index[;|,|\)| ]'`
+RESULT_VARIABLE_NAME_INDEX=`gcc -fpreprocessed -dD -E -w $file | grep -v '"' | grep '[\*|,|;|[:space:]]index[;|,|\)|[:space:]]'`
   if [ "${#RESULT_VARIABLE_NAME_INDEX}" != "0" ]; then
   FAILED=1
   printf "\e[1;34mGrep for variable name 'index' check failed in $file:\e[0m\n$RESULT_VARIABLE_NAME_INDEX\n\n"
