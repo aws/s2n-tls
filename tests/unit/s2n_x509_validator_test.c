@@ -325,7 +325,7 @@ int main(int argc, char **argv) {
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_SHA256_URI_SANS_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem, S2N_TLS12);
-        EXPECT_TRUE(chain_len > 0);
+        EXPECT_TRUE(chain_len > 1);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
 
         struct s2n_pkey public_key_out;
