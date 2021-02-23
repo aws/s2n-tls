@@ -29,7 +29,7 @@ static S2N_RESULT s2n_append_test_psk(struct s2n_connection *conn, uint32_t max_
     /* We're assuming the index will only take one digit */
     ENSURE_LT(conn->psk_params.psk_list.len, 10);
     uint8_t buffer[sizeof(TEST_VALUE) + 1] = { 0 };
-    snprintf((char*) buffer, sizeof(buffer), "%s%d", TEST_VALUE, conn->psk_params.psk_list.len);
+    snprintf((char*) buffer, sizeof(buffer), "%s%u", TEST_VALUE, conn->psk_params.psk_list.len);
 
     DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
     GUARD_AS_RESULT(s2n_psk_set_identity(psk, buffer, sizeof(buffer)));
