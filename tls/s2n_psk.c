@@ -220,9 +220,9 @@ struct s2n_offered_psk* s2n_offered_psk_new()
 {
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     GUARD_PTR(s2n_alloc(&mem, sizeof(struct s2n_offered_psk)));
+    GUARD_PTR(s2n_blob_zero(&mem));
 
     struct s2n_offered_psk *psk = (struct s2n_offered_psk*)(void*) mem.data;
-    *psk = (struct s2n_offered_psk){ 0 };
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
     return psk;
