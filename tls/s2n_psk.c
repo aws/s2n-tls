@@ -79,7 +79,7 @@ S2N_RESULT s2n_psk_clone(struct s2n_psk *new_psk, struct s2n_psk *original_psk)
         return S2N_RESULT_OK;
     }
     ENSURE_REF(new_psk);
-    GUARD_RESULT(s2n_psk_init(new_psk, original_psk->type));
+    new_psk->type = original_psk->type;
     new_psk->hmac_alg = original_psk->hmac_alg;
     GUARD_AS_RESULT(s2n_psk_set_identity(new_psk, original_psk->identity.data, original_psk->identity.size));
     GUARD_AS_RESULT(s2n_psk_set_secret(new_psk, original_psk->secret.data, original_psk->secret.size));
