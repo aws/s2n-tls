@@ -232,7 +232,7 @@ S2N_RESULT s2n_kem_generate_keypair(struct s2n_kem_params *kem_params)
     RESULT_ENSURE(kem_params->public_key.size == kem->public_key_length, S2N_ERR_SAFETY);
 
     /* Need to save the private key for decapsulation */
-    RESULT_GUARD_POSIX(s2n_alloc(&kem_params->private_key, kem->private_key_length));
+    RESULT_GUARD_POSIX(s2n_realloc(&kem_params->private_key, kem->private_key_length));
 
     GUARD_PQ_AS_RESULT(kem->generate_keypair(kem_params->public_key.data, kem_params->private_key.data));
     return S2N_RESULT_OK;

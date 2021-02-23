@@ -276,6 +276,23 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     return 0;
 }
 
+S2N_RESULT s2n_connection_wipe_all_keyshares(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+
+    RESULT_GUARD_POSIX(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
+    for (size_t i = 0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
+        RESULT_GUARD_POSIX(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
+    }
+
+    RESULT_GUARD_POSIX(s2n_kem_group_free(&conn->secure.server_kem_group_params));
+    for (size_t i = 0; i < S2N_SUPPORTED_KEM_GROUPS_COUNT; i++) {
+        RESULT_GUARD_POSIX(s2n_kem_group_free(&conn->secure.client_kem_group_params[i]));
+    }
+
+    return S2N_RESULT_OK;
+}
+
 static int s2n_connection_wipe_keys(struct s2n_connection *conn)
 {
     /* Destroy any keys - we call destroy on the object as that is where
@@ -296,14 +313,7 @@ static int s2n_connection_wipe_keys(struct s2n_connection *conn)
     POSIX_GUARD(s2n_pkey_zero_init(&conn->secure.client_public_key));
     s2n_x509_validator_wipe(&conn->x509_validator);
     POSIX_GUARD(s2n_dh_params_free(&conn->secure.server_dh_params));
-    POSIX_GUARD(s2n_ecc_evp_params_free(&conn->secure.server_ecc_evp_params));
-    for (int i=0; i < S2N_ECC_EVP_SUPPORTED_CURVES_COUNT; i++) {
-        POSIX_GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
-    }
-    POSIX_GUARD(s2n_kem_group_free(&conn->secure.server_kem_group_params));
-    for (int i = 0; i < S2N_SUPPORTED_KEM_GROUPS_COUNT; i++) {
-        POSIX_GUARD(s2n_kem_group_free(&conn->secure.client_kem_group_params[i]));
-    }
+    POSIX_GUARD_RESULT(s2n_connection_wipe_all_keyshares(conn));
     POSIX_GUARD(s2n_kem_free(&conn->secure.kem_params));
     POSIX_GUARD(s2n_free(&conn->secure.client_cert_chain));
     POSIX_GUARD(s2n_free(&conn->ct_response));

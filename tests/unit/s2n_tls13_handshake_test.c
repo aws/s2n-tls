@@ -184,17 +184,8 @@ int main(int argc, char **argv)
 
         EXPECT_EQUAL(server_conn->secure.server_ecc_evp_params.negotiated_curve, client_conn->secure.server_ecc_evp_params.negotiated_curve);
 
-        DEFER_CLEANUP(struct s2n_blob server_shared_secret = { 0 }, s2n_free);
-        DEFER_CLEANUP(struct s2n_blob client_shared_secret = { 0 }, s2n_free);
-
         client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
         server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-
-        /* test that ecdhe shared secret generation matches */
-        EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(server_conn, &server_shared_secret));
-        EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(client_conn, &client_shared_secret));
-
-        S2N_BLOB_EXPECT_EQUAL(server_shared_secret, client_shared_secret);
 
         /* test handle handshake secrets */
         EXPECT_SUCCESS(s2n_tls13_handle_handshake_secrets(server_conn));

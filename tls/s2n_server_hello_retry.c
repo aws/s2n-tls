@@ -88,22 +88,24 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
      * in the "key_share" extension in the original ClientHello.
      * If either of these checks fails, then the client MUST abort the handshake. */
 
-    bool match_found = false;
-
     const struct s2n_ecc_named_curve *named_curve = conn->secure.server_ecc_evp_params.negotiated_curve;
     const struct s2n_kem_group *kem_group = conn->secure.server_kem_group_params.kem_group;
 
     /* Boolean XOR check: exactly one of {named_curve, kem_group} should be non-null. */
     POSIX_ENSURE( (named_curve != NULL) != (kem_group != NULL), S2N_ERR_INVALID_HELLO_RETRY);
 
+    bool match_found = false;
+    bool new_key_share_requested = false;
+
     if (named_curve != NULL) {
         for (size_t i = 0; i < ecc_pref->count; i++) {
             if (ecc_pref->ecc_curves[i] == named_curve) {
                 match_found = true;
-                POSIX_ENSURE(conn->secure.client_ecc_evp_params[i].evp_pkey == NULL, S2N_ERR_INVALID_HELLO_RETRY);
+                new_key_share_requested = (conn->secure.client_ecc_evp_params[i].evp_pkey == NULL);
                 break;
             }
         }
+        POSIX_ENSURE(match_found, S2N_ERR_INVALID_HELLO_RETRY);
     }
 
     if (kem_group != NULL) {
@@ -114,15 +116,22 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
         for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
             if (kem_pref->tls13_kem_groups[i] == kem_group) {
                 match_found = true;
-                POSIX_ENSURE(conn->secure.client_kem_group_params[i].kem_params.private_key.data == NULL,
-                        S2N_ERR_INVALID_HELLO_RETRY);
-                POSIX_ENSURE(conn->secure.client_kem_group_params[i].ecc_params.evp_pkey == NULL,
-                        S2N_ERR_INVALID_HELLO_RETRY);
+                new_key_share_requested = (conn->secure.client_kem_group_params[i].kem_params.private_key.size == 0)
+                        && (conn->secure.client_kem_group_params[i].ecc_params.evp_pkey == NULL);
+                break;
             }
         }
+        POSIX_ENSURE(match_found, S2N_ERR_INVALID_HELLO_RETRY);
     }
 
-    POSIX_ENSURE(match_found, S2N_ERR_INVALID_HELLO_RETRY);
+    /*
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+     *# Clients MUST abort the handshake with an
+     *# "illegal_parameter" alert if the HelloRetryRequest would not result
+     *# in any change in the ClientHello.
+     */
+    POSIX_ENSURE(conn->early_data_state == S2N_EARLY_DATA_REJECTED || new_key_share_requested,
+            S2N_ERR_INVALID_HELLO_RETRY);
 
     /* Update transcript hash */
     POSIX_GUARD(s2n_server_hello_retry_recreate_transcript(conn));

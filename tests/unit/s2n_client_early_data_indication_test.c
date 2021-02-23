@@ -297,5 +297,118 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test state transitions with a HelloRetryRequest.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= type=test
+     *# A server which receives an "early_data" extension MUST behave in one
+     *# of three ways:
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= type=test
+     *# -  Request that the client send another ClientHello by responding
+     *#    with a HelloRetryRequest.
+     */
+    {
+        /* Hello Retry Request because of rejected early data.
+         *
+         * The S2N server does not reject early data via a HelloRetryRequest, but other implementations might.
+         * The S2N client should handle retries triggered by early data gracefully.
+         */
+        {
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
+            EXPECT_OK(s2n_append_test_psk(client_conn, 1, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_EQUAL(client_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
+            EXPECT_OK(s2n_append_test_psk(server_conn, 0, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_EQUAL(server_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
+
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                    s2n_stuffer_data_available(&client_conn->handshake.io)));
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
+
+            /* Force a retry */
+            EXPECT_SUCCESS(s2n_set_hello_retry_required(server_conn));
+            /* There is retry handling logic that checks that the current message
+             * is a hello retry message, which requires that we be at a specific message number. */
+            server_conn->handshake.message_number = 1;
+            client_conn->handshake.message_number = 1;
+
+            EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
+                    s2n_stuffer_data_available(&server_conn->handshake.io)));
+            EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
+            EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REJECTED);
+
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+            EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REJECTED);
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
+
+        /* Hello Retry Request because of missing key share: still rejects early data */
+        {
+            const struct s2n_ecc_named_curve *const curves_reversed_order[] = {
+                &s2n_ecc_curve_secp384r1,
+                &s2n_ecc_curve_secp256r1,
+            };
+            const struct s2n_ecc_preferences ecc_prefs_reversed_order = {
+                    .count = s2n_array_len(curves_reversed_order),
+                    .ecc_curves = curves_reversed_order,
+            };
+            struct s2n_security_policy sec_policy_reversed_order = security_policy_test_all_tls13;
+            sec_policy_reversed_order.ecc_preferences = &ecc_prefs_reversed_order;
+            const struct s2n_security_policy retry_policy = sec_policy_reversed_order;
+
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(client_conn);
+            client_conn->security_policy_override = &retry_policy;
+            EXPECT_OK(s2n_append_test_psk(client_conn, 1, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_EQUAL(client_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(server_conn);
+            server_conn->security_policy_override = &security_policy_test_all_tls13;
+            EXPECT_OK(s2n_append_test_psk(server_conn, 1, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_EQUAL(server_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
+
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                    s2n_stuffer_data_available(&client_conn->handshake.io)));
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
+            EXPECT_EQUAL(server_conn->early_data_state, S2N_EARLY_DATA_REJECTED);
+
+            EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
+            /* There is retry handling logic that checks that the current message
+             * is a hello retry message, which requires that we be at a specific message number. */
+            server_conn->handshake.message_number = 1;
+            client_conn->handshake.message_number = 1;
+
+            EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
+                    s2n_stuffer_data_available(&server_conn->handshake.io)));
+            EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
+            EXPECT_TRUE(s2n_is_hello_retry_handshake(client_conn));
+            EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REJECTED);
+            EXPECT_EQUAL(server_conn->early_data_state, S2N_EARLY_DATA_REJECTED);
+
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+            EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REJECTED);
+            EXPECT_EQUAL(server_conn->early_data_state, S2N_EARLY_DATA_REJECTED);
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
+    }
+
     END_TEST();
 }
