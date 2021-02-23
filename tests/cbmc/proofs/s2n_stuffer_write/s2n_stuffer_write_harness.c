@@ -29,7 +29,7 @@ void s2n_stuffer_write_harness()
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
     __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(blob)));
-    uint32_t index;
+    uint32_t idx;
 
     nondet_s2n_mem_init();
 
@@ -37,13 +37,13 @@ void s2n_stuffer_write_harness()
     struct s2n_stuffer old_stuffer = *stuffer;
 
     /* Store a byte from the stuffer that wont be overwritten to compare if the write succeeds. */
-    __CPROVER_assume(index < stuffer->blob.size);
+    __CPROVER_assume(idx < stuffer->blob.size);
     if (__CPROVER_overflow_plus(old_stuffer.write_cursor, blob->size)) {
-        __CPROVER_assume(index < old_stuffer.write_cursor);
+        __CPROVER_assume(idx < old_stuffer.write_cursor);
     } else {
-        __CPROVER_assume(index < old_stuffer.write_cursor || index >= old_stuffer.write_cursor + blob->size);
+        __CPROVER_assume(idx < old_stuffer.write_cursor || idx >= old_stuffer.write_cursor + blob->size);
     }
-    uint8_t untouched_byte = stuffer->blob.data[ index ];
+    uint8_t untouched_byte = stuffer->blob.data[ idx ];
 
     /* Store a byte from the blob to compare. */
     struct s2n_blob               old_blob = *blob;
@@ -53,7 +53,7 @@ void s2n_stuffer_write_harness()
     /* Operation under verification. */
     if (s2n_stuffer_write(stuffer, blob) == S2N_SUCCESS) {
         assert(stuffer->write_cursor == old_stuffer.write_cursor + blob->size);
-        assert(stuffer->blob.data[ index ] == untouched_byte);
+        assert(stuffer->blob.data[ idx ] == untouched_byte);
         assert(stuffer->high_water_mark == MAX(old_stuffer.write_cursor + blob->size, old_stuffer.high_water_mark));
         assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
     } else {

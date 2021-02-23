@@ -89,7 +89,7 @@ void assert_all_zeroes(const uint8_t *const a, const size_t len) { assert_all_by
 
 void assert_byte_from_buffer_matches(const uint8_t *const buffer, const struct store_byte_from_buffer *const b)
 {
-    if (buffer && b) { assert(*(buffer + b->index) == b->byte); }
+    if (buffer && b) { assert(*(buffer + b->idx) == b->byte); }
 }
 
 void assert_byte_from_blob_matches(const struct s2n_blob *blob, const struct store_byte_from_buffer *const b)
@@ -100,9 +100,9 @@ void assert_byte_from_blob_matches(const struct s2n_blob *blob, const struct sto
 void save_byte_from_array(const uint8_t *const array, const size_t size, struct store_byte_from_buffer *const storage)
 {
     if (size > 0 && array && storage) {
-        storage->index = nondet_size_t();
-        __CPROVER_assume(storage->index < size);
-        storage->byte = array[ storage->index ];
+        storage->idx = nondet_size_t();
+        __CPROVER_assume(storage->idx < size);
+        storage->byte = array[ storage->idx ];
     }
 }
 

@@ -61,10 +61,10 @@ void s2n_stuffer_resize_harness()
                 assert(stuffer->blob.growable == 1);
             }
         } else { /* size < old_stuffer.blob.size */
-            size_t index;
+            size_t idx;
             /* Confirms wiped portion. */
-            __CPROVER_assume(index >= size && index < old_stuffer.blob.size);
-            assert(stuffer->blob.data[ index ] == S2N_WIPE_PATTERN);
+            __CPROVER_assume(idx >= size && idx < old_stuffer.blob.size);
+            assert(stuffer->blob.data[ idx ] == S2N_WIPE_PATTERN);
             assert(stuffer->blob.allocated == old_stuffer.blob.allocated);
             assert(stuffer->blob.growable == old_stuffer.blob.growable);
         }
