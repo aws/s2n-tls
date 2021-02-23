@@ -41,7 +41,7 @@ void s2n_stuffer_skip_expected_char_harness()
     /* Operation under verification. */
     if (s2n_stuffer_skip_expected_char(stuffer, expected, min, max, &skipped) == S2N_SUCCESS) {
         assert(skipped >= min && skipped <= max);
-        /* The read_cursor will move the number of skipped idxs. */
+        /* The read_cursor will move the number of skipped positions. */
         assert(stuffer->read_cursor == old_stuffer.read_cursor + skipped);
         if (stuffer->blob.size > 0) {
             /* The skipped bytes should match the expected element. */

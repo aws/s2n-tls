@@ -77,12 +77,12 @@ void assert_all_bytes_are(const uint8_t *const a, const uint8_t c, const size_t 
 void assert_all_zeroes(const uint8_t *const a, const size_t len);
 
 /**
- * Asserts whether the byte in storage correspond to the byte in the same idx in buffer.
+ * Asserts whether the byte in storage correspond to the byte in the same position in buffer.
  */
 void assert_byte_from_buffer_matches(const uint8_t *const buffer, const struct store_byte_from_buffer *const b);
 
 /**
- * Asserts whether the byte in storage correspond to the byte in the same idx in buffer.
+ * Asserts whether the byte in storage correspond to the byte in the same position in buffer.
  */
 void assert_byte_from_blob_matches(const struct s2n_blob *blob, const struct store_byte_from_buffer *const b);
 

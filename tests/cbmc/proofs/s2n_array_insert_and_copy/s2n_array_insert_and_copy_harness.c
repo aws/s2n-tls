@@ -37,7 +37,7 @@ void s2n_array_insert_and_copy_harness()
     if (s2n_result_is_ok(s2n_array_insert_and_copy(array, idx, element))) {
        /*
         * In the case s2n_array_insert_and_copy is successful, we can ensure the array isn't empty
-        * and idx is within bounds.
+        * and index is within bounds.
         */
         assert(array->mem.data != NULL);
         assert(array->len == (old_array.len + 1));

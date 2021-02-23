@@ -30,7 +30,7 @@ void s2n_set_get_harness()
     if(s2n_result_is_ok(s2n_set_get(set, idx, element))) {
         /*
          * In the case s2n_set_get is successful, we can ensure the array isn't empty
-         * and idx is within bounds.
+         * and index is within bounds.
          */
          assert(set->data->mem.data != NULL);
          assert(set->data->len != 0);

@@ -31,7 +31,7 @@ void s2n_strcpy_harness()
     __CPROVER_assume(buflen < MAX_STRING_LEN);
     char buf[ buflen ];
 
-    /* Last must point to a valid idx in buf. */
+    /* Last must point to a valid position in buf. */
     const uint32_t last_offset;
     __CPROVER_assume(last_offset < buflen);
     char *                        last = &buf[ last_offset ];

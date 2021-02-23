@@ -35,7 +35,7 @@ void s2n_set_add_harness()
     if(s2n_result_is_ok(s2n_set_add(set, element))) {
         /*
          * In the case s2n_set_add is successful, we can ensure the array isn't empty
-         * and idx is within bounds.
+         * and index is within bounds.
          */
          assert(set->data->mem.data != NULL);
          assert(set->data->len == (old_array.len + 1));

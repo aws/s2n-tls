@@ -103,7 +103,7 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t idx, void **elemen
 {
     GUARD_RESULT(s2n_array_validate(array));
     ENSURE_REF(element);
-    /* idx == len is ok since we're about to add one element */
+    /* index == len is ok since we're about to add one element */
     ENSURE(idx <= array->len, S2N_ERR_ARRAY_INDEX_OOB);
 
     /* We are about to add one more element to the array. Add capacity if necessary */
@@ -118,7 +118,7 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t idx, void **elemen
         GUARD_RESULT(s2n_array_enlarge(array, new_capacity));
     }
 
-    /* If we are adding at an existing idx, slide everything down. */
+    /* If we are adding at an existing index, slide everything down. */
     if (idx < array->len) {
         memmove(array->mem.data + array->element_size * (idx + 1),
                 array->mem.data + array->element_size * idx,

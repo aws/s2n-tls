@@ -31,7 +31,7 @@ void s2n_array_get_harness()
     if(s2n_result_is_ok(s2n_array_get(array, idx, element))) {
        /*
         * In the case s2n_array_get is successful, we can ensure the array isn't empty
-        * and idx is within bounds.
+        * and index is within bounds.
         */
         assert(array->mem.data != NULL);
         assert(array->len != 0);
