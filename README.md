@@ -104,7 +104,7 @@ Internally s2n-tls takes a systematic approach to data protection and includes s
 ##### Small and auditable code base
 Ignoring tests, blank lines and comments, s2n-tls is about 6,000 lines of code. s2n's code is also structured and written with a focus on reviewability. All s2n-tls code is subject to code review, and we plan to complete security evaluations of s2n-tls on an annual basis.
 
-To date there have been two external code-level reviews of s2n, including one by a commercial security vendor. s2n-tls has also been shared with some trusted members of the broader cryptography, security, and Open Source communities. Any issues discovered are always recorded in the s2n-tls issue tracker. 
+To date there have been two external code-level reviews of s2n-tls, including one by a commercial security vendor. s2n-tls has also been shared with some trusted members of the broader cryptography, security, and Open Source communities. Any issues discovered are always recorded in the s2n-tls issue tracker. 
 
 ##### Static analysis, fuzz-testing and penetration testing
 
