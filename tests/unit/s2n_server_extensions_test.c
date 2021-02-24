@@ -619,7 +619,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
             /* Write extensions - supported_versions + PSK */
-            struct s2n_stuffer_reservation extension_list_size = {0};
+            struct s2n_stuffer_reservation extension_list_size = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
             EXPECT_SUCCESS(s2n_extension_send(&s2n_server_supported_versions_extension,
                     server_conn, &stuffer));
