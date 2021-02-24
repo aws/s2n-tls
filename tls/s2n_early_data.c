@@ -31,6 +31,9 @@ const s2n_early_data_state valid_previous_states[] = {
 S2N_RESULT s2n_connection_set_early_data_state(struct s2n_connection *conn, s2n_early_data_state next_state)
 {
     ENSURE_REF(conn);
+    if (conn->early_data_state == next_state) {
+        return S2N_RESULT_OK;
+    }
     ENSURE(next_state < S2N_EARLY_DATA_STATES_COUNT, S2N_ERR_INVALID_EARLY_DATA_STATE);
     ENSURE(next_state != S2N_UNKNOWN_EARLY_DATA_STATE, S2N_ERR_INVALID_EARLY_DATA_STATE);
     ENSURE(conn->early_data_state == valid_previous_states[next_state], S2N_ERR_INVALID_EARLY_DATA_STATE);
