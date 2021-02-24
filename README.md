@@ -142,7 +142,7 @@ s2n-tls is written in C, but makes light use of standard C library functions and
 If you discover a potential security issue in s2n-tls we ask that you notify
 AWS Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue. 
 
-If you package or distribute s2n, or use s2n-tls as part of a large multi-user service, you may be eligible for pre-notification of future s2n-tls releases. Please contact s2n-pre-notification@amazon.com.  
+If you package or distribute s2n-tls, or use s2n-tls as part of a large multi-user service, you may be eligible for pre-notification of future s2n-tls releases. Please contact s2n-pre-notification@amazon.com.  
 
 ## Contributing to s2n-tls
 If you are interested in contributing to s2n-tls, please see our [development guide](https://github.com/aws/s2n-tls/blob/main/docs/DEVELOPMENT-GUIDE.md).
