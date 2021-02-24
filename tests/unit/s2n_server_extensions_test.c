@@ -23,6 +23,7 @@
 #include "tls/s2n_tls13.h"
 #include "tls/extensions/s2n_ec_point_format.h"
 #include "tls/extensions/s2n_server_key_share.h"
+#include "tls/extensions/s2n_server_psk.h"
 #include "tls/extensions/s2n_server_status_request.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/s2n_cipher_preferences.h"
@@ -30,6 +31,7 @@
 #include "tls/s2n_server_extensions.h"
 
 #include "utils/s2n_safety.h"
+#include "utils/s2n_bitmap.h"
 
 const uint8_t EXTENSION_LEN = 2;
 const uint8_t SECURE_RENEGOTIATION_SIZE = 5;
@@ -456,6 +458,48 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
+        /* Test that some TLS1.3 extensions (like PSK) not sent on a HRR request */
+        {
+            s2n_extension_type_id psk_extension_id = 0;
+            EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(s2n_server_psk_extension.iana_value, &psk_extension_id));
+
+            struct s2n_psk psk = { 0 };
+
+            for (size_t is_hrr = 0; is_hrr < 2; is_hrr++) {
+                struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+                conn->actual_protocol_version = S2N_TLS13;
+                struct s2n_stuffer *io_stuffer = &conn->handshake.io;
+
+                /* Setup required for PSK extension */
+                conn->psk_params.chosen_psk = &psk;
+                S2N_CBIT_CLR(conn->extension_requests_sent, psk_extension_id);
+                EXPECT_TRUE(s2n_server_psk_extension.should_send(conn));
+
+                /* Setup required for other server extensions */
+                conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+                conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+                conn->secure.client_ecc_evp_params[0].negotiated_curve = &s2n_ecc_curve_secp256r1;
+                EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+
+                if (is_hrr) {
+                    EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
+                }
+
+                EXPECT_SUCCESS(s2n_server_extensions_send(conn, io_stuffer));
+
+                s2n_parsed_extensions_list parsed_extensions = { 0 };
+                EXPECT_SUCCESS(s2n_extension_list_parse(io_stuffer, &parsed_extensions));
+
+                bool psk_extension_sent = (parsed_extensions.parsed_extensions[psk_extension_id].extension_type
+                             == s2n_server_psk_extension.iana_value);
+                EXPECT_NOT_EQUAL(psk_extension_sent, is_hrr);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+        }
+
         EXPECT_SUCCESS(s2n_config_free(config));
     }
 
@@ -558,6 +602,58 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(client_conn->server_protocol_version, S2N_TLS13);
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        }
+
+        /* TLS1.3 HRR handshake - should use HRR TLS1.3 extensions,
+         * so should reject the PSK extension  */
+        {
+            const uint8_t test_wire_index = 5;
+            struct s2n_psk empty_psk = { 0 };
+
+            server_conn->actual_protocol_version = S2N_TLS13;
+            server_conn->server_protocol_version = S2N_TLS13;
+            server_conn->psk_params.chosen_psk = &empty_psk;
+            server_conn->psk_params.chosen_psk_wire_index = test_wire_index;
+
+            DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+            /* Write extensions - supported_versions + PSK */
+            struct s2n_stuffer_reservation extension_list_size = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &extension_list_size));
+            EXPECT_SUCCESS(s2n_extension_send(&s2n_server_supported_versions_extension,
+                    server_conn, &stuffer));
+            EXPECT_SUCCESS(s2n_extension_send(&s2n_server_psk_extension,
+                    server_conn, &stuffer));
+            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
+
+            for (size_t is_hrr = 0; is_hrr < 2; is_hrr++) {
+                struct s2n_connection *client_conn;
+                EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+                EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(client_conn));
+                client_conn->actual_protocol_version = S2N_TLS13;
+
+                for (size_t i = 0; i <= test_wire_index; i++) {
+                    struct s2n_psk *psk = NULL;
+                    EXPECT_OK(s2n_array_pushback(&client_conn->psk_params.psk_list, (void**) &psk));
+                }
+
+                if (is_hrr) {
+                    EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(client_conn));
+                }
+
+                EXPECT_EQUAL(client_conn->psk_params.chosen_psk_wire_index, 0);
+                EXPECT_SUCCESS(s2n_server_extensions_recv(client_conn, &stuffer));
+
+                if (is_hrr) {
+                    EXPECT_EQUAL(client_conn->psk_params.chosen_psk_wire_index, 0);
+                } else {
+                    EXPECT_EQUAL(client_conn->psk_params.chosen_psk_wire_index, test_wire_index);
+                }
+
+                EXPECT_SUCCESS(s2n_connection_free(client_conn));
+                EXPECT_SUCCESS(s2n_stuffer_reread(&stuffer));
+            }
         }
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
