@@ -75,7 +75,7 @@ target_link_libraries(yourExecutableOrLibrary AWS::s2n-tls)
 
 And when invoking CMake for your project, do one of two things:
  1. Set the `CMAKE_INSTALL_PREFIX` variable with the path to your s2n-tls build.
- 2. If you have globally installed s2n, do nothing, it will automatically be found.
+ 2. If you have globally installed s2n-tls, do nothing, it will automatically be found.
  
 ## Building s2n-tls with OpenSSL-1.1.1
 
@@ -1761,4 +1761,3 @@ function that can free memory.
 
 To understand the API it may be easiest to see examples in action. s2n-tls's [bin/](https://github.com/aws/s2n-tls/blob/main/bin/) directory
 includes an example client (s2nc) and server (s2nd).
-
