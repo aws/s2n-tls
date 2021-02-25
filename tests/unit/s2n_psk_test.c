@@ -136,6 +136,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_psk_set_secret(clone, test_bad_value, sizeof(test_bad_value)));
         EXPECT_NOT_NULL(clone);
 
+        /* Check that the blobs weren't shallow copied */
+        EXPECT_NOT_EQUAL(original->identity.data, clone->identity.data);
+        EXPECT_NOT_EQUAL(original->secret.data, clone->secret.data);
+        EXPECT_NOT_EQUAL(original->early_secret.data, clone->early_secret.data);
+
         EXPECT_OK(s2n_psk_clone(clone, original));
 
         /* Free the original to ensure they share no memory */

@@ -1098,7 +1098,7 @@ S2N_RESULT s2n_iana_to_cipher_suite(const uint8_t iana[], struct s2n_cipher_suit
             low = mid + 1;
         }
     }
-    return S2N_RESULT_OK;
+    BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
 int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN])

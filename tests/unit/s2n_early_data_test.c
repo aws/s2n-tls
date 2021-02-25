@@ -331,6 +331,7 @@ int main(int argc, char **argv)
         const uint8_t test_bad_value[] = "wrong";
         const uint8_t test_apln[] = "protocol";
         const uint8_t test_context[] = "context";
+        const uint8_t test_version = UINT8_MAX;
         const uint32_t test_max_early_data = 10;
         const struct s2n_cipher_suite *test_cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
 
@@ -341,6 +342,7 @@ int main(int argc, char **argv)
                     test_cipher_suite->iana_value[0], test_cipher_suite->iana_value[1]));
             EXPECT_SUCCESS(s2n_psk_set_application_protocol(original, test_apln, sizeof(test_apln)));
             EXPECT_SUCCESS(s2n_psk_set_context(original, test_context, sizeof(test_context)));
+            original->early_data_config.protocol_version = test_version;
 
             DEFER_CLEANUP(struct s2n_psk *clone = s2n_external_psk_new(), s2n_psk_free);
             EXPECT_SUCCESS(s2n_psk_set_application_protocol(clone, test_bad_value, sizeof(test_bad_value)));
@@ -353,6 +355,11 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_psk_set_secret(original, test_bad_value, sizeof(test_bad_value)));
                 EXPECT_OK(s2n_psk_clone(clone, original));
             }
+
+            /* Check that the blobs weren't shallow copied */
+            EXPECT_NOT_EQUAL(original->early_data_config.application_protocol.data,
+                    clone->early_data_config.application_protocol.data);
+            EXPECT_NOT_EQUAL(original->early_data_config.context.data, clone->early_data_config.context.data);
 
             /* Free the original to ensure they share no memory */
             EXPECT_SUCCESS(s2n_psk_free(&original));
@@ -368,6 +375,7 @@ int main(int argc, char **argv)
             /* other values are copied */
             EXPECT_EQUAL(clone->early_data_config.max_early_data_size, test_max_early_data);
             EXPECT_EQUAL(clone->early_data_config.cipher_suite, test_cipher_suite);
+            EXPECT_EQUAL(clone->early_data_config.protocol_version, test_version);
         }
     }
 
