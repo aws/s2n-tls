@@ -20,6 +20,18 @@ set -eu
 source ./codebuild/bin/s2n_setup_env.sh
 ALTERNATIVES=""
 
+is_supported() {
+    if [[ ${DISTRO} != "ubuntu" ]]; then
+        echo "Target is ubuntu; running on $DISTRO: Nothing to do."
+        exit 0
+    fi
+    # This is prevent our sidetrails docker image from being harmed.
+     if [[ ${VERSION_ID} < "16" ]]; then
+        echo "Warning: Ubuntu version ${VERSION_ID} will not be updated for CI."
+        exit 0
+    fi
+}
+
 apt-repo-tool() {
     # This is already preinstalled on CodeBuild Docker images.
     if [[ ! -x `which add-apt-repository` ]]; then
@@ -70,11 +82,7 @@ update_alternatives() {
 }
 
 # Main
-if [[ ${DISTRO} != "ubuntu" ]]; then
-    echo "Target ubuntu; running on $DISTRO: Nothing to do."
-    exit 0
-fi
-
+is_supported
 DEPENDENCIES="unzip make psmisc sudo indent iproute2 kwstyle net-tools libssl-dev tcpdump valgrind lcov m4 nettle-dev nettle-bin pkg-config gcc g++ wget zlibc zlib1g-dev python3-pip python3-testresources llvm curl git tox cmake libtool ninja-build golang-go quilt gcc g++"
 
 if [[ -n "$GCC_VERSION" ]] && [[ "$GCC_VERSION" != "NONE" ]]; then
