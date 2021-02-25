@@ -162,25 +162,25 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test s2n_protocol_preference_read */
+    /* Test s2n_protocol_preferences_read */
     {
         /* Safety checks */
         {
             struct s2n_stuffer stuffer = { 0 };
             struct s2n_blob blob = { 0 };
-            EXPECT_ERROR_WITH_ERRNO(s2n_protocol_preference_read(NULL, &blob), S2N_ERR_NULL);
-            EXPECT_ERROR_WITH_ERRNO(s2n_protocol_preference_read(&stuffer, NULL), S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(s2n_protocol_preferences_read(NULL, &blob), S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(s2n_protocol_preferences_read(&stuffer, NULL), S2N_ERR_NULL);
         }
 
-        /* Read malformed value */
+        /* Fail to read zero-length protocol */
         {
             struct s2n_stuffer input = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, sizeof(protocol1) + 10));
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, protocol1, sizeof(protocol1)));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, 0));
 
             struct s2n_blob result = { 0 };
-            EXPECT_ERROR(s2n_protocol_preference_read(&input, &result));
+            EXPECT_ERROR_WITH_ERRNO(s2n_protocol_preferences_read(&input, &result), S2N_ERR_SAFETY);
+            EXPECT_EQUAL(result.size, 0);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
         }
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, protocol1, sizeof(protocol1)));
 
             struct s2n_blob result = { 0 };
-            EXPECT_OK(s2n_protocol_preference_read(&input, &result));
+            EXPECT_OK(s2n_protocol_preferences_read(&input, &result));
             EXPECT_EQUAL(result.size, sizeof(protocol1));
             EXPECT_BYTEARRAY_EQUAL(result.data, protocol1, sizeof(protocol1));
 
@@ -212,7 +212,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_skip_read(&conn->handshake.io, sizeof(uint16_t)));
 
             struct s2n_blob result = { 0 };
-            EXPECT_OK(s2n_protocol_preference_read(&conn->handshake.io, &result));
+            EXPECT_OK(s2n_protocol_preferences_read(&conn->handshake.io, &result));
             EXPECT_EQUAL(result.size, sizeof(protocol1));
             EXPECT_BYTEARRAY_EQUAL(result.data, protocol1, sizeof(protocol1));
 
@@ -223,8 +223,8 @@ int main(int argc, char **argv)
     /* s2n_protocol_preferences_contain */
     {
         uint8_t protocol3[] = "protocol3";
-        struct s2n_blob target = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&target, protocol3, sizeof(protocol3)));
+        struct s2n_blob protocol3_blob = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&protocol3_blob, protocol3, sizeof(protocol3)));
 
         /* Safety checks */
         {
@@ -241,22 +241,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             bool result = true;
-            EXPECT_OK(s2n_protocol_preferences_contain(&conn->application_protocols_overridden, &target, &result));
-            EXPECT_FALSE(result);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-
-        /* Error: malformed preferences */
-        {
-            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-            EXPECT_NOT_NULL(conn);
-
-            EXPECT_SUCCESS(s2n_connection_append_protocol_preference(conn, protocol1, sizeof(protocol1)));
-            conn->application_protocols_overridden.size--;
-
-            bool result = true;
-            EXPECT_ERROR(s2n_protocol_preferences_contain(&conn->application_protocols_overridden, &target, &result));
+            EXPECT_OK(s2n_protocol_preferences_contain(&conn->application_protocols_overridden, &protocol3_blob, &result));
             EXPECT_FALSE(result);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -271,7 +256,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_append_protocol_preference(conn, protocol2, sizeof(protocol2)));
 
             bool result = true;
-            EXPECT_OK(s2n_protocol_preferences_contain(&conn->application_protocols_overridden, &target, &result));
+            EXPECT_OK(s2n_protocol_preferences_contain(&conn->application_protocols_overridden, &protocol3_blob, &result));
             EXPECT_FALSE(result);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -283,10 +268,11 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             EXPECT_SUCCESS(s2n_connection_append_protocol_preference(conn, protocol1, sizeof(protocol1)));
+            EXPECT_SUCCESS(s2n_connection_append_protocol_preference(conn, protocol2, sizeof(protocol2)));
             EXPECT_SUCCESS(s2n_connection_append_protocol_preference(conn, protocol3, sizeof(protocol3)));
 
             bool result = false;
-            EXPECT_OK(s2n_protocol_preferences_contain(&conn->application_protocols_overridden, &target, &result));
+            EXPECT_OK(s2n_protocol_preferences_contain(&conn->application_protocols_overridden, &protocol3_blob, &result));
             EXPECT_TRUE(result);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));

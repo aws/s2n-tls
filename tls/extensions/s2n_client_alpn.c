@@ -88,7 +88,7 @@ static int s2n_client_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer 
 
     while (s2n_stuffer_data_available(&server_protos) > 0) {
         struct s2n_blob server_protocol = { 0 };
-        ENSURE_POSIX(s2n_result_is_ok(s2n_protocol_preference_read(&server_protos, &server_protocol)),
+        ENSURE_POSIX(s2n_result_is_ok(s2n_protocol_preferences_read(&server_protos, &server_protocol)),
                 S2N_ERR_BAD_MESSAGE);
 
         bool is_match = false;

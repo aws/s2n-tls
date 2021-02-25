@@ -19,5 +19,5 @@
 
 #include "utils/s2n_result.h"
 
-S2N_RESULT s2n_protocol_preference_read(struct s2n_stuffer *input, struct s2n_blob *protocol);
-S2N_RESULT s2n_protocol_preferences_contain(struct s2n_blob *application_protocols, struct s2n_blob *protocol, bool *match_found);
+S2N_RESULT s2n_protocol_preferences_read(struct s2n_stuffer *protocol_preferences, struct s2n_blob *protocol);
+S2N_RESULT s2n_protocol_preferences_contain(struct s2n_blob *protocol_preferences, struct s2n_blob *protocol, bool *contains);
