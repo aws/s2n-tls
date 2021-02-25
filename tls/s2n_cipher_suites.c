@@ -1074,7 +1074,7 @@ int s2n_cipher_suites_cleanup(void)
     return 0;
 }
 
-S2N_RESULT s2n_iana_to_cipher_suite(const uint8_t iana[], struct s2n_cipher_suite **cipher_suite)
+S2N_RESULT s2n_cipher_suite_from_iana(const uint8_t iana[], struct s2n_cipher_suite **cipher_suite)
 {
     ENSURE_REF(cipher_suite);
     *cipher_suite = NULL;
