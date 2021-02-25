@@ -13,7 +13,7 @@
 # permissions and limitations under the License.
 #
 
-set -ex
+set -e
 
 source codebuild/bin/s2n_setup_env.sh
 # Defer overriding LD_LIBRARY_PATH so that the overriden paths don't interfere with test install scripts.
@@ -21,8 +21,7 @@ source codebuild/bin/s2n_setup_env.sh
 source codebuild/bin/s2n_override_paths.sh
 
 # Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default
-# Codebuild Containers aren't allowing prlimit changes (and aren't being caught with the usual cgroup check)
-if [[ "$OS_NAME" == "linux" && -n "$CODEBUILD_BUILD_ARN" ]]; then
+if [[ "$OS_NAME" == "linux" && "$TESTS" != "sidetrail" ]]; then
     PRLIMIT_LOCATION=`which prlimit`
     sudo -E ${PRLIMIT_LOCATION} --pid "$$" --memlock=unlimited:unlimited;
 fi
@@ -40,8 +39,6 @@ if [[ -x "$(command -v nproc)" ]]; then
         JOBS=$UNITS;
     fi
 fi
-
-make clean;
 
 echo "Using $JOBS jobs for make..";
 
@@ -67,6 +64,7 @@ fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACPlus" ]] && [[ "$OS_NAME" == "linux" ]]; then make -C tests/saw tmp/verify_HMAC.log tmp/verify_drbg.log sike failure-tests; fi
 
 # Run Individual tests
+if [[ "$TESTS" == "sidetrail" ]]; then ./codebuild/bin/run_sidetrail.sh /sidetrail-install-dir ${CODEBUILD_SRC_DIR} ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "asan" ]]; then make clean; S2N_ADDRESS_SANITIZER=1 make -j $JOBS ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "integration" ]]; then make clean; make integration ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "integrationv2" ]]; then make clean; make integrationv2 ; fi

@@ -42,7 +42,7 @@ apt-repo-tool() {
 }
 
 dev9ppa() {
-    echo "We need a test PPA for gcc-9, cmake,psmis on Ubuntu18"
+    echo "We need a test PPA for gcc-9, cmake, psmis on Ubuntu18"
     add-apt-repository ppa:ubuntu-toolchain-r/test -y
     add-apt-repository ppa:longsleep/golang-backports -y
     apt-get update -o Acquire::CompressionTypes::Order::=gz

@@ -16,6 +16,11 @@
 set -ex
 source codebuild/bin/s2n_setup_env.sh
 
+# Sidetrail uses a prebuilt Docker image, don't mess with it.
+if [[ "$TESTS" == "sidetrail" ]]; then
+    echo "Sidetrail test dependencies are not covered by this script."
+    exit 0;
+fi
 
  # Install latest version of clang, clang++, and llvm-symbolizer. Needed for fuzzing.
 if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" || "$LATEST_CLANG" == "true" ]]; then
@@ -104,24 +109,6 @@ if [[ "$SAW" == "true" || "$TESTS" == "ALL" ]]; then
 
     mkdir -p "$Z3_INSTALL_DIR"||true
     codebuild/bin/install_z3_yices.sh "$(mktemp -d)" "$Z3_INSTALL_DIR" > /dev/null ;
-fi
-
-if [[ ! -x `which cmake` ]]; then
-    case "$DISTRO" in
-    "ubuntu")
-        apt-get -y install cmake
-        ;;
-    "amazon linux")
-        yum install -y cmake3
-        update-alternatives --install /usr/bin/cmake cmake /usr/bin/cmake3 30
-        ;;
-    "apple")
-        brew install cmake
-        ;;
-    *)
-        echo "Unknown platform for cmake."
-        ;;
-    esac
 fi
 
 if [[ "$TESTS" == "benchmark" || "$TESTS" == "ALL" ]]; then

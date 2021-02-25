@@ -75,6 +75,12 @@ fi
 export OS_NAME=$(uname -s|tr "[:upper:]" "[:lower:]")
 export ARCH=$(uname -m)
 
+# Handle alternative src locaiton for CodeBuild.
+if [[ -d "${CODEBUILD_SRC_DIR}/third-party-src" ]]; then 
+  export CODEBUILD_SRC_DIR+="/third-pary-src"
+  echo "Updated CODEBUILD_SRC_DIR to $CODEBUILD_SRC_DIR";
+fi
+
 # Export all Env Variables
 export S2N_LIBCRYPTO
 export BUILD_S2N
