@@ -41,6 +41,8 @@
 #define TARGET_ARM 3
 #define TARGET_ARM64 4
 #define TARGET_PPC64 5
+#define TARGET_RISCV32 6
+#define TARGET_RISCV64 7
 
 #if defined(__x86_64__)
 #define TARGET TARGET_AMD64
@@ -72,6 +74,20 @@ typedef uint32_t hdigit_t; // Unsigned 32-bit digit
 #define LOG2RADIX 6
 typedef uint64_t digit_t;  // Unsigned 64-bit digit
 typedef uint32_t hdigit_t; // Unsigned 32-bit digit
+#elif defined(__riscv)
+#if __riscv_xlen==64
+#define TARGET TARGET_RISCV64
+#define RADIX 64
+#define LOG2RADIX 6
+typedef uint64_t digit_t;   // Unsigned 64-bit digit
+typedef uint32_t hdigit_t;   // Unsigned 32-bit digit
+#else
+#define TARGET TARGET_RISCV32
+#define RADIX 32
+#define LOG2RADIX 5
+typedef uint32_t digit_t;   // Unsigned 32-bit digit
+typedef uint16_t hdigit_t;   // Unsigned 16-bit digit
+#endif
 #else
 #error-- "Unsupported ARCHITECTURE"
 #endif

@@ -24,6 +24,12 @@
 #elif (TARGET == TARGET_PPC64)
 #define NWORDS_FIELD 7
 #define p434_ZERO_WORDS 3
+#elif (TARGET == TARGET_RISCV32)
+#define NWORDS_FIELD 14
+#define p434_ZERO_WORDS 6
+#elif (TARGET == TARGET_RISCV64)
+#define NWORDS_FIELD 7
+#define p434_ZERO_WORDS 3
 #endif
 
 // Basic constants
