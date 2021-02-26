@@ -65,7 +65,7 @@ if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACPlus" ]] && [[ "$OS_NAME" == "lin
 
 # Run Individual tests
 if [[ "$TESTS" == "sidetrail" ]]; then ./codebuild/bin/run_sidetrail.sh /sidetrail-install-dir ${CODEBUILD_SRC_DIR} ; fi
-if [[ "$TESTS" == "ALL" || "$TESTS" == "asan" ]]; then make clean; S2N_ADDRESS_SANITIZER=1 make -j $JOBS ; fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "asan" ]]; then make clean; S2N_ADDRESS_SANITIZER=1 make withninja ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "integration" ]]; then make clean; make integration ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "integrationv2" ]]; then make clean; make integrationv2 ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "fuzz" ]]; then (make clean && make fuzz) ; fi

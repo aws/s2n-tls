@@ -173,9 +173,8 @@ clean:
 	$(MAKE) -C bin decruft
 	$(MAKE) -C lib decruft
 	$(MAKE) -C coverage clean
-
-veryclean:
 	@rm -rf ./build
+
 build:
 	@mkdir build
 
