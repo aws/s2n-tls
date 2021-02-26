@@ -184,8 +184,8 @@ int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *keys, struct s2n_psk *
 
         GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &zero_length_blob, &psk_ikm, &keys->extract_secret));
     } else {
-        /* Sanity check that an early secret exists */
-        ne_check(psk->early_secret.size, 0);
+        /* Sanity check that an early secret exists and its size is equal to the extract secret size */
+        eq_check(psk->early_secret.size, keys->extract_secret.size);
         memcpy_check(keys->extract_secret.data, psk->early_secret.data, psk->early_secret.size);
     }
 

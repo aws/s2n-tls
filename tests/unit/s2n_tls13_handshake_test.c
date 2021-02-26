@@ -381,7 +381,7 @@ int main(int argc, char **argv)
 
             const uint8_t psk_data[] = "test identity data";
             const uint8_t secret_data[] = "test secret data";
-            const uint8_t early_secret_data[] = "test early secret data";
+            const uint8_t early_secret_data[SHA256_DIGEST_LENGTH] = "test early secret data";
             for (size_t i = 0; i < S2N_TEST_PSK_COUNT; i++) {
                 struct s2n_psk *psk = NULL;
                 EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
