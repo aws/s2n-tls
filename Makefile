@@ -184,7 +184,7 @@ build:
 withninja: build
 	{ set -e; \
 	cd build; \
-	cmake -GNinja -DS2N_NO_PQ=1 -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug .. ;\
+	cmake -GNinja -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .. ;\
 	ninja -v -d stats;\
 	ninja test ;\
 	}

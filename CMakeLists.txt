@@ -34,9 +34,19 @@ file(GLOB UTILS_SRC "utils/*.c")
 file(GLOB PQ_HEADERS "pq-crypto/*.h")
 file(GLOB PQ_SRC "pq-crypto/*.c")
 
-if(S2N_NO_PQ)
+if (DEFINED ENV{S2N_ADDRESS_SANITIZER})
+    set(CMAKE_BUILD_TYPE "ASAN")
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "ASAN")
+    message(STATUS "Address sanitizer mode")
+    file(GLOB TEST_PEM_FILES "tests/pems/*.pem")
+    file(COPY ${TEST_PEM_FILES} DESTINATION "pems")
+endif ()
+
+if(S2N_NO_PQ OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "aarch64")
     # PQ is disabled, so we do not include any PQ crypto code
-    message(STATUS "S2N_NO_PQ flag was detected - disabling PQ crypto")
+    message(STATUS "S2N_NO_PQ flag (or aarch64) was detected - disabling PQ crypto")
     set(S2N_NO_PQ_ASM ON)
 else()
     # PQ is enabled, so include all of the PQ crypto code
@@ -250,6 +260,23 @@ target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURR
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
 
 target_include_directories(${PROJECT_NAME} PRIVATE $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
+
+# ASAN
+set(CMAKE_C_FLAGS_ASAN
+    "${CMAKE_C_FLAGS_DEBUG} -fsanitize=address -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1" CACHE STRING
+    "Flags used by the C compiler for Asan build type or configuration." FORCE)
+
+set(CMAKE_CXX_FLAGS_ASAN
+    "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1" CACHE STRING
+    "Flags used by the C++ compiler for Asan build type or configuration." FORCE)
+
+set(CMAKE_EXE_LINKER_FLAGS_ASAN
+    "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} -fsanitize=address  -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1" CACHE STRING
+    "Linker flags to be used to create executables for Asan build type." FORCE)
+
+set(CMAKE_SHARED_LINKER_FLAGS_ASAN
+    "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} -fsanitize=address -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1" CACHE STRING
+    "Linker lags to be used to create shared libraries for Asan build type." FORCE)
 
 include(CTest)
 if (BUILD_TESTING)

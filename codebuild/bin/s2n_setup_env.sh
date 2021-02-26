@@ -49,6 +49,7 @@
 : "${SIDETRAIL_INSTALL_DIR:=$TEST_DEPS_DIR/sidetrail}"
 : "${GB_INSTALL_DIR:=$TEST_DEPS_DIR/gb}"
 : "${FUZZ_TIMEOUT_SEC:=10}"
+: "${CODEBUILD_SRC_DIR:=''}"
 
 # Set some environment vars for OS, Distro and architecture.
 # Standardized as part of systemd http://0pointer.de/blog/projects/os-release
