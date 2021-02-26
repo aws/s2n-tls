@@ -15,6 +15,8 @@
 #define RNG_BAD_OUTBUF  -2
 #define RNG_BAD_REQ_LEN -3
 
+// for S2N, only randombytes() function is needed
+#if 0
 typedef struct {
     unsigned char   buffer[16];
     int             buffer_pos;
@@ -44,6 +46,8 @@ seedexpander_init(AES_XOF_struct *ctx,
 
 int
 seedexpander(AES_XOF_struct *ctx, unsigned char *x, unsigned long xlen);
+
+#endif
 
 void
 randombytes_init(unsigned char *entropy_input,

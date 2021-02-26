@@ -48,7 +48,8 @@ main()
     sprintf(fn_rsp, "PQCkemKAT_%d.rsp", CRYPTO_SECRETKEYBYTES);
     if ( (fp_rsp = fopen(fn_rsp, "w")) == NULL ) {
         printf("Couldn't open <%s> for write\n", fn_rsp);
-        return KAT_FILE_OPEN_ERROR;
+        fclose(fp_req);
+	return KAT_FILE_OPEN_ERROR;
     }
     
     for (i=0; i<48; i++)
@@ -69,7 +70,8 @@ main()
     //Create the RESPONSE file based on what's in the REQUEST file
     if ( (fp_req = fopen(fn_req, "r")) == NULL ) {
         printf("Couldn't open <%s> for read\n", fn_req);
-        return KAT_FILE_OPEN_ERROR;
+        fclose(fp_rsp);
+	return KAT_FILE_OPEN_ERROR;
     }
     
     fprintf(fp_rsp, "# %s\n\n", CRYPTO_ALGNAME);
@@ -85,7 +87,9 @@ main()
         
         if ( !ReadHex(fp_req, seed, 48, "seed = ") ) {
             printf("ERROR: unable to read 'seed' from <%s>\n", fn_req);
-            return KAT_DATA_ERROR;
+            fclose(fp_req);
+    	    fclose(fp_rsp);
+	    return KAT_DATA_ERROR;
         }
         fprintBstr(fp_rsp, "seed = ", seed, 48);
         
@@ -94,14 +98,18 @@ main()
         // Generate the public/private keypair
         if ( (ret_val = crypto_kem_keypair(pk, sk)) != 0) {
             printf("crypto_kem_keypair returned <%d>\n", ret_val);
-            return KAT_CRYPTO_FAILURE;
+            fclose(fp_req);
+            fclose(fp_rsp);
+		return KAT_CRYPTO_FAILURE;
         }
         fprintBstr(fp_rsp, "pk = ", pk, CRYPTO_PUBLICKEYBYTES);
         fprintBstr(fp_rsp, "sk = ", sk, CRYPTO_SECRETKEYBYTES);
         
         if ( (ret_val = crypto_kem_enc(ct, ss, pk)) != 0) {
             printf("crypto_kem_enc returned <%d>\n", ret_val);
-            return KAT_CRYPTO_FAILURE;
+            fclose(fp_req);
+            fclose(fp_rsp);
+	    return KAT_CRYPTO_FAILURE;
         }
         fprintBstr(fp_rsp, "ct = ", ct, CRYPTO_CIPHERTEXTBYTES);
         fprintBstr(fp_rsp, "ss = ", ss, CRYPTO_BYTES);
@@ -110,12 +118,17 @@ main()
         
         if ( (ret_val = crypto_kem_dec(ss1, ct, sk)) != 0) {
             printf("crypto_kem_dec returned <%d>\n", ret_val);
-            return KAT_CRYPTO_FAILURE;
+            fclose(fp_req);
+            fclose(fp_rsp);
+
+	    return KAT_CRYPTO_FAILURE;
         }
         
         if ( memcmp(ss, ss1, CRYPTO_BYTES) ) {
             printf("crypto_kem_dec returned bad 'ss' value\n");
-            return KAT_CRYPTO_FAILURE;
+            fclose(fp_req);
+            fclose(fp_rsp);
+		return KAT_CRYPTO_FAILURE;
         }
 
     } while ( !done );
