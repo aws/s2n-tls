@@ -31,7 +31,6 @@ well_known_endpoints = [
     {"endpoint": "amazon.com"},
     {"endpoint": "facebook.com"},
     {"endpoint": "google.com"},
-    {"endpoint": "netflix.com"},
     {"endpoint": "s3.amazonaws.com"},
     {"endpoint": "twitter.com"},
     {"endpoint": "wikipedia.org"},
@@ -127,7 +126,7 @@ def well_known_endpoints_test(use_corked_io, tls13_enabled):
         # Retry handshake in case there are any problems going over the internet
         for i in range(1, maxRetries):
             ret = try_client_handshake(endpoint, arguments, expected_cipher)
-            if ret is 0:
+            if ret == 0:
                 break
             else:
                 time.sleep(i)
