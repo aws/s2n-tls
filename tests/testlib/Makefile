@@ -24,7 +24,11 @@ include ../../s2n.mk
 
 CFLAGS += -I../
 LIBS += ../../lib/libs2n.a
-LDFLAGS += ${CRYPTO_LDFLAGS} ${LIBS} ${CRYPTO_LIBS} -lm -ldl -lrt -pthread
+LDFLAGS += ${CRYPTO_LDFLAGS} ${LIBS} ${CRYPTO_LIBS} -lm -ldl -pthread
+
+ifneq ($(PLATFORM),Darwin)
+LDFLAGS += -lrt
+endif
 
 libtests2n.so: ${OBJS}
 	${CC} ${CFLAGS} -shared ${LDFLAGS} -o libtests2n.so ${OBJS}
