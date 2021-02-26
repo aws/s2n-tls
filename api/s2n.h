@@ -51,6 +51,15 @@ extern "C" {
 S2N_API
 extern __thread int s2n_errno;
 
+/**
+ * Returns the address of the thread-local `s2n_errno` variable
+ *
+ * This function can be used instead of trying to resolve `s2n_errno` directly
+ * in runtimes where thread-local variables may not be easily accessible.
+ */
+S2N_API
+extern int *s2n_errno_location();
+
 typedef enum {
     S2N_ERR_T_OK=0,
     S2N_ERR_T_IO,
@@ -210,6 +219,19 @@ S2N_API
 extern int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem);
 S2N_API
 extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
+
+/**
+ * Appends the provided application protocol to the preference list
+ *
+ * The data provided in `protocol` parameter will be copied into an internal buffer
+ *
+ * @param config The configuration object being updated
+ * @param protocol A pointer to a byte array value
+ * @param protocol_len The length of bytes that should be read from `protocol`. Note: this value cannot be 0, otherwise an error will be returned.
+ */
+S2N_API
+extern int s2n_config_append_protocol_preference(struct s2n_config *config, const uint8_t *protocol, uint8_t protocol_len);
+
 S2N_API
 extern int s2n_config_set_protocol_preferences(struct s2n_config *config, const char * const *protocols, int protocol_count);
 typedef enum { S2N_STATUS_REQUEST_NONE = 0, S2N_STATUS_REQUEST_OCSP = 1 } s2n_status_request_type;
@@ -319,6 +341,19 @@ extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
 
 S2N_API
 extern int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
+
+/**
+ * Appends the provided application protocol to the preference list
+ *
+ * The data provided in `protocol` parameter will be copied into an internal buffer
+ *
+ * @param conn The connection object being updated
+ * @param protocol A pointer to a slice of bytes
+ * @param protocol_len The length of bytes that should be read from `protocol`. Note: this value cannot be 0, otherwise an error will be returned.
+ */
+S2N_API
+extern int s2n_connection_append_protocol_preference(struct s2n_connection *conn, const uint8_t *protocol, uint8_t protocol_len);
+
 S2N_API
 extern int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char * const *protocols, int protocol_count);
 S2N_API
@@ -406,6 +441,25 @@ S2N_API
 extern int s2n_connection_client_cert_used(struct s2n_connection *conn);
 S2N_API
 extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
+
+/**
+ * Returns the IANA value for the connection's negotiated cipher suite.
+ *
+ * The value is returned in the form of `first,second`, in order to closely match
+ * the values defined in the [IANA Registry](https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#table-tls-parameters-4).
+ * For example if the connection's negotiated cipher suite is `TLS_AES_128_GCM_SHA256`,
+ * which is registered as `0x13,0x01`, then `first = 0x13` and `second = 0x01`.
+ *
+ * This method will only succeed after the cipher suite has been negotiated with the peer.
+ *
+ * @param conn A pointer to the connection being read
+ * @param first A pointer to a single byte, which will be updated with the first byte in the registered IANA value.
+ * @param second A pointer to a single byte, which will be updated with the second byte in the registered IANA value.
+ * @return A POSIX error signal. If an error was returned, the values contained in `first` and `second` should be considered invalid.
+ */
+S2N_API
+extern int s2n_connection_get_cipher_iana_value(struct s2n_connection *conn, uint8_t *first, uint8_t *second);
+
 S2N_API
 extern int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, const char *version);
 S2N_API
@@ -432,6 +486,47 @@ S2N_API
 extern int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn);
 S2N_API
 extern int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
+
+/**
+ * Callback function for handling key log events
+ *
+ * THIS SHOULD BE USED FOR DEBUGGING PURPOSES ONLY!
+ *
+ * Each log line is formatted with the
+ * [NSS Key Log Format](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format)
+ * without a newline.
+ *
+ * # Safety
+ *
+ * * `ctx` MUST be cast into the same type of pointer that was originally created
+ * * `logline` bytes MUST be copied or discarded before this function returns
+ *
+ * @param ctx Context for the callback
+ * @param conn Connection for which the log line is being emitted
+ * @param logline Pointer to the log line data
+ * @param len Length of the log line data
+ */
+typedef int (*s2n_key_log_fn)(void *ctx, struct s2n_connection *conn, uint8_t *logline, size_t len);
+
+/**
+ * Sets a key logging callback on the provided config
+ *
+ * THIS SHOULD BE USED FOR DEBUGGING PURPOSES ONLY!
+ *
+ * Setting this function enables configurations to emit secrets in the
+ * [NSS Key Log Format](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format)
+ *
+ * # Safety
+ *
+ * * `callback` MUST cast `ctx` into the same type of pointer that was originally created
+ * * `ctx` MUST live for at least as long as it is set on the config
+ *
+ * @param config Config to set the callback
+ * @param callback The function that should be called for each secret log entry
+ * @param ctx The context to be passed when the callback is called
+ */
+S2N_API
+extern int s2n_config_set_key_log_cb(struct s2n_config *config, s2n_key_log_fn callback, void *ctx);
 
 /* s2n_config_enable_cert_req_dss_legacy_compat adds a dss cert type in the server certificate request when being called.
  * It only sends the dss cert type in the cert request but does not succeed the handshake if a dss cert is received.

@@ -31,6 +31,14 @@
 __thread int s2n_errno;
 __thread const char *s2n_debug_str;
 
+/**
+ * Returns the address of the thread-local `s2n_errno` variable
+ */
+int *s2n_errno_location()
+{
+    return &s2n_errno;
+}
+
 static const char *no_such_language = "Language is not supported for error translation";
 static const char *no_such_error = "Internal s2n error";
 
@@ -185,7 +193,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_NUM_DEFAULT_CERTIFICATES, "exceeded max default certificates or provided no default") \
     ERR_ENTRY(S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE, "setting multiple default certificates per auth type is not allowed") \
     ERR_ENTRY(S2N_ERR_INVALID_CIPHER_PREFERENCES, "Invalid Cipher Preferences version") \
-    ERR_ENTRY(S2N_ERR_APPLICATION_PROTOCOL_TOO_LONG, "Application protocol name is too long") \
+    ERR_ENTRY(S2N_ERR_INVALID_APPLICATION_PROTOCOL, "The supplied application protocol name is invalid") \
     ERR_ENTRY(S2N_ERR_KEY_MISMATCH, "public and private key do not match") \
     ERR_ENTRY(S2N_ERR_SEND_SIZE, "Retried s2n_send() size is invalid") \
     ERR_ENTRY(S2N_ERR_CORK_SET_ON_UNMANAGED, "Attempt to set connection cork management on unmanaged IO") \
@@ -215,7 +223,6 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_SESSION_TICKET_NOT_SUPPORTED, "Session ticket not supported for this connection") \
     ERR_ENTRY(S2N_ERR_OCSP_NOT_SUPPORTED, "OCSP stapling was requested, but is not supported") \
     ERR_ENTRY(S2N_ERR_INVALID_SIGNATURE_ALGORITHMS_PREFERENCES, "Invalid signature algorithms preferences version") \
-    ERR_ENTRY(S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS, "PQ KEMs are disallowed while in FIPS mode") \
     ERR_ENTRY(S2N_RSA_PSS_NOT_SUPPORTED, "RSA-PSS signing not supported by underlying libcrypto implementation") \
     ERR_ENTRY(S2N_ERR_MAX_INNER_PLAINTEXT_SIZE, "Inner plaintext size exceeds limit") \
     ERR_ENTRY(S2N_ERR_INVALID_ECC_PREFERENCES, "Invalid ecc curves preferences version") \
@@ -235,10 +242,15 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_ASYNC_APPLY_WHILE_INVOKING, "Async private key operation cannot consumed inside async pkey callback") \
     ERR_ENTRY(S2N_ERR_ASYNC_ALREADY_APPLIED, "Async operation was already applied to connection, cannot apply it again") \
     ERR_ENTRY(S2N_ERR_INVALID_HELLO_RETRY, "Invalid hello retry request") \
-    ERR_ENTRY(S2N_ERR_INVALID_STATE, "Invalid state, this is the result of invalid use of an API. Check the API documentation for the function that raised this error for more info.") \
+    ERR_ENTRY(S2N_ERR_INVALID_STATE, "Invalid state, this is the result of invalid use of an API. Check the API documentation for the function that raised this error for more info") \
     ERR_ENTRY(S2N_ERR_UNSUPPORTED_WITH_QUIC, "Functionality not supported when running with QUIC support enabled") \
-    ERR_ENTRY(S2N_ERR_PQ_CRYPTO, "An error occurred in a post-quantum crypto function.") \
-    ERR_ENTRY(S2N_ERR_PQ_DISABLED, "Post-quantum crypto is disabled.") \
+    ERR_ENTRY(S2N_ERR_PQ_CRYPTO, "An error occurred in a post-quantum crypto function") \
+    ERR_ENTRY(S2N_ERR_PQ_DISABLED, "Post-quantum crypto is disabled") \
+    ERR_ENTRY(S2N_ERR_DUPLICATE_PSK_IDENTITIES, "The list of pre-shared keys provided contains duplicate psk identities") \
+    ERR_ENTRY(S2N_ERR_OFFERED_PSKS_TOO_LONG, "The total pre-shared key data is too long to send over the wire") \
+    ERR_ENTRY(S2N_ERR_REENTRANCY, "Original execution must complete before method can be called again") \
+    ERR_ENTRY(S2N_ERR_INVALID_CERT_STATE, "Certificate validation entered an invalid state and is not able to continue") \
+    ERR_ENTRY(S2N_ERR_INVALID_EARLY_DATA_STATE, "Early data in invalid state") \
 
 /* clang-format on */
 

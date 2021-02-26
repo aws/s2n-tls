@@ -88,18 +88,18 @@ ifdef S2N_NO_PQ
 	DEFAULT_CFLAGS += -DS2N_NO_PQ
 endif
 
-# All native platforms have execinfo.h, cross-compile targets often don't (android, ARM/alpine)
-ifndef CROSS_COMPILE
-	DEFAULT_CFLAGS += -DS2N_HAVE_EXECINFO
-endif
-
 CFLAGS += ${DEFAULT_CFLAGS}
 
 ifdef GCC_VERSION
 	ifneq ("$(GCC_VERSION)","NONE")
 		CC=gcc-$(GCC_VERSION)
+<<<<<<< HEAD
 	# Make doesn't support greater than checks, this uses `test` to compare values, then `echo $$?` to return the value of test's
 	# exit code and finally using the built in make `ifeq` to check if it was true and then add the extra flag.
+=======
+		# Make doesn't support greater than checks, this uses `test` to compare values, then `echo $$?` to return the value of test's
+		# exit code and finally uses the built in make `ifeq` to check if it was true and then adds the extra flag.
+>>>>>>> b93016c67a8ed84abb583837face45a24353880e
 		ifeq ($(shell test $(GCC_VERSION) -gt 7; echo $$?), 0)
 			CFLAGS += -Wimplicit-fallthrough
 		endif
@@ -163,10 +163,30 @@ ifndef COV_TOOL
 	endif
 endif
 
+try_compile = $(shell cat $(1) | $(CC) -Werror -o tmp.o -xc - > /dev/null 2>&1; echo $$?; rm tmp.o > /dev/null 2>&1)
+
+# Determine if execinfo.h is available
+TRY_COMPILE_EXECINFO := $(call try_compile,$(S2N_ROOT)/tests/features/execinfo.c)
+ifeq ($(TRY_COMPILE_EXECINFO), 0)
+	DEFAULT_CFLAGS += -DS2N_HAVE_EXECINFO
+endif
+
 # Determine if cpuid.h is available
-TRY_COMPILE_CPUID := $(shell echo "\#include <cpuid.h>\nint main() { return 0; }" | $(CC) -o test_cpuid.o -xc - > /dev/null 2>&1; echo $$?; rm test_cpuid.o > /dev/null 2>&1)
+TRY_COMPILE_CPUID := $(call try_compile,$(S2N_ROOT)/tests/features/cpuid.c)
 ifeq ($(TRY_COMPILE_CPUID), 0)
 	DEFAULT_CFLAGS += -DS2N_CPUID_AVAILABLE
+endif
+
+# Determine if __attribute__((fallthrough)) is available
+TRY_COMPILE_FALL_THROUGH := $(call try_compile,$(S2N_ROOT)/tests/features/fallthrough.c)
+ifeq ($(TRY_COMPILE_FALL_THROUGH), 0)
+	DEFAULT_CFLAGS += -DS2N_FALL_THROUGH_SUPPORTED
+endif
+
+# Determine if __restrict__ is available
+TRY_COMPILE__RESTRICT__ := $(call try_compile,$(S2N_ROOT)/tests/features/__restrict__.c)
+ifeq ($(TRY_COMPILE__RESTRICT__), 0)
+	DEFAULT_CFLAGS += -DS2N___RESTRICT__SUPPORTED
 endif
 
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1

@@ -41,9 +41,9 @@ void s2n_stuffer_skip_to_char_harness()
                            stuffer->read_cursor == old_stuffer.read_cursor));
         if (s2n_stuffer_data_available(stuffer) > 0) {
             assert(stuffer->blob.data[ stuffer->read_cursor ] == target);
-            size_t index;
-            __CPROVER_assume(index >= old_stuffer.read_cursor && index < stuffer->read_cursor);
-            assert(stuffer->blob.data[ index ] != target);
+            size_t idx;
+            __CPROVER_assume(idx >= old_stuffer.read_cursor && idx < stuffer->read_cursor);
+            assert(stuffer->blob.data[ idx ] != target);
         }
     }
     assert_stuffer_immutable_fields_after_read(stuffer, &old_stuffer, &old_byte_from_stuffer);

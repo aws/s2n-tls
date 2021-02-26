@@ -1,0 +1,4 @@
+:
+  This file marks this directory as containing a CBMC proof. This file
+  is automatically clobbered in CI and replaced with parameters for
+  running the proof.

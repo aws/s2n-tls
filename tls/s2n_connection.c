@@ -196,7 +196,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     GUARD_PTR(s2n_stuffer_init(&conn->writer_alert_out, &blob));
 
     blob = (struct s2n_blob) {0};
-    GUARD_PTR(s2n_blob_init(&blob, conn->ticket_ext_data, S2N_TICKET_SIZE_IN_BYTES));
+    GUARD_PTR(s2n_blob_init(&blob, conn->ticket_ext_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
     GUARD_PTR(s2n_stuffer_init(&conn->client_ticket_to_decrypt, &blob));
 
     /* Allocate long term key memory */
@@ -452,7 +452,7 @@ int s2n_connection_free(struct s2n_connection *conn)
 {
     GUARD(s2n_connection_wipe_keys(conn));
     GUARD(s2n_connection_free_keys(conn));
-    GUARD(s2n_psk_parameters_free(&conn->psk_params));
+    GUARD_AS_POSIX(s2n_psk_parameters_wipe(&conn->psk_params));
 
     GUARD(s2n_prf_free(conn));
 
@@ -523,6 +523,7 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
             GUARD(s2n_x509_validator_set_max_chain_depth(&conn->x509_validator, config->max_verify_cert_chain_depth));
         }
     }
+    conn->tickets_to_send = config->initial_tickets_to_send;
 
     conn->config = config;
     return 0;
@@ -978,6 +979,30 @@ const char *s2n_connection_get_cipher(struct s2n_connection *conn)
     notnull_check_ptr(conn->secure.cipher_suite);
 
     return conn->secure.cipher_suite->name;
+}
+
+int s2n_connection_get_cipher_iana_value(struct s2n_connection *conn, uint8_t *first, uint8_t *second)
+{
+    ENSURE_POSIX_REF(conn);
+    ENSURE_POSIX_REF(conn->secure.cipher_suite);
+    ENSURE_POSIX_MUT(first);
+    ENSURE_POSIX_MUT(second);
+
+    /* ensure we've negotiated a cipher suite */
+    ENSURE_POSIX(
+        memcmp(
+            conn->secure.cipher_suite->iana_value,
+            s2n_null_cipher_suite.iana_value,
+            sizeof(s2n_null_cipher_suite.iana_value)
+        ) != 0,
+        S2N_ERR_INVALID_STATE
+    );
+
+    const uint8_t *iana_value = conn->secure.cipher_suite->iana_value;
+    *first = iana_value[0];
+    *second = iana_value[1];
+
+    return S2N_SUCCESS;
 }
 
 const char *s2n_connection_get_curve(struct s2n_connection *conn)

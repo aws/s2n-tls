@@ -25,6 +25,7 @@
 #include "tls/s2n_client_hello.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_crypto.h"
+#include "tls/s2n_early_data.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_quic_support.h"
@@ -304,8 +305,10 @@ struct s2n_connection {
     uint32_t ticket_lifetime_hint;
 
     /* Session ticket extension from client to attempt to decrypt as the server. */
-    uint8_t ticket_ext_data[S2N_TICKET_SIZE_IN_BYTES];
+    uint8_t ticket_ext_data[S2N_TLS12_TICKET_SIZE_IN_BYTES];
     struct s2n_stuffer client_ticket_to_decrypt;
+
+    uint8_t resumption_master_secret[S2N_TLS13_SECRET_MAX_LEN];
 
     /* application protocols overridden */
     struct s2n_blob application_protocols_overridden;
@@ -323,6 +326,17 @@ struct s2n_connection {
      * Setting and manipulating this value requires security_policy to be configured prior.
      * */
     uint8_t preferred_key_shares;
+
+    /* Flags to prevent users from calling methods recursively.
+     * This can be an easy mistake to make when implementing send/receive callbacks.
+     */
+    bool send_in_use;
+    bool recv_in_use;
+    
+    uint16_t tickets_to_send;
+    uint16_t tickets_sent;
+
+    s2n_early_data_state early_data_state;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);

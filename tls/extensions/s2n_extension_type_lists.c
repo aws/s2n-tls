@@ -46,6 +46,7 @@
 #include "tls/extensions/s2n_server_signature_algorithms.h"
 #include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/extensions/s2n_server_key_share.h"
+#include "tls/extensions/s2n_server_psk.h"
 
 static const s2n_extension_type *const client_hello_extensions[] = {
         &s2n_client_supported_versions_extension,
@@ -79,10 +80,28 @@ static const s2n_extension_type *const tls12_server_hello_extensions[] = {
         &s2n_server_session_ticket_extension,
 };
 
+/**
+ *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+ *# The
+ *# HelloRetryRequest extensions defined in this specification are:
+ *#
+ *# -  supported_versions (see Section 4.2.1)
+ *#
+ *# -  cookie (see Section 4.2.2)
+ *#
+ *# -  key_share (see Section 4.2.8)
+ */
+static const s2n_extension_type *const hello_retry_request_extensions[] = {
+        &s2n_server_supported_versions_extension,
+        &s2n_server_cookie_extension,
+        &s2n_server_key_share_extension,
+};
+
 static const s2n_extension_type *const tls13_server_hello_extensions[] = {
         &s2n_server_supported_versions_extension,
         &s2n_server_key_share_extension,
         &s2n_server_cookie_extension,
+        &s2n_server_psk_extension, /* MUST appear after keyshare extension */
 };
 
 static const s2n_extension_type *const encrypted_extensions[] = {
@@ -105,6 +124,7 @@ static const s2n_extension_type *const certificate_extensions[] = {
 
 static s2n_extension_type_list extension_lists[] = {
         [S2N_EXTENSION_LIST_CLIENT_HELLO] = S2N_EXTENSION_LIST(client_hello_extensions),
+        [S2N_EXTENSION_LIST_HELLO_RETRY_REQUEST] = S2N_EXTENSION_LIST(hello_retry_request_extensions),
         [S2N_EXTENSION_LIST_SERVER_HELLO_DEFAULT] = S2N_EXTENSION_LIST(tls12_server_hello_extensions),
         [S2N_EXTENSION_LIST_SERVER_HELLO_TLS13] = S2N_EXTENSION_LIST(tls13_server_hello_extensions),
         [S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS] = S2N_EXTENSION_LIST(encrypted_extensions),

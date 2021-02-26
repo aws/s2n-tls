@@ -13,12 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
 #include "utils/s2n_set.h"
-#include "utils/s2n_result.h"
 
-#include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
 void s2n_set_get_harness()
@@ -27,19 +23,19 @@ void s2n_set_get_harness()
     struct s2n_set *set = cbmc_allocate_s2n_set();
     __CPROVER_assume(s2n_result_is_ok(s2n_set_validate(set)));
     __CPROVER_assume(s2n_set_is_bounded(set, MAX_ARRAY_LEN, MAX_ARRAY_ELEMENT_SIZE));
-    uint32_t index;
-    void **element = can_fail_malloc(sizeof(void *));
+    uint32_t idx;
+    void **element = malloc(sizeof(void *));
 
     /* Operation under verification. */
-    if(s2n_result_is_ok(s2n_set_get(set, index, element))) {
+    if(s2n_result_is_ok(s2n_set_get(set, idx, element))) {
         /*
          * In the case s2n_set_get is successful, we can ensure the array isn't empty
          * and index is within bounds.
          */
          assert(set->data->mem.data != NULL);
          assert(set->data->len != 0);
-         assert(index < set->data->len);
-         assert(*element == (set->data->mem.data + (set->data->element_size * index)));
+         assert(idx < set->data->len);
+         assert(*element == (set->data->mem.data + (set->data->element_size * idx)));
     }
 
     /* Post-condition. */

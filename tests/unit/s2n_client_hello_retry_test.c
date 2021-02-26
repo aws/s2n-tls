@@ -25,7 +25,7 @@
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_connection.h"
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 
 /* This include is required to access static function s2n_server_hello_parse */
 #include "tls/s2n_server_hello.c"
@@ -170,7 +170,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
         }
-#if !defined(S2N_NO_PQ)
+
         {
             const struct s2n_kem_group *test_kem_groups[] = {
                 &s2n_secp256r1_sike_p434_r2,
@@ -192,7 +192,7 @@ int main(int argc, char **argv)
                 .ecc_preferences = &s2n_ecc_preferences_20200310,
             };
 
-            if (s2n_is_in_fips_mode()) {
+            if (!s2n_pq_is_enabled()) {
                 struct s2n_connection *conn;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 conn->actual_protocol_version = S2N_TLS13;
@@ -205,7 +205,7 @@ int main(int argc, char **argv)
                 conn->secure.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
                 EXPECT_NULL(conn->secure.server_ecc_evp_params.negotiated_curve);
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_PQ_DISABLED);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             } else {
@@ -327,7 +327,6 @@ int main(int argc, char **argv)
                 }
             }
         }
-#endif
     }
 
     /* Verify that the hash transcript recreation function is called correctly,

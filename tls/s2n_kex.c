@@ -14,7 +14,7 @@
  */
 
 #include "tls/s2n_kex.h"
-#include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_client_key_exchange.h"
@@ -24,44 +24,65 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-static int s2n_check_rsa_key(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
+static S2N_RESULT s2n_check_rsa_key(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn, bool *is_supported)
 {
-    return s2n_get_compatible_cert_chain_and_key(conn, S2N_PKEY_TYPE_RSA) != NULL;
+    ENSURE_REF(cipher_suite);
+    ENSURE_REF(conn);
+    ENSURE_REF(is_supported);
+
+    *is_supported = s2n_get_compatible_cert_chain_and_key(conn, S2N_PKEY_TYPE_RSA) != NULL;
+
+    return S2N_RESULT_OK;
 }
 
-static int s2n_check_dhe(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
+static S2N_RESULT s2n_check_dhe(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn, bool *is_supported)
 {
-    return conn->config->dhparams != NULL;
+    ENSURE_REF(cipher_suite);
+    ENSURE_REF(conn);
+    ENSURE_REF(conn->config);
+    ENSURE_REF(is_supported);
+
+    *is_supported = conn->config->dhparams != NULL;
+
+    return S2N_RESULT_OK;
 }
 
-static int s2n_check_ecdhe(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
+static S2N_RESULT s2n_check_ecdhe(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn, bool *is_supported)
 {
-    return conn->secure.server_ecc_evp_params.negotiated_curve != NULL;
+    ENSURE_REF(cipher_suite);
+    ENSURE_REF(conn);
+    ENSURE_REF(is_supported);
+
+    *is_supported = conn->secure.server_ecc_evp_params.negotiated_curve != NULL;
+
+    return S2N_RESULT_OK;
 }
 
-static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
+static S2N_RESULT s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn, bool *is_supported)
 {
-    notnull_check(conn);
-    /* There is no support for PQ KEMs while in FIPS mode */
-    if (s2n_is_in_fips_mode()) {
-        return 0;
-    }
+    ENSURE_REF(cipher_suite);
+    ENSURE_REF(conn);
+    ENSURE_REF(is_supported);
+
+    /* If any of the necessary conditions are not met, we will return early and indicate KEM is not supported. */
+    *is_supported = false;
 
     const struct s2n_kem_preferences *kem_preferences = NULL;
-    GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
-    notnull_check(kem_preferences);
+    GUARD_AS_RESULT(s2n_connection_get_kem_preferences(conn, &kem_preferences));
+    ENSURE_REF(kem_preferences);
 
-    if (kem_preferences->kem_count == 0) {
-        return 0;
+    if (!s2n_pq_is_enabled() || kem_preferences->kem_count == 0) {
+        return S2N_RESULT_OK;
     }
 
     const struct s2n_iana_to_kem *supported_params = NULL;
-    /* If the cipher suite has no supported KEMs return false */
-    if (s2n_cipher_suite_to_kem(cipher_suite->iana_value, &supported_params) != 0) {
-        return 0;
+    if (s2n_cipher_suite_to_kem(cipher_suite->iana_value, &supported_params) != S2N_SUCCESS) {
+        return S2N_RESULT_OK;
     }
+
+    ENSURE_REF(supported_params);
     if (supported_params->kem_count == 0) {
-        return 0;
+        return S2N_RESULT_OK;
     }
 
     struct s2n_blob *client_kem_pref_list = &(conn->secure.client_pq_kem_extension);
@@ -69,60 +90,71 @@ static int s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n
     if (client_kem_pref_list == NULL || client_kem_pref_list->data == NULL) {
         /* If the client did not send a PQ KEM extension, then the server can pick its preferred parameter */
         if (s2n_choose_kem_without_peer_pref_list(cipher_suite->iana_value, kem_preferences->kems,
-                                                  kem_preferences->kem_count, &chosen_kem)
-            != 0) {
-            return 0;
+                kem_preferences->kem_count, &chosen_kem) != S2N_SUCCESS) {
+            return S2N_RESULT_OK;
         }
     } else {
         /* If the client did send a PQ KEM extension, then the server must find a mutually supported parameter. */
         if (s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, client_kem_pref_list, kem_preferences->kems,
-                                               kem_preferences->kem_count, &chosen_kem)
-            != 0) {
-            return 0;
+                kem_preferences->kem_count, &chosen_kem) != S2N_SUCCESS) {
+            return S2N_RESULT_OK;
         }
     }
 
-    return chosen_kem != NULL;
+    *is_supported = chosen_kem != NULL;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
+static S2N_RESULT s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
-    notnull_check(conn);
-    /* There is no support for PQ KEMs while in FIPS mode */
-    S2N_ERROR_IF(s2n_is_in_fips_mode(), S2N_ERR_PQ_KEMS_DISALLOWED_IN_FIPS);
+    ENSURE_REF(cipher_suite);
+    ENSURE_REF(conn);
+
+    ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     const struct s2n_kem_preferences *kem_preferences = NULL;
-    GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
-    notnull_check(kem_preferences);
+    GUARD_AS_RESULT(s2n_connection_get_kem_preferences(conn, &kem_preferences));
+    ENSURE_REF(kem_preferences);
 
     struct s2n_blob *proposed_kems = &(conn->secure.client_pq_kem_extension);
     const struct s2n_kem *chosen_kem = NULL;
     if (proposed_kems == NULL || proposed_kems->data == NULL) {
         /* If the client did not send a PQ KEM extension, then the server can pick its preferred parameter */
-        GUARD(s2n_choose_kem_without_peer_pref_list(cipher_suite->iana_value, kem_preferences->kems,
-                                                    kem_preferences->kem_count, &chosen_kem));
+        GUARD_AS_RESULT(s2n_choose_kem_without_peer_pref_list(cipher_suite->iana_value, kem_preferences->kems,
+                kem_preferences->kem_count, &chosen_kem));
     } else {
         /* If the client did send a PQ KEM extension, then the server must find a mutually supported parameter. */
-        GUARD(s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, proposed_kems, kem_preferences->kems,
-                                                 kem_preferences->kem_count, &chosen_kem));
+        GUARD_AS_RESULT(s2n_choose_kem_with_peer_pref_list(cipher_suite->iana_value, proposed_kems, kem_preferences->kems,
+                kem_preferences->kem_count, &chosen_kem));
     }
 
     conn->secure.kem_params.kem = chosen_kem;
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_no_op_configure(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
+static S2N_RESULT s2n_no_op_configure(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_check_hybrid_ecdhe_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
+static S2N_RESULT s2n_check_hybrid_ecdhe_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn, bool *is_supported)
 {
-    return s2n_check_ecdhe(cipher_suite, conn) && s2n_check_kem(cipher_suite, conn);
+    ENSURE_REF(cipher_suite);
+    ENSURE_REF(conn);
+    ENSURE_REF(is_supported);
+
+    bool ecdhe_supported = false;
+    bool kem_supported = false;
+    GUARD_RESULT(s2n_check_ecdhe(cipher_suite, conn, &ecdhe_supported));
+    GUARD_RESULT(s2n_check_kem(cipher_suite, conn, &kem_supported));
+
+    *is_supported = ecdhe_supported && kem_supported;
+
+    return S2N_RESULT_OK;
 }
 
 const struct s2n_kex s2n_kem = {
-    .is_ephemeral = 1,
+    .is_ephemeral = true,
     .connection_supported = &s2n_check_kem,
     .configure_connection = &s2n_configure_kem,
     .server_key_recv_read_data = &s2n_kem_server_key_recv_read_data,
@@ -133,7 +165,7 @@ const struct s2n_kex s2n_kem = {
 };
 
 const struct s2n_kex s2n_rsa = {
-    .is_ephemeral = 0,
+    .is_ephemeral = false,
     .connection_supported = &s2n_check_rsa_key,
     .configure_connection = &s2n_no_op_configure,
     .server_key_recv_read_data = NULL,
@@ -145,7 +177,7 @@ const struct s2n_kex s2n_rsa = {
 };
 
 const struct s2n_kex s2n_dhe = {
-    .is_ephemeral = 1,
+    .is_ephemeral = true,
     .connection_supported = &s2n_check_dhe,
     .configure_connection = &s2n_no_op_configure,
     .server_key_recv_read_data = &s2n_dhe_server_key_recv_read_data,
@@ -157,7 +189,7 @@ const struct s2n_kex s2n_dhe = {
 };
 
 const struct s2n_kex s2n_ecdhe = {
-    .is_ephemeral = 1,
+    .is_ephemeral = true,
     .connection_supported = &s2n_check_ecdhe,
     .configure_connection = &s2n_no_op_configure,
     .server_key_recv_read_data = &s2n_ecdhe_server_key_recv_read_data,
@@ -169,7 +201,7 @@ const struct s2n_kex s2n_ecdhe = {
 };
 
 const struct s2n_kex s2n_hybrid_ecdhe_kem = {
-    .is_ephemeral = 1,
+    .is_ephemeral = true,
     .hybrid = { &s2n_ecdhe, &s2n_kem },
     .connection_supported = &s2n_check_hybrid_ecdhe_kem,
     .configure_connection = &s2n_configure_kem,
@@ -181,66 +213,112 @@ const struct s2n_kex s2n_hybrid_ecdhe_kem = {
     .prf = &s2n_hybrid_prf_master_secret,
 };
 
-int s2n_kex_supported(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
+S2N_RESULT s2n_kex_supported(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn, bool *is_supported)
 {
-    /* Don't return -1 from notnull_check because that might allow a improperly configured kex to be marked as "supported" */
-    return cipher_suite->key_exchange_alg->connection_supported != NULL && cipher_suite->key_exchange_alg->connection_supported(cipher_suite, conn);
+    ENSURE_REF(cipher_suite);
+    ENSURE_REF(cipher_suite->key_exchange_alg);
+    ENSURE_REF(cipher_suite->key_exchange_alg->connection_supported);
+    ENSURE_REF(conn);
+    ENSURE_REF(is_supported);
+
+    GUARD_RESULT(cipher_suite->key_exchange_alg->connection_supported(cipher_suite, conn, is_supported));
+
+    return S2N_RESULT_OK;
 }
 
-int s2n_configure_kex(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
+S2N_RESULT s2n_configure_kex(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
 {
-    notnull_check(cipher_suite);
-    notnull_check(cipher_suite->key_exchange_alg);
-    notnull_check(cipher_suite->key_exchange_alg->configure_connection);
-    return cipher_suite->key_exchange_alg->configure_connection(cipher_suite, conn);
+    ENSURE_REF(cipher_suite);
+    ENSURE_REF(cipher_suite->key_exchange_alg);
+    ENSURE_REF(cipher_suite->key_exchange_alg->configure_connection);
+    ENSURE_REF(conn);
+
+    GUARD_RESULT(cipher_suite->key_exchange_alg->configure_connection(cipher_suite, conn));
+
+    return S2N_RESULT_OK;
 }
 
-int s2n_kex_is_ephemeral(const struct s2n_kex *kex)
+S2N_RESULT s2n_kex_is_ephemeral(const struct s2n_kex *kex, bool *is_ephemeral)
 {
-    notnull_check(kex);
-    return kex->is_ephemeral;
+    ENSURE_REF(kex);
+    ENSURE_REF(is_ephemeral);
+
+    *is_ephemeral = kex->is_ephemeral;
+
+    return S2N_RESULT_OK;
 }
 
-int s2n_kex_server_key_recv_parse_data(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_kex_raw_server_data *raw_server_data)
+S2N_RESULT s2n_kex_server_key_recv_parse_data(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_kex_raw_server_data *raw_server_data)
 {
-    notnull_check(kex);
-    notnull_check(kex->server_key_recv_parse_data);
-    return kex->server_key_recv_parse_data(conn, raw_server_data);
+    ENSURE_REF(kex);
+    ENSURE_REF(kex->server_key_recv_parse_data);
+    ENSURE_REF(conn);
+    ENSURE_REF(raw_server_data);
+
+    GUARD_AS_RESULT(kex->server_key_recv_parse_data(conn, raw_server_data));
+
+    return S2N_RESULT_OK;
 }
 
-int s2n_kex_server_key_recv_read_data(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_verify, struct s2n_kex_raw_server_data *raw_server_data)
+S2N_RESULT s2n_kex_server_key_recv_read_data(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_verify,
+        struct s2n_kex_raw_server_data *raw_server_data)
 {
-    notnull_check(kex);
-    notnull_check(kex->server_key_recv_read_data);
-    return kex->server_key_recv_read_data(conn, data_to_verify, raw_server_data);
+    ENSURE_REF(kex);
+    ENSURE_REF(kex->server_key_recv_read_data);
+    ENSURE_REF(conn);
+    ENSURE_REF(data_to_verify);
+
+    GUARD_AS_RESULT(kex->server_key_recv_read_data(conn, data_to_verify, raw_server_data));
+
+    return S2N_RESULT_OK;
 }
 
-int s2n_kex_server_key_send(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_sign)
+S2N_RESULT s2n_kex_server_key_send(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *data_to_sign)
 {
-    notnull_check(kex);
-    notnull_check(kex->server_key_send);
-    return kex->server_key_send(conn, data_to_sign);
+    ENSURE_REF(kex);
+    ENSURE_REF(kex->server_key_send);
+    ENSURE_REF(conn);
+    ENSURE_REF(data_to_sign);
+
+    GUARD_AS_RESULT(kex->server_key_send(conn, data_to_sign));
+
+    return S2N_RESULT_OK;
 }
 
-int s2n_kex_client_key_recv(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key)
+S2N_RESULT s2n_kex_client_key_recv(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
-    notnull_check(kex);
-    notnull_check(kex->client_key_recv);
-    return kex->client_key_recv(conn, shared_key);
+    ENSURE_REF(kex);
+    ENSURE_REF(kex->client_key_recv);
+    ENSURE_REF(conn);
+    ENSURE_REF(shared_key);
+
+    GUARD_AS_RESULT(kex->client_key_recv(conn, shared_key));
+
+    return S2N_RESULT_OK;
 }
 
-int s2n_kex_client_key_send(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key)
+S2N_RESULT s2n_kex_client_key_send(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
-    notnull_check(kex);
-    notnull_check(kex->client_key_send);
-    return kex->client_key_send(conn, shared_key);
+    ENSURE_REF(kex);
+    ENSURE_REF(kex->client_key_send);
+    ENSURE_REF(conn);
+    ENSURE_REF(shared_key);
+
+    GUARD_AS_RESULT(kex->client_key_send(conn, shared_key));
+
+    return S2N_RESULT_OK;
 }
 
-int s2n_kex_tls_prf(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *premaster_secret)
+S2N_RESULT s2n_kex_tls_prf(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *premaster_secret)
 {
-    notnull_check(kex);
-    notnull_check(kex->prf);
-    return kex->prf(conn, premaster_secret);
+    ENSURE_REF(kex);
+    ENSURE_REF(kex->prf);
+    ENSURE_REF(conn);
+    ENSURE_REF(premaster_secret);
+
+    GUARD_AS_RESULT(kex->prf(conn, premaster_secret));
+
+    return S2N_RESULT_OK;
 }
 
 bool s2n_kex_includes(const struct s2n_kex *kex, const struct s2n_kex *query)

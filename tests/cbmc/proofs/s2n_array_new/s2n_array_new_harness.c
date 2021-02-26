@@ -13,13 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-#include "error/s2n_errno.h"
 #include "utils/s2n_array.h"
-#include "utils/s2n_mem.h"
 
-#include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
 void s2n_array_new_harness()

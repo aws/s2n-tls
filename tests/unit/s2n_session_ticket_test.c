@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 
     size_t serialized_session_state_length = 0;
     uint8_t s2n_state_with_session_id = S2N_STATE_WITH_SESSION_ID;
-    uint8_t serialized_session_state[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES + S2N_STATE_SIZE_IN_BYTES] = { 0 };
+    uint8_t serialized_session_state[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES + S2N_STATE_SIZE_IN_BYTES] = { 0 };
 
     /* Session ticket keys. Taken from test vectors in https://tools.ietf.org/html/rfc5869 */
     uint8_t ticket_key_name1[16] = "2016.07.26.15\0";
@@ -237,11 +237,11 @@ int main(int argc, char **argv)
         EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
 
         /* Verify that client_ticket is same as before because server didn't issue a NST */
-        uint8_t old_session_ticket[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES];
-        EXPECT_MEMCPY_SUCCESS(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES);
+        uint8_t old_session_ticket[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES];
+        EXPECT_MEMCPY_SUCCESS(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES);
         EXPECT_TRUE(s2n_connection_is_session_resumed(client_conn));
         s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length);
-        EXPECT_BYTEARRAY_EQUAL(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES);
+        EXPECT_BYTEARRAY_EQUAL(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES);
 
         /* Verify that the server lifetime hint is 0 because server didn't issue a NST */
         EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), 0);
@@ -299,11 +299,11 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
 
         /* Verify that client_ticket is not same as before because server issued a NST */
-        uint8_t old_session_ticket[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES];
-        EXPECT_MEMCPY_SUCCESS(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES);
+        uint8_t old_session_ticket[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES];
+        EXPECT_MEMCPY_SUCCESS(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES);
 
         s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length);
-        EXPECT_TRUE(memcmp(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES));
+        EXPECT_TRUE(memcmp(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES));
 
         /* Verify the lifetime hint from the server */
         EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
@@ -362,11 +362,11 @@ int main(int argc, char **argv)
         EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
 
         /* Verify that client_ticket is same as before because server did not issue a NST */
-        uint8_t old_session_ticket[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES];
-        EXPECT_MEMCPY_SUCCESS(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES);
+        uint8_t old_session_ticket[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES];
+        EXPECT_MEMCPY_SUCCESS(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES);
 
         s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length);
-        EXPECT_FALSE(memcmp(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_SIZE_IN_BYTES));
+        EXPECT_FALSE(memcmp(old_session_ticket, serialized_session_state, S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES));
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 

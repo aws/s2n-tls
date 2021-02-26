@@ -1,6 +1,5 @@
 from common import Protocols, Curves, Ciphers
 from providers import S2N, OpenSSL
-from global_flags import get_flag, S2N_NO_PQ, S2N_FIPS_MODE
 
 
 def get_expected_s2n_version(protocol, provider):
@@ -63,12 +62,6 @@ def invalid_test_parameters(*args, **kwargs):
         return True
 
     if cipher is not None:
-        # TODO Remove this check once the pq-enabled update is complete; once complete,
-        # s2n will ignore PQ ciphers if PQ is not enabled, so we won't have to perform
-        # this check in the tests (See discussion in PR #2426).
-        if cipher.pq and (get_flag(S2N_NO_PQ, False) or get_flag(S2N_FIPS_MODE, False)):
-            return True
-
         # If the selected protocol doesn't allow the cipher, don't test
         if protocol is not None:
             if cipher.min_version > protocol:

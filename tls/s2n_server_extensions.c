@@ -29,7 +29,9 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
 {
     uint32_t data_available_before_extensions = s2n_stuffer_data_available(out);
 
-    if (conn->actual_protocol_version >= S2N_TLS13) {
+    if (s2n_is_hello_retry_message(conn)) {
+        GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_HELLO_RETRY_REQUEST, conn, out));
+    } else if (conn->actual_protocol_version >= S2N_TLS13) {
         GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_SERVER_HELLO_TLS13, conn, out));
     } else {
         GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_SERVER_HELLO_DEFAULT, conn, out));
@@ -62,7 +64,9 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_stuffer *
      *   unknown and we will use the default list of allowed extension types. */
     GUARD(s2n_extension_process(&s2n_server_supported_versions_extension, conn, &parsed_extension_list));
 
-    if (conn->server_protocol_version >= S2N_TLS13) {
+    if (s2n_is_hello_retry_message(conn)) {
+        GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_HELLO_RETRY_REQUEST, conn, &parsed_extension_list));
+    } else if (conn->server_protocol_version >= S2N_TLS13) {
         GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_SERVER_HELLO_TLS13, conn, &parsed_extension_list));
     } else {
         GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_SERVER_HELLO_DEFAULT, conn, &parsed_extension_list));

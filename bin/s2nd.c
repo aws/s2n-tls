@@ -169,13 +169,13 @@ int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, c
     S2N_ERROR_IF(key_size == 0 || key_size > MAX_KEY_LEN, S2N_ERR_INVALID_ARGUMENT);
     S2N_ERROR_IF(value_size == 0 || value_size > MAX_VAL_LEN, S2N_ERR_INVALID_ARGUMENT);
 
-    uint8_t index = ((const uint8_t *)key)[0];
+    uint8_t idx = ((const uint8_t *)key)[0];
 
-    memcpy(cache[index].key, key, key_size);
-    memcpy(cache[index].value, value, value_size);
+    memcpy(cache[idx].key, key, key_size);
+    memcpy(cache[idx].value, value, value_size);
 
-    cache[index].key_len = key_size;
-    cache[index].value_len = value_size;
+    cache[idx].key_len = key_size;
+    cache[idx].value_len = value_size;
 
     return 0;
 }
@@ -186,14 +186,14 @@ int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *
 
     S2N_ERROR_IF(key_size == 0 || key_size > MAX_KEY_LEN, S2N_ERR_INVALID_ARGUMENT);
 
-    uint8_t index = ((const uint8_t *)key)[0];
+    uint8_t idx = ((const uint8_t *)key)[0];
 
-    S2N_ERROR_IF(cache[index].key_len != key_size, S2N_ERR_INVALID_ARGUMENT);
-    S2N_ERROR_IF(memcmp(cache[index].key, key, key_size), S2N_ERR_INVALID_ARGUMENT);
-    S2N_ERROR_IF(*value_size < cache[index].value_len, S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(cache[idx].key_len != key_size, S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(memcmp(cache[idx].key, key, key_size), S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(*value_size < cache[idx].value_len, S2N_ERR_INVALID_ARGUMENT);
 
-    *value_size = cache[index].value_len;
-    memcpy(value, cache[index].value, cache[index].value_len);
+    *value_size = cache[idx].value_len;
+    memcpy(value, cache[idx].value, cache[idx].value_len);
 
     for (int i = 0; i < key_size; i++) {
         printf("%02x", ((const uint8_t *)key)[i]);
@@ -209,13 +209,13 @@ int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *ke
 
     S2N_ERROR_IF(key_size == 0 || key_size > MAX_KEY_LEN, S2N_ERR_INVALID_ARGUMENT);
 
-    uint8_t index = ((const uint8_t *)key)[0];
+    uint8_t idx = ((const uint8_t *)key)[0];
 
-    S2N_ERROR_IF(cache[index].key_len != 0 && cache[index].key_len != key_size, S2N_ERR_INVALID_ARGUMENT);
-    S2N_ERROR_IF(cache[index].key_len != 0 && memcmp(cache[index].key, key, key_size), S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(cache[idx].key_len != 0 && cache[idx].key_len != key_size, S2N_ERR_INVALID_ARGUMENT);
+    S2N_ERROR_IF(cache[idx].key_len != 0 && memcmp(cache[idx].key, key, key_size), S2N_ERR_INVALID_ARGUMENT);
 
-    cache[index].key_len = 0;
-    cache[index].value_len = 0;
+    cache[idx].key_len = 0;
+    cache[idx].value_len = 0;
 
     return 0;
 }
@@ -286,6 +286,8 @@ void usage()
     fprintf(stderr, "    Run s2nd in a simple https server mode.\n");
     fprintf(stderr, "  -b --https-bench <bytes>\n");
     fprintf(stderr, "    Send number of bytes in https server mode to test throughput.\n");
+    fprintf(stderr, "  -L --key-log <path>\n");
+    fprintf(stderr, "    Enable NSS key logging into the provided path\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -391,6 +393,7 @@ int main(int argc, char *const *argv)
     const char *session_ticket_key_file_path = NULL;
     const char *cipher_prefs = "default";
     const char *alpn = NULL;
+    const char *key_log_path = NULL;
 
     /* The certificates provided by the user. If there are none provided, we will use the hardcoded default cert.
      * The associated private key for each cert will be at the same index in private_keys. If the user mixes up the
@@ -436,6 +439,7 @@ int main(int argc, char *const *argv)
         {"https-bench", required_argument, 0, 'b'},
         {"alpn", required_argument, 0, 'A'},
         {"non-blocking", no_argument, 0, 'B'},
+        {"key-log", required_argument, 0, 'L'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
@@ -538,6 +542,9 @@ int main(int argc, char *const *argv)
             break;
         case 'B':
             non_blocking = 1;
+            break;
+        case 'L':
+            key_log_path = optarg;
             break;
         case '?':
         default:
@@ -751,6 +758,21 @@ int main(int argc, char *const *argv)
         GUARD_EXIT(s2n_config_set_protocol_preferences(config, protocols, s2n_array_len(protocols)), "Failed to set alpn");
     }
 
+    FILE *key_log_file = NULL;
+
+    if (key_log_path) {
+        key_log_file = fopen(key_log_path, "a");
+        GUARD_EXIT(key_log_file == NULL ? S2N_FAILURE : S2N_SUCCESS, "Failed to open key log file");
+        GUARD_EXIT(
+            s2n_config_set_key_log_cb(
+                config,
+                key_log_callback,
+                (void *)key_log_file
+            ),
+            "Failed to set key log callback"
+        );
+    }
+
     int fd;
     while ((fd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
 
@@ -796,6 +818,10 @@ int main(int argc, char *const *argv)
                 continue;
             }
         }
+    }
+
+    if (key_log_file) {
+        fclose(key_log_file);
     }
 
     GUARD_EXIT(s2n_cleanup(),  "Error running s2n_cleanup()");

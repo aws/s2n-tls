@@ -9,19 +9,19 @@ index 3405781..3beeacf 100644
 +#include "smack.h"
 +#include "sidetrail.h"
 +
- int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *out)
- {
-     switch(hmac_alg) {
-@@ -235,7 +238,7 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
-      * input. On some platforms, including Intel, the operation can take a
-      * smaller number of cycles if the input is "small".
+ #include <stdint.h>
+
+ int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
+@@ -268,7 +271,7 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
       */
--    state->currently_in_hash_block += (4294949760 + size) % state->hash_block_size;
-+    state->currently_in_hash_block += (size) % state->hash_block_size;
+     const uint32_t HIGHEST_32_BIT = 4294949760;
+     ENSURE_POSIX(size <= (UINT32_MAX - HIGHEST_32_BIT), S2N_ERR_INTEGER_OVERFLOW);
+-    uint32_t value = (HIGHEST_32_BIT + size) % state->hash_block_size;
++    uint32_t value = (size) % state->hash_block_size;
+     GUARD(s2n_add_overflow(state->currently_in_hash_block, value, &state->currently_in_hash_block));
      state->currently_in_hash_block %= state->hash_block_size;
 
-     return s2n_hash_update(&state->inner, in, size);
-@@ -311,30 +314,30 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
+@@ -361,8 +364,8 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
      GUARD(s2n_hash_copy(&to->outer_just_key, &from->outer_just_key));
 
 
@@ -29,51 +29,57 @@ index 3405781..3beeacf 100644
 -    memcpy_check(to->digest_pad, from->digest_pad, sizeof(to->digest_pad));
 +    //memcpy_check(to->xor_pad, from->xor_pad, sizeof(to->xor_pad));
 +    //memcpy_check(to->digest_pad, from->digest_pad, sizeof(to->digest_pad));
-
-     return 0;
- }
-
-
--/* Preserve the handlers for hmac state pointers to avoid re-allocation
-- * Only valid if the HMAC is in EVP mode
-- */
+     POSTCONDITION_POSIX(s2n_hmac_state_validate(to));
+     POSTCONDITION_POSIX(s2n_hmac_state_validate(from));
+     return S2N_SUCCESS;
+@@ -372,25 +375,25 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
+ /* Preserve the handlers for hmac state pointers to avoid re-allocation
+  * Only valid if the HMAC is in EVP mode
+  */
 -int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac)
 -{
+-    ENSURE_POSIX_REF(backup);
+-    PRECONDITION_POSIX(s2n_hmac_state_validate(hmac));
 -    backup->inner = hmac->inner.digest.high_level;
 -    backup->inner_just_key = hmac->inner_just_key.digest.high_level;
 -    backup->outer = hmac->outer.digest.high_level;
 -    backup->outer_just_key = hmac->outer_just_key.digest.high_level;
--    return 0;
+-    return S2N_SUCCESS;
 -}
 -
 -int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac)
 -{
+-    ENSURE_POSIX_REF(backup);
+-    PRECONDITION_POSIX(s2n_hmac_state_validate(hmac));
 -    hmac->inner.digest.high_level = backup->inner;
 -    hmac->inner_just_key.digest.high_level = backup->inner_just_key;
 -    hmac->outer.digest.high_level = backup->outer;
 -    hmac->outer_just_key.digest.high_level = backup->outer_just_key;
--    return 0;
+-    POSTCONDITION_POSIX(s2n_hmac_state_validate(hmac));
+-    return S2N_SUCCESS;
 -}
-+/* /\* Preserve the handlers for hmac state pointers to avoid re-allocation  */
-+/*  * Only valid if the HMAC is in EVP mode */
-+/*  *\/ */
-+/* int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac) */
-+/* { */
-+/*     backup->inner = hmac->inner.digest.high_level; */
-+/*     backup->inner_just_key = hmac->inner_just_key.digest.high_level; */
-+/*     backup->outer = hmac->outer.digest.high_level; */
-+/*     backup->outer_just_key = hmac->outer_just_key.digest.high_level; */
-+/*     return 0; */
-+/* } */
-+
-+/* int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac) */
-+/* { */
-+/*     hmac->inner.digest.high_level = backup->inner; */
-+/*     hmac->inner_just_key.digest.high_level = backup->inner_just_key; */
-+/*     hmac->outer.digest.high_level = backup->outer; */
-+/*     hmac->outer_just_key.digest.high_level = backup->outer_just_key; */
-+/*     return 0; */
-+/* } */
++// int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac)
++// {
++//     ENSURE_POSIX_REF(backup);
++//     PRECONDITION_POSIX(s2n_hmac_state_validate(hmac));
++//     backup->inner = hmac->inner.digest.high_level;
++//     backup->inner_just_key = hmac->inner_just_key.digest.high_level;
++//     backup->outer = hmac->outer.digest.high_level;
++//     backup->outer_just_key = hmac->outer_just_key.digest.high_level;
++//     return S2N_SUCCESS;
++// }
++//
++// int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac)
++// {
++//     ENSURE_POSIX_REF(backup);
++//     PRECONDITION_POSIX(s2n_hmac_state_validate(hmac));
++//     hmac->inner.digest.high_level = backup->inner;
++//     hmac->inner_just_key.digest.high_level = backup->inner_just_key;
++//     hmac->outer.digest.high_level = backup->outer;
++//     hmac->outer_just_key.digest.high_level = backup->outer_just_key;
++//     POSTCONDITION_POSIX(s2n_hmac_state_validate(hmac));
++//     return S2N_SUCCESS;
++// }
 diff --git a/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.h b/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.h
 index 7af7e61..e6382ce 100644
 --- a/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.h

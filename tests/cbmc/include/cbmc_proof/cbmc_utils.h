@@ -25,7 +25,7 @@
 #define IMPLIES(a, b) (!(a) || (b))
 
 struct store_byte_from_buffer {
-    size_t  index;
+    size_t  idx;
     uint8_t byte;
 };
 

@@ -43,8 +43,8 @@ struct s2n_hash_state {
 
 /* SHA1
  * These fields were determined from the SHA specification, augmented by
- * analyzing SHA implementations. 
- * PER_BLOCK_COST is the cost of a compression round.  Pessimistically assume 
+ * analyzing SHA implementations.
+ * PER_BLOCK_COST is the cost of a compression round.  Pessimistically assume
  * it is 1000 cycles/block, which is worse than real implementations (larger
  * numbers here make lucky13 leakages look worse), and hence large is safer.
  * PER_BYTE_COST is the cost of memcopy one byte that is already in cache,
@@ -53,7 +53,7 @@ struct s2n_hash_state {
 enum {
   PER_BLOCK_COST = 1000,
   PER_BYTE_COST = 1,
-  BLOCK_SIZE = 64,          
+  BLOCK_SIZE = 64,
   LENGTH_FIELD_SIZE = 8,
   DIGEST_SIZE = 20
 };
@@ -67,6 +67,7 @@ enum {
 
 extern int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out);
 extern int s2n_hash_new(struct s2n_hash_state *state);
+S2N_RESULT s2n_hash_state_validate(struct s2n_hash_state *state);
 extern int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg);
 extern int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size);
 extern int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size);
@@ -74,5 +75,3 @@ extern int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
 extern int s2n_hash_reset(struct s2n_hash_state *state);
 extern int s2n_hash_free(struct s2n_hash_state *state);
 extern int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t *out);
-
-

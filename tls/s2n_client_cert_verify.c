@@ -76,7 +76,8 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
     struct s2n_cert_chain_and_key *cert_chain_and_key = conn->handshake_params.our_chain_and_key;
 
     DEFER_CLEANUP(struct s2n_blob signature = {0}, s2n_free);
-    uint32_t max_signature_size = s2n_pkey_size(cert_chain_and_key->private_key);
+    uint32_t max_signature_size = 0;
+    GUARD_AS_POSIX(s2n_pkey_size(cert_chain_and_key->private_key, &max_signature_size));
     GUARD(s2n_alloc(&signature, max_signature_size));
 
     GUARD(s2n_pkey_sign(cert_chain_and_key->private_key, chosen_sig_scheme.sig_alg, &conn->handshake.ccv_hash_copy, &signature));

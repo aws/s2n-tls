@@ -138,7 +138,6 @@ int main() {
         }
     }
 
-#if !defined(S2N_NO_PQ)
     /* Test for PQ */
     {
         const struct s2n_kem_group *test_kem_groups[] = {
@@ -313,7 +312,6 @@ int main() {
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
     }
-#endif
 
     END_TEST();
     return 0;

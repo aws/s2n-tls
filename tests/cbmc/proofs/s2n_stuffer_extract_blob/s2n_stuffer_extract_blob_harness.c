@@ -43,9 +43,9 @@ void s2n_stuffer_extract_blob_harness()
         assert(s2n_result_is_ok(s2n_blob_validate(blob)));
         assert(blob->size == s2n_stuffer_data_available(stuffer));
         if (blob->size > 0) {
-            uint32_t index;
-            __CPROVER_assume(index < blob->size);
-            assert(blob->data[ index ] == stuffer->blob.data[ stuffer->read_cursor + index ]);
+            uint32_t idx;
+            __CPROVER_assume(idx < blob->size);
+            assert(blob->data[ idx ] == stuffer->blob.data[ stuffer->read_cursor + idx ]);
         }
     }
 

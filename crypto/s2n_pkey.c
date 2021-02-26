@@ -21,7 +21,10 @@
 #include "crypto/s2n_rsa_pss.h"
 #include "crypto/s2n_pkey.h"
 
+#include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
+
+#define S2N_MAX_ALLOWED_CERT_TRAILING_BYTES 3
 
 int s2n_pkey_zero_init(struct s2n_pkey *pkey) 
 {
@@ -61,11 +64,15 @@ int s2n_pkey_check_key_exists(const struct s2n_pkey *pkey)
     return pkey->check_key(pkey);
 }
 
-int s2n_pkey_size(const struct s2n_pkey *pkey)
+S2N_RESULT s2n_pkey_size(const struct s2n_pkey *pkey, uint32_t *size_out)
 {
-    notnull_check(pkey->size);
+    ENSURE_REF(pkey);
+    ENSURE_REF(pkey->size);
+    ENSURE_REF(size_out);
 
-    return pkey->size(pkey);
+    GUARD_RESULT(pkey->size(pkey, size_out));
+
+    return S2N_RESULT_OK;
 }
 
 int s2n_pkey_sign(const struct s2n_pkey *pkey, s2n_signature_algorithm sig_alg,
@@ -185,10 +192,10 @@ int s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key, s2n_pkey_type *
     /* If cert parsing is successful, d2i_X509 increments *cert_to_parse to the byte following the parsed data */
     uint32_t parsed_len = cert_to_parse - asn1der->data;
 
-    /* Some TLS clients in the wild send one extra trailing byte after the Certificate.
+    /* Some TLS clients in the wild send extra trailing bytes after the Certificate.
      * Allow this in s2n for backwards compatibility with existing clients. */
     uint32_t trailing_bytes = asn1der->size - parsed_len;
-    ENSURE_POSIX(trailing_bytes <= 1, S2N_ERR_DECODE_CERTIFICATE);
+    ENSURE_POSIX(trailing_bytes <= S2N_MAX_ALLOWED_CERT_TRAILING_BYTES, S2N_ERR_DECODE_CERTIFICATE);
 
     DEFER_CLEANUP(EVP_PKEY *evp_public_key = X509_get_pubkey(cert), EVP_PKEY_free_pointer);
     S2N_ERROR_IF(evp_public_key == NULL, S2N_ERR_DECODE_CERTIFICATE);

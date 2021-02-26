@@ -18,6 +18,7 @@
 
 #include "crypto/s2n_hash.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_psk.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/extensions/s2n_client_psk.h"
 
@@ -41,8 +42,33 @@ const s2n_extension_type s2n_client_psk_extension = {
 
 bool s2n_client_psk_should_send(struct s2n_connection *conn)
 {
-    return conn && s2n_connection_get_protocol_version(conn) >= S2N_TLS13
-            && conn->psk_params.psk_list.len;
+    if (conn == NULL) {
+        return false;
+    }
+
+    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
+        return false;
+    }
+
+    /* If this is NOT the second ClientHello after a retry, then all PSKs are viable.
+     * Send the extension if any PSKs are configured.
+     */
+    if (!s2n_is_hello_retry_handshake(conn)) {
+        return conn->psk_params.psk_list.len > 0;
+    }
+
+    /* If this is the second ClientHello after a retry, then only PSKs that match the cipher suite
+     * are viable. Only send the extension if at least one configured PSK matches the cipher suite.
+     */
+    for (size_t i = 0; i < conn->psk_params.psk_list.len; i++) {
+        struct s2n_psk *psk = NULL;
+        if (s2n_result_is_ok(s2n_array_get(&conn->psk_params.psk_list, i, (void**) &psk))
+                && psk != NULL
+                && conn->secure.cipher_suite->prf_alg == psk->hmac_alg) {
+            return true;
+        }
+    }
+    return false;
 }
 
 static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -61,6 +87,16 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
         struct s2n_psk *psk = NULL;
         GUARD_AS_POSIX(s2n_array_get(psk_list, i, (void**) &psk));
         notnull_check(psk);
+
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+         *# In addition, in its updated ClientHello, the client SHOULD NOT offer
+         *# any pre-shared keys associated with a hash other than that of the
+         *# selected cipher suite.
+         */
+        if (s2n_is_hello_retry_handshake(conn) && conn->secure.cipher_suite->prf_alg != psk->hmac_alg) {
+            continue;
+        }
 
         /* Write the identity */
         GUARD(s2n_stuffer_write_uint16(out, psk->identity.size));
@@ -87,6 +123,7 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
 }
 
 /* Match a PSK identity received from the client against the server's known PSK identities.
+ * This method compares a single client identity to all server identities.
  *
  * While both the client's offered identities and whether a match was found are public, we should make an attempt
  * to keep the server's known identities a secret. We will make comparisons to the server's identities constant
@@ -102,17 +139,13 @@ static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const str
     ENSURE_REF(match);
     ENSURE_REF(wire_identity);
     ENSURE_REF(known_psks);
-
     *match = NULL;
-
     for (size_t i = 0; i < known_psks->len; i++) {
         struct s2n_psk *psk = NULL;
         GUARD_RESULT(s2n_array_get(known_psks, i, (void**)&psk));
         ENSURE_REF(psk);
-
         ENSURE_REF(psk->identity.data);
         ENSURE_REF(wire_identity->data);
-
         uint32_t compare_size = MIN(wire_identity->size, psk->identity.size);
         if (s2n_constant_time_equals(psk->identity.data, wire_identity->data, compare_size)
             & (psk->identity.size == wire_identity->size) & (!*match)) {
@@ -122,44 +155,69 @@ static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const str
     return S2N_RESULT_OK;
 }
 
+/* Find the first of the server's PSK identities that matches the client's identities.
+ * This method compares all server identities to all client identities.
+ *
+ * While both the client's identities and whether a match was found are public, we should make an attempt
+ * to keep the server's identities a secret. We will make comparisons to the server's identities constant
+ * time (to hide partial matches) and not end the search early when a match is found (to hide the ordering).
+ *
+ * Keeping these comparisons constant time is not high priority. There's no known attack using these timings,
+ * and an attacker could probably guess the server's known identities just by observing the public identities
+ * sent by clients.
+ */
+static S2N_RESULT s2n_select_psk_identity(struct s2n_connection *conn, struct s2n_offered_psk_list *client_identity_list)
+{
+    ENSURE_REF(conn);
+    ENSURE_REF(client_identity_list);
+
+    struct s2n_array *server_psks = &conn->psk_params.psk_list;
+    conn->psk_params.chosen_psk = NULL;
+
+    for (size_t i = 0; i < server_psks->len; i++) {
+        struct s2n_psk *server_psk = NULL;
+        GUARD_RESULT(s2n_array_get(server_psks, i, (void**) &server_psk));
+        ENSURE_REF(server_psk);
+
+        struct s2n_offered_psk client_psk = { 0 };
+        uint16_t wire_index = 0;
+
+        GUARD_AS_RESULT(s2n_offered_psk_list_reset(client_identity_list));
+        while(s2n_offered_psk_list_has_next(client_identity_list)) {
+            GUARD_AS_RESULT(s2n_offered_psk_list_next(client_identity_list, &client_psk));
+            uint16_t compare_size = MIN(client_psk.identity.size, server_psk->identity.size);
+            if (s2n_constant_time_equals(client_psk.identity.data, server_psk->identity.data, compare_size)
+                    & (client_psk.identity.size == server_psk->identity.size)
+                    & (conn->psk_params.chosen_psk == NULL)) {
+                conn->psk_params.chosen_psk = server_psk;
+                conn->psk_params.chosen_psk_wire_index = wire_index;
+            }
+            wire_index++;
+        };
+    }
+    ENSURE_REF(conn->psk_params.chosen_psk);
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn, struct s2n_stuffer *wire_identities_in)
 {
     ENSURE_REF(conn);
     ENSURE_REF(wire_identities_in);
 
-    uint8_t wire_index = 0;
-    while (s2n_stuffer_data_available(wire_identities_in) > 0) {
-        uint16_t identity_size = 0;
-        GUARD_AS_RESULT(s2n_stuffer_read_uint16(wire_identities_in, &identity_size));
+    struct s2n_offered_psk_list identity_list = { .wire_data = *wire_identities_in };
 
-        uint8_t *identity_data;
-        ENSURE_REF(identity_data = s2n_stuffer_raw_read(wire_identities_in, identity_size));
+    if (conn->config->psk_selection_cb) {
+        GUARD_AS_RESULT(conn->config->psk_selection_cb(conn, &identity_list, &conn->psk_params.chosen_psk_wire_index));
 
-        struct s2n_blob identity = { 0 };
-        GUARD_AS_RESULT(s2n_blob_init(&identity, identity_data, identity_size));
+        struct s2n_offered_psk chosen_identity = { 0 };
+        GUARD_RESULT(s2n_offered_psk_list_get_index(&identity_list, conn->psk_params.chosen_psk_wire_index,
+                &chosen_identity));
 
-        /* TODO: Validate obfuscated_ticket_age when using session tickets:
-         *       https://github.com/awslabs/s2n/issues/2417
-         *
-         * "For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
-         * used, and servers MUST ignore the value."
-         */
-        uint32_t obfuscated_ticket_age = 0;
-        GUARD_AS_RESULT(s2n_stuffer_read_uint32(wire_identities_in, &obfuscated_ticket_age));
-
-        /* TODO: Implement the callback to choose a PSK: https://github.com/awslabs/s2n/issues/2397
-         *
-         * When we don't have a callback configured to choose a PSK, we should fall back to accepting
-         * the first PSK identity that also exists in our list of supported PSKs. */
-        GUARD_RESULT(s2n_match_psk_identity(&conn->psk_params.psk_list, &identity, &conn->psk_params.chosen_psk));
-
-        if (conn->psk_params.chosen_psk) {
-            conn->psk_params.chosen_psk_wire_index = wire_index;
-            return S2N_RESULT_OK;
-        }
-
-        wire_index++;
+        GUARD_RESULT(s2n_match_psk_identity(&conn->psk_params.psk_list, &chosen_identity.identity, &conn->psk_params.chosen_psk));
+    } else {
+        GUARD_RESULT(s2n_select_psk_identity(conn, &identity_list));
     }
+    ENSURE_REF(conn->psk_params.chosen_psk);
     return S2N_RESULT_OK;
 }
 
@@ -169,7 +227,7 @@ static S2N_RESULT s2n_client_psk_recv_binder_list(struct s2n_connection *conn, s
     ENSURE_REF(conn);
     ENSURE_REF(wire_binders_in);
 
-    uint8_t wire_index = 0;
+    uint16_t wire_index = 0;
     while (s2n_stuffer_data_available(wire_binders_in) > 0) {
         uint8_t wire_binder_size = 0;
         GUARD_AS_RESULT(s2n_stuffer_read_uint8(wire_binders_in, &wire_binder_size));
@@ -247,10 +305,12 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
         return S2N_SUCCESS;
     }
 
-    /* https://tools.ietf.org/html/rfc8446#section-4.2.11
-     * The "pre_shared_key" extension MUST be the last extension in the ClientHello.
-     * Servers MUST check that it is the last extension and otherwise fail the handshake
-     * with an "illegal_parameter" alert.
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+     *# The "pre_shared_key" extension MUST be the last extension in the
+     *# ClientHello (this facilitates implementation as described below).
+     *# Servers MUST check that it is the last extension and otherwise fail
+     *# the handshake with an "illegal_parameter" alert.
      */
     s2n_extension_type_id psk_ext_id;
     GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PRE_SHARED_KEY, &psk_ext_id));
@@ -259,9 +319,12 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
     uint16_t extension_wire_index = conn->client_hello.extensions.parsed_extensions[psk_ext_id].wire_index;
     ENSURE_POSIX(extension_wire_index == last_wire_index, S2N_ERR_UNSUPPORTED_EXTENSION);
 
-    /* https://tools.ietf.org/html/rfc8446#section-4.2.9:
-     * If clients offer "pre_shared_key" without a "psk_key_exchange_modes" extension,
-     * servers MUST abort the handshake. We can safely do this check here because s2n_client_psk is
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.9
+     *# If clients offer "pre_shared_key" without a "psk_key_exchange_modes" extension,
+     *# servers MUST abort the handshake.
+     *
+     * We can safely do this check here because s2n_client_psk is
      * required to be the last extension sent in the list.
      */
     s2n_extension_type_id psk_ke_mode_ext_id;
@@ -283,25 +346,25 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
     }
 
     if (s2n_result_is_error(s2n_client_psk_recv_identities(conn, extension))) {
-        /* https://tools.ietf.org/html/rfc8446#section-4.2.11:
-         *   "If no acceptable PSKs are found, the server SHOULD perform a non-PSK
-         *   handshake if possible."
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+         *# If no acceptable PSKs are found, the server SHOULD perform a non-PSK
+         *# handshake if possible.
          */
         conn->psk_params.chosen_psk = NULL;
     }
 
     if (conn->psk_params.chosen_psk) {
-        /* https://tools.ietf.org/html/rfc8446#section-4.2.11:
-         *   "Prior to accepting PSK key establishment, the server MUST validate
-         *   the corresponding binder value. If this value is not present or does
-         *   not validate, the server MUST abort the handshake."
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+         *# Prior to accepting PSK key establishment, the server MUST validate
+         *# the corresponding binder value (see Section 4.2.11.2 below).  If this
+         *# value is not present or does not validate, the server MUST abort the
+         *# handshake.
          */
         GUARD_AS_POSIX(s2n_client_psk_recv_binders(conn, extension));
     }
 
-    /* At this point, we have either chosen a PSK or fallen back to a full handshake.
-     * Wipe any PSKs not chosen. */
-    GUARD_AS_POSIX(s2n_psk_parameters_free_unused_psks(&conn->psk_params));
-
+    /* At this point, we have either chosen a PSK or fallen back to a full handshake. */
     return S2N_SUCCESS;
 }

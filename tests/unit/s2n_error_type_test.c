@@ -23,25 +23,36 @@
 
 int main(void)
 {
-	BEGIN_TEST();
+    BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
 
-	s2n_errno = S2N_ERR_OK;
-	EXPECT_EQUAL(S2N_ERR_T_OK, s2n_error_get_type(s2n_errno));
-	s2n_errno = S2N_ERR_IO;
-	EXPECT_EQUAL(S2N_ERR_T_IO, s2n_error_get_type(s2n_errno));
-	s2n_errno = S2N_ERR_CLOSED;
-	EXPECT_EQUAL(S2N_ERR_T_CLOSED, s2n_error_get_type(s2n_errno));
-	s2n_errno = S2N_ERR_IO_BLOCKED;
-	EXPECT_EQUAL(S2N_ERR_T_BLOCKED, s2n_error_get_type(s2n_errno));
-	s2n_errno = S2N_ERR_ALERT;
-	EXPECT_EQUAL(S2N_ERR_T_ALERT, s2n_error_get_type(s2n_errno));
-	s2n_errno = S2N_ERR_BAD_MESSAGE;
-	EXPECT_EQUAL(S2N_ERR_T_PROTO, s2n_error_get_type(s2n_errno));
-	s2n_errno = S2N_ERR_FSTAT;
-	EXPECT_EQUAL(S2N_ERR_T_INTERNAL, s2n_error_get_type(s2n_errno));
-	s2n_errno = S2N_ERR_INVALID_BASE64;
-	EXPECT_EQUAL(S2N_ERR_T_USAGE, s2n_error_get_type(s2n_errno));
+    /* Ensure the address of `s2n_errno` is identical to the one returned in `s2n_errno_location()` */
+    EXPECT_EQUAL(&s2n_errno, s2n_errno_location());
 
-	END_TEST();
+    s2n_errno = S2N_ERR_OK;
+    EXPECT_EQUAL(S2N_ERR_T_OK, s2n_error_get_type(s2n_errno));
+    EXPECT_EQUAL(S2N_ERR_T_OK, s2n_error_get_type(*s2n_errno_location()));
+    s2n_errno = S2N_ERR_IO;
+    EXPECT_EQUAL(S2N_ERR_T_IO, s2n_error_get_type(s2n_errno));
+    EXPECT_EQUAL(S2N_ERR_T_IO, s2n_error_get_type(*s2n_errno_location()));
+    s2n_errno = S2N_ERR_CLOSED;
+    EXPECT_EQUAL(S2N_ERR_T_CLOSED, s2n_error_get_type(s2n_errno));
+    EXPECT_EQUAL(S2N_ERR_T_CLOSED, s2n_error_get_type(*s2n_errno_location()));
+    s2n_errno = S2N_ERR_IO_BLOCKED;
+    EXPECT_EQUAL(S2N_ERR_T_BLOCKED, s2n_error_get_type(s2n_errno));
+    EXPECT_EQUAL(S2N_ERR_T_BLOCKED, s2n_error_get_type(*s2n_errno_location()));
+    s2n_errno = S2N_ERR_ALERT;
+    EXPECT_EQUAL(S2N_ERR_T_ALERT, s2n_error_get_type(s2n_errno));
+    EXPECT_EQUAL(S2N_ERR_T_ALERT, s2n_error_get_type(*s2n_errno_location()));
+    s2n_errno = S2N_ERR_BAD_MESSAGE;
+    EXPECT_EQUAL(S2N_ERR_T_PROTO, s2n_error_get_type(s2n_errno));
+    EXPECT_EQUAL(S2N_ERR_T_PROTO, s2n_error_get_type(*s2n_errno_location()));
+    s2n_errno = S2N_ERR_FSTAT;
+    EXPECT_EQUAL(S2N_ERR_T_INTERNAL, s2n_error_get_type(s2n_errno));
+    EXPECT_EQUAL(S2N_ERR_T_INTERNAL, s2n_error_get_type(*s2n_errno_location()));
+    s2n_errno = S2N_ERR_INVALID_BASE64;
+    EXPECT_EQUAL(S2N_ERR_T_USAGE, s2n_error_get_type(s2n_errno));
+    EXPECT_EQUAL(S2N_ERR_T_USAGE, s2n_error_get_type(*s2n_errno_location()));
+
+    END_TEST();
 }

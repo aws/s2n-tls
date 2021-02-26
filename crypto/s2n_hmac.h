@@ -65,6 +65,7 @@ extern int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *ou
 extern int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out);
 
 extern int s2n_hmac_new(struct s2n_hmac_state *state);
+S2N_RESULT s2n_hmac_state_validate(struct s2n_hmac_state *state);
 extern int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen);
 extern int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size);
 extern int s2n_hmac_digest(struct s2n_hmac_state *state, void *out, uint32_t size);

@@ -85,60 +85,33 @@ static int s2n_config_setup_fips(struct s2n_config *config)
 
 static int s2n_config_init(struct s2n_config *config)
 {
-    config->cert_allocated = 0;
-    config->dhparams = NULL;
-    memset(&config->application_protocols, 0, sizeof(config->application_protocols));
     config->status_request_type = S2N_STATUS_REQUEST_NONE;
     config->wall_clock = wall_clock;
     config->monotonic_clock = monotonic_clock;
-    config->verify_host = NULL;
-    config->data_for_verify_host = NULL;
-    config->client_hello_cb = NULL;
-    config->client_hello_cb_ctx = NULL;
-    config->cache_store = NULL;
-    config->cache_store_data = NULL;
-    config->cache_retrieve = NULL;
-    config->cache_retrieve_data = NULL;
-    config->cache_delete = NULL;
-    config->cache_delete_data = NULL;
     config->ct_type = S2N_CT_SUPPORT_NONE;
     config->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
     config->alert_behavior = S2N_ALERT_FAIL_ON_WARNINGS;
-    config->accept_mfl = 0;
     config->session_state_lifetime_in_nanos = S2N_STATE_LIFETIME_IN_NANOS;
-    config->use_tickets = 0;
-    config->use_session_cache = 0;
-    config->ticket_keys = NULL;
-    config->ticket_key_hashes = NULL;
     config->encrypt_decrypt_key_lifetime_in_nanos = S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS;
     config->decrypt_key_lifetime_in_nanos = S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS;
-    config->quic_enabled = 0;
 
     /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
      * authenticate any client certificates. */
     config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
     config->check_ocsp = 1;
-    config->disable_x509_validation = 0;
-    config->max_verify_cert_chain_depth = 0;
-    config->max_verify_cert_chain_depth_set = 0;
-    config->cert_tiebreak_cb = NULL;
-    config->async_pkey_cb = NULL;
-    config->cert_req_dss_legacy_compat_enabled = 0;
 
     GUARD(s2n_config_setup_default(config));
     if (s2n_use_default_tls13_config()) {
-       GUARD(s2n_config_setup_tls13(config));
+        GUARD(s2n_config_setup_tls13(config));
     } else if (s2n_is_in_fips_mode()) {
         GUARD(s2n_config_setup_fips(config));
     }
 
-    notnull_check(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
+    GUARD_NONNULL(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
     GUARD_AS_POSIX(s2n_map_complete(config->domain_name_to_cert_map));
-    memset(&config->default_certs_by_type, 0, sizeof(struct certs_by_type));
-    config->default_certs_are_explicit = 0;
 
     s2n_x509_trust_store_init_empty(&config->trust_store);
-    s2n_x509_trust_store_from_system_defaults(&config->trust_store);
+    GUARD(s2n_x509_trust_store_from_system_defaults(&config->trust_store));
 
     return 0;
 }
@@ -282,6 +255,7 @@ struct s2n_config *s2n_config_new(void)
     struct s2n_config *new_config;
 
     GUARD_PTR(s2n_alloc(&allocator, sizeof(struct s2n_config)));
+    GUARD_PTR(s2n_blob_zero(&allocator));
 
     new_config = (struct s2n_config *)(void *)allocator.data;
     if (s2n_config_init(new_config) != S2N_SUCCESS) {
@@ -856,5 +830,22 @@ int s2n_config_enable_cert_req_dss_legacy_compat(struct s2n_config *config)
 {
     notnull_check(config);
     config->cert_req_dss_legacy_compat_enabled = 1;
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb)
+{
+    notnull_check(config);
+    notnull_check(cb);
+    config->psk_selection_cb = cb;
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_key_log_cb(struct s2n_config *config, s2n_key_log_fn callback, void *ctx) {
+    ENSURE_POSIX_MUT(config);
+
+    config->key_log_cb = callback;
+    config->key_log_ctx = ctx;
+
     return S2N_SUCCESS;
 }

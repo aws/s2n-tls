@@ -310,6 +310,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/standard:5.0
         variables:
           S2N_LIBCRYPTO: openssl-1.1.1
           LATEST_CLANG: true
@@ -323,6 +324,7 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/standard:5.0
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2
           LATEST_CLANG: true
@@ -334,8 +336,10 @@ batch:
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/standard:5.0
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2-fips
           LATEST_CLANG: true
           TESTS: fuzz
           FUZZ_TIMEOUT_SEC: 60
+

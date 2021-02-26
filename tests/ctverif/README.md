@@ -73,7 +73,7 @@ A proof proceeds in the following steps:
 ### Install the dependencies
 Running these tests will require the following dependencies
 (tested on Ubuntu 14.04).  To see how to install this on a clean ubuntu machine, 
-take a look at the .travis scripts in this repo.
+take a look at the ci scripts in this repo.
 
 - ct-verif (available from https://github.com/imdea-software/verifying-constant-time/)
   - Export its base directory as $CTVERIF_DIR

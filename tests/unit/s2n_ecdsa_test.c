@@ -141,8 +141,9 @@ int main(int argc, char **argv)
     uint8_t inputpad[] = "Hello world!";
     struct s2n_blob signature = {0}, bad_signature = {0};
     struct s2n_hash_state hash_one = {0}, hash_two = {0};
-    uint32_t maximum_signature_length = s2n_pkey_size(&priv_key);
 
+    uint32_t maximum_signature_length = 0;
+    EXPECT_OK(s2n_pkey_size(&priv_key, &maximum_signature_length));
     EXPECT_SUCCESS(s2n_alloc(&signature, maximum_signature_length));
 
     EXPECT_SUCCESS(s2n_hash_new(&hash_one));
@@ -173,7 +174,8 @@ int main(int argc, char **argv)
     }
 
     /* Mismatched public/private key should fail verification */
-    EXPECT_SUCCESS(s2n_alloc(&bad_signature, s2n_pkey_size(&unmatched_priv_key)));
+    EXPECT_OK(s2n_pkey_size(&unmatched_priv_key, &maximum_signature_length));
+    EXPECT_SUCCESS(s2n_alloc(&bad_signature, maximum_signature_length));
 
     EXPECT_FAILURE(s2n_pkey_match(&pub_key, &unmatched_priv_key));
 

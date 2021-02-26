@@ -2,7 +2,7 @@ import pytest
 import os
 
 from configuration import available_ports, PROVIDERS, PROTOCOLS
-from common import Ciphers, ProviderOptions, Protocols, data_bytes, KemGroups, Certificates
+from common import Ciphers, ProviderOptions, Protocols, data_bytes, KemGroups, Certificates, pq_enabled
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name
@@ -163,7 +163,13 @@ def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, client_cipher, ser
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(S2N, client_options, timeout=5)
 
-    expected_result = EXPECTED_RESULTS.get((client_cipher, server_cipher), None)
+    if pq_enabled():
+        expected_result = EXPECTED_RESULTS.get((client_cipher, server_cipher), None)
+    else:
+        # If PQ is not enabled in s2n, we expect classic handshakes to be negotiated.
+        # Leave the expected cipher blank, as there are multiple possibilities - the
+        # important thing is that kem and kem_group are NONE.
+        expected_result = {"cipher": "", "kem": "NONE", "kem_group": "NONE"}
 
     # Client and server are both s2n; can make meaningful assertions about negotiation for both
     for results in client.get_results():
@@ -181,6 +187,10 @@ def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, client_cipher, ser
 @pytest.mark.parametrize("cipher", [Ciphers.PQ_TLS_1_0_2020_12], ids=get_parameter_name)
 @pytest.mark.parametrize("kem_group", KEM_GROUPS, ids=get_parameter_name)
 def test_s2nc_to_oqs_openssl_pq_handshake(managed_process, protocol, cipher, kem_group):
+    # If PQ is not enabled in s2n, there is no reason to test against oqs_openssl
+    if not pq_enabled():
+        return
+
     host = "localhost"
     port = next(available_ports)
 
@@ -223,6 +233,10 @@ def test_s2nc_to_oqs_openssl_pq_handshake(managed_process, protocol, cipher, kem
 @pytest.mark.parametrize("cipher", [Ciphers.PQ_TLS_1_0_2020_12], ids=get_parameter_name)
 @pytest.mark.parametrize("kem_group", KEM_GROUPS, ids=get_parameter_name)
 def test_oqs_openssl_to_s2nd_pq_handshake(managed_process, protocol, cipher, kem_group):
+    # If PQ is not enabled in s2n, there is no reason to test against oqs_openssl
+    if not pq_enabled():
+        return
+
     host = "localhost"
     port = next(available_ports)
 

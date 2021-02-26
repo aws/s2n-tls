@@ -54,13 +54,13 @@ int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, c
         return -1;
     }
 
-    uint8_t index = ((const uint8_t *)key)[0];
+    uint8_t idx = ((const uint8_t *)key)[0];
 
-    EXPECT_MEMCPY_SUCCESS(cache[index].key, key, key_size);
-    EXPECT_MEMCPY_SUCCESS(cache[index].value, value, value_size);
+    EXPECT_MEMCPY_SUCCESS(cache[idx].key, key, key_size);
+    EXPECT_MEMCPY_SUCCESS(cache[idx].value, value, value_size);
 
-    cache[index].key_len = key_size;
-    cache[index].value_len = value_size;
+    cache[idx].key_len = key_size;
+    cache[idx].value_len = value_size;
 
     return 0;
 }
@@ -73,30 +73,30 @@ int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *
         return -1;
     }
 
-    uint8_t index = ((const uint8_t *)key)[0];
+    uint8_t idx = ((const uint8_t *)key)[0];
 
-    if (cache[index].lock) {
+    if (cache[idx].lock) {
         /* here we mock a remote connection/event blocking the handshake
          * state machine, until lock is free
          */
-        cache[index].lock = 0;
+        cache[idx].lock = 0;
         return S2N_CALLBACK_BLOCKED;
     }
 
-    if (cache[index].key_len != key_size) {
+    if (cache[idx].key_len != key_size) {
         return -1;
     }
 
-    if (memcmp(cache[index].key, key, key_size)) {
+    if (memcmp(cache[idx].key, key, key_size)) {
         return -1;
     }
 
-    if (*value_size < cache[index].value_len) {
+    if (*value_size < cache[idx].value_len) {
         return -1;
     }
 
-    *value_size = cache[index].value_len;
-    EXPECT_MEMCPY_SUCCESS(value, cache[index].value, cache[index].value_len);
+    *value_size = cache[idx].value_len;
+    EXPECT_MEMCPY_SUCCESS(value, cache[idx].value, cache[idx].value_len);
 
     return 0;
 }
@@ -109,22 +109,22 @@ int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *ke
         return -1;
     }
 
-    uint8_t index = ((const uint8_t *)key)[0];
+    uint8_t idx = ((const uint8_t *)key)[0];
 
-    if (cache[index].key_len == 0) {
+    if (cache[idx].key_len == 0) {
         return 0;
     }
 
-    if (cache[index].key_len != key_size) {
+    if (cache[idx].key_len != key_size) {
         return -1;
     }
 
-    if (memcmp(cache[index].key, key, key_size)) {
+    if (memcmp(cache[idx].key, key, key_size)) {
         return -1;
     }
 
-    cache[index].key_len = 0;
-    cache[index].value_len = 0;
+    cache[idx].key_len = 0;
+    cache[idx].value_len = 0;
 
     return 0;
 }

@@ -224,6 +224,14 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019 = {
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
+const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2021,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+};
+
 /* CloudFront viewer facing legacy TLS 1.2 policies */
 const struct s2n_security_policy security_policy_cloudfront_ssl_v_3_legacy = {
     .minimum_protocol_version = S2N_SSLv3,
@@ -281,8 +289,6 @@ const struct s2n_security_policy security_policy_kms_tls_1_0_2018_10 = {
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
-#if !defined(S2N_NO_PQ)
-
 const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2019_06 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_kms_pq_tls_1_0_2019_06,
@@ -331,7 +337,6 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2020_12 = {
         .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
-#endif
 const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2018_10 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_kms_fips_tls_1_2_2018_10,
@@ -463,11 +468,7 @@ const struct s2n_security_policy security_policy_20201021 = {
 const struct s2n_security_policy security_policy_test_all = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_all,
-#if !defined(S2N_NO_PQ)
     .kem_preferences = &kem_preferences_kms_pq_tls_1_0_2020_07,
-#else
-    .kem_preferences = &kem_preferences_null,
-#endif
     .signature_preferences = &s2n_signature_preferences_20201021,
     .ecc_preferences = &s2n_ecc_preferences_test_all,
 };
@@ -475,11 +476,7 @@ const struct s2n_security_policy security_policy_test_all = {
 const struct s2n_security_policy security_policy_test_all_tls12 = {
     .minimum_protocol_version = S2N_SSLv3,
     .cipher_preferences = &cipher_preferences_test_all_tls12,
-#if !defined(S2N_NO_PQ)
     .kem_preferences = &kem_preferences_kms_pq_tls_1_0_2020_07,
-#else
-    .kem_preferences = &kem_preferences_null,
-#endif
     .signature_preferences = &s2n_signature_preferences_20201021,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
 };
@@ -488,8 +485,8 @@ const struct s2n_security_policy security_policy_test_all_fips = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_test_all_fips,
     .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .signature_preferences = &s2n_signature_preferences_20201021,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
 };
 
 const struct s2n_security_policy security_policy_test_all_ecdsa = {
@@ -558,6 +555,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="CloudFront-TLS-1-1-2016", .security_policy=&security_policy_cloudfront_tls_1_1_2016, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="CloudFront-TLS-1-2-2018", .security_policy=&security_policy_cloudfront_tls_1_2_2018, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="CloudFront-TLS-1-2-2019", .security_policy=&security_policy_cloudfront_tls_1_2_2019, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="CloudFront-TLS-1-2-2021", .security_policy=&security_policy_cloudfront_tls_1_2_2021, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     /* CloudFront Legacy (TLS 1.2) policies */
     { .version="CloudFront-SSL-v-3-Legacy", .security_policy=&security_policy_cloudfront_ssl_v_3_legacy, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="CloudFront-TLS-1-0-2014-Legacy", .security_policy=&security_policy_cloudfront_tls_1_0_2014_legacy, .ecc_extension_required=0, .pq_kem_extension_required=0 },
@@ -566,14 +564,12 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="CloudFront-TLS-1-2-2018-Legacy", .security_policy=&security_policy_cloudfront_tls_1_2_2018_legacy, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="CloudFront-TLS-1-2-2019-Legacy", .security_policy=&security_policy_cloudfront_tls_1_2_2019_legacy, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="KMS-TLS-1-0-2018-10", .security_policy=&security_policy_kms_tls_1_0_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-#if !defined(S2N_NO_PQ)
     { .version="KMS-PQ-TLS-1-0-2019-06", .security_policy=&security_policy_kms_pq_tls_1_0_2019_06, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="KMS-PQ-TLS-1-0-2020-02", .security_policy=&security_policy_kms_pq_tls_1_0_2020_02, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="KMS-PQ-TLS-1-0-2020-07", .security_policy=&security_policy_kms_pq_tls_1_0_2020_07, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="PQ-SIKE-TEST-TLS-1-0-2019-11", .security_policy=&security_policy_pq_sike_test_tls_1_0_2019_11, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="PQ-SIKE-TEST-TLS-1-0-2020-02", .security_policy=&security_policy_pq_sike_test_tls_1_0_2020_02, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="PQ-TLS-1-0-2020-12", .security_policy=&security_policy_pq_tls_1_0_2020_12, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-#endif
     { .version="KMS-FIPS-TLS-1-2-2018-10", .security_policy=&security_policy_kms_fips_tls_1_2_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20140601", .security_policy=&security_policy_20140601, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20141001", .security_policy=&security_policy_20141001, .ecc_extension_required=0, .pq_kem_extension_required=0 },

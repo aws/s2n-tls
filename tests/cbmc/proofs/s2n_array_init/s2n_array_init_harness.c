@@ -13,11 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
 #include "utils/s2n_array.h"
 
-#include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/cbmc_utils.h>
 

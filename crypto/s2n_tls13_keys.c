@@ -41,7 +41,7 @@
  * [x] client_application_traffic_secret_0
  * [x] server_application_traffic_secret_0
  * [ ] exporter_master_secret
- * [ ] resumption_master_secret
+ * [x] resumption_master_secret
  *
  * The TLS 1.3 key generation can be divided into 3 phases
  * 1. early secrets
@@ -74,6 +74,7 @@ S2N_BLOB_LABEL(s2n_tls13_label_server_application_traffic_secret, "s ap traffic"
 
 S2N_BLOB_LABEL(s2n_tls13_label_exporter_master_secret, "exp master")
 S2N_BLOB_LABEL(s2n_tls13_label_resumption_master_secret, "res master")
+S2N_BLOB_LABEL(s2n_tls13_label_session_ticket_secret, "resumption")
 
 /*
  * Traffic secret labels
@@ -342,4 +343,43 @@ int s2n_tls13_update_application_traffic_secret(struct s2n_tls13_keys *keys, str
                                 &s2n_tls13_label_application_traffic_secret_update, &zero_length_blob, new_secret));
 
     return 0;
+}
+
+int s2n_tls13_derive_resumption_master_secret(struct s2n_tls13_keys *keys, struct s2n_hash_state *hashes, struct s2n_blob *secret_blob)
+{
+    notnull_check(keys);
+    notnull_check(hashes);
+    notnull_check(secret_blob);
+
+    /* Sanity check that input hash is of expected type */
+    ENSURE_POSIX(keys->hash_algorithm == hashes->alg, S2N_ERR_HASH_INVALID_ALGORITHM);
+
+    s2n_tls13_key_blob(message_digest, keys->size);
+
+    /* Copy the hashes into the message_digest */
+    DEFER_CLEANUP(struct s2n_hash_state hkdf_hash_copy, s2n_hash_free);
+    GUARD(s2n_hash_new(&hkdf_hash_copy));
+    GUARD(s2n_hash_copy(&hkdf_hash_copy, hashes));
+    GUARD(s2n_hash_digest(&hkdf_hash_copy, message_digest.data, message_digest.size));
+
+    /* Derive master session resumption from master secret */
+    GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
+        &s2n_tls13_label_resumption_master_secret, &message_digest, secret_blob));
+
+    return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_tls13_derive_session_ticket_secret(struct s2n_tls13_keys *keys, struct s2n_blob *resumption_secret, 
+        struct s2n_blob *ticket_nonce, struct s2n_blob *secret_blob)
+{
+    ENSURE_REF(keys);
+    ENSURE_REF(resumption_secret);
+    ENSURE_REF(ticket_nonce);
+    ENSURE_REF(secret_blob);
+
+    /* Derive session ticket secret from master session resumption secret */
+    GUARD_AS_RESULT(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, resumption_secret,
+        &s2n_tls13_label_session_ticket_secret, ticket_nonce, secret_blob));
+
+    return S2N_RESULT_OK;
 }

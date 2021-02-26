@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, true));
 
-    const uint8_t test_ticket[S2N_TICKET_SIZE_IN_BYTES] = "TICKET";
+    const uint8_t test_ticket[S2N_TLS12_TICKET_SIZE_IN_BYTES] = "TICKET";
 
     /* send */
     {
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer stuffer;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-        s2n_set_test_ticket(client_conn, test_ticket, S2N_TICKET_SIZE_IN_BYTES);
+        s2n_set_test_ticket(client_conn, test_ticket, S2N_TLS12_TICKET_SIZE_IN_BYTES);
         EXPECT_SUCCESS(s2n_client_session_ticket_extension.send(client_conn, &stuffer));
 
         EXPECT_EQUAL(server_conn->session_ticket_status, S2N_NO_TICKET);
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer stuffer;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-        s2n_set_test_ticket(client_conn, test_ticket, S2N_TICKET_SIZE_IN_BYTES - 1);
+        s2n_set_test_ticket(client_conn, test_ticket, S2N_TLS12_TICKET_SIZE_IN_BYTES - 1);
         EXPECT_SUCCESS(s2n_client_session_ticket_extension.send(client_conn, &stuffer));
         uint8_t extension_data = s2n_stuffer_data_available(&stuffer);
 
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer stuffer;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-        s2n_set_test_ticket(client_conn, test_ticket, S2N_TICKET_SIZE_IN_BYTES);
+        s2n_set_test_ticket(client_conn, test_ticket, S2N_TLS12_TICKET_SIZE_IN_BYTES);
         EXPECT_SUCCESS(s2n_client_session_ticket_extension.send(client_conn, &stuffer));
         uint8_t extension_data = s2n_stuffer_data_available(&stuffer);
 

@@ -27,9 +27,9 @@
  void *memset_impl(void *s, int c, size_t n) {
      __CPROVER_precondition(__CPROVER_w_ok(s, n), "memset destination region writeable");
      if (n > 0) {
-         size_t index;
-         __CPROVER_assume(index < n);
-         ((uint8_t *)s)[index] = nondet_uint8_t();
+         size_t idx;
+         __CPROVER_assume(idx < n);
+         ((uint8_t *)s)[idx] = nondet_uint8_t();
      }
      return s;
  }

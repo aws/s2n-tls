@@ -24,6 +24,13 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
 
+static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn,
+        struct s2n_offered_psk_list *psk_identity_list, uint16_t *chosen_wire_index)
+{
+    *chosen_wire_index = 0;
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -127,6 +134,47 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_disable_tls13());
         }
+    }
+
+    /* Test setting the callback to select PSK identity */
+    {
+        struct s2n_config *config = NULL;
+        EXPECT_NOT_NULL(config = s2n_config_new());
+
+        /* Safety checks */
+        {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(NULL, s2n_test_select_psk_identity_callback), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(config, NULL), S2N_ERR_NULL);
+        }
+
+        EXPECT_NULL(config->psk_selection_cb);
+        EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_select_psk_identity_callback));
+        EXPECT_EQUAL(config->psk_selection_cb, s2n_test_select_psk_identity_callback);
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
+    /*Test s2n_connection_set_config */
+    {
+        /* Test that tickets_to_send is set correctly */
+        {
+            struct s2n_connection *conn = NULL;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+            struct s2n_config *config;
+            uint8_t num_tickets = 1;
+
+            EXPECT_NOT_NULL(config = s2n_config_new());
+
+            config->initial_tickets_to_send = num_tickets;
+
+            EXPECT_EQUAL(conn->tickets_to_send, 0);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_EQUAL(conn->tickets_to_send, num_tickets);
+
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
     }
 
     END_TEST();

@@ -14,13 +14,9 @@
  */
 
 #include <sys/param.h>
-#include "api/s2n.h"
-#include "error/s2n_errno.h"
 #include "utils/s2n_array.h"
 #include "utils/s2n_result.h"
 
-#include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <cbmc_proof/make_common_datastructures.h>
 
 void s2n_array_insert_harness()
@@ -29,8 +25,8 @@ void s2n_array_insert_harness()
     struct s2n_array *array = cbmc_allocate_s2n_array();
     __CPROVER_assume(s2n_result_is_ok(s2n_array_validate(array)));
     __CPROVER_assume(s2n_array_is_bounded(array, MAX_ARRAY_LEN, MAX_ARRAY_ELEMENT_SIZE));
-    uint32_t index;
-    void **element = can_fail_malloc(sizeof(void *));
+    uint32_t idx;
+    void **element = malloc(sizeof(void *));
 
     nondet_s2n_mem_init();
 
@@ -39,17 +35,17 @@ void s2n_array_insert_harness()
     save_byte_from_array(array->mem.data, array->len, &old_byte);
 
     /* Operation under verification. */
-    if (s2n_result_is_ok(s2n_array_insert(array, index, element))) {
+    if (s2n_result_is_ok(s2n_array_insert(array, idx, element))) {
        /*
         * In the case s2n_array_insert is successful, we can ensure the array isn't empty
         * and index is within bounds.
         */
         assert(array->mem.data != NULL);
         assert(array->len == (old_array.len + 1));
-        assert(index < array->len);
-        assert(*element == (array->mem.data + (array->element_size * index)));
+        assert(idx < array->len);
+        assert(*element == (array->mem.data + (array->element_size * idx)));
         assert(s2n_result_is_ok(s2n_array_validate(array)));
-        if (old_array.len != 0 && index == old_array.len) {
+        if (old_array.len != 0 && idx == old_array.len) {
             assert_byte_from_blob_matches(&array->mem, &old_byte);
         }
 
