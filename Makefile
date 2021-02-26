@@ -56,6 +56,10 @@ bike_r1_bc: bc
 bike_r2_bc: bc
 	${MAKE} -C pq-crypto bike_r2_bc
 
+.PHONY : saber_saber_r2_bc
+saber_saber_r2_bc: bc
+	${MAKE} -C pq-crypto saber_saber_bc
+
 .PHONY : saw
 saw : bc
 	$(MAKE) -C tests/saw

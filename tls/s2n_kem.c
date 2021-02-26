@@ -94,6 +94,19 @@ const struct s2n_kem s2n_kyber_512_90s_r2 = {
         .decapsulate = &kyber_512_90s_r2_crypto_kem_dec,
 };
 
+
+const struct s2n_kem s2n_saber_saber_r2 = {
+        .name = "sabersaberr2",
+        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_SABER_SABER_R2,
+        .public_key_length = SABER_SABER_R2_PUBLIC_KEY_BYTES,
+        .private_key_length = SABER_SABER_R2_SECRET_KEY_BYTES,
+        .shared_secret_key_length = SABER_SABER_R2_SHARED_SECRET_BYTES,
+        .ciphertext_length = SABER_SABER_R2_CIPHERTEXT_BYTES,
+        .generate_keypair = &saber_saber_r2_crypto_kem_keypair,
+        .encapsulate = &saber_saber_r2_crypto_kem_enc,
+        .decapsulate = &saber_saber_r2_crypto_kem_dec,
+};
+
 /* These lists should be kept up to date with the above KEMs. Order in the lists
  * does not matter. Adding a KEM to these lists will not automatically enable
  * support for the KEM extension - that must be added via the KEM preferences &
@@ -113,7 +126,11 @@ const struct s2n_kem *kyber_kems[] = {
         &s2n_kyber_512_90s_r2,
 };
 
-const struct s2n_iana_to_kem kem_mapping[3] = {
+const struct s2n_kem *saber_kems[] = {
+        &s2n_saber_saber_r2,
+};
+
+const struct s2n_iana_to_kem kem_mapping[4] = {
         {
             .iana_value = { TLS_ECDHE_BIKE_RSA_WITH_AES_256_GCM_SHA384 },
             .kems = bike_kems,
@@ -128,7 +145,12 @@ const struct s2n_iana_to_kem kem_mapping[3] = {
             .iana_value = { TLS_ECDHE_KYBER_RSA_WITH_AES_256_GCM_SHA384 },
             .kems = kyber_kems,
             .kem_count = s2n_array_len(kyber_kems),
-        }
+        },
+        {
+            .iana_value = { TLS_ECDHE_SABER_RSA_WITH_AES_256_GCM_SHA384 },
+            .kems = saber_kems,
+            .kem_count = s2n_array_len(saber_kems),
+        },
 };
 
 /* Specific assignments of KEM group IDs and names have not yet been
@@ -175,6 +197,17 @@ const struct s2n_kem_group s2n_secp256r1_kyber_512_r2 = {
                 (S2N_SIZE_OF_KEY_SHARE_SIZE + KYBER_512_R2_CIPHERTEXT_BYTES),
         .curve = &s2n_ecc_curve_secp256r1,
         .kem = &s2n_kyber_512_r2,
+};
+
+const struct s2n_kem_group s2n_secp384r1_saber_saber_r2 = {
+        .name = "secp384r1_saber-saber-r2",
+        .iana_id = TLS_PQ_KEM_GROUP_ID_SECP384R1_SABER_SABER_R2,
+        .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP384R1_SHARE_SIZE) +
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + SABER_SABER_R2_PUBLIC_KEY_BYTES),
+        .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP384R1_SHARE_SIZE) +
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + SABER_SABER_R2_CIPHERTEXT_BYTES),
+        .curve = &s2n_ecc_curve_secp384r1,
+        .kem = &s2n_saber_saber_r2,
 };
 
 #if EVP_APIS_SUPPORTED
@@ -506,4 +539,8 @@ int kyber_512_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *c
 int kyber_512_90s_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
 int kyber_512_90s_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
 int kyber_512_90s_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
+/* saber saber r2 version*/
+int saber_saber_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
+int saber_saber_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
+int saber_saber_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { BAIL_POSIX(S2N_ERR_UNIMPLEMENTED); }
 #endif

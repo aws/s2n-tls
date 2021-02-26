@@ -1,0 +1,47 @@
+include ../../s2n.mk
+include ../s2n_pq_asm.mk
+
+.DEFAULT_GOAL := all
+
+NISTFLAGS  = -Wno-unused-result -O3 -fomit-frame-pointer -march=native -std=c99 -I$(S2N_ROOT) -I$(S2N_ROOT)/api
+
+RM 		  = /bin/rm
+
+CFLAGS +=  -Wincompatible-pointer-types-discards-qualifiers
+
+all: test/PQCgenKAT_kem \
+     test/test_kex \
+     test/kem \
+
+SOURCES = pack_unpack.c poly.c fips202.c verify.c cbd.c SABER_indcpa.c kem.c
+HEADERS = SABER_params.h pack_unpack.h poly.h rng.h fips202.h verify.h cbd.h SABER_indcpa.h 
+
+test/test_kex: $(SOURCES) $(HEADERS) rng.o test/test_kex.c
+	$(CC) $(CFLAGS) -o $@ $(SOURCES) rng.o test/test_kex.c -L$(LIBCRYPTO_ROOT)/lib $(CRYPTO_LIBS) -L/Users/nafea/s2n_build/lib -ls2n
+
+test/PQCgenKAT_kem: $(SOURCES) $(HEADERS) rng.o test/PQCgenKAT_kem.c 
+	$(CC) $(NISTFLAGS) -o $@ $(SOURCES) rng.o test/PQCgenKAT_kem.c -L$(LIBCRYPTO_ROOT)/lib $(CRYPTO_LIBS) -L/Users/nafea/s2n_build/lib -ls2n
+
+test/kem: $(SOURCES) $(HEADERS) rng.o test/kem.c
+	$(CC) $(CFLAGS) -o $@ $(SOURCES) rng.o test/kem.c -L$(LIBCRYPTO_ROOT)/lib $(CRYPTO_LIBS) -L/Users/nafea/s2n_build/lib -ls2n
+
+rng.o: rng.c
+	$(CC) $(NISTFLAGS) -c rng.c -L$(LIBCRYPTO_ROOT)/lib $(CRYPTO_LIBS) -o $@ 
+
+# fips202.o: fips202.c
+# 	$(CLANG) -c $^ -o $@
+
+.PHONY: clean test
+
+test: 
+	./test/test_kex
+	./test/PQCgenKAT_kem
+	./test/kem
+
+clean:
+	-$(RM) -f *.o
+	-$(RM) -rf test/test_kex
+	-$(RM) -rf test/kem
+	-$(RM) -rf test/PQCgenKAT_kem
+	-$(RM) -f *.req
+	-$(RM) -f *.rsp
