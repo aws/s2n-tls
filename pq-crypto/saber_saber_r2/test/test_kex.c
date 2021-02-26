@@ -45,8 +45,8 @@ static int test_kem_cca()
   uint64_t CLOCK1,CLOCK2;
   uint64_t CLOCK_kp,CLOCK_enc,CLOCK_dec;
 
-  	CLOCK1 = 0;
-        CLOCK2 = 0;
+//  	CLOCK1 = 0;
+//      CLOCK2 = 0;
 	CLOCK_kp = CLOCK_enc = CLOCK_dec = 0;
 	clock_kp_mv=clock_cl_mv=0;
 	clock_kp_sm = clock_cl_sm = 0;
@@ -122,14 +122,14 @@ static int test_kem_cca()
   	}
 
 	printf("Repeat is : %lld\n",repeat);
-	printf("Average times key_pair: \t %llu \n",CLOCK_kp/repeat);
-	printf("Average times enc: \t %llu \n",CLOCK_enc/repeat);
-	printf("Average times dec: \t %llu \n",CLOCK_dec/repeat);
+	printf("Average times key_pair: \t %llu \n",(unsigned long long) CLOCK_kp/repeat);
+	printf("Average times enc: \t %llu \n",(unsigned long long) CLOCK_enc/repeat);
+	printf("Average times dec: \t %llu \n",(unsigned long long) CLOCK_dec/repeat);
 
 
-	printf("Average times kp mv: \t %llu \n",clock_kp_mv/repeat);
-	printf("Average times cl mv: \t %llu \n",clock_cl_mv/repeat);
-	printf("Average times sample_kp: \t %llu \n",clock_kp_sm/repeat);
+	printf("Average times kp mv: \t %llu \n",(unsigned long long) clock_kp_mv/repeat);
+	printf("Average times cl mv: \t %llu \n",(unsigned long long) clock_cl_mv/repeat);
+	printf("Average times sample_kp: \t %llu \n",(unsigned long long) clock_kp_sm/repeat);
 
   	return 0;
 }
