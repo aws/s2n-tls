@@ -25,11 +25,12 @@ static void karatsuba_simple(uint16_t *a_1, uint16_t *b_1, uint16_t *result_fina
     memset(d23, 0, (KARATSUBA_N / 2 - 1)*sizeof(uint16_t));
     memset(result_final, 0, (2 * KARATSUBA_N - 1)*sizeof(uint16_t));
 
-    uint16_t acc1, acc2, acc3, acc4, acc5, acc6, acc7, acc8, acc9, acc10;
+    uint16_t acc5, acc6, acc7, acc8, acc9, acc10;
 
 
     for (i = 0; i < KARATSUBA_N / 4; i++) {
-        acc1 = a_1[i]; //a0
+        uint16_t acc1, acc2, acc3, acc4;
+	acc1 = a_1[i]; //a0
         acc2 = a_1[i + KARATSUBA_N / 4]; //a1
         acc3 = a_1[i + 2 * KARATSUBA_N / 4]; //a2
         acc4 = a_1[i + 3 * KARATSUBA_N / 4]; //a3

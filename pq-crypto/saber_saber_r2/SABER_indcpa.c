@@ -3,7 +3,7 @@
 #include "SABER_indcpa.h"
 #include "poly.h"
 #include "pack_unpack.h"
-#include "poly_mul.c"
+//#include "poly_mul.c"
 #include "rng.h"
 #include "fips202.h"
 #include "SABER_params.h"

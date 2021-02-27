@@ -23,11 +23,12 @@ static uint64_t load_littleendian(const uint8_t *x, int bytes)
 void cbd(uint16_t s[SABER_N], const uint8_t buf[SABER_POLYCOINBYTES])
 {
 #if SABER_MU == 6
-  uint32_t t, d, a[4], b[4];
-  int i, j;
+  uint32_t  a[4], b[4];
+  int j;
 
-  for (i = 0; i < SABER_N / 4; i++)
+  for (int i = 0; i < SABER_N / 4; i++)
   {
+    uint32_t t,d;
     t = load_littleendian(buf + 3 * i, 3);
     d = 0;
     for (j = 0; j < 3; j++)
@@ -48,11 +49,12 @@ void cbd(uint16_t s[SABER_N], const uint8_t buf[SABER_POLYCOINBYTES])
     s[4 * i + 3] = (uint16_t)(a[3] - b[3]);
   }
 #elif SABER_MU == 8 
-  uint32_t t, d, a[4], b[4];
+  uint32_t  a[4], b[4];
   int i, j;
 
   for (i = 0; i < SABER_N / 4; i++)
   {
+    uint32_t t,d;
     t = load_littleendian(buf + 4 * i, 4);
     d = 0;
     for (j = 0; j < 4; j++)
