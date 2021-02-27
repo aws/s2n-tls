@@ -2,7 +2,7 @@
 
 NISTFLAGS  = -Wno-unused-result -O3 -fomit-frame-pointer -march=native -std=c99 -I$(S2N_ROOT) -I$(S2N_ROOT)/api
 
-CFLAGS +=  -Wincompatible-pointer-types-discards-qualifiers -I/usr/local/opt/openssl/include
+#CFLAGS +=  -Wincompatible-pointer-types-discards-qualifiers -I/usr/local/opt/openssl/include
 
 
 SRCS = rng.c pack_unpack.c poly.c verify.c cbd.c SABER_indcpa.c saber_saber_r2_kem.c
