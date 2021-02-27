@@ -69,6 +69,14 @@ static const struct s2n_kem_test_vector test_vectors[] = {
                 .enable_asm = s2n_pq_noop_asm,
                 .disable_asm = s2n_pq_noop_asm,
         },
+        {
+                .kem = &s2n_saber_saber_r2,
+                .kat_file = "kats/saber_saber_r2.kat",
+                .asm_is_enabled = s2n_pq_no_asm_available,
+                .enable_asm = s2n_pq_noop_asm,
+                .disable_asm = s2n_pq_noop_asm,
+        },
+
 };
 
 int main() {

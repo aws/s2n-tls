@@ -77,6 +77,7 @@ extern const struct s2n_kem s2n_sike_p503_r1;
 extern const struct s2n_kem s2n_sike_p434_r2;
 extern const struct s2n_kem s2n_kyber_512_r2;
 extern const struct s2n_kem s2n_kyber_512_90s_r2;
+extern const struct s2n_kem s2n_saber_saber_r2;
 
 /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
 #if EVP_APIS_SUPPORTED
@@ -181,9 +182,9 @@ int kyber_512_90s_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss
 int kyber_512_90s_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
 
 /* sabersaberr2 */
-#define SABER_SABER_R2_SECRET_KEY_BYTES    6460
-#define SABER_SABER_R2_PUBLIC_KEY_BYTES    2946
-#define SABER_SABER_R2_CIPHERTEXT_BYTES    2946
+#define SABER_SABER_R2_SECRET_KEY_BYTES    2304
+#define SABER_SABER_R2_PUBLIC_KEY_BYTES    992
+#define SABER_SABER_R2_CIPHERTEXT_BYTES    1088
 #define SABER_SABER_R2_SHARED_SECRET_BYTES 32
 int saber_saber_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk);
 int saber_saber_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk);

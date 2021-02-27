@@ -25,7 +25,7 @@ typedef struct {
     unsigned char   ctr[16];
 } AES_XOF_struct;
 
-/*typedef struct {
+typedef struct {
     unsigned char   Key[32];
     unsigned char   V[16];
     int             reseed_counter;
@@ -36,7 +36,7 @@ void
 AES256_CTR_DRBG_Update(unsigned char *provided_data,
                        unsigned char *Key,
                        unsigned char *V);
-*/
+
 
 int
 seedexpander_init(AES_XOF_struct *ctx,
