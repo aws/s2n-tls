@@ -45,8 +45,8 @@ static int test_kem_cca()
   uint64_t CLOCK1,CLOCK2;
   uint64_t CLOCK_kp,CLOCK_enc,CLOCK_dec;
 
-//  	CLOCK1 = 0;
-//      CLOCK2 = 0;
+  	CLOCK1 = 0;
+      CLOCK2 = 0;
 	CLOCK_kp = CLOCK_enc = CLOCK_dec = 0;
 	clock_kp_mv=clock_cl_mv=0;
 	clock_kp_sm = clock_cl_sm = 0;
@@ -121,7 +121,7 @@ static int test_kem_cca()
 		//printf("\n");
   	}
 
-	printf("Repeat is : %lld\n",repeat);
+	printf("Repeat is : %lld\n",(unsigned long long) repeat);
 	printf("Average times key_pair: \t %llu \n",(unsigned long long) CLOCK_kp/repeat);
 	printf("Average times enc: \t %llu \n",(unsigned long long) CLOCK_enc/repeat);
 	printf("Average times dec: \t %llu \n",(unsigned long long) CLOCK_dec/repeat);
@@ -140,10 +140,11 @@ void test_kem_cpa(){
 	uint8_t pk[SABER_PUBLICKEYBYTES];
 	uint8_t sk[SABER_SECRETKEYBYTES];
 
-	indcpa_kem_keypair(unsigned char *pk, unsigned char *sk);
-	indcpa_kem_enc(unsigned char *message_received, unsigned char *noiseseed, const unsigned char *pk, unsigned char *ciphertext)
+	indcpa_kem_keypair(pk, sk);
+	indcpa_kem_enc(char *message_received, unsigned char *noiseseed, const unsigned char *pk, unsigned char *ciphertext)
 	indcpa_kem_dec(const unsigned char *sk, const unsigned char *ciphertext, unsigned char message_dec[])
 }
+
 */
 int main()
 {
