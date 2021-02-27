@@ -87,6 +87,19 @@ static const struct s2n_kem_hybrid_test_vector test_vectors[] = {
                 .enable_asm = s2n_pq_noop_asm,
                 .disable_asm = s2n_pq_noop_asm,
         },
+	/* pending Saber hybrid KAT
+	{
+                .kem = &s2n_saber_saber_r2,
+                .cipher_suite = &s2n_ecdhe_saber_rsa_with_aes_256_gcm_sha384,
+                .security_policy_name = "KMS-PQ-TLS-1-0-2020-07",
+                .kat_file = "kats/hybrid_ecdhe_saber_r2.kat",
+                .server_key_msg_len = ,
+                .client_key_msg_len = ,
+                .asm_is_enabled = s2n_pq_no_asm_available,
+                .enable_asm = s2n_pq_noop_asm,
+                .disable_asm = s2n_pq_noop_asm,
+        },
+	*/
 };
 
 int main() {

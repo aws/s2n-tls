@@ -29,7 +29,8 @@ const struct s2n_kem *pq_kems_r2r1[4] = {
     &s2n_sike_p503_r1,
 };
 
-const struct s2n_kem *pq_kems_r2r1_2020_07[5] = {
+const struct s2n_kem *pq_kems_r2r1_2020_07[6] = {
+    &s2n_saber_saber_r2,
     &s2n_kyber_512_r2,
     &s2n_bike1_l1_r2,
     &s2n_sike_p434_r2,
@@ -51,13 +52,16 @@ const struct s2n_kem *pq_kems_sike_r2r1[2] = {
 
 const struct s2n_kem_group *pq_kem_groups_r2[] = {
 #if EVP_APIS_SUPPORTED
-        &s2n_x25519_kyber_512_r2,
+        &s2n_x25519_saber_saber_r2,
+        &s2n_secp256r1_saber_saber_r2,
+	&s2n_x25519_kyber_512_r2,
         &s2n_secp256r1_kyber_512_r2,
         &s2n_x25519_bike1_l1_r2,
         &s2n_secp256r1_bike1_l1_r2,
         &s2n_x25519_sike_p434_r2,
         &s2n_secp256r1_sike_p434_r2,
 #else
+	&s2n_secp256r1_saber_saber_r2
         &s2n_secp256r1_kyber_512_r2,
         &s2n_secp256r1_bike1_l1_r2,
         &s2n_secp256r1_sike_p434_r2,

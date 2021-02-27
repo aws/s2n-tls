@@ -199,14 +199,14 @@ const struct s2n_kem_group s2n_secp256r1_kyber_512_r2 = {
         .kem = &s2n_kyber_512_r2,
 };
 
-const struct s2n_kem_group s2n_secp384r1_saber_saber_r2 = {
-        .name = "secp384r1_saber-saber-r2",
-        .iana_id = TLS_PQ_KEM_GROUP_ID_SECP384R1_SABER_SABER_R2,
-        .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP384R1_SHARE_SIZE) +
+const struct s2n_kem_group s2n_secp256r1_saber_saber_r2 = {
+        .name = "secp256r1_saber-saber-r2",
+        .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_SABER_SABER_R2,
+        .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) +
                 (S2N_SIZE_OF_KEY_SHARE_SIZE + SABER_SABER_R2_PUBLIC_KEY_BYTES),
-        .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP384R1_SHARE_SIZE) +
+        .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) +
                 (S2N_SIZE_OF_KEY_SHARE_SIZE + SABER_SABER_R2_CIPHERTEXT_BYTES),
-        .curve = &s2n_ecc_curve_secp384r1,
+        .curve = &s2n_ecc_curve_secp256r1,
         .kem = &s2n_saber_saber_r2,
 };
 
@@ -244,10 +244,22 @@ const struct s2n_kem_group s2n_x25519_kyber_512_r2 = {
         .curve = &s2n_ecc_curve_x25519,
         .kem = &s2n_kyber_512_r2,
 };
+
+const struct s2n_kem_group s2n_x25519_saber_saber_r2 = {
+        .name = "x25519_saber-saber-r2",
+        .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_SABER_SABER_R2,
+        .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) +
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + SABER_SABER_R2_PUBLIC_KEY_BYTES),
+        .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) +
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + SABER_SABER_R2_CIPHERTEXT_BYTES),
+        .curve = &s2n_ecc_curve_x25519,
+        .kem = &s2n_saber_saber_r2,
+};
 #else
 const struct s2n_kem_group s2n_x25519_sike_p434_r2 = { 0 };
 const struct s2n_kem_group s2n_x25519_bike1_l1_r2 = { 0 };
 const struct s2n_kem_group s2n_x25519_kyber_512_r2 = { 0 };
+const struct s2n_kem_group s2n_x25519_saber_saber_r2 = { 0 };
 #endif
 
 /* Helper safety macro to call the NIST PQ KEM functions. The NIST
