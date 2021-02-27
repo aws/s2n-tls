@@ -316,7 +316,7 @@ int main() {
     const struct s2n_kem_group *expected_saber_group = &s2n_x25519_saber_saber_r2;
     const struct s2n_kem_group *expected_kyber_group = &s2n_x25519_kyber_512_r2;
     const struct s2n_kem_group *expected_bike_group = &s2n_x25519_bike1_l1_r2;
-// FIXME - comment until test 5th test is fixed -
+//  comment out until test 5th test is fixed -
 // const struct s2n_kem_group *expected_sike_group = &s2n_x25519_sike_p434_r2;
     const struct s2n_ecc_named_curve *expected_curve = &s2n_ecc_curve_x25519;
 
@@ -324,7 +324,7 @@ int main() {
         expected_saber_group = &s2n_secp256r1_saber_saber_r2;
         expected_kyber_group = &s2n_secp256r1_kyber_512_r2;
         expected_bike_group = &s2n_secp256r1_bike1_l1_r2;
-// FIXME - comment until test 5th test is fixed -
+// comment out until test 5th test is fixed -
 //	expected_sike_group = &s2n_secp256r1_sike_p434_r2;
         expected_curve = &s2n_ecc_curve_secp256r1;
     }
@@ -391,7 +391,7 @@ int main() {
                     .hrr_expected = true,
             },
 
-	    /* FIXME: this test fails
+	    /* this test fails, need to debug
             {
                     .client_policy = &security_policy_pq_tls_1_0_2020_12,
                     .server_policy = &sike_test_policy,
