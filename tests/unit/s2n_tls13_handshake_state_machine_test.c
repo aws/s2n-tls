@@ -136,8 +136,7 @@ int main(int argc, char **argv)
             early_data_messages = tls13_handshakes[early_data_handshake_type];
 
             /* No handshake exists for INITIAL, FULL_HANDSHAKE, or HELLO_RETRY_REQUEST handshakes */
-            if (!IS_NEGOTIATED(original_handshake_type)
-                    || (IS_FULL_HANDSHAKE(original_handshake_type))
+            if (!(original_handshake_type & NEGOTIATED) || (original_handshake_type & FULL_HANDSHAKE)
                     || (original_handshake_type & HELLO_RETRY_REQUEST)) {
                 EXPECT_BYTEARRAY_EQUAL(early_data_messages, invalid_handshake, sizeof(invalid_handshake));
                 continue;
@@ -175,7 +174,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(original_messages[j], early_data_messages[j_ed]);
                 j++; j_ed++;
             }
-            if (IS_NEGOTIATED(original_handshake_type)) {
+            if (original_handshake_type & NEGOTIATED) {
                 EXPECT_EQUAL(end_of_early_data_messages, 1);
             } else {
                 EXPECT_EQUAL(end_of_early_data_messages, 0);
@@ -195,7 +194,7 @@ int main(int argc, char **argv)
             messages_original = tls13_handshakes[handshake_type_original];
 
             /* Ignore INITIAL and MIDDLEBOX_COMPAT handshakes */
-            if (!IS_NEGOTIATED(handshake_type_original) || IS_MIDDLEBOX_COMPAT_MODE(handshake_type_original)) {
+            if (!(handshake_type_original & NEGOTIATED) || (handshake_type_original & MIDDLEBOX_COMPAT)) {
                 continue;
             }
 
@@ -230,12 +229,17 @@ int main(int argc, char **argv)
             handshake_type_original = valid_tls13_handshakes[i];
             messages_original = tls13_handshakes[handshake_type_original];
 
+            /* Ignore INITIAL and FULL_HANDSHAKE handshakes */
+            if (!(handshake_type_original & NEGOTIATED) || (handshake_type_original & FULL_HANDSHAKE)) {
+                continue;
+            }
+
             /* FULL_HANDSHAKE form of the handshake */
             handshake_type_fh = handshake_type_original | FULL_HANDSHAKE;
             messages_fh = tls13_handshakes[handshake_type_fh];
 
             /* No FULL handshake exists for INITIAL or WITH_EARLY_DATA handshakes */
-            if (!IS_NEGOTIATED(handshake_type_original) || (IS_EARLY_DATA_HANDSHAKE(handshake_type_original))) {
+            if (!(handshake_type_original & NEGOTIATED) || (handshake_type_original & WITH_EARLY_DATA)) {
                 EXPECT_BYTEARRAY_EQUAL(messages_fh, invalid_handshake, sizeof(invalid_handshake));
                 continue;
             }
@@ -610,9 +614,9 @@ int main(int argc, char **argv)
             handshake_type = valid_tls13_handshakes[i];
             messages = tls13_handshakes[handshake_type];
 
-            /* Ignore INITIAL, non-MIDDLEBOX_COMPAT, and WITH_EARLY_DATA handshakes */
-            if (!IS_NEGOTIATED(handshake_type) || !IS_MIDDLEBOX_COMPAT_MODE(handshake_type)
-                    || IS_EARLY_DATA_HANDSHAKE(handshake_type)) {
+            /* Ignore INITIAL and non-MIDDLEBOX_COMPAT handshakes */
+            if (!(handshake_type & NEGOTIATED) || !(handshake_type & MIDDLEBOX_COMPAT)
+                    || (handshake_type & WITH_EARLY_DATA)) {
                 continue;
             }
 
@@ -648,8 +652,8 @@ int main(int argc, char **argv)
             messages = tls13_handshakes[handshake_type];
 
             /* Ignore INITIAL, non-MIDDLEBOX_COMPAT, and non-WITH_EARLY_DATA handshakes */
-            if (!IS_NEGOTIATED(handshake_type) || !IS_MIDDLEBOX_COMPAT_MODE(handshake_type)
-                    || !IS_EARLY_DATA_HANDSHAKE(handshake_type)) {
+            if (!(handshake_type & NEGOTIATED) || !(handshake_type & MIDDLEBOX_COMPAT)
+                    || !(handshake_type & WITH_EARLY_DATA)) {
                 continue;
             }
 
@@ -682,7 +686,7 @@ int main(int argc, char **argv)
             messages = tls13_handshakes[handshake_type];
 
             /* Ignore INITIAL and non-MIDDLEBOX_COMPAT handshakes */
-            if (!IS_NEGOTIATED(handshake_type) || !IS_MIDDLEBOX_COMPAT_MODE(handshake_type)) {
+            if (!(handshake_type & NEGOTIATED) || !(handshake_type & MIDDLEBOX_COMPAT)) {
                 continue;
             }
 
@@ -732,9 +736,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(conn->handshake.handshake_type & WITH_SESSION_TICKET );
         EXPECT_TRUE(conn->handshake.handshake_type & CLIENT_AUTH );
 
-        /* Verify that tls1.2 DOES NOT set the flags only allowed by tls1.3 */
-        EXPECT_FALSE(conn->handshake.handshake_type & MIDDLEBOX_COMPAT);
-        EXPECT_FALSE(conn->handshake.handshake_type & HELLO_RETRY_REQUEST);
+        EXPECT_OK(s2n_handshake_type_reset(conn));
 
         /* Verify that tls1.3 ONLY sets the flags allowed by tls1.3 */
         conn->actual_protocol_version = S2N_TLS13;
@@ -757,7 +759,8 @@ int main(int argc, char **argv)
         /* HELLO_RETRY_REQUEST not allowed with tls1.2 */
         conn->actual_protocol_version = S2N_TLS12;
         conn->handshake.handshake_type = INITIAL | HELLO_RETRY_REQUEST;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_conn_set_handshake_type(conn), S2N_ERR_INVALID_HELLO_RETRY);
+        EXPECT_SUCCESS(s2n_conn_set_handshake_type(conn));
+        EXPECT_FALSE(conn->handshake.handshake_type & HELLO_RETRY_REQUEST);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
@@ -767,19 +770,15 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         struct s2n_psk *psk = NULL;
-
+        conn->actual_protocol_version = S2N_TLS13;
         EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
 
-        conn->actual_protocol_version = S2N_TLS13;
         conn->psk_params.chosen_psk = psk;
-
         EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
         EXPECT_OK(s2n_conn_set_tls13_handshake_type(conn));
-
         EXPECT_FALSE(conn->handshake.handshake_type & FULL_HANDSHAKE);
 
         conn->psk_params.chosen_psk = NULL;
-
         EXPECT_OK(s2n_conn_set_tls13_handshake_type(conn));
         EXPECT_TRUE(conn->handshake.handshake_type & FULL_HANDSHAKE);
 
@@ -854,10 +853,13 @@ int main(int argc, char **argv)
      *       The maximum size is the size of a name with all flags set. */
     {
         size_t correct_size = 0;
-        for (size_t i = 0; i < s2n_array_len(handshake_type_names); i++) {
-            correct_size += strlen(handshake_type_names[i]);
+        for (size_t i = 0; i < s2n_array_len(tls13_handshake_type_names); i++) {
+            correct_size += strlen(tls13_handshake_type_names[i]);
         }
-        EXPECT_EQUAL(correct_size, MAX_HANDSHAKE_TYPE_LEN);
+        if (correct_size > MAX_HANDSHAKE_TYPE_LEN) {
+            fprintf(stderr, "\nMAX_HANDSHAKE_TYPE_LEN should be at least %lu\n", (unsigned long) correct_size);
+            FAIL_MSG("MAX_HANDSHAKE_TYPE_LEN wrong for TLS1.3 handshakes");
+        }
     }
 
     /* Test: TLS 1.3 handshake types are all properly printed */
@@ -874,21 +876,19 @@ int main(int argc, char **argv)
         conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE | HELLO_RETRY_REQUEST;
         EXPECT_STRING_EQUAL("NEGOTIATED|FULL_HANDSHAKE|HELLO_RETRY_REQUEST", s2n_connection_get_handshake_type_name(conn));
 
-        const char* all_flags_handshake_type_name = "NEGOTIATED|FULL_HANDSHAKE|CLIENT_AUTH|WITH_SESSION_TICKET|"
-                "NO_CLIENT_CERT|MIDDLEBOX_COMPAT|WITH_EARLY_DATA";
-        conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | WITH_SESSION_TICKET |
-                NO_CLIENT_CERT | MIDDLEBOX_COMPAT | WITH_EARLY_DATA;
+        const char* all_flags_handshake_type_name = "NEGOTIATED|FULL_HANDSHAKE|CLIENT_AUTH|NO_CLIENT_CERT|MIDDLEBOX_COMPAT|WITH_EARLY_DATA";
+        conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | NO_CLIENT_CERT | MIDDLEBOX_COMPAT | WITH_EARLY_DATA;
         EXPECT_STRING_EQUAL(all_flags_handshake_type_name, s2n_connection_get_handshake_type_name(conn));
 
         const char *handshake_type_name;
         for (int i = 0; i < valid_tls13_handshakes_size; i++) {
-            conn->handshake.handshake_type = i;
+            conn->handshake.handshake_type = valid_tls13_handshakes[i];
 
             handshake_type_name = s2n_connection_get_handshake_type_name(conn);
 
             /* The handshake type names must be unique */
             for (int j = 0; j < valid_tls13_handshakes_size; j++) {
-                conn->handshake.handshake_type = j;
+                conn->handshake.handshake_type = valid_tls13_handshakes[j];
                 if (i == j) {
                     EXPECT_STRING_EQUAL(handshake_type_name, s2n_connection_get_handshake_type_name(conn));
                 } else {

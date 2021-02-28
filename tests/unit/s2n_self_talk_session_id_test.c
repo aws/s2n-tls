@@ -169,7 +169,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     }
 
     /* Make sure we did a full handshake */
-    if (!IS_FULL_HANDSHAKE(conn->handshake.handshake_type)) {
+    if (!IS_FULL_HANDSHAKE(conn)) {
         result = 2;
     }
 
@@ -226,7 +226,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     }
 
     /* Make sure we did a abbreviated handshake */
-    if (!IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type)) {
+    if (!IS_RESUMPTION_HANDSHAKE(conn)) {
         result = 11;
     }
 
@@ -378,7 +378,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_get_session_id(conn, session_id_from_server, MAX_KEY_LEN), s2n_connection_get_session_id_length(conn));
 
         /* Make sure we did a full TLS1.2 handshake */
-        EXPECT_TRUE(IS_FULL_HANDSHAKE(conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(conn));
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
 
         /* Ensure the message was delivered */
@@ -421,7 +421,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(0, memcmp(session_id_from_client, session_id_from_server, MAX_KEY_LEN));
 
         /* Make sure we did a abbreviated handshake */
-        EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(conn));
 
         /* Ensure the message was delivered */
         memset(buffer, 0, sizeof(buffer));
