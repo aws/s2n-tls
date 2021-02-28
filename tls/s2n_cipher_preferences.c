@@ -1100,7 +1100,6 @@ const struct s2n_cipher_preferences cipher_preferences_kms_pq_tls_1_0_2020_07 = 
 };
 
 struct s2n_cipher_suite *cipher_suites_pq_tls_1_0_2020_12[] = {
-        S2N_TLS13_CIPHER_SUITES_20190801,
         &s2n_ecdhe_saber_rsa_with_aes_256_gcm_sha384,
 	&s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384,
         &s2n_ecdhe_bike_rsa_with_aes_256_gcm_sha384,
