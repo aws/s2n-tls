@@ -29,6 +29,7 @@
 #include <strings.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <ctype.h>
 
 #include <s2n.h>
 #include "common.h"
@@ -36,6 +37,7 @@
 
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
+#include "tls/s2n_psk.h"
 
 #define S2N_MAX_ECC_CURVE_NAME_LENGTH 10
 
@@ -91,6 +93,8 @@ void usage()
                     "    The client will generate keyshares only for the curve names present in the ecc_preferences list configured in the security_policy.\n"
                     "    The curves currently supported by s2n are: `x25519`, `secp256r1` and `secp384r1`. Note that `none` represents a list of empty keyshares.\n"
                     "    By default, the client will generate keyshares for all curves present in the ecc_preferences list.\n");
+    fprintf(stderr, "  -p, --psk-file file_path \n");
+    fprintf(stderr, "    Provide a csv file with the first column containing psk_identity, second column containing psk_secret and third column containing the s2n_psk_hmac.\n");
     fprintf(stderr, "  -L --key-log <path>\n");
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
     fprintf(stderr, "\n");
@@ -256,6 +260,13 @@ int main(int argc, char *const *argv)
     uint8_t non_blocking = 0;
     int keyshares_count = 0;
     char keyshares[S2N_ECC_EVP_SUPPORTED_CURVES_COUNT][S2N_MAX_ECC_CURVE_NAME_LENGTH];
+    int psk_identity_count = 0;
+    char psk_identity_list[S2N_MAX_NO_OF_PSKS_IN_LIST][UINT16_MAX];
+    int psk_secret_count = 0;
+    char psk_secret_list[S2N_MAX_NO_OF_PSKS_IN_LIST][UINT16_MAX];
+    int psk_hmac_count = 0;
+    char psk_hmac_list[S2N_MAX_NO_OF_PSKS_IN_LIST][UINT16_MAX];
+    const char* psk_file_path = NULL;
     char *input = NULL;
     char *token = NULL;
     const char *key_log_path = NULL;
@@ -283,12 +294,13 @@ int main(int argc, char *const *argv)
         {"keyshares", required_argument, 0, 'K'},
         {"non-blocking", no_argument, 0, 'B'},
         {"key-log", required_argument, 0, 'L'},
+        {"psk-file", required_argument, 0, 'p'},
         { 0 },
     };
 
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:l:k:D:t:irTCK:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:l:k:D:t:irTCK:p", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -369,6 +381,9 @@ int main(int argc, char *const *argv)
             break;
         case 'L':
             key_log_path = optarg;
+            break;
+        case 'p':
+            psk_file_path = optarg;
             break;
         case '?':
         default:
@@ -480,6 +495,35 @@ int main(int argc, char *const *argv)
             );
         }
 
+        if (psk_file_path != NULL) {
+            FILE *fp = fopen(psk_file_path, "r");
+            GUARD_EXIT(fp == NULL ? S2N_FAILURE : S2N_SUCCESS, "Failed to open psk file");
+            char line_buf[UINT16_MAX];
+            while (fgets(line_buf, UINT16_MAX, fp)) {
+                char *in = strtok(line_buf, ", ");
+                int   c  = 0;
+                while (in != NULL) {
+                    switch (c++) {
+                        case 0:
+                            strcpy(psk_identity_list[psk_identity_count++], in);
+                            break;
+                        case 1:
+                            strcpy(psk_secret_list[psk_secret_count++], in);
+                            break;
+                        case 2:
+                            strcpy(psk_hmac_list[psk_hmac_count++], in);
+                            break;
+                        default:
+                            break;
+                    }
+                    in = strtok(NULL, ", ");
+                }
+            }
+            fclose(fp);
+            ENSURE_POSIX(psk_identity_count, psk_secret_count);
+            ENSURE_POSIX(psk_identity_count, psk_hmac_count);
+        }
+
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
 
         if (conn == NULL) {
@@ -510,6 +554,17 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(s2n_connection_set_session(conn, session_state, session_state_length), "Error setting session state in connection");
         }
 
+        for (size_t i = 0; i < psk_identity_count; i++) {
+            s2n_psk_hmac input_psk_hmac = atoi(psk_hmac_list[i]);
+            DEFER_CLEANUP(struct s2n_psk *input_psk = s2n_external_psk_new(), s2n_psk_free);
+
+            printf("Appending PSK Identity: %s\n", psk_identity_list[i]);
+            GUARD_EXIT(s2n_psk_set_identity(input_psk, (const uint8_t *)psk_identity_list[i], strlen(psk_identity_list[i])), "Error setting psk identity");
+            GUARD_EXIT(s2n_psk_set_secret(input_psk,  (const uint8_t *)psk_secret_list[i], strlen(psk_secret_list[i])), "Error setting psk secret");
+            GUARD_EXIT(s2n_psk_set_hmac(input_psk, input_psk_hmac), "Error setting psk_hmac");
+            GUARD_EXIT(s2n_connection_append_psk(conn, input_psk), "Error appending psk");
+        }
+
         /* See echo.c */
         if (negotiate(conn, sockfd) != 0) {
             /* Error is printed in negotiate */
@@ -517,6 +572,9 @@ int main(int argc, char *const *argv)
         }
 
         printf("Connected to %s:%s\n", host, port);
+        if (conn->psk_params.chosen_psk != NULL) {
+            printf("\nPSK Negotiated and a PSK has been choosen.\n");
+        }
 
         /* Save session state from connection if reconnect is enabled */
         if (reconnect > 0) {

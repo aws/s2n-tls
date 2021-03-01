@@ -19,6 +19,7 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/param.h>
 #include <poll.h>
 #include <netdb.h>
 
@@ -41,6 +42,8 @@
 #include <s2n.h>
 #include "common.h"
 
+#include "tls/s2n_connection.h"
+#include "tls/s2n_psk.h"
 #include "utils/s2n_safety.h"
 
 #define MAX_CERTIFICATES 50
@@ -220,6 +223,38 @@ int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *ke
     return 0;
 }
 
+int s2n_select_psk_identity_callback(struct s2n_connection *conn,
+        struct s2n_offered_psk_list *psk_identity_list, uint16_t *chosen_wire_index)
+{
+    notnull_check(conn);
+    notnull_check(psk_identity_list);
+
+    struct s2n_array *server_psks = &conn->psk_params.psk_list;
+    conn->psk_params.chosen_psk = NULL;
+
+    for (size_t i = 0; i < server_psks->len; i++) {
+        struct s2n_psk *server_psk = NULL;
+        GUARD_AS_POSIX(s2n_array_get(server_psks, i, (void**) &server_psk));
+        notnull_check(server_psk);
+
+        struct s2n_offered_psk client_psk = { 0 };
+        uint16_t wire_index = 0;
+
+        GUARD(s2n_offered_psk_list_reset(psk_identity_list));
+        while(s2n_offered_psk_list_has_next(psk_identity_list)) {
+            GUARD(s2n_offered_psk_list_next(psk_identity_list, &client_psk));
+            uint16_t compare_size = MIN(client_psk.identity.size, server_psk->identity.size);
+            if (s2n_constant_time_equals(client_psk.identity.data, server_psk->identity.data, compare_size)
+                    & (client_psk.identity.size == server_psk->identity.size)) {
+                *chosen_wire_index = wire_index;
+                break;
+            }
+            wire_index++;
+        };
+    }
+    return S2N_SUCCESS;
+}
+
 /*
  * Since this is a server, and the mechanism for hostname verification is not defined for this use-case,
  * allow any hostname through. If you are writing something with mutual auth and you have a scheme for verifying
@@ -288,6 +323,8 @@ void usage()
     fprintf(stderr, "    Send number of bytes in https server mode to test throughput.\n");
     fprintf(stderr, "  -L --key-log <path>\n");
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
+    fprintf(stderr, "  -I, --psk-identity-file psk_identity_file\n");
+    fprintf(stderr, "    Provide a colon separated list of psk identites.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -364,6 +401,11 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
+    if (conn->psk_params.chosen_psk != NULL) {
+        printf("\nPSK negotiated successfully, chosen PSK wire index = %d\n", conn->psk_params.chosen_psk_wire_index);
+    }
+
+
     if (settings.https_server) {
         https(conn, settings.https_bench);
     } else if (!settings.only_negotiate) {
@@ -394,6 +436,9 @@ int main(int argc, char *const *argv)
     const char *cipher_prefs = "default";
     const char *alpn = NULL;
     const char *key_log_path = NULL;
+    int psk_identity_count = 0;
+    char psk_identity_list[S2N_MAX_NO_OF_PSKS_IN_LIST][UINT16_MAX];
+    char *psk_identity_file = NULL;
 
     /* The certificates provided by the user. If there are none provided, we will use the hardcoded default cert.
      * The associated private key for each cert will be at the same index in private_keys. If the user mixes up the
@@ -440,12 +485,13 @@ int main(int argc, char *const *argv)
         {"alpn", required_argument, 0, 'A'},
         {"non-blocking", no_argument, 0, 'B'},
         {"key-log", required_argument, 0, 'L'},
+        {"psk-identity-file", required_argument, 0, 'I'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:A:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:A:I", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -545,6 +591,9 @@ int main(int argc, char *const *argv)
             break;
         case 'L':
             key_log_path = optarg;
+            break;
+        case 'I':
+            psk_identity_file = optarg;
             break;
         case '?':
         default:
@@ -771,6 +820,28 @@ int main(int argc, char *const *argv)
             ),
             "Failed to set key log callback"
         );
+    }
+
+    if (psk_identity_file != NULL) {
+        FILE *fp = fopen(psk_identity_file, "r");
+        GUARD_EXIT(fp == NULL ? S2N_FAILURE : S2N_SUCCESS, "Failed to open psk file");
+        char line_buf[UINT16_MAX];
+        while (fgets(line_buf, UINT16_MAX, fp)) {
+            char *in = strtok(line_buf, ", ");
+            while (in != NULL) {
+                strcpy(psk_identity_list[psk_identity_count++], in);
+                in = strtok(NULL, ", ");
+            }
+        }
+        fclose(fp);
+    }
+
+    for (size_t i = 0; i < psk_identity_count; i++) {
+        DEFER_CLEANUP(struct s2n_offered_psk *offered_psk = s2n_offered_psk_new(), s2n_offered_psk_free);
+        printf("\nAdding PSK Identity to offered list: %s", psk_identity_list[i]);
+        GUARD_EXIT(s2n_blob_init(&offered_psk->identity, (uint8_t *)psk_identity_list[i], strlen(psk_identity_list[i])), "Error setting psk wire identity");
+        GUARD_EXIT(s2n_config_set_psk_selection_callback(config, s2n_select_psk_identity_callback), "Error setting the set psk selection callback");
+        eq_check(config->psk_selection_cb, s2n_select_psk_identity_callback);
     }
 
     int fd;

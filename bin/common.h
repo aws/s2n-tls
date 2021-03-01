@@ -16,6 +16,7 @@
 #pragma once
 
 #include <stdint.h>
+#define S2N_MAX_NO_OF_PSKS_IN_LIST 10
 
 #define GUARD_EXIT(x, msg)  \
   do {                      \
