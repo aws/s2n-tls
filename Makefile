@@ -178,13 +178,19 @@ clean:
 build:
 	@mkdir build
 
-# The linker flags are due to an OpenSSL/zlib linker issue on Al2.
+# The linker flags are due to an OpenSSL/zlib linker issue on AL2.
 .PHONY: withninja
 withninja: build
 	{ set -e; \
+	unset LD_LIBRARY_PATH; \
 	cd build; \
 	cmake -GNinja -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .. ;\
 	ninja -v -d stats;\
-	ninja test ;\
 	}
 
+ninjatest: withninja
+	{ set -e; \
+	unset LD_LIBRARY_PATH; \
+	cd build; \
+	ninja test ;\
+	}
