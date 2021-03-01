@@ -317,7 +317,7 @@ int main(int argc, char **argv)
 
     /* Test: s2n_tls13_handle_handshake_secrets */
     {
-        /* PSKs are wiped */
+        /* PSKs are wiped when chosen PSK is NULL */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -332,7 +332,8 @@ int main(int argc, char **argv)
             conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_preferences->ecc_curves[0];
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
 
-            const uint8_t psk_data[] = "test";
+            const uint8_t psk_data[] = "test identity data";
+            const uint8_t secret_data[] = "test secret data";
             for (size_t i = 0; i < S2N_TEST_PSK_COUNT; i++) {
                 struct s2n_psk *psk = NULL;
                 EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
@@ -340,16 +341,85 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_psk_set_identity(psk, psk_data, sizeof(psk_data)));
                 EXPECT_NOT_EQUAL(psk->identity.size, 0);
                 EXPECT_NOT_EQUAL(psk->identity.data, NULL);
+                EXPECT_SUCCESS(s2n_psk_set_secret(psk, secret_data, sizeof(secret_data)));
+                EXPECT_NOT_EQUAL(psk->secret.size, 0);
+                EXPECT_NOT_EQUAL(psk->secret.data, NULL);
             }
+
+            EXPECT_NOT_EQUAL(conn->psk_params.psk_list.mem.allocated, 0);
+            EXPECT_EQUAL(conn->psk_params.psk_list.len, S2N_TEST_PSK_COUNT);
+            EXPECT_NULL(conn->psk_params.chosen_psk);
+
+            EXPECT_SUCCESS(s2n_tls13_handle_handshake_secrets(conn));
+
+            /* Verify secrets are wiped */
+            for (size_t i = 0; i < conn->psk_params.psk_list.len; i++) {
+                struct s2n_psk *psk = NULL;
+                EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, i, (void**)&psk));
+                EXPECT_NOT_EQUAL(psk->identity.size, 0);
+                EXPECT_NULL(psk->secret.data);
+                EXPECT_EQUAL(psk->secret.size, 0);
+            }
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* PSKs are wiped when chosen PSK is NOT NULL */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+
+            const struct s2n_ecc_preferences *ecc_preferences = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
+            EXPECT_NOT_NULL(ecc_preferences);
+
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
+            conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_preferences->ecc_curves[0];
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+
+            const uint8_t psk_data[] = "test identity data";
+            const uint8_t secret_data[] = "test secret data";
+            const uint8_t early_secret_data[SHA256_DIGEST_LENGTH] = "test early secret data";
+            for (size_t i = 0; i < S2N_TEST_PSK_COUNT; i++) {
+                struct s2n_psk *psk = NULL;
+                EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
+                EXPECT_OK(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
+                EXPECT_SUCCESS(s2n_psk_set_identity(psk, psk_data, sizeof(psk_data)));
+                EXPECT_NOT_EQUAL(psk->identity.size, 0);
+                EXPECT_NOT_EQUAL(psk->identity.data, NULL);
+                EXPECT_SUCCESS(s2n_psk_set_secret(psk, secret_data, sizeof(secret_data)));
+                EXPECT_NOT_EQUAL(psk->secret.size, 0);
+                EXPECT_NOT_EQUAL(psk->secret.data, NULL);
+                EXPECT_SUCCESS(s2n_realloc(&psk->early_secret, sizeof(early_secret_data)));
+                memcpy_check(psk->early_secret.data, early_secret_data, sizeof(early_secret_data));
+                EXPECT_NOT_EQUAL(psk->early_secret.size, 0);
+                EXPECT_NOT_EQUAL(psk->early_secret.data, NULL);
+            }
+
+            /* Set chosen PSK */
+            struct s2n_psk *chosen_psk = NULL;
+            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &chosen_psk));
+            EXPECT_NOT_NULL(chosen_psk);
+            conn->psk_params.chosen_psk = chosen_psk;
+            conn->psk_params.chosen_psk_wire_index = 0;
 
             EXPECT_NOT_EQUAL(conn->psk_params.psk_list.mem.allocated, 0);
             EXPECT_EQUAL(conn->psk_params.psk_list.len, S2N_TEST_PSK_COUNT);
 
             EXPECT_SUCCESS(s2n_tls13_handle_handshake_secrets(conn));
 
-            /* Verify PSKs are wiped */
-            EXPECT_EQUAL(conn->psk_params.psk_list.mem.allocated, 0);
-            EXPECT_EQUAL(conn->psk_params.psk_list.len, 0);
+            /* Verify secrets are wiped */
+            for (size_t i = 0; i < conn->psk_params.psk_list.len; i++) {
+                struct s2n_psk *psk = NULL;
+                EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, i, (void**)&psk));
+                EXPECT_NOT_EQUAL(psk->identity.size, 0);
+                EXPECT_NULL(psk->secret.data);
+                EXPECT_EQUAL(psk->secret.size, 0);
+                EXPECT_NULL(psk->early_secret.data);
+                EXPECT_EQUAL(psk->early_secret.size, 0);
+            }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }

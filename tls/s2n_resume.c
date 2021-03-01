@@ -343,8 +343,8 @@ int s2n_connection_get_session_length(struct s2n_connection *conn)
 
 int s2n_connection_is_session_resumed(struct s2n_connection *conn)
 {
-    notnull_check(conn);
-    return IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type) ? 1 : 0;
+    return conn && (s2n_connection_get_protocol_version(conn) < S2N_TLS13)
+           && IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type);
 }
 
 int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn)

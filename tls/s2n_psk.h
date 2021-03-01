@@ -58,6 +58,7 @@ struct s2n_psk_parameters {
 S2N_RESULT s2n_psk_parameters_init(struct s2n_psk_parameters *params);
 S2N_RESULT s2n_psk_parameters_offered_psks_size(struct s2n_psk_parameters *params, uint32_t *size);
 S2N_CLEANUP_RESULT s2n_psk_parameters_wipe(struct s2n_psk_parameters *params);
+S2N_CLEANUP_RESULT s2n_psk_parameters_wipe_secrets(struct s2n_psk_parameters *params);
 
 struct s2n_offered_psk {
     struct s2n_blob identity;

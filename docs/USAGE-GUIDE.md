@@ -1422,7 +1422,7 @@ handshake.
 
 **s2n_connection_get_session_id** get the session id from the connection and copies into the **session_id** buffer and returns the number of bytes that were copied.
 
-**s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0.
+**s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0, for tls versions < TLS1.3.
 
 ### Session Ticket Specific calls
 
