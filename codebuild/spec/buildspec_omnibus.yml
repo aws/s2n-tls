@@ -283,7 +283,7 @@ batch:
       buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         privileged-mode: true
-        compute-type: BUILD_GENERAL1_SMALL
+        compute-type: BUILD_GENERAL1_LARGE
         variables:
           TESTS: asan
           GCC_VERSION: '6'
@@ -297,7 +297,7 @@ batch:
       buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         privileged-mode: true
-        compute-type: BUILD_GENERAL1_SMALL
+        compute-type: BUILD_GENERAL1_LARGE
         variables:
           TESTS: asan
           GCC_VERSION: '6'
