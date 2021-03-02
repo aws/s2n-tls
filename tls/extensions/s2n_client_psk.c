@@ -30,6 +30,7 @@
 
 static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+static int s2n_client_psk_is_missing(struct s2n_connection *conn);
 
 const s2n_extension_type s2n_client_psk_extension = {
     .iana_value = TLS_EXTENSION_PRE_SHARED_KEY,
@@ -37,8 +38,25 @@ const s2n_extension_type s2n_client_psk_extension = {
     .send = s2n_client_psk_send,
     .recv = s2n_client_psk_recv,
     .should_send = s2n_client_psk_should_send,
-    .if_missing = s2n_extension_noop_if_missing,
+    .if_missing = s2n_client_psk_is_missing,
 };
+
+int s2n_client_psk_is_missing(struct s2n_connection *conn)
+{
+    notnull_check(conn);
+
+    /* If the PSK extension is missing, we must not have received
+     * a request for early data.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *# When a PSK is used and early data is allowed for that PSK, the client
+     *# can send Application Data in its first flight of messages.  If the
+     *# client opts to do so, it MUST supply both the "pre_shared_key" and
+     *# "early_data" extensions.
+     */
+    ENSURE_POSIX(conn->early_data_state != S2N_EARLY_DATA_REQUESTED, S2N_ERR_UNSUPPORTED_EXTENSION);
+    return S2N_SUCCESS;
+}
 
 bool s2n_client_psk_should_send(struct s2n_connection *conn)
 {

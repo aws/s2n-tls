@@ -106,6 +106,7 @@
 #define TLS_EXTENSION_RENEGOTIATION_INFO   65281
 
 /* TLS 1.3 extensions from https://tools.ietf.org/html/rfc8446#section-4.2 */
+#define TLS_EXTENSION_EARLY_DATA             42
 #define TLS_EXTENSION_SUPPORTED_VERSIONS     43
 #define TLS_EXTENSION_COOKIE                 44
 #define TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES 45

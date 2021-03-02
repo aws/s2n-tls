@@ -403,6 +403,11 @@ int s2n_client_hello_send(struct s2n_connection *conn)
      * to be calculated AFTER we finish writing the entire extension list. */
     GUARD_AS_POSIX(s2n_finish_psk_extension(conn));
 
+    /* If early data was not requested as part of the ClientHello, it never will be. */
+    if (conn->early_data_state == S2N_UNKNOWN_EARLY_DATA_STATE) {
+        GUARD_AS_POSIX(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_NOT_REQUESTED));
+    }
+
     return S2N_SUCCESS;
 }
 
