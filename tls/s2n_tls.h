@@ -70,6 +70,8 @@ extern int s2n_tls13_client_finished_send(struct s2n_connection *conn);
 extern int s2n_tls13_client_finished_recv(struct s2n_connection *conn);
 extern int s2n_tls13_server_finished_send(struct s2n_connection *conn);
 extern int s2n_tls13_server_finished_recv(struct s2n_connection *conn);
+extern int s2n_end_of_early_data_send(struct s2n_connection *conn);
+extern int s2n_end_of_early_data_recv(struct s2n_connection *conn);
 extern int s2n_process_client_hello(struct s2n_connection *conn);
 extern int s2n_handshake_write_header(struct s2n_stuffer *out, uint8_t message_type);
 extern int s2n_handshake_finish_header(struct s2n_stuffer *out);

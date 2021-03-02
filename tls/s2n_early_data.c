@@ -113,3 +113,13 @@ S2N_RESULT s2n_early_data_config_clone(struct s2n_psk *new_psk, struct s2n_early
 
     return S2N_RESULT_OK;
 }
+
+int s2n_end_of_early_data_send(struct s2n_connection *conn)
+{
+    return S2N_RESULT_TO_POSIX(s2n_connection_set_early_data_state(conn, S2N_END_OF_EARLY_DATA));
+}
+
+int s2n_end_of_early_data_recv(struct s2n_connection *conn)
+{
+    return S2N_RESULT_TO_POSIX(s2n_connection_set_early_data_state(conn, S2N_END_OF_EARLY_DATA));
+}
