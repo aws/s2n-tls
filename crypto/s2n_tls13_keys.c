@@ -173,7 +173,7 @@ int s2n_tls13_derive_binder_key(struct s2n_tls13_keys *keys, struct s2n_psk *psk
 /*
  * Derives early secrets
  */
-int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *keys, struct s2n_psk *psk)
+int s2n_tls13_derive_early_secret(struct s2n_tls13_keys *keys, struct s2n_psk *psk)
 {
     POSIX_ENSURE_REF(keys);
 
@@ -189,7 +189,45 @@ int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *keys, struct s2n_psk *
         POSIX_CHECKED_MEMCPY(keys->extract_secret.data, psk->early_secret.data, psk->early_secret.size);
     }
 
-    /* client_early_traffic_secret and early_exporter_master_secret can be derived here */
+    /* derive next secret */
+    s2n_tls13_key_blob(message_digest, keys->size);
+    POSIX_GUARD(s2n_tls13_transcript_message_hash(keys, &zero_length_blob, &message_digest));
+    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
+        &s2n_tls13_label_derived_secret, &message_digest, &keys->derive_secret));
+
+    return S2N_SUCCESS;
+}
+
+int s2n_tls13_derive_early_traffic_secret(struct s2n_tls13_keys *keys,
+        struct s2n_hash_state *client_hello_hash, struct s2n_blob *secret)
+{
+    POSIX_ENSURE_REF(keys);
+    POSIX_ENSURE_REF(client_hello_hash);
+    POSIX_ENSURE_REF(secret);
+
+    s2n_tls13_key_blob(message_digest, keys->size);
+
+    /* copy the hash */
+    DEFER_CLEANUP(struct s2n_hash_state hkdf_hash_copy, s2n_hash_free);
+    POSIX_GUARD(s2n_hash_new(&hkdf_hash_copy));
+    POSIX_GUARD(s2n_hash_copy(&hkdf_hash_copy, client_hello_hash));
+    POSIX_GUARD(s2n_hash_digest(&hkdf_hash_copy, message_digest.data, message_digest.size));
+
+    /* produce traffic secret */
+    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
+            &s2n_tls13_label_client_early_traffic_secret, &message_digest, secret));
+
+    return S2N_SUCCESS;
+}
+
+/* Extract handshake master secret */
+int s2n_tls13_extract_handshake_secret(struct s2n_tls13_keys *keys, const struct s2n_blob *ecdhe)
+{
+    POSIX_ENSURE_REF(keys);
+    POSIX_ENSURE_REF(ecdhe);
+
+    /* Extract master secret from derived secret */
+    POSIX_GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &keys->derive_secret, ecdhe, &keys->extract_secret));
 
     /* derive next secret */
     s2n_tls13_key_blob(message_digest, keys->size);
@@ -200,23 +238,19 @@ int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *keys, struct s2n_psk *
     return S2N_SUCCESS;
 }
 
-/*
- * Derives handshake secrets
- */
-int s2n_tls13_derive_handshake_secrets(struct s2n_tls13_keys *keys,
-                                        const struct s2n_blob *ecdhe,
-                                        struct s2n_hash_state *client_server_hello_hash,
-                                        struct s2n_blob *client_secret,
-                                        struct s2n_blob *server_secret)
+int s2n_tls13_derive_handshake_traffic_secret(struct s2n_tls13_keys *keys, struct s2n_hash_state *client_server_hello_hash,
+        struct s2n_blob *secret, s2n_mode mode)
 {
     POSIX_ENSURE_REF(keys);
-    POSIX_ENSURE_REF(ecdhe);
     POSIX_ENSURE_REF(client_server_hello_hash);
-    POSIX_ENSURE_REF(client_secret);
-    POSIX_ENSURE_REF(server_secret);
+    POSIX_ENSURE_REF(secret);
 
-    /* Handshake Secret */
-    POSIX_GUARD(s2n_hkdf_extract(&keys->hmac, keys->hmac_algorithm, &keys->derive_secret, ecdhe, &keys->extract_secret));
+    const struct s2n_blob *label_blob = NULL;
+    if (mode == S2N_CLIENT) {
+        label_blob = &s2n_tls13_label_client_handshake_traffic_secret;
+    } else {
+        label_blob = &s2n_tls13_label_server_handshake_traffic_secret;
+    }
 
     s2n_tls13_key_blob(message_digest, keys->size);
 
@@ -224,18 +258,10 @@ int s2n_tls13_derive_handshake_secrets(struct s2n_tls13_keys *keys,
     DEFER_CLEANUP(struct s2n_hash_state hkdf_hash_copy, s2n_hash_free);
     POSIX_GUARD(s2n_hash_new(&hkdf_hash_copy));
     POSIX_GUARD(s2n_hash_copy(&hkdf_hash_copy, client_server_hello_hash));
-    s2n_hash_digest(&hkdf_hash_copy, message_digest.data, message_digest.size);
+    POSIX_GUARD(s2n_hash_digest(&hkdf_hash_copy, message_digest.data, message_digest.size));
 
-    /* produce client + server traffic secrets */
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-        &s2n_tls13_label_client_handshake_traffic_secret, &message_digest, client_secret));
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-        &s2n_tls13_label_server_handshake_traffic_secret, &message_digest, server_secret));
-
-    /* derive next secret */
-    POSIX_GUARD(s2n_tls13_transcript_message_hash(keys, &zero_length_blob, &message_digest));
-    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret,
-        &s2n_tls13_label_derived_secret, &message_digest, &keys->derive_secret));
+    /* produce traffic secret */
+    POSIX_GUARD(s2n_hkdf_expand_label(&keys->hmac, keys->hmac_algorithm, &keys->extract_secret, label_blob, &message_digest, secret));
 
     return 0;
 }

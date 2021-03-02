@@ -69,6 +69,7 @@ static int s2n_connection_new_hashes(struct s2n_connection *conn)
     POSIX_GUARD(s2n_hash_new(&conn->handshake.prf_md5_hash_copy));
     POSIX_GUARD(s2n_hash_new(&conn->handshake.prf_sha1_hash_copy));
     POSIX_GUARD(s2n_hash_new(&conn->handshake.prf_tls12_hash_copy));
+    POSIX_GUARD(s2n_hash_new(&conn->handshake.server_hello_copy));
     POSIX_GUARD(s2n_hash_new(&conn->handshake.server_finished_copy));
     POSIX_GUARD(s2n_hash_new(&conn->prf_space.ssl3.md5));
     POSIX_GUARD(s2n_hash_new(&conn->prf_space.ssl3.sha1));
@@ -114,6 +115,7 @@ static int s2n_connection_init_hashes(struct s2n_connection *conn)
     POSIX_GUARD(s2n_hash_init(&conn->handshake.sha512, S2N_HASH_SHA512));
     POSIX_GUARD(s2n_hash_init(&conn->handshake.ccv_hash_copy, S2N_HASH_NONE));
     POSIX_GUARD(s2n_hash_init(&conn->handshake.prf_tls12_hash_copy, S2N_HASH_NONE));
+    POSIX_GUARD(s2n_hash_init(&conn->handshake.server_hello_copy, S2N_HASH_NONE));
     POSIX_GUARD(s2n_hash_init(&conn->handshake.server_finished_copy, S2N_HASH_NONE));
     POSIX_GUARD(s2n_hash_init(&conn->handshake.prf_sha1_hash_copy, S2N_HASH_SHA1));
     POSIX_GUARD(s2n_hash_init(&conn->prf_space.ssl3.sha1, S2N_HASH_SHA1));
@@ -335,6 +337,7 @@ static int s2n_connection_reset_hashes(struct s2n_connection *conn)
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.prf_md5_hash_copy));
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.prf_sha1_hash_copy));
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.prf_tls12_hash_copy));
+    POSIX_GUARD(s2n_hash_reset(&conn->handshake.server_hello_copy));
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.server_finished_copy));
     POSIX_GUARD(s2n_hash_reset(&conn->prf_space.ssl3.md5));
     POSIX_GUARD(s2n_hash_reset(&conn->prf_space.ssl3.sha1));
@@ -402,6 +405,7 @@ static int s2n_connection_free_hashes(struct s2n_connection *conn)
     POSIX_GUARD(s2n_hash_free(&conn->handshake.prf_md5_hash_copy));
     POSIX_GUARD(s2n_hash_free(&conn->handshake.prf_sha1_hash_copy));
     POSIX_GUARD(s2n_hash_free(&conn->handshake.prf_tls12_hash_copy));
+    POSIX_GUARD(s2n_hash_free(&conn->handshake.server_hello_copy));
     POSIX_GUARD(s2n_hash_free(&conn->handshake.server_finished_copy));
     POSIX_GUARD(s2n_hash_free(&conn->prf_space.ssl3.md5));
     POSIX_GUARD(s2n_hash_free(&conn->prf_space.ssl3.sha1));
@@ -581,6 +585,7 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.prf_md5_hash_copy));
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.prf_sha1_hash_copy));
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.prf_tls12_hash_copy));
+    POSIX_GUARD(s2n_hash_reset(&conn->handshake.server_hello_copy));
     POSIX_GUARD(s2n_hash_reset(&conn->handshake.server_finished_copy));
 
     /* Wipe the buffers we are going to free */

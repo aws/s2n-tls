@@ -74,12 +74,11 @@ extern const struct s2n_blob s2n_tls13_label_traffic_secret_iv;
 int s2n_tls13_keys_init(struct s2n_tls13_keys *handshake, s2n_hmac_algorithm alg);
 int s2n_tls13_keys_free(struct s2n_tls13_keys *keys);
 int s2n_tls13_derive_binder_key(struct s2n_tls13_keys *keys, struct s2n_psk *psk);
-int s2n_tls13_derive_early_secrets(struct s2n_tls13_keys *handshake, struct s2n_psk *psk);
-int s2n_tls13_derive_handshake_secrets(struct s2n_tls13_keys *handshake,
-                                        const struct s2n_blob *ecdhe,
-                                        struct s2n_hash_state *client_server_hello_hash,
-                                        struct s2n_blob *client_secret,
-                                        struct s2n_blob *server_secret);
+int s2n_tls13_derive_early_secret(struct s2n_tls13_keys *handshake, struct s2n_psk *psk);
+int s2n_tls13_derive_early_traffic_secret(struct s2n_tls13_keys *keys, struct s2n_hash_state *client_hello_hash, struct s2n_blob *secret);
+int s2n_tls13_extract_handshake_secret(struct s2n_tls13_keys *keys, const struct s2n_blob *ecdhe);
+int s2n_tls13_derive_handshake_traffic_secret(struct s2n_tls13_keys *keys, struct s2n_hash_state *client_server_hello_hash,
+        struct s2n_blob *secret, s2n_mode mode);
 int s2n_tls13_extract_master_secret(struct s2n_tls13_keys *handshake);
 int s2n_tls13_derive_application_secret(struct s2n_tls13_keys *handshake, struct s2n_hash_state *hashes, struct s2n_blob *secret_blob, s2n_mode mode);
 
