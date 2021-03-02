@@ -87,10 +87,22 @@ Ensures `x` is a mutable reference, otherwise the function will `RESULT_BAIL` wi
 
 Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
 
+`RESULT_PRECONDITION` should be used at the beginning of a function to make assertions about
+the provided arguments. By default, it is functionally equivalent to `RESULT_GUARD_RESULT(result)`
+but can be altered by a testing environment to provide additional guarantees.
+
 
 ### RESULT_POSTCONDITION(result)
 
 Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
+
+NOTE: The condition will _only_ be checked when the code is compiled in debug mode.
+      In release mode, the check is removed.
+
+`RESULT_POSTCONDITION` should be used at the end of a function to make assertions about
+the resulting state. In debug mode, it is functionally equivalent to `RESULT_GUARD_RESULT(result)`.
+In production builds, it becomes a no-op. This can also be altered by a testing environment
+to provide additional guarantees.
 
 
 ### RESULT_CHECKED_MEMCPY(destination, source, len)
@@ -229,10 +241,22 @@ Ensures `x` is a mutable reference, otherwise the function will `POSIX_BAIL` wit
 
 Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
 
+`POSIX_PRECONDITION` should be used at the beginning of a function to make assertions about
+the provided arguments. By default, it is functionally equivalent to `POSIX_GUARD_RESULT(result)`
+but can be altered by a testing environment to provide additional guarantees.
+
 
 ### POSIX_POSTCONDITION(result)
 
 Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
+
+NOTE: The condition will _only_ be checked when the code is compiled in debug mode.
+      In release mode, the check is removed.
+
+`POSIX_POSTCONDITION` should be used at the end of a function to make assertions about
+the resulting state. In debug mode, it is functionally equivalent to `POSIX_GUARD_RESULT(result)`.
+In production builds, it becomes a no-op. This can also be altered by a testing environment
+to provide additional guarantees.
 
 
 ### POSIX_CHECKED_MEMCPY(destination, source, len)
@@ -371,10 +395,22 @@ Ensures `x` is a mutable reference, otherwise the function will `PTR_BAIL` with 
 
 Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
 
+`PTR_PRECONDITION` should be used at the beginning of a function to make assertions about
+the provided arguments. By default, it is functionally equivalent to `PTR_GUARD_RESULT(result)`
+but can be altered by a testing environment to provide additional guarantees.
+
 
 ### PTR_POSTCONDITION(result)
 
 Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
+
+NOTE: The condition will _only_ be checked when the code is compiled in debug mode.
+      In release mode, the check is removed.
+
+`PTR_POSTCONDITION` should be used at the end of a function to make assertions about
+the resulting state. In debug mode, it is functionally equivalent to `PTR_GUARD_RESULT(result)`.
+In production builds, it becomes a no-op. This can also be altered by a testing environment
+to provide additional guarantees.
 
 
 ### PTR_CHECKED_MEMCPY(destination, source, len)

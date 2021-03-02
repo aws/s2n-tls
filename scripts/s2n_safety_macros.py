@@ -460,7 +460,13 @@ MACROS = {
         ],
     ),
     'PRECONDITION(result)': dict(
-        doc  = 'Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal',
+        doc  = '''
+        Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
+
+        `{prefix}PRECONDITION` should be used at the beginning of a function to make assertions about
+        the provided arguments. By default, it is functionally equivalent to `{prefix}GUARD_RESULT(result)`
+        but can be altered by a testing environment to provide additional guarantees.
+        ''',
         impl = '{prefix}GUARD_RESULT(__S2N_ENSURE_PRECONDITION((result)))',
         harness = '''
         static S2N_RESULT {prefix}PRECONDITION_harness_check(bool is_ok)
@@ -481,7 +487,17 @@ MACROS = {
         ],
     ),
     'POSTCONDITION(result)': dict(
-        doc  = 'Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal',
+        doc  = '''
+        Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
+
+        NOTE: The condition will _only_ be checked when the code is compiled in debug mode.
+              In release mode, the check is removed.
+
+        `{prefix}POSTCONDITION` should be used at the end of a function to make assertions about
+        the resulting state. In debug mode, it is functionally equivalent to `{prefix}GUARD_RESULT(result)`.
+        In production builds, it becomes a no-op. This can also be altered by a testing environment
+        to provide additional guarantees.
+        ''',
         impl = '{prefix}GUARD_RESULT(__S2N_ENSURE_POSTCONDITION((result)))',
         harness = '''
         static S2N_RESULT {prefix}POSTCONDITION_harness_check(bool is_ok)

@@ -126,11 +126,23 @@
 
 /**
  * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
+ *
+ * `RESULT_PRECONDITION` should be used at the beginning of a function to make assertions about
+ * the provided arguments. By default, it is functionally equivalent to `RESULT_GUARD_RESULT(result)`
+ * but can be altered by a testing environment to provide additional guarantees.
  */
 #define RESULT_PRECONDITION(result)                            RESULT_GUARD_RESULT(__S2N_ENSURE_PRECONDITION((result)))
 
 /**
  * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
+ *
+ * NOTE: The condition will _only_ be checked when the code is compiled in debug mode.
+ *       In release mode, the check is removed.
+ *
+ * `RESULT_POSTCONDITION` should be used at the end of a function to make assertions about
+ * the resulting state. In debug mode, it is functionally equivalent to `RESULT_GUARD_RESULT(result)`.
+ * In production builds, it becomes a no-op. This can also be altered by a testing environment
+ * to provide additional guarantees.
  */
 #define RESULT_POSTCONDITION(result)                           RESULT_GUARD_RESULT(__S2N_ENSURE_POSTCONDITION((result)))
 
@@ -279,11 +291,23 @@
 
 /**
  * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
+ *
+ * `POSIX_PRECONDITION` should be used at the beginning of a function to make assertions about
+ * the provided arguments. By default, it is functionally equivalent to `POSIX_GUARD_RESULT(result)`
+ * but can be altered by a testing environment to provide additional guarantees.
  */
 #define POSIX_PRECONDITION(result)                            POSIX_GUARD_RESULT(__S2N_ENSURE_PRECONDITION((result)))
 
 /**
  * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
+ *
+ * NOTE: The condition will _only_ be checked when the code is compiled in debug mode.
+ *       In release mode, the check is removed.
+ *
+ * `POSIX_POSTCONDITION` should be used at the end of a function to make assertions about
+ * the resulting state. In debug mode, it is functionally equivalent to `POSIX_GUARD_RESULT(result)`.
+ * In production builds, it becomes a no-op. This can also be altered by a testing environment
+ * to provide additional guarantees.
  */
 #define POSIX_POSTCONDITION(result)                           POSIX_GUARD_RESULT(__S2N_ENSURE_POSTCONDITION((result)))
 
@@ -432,11 +456,23 @@
 
 /**
  * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
+ *
+ * `PTR_PRECONDITION` should be used at the beginning of a function to make assertions about
+ * the provided arguments. By default, it is functionally equivalent to `PTR_GUARD_RESULT(result)`
+ * but can be altered by a testing environment to provide additional guarantees.
  */
 #define PTR_PRECONDITION(result)                              PTR_GUARD_RESULT(__S2N_ENSURE_PRECONDITION((result)))
 
 /**
  * Ensures the `result` is `S2N_RESULT_OK`, otherwise the function will return an error signal
+ *
+ * NOTE: The condition will _only_ be checked when the code is compiled in debug mode.
+ *       In release mode, the check is removed.
+ *
+ * `PTR_POSTCONDITION` should be used at the end of a function to make assertions about
+ * the resulting state. In debug mode, it is functionally equivalent to `PTR_GUARD_RESULT(result)`.
+ * In production builds, it becomes a no-op. This can also be altered by a testing environment
+ * to provide additional guarantees.
  */
 #define PTR_POSTCONDITION(result)                             PTR_GUARD_RESULT(__S2N_ENSURE_POSTCONDITION((result)))
 
