@@ -108,8 +108,8 @@ int main(int argc, char **argv)
 
         /* Functional test: Multiple post handshake messages can be received in the same record */
         {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             uint8_t num_key_updates = 3;
@@ -121,11 +121,9 @@ int main(int argc, char **argv)
                 struct s2n_blob key_update_message = { 0 };
                 EXPECT_SUCCESS(s2n_blob_init(&key_update_message, data, sizeof(data)));
                 EXPECT_SUCCESS(s2n_key_update_write(&key_update_message));
-                EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->out, key_update_message.data, key_update_message.size));
+                EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, key_update_message.data, key_update_message.size));
             }
 
-            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
-            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), num_key_updates * (KEY_UPDATE_MESSAGE_SIZE));
             EXPECT_SUCCESS(s2n_post_handshake_recv(conn));
 
             /* All three key update messages have been read */
