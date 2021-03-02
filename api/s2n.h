@@ -58,7 +58,7 @@ extern __thread int s2n_errno;
  * in runtimes where thread-local variables may not be easily accessible.
  */
 S2N_API
-extern int *s2n_errno_location();
+extern int *s2n_errno_location(void);
 
 typedef enum {
     S2N_ERR_T_OK=0,
