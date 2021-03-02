@@ -26,10 +26,14 @@
 static S2N_RESULT s2n_append_test_psk(struct s2n_connection *conn, uint32_t max_early_data,
         const struct s2n_cipher_suite *cipher_suite)
 {
+    ENSURE_REF(conn);
+    ENSURE_REF(cipher_suite);
+
     /* We're assuming the index will only take one digit */
-    ENSURE_LT(conn->psk_params.psk_list.len, 10);
     uint8_t buffer[sizeof(TEST_VALUE) + 1] = { 0 };
-    snprintf((char*) buffer, sizeof(buffer), "%s%u", TEST_VALUE, conn->psk_params.psk_list.len);
+    int r = snprintf((char*) buffer, sizeof(buffer), "%s%u", TEST_VALUE, conn->psk_params.psk_list.len);
+    ENSURE_GT(r, 0);
+    ENSURE_LT(r, sizeof(buffer));
 
     DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
     GUARD_AS_RESULT(s2n_psk_set_identity(psk, buffer, sizeof(buffer)));
@@ -45,6 +49,9 @@ static S2N_RESULT s2n_append_test_psk(struct s2n_connection *conn, uint32_t max_
 
 static S2N_RESULT s2n_set_early_data_app_protocol(struct s2n_connection *conn, struct s2n_blob *app_protocol)
 {
+    ENSURE_REF(conn);
+    ENSURE_REF(app_protocol);
+
     struct s2n_psk *psk = NULL;
     GUARD_RESULT(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
     GUARD_AS_RESULT(s2n_psk_set_application_protocol(psk, app_protocol->data, app_protocol->size));

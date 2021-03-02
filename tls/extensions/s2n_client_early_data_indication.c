@@ -32,13 +32,13 @@ static S2N_RESULT s2n_early_data_config_is_possible(struct s2n_connection *conn)
     GUARD_RESULT(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &first_psk));
     ENSURE_REF(first_psk);
 
-    struct s2n_early_data_config *config = &first_psk->early_data_config;
+    struct s2n_early_data_config *early_data_config = &first_psk->early_data_config;
 
     /* Must support early data */
-    ENSURE_GT(config->max_early_data_size, 0);
+    ENSURE_GT(early_data_config->max_early_data_size, 0);
 
     /* Early data must require a protocol than we could negotiate */
-    ENSURE_GTE(s2n_connection_get_protocol_version(conn), config->protocol_version);
+    ENSURE_GTE(s2n_connection_get_protocol_version(conn), early_data_config->protocol_version);
     ENSURE_GTE(s2n_connection_get_protocol_version(conn), S2N_TLS13);
 
     const struct s2n_cipher_preferences *cipher_preferences = NULL;
@@ -48,7 +48,7 @@ static S2N_RESULT s2n_early_data_config_is_possible(struct s2n_connection *conn)
     /* Early data must require a supported cipher */
     bool match = false;
     for (uint8_t i = 0; i < cipher_preferences->count; i++) {
-        if (cipher_preferences->suites[i] == config->cipher_suite) {
+        if (cipher_preferences->suites[i] == early_data_config->cipher_suite) {
             match = true;
             break;
         }
@@ -56,13 +56,13 @@ static S2N_RESULT s2n_early_data_config_is_possible(struct s2n_connection *conn)
     ENSURE_EQ(match, true);
 
     /* If early data specifies an application protocol, it must be supported by protocol preferences */
-    if (config->application_protocol.size > 0) {
+    if (early_data_config->application_protocol.size > 0) {
         struct s2n_blob *application_protocols = NULL;
         GUARD_AS_RESULT(s2n_connection_get_protocol_preferences(conn, &application_protocols));
         ENSURE_REF(application_protocols);
 
         match = false;
-        GUARD_RESULT(s2n_protocol_preferences_contain(application_protocols, &config->application_protocol, &match));
+        GUARD_RESULT(s2n_protocol_preferences_contain(application_protocols, &early_data_config->application_protocol, &match));
         ENSURE_EQ(match, true);
     }
 
