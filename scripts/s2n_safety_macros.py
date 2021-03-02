@@ -498,7 +498,11 @@ MACROS = {
         ''',
         tests = [
             '{expect_ok}({prefix}POSTCONDITION_harness({prefix}POSTCONDITION_harness_check(true)));',
+            '#ifdef NDEBUG',
+            '{expect_ok}({prefix}POSTCONDITION_harness({prefix}POSTCONDITION_harness_check(false)));',
+            '#else',
             '{expect_err}({prefix}POSTCONDITION_harness({prefix}POSTCONDITION_harness_check(false)), S2N_ERR_SAFETY);',
+            '#endif',
         ],
     ),
     'CHECKED_MEMCPY(destination, source, len)': dict(

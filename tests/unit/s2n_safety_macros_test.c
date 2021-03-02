@@ -734,7 +734,11 @@ int main(int argc, char **argv)
 
     /* RESULT_POSTCONDITION(result) */
     EXPECT_OK(RESULT_POSTCONDITION_harness(RESULT_POSTCONDITION_harness_check(true)));
+    #ifdef NDEBUG
+    EXPECT_OK(RESULT_POSTCONDITION_harness(RESULT_POSTCONDITION_harness_check(false)));
+    #else
     EXPECT_ERROR_WITH_ERRNO(RESULT_POSTCONDITION_harness(RESULT_POSTCONDITION_harness_check(false)), S2N_ERR_SAFETY);
+    #endif
 
     /* RESULT_CHECKED_MEMCPY(destination, source, len) */
     uint32_t RESULT__checked_memcpy_dest = 1;
@@ -865,7 +869,11 @@ int main(int argc, char **argv)
 
     /* POSIX_POSTCONDITION(result) */
     EXPECT_SUCCESS(POSIX_POSTCONDITION_harness(POSIX_POSTCONDITION_harness_check(true)));
+    #ifdef NDEBUG
+    EXPECT_SUCCESS(POSIX_POSTCONDITION_harness(POSIX_POSTCONDITION_harness_check(false)));
+    #else
     EXPECT_FAILURE_WITH_ERRNO(POSIX_POSTCONDITION_harness(POSIX_POSTCONDITION_harness_check(false)), S2N_ERR_SAFETY);
+    #endif
 
     /* POSIX_CHECKED_MEMCPY(destination, source, len) */
     uint32_t POSIX__checked_memcpy_dest = 1;
@@ -996,7 +1004,11 @@ int main(int argc, char **argv)
 
     /* PTR_POSTCONDITION(result) */
     EXPECT_NOT_NULL(PTR_POSTCONDITION_harness(PTR_POSTCONDITION_harness_check(true)));
+    #ifdef NDEBUG
+    EXPECT_NOT_NULL(PTR_POSTCONDITION_harness(PTR_POSTCONDITION_harness_check(false)));
+    #else
     EXPECT_NULL_WITH_ERRNO(PTR_POSTCONDITION_harness(PTR_POSTCONDITION_harness_check(false)), S2N_ERR_SAFETY);
+    #endif
 
     /* PTR_CHECKED_MEMCPY(destination, source, len) */
     uint32_t PTR__checked_memcpy_dest = 1;
