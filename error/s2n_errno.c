@@ -371,7 +371,7 @@ int s2n_calculate_stacktrace(void)
     }
 
     int old_errno = errno;
-    GUARD(s2n_free_stacktrace());
+    POSIX_GUARD(s2n_free_stacktrace());
     void *array[MAX_BACKTRACE_DEPTH];
     tl_stacktrace.trace_size = backtrace(array, MAX_BACKTRACE_DEPTH);
     tl_stacktrace.trace = backtrace_symbols(array, tl_stacktrace.trace_size);
