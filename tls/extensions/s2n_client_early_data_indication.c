@@ -90,7 +90,8 @@ static bool s2n_client_early_data_indication_should_send(struct s2n_connection *
 
 static int s2n_client_early_data_indication_is_missing(struct s2n_connection *conn)
 {
-    return S2N_RESULT_TO_POSIX(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_NOT_REQUESTED));
+    POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_NOT_REQUESTED));
+    return S2N_SUCCESS;
 }
 
 /**
@@ -115,7 +116,8 @@ static int s2n_client_early_data_indication_is_missing(struct s2n_connection *co
 
 static int s2n_client_early_data_indication_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    return S2N_RESULT_TO_POSIX(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REQUESTED));
+    POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REQUESTED));
+    return S2N_SUCCESS;
 }
 
 static int s2n_client_early_data_indiction_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
@@ -127,7 +129,8 @@ static int s2n_client_early_data_indiction_recv(struct s2n_connection *conn, str
      */
     ENSURE_POSIX(!s2n_is_hello_retry_handshake(conn), S2N_ERR_UNSUPPORTED_EXTENSION);
 
-    return S2N_RESULT_TO_POSIX(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REQUESTED));
+    POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REQUESTED));
+    return S2N_SUCCESS;
 }
 
 const s2n_extension_type s2n_client_early_data_indication_extension = {
