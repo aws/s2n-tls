@@ -1685,7 +1685,7 @@ do {
 uint32_t s2n_peek(struct s2n_connection *conn);
 ```
 
-**s2n_peek** allows users of S2N to peek inside the data buffer of an S2N connection to see if there more data to be read without actually reading it. This is useful when using select() on the underlying S2N file descriptor with a message based application layer protocol. As a single call to s2n_recv may read all data off the underlying file descriptor, select() will be unable to tell you there if there is more application data ready for processing already loaded into the S2N buffer. s2n_peek can then be used to determine if s2n_recv needs to be called before more data comes in on the raw fd.
+**s2n_peek** allows users of s2n-tls to peek inside the data buffer of an s2n-tls connection to see if there more data to be read without actually reading it. This is useful when using select() on the underlying s2n-tls file descriptor with a message based application layer protocol. As a single call to s2n_recv may read all data off the underlying file descriptor, select() will be unable to tell you there if there is more application data ready for processing already loaded into the s2n-tls buffer. s2n_peek can then be used to determine if s2n_recv needs to be called before more data comes in on the raw fd.
 
 
 
