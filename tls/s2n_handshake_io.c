@@ -32,6 +32,7 @@
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_kex.h"
+#include "tls/s2n_post_handshake.h"
 
 #include "stuffer/s2n_stuffer.h"
 
@@ -1288,8 +1289,8 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
         if (ACTIVE_STATE(conn).writer == 'B') {
             GUARD(s2n_stuffer_resize(&conn->handshake.io, 0));
 
-            /* Send any pending new session tickets */
-            S2N_RESULT_TO_POSIX(s2n_tls13_server_nst_send(conn, blocked));
+            /* Send any pending post-handshake messages */
+            GUARD(s2n_post_handshake_send(conn, blocked));
         }
     }
 
