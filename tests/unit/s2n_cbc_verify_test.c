@@ -266,8 +266,8 @@ int main(int argc, char **argv)
         summarize(timings, 10001, &pad_count, &pad_avg, &pad_median, &pad_stddev, &pad_variance);
 
         /* Use a simple 3 sigma test for the median from the good */
-        lo = good_median - (good_stddev);
-        hi = good_median + (good_stddev);
+        lo = good_median - (3 * good_stddev);
+        hi = good_median + (3 * good_stddev);
 
         if ((int64_t) pad_median < lo || (int64_t) pad_median > hi) {
             printf("\n\nRecord size: %d\nGood Median: %" PRIu64 " (Avg: %" PRIu64 " Stddev: %" PRIu64 ")\n"
