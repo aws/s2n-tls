@@ -56,10 +56,10 @@ struct s2n_async_pkey_op;
  * call, we use a macro which directly returns the result of s2n_async* operation forcing compiler to error out on
  * unreachable code and forcing developer to use on_complete function instead */
 #define S2N_ASYNC_PKEY_DECRYPT(conn, encrypted, init_decrypted, on_complete) \
-    return S2N_RESULT_TO_POSIX(s2n_async_pkey_decrypt(conn, encrypted, init_decrypted, on_complete));
+    return s2n_result_is_ok(s2n_async_pkey_decrypt(conn, encrypted, init_decrypted, on_complete)) ? S2N_SUCCESS : S2N_FAILURE;
 
 #define S2N_ASYNC_PKEY_SIGN(conn, sig_alg, digest, on_complete) \
-    return S2N_RESULT_TO_POSIX(s2n_async_pkey_sign(conn, sig_alg, digest, on_complete));
+    return s2n_result_is_ok(s2n_async_pkey_sign(conn, sig_alg, digest, on_complete)) ? S2N_SUCCESS : S2N_FAILURE;
 
 int s2n_async_pkey_op_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *key);
 int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn);
