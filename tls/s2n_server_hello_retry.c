@@ -130,7 +130,7 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
      *# "illegal_parameter" alert if the HelloRetryRequest would not result
      *# in any change in the ClientHello.
      */
-    POSIX_ENSURE(conn->early_data_state == S2N_EARLY_DATA_REJECTED || new_key_share_requested,
+    POSIX_ENSURE((conn->early_data_state == S2N_EARLY_DATA_REJECTED) || new_key_share_requested,
             S2N_ERR_INVALID_HELLO_RETRY);
 
     /* Update transcript hash */

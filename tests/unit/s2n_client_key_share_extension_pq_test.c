@@ -381,6 +381,8 @@ int main() {
 
                         EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &second_extension));
 
+                        /* Read the total length of both extensions.
+                         * The first keys extension contains multiple shares, so should be longer than the second. */
                         uint16_t first_sent_key_shares_size = 0, second_sent_key_shares_size = 0;
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&first_extension, &first_sent_key_shares_size));
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&second_extension, &second_sent_key_shares_size));
@@ -388,28 +390,39 @@ int main() {
                         EXPECT_EQUAL(second_sent_key_shares_size, s2n_stuffer_data_available(&second_extension));
                         EXPECT_TRUE(second_sent_key_shares_size < first_sent_key_shares_size);
 
+                        /* Read the iana of the first share.
+                         * Both shares should contain the same iana, and it should be equal to the server's chosen kem group. */
                         uint16_t first_sent_hybrid_iana_id = 0, second_sent_hybrid_iana_id = 0;
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&first_extension, &first_sent_hybrid_iana_id));
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&second_extension, &second_sent_hybrid_iana_id));
-                        EXPECT_EQUAL(first_sent_hybrid_iana_id, conn->secure.client_kem_group_params[0].kem_group->iana_id);
-                        EXPECT_EQUAL(second_sent_hybrid_iana_id, second_sent_hybrid_iana_id);
+                        EXPECT_EQUAL(first_sent_hybrid_iana_id, conn->secure.server_kem_group_params.kem_group->iana_id);
+                        EXPECT_EQUAL(first_sent_hybrid_iana_id, second_sent_hybrid_iana_id);
 
+                        /* Read the total share size, including both ecc and kem.
+                         * The first extension contains multiple shares, so should contain more data than the share size.
+                         * The second extension only contains one share, so should contain only the share size. */
                         uint16_t first_total_hybrid_share_size = 0, second_total_hybrid_share_size = 0;
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&first_extension, &first_total_hybrid_share_size));
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&second_extension, &second_total_hybrid_share_size));
                         EXPECT_TRUE(first_total_hybrid_share_size < s2n_stuffer_data_available(&first_extension));
                         EXPECT_EQUAL(second_total_hybrid_share_size, s2n_stuffer_data_available(&second_extension));
 
+                        /* Read the ecc share size.
+                         * The ecc share should be identical for both, so the size should be the same. */
                         uint16_t first_ecc_share_size = 0, second_ecc_share_size = 0;
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&first_extension, &first_ecc_share_size));
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&second_extension, &second_ecc_share_size));
                         EXPECT_EQUAL(first_ecc_share_size, second_ecc_share_size);
 
+                        /* Read the ecc share.
+                         * The ecc share should be identical for both. */
                         uint8_t *first_ecc_share_data = NULL, *second_ecc_share_data = NULL;
                         EXPECT_NOT_NULL(first_ecc_share_data = s2n_stuffer_raw_read(&first_extension, first_ecc_share_size));
                         EXPECT_NOT_NULL(second_ecc_share_data = s2n_stuffer_raw_read(&second_extension, second_ecc_share_size));
                         EXPECT_BYTEARRAY_EQUAL(first_ecc_share_data, second_ecc_share_data, first_ecc_share_size);
 
+                        /* The pq share should take up the rest of the key share.
+                         * For now the pq share is different between extensions, so we can't assert anything else. */
                         uint16_t second_pq_share_size = 0;
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&second_extension, &second_pq_share_size));
                         EXPECT_EQUAL(second_pq_share_size, s2n_stuffer_data_available(&second_extension));
