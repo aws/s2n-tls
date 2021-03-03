@@ -31,6 +31,7 @@
 
 #include "crypto/s2n_rsa.h"
 #include "crypto/s2n_pkey.h"
+#include "tls/s2n_connection.h"
 
 #define STDIO_BUFSIZE  10240
 
@@ -70,6 +71,8 @@ static int wait_for_event(int fd, s2n_blocked_status blocked)
 
 int negotiate(struct s2n_connection *conn, int fd)
 {
+    notnull_check(conn);
+
     s2n_blocked_status blocked;
     while (s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {
         if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
@@ -135,6 +138,10 @@ int negotiate(struct s2n_connection *conn, int fd)
     printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
     if (s2n_connection_is_session_resumed(conn)) {
         printf("Resumed session\n");
+    }
+
+    if (conn->psk_params.chosen_psk) {
+        printf("\nPSK has been chosen with wire index: %d\n", conn->psk_params.chosen_psk_wire_index);
     }
 
     return 0;

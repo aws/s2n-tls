@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include "common.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -74,4 +75,21 @@ int key_log_callback(void *file, struct s2n_connection *conn, uint8_t *logline, 
     }
 
     return fflush((FILE *)file);
+}
+
+int get_s2n_psk_hmac(s2n_psk_hmac *psk_hmac, char *hmac_str)
+{
+    notnull_check(psk_hmac);
+    notnull_check(hmac_str);
+
+    if (strcmp(hmac_str, "S2N_PSK_HMAC_SHA224") == 0) {
+        *psk_hmac = S2N_PSK_HMAC_SHA224;
+    } else if (strcmp(hmac_str, "S2N_PSK_HMAC_SHA256") == 0) {
+        *psk_hmac = S2N_PSK_HMAC_SHA256;
+    } else if (strcmp(hmac_str, "S2N_PSK_HMAC_SHA384") == 0) {
+        *psk_hmac = S2N_PSK_HMAC_SHA384;
+    } else {
+        return S2N_FAILURE;
+    }
+    return S2N_SUCCESS;
 }

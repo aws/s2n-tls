@@ -19,6 +19,7 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/param.h>
 #include <poll.h>
 #include <netdb.h>
 
@@ -42,8 +43,14 @@
 #include "common.h"
 
 #include "utils/s2n_safety.h"
+#include "tls/s2n_connection.h"
 
 #define MAX_CERTIFICATES 50
+
+uint8_t test_shared_identity[] = "identity";
+uint8_t test_shared_secret[] = "secret";
+
+#define TEST_PSK_HMAC S2N_PSK_HMAC_SHA256
 
 static char default_certificate_chain[] =
     "-----BEGIN CERTIFICATE-----"
@@ -220,6 +227,38 @@ int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *ke
     return 0;
 }
 
+int s2n_select_psk_identity_callback(struct s2n_connection *conn,
+        struct s2n_offered_psk_list *psk_identity_list, uint16_t *chosen_wire_index)
+{
+    notnull_check(conn);
+    notnull_check(psk_identity_list);
+
+    struct s2n_array *server_psks = &conn->psk_params.psk_list;
+    conn->psk_params.chosen_psk = NULL;
+
+    for (size_t i = 0; i < server_psks->len; i++) {
+        struct s2n_psk *server_psk = NULL;
+        GUARD_AS_POSIX(s2n_array_get(server_psks, i, (void**) &server_psk));
+        notnull_check(server_psk);
+
+        struct s2n_offered_psk client_psk = { 0 };
+        uint16_t wire_index = 0;
+
+        GUARD(s2n_offered_psk_list_reset(psk_identity_list));
+        while(s2n_offered_psk_list_has_next(psk_identity_list)) {
+            GUARD(s2n_offered_psk_list_next(psk_identity_list, &client_psk));
+            uint16_t compare_size = MIN(client_psk.identity.size, server_psk->identity.size);
+            if (s2n_constant_time_equals(client_psk.identity.data, server_psk->identity.data, compare_size)
+                    & (client_psk.identity.size == server_psk->identity.size)) {
+                *chosen_wire_index = wire_index;
+                break;
+            }
+            wire_index++;
+        };
+    }
+    return S2N_SUCCESS;
+}
+
 /*
  * Since this is a server, and the mechanism for hostname verification is not defined for this use-case,
  * allow any hostname through. If you are writing something with mutual auth and you have a scheme for verifying
@@ -288,6 +327,9 @@ void usage()
     fprintf(stderr, "    Send number of bytes in https server mode to test throughput.\n");
     fprintf(stderr, "  -L --key-log <path>\n");
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
+    fprintf(stderr, "  --psk <psk-identity, psk-secret, psk-hmac-alg> \n"
+                    "    A comma separated list of psk paramaters specified in an order namely, psk_identity, psk_secret and psk_hmac_alg.\n"
+                    "    Ex: --psk psk_id,psk_secret,S2N_PSK_HMAC_SHA256 --psk shared_id,shared_secret,S2N_PSK_HMAC_SHA384 \n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -311,6 +353,12 @@ struct conn_settings {
     int max_conns;
     const char *ca_dir;
     const char *ca_file;
+    size_t psk_identity_count;
+    char psk_identity_list[S2N_MAX_NO_OF_PSKS_IN_LIST][UINT16_MAX];
+    size_t psk_secret_count;
+    char psk_secret_list[S2N_MAX_NO_OF_PSKS_IN_LIST][UINT16_MAX];
+    size_t psk_hmac_count;
+    char psk_hmac_list[S2N_MAX_NO_OF_PSKS_IN_LIST][UINT16_MAX];
 };
 
 int handle_connection(int fd, struct s2n_config *config, struct conn_settings settings)
@@ -351,6 +399,25 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
 
     if (settings.use_corked_io) {
         GUARD_RETURN(s2n_connection_use_corked_io(conn), "Error setting corked io");
+    }
+
+    for (size_t i = 0; i < settings.psk_identity_count; i++) {
+        s2n_psk_hmac input_psk_hmac = S2N_PSK_HMAC_SHA256;
+        GUARD_EXIT(get_s2n_psk_hmac(&input_psk_hmac, settings.psk_hmac_list[i]), "Invalid psk hmac algorithm");
+        DEFER_CLEANUP(struct s2n_psk *input_psk = s2n_external_psk_new(), s2n_psk_free);
+        GUARD_EXIT(s2n_psk_set_identity(input_psk, (uint8_t *)settings.psk_identity_list[i], 
+                                        strlen(settings.psk_identity_list[i])),
+                                        "Error setting psk identity");
+        GUARD_EXIT(s2n_psk_set_secret(input_psk, (uint8_t *)settings.psk_secret_list[i],
+                                        strlen(settings.psk_secret_list[i])),
+                                        "Error setting psk secret");
+        GUARD_EXIT(s2n_psk_set_hmac(input_psk, input_psk_hmac), "Error setting psk_hmac");
+        GUARD_EXIT(s2n_connection_append_psk(conn, input_psk), "Error appending psk");
+
+        DEFER_CLEANUP(struct s2n_offered_psk *offered_psk = s2n_offered_psk_new(), s2n_offered_psk_free);
+        GUARD_EXIT(s2n_blob_init(&offered_psk->identity, (uint8_t *)settings.psk_identity_list[i], strlen(settings.psk_identity_list[i])), "Error setting psk wire identity");
+        GUARD_EXIT(s2n_config_set_psk_selection_callback(config, s2n_select_psk_identity_callback), "Error setting the set psk selection callback");
+        eq_check(config->psk_selection_cb, s2n_select_psk_identity_callback);
     }
 
     if (negotiate(conn, fd) != S2N_SUCCESS) {
@@ -404,6 +471,8 @@ int main(int argc, char *const *argv)
     const char *certificates[MAX_CERTIFICATES] = { 0 };
     const char *private_keys[MAX_CERTIFICATES] = { 0 };
 
+    char *input = NULL;
+    char *token = NULL;
     struct conn_settings conn_settings = { 0 };
     int fips_mode = 0;
     int parallelize = 0;
@@ -440,12 +509,13 @@ int main(int argc, char *const *argv)
         {"alpn", required_argument, 0, 'A'},
         {"non-blocking", no_argument, 0, 'B'},
         {"key-log", required_argument, 0, 'L'},
+        {"psk", required_argument, 0, 'P'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:A:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:A:P:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -545,6 +615,30 @@ int main(int argc, char *const *argv)
             break;
         case 'L':
             key_log_path = optarg;
+            break;
+        case 'P':
+            input = optarg;
+            token = strtok(input, ",");
+            size_t idx = 0;
+            while(token != NULL) {
+                switch (idx % 3) { 
+                    case 0: 
+                        strcpy(conn_settings.psk_identity_list[conn_settings.psk_identity_count++], token);
+                        break;
+                    case 1: 
+                        strcpy(conn_settings.psk_secret_list[conn_settings.psk_secret_count++], token);
+                        break;
+                    case 2: 
+                        strcpy(conn_settings.psk_hmac_list[conn_settings.psk_hmac_count++], token);
+                        break;
+                    default: 
+                        break;
+                }
+                token = strtok(NULL, ",");
+                idx += 1;
+            }
+            eq_check(conn_settings.psk_identity_count, conn_settings.psk_secret_count);
+            eq_check(conn_settings.psk_identity_count, conn_settings.psk_hmac_count);
             break;
         case '?':
         default:

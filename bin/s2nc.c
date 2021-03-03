@@ -20,6 +20,7 @@
 #include <poll.h>
 #include <netdb.h>
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
@@ -93,6 +94,9 @@ void usage()
                     "    By default, the client will generate keyshares for all curves present in the ecc_preferences list.\n");
     fprintf(stderr, "  -L --key-log <path>\n");
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
+    fprintf(stderr, "  --psk <psk-identity, psk-secret, psk-hmac-alg> \n"
+                    "    A comma separated list of psk paramaters specified in an order namely, psk_identity, psk_secret and psk_hmac_alg.\n"
+                    "    Ex: --psk psk_id,psk_secret,S2N_PSK_HMAC_SHA256 --psk shared_id,shared_secret,S2N_PSK_HMAC_SHA384 \n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -260,6 +264,12 @@ int main(int argc, char *const *argv)
     char *token = NULL;
     const char *key_log_path = NULL;
     FILE *key_log_file = NULL;
+    size_t psk_identity_count = 0;
+    char psk_identity_list[S2N_MAX_NO_OF_PSKS_IN_LIST][UINT16_MAX];
+    size_t psk_secret_count = 0;
+    char psk_secret_list[S2N_MAX_NO_OF_PSKS_IN_LIST][UINT16_MAX];
+    size_t psk_hmac_count = 0;
+    char psk_hmac_list[S2N_MAX_NO_OF_PSKS_IN_LIST][UINT16_MAX];
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -283,12 +293,13 @@ int main(int argc, char *const *argv)
         {"keyshares", required_argument, 0, 'K'},
         {"non-blocking", no_argument, 0, 'B'},
         {"key-log", required_argument, 0, 'L'},
+        {"psk", required_argument, 0, 'P'},
         { 0 },
     };
 
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:l:k:D:t:irTCK:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:sf:d:l:k:D:t:irTCK:P:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -369,6 +380,30 @@ int main(int argc, char *const *argv)
             break;
         case 'L':
             key_log_path = optarg;
+            break;
+        case 'P':
+            input = optarg;
+            token = strtok(input, ",");
+            size_t idx = 0;
+            while(token != NULL) {
+                switch (idx % 3) { 
+                    case 0: 
+                        strcpy(psk_identity_list[psk_identity_count++], token);
+                        break;
+                    case 1: 
+                        strcpy(psk_secret_list[psk_secret_count++], token);
+                        break;
+                    case 2: 
+                        strcpy(psk_hmac_list[psk_hmac_count++], token);
+                        break;
+                    default: 
+                        break;
+                }
+                token = strtok(NULL, ",");
+                idx += 1;
+            }
+            eq_check(psk_identity_count, psk_secret_count);
+            eq_check(psk_identity_count, psk_hmac_count);
             break;
         case '?':
         default:
@@ -510,6 +545,20 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(s2n_connection_set_session(conn, session_state, session_state_length), "Error setting session state in connection");
         }
 
+        for (size_t i = 0; i < psk_identity_count; i++) {
+            s2n_psk_hmac input_psk_hmac = S2N_PSK_HMAC_SHA256;
+            GUARD_EXIT(get_s2n_psk_hmac(&input_psk_hmac, psk_hmac_list[i]), "Invalid psk hmac algorithm");
+            DEFER_CLEANUP(struct s2n_psk *input_psk = s2n_external_psk_new(), s2n_psk_free);
+
+            GUARD_EXIT(s2n_psk_set_identity(input_psk, (uint8_t *)psk_identity_list[i],
+                                            strlen(psk_identity_list[i])),
+                                            "Error setting psk identity");
+            GUARD_EXIT(s2n_psk_set_secret(input_psk, (uint8_t *)psk_secret_list[i],
+                                            strlen(psk_secret_list[i])),
+                                            "Error setting psk secret");
+            GUARD_EXIT(s2n_psk_set_hmac(input_psk, input_psk_hmac), "Error setting psk hmac algorithm");
+            GUARD_EXIT(s2n_connection_append_psk(conn, input_psk), "Error appending psk");
+        }
         /* See echo.c */
         if (negotiate(conn, sockfd) != 0) {
             /* Error is printed in negotiate */
