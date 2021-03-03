@@ -101,24 +101,19 @@ int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out
         /* The first two characters can never be '=' and in general
          * everything has to be a valid character.
          */
-        POSIX_ENSURE(value1 != 64, S2N_ERR_INVALID_BASE64);
-        POSIX_ENSURE(value2 != 64, S2N_ERR_INVALID_BASE64);
-        POSIX_ENSURE(value2 != 255, S2N_ERR_INVALID_BASE64);
-        POSIX_ENSURE(value3 != 255, S2N_ERR_INVALID_BASE64);
-        POSIX_ENSURE(value4 != 255, S2N_ERR_INVALID_BASE64);
+        POSIX_ENSURE(!(value1 == 64 || value2 == 64 || value2 == 255 || value3 == 255 || value4 == 255), S2N_ERR_INVALID_BASE64);
 
         if (o.data[2] == '=') {
             /* If there is only one output byte, then the second value
              * should have none of its bottom four bits set.
              */
-            POSIX_ENSURE(o.data[3] == '=', S2N_ERR_INVALID_BASE64);
-            POSIX_ENSURE((value2 & 0x0f) == 0, S2N_ERR_INVALID_BASE64);
+            POSIX_ENSURE(!(o.data[3] != '=' || value2 & 0x0f), S2N_ERR_INVALID_BASE64);
             bytes_this_round = 1;
             value3 = 0;
             value4 = 0;
         } else if (o.data[3] == '=') {
             /* The last two bits of the final value should be unset */
-            POSIX_ENSURE((value3 & 0x03) == 0, S2N_ERR_INVALID_BASE64);
+            POSIX_ENSURE(!(value3 & 0x03), S2N_ERR_INVALID_BASE64);
 
             bytes_this_round = 2;
             value4 = 0;

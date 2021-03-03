@@ -166,10 +166,8 @@ int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, c
 {
     struct session_cache_entry *cache = ctx;
 
-    POSIX_ENSURE(key_size > 0, S2N_ERR_INVALID_ARGUMENT);
-    POSIX_ENSURE(key_size <= MAX_KEY_LEN, S2N_ERR_INVALID_ARGUMENT);
-    POSIX_ENSURE(value_size > 0, S2N_ERR_INVALID_ARGUMENT);
-    POSIX_ENSURE(value_size <= MAX_VAL_LEN, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE_INCLUSIVE_RANGE(1, key_size, MAX_KEY_LEN);
+    POSIX_ENSURE_INCLUSIVE_RANGE(1, value_size, MAX_VAL_LEN);
 
     uint8_t idx = ((const uint8_t *)key)[0];
 
@@ -186,8 +184,7 @@ int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *
 {
     struct session_cache_entry *cache = ctx;
 
-    POSIX_ENSURE(key_size > 0, S2N_ERR_INVALID_ARGUMENT);
-    POSIX_ENSURE(key_size <= MAX_KEY_LEN, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE_INCLUSIVE_RANGE(1, key_size, MAX_KEY_LEN);
 
     uint8_t idx = ((const uint8_t *)key)[0];
 
@@ -210,8 +207,7 @@ int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *ke
 {
     struct session_cache_entry *cache = ctx;
 
-    POSIX_ENSURE(key_size > 0, S2N_ERR_INVALID_ARGUMENT);
-    POSIX_ENSURE(key_size <= MAX_KEY_LEN, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE_INCLUSIVE_RANGE(1, key_size, MAX_KEY_LEN);
 
     uint8_t idx = ((const uint8_t *)key)[0];
 
