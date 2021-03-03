@@ -303,4 +303,5 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(output, test_cases[i].expected_output);
         }
     }
+    END_TEST();
 }
