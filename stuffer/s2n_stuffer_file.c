@@ -38,11 +38,11 @@ int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const u
     ssize_t r = 0;
     do {
         r = read(rfd, stuffer->blob.data + stuffer->write_cursor, len);
-        S2N_ERROR_IF(r < 0 && errno != EINTR, S2N_ERR_READ);
+        POSIX_ENSURE(r >= 0 || errno == EINTR, S2N_ERR_READ);
     } while (r < 0);
 
     /* Record just how many bytes we have written */
-    S2N_ERROR_IF(r > UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    POSIX_ENSURE(r <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     GUARD(s2n_stuffer_skip_write(stuffer, (uint32_t)r));
     if (bytes_written != NULL) *bytes_written = r;
     return S2N_SUCCESS;
@@ -61,10 +61,10 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uin
     ssize_t w = 0;
     do {
         w = write(wfd, stuffer->blob.data + stuffer->read_cursor, len);
-        S2N_ERROR_IF(w < 0 && errno != EINTR, S2N_ERR_WRITE);
+        POSIX_ENSURE(w >= 0 || errno == EINTR, S2N_ERR_WRITE);
     } while (w < 0);
 
-    S2N_ERROR_IF(w > UINT32_MAX - stuffer->read_cursor, S2N_ERR_INTEGER_OVERFLOW);
+    POSIX_ENSURE(w <= UINT32_MAX - stuffer->read_cursor, S2N_ERR_INTEGER_OVERFLOW);
     stuffer->read_cursor += w;
     if (bytes_sent != NULL) *bytes_sent = w;
     return S2N_SUCCESS;

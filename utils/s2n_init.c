@@ -47,10 +47,10 @@ int s2n_init(void)
     GUARD_POSIX(s2n_extension_type_init());
     GUARD_AS_POSIX(s2n_pq_init());
 
-    S2N_ERROR_IF(atexit(s2n_cleanup_atexit) != 0, S2N_ERR_ATEXIT);
+    POSIX_ENSURE_OK(atexit(s2n_cleanup_atexit), S2N_ERR_ATEXIT);
 
     if (getenv("S2N_PRINT_STACKTRACE")) {
-      s2n_stack_traces_enabled_set(true);
+        s2n_stack_traces_enabled_set(true);
     }
 
     return 0;

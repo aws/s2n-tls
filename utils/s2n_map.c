@@ -88,7 +88,7 @@ struct s2n_map *s2n_map_new()
 
 struct s2n_map *s2n_map_new_with_initial_capacity(uint32_t capacity)
 {
-    S2N_ERROR_IF_PTR(capacity == 0, S2N_ERR_MAP_INVALID_MAP_SIZE);
+    PTR_ENSURE(capacity != 0, S2N_ERR_MAP_INVALID_MAP_SIZE);
     struct s2n_blob mem = {0};
     struct s2n_map *map;
 
