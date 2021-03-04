@@ -19,6 +19,7 @@
 #include "tls/s2n_key_update.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_record.h"
+#include "tls/s2n_tls.h"
 
 #include "crypto/s2n_sequence.h"
 
@@ -49,7 +50,7 @@ int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request
     return S2N_SUCCESS;
 }
 
-int s2n_key_update_send(struct s2n_connection *conn) 
+int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked) 
 {
     notnull_check(conn);
 
@@ -76,6 +77,8 @@ int s2n_key_update_send(struct s2n_connection *conn)
         /* Update encryption key */
         GUARD(s2n_update_application_traffic_keys(conn, conn->mode, SENDING));
         conn->key_update_pending = false;
+
+        GUARD(s2n_flush(conn, blocked));
     }
 
     return S2N_SUCCESS;

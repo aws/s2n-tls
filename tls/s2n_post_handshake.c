@@ -63,9 +63,8 @@ int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blo
 {
     notnull_check(conn);
 
-    GUARD(s2n_key_update_send(conn));
-    GUARD(s2n_flush(conn, blocked));
-    GUARD(s2n_stuffer_rewrite(&conn->out));
+    GUARD(s2n_key_update_send(conn, blocked));
+    GUARD_AS_POSIX(s2n_tls13_server_nst_send(conn, blocked));
 
     return S2N_SUCCESS;
 }

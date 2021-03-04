@@ -176,7 +176,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
             EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *)ticket_key_name),
-                         ticket_key.data, sizeof(ticket_key), current_time/ONE_SEC_IN_NANOS));
+                         ticket_key.data, ticket_key.size, current_time/ONE_SEC_IN_NANOS));
 
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->actual_protocol_version = S2N_TLS12;
@@ -223,7 +223,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
             EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *)ticket_key_name),
-                         ticket_key.data, sizeof(ticket_key), current_time/ONE_SEC_IN_NANOS));
+                         ticket_key.data, ticket_key.size, current_time/ONE_SEC_IN_NANOS));
 
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
             EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *)ticket_key_name),
-                         ticket_key.data, sizeof(ticket_key), current_time/ONE_SEC_IN_NANOS));
+                         ticket_key.data, ticket_key.size, current_time/ONE_SEC_IN_NANOS));
 
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
