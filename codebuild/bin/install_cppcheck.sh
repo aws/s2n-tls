@@ -31,12 +31,7 @@ mkdir -p $INSTALL_DIR||true
 cd "$INSTALL_DIR"
 git clone https://github.com/danmar/cppcheck.git
 cd cppcheck
-# TODO upgrade to 2.2 when released
-git checkout 2.1
-# TODO remove these patches after upgrading to 2.2
-# 02287d9 fixes false positive nullPointer and negativeIndex
-# 9ec27c1 fixes false positive uninitvar
-git cherry-pick --no-commit 02287d9d34fac41315124c9e02ba083da13766ef 9ec27c112f239bb95bb30246ac3367af5c6cceff
+git checkout 2.3
 
 make -j $JOBS
 
