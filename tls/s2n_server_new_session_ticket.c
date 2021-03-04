@@ -52,6 +52,21 @@ int s2n_server_nst_recv(struct s2n_connection *conn) {
         POSIX_GUARD(s2n_realloc(&conn->client_ticket, session_ticket_len));
 
         POSIX_GUARD(s2n_stuffer_read(&conn->handshake.io, &conn->client_ticket));
+
+        if (conn->config->session_ticket_cb != NULL) {
+
+            size_t session_len = s2n_connection_get_session_length(conn);
+
+            DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
+            GUARD(s2n_alloc(&mem, sizeof(session_len)));
+            uint8_t *session_data = mem.data;
+            GUARD(s2n_connection_get_session(conn, session_data, session_len));
+
+            uint32_t session_lifetime = s2n_connection_get_session_ticket_lifetime_hint(conn);
+
+            GUARD(conn->config->session_ticket_cb(conn, NULL, 0,
+                    session_data, session_len, session_lifetime));
+        }
     }
 
     return 0;

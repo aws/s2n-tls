@@ -108,6 +108,8 @@ struct s2n_config {
 
     s2n_key_log_fn key_log_cb;
     void *key_log_ctx;
+
+    s2n_session_ticket_cb session_ticket_cb;
 };
 
 int s2n_config_defaults_init(void);

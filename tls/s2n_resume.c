@@ -768,3 +768,12 @@ int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t 
 
     return S2N_SUCCESS;
 }
+
+int s2n_config_set_session_ticket_callback(struct s2n_config *config, s2n_session_ticket_cb cb)
+{
+    ENSURE_POSIX_MUT(config);
+
+    config->session_ticket_cb = cb;
+
+    return S2N_SUCCESS;
+}

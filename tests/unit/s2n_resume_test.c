@@ -23,6 +23,14 @@
 
 #define S2N_TLS13_STATE_SIZE_WITHOUT_SECRET S2N_MAX_STATE_SIZE_IN_BYTES - S2N_TLS_SECRET_LEN
 
+static int s2n_test_session_ticket_callback(struct s2n_connection *conn,
+                                         uint8_t *session_id_data, size_t session_id_len,
+                                         uint8_t *session_data, size_t session_len,
+                                         uint32_t session_lifetime)
+{
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -337,6 +345,23 @@ int main(int argc, char **argv)
             
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
+    }
+
+    /* s2n_config_set_session_ticket_callback */
+    {
+        struct s2n_config *config = NULL;
+        EXPECT_NOT_NULL(config = s2n_config_new());
+
+        /* Safety checks */
+        {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_session_ticket_callback(NULL, s2n_test_session_ticket_callback), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_session_ticket_callback(config, NULL), S2N_ERR_NULL);
+        }
+
+        EXPECT_NULL(config->session_ticket_cb);
+        EXPECT_SUCCESS(s2n_config_set_session_ticket_callback(config, s2n_test_session_ticket_callback));
+        EXPECT_EQUAL(config->session_ticket_cb, s2n_test_session_ticket_callback);
+        EXPECT_SUCCESS(s2n_config_free(config));
     }
     END_TEST();
 }

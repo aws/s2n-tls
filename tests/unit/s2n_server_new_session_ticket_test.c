@@ -72,6 +72,22 @@ static int s2n_setup_test_keys(struct s2n_connection *conn, struct s2n_config *c
     return S2N_SUCCESS;
 }
 
+bool s2n_test_session_ticket_callback_flag = false;
+static int s2n_test_session_ticket_callback(struct s2n_connection *conn,
+                                         uint8_t *session_id_data, size_t session_id_len,
+                                         uint8_t *session_data, size_t session_len,
+                                         uint32_t session_lifetime)
+{
+    EXPECT_EQUAL(session_id_len, 0);
+    EXPECT_NULL(session_id_data);
+    EXPECT_TRUE(session_len > 0);
+    EXPECT_NOT_NULL(session_data);
+    EXPECT_TRUE(session_lifetime > 0);
+    s2n_test_session_ticket_callback_flag = true;
+
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -501,5 +517,35 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(config));
     }
+
+    /* s2n_server_nst_recv */
+    {
+        /* Functional test: session_ticket_cb is called when receiving a new ticket in TLS1.2 */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+
+            uint64_t current_time = 0;
+            conn->actual_protocol_version = S2N_TLS12;
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->session_ticket_status = S2N_NEW_TICKET;
+
+            EXPECT_SUCCESS(s2n_config_set_session_ticket_callback(config, s2n_test_session_ticket_callback));
+            EXPECT_SUCCESS(s2n_setup_test_keys(conn, config));
+            
+            EXPECT_SUCCESS(s2n_server_nst_send(conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
+            EXPECT_SUCCESS(s2n_server_nst_recv(conn));
+
+            EXPECT_TRUE(s2n_test_session_ticket_callback_flag);
+
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
+
     END_TEST();
 }
