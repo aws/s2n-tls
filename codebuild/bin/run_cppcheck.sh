@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -28,10 +28,28 @@ INSTALL_DIR=$1
 
 CPPCHECK_EXECUTABLE=${INSTALL_DIR}/cppcheck
 
-FAILED=0
+ARGS="--std=c99 --error-exitcode=-1 --quiet --force --inline-suppr"
+# list out each check so we don't include unusedFunction warnings - they don't
+# work with DEFER_CLEANUP
+ARGS+=" --enable=warning,style,performance,portability,information,missingInclude"
+ARGS+=" --suppressions-list=codebuild/bin/cppcheck_suppressions.txt"
+ARGS+=" --suppress=unusedFunction"
+
+if [ ! -z "$CPPCHECK_CACHE_DIR" ]; then
+  ARGS+=" --cppcheck-build-dir=$CPPCHECK_CACHE_DIR"
+  mkdir -p $CPPCHECK_CACHE_DIR
+fi
+
+if [ ! -z "$JOBS" ]; then
+  ARGS+=" -j $JOBS"
+fi
+
+ARGS+=" -I . -I ./tests api bin crypto error stuffer tests/unit tls utils"
+
 $CPPCHECK_EXECUTABLE --version
-$CPPCHECK_EXECUTABLE --std=c99 --error-exitcode=-1 --quiet --force -j 8 --enable=all --template='[{file}:{line}]: ({severity}:{id}) {message}' --inline-suppr --suppressions-list=codebuild/bin/cppcheck_suppressions.txt -I . -I ./tests api bin crypto error stuffer ./tests/unit tls utils || FAILED=1
-if [ $FAILED == 1 ];
+$CPPCHECK_EXECUTABLE --template='[{file}:{line}]: ({severity}:{id}) {message}' $ARGS
+CODE=$?
+if [ $CODE != 0 ];
 then
 	printf "\\033[31;1mFAILED cppcheck\\033[0m\\n"
 	exit -1

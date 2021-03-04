@@ -12,13 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CPPCHECK_INSTALL_DIR: test-deps/cppcheck
+      CPPCHECK_CACHE_DIR: test-deps/cppcheck-cache
     steps:
       - uses: actions/checkout@v2
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
 
-      - name: Cache
+      - name: Cache cppcheck
         id: cache
         uses: actions/cache@v2.1.4
         continue-on-error: true
@@ -29,6 +30,15 @@ jobs:
       - name: Install
         if: steps.cache.outputs.cache-hit != 'true'
         run: ./codebuild/bin/install_cppcheck.sh "$CPPCHECK_INSTALL_DIR"
+
+      - name: Cache checks
+        uses: actions/cache@v2.1.4
+        continue-on-error: true
+        with:
+          path: ${{ env.CPPCHECK_CACHE_DIR }}
+          key: cppcheck-2.3-${{ env.CPPCHECK_CACHE_DIR }}-${{ hashFiles('**/*.[ch]') }}
+          restore-keys: |
+            cppcheck-2.3-${{ env.CPPCHECK_CACHE_DIR }}-
 
       - name: Check
         run: ./codebuild/bin/run_cppcheck.sh "$CPPCHECK_INSTALL_DIR"
