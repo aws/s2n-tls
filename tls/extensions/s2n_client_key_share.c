@@ -128,6 +128,9 @@ static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_
     struct s2n_ecc_evp_params *ecc_params = &kem_group_params->ecc_params;
     ecc_params->negotiated_curve = kem_group->curve;
     POSIX_GUARD(s2n_stuffer_write_uint16(out, ecc_params->negotiated_curve->share_size));
+
+    /* If we received a HRR for any reason other than to request a different key share,
+     * we might have already generated the key. */
     if (ecc_params->evp_pkey == NULL) {
         POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_params));
     }
