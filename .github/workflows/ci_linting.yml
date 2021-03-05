@@ -10,6 +10,8 @@ on:
 jobs:
   cppcheck:
     runs-on: ubuntu-latest
+    env:
+      CPPCHECK_INSTALL_DIR: test-deps/cppcheck
     steps:
       - uses: actions/checkout@v2
 
