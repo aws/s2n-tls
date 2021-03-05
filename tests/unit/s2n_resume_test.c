@@ -352,10 +352,9 @@ int main(int argc, char **argv)
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
 
-        /* Safety checks */
+        /* Safety check */
         {
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_session_ticket_callback(NULL, s2n_test_session_ticket_callback), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_session_ticket_callback(config, NULL), S2N_ERR_NULL);
         }
 
         EXPECT_NULL(config->session_ticket_cb);
