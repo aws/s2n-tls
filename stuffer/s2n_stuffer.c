@@ -212,7 +212,7 @@ int s2n_stuffer_wipe(struct s2n_stuffer *stuffer)
 int s2n_stuffer_skip_read(struct s2n_stuffer *stuffer, uint32_t n)
 {
     PRECONDITION_POSIX(s2n_stuffer_validate(stuffer));
-    S2N_ERROR_IF(s2n_stuffer_data_available(stuffer) < n, S2N_ERR_STUFFER_OUT_OF_DATA);
+    POSIX_ENSURE(s2n_stuffer_data_available(stuffer) >= n, S2N_ERR_STUFFER_OUT_OF_DATA);
 
     stuffer->read_cursor += n;
     return S2N_SUCCESS;
@@ -366,7 +366,7 @@ int s2n_stuffer_reserve_space(struct s2n_stuffer *stuffer, uint32_t n)
 {
     PRECONDITION_POSIX(s2n_stuffer_validate(stuffer));
     if (s2n_stuffer_space_remaining(stuffer) < n) {
-        S2N_ERROR_IF(!stuffer->growable, S2N_ERR_STUFFER_IS_FULL);
+        POSIX_ENSURE(stuffer->growable, S2N_ERR_STUFFER_IS_FULL);
         /* Always grow a stuffer by at least 1k */
         const uint32_t growth = MAX(n - s2n_stuffer_space_remaining(stuffer), S2N_MIN_STUFFER_GROWTH_IN_BYTES);
         uint32_t new_size = 0;

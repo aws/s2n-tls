@@ -81,12 +81,25 @@ done
 # warn if any local variables called "index" are used because they are considered to shadow that declaration. 
 S2N_FILES_ASSERT_VARIABLE_NAME_INDEX=$(find "$PWD" -type f -name "s2n*.[ch]")
 for file in $S2N_FILES_ASSERT_VARIABLE_NAME_INDEX; do
-
-RESULT_VARIABLE_NAME_INDEX=`gcc -fpreprocessed -dD -E -w $file | grep -v '"' | grep '[\*|,|;|[:space:]]index[;|,|\)|[:space:]]'`
+  RESULT_VARIABLE_NAME_INDEX=`gcc -fpreprocessed -dD -E -w $file | grep -v '"' | grep '[\*|,|;|[:space:]]index[;|,|\)|[:space:]]'`
   if [ "${#RESULT_VARIABLE_NAME_INDEX}" != "0" ]; then
-  FAILED=1
-  printf "\e[1;34mGrep for variable name 'index' check failed in $file:\e[0m\n$RESULT_VARIABLE_NAME_INDEX\n\n"
+    FAILED=1
+    printf "\e[1;34mGrep for variable name 'index' check failed in $file:\e[0m\n$RESULT_VARIABLE_NAME_INDEX\n\n"
   fi
+done
+
+## Assert that there are no new uses of S2N_ERROR_IF
+# TODO add crypto, tls (see https://github.com/aws/s2n-tls/issues/2635)
+S2N_ERROR_IF_FREE="bin error pq-crypto scram stuffer utils tests"
+for dir in $S2N_ERROR_IF_FREE; do
+  files=$(find "$dir" -type f -name "*.c" -path "*")
+  for file in $files; do
+    result=`grep -Ern 'S2N_ERROR_IF' $file`
+    if [ "${#result}" != "0" ]; then
+      FAILED=1
+      printf "\e[1;34mUsage of 'S2N_ERROR_IF' check failed. Use 'POSIX_ENSURE' instead in $file:\e[0m\n$result\n\n"
+    fi
+  done
 done
 
 if [ $FAILED == 1 ]; then

@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 
         /* Parse the leaf cert for the public key and certificate type */
         EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &chain_and_key->cert_chain->head->raw));
-        S2N_ERROR_IF(pkey_type == S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        EXPECT_NOT_EQUAL(pkey_type, S2N_PKEY_TYPE_UNKNOWN);
         EXPECT_SUCCESS(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, pkey_type));
 
         struct s2n_pkey *private_key = chain_and_key->private_key;
@@ -228,8 +228,8 @@ int main(int argc, char **argv)
         /* Parse the cert for the public key and certificate type */
         EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&root_public_key, &root_pkey_type, &root_chain_and_key->cert_chain->head->raw));
         EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&leaf_public_key, &leaf_pkey_type, &leaf_chain_and_key->cert_chain->head->raw));
-        S2N_ERROR_IF(root_pkey_type == S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
-        S2N_ERROR_IF(leaf_pkey_type == S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        EXPECT_NOT_EQUAL(root_pkey_type, S2N_PKEY_TYPE_UNKNOWN);
+        EXPECT_NOT_EQUAL(leaf_pkey_type, S2N_PKEY_TYPE_UNKNOWN);
 
         EXPECT_SUCCESS(s2n_cert_set_cert_type(root_chain_and_key->cert_chain->head, root_pkey_type));
         EXPECT_SUCCESS(s2n_cert_set_cert_type(leaf_chain_and_key->cert_chain->head, leaf_pkey_type));
@@ -305,7 +305,7 @@ int main(int argc, char **argv)
 
         /* Parse the leaf cert for the public key and certificate type */
         EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &chain_and_key->cert_chain->head->raw));
-        S2N_ERROR_IF(pkey_type == S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        EXPECT_NOT_EQUAL(pkey_type, S2N_PKEY_TYPE_UNKNOWN);
         EXPECT_SUCCESS(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, pkey_type));
 
         struct s2n_pkey *private_key = chain_and_key->private_key;

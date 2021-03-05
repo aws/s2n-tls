@@ -157,11 +157,11 @@ int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, const uint64_t u)
 static int length_matches_value_check(uint32_t value, uint8_t length)
 {
     /* Value is represented as a uint32_t, so shouldn't be assumed larger */
-    S2N_ERROR_IF(length > sizeof(uint32_t), S2N_ERR_SIZE_MISMATCH);
+    POSIX_ENSURE(length <= sizeof(uint32_t), S2N_ERR_SIZE_MISMATCH);
 
     if (length < sizeof(uint32_t)) {
         /* Value should be less than the maximum for its length */
-        S2N_ERROR_IF(value >= (0x01 << (length * 8)), S2N_ERR_SIZE_MISMATCH);
+        POSIX_ENSURE(value < (0x01 << (length * 8)), S2N_ERR_SIZE_MISMATCH);
     }
 
     return S2N_SUCCESS;

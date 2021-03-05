@@ -119,7 +119,7 @@ static int check_client_server_agreed_kem(const uint8_t iana_value[S2N_TLS_CIPHE
     GUARD(s2n_choose_kem_with_peer_pref_list(iana_value, &client_kem_blob, server_kem_pref_list, num_server_supported_kems, &negotiated_kem));
     GUARD_NONNULL(negotiated_kem);
 
-    S2N_ERROR_IF(negotiated_kem->kem_extension_id != expected_kem_id, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+    POSIX_ENSURE(negotiated_kem->kem_extension_id == expected_kem_id, S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
     return 0;
 }

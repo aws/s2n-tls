@@ -204,7 +204,7 @@ int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out)
     const uint64_t i = initial;
     const uint64_t a = alignment;
     const uint64_t result = a * (((i - 1) / a) + 1);
-    S2N_ERROR_IF(result > UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    POSIX_ENSURE(result <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     *out = (uint32_t) result;
     return S2N_SUCCESS;
 }
@@ -213,7 +213,7 @@ int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out)
 {
     notnull_check(out);
     const uint64_t result = ((uint64_t) a) * ((uint64_t) b);
-    S2N_ERROR_IF(result > UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    POSIX_ENSURE(result <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     *out = (uint32_t) result;
     return S2N_SUCCESS;
 }
@@ -222,7 +222,7 @@ int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out)
 {
     notnull_check(out);
     uint64_t result = ((uint64_t) a) + ((uint64_t) b);
-    S2N_ERROR_IF(result > UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    POSIX_ENSURE(result <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     *out = (uint32_t) result;
     return S2N_SUCCESS;
 }
@@ -230,7 +230,7 @@ int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out)
 int s2n_sub_overflow(uint32_t a, uint32_t b, uint32_t* out)
 {
     notnull_check(out);
-    S2N_ERROR_IF(a < b, S2N_ERR_INTEGER_OVERFLOW);
+    POSIX_ENSURE(a >= b, S2N_ERR_INTEGER_OVERFLOW);
     *out = a - b;
     return S2N_SUCCESS;
 }
