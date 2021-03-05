@@ -35,5 +35,6 @@ cd cppcheck-src
 make -j $JOBS
 
 mv cppcheck ..
+mv cfg ..
 cd ..
 rm -rf cppcheck-src
