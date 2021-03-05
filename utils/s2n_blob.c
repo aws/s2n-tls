@@ -26,57 +26,57 @@
 
 S2N_RESULT s2n_blob_validate(const struct s2n_blob* b)
 {
-    ENSURE_REF(b);
-    DEBUG_ENSURE(S2N_IMPLIES(b->data == NULL, b->size == 0), S2N_ERR_SAFETY);
-    DEBUG_ENSURE(S2N_IMPLIES(b->data == NULL, b->allocated == 0), S2N_ERR_SAFETY);
-    DEBUG_ENSURE(S2N_IMPLIES(b->growable == 0, b->allocated == 0), S2N_ERR_SAFETY);
-    DEBUG_ENSURE(S2N_IMPLIES(b->growable != 0, b->size <= b->allocated), S2N_ERR_SAFETY);
-    DEBUG_ENSURE(S2N_MEM_IS_READABLE(b->data, b->allocated), S2N_ERR_SAFETY);
-    DEBUG_ENSURE(S2N_MEM_IS_READABLE(b->data, b->size), S2N_ERR_SAFETY);
+    RESULT_ENSURE_REF(b);
+    RESULT_DEBUG_ENSURE(S2N_IMPLIES(b->data == NULL, b->size == 0), S2N_ERR_SAFETY);
+    RESULT_DEBUG_ENSURE(S2N_IMPLIES(b->data == NULL, b->allocated == 0), S2N_ERR_SAFETY);
+    RESULT_DEBUG_ENSURE(S2N_IMPLIES(b->growable == 0, b->allocated == 0), S2N_ERR_SAFETY);
+    RESULT_DEBUG_ENSURE(S2N_IMPLIES(b->growable != 0, b->size <= b->allocated), S2N_ERR_SAFETY);
+    RESULT_DEBUG_ENSURE(S2N_MEM_IS_READABLE(b->data, b->allocated), S2N_ERR_SAFETY);
+    RESULT_DEBUG_ENSURE(S2N_MEM_IS_READABLE(b->data, b->size), S2N_ERR_SAFETY);
     return S2N_RESULT_OK;
 }
 
 int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size)
 {
-    ENSURE_POSIX_REF(b);
-    ENSURE_POSIX(S2N_MEM_IS_READABLE(data, size), S2N_ERR_SAFETY);
+    POSIX_ENSURE_REF(b);
+    POSIX_ENSURE(S2N_MEM_IS_READABLE(data, size), S2N_ERR_SAFETY);
     *b = (struct s2n_blob) {.data = data, .size = size, .allocated = 0, .growable = 0};
-    POSTCONDITION_POSIX(s2n_blob_validate(b));
+    POSIX_POSTCONDITION(s2n_blob_validate(b));
     return S2N_SUCCESS;
 }
 
 int s2n_blob_zero(struct s2n_blob *b)
 {
-    PRECONDITION_POSIX(s2n_blob_validate(b));
-    memset_check(b->data, 0, MAX(b->allocated, b->size));
-    POSTCONDITION_POSIX(s2n_blob_validate(b));
+    POSIX_PRECONDITION(s2n_blob_validate(b));
+    POSIX_CHECKED_MEMSET(b->data, 0, MAX(b->allocated, b->size));
+    POSIX_POSTCONDITION(s2n_blob_validate(b));
     return S2N_SUCCESS;
 }
 
 int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t offset, uint32_t size)
 {
-    PRECONDITION_POSIX(s2n_blob_validate(b));
-    PRECONDITION_POSIX(s2n_blob_validate(slice));
+    POSIX_PRECONDITION(s2n_blob_validate(b));
+    POSIX_PRECONDITION(s2n_blob_validate(slice));
 
     uint32_t slice_size = 0;
-    GUARD(s2n_add_overflow(offset, size, &slice_size));
-    ENSURE_POSIX(b->size >= slice_size, S2N_ERR_SIZE_MISMATCH);
+    POSIX_GUARD(s2n_add_overflow(offset, size, &slice_size));
+    POSIX_ENSURE(b->size >= slice_size, S2N_ERR_SIZE_MISMATCH);
     slice->data = b->data + offset;
     slice->size = size;
     slice->growable = 0;
     slice->allocated = 0;
 
-    POSTCONDITION_POSIX(s2n_blob_validate(slice));
+    POSIX_POSTCONDITION(s2n_blob_validate(slice));
     return S2N_SUCCESS;
 }
 
 int s2n_blob_char_to_lower(struct s2n_blob *b)
 {
-    PRECONDITION_POSIX(s2n_blob_validate(b));
+    POSIX_PRECONDITION(s2n_blob_validate(b));
     for (size_t i = 0; i < b->size; i++) {
         b->data[i] = tolower(b->data[i]);
     }
-    POSTCONDITION_POSIX(s2n_blob_validate(b));
+    POSIX_POSTCONDITION(s2n_blob_validate(b));
     return S2N_SUCCESS;
 }
 
@@ -105,11 +105,11 @@ static const uint8_t hex_inverse[256] = {
  * string needs to a valid hex and blob needs to be large enough */
 int s2n_hex_string_to_bytes(const uint8_t *str, struct s2n_blob *blob)
 {
-    ENSURE_POSIX_REF(str);
-    PRECONDITION_POSIX(s2n_blob_validate(blob));
+    POSIX_ENSURE_REF(str);
+    POSIX_PRECONDITION(s2n_blob_validate(blob));
     uint32_t len = strlen((const char*)str);
     /* protects against overflows */
-    gte_check(blob->size, len / 2);
+    POSIX_ENSURE_GTE(blob->size, len / 2);
     POSIX_ENSURE(len % 2 == 0, S2N_ERR_INVALID_HEX);
 
     for (size_t i = 0; i < len; i += 2) {
@@ -121,6 +121,6 @@ int s2n_hex_string_to_bytes(const uint8_t *str, struct s2n_blob *blob)
         blob->data[i / 2] = high_nibble << 4 | low_nibble;
     }
 
-    POSTCONDITION_POSIX(s2n_blob_validate(blob));
+    POSIX_POSTCONDITION(s2n_blob_validate(blob));
     return S2N_SUCCESS;
 }

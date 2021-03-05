@@ -28,9 +28,9 @@
 
 int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const uint32_t len, uint32_t *bytes_written)
 {
-    PRECONDITION_POSIX(s2n_stuffer_validate(stuffer));
+    POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     /* Make sure we have enough space to write */
-    GUARD(s2n_stuffer_skip_write(stuffer, len));
+    POSIX_GUARD(s2n_stuffer_skip_write(stuffer, len));
 
     /* "undo" the skip write */
     stuffer->write_cursor -= len;
@@ -43,17 +43,17 @@ int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const u
 
     /* Record just how many bytes we have written */
     POSIX_ENSURE(r <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
-    GUARD(s2n_stuffer_skip_write(stuffer, (uint32_t)r));
+    POSIX_GUARD(s2n_stuffer_skip_write(stuffer, (uint32_t)r));
     if (bytes_written != NULL) *bytes_written = r;
     return S2N_SUCCESS;
 }
 
 int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uint32_t len, uint32_t *bytes_sent)
 {
-    PRECONDITION_POSIX(s2n_stuffer_validate(stuffer));
+    POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
 
     /* Make sure we even have the data */
-    GUARD(s2n_stuffer_skip_read(stuffer, len));
+    POSIX_GUARD(s2n_stuffer_skip_read(stuffer, len));
 
     /* "undo" the skip read */
     stuffer->read_cursor -= len;
@@ -72,36 +72,36 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uin
 
 int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)
 {
-    ENSURE_POSIX_MUT(stuffer);
+    POSIX_ENSURE_MUT(stuffer);
     struct stat st = {0};
 
-    ENSURE_POSIX(fstat(rfd, &st) >= 0, S2N_ERR_FSTAT);
+    POSIX_ENSURE(fstat(rfd, &st) >= 0, S2N_ERR_FSTAT);
 
-    ENSURE_POSIX(st.st_size > 0, S2N_FAILURE);
-    ENSURE_POSIX(st.st_size <= UINT32_MAX, S2N_FAILURE);
+    POSIX_ENSURE(st.st_size > 0, S2N_FAILURE);
+    POSIX_ENSURE(st.st_size <= UINT32_MAX, S2N_FAILURE);
 
     uint8_t *map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, rfd, 0);
-    ENSURE_POSIX(map != MAP_FAILED, S2N_ERR_MMAP);
+    POSIX_ENSURE(map != MAP_FAILED, S2N_ERR_MMAP);
 
     struct s2n_blob b = {0};
-    ENSURE_POSIX(s2n_blob_init(&b, map, (uint32_t)st.st_size), S2N_FAILURE);
+    POSIX_ENSURE(s2n_blob_init(&b, map, (uint32_t)st.st_size), S2N_FAILURE);
     return s2n_stuffer_init(stuffer, &b);
 }
 
 int s2n_stuffer_alloc_ro_from_file(struct s2n_stuffer *stuffer, const char *file)
 {
-    ENSURE_POSIX_MUT(stuffer);
-    notnull_check(file);
+    POSIX_ENSURE_MUT(stuffer);
+    POSIX_ENSURE_REF(file);
     int fd;
 
     do {
         fd = open(file, O_RDONLY);
-        ENSURE_POSIX(fd >= 0 || errno == EINTR, S2N_ERR_OPEN);
+        POSIX_ENSURE(fd >= 0 || errno == EINTR, S2N_ERR_OPEN);
     } while (fd < 0);
 
     int r = s2n_stuffer_alloc_ro_from_fd(stuffer, fd);
 
-    GUARD(close(fd));
+    POSIX_GUARD(close(fd));
 
     return r;
 }

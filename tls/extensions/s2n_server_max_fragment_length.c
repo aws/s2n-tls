@@ -44,18 +44,18 @@ static bool s2n_max_fragment_length_should_send(struct s2n_connection *conn)
 
 static int s2n_max_fragment_length_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    notnull_check(conn);
-    GUARD(s2n_stuffer_write_uint8(out, conn->mfl_code));
+    POSIX_ENSURE_REF(conn);
+    POSIX_GUARD(s2n_stuffer_write_uint8(out, conn->mfl_code));
     return S2N_SUCCESS;
 }
 
 static int s2n_max_fragment_length_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    notnull_check(conn);
-    notnull_check(conn->config);
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->config);
 
     uint8_t mfl_code;
-    GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
+    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
     S2N_ERROR_IF(mfl_code != conn->config->mfl_code, S2N_ERR_MAX_FRAG_LEN_MISMATCH);
     return S2N_SUCCESS;
 }

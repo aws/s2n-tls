@@ -44,7 +44,7 @@ static int s2n_server_name_send(struct s2n_connection *conn, struct s2n_stuffer 
 
 static int s2n_server_name_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
     /* Read nothing. The extension just needs to exist. */
     conn->server_name_used = 1;
     return S2N_SUCCESS;

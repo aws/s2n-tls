@@ -53,9 +53,9 @@ static int configure_tls13_connection(struct s2n_connection *conn)
 
     conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
     conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-    GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
-    GUARD(s2n_stuffer_wipe(&conn->handshake.io));
-    GUARD(s2n_connection_allow_all_response_extensions(conn));
+    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+    POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+    POSIX_GUARD(s2n_connection_allow_all_response_extensions(conn));
 
     return 0;
 }

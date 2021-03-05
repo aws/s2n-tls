@@ -21,7 +21,7 @@
 
 int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, const char target)
 {
-    PRECONDITION_POSIX(s2n_stuffer_validate(stuffer));
+    POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     /*
      * This is stub is incomplete and it needs to update stuffer
      * cursors appropriately https://github.com/awslabs/s2n/issues/2173.

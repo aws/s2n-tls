@@ -50,27 +50,27 @@ static bool s2n_cookie_should_send(struct s2n_connection *conn)
 
 static int s2n_cookie_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
     uint16_t cookie_size = s2n_stuffer_data_available(&conn->cookie_stuffer);
-    GUARD(s2n_stuffer_write_uint16(out, cookie_size));
-    GUARD(s2n_stuffer_copy(&conn->cookie_stuffer, out, cookie_size));
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, cookie_size));
+    POSIX_GUARD(s2n_stuffer_copy(&conn->cookie_stuffer, out, cookie_size));
     return S2N_SUCCESS;
 }
 
 static int s2n_cookie_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         return S2N_SUCCESS;
     }
 
     uint16_t cookie_len;
-    GUARD(s2n_stuffer_read_uint16(extension, &cookie_len));
-    ENSURE_POSIX(s2n_stuffer_data_available(extension) == cookie_len, S2N_ERR_BAD_MESSAGE);
+    POSIX_GUARD(s2n_stuffer_read_uint16(extension, &cookie_len));
+    POSIX_ENSURE(s2n_stuffer_data_available(extension) == cookie_len, S2N_ERR_BAD_MESSAGE);
 
-    GUARD(s2n_stuffer_wipe(&conn->cookie_stuffer));
-    GUARD(s2n_stuffer_resize(&conn->cookie_stuffer, cookie_len));
-    GUARD(s2n_stuffer_copy(extension, &conn->cookie_stuffer, cookie_len));
+    POSIX_GUARD(s2n_stuffer_wipe(&conn->cookie_stuffer));
+    POSIX_GUARD(s2n_stuffer_resize(&conn->cookie_stuffer, cookie_len));
+    POSIX_GUARD(s2n_stuffer_copy(extension, &conn->cookie_stuffer, cookie_len));
     return S2N_SUCCESS;
 }
 
@@ -78,7 +78,7 @@ static int s2n_cookie_recv(struct s2n_connection *conn, struct s2n_stuffer *exte
 
 int s2n_extensions_cookie_size(struct s2n_connection *conn)
 {
-    GUARD(s2n_stuffer_reread(&conn->cookie_stuffer));
+    POSIX_GUARD(s2n_stuffer_reread(&conn->cookie_stuffer));
 
     if (s2n_stuffer_data_available(&conn->cookie_stuffer) == 0) {
         return 0;

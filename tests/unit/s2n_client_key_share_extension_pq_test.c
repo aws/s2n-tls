@@ -1038,45 +1038,45 @@ int main() {
  * pointing to the beginning of the hybrid share. After copying, rewinds *from so
  * that read cursor is at the original position. */
 static int s2n_copy_pq_share(struct s2n_stuffer *from, struct s2n_blob *to, const struct s2n_kem_group *kem_group) {
-    notnull_check(from);
-    notnull_check(to);
-    notnull_check(kem_group);
+    POSIX_ENSURE_REF(from);
+    POSIX_ENSURE_REF(to);
+    POSIX_ENSURE_REF(kem_group);
 
-    GUARD(s2n_alloc(to, kem_group->kem->public_key_length));
+    POSIX_GUARD(s2n_alloc(to, kem_group->kem->public_key_length));
     /* Skip all the two-byte IDs/sizes and the ECC portion of the share */
-    GUARD(s2n_stuffer_skip_read(from, 10 + kem_group->curve->share_size));
-    GUARD(s2n_stuffer_read(from, to));
-    GUARD(s2n_stuffer_rewind_read(from, 10 + kem_group->curve->share_size + kem_group->kem->public_key_length));
+    POSIX_GUARD(s2n_stuffer_skip_read(from, 10 + kem_group->curve->share_size));
+    POSIX_GUARD(s2n_stuffer_read(from, to));
+    POSIX_GUARD(s2n_stuffer_rewind_read(from, 10 + kem_group->curve->share_size + kem_group->kem->public_key_length));
 
     return S2N_SUCCESS;
 }
 
 static int s2n_generate_pq_hybrid_key_share_for_test(struct s2n_stuffer *out, struct s2n_kem_group_params *kem_group_params) {
-    notnull_check(out);
-    notnull_check(kem_group_params);
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE_REF(kem_group_params);
 
     /* This function should never be called when PQ is disabled */
-    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     const struct s2n_kem_group *kem_group = kem_group_params->kem_group;
-    notnull_check(kem_group);
+    POSIX_ENSURE_REF(kem_group);
 
-    GUARD(s2n_stuffer_write_uint16(out, kem_group->iana_id));
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, kem_group->iana_id));
 
     struct s2n_stuffer_reservation total_share_size = {0};
-    GUARD(s2n_stuffer_reserve_uint16(out, &total_share_size));
+    POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &total_share_size));
 
     struct s2n_ecc_evp_params *ecc_params = &kem_group_params->ecc_params;
     ecc_params->negotiated_curve = kem_group->curve;
-    GUARD(s2n_stuffer_write_uint16(out, ecc_params->negotiated_curve->share_size));
-    GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_params));
-    GUARD(s2n_ecc_evp_write_params_point(ecc_params, out));
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, ecc_params->negotiated_curve->share_size));
+    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_params));
+    POSIX_GUARD(s2n_ecc_evp_write_params_point(ecc_params, out));
 
     struct s2n_kem_params *kem_params = &kem_group_params->kem_params;
     kem_params->kem = kem_group->kem;
-    GUARD(s2n_kem_send_public_key(out, kem_params));
+    POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
 
-    GUARD(s2n_stuffer_write_vector_size(&total_share_size));
+    POSIX_GUARD(s2n_stuffer_write_vector_size(&total_share_size));
 
     return S2N_SUCCESS;
 }

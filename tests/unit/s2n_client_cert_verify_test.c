@@ -37,7 +37,7 @@ static S2N_RESULT test_size(const struct s2n_pkey *pkey, uint32_t *size_out)
 static int test_sign(const struct s2n_pkey *priv_key, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
-    memcpy_check(signature->data, test_signature_data, test_signature_size);
+    POSIX_CHECKED_MEMCPY(signature->data, test_signature_data, test_signature_size);
     signature->size = test_signature_size;
     return S2N_SUCCESS;
 }

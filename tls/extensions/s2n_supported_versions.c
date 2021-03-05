@@ -24,7 +24,7 @@
 int s2n_connection_get_minimum_supported_version(struct s2n_connection *conn, uint8_t *min_version)
 {
     const struct s2n_security_policy *security_policy;
-    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
     *min_version = security_policy->minimum_protocol_version;
 
     return 0;

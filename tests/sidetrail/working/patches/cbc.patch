@@ -36,13 +36,13 @@ index b37efb0..077d214 100644
      }
      
 -    uint8_t mac_digest_size;
--    GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
+-    POSIX_GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
 +    uint8_t mac_digest_size = DIGEST_SIZE;;
 +    //GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
  
      /* The record has to be at least big enough to contain the MAC,
       * plus the padding length byte */
-     gt_check(decrypted->size, mac_digest_size);
+     POSIX_ENSURE_GT(decrypted->size, mac_digest_size);
  
      int payload_and_padding_size = decrypted->size - mac_digest_size;
 +    __VERIFIER_assert(payload_and_padding_size <= MAX_SIZE - 20);
@@ -55,7 +55,7 @@ index b37efb0..077d214 100644
      int payload_length = MAX(payload_and_padding_size - padding_length - 1, 0);
  
 @@ -82,20 +107,21 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
-     GUARD(s2n_hmac_update(copy, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1));
+     POSIX_GUARD(s2n_hmac_update(copy, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1));
  
      /* SSLv3 doesn't specify what the padding should actually be */
 -    if (conn->actual_protocol_version == S2N_SSLv3) {
@@ -79,8 +79,8 @@ index b37efb0..077d214 100644
 +    /*     mismatches |= (decrypted->data[j] ^ padding_length) & mask; */
 +    /* } */
  
--    GUARD(s2n_hmac_reset(copy));
-+    /* GUARD(s2n_hmac_reset(copy)); */
+-    POSIX_GUARD(s2n_hmac_reset(copy));
++    /* POSIX_GUARD(s2n_hmac_reset(copy)); */
  
      if (mismatches) {
-         S2N_ERROR(S2N_ERR_CBC_VERIFY);
+         POSIX_BAIL(S2N_ERR_CBC_VERIFY);

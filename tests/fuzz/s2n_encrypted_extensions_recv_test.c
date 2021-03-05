@@ -36,7 +36,7 @@ static const uint8_t TLS_VERSIONS[] = {S2N_TLS13};
 
 int s2n_fuzz_init(int *argc, char **argv[])
 {
-    GUARD(s2n_enable_tls13());
+    POSIX_GUARD(s2n_enable_tls13());
     return S2N_SUCCESS;
 }
 
@@ -47,12 +47,12 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
 
     /* Setup */
     struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-    notnull_check(client_conn);
-    GUARD(s2n_stuffer_write_bytes(&client_conn->handshake.io, buf, len));
+    POSIX_ENSURE_REF(client_conn);
+    POSIX_GUARD(s2n_stuffer_write_bytes(&client_conn->handshake.io, buf, len));
 
     /* Pull a byte from the libfuzzer input and use it to set parameters */
     uint8_t randval = 0;
-    GUARD(s2n_stuffer_read_uint8(&client_conn->handshake.io, &randval));
+    POSIX_GUARD(s2n_stuffer_read_uint8(&client_conn->handshake.io, &randval));
     client_conn->actual_protocol_version = TLS_VERSIONS[randval % s2n_array_len(TLS_VERSIONS)];
 
     /* Run Test
@@ -61,7 +61,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     s2n_extension_list_recv(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS, client_conn, &client_conn->handshake.io);
 
     /* Cleanup */
-    GUARD(s2n_connection_free(client_conn));
+    POSIX_GUARD(s2n_connection_free(client_conn));
 
     return S2N_SUCCESS;
 }

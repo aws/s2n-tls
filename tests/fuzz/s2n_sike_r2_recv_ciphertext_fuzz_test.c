@@ -31,20 +31,20 @@ static struct s2n_kem_params kem_params = { .kem = &s2n_sike_p434_r2 };
 
 int s2n_fuzz_init(int *argc, char **argv[])
 {
-    GUARD(s2n_kem_recv_ciphertext_fuzz_test_init(KAT_FILE_NAME, &kem_params));
+    POSIX_GUARD(s2n_kem_recv_ciphertext_fuzz_test_init(KAT_FILE_NAME, &kem_params));
     return S2N_SUCCESS;
 }
 
 int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
     /* Test the portable C code */
-    GUARD_AS_POSIX(s2n_disable_sikep434r2_asm());
-    GUARD(s2n_kem_recv_ciphertext_fuzz_test(buf, len, &kem_params));
+    POSIX_GUARD_RESULT(s2n_disable_sikep434r2_asm());
+    POSIX_GUARD(s2n_kem_recv_ciphertext_fuzz_test(buf, len, &kem_params));
 
     /* Test the assembly, if available; if not, don't bother testing the C again */
-    GUARD_AS_POSIX(s2n_try_enable_sikep434r2_asm());
+    POSIX_GUARD_RESULT(s2n_try_enable_sikep434r2_asm());
     if (s2n_sikep434r2_asm_is_enabled()) {
-        GUARD(s2n_kem_recv_ciphertext_fuzz_test(buf, len, &kem_params));
+        POSIX_GUARD(s2n_kem_recv_ciphertext_fuzz_test(buf, len, &kem_params));
     }
 
     return S2N_SUCCESS;

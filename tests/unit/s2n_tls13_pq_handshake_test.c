@@ -29,35 +29,35 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
         const struct s2n_security_policy *server_sec_policy, const struct s2n_kem_group *expected_kem_group,
         const struct s2n_ecc_named_curve *expected_curve, bool should_send_ec_shares, bool hrr_expected) {
     /* XOR check: can expect to negotiate either a KEM group, or a classic EC curve, but not both/neither */
-    ENSURE_POSIX((expected_kem_group == NULL) != (expected_curve == NULL), S2N_ERR_SAFETY);
+    POSIX_ENSURE((expected_kem_group == NULL) != (expected_curve == NULL), S2N_ERR_SAFETY);
 
     /* Set up connections */
     struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-    notnull_check(client_conn = s2n_connection_new(S2N_CLIENT));
-    notnull_check(server_conn = s2n_connection_new(S2N_SERVER));
+    POSIX_ENSURE_REF(client_conn = s2n_connection_new(S2N_CLIENT));
+    POSIX_ENSURE_REF(server_conn = s2n_connection_new(S2N_SERVER));
 
     struct s2n_config *client_config = NULL, *server_config = NULL;
-    notnull_check(client_config = s2n_config_new());
-    notnull_check(server_config = s2n_config_new());
+    POSIX_ENSURE_REF(client_config = s2n_config_new());
+    POSIX_ENSURE_REF(server_config = s2n_config_new());
 
     char cert_chain[S2N_MAX_TEST_PEM_SIZE] = { 0 }, private_key[S2N_MAX_TEST_PEM_SIZE] = { 0 };
     struct s2n_cert_chain_and_key *chain_and_key = NULL;
-    notnull_check(chain_and_key = s2n_cert_chain_and_key_new());
-    GUARD(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-    GUARD(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
-    GUARD(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
-    GUARD(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
-    GUARD(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+    POSIX_ENSURE_REF(chain_and_key = s2n_cert_chain_and_key_new());
+    POSIX_GUARD(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
+    POSIX_GUARD(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
+    POSIX_GUARD(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
+    POSIX_GUARD(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
+    POSIX_GUARD(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
-    GUARD(s2n_connection_set_config(client_conn, client_config));
-    GUARD(s2n_connection_set_config(server_conn, server_config));
+    POSIX_GUARD(s2n_connection_set_config(client_conn, client_config));
+    POSIX_GUARD(s2n_connection_set_config(server_conn, server_config));
 
     struct s2n_stuffer client_to_server = { 0 }, server_to_client = { 0 };
-    GUARD(s2n_stuffer_growable_alloc(&client_to_server, 2048));
-    GUARD(s2n_stuffer_growable_alloc(&server_to_client, 2048));
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&client_to_server, 2048));
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&server_to_client, 2048));
 
-    GUARD(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
-    GUARD(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
+    POSIX_GUARD(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+    POSIX_GUARD(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
     client_conn->security_policy_override = client_sec_policy;
     server_conn->security_policy_override = server_sec_policy;
@@ -66,80 +66,80 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     if (!should_send_ec_shares) {
         /* In certain tests, we do not want to send any classic EC shares in order to force
          * the server to choose PQ with HRR for negotiation. */
-        GUARD(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+        POSIX_GUARD(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
     }
-    eq_check(s2n_conn_get_current_message_type(client_conn), CLIENT_HELLO);
-    GUARD(s2n_handshake_write_io(client_conn));
+    POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(client_conn), CLIENT_HELLO);
+    POSIX_GUARD(s2n_handshake_write_io(client_conn));
 
-    eq_check(client_conn->actual_protocol_version, S2N_TLS13);
-    eq_check(server_conn->actual_protocol_version, 0); /* Won't get set until after server reads ClientHello */
-    eq_check(client_conn->handshake.handshake_type,  INITIAL);
+    POSIX_ENSURE_EQ(client_conn->actual_protocol_version, S2N_TLS13);
+    POSIX_ENSURE_EQ(server_conn->actual_protocol_version, 0); /* Won't get set until after server reads ClientHello */
+    POSIX_ENSURE_EQ(client_conn->handshake.handshake_type,  INITIAL);
 
     /* Server reads ClientHello */
-    eq_check(s2n_conn_get_current_message_type(server_conn), CLIENT_HELLO);
-    GUARD(s2n_handshake_read_io(server_conn));
+    POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(server_conn), CLIENT_HELLO);
+    POSIX_GUARD(s2n_handshake_read_io(server_conn));
 
-    eq_check(server_conn->actual_protocol_version, S2N_TLS13); /* Server is now on TLS13 */
+    POSIX_ENSURE_EQ(server_conn->actual_protocol_version, S2N_TLS13); /* Server is now on TLS13 */
 
     /* Assert that the server chose the correct group */
     if (expected_kem_group) {
-        eq_check(expected_kem_group, server_conn->secure.server_kem_group_params.kem_group);
-        eq_check(expected_kem_group->kem, server_conn->secure.server_kem_group_params.kem_params.kem);
-        eq_check(expected_kem_group->curve, server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        eq_check(NULL, server_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_kem_group, server_conn->secure.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->secure.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_ecc_evp_params.negotiated_curve);
     } else {
-        eq_check(NULL, server_conn->secure.server_kem_group_params.kem_group);
-        eq_check(NULL, server_conn->secure.server_kem_group_params.kem_params.kem);
-        eq_check(NULL, server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        eq_check(expected_curve, server_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_curve, server_conn->secure.server_ecc_evp_params.negotiated_curve);
     }
 
     /* Server sends ServerHello or HRR */
-    GUARD(s2n_conn_set_handshake_type(server_conn));
+    POSIX_GUARD(s2n_conn_set_handshake_type(server_conn));
     if (hrr_expected) {
-        eq_check(s2n_conn_get_current_message_type(server_conn), HELLO_RETRY_MSG);
+        POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(server_conn), HELLO_RETRY_MSG);
     } else {
-        eq_check(s2n_conn_get_current_message_type(server_conn), SERVER_HELLO);
+        POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(server_conn), SERVER_HELLO);
     }
-    GUARD(s2n_handshake_write_io(server_conn));
+    POSIX_GUARD(s2n_handshake_write_io(server_conn));
 
     /* Server sends CCS */
-    eq_check(s2n_conn_get_current_message_type(server_conn), SERVER_CHANGE_CIPHER_SPEC);
-    GUARD(s2n_handshake_write_io(server_conn));
+    POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(server_conn), SERVER_CHANGE_CIPHER_SPEC);
+    POSIX_GUARD(s2n_handshake_write_io(server_conn));
 
     if (hrr_expected) {
         /* Client reads HRR */
-        eq_check(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
-        GUARD(s2n_handshake_read_io(client_conn));
-        GUARD(s2n_conn_set_handshake_type(client_conn));
-        ne_check(0, client_conn->handshake.handshake_type & HELLO_RETRY_REQUEST);
+        POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
+        POSIX_GUARD(s2n_handshake_read_io(client_conn));
+        POSIX_GUARD(s2n_conn_set_handshake_type(client_conn));
+        POSIX_ENSURE_NE(0, client_conn->handshake.handshake_type & HELLO_RETRY_REQUEST);
 
         /* Client reads CCS */
-        eq_check(s2n_conn_get_current_message_type(client_conn), CLIENT_CHANGE_CIPHER_SPEC);
-        GUARD(s2n_handshake_read_io(client_conn));
+        POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(client_conn), CLIENT_CHANGE_CIPHER_SPEC);
+        POSIX_GUARD(s2n_handshake_read_io(client_conn));
 
         /* Client sends CCS and new ClientHello */
-        eq_check(s2n_conn_get_current_message_type(client_conn), CLIENT_CHANGE_CIPHER_SPEC);
-        GUARD(s2n_handshake_write_io(client_conn));
-        eq_check(s2n_conn_get_current_message_type(client_conn), CLIENT_HELLO);
-        GUARD(s2n_handshake_write_io(client_conn));
+        POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(client_conn), CLIENT_CHANGE_CIPHER_SPEC);
+        POSIX_GUARD(s2n_handshake_write_io(client_conn));
+        POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(client_conn), CLIENT_HELLO);
+        POSIX_GUARD(s2n_handshake_write_io(client_conn));
 
         /* Server reads CCS (doesn't change state machine) */
-        eq_check(s2n_conn_get_current_message_type(server_conn), CLIENT_HELLO);
-        GUARD(s2n_handshake_read_io(server_conn));
+        POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(server_conn), CLIENT_HELLO);
+        POSIX_GUARD(s2n_handshake_read_io(server_conn));
 
         /* Server reads new ClientHello */
-        eq_check(s2n_conn_get_current_message_type(server_conn), CLIENT_HELLO);
-        GUARD(s2n_handshake_read_io(server_conn));
+        POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(server_conn), CLIENT_HELLO);
+        POSIX_GUARD(s2n_handshake_read_io(server_conn));
 
         /* Server sends ServerHello */
-        eq_check(s2n_conn_get_current_message_type(server_conn), SERVER_HELLO);
-        GUARD(s2n_handshake_write_io(server_conn));
+        POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(server_conn), SERVER_HELLO);
+        POSIX_GUARD(s2n_handshake_write_io(server_conn));
     }
 
     /* Client reads ServerHello */
-    eq_check(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
-    GUARD(s2n_handshake_read_io(client_conn));
+    POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
+    POSIX_GUARD(s2n_handshake_read_io(client_conn));
 
     /* We've gotten far enough in the handshake that both client and server should have
      * derived the shared secrets, so we don't send/receive any more messages. */
@@ -147,67 +147,67 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     /* Assert that the correct group was negotiated (we re-check the server group to assert that
      * nothing unexpected changed between then and now while e.g. processing HRR) */
     if (expected_kem_group) {
-        eq_check(expected_kem_group, client_conn->secure.server_kem_group_params.kem_group);
-        eq_check(expected_kem_group->kem, client_conn->secure.server_kem_group_params.kem_params.kem);
-        eq_check(expected_kem_group->curve, client_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        eq_check(NULL, client_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_kem_group, client_conn->secure.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(expected_kem_group->kem, client_conn->secure.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(expected_kem_group->curve, client_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, client_conn->secure.server_ecc_evp_params.negotiated_curve);
 
-        eq_check(expected_kem_group, server_conn->secure.server_kem_group_params.kem_group);
-        eq_check(expected_kem_group->kem, server_conn->secure.server_kem_group_params.kem_params.kem);
-        eq_check(expected_kem_group->curve, server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        eq_check(NULL, server_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_kem_group, server_conn->secure.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->secure.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_ecc_evp_params.negotiated_curve);
     } else {
-        eq_check(NULL, client_conn->secure.server_kem_group_params.kem_group);
-        eq_check(NULL, client_conn->secure.server_kem_group_params.kem_params.kem);
-        eq_check(NULL, client_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        eq_check(expected_curve, client_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, client_conn->secure.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(NULL, client_conn->secure.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(NULL, client_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_curve, client_conn->secure.server_ecc_evp_params.negotiated_curve);
 
-        eq_check(NULL, server_conn->secure.server_kem_group_params.kem_group);
-        eq_check(NULL, server_conn->secure.server_kem_group_params.kem_params.kem);
-        eq_check(NULL, server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
-        eq_check(expected_curve, server_conn->secure.server_ecc_evp_params.negotiated_curve);
+        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.kem_group);
+        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.kem_params.kem);
+        POSIX_ENSURE_EQ(NULL, server_conn->secure.server_kem_group_params.ecc_params.negotiated_curve);
+        POSIX_ENSURE_EQ(expected_curve, server_conn->secure.server_ecc_evp_params.negotiated_curve);
     }
 
     /* Verify basic properties of secrets */
     s2n_tls13_connection_keys(server_secrets, server_conn);
     s2n_tls13_connection_keys(client_secrets, client_conn);
-    notnull_check(server_secrets.extract_secret.data);
-    notnull_check(server_secrets.derive_secret.data);
-    notnull_check(client_secrets.extract_secret.data);
-    notnull_check(client_secrets.derive_secret.data);
-    eq_check(server_conn->secure.cipher_suite, client_conn->secure.cipher_suite);
+    POSIX_ENSURE_REF(server_secrets.extract_secret.data);
+    POSIX_ENSURE_REF(server_secrets.derive_secret.data);
+    POSIX_ENSURE_REF(client_secrets.extract_secret.data);
+    POSIX_ENSURE_REF(client_secrets.derive_secret.data);
+    POSIX_ENSURE_EQ(server_conn->secure.cipher_suite, client_conn->secure.cipher_suite);
     if (server_conn->secure.cipher_suite == &s2n_tls13_aes_256_gcm_sha384) {
-        eq_check(server_secrets.size, 48);
-        eq_check(client_secrets.size, 48);
+        POSIX_ENSURE_EQ(server_secrets.size, 48);
+        POSIX_ENSURE_EQ(client_secrets.size, 48);
     } else {
-        eq_check(server_secrets.size, 32);
-        eq_check(client_secrets.size, 32);
+        POSIX_ENSURE_EQ(server_secrets.size, 32);
+        POSIX_ENSURE_EQ(client_secrets.size, 32);
     }
 
     /* Verify secrets aren't just zero'ed memory */
     uint8_t all_zeros[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
-    memset_check((void *)all_zeros, 0, S2N_TLS13_SECRET_MAX_LEN);
-    ne_check(0, memcmp(all_zeros, client_secrets.derive_secret.data, client_secrets.derive_secret.size));
-    ne_check(0, memcmp(all_zeros, client_secrets.extract_secret.data, client_secrets.extract_secret.size));
-    ne_check(0, memcmp(all_zeros, server_secrets.derive_secret.data, server_secrets.derive_secret.size));
-    ne_check(0, memcmp(all_zeros, server_secrets.extract_secret.data, server_secrets.extract_secret.size));
+    POSIX_CHECKED_MEMSET((void *)all_zeros, 0, S2N_TLS13_SECRET_MAX_LEN);
+    POSIX_ENSURE_NE(0, memcmp(all_zeros, client_secrets.derive_secret.data, client_secrets.derive_secret.size));
+    POSIX_ENSURE_NE(0, memcmp(all_zeros, client_secrets.extract_secret.data, client_secrets.extract_secret.size));
+    POSIX_ENSURE_NE(0, memcmp(all_zeros, server_secrets.derive_secret.data, server_secrets.derive_secret.size));
+    POSIX_ENSURE_NE(0, memcmp(all_zeros, server_secrets.extract_secret.data, server_secrets.extract_secret.size));
 
     /* Verify client and server secrets are equal to each other */
-    eq_check(server_secrets.derive_secret.size, client_secrets.derive_secret.size);
-    eq_check(0, memcmp(server_secrets.derive_secret.data, client_secrets.derive_secret.data, client_secrets.derive_secret.size));
-    eq_check(server_secrets.extract_secret.size, client_secrets.extract_secret.size);
-    eq_check(0, memcmp(server_secrets.extract_secret.data, client_secrets.extract_secret.data, client_secrets.extract_secret.size));
+    POSIX_ENSURE_EQ(server_secrets.derive_secret.size, client_secrets.derive_secret.size);
+    POSIX_ENSURE_EQ(0, memcmp(server_secrets.derive_secret.data, client_secrets.derive_secret.data, client_secrets.derive_secret.size));
+    POSIX_ENSURE_EQ(server_secrets.extract_secret.size, client_secrets.extract_secret.size);
+    POSIX_ENSURE_EQ(0, memcmp(server_secrets.extract_secret.data, client_secrets.extract_secret.data, client_secrets.extract_secret.size));
 
     /* Clean up */
-    GUARD(s2n_stuffer_free(&client_to_server));
-    GUARD(s2n_stuffer_free(&server_to_client));
+    POSIX_GUARD(s2n_stuffer_free(&client_to_server));
+    POSIX_GUARD(s2n_stuffer_free(&server_to_client));
 
-    GUARD(s2n_connection_free(client_conn));
-    GUARD(s2n_connection_free(server_conn));
+    POSIX_GUARD(s2n_connection_free(client_conn));
+    POSIX_GUARD(s2n_connection_free(server_conn));
 
-    GUARD(s2n_cert_chain_and_key_free(chain_and_key));
-    GUARD(s2n_config_free(server_config));
-    GUARD(s2n_config_free(client_config));
+    POSIX_GUARD(s2n_cert_chain_and_key_free(chain_and_key));
+    POSIX_GUARD(s2n_config_free(server_config));
+    POSIX_GUARD(s2n_config_free(client_config));
 
     return S2N_SUCCESS;
 }

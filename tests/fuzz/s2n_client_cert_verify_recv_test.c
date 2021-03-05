@@ -127,12 +127,12 @@ int s2n_fuzz_init(int *argc, char **argv[])
 {
     /* Set up Server Config */
     server_config = s2n_config_new();
-    GUARD(s2n_config_add_cert_chain_and_key(server_config, certificate_chain, private_key));
+    POSIX_GUARD(s2n_config_add_cert_chain_and_key(server_config, certificate_chain, private_key));
     s2n_pkey_type pkey_type;
     POSIX_ENSURE(s2n_config_get_num_default_certs(server_config) != 0, S2N_ERR_NUM_DEFAULT_CERTIFICATES);
     struct s2n_cert_chain_and_key *cert = s2n_config_get_single_default_cert(server_config);
-    notnull_check(cert);
-    GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &cert->cert_chain->head->raw));
+    POSIX_ENSURE_REF(cert);
+    POSIX_GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &cert->cert_chain->head->raw));
 
     return S2N_SUCCESS;
 }
@@ -144,13 +144,13 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
 
     /* Setup */
     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-    notnull_check(server_conn);
-    GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
+    POSIX_ENSURE_REF(server_conn);
+    POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
     server_conn->secure.client_public_key.key.rsa_key.rsa = public_key.key.rsa_key.rsa;
 
     /* Pull a byte off the libfuzzer input and use it to set parameters */
     uint8_t randval = 0;
-    GUARD(s2n_stuffer_read_uint8(&server_conn->handshake.io, &randval));
+    POSIX_GUARD(s2n_stuffer_read_uint8(&server_conn->handshake.io, &randval));
     server_conn->actual_protocol_version = TLS_VERSIONS[randval % s2n_array_len(TLS_VERSIONS)];
 
     /* Run Test
@@ -163,7 +163,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     server_conn->secure.client_public_key.key.rsa_key.rsa = NULL;
 
     /* Cleanup */
-    GUARD(s2n_connection_free(server_conn));
+    POSIX_GUARD(s2n_connection_free(server_conn));
 
     return S2N_SUCCESS;
 }

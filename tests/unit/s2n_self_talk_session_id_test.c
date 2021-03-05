@@ -353,8 +353,8 @@ int main(int argc, char **argv)
         /* Although we disable session ticket, as long as session cache
          * callbacks are binded, session ticket key storage would be initialized
          */
-        GUARD(s2n_config_set_session_cache_onoff(config, 1));
-        GUARD(config->wall_clock(config->sys_clock_ctx, &now));
+        POSIX_GUARD(s2n_config_set_session_cache_onoff(config, 1));
+        POSIX_GUARD(config->wall_clock(config->sys_clock_ctx, &now));
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char*)ticket_key_name), ticket_key, sizeof(ticket_key), now/ONE_SEC_IN_NANOS));
 
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));

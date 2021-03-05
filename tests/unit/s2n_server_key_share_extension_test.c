@@ -971,21 +971,21 @@ int main(int argc, char **argv)
 static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_group *kem_group, struct s2n_blob *pq_private_key,
         struct s2n_stuffer *pq_shared_secret, struct s2n_stuffer *key_share_payload) {
     FILE *kat_file = fopen("kats/tls13_server_hybrid_key_share_recv.kat", "r");
-    notnull_check(kat_file);
+    POSIX_ENSURE_REF(kat_file);
 
     /* 50 should be plenty big enough to hold the entire marker string */
     char marker[50] = "kem_group = ";
     strcat(marker, kem_group->name);
-    GUARD(FindMarker(kat_file, marker));
+    POSIX_GUARD(FindMarker(kat_file, marker));
 
-    GUARD(s2n_alloc(pq_private_key, kem_group->kem->private_key_length));
-    GUARD(ReadHex(kat_file, pq_private_key->data, kem_group->kem->private_key_length, "pq_private_key = "));
+    POSIX_GUARD(s2n_alloc(pq_private_key, kem_group->kem->private_key_length));
+    POSIX_GUARD(ReadHex(kat_file, pq_private_key->data, kem_group->kem->private_key_length, "pq_private_key = "));
     pq_private_key->size = kem_group->kem->private_key_length;
 
-    GUARD(s2n_stuffer_alloc(pq_shared_secret, kem_group->kem->shared_secret_key_length));
+    POSIX_GUARD(s2n_stuffer_alloc(pq_shared_secret, kem_group->kem->shared_secret_key_length));
     uint8_t *pq_shared_secret_ptr = s2n_stuffer_raw_write(pq_shared_secret, kem_group->kem->shared_secret_key_length);
-    notnull_check(pq_shared_secret_ptr);
-    GUARD(ReadHex(kat_file, pq_shared_secret_ptr, kem_group->kem->shared_secret_key_length, "pq_shared_secret = "));
+    POSIX_ENSURE_REF(pq_shared_secret_ptr);
+    POSIX_GUARD(ReadHex(kat_file, pq_shared_secret_ptr, kem_group->kem->shared_secret_key_length, "pq_shared_secret = "));
 
     size_t key_share_payload_size =
               S2N_SIZE_OF_NAMED_GROUP
@@ -995,10 +995,10 @@ static int s2n_read_server_key_share_hybrid_test_vectors(const struct s2n_kem_gr
             + S2N_SIZE_OF_KEY_SHARE_SIZE
             + kem_group->kem->ciphertext_length;
 
-    GUARD(s2n_stuffer_alloc(key_share_payload, key_share_payload_size));
+    POSIX_GUARD(s2n_stuffer_alloc(key_share_payload, key_share_payload_size));
     uint8_t *key_share_payload_ptr = s2n_stuffer_raw_write(key_share_payload, key_share_payload_size);
-    notnull_check(key_share_payload_ptr);
-    GUARD(ReadHex(kat_file, key_share_payload_ptr, key_share_payload_size, "server_key_share_payload = "));
+    POSIX_ENSURE_REF(key_share_payload_ptr);
+    POSIX_GUARD(ReadHex(kat_file, key_share_payload_ptr, key_share_payload_size, "server_key_share_payload = "));
 
     fclose(kat_file);
     return S2N_SUCCESS;

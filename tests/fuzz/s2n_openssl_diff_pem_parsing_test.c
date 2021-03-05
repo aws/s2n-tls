@@ -69,7 +69,7 @@ static int s2n_parse_cert_chain(struct s2n_stuffer *in)
 
     /* Allocate the memory for the chain and key */
     if (s2n_create_cert_chain_from_stuffer(chain_and_key->cert_chain, in) != S2N_SUCCESS) {
-        GUARD(s2n_cert_chain_and_key_free(chain_and_key));
+        POSIX_GUARD(s2n_cert_chain_and_key_free(chain_and_key));
         return S2N_SUCCESS;
     }
 
@@ -88,15 +88,15 @@ static int s2n_parse_cert_chain(struct s2n_stuffer *in)
 int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
     struct s2n_stuffer in = {0};
-    GUARD(s2n_stuffer_alloc(&in, len + 1));
-    GUARD(s2n_stuffer_write_bytes(&in, buf, len));
+    POSIX_GUARD(s2n_stuffer_alloc(&in, len + 1));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&in, buf, len));
     in.blob.data[len] = 0;
 
     uint8_t openssl_chain_len = openssl_parse_cert_chain(&in);
-    GUARD(s2n_stuffer_reread(&in));
+    POSIX_GUARD(s2n_stuffer_reread(&in));
 
     uint8_t s2n_chain_len = s2n_parse_cert_chain(&in);
-    GUARD(s2n_stuffer_free(&in));
+    POSIX_GUARD(s2n_stuffer_free(&in));
 
     if (openssl_chain_len > s2n_chain_len) {
         /* If we return -1 here, then this fuzz test will fail if OpenSSL is able to parse a messy PEM file that s2n

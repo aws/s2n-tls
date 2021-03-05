@@ -150,7 +150,7 @@ int main(int argc, char **argv)
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             continue;
         } else {
-            GUARD(ret);
+            POSIX_GUARD(ret);
         }
     }
 
@@ -168,7 +168,7 @@ int main(int argc, char **argv)
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             continue;
         } else {
-            GUARD(ret);
+            POSIX_GUARD(ret);
         }
 
         ret = s2n_recv(conn, buf, sizeof(buf), &blocked);

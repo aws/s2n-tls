@@ -21,9 +21,9 @@
 
 int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from)
 {
-    PRECONDITION_POSIX(s2n_hash_state_validate(to));
-    PRECONDITION_POSIX(s2n_hash_state_validate(from));
-    notnull_check(from->hash_impl->copy);
+    POSIX_PRECONDITION(s2n_hash_state_validate(to));
+    POSIX_PRECONDITION(s2n_hash_state_validate(from));
+    POSIX_ENSURE_REF(from->hash_impl->copy);
 
     /* return from->hash_impl->copy(to, from); */
     return nondet_bool() ? S2N_SUCCESS : S2N_FAILURE;

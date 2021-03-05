@@ -54,11 +54,11 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     }
     
     uint8_t mac_digest_size;
-    GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
+    POSIX_GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
 
     /* The record has to be at least big enough to contain the MAC,
      * plus the padding length byte */
-    gt_check(decrypted->size, mac_digest_size);
+    POSIX_ENSURE_GT(decrypted->size, mac_digest_size);
 
     int payload_and_padding_size = decrypted->size - mac_digest_size;
 
@@ -68,18 +68,18 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     int payload_length = MAX(payload_and_padding_size - padding_length - 1, 0);
 
     /* Update the MAC */
-    GUARD(s2n_hmac_update(hmac, decrypted->data, payload_length));
-    GUARD(s2n_hmac_copy(copy, hmac));
+    POSIX_GUARD(s2n_hmac_update(hmac, decrypted->data, payload_length));
+    POSIX_GUARD(s2n_hmac_copy(copy, hmac));
 
     /* Check the MAC */
     uint8_t check_digest[S2N_MAX_DIGEST_LEN];
-    lte_check(mac_digest_size, sizeof(check_digest));
-    GUARD(s2n_hmac_digest_two_compression_rounds(hmac, check_digest, mac_digest_size));
+    POSIX_ENSURE_LTE(mac_digest_size, sizeof(check_digest));
+    POSIX_GUARD(s2n_hmac_digest_two_compression_rounds(hmac, check_digest, mac_digest_size));
 
     int mismatches = s2n_constant_time_equals(decrypted->data + payload_length, check_digest, mac_digest_size) ^ 1;
 
     /* Compute a MAC on the rest of the data so that we perform the same number of hash operations */
-    GUARD(s2n_hmac_update(copy, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1));
+    POSIX_GUARD(s2n_hmac_update(copy, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1));
 
     /* SSLv3 doesn't specify what the padding should actually be */
     if (conn->actual_protocol_version == S2N_SSLv3) {
@@ -95,7 +95,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
         mismatches |= (decrypted->data[j] ^ padding_length) & mask;
     }
 
-    GUARD(s2n_hmac_reset(copy));
+    POSIX_GUARD(s2n_hmac_reset(copy));
 
     S2N_ERROR_IF(mismatches, S2N_ERR_CBC_VERIFY);
 

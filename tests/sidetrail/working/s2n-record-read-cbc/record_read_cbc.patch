@@ -14,17 +14,17 @@ index bb06523..60a2eed 100644
 @@ -86,6 +88,8 @@ int s2n_record_parse_cbc(
  
      /* Subtract the padding length */
-     gt_check(en.size, 0);
+     POSIX_ENSURE_GT(en.size, 0);
 +    //After hmac verification padding_length is declassified
 +    en.data[en.size - 1] = g_padding_length;
      uint32_t out = 0;
-     GUARD(s2n_sub_overflow(payload_length, en.data[en.size - 1] + 1, &out));
+     POSIX_GUARD(s2n_sub_overflow(payload_length, en.data[en.size - 1] + 1, &out));
      payload_length = out;
 @@ -107,6 +111,7 @@ int s2n_record_parse_cbc(
  
      /* Padding */
      if (s2n_verify_cbc(conn, mac, &en) < 0) {
 +        __VERIFIER_assume(0);
-         GUARD(s2n_stuffer_wipe(&conn->in));
-         S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+         POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
+         POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
      }

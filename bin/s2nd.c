@@ -728,7 +728,7 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(fstat(fd, &st), "Error fstat-ing session ticket key file");
 
             st_key = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-            ENSURE_POSIX(st_key != MAP_FAILED, S2N_ERR_MMAP);
+            POSIX_ENSURE(st_key != MAP_FAILED, S2N_ERR_MMAP);
 
             st_key_length = st.st_size;
 

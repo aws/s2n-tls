@@ -75,7 +75,7 @@ int main(int argc, char **argv)
             /* Should write ids */
             uint16_t actual_id;
             for (size_t i = 0; i < kem_preferences->kem_count; i++) {
-                GUARD(s2n_stuffer_read_uint16(&stuffer, &actual_id));
+                POSIX_GUARD(s2n_stuffer_read_uint16(&stuffer, &actual_id));
                 EXPECT_EQUAL(actual_id, kem_preferences->kems[i]->kem_extension_id);
             }
 

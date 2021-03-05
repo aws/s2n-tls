@@ -54,7 +54,7 @@ struct s2n_stuffer test_entropy;
 int s2n_entropy_generator(void *data, uint32_t size)
 {
     struct s2n_blob blob = { .data = data, .size = size };
-    GUARD(s2n_stuffer_read(&test_entropy, &blob));
+    POSIX_GUARD(s2n_stuffer_read(&test_entropy, &blob));
     return 0;
 }
 
@@ -114,8 +114,8 @@ int main(int argc, char **argv)
     DEFER_CLEANUP(struct s2n_stuffer out_stuffer = {0}, s2n_stuffer_free);
     struct s2n_blob out_blob = {0};
     EXPECT_SUCCESS(s2n_stuffer_alloc(&out_stuffer, 4096));
-    GUARD(s2n_dh_generate_ephemeral_key(&dh_params));
-    GUARD(s2n_dh_params_to_p_g_Ys(&dh_params, &out_stuffer, &out_blob));
+    POSIX_GUARD(s2n_dh_generate_ephemeral_key(&dh_params));
+    POSIX_GUARD(s2n_dh_params_to_p_g_Ys(&dh_params, &out_stuffer, &out_blob));
 
     EXPECT_OK(s2n_get_private_random_bytes_used(&bytes_used));
     EXPECT_EQUAL(bytes_used, 352);

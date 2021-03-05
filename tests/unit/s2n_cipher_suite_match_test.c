@@ -25,13 +25,13 @@
 #include "tls/s2n_security_policies.h"
 
 static s2n_result s2n_conn_set_chosen_psk(struct s2n_connection *conn) {
-    ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
     uint8_t psk_identity[] = "psk identity";
-    GUARD_RESULT(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &conn->psk_params.chosen_psk));
-    ENSURE_REF(conn->psk_params.chosen_psk);
-    GUARD_RESULT(s2n_psk_init(conn->psk_params.chosen_psk, S2N_PSK_TYPE_EXTERNAL));
-    GUARD_AS_RESULT(s2n_psk_set_identity(conn->psk_params.chosen_psk, psk_identity, sizeof(psk_identity)));
+    RESULT_GUARD(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &conn->psk_params.chosen_psk));
+    RESULT_ENSURE_REF(conn->psk_params.chosen_psk);
+    RESULT_GUARD(s2n_psk_init(conn->psk_params.chosen_psk, S2N_PSK_TYPE_EXTERNAL));
+    RESULT_GUARD_POSIX(s2n_psk_set_identity(conn->psk_params.chosen_psk, psk_identity, sizeof(psk_identity)));
 
     return S2N_RESULT_OK;
 }

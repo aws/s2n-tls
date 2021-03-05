@@ -76,7 +76,7 @@ static const uint8_t TLS_VERSIONS[] = {S2N_TLS13};
 
 int s2n_fuzz_init(int *argc, char **argv[])
 {
-    GUARD(s2n_enable_tls13());
+    POSIX_GUARD(s2n_enable_tls13());
     return S2N_SUCCESS;
 }
 
@@ -87,15 +87,15 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
 
     /* Setup */
     struct s2n_stuffer fuzz_stuffer = {0};
-    GUARD(s2n_stuffer_alloc(&fuzz_stuffer, len));
-    GUARD(s2n_stuffer_write_bytes(&fuzz_stuffer, buf, len));
+    POSIX_GUARD(s2n_stuffer_alloc(&fuzz_stuffer, len));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&fuzz_stuffer, buf, len));
 
     struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-    notnull_check(client_conn);
+    POSIX_ENSURE_REF(client_conn);
 
     /* Pull a byte off the libfuzzer input and use it to set parameters */
     uint8_t randval = 0;
-    GUARD(s2n_stuffer_read_uint8(&fuzz_stuffer, &randval));
+    POSIX_GUARD(s2n_stuffer_read_uint8(&fuzz_stuffer, &randval));
     client_conn->x509_validator.skip_cert_validation = (randval >> 7) % 2;
 
     /* Set connection to TLS 1.2 to temporary work around cert validation setup */
@@ -104,22 +104,22 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     /* Set cert chain and trust store for verification of OCSP response */
     if ((randval >> 6) % 2 && OPENSSL_VERSION_NUMBER >= 0x10101000L) {
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
-        GUARD(s2n_connection_set_verify_host_callback(client_conn, verify_host_accept_everything, &verify_data));
+        POSIX_GUARD(s2n_connection_set_verify_host_callback(client_conn, verify_host_accept_everything, &verify_data));
         char cert_chain[S2N_MAX_TEST_PEM_SIZE];
-        GUARD(s2n_read_test_pem(S2N_OCSP_CA_CERT, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-        GUARD(s2n_x509_trust_store_add_pem(client_conn->x509_validator.trust_store, cert_chain));
+        POSIX_GUARD(s2n_read_test_pem(S2N_OCSP_CA_CERT, cert_chain, S2N_MAX_TEST_PEM_SIZE));
+        POSIX_GUARD(s2n_x509_trust_store_add_pem(client_conn->x509_validator.trust_store, cert_chain));
         uint8_t cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
-        GUARD(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        POSIX_GUARD(s2n_read_test_pem(S2N_OCSP_SERVER_CERT, (char *) cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
         struct s2n_stuffer chain_stuffer;
         uint32_t chain_len = write_pem_file_to_stuffer_as_chain(&chain_stuffer, (const char *) cert_chain_pem);
         uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, (uint32_t) chain_len);
         struct s2n_pkey public_key_out;
-        GUARD(s2n_pkey_zero_init(&public_key_out));
+        POSIX_GUARD(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type;
 
-        GUARD(s2n_x509_validator_validate_cert_chain(&client_conn->x509_validator, client_conn, chain_data, chain_len, &pkey_type, &public_key_out));
-        GUARD(s2n_stuffer_free(&chain_stuffer));
-        GUARD(s2n_pkey_free(&public_key_out));
+        POSIX_GUARD(s2n_x509_validator_validate_cert_chain(&client_conn->x509_validator, client_conn, chain_data, chain_len, &pkey_type, &public_key_out));
+        POSIX_GUARD(s2n_stuffer_free(&chain_stuffer));
+        POSIX_GUARD(s2n_pkey_free(&public_key_out));
     }
 
     client_conn->actual_protocol_version = TLS_VERSIONS[(randval & 0x07) % s2n_array_len(TLS_VERSIONS)];
@@ -131,8 +131,8 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     s2n_extension_list_recv(S2N_EXTENSION_LIST_CERTIFICATE, client_conn, &fuzz_stuffer);
 
     /* Cleanup */
-    GUARD(s2n_connection_free(client_conn));
-    GUARD(s2n_stuffer_free(&fuzz_stuffer));
+    POSIX_GUARD(s2n_connection_free(client_conn));
+    POSIX_GUARD(s2n_stuffer_free(&fuzz_stuffer));
 
     return S2N_SUCCESS;
 }

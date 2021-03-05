@@ -45,7 +45,7 @@ int s2n_increment_sequence_number(struct s2n_blob *sequence_number)
 
 int s2n_sequence_number_to_uint64(struct s2n_blob *sequence_number, uint64_t *output)
 {
-    notnull_check(sequence_number);
+    POSIX_ENSURE_REF(sequence_number);
 
     uint8_t shift = 0;
     *output = 0;

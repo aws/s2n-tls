@@ -32,16 +32,16 @@
 
 int get_alert(struct s2n_connection *conn) {
     uint8_t error[2];
-    GUARD(s2n_stuffer_read_bytes(&conn->reader_alert_out, error, 2));
+    POSIX_GUARD(s2n_stuffer_read_bytes(&conn->reader_alert_out, error, 2));
     return error[1];
 }
 
 int write_test_supported_versions_list(struct s2n_stuffer *list, uint8_t *supported_versions, uint8_t length) {
-    GUARD(s2n_stuffer_write_uint8(list, length * S2N_TLS_PROTOCOL_VERSION_LEN));
+    POSIX_GUARD(s2n_stuffer_write_uint8(list, length * S2N_TLS_PROTOCOL_VERSION_LEN));
 
     for (int i = 0; i < length; i++) {
-        GUARD(s2n_stuffer_write_uint8(list, supported_versions[i] / 10));
-        GUARD(s2n_stuffer_write_uint8(list, supported_versions[i] % 10));
+        POSIX_GUARD(s2n_stuffer_write_uint8(list, supported_versions[i] / 10));
+        POSIX_GUARD(s2n_stuffer_write_uint8(list, supported_versions[i] % 10));
     }
 
     return 0;
@@ -156,10 +156,10 @@ int main(int argc, char **argv)
         struct s2n_stuffer extension;
         s2n_stuffer_alloc(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN + 1);
 
-        GUARD(s2n_stuffer_write_uint8(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN));
+        POSIX_GUARD(s2n_stuffer_write_uint8(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN));
 
         for (int i = 0; i < invalid_version_list_length; i++) {
-            GUARD(s2n_stuffer_write_uint16(&extension, invalid_version_list[i]));
+            POSIX_GUARD(s2n_stuffer_write_uint16(&extension, invalid_version_list[i]));
         }
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_supported_versions_extension.recv(server_conn, &extension), S2N_ERR_BAD_MESSAGE);
@@ -180,10 +180,10 @@ int main(int argc, char **argv)
         struct s2n_stuffer extension;
         s2n_stuffer_alloc(&extension, grease_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN + 1);
 
-        GUARD(s2n_stuffer_write_uint8(&extension, grease_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN));
+        POSIX_GUARD(s2n_stuffer_write_uint8(&extension, grease_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN));
 
         for (int i = 0; i < grease_version_list_length; i++) {
-            GUARD(s2n_stuffer_write_uint16(&extension, grease_version_list[i]));
+            POSIX_GUARD(s2n_stuffer_write_uint16(&extension, grease_version_list[i]));
         }
 
         EXPECT_SUCCESS(s2n_client_supported_versions_extension.recv(server_conn, &extension));
@@ -207,10 +207,10 @@ int main(int argc, char **argv)
         struct s2n_stuffer extension;
         s2n_stuffer_alloc(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN + 1);
 
-        GUARD(s2n_stuffer_write_uint8(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN));
+        POSIX_GUARD(s2n_stuffer_write_uint8(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN));
 
         for (int i = 0; i < invalid_version_list_length; i++) {
-            GUARD(s2n_stuffer_write_uint16(&extension, invalid_version_list[i]));
+            POSIX_GUARD(s2n_stuffer_write_uint16(&extension, invalid_version_list[i]));
         }
 
         EXPECT_SUCCESS(s2n_client_supported_versions_extension.recv(server_conn, &extension));

@@ -60,8 +60,8 @@ bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, const uint32
     S2N_PUBLIC_INPUT(a);
     S2N_PUBLIC_INPUT(b);
     S2N_PUBLIC_INPUT(len);
-    ENSURE_POSIX((a == NULL) || S2N_MEM_IS_READABLE(a, len), S2N_ERR_SAFETY);
-    ENSURE_POSIX((b == NULL) || S2N_MEM_IS_READABLE(b, len), S2N_ERR_SAFETY);
+    POSIX_ENSURE((a == NULL) || S2N_MEM_IS_READABLE(a, len), S2N_ERR_SAFETY);
+    POSIX_ENSURE((b == NULL) || S2N_MEM_IS_READABLE(b, len), S2N_ERR_SAFETY);
 
     if (len != 0 && (a == NULL || b == NULL)) {
         return false;
@@ -195,8 +195,8 @@ int s2n_in_unit_test_set(bool newval)
 
 int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out)
 {
-    notnull_check(out);
-    ENSURE_POSIX(alignment != 0, S2N_ERR_SAFETY);
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE(alignment != 0, S2N_ERR_SAFETY);
     if (initial == 0) {
         *out = 0;
         return S2N_SUCCESS;
@@ -211,7 +211,7 @@ int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out)
 
 int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out)
 {
-    notnull_check(out);
+    POSIX_ENSURE_REF(out);
     const uint64_t result = ((uint64_t) a) * ((uint64_t) b);
     POSIX_ENSURE(result <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     *out = (uint32_t) result;
@@ -220,7 +220,7 @@ int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out)
 
 int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out)
 {
-    notnull_check(out);
+    POSIX_ENSURE_REF(out);
     uint64_t result = ((uint64_t) a) + ((uint64_t) b);
     POSIX_ENSURE(result <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     *out = (uint32_t) result;
@@ -229,7 +229,7 @@ int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out)
 
 int s2n_sub_overflow(uint32_t a, uint32_t b, uint32_t* out)
 {
-    notnull_check(out);
+    POSIX_ENSURE_REF(out);
     POSIX_ENSURE(a >= b, S2N_ERR_INTEGER_OVERFLOW);
     *out = a - b;
     return S2N_SUCCESS;

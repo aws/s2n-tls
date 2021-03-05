@@ -48,16 +48,16 @@ static int s2n_tls13_conn_copy_server_finished_hash(struct s2n_connection *conn)
 static int s2n_setup_tls13_secrets_prereqs(struct s2n_connection *conn)
 {
     conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-    GUARD(s2n_tls13_conn_copy_server_finished_hash(conn));
+    POSIX_GUARD(s2n_tls13_conn_copy_server_finished_hash(conn));
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
-    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-    notnull_check(ecc_pref);
+    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    POSIX_ENSURE_REF(ecc_pref);
 
     conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
     conn->secure.client_ecc_evp_params[0].negotiated_curve = ecc_pref->ecc_curves[0];
-    GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
-    GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
+    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.server_ecc_evp_params));
+    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&conn->secure.client_ecc_evp_params[0]));
 
     return S2N_SUCCESS;
 }
@@ -66,23 +66,23 @@ static int s2n_test_tls13_handle_secrets(s2n_mode mode, uint8_t version, message
 {
     for (size_t i = 0; i < S2N_MAX_HANDSHAKE_LENGTH; i++) {
         struct s2n_connection *conn;
-        notnull_check(conn = s2n_connection_new(mode));
-        GUARD(s2n_setup_tls13_secrets_prereqs(conn));
+        POSIX_ENSURE_REF(conn = s2n_connection_new(mode));
+        POSIX_GUARD(s2n_setup_tls13_secrets_prereqs(conn));
 
         conn->actual_protocol_version = version;
 
         s2n_tls13_connection_keys(client_secrets, conn);
 
         DEFER_CLEANUP(struct s2n_blob empty_secret, s2n_free);
-        GUARD(s2n_alloc(&empty_secret, client_secrets.size));
-        GUARD(s2n_blob_zero(&empty_secret));
-        eq_check(memcmp(empty_secret.data, client_secrets.extract_secret.data, client_secrets.extract_secret.size), 0);
+        POSIX_GUARD(s2n_alloc(&empty_secret, client_secrets.size));
+        POSIX_GUARD(s2n_blob_zero(&empty_secret));
+        POSIX_ENSURE_EQ(memcmp(empty_secret.data, client_secrets.extract_secret.data, client_secrets.extract_secret.size), 0);
 
         /* verify that that is the initial secret state */
         conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
         conn->handshake.message_number = i;
 
-        GUARD(s2n_tls13_handle_secrets(conn));
+        POSIX_GUARD(s2n_tls13_handle_secrets(conn));
 
         bool expect_secret_updated = false;
         for (size_t j = 0; j < update_points_len; j++) {
@@ -93,12 +93,12 @@ static int s2n_test_tls13_handle_secrets(s2n_mode mode, uint8_t version, message
         }
 
         if (expect_secret_updated) {
-            ne_check(memcmp(empty_secret.data, client_secrets.extract_secret.data, empty_secret.size), 0);
+            POSIX_ENSURE_NE(memcmp(empty_secret.data, client_secrets.extract_secret.data, empty_secret.size), 0);
         } else {
-            eq_check(memcmp(empty_secret.data, client_secrets.extract_secret.data, empty_secret.size), 0);
+            POSIX_ENSURE_EQ(memcmp(empty_secret.data, client_secrets.extract_secret.data, empty_secret.size), 0);
         }
 
-        GUARD(s2n_connection_free(conn));
+        POSIX_GUARD(s2n_connection_free(conn));
     }
 
     return S2N_SUCCESS;
@@ -114,23 +114,23 @@ static int s2n_test_secret_handler(void* context, struct s2n_connection *conn,
 
     switch(secret_type) {
         case S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET:
-            eq_check(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
+            POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
             break;
         case S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET:
-            eq_check(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
+            POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
             break;
         case S2N_SERVER_APPLICATION_TRAFFIC_SECRET:
             if (conn->mode == S2N_SERVER) {
-                eq_check(s2n_conn_get_current_message_type(conn), SERVER_FINISHED);
+                POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(conn), SERVER_FINISHED);
             } else {
-                eq_check(s2n_conn_get_current_message_type(conn), CLIENT_FINISHED);
+                POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(conn), CLIENT_FINISHED);
             }
             break;
         case S2N_CLIENT_APPLICATION_TRAFFIC_SECRET:
-            eq_check(s2n_conn_get_current_message_type(conn), CLIENT_FINISHED);
+            POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(conn), CLIENT_FINISHED);
             break;
         case S2N_CLIENT_EARLY_TRAFFIC_SECRET:
-            S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+            POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
             break;
     }
 
@@ -393,7 +393,7 @@ int main(int argc, char **argv)
                 EXPECT_NOT_EQUAL(psk->secret.size, 0);
                 EXPECT_NOT_EQUAL(psk->secret.data, NULL);
                 EXPECT_SUCCESS(s2n_realloc(&psk->early_secret, sizeof(early_secret_data)));
-                memcpy_check(psk->early_secret.data, early_secret_data, sizeof(early_secret_data));
+                POSIX_CHECKED_MEMCPY(psk->early_secret.data, early_secret_data, sizeof(early_secret_data));
                 EXPECT_NOT_EQUAL(psk->early_secret.size, 0);
                 EXPECT_NOT_EQUAL(psk->early_secret.data, NULL);
             }
@@ -466,7 +466,7 @@ int main(int argc, char **argv)
                             conn->handshake.message_number = i;
 
                             EXPECT_SUCCESS(s2n_connection_set_secret_callback(conn, s2n_test_secret_handler, secrets_handled));
-                            GUARD(s2n_tls13_handle_secrets(conn));
+                            POSIX_GUARD(s2n_tls13_handle_secrets(conn));
 
                             EXPECT_SUCCESS(s2n_connection_free(conn));
                         }
@@ -503,7 +503,7 @@ int main(int argc, char **argv)
                         conn->handshake.message_number = i;
 
                         EXPECT_SUCCESS(s2n_connection_set_secret_callback(conn, s2n_test_secret_handler, secrets_handled));
-                        GUARD(s2n_tls13_handle_secrets(conn));
+                        POSIX_GUARD(s2n_tls13_handle_secrets(conn));
 
                         EXPECT_SUCCESS(s2n_connection_free(conn));
                     }

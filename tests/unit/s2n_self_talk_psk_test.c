@@ -49,16 +49,16 @@ uint8_t test_other_server_data[] = "test other server data";
 static s2n_result setup_psk(struct s2n_connection *conn, const uint8_t *test_identity_data, uint16_t test_identity_size,
                             const uint8_t *test_secret_data, uint16_t test_secret_size, s2n_psk_hmac test_hmac)
 {
-    ENSURE_REF(conn);
-    ENSURE_REF(test_identity_data);
-    ENSURE_REF(test_secret_data);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(test_identity_data);
+    RESULT_ENSURE_REF(test_secret_data);
 
     struct s2n_psk *psk = s2n_external_psk_new();
-    GUARD_AS_RESULT(s2n_psk_set_identity(psk, test_identity_data, test_identity_size));
-    GUARD_AS_RESULT(s2n_psk_set_secret(psk, test_secret_data, test_secret_size));
-    GUARD_AS_RESULT(s2n_psk_set_hmac(psk, test_hmac));
-    GUARD_AS_RESULT(s2n_connection_append_psk(conn, psk));
-    GUARD_AS_RESULT(s2n_psk_free(&psk));
+    RESULT_GUARD_POSIX(s2n_psk_set_identity(psk, test_identity_data, test_identity_size));
+    RESULT_GUARD_POSIX(s2n_psk_set_secret(psk, test_secret_data, test_secret_size));
+    RESULT_GUARD_POSIX(s2n_psk_set_hmac(psk, test_hmac));
+    RESULT_GUARD_POSIX(s2n_connection_append_psk(conn, psk));
+    RESULT_GUARD_POSIX(s2n_psk_free(&psk));
     EXPECT_NULL(psk);
 
     return S2N_RESULT_OK;
@@ -66,7 +66,7 @@ static s2n_result setup_psk(struct s2n_connection *conn, const uint8_t *test_ide
 
 static s2n_result setup_client_psks(struct s2n_connection *client_conn)
 {
-    ENSURE_REF(client_conn);
+    RESULT_ENSURE_REF(client_conn);
 
     /* Setup other client PSK */
     EXPECT_OK(setup_psk(client_conn, test_other_client_data, sizeof(test_other_client_data), test_other_client_data,
@@ -83,7 +83,7 @@ static s2n_result setup_client_psks(struct s2n_connection *client_conn)
 
 static s2n_result setup_server_psks(struct s2n_connection *server_conn)
 {
-    ENSURE_REF(server_conn);
+    RESULT_ENSURE_REF(server_conn);
 
     /* Setup first shared PSK for server */
     EXPECT_OK(setup_psk(server_conn, test_shared_identity, sizeof(test_shared_identity), test_shared_secret,
@@ -100,8 +100,8 @@ static s2n_result setup_server_psks(struct s2n_connection *server_conn)
 
 static s2n_result setup_psks_with_no_match(struct s2n_connection *client_conn, struct s2n_connection *server_conn)
 {
-    ENSURE_REF(client_conn);
-    ENSURE_REF(server_conn);
+    RESULT_ENSURE_REF(client_conn);
+    RESULT_ENSURE_REF(server_conn);
 
     /* Setup other client PSK */
     EXPECT_OK(setup_psk(client_conn, test_other_client_data, sizeof(test_other_client_data), test_other_client_data,
@@ -116,13 +116,13 @@ static s2n_result setup_psks_with_no_match(struct s2n_connection *client_conn, s
 static s2n_result validate_chosen_psk(struct s2n_connection *server_conn, uint8_t *psk_identity_data,
                                       size_t psk_identity_size, size_t chosen_index)
 {
-    ENSURE_REF(server_conn);
-    ENSURE_REF(psk_identity_data);
-    ENSURE_REF(server_conn->psk_params.chosen_psk);
+    RESULT_ENSURE_REF(server_conn);
+    RESULT_ENSURE_REF(psk_identity_data);
+    RESULT_ENSURE_REF(server_conn->psk_params.chosen_psk);
 
-    ENSURE_EQ(server_conn->psk_params.chosen_psk->identity.size, psk_identity_size);
-    ENSURE_EQ(memcmp(server_conn->psk_params.chosen_psk->identity.data, psk_identity_data, psk_identity_size), 0);
-    ENSURE_EQ(server_conn->psk_params.chosen_psk_wire_index, chosen_index);
+    RESULT_ENSURE_EQ(server_conn->psk_params.chosen_psk->identity.size, psk_identity_size);
+    RESULT_ENSURE_EQ(memcmp(server_conn->psk_params.chosen_psk->identity.data, psk_identity_data, psk_identity_size), 0);
+    RESULT_ENSURE_EQ(server_conn->psk_params.chosen_psk_wire_index, chosen_index);
 
     return S2N_RESULT_OK;
 }

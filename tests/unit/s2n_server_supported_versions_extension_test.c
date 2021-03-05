@@ -27,10 +27,10 @@
 #include "utils/s2n_safety.h"
 
 int write_test_supported_version(struct s2n_stuffer *list, uint8_t supported_version) {
-    GUARD(s2n_stuffer_write_uint8(list, S2N_TLS_PROTOCOL_VERSION_LEN));
+    POSIX_GUARD(s2n_stuffer_write_uint8(list, S2N_TLS_PROTOCOL_VERSION_LEN));
 
-    GUARD(s2n_stuffer_write_uint8(list, supported_version / 10));
-    GUARD(s2n_stuffer_write_uint8(list, supported_version % 10));
+    POSIX_GUARD(s2n_stuffer_write_uint8(list, supported_version / 10));
+    POSIX_GUARD(s2n_stuffer_write_uint8(list, supported_version % 10));
 
     return 0;
 }

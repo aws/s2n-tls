@@ -19,9 +19,9 @@
 
 static S2N_RESULT s2n_write_test_identity(struct s2n_stuffer *out, const uint8_t *identity, uint16_t identity_size)
 {
-    GUARD_AS_RESULT(s2n_stuffer_write_uint16(out, identity_size));
-    GUARD_AS_RESULT(s2n_stuffer_write_bytes(out, identity, identity_size));
-    GUARD_AS_RESULT(s2n_stuffer_write_uint32(out, 0));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(out, identity_size));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, identity, identity_size));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(out, 0));
     return S2N_RESULT_OK;
 }
 
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
     /* Test s2n_offered_psk_new */
     {
         struct s2n_offered_psk zeroed_psk = { 0 };
-        memset_check(&zeroed_psk, 0, sizeof(struct s2n_offered_psk));
+        POSIX_CHECKED_MEMSET(&zeroed_psk, 0, sizeof(struct s2n_offered_psk));
         DEFER_CLEANUP(struct s2n_offered_psk *new_psk = s2n_offered_psk_new(), s2n_offered_psk_free);
         EXPECT_NOT_NULL(new_psk);
 

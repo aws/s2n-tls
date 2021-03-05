@@ -53,9 +53,9 @@ sample_uniform_r_bits(OUT r_t *r,
   // For the seedexpander
   DEFER_CLEANUP(aes_ctr_prf_state_t prf_state = {0}, aes_ctr_prf_state_cleanup);
 
-  GUARD(init_aes_ctr_prf_state(&prf_state, MAX_AES_INVOKATION, seed));
+  POSIX_GUARD(init_aes_ctr_prf_state(&prf_state, MAX_AES_INVOKATION, seed));
 
-  GUARD(sample_uniform_r_bits_with_fixed_prf_context(r, &prf_state, must_be_odd));
+  POSIX_GUARD(sample_uniform_r_bits_with_fixed_prf_context(r, &prf_state, must_be_odd));
 
   return SUCCESS;
 }

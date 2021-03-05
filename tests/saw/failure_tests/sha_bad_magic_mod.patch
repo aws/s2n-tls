@@ -7,7 +7,7 @@ diff -r -u s2n/crypto/s2n_hmac.c s2n_break/crypto/s2n_hmac.c
       */
 -    const uint32_t HIGHEST_32_BIT = 4294949760;
 +    const uint32_t HIGHEST_32_BIT = 4294949761;
-     ENSURE_POSIX(size <= (UINT32_MAX - HIGHEST_32_BIT), S2N_ERR_INTEGER_OVERFLOW);
+     POSIX_ENSURE(size <= (UINT32_MAX - HIGHEST_32_BIT), S2N_ERR_INTEGER_OVERFLOW);
      uint32_t value = (HIGHEST_32_BIT + size) % state->hash_block_size;
 Binary files s2n/.git/index and s2n_break/.git/index differ
 Only in s2n/tests/saw: bad_magic_mod.patch

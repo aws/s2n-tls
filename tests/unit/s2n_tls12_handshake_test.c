@@ -58,29 +58,29 @@ static int s2n_setup_handler_to_expect(message_type_t expected, uint8_t directio
 
 static int s2n_test_write_header(struct s2n_stuffer *output, uint8_t record_type, uint8_t message_type)
 {
-    GUARD(s2n_stuffer_write_uint8(output, record_type));
+    POSIX_GUARD(s2n_stuffer_write_uint8(output, record_type));
 
     /* TLS1.2 protocol version */
-    GUARD(s2n_stuffer_write_uint8(output, 3));
-    GUARD(s2n_stuffer_write_uint8(output, 3));
+    POSIX_GUARD(s2n_stuffer_write_uint8(output, 3));
+    POSIX_GUARD(s2n_stuffer_write_uint8(output, 3));
 
     if (record_type == TLS_HANDSHAKE) {
         /* Total message size */
-        GUARD(s2n_stuffer_write_uint16(output, 4));
+        POSIX_GUARD(s2n_stuffer_write_uint16(output, 4));
 
-        GUARD(s2n_stuffer_write_uint8(output, message_type));
+        POSIX_GUARD(s2n_stuffer_write_uint8(output, message_type));
 
         /* Handshake message data size */
-        GUARD(s2n_stuffer_write_uint24(output, 0));
+        POSIX_GUARD(s2n_stuffer_write_uint24(output, 0));
         return 0;
     }
 
     if (record_type == TLS_CHANGE_CIPHER_SPEC) {
         /* Total message size */
-        GUARD(s2n_stuffer_write_uint16(output, 1));
+        POSIX_GUARD(s2n_stuffer_write_uint16(output, 1));
 
         /* change spec is always just 0x01 */
-        GUARD(s2n_stuffer_write_uint8(output, 1));
+        POSIX_GUARD(s2n_stuffer_write_uint8(output, 1));
         return 0;
     }
 

@@ -38,14 +38,14 @@ unsigned long s2n_get_openssl_version(void)
 
 int s2n_init(void)
 {
-    GUARD_POSIX(s2n_fips_init());
-    GUARD_POSIX(s2n_mem_init());
-    GUARD_AS_POSIX(s2n_rand_init());
-    GUARD_POSIX(s2n_cipher_suites_init());
-    GUARD_POSIX(s2n_security_policies_init());
-    GUARD_POSIX(s2n_config_defaults_init());
-    GUARD_POSIX(s2n_extension_type_init());
-    GUARD_AS_POSIX(s2n_pq_init());
+    POSIX_GUARD(s2n_fips_init());
+    POSIX_GUARD(s2n_mem_init());
+    POSIX_GUARD_RESULT(s2n_rand_init());
+    POSIX_GUARD(s2n_cipher_suites_init());
+    POSIX_GUARD(s2n_security_policies_init());
+    POSIX_GUARD(s2n_config_defaults_init());
+    POSIX_GUARD(s2n_extension_type_init());
+    POSIX_GUARD_RESULT(s2n_pq_init());
 
     POSIX_ENSURE_OK(atexit(s2n_cleanup_atexit), S2N_ERR_ATEXIT);
 
@@ -60,7 +60,7 @@ int s2n_cleanup(void)
 {
     /* s2n_cleanup is supposed to be called from each thread before exiting,
      * so ensure that whatever clean ups we have here are thread safe */
-    GUARD_AS_POSIX(s2n_rand_cleanup_thread());
+    POSIX_GUARD_RESULT(s2n_rand_cleanup_thread());
     return 0;
 }
 

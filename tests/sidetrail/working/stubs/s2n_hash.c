@@ -34,7 +34,7 @@ int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out)
     case S2N_HASH_SHA512:   *out = SHA512_DIGEST_LENGTH; break;
     case S2N_HASH_MD5_SHA1: *out = MD5_DIGEST_LENGTH + SHA_DIGEST_LENGTH; break;
     default:
-        S2N_ERROR(S2N_ERR_HASH_INVALID_ALGORITHM);
+        POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
     return 0;
 }

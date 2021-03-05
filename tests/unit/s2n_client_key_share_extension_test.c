@@ -448,7 +448,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(ecc_preferences);
 
             /* Setup the client to have received a HelloRetryRequest */
-            memcpy_check(client_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+            POSIX_CHECKED_MEMCPY(client_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
             EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
             EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(client_conn));
             client_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
@@ -919,12 +919,12 @@ int main(int argc, char **argv)
 
 static int s2n_test_rewrite_length(struct s2n_stuffer *stuffer)
 {
-    notnull_check(stuffer);
+    POSIX_ENSURE_REF(stuffer);
 
     int length = s2n_stuffer_data_available(stuffer) - S2N_SIZE_OF_CLIENT_SHARE_SIZE;
-    GUARD(s2n_stuffer_rewrite(stuffer));
-    GUARD(s2n_stuffer_write_uint16(stuffer, length));
-    GUARD(s2n_stuffer_skip_write(stuffer, length));
+    POSIX_GUARD(s2n_stuffer_rewrite(stuffer));
+    POSIX_GUARD(s2n_stuffer_write_uint16(stuffer, length));
+    POSIX_GUARD(s2n_stuffer_skip_write(stuffer, length));
     return 0;
 }
 
@@ -938,8 +938,8 @@ static int s2n_write_key_share(struct s2n_stuffer *out,
         uint16_t iana_value, uint16_t share_size,
         const struct s2n_ecc_named_curve *existing_curve)
 {
-    notnull_check(out);
-    notnull_check(existing_curve);
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE_REF(existing_curve);
 
     struct s2n_ecc_evp_params ecc_evp_params;
     const struct s2n_ecc_named_curve test_curve = {
@@ -953,10 +953,10 @@ static int s2n_write_key_share(struct s2n_stuffer *out,
     ecc_evp_params.negotiated_curve = &test_curve;
     ecc_evp_params.evp_pkey = NULL;
     if (s2n_ecdhe_parameters_send(&ecc_evp_params, out) < 0) {
-        GUARD(s2n_ecc_evp_params_free(&ecc_evp_params));
+        POSIX_GUARD(s2n_ecc_evp_params_free(&ecc_evp_params));
         return 1; 
     }
 
-    GUARD(s2n_ecc_evp_params_free(&ecc_evp_params));
+    POSIX_GUARD(s2n_ecc_evp_params_free(&ecc_evp_params));
     return 0;
 }

@@ -43,14 +43,14 @@ static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn,
 static int s2n_test_error_select_psk_identity_callback(struct s2n_connection *conn,
         struct s2n_offered_psk_list *psk_identity_list, uint16_t *chosen_wire_index)
 {
-    S2N_ERROR(S2N_ERR_UNIMPLEMENTED);
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
 static S2N_RESULT s2n_write_test_identity(struct s2n_stuffer *out, struct s2n_blob *identity)
 {
-    GUARD_AS_RESULT(s2n_stuffer_write_uint16(out, identity->size));
-    GUARD_AS_RESULT(s2n_stuffer_write(out, identity));
-    GUARD_AS_RESULT(s2n_stuffer_write_uint32(out, 0));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(out, identity->size));
+    RESULT_GUARD_POSIX(s2n_stuffer_write(out, identity));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(out, 0));
     return S2N_RESULT_OK;
 }
 

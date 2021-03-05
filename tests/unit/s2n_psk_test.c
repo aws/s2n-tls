@@ -670,7 +670,7 @@ int main(int argc, char **argv)
 
             for (s2n_hmac_algorithm hmac_alg = S2N_HMAC_SHA1; hmac_alg <= S2N_HMAC_SHA384; hmac_alg++) {
                 uint8_t hash_size = 0;
-                GUARD(s2n_hmac_digest_size(hmac_alg, &hash_size));
+                POSIX_GUARD(s2n_hmac_digest_size(hmac_alg, &hash_size));
 
                 uint8_t binder_size = 0;
                 EXPECT_SUCCESS(s2n_stuffer_read_uint8(&out, &binder_size));

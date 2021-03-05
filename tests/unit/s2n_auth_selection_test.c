@@ -51,14 +51,14 @@ static int s2n_test_auth_combo(struct s2n_connection *conn,
 {
     struct s2n_cert_chain_and_key *actual_cert_chain;
 
-    GUARD(s2n_is_cipher_suite_valid_for_auth(conn, cipher_suite));
+    POSIX_GUARD(s2n_is_cipher_suite_valid_for_auth(conn, cipher_suite));
     conn->secure.cipher_suite = cipher_suite;
 
-    GUARD(s2n_is_sig_scheme_valid_for_auth(conn, sig_scheme));
+    POSIX_GUARD(s2n_is_sig_scheme_valid_for_auth(conn, sig_scheme));
     conn->secure.conn_sig_scheme.sig_alg = sig_scheme->sig_alg;
 
-    GUARD(s2n_select_certs_for_server_auth(conn, &actual_cert_chain));
-    eq_check(actual_cert_chain, expected_cert_chain);
+    POSIX_GUARD(s2n_select_certs_for_server_auth(conn, &actual_cert_chain));
+    POSIX_ENSURE_EQ(actual_cert_chain, expected_cert_chain);
     return S2N_SUCCESS;
 }
 

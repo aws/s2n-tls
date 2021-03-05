@@ -31,13 +31,13 @@ const s2n_early_data_state valid_previous_states[] = {
 
 S2N_RESULT s2n_connection_set_early_data_state(struct s2n_connection *conn, s2n_early_data_state next_state)
 {
-    ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
     if (conn->early_data_state == next_state) {
         return S2N_RESULT_OK;
     }
-    ENSURE(next_state < S2N_EARLY_DATA_STATES_COUNT, S2N_ERR_INVALID_EARLY_DATA_STATE);
-    ENSURE(next_state != S2N_UNKNOWN_EARLY_DATA_STATE, S2N_ERR_INVALID_EARLY_DATA_STATE);
-    ENSURE(conn->early_data_state == valid_previous_states[next_state], S2N_ERR_INVALID_EARLY_DATA_STATE);
+    RESULT_ENSURE(next_state < S2N_EARLY_DATA_STATES_COUNT, S2N_ERR_INVALID_EARLY_DATA_STATE);
+    RESULT_ENSURE(next_state != S2N_UNKNOWN_EARLY_DATA_STATE, S2N_ERR_INVALID_EARLY_DATA_STATE);
+    RESULT_ENSURE(conn->early_data_state == valid_previous_states[next_state], S2N_ERR_INVALID_EARLY_DATA_STATE);
     conn->early_data_state = next_state;
     return S2N_RESULT_OK;
 }
@@ -47,21 +47,21 @@ S2N_CLEANUP_RESULT s2n_early_data_config_free(struct s2n_early_data_config *conf
     if (config == NULL) {
         return S2N_RESULT_OK;
     }
-    GUARD_AS_RESULT(s2n_free(&config->application_protocol));
-    GUARD_AS_RESULT(s2n_free(&config->context));
+    RESULT_GUARD_POSIX(s2n_free(&config->application_protocol));
+    RESULT_GUARD_POSIX(s2n_free(&config->context));
     return S2N_RESULT_OK;
 }
 
 int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data_size,
         uint8_t cipher_suite_first_byte, uint8_t cipher_suite_second_byte)
 {
-    notnull_check(psk);
+    POSIX_ENSURE_REF(psk);
 
     const uint8_t cipher_suite_iana[] = { cipher_suite_first_byte, cipher_suite_second_byte };
     struct s2n_cipher_suite *cipher_suite = NULL;
-    GUARD_AS_POSIX(s2n_cipher_suite_from_iana(cipher_suite_iana, &cipher_suite));
-    notnull_check(cipher_suite);
-    ENSURE_POSIX(cipher_suite->prf_alg == psk->hmac_alg, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_GUARD_RESULT(s2n_cipher_suite_from_iana(cipher_suite_iana, &cipher_suite));
+    POSIX_ENSURE_REF(cipher_suite);
+    POSIX_ENSURE(cipher_suite->prf_alg == psk->hmac_alg, S2N_ERR_INVALID_ARGUMENT);
 
     psk->early_data_config.max_early_data_size = max_early_data_size;
     psk->early_data_config.protocol_version = S2N_TLS13;
@@ -71,32 +71,32 @@ int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data_si
 
 int s2n_psk_set_application_protocol(struct s2n_psk *psk, const uint8_t *application_protocol, uint8_t size)
 {
-    notnull_check(psk);
+    POSIX_ENSURE_REF(psk);
     if (size > 0) {
-        notnull_check(application_protocol);
+        POSIX_ENSURE_REF(application_protocol);
     }
     struct s2n_blob *protocol_blob = &psk->early_data_config.application_protocol;
-    GUARD(s2n_realloc(protocol_blob, size));
-    memcpy_check(protocol_blob->data, application_protocol, size);
+    POSIX_GUARD(s2n_realloc(protocol_blob, size));
+    POSIX_CHECKED_MEMCPY(protocol_blob->data, application_protocol, size);
     return S2N_SUCCESS;
 }
 
 int s2n_psk_set_context(struct s2n_psk *psk, const uint8_t *context, uint16_t size)
 {
-    notnull_check(psk);
+    POSIX_ENSURE_REF(psk);
     if (size > 0) {
-        notnull_check(context);
+        POSIX_ENSURE_REF(context);
     }
     struct s2n_blob *context_blob = &psk->early_data_config.context;
-    GUARD(s2n_realloc(context_blob, size));
-    memcpy_check(context_blob->data, context, size);
+    POSIX_GUARD(s2n_realloc(context_blob, size));
+    POSIX_CHECKED_MEMCPY(context_blob->data, context, size);
     return S2N_SUCCESS;
 }
 
 S2N_RESULT s2n_early_data_config_clone(struct s2n_psk *new_psk, struct s2n_early_data_config *old_config)
 {
-    ENSURE_REF(old_config);
-    ENSURE_REF(new_psk);
+    RESULT_ENSURE_REF(old_config);
+    RESULT_ENSURE_REF(new_psk);
 
     struct s2n_early_data_config config_copy = new_psk->early_data_config;
 
@@ -106,9 +106,9 @@ S2N_RESULT s2n_early_data_config_clone(struct s2n_psk *new_psk, struct s2n_early
     new_psk->early_data_config.context = config_copy.context;
 
     /* Clone / realloc blobs */
-    GUARD_AS_RESULT(s2n_psk_set_application_protocol(new_psk, old_config->application_protocol.data,
+    RESULT_GUARD_POSIX(s2n_psk_set_application_protocol(new_psk, old_config->application_protocol.data,
             old_config->application_protocol.size));
-    GUARD_AS_RESULT(s2n_psk_set_context(new_psk, old_config->context.data,
+    RESULT_GUARD_POSIX(s2n_psk_set_context(new_psk, old_config->context.data,
             old_config->context.size));
 
     return S2N_RESULT_OK;

@@ -216,7 +216,7 @@ int main(int argc, char **argv)
 
         struct s2n_stuffer* extension_stuffer = &server_conn->handshake.io;
 
-        memcpy_check(server_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+        POSIX_CHECKED_MEMCPY(server_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
         server_conn->secure.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         server_conn->secure.client_ecc_evp_params[0].negotiated_curve = s2n_all_supported_curves_list[0];
@@ -232,7 +232,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[0]));
 
         /* Setup the client to receive a HelloRetryRequest */
-        memcpy_check(client_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+        POSIX_CHECKED_MEMCPY(client_conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
 
         /* Setup the handshake type and message number to simulate a condition where a HelloRetry should be sent */
@@ -295,7 +295,7 @@ int main(int argc, char **argv)
         struct s2n_blob compare_blob;
 
         struct s2n_hash_state hash_state, client_hello1_hash;
-        GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
+        POSIX_GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
 
         uint8_t client_hello1_digest_out[S2N_MAX_DIGEST_LEN];
         EXPECT_SUCCESS(s2n_hash_new(&client_hello1_hash));
@@ -310,7 +310,7 @@ int main(int argc, char **argv)
 
         struct s2n_hash_state recreated_hash;
         uint8_t recreated_transcript_digest_out[S2N_MAX_DIGEST_LEN];
-        GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
+        POSIX_GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
         EXPECT_SUCCESS(s2n_hash_new(&recreated_hash));
         EXPECT_SUCCESS(s2n_hash_copy(&recreated_hash, &hash_state));
         EXPECT_SUCCESS(s2n_hash_digest(&recreated_hash, recreated_transcript_digest_out, hash_digest_length));

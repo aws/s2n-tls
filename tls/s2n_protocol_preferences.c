@@ -19,34 +19,34 @@
 
 S2N_RESULT s2n_protocol_preferences_read(struct s2n_stuffer *protocol_preferences, struct s2n_blob *protocol)
 {
-    ENSURE_REF(protocol_preferences);
-    ENSURE_REF(protocol);
+    RESULT_ENSURE_REF(protocol_preferences);
+    RESULT_ENSURE_REF(protocol);
 
     uint8_t length = 0;
-    GUARD_AS_RESULT(s2n_stuffer_read_uint8(protocol_preferences, &length));
-    ENSURE_GT(length, 0);
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(protocol_preferences, &length));
+    RESULT_ENSURE_GT(length, 0);
 
     uint8_t *data = s2n_stuffer_raw_read(protocol_preferences, length);
-    ENSURE_REF(data);
+    RESULT_ENSURE_REF(data);
 
-    GUARD_AS_RESULT(s2n_blob_init(protocol, data, length));
+    RESULT_GUARD_POSIX(s2n_blob_init(protocol, data, length));
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_protocol_preferences_contain(struct s2n_blob *protocol_preferences, struct s2n_blob *protocol, bool *contains)
 {
-    ENSURE_REF(contains);
+    RESULT_ENSURE_REF(contains);
     *contains = false;
-    ENSURE_REF(protocol_preferences);
-    ENSURE_REF(protocol);
+    RESULT_ENSURE_REF(protocol_preferences);
+    RESULT_ENSURE_REF(protocol);
 
     struct s2n_stuffer app_protocols_stuffer = { 0 };
-    GUARD_AS_RESULT(s2n_stuffer_init(&app_protocols_stuffer, protocol_preferences));
-    GUARD_AS_RESULT(s2n_stuffer_skip_write(&app_protocols_stuffer, protocol_preferences->size));
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&app_protocols_stuffer, protocol_preferences));
+    RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&app_protocols_stuffer, protocol_preferences->size));
 
     while (s2n_stuffer_data_available(&app_protocols_stuffer) > 0) {
         struct s2n_blob match_against = { 0 };
-        GUARD_RESULT(s2n_protocol_preferences_read(&app_protocols_stuffer, &match_against));
+        RESULT_GUARD(s2n_protocol_preferences_read(&app_protocols_stuffer, &match_against));
 
         if (match_against.size == protocol->size && memcmp(match_against.data, protocol->data, protocol->size) == 0) {
             *contains = true;
@@ -58,38 +58,38 @@ S2N_RESULT s2n_protocol_preferences_contain(struct s2n_blob *protocol_preference
 
 S2N_RESULT s2n_protocol_preferences_append(struct s2n_blob *application_protocols, const uint8_t *protocol, uint8_t protocol_len)
 {
-    ENSURE_MUT(application_protocols);
-    ENSURE_REF(protocol);
+    RESULT_ENSURE_MUT(application_protocols);
+    RESULT_ENSURE_REF(protocol);
 
     /**
      *= https://tools.ietf.org/rfc/rfc7301#section-3.1
      *# Empty strings
      *# MUST NOT be included and byte strings MUST NOT be truncated.
      */
-    ENSURE(protocol_len != 0, S2N_ERR_INVALID_APPLICATION_PROTOCOL);
+    RESULT_ENSURE(protocol_len != 0, S2N_ERR_INVALID_APPLICATION_PROTOCOL);
 
     uint32_t prev_len = application_protocols->size;
     uint32_t new_len = prev_len + /* len prefix */ 1 + protocol_len;
-    ENSURE(new_len <= UINT16_MAX, S2N_ERR_INVALID_APPLICATION_PROTOCOL);
+    RESULT_ENSURE(new_len <= UINT16_MAX, S2N_ERR_INVALID_APPLICATION_PROTOCOL);
 
-    GUARD_AS_RESULT(s2n_realloc(application_protocols, new_len));
+    RESULT_GUARD_POSIX(s2n_realloc(application_protocols, new_len));
 
     struct s2n_stuffer protocol_stuffer = { 0 };
-    GUARD_AS_RESULT(s2n_stuffer_init(&protocol_stuffer, application_protocols));
-    GUARD_AS_RESULT(s2n_stuffer_skip_write(&protocol_stuffer, prev_len));
-    GUARD_AS_RESULT(s2n_stuffer_write_uint8(&protocol_stuffer, protocol_len));
-    GUARD_AS_RESULT(s2n_stuffer_write_bytes(&protocol_stuffer, protocol, protocol_len));
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&protocol_stuffer, application_protocols));
+    RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&protocol_stuffer, prev_len));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&protocol_stuffer, protocol_len));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&protocol_stuffer, protocol, protocol_len));
 
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, const char *const *protocols, int protocol_count)
 {
-    ENSURE_MUT(application_protocols);
+    RESULT_ENSURE_MUT(application_protocols);
 
     /* NULL value indicates no preference so free the previous blob */
     if (protocols == NULL || protocol_count == 0) {
-        GUARD_AS_RESULT(s2n_free(application_protocols));
+        RESULT_GUARD_POSIX(s2n_free(application_protocols));
         return S2N_RESULT_OK;
     }
 
@@ -101,12 +101,12 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
      * If it ends up being larger, we will expand the blob automatically
      * in the append method.
      */
-    GUARD_AS_RESULT(s2n_realloc(&new_protocols, protocol_count * 8));
+    RESULT_GUARD_POSIX(s2n_realloc(&new_protocols, protocol_count * 8));
 
     /* set the size back to 0 so we start at the beginning.
      * s2n_realloc will just update the size field here
      */
-    GUARD_AS_RESULT(s2n_realloc(&new_protocols, 0));
+    RESULT_GUARD_POSIX(s2n_realloc(&new_protocols, 0));
 
     for (size_t i = 0; i < protocol_count; i++) {
         const uint8_t * protocol = (const uint8_t *)protocols[i];
@@ -117,13 +117,13 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
          *# Empty strings
          *# MUST NOT be included and byte strings MUST NOT be truncated.
          */
-        ENSURE(length < 256, S2N_ERR_INVALID_APPLICATION_PROTOCOL);
+        RESULT_ENSURE(length < 256, S2N_ERR_INVALID_APPLICATION_PROTOCOL);
 
-        GUARD_RESULT(s2n_protocol_preferences_append(&new_protocols, protocol, (uint8_t)length));
+        RESULT_GUARD(s2n_protocol_preferences_append(&new_protocols, protocol, (uint8_t)length));
     }
 
     /* now we can free the previous list since we've validated all new input */
-    GUARD_AS_RESULT(s2n_free(application_protocols));
+    RESULT_GUARD_POSIX(s2n_free(application_protocols));
 
     /* update the connection/config application_protocols with the newly allocated blob */
     *application_protocols = new_protocols;

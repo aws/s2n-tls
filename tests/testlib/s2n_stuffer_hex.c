@@ -35,7 +35,7 @@ static int s2n_stuffer_read_n_bits_hex(struct s2n_stuffer *stuffer, uint8_t n, u
     uint8_t hex_data[16] = {0};
     struct s2n_blob b = { .data = hex_data, .size = n / 4 };
 
-    GUARD(s2n_stuffer_read(stuffer, &b));
+    POSIX_GUARD(s2n_stuffer_read(stuffer, &b));
 
     /* Start with u = 0 */
     *u = 0;
@@ -49,7 +49,7 @@ static int s2n_stuffer_read_n_bits_hex(struct s2n_stuffer *stuffer, uint8_t n, u
         } else if (b.data[i] >= 'A' && b.data[i] <= 'F') {
             *u |= b.data[i] - 'A' + 10;
         } else {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+            POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
         }
     }
 
@@ -58,12 +58,12 @@ static int s2n_stuffer_read_n_bits_hex(struct s2n_stuffer *stuffer, uint8_t n, u
 
 int s2n_stuffer_read_hex(struct s2n_stuffer *stuffer, struct s2n_stuffer *out, uint32_t n)
 {
-    gte_check(s2n_stuffer_space_remaining(out), n);
+    POSIX_ENSURE_GTE(s2n_stuffer_space_remaining(out), n);
 
     for (int i = 0; i < n; i++) {
         uint8_t c;
-        GUARD(s2n_stuffer_read_uint8_hex(stuffer, &c));
-        GUARD(s2n_stuffer_write_uint8(out, c));
+        POSIX_GUARD(s2n_stuffer_read_uint8_hex(stuffer, &c));
+        POSIX_GUARD(s2n_stuffer_write_uint8(out, c));
     }
 
     return 0;
@@ -71,12 +71,12 @@ int s2n_stuffer_read_hex(struct s2n_stuffer *stuffer, struct s2n_stuffer *out, u
 
 int s2n_stuffer_write_hex(struct s2n_stuffer *stuffer, struct s2n_stuffer *in, uint32_t n)
 {
-    gte_check(s2n_stuffer_space_remaining(stuffer), n * 2);
+    POSIX_ENSURE_GTE(s2n_stuffer_space_remaining(stuffer), n * 2);
 
     for (int i = 0; i < n; i++) {
         uint8_t c;
-        GUARD(s2n_stuffer_read_uint8(in, &c));
-        GUARD(s2n_stuffer_write_uint8_hex(stuffer, c));
+        POSIX_GUARD(s2n_stuffer_read_uint8(in, &c));
+        POSIX_GUARD(s2n_stuffer_write_uint8_hex(stuffer, c));
     }
 
     return 0;
@@ -91,7 +91,7 @@ int s2n_stuffer_read_uint32_hex(struct s2n_stuffer *stuffer, uint32_t *u)
 {
     uint64_t u64;
 
-    GUARD(s2n_stuffer_read_n_bits_hex(stuffer, 32, &u64));
+    POSIX_GUARD(s2n_stuffer_read_n_bits_hex(stuffer, 32, &u64));
 
     *u = u64 & 0xffffffff;
 
@@ -102,7 +102,7 @@ int s2n_stuffer_read_uint16_hex(struct s2n_stuffer *stuffer, uint16_t *u)
 {
     uint64_t u64;
 
-    GUARD(s2n_stuffer_read_n_bits_hex(stuffer, 16, &u64));
+    POSIX_GUARD(s2n_stuffer_read_n_bits_hex(stuffer, 16, &u64));
 
     *u = u64 & 0xffff;
 
@@ -113,7 +113,7 @@ int s2n_stuffer_read_uint8_hex(struct s2n_stuffer *stuffer, uint8_t *u)
 {
     uint64_t u64;
 
-    GUARD(s2n_stuffer_read_n_bits_hex(stuffer, 8, &u64));
+    POSIX_GUARD(s2n_stuffer_read_n_bits_hex(stuffer, 8, &u64));
 
     *u = u64 & 0xff;
 
@@ -128,14 +128,14 @@ static int s2n_stuffer_write_n_bits_hex(struct s2n_stuffer *stuffer, uint8_t n, 
     uint8_t hex_data[16] = { 0 };
     struct s2n_blob b = { .data = hex_data, .size = n / 4 };
 
-    lte_check(n, 64);
+    POSIX_ENSURE_LTE(n, 64);
 
     for (int i = b.size; i > 0; i--) {
         b.data[i - 1] = hex[u & 0x0f];
         u >>= 4;
     }
 
-    GUARD(s2n_stuffer_write(stuffer, &b));
+    POSIX_GUARD(s2n_stuffer_write(stuffer, &b));
 
     return 0;
 }
@@ -163,10 +163,10 @@ int s2n_stuffer_write_uint8_hex(struct s2n_stuffer *stuffer, uint8_t u)
 int s2n_stuffer_alloc_ro_from_hex_string(struct s2n_stuffer *stuffer, const char *str)
 {
     if (strlen(str) % 2) {
-        S2N_ERROR(S2N_ERR_SIZE_MISMATCH);
+        POSIX_BAIL(S2N_ERR_SIZE_MISMATCH);
     }
 
-    GUARD(s2n_stuffer_alloc(stuffer, strlen(str) / 2));
+    POSIX_GUARD(s2n_stuffer_alloc(stuffer, strlen(str) / 2));
 
     for (int i = 0; i < strlen(str); i += 2) {
         uint8_t u = 0;
@@ -178,7 +178,7 @@ int s2n_stuffer_alloc_ro_from_hex_string(struct s2n_stuffer *stuffer, const char
         } else if (str[i] >= 'A' && str[i] <= 'F') {
             u = str[i] - 'A' + 10;
         } else {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+            POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
         }
         u <<= 4;
 
@@ -189,10 +189,10 @@ int s2n_stuffer_alloc_ro_from_hex_string(struct s2n_stuffer *stuffer, const char
         } else if (str[i + 1] >= 'A' && str[i + 1] <= 'F') {
             u |= str[i + 1] - 'A' + 10;
         } else {
-            S2N_ERROR(S2N_ERR_BAD_MESSAGE);
+            POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
         }
 
-        GUARD(s2n_stuffer_write_uint8(stuffer, u));
+        POSIX_GUARD(s2n_stuffer_write_uint8(stuffer, u));
     }
 
     return 0;

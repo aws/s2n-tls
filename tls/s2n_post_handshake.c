@@ -26,29 +26,29 @@
  */
 int s2n_post_handshake_recv(struct s2n_connection *conn) 
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
     uint8_t post_handshake_id;
     uint32_t message_length;
     S2N_ERROR_IF(conn->actual_protocol_version != S2N_TLS13, S2N_ERR_BAD_MESSAGE);
 
     while(s2n_stuffer_data_available(&conn->in)) {
-        GUARD(s2n_stuffer_read_uint8(&conn->in, &post_handshake_id));
-        GUARD(s2n_stuffer_read_uint24(&conn->in, &message_length));
+        POSIX_GUARD(s2n_stuffer_read_uint8(&conn->in, &post_handshake_id));
+        POSIX_GUARD(s2n_stuffer_read_uint24(&conn->in, &message_length));
 
         struct s2n_blob post_handshake_blob = { 0 };
         uint8_t *message_data = s2n_stuffer_raw_read(&conn->in, message_length);
-        notnull_check(message_data);
-        GUARD(s2n_blob_init(&post_handshake_blob, message_data, message_length));
+        POSIX_ENSURE_REF(message_data);
+        POSIX_GUARD(s2n_blob_init(&post_handshake_blob, message_data, message_length));
 
         struct s2n_stuffer post_handshake_stuffer = { 0 };
-        GUARD(s2n_stuffer_init(&post_handshake_stuffer, &post_handshake_blob));
-        GUARD(s2n_stuffer_skip_write(&post_handshake_stuffer, message_length));
+        POSIX_GUARD(s2n_stuffer_init(&post_handshake_stuffer, &post_handshake_blob));
+        POSIX_GUARD(s2n_stuffer_skip_write(&post_handshake_stuffer, message_length));
 
         switch (post_handshake_id)
         {
             case TLS_KEY_UPDATE:
-                GUARD(s2n_key_update_recv(conn, &post_handshake_stuffer));
+                POSIX_GUARD(s2n_key_update_recv(conn, &post_handshake_stuffer));
                 break;
             default:
                 /* Ignore all other messages */
@@ -61,10 +61,10 @@ int s2n_post_handshake_recv(struct s2n_connection *conn)
 
 int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
-    GUARD(s2n_key_update_send(conn, blocked));
-    GUARD_AS_POSIX(s2n_tls13_server_nst_send(conn, blocked));
+    POSIX_GUARD(s2n_key_update_send(conn, blocked));
+    POSIX_GUARD_RESULT(s2n_tls13_server_nst_send(conn, blocked));
 
     return S2N_SUCCESS;
 }

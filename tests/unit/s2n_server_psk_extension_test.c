@@ -29,23 +29,23 @@ uint8_t test_secret[] = "test secret";
 
 static s2n_result setup_client_psks(struct s2n_connection *client_conn)
 {
-    ENSURE_REF(client_conn);
+    RESULT_ENSURE_REF(client_conn);
 
     /* Setup other client PSK */
     uint8_t other_client_data[] = "other client data";
     struct s2n_psk *other_client_psk = NULL;
-    GUARD_RESULT(s2n_array_pushback(&client_conn->psk_params.psk_list, (void**) &other_client_psk));
-    GUARD_RESULT(s2n_psk_init(other_client_psk, S2N_PSK_TYPE_EXTERNAL));
-    GUARD_AS_RESULT(s2n_psk_set_identity(other_client_psk, other_client_data, sizeof(other_client_data)));
-    GUARD_AS_RESULT(s2n_psk_set_secret(other_client_psk, other_client_data, sizeof(other_client_data)));
+    RESULT_GUARD(s2n_array_pushback(&client_conn->psk_params.psk_list, (void**) &other_client_psk));
+    RESULT_GUARD(s2n_psk_init(other_client_psk, S2N_PSK_TYPE_EXTERNAL));
+    RESULT_GUARD_POSIX(s2n_psk_set_identity(other_client_psk, other_client_data, sizeof(other_client_data)));
+    RESULT_GUARD_POSIX(s2n_psk_set_secret(other_client_psk, other_client_data, sizeof(other_client_data)));
     other_client_psk->hmac_alg = S2N_HMAC_SHA256;
 
     /* Setup shared PSK for client */
     struct s2n_psk *shared_psk = NULL;
-    GUARD_RESULT(s2n_array_pushback(&client_conn->psk_params.psk_list, (void**) &shared_psk));
-    GUARD_RESULT(s2n_psk_init(shared_psk, S2N_PSK_TYPE_EXTERNAL));
-    GUARD_AS_RESULT(s2n_psk_set_identity(shared_psk, test_identity, sizeof(test_identity)));
-    GUARD_AS_RESULT(s2n_psk_set_secret(shared_psk, test_secret, sizeof(test_secret)));
+    RESULT_GUARD(s2n_array_pushback(&client_conn->psk_params.psk_list, (void**) &shared_psk));
+    RESULT_GUARD(s2n_psk_init(shared_psk, S2N_PSK_TYPE_EXTERNAL));
+    RESULT_GUARD_POSIX(s2n_psk_set_identity(shared_psk, test_identity, sizeof(test_identity)));
+    RESULT_GUARD_POSIX(s2n_psk_set_secret(shared_psk, test_secret, sizeof(test_secret)));
     shared_psk->hmac_alg = TEST_PSK_HMAC;
 
     return S2N_RESULT_OK;
@@ -53,23 +53,23 @@ static s2n_result setup_client_psks(struct s2n_connection *client_conn)
 
 static s2n_result setup_server_psks(struct s2n_connection *server_conn)
 {
-    ENSURE_REF(server_conn);
+    RESULT_ENSURE_REF(server_conn);
 
     /* Setup shared PSK for server */
     struct s2n_psk *shared_psk = NULL;
-    GUARD_RESULT(s2n_array_pushback(&server_conn->psk_params.psk_list, (void**) &shared_psk));
-    GUARD_RESULT(s2n_psk_init(shared_psk, S2N_PSK_TYPE_EXTERNAL));
-    GUARD_AS_RESULT(s2n_psk_set_identity(shared_psk, test_identity, sizeof(test_identity)));
-    GUARD_AS_RESULT(s2n_psk_set_secret(shared_psk, test_secret, sizeof(test_secret)));
+    RESULT_GUARD(s2n_array_pushback(&server_conn->psk_params.psk_list, (void**) &shared_psk));
+    RESULT_GUARD(s2n_psk_init(shared_psk, S2N_PSK_TYPE_EXTERNAL));
+    RESULT_GUARD_POSIX(s2n_psk_set_identity(shared_psk, test_identity, sizeof(test_identity)));
+    RESULT_GUARD_POSIX(s2n_psk_set_secret(shared_psk, test_secret, sizeof(test_secret)));
     shared_psk->hmac_alg = TEST_PSK_HMAC;
 
     /* Setup other server PSK */
     uint8_t other_server_data[] = "other server data";
     struct s2n_psk *other_server_psk = NULL;
-    GUARD_RESULT(s2n_array_pushback(&server_conn->psk_params.psk_list, (void**) &other_server_psk));
-    GUARD_RESULT(s2n_psk_init(other_server_psk, S2N_PSK_TYPE_EXTERNAL));
-    GUARD_AS_RESULT(s2n_psk_set_identity(other_server_psk, other_server_data, sizeof(other_server_data)));
-    GUARD_AS_RESULT(s2n_psk_set_secret(other_server_psk, other_server_data, sizeof(other_server_data)));
+    RESULT_GUARD(s2n_array_pushback(&server_conn->psk_params.psk_list, (void**) &other_server_psk));
+    RESULT_GUARD(s2n_psk_init(other_server_psk, S2N_PSK_TYPE_EXTERNAL));
+    RESULT_GUARD_POSIX(s2n_psk_set_identity(other_server_psk, other_server_data, sizeof(other_server_data)));
+    RESULT_GUARD_POSIX(s2n_psk_set_secret(other_server_psk, other_server_data, sizeof(other_server_data)));
     other_server_psk->hmac_alg = S2N_HMAC_SHA224;
 
     return S2N_RESULT_OK;

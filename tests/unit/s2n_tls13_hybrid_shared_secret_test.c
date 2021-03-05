@@ -487,7 +487,7 @@ static int read_priv_ecc(EVP_PKEY **pkey, const char *priv_ecc) {
      * input buffer. */
 
     DEFER_CLEANUP(struct s2n_blob priv_ecc_blob = { 0 }, s2n_free);
-    GUARD(s2n_alloc(&priv_ecc_blob, key_len));
+    POSIX_GUARD(s2n_alloc(&priv_ecc_blob, key_len));
     for (size_t i = 0; i < key_len; i++) {
         priv_ecc_blob.data[i] = priv_ecc[i];
     }
@@ -497,12 +497,12 @@ static int read_priv_ecc(EVP_PKEY **pkey, const char *priv_ecc) {
     BIO *bio = BIO_new_mem_buf((const void *)priv_ecc, key_len);
 #endif
 
-    notnull_check(bio);
+    POSIX_ENSURE_REF(bio);
     PEM_read_bio_PrivateKey(bio, pkey, 0, NULL);
     /* Caller should assert notnull_check on *pkey */
 
     /* BIO_free returns 1 for success */
-    eq_check(1, BIO_free(bio));
+    POSIX_ENSURE_EQ(1, BIO_free(bio));
 
     return 0;
 }
@@ -531,62 +531,62 @@ static int set_up_conns(struct s2n_connection *client_conn, struct s2n_connectio
 
     /* During an actual handshake, server will generate the shared secret and store it in chosen_client_kem_group_params,
      * client will decapsulate the ciphertext and store the shared secret in chosen_client_kem_group_params. */
-    GUARD(s2n_dup(pq_shared_secret, &server_conn->secure.chosen_client_kem_group_params->kem_params.shared_secret));
-    GUARD(s2n_dup(pq_shared_secret, &client_conn->secure.chosen_client_kem_group_params->kem_params.shared_secret));
+    POSIX_GUARD(s2n_dup(pq_shared_secret, &server_conn->secure.chosen_client_kem_group_params->kem_params.shared_secret));
+    POSIX_GUARD(s2n_dup(pq_shared_secret, &client_conn->secure.chosen_client_kem_group_params->kem_params.shared_secret));
 
     /* Populate the client's PQ private key with something - it doesn't have to be a
      * legitimate private key since it doesn't get used in the shared secret derivation,
      * but we want to make sure its definitely been freed after shared secret calculation */
-    GUARD(s2n_alloc(&client_conn->secure.chosen_client_kem_group_params->kem_params.private_key, 2));
+    POSIX_GUARD(s2n_alloc(&client_conn->secure.chosen_client_kem_group_params->kem_params.private_key, 2));
     struct s2n_stuffer private_key_stuffer = {0};
-    GUARD(s2n_stuffer_init(&private_key_stuffer,
+    POSIX_GUARD(s2n_stuffer_init(&private_key_stuffer,
                            &client_conn->secure.chosen_client_kem_group_params->kem_params.private_key));
     uint8_t fake_private_key[] = {3, 3};
-    GUARD(s2n_stuffer_write_bytes(&private_key_stuffer, fake_private_key, 2));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&private_key_stuffer, fake_private_key, 2));
 
     /* "Import" the provided private ECC keys */
-    eq_check(sizeof(char) * strlen(client_priv_ecc), sizeof(char) * strlen(server_priv_ecc));
-    GUARD(read_priv_ecc(&client_conn->secure.chosen_client_kem_group_params->ecc_params.evp_pkey, client_priv_ecc));
-    notnull_check(client_conn->secure.chosen_client_kem_group_params->ecc_params.evp_pkey);
-    GUARD(read_priv_ecc(&server_conn->secure.server_kem_group_params.ecc_params.evp_pkey, server_priv_ecc));
-    notnull_check(server_conn->secure.server_kem_group_params.ecc_params.evp_pkey);
+    POSIX_ENSURE_EQ(sizeof(char) * strlen(client_priv_ecc), sizeof(char) * strlen(server_priv_ecc));
+    POSIX_GUARD(read_priv_ecc(&client_conn->secure.chosen_client_kem_group_params->ecc_params.evp_pkey, client_priv_ecc));
+    POSIX_ENSURE_REF(client_conn->secure.chosen_client_kem_group_params->ecc_params.evp_pkey);
+    POSIX_GUARD(read_priv_ecc(&server_conn->secure.server_kem_group_params.ecc_params.evp_pkey, server_priv_ecc));
+    POSIX_ENSURE_REF(server_conn->secure.server_kem_group_params.ecc_params.evp_pkey);
 
     /* Each peer sends its public ECC key to the other */
     struct s2n_stuffer wire;
     struct s2n_blob server_point_blob, client_point_blob;
     uint16_t share_size = kem_group->curve->share_size;
 
-    GUARD(s2n_stuffer_growable_alloc(&wire, 1024));
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&wire, 1024));
 
-    GUARD(s2n_ecc_evp_write_params_point(&server_conn->secure.server_kem_group_params.ecc_params, &wire));
-    GUARD(s2n_ecc_evp_read_params_point(&wire, share_size, &server_point_blob));
-    GUARD(s2n_ecc_evp_parse_params_point(&server_point_blob, &client_conn->secure.server_kem_group_params.ecc_params));
+    POSIX_GUARD(s2n_ecc_evp_write_params_point(&server_conn->secure.server_kem_group_params.ecc_params, &wire));
+    POSIX_GUARD(s2n_ecc_evp_read_params_point(&wire, share_size, &server_point_blob));
+    POSIX_GUARD(s2n_ecc_evp_parse_params_point(&server_point_blob, &client_conn->secure.server_kem_group_params.ecc_params));
 
-    GUARD(s2n_ecc_evp_write_params_point(&client_conn->secure.chosen_client_kem_group_params->ecc_params, &wire));
-    GUARD(s2n_ecc_evp_read_params_point(&wire, share_size, &client_point_blob));
-    GUARD(s2n_ecc_evp_parse_params_point(&client_point_blob, &server_conn->secure.chosen_client_kem_group_params->ecc_params));
+    POSIX_GUARD(s2n_ecc_evp_write_params_point(&client_conn->secure.chosen_client_kem_group_params->ecc_params, &wire));
+    POSIX_GUARD(s2n_ecc_evp_read_params_point(&wire, share_size, &client_point_blob));
+    POSIX_GUARD(s2n_ecc_evp_parse_params_point(&client_point_blob, &server_conn->secure.chosen_client_kem_group_params->ecc_params));
 
-    GUARD(s2n_stuffer_free(&wire));
+    POSIX_GUARD(s2n_stuffer_free(&wire));
 
     return S2N_SUCCESS;
 }
 
 static int assert_kem_group_params_freed(struct s2n_connection *conn) {
-    eq_check(NULL,conn->secure.server_kem_group_params.ecc_params.evp_pkey);
-    eq_check(NULL,conn->secure.server_kem_group_params.kem_params.shared_secret.data);
-    eq_check(0, conn->secure.server_kem_group_params.kem_params.shared_secret.allocated);
-    eq_check(NULL, conn->secure.server_kem_group_params.kem_params.private_key.data);
-    eq_check(0, conn->secure.server_kem_group_params.kem_params.private_key.allocated);
-    eq_check(NULL, conn->secure.server_kem_group_params.kem_params.public_key.data);
-    eq_check(0, conn->secure.server_kem_group_params.kem_params.public_key.allocated);
+    POSIX_ENSURE_EQ(NULL,conn->secure.server_kem_group_params.ecc_params.evp_pkey);
+    POSIX_ENSURE_EQ(NULL,conn->secure.server_kem_group_params.kem_params.shared_secret.data);
+    POSIX_ENSURE_EQ(0, conn->secure.server_kem_group_params.kem_params.shared_secret.allocated);
+    POSIX_ENSURE_EQ(NULL, conn->secure.server_kem_group_params.kem_params.private_key.data);
+    POSIX_ENSURE_EQ(0, conn->secure.server_kem_group_params.kem_params.private_key.allocated);
+    POSIX_ENSURE_EQ(NULL, conn->secure.server_kem_group_params.kem_params.public_key.data);
+    POSIX_ENSURE_EQ(0, conn->secure.server_kem_group_params.kem_params.public_key.allocated);
 
-    eq_check(NULL, conn->secure.chosen_client_kem_group_params->ecc_params.evp_pkey);
-    eq_check(NULL, conn->secure.chosen_client_kem_group_params->kem_params.shared_secret.data);
-    eq_check(0, conn->secure.chosen_client_kem_group_params->kem_params.shared_secret.allocated);
-    eq_check(NULL, conn->secure.chosen_client_kem_group_params->kem_params.private_key.data);
-    eq_check(0, conn->secure.chosen_client_kem_group_params->kem_params.private_key.allocated);
-    eq_check(NULL, conn->secure.chosen_client_kem_group_params->kem_params.public_key.data);
-    eq_check(0, conn->secure.chosen_client_kem_group_params->kem_params.public_key.allocated);
+    POSIX_ENSURE_EQ(NULL, conn->secure.chosen_client_kem_group_params->ecc_params.evp_pkey);
+    POSIX_ENSURE_EQ(NULL, conn->secure.chosen_client_kem_group_params->kem_params.shared_secret.data);
+    POSIX_ENSURE_EQ(0, conn->secure.chosen_client_kem_group_params->kem_params.shared_secret.allocated);
+    POSIX_ENSURE_EQ(NULL, conn->secure.chosen_client_kem_group_params->kem_params.private_key.data);
+    POSIX_ENSURE_EQ(0, conn->secure.chosen_client_kem_group_params->kem_params.private_key.allocated);
+    POSIX_ENSURE_EQ(NULL, conn->secure.chosen_client_kem_group_params->kem_params.public_key.data);
+    POSIX_ENSURE_EQ(0, conn->secure.chosen_client_kem_group_params->kem_params.public_key.allocated);
 
     return S2N_SUCCESS;
 }

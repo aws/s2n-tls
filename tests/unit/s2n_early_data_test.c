@@ -56,10 +56,10 @@ static S2N_RESULT s2n_test_all_early_data_sequences(struct s2n_connection *conn,
             }
         }
 
-        ENSURE_EQ(actual_valid, expected_valid);
+        RESULT_ENSURE_EQ(actual_valid, expected_valid);
 
         if (expected_valid) {
-            GUARD_RESULT(s2n_test_all_early_data_sequences(conn, i + 1,
+            RESULT_GUARD(s2n_test_all_early_data_sequences(conn, i + 1,
                     valid_early_state_sequences, valid_early_state_sequences_len));
         }
     }
@@ -68,19 +68,19 @@ static S2N_RESULT s2n_test_all_early_data_sequences(struct s2n_connection *conn,
 
 static S2N_RESULT s2n_alloc_test_config_buffers(struct s2n_early_data_config *config)
 {
-    GUARD_AS_RESULT(s2n_alloc(&config->application_protocol, TEST_SIZE));
-    ENSURE_NE(config->application_protocol.size, 0);
-    GUARD_AS_RESULT(s2n_alloc(&config->context, TEST_SIZE));
-    ENSURE_NE(config->context.size, 0);
+    RESULT_GUARD_POSIX(s2n_alloc(&config->application_protocol, TEST_SIZE));
+    RESULT_ENSURE_NE(config->application_protocol.size, 0);
+    RESULT_GUARD_POSIX(s2n_alloc(&config->context, TEST_SIZE));
+    RESULT_ENSURE_NE(config->context.size, 0);
     return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_test_config_buffers_freed(struct s2n_early_data_config *config)
 {
-    ENSURE_EQ(config->application_protocol.data, NULL);
-    ENSURE_EQ(config->application_protocol.size, 0);
-    ENSURE_EQ(config->context.data, NULL);
-    ENSURE_EQ(config->context.size, 0);
+    RESULT_ENSURE_EQ(config->application_protocol.data, NULL);
+    RESULT_ENSURE_EQ(config->application_protocol.size, 0);
+    RESULT_ENSURE_EQ(config->context.data, NULL);
+    RESULT_ENSURE_EQ(config->context.size, 0);
     return S2N_RESULT_OK;
 }
 

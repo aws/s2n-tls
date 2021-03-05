@@ -399,7 +399,7 @@ int main()
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, 100));
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, 101));
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, 102));
-            GUARD(s2n_stuffer_write_vector_size(&group_list_len));
+            POSIX_GUARD(s2n_stuffer_write_vector_size(&group_list_len));
 
             EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
             EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
@@ -445,7 +445,7 @@ int main()
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &group_list_len));
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, client_kem_pref->tls13_kem_groups[0]->iana_id));
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, client_ecc_pref->ecc_curves[0]->iana_id));
-            GUARD(s2n_stuffer_write_vector_size(&group_list_len));
+            POSIX_GUARD(s2n_stuffer_write_vector_size(&group_list_len));
 
             EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
             EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
@@ -491,7 +491,7 @@ int main()
                 EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &group_list_len));
                 EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, client_kem_pref->tls13_kem_groups[0]->iana_id));
                 EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, client_ecc_pref->ecc_curves[0]->iana_id));
-                GUARD(s2n_stuffer_write_vector_size(&group_list_len));
+                POSIX_GUARD(s2n_stuffer_write_vector_size(&group_list_len));
 
                 EXPECT_NULL(server_conn->secure.server_ecc_evp_params.negotiated_curve);
                 EXPECT_NULL(server_conn->secure.server_kem_group_params.kem_group);
@@ -601,9 +601,9 @@ int main()
 
         struct s2n_stuffer supported_groups_extension;
         EXPECT_SUCCESS(s2n_stuffer_alloc(&supported_groups_extension, 2 + ec_curves_count * 2));
-        GUARD(s2n_stuffer_write_uint16(&supported_groups_extension, ec_curves_count * 2));
+        POSIX_GUARD(s2n_stuffer_write_uint16(&supported_groups_extension, ec_curves_count * 2));
         for (int i = 0; i < ec_curves_count; i++) {
-            GUARD(s2n_stuffer_write_uint16(&supported_groups_extension, unsupported_curves[i].iana_id));
+            POSIX_GUARD(s2n_stuffer_write_uint16(&supported_groups_extension, unsupported_curves[i].iana_id));
         }
 
         /* Force a bad value for the negotiated curve so we know extension was parsed and the curve was set to NULL */

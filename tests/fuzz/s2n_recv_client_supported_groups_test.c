@@ -36,7 +36,7 @@ static const uint8_t TLS_VERSIONS[] = {S2N_TLS13};
 
 int s2n_fuzz_init(int *argc, char **argv[])
 {
-    GUARD(s2n_enable_tls13());
+    POSIX_GUARD(s2n_enable_tls13());
     return S2N_SUCCESS;
 }
 
@@ -47,15 +47,15 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
 
     /* Setup */
     struct s2n_stuffer fuzz_stuffer = {0};
-    GUARD(s2n_stuffer_alloc(&fuzz_stuffer, len + 1));
-    GUARD(s2n_stuffer_write_bytes(&fuzz_stuffer, buf, len));
+    POSIX_GUARD(s2n_stuffer_alloc(&fuzz_stuffer, len + 1));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&fuzz_stuffer, buf, len));
 
     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-    notnull_check(server_conn);
+    POSIX_ENSURE_REF(server_conn);
 
     /* Pull a byte off the libfuzzer input and use it to set parameters */
     uint8_t randval = 0;
-    GUARD(s2n_stuffer_read_uint8(&fuzz_stuffer, &randval));
+    POSIX_GUARD(s2n_stuffer_read_uint8(&fuzz_stuffer, &randval));
     server_conn->actual_protocol_version = TLS_VERSIONS[(randval & 0x0F) % s2n_array_len(TLS_VERSIONS)];
     server_conn->server_protocol_version = TLS_VERSIONS[(randval >> 4) % s2n_array_len(TLS_VERSIONS)];
 
@@ -65,8 +65,8 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     s2n_recv_client_supported_groups(server_conn, &fuzz_stuffer);
 
     /* Cleanup */
-    GUARD(s2n_connection_free(server_conn));
-    GUARD(s2n_stuffer_free(&fuzz_stuffer));
+    POSIX_GUARD(s2n_connection_free(server_conn));
+    POSIX_GUARD(s2n_stuffer_free(&fuzz_stuffer));
 
     return S2N_SUCCESS;
 }

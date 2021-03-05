@@ -22,8 +22,8 @@ static int s2n_test_key_log_cb(void* context, struct s2n_connection *conn,
                                    uint8_t *logline, size_t len)
 {
     struct s2n_stuffer* stuffer = (struct s2n_stuffer*)context;
-    GUARD(s2n_stuffer_write_bytes(stuffer, logline, len));
-    GUARD(s2n_stuffer_write_uint8(stuffer, '\n'));
+    POSIX_GUARD(s2n_stuffer_write_bytes(stuffer, logline, len));
+    POSIX_GUARD(s2n_stuffer_write_uint8(stuffer, '\n'));
 
     return S2N_SUCCESS;
 }
@@ -31,31 +31,31 @@ static int s2n_test_key_log_cb(void* context, struct s2n_connection *conn,
 S2N_RESULT s2n_test_check_tls12(struct s2n_stuffer *stuffer)
 {
     size_t len = s2n_stuffer_data_available(stuffer);
-    ENSURE_GT(len, 0);
+    RESULT_ENSURE_GT(len, 0);
     char *out = (char *)s2n_stuffer_raw_read(stuffer, len);
-    ENSURE_REF(out);
+    RESULT_ENSURE_REF(out);
     /**
      * rather than writing a full parser, we'll just make sure it at least
      * wrote the labels we would expect for TLS 1.2
      */
-    ENSURE_REF(strstr(out, "CLIENT_RANDOM "));
+    RESULT_ENSURE_REF(strstr(out, "CLIENT_RANDOM "));
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_test_check_tls13(struct s2n_stuffer *stuffer)
 {
     size_t len = s2n_stuffer_data_available(stuffer);
-    ENSURE_GT(len, 0);
+    RESULT_ENSURE_GT(len, 0);
     char *out = (char *)s2n_stuffer_raw_read(stuffer, len);
-    ENSURE_REF(out);
+    RESULT_ENSURE_REF(out);
     /**
      * rather than writing a full parser, we'll just make sure it at least
      * wrote the labels we would expect for TLS 1.3
      */
-    ENSURE_REF(strstr(out, "CLIENT_HANDSHAKE_TRAFFIC_SECRET "));
-    ENSURE_REF(strstr(out, "SERVER_HANDSHAKE_TRAFFIC_SECRET "));
-    ENSURE_REF(strstr(out, "CLIENT_TRAFFIC_SECRET_0 "));
-    ENSURE_REF(strstr(out, "SERVER_TRAFFIC_SECRET_0 "));
+    RESULT_ENSURE_REF(strstr(out, "CLIENT_HANDSHAKE_TRAFFIC_SECRET "));
+    RESULT_ENSURE_REF(strstr(out, "SERVER_HANDSHAKE_TRAFFIC_SECRET "));
+    RESULT_ENSURE_REF(strstr(out, "CLIENT_TRAFFIC_SECRET_0 "));
+    RESULT_ENSURE_REF(strstr(out, "SERVER_TRAFFIC_SECRET_0 "));
     return S2N_RESULT_OK;
 }
 

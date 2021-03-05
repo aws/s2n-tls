@@ -21,7 +21,7 @@
 
 #define test_stack_blob_success(test_name, macro_name, requested, max) int test_name() {\
 macro_name(test_name ## blob, requested, max); \
-eq_check(test_name ## blob.size, requested); \
+POSIX_ENSURE_EQ(test_name ## blob.size, requested); \
 return 0; \
 }
 
@@ -33,19 +33,19 @@ test_stack_blob_success(success_equal_smaller, s2n_stack_blob, 10, 100)
 int requested_bigger_than_max() {
     s2n_stack_blob(foo, 11, 10);
     /* This should never be reached due to the above failure */
-    eq_check(foo.allocated, 0);
+    POSIX_ENSURE_EQ(foo.allocated, 0);
 
     return 0;
 }
 
 int succesful_stack_blob() {
     s2n_stack_blob(foo, 10, 10);
-    eq_check(foo.size, 10);
-    eq_check(foo.allocated, 0);
+    POSIX_ENSURE_EQ(foo.size, 10);
+    POSIX_ENSURE_EQ(foo.allocated, 0);
 
     s2n_stack_blob(foo2, 1, 10);
-    eq_check(foo2.size, 1);
-    eq_check(foo2.allocated, 0);
+    POSIX_ENSURE_EQ(foo2.size, 1);
+    POSIX_ENSURE_EQ(foo2.allocated, 0);
 
     return 0;
 }

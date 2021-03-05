@@ -64,13 +64,13 @@ uint8_t s2n_x509_trust_store_has_certs(struct s2n_x509_trust_store *store) {
 int s2n_x509_trust_store_from_system_defaults(struct s2n_x509_trust_store *store) {
     if (!store->trust_store) {
         store->trust_store = X509_STORE_new();
-        notnull_check(store->trust_store);
+        POSIX_ENSURE_REF(store->trust_store);
     }
 
     int err_code = X509_STORE_set_default_paths(store->trust_store);
     if (!err_code) {
         s2n_x509_trust_store_wipe(store);
-        S2N_ERROR(S2N_ERR_X509_TRUST_STORE);
+        POSIX_BAIL(S2N_ERR_X509_TRUST_STORE);
     }
 
     X509_STORE_set_flags(store->trust_store, X509_VP_FLAG_DEFAULT);
@@ -80,8 +80,8 @@ int s2n_x509_trust_store_from_system_defaults(struct s2n_x509_trust_store *store
 
 int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char *pem)
 {
-    notnull_check(store);
-    notnull_check(pem);
+    POSIX_ENSURE_REF(store);
+    POSIX_ENSURE_REF(pem);
 
     if (!store->trust_store) {
         store->trust_store = X509_STORE_new();
@@ -90,21 +90,21 @@ int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char 
     DEFER_CLEANUP(struct s2n_stuffer pem_in_stuffer = {0}, s2n_stuffer_free);
     DEFER_CLEANUP(struct s2n_stuffer der_out_stuffer = {0}, s2n_stuffer_free);
 
-    GUARD(s2n_stuffer_alloc_ro_from_string(&pem_in_stuffer, pem));
-    GUARD(s2n_stuffer_growable_alloc(&der_out_stuffer, 2048));
+    POSIX_GUARD(s2n_stuffer_alloc_ro_from_string(&pem_in_stuffer, pem));
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&der_out_stuffer, 2048));
 
     do {
         DEFER_CLEANUP(struct s2n_blob next_cert = {0}, s2n_free);
 
-        GUARD(s2n_stuffer_certificate_from_pem(&pem_in_stuffer, &der_out_stuffer));
-        GUARD(s2n_alloc(&next_cert, s2n_stuffer_data_available(&der_out_stuffer)));
-        GUARD(s2n_stuffer_read(&der_out_stuffer, &next_cert));
+        POSIX_GUARD(s2n_stuffer_certificate_from_pem(&pem_in_stuffer, &der_out_stuffer));
+        POSIX_GUARD(s2n_alloc(&next_cert, s2n_stuffer_data_available(&der_out_stuffer)));
+        POSIX_GUARD(s2n_stuffer_read(&der_out_stuffer, &next_cert));
 
         const uint8_t *data = next_cert.data;
         DEFER_CLEANUP(X509 *ca_cert = d2i_X509(NULL, &data, next_cert.size), X509_free_pointer);
         S2N_ERROR_IF(ca_cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
 
-        GUARD_OSSL(X509_STORE_add_cert(store->trust_store, ca_cert), S2N_ERR_DECODE_CERTIFICATE);
+        POSIX_GUARD_OSSL(X509_STORE_add_cert(store->trust_store, ca_cert), S2N_ERR_DECODE_CERTIFICATE);
     } while (s2n_stuffer_data_available(&pem_in_stuffer));
 
     return 0;
@@ -113,13 +113,13 @@ int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char 
 int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const char *ca_pem_filename, const char *ca_dir) {
     if (!store->trust_store) {
         store->trust_store = X509_STORE_new();
-        notnull_check(store->trust_store);
+        POSIX_ENSURE_REF(store->trust_store);
     }
 
     int err_code = X509_STORE_load_locations(store->trust_store, ca_pem_filename, ca_dir);
     if (!err_code) {
         s2n_x509_trust_store_wipe(store);
-        S2N_ERROR(S2N_ERR_X509_TRUST_STORE);
+        POSIX_BAIL(S2N_ERR_X509_TRUST_STORE);
     }
 
     /* It's a likely scenario if this function is called, a self-signed certificate is used, and that is was generated
@@ -141,7 +141,7 @@ void s2n_x509_trust_store_wipe(struct s2n_x509_trust_store *store) {
 }
 
 int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *validator) {
-    notnull_check(validator);
+    POSIX_ENSURE_REF(validator);
     validator->trust_store = NULL;
     validator->store_ctx = NULL;
     validator->skip_cert_validation = 1;
@@ -154,7 +154,7 @@ int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *valida
 }
 
 int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x509_trust_store *trust_store, uint8_t check_ocsp) {
-    notnull_check(trust_store);
+    POSIX_ENSURE_REF(trust_store);
     validator->trust_store = trust_store;
     validator->skip_cert_validation = 0;
     validator->check_stapled_ocsp = check_ocsp;
@@ -162,7 +162,7 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
     validator->store_ctx = NULL;
     if (validator->trust_store->trust_store) {
         validator->store_ctx = X509_STORE_CTX_new();
-        notnull_check(validator->store_ctx);
+        POSIX_ENSURE_REF(validator->store_ctx);
     }
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->state = INIT;
@@ -190,7 +190,7 @@ void s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
 }
 
 int s2n_x509_validator_set_max_chain_depth(struct s2n_x509_validator *validator, uint16_t max_depth) {
-    notnull_check(validator);
+    POSIX_ENSURE_REF(validator);
     S2N_ERROR_IF(max_depth == 0, S2N_ERR_INVALID_ARGUMENT);
 
     validator->max_chain_depth = max_depth;
@@ -265,7 +265,7 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
                 if (common_name) {
                     char peer_cn[255];
                     static size_t peer_cn_size = sizeof(peer_cn);
-                    memset_check(&peer_cn, 0, peer_cn_size);
+                    POSIX_CHECKED_MEMSET(&peer_cn, 0, peer_cn_size);
 
                     /* X520CommonName allows the following ANSI string types per RFC 5280 Appendix A.1 */
                     if (ASN1_STRING_type(common_name) == V_ASN1_TELETEXSTRING ||
@@ -276,8 +276,8 @@ static uint8_t s2n_verify_host_information(struct s2n_x509_validator *validator,
 
                         size_t len = (size_t) ASN1_STRING_length(common_name);
 
-                        lte_check(len, sizeof(peer_cn) - 1);
-                        memcpy_check(peer_cn, ASN1_STRING_data(common_name), len);
+                        POSIX_ENSURE_LTE(len, sizeof(peer_cn) - 1);
+                        POSIX_CHECKED_MEMCPY(peer_cn, ASN1_STRING_data(common_name), len);
                         verified = conn->verify_host_fn(peer_cn, len, conn->data_for_verify_host);
                     }
                 }
@@ -315,7 +315,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         struct s2n_blob asn1cert = {0};
         asn1cert.size = certificate_size;
         asn1cert.data = s2n_stuffer_raw_read(&cert_chain_in_stuffer, certificate_size);
-        notnull_check(asn1cert.data);
+        POSIX_ENSURE_REF(asn1cert.data);
 
         const uint8_t *data = asn1cert.data;
 
@@ -326,11 +326,11 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         /* add the cert to the chain. */
         if (!sk_X509_push(validator->cert_chain_from_wire, server_cert)) {
             X509_free(server_cert);
-            S2N_ERROR(S2N_ERR_CERT_UNTRUSTED);
+            POSIX_BAIL(S2N_ERR_CERT_UNTRUSTED);
         }
 
         if (!validator->skip_cert_validation) {
-            GUARD_AS_POSIX(s2n_validate_certificate_signature(conn, server_cert));
+            POSIX_GUARD_RESULT(s2n_validate_certificate_signature(conn, server_cert));
         }
 
         /* Pull the public key from the first certificate */
@@ -341,7 +341,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
         if (conn->actual_protocol_version >= S2N_TLS13) {
             s2n_parsed_extensions_list parsed_extensions_list = { 0 };
-            GUARD(s2n_extension_list_parse(&cert_chain_in_stuffer, &parsed_extensions_list));
+            POSIX_GUARD(s2n_extension_list_parse(&cert_chain_in_stuffer, &parsed_extensions_list));
 
             /* RFC 8446: if an extension applies to the entire chain, it SHOULD be included in the first CertificateEntry */      
             if (sk_X509_num(validator->cert_chain_from_wire) == 1) {
@@ -379,7 +379,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
     }
 
     if (conn->actual_protocol_version >= S2N_TLS13) {
-        GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &first_certificate_extensions));
+        POSIX_GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &first_certificate_extensions));
     }
 
     *public_key_out = public_key;
@@ -557,42 +557,42 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
 
 S2N_RESULT s2n_validate_certificate_signature(struct s2n_connection *conn, X509 *x509_cert)
 {
-    ENSURE_REF(conn);
-    ENSURE_REF(x509_cert);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(x509_cert);
 
     const struct s2n_security_policy *security_policy;
-    GUARD_AS_RESULT(s2n_connection_get_security_policy(conn, &security_policy));
+    RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &security_policy));
 
     if (security_policy->certificate_signature_preferences == NULL) {
         return S2N_RESULT_OK;
     }
 
     X509_NAME *issuer_name = X509_get_issuer_name(x509_cert);
-    ENSURE_REF(issuer_name);
+    RESULT_ENSURE_REF(issuer_name);
 
     X509_NAME *subject_name = X509_get_subject_name(x509_cert);
-    ENSURE_REF(subject_name);
+    RESULT_ENSURE_REF(subject_name);
 
     /* Do not validate any self-signed certificates */
     if (X509_NAME_cmp(issuer_name, subject_name) == 0) {
         return S2N_RESULT_OK;
     }
 
-    GUARD_RESULT(s2n_validate_sig_scheme_supported(conn, x509_cert, security_policy->certificate_signature_preferences));
+    RESULT_GUARD(s2n_validate_sig_scheme_supported(conn, x509_cert, security_policy->certificate_signature_preferences));
 
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert, const struct s2n_signature_preferences *cert_sig_preferences)
 {
-    ENSURE_REF(conn);
-    ENSURE_REF(x509_cert);
-    ENSURE_REF(cert_sig_preferences);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(x509_cert);
+    RESULT_ENSURE_REF(cert_sig_preferences);
 
     int nid = 0;
 
     #if defined(LIBRESSL_VERSION_NUMBER) && (LIBRESSL_VERSION_NUMBER < 0x02070000f)
-        ENSURE_REF(x509_cert->sig_alg);
+        RESULT_ENSURE_REF(x509_cert->sig_alg);
         nid = OBJ_obj2nid(x509_cert->sig_alg->algorithm);
     #else
         nid = X509_get_signature_nid(x509_cert);
@@ -602,12 +602,12 @@ S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *
 
         if (cert_sig_preferences->signature_schemes[i]->libcrypto_nid == nid) {
             /* SHA-1 algorithms are not supported in certificate signatures in TLS1.3 */
-            ENSURE(!(conn->actual_protocol_version >= S2N_TLS13 &&
+            RESULT_ENSURE(!(conn->actual_protocol_version >= S2N_TLS13 &&
                     cert_sig_preferences->signature_schemes[i]->hash_alg == S2N_HASH_SHA1), S2N_ERR_CERT_UNTRUSTED);
 
             return S2N_RESULT_OK;
         }
     }
 
-    BAIL(S2N_ERR_CERT_UNTRUSTED);
+    RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
 }
