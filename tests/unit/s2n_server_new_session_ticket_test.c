@@ -528,7 +528,6 @@ int main(int argc, char **argv)
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
 
-            uint64_t current_time = 0;
             conn->actual_protocol_version = S2N_TLS12;
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             conn->session_ticket_status = S2N_NEW_TICKET;
