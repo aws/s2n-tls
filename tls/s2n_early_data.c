@@ -42,6 +42,74 @@ S2N_RESULT s2n_connection_set_early_data_state(struct s2n_connection *conn, s2n_
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_early_data_validate(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *# In order to accept early data, the server MUST have accepted a PSK
+     *# cipher suite and selected the first key offered in the client's
+     *# "pre_shared_key" extension.
+     **/
+    RESULT_ENSURE_REF(conn->psk_params.chosen_psk);
+    RESULT_ENSURE_EQ(conn->psk_params.chosen_psk_wire_index, 0);
+
+    struct s2n_early_data_config *config = &conn->psk_params.chosen_psk->early_data_config;
+    RESULT_ENSURE_GT(config->max_early_data_size, 0);
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *# In addition, it MUST verify that the
+     *# following values are the same as those associated with the
+     *# selected PSK:
+     *#
+     *# -  The TLS version number
+     **/
+    RESULT_ENSURE_EQ(config->protocol_version, s2n_connection_get_protocol_version(conn));
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *# -  The selected cipher suite
+     **/
+    RESULT_ENSURE_EQ(config->cipher_suite, conn->secure.cipher_suite);
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *# -  The selected ALPN [RFC7301] protocol, if any
+     **/
+    const size_t app_protocol_size = strlen(conn->application_protocol);
+    if (app_protocol_size > 0 || config->application_protocol.size > 0) {
+        RESULT_ENSURE_EQ(config->application_protocol.size, app_protocol_size + 1 /* null-terminating char */);
+        RESULT_ENSURE_EQ(memcmp(config->application_protocol.data, conn->application_protocol, app_protocol_size), 0);
+    }
+
+    return S2N_RESULT_OK;
+}
+
+bool s2n_early_data_is_valid_for_connection(struct s2n_connection *conn)
+{
+    return s2n_result_is_ok(s2n_early_data_validate(conn));
+}
+
+S2N_RESULT s2n_early_data_accept_or_deny(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+    if (conn->early_data_state != S2N_EARLY_DATA_REQUESTED) {
+        return S2N_RESULT_OK;
+    }
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *# If any of these checks fail, the server MUST NOT respond with the
+     *# extension
+     **/
+    if (s2n_early_data_is_valid_for_connection(conn)) {
+        RESULT_GUARD(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_ACCEPTED));
+    } else {
+        RESULT_GUARD(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REJECTED));
+    }
+    return S2N_RESULT_OK;
+}
+
 S2N_CLEANUP_RESULT s2n_early_data_config_free(struct s2n_early_data_config *config)
 {
     if (config == NULL) {

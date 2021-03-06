@@ -59,6 +59,11 @@ int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn);
 int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn);
 int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_t version);
 
+S2N_RESULT s2n_append_test_psk_with_early_data(struct s2n_connection *conn, uint32_t max_early_data,
+        const struct s2n_cipher_suite *cipher_suite);
+S2N_RESULT s2n_append_test_chosen_psk_with_early_data(struct s2n_connection *conn, uint32_t max_early_data,
+        const struct s2n_cipher_suite *cipher_suite);
+
 #define S2N_MAX_TEST_PEM_SIZE 4096
 
 /* These paths assume that the unit tests are run from inside the unit/ directory.

@@ -279,6 +279,9 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     /* Now choose the ciphers we have certs for. */
     POSIX_GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
 
+    /* Check that early data requirements are met, if early data requested */
+    POSIX_GUARD_RESULT(s2n_early_data_accept_or_deny(conn));
+
     /* If we're using a PSK, we don't need to choose a signature algorithm or certificate,
      * because no additional auth is required. */
     if (conn->psk_params.chosen_psk != NULL) {
