@@ -24,9 +24,11 @@
 #define S2N_TLS13_STATE_SIZE_WITHOUT_SECRET S2N_MAX_STATE_SIZE_IN_BYTES - S2N_TLS_SECRET_LEN
 
 static int s2n_test_session_ticket_callback(struct s2n_connection *conn,
-                                         uint8_t *session_id_data, size_t session_id_len,
-                                         uint8_t *session_data, size_t session_len,
-                                         uint32_t session_lifetime)
+                                            uint8_t *session_id_data,
+                                            size_t session_id_len,
+                                            uint8_t *session_data,
+                                            size_t session_len,
+                                            uint32_t session_lifetime)
 {
     return S2N_SUCCESS;
 }

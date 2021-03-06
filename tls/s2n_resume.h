@@ -101,7 +101,9 @@ int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num);
 int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num);
 
 typedef int (*s2n_session_ticket_cb)(struct s2n_connection *conn,
-                                         uint8_t *session_id_data, size_t session_id_len,
-                                         uint8_t *session_data, size_t session_len,
-                                         uint32_t session_lifetime);
+                                     uint8_t *session_id_data,
+                                     size_t session_id_len,
+                                     uint8_t *session_data,
+                                     size_t session_len,
+                                     uint32_t session_lifetime);
 int s2n_config_set_session_ticket_callback(struct s2n_config *config, s2n_session_ticket_cb cb);

@@ -55,16 +55,20 @@ int s2n_server_nst_recv(struct s2n_connection *conn) {
 
         if (conn->config->session_ticket_cb != NULL) {
 
-            size_t session_len = s2n_connection_get_session_length(conn);
+            size_t session_id_len = s2n_connection_get_session_id_length(conn);
+            uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN] = { 0 };
+            GUARD(s2n_connection_get_session_id(conn, session_id, session_id_len));
 
-            DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
-            GUARD(s2n_alloc(&mem, sizeof(session_len)));
-            uint8_t *session_data = mem.data;
+            size_t session_len = s2n_connection_get_session_length(conn);
+            uint8_t session_data[S2N_STATE_FORMAT_LEN + 
+                                 S2N_SESSION_TICKET_SIZE_LEN + 
+                                 S2N_TLS12_TICKET_SIZE_IN_BYTES + 
+                                 S2N_STATE_SIZE_IN_BYTES] = { 0 };
             GUARD(s2n_connection_get_session(conn, session_data, session_len));
 
             uint32_t session_lifetime = s2n_connection_get_session_ticket_lifetime_hint(conn);
 
-            GUARD(conn->config->session_ticket_cb(conn, NULL, 0,
+            GUARD(conn->config->session_ticket_cb(conn, session_id, session_id_len,
                     session_data, session_len, session_lifetime));
         }
     }
