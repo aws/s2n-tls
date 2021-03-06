@@ -77,17 +77,15 @@ int s2n_tls13_compute_ecc_shared_secret(struct s2n_connection *conn, struct s2n_
     notnull_check(server_key->negotiated_curve);
     /* for now we do this tedious loop to find the matching client key selection.
      * this can be simplified if we get an index or a pointer to a specific key */
-    int selection = -1;
-    for (int i = 0; i < ecc_preferences->count; i++) {
+    struct s2n_ecc_evp_params *client_key = NULL;
+    for (size_t i = 0; i < ecc_preferences->count; i++) {
         if (server_key->negotiated_curve->iana_id == ecc_preferences->ecc_curves[i]->iana_id) {
-            selection = i;
+            client_key = &conn->secure.client_ecc_evp_params[i];
             break;
         }
     }
 
-    S2N_ERROR_IF(selection < 0, S2N_ERR_BAD_KEY_SHARE);
-    struct s2n_ecc_evp_params *client_key = &conn->secure.client_ecc_evp_params[selection];
-    notnull_check(client_key);
+    POSIX_ENSURE(client_key != NULL, S2N_ERR_BAD_KEY_SHARE);
 
     if (conn->mode == S2N_CLIENT) {
         GUARD(s2n_ecc_evp_compute_shared_secret_from_params(client_key, server_key, shared_secret));
