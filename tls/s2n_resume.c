@@ -344,7 +344,7 @@ int s2n_connection_get_session_length(struct s2n_connection *conn)
 int s2n_connection_is_session_resumed(struct s2n_connection *conn)
 {
     return conn && (s2n_connection_get_protocol_version(conn) < S2N_TLS13)
-           && IS_RESUMPTION_HANDSHAKE(conn->handshake.handshake_type);
+           && IS_RESUMPTION_HANDSHAKE(conn);
 }
 
 int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn)
@@ -354,7 +354,7 @@ int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn)
     if (conn->actual_protocol_version >= S2N_TLS13) {
         return (s2n_server_can_send_ocsp(conn) || s2n_server_sent_ocsp(conn));
     } else {
-        return IS_OCSP_STAPLED(conn->handshake.handshake_type);
+        return IS_OCSP_STAPLED(conn);
     }
 }
 
@@ -632,13 +632,11 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn)
         /* Check if a key in encrypt-decrypt state is available */
         if (s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
             conn->session_ticket_status = S2N_NEW_TICKET;
-            conn->handshake.handshake_type |= WITH_SESSION_TICKET;
-
-            return 0;
+            POSIX_GUARD_RESULT(s2n_handshake_type_set_tls12_flag(conn, WITH_SESSION_TICKET));
+            return S2N_SUCCESS;
         }
     }
-
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_encrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *to)

@@ -105,8 +105,8 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(server_conn->session_id_len, 0);
 
     /* Verify handshake not MIDDLEBOX_COMPAT (QUIC does not use middlebox compat mode) */
-    EXPECT_FALSE(IS_MIDDLEBOX_COMPAT_MODE(client_conn->handshake.handshake_type));
-    EXPECT_FALSE(IS_MIDDLEBOX_COMPAT_MODE(server_conn->handshake.handshake_type));
+    EXPECT_FALSE(IS_MIDDLEBOX_COMPAT_MODE(client_conn));
+    EXPECT_FALSE(IS_MIDDLEBOX_COMPAT_MODE(server_conn));
 
     /* Verify secret handler collected secrets */
     for (size_t i = 1; i < S2N_SECRET_TYPE_COUNT; i++) {

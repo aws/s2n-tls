@@ -1070,8 +1070,8 @@ int s2n_connection_client_cert_used(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    if ((conn->handshake.handshake_type & CLIENT_AUTH) && is_handshake_complete(conn)) {
-        if (conn->handshake.handshake_type & NO_CLIENT_CERT) {
+    if (IS_CLIENT_AUTH_HANDSHAKE(conn) && is_handshake_complete(conn)) {
+        if (IS_CLIENT_AUTH_NO_CERT(conn)) {
             return 0;
         }
         return 1;

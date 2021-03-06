@@ -21,11 +21,10 @@
 #define TEST_PSK_HMAC S2N_PSK_HMAC_SHA256
 
 #define ARE_FULL_HANDSHAKES(client, server) \
-    (IS_FULL_HANDSHAKE(client->handshake.handshake_type) && IS_FULL_HANDSHAKE(server->handshake.handshake_type))
+    (IS_FULL_HANDSHAKE(client) && IS_FULL_HANDSHAKE(server))
 
-#define IS_CLIENT_AUTH(client, server)                          \
-    (IS_CLIENT_AUTH_HANDSHAKE(client->handshake.handshake_type) \
-     && IS_CLIENT_AUTH_HANDSHAKE(server->handshake.handshake_type))
+#define IS_CLIENT_AUTH(client, server) \
+    (IS_CLIENT_AUTH_HANDSHAKE(client) && IS_CLIENT_AUTH_HANDSHAKE(server))
 
 #define IS_HELLO_RETRY(client, server)                          \
     (((client->handshake.handshake_type) & HELLO_RETRY_REQUEST) \

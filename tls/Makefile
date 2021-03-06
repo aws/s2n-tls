@@ -19,7 +19,7 @@ SUB_BUILDS = $(patsubst %/Makefile, %, $(wildcard */Makefile))
 
 BITCODE_DIR?=../tests/saw/bitcode/
 
-BCS_1=s2n_handshake_io.bc s2n_connection.bc s2n_kex.bc
+BCS_1=s2n_handshake_io.bc s2n_handshake_type.bc s2n_connection.bc s2n_kex.bc
 BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
 
 .PHONY : all

@@ -145,8 +145,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server did a full handshake and issued NST */
-        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
-        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         /* Verify that the client received NST */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
@@ -190,8 +190,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server did a full handshake and did not issue NST */
-        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
-        EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
@@ -232,9 +232,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server did an abbreviated handshake and not issue NST */
-        EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server_conn));
         EXPECT_TRUE(s2n_connection_is_session_resumed(server_conn));
-        EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
+        EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         /* Verify that client_ticket is same as before because server didn't issue a NST */
         uint8_t old_session_ticket[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES];
@@ -295,8 +295,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server did an abbreviated handshake and issued NST */
-        EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server_conn->handshake.handshake_type));
-        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server_conn));
+        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         /* Verify that client_ticket is not same as before because server issued a NST */
         uint8_t old_session_ticket[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES];
@@ -358,8 +358,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server did an abbreviated handshake and did not issue a NST */
-        EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server_conn->handshake.handshake_type));
-        EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server_conn));
+        EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         /* Verify that client_ticket is same as before because server did not issue a NST */
         uint8_t old_session_ticket[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES];
@@ -410,8 +410,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server did a full handshake and issued NST */
-        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
-        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         /* Verify that the client received NST */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
@@ -471,8 +471,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server did a full handshake and issued NST */
-        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
-        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         /* Verify that the server has only the unexpired key */
         EXPECT_OK(s2n_set_get(server_config->ticket_keys, 0, (void **)&ticket_key));
@@ -539,8 +539,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server did a full handshake and issued NST */
-        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
-        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         /* Verify that the client received NST */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
@@ -586,8 +586,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server did a full handshake and did not issue NST */
-        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
-        EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         /* Verify that client_ticket is empty */
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), 1 + 1 + client_conn->session_id_len + S2N_STATE_SIZE_IN_BYTES);
@@ -709,8 +709,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server did a full handshake and issued NST */
-        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
-        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         /* Verify that the client received NST which is encrypted using a key which is at it's peak encryption */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
@@ -770,8 +770,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server did a full handshake and issued NST */
-        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
-        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         /* Verify that the client received NST which is encrypted using a key which is at it's peak encryption */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
@@ -838,8 +838,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server did a full handshake and issued NST */
-        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
-        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         /* Verify that the client received NST which is encrypted using a key which is at it's peak encryption */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
@@ -898,8 +898,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that the server did a full handshake and issued NST */
-        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
-        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         /* Verify that the client received NST which is encrypted using a key which is at it's peak encryption */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
@@ -952,8 +952,8 @@ int main(int argc, char **argv)
 
         /* Verify that the server did a full handshake and did not issue NST since client
          * auth is enabled in server mode */
-        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn->handshake.handshake_type));
-        EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn->handshake.handshake_type));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+        EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 

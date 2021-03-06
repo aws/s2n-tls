@@ -19,6 +19,7 @@
 #include <s2n.h>
 
 #include "tls/s2n_crypto.h"
+#include "tls/s2n_handshake_type.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls_parameters.h"
 
@@ -147,49 +148,8 @@ struct s2n_handshake {
     uint8_t server_finished[S2N_TLS_SECRET_LEN];
     uint8_t client_finished[S2N_TLS_SECRET_LEN];
 
-    /* Handshake type is a bitset, with the following
-       bit positions */
+    /* Which message-order affecting features are enabled */
     uint32_t handshake_type;
-
-/* Has the handshake been negotiated yet? */
-#define INITIAL                     0x00
-#define NEGOTIATED                  0x01
-#define IS_NEGOTIATED( type ) ( (type) & NEGOTIATED )
-
-/* Handshake is a full handshake  */
-#define FULL_HANDSHAKE              0x02
-#define IS_FULL_HANDSHAKE( type )   ( (type) & FULL_HANDSHAKE )
-#define IS_RESUMPTION_HANDSHAKE( type ) ( !IS_FULL_HANDSHAKE( (type) ) && IS_NEGOTIATED ( (type) ) )
-
-/* Handshake uses perfect forward secrecy */
-#define TLS12_PERFECT_FORWARD_SECRECY 0x04
-
-/* Handshake needs OCSP status message */
-#define OCSP_STATUS                 0x08
-#define IS_OCSP_STAPLED( type ) ( ( (type) & OCSP_STATUS ) != 0 )
-
-/* Handshake should request a Client Certificate */
-#define CLIENT_AUTH                 0x10
-#define IS_CLIENT_AUTH_HANDSHAKE( type )   ( (type) & CLIENT_AUTH )
-
-/* Session Resumption via session-tickets */
-#define WITH_SESSION_TICKET         0x20
-#define IS_ISSUING_NEW_SESSION_TICKET( type )   ( (type) & WITH_SESSION_TICKET )
-
-/* Handshake requested a Client Certificate but did not get one */
-#define NO_CLIENT_CERT              0x40
-#define IS_CLIENT_AUTH_NO_CERT( type )   ( IS_CLIENT_AUTH_HANDSHAKE( (type) ) && ( (type) & NO_CLIENT_CERT) )
-
-/* A HelloRetryRequest was needed to proceed with the handshake */
-#define HELLO_RETRY_REQUEST         0x80
-
-/* Disguise a TLS1.3 handshake as a TLS1.2 handshake for backwards compatibility
- * with some middleboxes: https://tools.ietf.org/html/rfc8446#appendix-D.4 */
-#define MIDDLEBOX_COMPAT            0x100
-#define IS_MIDDLEBOX_COMPAT_MODE( type ) ( (type) & MIDDLEBOX_COMPAT )
-
-#define WITH_EARLY_DATA             0x200
-#define IS_EARLY_DATA_HANDSHAKE( type ) ( (type) & WITH_EARLY_DATA )
 
     /* Which handshake message number are we processing */
     int message_number;

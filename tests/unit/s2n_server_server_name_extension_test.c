@@ -27,9 +27,6 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
 
-    EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(S2N_TEST_RESUMPTION_HANDSHAKE));
-    EXPECT_FALSE(IS_RESUMPTION_HANDSHAKE(S2N_TEST_NOT_RESUMPTION_HANDSHAKE));
-
     /* should_send */
     {
         struct s2n_connection *conn;
