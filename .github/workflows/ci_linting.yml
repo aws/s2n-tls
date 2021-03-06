@@ -13,6 +13,8 @@ jobs:
     env:
       CPPCHECK_INSTALL_DIR: test-deps/cppcheck
       CPPCHECK_CACHE_DIR: test-deps/cppcheck-cache
+      # GHA has 2 cores available: https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
+      JOBS: 2
     steps:
       - uses: actions/checkout@v2
 
