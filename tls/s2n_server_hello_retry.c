@@ -35,50 +35,50 @@ uint8_t hello_retry_req_random[S2N_TLS_RANDOM_DATA_LEN] = {
 
 static int s2n_conn_reset_retry_values(struct s2n_connection *conn)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
     /* Reset handshake values */
     conn->handshake.client_hello_received = 0;
 
     /* Reset client hello state */
-    GUARD(s2n_stuffer_wipe(&conn->client_hello.raw_message));
-    GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, 0));
-    GUARD(s2n_client_hello_free(&conn->client_hello));
-    GUARD(s2n_stuffer_growable_alloc(&conn->client_hello.raw_message, 0));
+    POSIX_GUARD(s2n_stuffer_wipe(&conn->client_hello.raw_message));
+    POSIX_GUARD(s2n_stuffer_resize(&conn->client_hello.raw_message, 0));
+    POSIX_GUARD(s2n_client_hello_free(&conn->client_hello));
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->client_hello.raw_message, 0));
 
     return 0;
 }
 
 int s2n_server_hello_retry_send(struct s2n_connection *conn)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
-    memcpy_check(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+    POSIX_CHECKED_MEMCPY(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
 
-    GUARD(s2n_server_hello_write_message(conn));
+    POSIX_GUARD(s2n_server_hello_write_message(conn));
 
     /* Write the extensions */
-    GUARD(s2n_server_extensions_send(conn, &conn->handshake.io));
+    POSIX_GUARD(s2n_server_extensions_send(conn, &conn->handshake.io));
 
     /* Update transcript */
-    GUARD(s2n_server_hello_retry_recreate_transcript(conn));
-    GUARD(s2n_conn_reset_retry_values(conn));
+    POSIX_GUARD(s2n_server_hello_retry_recreate_transcript(conn));
+    POSIX_GUARD(s2n_conn_reset_retry_values(conn));
 
     return 0;
 }
 
 int s2n_server_hello_retry_recv(struct s2n_connection *conn)
 {
-    notnull_check(conn);
-    ENSURE_POSIX(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
-    GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-    notnull_check(ecc_pref);
+    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    POSIX_ENSURE_REF(ecc_pref);
 
     const struct s2n_kem_preferences *kem_pref = NULL;
-    GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
-    notnull_check(kem_pref);
+    POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    POSIX_ENSURE_REF(kem_pref);
 
     /* Upon receipt of the HelloRetryRequest, the client MUST verify that:
      * (1) the selected_group field corresponds to a group
@@ -94,13 +94,13 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     const struct s2n_kem_group *kem_group = conn->secure.server_kem_group_params.kem_group;
 
     /* Boolean XOR check: exactly one of {named_curve, kem_group} should be non-null. */
-    ENSURE_POSIX( (named_curve != NULL) != (kem_group != NULL), S2N_ERR_INVALID_HELLO_RETRY);
+    POSIX_ENSURE( (named_curve != NULL) != (kem_group != NULL), S2N_ERR_INVALID_HELLO_RETRY);
 
     if (named_curve != NULL) {
         for (size_t i = 0; i < ecc_pref->count; i++) {
             if (ecc_pref->ecc_curves[i] == named_curve) {
                 match_found = true;
-                ENSURE_POSIX(conn->secure.client_ecc_evp_params[i].evp_pkey == NULL, S2N_ERR_INVALID_HELLO_RETRY);
+                POSIX_ENSURE(conn->secure.client_ecc_evp_params[i].evp_pkey == NULL, S2N_ERR_INVALID_HELLO_RETRY);
                 break;
             }
         }
@@ -109,23 +109,23 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     if (kem_group != NULL) {
         /* If PQ is disabled, the client should not have sent any PQ IDs
          * in the supported_groups list of the initial ClientHello */
-        ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+        POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
         for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
             if (kem_pref->tls13_kem_groups[i] == kem_group) {
                 match_found = true;
-                ENSURE_POSIX(conn->secure.client_kem_group_params[i].kem_params.private_key.data == NULL,
+                POSIX_ENSURE(conn->secure.client_kem_group_params[i].kem_params.private_key.data == NULL,
                         S2N_ERR_INVALID_HELLO_RETRY);
-                ENSURE_POSIX(conn->secure.client_kem_group_params[i].ecc_params.evp_pkey == NULL,
+                POSIX_ENSURE(conn->secure.client_kem_group_params[i].ecc_params.evp_pkey == NULL,
                         S2N_ERR_INVALID_HELLO_RETRY);
             }
         }
     }
 
-    ENSURE_POSIX(match_found, S2N_ERR_INVALID_HELLO_RETRY);
+    POSIX_ENSURE(match_found, S2N_ERR_INVALID_HELLO_RETRY);
 
     /* Update transcript hash */
-    GUARD(s2n_server_hello_retry_recreate_transcript(conn));
+    POSIX_GUARD(s2n_server_hello_retry_recreate_transcript(conn));
 
     return S2N_SUCCESS;
 }

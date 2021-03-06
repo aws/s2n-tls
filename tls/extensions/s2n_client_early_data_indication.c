@@ -26,24 +26,24 @@
 
 static S2N_RESULT s2n_early_data_config_is_possible(struct s2n_connection *conn)
 {
-    ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
     struct s2n_psk *first_psk = NULL;
-    GUARD_RESULT(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &first_psk));
-    ENSURE_REF(first_psk);
+    RESULT_GUARD(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &first_psk));
+    RESULT_ENSURE_REF(first_psk);
 
     struct s2n_early_data_config *early_data_config = &first_psk->early_data_config;
 
     /* Must support early data */
-    ENSURE_GT(early_data_config->max_early_data_size, 0);
+    RESULT_ENSURE_GT(early_data_config->max_early_data_size, 0);
 
     /* Early data must require a protocol than we could negotiate */
-    ENSURE_GTE(s2n_connection_get_protocol_version(conn), early_data_config->protocol_version);
-    ENSURE_GTE(s2n_connection_get_protocol_version(conn), S2N_TLS13);
+    RESULT_ENSURE_GTE(s2n_connection_get_protocol_version(conn), early_data_config->protocol_version);
+    RESULT_ENSURE_GTE(s2n_connection_get_protocol_version(conn), S2N_TLS13);
 
     const struct s2n_cipher_preferences *cipher_preferences = NULL;
-    GUARD_AS_RESULT(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
-    ENSURE_REF(cipher_preferences);
+    RESULT_GUARD_POSIX(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+    RESULT_ENSURE_REF(cipher_preferences);
 
     /* Early data must require a supported cipher */
     bool match = false;
@@ -53,17 +53,17 @@ static S2N_RESULT s2n_early_data_config_is_possible(struct s2n_connection *conn)
             break;
         }
     }
-    ENSURE_EQ(match, true);
+    RESULT_ENSURE_EQ(match, true);
 
     /* If early data specifies an application protocol, it must be supported by protocol preferences */
     if (early_data_config->application_protocol.size > 0) {
         struct s2n_blob *application_protocols = NULL;
-        GUARD_AS_RESULT(s2n_connection_get_protocol_preferences(conn, &application_protocols));
-        ENSURE_REF(application_protocols);
+        RESULT_GUARD_POSIX(s2n_connection_get_protocol_preferences(conn, &application_protocols));
+        RESULT_ENSURE_REF(application_protocols);
 
         match = false;
-        GUARD_RESULT(s2n_protocol_preferences_contain(application_protocols, &early_data_config->application_protocol, &match));
-        ENSURE_EQ(match, true);
+        RESULT_GUARD(s2n_protocol_preferences_contain(application_protocols, &early_data_config->application_protocol, &match));
+        RESULT_ENSURE_EQ(match, true);
     }
 
     return S2N_RESULT_OK;
@@ -127,7 +127,7 @@ static int s2n_client_early_data_indiction_recv(struct s2n_connection *conn, str
      *# A client MUST NOT include the
      *# "early_data" extension in its followup ClientHello.
      */
-    ENSURE_POSIX(!s2n_is_hello_retry_handshake(conn), S2N_ERR_UNSUPPORTED_EXTENSION);
+    POSIX_ENSURE(!s2n_is_hello_retry_handshake(conn), S2N_ERR_UNSUPPORTED_EXTENSION);
 
     POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REQUESTED));
     return S2N_SUCCESS;

@@ -237,7 +237,7 @@ int main() {
             client_params0->ecc_params.negotiated_curve = kem_group0->curve;
             /* The PQ public key is fake; that's good enough for this test */
             EXPECT_SUCCESS(s2n_alloc(&client_params0->kem_params.public_key, kem_group0->kem->public_key_length));
-            memset_check(client_params0->kem_params.public_key.data, 1, kem_group0->kem->public_key_length);
+            POSIX_CHECKED_MEMSET(client_params0->kem_params.public_key.data, 1, kem_group0->kem->public_key_length);
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params0->ecc_params));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_extensions_server_key_share_select(server_conn),
@@ -333,7 +333,7 @@ int main() {
             client_params1->ecc_params.negotiated_curve = kem_group1->curve;
             EXPECT_SUCCESS(s2n_alloc(&client_params1->kem_params.public_key, kem_group1->kem->public_key_length));
             /* The PQ public key is fake; that's good enough for this test */
-            memset_check(client_params1->kem_params.public_key.data, 1, kem_group1->kem->public_key_length);
+            POSIX_CHECKED_MEMSET(client_params1->kem_params.public_key.data, 1, kem_group1->kem->public_key_length);
             EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params1->ecc_params));
 
             EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
@@ -381,7 +381,7 @@ int main() {
                 client_params->ecc_params.negotiated_curve = kem_group->curve;
                 EXPECT_SUCCESS(s2n_alloc(&client_params->kem_params.public_key, kem_group->kem->public_key_length));
                 /* The PQ public key is fake; that's good enough for this test */
-                memset_check(client_params->kem_params.public_key.data, 1, kem_group->kem->public_key_length);
+                POSIX_CHECKED_MEMSET(client_params->kem_params.public_key.data, 1, kem_group->kem->public_key_length);
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params->ecc_params));
             }
 
@@ -488,7 +488,7 @@ int main() {
                 client_params->ecc_params.negotiated_curve = kem_group->curve;
                 EXPECT_SUCCESS(s2n_alloc(&client_params->kem_params.public_key, kem_group->kem->public_key_length));
                 /* The PQ public key is fake; that's good enough for this test */
-                memset_check(client_params->kem_params.public_key.data, 1, kem_group->kem->public_key_length);
+                POSIX_CHECKED_MEMSET(client_params->kem_params.public_key.data, 1, kem_group->kem->public_key_length);
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params->ecc_params));
             }
             for (size_t i = 0; i < ecc_pref->count; i++) {

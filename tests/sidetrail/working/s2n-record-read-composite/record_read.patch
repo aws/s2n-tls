@@ -14,9 +14,9 @@ index b57207a0..5109c47f 100644
 @@ -88,6 +90,8 @@ int s2n_record_parse_composite(
  
      /* Subtract the padding length */
-     gt_check(en.size, 0);
+     POSIX_ENSURE_GT(en.size, 0);
 +    //After hmac verification padding_length is declassified
 +    en.data[en.size - 1] = g_padding_length;
      uint32_t out = 0;
-     GUARD(s2n_sub_overflow(payload_length, en.data[en.size - 1] + 1, &out));
+     POSIX_GUARD(s2n_sub_overflow(payload_length, en.data[en.size - 1] + 1, &out));
      payload_length = out;

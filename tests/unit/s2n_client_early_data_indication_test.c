@@ -26,35 +26,35 @@
 static S2N_RESULT s2n_append_test_psk(struct s2n_connection *conn, uint32_t max_early_data,
         const struct s2n_cipher_suite *cipher_suite)
 {
-    ENSURE_REF(conn);
-    ENSURE_REF(cipher_suite);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(cipher_suite);
 
     /* We're assuming the index will only take one digit */
     uint8_t buffer[sizeof(TEST_VALUE) + 1] = { 0 };
     int r = snprintf((char*) buffer, sizeof(buffer), "%s%u", TEST_VALUE, conn->psk_params.psk_list.len);
-    ENSURE_GT(r, 0);
-    ENSURE_LT(r, sizeof(buffer));
+    RESULT_ENSURE_GT(r, 0);
+    RESULT_ENSURE_LT(r, sizeof(buffer));
 
     DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
-    GUARD_AS_RESULT(s2n_psk_set_identity(psk, buffer, sizeof(buffer)));
-    GUARD_AS_RESULT(s2n_psk_set_secret(psk, buffer, sizeof(buffer)));
+    RESULT_GUARD_POSIX(s2n_psk_set_identity(psk, buffer, sizeof(buffer)));
+    RESULT_GUARD_POSIX(s2n_psk_set_secret(psk, buffer, sizeof(buffer)));
     psk->hmac_alg = cipher_suite->prf_alg;
     if (max_early_data > 0) {
-        GUARD_AS_RESULT(s2n_psk_configure_early_data(psk, max_early_data,
+        RESULT_GUARD_POSIX(s2n_psk_configure_early_data(psk, max_early_data,
                 cipher_suite->iana_value[0], cipher_suite->iana_value[1]));
     }
-    GUARD_AS_RESULT(s2n_connection_append_psk(conn, psk));
+    RESULT_GUARD_POSIX(s2n_connection_append_psk(conn, psk));
     return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_set_early_data_app_protocol(struct s2n_connection *conn, struct s2n_blob *app_protocol)
 {
-    ENSURE_REF(conn);
-    ENSURE_REF(app_protocol);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(app_protocol);
 
     struct s2n_psk *psk = NULL;
-    GUARD_RESULT(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
-    GUARD_AS_RESULT(s2n_psk_set_application_protocol(psk, app_protocol->data, app_protocol->size));
+    RESULT_GUARD(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+    RESULT_GUARD_POSIX(s2n_psk_set_application_protocol(psk, app_protocol->data, app_protocol->size));
     return S2N_RESULT_OK;
 }
 

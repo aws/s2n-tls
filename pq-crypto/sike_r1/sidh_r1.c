@@ -63,7 +63,7 @@ int random_mod_order_B(unsigned char* random_digits)
     unsigned long long nbytes = NBITS_TO_NBYTES(OBOB_BITS-1);
 
     clear_words((void*)random_digits, MAXWORDS_ORDER);
-    GUARD_AS_POSIX(s2n_get_random_bytes(random_digits, nbytes));
+    POSIX_GUARD_RESULT(s2n_get_random_bytes(random_digits, nbytes));
     random_digits[nbytes-1] &= MASK_BOB;     // Masking last byte
 
     return S2N_SUCCESS;

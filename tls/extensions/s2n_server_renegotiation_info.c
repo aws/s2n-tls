@@ -45,7 +45,7 @@ static bool s2n_renegotiation_info_should_send(struct s2n_connection *conn)
 static int s2n_renegotiation_info_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     /* renegotiated_connection length. Zero since we don't support renegotiation. */
-    GUARD(s2n_stuffer_write_uint8(out, 0));
+    POSIX_GUARD(s2n_stuffer_write_uint8(out, 0));
     return S2N_SUCCESS;
 }
 
@@ -55,11 +55,11 @@ static int s2n_renegotiation_info_recv(struct s2n_connection *conn, struct s2n_s
      * the "renegotiated_connection" field is zero, and if it is not, MUST
      * abort the handshake. */
     uint8_t renegotiated_connection_len;
-    GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
+    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
     S2N_ERROR_IF(s2n_stuffer_data_available(extension), S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
     S2N_ERROR_IF(renegotiated_connection_len, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
 
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
     conn->secure_renegotiation = 1;
     return S2N_SUCCESS;
 }

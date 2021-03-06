@@ -20,7 +20,7 @@ get_rand_mod_len(OUT uint32_t *    rand_pos,
   do
   {
     // Generate 128bit of random numbers
-    GUARD(aes_ctr_prf((uint8_t *)rand_pos, prf_state, sizeof(*rand_pos)));
+    POSIX_GUARD(aes_ctr_prf((uint8_t *)rand_pos, prf_state, sizeof(*rand_pos)));
 
     // Mask only relevant bits
     (*rand_pos) &= mask;
@@ -56,7 +56,7 @@ sample_uniform_r_bits_with_fixed_prf_context(OUT r_t *r,
                                              IN const must_be_odd_t   must_be_odd)
 {
   // Generate random data
-  GUARD(aes_ctr_prf(r->raw, prf_state, R_SIZE));
+  POSIX_GUARD(aes_ctr_prf(r->raw, prf_state, R_SIZE));
 
   // Mask upper bits of the MSByte
   r->raw[R_SIZE - 1] &= MASK(R_BITS + 8 - (R_SIZE * 8));
@@ -104,7 +104,7 @@ generate_sparse_rep(OUT uint64_t *    a,
   // Generate weight rand numbers
   do
   {
-    GUARD(get_rand_mod_len(&wlist[ctr], len, prf_state));
+    POSIX_GUARD(get_rand_mod_len(&wlist[ctr], len, prf_state));
     ctr += is_new(wlist, ctr);
   } while(ctr < weight);
 

@@ -80,10 +80,10 @@ static bool s2n_handle_as_warning(struct s2n_connection *conn, uint8_t level, ui
 
 int s2n_process_alert_fragment(struct s2n_connection *conn)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
     S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_BAD_MESSAGE);
     S2N_ERROR_IF(s2n_stuffer_data_available(&conn->alert_in) == 2, S2N_ERR_ALERT_PRESENT);
-    ENSURE_POSIX(s2n_alerts_supported(conn), S2N_ERR_BAD_MESSAGE);
+    POSIX_ENSURE(s2n_alerts_supported(conn), S2N_ERR_BAD_MESSAGE);
 
     while (s2n_stuffer_data_available(&conn->in)) {
         uint8_t bytes_required = 2;
@@ -95,7 +95,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
 
         int bytes_to_read = MIN(bytes_required, s2n_stuffer_data_available(&conn->in));
 
-        GUARD(s2n_stuffer_copy(&conn->in, &conn->alert_in, bytes_to_read));
+        POSIX_GUARD(s2n_stuffer_copy(&conn->in, &conn->alert_in, bytes_to_read));
 
         if (s2n_stuffer_data_available(&conn->alert_in) == 2) {
 
@@ -107,7 +107,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
 
             /* Ignore warning-level alerts if we're in warning-tolerant mode */
             if (s2n_handle_as_warning(conn, conn->alert_in_data[0], conn->alert_in_data[1])) {
-                GUARD(s2n_stuffer_wipe(&conn->alert_in));
+                POSIX_GUARD(s2n_stuffer_wipe(&conn->alert_in));
                 return 0;
             }
 
@@ -118,7 +118,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
 
             /* All other alerts are treated as fatal errors */
             conn->closed = 1;
-            S2N_ERROR(S2N_ERR_ALERT);
+            POSIX_BAIL(S2N_ERR_ALERT);
         }
     }
 
@@ -127,7 +127,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
 
 int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
     uint8_t alert[2];
     alert[0] = S2N_TLS_ALERT_LEVEL_WARNING;
@@ -144,7 +144,7 @@ int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn)
         return S2N_SUCCESS;
     }
 
-    GUARD(s2n_stuffer_write(&conn->writer_alert_out, &out));
+    POSIX_GUARD(s2n_stuffer_write(&conn->writer_alert_out, &out));
     conn->close_notify_queued = 1;
 
     return S2N_SUCCESS;
@@ -152,7 +152,7 @@ int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn)
 
 static int s2n_queue_reader_alert(struct s2n_connection *conn, uint8_t level, uint8_t error_code)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
     uint8_t alert[2];
     alert[0] = level;
@@ -169,7 +169,7 @@ static int s2n_queue_reader_alert(struct s2n_connection *conn, uint8_t level, ui
         return S2N_SUCCESS;
     }
 
-    GUARD(s2n_stuffer_write(&conn->reader_alert_out, &out));
+    POSIX_GUARD(s2n_stuffer_write(&conn->reader_alert_out, &out));
 
     return S2N_SUCCESS;
 }

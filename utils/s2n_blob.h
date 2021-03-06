@@ -50,9 +50,9 @@ extern int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint
 #define s2n_stack_blob(name, requested_size, maximum)			\
     size_t name ## _requested_size = (requested_size);			\
     uint8_t name ## _buf[(maximum)] = {0};				\
-    lte_check(name ## _requested_size, (maximum));			\
+    POSIX_ENSURE_LTE(name ## _requested_size, (maximum));			\
     struct s2n_blob name = {0};						\
-    GUARD(s2n_blob_init(&name, name ## _buf, name ## _requested_size))
+    POSIX_GUARD(s2n_blob_init(&name, name ## _buf, name ## _requested_size))
 
 #define S2N_BLOB_LABEL(name, str) \
     static uint8_t name##_data[] = str;   \
@@ -64,4 +64,4 @@ extern int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint
  * because sizeof needs to refer to the buffer length rather than a pointer size */
 #define S2N_BLOB_FROM_HEX( name, hex ) \
     s2n_stack_blob(name, (sizeof(hex) - 1) / 2, (sizeof(hex) - 1) / 2); \
-    GUARD(s2n_hex_string_to_bytes((const uint8_t*)hex, &name));
+    POSIX_GUARD(s2n_hex_string_to_bytes((const uint8_t*)hex, &name));

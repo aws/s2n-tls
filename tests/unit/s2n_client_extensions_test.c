@@ -74,9 +74,9 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
     char *cert_chain;
     char *private_key;
 
-    GUARD_NONNULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
-    GUARD_NONNULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
-    GUARD(setenv("S2N_DONT_MLOCK", "1", 0));
+    POSIX_GUARD_PTR(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
+    POSIX_GUARD_PTR(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
+    POSIX_GUARD(setenv("S2N_DONT_MLOCK", "1", 0));
 
     struct s2n_connection *server_conn;
     struct s2n_config *server_config;
@@ -103,26 +103,26 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
     size_t record_header_len = sizeof(record_header);
 
 
-    GUARD_NONNULL(server_conn = s2n_connection_new(S2N_SERVER));
-    GUARD(s2n_connection_set_io_pair(server_conn, io_pair));
+    POSIX_GUARD_PTR(server_conn = s2n_connection_new(S2N_SERVER));
+    POSIX_GUARD(s2n_connection_set_io_pair(server_conn, io_pair));
 
-    GUARD_NONNULL(server_config = s2n_config_new());
-    GUARD(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-    GUARD(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
-    GUARD_NONNULL(chain_and_key = s2n_cert_chain_and_key_new());
-    GUARD(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
-    GUARD(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
-    GUARD(s2n_config_set_cipher_preferences(server_config, cipher_pref_version));
-    GUARD(s2n_connection_set_config(server_conn, server_config));
+    POSIX_GUARD_PTR(server_config = s2n_config_new());
+    POSIX_GUARD(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
+    POSIX_GUARD(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
+    POSIX_GUARD_PTR(chain_and_key = s2n_cert_chain_and_key_new());
+    POSIX_GUARD(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
+    POSIX_GUARD(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+    POSIX_GUARD(s2n_config_set_cipher_preferences(server_config, cipher_pref_version));
+    POSIX_GUARD(s2n_connection_set_config(server_conn, server_config));
     server_conn->secure.kem_params.kem = NULL;
 
     /* Send the client hello */
-    eq_check(write(io_pair->client, record_header, record_header_len),record_header_len);
-    eq_check(write(io_pair->client, message_header, message_header_len),message_header_len);
-    eq_check(write(io_pair->client, client_hello_message, client_hello_len),client_hello_len);
-    eq_check(write(io_pair->client, client_extensions, client_extensions_len),client_extensions_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, record_header, record_header_len),record_header_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, message_header, message_header_len),message_header_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, client_hello_message, client_hello_len),client_hello_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, client_extensions, client_extensions_len),client_extensions_len);
 
-    GUARD(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+    POSIX_GUARD(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
     if (s2n_negotiate(server_conn, &server_blocked) == 0) {
         /* We expect the overall negotiation to fail and return non-zero, but it should get far enough
          * that a KEM extension was agreed upon. */
@@ -137,14 +137,14 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
         negotiated_kem_id = -1;
     }
 
-    GUARD(s2n_connection_free(server_conn));
-    GUARD(s2n_cert_chain_and_key_free(chain_and_key));
-    GUARD(s2n_config_free(server_config));
+    POSIX_GUARD(s2n_connection_free(server_conn));
+    POSIX_GUARD(s2n_cert_chain_and_key_free(chain_and_key));
+    POSIX_GUARD(s2n_config_free(server_config));
 
     free(cert_chain);
     free(private_key);
 
-    eq_check(negotiated_kem_id, expected_kem_id);
+    POSIX_ENSURE_EQ(negotiated_kem_id, expected_kem_id);
     
     return 0;
 }

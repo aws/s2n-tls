@@ -442,7 +442,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default"));
 
             const struct s2n_security_policy *security_policy;
-            GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+            POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
@@ -463,7 +463,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
 
-            GUARD(s2n_connection_get_security_policy(client_conn, &security_policy));
+            POSIX_GUARD(s2n_connection_get_security_policy(client_conn, &security_policy));
             EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
@@ -481,7 +481,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
 
-            GUARD(s2n_connection_get_security_policy(server_conn, &security_policy));
+            POSIX_GUARD(s2n_connection_get_security_policy(server_conn, &security_policy));
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io, s2n_stuffer_data_available(&client_conn->handshake.io)));
@@ -744,7 +744,7 @@ int main(int argc, char **argv)
         /* Verify the collected client hello matches what was sent except for the zero-ed client random */
         EXPECT_NOT_NULL(expected_client_hello = malloc(sent_client_hello_len));
         EXPECT_MEMCPY_SUCCESS(expected_client_hello, sent_client_hello, sent_client_hello_len);
-        memset_check(expected_client_hello + client_random_offset, 0, S2N_TLS_RANDOM_DATA_LEN);
+        POSIX_CHECKED_MEMSET(expected_client_hello + client_random_offset, 0, S2N_TLS_RANDOM_DATA_LEN);
         EXPECT_SUCCESS(memcmp(collected_client_hello, expected_client_hello, sent_client_hello_len));
 
         /* Verify s2n_client_hello_get_raw_message_length correct */

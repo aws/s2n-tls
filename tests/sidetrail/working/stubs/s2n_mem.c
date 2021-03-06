@@ -28,7 +28,7 @@ static long page_size = 4096;
 
 int s2n_mem_init(void)
 {
-    GUARD(page_size = sysconf(_SC_PAGESIZE));
+    POSIX_GUARD(page_size = sysconf(_SC_PAGESIZE));
 
     return 0;
 }
@@ -44,7 +44,7 @@ int s2n_alloc(struct s2n_blob *b, uint32_t size)
     b->data = NULL;
     b->size = 0;
     b->allocated = 0;
-    GUARD(s2n_realloc(b, size));
+    POSIX_GUARD(s2n_realloc(b, size));
     return 0;
 }
 
@@ -65,7 +65,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
 
     void *data = realloc(b->data, size);
     if (!data) {
-        S2N_ERROR(S2N_ERR_ALLOC);
+        POSIX_BAIL(S2N_ERR_ALLOC);
     }
 
     b->data = data;
@@ -86,12 +86,12 @@ int s2n_free(struct s2n_blob *b)
 
 int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
 {
-    eq_check(to->size, 0);
-    eq_check(to->data, NULL);
+    POSIX_ENSURE_EQ(to->size, 0);
+    POSIX_ENSURE_EQ(to->data, NULL);
 
-    GUARD(s2n_alloc(to, from->size));
+    POSIX_GUARD(s2n_alloc(to, from->size));
     
-    memcpy_check(to->data, from->data, to->size);
+    POSIX_CHECKED_MEMCPY(to->data, from->data, to->size);
 
     return 0;
 }

@@ -32,7 +32,7 @@ int s2n_basic_ccs_recv(struct s2n_connection *conn)
 {
     uint8_t type;
 
-    GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &type));
+    POSIX_GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &type));
     S2N_ERROR_IF(type != CHANGE_CIPHER_SPEC_TYPE, S2N_ERR_BAD_MESSAGE);
 
     return 0;
@@ -40,14 +40,14 @@ int s2n_basic_ccs_recv(struct s2n_connection *conn)
 
 int s2n_client_ccs_recv(struct s2n_connection *conn)
 {
-    GUARD(s2n_basic_ccs_recv(conn));
+    POSIX_GUARD(s2n_basic_ccs_recv(conn));
 
     /* Zero the sequence number */
     struct s2n_blob seq = {.data = conn->secure.client_sequence_number,.size = sizeof(conn->secure.client_sequence_number) };
-    GUARD(s2n_blob_zero(&seq));
+    POSIX_GUARD(s2n_blob_zero(&seq));
 
     /* Compute the finished message */
-    GUARD(s2n_prf_client_finished(conn));
+    POSIX_GUARD(s2n_prf_client_finished(conn));
 
     /* Update the client to use the cipher-suite */
     conn->client = &conn->secure;
@@ -55,21 +55,21 @@ int s2n_client_ccs_recv(struct s2n_connection *conn)
     /* Flush any partial alert messages that were pending.
      * If we don't do this, an attacker can inject a 1-byte alert message into the handshake
      * and cause later, valid alerts to be processed incorrectly. */
-    GUARD(s2n_stuffer_wipe(&conn->alert_in));
+    POSIX_GUARD(s2n_stuffer_wipe(&conn->alert_in));
 
     return 0;
 }
 
 int s2n_server_ccs_recv(struct s2n_connection *conn)
 {
-    GUARD(s2n_basic_ccs_recv(conn));
+    POSIX_GUARD(s2n_basic_ccs_recv(conn));
 
     /* Zero the sequence number */
     struct s2n_blob seq = {.data = conn->secure.server_sequence_number,.size = sizeof(conn->secure.server_sequence_number) };
-    GUARD(s2n_blob_zero(&seq));
+    POSIX_GUARD(s2n_blob_zero(&seq));
 
     /* Compute the finished message */
-    GUARD(s2n_prf_server_finished(conn));
+    POSIX_GUARD(s2n_prf_server_finished(conn));
 
     /* Update the secure state to active, and point the client at the active state */
     conn->server = &conn->secure;
@@ -77,14 +77,14 @@ int s2n_server_ccs_recv(struct s2n_connection *conn)
     /* Flush any partial alert messages that were pending.
      * If we don't do this, an attacker can inject a 1-byte alert message into the handshake
      * and cause later, valid alerts to be processed incorrectly. */
-    GUARD(s2n_stuffer_wipe(&conn->alert_in));
+    POSIX_GUARD(s2n_stuffer_wipe(&conn->alert_in));
 
     return 0;
 }
 
 int s2n_ccs_send(struct s2n_connection *conn)
 {
-    GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, CHANGE_CIPHER_SPEC_TYPE));
+    POSIX_GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, CHANGE_CIPHER_SPEC_TYPE));
 
     return 0;
 }

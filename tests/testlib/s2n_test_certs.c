@@ -30,11 +30,11 @@ int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_ke
     char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
     char private_key_pem[S2N_MAX_TEST_PEM_SIZE];
 
-    GUARD(s2n_read_test_pem(cert_chain_file, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-    GUARD(s2n_read_test_pem(private_key_file, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+    POSIX_GUARD(s2n_read_test_pem(cert_chain_file, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+    POSIX_GUARD(s2n_read_test_pem(private_key_file, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
 
     POSIX_GUARD_PTR(*chain_and_key = s2n_cert_chain_and_key_new());
-    GUARD(s2n_cert_chain_and_key_load_pem(*chain_and_key, cert_chain_pem, private_key_pem));
+    POSIX_GUARD(s2n_cert_chain_and_key_load_pem(*chain_and_key, cert_chain_pem, private_key_pem));
 
     return S2N_SUCCESS;
 }
@@ -43,7 +43,7 @@ int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size)
 {
     FILE *pem_file = fopen(pem_path, "rb");
     if (!pem_file) {
-        S2N_ERROR(S2N_ERR_NULL);
+        POSIX_BAIL(S2N_ERR_NULL);
     }
 
     /* Make sure we can fit the pem into the output buffer */
@@ -53,11 +53,11 @@ int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size)
     rewind(pem_file);
 
     if (max_size < (pem_file_size + 1)) {
-        S2N_ERROR(S2N_ERR_NOMEM);
+        POSIX_BAIL(S2N_ERR_NOMEM);
     }
 
     if (fread(pem_out, sizeof(char), pem_file_size, pem_file) < pem_file_size) {
-        S2N_ERROR(S2N_ERR_IO);
+        POSIX_BAIL(S2N_ERR_IO);
     }
 
     pem_out[pem_file_size] = '\0';

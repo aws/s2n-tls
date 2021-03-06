@@ -172,9 +172,9 @@ static struct s2n_config *client_config;
 int s2n_fuzz_init(int *argc, char **argv[])
 {
     /* Set up Server Config */
-    notnull_check(client_config = s2n_config_new());
-    GUARD(s2n_config_add_cert_chain_and_key(client_config, certificate_chain, private_key));
-    GUARD(s2n_config_add_dhparams(client_config, dhparams));
+    POSIX_ENSURE_REF(client_config = s2n_config_new());
+    POSIX_GUARD(s2n_config_add_cert_chain_and_key(client_config, certificate_chain, private_key));
+    POSIX_GUARD(s2n_config_add_dhparams(client_config, dhparams));
 
     return S2N_SUCCESS;
 }
@@ -184,17 +184,17 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     S2N_FUZZ_ENSURE_MIN_LEN(len, S2N_TLS_RECORD_HEADER_LENGTH);
 
     struct s2n_stuffer in = {0};
-    GUARD(s2n_stuffer_alloc(&in, len));
-    GUARD(s2n_stuffer_write_bytes(&in, buf, len));
+    POSIX_GUARD(s2n_stuffer_alloc(&in, len));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&in, buf, len));
 
     /* Set up Server Connection */
     struct s2n_connection *client_conn;
-    notnull_check(client_conn = s2n_connection_new(S2N_CLIENT));
-    GUARD(s2n_connection_set_recv_cb(client_conn, &buffer_read));
-    GUARD(s2n_connection_set_send_cb(client_conn, &buffer_write));
-    GUARD(s2n_connection_set_recv_ctx(client_conn, &in));
-    GUARD(s2n_connection_set_config(client_conn, client_config));
-    GUARD(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+    POSIX_ENSURE_REF(client_conn = s2n_connection_new(S2N_CLIENT));
+    POSIX_GUARD(s2n_connection_set_recv_cb(client_conn, &buffer_read));
+    POSIX_GUARD(s2n_connection_set_send_cb(client_conn, &buffer_write));
+    POSIX_GUARD(s2n_connection_set_recv_ctx(client_conn, &in));
+    POSIX_GUARD(s2n_connection_set_config(client_conn, client_config));
+    POSIX_GUARD(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
     client_conn->delay = 0;
 
     /* Let Server receive data and attempt Negotiation */
@@ -207,8 +207,8 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
 
     /* Clean up */
     s2n_shutdown(client_conn, &client_blocked);
-    GUARD(s2n_connection_free(client_conn));
-    GUARD(s2n_stuffer_free(&in));
+    POSIX_GUARD(s2n_connection_free(client_conn));
+    POSIX_GUARD(s2n_stuffer_free(&in));
 
     return S2N_SUCCESS;
 }

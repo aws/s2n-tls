@@ -42,39 +42,39 @@ static bool s2n_alpn_should_send(struct s2n_connection *conn)
 
 static int s2n_alpn_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
     const uint8_t application_protocol_len = strlen(conn->application_protocol);
 
     /* Size of protocol name list */
-    GUARD(s2n_stuffer_write_uint16(out, application_protocol_len + sizeof(uint8_t)));
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, application_protocol_len + sizeof(uint8_t)));
 
     /* Single entry in protocol name list */
-    GUARD(s2n_stuffer_write_uint8(out, application_protocol_len));
-    GUARD(s2n_stuffer_write_bytes(out, (uint8_t *) conn->application_protocol, application_protocol_len));
+    POSIX_GUARD(s2n_stuffer_write_uint8(out, application_protocol_len));
+    POSIX_GUARD(s2n_stuffer_write_bytes(out, (uint8_t *) conn->application_protocol, application_protocol_len));
 
     return S2N_SUCCESS;
 }
 
 static int s2n_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
     uint16_t size_of_all;
-    GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
+    POSIX_GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
     if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all < 3) {
         /* ignore invalid extension size */
         return S2N_SUCCESS;
     }
 
     uint8_t protocol_len;
-    GUARD(s2n_stuffer_read_uint8(extension, &protocol_len));
-    lt_check(protocol_len, s2n_array_len(conn->application_protocol));
+    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &protocol_len));
+    POSIX_ENSURE_LT(protocol_len, s2n_array_len(conn->application_protocol));
 
     uint8_t *protocol = s2n_stuffer_raw_read(extension, protocol_len);
-    notnull_check(protocol);
+    POSIX_ENSURE_REF(protocol);
 
     /* copy the first protocol name */
-    memcpy_check(conn->application_protocol, protocol, protocol_len);
+    POSIX_CHECKED_MEMCPY(conn->application_protocol, protocol, protocol_len);
     conn->application_protocol[protocol_len] = '\0';
 
     return S2N_SUCCESS;

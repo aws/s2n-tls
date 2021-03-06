@@ -101,13 +101,13 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
         }
 
         if (server_blocked == S2N_BLOCKED_ON_APPLICATION_INPUT) {
-            GUARD(handler(server_conn));
+            POSIX_GUARD(handler(server_conn));
         }
 
         EXPECT_NOT_EQUAL(++tries, 5);
     } while (client_blocked || server_blocked);
 
-    GUARD(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+    POSIX_GUARD(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
     return S2N_SUCCESS;
 }

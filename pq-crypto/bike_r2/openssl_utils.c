@@ -108,15 +108,15 @@ ossl_add(OUT uint8_t      res_bin[R_SIZE],
     BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
   }
 
-  GUARD(ossl_bin2bn(a, a_bin, R_SIZE));
-  GUARD(ossl_bin2bn(b, b_bin, R_SIZE));
+  POSIX_GUARD(ossl_bin2bn(a, a_bin, R_SIZE));
+  POSIX_GUARD(ossl_bin2bn(b, b_bin, R_SIZE));
 
   if(BN_GF2m_add(r, a, b) == 0)
   {
     BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
   }
 
-  GUARD(ossl_bn2bin(res_bin, r, R_SIZE));
+  POSIX_GUARD(ossl_bn2bin(res_bin, r, R_SIZE));
 
   return SUCCESS;
 }
@@ -176,10 +176,10 @@ cyclic_product(OUT uint8_t      res_bin[R_SIZE],
     BIKE_ERROR(EXTERNAL_LIB_ERROR_OPENSSL);
   }
 
-  GUARD(ossl_bin2bn(a, a_bin, R_SIZE));
-  GUARD(ossl_bin2bn(b, b_bin, R_SIZE));
-  GUARD(ossl_cyclic_product(r, a, b, bn_ctx));
-  GUARD(ossl_bn2bin(res_bin, r, R_SIZE));
+  POSIX_GUARD(ossl_bin2bn(a, a_bin, R_SIZE));
+  POSIX_GUARD(ossl_bin2bn(b, b_bin, R_SIZE));
+  POSIX_GUARD(ossl_cyclic_product(r, a, b, bn_ctx));
+  POSIX_GUARD(ossl_bn2bin(res_bin, r, R_SIZE));
 
   return SUCCESS;
 }

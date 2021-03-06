@@ -604,8 +604,8 @@ struct s2n_security_policy_selection security_policy_selection[] = {
 
 int s2n_find_security_policy_from_version(const char *version, const struct s2n_security_policy **security_policy)
 {
-    notnull_check(version);
-    notnull_check(security_policy);
+    POSIX_ENSURE_REF(version);
+    POSIX_ENSURE_REF(security_policy);
 
     for (int i = 0; security_policy_selection[i].version != NULL; i++) {
         if (!strcasecmp(version, security_policy_selection[i].version)) {
@@ -614,18 +614,18 @@ int s2n_find_security_policy_from_version(const char *version, const struct s2n_
         }
     }
 
-    S2N_ERROR(S2N_ERR_INVALID_SECURITY_POLICY);
+    POSIX_BAIL(S2N_ERR_INVALID_SECURITY_POLICY);
 }
 
 int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)
 {
     const struct s2n_security_policy *security_policy = NULL;
-    GUARD(s2n_find_security_policy_from_version(version, &security_policy));
-    ENSURE_POSIX_REF(security_policy);
-    ENSURE_POSIX_REF(security_policy->cipher_preferences);
-    ENSURE_POSIX_REF(security_policy->kem_preferences);
-    ENSURE_POSIX_REF(security_policy->signature_preferences);
-    ENSURE_POSIX_REF(security_policy->ecc_preferences);
+    POSIX_GUARD(s2n_find_security_policy_from_version(version, &security_policy));
+    POSIX_ENSURE_REF(security_policy);
+    POSIX_ENSURE_REF(security_policy->cipher_preferences);
+    POSIX_ENSURE_REF(security_policy->kem_preferences);
+    POSIX_ENSURE_REF(security_policy->signature_preferences);
+    POSIX_ENSURE_REF(security_policy->ecc_preferences);
 
     config->security_policy = security_policy;
     return 0;
@@ -634,12 +634,12 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version)
 {
     const struct s2n_security_policy *security_policy = NULL;
-    GUARD(s2n_find_security_policy_from_version(version, &security_policy));
-    ENSURE_POSIX_REF(security_policy);
-    ENSURE_POSIX_REF(security_policy->cipher_preferences);
-    ENSURE_POSIX_REF(security_policy->kem_preferences);
-    ENSURE_POSIX_REF(security_policy->signature_preferences);
-    ENSURE_POSIX_REF(security_policy->ecc_preferences);
+    POSIX_GUARD(s2n_find_security_policy_from_version(version, &security_policy));
+    POSIX_ENSURE_REF(security_policy);
+    POSIX_ENSURE_REF(security_policy->cipher_preferences);
+    POSIX_ENSURE_REF(security_policy->kem_preferences);
+    POSIX_ENSURE_REF(security_policy->signature_preferences);
+    POSIX_ENSURE_REF(security_policy->ecc_preferences);
 
     conn->security_policy_override = security_policy;
     return 0;
@@ -649,18 +649,18 @@ int s2n_security_policies_init()
 {
     for (int i = 0; security_policy_selection[i].version != NULL; i++) {
         const struct s2n_security_policy *security_policy = security_policy_selection[i].security_policy;
-        notnull_check(security_policy);
+        POSIX_ENSURE_REF(security_policy);
         const struct s2n_cipher_preferences *cipher_preference = security_policy->cipher_preferences;
-        notnull_check(cipher_preference);
+        POSIX_ENSURE_REF(cipher_preference);
         const struct s2n_kem_preferences *kem_preference = security_policy->kem_preferences;
-        notnull_check(kem_preference);
+        POSIX_ENSURE_REF(kem_preference);
         const struct s2n_ecc_preferences *ecc_preference = security_policy->ecc_preferences;
-        notnull_check(ecc_preference);
-        GUARD(s2n_check_ecc_preferences_curves_list(ecc_preference));
+        POSIX_ENSURE_REF(ecc_preference);
+        POSIX_GUARD(s2n_check_ecc_preferences_curves_list(ecc_preference));
 
         const struct s2n_signature_preferences *certificate_signature_preference = security_policy->certificate_signature_preferences;
         if (certificate_signature_preference != NULL) {
-            GUARD_AS_POSIX(s2n_validate_certificate_signature_preferences(certificate_signature_preference));
+            POSIX_GUARD_RESULT(s2n_validate_certificate_signature_preferences(certificate_signature_preference));
         }
 
         if (security_policy != &security_policy_null) {
@@ -670,7 +670,7 @@ int s2n_security_policies_init()
 
         for (int j = 0; j < cipher_preference->count; j++) {
             struct s2n_cipher_suite *cipher = cipher_preference->suites[j];
-            notnull_check(cipher);
+            POSIX_ENSURE_REF(cipher);
 
             /* TLS1.3 does not include key exchange algorithms in its cipher suites,
              * but the elliptic curves extension is always required. */
@@ -692,7 +692,7 @@ int s2n_security_policies_init()
             }
         }
 
-        GUARD(s2n_validate_kem_preferences(kem_preference, security_policy_selection[i].pq_kem_extension_required));
+        POSIX_GUARD(s2n_validate_kem_preferences(kem_preference, security_policy_selection[i].pq_kem_extension_required));
     }
     return 0;
 }
@@ -757,13 +757,13 @@ bool s2n_security_policy_supports_tls13(const struct s2n_security_policy *securi
 
 int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, const char *version)
 {
-    notnull_check(conn);
-    notnull_check(version);
-    notnull_check(conn->secure.cipher_suite);
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(version);
+    POSIX_ENSURE_REF(conn->secure.cipher_suite);
 
     const struct s2n_security_policy *security_policy = NULL;
-    GUARD(s2n_find_security_policy_from_version(version, &security_policy));
-    notnull_check(security_policy);
+    POSIX_GUARD(s2n_find_security_policy_from_version(version, &security_policy));
+    POSIX_ENSURE_REF(security_policy);
 
     /* make sure we dont use a tls version lower than that configured by the version */
     if (s2n_connection_get_actual_protocol_version(conn) < security_policy->minimum_protocol_version) {
@@ -771,7 +771,7 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
     }
 
     struct s2n_cipher_suite *cipher = conn->secure.cipher_suite;
-    notnull_check(cipher);
+    POSIX_ENSURE_REF(cipher);
     for (int i = 0; i < security_policy->cipher_preferences->count; ++i) {
         if (0 == memcmp(security_policy->cipher_preferences->suites[i]->iana_value, cipher->iana_value, S2N_TLS_CIPHER_SUITE_LEN)) {
             return 1;
@@ -782,21 +782,21 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
 }
 
 int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferences, bool pq_kem_extension_required) {
-    notnull_check(kem_preferences);
+    POSIX_ENSURE_REF(kem_preferences);
 
     /* Basic sanity checks to assert that the count is 0 if and only if the associated list is NULL */
-    ENSURE_POSIX(S2N_IFF(kem_preferences->tls13_kem_group_count == 0, kem_preferences->tls13_kem_groups == NULL),
+    POSIX_ENSURE(S2N_IFF(kem_preferences->tls13_kem_group_count == 0, kem_preferences->tls13_kem_groups == NULL),
                  S2N_ERR_INVALID_SECURITY_POLICY);
-    ENSURE_POSIX(S2N_IFF(kem_preferences->kem_count == 0, kem_preferences->kems == NULL),
+    POSIX_ENSURE(S2N_IFF(kem_preferences->kem_count == 0, kem_preferences->kems == NULL),
                  S2N_ERR_INVALID_SECURITY_POLICY);
 
     /* The PQ KEM extension is applicable only to TLS 1.2 */
     if (pq_kem_extension_required) {
-        ENSURE_POSIX(kem_preferences->kem_count > 0, S2N_ERR_INVALID_SECURITY_POLICY);
-        ENSURE_POSIX(kem_preferences->kems != NULL, S2N_ERR_INVALID_SECURITY_POLICY);
+        POSIX_ENSURE(kem_preferences->kem_count > 0, S2N_ERR_INVALID_SECURITY_POLICY);
+        POSIX_ENSURE(kem_preferences->kems != NULL, S2N_ERR_INVALID_SECURITY_POLICY);
     } else {
-        ENSURE_POSIX(kem_preferences->kem_count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
-        ENSURE_POSIX(kem_preferences->kems == NULL, S2N_ERR_INVALID_SECURITY_POLICY);
+        POSIX_ENSURE(kem_preferences->kem_count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
+        POSIX_ENSURE(kem_preferences->kems == NULL, S2N_ERR_INVALID_SECURITY_POLICY);
     }
 
     return S2N_SUCCESS;
@@ -804,7 +804,7 @@ int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferenc
 
 S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signature_preferences *certificate_signature_preferences)
 {
-    ENSURE_REF(certificate_signature_preferences);
+    RESULT_ENSURE_REF(certificate_signature_preferences);
 
     size_t rsa_pss_scheme_count = 0;
 
@@ -817,6 +817,6 @@ S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signa
     /* The Openssl function used to parse signatures off certificates does not differentiate between any rsa pss
      * signature schemes. Therefore a security policy with a certificate signatures preference list must include
      * all rsa_pss signature schemes. */
-    ENSURE(rsa_pss_scheme_count == NUM_RSA_PSS_SCHEMES || rsa_pss_scheme_count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
+    RESULT_ENSURE(rsa_pss_scheme_count == NUM_RSA_PSS_SCHEMES || rsa_pss_scheme_count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
     return S2N_RESULT_OK;
 }

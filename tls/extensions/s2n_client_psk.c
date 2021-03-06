@@ -43,7 +43,7 @@ const s2n_extension_type s2n_client_psk_extension = {
 
 int s2n_client_psk_is_missing(struct s2n_connection *conn)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
     /* If the PSK extension is missing, we must not have received
      * a request for early data.
@@ -54,7 +54,7 @@ int s2n_client_psk_is_missing(struct s2n_connection *conn)
      *# client opts to do so, it MUST supply both the "pre_shared_key" and
      *# "early_data" extensions.
      */
-    ENSURE_POSIX(conn->early_data_state != S2N_EARLY_DATA_REQUESTED, S2N_ERR_UNSUPPORTED_EXTENSION);
+    POSIX_ENSURE(conn->early_data_state != S2N_EARLY_DATA_REQUESTED, S2N_ERR_UNSUPPORTED_EXTENSION);
     return S2N_SUCCESS;
 }
 
@@ -91,20 +91,20 @@ bool s2n_client_psk_should_send(struct s2n_connection *conn)
 
 static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
     struct s2n_psk_parameters *psk_params = &conn->psk_params;
     struct s2n_array *psk_list = &psk_params->psk_list;
 
     struct s2n_stuffer_reservation identity_list_size;
-    GUARD(s2n_stuffer_reserve_uint16(out, &identity_list_size));
+    POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &identity_list_size));
 
     uint16_t binder_list_size = SIZE_OF_BINDER_LIST_SIZE;
 
     for (size_t i = 0; i < psk_list->len; i++) {
         struct s2n_psk *psk = NULL;
-        GUARD_AS_POSIX(s2n_array_get(psk_list, i, (void**) &psk));
-        notnull_check(psk);
+        POSIX_GUARD_RESULT(s2n_array_get(psk_list, i, (void**) &psk));
+        POSIX_ENSURE_REF(psk);
 
         /**
          *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
@@ -117,17 +117,17 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
         }
 
         /* Write the identity */
-        GUARD(s2n_stuffer_write_uint16(out, psk->identity.size));
-        GUARD(s2n_stuffer_write(out, &psk->identity));
-        GUARD(s2n_stuffer_write_uint32(out, 0));
+        POSIX_GUARD(s2n_stuffer_write_uint16(out, psk->identity.size));
+        POSIX_GUARD(s2n_stuffer_write(out, &psk->identity));
+        POSIX_GUARD(s2n_stuffer_write_uint32(out, 0));
 
         /* Calculate binder size */
         uint8_t hash_size = 0;
-        GUARD(s2n_hmac_digest_size(psk->hmac_alg, &hash_size));
+        POSIX_GUARD(s2n_hmac_digest_size(psk->hmac_alg, &hash_size));
         binder_list_size += hash_size + SIZE_OF_BINDER_SIZE;
     }
 
-    GUARD(s2n_stuffer_write_vector_size(&identity_list_size));
+    POSIX_GUARD(s2n_stuffer_write_vector_size(&identity_list_size));
 
     /* Calculating the binders requires a complete ClientHello, and at this point
      * the extension size, extension list size, and message size are all blank.
@@ -135,7 +135,7 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
      * We'll write placeholder data to ensure the extension and extension list sizes
      * are calculated correctly, then rewrite the binders with real data later. */
     psk_params->binder_list_size = binder_list_size;
-    GUARD(s2n_stuffer_skip_write(out, binder_list_size));
+    POSIX_GUARD(s2n_stuffer_skip_write(out, binder_list_size));
 
     return S2N_SUCCESS;
 }
@@ -154,16 +154,16 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
 static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const struct s2n_blob *wire_identity,
         struct s2n_psk **match)
 {
-    ENSURE_REF(match);
-    ENSURE_REF(wire_identity);
-    ENSURE_REF(known_psks);
+    RESULT_ENSURE_REF(match);
+    RESULT_ENSURE_REF(wire_identity);
+    RESULT_ENSURE_REF(known_psks);
     *match = NULL;
     for (size_t i = 0; i < known_psks->len; i++) {
         struct s2n_psk *psk = NULL;
-        GUARD_RESULT(s2n_array_get(known_psks, i, (void**)&psk));
-        ENSURE_REF(psk);
-        ENSURE_REF(psk->identity.data);
-        ENSURE_REF(wire_identity->data);
+        RESULT_GUARD(s2n_array_get(known_psks, i, (void**)&psk));
+        RESULT_ENSURE_REF(psk);
+        RESULT_ENSURE_REF(psk->identity.data);
+        RESULT_ENSURE_REF(wire_identity->data);
         uint32_t compare_size = MIN(wire_identity->size, psk->identity.size);
         if (s2n_constant_time_equals(psk->identity.data, wire_identity->data, compare_size)
             & (psk->identity.size == wire_identity->size) & (!*match)) {
@@ -186,23 +186,23 @@ static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const str
  */
 static S2N_RESULT s2n_select_psk_identity(struct s2n_connection *conn, struct s2n_offered_psk_list *client_identity_list)
 {
-    ENSURE_REF(conn);
-    ENSURE_REF(client_identity_list);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(client_identity_list);
 
     struct s2n_array *server_psks = &conn->psk_params.psk_list;
     conn->psk_params.chosen_psk = NULL;
 
     for (size_t i = 0; i < server_psks->len; i++) {
         struct s2n_psk *server_psk = NULL;
-        GUARD_RESULT(s2n_array_get(server_psks, i, (void**) &server_psk));
-        ENSURE_REF(server_psk);
+        RESULT_GUARD(s2n_array_get(server_psks, i, (void**) &server_psk));
+        RESULT_ENSURE_REF(server_psk);
 
         struct s2n_offered_psk client_psk = { 0 };
         uint16_t wire_index = 0;
 
-        GUARD_AS_RESULT(s2n_offered_psk_list_reset(client_identity_list));
+        RESULT_GUARD_POSIX(s2n_offered_psk_list_reset(client_identity_list));
         while(s2n_offered_psk_list_has_next(client_identity_list)) {
-            GUARD_AS_RESULT(s2n_offered_psk_list_next(client_identity_list, &client_psk));
+            RESULT_GUARD_POSIX(s2n_offered_psk_list_next(client_identity_list, &client_psk));
             uint16_t compare_size = MIN(client_psk.identity.size, server_psk->identity.size);
             if (s2n_constant_time_equals(client_psk.identity.data, server_psk->identity.data, compare_size)
                     & (client_psk.identity.size == server_psk->identity.size)
@@ -213,111 +213,111 @@ static S2N_RESULT s2n_select_psk_identity(struct s2n_connection *conn, struct s2
             wire_index++;
         };
     }
-    ENSURE_REF(conn->psk_params.chosen_psk);
+    RESULT_ENSURE_REF(conn->psk_params.chosen_psk);
     return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn, struct s2n_stuffer *wire_identities_in)
 {
-    ENSURE_REF(conn);
-    ENSURE_REF(wire_identities_in);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(wire_identities_in);
 
     struct s2n_offered_psk_list identity_list = { .wire_data = *wire_identities_in };
 
     if (conn->config->psk_selection_cb) {
-        GUARD_AS_RESULT(conn->config->psk_selection_cb(conn, &identity_list, &conn->psk_params.chosen_psk_wire_index));
+        RESULT_GUARD_POSIX(conn->config->psk_selection_cb(conn, &identity_list, &conn->psk_params.chosen_psk_wire_index));
 
         struct s2n_offered_psk chosen_identity = { 0 };
-        GUARD_RESULT(s2n_offered_psk_list_get_index(&identity_list, conn->psk_params.chosen_psk_wire_index,
+        RESULT_GUARD(s2n_offered_psk_list_get_index(&identity_list, conn->psk_params.chosen_psk_wire_index,
                 &chosen_identity));
 
-        GUARD_RESULT(s2n_match_psk_identity(&conn->psk_params.psk_list, &chosen_identity.identity, &conn->psk_params.chosen_psk));
+        RESULT_GUARD(s2n_match_psk_identity(&conn->psk_params.psk_list, &chosen_identity.identity, &conn->psk_params.chosen_psk));
     } else {
-        GUARD_RESULT(s2n_select_psk_identity(conn, &identity_list));
+        RESULT_GUARD(s2n_select_psk_identity(conn, &identity_list));
     }
-    ENSURE_REF(conn->psk_params.chosen_psk);
+    RESULT_ENSURE_REF(conn->psk_params.chosen_psk);
     return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_client_psk_recv_binder_list(struct s2n_connection *conn, struct s2n_blob *partial_client_hello,
         struct s2n_stuffer *wire_binders_in)
 {
-    ENSURE_REF(conn);
-    ENSURE_REF(wire_binders_in);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(wire_binders_in);
 
     uint16_t wire_index = 0;
     while (s2n_stuffer_data_available(wire_binders_in) > 0) {
         uint8_t wire_binder_size = 0;
-        GUARD_AS_RESULT(s2n_stuffer_read_uint8(wire_binders_in, &wire_binder_size));
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(wire_binders_in, &wire_binder_size));
 
         uint8_t *wire_binder_data;
-        ENSURE_REF(wire_binder_data = s2n_stuffer_raw_read(wire_binders_in, wire_binder_size));
+        RESULT_ENSURE_REF(wire_binder_data = s2n_stuffer_raw_read(wire_binders_in, wire_binder_size));
 
         struct s2n_blob wire_binder = { 0 };
-        GUARD_AS_RESULT(s2n_blob_init(&wire_binder, wire_binder_data, wire_binder_size));
+        RESULT_GUARD_POSIX(s2n_blob_init(&wire_binder, wire_binder_data, wire_binder_size));
 
         if (wire_index == conn->psk_params.chosen_psk_wire_index) {
-            GUARD_AS_RESULT(s2n_psk_verify_binder(conn, conn->psk_params.chosen_psk,
+            RESULT_GUARD_POSIX(s2n_psk_verify_binder(conn, conn->psk_params.chosen_psk,
                     partial_client_hello, &wire_binder));
             return S2N_RESULT_OK;
         }
         wire_index++;
     }
-    BAIL(S2N_ERR_BAD_MESSAGE);
+    RESULT_BAIL(S2N_ERR_BAD_MESSAGE);
 }
 
 static S2N_RESULT s2n_client_psk_recv_identities(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
     uint16_t identity_list_size = 0;
-    GUARD_AS_RESULT(s2n_stuffer_read_uint16(extension, &identity_list_size));
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &identity_list_size));
 
     uint8_t *identity_list_data;
-    ENSURE_REF(identity_list_data = s2n_stuffer_raw_read(extension, identity_list_size));
+    RESULT_ENSURE_REF(identity_list_data = s2n_stuffer_raw_read(extension, identity_list_size));
 
     struct s2n_blob identity_list_blob = { 0 };
-    GUARD_AS_RESULT(s2n_blob_init(&identity_list_blob, identity_list_data, identity_list_size));
+    RESULT_GUARD_POSIX(s2n_blob_init(&identity_list_blob, identity_list_data, identity_list_size));
 
     struct s2n_stuffer identity_list = { 0 };
-    GUARD_AS_RESULT(s2n_stuffer_init(&identity_list, &identity_list_blob));
-    GUARD_AS_RESULT(s2n_stuffer_skip_write(&identity_list, identity_list_blob.size));
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&identity_list, &identity_list_blob));
+    RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&identity_list, identity_list_blob.size));
 
     return s2n_client_psk_recv_identity_list(conn, &identity_list);
 }
 
 static S2N_RESULT s2n_client_psk_recv_binders(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
     uint16_t binder_list_size = 0;
-    GUARD_AS_RESULT(s2n_stuffer_read_uint16(extension, &binder_list_size));
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &binder_list_size));
 
     uint8_t *binder_list_data;
-    ENSURE_REF(binder_list_data = s2n_stuffer_raw_read(extension, binder_list_size));
+    RESULT_ENSURE_REF(binder_list_data = s2n_stuffer_raw_read(extension, binder_list_size));
 
     struct s2n_blob binder_list_blob = { 0 };
-    GUARD_AS_RESULT(s2n_blob_init(&binder_list_blob, binder_list_data, binder_list_size));
+    RESULT_GUARD_POSIX(s2n_blob_init(&binder_list_blob, binder_list_data, binder_list_size));
 
     struct s2n_stuffer binder_list = { 0 };
-    GUARD_AS_RESULT(s2n_stuffer_init(&binder_list, &binder_list_blob));
-    GUARD_AS_RESULT(s2n_stuffer_skip_write(&binder_list, binder_list_blob.size));
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&binder_list, &binder_list_blob));
+    RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&binder_list, binder_list_blob.size));
 
     /* Record the ClientHello message up to but not including the binder list.
      * This is required to calculate the binder for the chosen PSK. */
     struct s2n_blob partial_client_hello = { 0 };
     const struct s2n_stuffer *client_hello = &conn->handshake.io;
     uint32_t binders_size = binder_list_blob.size + SIZE_OF_BINDER_LIST_SIZE;
-    ENSURE_GTE(client_hello->write_cursor, binders_size);
+    RESULT_ENSURE_GTE(client_hello->write_cursor, binders_size);
     uint16_t partial_client_hello_size = client_hello->write_cursor - binders_size;
-    GUARD_AS_RESULT(s2n_blob_slice(&client_hello->blob, &partial_client_hello, 0, partial_client_hello_size));
+    RESULT_GUARD_POSIX(s2n_blob_slice(&client_hello->blob, &partial_client_hello, 0, partial_client_hello_size));
 
     return s2n_client_psk_recv_binder_list(conn, &partial_client_hello, &binder_list);
 }
 
 int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         return S2N_SUCCESS;
@@ -331,11 +331,11 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
      *# the handshake with an "illegal_parameter" alert.
      */
     s2n_extension_type_id psk_ext_id;
-    GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PRE_SHARED_KEY, &psk_ext_id));
-    ne_check(conn->client_hello.extensions.count, 0);
+    POSIX_GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PRE_SHARED_KEY, &psk_ext_id));
+    POSIX_ENSURE_NE(conn->client_hello.extensions.count, 0);
     uint16_t last_wire_index = conn->client_hello.extensions.count - 1;
     uint16_t extension_wire_index = conn->client_hello.extensions.parsed_extensions[psk_ext_id].wire_index;
-    ENSURE_POSIX(extension_wire_index == last_wire_index, S2N_ERR_UNSUPPORTED_EXTENSION);
+    POSIX_ENSURE(extension_wire_index == last_wire_index, S2N_ERR_UNSUPPORTED_EXTENSION);
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-4.2.9
@@ -346,16 +346,16 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
      * required to be the last extension sent in the list.
      */
     s2n_extension_type_id psk_ke_mode_ext_id;
-    GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES, &psk_ke_mode_ext_id));
-    ENSURE_POSIX(S2N_CBIT_TEST(conn->extension_requests_received, psk_ke_mode_ext_id), S2N_ERR_MISSING_EXTENSION);
+    POSIX_GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES, &psk_ke_mode_ext_id));
+    POSIX_ENSURE(S2N_CBIT_TEST(conn->extension_requests_received, psk_ke_mode_ext_id), S2N_ERR_MISSING_EXTENSION);
 
     if (conn->psk_params.psk_ke_mode == S2N_PSK_DHE_KE) {
         s2n_extension_type_id key_share_ext_id;
-        GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_KEY_SHARE, &key_share_ext_id));
+        POSIX_GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_KEY_SHARE, &key_share_ext_id));
         /* A key_share extension must have been received in order to use a pre-shared key
          * in (EC)DHE key exchange mode.
          */
-        ENSURE_POSIX(S2N_CBIT_TEST(conn->extension_requests_received, key_share_ext_id), S2N_ERR_MISSING_EXTENSION);
+        POSIX_ENSURE(S2N_CBIT_TEST(conn->extension_requests_received, key_share_ext_id), S2N_ERR_MISSING_EXTENSION);
     } else {
         /* s2n currently only supports pre-shared keys in (EC)DHE key exchange mode. If we receive keys with any other
          * exchange mode we fall back to a full handshake.
@@ -380,7 +380,7 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
          *# value is not present or does not validate, the server MUST abort the
          *# handshake.
          */
-        GUARD_AS_POSIX(s2n_client_psk_recv_binders(conn, extension));
+        POSIX_GUARD_RESULT(s2n_client_psk_recv_binders(conn, extension));
     }
 
     /* At this point, we have either chosen a PSK or fallen back to a full handshake. */

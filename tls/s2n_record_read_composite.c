@@ -45,16 +45,16 @@ int s2n_record_parse_composite(
 
     /* Add the header to the HMAC */
     uint8_t *header = s2n_stuffer_raw_read(&conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH);
-    notnull_check(header);
+    POSIX_ENSURE_REF(header);
 
     struct s2n_blob en = {.size = encrypted_length,.data = s2n_stuffer_raw_read(&conn->in, encrypted_length) };
-    notnull_check(en.data);
+    POSIX_ENSURE_REF(en.data);
 
     uint16_t payload_length = encrypted_length;
     uint8_t mac_digest_size;
-    GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
+    POSIX_GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
 
-    gte_check(payload_length, mac_digest_size);
+    POSIX_ENSURE_GTE(payload_length, mac_digest_size);
     payload_length -= mac_digest_size;
 
     /* Compute non-payload parts of the MAC(seq num, type, proto vers, fragment length) for composite ciphers.
@@ -63,51 +63,51 @@ int s2n_record_parse_composite(
     /* In the decrypt case, this outputs the MAC digest length:
      * https://github.com/openssl/openssl/blob/master/crypto/evp/e_aes_cbc_hmac_sha1.c#L842 */
     int mac_size = 0;
-    GUARD(cipher_suite->record_alg->cipher->io.comp.initial_hmac(session_key, sequence_number, content_type, conn->actual_protocol_version, payload_length, &mac_size));
+    POSIX_GUARD(cipher_suite->record_alg->cipher->io.comp.initial_hmac(session_key, sequence_number, content_type, conn->actual_protocol_version, payload_length, &mac_size));
 
-    gte_check(payload_length, mac_size);
+    POSIX_ENSURE_GTE(payload_length, mac_size);
     payload_length -= mac_size;
     /* Adjust payload_length for explicit IV */
     if (conn->actual_protocol_version > S2N_TLS10) {
         uint32_t out = 0;
-        GUARD(s2n_sub_overflow(payload_length, cipher_suite->record_alg->cipher->io.comp.record_iv_size, &out));
+        POSIX_GUARD(s2n_sub_overflow(payload_length, cipher_suite->record_alg->cipher->io.comp.record_iv_size, &out));
         payload_length = out;
     }
 
     /* Decrypt stuff! */
-    ne_check(en.size, 0);
-    eq_check(en.size % iv.size, 0);
+    POSIX_ENSURE_NE(en.size, 0);
+    POSIX_ENSURE_EQ(en.size % iv.size, 0);
 
     /* Copy the last encrypted block to be the next IV */
-    memcpy_check(ivpad, en.data + en.size - iv.size, iv.size);
+    POSIX_CHECKED_MEMCPY(ivpad, en.data + en.size - iv.size, iv.size);
 
     /* This will: Skip the explicit IV(if applicable), decrypt the payload, verify the MAC and padding. */
-    GUARD((cipher_suite->record_alg->cipher->io.comp.decrypt(session_key, &iv, &en, &en)));
+    POSIX_GUARD((cipher_suite->record_alg->cipher->io.comp.decrypt(session_key, &iv, &en, &en)));
 
-    memcpy_check(implicit_iv, ivpad, iv.size);
+    POSIX_CHECKED_MEMCPY(implicit_iv, ivpad, iv.size);
 
     /* Subtract the padding length */
-    gt_check(en.size, 0);
+    POSIX_ENSURE_GT(en.size, 0);
     uint32_t out = 0;
-    GUARD(s2n_sub_overflow(payload_length, en.data[en.size - 1] + 1, &out));
+    POSIX_GUARD(s2n_sub_overflow(payload_length, en.data[en.size - 1] + 1, &out));
     payload_length = out;
 
     struct s2n_blob seq = {.data = sequence_number,.size = S2N_TLS_SEQUENCE_NUM_LEN };
-    GUARD(s2n_increment_sequence_number(&seq));
+    POSIX_GUARD(s2n_increment_sequence_number(&seq));
 
     /* O.k., we've successfully read and decrypted the record, now we need to align the stuffer
      * for reading the plaintext data.
      */
-    GUARD(s2n_stuffer_reread(&conn->in));
-    GUARD(s2n_stuffer_reread(&conn->header_in));
+    POSIX_GUARD(s2n_stuffer_reread(&conn->in));
+    POSIX_GUARD(s2n_stuffer_reread(&conn->header_in));
 
     /* Skip the IV, if any */
     if (conn->actual_protocol_version > S2N_TLS10) {
-        GUARD(s2n_stuffer_skip_read(&conn->in, cipher_suite->record_alg->cipher->io.comp.record_iv_size));
+        POSIX_GUARD(s2n_stuffer_skip_read(&conn->in, cipher_suite->record_alg->cipher->io.comp.record_iv_size));
     }
 
     /* Truncate and wipe the MAC and any padding */
-    GUARD(s2n_stuffer_wipe_n(&conn->in, s2n_stuffer_data_available(&conn->in) - payload_length));
+    POSIX_GUARD(s2n_stuffer_wipe_n(&conn->in, s2n_stuffer_data_available(&conn->in) - payload_length));
     conn->in_status = PLAINTEXT;
 
     return 0;

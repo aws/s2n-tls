@@ -46,13 +46,13 @@ const uint8_t tls11_downgrade_protection_check_bytes[] = {
 
 static S2N_RESULT s2n_test_client_hello(struct s2n_connection *client_conn, struct s2n_connection *server_conn)
 {
-    GUARD_AS_RESULT(s2n_client_hello_send(client_conn));
-    GUARD_AS_RESULT(s2n_stuffer_copy(&client_conn->handshake.io,
+    RESULT_GUARD_POSIX(s2n_client_hello_send(client_conn));
+    RESULT_GUARD_POSIX(s2n_stuffer_copy(&client_conn->handshake.io,
             &server_conn->handshake.io, s2n_stuffer_data_available(&client_conn->handshake.io)));
-    GUARD_AS_RESULT(s2n_client_hello_recv(server_conn));
+    RESULT_GUARD_POSIX(s2n_client_hello_recv(server_conn));
 
-    GUARD_AS_RESULT(s2n_stuffer_wipe(&client_conn->handshake.io));
-    GUARD_AS_RESULT(s2n_stuffer_wipe(&server_conn->handshake.io));
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&client_conn->handshake.io));
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&server_conn->handshake.io));
 
     return S2N_RESULT_OK;
 }
@@ -414,9 +414,9 @@ int main(int argc, char **argv)
 
         /* Verify that a TLS13 client does not error due to the downgrade */
         struct s2n_stuffer *client_stuffer = &client_conn->handshake.io;
-        GUARD(s2n_enable_tls13());
+        POSIX_GUARD(s2n_enable_tls13());
         EXPECT_SUCCESS(s2n_server_hello_recv(client_conn));
-        GUARD(s2n_disable_tls13());
+        POSIX_GUARD(s2n_disable_tls13());
         EXPECT_EQUAL(s2n_stuffer_data_available(client_stuffer), 0);
 
         EXPECT_SUCCESS(s2n_config_free(client_config));

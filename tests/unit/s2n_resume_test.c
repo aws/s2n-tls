@@ -51,10 +51,10 @@ int main(int argc, char **argv)
 
         uint8_t s_data[S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = { 0 };
         struct s2n_blob state_blob = { 0 };
-        GUARD(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
+        POSIX_GUARD(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
         struct s2n_stuffer output = { 0 };
 
-        GUARD(s2n_stuffer_init(&output, &state_blob));
+        POSIX_GUARD(s2n_stuffer_init(&output, &state_blob));
         EXPECT_SUCCESS(s2n_tls12_serialize_resumption_state(conn, &output));
 
         uint8_t serial_id = 0;

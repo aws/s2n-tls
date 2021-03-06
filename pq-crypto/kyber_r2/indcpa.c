@@ -188,7 +188,7 @@ int PQCLEAN_KYBER512_CLEAN_indcpa_keypair(uint8_t *pk, uint8_t *sk) {
     uint8_t *noiseseed = buf + KYBER_SYMBYTES;
     uint8_t nonce = 0;
 
-    GUARD_AS_POSIX(s2n_get_random_bytes(buf, KYBER_SYMBYTES));
+    POSIX_GUARD_RESULT(s2n_get_random_bytes(buf, KYBER_SYMBYTES));
     hash_g(buf, buf, KYBER_SYMBYTES);
 
     gen_a(a, publicseed);

@@ -15,13 +15,13 @@ int SIKE_P434_r2_crypto_kem_keypair(unsigned char *pk, unsigned char *sk) {
     // SIKE's key generation
     // Outputs: secret key sk (CRYPTO_SECRETKEYBYTES = MSG_BYTES + SECRETKEY_B_BYTES + CRYPTO_PUBLICKEYBYTES bytes)
     //          public key pk (CRYPTO_PUBLICKEYBYTES bytes)
-    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     digit_t _sk[(SECRETKEY_B_BYTES / sizeof(digit_t)) + 1];
 
     // Generate lower portion of secret key sk <- s||SK
-    GUARD_AS_POSIX(s2n_get_random_bytes(sk, MSG_BYTES));
-    GUARD(random_mod_order_B((unsigned char *)_sk));
+    POSIX_GUARD_RESULT(s2n_get_random_bytes(sk, MSG_BYTES));
+    POSIX_GUARD(random_mod_order_B((unsigned char *)_sk));
 
     // Generate public key pk
     EphemeralKeyGeneration_B(_sk, pk);
@@ -39,7 +39,7 @@ int SIKE_P434_r2_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsi
     // Input:   public key pk         (CRYPTO_PUBLICKEYBYTES bytes)
     // Outputs: shared secret ss      (CRYPTO_BYTES bytes)
     //          ciphertext message ct (CRYPTO_CIPHERTEXTBYTES = CRYPTO_PUBLICKEYBYTES + MSG_BYTES bytes)
-    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     union {
         unsigned char b[SECRETKEY_A_BYTES];
@@ -50,7 +50,7 @@ int SIKE_P434_r2_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsi
     unsigned char temp[CRYPTO_CIPHERTEXTBYTES + MSG_BYTES];
 
     // Generate ephemeralsk <- G(m||pk) mod oA
-    GUARD_AS_POSIX(s2n_get_random_bytes(temp, MSG_BYTES));
+    POSIX_GUARD_RESULT(s2n_get_random_bytes(temp, MSG_BYTES));
     memcpy(&temp[MSG_BYTES], pk, CRYPTO_PUBLICKEYBYTES);
     shake256(ephemeralsk.b, SECRETKEY_A_BYTES, temp, CRYPTO_PUBLICKEYBYTES + MSG_BYTES);
 
@@ -78,7 +78,7 @@ int SIKE_P434_r2_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, cons
     // Input:   secret key sk         (CRYPTO_SECRETKEYBYTES = MSG_BYTES + SECRETKEY_B_BYTES + CRYPTO_PUBLICKEYBYTES bytes)
     //          ciphertext message ct (CRYPTO_CIPHERTEXTBYTES = CRYPTO_PUBLICKEYBYTES + MSG_BYTES bytes)
     // Outputs: shared secret ss      (CRYPTO_BYTES bytes)
-    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     union {
         unsigned char b[SECRETKEY_A_BYTES];

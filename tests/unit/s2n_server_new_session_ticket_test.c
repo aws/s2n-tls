@@ -31,8 +31,8 @@
 
 static int s2n_setup_test_keys(struct s2n_connection *conn, struct s2n_config *config)
 {
-    notnull_check(conn);
-    notnull_check(config);
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(config);
 
     /**
      *= https://tools.ietf.org/rfc/rfc5869#appendix-A.1

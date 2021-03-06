@@ -34,9 +34,9 @@ static int s2n_setup_test_parsed_extension(const s2n_extension_type *extension_t
 {
     parsed_extension->extension_type = extension_type->iana_value;
 
-    GUARD(extension_type->send(conn, stuffer));
+    POSIX_GUARD(extension_type->send(conn, stuffer));
     uint16_t extension_size = s2n_stuffer_data_available(stuffer);
-    GUARD(s2n_blob_init(&parsed_extension->extension, s2n_stuffer_raw_read(stuffer, extension_size), extension_size));
+    POSIX_GUARD(s2n_blob_init(&parsed_extension->extension, s2n_stuffer_raw_read(stuffer, extension_size), extension_size));
 
     return S2N_SUCCESS;
 }

@@ -33,7 +33,7 @@ static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12, S2N_TLS1
 
 int s2n_fuzz_init(int *argc, char **argv[])
 {
-    GUARD(s2n_enable_tls13());
+    POSIX_GUARD(s2n_enable_tls13());
     srand(time(0));
     return S2N_SUCCESS;
 }
@@ -51,20 +51,20 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
 
     /* Setup */
     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-    notnull_check(server_conn);
-    GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
+    POSIX_ENSURE_REF(server_conn);
+    POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->handshake.io, buf, len));
 
     /* Pull a byte off the libfuzzer input and use it to set parameters */
     uint8_t randval = 0;
     int ctxval = 0;
-    GUARD(s2n_stuffer_read_uint8(&server_conn->handshake.io, &randval));
+    POSIX_GUARD(s2n_stuffer_read_uint8(&server_conn->handshake.io, &randval));
     server_conn->actual_protocol_version = TLS_VERSIONS[(randval & 0x0F) % s2n_array_len(TLS_VERSIONS)];
     server_conn->server_protocol_version = TLS_VERSIONS[(randval >> 4) % s2n_array_len(TLS_VERSIONS)];
 
     /* When callback function is called, return int chosen by libfuzzer between -1 and 1 to reach all code branches */
-    GUARD(s2n_stuffer_read_uint8(&server_conn->handshake.io, &randval));
+    POSIX_GUARD(s2n_stuffer_read_uint8(&server_conn->handshake.io, &randval));
     ctxval = (int)(randval % 3) - 1;
-    GUARD(s2n_config_set_client_hello_cb(server_conn->config, client_hello_cb_ret, &ctxval));
+    POSIX_GUARD(s2n_config_set_client_hello_cb(server_conn->config, client_hello_cb_ret, &ctxval));
 
     /* Run Test
      * Do not use GUARD macro here since the connection memory hasn't been freed.
@@ -72,7 +72,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     s2n_client_hello_recv(server_conn);
 
     /* Cleanup */
-    GUARD(s2n_connection_free(server_conn));
+    POSIX_GUARD(s2n_connection_free(server_conn));
 
     return S2N_SUCCESS;
 }

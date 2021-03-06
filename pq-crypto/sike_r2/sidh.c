@@ -19,14 +19,14 @@ static void init_basis(const digit_t *gen, f2elm_t *XP, f2elm_t *XQ, f2elm_t *XR
 
 int random_mod_order_A(unsigned char *random_digits) { // Generation of Alice's secret key
                                                         // Outputs random value in [0, 2^eA - 1]
-    GUARD_AS_POSIX(s2n_get_random_bytes(random_digits, SECRETKEY_A_BYTES));
+    POSIX_GUARD_RESULT(s2n_get_random_bytes(random_digits, SECRETKEY_A_BYTES));
     random_digits[SECRETKEY_A_BYTES - 1] &= MASK_ALICE; // Masking last byte
     return S2N_SUCCESS;
 }
 
 int random_mod_order_B(unsigned char *random_digits) { // Generation of Bob's secret key
                                                         // Outputs random value in [0, 2^Floor(Log(2, oB)) - 1]
-    GUARD_AS_POSIX(s2n_get_random_bytes(random_digits, SECRETKEY_B_BYTES));
+    POSIX_GUARD_RESULT(s2n_get_random_bytes(random_digits, SECRETKEY_B_BYTES));
     random_digits[SECRETKEY_B_BYTES - 1] &= MASK_BOB; // Masking last byte
     return S2N_SUCCESS;
 }

@@ -128,7 +128,7 @@ int main(int argc, char **argv)
         /* convert certificate chain hex to bytes*/
         struct s2n_blob tls13_cert = {0};
         EXPECT_SUCCESS(s2n_alloc(&tls13_cert, strlen(tls13_cert_chain_hex) / 2 ));
-        GUARD(s2n_hex_string_to_bytes((uint8_t*)tls13_cert_chain_hex, &tls13_cert));
+        POSIX_GUARD(s2n_hex_string_to_bytes((uint8_t*)tls13_cert_chain_hex, &tls13_cert));
 
         S2N_BLOB_FROM_HEX(tls13_cert_chain, tls13_cert_hex);
 

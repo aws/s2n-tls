@@ -1026,7 +1026,7 @@ int s2n_cipher_suites_init(void)
         if (cur_suite->sslv3_record_alg && cur_suite->sslv3_record_alg->cipher->is_available()) {
             struct s2n_blob cur_suite_mem = { .data = (uint8_t *) cur_suite, .size = sizeof(struct s2n_cipher_suite) };
             struct s2n_blob new_suite_mem = { 0 };
-            GUARD(s2n_dup(&cur_suite_mem, &new_suite_mem));
+            POSIX_GUARD(s2n_dup(&cur_suite_mem, &new_suite_mem));
 
             struct s2n_cipher_suite *new_suite = (struct s2n_cipher_suite *)(void *)new_suite_mem.data;
             new_suite->available = 1;
@@ -1058,7 +1058,7 @@ int s2n_cipher_suites_cleanup(void)
 
         /* Release custom SSLv3 cipher suites */
         if (cur_suite->sslv3_cipher_suite != cur_suite) {
-            GUARD(s2n_free_object((uint8_t **)&cur_suite->sslv3_cipher_suite, sizeof(struct s2n_cipher_suite)));
+            POSIX_GUARD(s2n_free_object((uint8_t **)&cur_suite->sslv3_cipher_suite, sizeof(struct s2n_cipher_suite)));
         }
         cur_suite->sslv3_cipher_suite = NULL;
     }
@@ -1076,9 +1076,9 @@ int s2n_cipher_suites_cleanup(void)
 
 S2N_RESULT s2n_cipher_suite_from_iana(const uint8_t iana[], struct s2n_cipher_suite **cipher_suite)
 {
-    ENSURE_REF(cipher_suite);
+    RESULT_ENSURE_REF(cipher_suite);
     *cipher_suite = NULL;
-    ENSURE_REF(iana);
+    RESULT_ENSURE_REF(iana);
 
     int low = 0;
     int top = s2n_array_len(s2n_all_cipher_suites) - 1;
@@ -1098,17 +1098,17 @@ S2N_RESULT s2n_cipher_suite_from_iana(const uint8_t iana[], struct s2n_cipher_su
             low = mid + 1;
         }
     }
-    BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
+    RESULT_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
 int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN])
 {
-    notnull_check(conn);
-    notnull_check(conn->secure.cipher_suite);
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure.cipher_suite);
 
     const struct s2n_security_policy *security_policy;
-    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
-    notnull_check(security_policy);
+    POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    POSIX_ENSURE_REF(security_policy);
 
     struct s2n_cipher_suite *cipher_suite = NULL;
     for (size_t i = 0; i < security_policy->cipher_preferences->count; i++) {
@@ -1118,8 +1118,8 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
             break;
         }
     }
-    ENSURE_POSIX(cipher_suite != NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
-    ENSURE_POSIX(cipher_suite->available, S2N_ERR_CIPHER_NOT_SUPPORTED);
+    POSIX_ENSURE(cipher_suite != NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
+    POSIX_ENSURE(cipher_suite->available, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
     /** Clients MUST verify
      *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
@@ -1127,13 +1127,13 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
      *# indicating a Hash associated with the PSK
      **/
     if (conn->psk_params.chosen_psk) {
-        ENSURE_POSIX(cipher_suite->prf_alg == conn->psk_params.chosen_psk->hmac_alg,
+        POSIX_ENSURE(cipher_suite->prf_alg == conn->psk_params.chosen_psk->hmac_alg,
                      S2N_ERR_CIPHER_NOT_SUPPORTED);
     }
 
     /* Verify cipher suite sent in server hello is the same as sent in hello retry */
     if (s2n_is_hello_retry_handshake(conn) && !s2n_is_hello_retry_message(conn)) {
-        ENSURE_POSIX(conn->secure.cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_CIPHER_NOT_SUPPORTED);
+        POSIX_ENSURE(conn->secure.cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_CIPHER_NOT_SUPPORTED);
         return S2N_SUCCESS;
     }
 
@@ -1142,7 +1142,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     /* For SSLv3 use SSLv3-specific ciphers */
     if (conn->actual_protocol_version == S2N_SSLv3) {
         conn->secure.cipher_suite = conn->secure.cipher_suite->sslv3_cipher_suite;
-        notnull_check(conn->secure.cipher_suite);
+        POSIX_ENSURE_REF(conn->secure.cipher_suite);
     }
 
     return 0;
@@ -1174,7 +1174,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
         uint8_t fallback_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_FALLBACK_SCSV };
         if (s2n_wire_ciphers_contain(fallback_scsv, wire, count, cipher_suite_len)) {
             conn->closed = 1;
-            S2N_ERROR(S2N_ERR_FALLBACK_DETECTED);
+            POSIX_BAIL(S2N_ERR_FALLBACK_DETECTED);
         }
     }
 
@@ -1184,7 +1184,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     }
 
     const struct s2n_security_policy *security_policy;
-    GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
     /* s2n supports only server order */
     for (int i = 0; i < security_policy->cipher_preferences->count; i++) {
@@ -1218,7 +1218,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
             if (match->minimum_required_tls_version < S2N_TLS13) {
                 /* If the kex is not supported continue to the next candidate */
                 bool kex_supported = false;
-                GUARD_AS_POSIX(s2n_kex_supported(match, conn, &kex_supported));
+                POSIX_GUARD_RESULT(s2n_kex_supported(match, conn, &kex_supported));
                 if (!kex_supported) {
                     continue;
                 }
@@ -1259,7 +1259,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
         return S2N_SUCCESS;
     }
 
-    S2N_ERROR(S2N_ERR_CIPHER_NOT_SUPPORTED);
+    POSIX_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
 int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count)

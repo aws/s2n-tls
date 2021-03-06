@@ -53,7 +53,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             const struct s2n_ecc_preferences *ecc_pref = NULL;
-            GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
             EXPECT_NOT_NULL(ecc_pref);
 
             conn->actual_protocol_version = S2N_TLS13;
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
                 conn->security_policy_override = &test_security_policy;
 
                 const struct s2n_kem_preferences *kem_pref = NULL;
-                GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+                POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
                 EXPECT_NOT_NULL(kem_pref);
 
                 conn->secure.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
                     conn->security_policy_override = &test_security_policy;
 
                     const struct s2n_kem_preferences *kem_pref = NULL;
-                    GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+                    POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
 
                     conn->secure.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
@@ -386,12 +386,12 @@ int main(int argc, char **argv)
         /* Obtain the transcript hash recreated within the HelloRetryRequest message */
         struct s2n_hash_state server_hash, server_hash_state;
         uint8_t server_digest_out[S2N_MAX_DIGEST_LEN];
-        GUARD(s2n_handshake_get_hash_state(server_conn, server_keys.hash_algorithm, &server_hash_state));
+        POSIX_GUARD(s2n_handshake_get_hash_state(server_conn, server_keys.hash_algorithm, &server_hash_state));
 
-        GUARD(s2n_hash_new(&server_hash));
-        GUARD(s2n_hash_copy(&server_hash, &server_hash_state));
-        GUARD(s2n_hash_digest(&server_hash, server_digest_out, hash_digest_length));
-        GUARD(s2n_hash_free(&server_hash));
+        POSIX_GUARD(s2n_hash_new(&server_hash));
+        POSIX_GUARD(s2n_hash_copy(&server_hash, &server_hash_state));
+        POSIX_GUARD(s2n_hash_digest(&server_hash, server_digest_out, hash_digest_length));
+        POSIX_GUARD(s2n_hash_free(&server_hash));
 
         struct s2n_blob server_blob;
         EXPECT_SUCCESS(s2n_blob_init(&server_blob, server_digest_out, hash_digest_length));
@@ -410,12 +410,12 @@ int main(int argc, char **argv)
         /* Obtain the transcript hash recreated within ClientHello2 message */
         struct s2n_hash_state client_hash, client_hash_state;
         uint8_t client_digest_out[S2N_MAX_DIGEST_LEN];
-        GUARD(s2n_handshake_get_hash_state(client_conn, client_keys.hash_algorithm, &client_hash_state));
+        POSIX_GUARD(s2n_handshake_get_hash_state(client_conn, client_keys.hash_algorithm, &client_hash_state));
 
-        GUARD(s2n_hash_new(&client_hash));
-        GUARD(s2n_hash_copy(&client_hash, &client_hash_state));
-        GUARD(s2n_hash_digest(&client_hash, client_digest_out, hash_digest_length));
-        GUARD(s2n_hash_free(&client_hash));
+        POSIX_GUARD(s2n_hash_new(&client_hash));
+        POSIX_GUARD(s2n_hash_copy(&client_hash, &client_hash_state));
+        POSIX_GUARD(s2n_hash_digest(&client_hash, client_digest_out, hash_digest_length));
+        POSIX_GUARD(s2n_hash_free(&client_hash));
 
         struct s2n_blob client_blob;
         EXPECT_SUCCESS(s2n_blob_init(&client_blob, client_digest_out, hash_digest_length));

@@ -88,7 +88,7 @@ int s2n_check_ecc_preferences_curves_list(const struct s2n_ecc_preferences *ecc_
         }
         check *= curve_found; 
         if (check == 0) {
-            S2N_ERROR(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+            POSIX_BAIL(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
         }
     }
     return S2N_SUCCESS;

@@ -19,15 +19,15 @@
 
 int s2n_ecdhe_parameters_send(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out)
 {
-    notnull_check(out);
-    notnull_check(ecc_evp_params);
-    notnull_check(ecc_evp_params->negotiated_curve);
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE_REF(ecc_evp_params);
+    POSIX_ENSURE_REF(ecc_evp_params->negotiated_curve);
 
-    GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->iana_id));
-    GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->share_size));
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->iana_id));
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->share_size));
 
-    GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_evp_params));
-    GUARD(s2n_ecc_evp_write_params_point(ecc_evp_params, out));
+    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_evp_params));
+    POSIX_GUARD(s2n_ecc_evp_write_params_point(ecc_evp_params, out));
 
     return 0;
 }

@@ -60,10 +60,10 @@ int s2n_tls13_cert_verify_send(struct s2n_connection *conn)
 
     if (conn->mode == S2N_SERVER) {
         /* Write digital signature */
-        GUARD(s2n_tls13_write_cert_verify_signature(conn, &conn->secure.conn_sig_scheme));
+        POSIX_GUARD(s2n_tls13_write_cert_verify_signature(conn, &conn->secure.conn_sig_scheme));
     } else {
         /* Write digital signature */
-        GUARD(s2n_tls13_write_cert_verify_signature(conn, &conn->secure.client_cert_sig_scheme));
+        POSIX_GUARD(s2n_tls13_write_cert_verify_signature(conn, &conn->secure.client_cert_sig_scheme));
     }
 
 
@@ -72,20 +72,20 @@ int s2n_tls13_cert_verify_send(struct s2n_connection *conn)
 
 int s2n_tls13_write_cert_verify_signature(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_sig_scheme)
 {
-    notnull_check(conn->handshake_params.our_chain_and_key);
+    POSIX_ENSURE_REF(conn->handshake_params.our_chain_and_key);
 
     /* Write the SignatureScheme out */
     struct s2n_stuffer *out = &conn->handshake.io;
-    GUARD(s2n_stuffer_write_uint16(out, chosen_sig_scheme->iana_value));
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, chosen_sig_scheme->iana_value));
 
     DEFER_CLEANUP(struct s2n_hash_state message_hash = {0}, s2n_hash_free);
-    GUARD(s2n_hash_new(&message_hash));
-    GUARD(s2n_hash_init(&message_hash, chosen_sig_scheme->hash_alg));
+    POSIX_GUARD(s2n_hash_new(&message_hash));
+    POSIX_GUARD(s2n_hash_init(&message_hash, chosen_sig_scheme->hash_alg));
 
     DEFER_CLEANUP(struct s2n_stuffer unsigned_content = {0}, s2n_stuffer_free);
-    GUARD(s2n_tls13_generate_unsigned_cert_verify_content(conn, &unsigned_content, conn->mode));
+    POSIX_GUARD(s2n_tls13_generate_unsigned_cert_verify_content(conn, &unsigned_content, conn->mode));
 
-    GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data, s2n_stuffer_data_available(&unsigned_content)));
+    POSIX_GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data, s2n_stuffer_data_available(&unsigned_content)));
 
     S2N_ASYNC_PKEY_SIGN(conn, chosen_sig_scheme->sig_alg, &message_hash, s2n_tls13_write_signature);
 }
@@ -94,8 +94,8 @@ int s2n_tls13_write_signature(struct s2n_connection *conn, struct s2n_blob *sign
 {
     struct s2n_stuffer *out = &conn->handshake.io;
 
-    GUARD(s2n_stuffer_write_uint16(out, signature->size));
-    GUARD(s2n_stuffer_write_bytes(out, signature->data, signature->size));
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, signature->size));
+    POSIX_GUARD(s2n_stuffer_write_bytes(out, signature->data, signature->size));
 
     return 0;
 }
@@ -109,25 +109,25 @@ int s2n_tls13_generate_unsigned_cert_verify_content(struct s2n_connection *conn,
     uint8_t digest_out[S2N_MAX_DIGEST_LEN];
 
     /* Get current handshake hash */
-    GUARD(s2n_handshake_get_hash_state(conn, tls13_ctx.hash_algorithm, &handshake_hash));
+    POSIX_GUARD(s2n_handshake_get_hash_state(conn, tls13_ctx.hash_algorithm, &handshake_hash));
 
     /* Copy current hash content */
-    GUARD(s2n_hash_new(&hash_copy));
-    GUARD(s2n_hash_copy(&hash_copy, &handshake_hash));
-    GUARD(s2n_hash_digest(&hash_copy, digest_out, hash_digest_length));
-    GUARD(s2n_hash_free(&hash_copy));
+    POSIX_GUARD(s2n_hash_new(&hash_copy));
+    POSIX_GUARD(s2n_hash_copy(&hash_copy, &handshake_hash));
+    POSIX_GUARD(s2n_hash_digest(&hash_copy, digest_out, hash_digest_length));
+    POSIX_GUARD(s2n_hash_free(&hash_copy));
 
     /* Concatenate the content to be signed/verified */
-    GUARD(s2n_stuffer_alloc(unsigned_content, hash_digest_length + s2n_tls13_cert_verify_header_length(mode)));
-    GUARD(s2n_stuffer_write_bytes(unsigned_content, S2N_CERT_VERIFY_PREFIX, sizeof(S2N_CERT_VERIFY_PREFIX)));
+    POSIX_GUARD(s2n_stuffer_alloc(unsigned_content, hash_digest_length + s2n_tls13_cert_verify_header_length(mode)));
+    POSIX_GUARD(s2n_stuffer_write_bytes(unsigned_content, S2N_CERT_VERIFY_PREFIX, sizeof(S2N_CERT_VERIFY_PREFIX)));
 
     if (mode == S2N_CLIENT) {
-        GUARD(s2n_stuffer_write_bytes(unsigned_content, S2N_CLIENT_CERT_VERIFY_CONTEXT, sizeof(S2N_CLIENT_CERT_VERIFY_CONTEXT)));
+        POSIX_GUARD(s2n_stuffer_write_bytes(unsigned_content, S2N_CLIENT_CERT_VERIFY_CONTEXT, sizeof(S2N_CLIENT_CERT_VERIFY_CONTEXT)));
     } else {
-        GUARD(s2n_stuffer_write_bytes(unsigned_content, S2N_SERVER_CERT_VERIFY_CONTEXT, sizeof(S2N_SERVER_CERT_VERIFY_CONTEXT)));
+        POSIX_GUARD(s2n_stuffer_write_bytes(unsigned_content, S2N_SERVER_CERT_VERIFY_CONTEXT, sizeof(S2N_SERVER_CERT_VERIFY_CONTEXT)));
     }
 
-    GUARD(s2n_stuffer_write_bytes(unsigned_content, digest_out, hash_digest_length));
+    POSIX_GUARD(s2n_stuffer_write_bytes(unsigned_content, digest_out, hash_digest_length));
 
     return 0;
 }
@@ -144,16 +144,16 @@ int s2n_tls13_cert_verify_recv(struct s2n_connection *conn)
 {
     if (conn->mode == S2N_SERVER) {
         /* Read the algorithm and update sig_scheme */
-        GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, &conn->handshake.io, &conn->secure.client_cert_sig_scheme));
+        POSIX_GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, &conn->handshake.io, &conn->secure.client_cert_sig_scheme));
 
         /* Read the rest of the signature and verify */
-        GUARD(s2n_tls13_cert_read_and_verify_signature(conn, &conn->secure.client_cert_sig_scheme));
+        POSIX_GUARD(s2n_tls13_cert_read_and_verify_signature(conn, &conn->secure.client_cert_sig_scheme));
     } else {
         /* Read the algorithm and update sig_scheme */
-        GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, &conn->handshake.io, &conn->secure.conn_sig_scheme));
+        POSIX_GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, &conn->handshake.io, &conn->secure.conn_sig_scheme));
 
         /* Read the rest of the signature and verify */
-        GUARD(s2n_tls13_cert_read_and_verify_signature(conn, &conn->secure.conn_sig_scheme));
+        POSIX_GUARD(s2n_tls13_cert_read_and_verify_signature(conn, &conn->secure.conn_sig_scheme));
     }
 
     return 0;
@@ -165,32 +165,32 @@ int s2n_tls13_cert_read_and_verify_signature(struct s2n_connection *conn, struct
     DEFER_CLEANUP(struct s2n_blob signed_content = {0}, s2n_free);
     DEFER_CLEANUP(struct s2n_stuffer unsigned_content = {0}, s2n_stuffer_free);
     DEFER_CLEANUP(struct s2n_hash_state message_hash = {0}, s2n_hash_free);
-    GUARD(s2n_hash_new(&message_hash));
+    POSIX_GUARD(s2n_hash_new(&message_hash));
 
     /* Get signature size */
     uint16_t signature_size;
-    GUARD(s2n_stuffer_read_uint16(in, &signature_size));
+    POSIX_GUARD(s2n_stuffer_read_uint16(in, &signature_size));
     S2N_ERROR_IF(signature_size > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
     /* Get wire signature */
-    GUARD(s2n_alloc(&signed_content, signature_size));
+    POSIX_GUARD(s2n_alloc(&signed_content, signature_size));
     signed_content.size = signature_size;
-    GUARD(s2n_stuffer_read_bytes(in, signed_content.data, signature_size));
+    POSIX_GUARD(s2n_stuffer_read_bytes(in, signed_content.data, signature_size));
 
     /* Verify signature. We send the opposite mode as we are trying to verify what was sent to us */
     if (conn->mode == S2N_CLIENT) {
-        GUARD(s2n_tls13_generate_unsigned_cert_verify_content(conn, &unsigned_content, S2N_SERVER));
+        POSIX_GUARD(s2n_tls13_generate_unsigned_cert_verify_content(conn, &unsigned_content, S2N_SERVER));
     } else {
-        GUARD(s2n_tls13_generate_unsigned_cert_verify_content(conn, &unsigned_content, S2N_CLIENT));
+        POSIX_GUARD(s2n_tls13_generate_unsigned_cert_verify_content(conn, &unsigned_content, S2N_CLIENT));
     }
 
-    GUARD(s2n_hash_init(&message_hash, chosen_sig_scheme->hash_alg));
-    GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data, s2n_stuffer_data_available(&unsigned_content)));
+    POSIX_GUARD(s2n_hash_init(&message_hash, chosen_sig_scheme->hash_alg));
+    POSIX_GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data, s2n_stuffer_data_available(&unsigned_content)));
 
     if (conn->mode == S2N_CLIENT) {
-        GUARD(s2n_pkey_verify(&conn->secure.server_public_key, chosen_sig_scheme->sig_alg, &message_hash, &signed_content));
+        POSIX_GUARD(s2n_pkey_verify(&conn->secure.server_public_key, chosen_sig_scheme->sig_alg, &message_hash, &signed_content));
     } else {
-        GUARD(s2n_pkey_verify(&conn->secure.client_public_key, chosen_sig_scheme->sig_alg, &message_hash, &signed_content));
+        POSIX_GUARD(s2n_pkey_verify(&conn->secure.client_public_key, chosen_sig_scheme->sig_alg, &message_hash, &signed_content));
     }
 
     return 0;

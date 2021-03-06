@@ -40,7 +40,7 @@ static bool s2n_session_ticket_should_send(struct s2n_connection *conn)
 static int s2n_session_ticket_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     /* Read nothing. The extension just needs to exist. */
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
     conn->session_ticket_status = S2N_NEW_TICKET;
     return S2N_SUCCESS;
 }

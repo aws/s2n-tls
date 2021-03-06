@@ -64,8 +64,8 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
     struct s2n_x509_trust_store trust_store;
     struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-    notnull_check(conn);
-    GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, buf, len));
+    POSIX_ENSURE_REF(conn);
+    POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, buf, len));
 
     /* Returns void, so can't be guarded */
     s2n_x509_validator_wipe(&conn->x509_validator);
@@ -73,14 +73,14 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
 
     /* Pull a byte off the libfuzzer input and use it to set parameters */
     uint8_t randval = 0;
-    GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &randval));
+    POSIX_GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &randval));
 
     if (randval % 2) {
-        GUARD(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
-        GUARD(s2n_connection_set_verify_host_callback(conn, verify_host_accept_everything, &verify_data));
+        POSIX_GUARD(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+        POSIX_GUARD(s2n_connection_set_verify_host_callback(conn, verify_host_accept_everything, &verify_data));
     }
 
-    GUARD(s2n_x509_validator_init(&conn->x509_validator, &trust_store, 1));
+    POSIX_GUARD(s2n_x509_validator_init(&conn->x509_validator, &trust_store, 1));
 
     conn->x509_validator.skip_cert_validation = (randval >> 1) % 2;
     conn->actual_protocol_version = TLS_VERSIONS[((randval >> 4) & 0x0f) % s2n_array_len(TLS_VERSIONS)];
@@ -94,7 +94,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     s2n_x509_trust_store_wipe(&trust_store);
     s2n_x509_validator_wipe(&conn->x509_validator);
 
-    GUARD(s2n_connection_free(conn));
+    POSIX_GUARD(s2n_connection_free(conn));
 
     return S2N_SUCCESS;
 }

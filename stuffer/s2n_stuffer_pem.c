@@ -35,25 +35,25 @@
 static int s2n_stuffer_pem_read_encapsulation_line(struct s2n_stuffer *pem, const char* encap_marker, const char *keyword) {
 
     /* Skip any number of Chars until a "-" is reached */
-    GUARD(s2n_stuffer_skip_to_char(pem, S2N_PEM_DELIMTER_CHAR));
+    POSIX_GUARD(s2n_stuffer_skip_to_char(pem, S2N_PEM_DELIMTER_CHAR));
 
     /* Ensure between 1 and 64 '-' chars at start of line */
-    GUARD(s2n_stuffer_skip_expected_char(pem, S2N_PEM_DELIMTER_CHAR, S2N_PEM_DELIMITER_MIN_COUNT, S2N_PEM_DELIMITER_MAX_COUNT, NULL));
+    POSIX_GUARD(s2n_stuffer_skip_expected_char(pem, S2N_PEM_DELIMTER_CHAR, S2N_PEM_DELIMITER_MIN_COUNT, S2N_PEM_DELIMITER_MAX_COUNT, NULL));
 
     /* Ensure next string in stuffer is "BEGIN " or "END " */
-    GUARD(s2n_stuffer_read_expected_str(pem, encap_marker));
+    POSIX_GUARD(s2n_stuffer_read_expected_str(pem, encap_marker));
 
     /* Ensure next string is stuffer is the keyword (Eg "CERTIFICATE", "PRIVATE KEY", etc) */
-    GUARD(s2n_stuffer_read_expected_str(pem, keyword));
+    POSIX_GUARD(s2n_stuffer_read_expected_str(pem, keyword));
 
     /* Ensure between 1 and 64 '-' chars at end of line */
-    GUARD(s2n_stuffer_skip_expected_char(pem, S2N_PEM_DELIMTER_CHAR, S2N_PEM_DELIMITER_MIN_COUNT, S2N_PEM_DELIMITER_MAX_COUNT, NULL));
+    POSIX_GUARD(s2n_stuffer_skip_expected_char(pem, S2N_PEM_DELIMTER_CHAR, S2N_PEM_DELIMITER_MIN_COUNT, S2N_PEM_DELIMITER_MAX_COUNT, NULL));
 
     /* Check for missing newline between dashes case: "-----END CERTIFICATE----------BEGIN CERTIFICATE-----" */
     if (strncmp(encap_marker, S2N_PEM_END_TOKEN, strlen(S2N_PEM_END_TOKEN)) == 0
             && s2n_stuffer_peek_check_for_str(pem, S2N_PEM_BEGIN_TOKEN) == S2N_SUCCESS) {
         /* Rewind stuffer by 1 byte before BEGIN, so that next read will find the dash before the BEGIN */
-        GUARD(s2n_stuffer_rewind_read(pem, 1));
+        POSIX_GUARD(s2n_stuffer_rewind_read(pem, 1));
     }
 
     /* Skip newlines and other whitepsace that may be after the dashes */
@@ -74,11 +74,11 @@ static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stu
 {
     s2n_stack_blob(base64__blob, 64, 64);
     struct s2n_stuffer base64_stuffer = {0};
-    GUARD(s2n_stuffer_init(&base64_stuffer, &base64__blob));
+    POSIX_GUARD(s2n_stuffer_init(&base64_stuffer, &base64__blob));
 
     while (1) {
         /* We need a byte... */
-        ENSURE_POSIX(s2n_stuffer_data_available(pem) >= 1, S2N_ERR_STUFFER_OUT_OF_DATA);
+        POSIX_ENSURE(s2n_stuffer_data_available(pem) >= 1, S2N_ERR_STUFFER_OUT_OF_DATA);
 
         /* Peek to see if the next char is a dash, meaning end of pem_contents */
         uint8_t c = pem->blob.data[pem->read_cursor];
@@ -95,39 +95,39 @@ static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stu
 
         /* Flush base64_stuffer to asn1 stuffer if we're out of space, and reset base64_stuffer read/write pointers */
         if (s2n_stuffer_space_remaining(&base64_stuffer) == 0) {
-            GUARD(s2n_stuffer_read_base64(&base64_stuffer, asn1));
-            GUARD(s2n_stuffer_rewrite(&base64_stuffer));
+            POSIX_GUARD(s2n_stuffer_read_base64(&base64_stuffer, asn1));
+            POSIX_GUARD(s2n_stuffer_rewrite(&base64_stuffer));
         }
 
         /* Copy next char to base64_stuffer */
-        GUARD(s2n_stuffer_write_bytes(&base64_stuffer, (uint8_t *) &c, 1));
+        POSIX_GUARD(s2n_stuffer_write_bytes(&base64_stuffer, (uint8_t *) &c, 1));
 
     };
 
     /* Flush any remaining bytes to asn1 */
-    GUARD(s2n_stuffer_read_base64(&base64_stuffer, asn1));
+    POSIX_GUARD(s2n_stuffer_read_base64(&base64_stuffer, asn1));
 
     return S2N_SUCCESS;
 }
 
 static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, const char *keyword)
 {
-    PRECONDITION_POSIX(s2n_stuffer_validate(pem));
-    PRECONDITION_POSIX(s2n_stuffer_validate(asn1));
-    notnull_check(keyword);
+    POSIX_PRECONDITION(s2n_stuffer_validate(pem));
+    POSIX_PRECONDITION(s2n_stuffer_validate(asn1));
+    POSIX_ENSURE_REF(keyword);
 
-    GUARD(s2n_stuffer_pem_read_begin(pem, keyword));
-    GUARD(s2n_stuffer_pem_read_contents(pem, asn1));
-    GUARD(s2n_stuffer_pem_read_end(pem, keyword));
+    POSIX_GUARD(s2n_stuffer_pem_read_begin(pem, keyword));
+    POSIX_GUARD(s2n_stuffer_pem_read_contents(pem, asn1));
+    POSIX_GUARD(s2n_stuffer_pem_read_end(pem, keyword));
 
-    POSTCONDITION_POSIX(s2n_stuffer_validate(pem));
-    POSTCONDITION_POSIX(s2n_stuffer_validate(asn1));
+    POSIX_POSTCONDITION(s2n_stuffer_validate(pem));
+    POSIX_POSTCONDITION(s2n_stuffer_validate(asn1));
     return S2N_SUCCESS;
 }
 
 int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1) {
-    PRECONDITION_POSIX(s2n_stuffer_validate(pem));
-    PRECONDITION_POSIX(s2n_stuffer_validate(asn1));
+    POSIX_PRECONDITION(s2n_stuffer_validate(pem));
+    POSIX_PRECONDITION(s2n_stuffer_validate(asn1));
     int rc;
 
     rc = s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS1_RSA_PRIVATE_KEY);

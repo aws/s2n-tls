@@ -49,10 +49,10 @@ static int s2n_mem_init_impl(void)
     long sysconf_rc = sysconf(_SC_PAGESIZE);
 
     /* sysconf must not error, and page_size cannot be 0 */
-    ENSURE_POSIX(sysconf_rc > 0, S2N_FAILURE);
+    POSIX_ENSURE(sysconf_rc > 0, S2N_FAILURE);
 
     /* page_size must be a valid uint32 */
-    ENSURE_POSIX(sysconf_rc <= UINT32_MAX, S2N_FAILURE);
+    POSIX_ENSURE(sysconf_rc <= UINT32_MAX, S2N_FAILURE);
 
     page_size = (uint32_t) sysconf_rc;
 
@@ -75,7 +75,7 @@ static int s2n_mem_free_mlock_impl(void *ptr, uint32_t size)
 {
     int munlock_rc = munlock(ptr, size);
     free(ptr);
-    GUARD(munlock_rc);
+    POSIX_GUARD(munlock_rc);
 
     return S2N_SUCCESS;
 }
@@ -89,12 +89,12 @@ static int s2n_mem_free_no_mlock_impl(void *ptr, uint32_t size)
 
 static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *allocated)
 {
-    notnull_check(ptr);
+    POSIX_ENSURE_REF(ptr);
 
     /* Page aligned allocation required for mlock */
     uint32_t allocate;
 
-    GUARD(s2n_align_to(requested, page_size, &allocate));
+    POSIX_GUARD(s2n_align_to(requested, page_size, &allocate));
 
     *ptr = NULL;
     POSIX_ENSURE(posix_memalign(ptr, page_size, allocate) == 0, S2N_ERR_ALLOC);
@@ -106,15 +106,15 @@ static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *a
 */
 #if defined(MADV_DONTDUMP) && !defined(S2N_ADDRESS_SANITIZER) && !defined(S2N_FUZZ_TESTING)
     if (madvise(*ptr, *allocated, MADV_DONTDUMP) != 0) {
-        GUARD(s2n_mem_free_no_mlock_impl(*ptr, *allocated));
-        S2N_ERROR(S2N_ERR_MADVISE);
+        POSIX_GUARD(s2n_mem_free_no_mlock_impl(*ptr, *allocated));
+        POSIX_BAIL(S2N_ERR_MADVISE);
     }
 #endif
 
     if (mlock(*ptr, *allocated) != 0) {
         /* When mlock fails, no memory will be locked, so we don't use munlock on free */
-        GUARD(s2n_mem_free_no_mlock_impl(*ptr, *allocated));
-        S2N_ERROR(S2N_ERR_MLOCK);
+        POSIX_GUARD(s2n_mem_free_no_mlock_impl(*ptr, *allocated));
+        POSIX_BAIL(S2N_ERR_MLOCK);
     }
 
     POSIX_ENSURE(*ptr != NULL, S2N_ERR_ALLOC);
@@ -136,10 +136,10 @@ int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_clean
 {
     POSIX_ENSURE(!initialized, S2N_ERR_INITIALIZED);
 
-    notnull_check(mem_init_callback);
-    notnull_check(mem_cleanup_callback);
-    notnull_check(mem_malloc_callback);
-    notnull_check(mem_free_callback);
+    POSIX_ENSURE_REF(mem_init_callback);
+    POSIX_ENSURE_REF(mem_cleanup_callback);
+    POSIX_ENSURE_REF(mem_malloc_callback);
+    POSIX_ENSURE_REF(mem_free_callback);
 
     s2n_mem_init_cb = mem_init_callback;
     s2n_mem_cleanup_cb = mem_cleanup_callback;
@@ -152,10 +152,10 @@ int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_clean
 int s2n_alloc(struct s2n_blob *b, uint32_t size)
 {
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
-    notnull_check(b);
+    POSIX_ENSURE_REF(b);
     const struct s2n_blob temp = {0};
     *b = temp;
-    GUARD(s2n_realloc(b, size));
+    POSIX_GUARD(s2n_realloc(b, size));
     return S2N_SUCCESS;
 }
 
@@ -172,7 +172,7 @@ bool s2n_blob_is_growable(const struct s2n_blob* b)
 int s2n_realloc(struct s2n_blob *b, uint32_t size)
 {
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
-    notnull_check(b);
+    POSIX_ENSURE_REF(b);
     POSIX_ENSURE(s2n_blob_is_growable(b), S2N_ERR_RESIZE_STATIC_BLOB);
     if (size == 0) {
         return s2n_free(b);
@@ -184,8 +184,8 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
         if (size < b->size) {
             /* Zero the existing blob memory before the we release it */
             struct s2n_blob slice = {0};
-            GUARD(s2n_blob_slice(b, &slice, size, b->size - size));
-            GUARD(s2n_blob_zero(&slice));
+            POSIX_GUARD(s2n_blob_slice(b, &slice, size, b->size - size));
+            POSIX_GUARD(s2n_blob_zero(&slice));
         }
 
         b->size = size;
@@ -201,11 +201,11 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
     POSIX_ENSURE(new_memory.data != NULL, S2N_ERR_ALLOC);
 
     if (b->size) {
-        memcpy_check(new_memory.data, b->data, b->size);
+        POSIX_CHECKED_MEMCPY(new_memory.data, b->data, b->size);
     }
 
     if (b->allocated) {
-        GUARD(s2n_free(b));
+        POSIX_GUARD(s2n_free(b));
     }
 
     *b = new_memory;
@@ -214,7 +214,7 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
 
 int s2n_free_object(uint8_t **p_data, uint32_t size)
 {
-    notnull_check(p_data);
+    POSIX_ENSURE_REF(p_data);
 
     if (*p_data == NULL) {
         return S2N_SUCCESS;
@@ -231,21 +231,21 @@ int s2n_free_object(uint8_t **p_data, uint32_t size)
 int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
 {
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
-    eq_check(to->size, 0);
-    eq_check(to->data, NULL);
-    ne_check(from->size, 0);
-    ne_check(from->data, NULL);
+    POSIX_ENSURE_EQ(to->size, 0);
+    POSIX_ENSURE_EQ(to->data, NULL);
+    POSIX_ENSURE_NE(from->size, 0);
+    POSIX_ENSURE_NE(from->data, NULL);
 
-    GUARD(s2n_alloc(to, from->size));
+    POSIX_GUARD(s2n_alloc(to, from->size));
 
-    memcpy_check(to->data, from->data, to->size);
+    POSIX_CHECKED_MEMCPY(to->data, from->data, to->size);
 
     return S2N_SUCCESS;
 }
 
 int s2n_mem_init(void)
 {
-    GUARD(s2n_mem_init_cb());
+    POSIX_GUARD(s2n_mem_init_cb());
 
     initialized = true;
 
@@ -265,7 +265,7 @@ uint32_t s2n_mem_get_page_size(void)
 int s2n_mem_cleanup(void)
 {
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
-    GUARD(s2n_mem_cleanup_cb());
+    POSIX_GUARD(s2n_mem_cleanup_cb());
 
     initialized = false;
 
@@ -274,7 +274,7 @@ int s2n_mem_cleanup(void)
 
 int s2n_free(struct s2n_blob *b)
 {
-    PRECONDITION_POSIX(s2n_blob_validate(b));
+    POSIX_PRECONDITION(s2n_blob_validate(b));
 
     /* To avoid memory leaks, don't exit the function until the memory
        has been freed */
@@ -283,22 +283,22 @@ int s2n_free(struct s2n_blob *b)
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
     POSIX_ENSURE(s2n_blob_is_growable(b), S2N_ERR_FREE_STATIC_BLOB);
 
-    GUARD(s2n_mem_free_cb(b->data, b->allocated));
+    POSIX_GUARD(s2n_mem_free_cb(b->data, b->allocated));
 
     *b = (struct s2n_blob) {0};
 
-    GUARD(zero_rc);
+    POSIX_GUARD(zero_rc);
 
     return S2N_SUCCESS;
 }
 
 int s2n_blob_zeroize_free(struct s2n_blob *b) {
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
-    notnull_check(b);
+    POSIX_ENSURE_REF(b);
 
-    GUARD(s2n_blob_zero(b));
+    POSIX_GUARD(s2n_blob_zero(b));
     if (b->allocated) {
-        GUARD(s2n_free(b));
+        POSIX_GUARD(s2n_free(b));
     }
     return S2N_SUCCESS;
 }

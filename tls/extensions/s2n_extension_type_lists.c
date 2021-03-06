@@ -137,8 +137,8 @@ static s2n_extension_type_list extension_lists[] = {
 
 int s2n_extension_type_list_get(s2n_extension_list_id list_type, s2n_extension_type_list **extension_list)
 {
-    notnull_check(extension_list);
-    lt_check(list_type, s2n_array_len(extension_lists));
+    POSIX_ENSURE_REF(extension_list);
+    POSIX_ENSURE_LT(list_type, s2n_array_len(extension_lists));
 
     *extension_list = &extension_lists[list_type];
     return S2N_SUCCESS;

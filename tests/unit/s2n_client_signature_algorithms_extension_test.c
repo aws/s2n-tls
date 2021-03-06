@@ -85,9 +85,9 @@ int main(int argc, char **argv)
 
         struct s2n_stuffer signature_algorithms_extension;
         EXPECT_SUCCESS(s2n_stuffer_alloc(&signature_algorithms_extension, 2 + (sig_hash_algs.len * 2)));
-        GUARD(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.len * 2));
+        POSIX_GUARD(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.len * 2));
         for (int i = 0; i < sig_hash_algs.len; i++) {
-            GUARD(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.iana_list[i]));
+            POSIX_GUARD(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.iana_list[i]));
         }
 
         /* If only unknown algorithms are offered, expect choosing a scheme to fail for TLS1.3 */
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
         };
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        GUARD(s2n_connection_set_config(conn, config));
+        POSIX_GUARD(s2n_connection_set_config(conn, config));
 
         struct s2n_stuffer signature_algorithms_extension;
         EXPECT_SUCCESS(s2n_stuffer_alloc(&signature_algorithms_extension, 2 + (sig_hash_algs.len * 2)));

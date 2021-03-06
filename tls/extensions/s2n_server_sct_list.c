@@ -41,27 +41,27 @@ static bool s2n_server_sct_list_should_send(struct s2n_connection *conn)
 
 int s2n_server_sct_list_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
     struct s2n_blob *sct_list = &conn->handshake_params.our_chain_and_key->sct_list;
 
-    notnull_check(sct_list);
-    GUARD(s2n_stuffer_write(out, sct_list));
+    POSIX_ENSURE_REF(sct_list);
+    POSIX_GUARD(s2n_stuffer_write(out, sct_list));
 
     return S2N_SUCCESS;
 }
 
 int s2n_server_sct_list_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
     struct s2n_blob sct_list;
     size_t data_available = s2n_stuffer_data_available(extension);
-    GUARD(s2n_blob_init(&sct_list,
+    POSIX_GUARD(s2n_blob_init(&sct_list,
             s2n_stuffer_raw_read(extension, data_available),
             data_available));
-    notnull_check(sct_list.data);
+    POSIX_ENSURE_REF(sct_list.data);
 
-    GUARD(s2n_dup(&sct_list, &conn->ct_response));
+    POSIX_GUARD(s2n_dup(&sct_list, &conn->ct_response));
 
     return S2N_SUCCESS;
 }

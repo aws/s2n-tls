@@ -116,7 +116,7 @@ S2N_RESULT s2n_try_enable_sikep434r2_asm() {
 }
 
 S2N_RESULT s2n_pq_init() {
-    ENSURE_OK(s2n_try_enable_sikep434r2_asm(), S2N_ERR_SAFETY);
+    RESULT_ENSURE_OK(s2n_try_enable_sikep434r2_asm(), S2N_ERR_SAFETY);
 
     return S2N_RESULT_OK;
 }

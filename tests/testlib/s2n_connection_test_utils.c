@@ -88,12 +88,12 @@ static int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
 int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer *output, struct s2n_connection *conn)
 {
     /* Set Up Callbacks*/
-    GUARD(s2n_connection_set_recv_cb(conn, &buffer_read));
-    GUARD(s2n_connection_set_send_cb(conn, &buffer_write));
+    POSIX_GUARD(s2n_connection_set_recv_cb(conn, &buffer_read));
+    POSIX_GUARD(s2n_connection_set_send_cb(conn, &buffer_write));
 
     /* Set up Callback Contexts to use stuffers */
-    GUARD(s2n_connection_set_recv_ctx(conn, input));
-    GUARD(s2n_connection_set_send_ctx(conn, output));
+    POSIX_GUARD(s2n_connection_set_recv_ctx(conn, input));
+    POSIX_GUARD(s2n_connection_set_send_ctx(conn, output));
 
     return 0;
 }
@@ -104,7 +104,7 @@ int s2n_io_pair_init(struct s2n_test_io_pair *io_pair)
 
     int socket_pair[2];
 
-    GUARD(socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair));
+    POSIX_GUARD(socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair));
 
     io_pair->client = socket_pair[0];
     io_pair->server = socket_pair[1];
@@ -114,10 +114,10 @@ int s2n_io_pair_init(struct s2n_test_io_pair *io_pair)
 
 int s2n_io_pair_init_non_blocking(struct s2n_test_io_pair *io_pair)
 {
-    GUARD(s2n_io_pair_init(io_pair));
+    POSIX_GUARD(s2n_io_pair_init(io_pair));
 
-    GUARD(s2n_fd_set_non_blocking(io_pair->client));
-    GUARD(s2n_fd_set_non_blocking(io_pair->server));
+    POSIX_GUARD(s2n_fd_set_non_blocking(io_pair->client));
+    POSIX_GUARD(s2n_fd_set_non_blocking(io_pair->server));
 
     return 0;
 }
@@ -125,9 +125,9 @@ int s2n_io_pair_init_non_blocking(struct s2n_test_io_pair *io_pair)
 int s2n_connection_set_io_pair(struct s2n_connection *conn, struct s2n_test_io_pair *io_pair)
 {
     if (conn->mode == S2N_CLIENT) {
-        GUARD(s2n_connection_set_fd(conn, io_pair->client));
+        POSIX_GUARD(s2n_connection_set_fd(conn, io_pair->client));
     } else if (conn->mode == S2N_SERVER) {
-        GUARD(s2n_connection_set_fd(conn, io_pair->server));
+        POSIX_GUARD(s2n_connection_set_fd(conn, io_pair->server));
     }
 
     return 0;
@@ -136,24 +136,24 @@ int s2n_connection_set_io_pair(struct s2n_connection *conn, struct s2n_test_io_p
 int s2n_connections_set_io_pair(struct s2n_connection *client, struct s2n_connection *server,
                                 struct s2n_test_io_pair *io_pair)
 {
-    GUARD(s2n_connection_set_io_pair(client, io_pair));
-    GUARD(s2n_connection_set_io_pair(server, io_pair));
+    POSIX_GUARD(s2n_connection_set_io_pair(client, io_pair));
+    POSIX_GUARD(s2n_connection_set_io_pair(server, io_pair));
     return 0;
 }
 
 int s2n_io_pair_close(struct s2n_test_io_pair *io_pair)
 {
-    GUARD(s2n_io_pair_close_one_end(io_pair, S2N_CLIENT));
-    GUARD(s2n_io_pair_close_one_end(io_pair, S2N_SERVER));
+    POSIX_GUARD(s2n_io_pair_close_one_end(io_pair, S2N_CLIENT));
+    POSIX_GUARD(s2n_io_pair_close_one_end(io_pair, S2N_SERVER));
     return 0;
 }
 
 int s2n_io_pair_close_one_end(struct s2n_test_io_pair *io_pair, int mode_to_close)
 {
     if (mode_to_close == S2N_CLIENT) {
-        GUARD(close(io_pair->client));
+        POSIX_GUARD(close(io_pair->client));
     } else if(mode_to_close == S2N_SERVER) {
-        GUARD(close(io_pair->server));
+        POSIX_GUARD(close(io_pair->server));
     }
     return 0;
 }
@@ -161,9 +161,9 @@ int s2n_io_pair_close_one_end(struct s2n_test_io_pair *io_pair, int mode_to_clos
 int s2n_io_pair_shutdown_one_end(struct s2n_test_io_pair *io_pair, int mode_to_close, int how)
 {
     if (mode_to_close == S2N_CLIENT) {
-        GUARD(shutdown(io_pair->client, how));
+        POSIX_GUARD(shutdown(io_pair->client, how));
     } else if(mode_to_close == S2N_SERVER) {
-        GUARD(shutdown(io_pair->server, how));
+        POSIX_GUARD(shutdown(io_pair->server, how));
     }
     return 0;
 }
@@ -212,7 +212,7 @@ void s2n_print_connection(struct s2n_connection *conn, const char *marker)
 
 int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
     conn->handshake.message_number = 1;
     conn->handshake.handshake_type = NEGOTIATED | HELLO_RETRY_REQUEST | FULL_HANDSHAKE;
@@ -222,7 +222,7 @@ int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn)
 
 int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_t version)
 {
-    notnull_check(conn);
+    POSIX_ENSURE_REF(conn);
 
     conn->server_protocol_version = version;
     conn->client_protocol_version = version;

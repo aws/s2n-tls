@@ -21,7 +21,7 @@
 
 S2N_RESULT s2n_timer_start(struct s2n_config *config, struct s2n_timer *timer)
 {
-    GUARD_AS_RESULT(config->monotonic_clock(config->monotonic_clock_ctx, &timer->time));
+    RESULT_GUARD_POSIX(config->monotonic_clock(config->monotonic_clock_ctx, &timer->time));
 
     return S2N_RESULT_OK;
 }
@@ -30,7 +30,7 @@ S2N_RESULT s2n_timer_elapsed(struct s2n_config *config, struct s2n_timer *timer,
 {
     uint64_t current_time;
 
-    GUARD_AS_RESULT(config->monotonic_clock(config->monotonic_clock_ctx, &current_time));
+    RESULT_GUARD_POSIX(config->monotonic_clock(config->monotonic_clock_ctx, &current_time));
 
     *nanoseconds = current_time - timer->time;
 
@@ -41,7 +41,7 @@ S2N_RESULT s2n_timer_reset(struct s2n_config *config, struct s2n_timer *timer, u
 {
     uint64_t previous_time = timer->time;
 
-    GUARD_RESULT(s2n_timer_start(config, timer));
+    RESULT_GUARD(s2n_timer_start(config, timer));
 
     *nanoseconds = timer->time - previous_time;
 

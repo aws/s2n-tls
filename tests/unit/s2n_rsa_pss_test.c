@@ -27,9 +27,9 @@
 int s2n_flip_random_bit(struct s2n_blob *blob) {
     /* Flip a random bit in the blob */
     uint64_t byte_flip_pos;
-    GUARD_AS_POSIX(s2n_public_random(blob->size, &byte_flip_pos));
+    POSIX_GUARD_RESULT(s2n_public_random(blob->size, &byte_flip_pos));
     uint64_t bit_flip_pos;
-    GUARD_AS_POSIX(s2n_public_random(8, &bit_flip_pos));
+    POSIX_GUARD_RESULT(s2n_public_random(8, &bit_flip_pos));
 
     uint8_t mask = 0x01 << (uint8_t)bit_flip_pos;
     blob->data[byte_flip_pos] ^= mask;

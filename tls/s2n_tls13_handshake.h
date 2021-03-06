@@ -25,12 +25,12 @@ int s2n_tls13_mac_verify(struct s2n_tls13_keys *keys, struct s2n_blob *finished_
 
 #define s2n_get_hash_state(hash_state, alg, conn) \
     struct s2n_hash_state hash_state = {0}; \
-    GUARD(s2n_handshake_get_hash_state(conn, alg, &hash_state));
+    POSIX_GUARD(s2n_handshake_get_hash_state(conn, alg, &hash_state));
 
 /* Creates a reference to tls13_keys from connection */
 #define s2n_tls13_connection_keys(keys, conn) \
     DEFER_CLEANUP(struct s2n_tls13_keys keys = {0}, s2n_tls13_keys_free);\
-    GUARD(s2n_tls13_keys_from_conn(&keys, conn));
+    POSIX_GUARD(s2n_tls13_keys_from_conn(&keys, conn));
 
 int s2n_tls13_keys_from_conn(struct s2n_tls13_keys *keys, struct s2n_connection *conn);
 

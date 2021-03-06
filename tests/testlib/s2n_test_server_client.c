@@ -45,8 +45,8 @@ int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, str
     bool server_done = 0, client_done = 0;
 
     do {
-        GUARD(s2n_try_negotiate(client_conn, &client_done, server_done));
-        GUARD(s2n_try_negotiate(server_conn, &server_done, client_done));
+        POSIX_GUARD(s2n_try_negotiate(client_conn, &client_done, server_done));
+        POSIX_GUARD(s2n_try_negotiate(server_conn, &server_done, client_done));
     } while (!client_done || !server_done);
 
     return S2N_SUCCESS;
