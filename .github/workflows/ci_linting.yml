@@ -6,31 +6,65 @@ on:
     branches:
       - master
       - main
+
 jobs:
-  lint:
+  cppcheck:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        command:
-          - |
-            echo "cppcheck"
-            source ./codebuild/bin/s2n_setup_env.sh
-            ./codebuild/bin/install_cppcheck.sh "$CPPCHECK_INSTALL_DIR"
-            ./codebuild/bin/run_cppcheck.sh "$CPPCHECK_INSTALL_DIR"
-          - |
-            echo "copyright mistake scanner"
-            source ./codebuild/bin/s2n_setup_env.sh
-            ./codebuild/bin/copyright_mistake_scanner.sh
-          - |
-            echo "grep simple mistakes"
-            source ./codebuild/bin/s2n_setup_env.sh
-            ./codebuild/bin/grep_simple_mistakes.sh
-          - |
-            echo "cpp style comment linter"
-            source ./codebuild/bin/s2n_setup_env.sh
-            ./codebuild/bin/run_kwstyle.sh
-            ./codebuild/bin/cpp_style_comment_linter.sh
+    env:
+      CPPCHECK_INSTALL_DIR: test-deps/cppcheck
     steps:
       - uses: actions/checkout@v2
-      - run: ${{ matrix.command }}
+
+      - name: Setup
+        run: source ./codebuild/bin/s2n_setup_env.sh
+
+      - name: Cache
+        id: cache
+        uses: actions/cache@v2.1.4
+        continue-on-error: true
+        with:
+          path: ${{ env.CPPCHECK_INSTALL_DIR }}
+          key: cppcheck-2.3-${{ env.CPPCHECK_INSTALL_DIR }}
+
+      - name: Install
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: ./codebuild/bin/install_cppcheck.sh "$CPPCHECK_INSTALL_DIR"
+
+      - name: Check
+        run: ./codebuild/bin/run_cppcheck.sh "$CPPCHECK_INSTALL_DIR"
+
+  copyright:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup
+        run: source ./codebuild/bin/s2n_setup_env.sh
+
+      - name: Check
+        run: ./codebuild/bin/copyright_mistake_scanner.sh
+
+  simple-mistakes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup
+        run: source ./codebuild/bin/s2n_setup_env.sh
+
+      - name: Check
+        run: ./codebuild/bin/grep_simple_mistakes.sh
+
+  comments:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup
+        run: source ./codebuild/bin/s2n_setup_env.sh
+
+      - name: Check
+        run: |
+          ./codebuild/bin/run_kwstyle.sh
+          ./codebuild/bin/cpp_style_comment_linter.sh
 
