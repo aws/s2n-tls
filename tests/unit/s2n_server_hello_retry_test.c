@@ -438,6 +438,92 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
+    /*
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+     *= type=test
+     *# Clients MUST abort the handshake with an
+     *# "illegal_parameter" alert if the HelloRetryRequest would not result
+     *# in any change in the ClientHello.
+     */
+    {
+        const struct s2n_security_policy *security_policy = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("20201021", &security_policy));
+        EXPECT_NOT_NULL(security_policy);
+        const struct s2n_ecc_named_curve *test_curve = security_policy->ecc_preferences->ecc_curves[0];
+
+        /* Retry for key share is valid */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20201021"));
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+
+            conn->secure.server_ecc_evp_params.negotiated_curve = test_curve;
+
+            /* Server requested key share is NOT present: allow retry */
+            EXPECT_SUCCESS(s2n_server_hello_retry_recv(conn));
+
+            /* Server requested key share is present: do NOT allow retry */
+            conn->secure.client_ecc_evp_params[0].negotiated_curve = test_curve;
+            conn->secure.client_ecc_evp_params[0].evp_pkey = EVP_PKEY_new();
+            EXPECT_NOT_NULL(conn->secure.client_ecc_evp_params[0].evp_pkey);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn),
+                    S2N_ERR_INVALID_HELLO_RETRY);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Retry for early data is valid */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20201021"));
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+
+            conn->secure.server_ecc_evp_params.negotiated_curve = test_curve;
+            conn->secure.client_ecc_evp_params[0].negotiated_curve = test_curve;
+            conn->secure.client_ecc_evp_params[0].evp_pkey = EVP_PKEY_new();
+            EXPECT_NOT_NULL(conn->secure.client_ecc_evp_params[0].evp_pkey);
+
+            /* Early data rejected: allow retry */
+            conn->early_data_state = S2N_EARLY_DATA_REJECTED;
+            EXPECT_SUCCESS(s2n_server_hello_retry_recv(conn));
+
+            /* Early data not rejected: do NOT allow retry */
+            conn->early_data_state = S2N_EARLY_DATA_NOT_REQUESTED;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn),
+                    S2N_ERR_INVALID_HELLO_RETRY);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Retry for multiple reasons is valid */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20201021"));
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+
+            conn->secure.server_ecc_evp_params.negotiated_curve = test_curve;
+
+            /* All retry conditions met: allow retry */
+            conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+            EXPECT_SUCCESS(s2n_server_hello_retry_recv(conn));
+
+            /* No retry conditions met: do NOT allow retry */
+            conn->early_data_state = S2N_EARLY_DATA_NOT_REQUESTED;
+            conn->secure.client_ecc_evp_params[0].negotiated_curve = test_curve;
+            conn->secure.client_ecc_evp_params[0].evp_pkey = EVP_PKEY_new();
+            EXPECT_NOT_NULL(conn->secure.client_ecc_evp_params[0].evp_pkey);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn),
+                    S2N_ERR_INVALID_HELLO_RETRY);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
 
     EXPECT_SUCCESS(s2n_disable_tls13());
 

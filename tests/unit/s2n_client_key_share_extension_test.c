@@ -394,18 +394,6 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
 
-            /* should contain keyshare for only server negotiated curve */
-            for (size_t i = 0; i < ecc_preferences->count; i++) {
-                struct s2n_ecc_evp_params *ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
-                if (ecc_evp_params->negotiated_curve == conn->secure.server_ecc_evp_params.negotiated_curve) {
-                    EXPECT_NOT_NULL(ecc_evp_params->negotiated_curve);
-                    EXPECT_NOT_NULL(ecc_evp_params->evp_pkey);
-                } else {
-                    EXPECT_NULL(ecc_evp_params->negotiated_curve);
-                    EXPECT_NULL(ecc_evp_params->evp_pkey);
-                }
-            }
-
             uint16_t key_shares_size;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &key_shares_size));
             EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), key_shares_size);
@@ -524,6 +512,45 @@ int main(int argc, char **argv)
             }
 
             EXPECT_SUCCESS(s2n_stuffer_free(&key_share_extension));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* For HelloRetryRequests, verify that we can resend an existing share to reject early data. */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+
+            const struct s2n_ecc_preferences *ecc_preferences = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
+            EXPECT_NOT_NULL(ecc_preferences);
+
+            struct s2n_stuffer first_extension = { 0 }, second_extension = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&first_extension, 0));
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&second_extension, 0));
+
+            EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &first_extension));
+
+            for (size_t i = 0; i < ecc_preferences->count; i++) {
+                if (conn->secure.client_ecc_evp_params[i].evp_pkey == NULL) {
+                    continue;
+                }
+                conn->secure.server_ecc_evp_params.negotiated_curve = conn->secure.client_ecc_evp_params[i].negotiated_curve;
+            }
+
+            /* Setup the client to have received a HelloRetryRequest */
+            EXPECT_MEMCPY_SUCCESS(conn->secure.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
+            EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
+            EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
+            conn->early_data_state = S2N_EARLY_DATA_REJECTED;
+
+            EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &second_extension));
+
+            /* Same shares (same bytes) are written both times */
+            EXPECT_EQUAL(first_extension.write_cursor, second_extension.write_cursor);
+            EXPECT_BYTEARRAY_EQUAL(first_extension.blob.data, second_extension.blob.data, first_extension.write_cursor);
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&first_extension));
+            EXPECT_SUCCESS(s2n_stuffer_free(&second_extension));
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
     }

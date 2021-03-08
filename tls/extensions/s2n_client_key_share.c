@@ -128,7 +128,12 @@ static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_
     struct s2n_ecc_evp_params *ecc_params = &kem_group_params->ecc_params;
     ecc_params->negotiated_curve = kem_group->curve;
     POSIX_GUARD(s2n_stuffer_write_uint16(out, ecc_params->negotiated_curve->share_size));
-    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_params));
+
+    /* If we received a HRR for any reason other than to request a different key share,
+     * we might have already generated the key. */
+    if (ecc_params->evp_pkey == NULL) {
+        POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_params));
+    }
     POSIX_GUARD(s2n_ecc_evp_write_params_point(ecc_params, out));
 
     struct s2n_kem_params *kem_params = &kem_group_params->kem_params;
@@ -166,56 +171,28 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
     return S2N_SUCCESS;
 }
 
-static int s2n_wipe_all_client_keyshares(struct s2n_connection *conn) {
-    POSIX_ENSURE_REF(conn);
-
-    const struct s2n_ecc_preferences *ecc_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-    POSIX_ENSURE_REF(ecc_pref);
-
-    const struct s2n_kem_preferences *kem_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
-    POSIX_ENSURE_REF(kem_pref);
-
-    for (size_t i = 0; i < ecc_pref->count; i++) {
-        POSIX_GUARD(s2n_ecc_evp_params_free(&conn->secure.client_ecc_evp_params[i]));
-        conn->secure.client_ecc_evp_params[i].negotiated_curve = NULL;
-    }
-
-    for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-        POSIX_GUARD(s2n_kem_group_free(&conn->secure.client_kem_group_params[i]));
-        conn->secure.client_kem_group_params[i].kem_group = NULL;
-        conn->secure.client_kem_group_params[i].kem_params.kem = NULL;
-        conn->secure.client_kem_group_params[i].ecc_params.negotiated_curve = NULL;
-    }
-
-    return S2N_SUCCESS;
-}
-
 static int s2n_send_hrr_ecc_keyshare(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     POSIX_ENSURE_REF(conn);
-    const struct s2n_ecc_named_curve *server_negotiated_curve = NULL;
-    struct s2n_ecc_evp_params *ecc_evp_params = NULL;
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     POSIX_ENSURE_REF(ecc_pref);
 
-    server_negotiated_curve = conn->secure.server_ecc_evp_params.negotiated_curve;
+    const struct s2n_ecc_named_curve *server_negotiated_curve = conn->secure.server_ecc_evp_params.negotiated_curve;
     POSIX_ENSURE(server_negotiated_curve != NULL, S2N_ERR_BAD_KEY_SHARE);
     POSIX_ENSURE(s2n_ecc_preferences_includes_curve(ecc_pref, server_negotiated_curve->iana_id),
             S2N_ERR_INVALID_HELLO_RETRY);
 
+    struct s2n_ecc_evp_params *ecc_evp_params = NULL;
     for (size_t i = 0; i < ecc_pref->count; i++) {
         if (ecc_pref->ecc_curves[i]->iana_id == server_negotiated_curve->iana_id) {
             ecc_evp_params = &conn->secure.client_ecc_evp_params[i];
-            POSIX_ENSURE(ecc_evp_params->evp_pkey == NULL, S2N_ERR_INVALID_HELLO_RETRY);
+            break;
         }
     }
+    POSIX_ENSURE_REF(ecc_evp_params);
 
-    /* None of the previously generated keyshares were selected for negotiation, so wipe them */
-    POSIX_GUARD(s2n_wipe_all_client_keyshares(conn));
     /* Generate the keyshare for the server negotiated curve */
     ecc_evp_params->negotiated_curve = server_negotiated_curve;
     POSIX_GUARD(s2n_ecdhe_parameters_send(ecc_evp_params, out));
@@ -244,14 +221,11 @@ static int s2n_send_hrr_pq_hybrid_keyshare(struct s2n_connection *conn, struct s
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
         if (kem_pref->tls13_kem_groups[i]->iana_id == server_negotiated_kem_group->iana_id) {
             kem_group_params = &conn->secure.client_kem_group_params[i];
-            POSIX_ENSURE(kem_group_params->kem_group == NULL, S2N_ERR_INVALID_HELLO_RETRY);
-            POSIX_ENSURE(kem_group_params->ecc_params.evp_pkey == NULL, S2N_ERR_INVALID_HELLO_RETRY);
-            POSIX_ENSURE(kem_group_params->kem_params.private_key.data == NULL, S2N_ERR_INVALID_HELLO_RETRY);
+            break;
         }
     }
+    POSIX_ENSURE_REF(kem_group_params);
 
-    /* None of the previously generated keyshares were selected for negotiation, so wipe them */
-    POSIX_GUARD(s2n_wipe_all_client_keyshares(conn));
     /* Generate the keyshare for the server negotiated KEM group */
     kem_group_params->kem_group = server_negotiated_kem_group;
     POSIX_GUARD(s2n_generate_pq_hybrid_key_share(out, kem_group_params));

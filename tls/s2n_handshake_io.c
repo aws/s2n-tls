@@ -632,6 +632,20 @@ int s2n_set_hello_retry_required(struct s2n_connection *conn)
     POSIX_ENSURE(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
     POSIX_GUARD_RESULT(s2n_handshake_type_set_tls13_flag(conn, HELLO_RETRY_REQUEST));
 
+    /* HelloRetryRequests also indicate rejection of early data.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *# A server which receives an "early_data" extension MUST behave in one
+     *# of three ways:
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *# -  Request that the client send another ClientHello by responding
+     *#    with a HelloRetryRequest.
+     **/
+    if (conn->early_data_state == S2N_EARLY_DATA_REQUESTED) {
+        POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REJECTED));
+    }
+
     return S2N_SUCCESS;
 }
 
