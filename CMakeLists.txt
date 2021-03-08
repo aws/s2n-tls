@@ -48,6 +48,7 @@ if(S2N_NO_PQ OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "aarch64")
     # PQ is disabled, so we do not include any PQ crypto code
     message(STATUS "S2N_NO_PQ flag (or aarch64) was detected - disabling PQ crypto")
     set(S2N_NO_PQ_ASM ON)
+    set(S2N_NO_PQ ON)
 else()
     # PQ is enabled, so include all of the PQ crypto code
     file(GLOB PQ_HEADERS

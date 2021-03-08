@@ -51,10 +51,6 @@ if [[ "$OS_NAME" == "linux" && "$TESTS" == "valgrind" ]]; then
     kill %1
 fi
 
-if [[ "$OS_NAME" == "linux" && ( ("$TESTS" == "integration") || ("$TESTS" == "integrationv2") ) ]]; then
-    make -j $JOBS
-fi
-
 # Build and run unit tests with scan-build for osx. scan-build bundle isn't available for linux
 if [[ "$OS_NAME" == "osx" && "$TESTS" == "integration" ]]; then
     scan-build --status-bugs -o /tmp/scan-build make -j$JOBS; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/* ; [ "$STATUS" -eq "0" ];
