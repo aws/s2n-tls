@@ -43,23 +43,30 @@ int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
     return 0;
 }
 
+static int mock_time(void *data, uint64_t *nanoseconds)
+{
+    *nanoseconds = 1000000000;
+    return S2N_SUCCESS;
+}
+
 uint8_t cb_session_id_data[S2N_TLS_SESSION_ID_MAX_LEN] = { 0 };
 size_t cb_session_id_len = 0;
+uint8_t cb_session_data[S2N_STATE_FORMAT_LEN + 
+                        S2N_SESSION_TICKET_SIZE_LEN + 
+                        S2N_TLS12_TICKET_SIZE_IN_BYTES + 
+                        S2N_STATE_SIZE_IN_BYTES] = { 0 };
 size_t cb_session_data_len = 0;
 uint32_t cb_session_lifetime = 0;
 static int s2n_test_session_ticket_callback(struct s2n_connection *conn,
-                                            uint8_t *session_id_data,
-                                            size_t session_id_len,
-                                            uint8_t *session_data,
-                                            size_t session_len,
+                                            uint8_t *session_id_data, size_t session_id_len,
+                                            uint8_t *session_data, size_t session_len,
                                             uint32_t session_lifetime)
 {
-    /* Store the callback data for comparison at the end of the connection. The
-     * session_data itself is ignored because the data varies based on time. */
+    /* Store the callback data for comparison at the end of the connection. */
     cb_session_id_len = session_id_len;
     EXPECT_MEMCPY_SUCCESS(cb_session_id_data, session_id_data, session_id_len);
     cb_session_data_len = session_len;
-    EXPECT_NOT_NULL(session_data);
+    EXPECT_MEMCPY_SUCCESS(cb_session_data, session_data, session_len);
     cb_session_lifetime = session_lifetime;
 
     return S2N_SUCCESS;
@@ -1067,6 +1074,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(client_config, mock_time, NULL));
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_config, 1));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
 
@@ -1101,6 +1109,12 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(cb_session_id_data, session_id, cb_session_id_len);
 
         EXPECT_EQUAL(cb_session_data_len, s2n_connection_get_session_length(client_conn));
+        uint8_t session_data[S2N_STATE_FORMAT_LEN + 
+                            S2N_SESSION_TICKET_SIZE_LEN + 
+                            S2N_TLS12_TICKET_SIZE_IN_BYTES + 
+                            S2N_STATE_SIZE_IN_BYTES] = { 0 };
+        EXPECT_SUCCESS(s2n_connection_get_session(client_conn, session_data, cb_session_data_len));
+        EXPECT_BYTEARRAY_EQUAL(cb_session_data, session_data, cb_session_data_len);
 
         EXPECT_EQUAL(cb_session_lifetime, s2n_connection_get_session_ticket_lifetime_hint(client_conn));
 

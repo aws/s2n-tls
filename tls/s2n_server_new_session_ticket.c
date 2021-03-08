@@ -54,7 +54,6 @@ int s2n_server_nst_recv(struct s2n_connection *conn) {
         POSIX_GUARD(s2n_stuffer_read(&conn->handshake.io, &conn->client_ticket));
 
         if (conn->config->session_ticket_cb != NULL) {
-
             size_t session_id_len = s2n_connection_get_session_id_length(conn);
             uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN] = { 0 };
             GUARD(s2n_connection_get_session_id(conn, session_id, session_id_len));
