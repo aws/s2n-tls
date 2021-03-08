@@ -46,7 +46,7 @@ S2N_CLEANUP_RESULT s2n_early_data_config_free(struct s2n_early_data_config *conf
 S2N_RESULT s2n_early_data_config_clone(struct s2n_psk *new_psk, struct s2n_early_data_config *old_config);
 
 bool s2n_early_data_is_valid_for_connection(struct s2n_connection *conn);
-S2N_RESULT s2n_early_data_accept_or_deny(struct s2n_connection *conn);
+S2N_RESULT s2n_early_data_accept_or_reject(struct s2n_connection *conn);
 
 /* Public Interface -- will be made visible and moved to s2n.h when the 0RTT feature is released */
 

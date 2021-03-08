@@ -47,7 +47,7 @@ int main(int argc, char **argv)
         /* Safety check */
         EXPECT_FALSE(s2n_server_early_data_indication_extension.should_send(NULL));
 
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
         EXPECT_NOT_NULL(conn);
 
         conn->early_data_state = S2N_EARLY_DATA_NOT_REQUESTED;
@@ -66,7 +66,7 @@ int main(int argc, char **argv)
     {
         /* No-op if early data not requested */
         {
-            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(conn);
 
             conn->early_data_state = S2N_EARLY_DATA_NOT_REQUESTED;
@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 
         /* Fails if early data config does not match the connection */
         {
-            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(conn);
 
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
 
         /* Fails if early data not requested */
         {
-            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(conn);
 
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;

@@ -90,7 +90,7 @@ bool s2n_early_data_is_valid_for_connection(struct s2n_connection *conn)
     return s2n_result_is_ok(s2n_early_data_validate(conn));
 }
 
-S2N_RESULT s2n_early_data_accept_or_deny(struct s2n_connection *conn)
+S2N_RESULT s2n_early_data_accept_or_reject(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
     if (conn->early_data_state != S2N_EARLY_DATA_REQUESTED) {
