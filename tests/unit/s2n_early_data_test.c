@@ -90,6 +90,8 @@ int main(int argc, char **argv)
     const uint8_t test_value[] = "test value";
     const uint8_t test_value_2[] = "more test data";
 
+    const uint32_t nonzero_max_early_data = 10;
+
     /* Test s2n_connection_set_early_data_state */
     {
         /* Safety check */
@@ -220,7 +222,7 @@ int main(int argc, char **argv)
     /* Test s2n_psk_configure_early_data */
     {
         /* Safety */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_configure_early_data(NULL, 1, 1, 1), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_configure_early_data(NULL, nonzero_max_early_data, 1, 1), S2N_ERR_NULL);
 
         /* Set valid configuration */
         {
@@ -242,11 +244,11 @@ int main(int argc, char **argv)
             const struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
             psk->hmac_alg = cipher_suite->prf_alg + 1;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_psk_configure_early_data(psk, 1,
+            EXPECT_FAILURE_WITH_ERRNO(s2n_psk_configure_early_data(psk, nonzero_max_early_data,
                     cipher_suite->iana_value[0], cipher_suite->iana_value[1]), S2N_ERR_INVALID_ARGUMENT);
 
             psk->hmac_alg = cipher_suite->prf_alg;
-            EXPECT_SUCCESS(s2n_psk_configure_early_data(psk, 1,
+            EXPECT_SUCCESS(s2n_psk_configure_early_data(psk, nonzero_max_early_data,
                     cipher_suite->iana_value[0], cipher_suite->iana_value[1]));
             EXPECT_EQUAL(psk->early_data_config.cipher_suite, cipher_suite);
         }
@@ -381,6 +383,172 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(clone->early_data_config.cipher_suite, test_cipher_suite);
             EXPECT_EQUAL(clone->early_data_config.protocol_version, test_version);
         }
+    }
+
+    /* Test s2n_early_data_is_valid_for_connection */
+    {
+        /* Safety check */
+        EXPECT_FALSE(s2n_early_data_is_valid_for_connection(NULL));
+
+        /* Not valid if the first wire PSK was not chosen
+        *
+        *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+        *= type=test
+        *# In order to accept early data, the server MUST have accepted a PSK
+        *# cipher suite and selected the first key offered in the client's
+        *# "pre_shared_key" extension.
+        **/
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+
+            /* No chosen PSK */
+            EXPECT_NULL(conn->psk_params.chosen_psk);
+            EXPECT_FALSE(s2n_early_data_is_valid_for_connection(conn));
+
+            EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(conn, nonzero_max_early_data, &s2n_tls13_aes_256_gcm_sha384));
+
+            /* PSK chosen, but not first PSK */
+            conn->psk_params.chosen_psk_wire_index = 5;
+            EXPECT_FALSE(s2n_early_data_is_valid_for_connection(conn));
+
+            /* First PSK chosen */
+            conn->psk_params.chosen_psk_wire_index = 0;
+            EXPECT_TRUE(s2n_early_data_is_valid_for_connection(conn));
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /**
+        *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+        *= type=test
+        *# In addition, it MUST verify that the
+        *# following values are the same as those associated with the
+        *# selected PSK:
+        **/
+        {
+            /**
+            *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+            *= type=test
+            *# -  The TLS version number
+            **/
+            {
+                struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
+                EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(conn, nonzero_max_early_data, &s2n_tls13_aes_256_gcm_sha384));
+                conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+                conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+
+                conn->actual_protocol_version = S2N_TLS12;
+                EXPECT_FALSE(s2n_early_data_is_valid_for_connection(conn));
+
+                conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_TRUE(s2n_early_data_is_valid_for_connection(conn));
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+
+            /**
+            *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+            *= type=test
+            *# -  The selected cipher suite
+            **/
+            {
+                struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
+                EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(conn, nonzero_max_early_data, &s2n_tls13_aes_256_gcm_sha384));
+                conn->actual_protocol_version = S2N_TLS13;
+                conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+
+                conn->secure.cipher_suite = &s2n_tls13_chacha20_poly1305_sha256;
+                EXPECT_FALSE(s2n_early_data_is_valid_for_connection(conn));
+
+                conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+                EXPECT_TRUE(s2n_early_data_is_valid_for_connection(conn));
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+
+            /**
+            *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+            *= type=test
+            *# -  The selected ALPN [RFC7301] protocol, if any
+            **/
+            {
+                struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
+                EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(conn, nonzero_max_early_data, &s2n_tls13_aes_256_gcm_sha384));
+                conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+                conn->actual_protocol_version = S2N_TLS13;
+                conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+
+                const uint8_t empty_protocol[] = "";
+                const uint8_t required_protocol[] = "required_protocol";
+                const uint8_t wrong_protocol[] = "wrong protocol";
+
+                /* No early data alpn set, no alpn negotiated */
+                EXPECT_TRUE(s2n_early_data_is_valid_for_connection(conn));
+
+                /* No early data alpn set, but alpn negotiated */
+                EXPECT_MEMCPY_SUCCESS(conn->application_protocol, required_protocol, sizeof(required_protocol));
+                EXPECT_FALSE(s2n_early_data_is_valid_for_connection(conn));
+
+                EXPECT_SUCCESS(s2n_psk_set_application_protocol(conn->psk_params.chosen_psk,
+                       required_protocol, sizeof(required_protocol)));
+
+                /* Early data alpn set, but no alpn negotiated */
+                EXPECT_MEMCPY_SUCCESS(conn->application_protocol, empty_protocol, sizeof(empty_protocol));
+                EXPECT_FALSE(s2n_early_data_is_valid_for_connection(conn));
+
+                /* Early data alpn does NOT match negotiated alpn */
+                EXPECT_MEMCPY_SUCCESS(conn->application_protocol, wrong_protocol, sizeof(wrong_protocol));
+                EXPECT_FALSE(s2n_early_data_is_valid_for_connection(conn));
+
+                /* Early data alpn matches negotiated alpn */
+                EXPECT_MEMCPY_SUCCESS(conn->application_protocol, required_protocol, sizeof(required_protocol));
+                EXPECT_TRUE(s2n_early_data_is_valid_for_connection(conn));
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+        }
+    }
+
+    /* Test s2n_early_data_accept_or_reject */
+    {
+        /* Safety check */
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_accept_or_reject(NULL), S2N_ERR_NULL);
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
+        EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(conn, nonzero_max_early_data, &s2n_tls13_aes_256_gcm_sha384));
+        conn->actual_protocol_version = S2N_TLS13;
+        conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+
+        conn->early_data_state = S2N_EARLY_DATA_NOT_REQUESTED;
+        EXPECT_OK(s2n_early_data_accept_or_reject(conn));
+        EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_NOT_REQUESTED);
+
+        conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+        /* Set wrong protocol version */
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_OK(s2n_early_data_accept_or_reject(conn));
+        EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_REJECTED);
+
+        conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+        /* Set right protocol version */
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_early_data_accept_or_reject(conn));
+        EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_ACCEPTED);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     END_TEST();

@@ -111,6 +111,7 @@ static const s2n_extension_type *const encrypted_extensions[] = {
         &s2n_server_max_fragment_length_extension,
         &s2n_server_alpn_extension,
         &s2n_quic_transport_parameters_extension,
+        &s2n_server_early_data_indication_extension,
 };
 
 static const s2n_extension_type *const cert_req_extensions[] = {
