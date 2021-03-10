@@ -34,7 +34,7 @@
  * when the relevant TLS 1.3 features are worked on.
  *
  * [x] binder_key
- * [ ] client_early_traffic_secret
+ * [x] client_early_traffic_secret
  * [ ] early_exporter_master_secret
  * [x] client_handshake_traffic_secret
  * [x] server_handshake_traffic_secret
