@@ -40,6 +40,10 @@ endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "ASAN")
     message(STATUS "Address sanitizer mode")
+endif()
+
+if (NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+    message(STATUS "Copying test pems to build.")
     file(GLOB TEST_PEM_FILES "tests/pems/*.pem")
     file(COPY ${TEST_PEM_FILES} DESTINATION "pems")
 endif ()

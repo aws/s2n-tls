@@ -183,14 +183,12 @@ build:
 withninja: build
 	{ set -e; \
 	unset LD_LIBRARY_PATH; \
-	cd build; \
-	cmake -GNinja -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .. ;\
-	ninja -v -d stats;\
+	cmake . -Bbuild -GNinja -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ;\
+	ninja -C build -v -d stats;\
 	}
 
 ninjatest: withninja
 	{ set -e; \
 	unset LD_LIBRARY_PATH; \
-	cd build; \
-	ninja test ;\
+	ninja -C build test ;\
 	}
