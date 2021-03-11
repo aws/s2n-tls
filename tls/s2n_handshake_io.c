@@ -1038,6 +1038,15 @@ static int s2n_try_delete_session_cache(struct s2n_connection *conn)
     return 0;
 }
 
+static S2N_RESULT s2n_wipe_record(struct s2n_connection *conn)
+{
+    ENSURE_REF(conn);
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->header_in));
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->in));
+    conn->in_status = ENCRYPTED;
+    return S2N_RESULT_OK;
+}
+
 /* Reading is a little more complicated than writing as the TLS RFCs allow content
  * types to be interleaved at the record layer. We may get an alert message
  * during the handshake phase, or messages of types that we don't support (e.g.
@@ -1057,7 +1066,30 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         record_type = TLS_HANDSHAKE;
         POSIX_GUARD_RESULT(s2n_quic_read_handshake_message(conn, &message_type));
     } else {
-        POSIX_GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
+        int r = s2n_read_full_record(conn, &record_type, &isSSLv2);
+
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+         *# If the client attempts a 0-RTT handshake but the server
+         *# rejects it, the server will generally not have the 0-RTT record
+         *# protection keys and must instead use trial decryption (either with
+         *# the 1-RTT handshake keys or by looking for a cleartext ClientHello in
+         *# the case of a HelloRetryRequest) to find the first non-0-RTT message.
+         *#
+         *# If the server chooses to accept the "early_data" extension, then it
+         *# MUST comply with the same error-handling requirements specified for
+         *# all records when processing early data records.  Specifically, if the
+         *# server fails to decrypt a 0-RTT record following an accepted
+         *# "early_data" extension, it MUST terminate the connection with a
+         *# "bad_record_mac" alert as per Section 5.2.
+         */
+        if ((r < 0) && (s2n_errno == S2N_ERR_DECRYPT) /* Decryption Error */
+                && (conn->mode == S2N_SERVER) /* On the server */
+                && (conn->early_data_state == S2N_EARLY_DATA_REJECTED) /* When early data was rejected */) {
+            POSIX_GUARD_RESULT(s2n_wipe_record(conn));
+            return S2N_SUCCESS;
+        }
+        POSIX_GUARD(r);
     }
 
     if (isSSLv2) {
@@ -1104,10 +1136,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         /* Ignore record types that we don't support */
 
         /* We're done with the record, wipe it */
-        POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
-        POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
-        conn->in_status = ENCRYPTED;
-        return 0;
+        POSIX_GUARD_RESULT(s2n_wipe_record(conn));
+        return S2N_SUCCESS;
     }
 
     /* Record is a handshake message */
@@ -1124,10 +1154,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
             /* Break out of this inner loop, but since we're not changing the state, the
              * outer loop in s2n_handshake_io() will read another record.
              */
-            POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
-            POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
-            conn->in_status = ENCRYPTED;
-            return 0;
+            POSIX_GUARD_RESULT(s2n_wipe_record(conn));
+            return S2N_SUCCESS;
         }
 
         s2n_cert_auth_type client_cert_auth_type;
@@ -1191,11 +1219,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
     }
 
     /* We're done with the record, wipe it */
-    POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
-    POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
-    conn->in_status = ENCRYPTED;
-
-    return 0;
+    POSIX_GUARD_RESULT(s2n_wipe_record(conn));
+    return S2N_SUCCESS;
 }
 
 static int s2n_handle_retry_state(struct s2n_connection *conn)
