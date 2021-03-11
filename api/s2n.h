@@ -167,6 +167,7 @@ typedef enum {
     S2N_TLS_MAX_FRAG_LEN_4096 = 4,
 } s2n_max_frag_len;
 
+struct s2n_cert;
 struct s2n_cert_chain_and_key;
 struct s2n_pkey;
 typedef struct s2n_pkey s2n_cert_public_key;
@@ -424,6 +425,12 @@ extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
 
 S2N_API
 extern struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2n_connection *conn);
+S2N_API
+extern int s2n_get_cert_chain_length(struct s2n_cert_chain_and_key *chain_and_key, uint32_t *cert_length);
+S2N_API
+extern int s2n_get_cert_from_cert_chain(struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, uint32_t cert_idx);
+S2N_API
+extern int s2n_get_cert_der(struct s2n_cert *cert, uint8_t **out_cert_der, uint32_t *cert_length);
 
 S2N_API
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);

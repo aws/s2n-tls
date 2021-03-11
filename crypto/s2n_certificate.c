@@ -532,3 +532,53 @@ s2n_cert_private_key *s2n_cert_chain_and_key_get_private_key(struct s2n_cert_cha
     PTR_ENSURE_REF(chain_and_key);
     return chain_and_key->private_key;
 }
+
+int s2n_get_cert_chain_length(struct s2n_cert_chain_and_key *chain_and_key, uint32_t *cert_length)
+{
+    POSIX_ENSURE_REF(chain_and_key);
+
+    struct s2n_cert *head_cert = chain_and_key->cert_chain->head;
+    POSIX_ENSURE_REF(head_cert);
+    *cert_length = 1;
+    struct s2n_cert *next_cert = head_cert->next;
+    while (next_cert != NULL) {
+        *cert_length += 1;
+        next_cert = next_cert->next;
+    }
+
+    return S2N_SUCCESS;
+}
+
+int s2n_get_cert_from_cert_chain(struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert,
+                                 uint32_t cert_idx)
+{
+    POSIX_ENSURE_REF(chain_and_key);
+    POSIX_ENSURE_REF(out_cert);
+
+    uint32_t cert_chain_length = 0;
+    POSIX_GUARD(s2n_get_cert_chain_length(chain_and_key, &cert_chain_length));
+    POSIX_ENSURE_LT(cert_idx, cert_chain_length);
+
+    struct s2n_cert *cur_cert = chain_and_key->cert_chain->head;
+    POSIX_ENSURE_REF(cur_cert);
+
+    for (size_t i = 1; i <= cert_idx; i++) {
+        POSIX_ENSURE_REF(cur_cert->next);
+        cur_cert = cur_cert->next;
+    }
+
+    *out_cert = cur_cert;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_get_cert_der(struct s2n_cert *cert, uint8_t **out_cert_der, uint32_t *cert_length)
+{
+    POSIX_ENSURE_REF(cert);
+    POSIX_ENSURE_REF(out_cert_der);
+
+    *out_cert_der = cert->raw.data;
+    *cert_length = cert->raw.size;
+
+    return S2N_SUCCESS;
+}
