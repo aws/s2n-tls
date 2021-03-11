@@ -777,3 +777,24 @@ int s2n_config_set_session_ticket_callback(struct s2n_config *config, s2n_sessio
 
     return S2N_SUCCESS;
 }
+
+int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, uint8_t **data, size_t *data_len)
+{
+    POSIX_ENSURE_REF(ticket);
+    POSIX_ENSURE_REF(data);
+    POSIX_ENSURE_REF(data_len);
+
+    *data = ticket->ticket_data.data;
+    *data_len = ticket->ticket_data.size;
+
+    return S2N_SUCCESS;
+}
+int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, size_t *session_lifetime)
+{
+    POSIX_ENSURE_REF(ticket);
+    POSIX_ENSURE_REF(session_lifetime);
+
+    *session_lifetime = ticket->session_lifetime;
+
+    return S2N_SUCCESS;
+}

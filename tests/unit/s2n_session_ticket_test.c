@@ -49,24 +49,22 @@ static int mock_time(void *data, uint64_t *nanoseconds)
     return S2N_SUCCESS;
 }
 
-uint8_t cb_session_id_data[S2N_TLS_SESSION_ID_MAX_LEN] = { 0 };
-size_t cb_session_id_len = 0;
-uint8_t cb_session_data[S2N_STATE_FORMAT_LEN + 
-                        S2N_SESSION_TICKET_SIZE_LEN + 
-                        S2N_TLS12_TICKET_SIZE_IN_BYTES + 
-                        S2N_STATE_SIZE_IN_BYTES] = { 0 };
+uint8_t cb_session_data[S2N_TLS12_SESSION_SIZE] = { 0 };
 size_t cb_session_data_len = 0;
-uint32_t cb_session_lifetime = 0;
-static int s2n_test_session_ticket_callback(struct s2n_connection *conn,
-                                            uint8_t *session_id_data, size_t session_id_len,
-                                            uint8_t *session_data, size_t session_len,
-                                            uint32_t session_lifetime)
+size_t cb_session_lifetime = 0;
+static int s2n_test_session_ticket_callback(struct s2n_connection *conn, struct s2n_session_ticket *ticket)
 {
+    EXPECT_NOT_NULL(conn);
+    EXPECT_NOT_NULL(ticket);
+
     /* Store the callback data for comparison at the end of the connection. */
-    cb_session_id_len = session_id_len;
-    EXPECT_MEMCPY_SUCCESS(cb_session_id_data, session_id_data, session_id_len);
-    cb_session_data_len = session_len;
-    EXPECT_MEMCPY_SUCCESS(cb_session_data, session_data, session_len);
+    uint8_t *data = NULL;
+    size_t data_len = 0;
+    size_t session_lifetime = 0;
+    EXPECT_SUCCESS(s2n_session_ticket_get_data(ticket, &data, &data_len));
+    cb_session_data_len = data_len;
+    EXPECT_MEMCPY_SUCCESS(cb_session_data, data, cb_session_data_len);
+    EXPECT_SUCCESS(s2n_session_ticket_get_lifetime(ticket, &session_lifetime));
     cb_session_lifetime = session_lifetime;
 
     return S2N_SUCCESS;
@@ -1101,18 +1099,9 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-        /* Expect values stored from session_ticket_cb are equivalent to values from the APIs */
-        EXPECT_EQUAL(cb_session_id_len, s2n_connection_get_session_id_length(client_conn));
-
-        uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN] = { 0 };
-        EXPECT_SUCCESS(s2n_connection_get_session_id(client_conn, session_id, cb_session_id_len));
-        EXPECT_BYTEARRAY_EQUAL(cb_session_id_data, session_id, cb_session_id_len);
-
+        /* Expect values from the session_ticket_cb are equivalent to values from the APIs */
         EXPECT_EQUAL(cb_session_data_len, s2n_connection_get_session_length(client_conn));
-        uint8_t session_data[S2N_STATE_FORMAT_LEN + 
-                            S2N_SESSION_TICKET_SIZE_LEN + 
-                            S2N_TLS12_TICKET_SIZE_IN_BYTES + 
-                            S2N_STATE_SIZE_IN_BYTES] = { 0 };
+        uint8_t session_data[S2N_TLS12_SESSION_SIZE] = { 0 };
         EXPECT_SUCCESS(s2n_connection_get_session(client_conn, session_data, cb_session_data_len));
         EXPECT_BYTEARRAY_EQUAL(cb_session_data, session_data, cb_session_data_len);
 
