@@ -769,28 +769,35 @@ int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t 
     return S2N_SUCCESS;
 }
 
-int s2n_config_set_session_ticket_callback(struct s2n_config *config, s2n_session_ticket_cb cb)
+int s2n_config_set_session_ticket_cb(struct s2n_config *config, s2n_session_ticket_fn callback, void *ctx)
 {
-    ENSURE_POSIX_MUT(config);
+    POSIX_ENSURE_MUT(config);
 
-    config->session_ticket_cb = cb;
-
+    config->session_ticket_cb = callback;
+    config->session_ticket_ctx = ctx;
     return S2N_SUCCESS;
 }
 
-int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, uint8_t **data, size_t *data_len)
+int s2n_session_ticket_get_data_len(struct s2n_session_ticket *ticket, size_t *data_len)
 {
     POSIX_ENSURE_REF(ticket);
-    POSIX_ENSURE_REF(data);
-    POSIX_ENSURE_REF(data_len);
+    POSIX_ENSURE_MUT(data_len);
 
-    *data = ticket->ticket_data.data;
     *data_len = ticket->ticket_data.size;
+    return S2N_SUCCESS;
+}
+
+int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, uint8_t *data)
+{
+    POSIX_ENSURE_REF(ticket);
+    POSIX_ENSURE_MUT(data);
+
+    POSIX_CHECKED_MEMCPY(data, ticket->ticket_data.data, ticket->ticket_data.size);
 
     return S2N_SUCCESS;
 }
 
-int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, size_t *session_lifetime)
+int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, uint32_t *session_lifetime)
 {
     POSIX_ENSURE_REF(ticket);
     POSIX_ENSURE_REF(session_lifetime);

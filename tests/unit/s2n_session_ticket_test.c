@@ -51,21 +51,16 @@ static int mock_time(void *data, uint64_t *nanoseconds)
 
 uint8_t cb_session_data[S2N_TLS12_SESSION_SIZE] = { 0 };
 size_t cb_session_data_len = 0;
-size_t cb_session_lifetime = 0;
+uint32_t cb_session_lifetime = 0;
 static int s2n_test_session_ticket_callback(struct s2n_connection *conn, struct s2n_session_ticket *ticket)
 {
     EXPECT_NOT_NULL(conn);
     EXPECT_NOT_NULL(ticket);
 
     /* Store the callback data for comparison at the end of the connection. */
-    uint8_t *data = NULL;
-    size_t data_len = 0;
-    size_t session_lifetime = 0;
-    EXPECT_SUCCESS(s2n_session_ticket_get_data(ticket, &data, &data_len));
-    cb_session_data_len = data_len;
-    EXPECT_MEMCPY_SUCCESS(cb_session_data, data, cb_session_data_len);
-    EXPECT_SUCCESS(s2n_session_ticket_get_lifetime(ticket, &session_lifetime));
-    cb_session_lifetime = session_lifetime;
+    EXPECT_SUCCESS(s2n_session_ticket_get_data_len(ticket, &cb_session_data_len));
+    EXPECT_SUCCESS(s2n_session_ticket_get_data(ticket, cb_session_data));
+    EXPECT_SUCCESS(s2n_session_ticket_get_lifetime(ticket, &cb_session_lifetime));
 
     return S2N_SUCCESS;
 }
@@ -1077,7 +1072,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
 
         /* Client will use callback when server nst is received */
-        EXPECT_SUCCESS(s2n_config_set_session_ticket_callback(client_config, s2n_test_session_ticket_callback));
+        EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(client_config, s2n_test_session_ticket_callback, NULL));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));

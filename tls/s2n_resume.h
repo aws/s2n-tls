@@ -76,6 +76,11 @@ struct s2n_ticket_fields {
     uint32_t ticket_age_add;
 };
 
+struct s2n_session_ticket {
+    struct s2n_blob ticket_data;
+    uint32_t session_lifetime;
+};
+
 extern struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t *name);
 extern int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_ticket_fields *ticket_fields, struct s2n_stuffer *to);
 extern int s2n_decrypt_session_ticket(struct s2n_connection *conn);
@@ -105,12 +110,9 @@ extern int s2n_store_to_cache(struct s2n_connection *conn);
 int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num);
 int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num);
 
-struct s2n_session_ticket {
-    struct s2n_blob ticket_data;
-    uint32_t session_lifetime;
-};
-
-typedef int (*s2n_session_ticket_cb)(struct s2n_connection *conn, struct s2n_session_ticket *ticket);
-int s2n_config_set_session_ticket_callback(struct s2n_config *config, s2n_session_ticket_cb cb);
-int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, uint8_t **data, size_t *data_len);
-int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, size_t *session_lifetime);
+struct s2n_session_ticket;
+typedef int (*s2n_session_ticket_fn)(struct s2n_connection *conn, struct s2n_session_ticket *ticket);
+int s2n_config_set_session_ticket_cb(struct s2n_config *config, s2n_session_ticket_fn callback, void *ctx);
+int s2n_session_ticket_get_data_len(struct s2n_session_ticket *ticket, size_t *data_len);
+int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, uint8_t *data);
+int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, uint32_t *session_lifetime);

@@ -344,42 +344,39 @@ int main(int argc, char **argv)
         }
     }
 
-    /* s2n_config_set_session_ticket_callback */
+    /* s2n_config_set_session_ticket_cb */
     {
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
+        void *ctx = NULL;
 
         /* Safety check */
         {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_session_ticket_callback(NULL, s2n_test_session_ticket_callback), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_session_ticket_cb(NULL, s2n_test_session_ticket_callback, ctx), S2N_ERR_NULL);
         }
 
         EXPECT_NULL(config->session_ticket_cb);
-        EXPECT_SUCCESS(s2n_config_set_session_ticket_callback(config, s2n_test_session_ticket_callback));
+        EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_callback, ctx));
         EXPECT_EQUAL(config->session_ticket_cb, s2n_test_session_ticket_callback);
         EXPECT_SUCCESS(s2n_config_free(config));
     }
 
-    /* s2n_session_ticket_get_data */
+    /* s2n_session_ticket_get_data_len */
     {
         /* Safety checks */
         {
             struct s2n_session_ticket session_ticket = { 0 };
-            uint8_t *data = NULL;
             size_t data_len = 0;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data(NULL, &data, &data_len), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data(&session_ticket, NULL, &data_len), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data(&session_ticket, &data, NULL), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data_len(NULL, &data_len), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data_len(&session_ticket, NULL), S2N_ERR_NULL);
         }
 
         /* Empty ticket */
         {
             struct s2n_session_ticket session_ticket = { 0 };
-            uint8_t *data = NULL;
             size_t data_len = 0;
-            EXPECT_SUCCESS(s2n_session_ticket_get_data(&session_ticket, &data, &data_len));
+            EXPECT_SUCCESS(s2n_session_ticket_get_data_len(&session_ticket, &data_len));
             EXPECT_EQUAL(data_len, 0);
-            EXPECT_EQUAL(data, NULL);
         }
 
         /* Valid ticket */
@@ -389,10 +386,31 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, sizeof(ticket_data)));
             struct s2n_session_ticket session_ticket = { .ticket_data = ticket_blob };
 
-            uint8_t *data = NULL;
             size_t data_len = 0;
-            EXPECT_SUCCESS(s2n_session_ticket_get_data(&session_ticket, &data, &data_len));
+            EXPECT_SUCCESS(s2n_session_ticket_get_data_len(&session_ticket, &data_len));
             EXPECT_EQUAL(data_len, sizeof(ticket_data));
+        }
+    }
+
+    /* s2n_session_ticket_get_data */
+    {
+        /* Safety checks */
+        {
+            struct s2n_session_ticket session_ticket = { 0 };
+            uint8_t *data = NULL;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data(NULL, data), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data(&session_ticket, NULL), S2N_ERR_NULL);
+        }
+
+        /* Valid ticket */
+        {
+            uint8_t ticket_data[] = "session ticket data";
+            struct s2n_blob ticket_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, sizeof(ticket_data)));
+            struct s2n_session_ticket session_ticket = { .ticket_data = ticket_blob };
+
+            uint8_t data[sizeof(ticket_data)];
+            EXPECT_SUCCESS(s2n_session_ticket_get_data(&session_ticket, data));
             EXPECT_BYTEARRAY_EQUAL(data, ticket_data, sizeof(ticket_data));
         }
     }
@@ -402,7 +420,7 @@ int main(int argc, char **argv)
         /* Safety checks */
         {
             struct s2n_session_ticket session_ticket = { 0 };
-            size_t lifetime = 0;
+            uint32_t lifetime = 0;
             EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_lifetime(NULL, &lifetime), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_lifetime(&session_ticket, NULL), S2N_ERR_NULL);
         }
@@ -412,7 +430,7 @@ int main(int argc, char **argv)
             uint32_t lifetime = 100;
             struct s2n_session_ticket session_ticket = { .session_lifetime = lifetime };
 
-            size_t ticket_lifetime = 0;
+            uint32_t ticket_lifetime = 0;
             EXPECT_SUCCESS(s2n_session_ticket_get_lifetime(&session_ticket, &ticket_lifetime));
             EXPECT_EQUAL(lifetime, ticket_lifetime);
         }

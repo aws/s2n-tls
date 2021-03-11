@@ -55,6 +55,7 @@ int s2n_server_nst_recv(struct s2n_connection *conn) {
 
         if (conn->config->session_ticket_cb != NULL) {
             size_t session_len = s2n_connection_get_session_length(conn);
+            POSIX_ENSURE_GTE(S2N_TLS12_SESSION_SIZE, session_len);
             uint8_t session_data[S2N_TLS12_SESSION_SIZE] = { 0 };
             GUARD(s2n_connection_get_session(conn, session_data, session_len));
             uint32_t session_lifetime = s2n_connection_get_session_ticket_lifetime_hint(conn);
