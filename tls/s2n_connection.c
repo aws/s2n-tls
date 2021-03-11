@@ -774,6 +774,17 @@ int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **
     return 0;
 }
 
+int s2n_connection_get_peer_cert_chain(struct s2n_connection *conn, struct s2n_cert_chain_and_key **cert_chain_and_key)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(cert_chain_and_key);
+    POSIX_ENSURE_REF(conn->handshake_params.our_chain_and_key);
+
+    *cert_chain_and_key = conn->handshake_params.our_chain_and_key;
+
+    return S2N_SUCCESS;
+}
+
 int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const struct s2n_cipher_preferences **cipher_preferences)
 {
     POSIX_ENSURE_REF(conn);
