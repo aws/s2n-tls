@@ -787,11 +787,12 @@ int s2n_session_ticket_get_data_len(struct s2n_session_ticket *ticket, size_t *d
     return S2N_SUCCESS;
 }
 
-int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, uint8_t *data)
+int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, size_t max_data_len, uint8_t *data)
 {
     POSIX_ENSURE_REF(ticket);
     POSIX_ENSURE_MUT(data);
 
+    POSIX_ENSURE(ticket->ticket_data.size <= max_data_len, S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG);
     POSIX_CHECKED_MEMCPY(data, ticket->ticket_data.data, ticket->ticket_data.size);
 
     return S2N_SUCCESS;

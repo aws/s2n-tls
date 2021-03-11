@@ -397,9 +397,10 @@ int main(int argc, char **argv)
         /* Safety checks */
         {
             struct s2n_session_ticket session_ticket = { 0 };
+            size_t max_data_len = 0;
             uint8_t *data = NULL;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data(NULL, data), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data(&session_ticket, NULL), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data(NULL, max_data_len, data), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data(&session_ticket, max_data_len, NULL), S2N_ERR_NULL);
         }
 
         /* Valid ticket */
@@ -410,8 +411,22 @@ int main(int argc, char **argv)
             struct s2n_session_ticket session_ticket = { .ticket_data = ticket_blob };
 
             uint8_t data[sizeof(ticket_data)];
-            EXPECT_SUCCESS(s2n_session_ticket_get_data(&session_ticket, data));
+            size_t max_data_len = sizeof(data);
+            EXPECT_SUCCESS(s2n_session_ticket_get_data(&session_ticket, max_data_len, data));
             EXPECT_BYTEARRAY_EQUAL(data, ticket_data, sizeof(ticket_data));
+        }
+
+        /* Ticket data is larger than customer buffer */
+        {
+            uint8_t ticket_data[] = "session ticket data";
+            struct s2n_blob ticket_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, sizeof(ticket_data)));
+            struct s2n_session_ticket session_ticket = { .ticket_data = ticket_blob };
+
+            uint8_t data[sizeof(ticket_data) - 1];
+            size_t max_data_len = sizeof(data);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data(&session_ticket, max_data_len, data),
+                    S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG);
         }
     }
 

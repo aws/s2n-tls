@@ -114,5 +114,5 @@ struct s2n_session_ticket;
 typedef int (*s2n_session_ticket_fn)(struct s2n_connection *conn, struct s2n_session_ticket *ticket);
 int s2n_config_set_session_ticket_cb(struct s2n_config *config, s2n_session_ticket_fn callback, void *ctx);
 int s2n_session_ticket_get_data_len(struct s2n_session_ticket *ticket, size_t *data_len);
-int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, uint8_t *data);
+int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, size_t max_data_len, uint8_t *data);
 int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, uint32_t *session_lifetime);

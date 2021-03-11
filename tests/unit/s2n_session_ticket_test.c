@@ -59,7 +59,7 @@ static int s2n_test_session_ticket_callback(struct s2n_connection *conn, struct 
 
     /* Store the callback data for comparison at the end of the connection. */
     EXPECT_SUCCESS(s2n_session_ticket_get_data_len(ticket, &cb_session_data_len));
-    EXPECT_SUCCESS(s2n_session_ticket_get_data(ticket, cb_session_data));
+    EXPECT_SUCCESS(s2n_session_ticket_get_data(ticket, sizeof(cb_session_data), cb_session_data));
     EXPECT_SUCCESS(s2n_session_ticket_get_lifetime(ticket, &cb_session_lifetime));
 
     return S2N_SUCCESS;
