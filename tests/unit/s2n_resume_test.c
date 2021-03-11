@@ -399,7 +399,6 @@ int main(int argc, char **argv)
 
     /* s2n_session_ticket_get_lifetime */
     {
-
         /* Safety checks */
         {
             struct s2n_session_ticket session_ticket = { 0 };

@@ -789,6 +789,7 @@ int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, uint8_t **dat
 
     return S2N_SUCCESS;
 }
+
 int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, size_t *session_lifetime)
 {
     POSIX_ENSURE_REF(ticket);
