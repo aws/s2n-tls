@@ -1038,6 +1038,15 @@ static int s2n_try_delete_session_cache(struct s2n_connection *conn)
     return 0;
 }
 
+S2N_RESULT s2n_wipe_record(struct s2n_connection *conn)
+{
+    ENSURE_REF(conn);
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->header_in));
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->in));
+    conn->in_status = ENCRYPTED;
+    return S2N_RESULT_OK;
+}
+
 /* Reading is a little more complicated than writing as the TLS RFCs allow content
  * types to be interleaved at the record layer. We may get an alert message
  * during the handshake phase, or messages of types that we don't support (e.g.
@@ -1077,7 +1086,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         if ((r < 0) && (s2n_errno == S2N_ERR_DECRYPT) /* Decryption Error */
                 && (conn->mode == S2N_SERVER) /* On the server */
                 && (conn->early_data_state == S2N_EARLY_DATA_REJECTED) /* When early data was rejected */) {
-            goto wipe_record_and_return;
+            POSIX_GUARD_RESULT(s2n_wipe_record(conn));
+            return S2N_SUCCESS;
         }
         POSIX_GUARD(r);
     }
@@ -1126,7 +1136,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         /* Ignore record types that we don't support */
 
         /* We're done with the record, wipe it */
-        goto wipe_record_and_return;
+        POSIX_GUARD_RESULT(s2n_wipe_record(conn));
+        return S2N_SUCCESS;
     }
 
     /* Record is a handshake message */
@@ -1143,7 +1154,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
             /* Break out of this inner loop, but since we're not changing the state, the
              * outer loop in s2n_handshake_io() will read another record.
              */
-            goto wipe_record_and_return;
+            POSIX_GUARD_RESULT(s2n_wipe_record(conn));
+            return S2N_SUCCESS;
         }
 
         s2n_cert_auth_type client_cert_auth_type;
@@ -1206,11 +1218,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         POSIX_GUARD(s2n_advance_message(conn));
     }
 
-wipe_record_and_return:
     /* We're done with the record, wipe it */
-    POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
-    POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
-    conn->in_status = ENCRYPTED;
+    POSIX_GUARD_RESULT(s2n_wipe_record(conn));
     return S2N_SUCCESS;
 }
 
