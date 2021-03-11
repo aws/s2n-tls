@@ -1038,7 +1038,7 @@ static int s2n_try_delete_session_cache(struct s2n_connection *conn)
     return 0;
 }
 
-S2N_RESULT s2n_wipe_record(struct s2n_connection *conn)
+static S2N_RESULT s2n_wipe_record(struct s2n_connection *conn)
 {
     ENSURE_REF(conn);
     RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->header_in));
