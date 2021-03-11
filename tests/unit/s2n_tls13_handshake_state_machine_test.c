@@ -478,6 +478,7 @@ int main(int argc, char **argv)
 
             conn->handshake.handshake_type = 0;
             conn->handshake.message_number = 0;
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             EXPECT_EQUAL(ACTIVE_MESSAGE(conn), CLIENT_HELLO);
             EXPECT_SUCCESS(s2n_setup_handler_to_expect(CLIENT_HELLO, S2N_SERVER));
 

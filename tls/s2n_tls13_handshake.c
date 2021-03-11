@@ -162,22 +162,98 @@ int s2n_tls13_compute_shared_secret(struct s2n_connection *conn, struct s2n_blob
 
     POSIX_GUARD_RESULT(s2n_connection_wipe_all_keyshares(conn));
 
+    /* It would make more sense to wipe the PSK secrets in s2n_tls13_handle_early_secret,
+     * but at that point we don't know whether or not the server will request a HRR request
+     * and we'll have to use the secrets again.
+     *
+     * Instead, wipe them here when we wipe all the other connection secrets. */
+    POSIX_GUARD_RESULT(s2n_psk_parameters_wipe_secrets(&conn->psk_params));
+
     return S2N_SUCCESS;
 }
 
-/*
- * This function executes after Server Hello is processed
- * and handshake hashes are computed. It produces and configure
- * the shared secret, handshake secrets, handshake traffic keys,
- * and finished keys.
- */
-int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
+int s2n_tls13_handle_early_secret(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
+
+    struct s2n_psk *psk = conn->psk_params.chosen_psk;
+
+    /* If the client is sending early data, then the client will need to calculate
+     * the early secret before the server chooses a PSK. */
+    if (conn->mode == S2N_CLIENT && conn->early_data_state == S2N_EARLY_DATA_REQUESTED) {
+        POSIX_GUARD_RESULT(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+        POSIX_ENSURE_REF(psk);
+
+        /* We need to set the early data cipher suite so that the secret derivation
+         * logic uses the right hmac algorithm.
+         */
+        POSIX_ENSURE_REF(psk->early_data_config.cipher_suite);
+        conn->secure.cipher_suite = psk->early_data_config.cipher_suite;
+    }
+
+    /* get tls13 key context */
+    s2n_tls13_connection_keys(secrets, conn);
+
+    /* derive early secrets */
+    POSIX_GUARD(s2n_tls13_derive_early_secret(&secrets, psk));
+
+    return S2N_SUCCESS;
+}
+
+
+int s2n_tls13_handle_early_traffic_secret(struct s2n_connection *conn)
+{
+    POSIX_ENSURE_REF(conn);
+
+    /* get tls13 key context */
+    s2n_tls13_connection_keys(secrets, conn);
+
+    struct s2n_hash_state hash_state = { 0 };
+    POSIX_GUARD(s2n_handshake_get_hash_state(conn, secrets.hash_algorithm, &hash_state));
+
+    s2n_stack_blob(early_traffic_secret, secrets.size, S2N_TLS13_SECRET_MAX_LEN);
+    POSIX_GUARD(s2n_tls13_derive_early_traffic_secret(&secrets, &hash_state, &early_traffic_secret));
+
+    /* trigger callbacks */
+    if (conn->secret_cb && conn->config->quic_enabled) {
+        POSIX_GUARD(conn->secret_cb(conn->secret_cb_context, conn, S2N_CLIENT_EARLY_TRAFFIC_SECRET,
+                early_traffic_secret.data, early_traffic_secret.size));
+    }
+    s2n_result_ignore(s2n_key_log_tls13_secret(conn, &early_traffic_secret, S2N_CLIENT_EARLY_TRAFFIC_SECRET));
+
+    /* produce traffic key and iv */
+    struct s2n_blob early_iv = { 0 };
+    s2n_tls13_key_blob(early_traffic_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
+    POSIX_GUARD(s2n_blob_init(&early_iv, conn->secure.client_implicit_iv, S2N_TLS13_FIXED_IV_LEN));
+    POSIX_GUARD(s2n_tls13_derive_traffic_keys(&secrets, &early_traffic_secret, &early_traffic_key, &early_iv));
+
+    POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
+    if (conn->mode == S2N_CLIENT) {
+        POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.client_key, &early_traffic_key));
+    } else {
+        POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &early_traffic_key));
+    }
+
+    /* configure client crypto parameters early */
+    conn->client = &conn->secure;
+
+    /* According to https://tools.ietf.org/html/rfc8446#section-5.3:
+     * Each sequence number is set to zero at the beginning of a connection and
+     * whenever the key is changed
+     */
+    POSIX_GUARD(s2n_zero_sequence_number(conn, S2N_CLIENT));
+
+    return S2N_SUCCESS;
+}
+
+int s2n_tls13_handle_handshake_master_secret(struct s2n_connection *conn)
+{
+    POSIX_ENSURE_REF(conn);
+
     const struct s2n_ecc_preferences *ecc_preferences = NULL;
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
     POSIX_ENSURE_REF(ecc_preferences);
-    
+
     /* get tls13 key context */
     s2n_tls13_connection_keys(secrets, conn);
 
@@ -185,68 +261,78 @@ int s2n_tls13_handle_handshake_secrets(struct s2n_connection *conn)
     DEFER_CLEANUP(struct s2n_blob shared_secret = { 0 }, s2n_free);
     POSIX_GUARD(s2n_tls13_compute_shared_secret(conn, &shared_secret));
 
-    /* derive early secrets */
-    POSIX_GUARD(s2n_tls13_derive_early_secrets(&secrets, conn->psk_params.chosen_psk));
-    /* Wipe the PSK secrets as they are no longer required */
-    POSIX_GUARD_RESULT(s2n_psk_parameters_wipe_secrets(&conn->psk_params));
+    POSIX_GUARD(s2n_tls13_extract_handshake_secret(&secrets, &shared_secret));
 
-    /* produce handshake secrets */
-    s2n_stack_blob(client_hs_secret, secrets.size, S2N_TLS13_SECRET_MAX_LEN);
-    s2n_stack_blob(server_hs_secret, secrets.size, S2N_TLS13_SECRET_MAX_LEN);
+    return 0;
+}
 
-    struct s2n_hash_state hash_state = {0};
-    POSIX_GUARD(s2n_handshake_get_hash_state(conn, secrets.hash_algorithm, &hash_state));
-    POSIX_GUARD(s2n_tls13_derive_handshake_secrets(&secrets, &shared_secret, &hash_state, &client_hs_secret, &server_hs_secret));
+int s2n_tls13_handle_handshake_traffic_secret(struct s2n_connection *conn, s2n_mode mode)
+{
+    POSIX_ENSURE_REF(conn);
+
+    /* get tls13 key context */
+    s2n_tls13_connection_keys(secrets, conn);
+    bool is_sending_secret = (mode == conn->mode);
+
+    /* produce handshake secret */
+    s2n_stack_blob(hs_secret, secrets.size, S2N_TLS13_SECRET_MAX_LEN);
+
+    uint8_t *finished_data = NULL, *implicit_iv_data = NULL;
+    struct s2n_session_key *session_key = NULL;
+    s2n_secret_type_t secret_type = 0;
+    if (mode == S2N_CLIENT) {
+        finished_data = conn->handshake.client_finished;
+        implicit_iv_data = conn->secure.client_implicit_iv;
+        session_key = &conn->secure.client_key;
+        secret_type = S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET;
+        conn->client = &conn->secure;
+    } else {
+        finished_data = conn->handshake.server_finished;
+        implicit_iv_data = conn->secure.server_implicit_iv;
+        session_key = &conn->secure.server_key;
+        secret_type = S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET;
+        conn->server = &conn->secure;
+    }
+
+    POSIX_GUARD(s2n_tls13_derive_handshake_traffic_secret(&secrets, &conn->handshake.server_hello_copy, &hs_secret, mode));
 
     /* trigger secret callbacks */
     if (conn->secret_cb && conn->config->quic_enabled) {
-        POSIX_GUARD(conn->secret_cb(conn->secret_cb_context, conn, S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET,
-                client_hs_secret.data, client_hs_secret.size));
-        POSIX_GUARD(conn->secret_cb(conn->secret_cb_context, conn, S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET,
-                server_hs_secret.data, server_hs_secret.size));
+        POSIX_GUARD(conn->secret_cb(conn->secret_cb_context, conn, secret_type, hs_secret.data, hs_secret.size));
     }
-
-    s2n_result_ignore(s2n_key_log_tls13_secret(conn, &client_hs_secret, S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET));
-    s2n_result_ignore(s2n_key_log_tls13_secret(conn, &server_hs_secret, S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET));
+    s2n_result_ignore(s2n_key_log_tls13_secret(conn, &hs_secret, secret_type));
 
     /* produce handshake traffic keys and configure record algorithm */
-    s2n_tls13_key_blob(server_hs_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
-    struct s2n_blob server_hs_iv = { .data = conn->secure.server_implicit_iv, .size = S2N_TLS13_FIXED_IV_LEN };
-    POSIX_GUARD(s2n_tls13_derive_traffic_keys(&secrets, &server_hs_secret, &server_hs_key, &server_hs_iv));
+    struct s2n_blob hs_iv = { 0 };
+    s2n_tls13_key_blob(hs_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
+    POSIX_GUARD(s2n_blob_init(&hs_iv, implicit_iv_data, S2N_TLS13_FIXED_IV_LEN));
+    POSIX_GUARD(s2n_tls13_derive_traffic_keys(&secrets, &hs_secret, &hs_key, &hs_iv));
 
-    s2n_tls13_key_blob(client_hs_key, conn->secure.cipher_suite->record_alg->cipher->key_material_size);
-    struct s2n_blob client_hs_iv = { .data = conn->secure.client_implicit_iv, .size = S2N_TLS13_FIXED_IV_LEN };
-    POSIX_GUARD(s2n_tls13_derive_traffic_keys(&secrets, &client_hs_secret, &client_hs_key, &client_hs_iv));
-
-    POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.server_key));
-    POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->init(&conn->secure.client_key));
-
-    if (conn->mode == S2N_CLIENT) {
-        POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.server_key, &server_hs_key));
-        POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.client_key, &client_hs_key));
+    POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->init(session_key));
+    if (is_sending_secret) {
+        POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(session_key, &hs_key));
     } else {
-        POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure.server_key, &server_hs_key));
-        POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure.client_key, &client_hs_key));
+        POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->set_decryption_key(session_key, &hs_key));
     }
 
     /* calculate server + client finished keys and store them in handshake struct */
-    struct s2n_blob server_finished_key = { .data = conn->handshake.server_finished, .size = secrets.size };
-    struct s2n_blob client_finished_key = { .data = conn->handshake.client_finished, .size = secrets.size };
-    POSIX_GUARD(s2n_tls13_derive_finished_key(&secrets, &server_hs_secret, &server_finished_key));
-    POSIX_GUARD(s2n_tls13_derive_finished_key(&secrets, &client_hs_secret, &client_finished_key));
+    struct s2n_blob finished_key = { 0 };
+    POSIX_GUARD(s2n_blob_init(&finished_key, finished_data, secrets.size));
+    POSIX_GUARD(s2n_tls13_derive_finished_key(&secrets, &hs_secret, &finished_key));
 
     /* According to https://tools.ietf.org/html/rfc8446#section-5.3:
      * Each sequence number is set to zero at the beginning of a connection and
      * whenever the key is changed
      */
-    POSIX_GUARD(s2n_zero_sequence_number(conn, S2N_CLIENT));
-    POSIX_GUARD(s2n_zero_sequence_number(conn, S2N_SERVER));
+    POSIX_GUARD(s2n_zero_sequence_number(conn, mode));
 
     return 0;
 }
 
 static int s2n_tls13_handle_application_secret(struct s2n_connection *conn, s2n_mode mode)
 {
+    POSIX_ENSURE_REF(conn);
+
     /* get tls13 key context */
     s2n_tls13_connection_keys(keys, conn);
     bool is_sending_secret = (mode == conn->mode);
@@ -308,6 +394,7 @@ static int s2n_tls13_handle_application_secret(struct s2n_connection *conn, s2n_
  */
 static int s2n_tls13_handle_master_secret(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
     s2n_tls13_connection_keys(keys, conn);
     POSIX_GUARD(s2n_tls13_extract_master_secret(&keys));
     return S2N_SUCCESS;
@@ -315,6 +402,7 @@ static int s2n_tls13_handle_master_secret(struct s2n_connection *conn)
 
 static int s2n_tls13_handle_resumption_master_secret(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
     s2n_tls13_connection_keys(keys, conn);
     
     struct s2n_hash_state hash_state = {0};
@@ -326,31 +414,35 @@ static int s2n_tls13_handle_resumption_master_secret(struct s2n_connection *conn
     return S2N_SUCCESS;
 }
 
-int s2n_tls13_handle_secrets(struct s2n_connection *conn)
+int s2n_tls13_client_handle_secrets(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
-    if (conn->actual_protocol_version < S2N_TLS13) {
-        return S2N_SUCCESS;
-    }
-
     switch(s2n_conn_get_current_message_type(conn)) {
-        case SERVER_HELLO:
-            POSIX_GUARD(s2n_tls13_handle_handshake_secrets(conn));
-            /* Set negotiated crypto parameters for encryption */
-            conn->server = &conn->secure;
-            conn->client = &conn->secure;
-            break;
-        case SERVER_FINISHED:
-            if (conn->mode == S2N_SERVER) {
-                POSIX_GUARD(s2n_tls13_handle_master_secret(conn));
-                POSIX_GUARD(s2n_tls13_handle_application_secret(conn, S2N_SERVER));
+        case CLIENT_HELLO:
+            if (conn->early_data_state == S2N_EARLY_DATA_REQUESTED) {
+                POSIX_GUARD(s2n_tls13_handle_early_secret(conn));
+                POSIX_GUARD(s2n_tls13_handle_early_traffic_secret(conn));
             }
+            break;
+        case SERVER_HELLO:
+            POSIX_GUARD(s2n_tls13_handle_early_secret(conn));
+            POSIX_GUARD(s2n_tls13_handle_handshake_master_secret(conn));
+            POSIX_GUARD(s2n_tls13_handle_handshake_traffic_secret(conn, S2N_SERVER));
+            if (conn->early_data_state == S2N_EARLY_DATA_NOT_REQUESTED) {
+                POSIX_GUARD(s2n_tls13_handle_handshake_traffic_secret(conn, S2N_CLIENT));
+            }
+            break;
+        case ENCRYPTED_EXTENSIONS:
+            if (conn->early_data_state == S2N_EARLY_DATA_REJECTED) {
+                POSIX_GUARD(s2n_tls13_handle_handshake_traffic_secret(conn, S2N_CLIENT));
+            }
+            break;
+        case END_OF_EARLY_DATA:
+            POSIX_GUARD(s2n_tls13_handle_handshake_traffic_secret(conn, S2N_CLIENT));
             break;
         case CLIENT_FINISHED:
-            if (conn->mode == S2N_CLIENT) {
-                POSIX_GUARD(s2n_tls13_handle_master_secret(conn));
-                POSIX_GUARD(s2n_tls13_handle_application_secret(conn, S2N_SERVER));
-            }
+            POSIX_GUARD(s2n_tls13_handle_master_secret(conn));
+            POSIX_GUARD(s2n_tls13_handle_application_secret(conn, S2N_SERVER));
             POSIX_GUARD(s2n_tls13_handle_application_secret(conn, S2N_CLIENT));
             POSIX_GUARD(s2n_tls13_handle_resumption_master_secret(conn));
             break;
@@ -358,6 +450,57 @@ int s2n_tls13_handle_secrets(struct s2n_connection *conn)
             break;
     }
     return S2N_SUCCESS;
+}
+
+static int s2n_tls13_server_handle_secrets(struct s2n_connection *conn)
+{
+    POSIX_ENSURE_REF(conn);
+    switch(s2n_conn_get_current_message_type(conn)) {
+        case CLIENT_HELLO:
+            POSIX_GUARD(s2n_tls13_handle_early_secret(conn));
+            if (conn->early_data_state == S2N_EARLY_DATA_ACCEPTED) {
+                POSIX_GUARD(s2n_tls13_handle_early_traffic_secret(conn));
+            }
+            break;
+        case SERVER_HELLO:
+            POSIX_GUARD(s2n_tls13_handle_handshake_master_secret(conn));
+            POSIX_GUARD(s2n_tls13_handle_handshake_traffic_secret(conn, S2N_SERVER));
+            if (conn->early_data_state != S2N_EARLY_DATA_ACCEPTED) {
+                POSIX_GUARD(s2n_tls13_handle_handshake_traffic_secret(conn, S2N_CLIENT));
+            }
+            break;
+        case SERVER_FINISHED:
+            if (conn->early_data_state != S2N_EARLY_DATA_ACCEPTED) {
+                POSIX_GUARD(s2n_tls13_handle_master_secret(conn));
+                POSIX_GUARD(s2n_tls13_handle_application_secret(conn, S2N_SERVER));
+            }
+            break;
+        case END_OF_EARLY_DATA:
+            POSIX_GUARD(s2n_tls13_handle_handshake_traffic_secret(conn, S2N_CLIENT));
+            POSIX_GUARD(s2n_tls13_handle_master_secret(conn));
+            POSIX_GUARD(s2n_tls13_handle_application_secret(conn, S2N_SERVER));
+            break;
+        case CLIENT_FINISHED:
+            POSIX_GUARD(s2n_tls13_handle_application_secret(conn, S2N_CLIENT));
+            POSIX_GUARD(s2n_tls13_handle_resumption_master_secret(conn));
+            break;
+        default:
+            break;
+    }
+    return S2N_SUCCESS;
+}
+
+int s2n_tls13_handle_secrets(struct s2n_connection *conn)
+{
+    POSIX_ENSURE_REF(conn);
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        return S2N_SUCCESS;
+    }
+    if (conn->mode == S2N_CLIENT) {
+        return s2n_tls13_client_handle_secrets(conn);
+    } else {
+        return s2n_tls13_server_handle_secrets(conn);
+    }
 }
 
 int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mode, keyupdate_status status)

@@ -43,12 +43,11 @@
 #define S2N_SECRET_TYPE_COUNT 5
 #define S2N_TEST_PSK_COUNT 10
 
-static int s2n_tls13_conn_copy_server_finished_hash(struct s2n_connection *conn);
-
 static int s2n_setup_tls13_secrets_prereqs(struct s2n_connection *conn)
 {
     conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-    POSIX_GUARD(s2n_tls13_conn_copy_server_finished_hash(conn));
+    POSIX_GUARD(s2n_tls13_conn_copy_hash(conn, &conn->handshake.server_hello_copy));
+    POSIX_GUARD(s2n_tls13_conn_copy_hash(conn, &conn->handshake.server_finished_copy));
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
@@ -104,7 +103,6 @@ static int s2n_test_tls13_handle_secrets(s2n_mode mode, uint8_t version, message
     return S2N_SUCCESS;
 }
 
-
 static int s2n_test_secret_handler(void* context, struct s2n_connection *conn,
                                           s2n_secret_type_t secret_type,
                                           uint8_t *secret, uint8_t secret_size)
@@ -125,13 +123,18 @@ static int s2n_test_secret_handler(void* context, struct s2n_connection *conn,
             } else {
                 POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(conn), CLIENT_FINISHED);
             }
+            /* Handshake secrets were already derived */
+            POSIX_ENSURE_EQ(secrets_handled[S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET], 1);
+            POSIX_ENSURE_EQ(secrets_handled[S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET], 1);
             break;
         case S2N_CLIENT_APPLICATION_TRAFFIC_SECRET:
             POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(conn), CLIENT_FINISHED);
+            /* Handshake secrets were already derived */
+            POSIX_ENSURE_EQ(secrets_handled[S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET], 1);
+            POSIX_ENSURE_EQ(secrets_handled[S2N_SERVER_HANDSHAKE_TRAFFIC_SECRET], 1);
             break;
         case S2N_CLIENT_EARLY_TRAFFIC_SECRET:
             POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
-            break;
     }
 
     return S2N_SUCCESS;
@@ -187,9 +190,23 @@ int main(int argc, char **argv)
         client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
         server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
-        /* test handle handshake secrets */
-        EXPECT_SUCCESS(s2n_tls13_handle_handshake_secrets(server_conn));
-        EXPECT_SUCCESS(s2n_tls13_handle_handshake_secrets(client_conn));
+        /* populating server hello hash is now a requirement for s2n_tls13_handle_handshake_traffic_secret */
+        EXPECT_SUCCESS(s2n_tls13_conn_copy_hash(server_conn, &server_conn->handshake.server_hello_copy));
+        EXPECT_SUCCESS(s2n_tls13_conn_copy_hash(client_conn, &client_conn->handshake.server_hello_copy));
+
+        EXPECT_SUCCESS(s2n_tls13_handle_early_secret(server_conn));
+        EXPECT_SUCCESS(s2n_tls13_handle_handshake_master_secret(server_conn));
+        EXPECT_SUCCESS(s2n_tls13_handle_handshake_traffic_secret(server_conn, S2N_SERVER));
+        EXPECT_EQUAL(server_conn->server, &server_conn->secure);
+        EXPECT_SUCCESS(s2n_tls13_handle_handshake_traffic_secret(server_conn, S2N_CLIENT));
+        EXPECT_EQUAL(server_conn->client, &server_conn->secure);
+
+        EXPECT_SUCCESS(s2n_tls13_handle_early_secret(client_conn));
+        EXPECT_SUCCESS(s2n_tls13_handle_handshake_master_secret(client_conn));
+        EXPECT_SUCCESS(s2n_tls13_handle_handshake_traffic_secret(client_conn, S2N_SERVER));
+        EXPECT_EQUAL(client_conn->server, &client_conn->secure);
+        EXPECT_SUCCESS(s2n_tls13_handle_handshake_traffic_secret(client_conn, S2N_CLIENT));
+        EXPECT_EQUAL(client_conn->client, &client_conn->secure);
 
         s2n_tls13_connection_keys(server_secrets, server_conn);
         s2n_tls13_connection_keys(client_secrets, client_conn);
@@ -203,6 +220,7 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(server_conn->handshake.client_finished, client_conn->handshake.client_finished, client_secrets.size);
 
         /* server writes message to client in plaintext */
+        server_conn->server = &server_conn->initial;
         S2N_BLOB_FROM_HEX(deadbeef_from_server, "DEADBEEF");
 
         EXPECT_SUCCESS(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &deadbeef_from_server));
@@ -217,28 +235,31 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->out, &client_conn->header_in, 5));
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->out, &client_conn->in, s2n_stuffer_data_available(&server_conn->out)));
 
+        /* client reads encrypted message from server */
         client_conn->server = &client_conn->secure;
         EXPECT_SUCCESS(s2n_record_parse(client_conn));
         EXPECT_EQUAL(5, s2n_stuffer_data_available(&client_conn->in));
         S2N_STUFFER_READ_EXPECT_EQUAL(&client_conn->in, 0xDEADBEEF, uint32);
         S2N_STUFFER_READ_EXPECT_EQUAL(&client_conn->in, TLS_APPLICATION_DATA, uint8);
 
+        /* client writes message to server in plaintext */
+        client_conn->client = &client_conn->initial;
         S2N_BLOB_FROM_HEX(cafefood_from_client, "CAFED00D");
-
         EXPECT_SUCCESS(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &cafefood_from_client));
 
         /* unencrypted length */
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->out), 9);
         EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->out));
-        client_conn->client = &client_conn->secure;
 
-        /* let client write a message to server */
+        /* let client write an encrypted message to server */
+        client_conn->client = &client_conn->secure;
         EXPECT_SUCCESS(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &cafefood_from_client));
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->out), 26);
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->header_in, 5));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->in, s2n_stuffer_data_available(&client_conn->out)));
 
         /* if aead payload is parsed as plaintext, it would be of length 21 */
+        server_conn->client = &server_conn->initial;
         EXPECT_SUCCESS(s2n_record_parse(server_conn));
         EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->in), 21);
         EXPECT_SUCCESS(s2n_stuffer_reread(&client_conn->out));
@@ -255,8 +276,8 @@ int main(int argc, char **argv)
         S2N_STUFFER_READ_EXPECT_EQUAL(&server_conn->in, TLS_APPLICATION_DATA, uint8);
 
         /* populating server finished hash is now a requirement for s2n_tls13_handle_application_secrets */
-        EXPECT_SUCCESS(s2n_tls13_conn_copy_server_finished_hash(server_conn));
-        EXPECT_SUCCESS(s2n_tls13_conn_copy_server_finished_hash(client_conn));
+        EXPECT_SUCCESS(s2n_tls13_conn_copy_hash(server_conn, &server_conn->handshake.server_finished_copy));
+        EXPECT_SUCCESS(s2n_tls13_conn_copy_hash(client_conn, &client_conn->handshake.server_finished_copy));
 
         EXPECT_SUCCESS(s2n_tls13_handle_master_secret(client_conn));
         EXPECT_SUCCESS(s2n_tls13_handle_master_secret(server_conn));
@@ -306,7 +327,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
-    /* Test: s2n_tls13_handle_handshake_secrets */
+    /* Test wiping PSKs after use */
     {
         /* PSKs are wiped when chosen PSK is NULL */
         {
@@ -341,7 +362,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->psk_params.psk_list.len, S2N_TEST_PSK_COUNT);
             EXPECT_NULL(conn->psk_params.chosen_psk);
 
-            EXPECT_SUCCESS(s2n_tls13_handle_handshake_secrets(conn));
+            EXPECT_SUCCESS(s2n_tls13_handle_handshake_master_secret(conn));
 
             /* Verify secrets are wiped */
             for (size_t i = 0; i < conn->psk_params.psk_list.len; i++) {
@@ -399,7 +420,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_EQUAL(conn->psk_params.psk_list.mem.allocated, 0);
             EXPECT_EQUAL(conn->psk_params.psk_list.len, S2N_TEST_PSK_COUNT);
 
-            EXPECT_SUCCESS(s2n_tls13_handle_handshake_secrets(conn));
+            EXPECT_SUCCESS(s2n_tls13_handle_handshake_master_secret(conn));
 
             /* Verify secrets are wiped */
             for (size_t i = 0; i < conn->psk_params.psk_list.len; i++) {
@@ -433,7 +454,7 @@ int main(int argc, char **argv)
 
         /* Test: TLS1.3 server triggers a key update on correct messages */
         {
-            message_type_t server_secret_update_points[] = { SERVER_HELLO, SERVER_FINISHED };
+            message_type_t server_secret_update_points[] = { CLIENT_HELLO, SERVER_HELLO, SERVER_FINISHED };
             EXPECT_SUCCESS(s2n_test_tls13_handle_secrets(S2N_SERVER, S2N_TLS13,
                     server_secret_update_points, s2n_array_len(server_secret_update_points)));
         }
@@ -457,7 +478,7 @@ int main(int argc, char **argv)
                             conn->handshake.message_number = i;
 
                             EXPECT_SUCCESS(s2n_connection_set_secret_callback(conn, s2n_test_secret_handler, secrets_handled));
-                            POSIX_GUARD(s2n_tls13_handle_secrets(conn));
+                            EXPECT_SUCCESS(s2n_tls13_handle_secrets(conn));
 
                             EXPECT_SUCCESS(s2n_connection_free(conn));
                         }
@@ -489,12 +510,13 @@ int main(int argc, char **argv)
                         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
                         EXPECT_SUCCESS(s2n_setup_tls13_secrets_prereqs(conn));
 
+                        conn->early_data_state = S2N_EARLY_DATA_NOT_REQUESTED;
                         conn->actual_protocol_version = S2N_TLS13;
                         conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
                         conn->handshake.message_number = i;
 
                         EXPECT_SUCCESS(s2n_connection_set_secret_callback(conn, s2n_test_secret_handler, secrets_handled));
-                        POSIX_GUARD(s2n_tls13_handle_secrets(conn));
+                        EXPECT_SUCCESS(s2n_tls13_handle_secrets(conn));
 
                         EXPECT_SUCCESS(s2n_connection_free(conn));
                     }

@@ -35,13 +35,15 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 REMOVE_FUNCTION_BODY += s2n_calculate_stacktrace
 
 UNWINDSET += strlen.0:$(shell echo $$((1 + $(MAX_STRING_LEN))))
+UNWINDSET += s2n_hex_string_to_bytes_harness.0:$(shell echo $$((1 + $(MAX_STRING_LEN))))
 UNWINDSET += s2n_hex_string_to_bytes.2:$(shell echo $$((1 + $(MAX_STRING_LEN))))
 UNWINDSET += s2n_hex_string_to_bytes.3:$(shell echo $$((1 + $(MAX_STRING_LEN))))
 UNWINDSET += s2n_hex_string_to_bytes.6:$(shell echo $$((1 + $(MAX_STRING_LEN))))
 UNWINDSET += s2n_hex_string_to_bytes.9:$(shell echo $$((1 + $(MAX_STRING_LEN))))
-UNWINDSET += s2n_hex_string_to_bytes.16:$(shell echo $$((1 + $(MAX_STRING_LEN))))
 UNWINDSET += s2n_hex_string_to_bytes.12:$(shell echo $$((1 + $(MAX_STRING_LEN))))
+UNWINDSET += s2n_hex_string_to_bytes.13:$(shell echo $$((1 + $(MAX_STRING_LEN))))
 UNWINDSET += s2n_hex_string_to_bytes.15:$(shell echo $$((1 + $(MAX_STRING_LEN))))
+UNWINDSET += s2n_hex_string_to_bytes.16:$(shell echo $$((1 + $(MAX_STRING_LEN))))
 UNWINDSET += s2n_hex_string_to_bytes.17:$(shell echo $$((1 + $(MAX_STRING_LEN))))
 
 include ../Makefile.common

@@ -107,19 +107,28 @@ int s2n_hex_string_to_bytes(const uint8_t *str, struct s2n_blob *blob)
 {
     POSIX_ENSURE_REF(str);
     POSIX_PRECONDITION(s2n_blob_validate(blob));
-    uint32_t len = strlen((const char*)str);
-    /* protects against overflows */
-    POSIX_ENSURE_GTE(blob->size, len / 2);
-    POSIX_ENSURE(len % 2 == 0, S2N_ERR_INVALID_HEX);
+    uint32_t len_with_spaces = strlen((const char*)str);
 
-    for (size_t i = 0; i < len; i += 2) {
-        uint8_t high_nibble = hex_inverse[str[i]];
+    size_t i = 0, j = 0;
+    while (j < len_with_spaces) {
+        if (str[j] == ' ') {
+            j++;
+            continue;
+        }
+
+        uint8_t high_nibble = hex_inverse[str[j]];
         POSIX_ENSURE(high_nibble != 255, S2N_ERR_INVALID_HEX);
 
-        uint8_t low_nibble = hex_inverse[str[i + 1]];
+        uint8_t low_nibble = hex_inverse[str[j + 1]];
         POSIX_ENSURE(low_nibble != 255, S2N_ERR_INVALID_HEX);
-        blob->data[i / 2] = high_nibble << 4 | low_nibble;
+
+        POSIX_ENSURE(i < blob->size, S2N_ERR_INVALID_HEX);
+        blob->data[i] = high_nibble << 4 | low_nibble;
+
+        i++;
+        j+=2;
     }
+    blob->size = i;
 
     POSIX_POSTCONDITION(s2n_blob_validate(blob));
     return S2N_SUCCESS;

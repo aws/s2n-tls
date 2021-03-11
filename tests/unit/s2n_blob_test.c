@@ -103,5 +103,60 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(memcmp(g8.data, world, sizeof(world)), 0);
     EXPECT_EQUAL(g8.size, sizeof(world));
 
+    /* Test s2n_hex_string_to_bytes */
+    {
+        uint8_t test_mem[10] = { 0 };
+
+        /* Test with output buffer too small */
+        {
+            const uint8_t long_input_str[] = "abcdef123456";
+            struct s2n_blob output_blob = { 0 };
+
+            /* Succeeds with output blob of the right size */
+            EXPECT_SUCCESS(s2n_blob_init(&output_blob, test_mem, sizeof(long_input_str) / 2));
+            EXPECT_SUCCESS(s2n_hex_string_to_bytes(long_input_str, &output_blob));
+
+            /* Fails with output blob that's too small */
+            EXPECT_SUCCESS(s2n_blob_init(&output_blob, test_mem, 1));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_hex_string_to_bytes(long_input_str, &output_blob),
+                    S2N_ERR_INVALID_HEX);
+        }
+
+        /* Test with invalid characters */
+        {
+            struct s2n_blob output_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&output_blob, test_mem, sizeof(test_mem)));
+
+            EXPECT_SUCCESS(s2n_hex_string_to_bytes((const uint8_t*) "12", &output_blob));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_hex_string_to_bytes((const uint8_t*) "#2", &output_blob),
+                    S2N_ERR_INVALID_HEX);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_hex_string_to_bytes((const uint8_t*) "1#", &output_blob),
+                    S2N_ERR_INVALID_HEX);
+        }
+
+        struct {
+            const char *input;
+            size_t expected_output_size;
+            uint8_t expected_output[sizeof(test_mem)];
+        } test_cases[] = {
+                { .input = "abcd", .expected_output = { 171, 205 }, .expected_output_size = 2 },
+                { .input = "ab cd", .expected_output = { 171, 205 }, .expected_output_size = 2 },
+                { .input = " abcd", .expected_output = { 171, 205 }, .expected_output_size = 2 },
+                { .input = "abcd ", .expected_output = { 171, 205 }, .expected_output_size = 2 },
+                { .input = "  ab     cd  ", .expected_output = { 171, 205 }, .expected_output_size = 2 },
+                { .input = "", .expected_output = { 0 }, .expected_output_size = 0 },
+                { .input = " ", .expected_output = { 0 }, .expected_output_size = 0 },
+                { .input = "12 34 56 78 90", .expected_output = { 18, 52, 86, 120, 144 }, .expected_output_size = 5 },
+                { .input = "1234567890", .expected_output = { 18, 52, 86, 120, 144 }, .expected_output_size = 5 },
+        };
+        for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+            struct s2n_blob actual_output = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&actual_output, test_mem, sizeof(test_mem)));
+
+            EXPECT_SUCCESS(s2n_hex_string_to_bytes((const uint8_t *) test_cases[i].input, &actual_output));
+            EXPECT_BYTEARRAY_EQUAL(actual_output.data, test_cases[i].expected_output, test_cases[i].expected_output_size);
+        }
+    }
+
     END_TEST();
 }

@@ -24,13 +24,13 @@
 /* Length of the synthetic message header */
 #define MESSAGE_HASH_HEADER_LENGTH  4
 
-static int s2n_tls13_conn_copy_server_finished_hash(struct s2n_connection *conn) {
+static int s2n_tls13_conn_copy_hash(struct s2n_connection *conn, struct s2n_hash_state *copy) {
     POSIX_ENSURE_REF(conn);
     s2n_tls13_connection_keys(keys, conn);
     struct s2n_hash_state hash_state = {0};
 
     POSIX_GUARD(s2n_handshake_get_hash_state(conn, keys.hash_algorithm, &hash_state));
-    POSIX_GUARD(s2n_hash_copy(&conn->handshake.server_finished_copy, &hash_state));
+    POSIX_GUARD(s2n_hash_copy(copy, &hash_state));
 
     return 0;
 }
@@ -82,11 +82,13 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
         POSIX_GUARD(s2n_hash_update(&conn->handshake.sha512, data->data, data->size));
     }
 
-    /* Copy the CLIENT_HELLO -> SERVER_FINISHED hash.
-     * TLS1.3 will need it later to calculate the application secrets. */
-    if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13 &&
-            s2n_conn_get_current_message_type(conn) == SERVER_FINISHED) {
-        POSIX_GUARD(s2n_tls13_conn_copy_server_finished_hash(conn));
+    /* Copy hashes that TLS1.3 will need later. */
+    if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13) {
+        if (s2n_conn_get_current_message_type(conn) == SERVER_HELLO) {
+            POSIX_GUARD(s2n_tls13_conn_copy_hash(conn, &conn->handshake.server_hello_copy));
+        } else if (s2n_conn_get_current_message_type(conn) == SERVER_FINISHED) {
+            POSIX_GUARD(s2n_tls13_conn_copy_hash(conn, &conn->handshake.server_finished_copy));
+        }
     }
 
     return 0;

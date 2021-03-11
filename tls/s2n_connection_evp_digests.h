@@ -41,6 +41,7 @@ struct s2n_connection_hash_handles {
     struct s2n_hash_evp_digest prf_md5_hash_copy;
     struct s2n_hash_evp_digest prf_sha1_hash_copy;
     struct s2n_hash_evp_digest prf_tls12_hash_copy;
+    struct s2n_hash_evp_digest server_hello_copy;
     struct s2n_hash_evp_digest server_finished_copy;
     struct s2n_hash_evp_digest prf_md5;
 
