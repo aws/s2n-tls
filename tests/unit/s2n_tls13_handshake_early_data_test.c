@@ -341,6 +341,11 @@ int main()
          *#       5e 5b fb c3 88 e9 33 43 69 40 93 93 4a e4 d3 57 00 08 00 2a 00
          *#       04 00 00 04 00
          */
+        /* Skip past the message type, message size, ticket lifetime,
+         * ticket age add, nonce, and ticket size:
+         *                                     04 00 00 c9 00 00 00 1e fa d6 aa
+         *        c5 02 00 00 00 b2
+         */
         S2N_BLOB_FROM_HEX(psk_identity,
                                    "2c 03 5d 82 93 59 ee 5f f7 af 4e c9 00 00 00 \
                   00 26 2a 64 94 dc 48 6d 2c 8a 34 cb 33 fa 90 bf 1b 00 70 ad 3c \
@@ -351,7 +356,11 @@ int main()
                   5b 3f 7d 8f 92 f2 28 bd a4 0d da 72 14 70 f9 fb f2 97 b5 ae a6 \
                   17 64 6f ac 5c 03 27 2e 97 07 27 c6 21 a7 91 41 ef 5f 7d e6 50 \
                   5e 5b fb c3 88 e9 33 43 69 40 93 93 4a e4 d3 57");
-        const uint32_t max_early_data = 0x0400;
+        /* Skip past the total extensions size, early data extension type,
+         * and early data extension size:                         00 08 00 2a 00
+         *        04
+         */
+        const uint32_t max_early_data = 0x00000400;
 
         /**
          *= https://tools.ietf.org/rfc/rfc8448#section-4
