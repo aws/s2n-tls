@@ -43,6 +43,28 @@ int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
     return 0;
 }
 
+static int mock_time(void *data, uint64_t *nanoseconds)
+{
+    *nanoseconds = 1000000000;
+    return S2N_SUCCESS;
+}
+
+uint8_t cb_session_data[S2N_TLS12_SESSION_SIZE] = { 0 };
+size_t cb_session_data_len = 0;
+uint32_t cb_session_lifetime = 0;
+static int s2n_test_session_ticket_callback(struct s2n_connection *conn, struct s2n_session_ticket *ticket)
+{
+    EXPECT_NOT_NULL(conn);
+    EXPECT_NOT_NULL(ticket);
+
+    /* Store the callback data for comparison at the end of the connection. */
+    EXPECT_SUCCESS(s2n_session_ticket_get_data_len(ticket, &cb_session_data_len));
+    EXPECT_SUCCESS(s2n_session_ticket_get_data(ticket, sizeof(cb_session_data), cb_session_data));
+    EXPECT_SUCCESS(s2n_session_ticket_get_lifetime(ticket, &cb_session_lifetime));
+
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     char *cert_chain;
@@ -96,6 +118,7 @@ int main(int argc, char **argv)
      * 15) Testing s2n_config_set_ticket_encrypt_decrypt_key_lifetime and s2n_config_set_ticket_decrypt_key_lifetime calls.
      * 16) Add keys out of order and pre-emptively add a key.
      * 17) Handshake with client auth and session ticket enabled.
+     * 18) Session resumption APIs and session_ticket_cb return the same values when receiving a new ticket in TLS1.2
      */
 
     BEGIN_TEST();
@@ -1035,6 +1058,57 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_connection_is_session_resumed(server_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* Session resumption APIs and session_ticket_cb return the same values
+     * when receiving a new ticket in TLS1.2
+     */
+    {
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(client_config, mock_time, NULL));
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_config, 1));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+
+        /* Client will use callback when server nst is received */
+        EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(client_config, s2n_test_session_ticket_callback, NULL));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
+        EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
+
+        /* Add one ST key */
+        GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key1, sizeof(ticket_key1), now/ONE_SEC_IN_NANOS));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Expect values from the session_ticket_cb are equivalent to values from the APIs */
+        EXPECT_EQUAL(cb_session_data_len, s2n_connection_get_session_length(client_conn));
+        uint8_t session_data[S2N_TLS12_SESSION_SIZE] = { 0 };
+        EXPECT_SUCCESS(s2n_connection_get_session(client_conn, session_data, cb_session_data_len));
+        EXPECT_BYTEARRAY_EQUAL(cb_session_data, session_data, cb_session_data_len);
+
+        EXPECT_EQUAL(cb_session_lifetime, s2n_connection_get_session_ticket_lifetime_hint(client_conn));
+
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
     }
 
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));

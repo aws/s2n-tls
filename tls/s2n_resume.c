@@ -768,3 +768,42 @@ int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t 
 
     return S2N_SUCCESS;
 }
+
+int s2n_config_set_session_ticket_cb(struct s2n_config *config, s2n_session_ticket_fn callback, void *ctx)
+{
+    POSIX_ENSURE_MUT(config);
+
+    config->session_ticket_cb = callback;
+    config->session_ticket_ctx = ctx;
+    return S2N_SUCCESS;
+}
+
+int s2n_session_ticket_get_data_len(struct s2n_session_ticket *ticket, size_t *data_len)
+{
+    POSIX_ENSURE_REF(ticket);
+    POSIX_ENSURE_MUT(data_len);
+
+    *data_len = ticket->ticket_data.size;
+    return S2N_SUCCESS;
+}
+
+int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, size_t max_data_len, uint8_t *data)
+{
+    POSIX_ENSURE_REF(ticket);
+    POSIX_ENSURE_MUT(data);
+
+    POSIX_ENSURE(ticket->ticket_data.size <= max_data_len, S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG);
+    POSIX_CHECKED_MEMCPY(data, ticket->ticket_data.data, ticket->ticket_data.size);
+
+    return S2N_SUCCESS;
+}
+
+int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, uint32_t *session_lifetime)
+{
+    POSIX_ENSURE_REF(ticket);
+    POSIX_ENSURE_REF(session_lifetime);
+
+    *session_lifetime = ticket->session_lifetime;
+
+    return S2N_SUCCESS;
+}

@@ -51,6 +51,11 @@
 #define S2N_GREATER_OR_EQUAL            1
 #define S2N_LESS_THAN                  -1
 
+#define S2N_TLS12_SESSION_SIZE          S2N_STATE_FORMAT_LEN + \
+                                        S2N_SESSION_TICKET_SIZE_LEN + \
+                                        S2N_TLS12_TICKET_SIZE_IN_BYTES + \
+                                        S2N_STATE_SIZE_IN_BYTES
+
 struct s2n_connection;
 struct s2n_config;
 
@@ -69,6 +74,11 @@ struct s2n_ticket_key_weight {
 struct s2n_ticket_fields {
     struct s2n_blob session_secret;
     uint32_t ticket_age_add;
+};
+
+struct s2n_session_ticket {
+    struct s2n_blob ticket_data;
+    uint32_t session_lifetime;
 };
 
 extern struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t *name);
@@ -99,3 +109,10 @@ extern int s2n_store_to_cache(struct s2n_connection *conn);
  * once we release the session resumption API. */
 int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num);
 int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num);
+
+struct s2n_session_ticket;
+typedef int (*s2n_session_ticket_fn)(struct s2n_connection *conn, struct s2n_session_ticket *ticket);
+int s2n_config_set_session_ticket_cb(struct s2n_config *config, s2n_session_ticket_fn callback, void *ctx);
+int s2n_session_ticket_get_data_len(struct s2n_session_ticket *ticket, size_t *data_len);
+int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, size_t max_data_len, uint8_t *data);
+int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, uint32_t *session_lifetime);

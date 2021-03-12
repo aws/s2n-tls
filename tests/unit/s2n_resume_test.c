@@ -23,6 +23,11 @@
 
 #define S2N_TLS13_STATE_SIZE_WITHOUT_SECRET S2N_MAX_STATE_SIZE_IN_BYTES - S2N_TLS_SECRET_LEN
 
+static int s2n_test_session_ticket_callback(struct s2n_connection *conn, struct s2n_session_ticket *ticket)
+{
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -338,5 +343,113 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
     }
+
+    /* s2n_config_set_session_ticket_cb */
+    {
+        struct s2n_config *config = NULL;
+        EXPECT_NOT_NULL(config = s2n_config_new());
+        void *ctx = NULL;
+
+        /* Safety check */
+        {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_session_ticket_cb(NULL, s2n_test_session_ticket_callback, ctx), S2N_ERR_NULL);
+        }
+
+        EXPECT_NULL(config->session_ticket_cb);
+        EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_callback, ctx));
+        EXPECT_EQUAL(config->session_ticket_cb, s2n_test_session_ticket_callback);
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
+    /* s2n_session_ticket_get_data_len */
+    {
+        /* Safety checks */
+        {
+            struct s2n_session_ticket session_ticket = { 0 };
+            size_t data_len = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data_len(NULL, &data_len), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data_len(&session_ticket, NULL), S2N_ERR_NULL);
+        }
+
+        /* Empty ticket */
+        {
+            struct s2n_session_ticket session_ticket = { 0 };
+            size_t data_len = 0;
+            EXPECT_SUCCESS(s2n_session_ticket_get_data_len(&session_ticket, &data_len));
+            EXPECT_EQUAL(data_len, 0);
+        }
+
+        /* Valid ticket */
+        {
+            uint8_t ticket_data[] = "session ticket data";
+            struct s2n_blob ticket_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, sizeof(ticket_data)));
+            struct s2n_session_ticket session_ticket = { .ticket_data = ticket_blob };
+
+            size_t data_len = 0;
+            EXPECT_SUCCESS(s2n_session_ticket_get_data_len(&session_ticket, &data_len));
+            EXPECT_EQUAL(data_len, sizeof(ticket_data));
+        }
+    }
+
+    /* s2n_session_ticket_get_data */
+    {
+        /* Safety checks */
+        {
+            struct s2n_session_ticket session_ticket = { 0 };
+            size_t max_data_len = 0;
+            uint8_t *data = NULL;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data(NULL, max_data_len, data), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data(&session_ticket, max_data_len, NULL), S2N_ERR_NULL);
+        }
+
+        /* Valid ticket */
+        {
+            uint8_t ticket_data[] = "session ticket data";
+            struct s2n_blob ticket_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, sizeof(ticket_data)));
+            struct s2n_session_ticket session_ticket = { .ticket_data = ticket_blob };
+
+            uint8_t data[sizeof(ticket_data)];
+            size_t max_data_len = sizeof(data);
+            EXPECT_SUCCESS(s2n_session_ticket_get_data(&session_ticket, max_data_len, data));
+            EXPECT_BYTEARRAY_EQUAL(data, ticket_data, sizeof(ticket_data));
+        }
+
+        /* Ticket data is larger than customer buffer */
+        {
+            uint8_t ticket_data[] = "session ticket data";
+            struct s2n_blob ticket_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, sizeof(ticket_data)));
+            struct s2n_session_ticket session_ticket = { .ticket_data = ticket_blob };
+
+            uint8_t data[sizeof(ticket_data) - 1];
+            size_t max_data_len = sizeof(data);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_data(&session_ticket, max_data_len, data),
+                    S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG);
+        }
+    }
+
+    /* s2n_session_ticket_get_lifetime */
+    {
+        /* Safety checks */
+        {
+            struct s2n_session_ticket session_ticket = { 0 };
+            uint32_t lifetime = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_lifetime(NULL, &lifetime), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_session_ticket_get_lifetime(&session_ticket, NULL), S2N_ERR_NULL);
+        }
+
+        /* Valid lifetime */
+        {
+            uint32_t lifetime = 100;
+            struct s2n_session_ticket session_ticket = { .session_lifetime = lifetime };
+
+            uint32_t ticket_lifetime = 0;
+            EXPECT_SUCCESS(s2n_session_ticket_get_lifetime(&session_ticket, &ticket_lifetime));
+            EXPECT_EQUAL(lifetime, ticket_lifetime);
+        }
+    }
+
     END_TEST();
 }
