@@ -60,6 +60,7 @@ fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACPlus" ]] && [[ "$OS_NAME" == "linux" ]]; then make -C tests/saw tmp/verify_HMAC.log tmp/verify_drbg.log sike failure-tests; fi
 
 # Run Individual tests
+if [[ "$TESTS" == "unit" ]]; then make ninjatest ; fi
 if [[ "$TESTS" == "sidetrail" ]]; then ./codebuild/bin/run_sidetrail.sh /sidetrail-install-dir ${CODEBUILD_SRC_DIR} ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "asan" ]]; then make clean; S2N_ADDRESS_SANITIZER=1 make ninjatest ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "integration" ]]; then make clean; make integration ; fi
