@@ -166,6 +166,13 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         }
     }
 
+    /* If it is not possible to accept early data on this connection
+     * (for example, because no PSK was negotiated) we need to reject early data now.
+     * Otherwise, early data logic may make certain invalid assumptions about the
+     * state of the connection (for example, that the prf is the early data prf).
+     */
+    POSIX_GUARD_RESULT(s2n_early_data_accept_or_reject(conn));
+
     return 0;
 }
 
