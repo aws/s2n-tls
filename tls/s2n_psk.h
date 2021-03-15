@@ -82,7 +82,6 @@ int s2n_psk_verify_binder(struct s2n_connection *conn, struct s2n_psk *psk,
 /* Public Interface -- will be made visible and moved to s2n.h when the PSK feature is released */
 
 typedef enum {
-    S2N_PSK_HMAC_SHA224 = 0,
     S2N_PSK_HMAC_SHA256,
     S2N_PSK_HMAC_SHA384,
 } s2n_psk_hmac;
