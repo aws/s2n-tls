@@ -21,13 +21,46 @@
 /* To test static functions */
 #include "tls/s2n_server_new_session_ticket.c"
 
+#define TEST_BYTES 0x01, 0xFF, 0x23
+#define TEST_BYTES_SIZE 0x00, 0x03
+
 #define ONE_HOUR_IN_NANOS   3600000000000
 #define TWO_HOURS_IN_NANOS  ONE_HOUR_IN_NANOS * 2
+
 #define TICKET_AGE_ADD_MARKER sizeof(uint8_t)  + /* message id  */ \
                               SIZEOF_UINT24    + /* message len */ \
                               sizeof(uint32_t)   /* ticket lifetime */
 #define RECORD_LEN_MARKER     sizeof(uint8_t) +  /* message type */ \
                               sizeof(uint16_t)   /* protocol version */
+#define ENCRYPTED_TICKET_MARKER sizeof(uint8_t) + /* session state format */ \
+                                sizeof(uint16_t) /* client ticket size */
+
+#define MAX_SESSION_TICKET_SIZE sizeof(uint8_t) + /* session state format */ \
+                                sizeof(uint16_t) + /* client ticket size */ \
+                                S2N_MAX_TICKET_SIZE_IN_BYTES + \
+                                S2N_MAX_STATE_SIZE_IN_BYTES
+
+uint8_t test_bytes_data[] = { TEST_BYTES };
+static int s2n_test_session_ticket_cb(struct s2n_connection *conn, struct s2n_session_ticket *ticket)
+{
+    EXPECT_NOT_NULL(conn);
+    EXPECT_NOT_NULL(ticket);
+
+    size_t cb_session_data_len = 0;
+    EXPECT_SUCCESS(s2n_session_ticket_get_data_len(ticket, &cb_session_data_len));
+    EXPECT_TRUE(cb_session_data_len > 0);
+
+    uint8_t cb_session_data[MAX_SESSION_TICKET_SIZE] = { 0 };
+    EXPECT_SUCCESS(s2n_session_ticket_get_data(ticket, MAX_SESSION_TICKET_SIZE, cb_session_data));
+    uint8_t *encrypted_ticket = cb_session_data + ENCRYPTED_TICKET_MARKER;
+    EXPECT_BYTEARRAY_EQUAL(encrypted_ticket, test_bytes_data, sizeof(test_bytes_data));
+
+    uint32_t cb_session_lifetime = 0;
+    EXPECT_SUCCESS(s2n_session_ticket_get_lifetime(ticket, &cb_session_lifetime));
+    EXPECT_TRUE(cb_session_lifetime > 0);
+
+    return S2N_SUCCESS;
+}
 
 static int s2n_setup_test_keys(struct s2n_connection *conn, struct s2n_config *config)
 {
@@ -128,8 +161,8 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_generate_ticket_nonce(test_tickets_sent, &blob));
             EXPECT_BYTEARRAY_EQUAL(ticket_nonce, blob.data, ticket_nonce_len);
 
-            uint8_t session_ticket_len = 0;
-            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &session_ticket_len));
+            uint16_t session_ticket_len = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&output, &session_ticket_len));
             uint8_t size_of_extensions_size = sizeof(uint16_t);
             EXPECT_EQUAL(session_ticket_len, (s2n_stuffer_data_available(&output) - size_of_extensions_size));
 
@@ -302,6 +335,49 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_generate_ticket_age_add(&blob, &output));
 
             EXPECT_EQUAL(output, test_cases[i].expected_output);
+        }
+    }
+
+    /* s2n_tls13_server_nst_read */
+    {
+        /* Reads all written ticket data and tests session_ticket_cb serialized session data */
+        {
+            struct s2n_config *config;
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
+            EXPECT_SUCCESS(s2n_setup_test_keys(conn, config));
+
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+
+            /* Set up input stuffer */
+            struct s2n_stuffer input = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+
+            /* Craft a nst message */
+            uint8_t nst_data[] = {
+                0x00, 0x01, 0x01, 0x01, /* ticket lifetime */
+                0x01, 0x02, 0x03, 0x04, /* ticket age add */
+                0x02,                   /* nonce len */
+                0x04, 0x04,             /* nonce */
+                TEST_BYTES_SIZE,        /* ticket len */
+                TEST_BYTES,             /* ticket */
+                0x00, 0x00,             /* extensions len */
+            };
+
+            struct s2n_blob nst_message = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&nst_message, nst_data, sizeof(nst_data)));
+            EXPECT_SUCCESS(s2n_stuffer_write(&input, &nst_message));
+
+            EXPECT_SUCCESS(s2n_tls13_server_nst_read(conn, &input));
+            EXPECT_BYTEARRAY_EQUAL(conn->client_ticket.data, test_bytes_data, sizeof(test_bytes_data));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&input), 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_stuffer_free(&input));
+            EXPECT_SUCCESS(s2n_config_free(config));
         }
     }
 
