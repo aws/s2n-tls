@@ -616,8 +616,7 @@ int main(int argc, char **argv)
             messages = tls13_handshakes[handshake_type];
 
             /* Ignore INITIAL and non-MIDDLEBOX_COMPAT handshakes */
-            if (!(handshake_type & NEGOTIATED) || !(handshake_type & MIDDLEBOX_COMPAT)
-                    || (handshake_type & WITH_EARLY_DATA)) {
+            if (!(handshake_type & NEGOTIATED) || !(handshake_type & MIDDLEBOX_COMPAT)) {
                 continue;
             }
 
@@ -647,32 +646,7 @@ int main(int argc, char **argv)
          *# If offering early data, the record is placed immediately after the
          *# first ClientHello.
          */
-        for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
-            change_cipher_spec_found = false;
-            handshake_type = valid_tls13_handshakes[i];
-            messages = tls13_handshakes[handshake_type];
-
-            /* Ignore INITIAL, non-MIDDLEBOX_COMPAT, and non-WITH_EARLY_DATA handshakes */
-            if (!(handshake_type & NEGOTIATED) || !(handshake_type & MIDDLEBOX_COMPAT)
-                    || !(handshake_type & WITH_EARLY_DATA)) {
-                continue;
-            }
-
-            for (size_t j = 1; j < S2N_MAX_HANDSHAKE_LENGTH; j++) {
-
-                /* Was the last message the ClientHello? */
-                if (messages[j - 1] != CLIENT_HELLO) {
-                    continue;
-                }
-
-                EXPECT_EQUAL(messages[j], CLIENT_CHANGE_CIPHER_SPEC);
-
-                /* CCS message found. We are done with this handshake. */
-                change_cipher_spec_found = true;
-                break;
-            }
-            EXPECT_TRUE(change_cipher_spec_found);
-        }
+        /* TODO: https://github.com/aws/s2n-tls/issues/2656 */
 
         /**
          *= https://tools.ietf.org/rfc/rfc8446#appendix-D.4
