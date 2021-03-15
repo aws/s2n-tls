@@ -199,6 +199,7 @@ int main(int argc, char **argv)
 
         /* Successful if not retry */
         conn->early_data_state = S2N_UNKNOWN_EARLY_DATA_STATE;
+        conn->handshake.message_number = 0;
         EXPECT_SUCCESS(s2n_client_early_data_indication_extension.recv(conn, NULL));
         EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
 
@@ -209,7 +210,7 @@ int main(int argc, char **argv)
          *# "early_data" extension in its followup ClientHello.
          */
         conn->early_data_state = S2N_UNKNOWN_EARLY_DATA_STATE;
-        EXPECT_SUCCESS(s2n_set_hello_retry_required(conn));
+        conn->handshake.message_number = 1;
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_early_data_indication_extension.recv(conn, NULL),
                 S2N_ERR_UNSUPPORTED_EXTENSION);
 

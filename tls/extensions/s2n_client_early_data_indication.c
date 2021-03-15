@@ -90,7 +90,9 @@ static bool s2n_client_early_data_indication_should_send(struct s2n_connection *
 
 static int s2n_client_early_data_indication_is_missing(struct s2n_connection *conn)
 {
-    POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_NOT_REQUESTED));
+    if (conn->early_data_state != S2N_EARLY_DATA_REJECTED) {
+        POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_NOT_REQUESTED));
+    }
     return S2N_SUCCESS;
 }
 
@@ -127,7 +129,7 @@ static int s2n_client_early_data_indiction_recv(struct s2n_connection *conn, str
      *# A client MUST NOT include the
      *# "early_data" extension in its followup ClientHello.
      */
-    POSIX_ENSURE(!s2n_is_hello_retry_handshake(conn), S2N_ERR_UNSUPPORTED_EXTENSION);
+    POSIX_ENSURE(conn->handshake.message_number == 0, S2N_ERR_UNSUPPORTED_EXTENSION);
 
     POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REQUESTED));
     return S2N_SUCCESS;
