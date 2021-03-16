@@ -61,6 +61,7 @@ struct s2n_x509_validator {
     uint8_t check_stapled_ocsp;
     uint16_t max_chain_depth;
     STACK_OF(X509) *cert_chain_from_wire;
+    STACK_OF(X509) *cert_chain_validated;
     int state;
 };
 
