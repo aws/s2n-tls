@@ -430,7 +430,7 @@ extern int s2n_get_cert_chain_length(struct s2n_cert_chain_and_key *chain_and_ke
 S2N_API
 extern int s2n_get_cert_from_cert_chain(struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, uint32_t cert_idx);
 S2N_API
-extern int s2n_get_cert_der(struct s2n_cert *cert, uint8_t **out_cert_der, uint32_t *cert_length);
+extern int s2n_get_cert_der(struct s2n_cert *cert, uint8_t *out_cert_der, uint32_t *cert_length);
 
 S2N_API
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);

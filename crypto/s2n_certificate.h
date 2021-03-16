@@ -75,4 +75,4 @@ int s2n_cert_chain_and_key_set_private_key(struct s2n_cert_chain_and_key *cert_a
 s2n_pkey_type s2n_cert_chain_and_key_get_pkey_type(struct s2n_cert_chain_and_key *chain_and_key);
 int s2n_get_cert_chain_length(struct s2n_cert_chain_and_key *chain_and_key, uint32_t *cert_length);
 int s2n_get_cert_from_cert_chain(struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, uint32_t cert_idx);
-int s2n_get_cert_der(struct s2n_cert *cert, uint8_t **out_cert_der, uint32_t *cert_length);
+int s2n_get_cert_der(struct s2n_cert *cert, uint8_t *out_cert_der, uint32_t *cert_length);

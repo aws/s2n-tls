@@ -20,6 +20,7 @@
 #include "utils/s2n_safety.h"
 
 #define S2N_DEFAULT_TEST_CERT_CHAIN_LENGTH 3
+#define S2N_CERT_DER_SIZE 2048
 
 int main(int argc, char **argv)
 {
@@ -65,16 +66,17 @@ int main(int argc, char **argv)
     /* Test s2n_get_cert_der */ 
     {
         struct s2n_cert *cert = chain_and_key->cert_chain->head;
-        uint8_t *out_cert_der = NULL;
+        uint8_t out_cert_der[S2N_CERT_DER_SIZE];
         uint32_t cert_len = 0;
 
         /* Safety checks */
         {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_der(NULL, &out_cert_der, &cert_len), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_der(NULL, out_cert_der, &cert_len), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_der(cert, NULL, &cert_len), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_der(cert, out_cert_der, NULL), S2N_ERR_NULL);
         }
 
-        EXPECT_SUCCESS(s2n_get_cert_der(cert, &out_cert_der, &cert_len));
+        EXPECT_SUCCESS(s2n_get_cert_der(cert, out_cert_der, &cert_len));
         EXPECT_EQUAL(cert_len, cert->raw.size); 
         EXPECT_BYTEARRAY_EQUAL(out_cert_der, cert->raw.data, cert_len);
     }

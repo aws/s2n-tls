@@ -555,30 +555,33 @@ int s2n_get_cert_from_cert_chain(struct s2n_cert_chain_and_key *chain_and_key, s
     POSIX_ENSURE_REF(chain_and_key);
     POSIX_ENSURE_REF(out_cert);
 
-    uint32_t cert_chain_length = 0;
-    POSIX_GUARD(s2n_get_cert_chain_length(chain_and_key, &cert_chain_length));
-    POSIX_ENSURE_LT(cert_idx, cert_chain_length);
-
     struct s2n_cert *cur_cert = chain_and_key->cert_chain->head;
     POSIX_ENSURE_REF(cur_cert);
+    uint32_t counter = 0;
 
-    for (size_t i = 1; i <= cert_idx; i++) {
-        POSIX_ENSURE_REF(cur_cert->next);
-        cur_cert = cur_cert->next;
+    struct s2n_cert *next_cert = cur_cert->next;
+
+    while ((next_cert != NULL) && (counter < cert_idx)) {
+        cur_cert  = next_cert;
+        next_cert = next_cert->next;
+        counter++;
     }
 
+    POSIX_ENSURE_EQ(counter, cert_idx);
+    POSIX_ENSURE_REF(cur_cert);
     *out_cert = cur_cert;
 
     return S2N_SUCCESS;
 }
 
-int s2n_get_cert_der(struct s2n_cert *cert, uint8_t **out_cert_der, uint32_t *cert_length)
+int s2n_get_cert_der(struct s2n_cert *cert, uint8_t *out_cert_der, uint32_t *cert_length)
 {
     POSIX_ENSURE_REF(cert);
     POSIX_ENSURE_REF(out_cert_der);
+    POSIX_ENSURE_REF(cert_length);
 
-    *out_cert_der = cert->raw.data;
     *cert_length = cert->raw.size;
+    POSIX_CHECKED_MEMCPY(out_cert_der, cert->raw.data, cert->raw.size);
 
     return S2N_SUCCESS;
 }
