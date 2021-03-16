@@ -59,7 +59,7 @@ extern int s2n_server_nst_send(struct s2n_connection *conn);
 extern int s2n_server_nst_recv(struct s2n_connection *conn);
 S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_status *blocked);
 int s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_stuffer *output);
-int s2n_tls13_server_nst_read(struct s2n_connection *conn, struct s2n_stuffer *input);
+int s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stuffer *input);
 extern int s2n_ccs_send(struct s2n_connection *conn);
 extern int s2n_basic_ccs_recv(struct s2n_connection *conn);
 extern int s2n_server_ccs_recv(struct s2n_connection *conn);

@@ -57,14 +57,14 @@ int s2n_server_nst_recv(struct s2n_connection *conn) {
             size_t session_len = s2n_connection_get_session_length(conn);
             POSIX_ENSURE_GTE(S2N_TLS12_SESSION_SIZE, session_len);
             uint8_t session_data[S2N_TLS12_SESSION_SIZE] = { 0 };
-            GUARD(s2n_connection_get_session(conn, session_data, session_len));
+            POSIX_GUARD(s2n_connection_get_session(conn, session_data, session_len));
             uint32_t session_lifetime = s2n_connection_get_session_ticket_lifetime_hint(conn);
 
             struct s2n_blob ticket_blob = { 0 };
-            GUARD(s2n_blob_init(&ticket_blob, session_data, session_len));
+            POSIX_GUARD(s2n_blob_init(&ticket_blob, session_data, session_len));
             struct s2n_session_ticket ticket = { .ticket_data = ticket_blob, .session_lifetime = session_lifetime };
 
-            GUARD(conn->config->session_ticket_cb(conn, &ticket));
+            POSIX_GUARD(conn->config->session_ticket_cb(conn, &ticket));
         }
     }
 
@@ -225,7 +225,7 @@ int s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_stuffer *
     /* Derive individual session ticket secret */
     s2n_tls13_connection_keys(secrets, conn);
     struct s2n_blob master_secret = { 0 };
-    POSIX_GUARD(s2n_blob_init(&master_secret, conn->resumption_master_secret, sizeof(conn->resumption_master_secret)));
+    POSIX_GUARD(s2n_blob_init(&master_secret, conn->resumption_master_secret, secrets.size));
     uint8_t session_secret_data[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
     POSIX_GUARD(s2n_blob_init(&ticket_fields.session_secret, session_secret_data, secrets.size));
     POSIX_GUARD_RESULT(s2n_tls13_derive_session_ticket_secret(&secrets, &master_secret, &nonce, &ticket_fields.session_secret));
@@ -254,57 +254,73 @@ int s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_stuffer *
     return S2N_SUCCESS;
 }
 
-int s2n_tls13_server_nst_read(struct s2n_connection *conn, struct s2n_stuffer *input)
+/**
+ *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+ *#     struct {
+ *#         uint32 ticket_lifetime;
+ *#         uint32 ticket_age_add;
+ *#         opaque ticket_nonce<0..255>;
+ *#         opaque ticket<1..2^16-1>;
+ *#         Extension extensions<0..2^16-2>;
+ *#      } NewSessionTicket;
+**/
+int s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stuffer *input)
 {
-    notnull_check(conn);
-    notnull_check(input);
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(input);
 
-    uint32_t ticket_lifetime = 0;
-    GUARD(s2n_stuffer_read_uint32(input, &ticket_lifetime));
+    if (conn->config->session_ticket_cb != NULL) {
+        uint32_t ticket_lifetime = 0;
+        POSIX_GUARD(s2n_stuffer_read_uint32(input, &ticket_lifetime));
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+         *# The value of zero indicates that the
+         *# ticket should be discarded immediately.
+         */
+        if (ticket_lifetime == 0) {
+            return S2N_SUCCESS;
+        }
+        struct s2n_ticket_fields ticket_fields = { 0 };
+        POSIX_GUARD(s2n_stuffer_read_uint32(input, &ticket_fields.ticket_age_add));
 
-    struct s2n_ticket_fields ticket_fields = { 0 };
-    GUARD(s2n_stuffer_read_uint32(input, &ticket_fields.ticket_age_add));
+        uint8_t ticket_nonce_len = 0;
+        struct s2n_blob nonce = { 0 };
+        POSIX_GUARD(s2n_stuffer_read_uint8(input, &ticket_nonce_len));
+        uint8_t nonce_data[UINT8_MAX] = { 0 };
+        POSIX_GUARD(s2n_blob_init(&nonce, nonce_data, ticket_nonce_len));
+        POSIX_GUARD(s2n_stuffer_read_bytes(input, nonce.data, ticket_nonce_len));
 
-    uint8_t ticket_nonce_len = 0;
-    struct s2n_blob nonce = { 0 };
-    GUARD(s2n_stuffer_read_uint8(input, &ticket_nonce_len));
-    uint8_t nonce_data[UINT8_MAX] = { 0 };
-    GUARD(s2n_blob_init(&nonce, nonce_data, ticket_nonce_len));
-    GUARD(s2n_stuffer_read_bytes(input, nonce.data, ticket_nonce_len));
-
-    uint16_t session_ticket_len = 0;
-    GUARD(s2n_stuffer_read_uint16(input, &session_ticket_len));
-    POSIX_ENSURE(session_ticket_len > 0, S2N_ERR_SAFETY);
-    GUARD(s2n_realloc(&conn->client_ticket, session_ticket_len));
-    GUARD(s2n_stuffer_read(input, &conn->client_ticket));
-
-    if(conn->config->session_ticket_cb != NULL) {
+        uint16_t session_ticket_len = 0;
+        POSIX_GUARD(s2n_stuffer_read_uint16(input, &session_ticket_len));
+        POSIX_ENSURE(session_ticket_len > 0, S2N_ERR_SAFETY);
+        POSIX_GUARD(s2n_realloc(&conn->client_ticket, session_ticket_len));
+        POSIX_GUARD(s2n_stuffer_read(input, &conn->client_ticket));
 
         /* Derive individual session ticket secret */
         s2n_tls13_connection_keys(secrets, conn);
         struct s2n_blob master_secret = { 0 };
-        GUARD(s2n_blob_init(&master_secret, conn->resumption_master_secret, sizeof(conn->resumption_master_secret)));
+        POSIX_GUARD(s2n_blob_init(&master_secret, conn->resumption_master_secret, secrets.size));
         uint8_t session_secret_data[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
-        GUARD(s2n_blob_init(&ticket_fields.session_secret, session_secret_data, secrets.size));
+        POSIX_GUARD(s2n_blob_init(&ticket_fields.session_secret, session_secret_data, secrets.size));
         POSIX_GUARD_RESULT(s2n_tls13_derive_session_ticket_secret(&secrets, &master_secret, &nonce, &ticket_fields.session_secret));
 
         uint8_t session_data[S2N_TLS13_MAX_SESSION_SIZE] = { 0 };
         struct s2n_blob session_blob = { 0 };
         struct s2n_stuffer session_stuffer = { 0 };
-        GUARD(s2n_blob_init(&session_blob, session_data, sizeof(session_data)));
-        GUARD(s2n_stuffer_init(&session_stuffer, &session_blob));
+        POSIX_GUARD(s2n_blob_init(&session_blob, session_data, sizeof(session_data)));
+        POSIX_GUARD(s2n_stuffer_init(&session_stuffer, &session_blob));
 
         /* Serialize resumption state */
-        GUARD(s2n_client_serialize_resumption_state(conn, &ticket_fields, &session_stuffer));
+        POSIX_GUARD(s2n_client_serialize_resumption_state(conn, &ticket_fields, &session_stuffer));
         session_blob.size = s2n_stuffer_data_available(&session_stuffer);
 
         struct s2n_session_ticket ticket = { .ticket_data = session_blob, .session_lifetime = ticket_lifetime };
 
-        GUARD(conn->config->session_ticket_cb(conn, &ticket));
-    }
+        POSIX_GUARD(conn->config->session_ticket_cb(conn, &ticket));
 
-    /* We don't send or process session ticket extensions */
-    GUARD(s2n_stuffer_skip_read(input, sizeof(uint16_t)));
+        /* We don't send or process session ticket extensions */
+        POSIX_GUARD(s2n_stuffer_skip_read(input, sizeof(uint16_t)));
+    }
 
     return S2N_SUCCESS;
 }

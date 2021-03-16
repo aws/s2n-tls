@@ -21,8 +21,8 @@
 /* To test static functions */
 #include "tls/s2n_server_new_session_ticket.c"
 
-#define TEST_BYTES 0x01, 0xFF, 0x23
-#define TEST_BYTES_SIZE 0x00, 0x03
+#define TEST_TICKET_AGE_ADD  0x01, 0x02, 0x03, 0x04
+#define TEST_TICKET          0x01, 0xFF, 0x23
 
 #define ONE_HOUR_IN_NANOS   3600000000000
 #define TWO_HOURS_IN_NANOS  ONE_HOUR_IN_NANOS * 2
@@ -32,39 +32,29 @@
                               sizeof(uint32_t)   /* ticket lifetime */
 #define RECORD_LEN_MARKER     sizeof(uint8_t) +  /* message type */ \
                               sizeof(uint16_t)   /* protocol version */
-#define ENCRYPTED_TICKET_MARKER sizeof(uint8_t) + /* session state format */ \
-                                sizeof(uint16_t) /* client ticket size */
 
 #define MAX_SESSION_TICKET_SIZE sizeof(uint8_t) + /* session state format */ \
                                 sizeof(uint16_t) + /* client ticket size */ \
                                 S2N_MAX_TICKET_SIZE_IN_BYTES + \
                                 S2N_MAX_STATE_SIZE_IN_BYTES
 
-uint8_t test_bytes_data[] = { TEST_BYTES };
+size_t cb_session_data_len = 0;
+uint8_t cb_session_data[MAX_SESSION_TICKET_SIZE] = { 0 };
+uint32_t cb_session_lifetime = 0;
 static int s2n_test_session_ticket_cb(struct s2n_connection *conn, struct s2n_session_ticket *ticket)
 {
-    EXPECT_NOT_NULL(conn);
-    EXPECT_NOT_NULL(ticket);
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(ticket);
 
-    size_t cb_session_data_len = 0;
     EXPECT_SUCCESS(s2n_session_ticket_get_data_len(ticket, &cb_session_data_len));
-    EXPECT_TRUE(cb_session_data_len > 0);
-
-    uint8_t cb_session_data[MAX_SESSION_TICKET_SIZE] = { 0 };
     EXPECT_SUCCESS(s2n_session_ticket_get_data(ticket, MAX_SESSION_TICKET_SIZE, cb_session_data));
-    uint8_t *encrypted_ticket = cb_session_data + ENCRYPTED_TICKET_MARKER;
-    EXPECT_BYTEARRAY_EQUAL(encrypted_ticket, test_bytes_data, sizeof(test_bytes_data));
-
-    uint32_t cb_session_lifetime = 0;
     EXPECT_SUCCESS(s2n_session_ticket_get_lifetime(ticket, &cb_session_lifetime));
-    EXPECT_TRUE(cb_session_lifetime > 0);
 
     return S2N_SUCCESS;
 }
 
-static int s2n_setup_test_keys(struct s2n_connection *conn, struct s2n_config *config)
+static int s2n_setup_test_ticket_key(struct s2n_config *config)
 {
-    POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(config);
 
     /**
@@ -76,15 +66,6 @@ static int s2n_setup_test_keys(struct s2n_connection *conn, struct s2n_config *c
     "077709362c2e32df0ddc3f0dc47bba63"
     "90b6c73bb50f9c3122ec844ad7c2b3e5");
 
-    /**
-     *= https://tools.ietf.org/rfc/rfc8448#section-3
-     *# secret (32 octets):  18 df 06 84 3d 13 a0 8b f2 a4 49 84 4c 5f 8a
-     *# 47 80 01 bc 4d 4c 62 79 84 d5 a4 1d a8 d0 40 29 19
-     **/
-    S2N_BLOB_FROM_HEX(test_master_secret,
-    "18df06843d13a08bf2a449844c5f8a"
-    "478001bc4d4c627984d5a41da8d0402919");
-
     /* Set up encryption key */
     uint64_t current_time;
     uint8_t ticket_key_name[16] = "2016.07.26.15\0";
@@ -93,14 +74,49 @@ static int s2n_setup_test_keys(struct s2n_connection *conn, struct s2n_config *c
     EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *)ticket_key_name),
                     ticket_key.data, ticket_key.size, current_time/ONE_SEC_IN_NANOS));
 
-    EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+    return S2N_SUCCESS;
+}
 
+static int s2n_setup_test_master_secret(struct s2n_connection *conn)
+{
+    POSIX_ENSURE_REF(conn);
+    /**
+     *= https://tools.ietf.org/rfc/rfc8448#section-3
+     *# secret (32 octets):  18 df 06 84 3d 13 a0 8b f2 a4 49 84 4c 5f 8a
+     *# 47 80 01 bc 4d 4c 62 79 84 d5 a4 1d a8 d0 40 29 19
+     **/
+    S2N_BLOB_FROM_HEX(test_master_secret,
+    "18 df 06 84 3d 13 a0 8b f2 a4 49 84 4c 5f 8a \
+         47 80 01 bc 4d 4c 62 79 84 d5 a4 1d a8 d0 40 29 19");
+    
     /* Set up master secret */
     struct s2n_blob secret = { 0 };
     struct s2n_stuffer secret_stuffer = { 0 };
     EXPECT_SUCCESS(s2n_blob_init(&secret, conn->secure.master_secret, S2N_TLS_SECRET_LEN));
     EXPECT_SUCCESS(s2n_stuffer_init(&secret_stuffer, &secret));
     EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, test_master_secret.size));
+    
+    return S2N_SUCCESS;
+}
+
+static int s2n_setup_test_resumption_secret(struct s2n_connection *conn)
+{
+    POSIX_ENSURE_REF(conn);
+    /**
+     *= https://tools.ietf.org/rfc/rfc8448#section-3
+     *# PRK (32 octets):  7d f2 35 f2 03 1d 2a 05 12 87 d0 2b 02 41 b0 bf
+     *# da f8 6c c8 56 23 1f 2d 5a ba 46 c4 34 ec 19 6c
+     **/
+    S2N_BLOB_FROM_HEX(test_resumption_secret,
+    "7d f2 35 f2 03 1d 2a 05 12 87 d0 2b 02 41 b0 bf \
+         da f8 6c c8 56 23 1f 2d 5a ba 46 c4 34 ec 19 6c");
+
+    /* Set up resumption secret */
+    struct s2n_blob secret = { 0 };
+    struct s2n_stuffer secret_stuffer = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&secret, conn->resumption_master_secret, S2N_TLS_SECRET_LEN));
+    EXPECT_SUCCESS(s2n_stuffer_init(&secret_stuffer, &secret));
+    EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_resumption_secret.data, test_resumption_secret.size));
 
     return S2N_SUCCESS;
 }
@@ -111,15 +127,16 @@ int main(int argc, char **argv)
 
     /* s2n_tls13_server_nst_write */
     {
-        /* Check session ticket message is correctly written. The contents of the 
-         * message will be tested more thoroughly once the s2n_tls13_server_nst_recv 
-         * function is written. */
+        /* Check session ticket message is correctly written. */
         {
             struct s2n_config *config;
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
-            EXPECT_SUCCESS(s2n_setup_test_keys(conn, config));
+
+            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_SUCCESS(s2n_setup_test_master_secret(conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
@@ -186,7 +203,10 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
-            EXPECT_SUCCESS(s2n_setup_test_keys(conn, config));
+            
+            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_SUCCESS(s2n_setup_test_master_secret(conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
@@ -214,7 +234,10 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
-            EXPECT_SUCCESS(s2n_setup_test_keys(conn, config));
+
+            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_SUCCESS(s2n_setup_test_master_secret(conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
@@ -338,45 +361,139 @@ int main(int argc, char **argv)
         }
     }
 
-    /* s2n_tls13_server_nst_read */
+    /* s2n_tls13_server_nst_recv */
     {
+        /**
+         *= https://tools.ietf.org/rfc/rfc8448#section-3
+         *# expanded (32 octets):  4e cd 0e b6 ec 3b 4d 87 f5 d6 02 8f 92 2c
+         *# a4 c5 85 1a 27 7f d4 13 11 c9 e6 2d 2c 94 92 e1 c4 f3
+         **/
+         S2N_BLOB_FROM_HEX(expected_session_secret,
+         "4e cd 0e b6 ec 3b 4d 87 f5 d6 02 8f 92 2c \
+            a4 c5 85 1a 27 7f d4 13 11 c9 e6 2d 2c 94 92 e1 c4 f3");
+
+        uint8_t test_ticket[] = { TEST_TICKET };
+        uint8_t test_ticket_age_add[] = { TEST_TICKET_AGE_ADD };
+        uint8_t nst_data[] = {
+            0x01, 0x01, 0x01, 0x01, /* ticket lifetime */
+            TEST_TICKET_AGE_ADD,    /* ticket age add */
+            0x02,                   /* nonce len */
+            0x00, 0x00,             /* nonce */
+            0x00, 0x03,             /* ticket len */
+            TEST_TICKET,            /* ticket */
+            0x00, 0x00,             /* extensions len */
+        };
+
         /* Reads all written ticket data and tests session_ticket_cb serialized session data */
         {
-            struct s2n_config *config;
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_NOT_NULL(config = s2n_config_new());
+            struct s2n_config *config = s2n_config_new();
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_NOT_NULL(config);
+
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
-            EXPECT_SUCCESS(s2n_setup_test_keys(conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            EXPECT_SUCCESS(s2n_setup_test_master_secret(conn));
+            EXPECT_SUCCESS(s2n_setup_test_resumption_secret(conn));
 
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             /* Set up input stuffer */
             struct s2n_stuffer input = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
 
-            /* Craft a nst message */
-            uint8_t nst_data[] = {
-                0x00, 0x01, 0x01, 0x01, /* ticket lifetime */
-                0x01, 0x02, 0x03, 0x04, /* ticket age add */
-                0x02,                   /* nonce len */
-                0x04, 0x04,             /* nonce */
-                TEST_BYTES_SIZE,        /* ticket len */
-                TEST_BYTES,             /* ticket */
-                0x00, 0x00,             /* extensions len */
-            };
-
             struct s2n_blob nst_message = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&nst_message, nst_data, sizeof(nst_data)));
             EXPECT_SUCCESS(s2n_stuffer_write(&input, &nst_message));
 
-            EXPECT_SUCCESS(s2n_tls13_server_nst_read(conn, &input));
-            EXPECT_BYTEARRAY_EQUAL(conn->client_ticket.data, test_bytes_data, sizeof(test_bytes_data));
+            EXPECT_SUCCESS(s2n_tls13_server_nst_recv(conn, &input));
+            EXPECT_BYTEARRAY_EQUAL(conn->client_ticket.data, test_ticket, sizeof(test_ticket));
             EXPECT_EQUAL(s2n_stuffer_data_available(&input), 0);
+
+            /* Check callback ticket values */
+            EXPECT_TRUE(cb_session_data_len > 0);
+            EXPECT_NOT_NULL(cb_session_data);
+
+            struct s2n_blob session_blob = { 0 };
+            struct s2n_stuffer session_stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&session_blob, cb_session_data, cb_session_data_len));
+            EXPECT_SUCCESS(s2n_stuffer_init(&session_stuffer, &session_blob));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&session_stuffer, cb_session_data_len));
+
+            /* Skip to encrypted ticket size */
+            EXPECT_SUCCESS((s2n_stuffer_skip_read(&session_stuffer, sizeof(uint8_t))));
+
+            uint16_t ticket_size = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&session_stuffer, &ticket_size));
+            EXPECT_EQUAL(ticket_size, sizeof(test_ticket));
+
+            uint8_t ticket[MAX_SESSION_TICKET_SIZE] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&session_stuffer, ticket, ticket_size));
+            EXPECT_BYTEARRAY_EQUAL(ticket, test_ticket, ticket_size);
+
+            uint8_t ticket_age_add_marker = sizeof(uint8_t) + /* client state format */ \
+                                            sizeof(uint8_t) + /* protocol version */ \
+                                            sizeof(uint16_t) + /* cipher suite */ \
+                                            sizeof(uint64_t);  /* time */
+            EXPECT_SUCCESS((s2n_stuffer_skip_read(&session_stuffer, ticket_age_add_marker)));
+
+            uint8_t ticket_age_add[sizeof(uint32_t)] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&session_stuffer, ticket_age_add, sizeof(uint32_t)));
+            EXPECT_BYTEARRAY_EQUAL(ticket_age_add, test_ticket_age_add, sizeof(uint32_t));
+
+            uint8_t secret_len = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&session_stuffer, &secret_len));
+            EXPECT_EQUAL(secret_len, expected_session_secret.size);
+
+            uint8_t session_secret[S2N_TLS_SECRET_LEN] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&session_stuffer, session_secret, secret_len));
+            EXPECT_BYTEARRAY_EQUAL(session_secret, expected_session_secret.data, secret_len);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
+        /* Self-talk test */
+        {
+            struct s2n_config *config = s2n_config_new();
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_NOT_NULL(config);
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(server_conn);
+
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
+            EXPECT_SUCCESS(s2n_setup_test_master_secret(server_conn));
+            uint32_t test_lifetime = 10;
+            EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(config, test_lifetime));
+            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+            EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            client_conn->actual_protocol_version = S2N_TLS13;
+            server_conn->actual_protocol_version = S2N_TLS13;
+            client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
+            struct s2n_stuffer stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+            EXPECT_SUCCESS(s2n_tls13_server_nst_write(server_conn, &stuffer));
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, sizeof(uint8_t) + SIZEOF_UINT24));
+            EXPECT_SUCCESS(s2n_tls13_server_nst_recv(client_conn, &stuffer));
+
+            EXPECT_EQUAL(test_lifetime, cb_session_lifetime);
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_config_free(config));
         }
     }
@@ -451,7 +568,10 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
-            EXPECT_SUCCESS(s2n_setup_test_keys(conn, config));
+
+            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_SUCCESS(s2n_setup_test_master_secret(conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
@@ -484,7 +604,10 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
-            EXPECT_SUCCESS(s2n_setup_test_keys(conn, config));
+
+            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_SUCCESS(s2n_setup_test_master_secret(conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
@@ -538,7 +661,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-        EXPECT_SUCCESS(s2n_setup_test_keys(server_conn, config));
+
+        EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+        EXPECT_SUCCESS(s2n_setup_test_master_secret(server_conn));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
         uint16_t tickets_to_send = 5;
         server_conn->tickets_to_send = tickets_to_send;
