@@ -406,9 +406,9 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
             OPENSSL_free(asn1cert.data);
         }
 
-        POSIX_GUARD(s2n_dup(&cert_chain_out_stuffer.blob, &conn->secure.client_cert_chain));
+        POSIX_GUARD(s2n_dup(&cert_chain_out_stuffer.blob, &conn->secure.peer_cert_chain));
     } else {
-        POSIX_GUARD(s2n_dup(&cert_chain_blob, &conn->secure.client_cert_chain));
+        POSIX_GUARD(s2n_dup(&cert_chain_blob, &conn->secure.peer_cert_chain));
     }
 
     if (conn->actual_protocol_version >= S2N_TLS13) {

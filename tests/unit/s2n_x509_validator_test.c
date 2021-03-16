@@ -1581,8 +1581,8 @@ int main(int argc, char **argv) {
                         s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
 
             EXPECT_EQUAL(0, verify_data.callback_invoked);
-            EXPECT_EQUAL(connection->secure.client_cert_chain.size, chain_len);
-            EXPECT_BYTEARRAY_EQUAL(connection->secure.client_cert_chain.data, chain_data, connection->secure.client_cert_chain.size);
+            EXPECT_EQUAL(connection->secure.peer_cert_chain.size, chain_len);
+            EXPECT_BYTEARRAY_EQUAL(connection->secure.peer_cert_chain.data, chain_data, connection->secure.peer_cert_chain.size);
 
             s2n_pkey_free(&public_key_out);
             s2n_x509_validator_wipe(&validator);
