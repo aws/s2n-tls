@@ -391,8 +391,10 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         validator->cert_chain_validated = X509_STORE_CTX_get1_chain(validator->store_ctx);
     }
 
-    if (validator->state == VALIDATED) {
-        DEFER_CLEANUP(struct s2n_stuffer cert_chain_out_stuffer = {0}, s2n_stuffer_free);
+    if (validator->skip_cert_validation) {
+        POSIX_GUARD(s2n_dup(&cert_chain_blob, &conn->secure.peer_cert_chain));
+    } else if (validator->state == VALIDATED) {
+        DEFER_CLEANUP(struct s2n_stuffer cert_chain_out_stuffer = { 0 }, s2n_stuffer_free);
         POSIX_GUARD(s2n_stuffer_growable_alloc(&cert_chain_out_stuffer, 0));
 
         for (size_t cert_idx = 0; cert_idx < sk_X509_num(validator->cert_chain_validated); cert_idx++) {
@@ -407,8 +409,6 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
         }
 
         POSIX_GUARD(s2n_dup(&cert_chain_out_stuffer.blob, &conn->secure.peer_cert_chain));
-    } else {
-        POSIX_GUARD(s2n_dup(&cert_chain_blob, &conn->secure.peer_cert_chain));
     }
 
     if (conn->actual_protocol_version >= S2N_TLS13) {

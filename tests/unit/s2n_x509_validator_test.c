@@ -1584,7 +1584,7 @@ int main(int argc, char **argv) {
             EXPECT_EQUAL(connection->secure.peer_cert_chain.size, chain_len);
             EXPECT_BYTEARRAY_EQUAL(connection->secure.peer_cert_chain.data, chain_data, connection->secure.peer_cert_chain.size);
 
-            s2n_pkey_free(&public_key_out);
+            EXPECT_SUCCESS(s2n_pkey_free(&public_key_out));
             s2n_x509_validator_wipe(&validator);
             EXPECT_SUCCESS(s2n_connection_free(connection));
         }
