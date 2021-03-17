@@ -269,7 +269,7 @@ int s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stuffer *i
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(input);
 
-    POSIX_ENSURE(conn->mode == S2N_CLIENT, S2N_ERR_SAFETY);
+    POSIX_ENSURE(conn->mode == S2N_CLIENT && conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_SAFETY);
 
     if (conn->config->session_ticket_cb != NULL) {
         uint32_t ticket_lifetime = 0;
