@@ -575,7 +575,7 @@ int s2n_get_cert_from_cert_chain(const struct s2n_cert_chain_and_key *chain_and_
     return S2N_SUCCESS;
 }
 
-int s2n_get_cert_der(const struct s2n_cert *cert, uint8_t **out_cert_der, uint32_t *cert_length)
+int s2n_get_cert_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, uint32_t *cert_length)
 {
     POSIX_ENSURE_REF(cert);
     POSIX_ENSURE_REF(out_cert_der);

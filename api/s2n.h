@@ -438,7 +438,7 @@ extern int s2n_get_cert_chain_length(const struct s2n_cert_chain_and_key *chain_
 /**
  * Returns the certificate `out_cert` present at the index `cert_idx` of the certificate chain `chain_and_key`.
  * 
- * Note that the index of the root certificate is zero. If the certificate chain `chain_and_key` is NULL or the
+ * Note that the index of the leaf certificate is zero. If the certificate chain `chain_and_key` is NULL or the
  * certificate index value is not in the acceptable range for the input certificate chain, an error is returned.
  * 
  * @param chain_and_key A pointer to the s2n_cert_chain_and_key object being read.
@@ -474,7 +474,7 @@ extern int s2n_get_cert_from_cert_chain(const struct s2n_cert_chain_and_key *cha
  * @param cert_length This return value represents the length of the certificate.
  */
 S2N_API
-extern int s2n_get_cert_der(const struct s2n_cert *cert, uint8_t **out_cert_der, uint32_t *cert_length);
+extern int s2n_get_cert_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, uint32_t *cert_length);
 
 S2N_API
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
