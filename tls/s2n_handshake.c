@@ -329,3 +329,20 @@ struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_
         return conn->config->default_certs_by_type.certs[cert_type];
     }
 }
+
+/* This method will work when testing S2N, and for the EndOfEarlyData message.
+ *
+ * However, it will NOT work for arbitrary message types when potentially receiving records
+ * that contain multiple messages, like when talking to a non-S2N TLS implementation. If the "end_message"
+ * is not the first message in a multi-message record, negotiation will not stop.
+ * (This is not an issue for EndOfEarlyData because encryption and message order requirements force
+ * EndOfEarlyData to always be the first and only handshake message in its handshake record)
+ */
+int s2n_negotiate_until_message(struct s2n_connection *conn, s2n_blocked_status *blocked, message_type_t end_message)
+{
+    POSIX_ENSURE_REF(conn);
+    conn->handshake.end_of_messages = end_message;
+    int r = s2n_negotiate(conn, blocked);
+    conn->handshake.end_of_messages = APPLICATION_DATA;
+    return r;
+}

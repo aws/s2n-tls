@@ -1118,9 +1118,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
         /* We're done with the record, wipe it */
-        POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
-        POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
-        conn->in_status = ENCRYPTED;
+        POSIX_GUARD_RESULT(s2n_wipe_record(conn));
 
         /* Advance the state machine if this was an expected message */
         if (EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC && !CONNECTION_IS_WRITER(conn)) {
@@ -1274,7 +1272,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(blocked);
 
-    while (ACTIVE_STATE(conn).writer != 'B') {
+    while (ACTIVE_STATE(conn).writer != 'B' && ACTIVE_MESSAGE(conn) != conn->handshake.end_of_messages) {
         errno = 0;
         s2n_errno = S2N_ERR_OK;
 
