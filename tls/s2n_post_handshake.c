@@ -20,10 +20,6 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-/* TLS 1.3 introducted several post handshake messages. This function currently only 
- * supports parsing for the KeyUpdate message. Once the other post-handshake messages
- * have been implemented, this function can be altered to include the other messages.
- */
 int s2n_post_handshake_recv(struct s2n_connection *conn) 
 {
     POSIX_ENSURE_REF(conn);
@@ -49,6 +45,9 @@ int s2n_post_handshake_recv(struct s2n_connection *conn)
         {
             case TLS_KEY_UPDATE:
                 POSIX_GUARD(s2n_key_update_recv(conn, &post_handshake_stuffer));
+                break;
+            case TLS_SERVER_NEW_SESSION_TICKET:
+                POSIX_GUARD_RESULT(s2n_tls13_server_nst_recv(conn, &post_handshake_stuffer));
                 break;
             default:
                 /* Ignore all other messages */
