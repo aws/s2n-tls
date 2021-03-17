@@ -425,12 +425,56 @@ extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
 
 S2N_API
 extern struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2n_connection *conn);
+
+/**
+ * Returns the length of the s2n certificate chain `chain_and_key`.
+ * 
+ * @param chain_and_key A pointer to the s2n_cert_chain_and_key object being read.
+ * @param cert_length This return value represents the length of the s2n certificate chain `chain_and_key`.
+ */
 S2N_API
 extern int s2n_get_cert_chain_length(struct s2n_cert_chain_and_key *chain_and_key, uint32_t *cert_length);
+
+/**
+ * Returns the certificate `out_cert` present at the index `cert_idx` of the certificate chain `chain_and_key`.
+ * 
+ * Note that the index of the `head_cert` is zero. If the certificate chain `chain_and_key` is NULL or the
+ * certificate index value is not in the acceptable range for the input certificate chain, an error is thrown.
+ * 
+ * @param chain_and_key A pointer to the s2n_cert_chain_and_key object being read.
+ * @param cert_idx The certificate index for the requested certificate within the s2n certificate chain.
+ * @param cert_length This return value represents the length of the s2n certificate chain `chain_and_key`.
+ */
 S2N_API
 extern int s2n_get_cert_from_cert_chain(struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, uint32_t cert_idx);
+
+/**
+ * Returns the s2n certificate in .der format along with its length.
+ * 
+ * The API gets the s2n certificate `cert` in .der format. The certificate is returned in the `out_cert_der` buffer.
+ * Here, `cert_len` represents the length of the certificate.
+ *
+ * # Safety
+ * 
+ * The memory for the `out_cert_der` buffer is allocated and owned by s2n-tls. Since the size of the certificate can
+ * potentially be very large, we donot want to force our customer(s) to allocate memory on their end and copy the certificate contents.
+ * 
+ * The lifetime of the `out_cert_der` is till the connection exists.
+ * The `s2n_connection_free` API frees the memory assosciated with the out_cert_der buffer and after the `s2n_connection_wipe` API is
+ * called the memory pointed by out_cert_der is invalid.
+ * 
+ * When s2n-tls customer(s) use certificate parsing tools over the `out_cert_der` buffer returned, they most likely require to allocate
+ * additional memory to intialize, store and retrieve the parsed certificate objects (as done with openssl certificate parsing APIs),
+ * making any customer allocation for `out_cert_der` unnecessary, and also not required to last beyond the connection lifetime.
+ * However, if a customer wishes to persist the `out_cert_der` beyond the lifetime of the connection, they could copy the contents
+ * of the prior to the connection termination.
+ * 
+ * @param cert A pointer to the s2n_cert object being read.
+ * @param out_cert_der A pointer to the output buffer which will hold the s2n certificate `cert` in .der format.
+ * @param cert_length This return value represents the length of the certificate.
+ */
 S2N_API
-extern int s2n_get_cert_der(struct s2n_cert *cert, uint8_t *out_cert_der, uint32_t *cert_length);
+extern int s2n_get_cert_der(struct s2n_cert *cert, uint8_t **out_cert_der, uint32_t *cert_length);
 
 S2N_API
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);

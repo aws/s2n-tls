@@ -1407,7 +1407,7 @@ int s2n_get_cert_from_cert_chain(struct s2n_cert_chain_and_key *chain_and_key, s
 ### s2n\_get\_cert\_der
 
 ```c
-int s2n_get_cert_der(struct s2n_cert *cert, uint8_t *out_cert_der, uint32_t *cert_length);
+int s2n_get_cert_der(struct s2n_cert *cert, uint8_t **out_cert_der, uint32_t *cert_length);
 ```
 
 **s2n_get_cert_der** gets the certificate `cert` in .der format which is returned in the buffer `out_cert_der`, `cert_len` represents the length of the certificate. 

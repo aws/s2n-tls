@@ -574,14 +574,14 @@ int s2n_get_cert_from_cert_chain(struct s2n_cert_chain_and_key *chain_and_key, s
     return S2N_SUCCESS;
 }
 
-int s2n_get_cert_der(struct s2n_cert *cert, uint8_t *out_cert_der, uint32_t *cert_length)
+int s2n_get_cert_der(struct s2n_cert *cert, uint8_t **out_cert_der, uint32_t *cert_length)
 {
     POSIX_ENSURE_REF(cert);
     POSIX_ENSURE_REF(out_cert_der);
     POSIX_ENSURE_REF(cert_length);
 
     *cert_length = cert->raw.size;
-    POSIX_CHECKED_MEMCPY(out_cert_der, cert->raw.data, cert->raw.size);
+    *out_cert_der = cert->raw.data;
 
     return S2N_SUCCESS;
 }
