@@ -56,10 +56,6 @@
                                         S2N_TLS12_TICKET_SIZE_IN_BYTES + \
                                         S2N_STATE_SIZE_IN_BYTES
 
-#define S2N_TLS13_MAX_SESSION_SIZE      S2N_STATE_FORMAT_LEN + \
-                                        S2N_SESSION_TICKET_SIZE_LEN + \
-                                        S2N_MAX_TICKET_SIZE_IN_BYTES + \
-                                        S2N_MAX_STATE_SIZE_IN_BYTES 
 struct s2n_connection;
 struct s2n_config;
 
