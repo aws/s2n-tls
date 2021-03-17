@@ -33,27 +33,50 @@ int main(int argc, char **argv)
     /* Test s2n_get_cert_chain_length */ 
     {
         uint32_t length = 0;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_chain_length(NULL, &length), S2N_ERR_NULL);
+        struct s2n_cert_chain_and_key *test_cert_chain = s2n_cert_chain_and_key_new();
+        EXPECT_NOT_NULL(test_cert_chain);
+
+        /* Safety checks */
+        {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_chain_length(NULL, &length), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_chain_length(chain_and_key, NULL), S2N_ERR_NULL);
+        }
+
+        /* Test error case when chain_and_key object is not null and the head certificate is null */ 
+        EXPECT_NULL(test_cert_chain->cert_chain->head);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_chain_length(test_cert_chain, &length), S2N_ERR_NULL_CERT);
+
+        /* Test success case */
         EXPECT_SUCCESS(s2n_get_cert_chain_length(chain_and_key, &length));
         EXPECT_EQUAL(length, S2N_DEFAULT_TEST_CERT_CHAIN_LENGTH);
+
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(test_cert_chain));
     }
 
     /* Test s2n_get_cert_from_cert_chain */
     {
         struct s2n_cert *out_cert = NULL;
         uint32_t cert_idx = 0;
+        struct s2n_cert_chain_and_key *test_cert_chain = s2n_cert_chain_and_key_new();
+        EXPECT_NOT_NULL(test_cert_chain);
 
         /* Safety checks */
         {
             EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_from_cert_chain(NULL, &out_cert, cert_idx), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_from_cert_chain(chain_and_key, NULL, cert_idx), S2N_ERR_NULL);
-            /* The valid range of cert_idx is 0 to cert_chain_length - 1 */  
-            cert_idx = S2N_DEFAULT_TEST_CERT_CHAIN_LENGTH; 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_from_cert_chain(chain_and_key, &out_cert, cert_idx), S2N_ERR_SAFETY);
         }
 
         struct s2n_cert *cur_cert = chain_and_key->cert_chain->head;
 
+        /* Test error case when chain_and_key object is not null and the head certificate is null */ 
+        EXPECT_NULL(test_cert_chain->cert_chain->head);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_from_cert_chain(test_cert_chain, &out_cert, cert_idx), S2N_ERR_NULL_CERT);
+
+        /* Test error case for invalid cert_idx, the valid range of cert_idx is 0 to cert_chain_length - 1 */  
+        cert_idx = S2N_DEFAULT_TEST_CERT_CHAIN_LENGTH;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_from_cert_chain(chain_and_key, &out_cert, cert_idx), S2N_ERR_NO_CERT);
+
+        /* Test success case */
         for (size_t i = 0; i < S2N_DEFAULT_TEST_CERT_CHAIN_LENGTH; i++)
         {
             EXPECT_SUCCESS(s2n_get_cert_from_cert_chain(chain_and_key, &out_cert, i));
@@ -61,6 +84,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(out_cert, cur_cert);
             cur_cert = cur_cert->next;
         }
+
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(test_cert_chain));
     }
 
     /* Test s2n_get_cert_der */ 

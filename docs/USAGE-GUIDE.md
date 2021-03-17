@@ -1391,7 +1391,7 @@ This function returns NULL if the certificate selection phase of the handshake h
 ### s2n\_get\_cert\_chain\_length
 
 ```c
-int s2n_get_cert_chain_length(struct s2n_cert_chain_and_key *chain_and_key, uint32_t *cert_length);
+int s2n_get_cert_chain_length(const struct s2n_cert_chain_and_key *chain_and_key, uint32_t *cert_length);
 ```
 
 **s2n_get_cert_chain_length** gets the length of the certificate chain `chain_and_key`. If the certificate chain `chain_and_key` is NULL an error is thrown.
@@ -1399,7 +1399,7 @@ int s2n_get_cert_chain_length(struct s2n_cert_chain_and_key *chain_and_key, uint
 ### s2n\_get\_cert\_from\_cert\_chain
 
 ```c
-int s2n_get_cert_from_cert_chain(struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, uint32_t cert_idx);
+int s2n_get_cert_from_cert_chain(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, const uint32_t cert_idx);
 ```
 
 **s2n_get_cert_from_cert_chain** gets the certificate `out_cert` present at the index `cert_idx` of the certificate chain `chain_and_key`.  If the certificate chain `chain_and_key` is NULL or the certificate index value is not in the acceptable range for the input certificate chain, an error is thrown. Note that the index of the head_cert is zero.
@@ -1407,7 +1407,7 @@ int s2n_get_cert_from_cert_chain(struct s2n_cert_chain_and_key *chain_and_key, s
 ### s2n\_get\_cert\_der
 
 ```c
-int s2n_get_cert_der(struct s2n_cert *cert, uint8_t **out_cert_der, uint32_t *cert_length);
+int s2n_get_cert_der(const struct s2n_cert *cert, uint8_t **out_cert_der, uint32_t *cert_length);
 ```
 
 **s2n_get_cert_der** gets the certificate `cert` in .der format which is returned in the buffer `out_cert_der`, `cert_len` represents the length of the certificate. 

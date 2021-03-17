@@ -433,7 +433,7 @@ extern struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2
  * @param cert_length This return value represents the length of the s2n certificate chain `chain_and_key`.
  */
 S2N_API
-extern int s2n_get_cert_chain_length(struct s2n_cert_chain_and_key *chain_and_key, uint32_t *cert_length);
+extern int s2n_get_cert_chain_length(const struct s2n_cert_chain_and_key *chain_and_key, uint32_t *cert_length);
 
 /**
  * Returns the certificate `out_cert` present at the index `cert_idx` of the certificate chain `chain_and_key`.
@@ -446,7 +446,7 @@ extern int s2n_get_cert_chain_length(struct s2n_cert_chain_and_key *chain_and_ke
  * @param cert_length This return value represents the length of the s2n certificate chain `chain_and_key`.
  */
 S2N_API
-extern int s2n_get_cert_from_cert_chain(struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, uint32_t cert_idx);
+extern int s2n_get_cert_from_cert_chain(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, const uint32_t cert_idx);
 
 /**
  * Returns the s2n certificate in DER format along with its length.
@@ -474,7 +474,7 @@ extern int s2n_get_cert_from_cert_chain(struct s2n_cert_chain_and_key *chain_and
  * @param cert_length This return value represents the length of the certificate.
  */
 S2N_API
-extern int s2n_get_cert_der(struct s2n_cert *cert, uint8_t **out_cert_der, uint32_t *cert_length);
+extern int s2n_get_cert_der(const struct s2n_cert *cert, uint8_t **out_cert_der, uint32_t *cert_length);
 
 S2N_API
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
