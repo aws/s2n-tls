@@ -1611,14 +1611,12 @@ int main(int argc, char **argv) {
 
             DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_init(&cert_chain_stuffer, &connection->secure.peer_cert_chain));
-            EXPECT_SUCCESS(s2n_stuffer_write(&cert_chain_stuffer, &connection->secure.peer_cert_chain));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&cert_chain_stuffer, connection->secure.peer_cert_chain.size));
  
             size_t cert_idx = 0;
-            while (s2n_stuffer_data_available(&cert_chain_stuffer) && cert_idx < sk_X509_num(validator.cert_chain_validated)) {
+            while (s2n_stuffer_data_available(&cert_chain_stuffer) > 0 && cert_idx < sk_X509_num(validator.cert_chain_validated)) {
                 uint32_t cert_size_from_conn = 0;
                 EXPECT_SUCCESS(s2n_stuffer_read_uint24(&cert_chain_stuffer, &cert_size_from_conn));
-                EXPECT_TRUE((s2n_stuffer_data_available(&cert_chain_stuffer) > cert_size_from_conn)
-                                                       && (cert_size_from_conn > 0));
                 uint8_t *cert_data_from_conn = s2n_stuffer_raw_read(&cert_chain_stuffer, cert_size_from_conn);
                 EXPECT_NOT_NULL(cert_data_from_conn);
 
