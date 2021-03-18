@@ -140,6 +140,12 @@ void s2n_x509_trust_store_wipe(struct s2n_x509_trust_store *store) {
     }
 }
 
+static inline void wipe_cert_chain(STACK_OF(X509) *cert_chain) {
+    if (cert_chain) {
+        sk_X509_pop_free(cert_chain, X509_free);
+    }
+}
+
 int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *validator) {
     POSIX_ENSURE_REF(validator);
     validator->trust_store = NULL;
@@ -149,6 +155,8 @@ int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *valida
     validator->max_chain_depth = DEFAULT_MAX_CHAIN_DEPTH;
     validator->state = INIT;
     validator->cert_chain_from_wire = sk_X509_new_null();
+    wipe_cert_chain(validator->cert_chain_validated);
+    validator->cert_chain_validated = NULL;
 
     return 0;
 }
@@ -165,15 +173,11 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
         POSIX_ENSURE_REF(validator->store_ctx);
     }
     validator->cert_chain_from_wire = sk_X509_new_null();
+    wipe_cert_chain(validator->cert_chain_validated);
+    validator->cert_chain_validated = NULL;
     validator->state = INIT;
 
     return 0;
-}
-
-static inline void wipe_cert_chain(STACK_OF(X509) *cert_chain) {
-    if (cert_chain) {
-        sk_X509_pop_free(cert_chain, X509_free);
-    }
 }
 
 void s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
@@ -182,7 +186,9 @@ void s2n_x509_validator_wipe(struct s2n_x509_validator *validator) {
         validator->store_ctx = NULL;
     }
     wipe_cert_chain(validator->cert_chain_from_wire);
+    wipe_cert_chain(validator->cert_chain_validated);
     validator->cert_chain_from_wire = NULL;
+    validator->cert_chain_validated = NULL;
     validator->trust_store = NULL;
     validator->skip_cert_validation = 0;
     validator->state = UNINIT;
@@ -376,6 +382,31 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_chain(struct s2n_x509_
 
         S2N_ERROR_IF(op_code <= 0, S2N_ERR_CERT_UNTRUSTED);
         validator->state = VALIDATED;
+        /* X509_STORE_CTX_get1_chain() returns a validated cert chain if a previous call to X509_verify_cert() was successful.
+         * X509_STORE_CTX_get0_chain() is a better API because it doesn't return a copy. But it's not available for Openssl 1.0.2.
+         * Therefore, we call this variant and clean it up during s2n_x509_validator_wipe.
+         * See the comments here:
+         * https://www.openssl.org/docs/man1.0.2/man3/X509_STORE_CTX_get1_chain.html
+         */
+        validator->cert_chain_validated = X509_STORE_CTX_get1_chain(validator->store_ctx);
+    }
+
+    if (validator->state == VALIDATED) {
+        DEFER_CLEANUP(struct s2n_stuffer cert_chain_out_stuffer = { 0 }, s2n_stuffer_free);
+        POSIX_GUARD(s2n_stuffer_growable_alloc(&cert_chain_out_stuffer, cert_chain_len));
+
+        for (size_t cert_idx = 0; cert_idx < sk_X509_num(validator->cert_chain_validated); cert_idx++) {
+            X509 *cert = sk_X509_value(validator->cert_chain_validated, cert_idx);
+            uint8_t *cert_data = NULL;
+            int encoded_data_len = i2d_X509(cert, &cert_data);
+            POSIX_ENSURE_GT(encoded_data_len, 0);
+            POSIX_GUARD(s2n_stuffer_write_uint24(&cert_chain_out_stuffer, encoded_data_len));
+            POSIX_GUARD(s2n_stuffer_write_bytes(&cert_chain_out_stuffer, cert_data, encoded_data_len));
+            OPENSSL_free(cert_data);
+        }
+
+        cert_chain_out_stuffer.blob.size = s2n_stuffer_data_available(&cert_chain_out_stuffer);
+        POSIX_GUARD(s2n_dup(&cert_chain_out_stuffer.blob, &conn->secure.peer_cert_chain));
     }
 
     if (conn->actual_protocol_version >= S2N_TLS13) {
