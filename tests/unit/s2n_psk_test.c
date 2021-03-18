@@ -928,7 +928,7 @@ int main(int argc, char **argv)
 
     /* Test: s2n_psk_set_hmac */
     {
-        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_hmac(NULL, S2N_PSK_HMAC_SHA224), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_hmac(NULL, S2N_PSK_HMAC_SHA256), S2N_ERR_NULL);
 
         DEFER_CLEANUP(struct s2n_psk psk, s2n_psk_wipe);
         EXPECT_OK(s2n_psk_init(&psk, S2N_PSK_TYPE_EXTERNAL));
@@ -937,14 +937,11 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_hmac(&psk, -1), S2N_ERR_HMAC_INVALID_ALGORITHM);
         EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA256);
 
-        EXPECT_SUCCESS(s2n_psk_set_hmac(&psk, S2N_PSK_HMAC_SHA224));
-        EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA224);
+        EXPECT_SUCCESS(s2n_psk_set_hmac(&psk, S2N_PSK_HMAC_SHA384));
+        EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA384);
 
         EXPECT_SUCCESS(s2n_psk_set_hmac(&psk, S2N_PSK_HMAC_SHA256));
         EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA256);
-
-        EXPECT_SUCCESS(s2n_psk_set_hmac(&psk, S2N_PSK_HMAC_SHA384));
-        EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA384);
     }
 
     END_TEST();

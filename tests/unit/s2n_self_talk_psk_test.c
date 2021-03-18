@@ -104,7 +104,7 @@ static s2n_result setup_psks_with_no_match(struct s2n_connection *client_conn, s
 
     /* Setup other client PSK */
     EXPECT_OK(setup_psk(client_conn, test_other_client_data, sizeof(test_other_client_data), test_other_client_data,
-                        sizeof(test_other_client_data), S2N_PSK_HMAC_SHA224));
+                        sizeof(test_other_client_data), S2N_PSK_HMAC_SHA256));
     /* Setup other server PSK */
     EXPECT_OK(setup_psk(server_conn, test_other_server_data, sizeof(test_other_server_data), test_other_server_data,
                         sizeof(test_other_server_data), S2N_PSK_HMAC_SHA384));

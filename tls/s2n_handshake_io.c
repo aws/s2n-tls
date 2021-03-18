@@ -393,9 +393,9 @@ static message_type_t tls13_handshakes[S2N_HANDSHAKES_COUNT][S2N_MAX_HANDSHAKE_L
     },
 
     [NEGOTIATED | MIDDLEBOX_COMPAT | WITH_EARLY_DATA] = {
-            CLIENT_HELLO, CLIENT_CHANGE_CIPHER_SPEC,
+            CLIENT_HELLO,
             SERVER_HELLO, SERVER_CHANGE_CIPHER_SPEC, ENCRYPTED_EXTENSIONS, SERVER_FINISHED,
-            END_OF_EARLY_DATA, CLIENT_FINISHED,
+            CLIENT_CHANGE_CIPHER_SPEC, END_OF_EARLY_DATA, CLIENT_FINISHED,
             APPLICATION_DATA
     },
 
@@ -1040,7 +1040,7 @@ static int s2n_try_delete_session_cache(struct s2n_connection *conn)
 
 static S2N_RESULT s2n_wipe_record(struct s2n_connection *conn)
 {
-    ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
     RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->header_in));
     RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->in));
     conn->in_status = ENCRYPTED;

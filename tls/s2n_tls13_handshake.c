@@ -286,6 +286,11 @@ int s2n_tls13_handle_handshake_traffic_secret(struct s2n_connection *conn, s2n_m
         session_key = &conn->secure.client_key;
         secret_type = S2N_CLIENT_HANDSHAKE_TRAFFIC_SECRET;
         conn->client = &conn->secure;
+
+        /* The client session key might have been set to the early traffic key.
+         * This is not an problem for most libcrypto implementations, but in
+         * OpenSSL < 1.1.0 will cause a memory leak when we call init again. */
+        POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->destroy_key(session_key));
     } else {
         finished_data = conn->handshake.server_finished;
         implicit_iv_data = conn->secure.server_implicit_iv;
@@ -424,6 +429,9 @@ int s2n_tls13_client_handle_secrets(struct s2n_connection *conn)
                 POSIX_GUARD(s2n_tls13_handle_early_traffic_secret(conn));
             }
             break;
+        case HELLO_RETRY_MSG:
+            conn->client = &conn->initial;
+            break;
         case SERVER_HELLO:
             POSIX_GUARD(s2n_tls13_handle_early_secret(conn));
             POSIX_GUARD(s2n_tls13_handle_handshake_master_secret(conn));
@@ -461,6 +469,9 @@ static int s2n_tls13_server_handle_secrets(struct s2n_connection *conn)
             if (conn->early_data_state == S2N_EARLY_DATA_ACCEPTED) {
                 POSIX_GUARD(s2n_tls13_handle_early_traffic_secret(conn));
             }
+            break;
+        case HELLO_RETRY_MSG:
+            conn->client = &conn->initial;
             break;
         case SERVER_HELLO:
             POSIX_GUARD(s2n_tls13_handle_handshake_master_secret(conn));

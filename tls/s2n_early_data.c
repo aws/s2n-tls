@@ -102,10 +102,15 @@ S2N_RESULT s2n_early_data_accept_or_reject(struct s2n_connection *conn)
      *# If any of these checks fail, the server MUST NOT respond with the
      *# extension
      **/
-    if (s2n_early_data_is_valid_for_connection(conn)) {
-        RESULT_GUARD(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_ACCEPTED));
-    } else {
+    if (!s2n_early_data_is_valid_for_connection(conn)) {
         RESULT_GUARD(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REJECTED));
+        return S2N_RESULT_OK;
+    }
+
+    /* Even if the connection is valid for early data, the client can't consider
+     * early data accepted until the server sends the early data indication. */
+    if (conn->mode == S2N_SERVER) {
+        RESULT_GUARD(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_ACCEPTED));
     }
     return S2N_RESULT_OK;
 }
