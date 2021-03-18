@@ -288,8 +288,8 @@ int s2n_tls13_handle_handshake_traffic_secret(struct s2n_connection *conn, s2n_m
         conn->client = &conn->secure;
 
         /* The client session key might have been set to the early traffic key.
-         * This is not an problem for most libcrypto implementations, but in older
-         * versions of OpenSSL will cause a memory leak when we call init again. */
+         * This is not an problem for most libcrypto implementations, but in
+         * OpenSSL < 1.1.0 will cause a memory leak when we call init again. */
         POSIX_GUARD(conn->secure.cipher_suite->record_alg->cipher->destroy_key(session_key));
     } else {
         finished_data = conn->handshake.server_finished;
