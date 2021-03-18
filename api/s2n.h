@@ -167,6 +167,7 @@ typedef enum {
     S2N_TLS_MAX_FRAG_LEN_4096 = 4,
 } s2n_max_frag_len;
 
+struct s2n_cert;
 struct s2n_cert_chain_and_key;
 struct s2n_pkey;
 typedef struct s2n_pkey s2n_cert_public_key;
@@ -424,6 +425,56 @@ extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
 
 S2N_API
 extern struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2n_connection *conn);
+
+/**
+ * Returns the length of the s2n certificate chain `chain_and_key`.
+ * 
+ * @param chain_and_key A pointer to the s2n_cert_chain_and_key object being read.
+ * @param cert_length This return value represents the length of the s2n certificate chain `chain_and_key`.
+ */
+S2N_API
+extern int s2n_get_cert_chain_length(const struct s2n_cert_chain_and_key *chain_and_key, uint32_t *cert_length);
+
+/**
+ * Returns the certificate `out_cert` present at the index `cert_idx` of the certificate chain `chain_and_key`.
+ * 
+ * Note that the index of the leaf certificate is zero. If the certificate chain `chain_and_key` is NULL or the
+ * certificate index value is not in the acceptable range for the input certificate chain, an error is returned.
+ * 
+ * @param chain_and_key A pointer to the s2n_cert_chain_and_key object being read.
+ * @param cert_idx The certificate index for the requested certificate within the s2n certificate chain.
+ * @param cert_length This return value represents the length of the s2n certificate chain `chain_and_key`.
+ */
+S2N_API
+extern int s2n_get_cert_from_cert_chain(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, const uint32_t cert_idx);
+
+/**
+ * Returns the s2n certificate in DER format along with its length.
+ * 
+ * The API gets the s2n certificate `cert` in DER format. The certificate is returned in the `out_cert_der` buffer.
+ * Here, `cert_len` represents the length of the certificate.
+ * 
+ * A caller can use certificate parsing tools such as the ones provided by OpenSSL to parse the DER encoded certificate chain returned.
+ *
+ * # Safety
+ * 
+ * The memory for the `out_cert_der` buffer is allocated and owned by s2n-tls. 
+ * Since the size of the certificate can potentially be very large, a pointer to internal connection data is returned instead of 
+ * copying the contents into a caller-provided buffer.
+ * 
+ * The pointer to the output buffer `out_cert_der` is valid only while the connection exists.
+ * The `s2n_connection_free` API frees the memory assosciated with the out_cert_der buffer and after the `s2n_connection_wipe` API is
+ * called the memory pointed by out_cert_der is invalid.
+ * 
+ * If a caller wishes to persist the `out_cert_der` beyond the lifetime of the connection, the contents would need to be
+ * copied prior to the connection termination.
+ * 
+ * @param cert A pointer to the s2n_cert object being read.
+ * @param out_cert_der A pointer to the output buffer which will hold the s2n certificate `cert` in DER format.
+ * @param cert_length This return value represents the length of the certificate.
+ */
+S2N_API
+extern int s2n_get_cert_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, uint32_t *cert_length);
 
 S2N_API
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
