@@ -63,8 +63,8 @@ static int s2n_setup_test_ticket_key(struct s2n_config *config)
     "90b6c73bb50f9c3122ec844ad7c2b3e5");
 
     /* Set up encryption key */
-    uint64_t current_time;
-    uint8_t ticket_key_name[16] = "2016.07.26.15\0";
+    uint64_t current_time = 0;
+    uint8_t ticket_key_name[] = "2016.07.26.15\0";
     EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
     EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *)ticket_key_name),
                     ticket_key.data, ticket_key.size, current_time/ONE_SEC_IN_NANOS));
@@ -122,12 +122,13 @@ int main(int argc, char **argv)
 
         /* Next message to send will trigger a NewSessionTicket message*/
         s2n_blocked_status blocked;
-        char message[] = "sent message";
+        uint8_t message[] = "sent message";
         EXPECT_SUCCESS(s2n_send(server_conn, message, sizeof(message), &blocked));
 
         /* Receive NewSessionTicket message */
-        uint8_t data[100];
+        uint8_t data[sizeof(message)];
         EXPECT_SUCCESS(s2n_recv(client_conn, data, sizeof(data), &blocked));
+        EXPECT_BYTEARRAY_EQUAL(data, message, sizeof(message));
 
         EXPECT_EQUAL(session_ticket_counter, tickets_to_send);
 
