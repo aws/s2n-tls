@@ -131,7 +131,7 @@ static int s2n_deserialize_resumption_state(struct s2n_connection *conn, struct 
     return 0;
 }
 
-static int s2n_client_serialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *to)
+int s2n_client_serialize_resumption_state(struct s2n_connection *conn, struct s2n_ticket_fields *ticket_fields, struct s2n_stuffer *to)
 {
     /* Serialize session ticket */
    if (conn->config->use_tickets && conn->client_ticket.size > 0) {
@@ -146,7 +146,7 @@ static int s2n_client_serialize_resumption_state(struct s2n_connection *conn, st
    }
 
     /* Serialize session state */
-    POSIX_GUARD_RESULT(s2n_serialize_resumption_state(conn, NULL, to));
+    POSIX_GUARD_RESULT(s2n_serialize_resumption_state(conn, ticket_fields, to));
 
     return 0;
 }
@@ -314,7 +314,7 @@ int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, si
 
     struct s2n_stuffer to = {0};
     POSIX_GUARD(s2n_stuffer_init(&to, &serialized_data));
-    POSIX_GUARD(s2n_client_serialize_resumption_state(conn, &to));
+    POSIX_GUARD(s2n_client_serialize_resumption_state(conn, NULL, &to));
 
     return len;
 }

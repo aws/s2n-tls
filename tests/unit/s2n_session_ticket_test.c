@@ -1087,7 +1087,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
 
         /* Add one ST key */
-        GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
+        POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, strlen((char *)ticket_key_name1), ticket_key1, sizeof(ticket_key1), now/ONE_SEC_IN_NANOS));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));

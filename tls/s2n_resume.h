@@ -104,6 +104,7 @@ typedef enum {
 extern int s2n_allowed_to_cache_connection(struct s2n_connection *conn);
 extern int s2n_resume_from_cache(struct s2n_connection *conn);
 extern int s2n_store_to_cache(struct s2n_connection *conn);
+int s2n_client_serialize_resumption_state(struct s2n_connection *conn, struct s2n_ticket_fields *ticket_fields, struct s2n_stuffer *to);
 
 /* These functions will be labeled S2N_API and become a publicly visible api 
  * once we release the session resumption API. */
