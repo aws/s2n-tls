@@ -338,11 +338,12 @@ struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_
  * (This is not an issue for EndOfEarlyData because encryption and message order requirements force
  * EndOfEarlyData to always be the first and only handshake message in its handshake record)
  */
-int s2n_negotiate_until_message(struct s2n_connection *conn, s2n_blocked_status *blocked, message_type_t end_message)
+S2N_RESULT s2n_negotiate_until_message(struct s2n_connection *conn, s2n_blocked_status *blocked, message_type_t end_message)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
     conn->handshake.end_of_messages = end_message;
     int r = s2n_negotiate(conn, blocked);
     conn->handshake.end_of_messages = APPLICATION_DATA;
-    return r;
+    RESULT_GUARD_POSIX(r);
+    return S2N_RESULT_OK;
 }

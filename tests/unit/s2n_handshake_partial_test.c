@@ -65,8 +65,8 @@ int main()
         {
             struct s2n_connection conn = { 0 };
             s2n_blocked_status blocked = 0;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_until_message(NULL, &blocked, CLIENT_HELLO), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_until_message(&conn, NULL, CLIENT_HELLO), S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_until_message(NULL, &blocked, CLIENT_HELLO), S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_until_message(&conn, NULL, CLIENT_HELLO), S2N_ERR_NULL);
         }
 
         /* If message is never encountered, complete the handshake */
@@ -108,9 +108,24 @@ int main()
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), CLIENT_HELLO);
 
             EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
+                    CLIENT_HELLO));
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), CLIENT_HELLO);
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), CLIENT_HELLO);
+
+            EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
                     SERVER_HELLO));
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_HELLO);
+
+            EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
+                    SERVER_HELLO));
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), SERVER_HELLO);
+
+            EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
+                    APPLICATION_DATA));
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);
 
             EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
                     APPLICATION_DATA));

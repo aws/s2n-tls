@@ -15,10 +15,10 @@
 
 #include "testlib/s2n_testlib.h"
 
-S2N_RESULT s2n_validate_negotiate_result(int result, bool peer_is_done, bool *is_done)
+static S2N_RESULT s2n_validate_negotiate_result(bool success, bool peer_is_done, bool *is_done)
 {
     /* If we succeeded, we're done. */
-    if(result == S2N_SUCCESS) {
+    if(success) {
        *is_done = true;
        return S2N_RESULT_OK;
     }
@@ -41,13 +41,13 @@ int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, str
 {
     bool server_done = false, client_done = false;
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    int rc = 0;
+    bool rc = false;
 
     do {
-        rc = s2n_negotiate(client_conn, &blocked);
+        rc = (s2n_negotiate(client_conn, &blocked) >= S2N_SUCCESS);
         POSIX_GUARD_RESULT(s2n_validate_negotiate_result(rc, server_done, &client_done));
 
-        rc = s2n_negotiate(server_conn, &blocked);
+        rc = (s2n_negotiate(server_conn, &blocked) >= S2N_SUCCESS);
         POSIX_GUARD_RESULT(s2n_validate_negotiate_result(rc, client_done, &server_done));
     } while (!client_done || !server_done);
 
@@ -59,13 +59,13 @@ S2N_RESULT s2n_negotiate_test_server_and_client_until_message(struct s2n_connect
 {
     bool server_done = false, client_done = false;
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    int rc = 0;
+    bool rc = false;
 
     do {
-        rc = s2n_negotiate_until_message(client_conn, &blocked, message_type);
+        rc = s2n_result_is_ok(s2n_negotiate_until_message(client_conn, &blocked, message_type));
         RESULT_GUARD(s2n_validate_negotiate_result(rc, server_done, &client_done));
 
-        rc = s2n_negotiate_until_message(server_conn, &blocked, message_type);
+        rc = s2n_result_is_ok(s2n_negotiate_until_message(server_conn, &blocked, message_type));
         RESULT_GUARD(s2n_validate_negotiate_result(rc, client_done, &server_done));
     } while (!client_done || !server_done);
 
