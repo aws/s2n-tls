@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 {   
     BEGIN_TEST();
     
-    /* s2n_send sends NewSessionTicket message */
+    /* s2n_send sends NewSessionTicket message and s2n_recv receives it */
     {
         struct s2n_connection *server_conn= s2n_connection_new(S2N_SERVER);
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
@@ -136,4 +136,5 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
+    END_TEST();
 }
