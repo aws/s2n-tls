@@ -24,7 +24,6 @@ PROOF_SOURCES += $(OPENSSL_SOURCE)/dh_override.c
 PROOF_SOURCES += $(OPENSSL_SOURCE)/bn_override.c
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
-PROOF_SOURCES += $(PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(PROOF_STUB)/mlock.c
 PROOF_SOURCES += $(PROOF_STUB)/munlock.c
 PROOF_SOURCES += $(PROOF_STUB)/posix_memalign_override.c
