@@ -181,6 +181,7 @@ int main(int argc, char **argv)
 
         EXPECT_EQUAL(session_ticket_counter, tickets_to_send);
 
+        EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
