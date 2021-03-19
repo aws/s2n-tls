@@ -17,7 +17,7 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/extensions/s2n_server_signature_algorithms.h"

@@ -28,7 +28,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <s2n.h>
+#include "api/s2n.h"
 #include <fcntl.h>
 #include <sys/wait.h>
 

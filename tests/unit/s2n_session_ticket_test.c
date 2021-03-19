@@ -20,7 +20,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "crypto/s2n_fips.h"
 #include "utils/s2n_safety.h"

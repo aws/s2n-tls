@@ -27,7 +27,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 /* The number of connection pairs to allocate before measuring memory
  * usage. The greater the value, the more accurate the end result. */

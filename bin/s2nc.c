@@ -30,9 +30,9 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include "common.h"
-#include <error/s2n_errno.h>
+#include "error/s2n_errno.h"
 
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"

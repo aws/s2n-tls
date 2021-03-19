@@ -19,8 +19,8 @@
 #include <cbmc_proof/proof_allocators.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stuffer/s2n_stuffer.h>
-#include <utils/s2n_blob.h>
+#include "stuffer/s2n_stuffer.h"
+#include "utils/s2n_blob.h"
 
 #define IMPLIES(a, b) (!(a) || (b))
 

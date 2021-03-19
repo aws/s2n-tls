@@ -22,8 +22,8 @@
 #include <stdint.h>
 #include <fcntl.h>
 
-#include <s2n.h>
-#include <tls/s2n_connection.h>
+#include "api/s2n.h"
+#include "tls/s2n_connection.h"
 
 struct client_hello_context {
     int invoked;

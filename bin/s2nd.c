@@ -33,12 +33,12 @@
 
 #include <errno.h>
 
-#include <error/s2n_errno.h>
+#include "error/s2n_errno.h"
 
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include "common.h"
 
 #include "utils/s2n_safety.h"

@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "utils/s2n_safety.h"
 #include "testlib/s2n_testlib.h"

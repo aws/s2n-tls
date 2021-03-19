@@ -27,7 +27,7 @@
 #include "utils/s2n_map.h"
 #include "utils/s2n_map_internal.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #define S2N_INITIAL_TABLE_SIZE 1024
 

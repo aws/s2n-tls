@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <errno.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 char *load_file_to_cstring(const char *path)
 {

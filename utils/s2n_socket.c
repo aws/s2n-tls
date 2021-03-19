@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include <tls/s2n_connection.h>
+#include "tls/s2n_connection.h"
 
-#include <utils/s2n_socket.h>
-#include <utils/s2n_safety.h>
+#include "utils/s2n_socket.h"
+#include "utils/s2n_safety.h"
 
 #include <netinet/tcp.h>
 #include <netinet/in.h>

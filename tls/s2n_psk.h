@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "crypto/s2n_hmac.h"
 #include "stuffer/s2n_stuffer.h"

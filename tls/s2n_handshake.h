@@ -16,7 +16,7 @@
 #pragma once
 
 #include <stdint.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_crypto.h"
 #include "tls/s2n_handshake_type.h"

@@ -17,7 +17,7 @@
 # define _GNU_SOURCE
 #endif
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <openssl/x509v3.h>
 #include <openssl/pem.h>
 #include <string.h>

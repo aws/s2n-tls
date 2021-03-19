@@ -21,7 +21,7 @@
 #include <unistd.h>
 #include <stdint.h>
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include <errno.h>
 
 #include "tls/s2n_connection.h"

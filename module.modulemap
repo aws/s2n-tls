@@ -13,11 +13,29 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
+ module S2N {
+     explicit module Api {
+         header "api/s2n.h"
+         export *
+     }
 
-#include "api/s2n.h"
+     explicit module Crypto {
+         umbrella "crypto"
+     }
 
-#include "utils/s2n_result.h"
+     explicit module Error {
+         umbrella "error"
+     }
 
-S2N_RESULT s2n_protocol_preferences_read(struct s2n_stuffer *protocol_preferences, struct s2n_blob *protocol);
-S2N_RESULT s2n_protocol_preferences_contain(struct s2n_blob *protocol_preferences, struct s2n_blob *protocol, bool *contains);
+     explicit module PQCrypto {
+         umbrella "pq-crypto"
+     }
+
+     explicit module Stuffer {
+         umbrella "stuffer"
+     }
+
+     explicit module Utils {
+         umbrella "utils"
+     }
+ }

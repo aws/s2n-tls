@@ -17,7 +17,7 @@
 
 #include "utils/s2n_blob.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 int raises_error()
 {

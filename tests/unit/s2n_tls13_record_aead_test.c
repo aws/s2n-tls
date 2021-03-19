@@ -17,7 +17,7 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"

@@ -17,7 +17,7 @@
 
 #include "testlib/s2n_testlib.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_quic_support.h"

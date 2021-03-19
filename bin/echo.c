@@ -24,13 +24,14 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
-#include <s2n.h>
-#include <error/s2n_errno.h>
+
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
+#include "api/s2n.h"
 #include "crypto/s2n_rsa.h"
 #include "crypto/s2n_pkey.h"
+#include "error/s2n_errno.h"
 
 #define STDIO_BUFSIZE  10240
 

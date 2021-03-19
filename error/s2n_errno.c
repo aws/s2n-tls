@@ -20,7 +20,7 @@
 #include <string.h>
 #include "error/s2n_errno.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include "utils/s2n_map.h"
 #include "utils/s2n_safety.h"
 

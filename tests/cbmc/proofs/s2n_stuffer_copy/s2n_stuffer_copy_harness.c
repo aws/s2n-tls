@@ -17,7 +17,7 @@
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
 #include <cbmc_proof/proof_allocators.h>
-#include <error/s2n_errno.h>
+#include "error/s2n_errno.h"
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"

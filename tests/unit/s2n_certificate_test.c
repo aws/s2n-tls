@@ -16,7 +16,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-#include <s2n.h>
+#include "api/s2n.h"
 #include "utils/s2n_safety.h"
 
 #define S2N_DEFAULT_TEST_CERT_CHAIN_LENGTH 3

@@ -17,7 +17,7 @@
 
 #include <sys/wait.h>
 #include <pthread.h>
-#include <s2n.h>
+#include "api/s2n.h"
 
 #include "utils/s2n_random.h"
 
