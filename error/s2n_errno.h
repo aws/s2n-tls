@@ -287,6 +287,10 @@ extern __thread const char *s2n_debug_str;
 #define S2N_ERROR_IS_BLOCKING( x )    ( s2n_error_get_type(x) == S2N_ERR_T_BLOCKED )
 
 /**
+ * These macros should not be used in validate functions.
+ * All validate functions are also used in assumptions for CBMC proofs,
+ * which should not contain __CPROVER_*_ok primitives. The use of these primitives
+ * in assumptions may lead to spurious results.
  * Define function contracts.
  * When the code is being verified using CBMC these contracts are formally verified;
  * When the code is built in debug mode, they are checked as much as possible using assertions
@@ -294,15 +298,20 @@ extern __thread const char *s2n_debug_str;
  * Violations of the function contracts are undefined behaviour.
  */
 #ifdef CBMC
-#    define S2N_MEM_IS_READABLE(base, len) (((len) == 0) || __CPROVER_r_ok((base), (len)))
-#    define S2N_MEM_IS_WRITABLE(base, len) (((len) == 0) || __CPROVER_w_ok((base), (len)))
+#    define S2N_MEM_IS_READABLE_CHECK(base, len) (((len) == 0) || __CPROVER_r_ok((base), (len)))
+#    define S2N_MEM_IS_WRITABLE_CHECK(base, len) (((len) == 0) || __CPROVER_w_ok((base), (len)))
 #else
 /* the C runtime does not give a way to check these properties,
  * but we can at least check that the pointer is valid */
-#    define S2N_MEM_IS_READABLE(base, len) (((len) == 0) || (base) != NULL)
-#    define S2N_MEM_IS_WRITABLE(base, len) (((len) == 0) || (base) != NULL)
+#    define S2N_MEM_IS_READABLE_CHECK(base, len) (((len) == 0) || (base) != NULL)
+#    define S2N_MEM_IS_WRITABLE_CHECK(base, len) (((len) == 0) || (base) != NULL)
 #endif /* CBMC */
 
+/**
+ * These macros can safely be used in validate functions.
+ */
+#define S2N_MEM_IS_READABLE(base, len) (((len) == 0) || (base) != NULL)
+#define S2N_MEM_IS_WRITABLE(base, len) (((len) == 0) || (base) != NULL)
 #define S2N_OBJECT_PTR_IS_READABLE(ptr) ((ptr) != NULL)
 #define S2N_OBJECT_PTR_IS_WRITABLE(ptr) ((ptr) != NULL)
 
