@@ -17,13 +17,12 @@
 #include "utils/s2n_safety.h"
 
 #include <assert.h>
-#include <cbmc_proof/proof_allocators.h>
 
 int s2n_sub_overflow_harness()
 {
     uint32_t a;
     uint32_t b;
-    uint32_t *out = can_fail_malloc(sizeof(uint32_t));
+    uint32_t *out = malloc(sizeof(uint32_t));
 
     if (s2n_sub_overflow(a, b, out) == S2N_SUCCESS) {
         assert(*out == a - b);

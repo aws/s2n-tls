@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "stuffer/s2n_stuffer.h"
@@ -27,7 +26,7 @@ void s2n_stuffer_read_uint16_harness()
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 
     struct s2n_stuffer old_stuffer = *stuffer;
-    uint16_t *         dest        = can_fail_malloc(sizeof(uint16_t *));
+    uint16_t *         dest        = malloc(sizeof(uint16_t *));
 
     /* Store a byte from the stuffer to compare after the read */
     struct store_byte_from_buffer old_byte_from_stuffer;

@@ -16,6 +16,13 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 
+/**
+ * CBMC has an internal representation in which each object has an index and a (signed) offset
+ * A buffer cannot be larger than the max size of the offset
+ * The Makefile is expected to set CBMC_OBJECT_BITS to the value of --object-bits
+ */
+#define MAX_MALLOC (SIZE_MAX >> (CBMC_OBJECT_BITS + 1))
+
 void assert_stuffer_immutable_fields_after_read(const struct s2n_stuffer *lhs, const struct s2n_stuffer *rhs,
                                                 const struct store_byte_from_buffer *stored_byte_from_rhs)
 {

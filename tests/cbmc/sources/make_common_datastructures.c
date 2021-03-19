@@ -25,15 +25,15 @@ bool s2n_stuffer_is_bounded(const struct s2n_stuffer *stuffer, const size_t max_
 void ensure_s2n_blob_has_allocated_fields(struct s2n_blob *blob)
 {
     if (blob->growable) {
-        blob->data = (blob->allocated == 0) ? NULL : bounded_malloc(blob->allocated);
+        blob->data = (blob->allocated == 0) ? NULL : malloc(blob->allocated);
     } else {
-        blob->data = (blob->size == 0) ? NULL : bounded_malloc(blob->size);
+        blob->data = (blob->size == 0) ? NULL : malloc(blob->size);
     }
 }
 
 struct s2n_blob *cbmc_allocate_s2n_blob()
 {
-    struct s2n_blob *blob = can_fail_malloc(sizeof(*blob));
+    struct s2n_blob *blob = malloc(sizeof(*blob));
     if (blob != NULL) { ensure_s2n_blob_has_allocated_fields(blob); }
     return blob;
 }
@@ -45,7 +45,7 @@ void ensure_s2n_stuffer_has_allocated_fields(struct s2n_stuffer *stuffer)
 
 struct s2n_stuffer *cbmc_allocate_s2n_stuffer()
 {
-    struct s2n_stuffer *stuffer = can_fail_malloc(sizeof(*stuffer));
+    struct s2n_stuffer *stuffer = malloc(sizeof(*stuffer));
     if (stuffer != NULL) { ensure_s2n_stuffer_has_allocated_fields(stuffer); }
     return stuffer;
 }
@@ -54,7 +54,7 @@ const char *ensure_c_str_is_allocated(size_t max_size)
 {
     size_t cap;
     __CPROVER_assume(cap > 0 && cap <= max_size);
-    const char *str = bounded_malloc(cap);
+    const char *str = malloc(cap);
     /* Ensure that its a valid c string. Since all bytes are nondeterminstic, the actual
      * string length is 0..str_cap
      */
@@ -66,7 +66,7 @@ const char *nondet_c_str_is_allocated(size_t max_size)
 {
     size_t cap;
     __CPROVER_assume(cap > 0 && cap <= max_size);
-    const char *str = can_fail_malloc(cap);
+    const char *str = malloc(cap);
     /* Ensure that its a valid c string. Since all bytes are nondeterminstic, the actual
      * string length is 0..str_cap
      */
@@ -76,7 +76,7 @@ const char *nondet_c_str_is_allocated(size_t max_size)
 
 struct s2n_stuffer_reservation *cbmc_allocate_s2n_stuffer_reservation()
 {
-    struct s2n_stuffer_reservation *reservation = can_fail_malloc(sizeof(*reservation));
+    struct s2n_stuffer_reservation *reservation = malloc(sizeof(*reservation));
     if (reservation != NULL) { reservation->stuffer = cbmc_allocate_s2n_stuffer(); }
     return reservation;
 }
@@ -97,7 +97,7 @@ static int nondet_comparator(const void *a, const void *b)
 
 struct s2n_set *cbmc_allocate_s2n_set()
 {
-    struct s2n_set *set = can_fail_malloc(sizeof(*set));
+    struct s2n_set *set = malloc(sizeof(*set));
     if (set != NULL) {
         set->data       = cbmc_allocate_s2n_array();
         set->comparator = nondet_comparator;

@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <sys/param.h>
 
 #include "api/s2n.h"
@@ -31,10 +30,10 @@ void s2n_stuffer_writev_bytes_harness()
 
     size_t iov_count;
     __CPROVER_assume(iov_count < MAX_IOVEC_SIZE);
-    struct iovec *iov = bounded_malloc(iov_count * sizeof(*iov));
+    struct iovec *iov = malloc(iov_count * sizeof(*iov));
     __CPROVER_assume(iov != NULL);
     for (int i = 0; i < iov_count; i++) {
-        iov[ i ].iov_base = bounded_malloc(iov[ i ].iov_len);
+        iov[ i ].iov_base = malloc(iov[ i ].iov_len);
     }
 
     uint32_t offs;
