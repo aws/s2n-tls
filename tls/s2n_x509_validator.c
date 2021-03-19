@@ -42,13 +42,6 @@
 /* Time used by default for nextUpdate if none provided in OCSP: 1 hour since thisUpdate. */
 #define DEFAULT_OCSP_NEXT_UPDATE_PERIOD 3600000000000
 
-typedef enum {
-    UNINIT,
-    INIT,
-    VALIDATED,
-    OCSP_VALIDATED,
-} validator_state;
-
 uint8_t s2n_x509_ocsp_stapling_supported(void) {
     return S2N_OCSP_STAPLING_SUPPORTED;
 }
