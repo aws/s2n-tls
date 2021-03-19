@@ -1575,15 +1575,15 @@ int main(int argc, char **argv) {
 
             struct s2n_x509_validator validator = { 0 };
             s2n_x509_validator_init(&validator, &trust_store, 1);
-            /* Ensure that `validator->state != VALIDATED` by skipping the x509 validation */ 
+            /* Ensure that `validator->state != VALIDATED` by skipping the x509 validation */
             validator.skip_cert_validation = 1;
 
             EXPECT_EQUAL(S2N_CERT_OK,
                         s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
 
             EXPECT_EQUAL(0, verify_data.callback_invoked);
-            EXPECT_EQUAL(connection->secure.peer_cert_chain.size, 0);
-            EXPECT_NULL(connection->secure.peer_cert_chain.data);
+            EXPECT_NULL(validator.cert_chain_validated);
+            EXPECT_NOT_NULL(validator.cert_chain_from_wire);
 
             EXPECT_SUCCESS(s2n_pkey_free(&public_key_out));
             s2n_x509_validator_wipe(&validator);
@@ -1609,29 +1609,7 @@ int main(int argc, char **argv) {
 
             EXPECT_EQUAL(1, verify_data.callback_invoked);
             EXPECT_NOT_NULL(validator.cert_chain_validated);
-
-            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
-            EXPECT_SUCCESS(s2n_stuffer_init(&cert_chain_stuffer, &connection->secure.peer_cert_chain));
-            EXPECT_SUCCESS(s2n_stuffer_skip_write(&cert_chain_stuffer, connection->secure.peer_cert_chain.size));
-
-            size_t cert_idx = 0;
-            while (s2n_stuffer_data_available(&cert_chain_stuffer) > 0 && cert_idx < sk_X509_num(validator.cert_chain_validated)) {
-                uint32_t cert_size_from_conn = 0;
-                EXPECT_SUCCESS(s2n_stuffer_read_uint24(&cert_chain_stuffer, &cert_size_from_conn));
-                uint8_t *cert_data_from_conn = s2n_stuffer_raw_read(&cert_chain_stuffer, cert_size_from_conn);
-                EXPECT_NOT_NULL(cert_data_from_conn);
-
-                X509 *cert = sk_X509_value(validator.cert_chain_validated, cert_idx);
-                EXPECT_NOT_NULL(cert);
-                uint8_t *cert_data_from_validator = NULL;
-                int cert_size_from_validator = i2d_X509(cert, &cert_data_from_validator);
-                EXPECT_TRUE(cert_size_from_validator > 0 && cert_data_from_validator != NULL);
-
-                EXPECT_EQUAL(cert_size_from_conn, cert_size_from_validator);
-                EXPECT_BYTEARRAY_EQUAL(cert_data_from_conn, cert_data_from_validator, cert_size_from_conn);
-                OPENSSL_free(cert_data_from_validator);
-                cert_idx++;
-            }
+            EXPECT_NOT_NULL(validator.cert_chain_from_wire);
 
             EXPECT_SUCCESS(s2n_pkey_free(&public_key_out));
             s2n_x509_validator_wipe(&validator);
