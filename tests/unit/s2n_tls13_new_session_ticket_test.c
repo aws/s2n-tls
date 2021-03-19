@@ -64,7 +64,7 @@ static int s2n_setup_test_ticket_key(struct s2n_config *config)
 
     /* Set up encryption key */
     uint64_t current_time = 0;
-    uint8_t ticket_key_name[] = "2016.07.26.15\0";
+    uint8_t ticket_key_name[S2N_TICKET_KEY_NAME_LEN] = "2016.07.26.15\0";
     EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
     EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *)ticket_key_name),
                     ticket_key.data, ticket_key.size, current_time/ONE_SEC_IN_NANOS));
