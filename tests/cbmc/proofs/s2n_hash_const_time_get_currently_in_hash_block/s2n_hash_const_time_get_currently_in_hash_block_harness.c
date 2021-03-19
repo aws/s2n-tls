@@ -22,8 +22,7 @@ void s2n_hash_const_time_get_currently_in_hash_block_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_hash_state *state = cbmc_allocate_s2n_hash_state();
-    uint64_t size;
-    uint64_t* out = bounded_malloc(size);
+    uint64_t* out = malloc(sizeof(*out));
 
     /* Assumptions. */
     __CPROVER_assume(s2n_result_is_ok(s2n_hash_state_validate(state)));
