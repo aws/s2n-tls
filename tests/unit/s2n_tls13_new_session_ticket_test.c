@@ -49,69 +49,6 @@ static int s2n_test_session_ticket_cb(struct s2n_connection *conn, struct s2n_se
     return S2N_SUCCESS;
 }
 
-static int s2n_test_init_encryption(struct s2n_connection *conn)
-{
-    POSIX_ENSURE_REF(conn);
-
-    
-    struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-    conn->server->cipher_suite = cipher_suite;
-    conn->client->cipher_suite = cipher_suite;
-    conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
-
-    conn->actual_protocol_version = S2N_TLS13;
-
-    /**
-     *= https://tools.ietf.org/rfc/rfc8448#section-3
-     *#      PRK (32 octets):  a1 1a f9 f0 55 31 f8 56 ad 47 11 6b 45 a9 50 32
-     *#  82 04 b4 f4 4b fb 6b 3a 4b 4f 1f 3f cb 63 16 43
-     */
-    S2N_BLOB_FROM_HEX(application_secret,
-    "a1 1a f9 f0 55 31 f8 56 ad 47 11 6b 45 a9 50 32 \
-         82 04 b4 f4 4b fb 6b 3a 4b 4f 1f 3f cb 63 16 43"); 
-
-    /**
-     *= https://tools.ietf.org/rfc/rfc8448#section-3
-     *#      key expanded (16 octets):  9f 02 28 3b 6c 9c 07 ef c2 6b b9 f2 ac
-     *#  92 e3 56
-     */
-    S2N_BLOB_FROM_HEX(key, "9f 02 28 3b 6c 9c 07 ef c2 6b b9 f2 ac \
-         92 e3 56");
-    
-    /**
-     *= https://tools.ietf.org/rfc/rfc8448#section-3
-     *#     iv expanded (12 octets):  cf 78 2b 88 dd 83 54 9a ad f1 e9 84
-     */
-    S2N_BLOB_FROM_HEX(iv, "cf 78 2b 88 dd 83 54 9a ad f1 e9 84");
-
-    /* Initialize application secrets */
-    POSIX_CHECKED_MEMCPY(conn->secure.server_app_secret, application_secret.data, application_secret.size);
-    POSIX_CHECKED_MEMCPY(conn->secure.client_app_secret, application_secret.data, application_secret.size);
-
-    struct s2n_session_key *server_session_key = &conn->server->server_key;
-    struct s2n_session_key *client_session_key = &conn->server->server_key;
-    uint8_t *server_implicit_iv = conn->server->server_implicit_iv;
-    uint8_t *client_implicit_iv = conn->client->client_implicit_iv;
- 
-    /* Initialize record algorithm */
-    POSIX_GUARD(cipher_suite->record_alg->cipher->init(server_session_key));
-    POSIX_GUARD(cipher_suite->record_alg->cipher->init(client_session_key));
-    POSIX_GUARD(cipher_suite->record_alg->cipher->set_encryption_key(server_session_key, &key));
-    POSIX_GUARD(cipher_suite->record_alg->cipher->set_encryption_key(client_session_key, &key));
-    POSIX_GUARD(cipher_suite->record_alg->cipher->set_decryption_key(server_session_key, &key));
-    POSIX_GUARD(cipher_suite->record_alg->cipher->set_decryption_key(client_session_key, &key));
-
-    /* Initialized secrets */
-    POSIX_CHECKED_MEMCPY(conn->secure.server_app_secret, application_secret.data, application_secret.size);
-    POSIX_CHECKED_MEMCPY(conn->secure.client_app_secret, application_secret.data, application_secret.size);
- 
-    /* Copy iv bytes from input data */
-    POSIX_CHECKED_MEMCPY(server_implicit_iv, iv.data, iv.size);
-    POSIX_CHECKED_MEMCPY(client_implicit_iv, iv.data, iv.size);
-
-    return S2N_SUCCESS;
-}
-
 static int s2n_setup_test_ticket_key(struct s2n_config *config)
 {
     POSIX_ENSURE_REF(config);
@@ -146,17 +83,28 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn);
         EXPECT_NOT_NULL(client_conn);
 
-        struct s2n_config *config = s2n_config_new();
-        EXPECT_NOT_NULL(config);
+        struct s2n_config *server_config = s2n_config_new();
+        EXPECT_NOT_NULL(server_config);
 
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
-        EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
-        EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        struct s2n_config *client_config = s2n_config_new();
+        EXPECT_NOT_NULL(client_config);
 
-        EXPECT_SUCCESS(s2n_test_init_encryption(server_conn));
-        EXPECT_SUCCESS(s2n_test_init_encryption(client_conn));
+        struct s2n_cert_chain_and_key *chain_and_key;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+        EXPECT_SUCCESS(s2n_setup_test_ticket_key(server_config));
+
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_config, 1));
+        EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(client_config, s2n_test_session_ticket_cb, NULL));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
 
         DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
         DEFER_CLEANUP(struct s2n_stuffer output, s2n_stuffer_free);
@@ -165,6 +113,8 @@ int main(int argc, char **argv)
                                         
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, server_conn));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&output, &input, client_conn));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Create conditions to send NewSessionTicket message */
         uint8_t tickets_to_send = 5;
@@ -181,7 +131,8 @@ int main(int argc, char **argv)
 
         EXPECT_EQUAL(session_ticket_counter, tickets_to_send);
 
-        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
