@@ -30,7 +30,7 @@
 
 int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
 {
-    POSIX_ENSURE(S2N_MEM_IS_WRITABLE(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
+    POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
     switch(hash_alg) {
     case S2N_HASH_NONE:       *out = S2N_HMAC_NONE;   break;
     case S2N_HASH_MD5:        *out = S2N_HMAC_MD5;    break;
@@ -48,7 +48,7 @@ int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
 
 int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *out)
 {
-    POSIX_ENSURE(S2N_MEM_IS_WRITABLE(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
+    POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
     switch(hmac_alg) {
     case S2N_HMAC_NONE:       *out = S2N_HASH_NONE;   break;
     case S2N_HMAC_MD5:        *out = S2N_HASH_MD5;    break;
@@ -141,7 +141,7 @@ static int s2n_tls_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm al
 
 int s2n_hmac_xor_pad_size(s2n_hmac_algorithm hmac_alg, uint16_t *xor_pad_size)
 {
-    POSIX_ENSURE(S2N_MEM_IS_WRITABLE(xor_pad_size, sizeof(*xor_pad_size)), S2N_ERR_PRECONDITION_VIOLATION);
+    POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(xor_pad_size, sizeof(*xor_pad_size)), S2N_ERR_PRECONDITION_VIOLATION);
     switch(hmac_alg) {
     case S2N_HMAC_NONE:       *xor_pad_size = 64;   break;
     case S2N_HMAC_MD5:        *xor_pad_size = 64;   break;
@@ -160,7 +160,7 @@ int s2n_hmac_xor_pad_size(s2n_hmac_algorithm hmac_alg, uint16_t *xor_pad_size)
 
 int s2n_hmac_hash_block_size(s2n_hmac_algorithm hmac_alg, uint16_t *block_size)
 {
-    POSIX_ENSURE(S2N_MEM_IS_WRITABLE(block_size, sizeof(*block_size)), S2N_ERR_PRECONDITION_VIOLATION);
+    POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(block_size, sizeof(*block_size)), S2N_ERR_PRECONDITION_VIOLATION);
     switch(hmac_alg) {
     case S2N_HMAC_NONE:       *block_size = 64;   break;
     case S2N_HMAC_MD5:        *block_size = 64;   break;
