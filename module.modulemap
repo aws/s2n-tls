@@ -13,6 +13,10 @@
  * permissions and limitations under the License.
  */
 
+/**
+ * this file is for building with the -fmodules flag in clang. This enables consumtion of this library
+ * other LLVM languages via modules.
+ */
  module S2N {
      explicit module Api {
          header "api/s2n.h"
