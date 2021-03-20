@@ -27,9 +27,10 @@
          umbrella "error"
      }
 
+     /* Add this back when pq-crypto is properly formed as a module.
      explicit module PQCrypto {
          umbrella "pq-crypto"
-     }
+     } */
 
      explicit module Stuffer {
          umbrella "stuffer"
