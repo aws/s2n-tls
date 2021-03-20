@@ -15,7 +15,6 @@
 
 #include <assert.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <cbmc_proof/proof_allocators.h>
 
 #include "api/s2n.h"
 #include "error/s2n_errno.h"

@@ -16,7 +16,6 @@
 #pragma once
 
 #include <cbmc_proof/nondet.h>
-#include <cbmc_proof/proof_allocators.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stuffer/s2n_stuffer.h>
