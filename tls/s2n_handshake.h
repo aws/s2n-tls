@@ -155,6 +155,10 @@ struct s2n_handshake {
     /* Which handshake message number are we processing */
     int message_number;
 
+    /* Last message in the handshake. Unless using early data or testing,
+     * should always be APPLICATION_DATA. */
+    message_type_t end_of_messages;
+
     /* State of the async pkey operation during handshake */
     s2n_async_state async_state;
 
@@ -184,3 +188,4 @@ struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_
 int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data);
 S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t *message_type);
 S2N_RESULT s2n_quic_write_handshake_message(struct s2n_connection *conn, struct s2n_blob *in);
+S2N_RESULT s2n_negotiate_until_message(struct s2n_connection *conn, s2n_blocked_status *blocked, message_type_t end_message);

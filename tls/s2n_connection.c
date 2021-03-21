@@ -251,28 +251,13 @@ static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n
     /* Zero the whole connection structure */
     POSIX_CHECKED_MEMSET(conn, 0, sizeof(struct s2n_connection));
 
-    conn->send = NULL;
-    conn->recv = NULL;
-    conn->send_io_context = NULL;
-    conn->recv_io_context = NULL;
     conn->mode = mode;
-    conn->close_notify_queued = 0;
-    conn->client_session_resumed = 0;
-    conn->current_user_data_consumed = 0;
     conn->initial.cipher_suite = &s2n_null_cipher_suite;
     conn->secure.cipher_suite = &s2n_null_cipher_suite;
-    conn->initial.kem_params.kem = NULL;
-    conn->secure.kem_params.kem = NULL;
     conn->server = &conn->initial;
     conn->client = &conn->initial;
     conn->max_outgoing_fragment_length = S2N_DEFAULT_FRAGMENT_LENGTH;
-    conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
-    conn->handshake.handshake_type = INITIAL;
-    conn->handshake.message_number = 0;
-    conn->handshake.paused = 0;
-    conn->verify_host_fn = NULL;
-    conn->verify_host_fn_overridden = 0;
-    conn->data_for_verify_host = NULL;
+    conn->handshake.end_of_messages = APPLICATION_DATA;
     s2n_connection_set_config(conn, config);
 
     return 0;
