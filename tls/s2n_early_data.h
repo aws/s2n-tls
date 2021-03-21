@@ -54,3 +54,15 @@ int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data_si
         uint8_t cipher_suite_first_byte, uint8_t cipher_suite_second_byte);
 int s2n_psk_set_application_protocol(struct s2n_psk *psk, const uint8_t *application_protocol, uint8_t size);
 int s2n_psk_set_context(struct s2n_psk *psk, const uint8_t *context, uint16_t size);
+
+typedef enum {
+    S2N_EARLY_DATA_STATUS_UNKNOWN = 0,
+    S2N_EARLY_DATA_STATUS_OK,
+    S2N_EARLY_DATA_STATUS_NOT_REQUESTED,
+    S2N_EARLY_DATA_STATUS_REJECTED,
+    S2N_EARLY_DATA_STATUS_END,
+} s2n_early_data_status_t;
+int s2n_connection_get_early_data_status(struct s2n_connection *conn, s2n_early_data_status_t *status);
+
+int s2n_connection_get_allowed_early_data_size(struct s2n_connection *conn, uint32_t *allowed_early_data_size);
+int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, uint32_t *max_early_data_size);
