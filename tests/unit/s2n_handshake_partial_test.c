@@ -162,6 +162,8 @@ int main()
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
                     END_OF_EARLY_DATA));

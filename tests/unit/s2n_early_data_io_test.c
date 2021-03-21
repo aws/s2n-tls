@@ -73,6 +73,54 @@ int main(int argc, char **argv)
 
     /* Test s2n_negotiate with early data */
     {
+        /* Early data not supported by server */
+        {
+            struct s2n_connection *client_conn = NULL, *server_conn = NULL;
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+
+            EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            EXPECT_FALSE(WITH_EARLY_DATA(client_conn));
+            EXPECT_FALSE(WITH_EARLY_DATA(server_conn));
+            EXPECT_FALSE(IS_FULL_HANDSHAKE(client_conn));
+            EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
+            EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
+            EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
+
+        /* Early data not supported by client */
+        {
+            struct s2n_connection *client_conn = NULL, *server_conn = NULL;
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+
+            EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            EXPECT_FALSE(WITH_EARLY_DATA(client_conn));
+            EXPECT_FALSE(WITH_EARLY_DATA(server_conn));
+            EXPECT_FALSE(IS_FULL_HANDSHAKE(client_conn));
+            EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
+            EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
+            EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
+
         /* Early data accepted */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
@@ -80,6 +128,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -103,6 +153,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk_without_early_data));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -126,6 +178,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
             client_conn->security_policy_override = &retry_policy;
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -150,6 +204,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_cert));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_with_cert));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
