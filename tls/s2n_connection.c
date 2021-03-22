@@ -1415,13 +1415,14 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
         POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
 
         struct s2n_cert *new_node = (struct s2n_cert *)(void *)mem.data;
-        POSIX_GUARD(s2n_alloc(&new_node->raw, cert_size));
-        POSIX_CHECKED_MEMCPY(new_node->raw.data, cert_data, cert_size);
+        POSIX_ENSURE_REF(new_node);
 
         new_node->next = NULL;
         *insert = new_node;
         insert = &new_node->next;
 
+        POSIX_GUARD(s2n_alloc(&new_node->raw, cert_size));
+        POSIX_CHECKED_MEMCPY(new_node->raw.data, cert_data, cert_size);
     }
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(cert_chain);
