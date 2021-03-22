@@ -1385,7 +1385,8 @@ int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn,
     POSIX_BAIL(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 }
 
-static int s2n_openssl_free(uint8_t** data) {
+static int s2n_openssl_free(uint8_t** data)
+{
     if (*data != NULL) {
         OPENSSL_free(*data);
         *data = NULL;
@@ -1393,11 +1394,31 @@ static int s2n_openssl_free(uint8_t** data) {
     return S2N_SUCCESS;
 }
 
-static int s2n_sk_X509_pop_free(STACK_OF(X509) **cert_chain) {
+static int s2n_sk_X509_pop_free(STACK_OF(X509) **cert_chain)
+{
     if (*cert_chain != NULL) {
         sk_X509_pop_free(*cert_chain, X509_free);
         *cert_chain = NULL;
     }
+    return S2N_SUCCESS;
+}
+
+static int s2n_cert_chain_wipe(struct s2n_cert_chain *cert_chain)
+{
+    /* Walk the chain and free the certs/nodes allocated prior to failure */
+    if (cert_chain) {
+        struct s2n_cert *node = cert_chain->head;
+        while (node) {
+            /* Free the cert */
+            POSIX_GUARD(s2n_free(&node->raw));
+            /* update head so it won't point to freed memory */
+            cert_chain->head = node->next;
+            /* Free the node */
+            POSIX_GUARD(s2n_free_object((uint8_t **)&node, sizeof(struct s2n_cert)));
+            node = cert_chain->head;
+        }
+    }
+
     return S2N_SUCCESS;
 }
 
@@ -1409,7 +1430,7 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
     struct s2n_cert_chain *cert_chain = cert_chain_and_key->cert_chain;
     POSIX_ENSURE_REF(cert_chain);
     struct s2n_cert **insert = &cert_chain->head;
-    POSIX_ENSURE(*insert == NULL, S2N_ERR_INVALID_CERT_CHAIN);
+    POSIX_ENSURE(*insert == NULL, S2N_ERR_INVALID_ARGUMENT);
 
     const struct s2n_x509_validator *validator = &conn->x509_validator;
     POSIX_ENSURE_REF(validator);
@@ -1435,8 +1456,8 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
         if (s2n_alloc(&mem, sizeof(struct s2n_cert)) < S2N_SUCCESS) {
             goto cleanup;
         }
-        struct s2n_cert *new_node = (struct s2n_cert *)(void *)mem.data;
 
+        struct s2n_cert *new_node = (struct s2n_cert *)(void *)mem.data;
         if (s2n_alloc(&new_node->raw, cert_size) < S2N_SUCCESS) {
             goto cleanup;            
         }
@@ -1451,18 +1472,6 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
     return S2N_SUCCESS;
     
     cleanup:
-        /* Walk the chain and free the certs/nodes allocated prior to failure */
-        if (cert_chain) {
-            struct s2n_cert *node = cert_chain->head;
-            while (node) {
-                /* Free the cert */
-                POSIX_GUARD(s2n_free(&node->raw));
-                /* update head so it won't point to freed memory */
-                cert_chain->head = node->next;
-                /* Free the node */
-                POSIX_GUARD(s2n_free_object((uint8_t **)&node, sizeof(struct s2n_cert)));
-                node = cert_chain->head;
-            }
-        }
+        POSIX_GUARD(s2n_cert_chain_wipe(cert_chain));
         POSIX_BAIL(S2N_ERR_INVALID_CERT_STATE);
 }

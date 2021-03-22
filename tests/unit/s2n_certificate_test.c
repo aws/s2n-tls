@@ -197,7 +197,7 @@ int main(int argc, char **argv)
 
             /* Input certificate chain is not empty */
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(server_conn, chain_and_key),
-                                      S2N_ERR_INVALID_CERT_CHAIN);
+                                      S2N_ERR_INVALID_ARGUMENT);
 
             /* x509 verification is skipped on client side */
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(client_conn, test_peer_chain),
