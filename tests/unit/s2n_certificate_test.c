@@ -45,7 +45,7 @@ static S2N_RESULT s2n_compare_cert_chain(struct s2n_connection *conn, struct s2n
     uint32_t cert_chain_length = 0;
     RESULT_GUARD_POSIX(s2n_get_cert_chain_length(test_peer_chain, &cert_chain_length));
     DEFER_CLEANUP(STACK_OF(X509) *cert_chain_validated = X509_STORE_CTX_get1_chain(conn->x509_validator.store_ctx),
-                  s2n_sk_X509_pop_free_pointer);
+                  s2n_sk_X509_pop_free);
     ENSURE_REF(cert_chain_validated);
     ENSURE_EQ(cert_chain_length, sk_X509_num(cert_chain_validated));
     struct s2n_cert *cur_cert = NULL;
@@ -53,7 +53,7 @@ static S2N_RESULT s2n_compare_cert_chain(struct s2n_connection *conn, struct s2n
     for (size_t cert_idx = 0; cert_idx < cert_chain_length; cert_idx++) {
         X509 *cert = sk_X509_value(cert_chain_validated, cert_idx);
         ENSURE_REF(cert);
-        DEFER_CLEANUP(uint8_t *cert_data_from_validator = NULL, s2n_openssl_free_pointer);
+        DEFER_CLEANUP(uint8_t *cert_data_from_validator = NULL, s2n_openssl_free);
         int cert_size_from_validator = i2d_X509(cert, &cert_data_from_validator);
         ENSURE_REF(cert_data_from_validator);
         ENSURE_GT(cert_size_from_validator, 0);
