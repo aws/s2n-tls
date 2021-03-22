@@ -479,7 +479,7 @@ extern int s2n_get_cert_der(const struct s2n_cert *cert, const uint8_t **out_cer
 /**
  * Returns the validated peer certificate chain as a `s2n_cert_chain_and_key` opaque object.
  * 
- * The `s2n_cert_chain_and_key` parameter must be allocated by the customer using the `s2n_cert_chain_and_key_new` API
+ * The `s2n_cert_chain_and_key` parameter must be allocated by the caller using the `s2n_cert_chain_and_key_new` API
  * prior to this function call and must be empty. To free the memory associated with the `s2n_cert_chain_and_key` object use the 
  * `s2n_cert_chain_and_key_free` API.
  * 

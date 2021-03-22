@@ -23,6 +23,8 @@
 #include <s2n.h>
 #include <stdbool.h>
 
+/* OPENSSL_free is defined within <openssl/crypto.h> for OpenSSL Libcrypto
+ * and within <openssl/mem.h> for AWS_LC */
 #include <openssl/crypto.h>
 #if defined(OPENSSL_IS_AWSLC)
 #include <openssl/mem.h>
@@ -1383,48 +1385,72 @@ int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn,
     POSIX_BAIL(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 }
 
+static int s2n_openssl_free(uint8_t* data) {
+    if (data != NULL) {
+        OPENSSL_free(data);
+        data = NULL;
+    }
+    return S2N_SUCCESS;
+}
+
+static int s2n_sk_X509_pop_free(STACK_OF(X509) *cert_chain) {
+    if (cert_chain != NULL) {
+        sk_X509_pop_free(cert_chain, X509_free);
+        cert_chain = NULL;
+    }
+    return S2N_SUCCESS;
+}
+
+DEFINE_POINTER_CLEANUP_FUNC(uint8_t *, s2n_openssl_free);
+DEFINE_POINTER_CLEANUP_FUNC(STACK_OF(X509) *, s2n_sk_X509_pop_free);
+
 int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain_and_key)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(cert_chain_and_key);
-
-    const struct s2n_x509_validator *validator = &conn->x509_validator;
-    POSIX_ENSURE_REF(validator);
-    POSIX_ENSURE(validator->state == VALIDATED, S2N_ERR_CERT_NOT_VALIDATED);
 
     struct s2n_cert_chain *cert_chain = cert_chain_and_key->cert_chain;
     POSIX_ENSURE_REF(cert_chain);
     struct s2n_cert **insert = &cert_chain->head;
     POSIX_ENSURE(*insert == NULL, S2N_ERR_INVALID_CERT_CHAIN);
 
+    const struct s2n_x509_validator *validator = &conn->x509_validator;
+    POSIX_ENSURE_REF(validator);
+    POSIX_ENSURE(validator->state == VALIDATED, S2N_ERR_CERT_NOT_VALIDATED);
+
     /* X509_STORE_CTX_get1_chain() returns a validated cert chain if a previous call to X509_verify_cert() was successful.
      * X509_STORE_CTX_get0_chain() is a better API because it doesn't return a copy. But it's not available for Openssl 1.0.2.
      * See the comments here:
      * https://www.openssl.org/docs/man1.0.2/man3/X509_STORE_CTX_get1_chain.html
      */
-    STACK_OF(X509) *cert_chain_validated = X509_STORE_CTX_get1_chain(validator->store_ctx);
+    DEFER_CLEANUP(STACK_OF(X509) *cert_chain_validated = X509_STORE_CTX_get1_chain(validator->store_ctx), s2n_sk_X509_pop_free_pointer);
     POSIX_ENSURE_REF(cert_chain_validated);
 
     for (size_t cert_idx = 0; cert_idx < sk_X509_num(cert_chain_validated); cert_idx++) {
         X509 *cert = sk_X509_value(cert_chain_validated, cert_idx);
-        uint8_t *cert_data = NULL;
+        POSIX_ENSURE_REF(cert);
+        DEFER_CLEANUP(uint8_t *cert_data = NULL, s2n_openssl_free_pointer);
         int cert_size = i2d_X509(cert, &cert_data);
         POSIX_ENSURE_GT(cert_size, 0);
 
         struct s2n_blob mem = { 0 };
-        POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
+        if (s2n_alloc(&mem, sizeof(struct s2n_cert)) < S2N_SUCCESS) {
+            POSIX_GUARD(s2n_cert_chain_and_key_free(cert_chain_and_key));
+            POSIX_BAIL(S2N_ERR_INVALID_CERT_STATE);
+        }
         struct s2n_cert *new_node = (struct s2n_cert *)(void *)mem.data;
 
-        POSIX_GUARD(s2n_alloc(&new_node->raw, cert_size));
+        if (s2n_alloc(&new_node->raw, cert_size) < S2N_SUCCESS) {
+            POSIX_GUARD(s2n_cert_chain_and_key_free(cert_chain_and_key));
+            POSIX_BAIL(S2N_ERR_INVALID_CERT_STATE);
+        }
         POSIX_CHECKED_MEMCPY(new_node->raw.data, cert_data, cert_size);
 
         new_node->next = NULL;
         *insert = new_node;
         insert = &new_node->next;
 
-        OPENSSL_free(cert_data);
     }
 
-    sk_X509_pop_free(cert_chain_validated, X509_free);
     return S2N_SUCCESS;
 }
