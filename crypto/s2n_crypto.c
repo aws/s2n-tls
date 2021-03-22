@@ -13,19 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
+#include "crypto/s2n_crypto.h"
 
-#include <openssl/aes.h>
-#include <openssl/rc4.h>
-#include <openssl/des.h>
-#include <openssl/rsa.h>
-#include <openssl/dh.h>
+int s2n_openssl_free(uint8_t** data)
+{
+    if (*data != NULL) {
+        OPENSSL_free(*data);
+    }
+    return 0;
+}
 
-/* OPENSSL_free is defined within <openssl/crypto.h> for OpenSSL Libcrypto
- * and within <openssl/mem.h> for AWS_LC */
-#include <openssl/crypto.h>
-#if defined(OPENSSL_IS_AWSLC)
-#include <openssl/mem.h>
-#endif
-
-int s2n_openssl_free(uint8_t** data);

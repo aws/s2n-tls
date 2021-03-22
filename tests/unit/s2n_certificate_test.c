@@ -18,10 +18,8 @@
 
 #include <s2n.h>
 #include "utils/s2n_safety.h"
-
-/* The following include is required to call the s2n_openssl_free and 
- * s2n_sk_X509_pop_free static functions */
-#include "tls/s2n_connection.c"
+#include "crypto/s2n_crypto.h"
+#include "crypto/s2n_openssl_x509.h"
 
 #define S2N_DEFAULT_TEST_CERT_CHAIN_LENGTH 3
 #define S2N_CERT_DER_SIZE 2048
@@ -176,9 +174,9 @@ int main(int argc, char **argv)
         /* Test s2n_connection_get_peer_cert_chain failure cases with error codes */
         {            
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_skip_x509_verification));
-            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_with_x509_verification));
-
             EXPECT_EQUAL(client_conn->x509_validator.skip_cert_validation, 1);
+
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_with_x509_verification));
             EXPECT_EQUAL(server_conn->x509_validator.skip_cert_validation, 0);
 
             EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));

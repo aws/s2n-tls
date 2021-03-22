@@ -23,13 +23,6 @@
 #include <s2n.h>
 #include <stdbool.h>
 
-/* OPENSSL_free is defined within <openssl/crypto.h> for OpenSSL Libcrypto
- * and within <openssl/mem.h> for AWS_LC */
-#include <openssl/crypto.h>
-#if defined(OPENSSL_IS_AWSLC)
-#include <openssl/mem.h>
-#endif
-
 #include "crypto/s2n_fips.h"
 
 #include "error/s2n_errno.h"
@@ -50,6 +43,8 @@
 
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
+#include "crypto/s2n_crypto.h"
+#include "crypto/s2n_openssl_x509.h"
 
 #include "utils/s2n_blob.h"
 #include "utils/s2n_compiler.h"
@@ -1385,50 +1380,14 @@ int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn,
     POSIX_BAIL(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 }
 
-static int s2n_openssl_free(uint8_t** data)
-{
-    if (*data != NULL) {
-        OPENSSL_free(*data);
-        *data = NULL;
-    }
-    return S2N_SUCCESS;
-}
-
-static int s2n_sk_X509_pop_free(STACK_OF(X509) **cert_chain)
-{
-    if (*cert_chain != NULL) {
-        sk_X509_pop_free(*cert_chain, X509_free);
-        *cert_chain = NULL;
-    }
-    return S2N_SUCCESS;
-}
-
-static int s2n_cert_chain_wipe(struct s2n_cert_chain *cert_chain)
-{
-    /* Walk the chain and free the certs/nodes allocated prior to failure */
-    if (cert_chain) {
-        struct s2n_cert *node = cert_chain->head;
-        while (node) {
-            /* Free the cert */
-            POSIX_GUARD(s2n_free(&node->raw));
-            /* update head so it won't point to freed memory */
-            cert_chain->head = node->next;
-            /* Free the node */
-            POSIX_GUARD(s2n_free_object((uint8_t **)&node, sizeof(struct s2n_cert)));
-            node = cert_chain->head;
-        }
-    }
-
-    return S2N_SUCCESS;
-}
+DEFINE_POINTER_CLEANUP_FUNC(struct s2n_cert_chain *, s2n_cert_chain_free);
 
 int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain_and_key)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(cert_chain_and_key);
 
-    struct s2n_cert_chain *cert_chain = cert_chain_and_key->cert_chain;
-    POSIX_ENSURE_REF(cert_chain);
+    DEFER_CLEANUP(struct s2n_cert_chain *cert_chain = cert_chain_and_key->cert_chain, s2n_cert_chain_free_pointer);
     struct s2n_cert **insert = &cert_chain->head;
     POSIX_ENSURE(*insert == NULL, S2N_ERR_INVALID_ARGUMENT);
 
@@ -1453,14 +1412,10 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
         POSIX_ENSURE_GT(cert_size, 0);
 
         struct s2n_blob mem = { 0 };
-        if (s2n_alloc(&mem, sizeof(struct s2n_cert)) < S2N_SUCCESS) {
-            goto cleanup;
-        }
+        POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
 
         struct s2n_cert *new_node = (struct s2n_cert *)(void *)mem.data;
-        if (s2n_alloc(&new_node->raw, cert_size) < S2N_SUCCESS) {
-            goto cleanup;            
-        }
+        POSIX_GUARD(s2n_alloc(&new_node->raw, cert_size));
         POSIX_CHECKED_MEMCPY(new_node->raw.data, cert_data, cert_size);
 
         new_node->next = NULL;
@@ -1469,9 +1424,7 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 
     }
 
+    ZERO_TO_DISABLE_DEFER_CLEANUP(cert_chain);
+
     return S2N_SUCCESS;
-    
-    cleanup:
-        POSIX_GUARD(s2n_cert_chain_wipe(cert_chain));
-        POSIX_BAIL(S2N_ERR_INVALID_CERT_STATE);
 }
