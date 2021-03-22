@@ -1433,14 +1433,12 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 
         struct s2n_blob mem = { 0 };
         if (s2n_alloc(&mem, sizeof(struct s2n_cert)) < S2N_SUCCESS) {
-            POSIX_GUARD(s2n_cert_chain_and_key_free(cert_chain_and_key));
-            POSIX_BAIL(S2N_ERR_INVALID_CERT_STATE);
+            goto cleanup;
         }
         struct s2n_cert *new_node = (struct s2n_cert *)(void *)mem.data;
 
         if (s2n_alloc(&new_node->raw, cert_size) < S2N_SUCCESS) {
-            POSIX_GUARD(s2n_cert_chain_and_key_free(cert_chain_and_key));
-            POSIX_BAIL(S2N_ERR_INVALID_CERT_STATE);
+            goto cleanup;            
         }
         POSIX_CHECKED_MEMCPY(new_node->raw.data, cert_data, cert_size);
 
@@ -1451,4 +1449,20 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
     }
 
     return S2N_SUCCESS;
+    
+    cleanup:
+        /* Walk the chain and free the certs/nodes allocated prior to failure */
+        if (cert_chain) {
+            struct s2n_cert *node = cert_chain->head;
+            while (node) {
+                /* Free the cert */
+                POSIX_GUARD(s2n_free(&node->raw));
+                /* update head so it won't point to freed memory */
+                cert_chain->head = node->next;
+                /* Free the node */
+                POSIX_GUARD(s2n_free_object((uint8_t **)&node, sizeof(struct s2n_cert)));
+                node = cert_chain->head;
+            }
+        }
+        POSIX_BAIL(S2N_ERR_INVALID_CERT_STATE);
 }
