@@ -47,10 +47,3 @@
 #else
 #define S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND 0
 #endif
-
-/* OPENSSL_free is defined within <openssl/crypto.h> for OpenSSL Libcrypto
- * and within <openssl/mem.h> for AWS_LC */
-#include <openssl/crypto.h>
-#if defined(OPENSSL_IS_AWSLC)
-#include <openssl/mem.h>
-#endif
