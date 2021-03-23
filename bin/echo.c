@@ -54,6 +54,7 @@ static int wait_for_event(int fd, s2n_blocked_status blocked)
     case S2N_BLOCKED_ON_WRITE:
         reader.events |= POLLOUT;
         break;
+    case S2N_BLOCKED_ON_EARLY_DATA:
     case S2N_BLOCKED_ON_APPLICATION_INPUT:
         /* This case is not encountered by the s2nc/s2nd applications,
          * but is detected for completeness */

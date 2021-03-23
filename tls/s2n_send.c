@@ -134,6 +134,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
     }
     total_size -= offs;
     S2N_ERROR_IF(conn->current_user_data_consumed > total_size, S2N_ERR_SEND_SIZE);
+    POSIX_GUARD_RESULT(s2n_early_data_validate_send(conn, total_size));
 
     if (conn->dynamic_record_timeout_threshold > 0) {
         uint64_t elapsed;
@@ -200,6 +201,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
 
     *blocked = S2N_NOT_BLOCKED;
 
+    POSIX_GUARD_RESULT(s2n_early_data_record_bytes(conn, total_size));
     return total_size;
 }
 

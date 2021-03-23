@@ -924,5 +924,188 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
+    /* Test s2n_early_data_record_bytes */
+    {
+        /* Safety check */
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_record_bytes(NULL, 1), S2N_ERR_NULL);
+
+        const uint32_t limit = 10;
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_OK(s2n_append_test_psk_with_early_data(conn, limit, &s2n_tls13_aes_256_gcm_sha384));
+
+        /* If early data not expected, bytes are not recorded */
+        conn->early_data_bytes = 0;
+        EXPECT_OK(s2n_early_data_record_bytes(conn, limit + 1));
+        EXPECT_EQUAL(conn->early_data_bytes, 0);
+
+        EXPECT_SUCCESS(s2n_connection_set_early_data_expected(conn));
+
+        /* Bytes are recorded */
+        {
+            conn->early_data_bytes = 0;
+            EXPECT_OK(s2n_early_data_record_bytes(conn, 1));
+            EXPECT_EQUAL(conn->early_data_bytes, 1);
+
+            conn->early_data_bytes = 1;
+            EXPECT_OK(s2n_early_data_record_bytes(conn, 1));
+            EXPECT_EQUAL(conn->early_data_bytes, 2);
+        }
+
+        /* Error if exceeds max_early_data_size */
+        {
+            conn->early_data_bytes = 0;
+            EXPECT_OK(s2n_early_data_record_bytes(conn, limit));
+            EXPECT_EQUAL(conn->early_data_bytes, limit);
+
+            conn->early_data_bytes = 1;
+            EXPECT_ERROR_WITH_ERRNO(s2n_early_data_record_bytes(conn, limit), S2N_ERR_MAX_EARLY_DATA_SIZE);
+            EXPECT_EQUAL(conn->early_data_bytes, limit + 1);
+        }
+
+        /* Bytes not record if would overflow */
+        {
+            conn->early_data_bytes = UINT64_MAX - 2;
+            EXPECT_ERROR_WITH_ERRNO(s2n_early_data_record_bytes(conn, 1), S2N_ERR_MAX_EARLY_DATA_SIZE);
+            EXPECT_EQUAL(conn->early_data_bytes, UINT64_MAX - 1);
+
+            conn->early_data_bytes = UINT64_MAX - 1;
+            EXPECT_ERROR_WITH_ERRNO(s2n_early_data_record_bytes(conn, 1), S2N_ERR_MAX_EARLY_DATA_SIZE);
+            EXPECT_EQUAL(conn->early_data_bytes, UINT64_MAX);
+
+            conn->early_data_bytes = UINT64_MAX;
+            EXPECT_ERROR_WITH_ERRNO(s2n_early_data_record_bytes(conn, 1), S2N_ERR_INTEGER_OVERFLOW);
+            EXPECT_EQUAL(conn->early_data_bytes, UINT64_MAX);
+        }
+
+        /* Zero bytes are "recorded" */
+        {
+            conn->early_data_bytes = 0;
+            EXPECT_OK(s2n_early_data_record_bytes(conn, 0));
+            EXPECT_EQUAL(conn->early_data_bytes, 0);
+
+            conn->early_data_bytes = limit;
+            EXPECT_OK(s2n_early_data_record_bytes(conn, 0));
+            EXPECT_EQUAL(conn->early_data_bytes, limit);
+
+            conn->early_data_bytes = limit + 1;
+            EXPECT_ERROR_WITH_ERRNO(s2n_early_data_record_bytes(conn, 0), S2N_ERR_MAX_EARLY_DATA_SIZE);
+            EXPECT_EQUAL(conn->early_data_bytes, limit + 1);
+        }
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test s2n_early_data_validate_send */
+    {
+        /* Safety check */
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_validate_send(NULL, 1), S2N_ERR_NULL);
+
+        const uint32_t limit = 10;
+        struct s2n_connection *valid_connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(valid_connection);
+        EXPECT_OK(s2n_append_test_psk_with_early_data(valid_connection, limit, &s2n_tls13_aes_256_gcm_sha384));
+        EXPECT_SUCCESS(s2n_connection_set_early_data_expected(valid_connection));
+        valid_connection->mode = S2N_CLIENT;
+        valid_connection->early_data_state = S2N_EARLY_DATA_REQUESTED;
+        valid_connection->early_data_bytes = 0;
+
+        /* Fails if server */
+        struct s2n_connection conn = *valid_connection;
+        conn.mode = S2N_SERVER;
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_validate_send(&conn, 1), S2N_ERR_EARLY_DATA_NOT_ALLOWED);
+
+        /* Fails if wrong state */
+        conn = *valid_connection;
+        conn.early_data_state = S2N_END_OF_EARLY_DATA;
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_validate_send(&conn, 1), S2N_ERR_EARLY_DATA_NOT_ALLOWED);
+
+        /* Passes for S2N_EARLY_DATA_REQUESTED */
+        conn = *valid_connection;
+        conn.early_data_state = S2N_EARLY_DATA_REQUESTED;
+        EXPECT_OK(s2n_early_data_validate_send(&conn, 1));
+
+        /* Passes for S2N_EARLY_DATA_ACCEPTED */
+        conn = *valid_connection;
+        conn.early_data_state = S2N_EARLY_DATA_ACCEPTED;
+        EXPECT_OK(s2n_early_data_validate_send(&conn, 1));
+
+        /* Fails if too much data */
+        conn = *valid_connection;
+        conn.early_data_bytes = limit;
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_validate_send(&conn, 1), S2N_ERR_MAX_EARLY_DATA_SIZE);
+
+        /* No-op if actually Application Data */
+        conn = *valid_connection;
+        conn.early_data_bytes = limit;
+        conn.handshake.handshake_type = NEGOTIATED;
+        while(s2n_conn_get_current_message_type(&conn) != APPLICATION_DATA) {
+            conn.handshake.message_number++;
+        }
+        EXPECT_OK(s2n_early_data_validate_send(&conn, 1));
+
+        EXPECT_SUCCESS(s2n_connection_free(valid_connection));
+    }
+
+    /* Test s2n_early_data_validate_recv */
+    {
+        /* Safety check */
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_validate_recv(NULL), S2N_ERR_NULL);
+
+        const uint32_t limit = 10;
+        struct s2n_connection *valid_connection = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(valid_connection);
+        EXPECT_OK(s2n_append_test_psk_with_early_data(valid_connection, limit, &s2n_tls13_aes_256_gcm_sha384));
+        EXPECT_SUCCESS(s2n_connection_set_early_data_expected(valid_connection));
+        valid_connection->mode = S2N_SERVER;
+        valid_connection->early_data_state = S2N_EARLY_DATA_ACCEPTED;
+        valid_connection->early_data_bytes = 0;
+        valid_connection->handshake.handshake_type = NEGOTIATED | WITH_EARLY_DATA;
+        while(s2n_conn_get_current_message_type(valid_connection) != END_OF_EARLY_DATA) {
+            valid_connection->handshake.message_number++;
+        }
+
+        /* Passes if everything valid */
+        struct s2n_connection conn = *valid_connection;
+        EXPECT_OK(s2n_early_data_validate_recv(&conn));
+
+        /* Fails if client */
+        conn = *valid_connection;
+        conn.mode = S2N_CLIENT;
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_validate_recv(&conn), S2N_ERR_EARLY_DATA_NOT_ALLOWED);
+
+        /* Fails if wrong state */
+        conn = *valid_connection;
+        conn.early_data_state = S2N_END_OF_EARLY_DATA;
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_validate_recv(&conn), S2N_ERR_EARLY_DATA_NOT_ALLOWED);
+
+        /* Fails if wrong handshake message */
+        conn = *valid_connection;
+        conn.handshake.message_number--;
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_validate_recv(&conn), S2N_ERR_EARLY_DATA_NOT_ALLOWED);
+
+        /* Fails for S2N_EARLY_DATA_REQUESTED */
+        conn = *valid_connection;
+        conn.early_data_state = S2N_EARLY_DATA_REQUESTED;
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_validate_recv(&conn), S2N_ERR_EARLY_DATA_NOT_ALLOWED);
+
+        /* Passes for S2N_EARLY_DATA_ACCEPTED */
+        conn = *valid_connection;
+        conn.early_data_state = S2N_EARLY_DATA_ACCEPTED;
+        EXPECT_OK(s2n_early_data_validate_recv(&conn));
+
+        /* No-op if actually Application Data */
+        conn = *valid_connection;
+        conn.early_data_bytes = limit;
+        conn.handshake.handshake_type = NEGOTIATED;
+        while(s2n_conn_get_current_message_type(&conn) != APPLICATION_DATA) {
+            conn.handshake.message_number++;
+        }
+        EXPECT_OK(s2n_early_data_validate_recv(&conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(valid_connection));
+    }
+
     END_TEST();
 }

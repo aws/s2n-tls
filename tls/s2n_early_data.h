@@ -50,6 +50,10 @@ S2N_RESULT s2n_early_data_accept_or_reject(struct s2n_connection *conn);
 
 S2N_RESULT s2n_early_data_get_server_max_size(struct s2n_connection *conn, uint32_t *max_early_data_size);
 
+S2N_RESULT s2n_early_data_record_bytes(struct s2n_connection *conn, ssize_t data_len);
+S2N_RESULT s2n_early_data_validate_send(struct s2n_connection *conn, uint32_t bytes_to_send);
+S2N_RESULT s2n_early_data_validate_recv(struct s2n_connection *conn);
+
 /* Public Interface -- will be made visible and moved to s2n.h when the 0RTT feature is released */
 
 int s2n_config_set_server_max_early_data_size(struct s2n_config *config, uint32_t max_early_data_size);
@@ -61,6 +65,7 @@ int s2n_psk_set_application_protocol(struct s2n_psk *psk, const uint8_t *applica
 int s2n_psk_set_context(struct s2n_psk *psk, const uint8_t *context, uint16_t size);
 
 int s2n_connection_set_early_data_expected(struct s2n_connection *conn);
+int s2n_connection_set_end_of_early_data(struct s2n_connection *conn);
 
 typedef enum {
     S2N_EARLY_DATA_STATUS_OK,

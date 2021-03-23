@@ -1086,6 +1086,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         if ((r < 0) && (s2n_errno == S2N_ERR_DECRYPT) /* Decryption Error */
                 && (conn->mode == S2N_SERVER) /* On the server */
                 && (conn->early_data_state == S2N_EARLY_DATA_REJECTED) /* When early data was rejected */) {
+            POSIX_GUARD(s2n_stuffer_reread(&conn->in));
+            POSIX_GUARD_RESULT(s2n_early_data_record_bytes(conn, s2n_stuffer_data_available(&conn->in)));
             POSIX_GUARD_RESULT(s2n_wipe_record(conn));
             return S2N_SUCCESS;
         }
@@ -1100,8 +1102,12 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
     /* Now we have a record, but it could be a partial fragment of a message, or it might
      * contain several messages.
      */
-    S2N_ERROR_IF(record_type == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
-    if (record_type == TLS_CHANGE_CIPHER_SPEC) {
+
+    if (record_type == TLS_APPLICATION_DATA) {
+        POSIX_ENSURE(conn->early_data_expected, S2N_ERR_BAD_MESSAGE);
+        POSIX_GUARD_RESULT(s2n_early_data_validate_recv(conn));
+        POSIX_BAIL(S2N_ERR_EARLY_DATA_BLOCKED);
+    } else if (record_type == TLS_CHANGE_CIPHER_SPEC) {
         /* TLS1.3 can receive unexpected CCS messages at any point in the handshake
          * due to a peer operating in middlebox compatibility mode.
          * However, when operating in QUIC mode, S2N should not accept ANY CCS messages,
@@ -1310,6 +1316,8 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
 
                 if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
                     *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
+                } else if (s2n_errno == S2N_ERR_EARLY_DATA_BLOCKED) {
+                    *blocked = S2N_BLOCKED_ON_EARLY_DATA;
                 }
 
                 S2N_ERROR_PRESERVE_ERRNO();
@@ -1327,6 +1335,8 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
 
                 if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
                     *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
+                } else if (s2n_errno == S2N_ERR_EARLY_DATA_BLOCKED) {
+                    *blocked = S2N_BLOCKED_ON_EARLY_DATA;
                 }
 
                 S2N_ERROR_PRESERVE_ERRNO();
