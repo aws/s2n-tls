@@ -30,6 +30,4 @@
 #include <openssl/mem.h>
 #endif
 
-#include "api/s2n.h"
-
 int s2n_openssl_free(uint8_t** data);

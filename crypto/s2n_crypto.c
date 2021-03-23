@@ -14,6 +14,8 @@
  */
 
 #include <stdint.h>
+
+#include "api/s2n.h"
 #include "crypto/s2n_crypto.h"
 
 int s2n_openssl_free(uint8_t** data)

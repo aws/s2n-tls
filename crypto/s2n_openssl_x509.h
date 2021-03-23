@@ -18,7 +18,6 @@
 #include <stdint.h>
 #include <openssl/x509.h>
 
-#include "api/s2n.h"
 #include "utils/s2n_safety.h"
 
 DEFINE_POINTER_CLEANUP_FUNC(X509*, X509_free);
