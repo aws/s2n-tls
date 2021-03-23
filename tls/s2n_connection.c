@@ -1401,13 +1401,13 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
      * https://www.openssl.org/docs/man1.0.2/man3/X509_STORE_CTX_get1_chain.html
      */
     DEFER_CLEANUP(STACK_OF(X509) *cert_chain_validated = X509_STORE_CTX_get1_chain(validator->store_ctx),
-                  s2n_sk_X509_pop_free);
+                  s2n_openssl_x509_stack_pop_free);
     POSIX_ENSURE_REF(cert_chain_validated);
 
     for (size_t cert_idx = 0; cert_idx < sk_X509_num(cert_chain_validated); cert_idx++) {
         X509 *cert = sk_X509_value(cert_chain_validated, cert_idx);
         POSIX_ENSURE_REF(cert);
-        DEFER_CLEANUP(uint8_t *cert_data = NULL, s2n_openssl_free);
+        DEFER_CLEANUP(uint8_t *cert_data = NULL, s2n_crypto_free);
         int cert_size = i2d_X509(cert, &cert_data);
         POSIX_ENSURE_GT(cert_size, 0);
 

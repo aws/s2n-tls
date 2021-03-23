@@ -22,4 +22,4 @@
 
 DEFINE_POINTER_CLEANUP_FUNC(X509*, X509_free);
 
-int s2n_sk_X509_pop_free(STACK_OF(X509) **cert_chain);
+int s2n_openssl_x509_stack_pop_free(STACK_OF(X509) **cert_chain);

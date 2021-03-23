@@ -23,11 +23,4 @@
 #include <openssl/rsa.h>
 #include <openssl/dh.h>
 
-/* OPENSSL_free is defined within <openssl/crypto.h> for OpenSSL Libcrypto
- * and within <openssl/mem.h> for AWS_LC */
-#include <openssl/crypto.h>
-#if defined(OPENSSL_IS_AWSLC)
-#include <openssl/mem.h>
-#endif
-
-int s2n_openssl_free(uint8_t** data);
+int s2n_crypto_free(uint8_t** data);

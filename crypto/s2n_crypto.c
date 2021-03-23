@@ -17,12 +17,12 @@
 
 #include "api/s2n.h"
 #include "crypto/s2n_crypto.h"
+#include "crypto/s2n_openssl.h"
 
-int s2n_openssl_free(uint8_t** data)
+int s2n_crypto_free(uint8_t** data)
 {
     if (*data != NULL) {
         OPENSSL_free(*data);
     }
     return S2N_SUCCESS;
 }
-
