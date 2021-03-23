@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #include <openssl/aes.h>
 #include <openssl/rc4.h>
 #include <openssl/des.h>
@@ -27,5 +29,7 @@
 #if defined(OPENSSL_IS_AWSLC)
 #include <openssl/mem.h>
 #endif
+
+#include "api/s2n.h"
 
 int s2n_openssl_free(uint8_t** data);

@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <stdint.h>
 #include "crypto/s2n_crypto.h"
 
 int s2n_openssl_free(uint8_t** data)
@@ -20,6 +21,6 @@ int s2n_openssl_free(uint8_t** data)
     if (*data != NULL) {
         OPENSSL_free(*data);
     }
-    return 0;
+    return S2N_SUCCESS;
 }
 

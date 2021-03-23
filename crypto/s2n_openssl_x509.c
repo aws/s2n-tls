@@ -20,5 +20,5 @@ int s2n_sk_X509_pop_free(STACK_OF(X509) **cert_chain)
     if (*cert_chain != NULL) {
         sk_X509_pop_free(*cert_chain, X509_free);
     }
-    return 0;
+    return S2N_SUCCESS;
 }
