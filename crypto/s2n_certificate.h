@@ -76,3 +76,4 @@ s2n_pkey_type s2n_cert_chain_and_key_get_pkey_type(struct s2n_cert_chain_and_key
 int s2n_get_cert_chain_length(const struct s2n_cert_chain_and_key *chain_and_key, uint32_t *cert_length);
 int s2n_get_cert_from_cert_chain(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, const uint32_t cert_idx);
 int s2n_get_cert_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, uint32_t *cert_length);
+int s2n_cert_chain_free(struct s2n_cert_chain *cert_chain);

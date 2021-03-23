@@ -402,6 +402,25 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
     return 0;
 }
 
+int s2n_cert_chain_free(struct s2n_cert_chain *cert_chain)
+{
+    /* Walk the chain and free the certs/nodes allocated prior to failure */
+    if (cert_chain) {
+        struct s2n_cert *node = cert_chain->head;
+        while (node) {
+            /* Free the cert */
+            POSIX_GUARD(s2n_free(&node->raw));
+            /* update head so it won't point to freed memory */
+            cert_chain->head = node->next;
+            /* Free the node */
+            POSIX_GUARD(s2n_free_object((uint8_t **)&node, sizeof(struct s2n_cert)));
+            node = cert_chain->head;
+        }
+    }
+
+    return S2N_SUCCESS;
+}
+
 int s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain_and_key)
 {
     POSIX_ENSURE_REF(conn);

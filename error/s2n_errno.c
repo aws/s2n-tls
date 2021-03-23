@@ -253,6 +253,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_INVALID_EARLY_DATA_STATE, "Early data in invalid state") \
     ERR_ENTRY(S2N_ERR_EARLY_DATA_NOT_ALLOWED, "Early data is not allowed by the connection") \
     ERR_ENTRY(S2N_ERR_NO_CERT_FOUND, "Certificate not found") \
+    ERR_ENTRY(S2N_ERR_CERT_NOT_VALIDATED, "Certificate not validated") \
 
 /* clang-format on */
 

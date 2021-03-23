@@ -476,6 +476,19 @@ extern int s2n_get_cert_from_cert_chain(const struct s2n_cert_chain_and_key *cha
 S2N_API
 extern int s2n_get_cert_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, uint32_t *cert_length);
 
+/**
+ * Returns the validated peer certificate chain as a `s2n_cert_chain_and_key` opaque object.
+ * 
+ * The `s2n_cert_chain_and_key` parameter must be allocated by the caller using the `s2n_cert_chain_and_key_new` API
+ * prior to this function call and must be empty. To free the memory associated with the `s2n_cert_chain_and_key` object use the 
+ * `s2n_cert_chain_and_key_free` API.
+ * 
+ * @param conn A pointer to the s2n_connection object being read.
+ * @param s2n_cert_chain_and_key The returned validated peer certificate chain `cert_chain` retrieved from the s2n connection.
+ */
+S2N_API
+extern int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain);
+
 S2N_API
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
 S2N_API

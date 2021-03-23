@@ -39,6 +39,13 @@ typedef enum {
     S2N_CERT_ERR_MAX_CHAIN_DEPTH_EXCEEDED = -6
 } s2n_cert_validation_code;
 
+typedef enum {
+    UNINIT,
+    INIT,
+    VALIDATED,
+    OCSP_VALIDATED,
+} validator_state;
+
 /** Return TRUE for trusted, FALSE for untrusted **/
 typedef uint8_t (*verify_host) (const char *host_name, size_t host_name_len, void *data);
 struct s2n_connection;

@@ -13,14 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
+#include "api/s2n.h"
+#include "crypto/s2n_openssl_x509.h"
 
-#include <stdint.h>
-
-#include <openssl/aes.h>
-#include <openssl/rc4.h>
-#include <openssl/des.h>
-#include <openssl/rsa.h>
-#include <openssl/dh.h>
-
-int s2n_crypto_free(uint8_t** data);
+int s2n_openssl_x509_stack_pop_free(STACK_OF(X509) **cert_chain)
+{
+    if (*cert_chain != NULL) {
+        sk_X509_pop_free(*cert_chain, X509_free);
+    }
+    return S2N_SUCCESS;
+}

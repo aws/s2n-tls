@@ -43,6 +43,8 @@
 
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
+#include "crypto/s2n_crypto.h"
+#include "crypto/s2n_openssl_x509.h"
 
 #include "utils/s2n_blob.h"
 #include "utils/s2n_compiler.h"
@@ -1376,4 +1378,54 @@ int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn,
     }
 
     POSIX_BAIL(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+}
+
+DEFINE_POINTER_CLEANUP_FUNC(struct s2n_cert_chain *, s2n_cert_chain_free);
+
+int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain_and_key)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(cert_chain_and_key);
+
+    DEFER_CLEANUP(struct s2n_cert_chain *cert_chain = cert_chain_and_key->cert_chain, s2n_cert_chain_free_pointer);
+    struct s2n_cert **insert = &cert_chain->head;
+    POSIX_ENSURE(*insert == NULL, S2N_ERR_INVALID_ARGUMENT);
+
+    const struct s2n_x509_validator *validator = &conn->x509_validator;
+    POSIX_ENSURE_REF(validator);
+    POSIX_ENSURE(validator->state == VALIDATED, S2N_ERR_CERT_NOT_VALIDATED);
+
+    /* X509_STORE_CTX_get1_chain() returns a validated cert chain if a previous call to X509_verify_cert() was successful.
+     * X509_STORE_CTX_get0_chain() is a better API because it doesn't return a copy. But it's not available for Openssl 1.0.2.
+     * See the comments here:
+     * https://www.openssl.org/docs/man1.0.2/man3/X509_STORE_CTX_get1_chain.html
+     */
+    DEFER_CLEANUP(STACK_OF(X509) *cert_chain_validated = X509_STORE_CTX_get1_chain(validator->store_ctx),
+                  s2n_openssl_x509_stack_pop_free);
+    POSIX_ENSURE_REF(cert_chain_validated);
+
+    for (size_t cert_idx = 0; cert_idx < sk_X509_num(cert_chain_validated); cert_idx++) {
+        X509 *cert = sk_X509_value(cert_chain_validated, cert_idx);
+        POSIX_ENSURE_REF(cert);
+        DEFER_CLEANUP(uint8_t *cert_data = NULL, s2n_crypto_free);
+        int cert_size = i2d_X509(cert, &cert_data);
+        POSIX_ENSURE_GT(cert_size, 0);
+
+        struct s2n_blob mem = { 0 };
+        POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
+
+        struct s2n_cert *new_node = (struct s2n_cert *)(void *)mem.data;
+        POSIX_ENSURE_REF(new_node);
+
+        new_node->next = NULL;
+        *insert = new_node;
+        insert = &new_node->next;
+
+        POSIX_GUARD(s2n_alloc(&new_node->raw, cert_size));
+        POSIX_CHECKED_MEMCPY(new_node->raw.data, cert_data, cert_size);
+    }
+
+    ZERO_TO_DISABLE_DEFER_CLEANUP(cert_chain);
+
+    return S2N_SUCCESS;
 }
