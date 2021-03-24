@@ -36,14 +36,14 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_psk_init(&psk, S2N_PSK_TYPE_EXTERNAL));
         EXPECT_EQUAL(psk.type, S2N_PSK_TYPE_EXTERNAL);
         EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA256);
-        EXPECT_EQUAL(psk.obfuscated_ticket_age, 0);
+        EXPECT_EQUAL(psk.ticket_age_add, 0);
         EXPECT_EQUAL(psk.ticket_issue_time, 0);
         EXPECT_EQUAL(psk.early_data_config.max_early_data_size, 0);
 
         EXPECT_OK(s2n_psk_init(&psk, S2N_PSK_TYPE_RESUMPTION));
         EXPECT_EQUAL(psk.type, S2N_PSK_TYPE_RESUMPTION);
         EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA256);
-        EXPECT_EQUAL(psk.obfuscated_ticket_age, 0);
+        EXPECT_EQUAL(psk.ticket_age_add, 0);
         EXPECT_EQUAL(psk.ticket_issue_time, 0);
         EXPECT_EQUAL(psk.early_data_config.max_early_data_size, 0);
     }
@@ -758,7 +758,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_psk->secret.size, input_psk->secret.size);
             EXPECT_BYTEARRAY_EQUAL(actual_psk->secret.data, input_psk->secret.data, input_psk->secret.size);
             EXPECT_EQUAL(actual_psk->hmac_alg, S2N_HMAC_SHA384);
-            EXPECT_EQUAL(actual_psk->obfuscated_ticket_age, 0);
+            EXPECT_EQUAL(actual_psk->ticket_age_add, 0);
             EXPECT_EQUAL(actual_psk->ticket_issue_time, 0);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));

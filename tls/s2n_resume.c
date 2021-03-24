@@ -165,7 +165,7 @@ static S2N_RESULT s2n_tls12_client_deserialize_session_state(struct s2n_connecti
     RESULT_ENSURE_REF(cipher_suite_wire);
     RESULT_GUARD_POSIX(s2n_set_cipher_as_client(conn, cipher_suite_wire));
 
-    uint64_t then;
+    uint64_t then = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &then));
 
     /* Last but not least, put the master secret in place */
@@ -181,7 +181,7 @@ static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connecti
 
     uint8_t protocol_version = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &protocol_version));
-    ENSURE_EQ(protocol_version, S2N_TLS13);
+    ENSURE_GTE(protocol_version, S2N_TLS13);
 
     uint8_t iana_id[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, iana_id, S2N_TLS_CIPHER_SUITE_LEN));
@@ -203,18 +203,16 @@ static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connecti
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, secret, secret_len));
 
     /* Construct a PSK from ticket values */
-    struct s2n_psk *psk = NULL;
-    GUARD_RESULT(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
-    ENSURE_REF(psk);
+    struct s2n_psk psk = { 0 };
+    GUARD_RESULT(s2n_psk_init(&psk, S2N_PSK_TYPE_RESUMPTION));
+    RESULT_GUARD_POSIX(s2n_psk_set_identity(&psk, conn->client_ticket.data, conn->client_ticket.size));
+    RESULT_GUARD_POSIX(s2n_psk_set_secret(&psk, secret, secret_len));
+    psk.hmac_alg = cipher_suite->prf_alg;
+    psk.ticket_issue_time = ticket_issue_time;
+    psk.ticket_age_add = ticket_age_add;
+    RESULT_GUARD_POSIX(s2n_connection_append_psk(conn, &psk));
 
-    GUARD_RESULT(s2n_psk_init(psk, S2N_PSK_TYPE_RESUMPTION));
-
-    RESULT_GUARD_POSIX(s2n_psk_set_identity(psk, conn->client_ticket.data, conn->client_ticket.size));
-    RESULT_GUARD_POSIX(s2n_psk_set_secret(psk, secret, secret_len));
-
-    psk->hmac_alg = cipher_suite->prf_alg;
-    psk->ticket_issue_time = ticket_issue_time;
-    psk->obfuscated_ticket_age = ticket_age_add;
+    ENSURE_EQ(s2n_stuffer_data_available(from), 0);
 
     return S2N_RESULT_OK;
 }
