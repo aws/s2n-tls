@@ -189,8 +189,8 @@ static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connecti
     RESULT_GUARD(s2n_cipher_suite_from_iana(iana_id, &cipher_suite));
     RESULT_ENSURE_REF(cipher_suite);
 
-    uint64_t ticket_issue_time = 0;
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &ticket_issue_time));
+    uint64_t issue_time = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &issue_time));
 
     uint32_t ticket_age_add = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(from, &ticket_age_add));
@@ -203,12 +203,12 @@ static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connecti
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, secret, secret_len));
 
     /* Construct a PSK from ticket values */
-    DEFER_CLEANUP(struct s2n_psk psk, s2n_psk_wipe);
+    DEFER_CLEANUP(struct s2n_psk psk = { 0 }, s2n_psk_wipe);
     RESULT_GUARD(s2n_psk_init(&psk, S2N_PSK_TYPE_RESUMPTION));
     RESULT_GUARD_POSIX(s2n_psk_set_identity(&psk, conn->client_ticket.data, conn->client_ticket.size));
     RESULT_GUARD_POSIX(s2n_psk_set_secret(&psk, secret, secret_len));
     psk.hmac_alg = cipher_suite->prf_alg;
-    psk.ticket_issue_time = ticket_issue_time;
+    psk.ticket_issue_time = issue_time;
     psk.ticket_age_add = ticket_age_add;
     RESULT_GUARD_POSIX(s2n_connection_append_psk(conn, &psk));
 

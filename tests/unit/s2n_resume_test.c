@@ -70,10 +70,10 @@ int main(int argc, char **argv)
 
         uint8_t s_data[S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = { 0 };
         struct s2n_blob state_blob = { 0 };
-        POSIX_GUARD(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
+        EXPECT_SUCCESS(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
         struct s2n_stuffer output = { 0 };
 
-        POSIX_GUARD(s2n_stuffer_init(&output, &state_blob));
+        EXPECT_SUCCESS(s2n_stuffer_init(&output, &state_blob));
         EXPECT_SUCCESS(s2n_tls12_serialize_resumption_state(conn, &output));
 
         uint8_t serial_id = 0;
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(psk->secret.size, test_session_secret.size);
             EXPECT_BYTEARRAY_EQUAL(psk->secret.data, test_session_secret.data, test_session_secret.size);
 
-            EXPECT_EQUAL(psk->hmac_alg, S2N_HMAC_SHA384);
+            EXPECT_EQUAL(psk->hmac_alg, conn->secure.cipher_suite->prf_alg);
 
             EXPECT_EQUAL(psk->ticket_age_add, TICKET_AGE_ADD);
             EXPECT_EQUAL(psk->ticket_issue_time, ticket_issue_time);
@@ -311,10 +311,10 @@ int main(int argc, char **argv)
 
             uint8_t s_data[S2N_STATE_SIZE_IN_BYTES] = { 0 };
             struct s2n_blob state_blob = { 0 };
-            POSIX_GUARD(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
+            EXPECT_SUCCESS(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
             struct s2n_stuffer stuffer = { 0 };
 
-            POSIX_GUARD(s2n_stuffer_init(&stuffer, &state_blob));
+            EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &state_blob));
 
             EXPECT_OK(s2n_serialize_resumption_state(conn, NULL, &stuffer));
             EXPECT_OK(s2n_client_deserialize_session_state(conn, &stuffer));
