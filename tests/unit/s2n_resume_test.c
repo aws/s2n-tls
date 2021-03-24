@@ -30,7 +30,7 @@
 #define SECRET 0x03, 0x04
 #define CLIENT_TICKET 0x10, 0x10
 
-uint64_t ticket_issue_time = 283686952306183;
+const uint64_t ticket_issue_time = 283686952306183;
 static int s2n_test_session_ticket_callback(struct s2n_connection *conn, struct s2n_session_ticket *ticket)
 {
     return S2N_SUCCESS;

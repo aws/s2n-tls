@@ -223,7 +223,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint24(output, &message_size));
 
     uint32_t ticket_lifetime_in_secs = 0;
-    GUARD_RESULT(s2n_generate_ticket_lifetime(conn, &ticket_lifetime_in_secs));
+    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, &ticket_lifetime_in_secs));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(output, ticket_lifetime_in_secs));
 
     /* Get random data to use as ticket_age_add value */
@@ -236,15 +236,15 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
      *#  The server MUST generate a fresh value
      *#  for each ticket it sends.
      **/
-    GUARD_RESULT(s2n_get_private_random_data(&random_data));
-    GUARD_RESULT(s2n_generate_ticket_age_add(&random_data, &ticket_fields.ticket_age_add));
+    RESULT_GUARD(s2n_get_private_random_data(&random_data));
+    RESULT_GUARD(s2n_generate_ticket_age_add(&random_data, &ticket_fields.ticket_age_add));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(output, ticket_fields.ticket_age_add));
 
     /* Write ticket nonce */
     uint8_t nonce_data[sizeof(uint16_t)] = { 0 };
     struct s2n_blob nonce = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&nonce, nonce_data, sizeof(nonce_data)));
-    GUARD_RESULT(s2n_generate_ticket_nonce(conn->tickets_sent, &nonce));
+    RESULT_GUARD(s2n_generate_ticket_nonce(conn->tickets_sent, &nonce));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(output, nonce.size));
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(output, nonce.data, nonce.size));
 

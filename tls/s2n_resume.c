@@ -181,13 +181,13 @@ static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connecti
 
     uint8_t protocol_version = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &protocol_version));
-    ENSURE_GTE(protocol_version, S2N_TLS13);
+    RESULT_ENSURE_GTE(protocol_version, S2N_TLS13);
 
     uint8_t iana_id[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, iana_id, S2N_TLS_CIPHER_SUITE_LEN));
     struct s2n_cipher_suite *cipher_suite = NULL;
-    GUARD_RESULT(s2n_cipher_suite_from_iana(iana_id, &cipher_suite));
-    ENSURE_REF(cipher_suite);
+    RESULT_GUARD(s2n_cipher_suite_from_iana(iana_id, &cipher_suite));
+    RESULT_ENSURE_REF(cipher_suite);
 
     uint64_t ticket_issue_time = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &ticket_issue_time));
@@ -197,14 +197,14 @@ static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connecti
 
     uint8_t secret_len = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &secret_len));
-    ENSURE_LTE(secret_len, S2N_TLS_SECRET_LEN);
+    RESULT_ENSURE_LTE(secret_len, S2N_TLS_SECRET_LEN);
     
     uint8_t secret[S2N_TLS_SECRET_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, secret, secret_len));
 
     /* Construct a PSK from ticket values */
-    struct s2n_psk psk = { 0 };
-    GUARD_RESULT(s2n_psk_init(&psk, S2N_PSK_TYPE_RESUMPTION));
+    DEFER_CLEANUP(struct s2n_psk psk, s2n_psk_wipe);
+    RESULT_GUARD(s2n_psk_init(&psk, S2N_PSK_TYPE_RESUMPTION));
     RESULT_GUARD_POSIX(s2n_psk_set_identity(&psk, conn->client_ticket.data, conn->client_ticket.size));
     RESULT_GUARD_POSIX(s2n_psk_set_secret(&psk, secret, secret_len));
     psk.hmac_alg = cipher_suite->prf_alg;
@@ -212,7 +212,7 @@ static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connecti
     psk.ticket_age_add = ticket_age_add;
     RESULT_GUARD_POSIX(s2n_connection_append_psk(conn, &psk));
 
-    ENSURE_EQ(s2n_stuffer_data_available(from), 0);
+    RESULT_ENSURE(s2n_stuffer_data_available(from) == 0, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
     return S2N_RESULT_OK;
 }
