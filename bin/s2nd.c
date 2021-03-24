@@ -373,7 +373,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
     }
 
     s2n_blocked_status blocked;
-    s2n_shutdown(conn, &blocked);
+    GUARD_RETURN(s2n_shutdown(conn, &blocked), "Error shutting down connection");
 
     GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
 

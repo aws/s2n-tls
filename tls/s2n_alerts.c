@@ -102,6 +102,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
             /* Close notifications are handled as shutdowns */
             if (conn->alert_in_data[1] == S2N_TLS_ALERT_CLOSE_NOTIFY) {
                 conn->closed = 1;
+                conn->did_recv_close_notify = true;
                 return 0;
             }
 

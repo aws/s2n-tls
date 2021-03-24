@@ -24,6 +24,61 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    /* Test S2N_TLS_ALERT_CLOSE_NOTIFY and did_recv_close_notify */
+    {
+        const uint8_t close_notify_alert[] = {  2 /* AlertLevel = fatal */,
+                                                0 /* AlertDescription = close_notify */ };
+
+        const uint8_t not_close_notify_alert[] = {  2 /* AlertLevel = fatal */,
+                                                   10 /* AlertDescription = unexpected_msg */ };
+
+
+        /* Don't mark did_recv_close_notify = true if we receive an alert other than close_notify alert */
+        {
+            struct s2n_config *config;
+            EXPECT_NOT_NULL(config = s2n_config_new());
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            /* Verify state prior to alert */
+            EXPECT_FALSE(conn->did_recv_close_notify);
+
+            /* Write and process the alert */
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, not_close_notify_alert, sizeof(not_close_notify_alert)));
+            EXPECT_FAILURE(s2n_process_alert_fragment(conn));
+
+            /* Verify state after alert */
+            EXPECT_FALSE(conn->did_recv_close_notify);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
+        /* Mark did_recv_close_notify = true if we receive a close_notify alert */
+        {
+            struct s2n_config *config;
+            EXPECT_NOT_NULL(config = s2n_config_new());
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            /* Verify state prior to alert */
+            EXPECT_FALSE(conn->did_recv_close_notify);
+
+            /* Write and process the alert */
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, close_notify_alert, sizeof(close_notify_alert)));
+            EXPECT_SUCCESS(s2n_process_alert_fragment(conn));
+
+            /* Verify state after alert */
+            EXPECT_TRUE(conn->did_recv_close_notify);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
+    }
+
     /* Test s2n_process_alert_fragment */
     {
         /* Safety check */

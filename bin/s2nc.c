@@ -544,7 +544,7 @@ int main(int argc, char *const *argv)
         }
 
         s2n_blocked_status blocked;
-        s2n_shutdown(conn, &blocked);
+        GUARD_EXIT(s2n_shutdown(conn, &blocked), "Error shutting down connection");
 
         GUARD_EXIT(s2n_connection_free(conn), "Error freeing connection");
 
