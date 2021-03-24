@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
+
 #include "tls/s2n_early_data.h"
 
 #include "tls/s2n_connection.h"
@@ -70,7 +72,7 @@ S2N_RESULT s2n_early_data_record_bytes(struct s2n_connection *conn, ssize_t data
     /* Ensure the bytes read are within the bounds of what we can actually record. */
     if (data_len > (UINT64_MAX - conn->early_data_bytes)) {
         conn->early_data_bytes = UINT64_MAX;
-        BAIL(S2N_ERR_INTEGER_OVERFLOW);
+        RESULT_BAIL(S2N_ERR_INTEGER_OVERFLOW);
     }
 
     /* Record the early data bytes read, even if they exceed the max_early_data_size.
@@ -116,4 +118,113 @@ S2N_RESULT s2n_early_data_validate_recv(struct s2n_connection *conn)
     RESULT_ENSURE(conn->early_data_state == S2N_EARLY_DATA_ACCEPTED, S2N_ERR_EARLY_DATA_NOT_ALLOWED);
     RESULT_ENSURE(s2n_conn_get_current_message_type(conn) == END_OF_EARLY_DATA, S2N_ERR_EARLY_DATA_NOT_ALLOWED);
     return S2N_RESULT_OK;
+}
+
+static bool s2n_early_data_can_continue(struct s2n_connection *conn)
+{
+    uint32_t remaining_early_data_size = 0;
+    return s2n_connection_get_remaining_early_data_size(conn, &remaining_early_data_size) >= S2N_SUCCESS
+            && remaining_early_data_size > 0;
+}
+
+S2N_RESULT s2n_send_early_data_impl(struct s2n_connection *conn, const uint8_t *data, ssize_t data_len,
+        ssize_t *data_sent, s2n_blocked_status *blocked)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(blocked);
+    *blocked = S2N_NOT_BLOCKED;
+    RESULT_ENSURE_REF(data_sent);
+    *data_sent = 0;
+
+    RESULT_ENSURE(conn->mode == S2N_CLIENT, S2N_ERR_SERVER_MODE);
+
+    if (!s2n_early_data_can_continue(conn)) {
+        return S2N_RESULT_OK;
+    }
+
+    if (s2n_negotiate(conn, blocked) < S2N_SUCCESS) {
+        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+            return S2N_RESULT_ERROR;
+        } else if (*blocked != S2N_BLOCKED_ON_EARLY_DATA && *blocked != S2N_BLOCKED_ON_READ) {
+            return S2N_RESULT_ERROR;
+        }
+    }
+
+    uint32_t early_data_to_send = 0;
+    RESULT_GUARD_POSIX(s2n_connection_get_remaining_early_data_size(conn, &early_data_to_send));
+    early_data_to_send = MIN(data_len, early_data_to_send);
+    if (early_data_to_send) {
+        ssize_t send_result = s2n_send(conn, data, early_data_to_send, blocked);
+        RESULT_GUARD_POSIX(send_result);
+        *data_sent = send_result;
+    }
+
+    if (s2n_negotiate(conn, blocked) < S2N_SUCCESS) {
+        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+            return S2N_RESULT_ERROR;
+        } else if (*blocked == S2N_BLOCKED_ON_EARLY_DATA) {
+            return S2N_RESULT_OK;
+        } else if (s2n_early_data_can_continue(conn)) {
+            return S2N_RESULT_ERROR;
+        } else {
+            return S2N_RESULT_OK;
+        }
+    }
+    return S2N_RESULT_OK;
+}
+
+int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data, ssize_t data_len,
+        ssize_t *data_sent, s2n_blocked_status *blocked)
+{
+    POSIX_GUARD(s2n_connection_set_early_data_expected(conn));
+    s2n_result result = s2n_send_early_data_impl(conn, data, data_len, data_sent, blocked);
+    POSIX_GUARD(s2n_connection_set_end_of_early_data(conn));
+    POSIX_GUARD_RESULT(result);
+    return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_recv_early_data_impl(struct s2n_connection *conn, uint8_t *data, ssize_t max_data_len,
+        ssize_t *data_received, s2n_blocked_status *blocked)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(blocked);
+    *blocked = S2N_NOT_BLOCKED;
+    RESULT_ENSURE_REF(data_received);
+    *data_received = 0;
+
+    RESULT_ENSURE(conn->mode == S2N_SERVER, S2N_ERR_CLIENT_MODE);
+
+    if (!s2n_early_data_can_continue(conn)) {
+        return S2N_RESULT_OK;
+    }
+
+    while(s2n_negotiate(conn, blocked) < S2N_SUCCESS) {
+        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+            return S2N_RESULT_ERROR;
+        } else if (max_data_len <= *data_received) {
+            return S2N_RESULT_ERROR;
+        } else if (*blocked != S2N_BLOCKED_ON_EARLY_DATA) {
+            if (s2n_early_data_can_continue(conn)) {
+                return S2N_RESULT_ERROR;
+            } else {
+                return S2N_RESULT_OK;
+            }
+        }
+
+        ssize_t recv_result = s2n_recv(conn, data + *data_received,
+                max_data_len - *data_received, blocked);
+        RESULT_GUARD_POSIX(recv_result);
+        *data_received += recv_result;
+    }
+    return S2N_RESULT_OK;
+}
+
+int s2n_recv_early_data(struct s2n_connection *conn, uint8_t *data, ssize_t max_data_len,
+        ssize_t *data_received, s2n_blocked_status *blocked)
+{
+    POSIX_GUARD(s2n_connection_set_early_data_expected(conn));
+    s2n_result result = s2n_recv_early_data_impl(conn, data, max_data_len, data_received, blocked);
+    POSIX_GUARD(s2n_connection_set_end_of_early_data(conn));
+    POSIX_GUARD_RESULT(result);
+    return S2N_SUCCESS;
 }
