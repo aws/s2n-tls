@@ -820,7 +820,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
             EXPECT_EQUAL(actual_bytes, psk_limit);
 
-            /* server limit is lower, but PSK is external: use PSK limit */
+            /* server limit is lower and PSK is resumption: use server limit */
             server_limit = psk_limit - 1;
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, server_limit));
             EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
