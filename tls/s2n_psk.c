@@ -99,25 +99,6 @@ S2N_RESULT s2n_psk_clone(struct s2n_psk *new_psk, struct s2n_psk *original_psk)
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_resumption_psks_remove(struct s2n_connection *conn)
-{
-    RESULT_ENSURE_REF(conn);
-
-    struct s2n_array *psk_list = &conn->psk_params.psk_list;
-    for (uint32_t i = psk_list->len; i > 0; i--) {
-        /* This index variable along with the loop condition keep size_t i from underflowing */
-        size_t idx = i - 1;
-        struct s2n_psk *psk = NULL;
-        RESULT_GUARD(s2n_array_get(psk_list, idx, (void**)&psk));
-        RESULT_ENSURE_REF(psk);
-
-        if (psk->type == S2N_PSK_TYPE_RESUMPTION) {
-            RESULT_GUARD(s2n_array_remove(psk_list, idx));
-        }
-    }
-    return S2N_RESULT_OK;
-}
-
 S2N_CLEANUP_RESULT s2n_psk_wipe(struct s2n_psk *psk)
 {
     if (psk == NULL) {
@@ -211,6 +192,26 @@ S2N_CLEANUP_RESULT s2n_psk_parameters_wipe_secrets(struct s2n_psk_parameters *pa
         RESULT_GUARD_POSIX(s2n_free(&psk->secret));
     }
 
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_psk_parameters_remove_psks(struct s2n_psk_parameters *params, s2n_psk_type type) 
+{
+    RESULT_ENSURE_REF(params);
+
+    struct s2n_array *psk_list = &params->psk_list;
+    for (uint32_t i = psk_list->len; i > 0; i--) {
+        /* This index variable along with the loop condition keep size_t i from underflowing */
+        size_t idx = i - 1;
+        struct s2n_psk *psk = NULL;
+        RESULT_GUARD(s2n_array_get(psk_list, idx, (void**)&psk));
+        RESULT_ENSURE_REF(psk);
+
+        if (psk->type == type) {
+            RESULT_GUARD(s2n_psk_wipe(psk));
+            RESULT_GUARD(s2n_array_remove(psk_list, idx));
+        }
+    }
     return S2N_RESULT_OK;
 }
 

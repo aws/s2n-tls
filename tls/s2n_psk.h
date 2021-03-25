@@ -48,7 +48,6 @@ struct s2n_psk {
 S2N_RESULT s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type);
 S2N_CLEANUP_RESULT s2n_psk_wipe(struct s2n_psk *psk);
 S2N_RESULT s2n_psk_clone(struct s2n_psk *new_psk, struct s2n_psk *original_psk);
-S2N_RESULT s2n_resumption_psks_remove(struct s2n_connection *conn);
 
 struct s2n_psk_parameters {
     struct s2n_array psk_list;
@@ -61,6 +60,7 @@ S2N_RESULT s2n_psk_parameters_init(struct s2n_psk_parameters *params);
 S2N_RESULT s2n_psk_parameters_offered_psks_size(struct s2n_psk_parameters *params, uint32_t *size);
 S2N_CLEANUP_RESULT s2n_psk_parameters_wipe(struct s2n_psk_parameters *params);
 S2N_CLEANUP_RESULT s2n_psk_parameters_wipe_secrets(struct s2n_psk_parameters *params);
+S2N_RESULT s2n_psk_parameters_remove_psks(struct s2n_psk_parameters *params, s2n_psk_type type);
 
 struct s2n_offered_psk {
     struct s2n_blob identity;
