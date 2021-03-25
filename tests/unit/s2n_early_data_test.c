@@ -764,33 +764,70 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(bytes, 0);
         }
 
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-        EXPECT_NOT_NULL(conn);
+        /* Retrieve the limit from the first PSK, or return 0 */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
 
-        const uint32_t limit = 10;
-        uint32_t actual_bytes = limit;
+            const uint32_t limit = 10;
+            uint32_t actual_bytes = limit;
 
-        /* No PSKs: limit is zero */
-        EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
-        EXPECT_EQUAL(actual_bytes, 0);
+            /* No PSKs: limit is zero */
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, 0);
 
-        /* PSK with zero limit: limit is zero */
-        EXPECT_OK(s2n_append_test_psk_with_early_data(conn, 0, &s2n_tls13_aes_256_gcm_sha384));
-        EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
-        EXPECT_EQUAL(actual_bytes, 0);
+            /* PSK with zero limit: limit is zero */
+            EXPECT_OK(s2n_append_test_psk_with_early_data(conn, 0, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, 0);
 
-        /* Second PSK with non-zero limit: limit is still zero */
-        EXPECT_OK(s2n_append_test_psk_with_early_data(conn, limit, &s2n_tls13_aes_256_gcm_sha384));
-        EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
-        EXPECT_EQUAL(actual_bytes, 0);
+            /* Second PSK with non-zero limit: limit is still zero */
+            EXPECT_OK(s2n_append_test_psk_with_early_data(conn, limit, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, 0);
 
-        /* First PSK with non-zero limit: limit is non-zero */
-        EXPECT_OK(s2n_psk_parameters_wipe(&conn->psk_params));
-        EXPECT_OK(s2n_append_test_psk_with_early_data(conn, limit, &s2n_tls13_aes_256_gcm_sha384));
-        EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
-        EXPECT_EQUAL(actual_bytes, limit);
+            /* First PSK with non-zero limit: limit is non-zero */
+            EXPECT_OK(s2n_psk_parameters_wipe(&conn->psk_params));
+            EXPECT_OK(s2n_append_test_psk_with_early_data(conn, limit, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, limit);
 
-        EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* If in server mode, apply the server limit */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+
+            const uint32_t psk_limit = 10;
+            EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(conn, psk_limit, &s2n_tls13_aes_256_gcm_sha384));
+
+            uint32_t actual_bytes = 0;
+
+            /* server limit is lower, but PSK is external: use PSK limit */
+            EXPECT_EQUAL(conn->psk_params.chosen_psk->type, S2N_PSK_TYPE_EXTERNAL);
+            uint32_t server_limit = psk_limit - 1;
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, server_limit));
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, psk_limit);
+
+            conn->psk_params.chosen_psk->type = S2N_PSK_TYPE_RESUMPTION;
+
+            /* server limit is higher: use PSK limit */
+            server_limit = psk_limit + 1;
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, server_limit));
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, psk_limit);
+
+            /* server limit is lower, but PSK is external: use PSK limit */
+            server_limit = psk_limit - 1;
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, server_limit));
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, server_limit);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
     }
 
     /* Test s2n_config_set_server_max_early_data_size */

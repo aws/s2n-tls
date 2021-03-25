@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
+
 #include "tls/s2n_early_data.h"
 
 #include "tls/s2n_connection.h"
@@ -311,11 +313,19 @@ int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, uint32_t
     POSIX_ENSURE_REF(max_early_data_size);
     *max_early_data_size = 0;
 
-    if (conn->psk_params.psk_list.len) {
-        struct s2n_psk *first_psk = NULL;
-        POSIX_GUARD_RESULT(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &first_psk));
-        POSIX_ENSURE_REF(first_psk);
-        *max_early_data_size = first_psk->early_data_config.max_early_data_size;
+    if (conn->psk_params.psk_list.len == 0) {
+        return S2N_SUCCESS;
+    }
+
+    struct s2n_psk *first_psk = NULL;
+    POSIX_GUARD_RESULT(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &first_psk));
+    POSIX_ENSURE_REF(first_psk);
+    *max_early_data_size = first_psk->early_data_config.max_early_data_size;
+
+    if (conn->mode == S2N_SERVER && first_psk->type == S2N_PSK_TYPE_RESUMPTION) {
+        uint32_t server_max_early_data_size = 0;
+        POSIX_GUARD_RESULT(s2n_early_data_get_server_max_size(conn, &server_max_early_data_size));
+        *max_early_data_size = MIN(*max_early_data_size, server_max_early_data_size);
     }
 
     return S2N_SUCCESS;
