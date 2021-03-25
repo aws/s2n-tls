@@ -947,5 +947,39 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA256);
     }
 
+    /* s2n_resumption_psks_remove */
+    {
+        /* Removes previously-set resumption psks and ignores previously-set external psks */
+        {
+            const uint8_t external_data[] = "external data";
+            const uint8_t resumption_data[] = "resumption data";
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_psk *external_psk = s2n_external_psk_new(), s2n_psk_free);
+            EXPECT_SUCCESS(s2n_psk_set_identity(external_psk, external_data, sizeof(external_data)));
+            EXPECT_SUCCESS(s2n_psk_set_secret(external_psk, external_data, sizeof(external_data)));
+            EXPECT_SUCCESS(s2n_connection_append_psk(conn, external_psk));
+
+            DEFER_CLEANUP(struct s2n_psk resumption_psk = { 0 }, s2n_psk_wipe);
+            EXPECT_OK(s2n_psk_init(&resumption_psk, S2N_PSK_TYPE_RESUMPTION));
+            EXPECT_SUCCESS(s2n_psk_set_identity(&resumption_psk, resumption_data, sizeof(resumption_data)));
+            EXPECT_SUCCESS(s2n_psk_set_secret(&resumption_psk, resumption_data, sizeof(resumption_data)));
+            EXPECT_SUCCESS(s2n_connection_append_psk(conn, &resumption_psk));
+
+            EXPECT_OK(s2n_resumption_psks_remove(conn));
+
+            EXPECT_EQUAL(conn->psk_params.psk_list.len, 1);
+            struct s2n_psk *psk = NULL;
+            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**)&psk));
+            EXPECT_NOT_NULL(psk);
+            EXPECT_EQUAL(psk->type, S2N_PSK_TYPE_EXTERNAL);
+            EXPECT_BYTEARRAY_EQUAL(psk->identity.data, external_data, sizeof(external_data));
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+    }
+
     END_TEST();
 }
