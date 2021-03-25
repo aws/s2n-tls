@@ -213,3 +213,82 @@ int s2n_end_of_early_data_recv(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_END_OF_EARLY_DATA));
     return S2N_SUCCESS;
 }
+
+int s2n_connection_get_early_data_status(struct s2n_connection *conn, s2n_early_data_status_t *status)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(status);
+
+    switch(conn->early_data_state) {
+        case S2N_EARLY_DATA_STATES_COUNT:
+            break;
+        case S2N_EARLY_DATA_NOT_REQUESTED:
+            *status = S2N_EARLY_DATA_STATUS_NOT_REQUESTED;
+            return S2N_SUCCESS;
+        case S2N_EARLY_DATA_REJECTED:
+            *status = S2N_EARLY_DATA_STATUS_REJECTED;
+            return S2N_SUCCESS;
+        case S2N_END_OF_EARLY_DATA:
+            *status = S2N_EARLY_DATA_STATUS_END;
+            return S2N_SUCCESS;
+        case S2N_UNKNOWN_EARLY_DATA_STATE:
+        case S2N_EARLY_DATA_REQUESTED:
+        case S2N_EARLY_DATA_ACCEPTED:
+            *status = S2N_EARLY_DATA_STATUS_OK;
+            return S2N_SUCCESS;
+    }
+    POSIX_BAIL(S2N_ERR_INVALID_EARLY_DATA_STATE);
+}
+
+static S2N_RESULT s2n_get_remaining_early_data_bytes(struct s2n_connection *conn, uint32_t *early_data_allowed)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(early_data_allowed);
+    *early_data_allowed = 0;
+
+    uint32_t max_early_data_size = 0;
+    RESULT_GUARD_POSIX(s2n_connection_get_max_early_data_size(conn, &max_early_data_size));
+
+    RESULT_ENSURE(max_early_data_size >= conn->early_data_bytes, S2N_ERR_MAX_EARLY_DATA_SIZE);
+    *early_data_allowed = (max_early_data_size - conn->early_data_bytes);
+
+    return S2N_RESULT_OK;
+}
+
+int s2n_connection_get_remaining_early_data_size(struct s2n_connection *conn, uint32_t *allowed_early_data_size)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(allowed_early_data_size);
+    *allowed_early_data_size = 0;
+
+    switch(conn->early_data_state) {
+        case S2N_EARLY_DATA_STATES_COUNT:
+        case S2N_EARLY_DATA_NOT_REQUESTED:
+        case S2N_EARLY_DATA_REJECTED:
+        case S2N_END_OF_EARLY_DATA:
+            *allowed_early_data_size = 0;
+            break;
+        case S2N_UNKNOWN_EARLY_DATA_STATE:
+        case S2N_EARLY_DATA_REQUESTED:
+        case S2N_EARLY_DATA_ACCEPTED:
+            POSIX_GUARD_RESULT(s2n_get_remaining_early_data_bytes(conn, allowed_early_data_size));
+            break;
+    }
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, uint32_t *max_early_data_size)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(max_early_data_size);
+    *max_early_data_size = 0;
+
+    if (conn->psk_params.psk_list.len) {
+        struct s2n_psk *first_psk = NULL;
+        POSIX_GUARD_RESULT(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &first_psk));
+        POSIX_ENSURE_REF(first_psk);
+        *max_early_data_size = first_psk->early_data_config.max_early_data_size;
+    }
+
+    return S2N_SUCCESS;
+}

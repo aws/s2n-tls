@@ -598,5 +598,200 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test s2n_connection_get_early_data_status */
+    {
+        const uint32_t limit = 10;
+
+        /* Safety */
+        {
+            struct s2n_connection conn = { 0 };
+            s2n_early_data_status_t status = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_early_data_status(NULL, &status), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_early_data_status(&conn, NULL), S2N_ERR_NULL);
+
+            conn.early_data_state = S2N_EARLY_DATA_STATES_COUNT;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_early_data_status(&conn, &status), S2N_ERR_INVALID_EARLY_DATA_STATE);
+        }
+
+        /* Correct status returned for current early data state */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_append_test_psk_with_early_data(conn, limit, &s2n_tls13_aes_256_gcm_sha384));
+
+            s2n_early_data_status_t status = 0;
+
+            EXPECT_SUCCESS(s2n_connection_get_early_data_status(conn, &status));
+            EXPECT_EQUAL(status, S2N_EARLY_DATA_STATUS_OK);
+
+            conn->early_data_state = S2N_EARLY_DATA_NOT_REQUESTED;
+            EXPECT_SUCCESS(s2n_connection_get_early_data_status(conn, &status));
+            EXPECT_EQUAL(status, S2N_EARLY_DATA_STATUS_NOT_REQUESTED);
+
+            conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+            EXPECT_SUCCESS(s2n_connection_get_early_data_status(conn, &status));
+            EXPECT_EQUAL(status, S2N_EARLY_DATA_STATUS_OK);
+
+            conn->early_data_state = S2N_EARLY_DATA_REJECTED;
+            EXPECT_SUCCESS(s2n_connection_get_early_data_status(conn, &status));
+            EXPECT_EQUAL(status, S2N_EARLY_DATA_STATUS_REJECTED);
+
+            conn->early_data_state = S2N_EARLY_DATA_ACCEPTED;
+            EXPECT_SUCCESS(s2n_connection_get_early_data_status(conn, &status));
+            EXPECT_EQUAL(status, S2N_EARLY_DATA_STATUS_OK);
+
+            conn->early_data_state = S2N_END_OF_EARLY_DATA;
+            EXPECT_SUCCESS(s2n_connection_get_early_data_status(conn, &status));
+            EXPECT_EQUAL(status, S2N_EARLY_DATA_STATUS_END);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Sanity check that all valid early data states successfully report a status */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_append_test_psk_with_early_data(conn, limit, &s2n_tls13_aes_256_gcm_sha384));
+
+            s2n_early_data_status_t status = 0;
+            for (s2n_early_data_state state = 1; state < S2N_EARLY_DATA_STATES_COUNT; state++) {
+                conn->early_data_state = state;
+                EXPECT_SUCCESS(s2n_connection_get_early_data_status(conn, &status));
+            }
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
+
+    /* Test s2n_connection_get_remaining_early_data_size */
+    {
+        const uint32_t limit = 10;
+
+        /* Safety */
+        {
+            struct s2n_connection conn = { 0 };
+            uint32_t bytes = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_remaining_early_data_size(NULL, &bytes), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_remaining_early_data_size(&conn, NULL), S2N_ERR_NULL);
+        }
+
+        /* If early data allowed, return the remaining bytes allowed */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_append_test_psk_with_early_data(conn, limit, &s2n_tls13_aes_256_gcm_sha384));
+
+            uint32_t bytes = 0;
+
+            EXPECT_SUCCESS(s2n_connection_get_remaining_early_data_size(conn, &bytes));
+            EXPECT_EQUAL(bytes, limit);
+
+            conn->early_data_state = S2N_EARLY_DATA_NOT_REQUESTED;
+            EXPECT_SUCCESS(s2n_connection_get_remaining_early_data_size(conn, &bytes));
+            EXPECT_EQUAL(bytes, 0);
+
+            conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+            EXPECT_SUCCESS(s2n_connection_get_remaining_early_data_size(conn, &bytes));
+            EXPECT_EQUAL(bytes, limit);
+
+            conn->early_data_bytes = limit - 1;
+            conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+            EXPECT_SUCCESS(s2n_connection_get_remaining_early_data_size(conn, &bytes));
+            EXPECT_EQUAL(bytes, 1);
+
+            conn->early_data_bytes = limit;
+            conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+            EXPECT_SUCCESS(s2n_connection_get_remaining_early_data_size(conn, &bytes));
+            EXPECT_EQUAL(bytes, 0);
+
+            conn->early_data_bytes = limit + 1;
+            conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_remaining_early_data_size(conn, &bytes),
+                    S2N_ERR_MAX_EARLY_DATA_SIZE);
+            EXPECT_EQUAL(bytes, 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Test that all valid early data states successfully report a zero size */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+
+            uint32_t size = 0;
+            for (s2n_early_data_state state = 0; state < S2N_EARLY_DATA_STATES_COUNT; state++) {
+                conn->early_data_state = state;
+                EXPECT_SUCCESS(s2n_connection_get_remaining_early_data_size(conn, &size));
+                EXPECT_EQUAL(size, 0);
+            }
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Test that if S2N_EARLY_DATA_STATUS_OK, then non-zero size reported */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_append_test_psk_with_early_data(conn, limit, &s2n_tls13_aes_256_gcm_sha384));
+
+            s2n_early_data_status_t reason = 0;
+            uint32_t size = 0;
+            for (s2n_early_data_state state = 0; state < S2N_EARLY_DATA_STATES_COUNT; state++) {
+                conn->early_data_state = state;
+
+                EXPECT_SUCCESS(s2n_connection_get_early_data_status(conn, &reason));
+                EXPECT_SUCCESS(s2n_connection_get_remaining_early_data_size(conn, &size));
+
+                if (reason == S2N_EARLY_DATA_STATUS_OK) {
+                    EXPECT_EQUAL(size, limit);
+                } else {
+                    EXPECT_EQUAL(size, 0);
+                }
+            }
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
+
+    /* Test s2n_connection_get_max_early_data_size */
+    {
+        /* Safety */
+        {
+            struct s2n_connection conn = { 0 };
+            uint32_t bytes = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_max_early_data_size(&conn, NULL), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_max_early_data_size(NULL, &bytes), S2N_ERR_NULL);
+            EXPECT_EQUAL(bytes, 0);
+        }
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        const uint32_t limit = 10;
+        uint32_t actual_bytes = limit;
+
+        /* No PSKs: limit is zero */
+        EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+        EXPECT_EQUAL(actual_bytes, 0);
+
+        /* PSK with zero limit: limit is zero */
+        EXPECT_OK(s2n_append_test_psk_with_early_data(conn, 0, &s2n_tls13_aes_256_gcm_sha384));
+        EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+        EXPECT_EQUAL(actual_bytes, 0);
+
+        /* Second PSK with non-zero limit: limit is still zero */
+        EXPECT_OK(s2n_append_test_psk_with_early_data(conn, limit, &s2n_tls13_aes_256_gcm_sha384));
+        EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+        EXPECT_EQUAL(actual_bytes, 0);
+
+        /* First PSK with non-zero limit: limit is non-zero */
+        EXPECT_OK(s2n_psk_parameters_wipe(&conn->psk_params));
+        EXPECT_OK(s2n_append_test_psk_with_early_data(conn, limit, &s2n_tls13_aes_256_gcm_sha384));
+        EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+        EXPECT_EQUAL(actual_bytes, limit);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
     END_TEST();
 }

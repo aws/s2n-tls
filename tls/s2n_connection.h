@@ -248,6 +248,7 @@ struct s2n_connection {
     /* Keep some accounting on each connection */
     uint64_t wire_bytes_in;
     uint64_t wire_bytes_out;
+    uint64_t early_data_bytes;
 
     /* Is the connection open or closed ? We use C's only
      * atomic type as both the reader and the writer threads
