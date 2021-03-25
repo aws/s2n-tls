@@ -141,11 +141,13 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn);
             EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(client_conn, 0, expected_cipher_suite));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, security_policy));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
 
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(server_conn);
             EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(server_conn, 0, expected_cipher_suite));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, security_policy));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_OK(s2n_exchange_hellos(client_conn, server_conn));
             EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_NOT_REQUESTED);
@@ -179,11 +181,13 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn);
             EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(client_conn, nonzero_max_early_data, expected_cipher_suite));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, security_policy));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
 
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(server_conn);
             EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(server_conn, nonzero_max_early_data, expected_cipher_suite));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, security_policy));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_OK(s2n_exchange_hellos(client_conn, server_conn));
             EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
@@ -213,11 +217,13 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn);
             EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(client_conn, nonzero_max_early_data, expected_cipher_suite));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, security_policy));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
 
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(server_conn);
             EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(server_conn, 0, expected_cipher_suite));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, security_policy));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_OK(s2n_exchange_hellos(client_conn, server_conn));
             EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
@@ -250,11 +256,13 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn);
             EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(client_conn, nonzero_max_early_data, expected_cipher_suite));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, security_policy));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
 
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(server_conn);
             EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(server_conn, nonzero_max_early_data, expected_cipher_suite));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, security_policy));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,

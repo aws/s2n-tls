@@ -40,7 +40,8 @@ struct s2n_psk {
     struct s2n_blob identity;
     struct s2n_blob secret;
     s2n_hmac_algorithm hmac_alg;
-    uint32_t obfuscated_ticket_age;
+    uint32_t ticket_age_add;
+    uint64_t ticket_issue_time;
     struct s2n_blob early_secret;
     struct s2n_early_data_config early_data_config;
 };

@@ -42,6 +42,13 @@ S2N_RESULT s2n_connection_set_early_data_state(struct s2n_connection *conn, s2n_
     return S2N_RESULT_OK;
 }
 
+int s2n_connection_set_early_data_expected(struct s2n_connection *conn)
+{
+    POSIX_ENSURE_REF(conn);
+    conn->early_data_expected = true;
+    return S2N_SUCCESS;
+}
+
 static S2N_RESULT s2n_early_data_validate(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
@@ -109,9 +116,17 @@ S2N_RESULT s2n_early_data_accept_or_reject(struct s2n_connection *conn)
 
     /* Even if the connection is valid for early data, the client can't consider
      * early data accepted until the server sends the early data indication. */
-    if (conn->mode == S2N_SERVER) {
-        RESULT_GUARD(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_ACCEPTED));
+    if (conn->mode == S2N_CLIENT) {
+        return S2N_RESULT_OK;
     }
+
+    /* The server should reject early data if the application is not prepared to handle it. */
+    if (!conn->early_data_expected) {
+        RESULT_GUARD(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REJECTED));
+        return S2N_RESULT_OK;
+    }
+
+    RESULT_GUARD(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_ACCEPTED));
     return S2N_RESULT_OK;
 }
 

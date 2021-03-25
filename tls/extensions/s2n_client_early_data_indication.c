@@ -72,6 +72,7 @@ static S2N_RESULT s2n_early_data_config_is_possible(struct s2n_connection *conn)
 static bool s2n_client_early_data_indication_should_send(struct s2n_connection *conn)
 {
     return s2n_result_is_ok(s2n_early_data_config_is_possible(conn))
+            && conn && conn->early_data_expected
             /**
              *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
              *# A client MUST NOT include the

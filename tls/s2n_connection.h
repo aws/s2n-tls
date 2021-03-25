@@ -320,6 +320,12 @@ struct s2n_connection {
     /* Key update data */
     unsigned key_update_pending:1;
 
+    /* Early data supported by caller.
+     * If a caller does not use any APIs that support early data,
+     * do not negotiate early data.
+     */
+    unsigned early_data_expected:1;
+
     /* Bitmap to represent preferred list of keyshare for client to generate and send keyshares in the ClientHello message.
      * The least significant bit (lsb), if set, indicates that the client must send an empty keyshare list.
      * Each bit value in the bitmap indiciates the corresponding curve in the ecc_preferences list for which a key share needs to be generated.
