@@ -793,5 +793,99 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
+    /* Test s2n_config_set_server_max_early_data_size */
+    {
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_server_max_early_data_size(NULL, 1), S2N_ERR_NULL);
+
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+
+        EXPECT_EQUAL(config->server_max_early_data_size, 0);
+
+        EXPECT_SUCCESS(s2n_config_set_server_max_early_data_size(config, 1));
+        EXPECT_EQUAL(config->server_max_early_data_size, 1);
+
+        EXPECT_SUCCESS(s2n_config_set_server_max_early_data_size(config, UINT32_MAX));
+        EXPECT_EQUAL(config->server_max_early_data_size, UINT32_MAX);
+
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
+    /* Test s2n_connection_set_server_max_early_data_size */
+    {
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_server_max_early_data_size(NULL, 1), S2N_ERR_NULL);
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_EQUAL(conn->server_max_early_data_size, 0);
+        EXPECT_FALSE(conn->server_max_early_data_size_overridden);
+
+        EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, 1));
+        EXPECT_EQUAL(conn->server_max_early_data_size, 1);
+        EXPECT_TRUE(conn->server_max_early_data_size_overridden);
+
+        conn->server_max_early_data_size_overridden = false;
+
+        EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, UINT32_MAX));
+        EXPECT_EQUAL(conn->server_max_early_data_size, UINT32_MAX);
+        EXPECT_TRUE(conn->server_max_early_data_size_overridden);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* Test s2n_early_data_get_server_max_size */
+    {
+        uint32_t result_size = 0;
+        const uint32_t connection_value = 10;
+        const uint32_t config_value = 5;
+
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_server_max_early_data_size(config, config_value));
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, connection_value));
+
+        /* Safety */
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_get_server_max_size(NULL, &result_size), S2N_ERR_NULL);
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_get_server_max_size(conn, NULL), S2N_ERR_NULL);
+
+        /* No config */
+        conn->config = NULL;
+        conn->server_max_early_data_size_overridden = false;
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_get_server_max_size(conn, &result_size), S2N_ERR_NULL);
+
+        /* No config, but connection override set */
+        EXPECT_NULL(conn->config);
+        conn->server_max_early_data_size_overridden = true;
+        EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, connection_value));
+        EXPECT_OK(s2n_early_data_get_server_max_size(conn, &result_size));
+        EXPECT_EQUAL(result_size, connection_value);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        /* Return config version if override not set */
+        conn->server_max_early_data_size_overridden = false;
+        EXPECT_OK(s2n_early_data_get_server_max_size(conn, &result_size));
+        EXPECT_EQUAL(result_size, config_value);
+
+        /* Return connection version if set */
+        conn->server_max_early_data_size_overridden = true;
+        EXPECT_OK(s2n_early_data_get_server_max_size(conn, &result_size));
+        EXPECT_EQUAL(result_size, connection_value);
+
+        /* Connection can override with a zero value */
+        EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, 0));
+        EXPECT_OK(s2n_early_data_get_server_max_size(conn, &result_size));
+        EXPECT_EQUAL(result_size, 0);
+
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
     END_TEST();
 }

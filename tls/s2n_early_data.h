@@ -48,7 +48,12 @@ S2N_RESULT s2n_early_data_config_clone(struct s2n_psk *new_psk, struct s2n_early
 bool s2n_early_data_is_valid_for_connection(struct s2n_connection *conn);
 S2N_RESULT s2n_early_data_accept_or_reject(struct s2n_connection *conn);
 
+S2N_RESULT s2n_early_data_get_server_max_size(struct s2n_connection *conn, uint32_t *max_early_data_size);
+
 /* Public Interface -- will be made visible and moved to s2n.h when the 0RTT feature is released */
+
+int s2n_config_set_server_max_early_data_size(struct s2n_config *config, uint32_t max_early_data_size);
+int s2n_connection_set_server_max_early_data_size(struct s2n_connection *conn, uint32_t max_early_data_size);
 
 int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data_size,
         uint8_t cipher_suite_first_byte, uint8_t cipher_suite_second_byte);

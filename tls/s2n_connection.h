@@ -326,6 +326,9 @@ struct s2n_connection {
      */
     unsigned early_data_expected:1;
 
+    /* Connection overrides server_max_early_data_size */
+    unsigned server_max_early_data_size_overridden:1;
+
     /* Bitmap to represent preferred list of keyshare for client to generate and send keyshares in the ClientHello message.
      * The least significant bit (lsb), if set, indicates that the client must send an empty keyshare list.
      * Each bit value in the bitmap indiciates the corresponding curve in the ecc_preferences list for which a key share needs to be generated.
@@ -344,6 +347,7 @@ struct s2n_connection {
     uint16_t tickets_sent;
 
     s2n_early_data_state early_data_state;
+    uint32_t server_max_early_data_size;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);

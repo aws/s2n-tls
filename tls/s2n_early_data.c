@@ -130,6 +130,34 @@ S2N_RESULT s2n_early_data_accept_or_reject(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
+int s2n_config_set_server_max_early_data_size(struct s2n_config *config, uint32_t max_early_data_size)
+{
+    POSIX_ENSURE_REF(config);
+    config->server_max_early_data_size = max_early_data_size;
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_set_server_max_early_data_size(struct s2n_connection *conn, uint32_t max_early_data_size)
+{
+    POSIX_ENSURE_REF(conn);
+    conn->server_max_early_data_size = max_early_data_size;
+    conn->server_max_early_data_size_overridden = true;
+    return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_early_data_get_server_max_size(struct s2n_connection *conn, uint32_t *max_early_data_size)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(max_early_data_size);
+    if (conn->server_max_early_data_size_overridden) {
+        *max_early_data_size = conn->server_max_early_data_size;
+    } else {
+        RESULT_ENSURE_REF(conn->config);
+        *max_early_data_size = conn->config->server_max_early_data_size;
+    }
+    return S2N_RESULT_OK;
+}
+
 S2N_CLEANUP_RESULT s2n_early_data_config_free(struct s2n_early_data_config *config)
 {
     if (config == NULL) {
