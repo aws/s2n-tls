@@ -63,5 +63,5 @@ typedef enum {
 } s2n_early_data_status_t;
 int s2n_connection_get_early_data_status(struct s2n_connection *conn, s2n_early_data_status_t *status);
 
-int s2n_connection_get_allowed_early_data_size(struct s2n_connection *conn, uint32_t *allowed_early_data_size);
+int s2n_connection_get_remaining_early_data_size(struct s2n_connection *conn, uint32_t *allowed_early_data_size);
 int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, uint32_t *max_early_data_size);

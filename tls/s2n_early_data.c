@@ -240,7 +240,7 @@ static S2N_RESULT s2n_get_remaining_early_data_bytes(struct s2n_connection *conn
     return S2N_RESULT_OK;
 }
 
-int s2n_connection_get_allowed_early_data_size(struct s2n_connection *conn, uint32_t *allowed_early_data_size)
+int s2n_connection_get_remaining_early_data_size(struct s2n_connection *conn, uint32_t *allowed_early_data_size)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(allowed_early_data_size);

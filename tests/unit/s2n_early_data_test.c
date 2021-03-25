@@ -647,7 +647,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Test s2n_connection_get_allowed_early_data_size */
+    /* Test s2n_connection_get_remaining_early_data_size */
     {
         const uint32_t limit = 10;
 
@@ -655,8 +655,8 @@ int main(int argc, char **argv)
         {
             struct s2n_connection conn = { 0 };
             uint32_t bytes = 0;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_allowed_early_data_size(NULL, &bytes), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_allowed_early_data_size(&conn, NULL), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_remaining_early_data_size(NULL, &bytes), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_remaining_early_data_size(&conn, NULL), S2N_ERR_NULL);
         }
 
         /* If early data allowed, return the remaining bytes allowed */
@@ -667,30 +667,30 @@ int main(int argc, char **argv)
 
             uint32_t bytes = 0;
 
-            EXPECT_SUCCESS(s2n_connection_get_allowed_early_data_size(conn, &bytes));
+            EXPECT_SUCCESS(s2n_connection_get_remaining_early_data_size(conn, &bytes));
             EXPECT_EQUAL(bytes, limit);
 
             conn->early_data_state = S2N_EARLY_DATA_NOT_REQUESTED;
-            EXPECT_SUCCESS(s2n_connection_get_allowed_early_data_size(conn, &bytes));
+            EXPECT_SUCCESS(s2n_connection_get_remaining_early_data_size(conn, &bytes));
             EXPECT_EQUAL(bytes, 0);
 
             conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
-            EXPECT_SUCCESS(s2n_connection_get_allowed_early_data_size(conn, &bytes));
+            EXPECT_SUCCESS(s2n_connection_get_remaining_early_data_size(conn, &bytes));
             EXPECT_EQUAL(bytes, limit);
 
             conn->early_data_bytes = limit - 1;
             conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
-            EXPECT_SUCCESS(s2n_connection_get_allowed_early_data_size(conn, &bytes));
+            EXPECT_SUCCESS(s2n_connection_get_remaining_early_data_size(conn, &bytes));
             EXPECT_EQUAL(bytes, 1);
 
             conn->early_data_bytes = limit;
             conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
-            EXPECT_SUCCESS(s2n_connection_get_allowed_early_data_size(conn, &bytes));
+            EXPECT_SUCCESS(s2n_connection_get_remaining_early_data_size(conn, &bytes));
             EXPECT_EQUAL(bytes, 0);
 
             conn->early_data_bytes = limit + 1;
             conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_allowed_early_data_size(conn, &bytes),
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_remaining_early_data_size(conn, &bytes),
                     S2N_ERR_MAX_EARLY_DATA_SIZE);
             EXPECT_EQUAL(bytes, 0);
 
@@ -705,7 +705,7 @@ int main(int argc, char **argv)
             uint32_t size = 0;
             for (s2n_early_data_state state = 0; state < S2N_EARLY_DATA_STATES_COUNT; state++) {
                 conn->early_data_state = state;
-                EXPECT_SUCCESS(s2n_connection_get_allowed_early_data_size(conn, &size));
+                EXPECT_SUCCESS(s2n_connection_get_remaining_early_data_size(conn, &size));
                 EXPECT_EQUAL(size, 0);
             }
 
@@ -724,7 +724,7 @@ int main(int argc, char **argv)
                 conn->early_data_state = state;
 
                 EXPECT_SUCCESS(s2n_connection_get_early_data_status(conn, &reason));
-                EXPECT_SUCCESS(s2n_connection_get_allowed_early_data_size(conn, &size));
+                EXPECT_SUCCESS(s2n_connection_get_remaining_early_data_size(conn, &size));
 
                 if (reason == S2N_EARLY_DATA_STATUS_OK) {
                     EXPECT_EQUAL(size, limit);
