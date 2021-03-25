@@ -195,26 +195,6 @@ S2N_CLEANUP_RESULT s2n_psk_parameters_wipe_secrets(struct s2n_psk_parameters *pa
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_psk_parameters_remove_psks(struct s2n_psk_parameters *params, s2n_psk_type type) 
-{
-    RESULT_ENSURE_REF(params);
-
-    struct s2n_array *psk_list = &params->psk_list;
-    for (uint32_t i = psk_list->len; i > 0; i--) {
-        /* This index variable along with the loop condition keep size_t i from underflowing */
-        size_t idx = i - 1;
-        struct s2n_psk *psk = NULL;
-        RESULT_GUARD(s2n_array_get(psk_list, idx, (void**)&psk));
-        RESULT_ENSURE_REF(psk);
-
-        if (psk->type == type) {
-            RESULT_GUARD(s2n_psk_wipe(psk));
-            RESULT_GUARD(s2n_array_remove(psk_list, idx));
-        }
-    }
-    return S2N_RESULT_OK;
-}
-
 bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list)
 {
     return psk_list != NULL && s2n_stuffer_data_available(&psk_list->wire_data) > 0;

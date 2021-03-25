@@ -256,7 +256,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* Any existing resumption psks are removed when creating a new resumption psk */
+        /* Any existing psks are removed when creating a new resumption psk */
         {
             struct s2n_blob ticket_blob = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls13_ticket, sizeof(tls13_ticket)));
@@ -279,6 +279,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_psk_set_identity(&resumption_psk, resumption_data, sizeof(resumption_data)));
             EXPECT_SUCCESS(s2n_psk_set_secret(&resumption_psk, resumption_data, sizeof(resumption_data)));
             EXPECT_SUCCESS(s2n_connection_append_psk(conn, &resumption_psk));
+
+            /* Add existing external psk */
+            const uint8_t external_data[] = "external data";
+            DEFER_CLEANUP(struct s2n_psk *external_psk = s2n_external_psk_new(), s2n_psk_free);
+            EXPECT_SUCCESS(s2n_psk_set_identity(external_psk, external_data, sizeof(external_data)));
+            EXPECT_SUCCESS(s2n_psk_set_secret(external_psk, external_data, sizeof(external_data)));
+            EXPECT_SUCCESS(s2n_connection_append_psk(conn, external_psk));
 
             EXPECT_OK(s2n_client_deserialize_session_state(conn, &ticket_stuffer));
 
