@@ -19,11 +19,6 @@
 
 #define ALERT_LEN (sizeof(uint16_t))
 
-int mock_send_impl(void *io_context, const uint8_t *buf, uint32_t len)
-{
-    return len;
-}
-
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -39,14 +34,17 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            /* Set mock send impl */
-            EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, &mock_send_impl));
+            struct s2n_stuffer input;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+            struct s2n_stuffer output;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
 
             /* Verify state prior to alert */
             EXPECT_FALSE(conn->close_notify_received);
 
             s2n_blocked_status blocked;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(conn, &blocked), S2N_ERR_IO);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(conn, &blocked), S2N_ERR_IO_BLOCKED);
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
             /* Verify state after shutdown attempt */
@@ -58,19 +56,13 @@ int main(int argc, char **argv)
         /* Do not await close_notify if close_notify_received is set */
         {
             struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-            /* --------------------- */
-            /* Set mock send impl */
-            EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, &mock_send_impl));
-
-            /* struct s2n_stuffer input; */
-            /* EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0)); */
-            /* /1* struct s2n_stuffer o; *1/ */
-            /* /1* EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&o, 0)); *1/ */
-            /* EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn)); */
-
-            /* --------------------- */
+            struct s2n_stuffer input;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+            struct s2n_stuffer output;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
 
             /* Verify state prior to alert */
             EXPECT_FALSE(conn->close_notify_received);
