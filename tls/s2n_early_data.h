@@ -54,3 +54,5 @@ int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data_si
         uint8_t cipher_suite_first_byte, uint8_t cipher_suite_second_byte);
 int s2n_psk_set_application_protocol(struct s2n_psk *psk, const uint8_t *application_protocol, uint8_t size);
 int s2n_psk_set_context(struct s2n_psk *psk, const uint8_t *context, uint16_t size);
+
+int s2n_connection_set_early_data_expected(struct s2n_connection *conn);
