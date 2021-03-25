@@ -60,8 +60,17 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
+            /* --------------------- */
             /* Set mock send impl */
             EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, &mock_send_impl));
+
+            /* struct s2n_stuffer input; */
+            /* EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0)); */
+            /* /1* struct s2n_stuffer o; *1/ */
+            /* /1* EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&o, 0)); *1/ */
+            /* EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn)); */
+
+            /* --------------------- */
 
             /* Verify state prior to alert */
             EXPECT_FALSE(conn->close_notify_received);

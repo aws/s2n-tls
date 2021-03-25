@@ -43,7 +43,9 @@ int main(int argc, char **argv)
 
             /* Write and process the alert */
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, not_close_notify_alert, sizeof(not_close_notify_alert)));
-            EXPECT_FAILURE(s2n_process_alert_fragment(conn));
+
+            /* This fails due to the alert. This is ok since we are only testing that close_notify_received was set */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_process_alert_fragment(conn), S2N_ERR_ALERT);
 
             /* Verify state after alert */
             EXPECT_FALSE(conn->close_notify_received);
