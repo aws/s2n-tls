@@ -63,6 +63,8 @@ struct s2n_config {
     void *monotonic_clock_ctx;
 
     s2n_client_hello_fn *client_hello_cb;
+    s2n_client_hello_cb_mode client_hello_cb_mode;
+
     void *client_hello_cb_ctx;
 
     uint64_t session_state_lifetime_in_nanos;

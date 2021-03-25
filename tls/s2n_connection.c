@@ -530,6 +530,17 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     return 0;
 }
 
+int s2n_connection_server_name_extension_used(struct s2n_connection *conn)
+{
+
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE(conn->mode == S2N_SERVER, S2N_ERR_INVALID_STATE);
+    POSIX_ENSURE(!(conn->handshake.client_hello_received), S2N_ERR_INVALID_STATE);
+
+    conn->server_name_used = 1;
+    return S2N_SUCCESS;
+}
+
 int s2n_connection_set_ctx(struct s2n_connection *conn, void *ctx)
 {
     conn->context = ctx;
