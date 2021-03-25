@@ -34,86 +34,53 @@ int main(int argc, char **argv)
     /* Test s2n_shutdown */
     {
 
-        /* If send and recv impl are NULL always proceed with shutdown  */
+        /* Await close_notify if close_notify_received is not set */
         {
-            struct s2n_config *config;
-            EXPECT_NOT_NULL(config = s2n_config_new());
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-
-            /* Verify state prior to alert */
-            EXPECT_FALSE(conn->did_recv_close_notify);
-
-            /* Write and process the alert */
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, close_notify_alert, sizeof(close_notify_alert)));
-            EXPECT_SUCCESS(s2n_process_alert_fragment(conn));
-
-            /* Verify state after alert */
-            EXPECT_TRUE(conn->did_recv_close_notify);
-
-            s2n_blocked_status blocked;
-            EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_config_free(config));
-        }
-
-        /* Await close_notify if did_recv_close_notify is not set */
-        {
-            struct s2n_config *config;
-            EXPECT_NOT_NULL(config = s2n_config_new());
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             /* Set mock send impl */
             EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, &mock_send_impl));
 
             /* Verify state prior to alert */
-            EXPECT_FALSE(conn->did_recv_close_notify);
+            EXPECT_FALSE(conn->close_notify_received);
 
             s2n_blocked_status blocked;
             EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(conn, &blocked), S2N_ERR_IO);
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
             /* Verify state after shutdown attempt */
-            EXPECT_FALSE(conn->did_recv_close_notify);
+            EXPECT_FALSE(conn->close_notify_received);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_config_free(config));
         }
 
-        /* Do not await close_notify if did_recv_close_notify is set */
+        /* Do not await close_notify if close_notify_received is set */
         {
-            struct s2n_config *config;
-            EXPECT_NOT_NULL(config = s2n_config_new());
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             /* Set mock send impl */
             EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, &mock_send_impl));
 
             /* Verify state prior to alert */
-            EXPECT_FALSE(conn->did_recv_close_notify);
+            EXPECT_FALSE(conn->close_notify_received);
 
             /* Write and process the alert */
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, close_notify_alert, sizeof(close_notify_alert)));
             EXPECT_SUCCESS(s2n_process_alert_fragment(conn));
 
             /* Verify state after alert */
-            EXPECT_TRUE(conn->did_recv_close_notify);
+            EXPECT_TRUE(conn->close_notify_received);
 
             s2n_blocked_status blocked;
             EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
             /* Verify state after shutdown attempt */
-            EXPECT_TRUE(conn->did_recv_close_notify);
+            EXPECT_TRUE(conn->close_notify_received);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_config_free(config));
         }
 
     }

@@ -330,7 +330,7 @@ struct s2n_connection {
     unsigned server_max_early_data_size_overridden:1;
 
     /* Have we received a close notify alert from the peer. */
-    unsigned did_recv_close_notify:1;
+    unsigned close_notify_received:1;
 
     /* Bitmap to represent preferred list of keyshare for client to generate and send keyshares in the ClientHello message.
      * The least significant bit (lsb), if set, indicates that the client must send an empty keyshare list.

@@ -49,7 +49,7 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status * more)
     }
 
     /* Dont expect to receive another close notify alert if we have already received it */
-    if (!conn->did_recv_close_notify) {
+    if (!conn->close_notify_received) {
         /* Fails with S2N_ERR_SHUTDOWN_RECORD_TYPE or S2N_ERR_ALERT on receipt of anything but a close_notify */
         POSIX_GUARD(s2n_recv_close_notify(conn, more));
     }
