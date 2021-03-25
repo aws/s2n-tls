@@ -203,28 +203,26 @@ int s2n_connection_get_early_data_status(struct s2n_connection *conn, s2n_early_
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(status);
-    *status = S2N_EARLY_DATA_STATUS_UNKNOWN;
 
     switch(conn->early_data_state) {
         case S2N_EARLY_DATA_STATES_COUNT:
-            *status = S2N_EARLY_DATA_STATUS_UNKNOWN;
             break;
         case S2N_EARLY_DATA_NOT_REQUESTED:
             *status = S2N_EARLY_DATA_STATUS_NOT_REQUESTED;
-            break;
+            return S2N_SUCCESS;
         case S2N_EARLY_DATA_REJECTED:
             *status = S2N_EARLY_DATA_STATUS_REJECTED;
-            break;
+            return S2N_SUCCESS;
         case S2N_END_OF_EARLY_DATA:
             *status = S2N_EARLY_DATA_STATUS_END;
-            break;
+            return S2N_SUCCESS;
         case S2N_UNKNOWN_EARLY_DATA_STATE:
         case S2N_EARLY_DATA_REQUESTED:
         case S2N_EARLY_DATA_ACCEPTED:
             *status = S2N_EARLY_DATA_STATUS_OK;
-            break;
+            return S2N_SUCCESS;
     }
-    return S2N_SUCCESS;
+    POSIX_BAIL(S2N_ERR_INVALID_EARLY_DATA_STATE);
 }
 
 static S2N_RESULT s2n_get_remaining_early_data_bytes(struct s2n_connection *conn, uint32_t *early_data_allowed)
@@ -246,6 +244,7 @@ int s2n_connection_get_allowed_early_data_size(struct s2n_connection *conn, uint
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(allowed_early_data_size);
+    *allowed_early_data_size = 0;
 
     switch(conn->early_data_state) {
         case S2N_EARLY_DATA_STATES_COUNT:

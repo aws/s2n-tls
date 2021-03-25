@@ -592,6 +592,9 @@ int main(int argc, char **argv)
             s2n_early_data_status_t status = 0;
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_early_data_status(NULL, &status), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_early_data_status(&conn, NULL), S2N_ERR_NULL);
+
+            conn.early_data_state = S2N_EARLY_DATA_STATES_COUNT;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_early_data_status(&conn, &status), S2N_ERR_INVALID_EARLY_DATA_STATE);
         }
 
         /* Correct status returned for current early data state */
@@ -635,10 +638,9 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_append_test_psk_with_early_data(conn, limit, &s2n_tls13_aes_256_gcm_sha384));
 
             s2n_early_data_status_t status = 0;
-            for (s2n_early_data_state state = 0; state < S2N_EARLY_DATA_STATES_COUNT; state++) {
+            for (s2n_early_data_state state = 1; state < S2N_EARLY_DATA_STATES_COUNT; state++) {
                 conn->early_data_state = state;
                 EXPECT_SUCCESS(s2n_connection_get_early_data_status(conn, &status));
-                EXPECT_NOT_EQUAL(status, 0);
             }
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
