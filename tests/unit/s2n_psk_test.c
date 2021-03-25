@@ -946,5 +946,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_psk_set_hmac(&psk, S2N_PSK_HMAC_SHA256));
         EXPECT_EQUAL(psk.hmac_alg, S2N_HMAC_SHA256);
     }
+
     END_TEST();
 }
