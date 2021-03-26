@@ -179,15 +179,25 @@ int main(int argc, char **argv)
 
     /* s2n_client_deserialize_session_state */
     {
+        uint8_t tls12_ticket[S2N_STATE_SIZE_IN_BYTES] = {
+            S2N_TLS12_SERIALIZED_FORMAT_VERSION,
+            S2N_TLS12,
+            TLS_RSA_WITH_AES_128_GCM_SHA256,
+            TICKET_ISSUE_TIME_BYTES,
+        };
+
+        uint8_t tls13_ticket[] = {
+            S2N_TLS13_SERIALIZED_FORMAT_VERSION,
+            S2N_TLS13,
+            TLS_AES_128_GCM_SHA256,
+            TICKET_ISSUE_TIME_BYTES,
+            TICKET_AGE_ADD_BYTES,
+            SECRET_LEN,
+            SECRET,
+        };
+
         /* Deserialized ticket sets correct connection values for session resumption in TLS1.2 */
         {
-            uint8_t tls12_ticket[S2N_STATE_SIZE_IN_BYTES] = {
-                S2N_TLS12_SERIALIZED_FORMAT_VERSION,
-                S2N_TLS12,
-                TLS_RSA_WITH_AES_128_GCM_SHA256,
-                TICKET_ISSUE_TIME_BYTES,
-            };
-
             struct s2n_blob ticket_blob = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls12_ticket, sizeof(tls12_ticket)));
             struct s2n_stuffer ticket_stuffer = { 0 };
@@ -211,16 +221,6 @@ int main(int argc, char **argv)
 
         /* Deserialized ticket sets correct PSK values for session resumption in TLS1.3 */
         {
-            uint8_t tls13_ticket[] = {
-                S2N_TLS13_SERIALIZED_FORMAT_VERSION,
-                S2N_TLS13,
-                TLS_AES_128_GCM_SHA256,
-                TICKET_ISSUE_TIME_BYTES,
-                TICKET_AGE_ADD_BYTES,
-                SECRET_LEN,
-                SECRET,
-            };
-
             struct s2n_blob ticket_blob = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls13_ticket, sizeof(tls13_ticket)));
             struct s2n_stuffer ticket_stuffer = { 0 };
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             /* Initialize client ticket */
-            uint8_t client_ticket[] = { CLIENT_TICKET };
+            const uint8_t client_ticket[] = { CLIENT_TICKET };
             EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, sizeof(client_ticket)));
             EXPECT_MEMCPY_SUCCESS(conn->client_ticket.data, client_ticket, sizeof(client_ticket));
 
@@ -252,6 +252,50 @@ int main(int argc, char **argv)
 
             EXPECT_EQUAL(psk->ticket_age_add, TICKET_AGE_ADD);
             EXPECT_EQUAL(psk->ticket_issue_time, ticket_issue_time);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Any existing psks are removed when creating a new resumption psk */
+        {
+            struct s2n_blob ticket_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls13_ticket, sizeof(tls13_ticket)));
+            struct s2n_stuffer ticket_stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, sizeof(tls13_ticket)));
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+
+            /* Initialize client ticket */
+            uint8_t client_ticket[] = { CLIENT_TICKET };
+            EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, sizeof(client_ticket)));
+            EXPECT_MEMCPY_SUCCESS(conn->client_ticket.data, client_ticket, sizeof(client_ticket));
+
+            /* Add existing resumption psk */
+            const uint8_t resumption_data[] = "resumption data";
+            DEFER_CLEANUP(struct s2n_psk resumption_psk = { 0 }, s2n_psk_wipe);
+            EXPECT_OK(s2n_psk_init(&resumption_psk, S2N_PSK_TYPE_RESUMPTION));
+            EXPECT_SUCCESS(s2n_psk_set_identity(&resumption_psk, resumption_data, sizeof(resumption_data)));
+            EXPECT_SUCCESS(s2n_psk_set_secret(&resumption_psk, resumption_data, sizeof(resumption_data)));
+            EXPECT_SUCCESS(s2n_connection_append_psk(conn, &resumption_psk));
+
+            /* Add existing external psk */
+            const uint8_t external_data[] = "external data";
+            DEFER_CLEANUP(struct s2n_psk *external_psk = s2n_external_psk_new(), s2n_psk_free);
+            EXPECT_SUCCESS(s2n_psk_set_identity(external_psk, external_data, sizeof(external_data)));
+            EXPECT_SUCCESS(s2n_psk_set_secret(external_psk, external_data, sizeof(external_data)));
+            EXPECT_SUCCESS(s2n_connection_append_psk(conn, external_psk));
+
+            EXPECT_OK(s2n_client_deserialize_session_state(conn, &ticket_stuffer));
+
+            EXPECT_EQUAL(conn->psk_params.psk_list.len, 1);
+            struct s2n_psk *psk = NULL;
+            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+            EXPECT_NOT_NULL(psk);
+
+            EXPECT_EQUAL(psk->type, S2N_PSK_TYPE_RESUMPTION);
+            S2N_BLOB_EXPECT_EQUAL(psk->identity, conn->client_ticket);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
