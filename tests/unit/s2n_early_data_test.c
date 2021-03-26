@@ -764,32 +764,163 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(bytes, 0);
         }
 
+        /* Retrieve the limit from the first PSK, or return 0 */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+
+            const uint32_t limit = 10;
+            uint32_t actual_bytes = limit;
+
+            /* No PSKs: limit is zero */
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, 0);
+
+            /* PSK with zero limit: limit is zero */
+            EXPECT_OK(s2n_append_test_psk_with_early_data(conn, 0, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, 0);
+
+            /* Second PSK with non-zero limit: limit is still zero */
+            EXPECT_OK(s2n_append_test_psk_with_early_data(conn, limit, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, 0);
+
+            /* First PSK with non-zero limit: limit is non-zero */
+            EXPECT_OK(s2n_psk_parameters_wipe(&conn->psk_params));
+            EXPECT_OK(s2n_append_test_psk_with_early_data(conn, limit, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, limit);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* If in server mode, apply the server limit */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+
+            const uint32_t psk_limit = 10;
+            EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(conn, psk_limit, &s2n_tls13_aes_256_gcm_sha384));
+
+            uint32_t actual_bytes = 0;
+
+            /* server limit is lower, but PSK is external: use PSK limit */
+            EXPECT_EQUAL(conn->psk_params.chosen_psk->type, S2N_PSK_TYPE_EXTERNAL);
+            uint32_t server_limit = psk_limit - 1;
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, server_limit));
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, psk_limit);
+
+            conn->psk_params.chosen_psk->type = S2N_PSK_TYPE_RESUMPTION;
+
+            /* server limit is higher: use PSK limit */
+            server_limit = psk_limit + 1;
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, server_limit));
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, psk_limit);
+
+            /* server limit is lower and PSK is resumption: use server limit */
+            server_limit = psk_limit - 1;
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, server_limit));
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, server_limit);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
+
+    /* Test s2n_config_set_server_max_early_data_size */
+    {
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_server_max_early_data_size(NULL, 1), S2N_ERR_NULL);
+
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+
+        EXPECT_EQUAL(config->server_max_early_data_size, 0);
+
+        EXPECT_SUCCESS(s2n_config_set_server_max_early_data_size(config, 1));
+        EXPECT_EQUAL(config->server_max_early_data_size, 1);
+
+        EXPECT_SUCCESS(s2n_config_set_server_max_early_data_size(config, UINT32_MAX));
+        EXPECT_EQUAL(config->server_max_early_data_size, UINT32_MAX);
+
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
+    /* Test s2n_connection_set_server_max_early_data_size */
+    {
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_server_max_early_data_size(NULL, 1), S2N_ERR_NULL);
+
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(conn);
 
-        const uint32_t limit = 10;
-        uint32_t actual_bytes = limit;
+        EXPECT_EQUAL(conn->server_max_early_data_size, 0);
+        EXPECT_FALSE(conn->server_max_early_data_size_overridden);
 
-        /* No PSKs: limit is zero */
-        EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
-        EXPECT_EQUAL(actual_bytes, 0);
+        EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, 1));
+        EXPECT_EQUAL(conn->server_max_early_data_size, 1);
+        EXPECT_TRUE(conn->server_max_early_data_size_overridden);
 
-        /* PSK with zero limit: limit is zero */
-        EXPECT_OK(s2n_append_test_psk_with_early_data(conn, 0, &s2n_tls13_aes_256_gcm_sha384));
-        EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
-        EXPECT_EQUAL(actual_bytes, 0);
+        conn->server_max_early_data_size_overridden = false;
 
-        /* Second PSK with non-zero limit: limit is still zero */
-        EXPECT_OK(s2n_append_test_psk_with_early_data(conn, limit, &s2n_tls13_aes_256_gcm_sha384));
-        EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
-        EXPECT_EQUAL(actual_bytes, 0);
+        EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, UINT32_MAX));
+        EXPECT_EQUAL(conn->server_max_early_data_size, UINT32_MAX);
+        EXPECT_TRUE(conn->server_max_early_data_size_overridden);
 
-        /* First PSK with non-zero limit: limit is non-zero */
-        EXPECT_OK(s2n_psk_parameters_wipe(&conn->psk_params));
-        EXPECT_OK(s2n_append_test_psk_with_early_data(conn, limit, &s2n_tls13_aes_256_gcm_sha384));
-        EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(conn, &actual_bytes));
-        EXPECT_EQUAL(actual_bytes, limit);
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
 
+    /* Test s2n_early_data_get_server_max_size */
+    {
+        uint32_t result_size = 0;
+        const uint32_t connection_value = 10;
+        const uint32_t config_value = 5;
+
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_server_max_early_data_size(config, config_value));
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, connection_value));
+
+        /* Safety */
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_get_server_max_size(NULL, &result_size), S2N_ERR_NULL);
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_get_server_max_size(conn, NULL), S2N_ERR_NULL);
+
+        /* No config */
+        conn->config = NULL;
+        conn->server_max_early_data_size_overridden = false;
+        EXPECT_ERROR_WITH_ERRNO(s2n_early_data_get_server_max_size(conn, &result_size), S2N_ERR_NULL);
+
+        /* No config, but connection override set */
+        EXPECT_NULL(conn->config);
+        conn->server_max_early_data_size_overridden = true;
+        EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, connection_value));
+        EXPECT_OK(s2n_early_data_get_server_max_size(conn, &result_size));
+        EXPECT_EQUAL(result_size, connection_value);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        /* Return config version if override not set */
+        conn->server_max_early_data_size_overridden = false;
+        EXPECT_OK(s2n_early_data_get_server_max_size(conn, &result_size));
+        EXPECT_EQUAL(result_size, config_value);
+
+        /* Return connection version if set */
+        conn->server_max_early_data_size_overridden = true;
+        EXPECT_OK(s2n_early_data_get_server_max_size(conn, &result_size));
+        EXPECT_EQUAL(result_size, connection_value);
+
+        /* Connection can override with a zero value */
+        EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, 0));
+        EXPECT_OK(s2n_early_data_get_server_max_size(conn, &result_size));
+        EXPECT_EQUAL(result_size, 0);
+
+        EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 

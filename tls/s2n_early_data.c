@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
+
 #include "tls/s2n_early_data.h"
 
 #include "tls/s2n_connection.h"
@@ -127,6 +129,34 @@ S2N_RESULT s2n_early_data_accept_or_reject(struct s2n_connection *conn)
     }
 
     RESULT_GUARD(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_ACCEPTED));
+    return S2N_RESULT_OK;
+}
+
+int s2n_config_set_server_max_early_data_size(struct s2n_config *config, uint32_t max_early_data_size)
+{
+    POSIX_ENSURE_REF(config);
+    config->server_max_early_data_size = max_early_data_size;
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_set_server_max_early_data_size(struct s2n_connection *conn, uint32_t max_early_data_size)
+{
+    POSIX_ENSURE_REF(conn);
+    conn->server_max_early_data_size = max_early_data_size;
+    conn->server_max_early_data_size_overridden = true;
+    return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_early_data_get_server_max_size(struct s2n_connection *conn, uint32_t *max_early_data_size)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(max_early_data_size);
+    if (conn->server_max_early_data_size_overridden) {
+        *max_early_data_size = conn->server_max_early_data_size;
+    } else {
+        RESULT_ENSURE_REF(conn->config);
+        *max_early_data_size = conn->config->server_max_early_data_size;
+    }
     return S2N_RESULT_OK;
 }
 
@@ -283,11 +313,28 @@ int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, uint32_t
     POSIX_ENSURE_REF(max_early_data_size);
     *max_early_data_size = 0;
 
-    if (conn->psk_params.psk_list.len) {
-        struct s2n_psk *first_psk = NULL;
-        POSIX_GUARD_RESULT(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &first_psk));
-        POSIX_ENSURE_REF(first_psk);
-        *max_early_data_size = first_psk->early_data_config.max_early_data_size;
+    if (conn->psk_params.psk_list.len == 0) {
+        return S2N_SUCCESS;
+    }
+
+    struct s2n_psk *first_psk = NULL;
+    POSIX_GUARD_RESULT(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &first_psk));
+    POSIX_ENSURE_REF(first_psk);
+    *max_early_data_size = first_psk->early_data_config.max_early_data_size;
+
+    /* For the server, we should use the minimum of the limit retrieved from the ticket
+     * and the current limit being set for new tickets.
+     *
+     * This is defensive: even if more early data was previously allowed, the server may not be
+     * willing or able to handle that much early data now.
+     *
+     * We don't do this for external PSKs because the server has intentionally set the limit
+     * while setting up this connection, not during a previous connection.
+     */
+    if (conn->mode == S2N_SERVER && first_psk->type == S2N_PSK_TYPE_RESUMPTION) {
+        uint32_t server_max_early_data_size = 0;
+        POSIX_GUARD_RESULT(s2n_early_data_get_server_max_size(conn, &server_max_early_data_size));
+        *max_early_data_size = MIN(*max_early_data_size, server_max_early_data_size);
     }
 
     return S2N_SUCCESS;

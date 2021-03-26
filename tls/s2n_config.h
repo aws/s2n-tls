@@ -111,6 +111,8 @@ struct s2n_config {
 
     s2n_session_ticket_fn session_ticket_cb;
     void *session_ticket_ctx;
+
+    uint32_t server_max_early_data_size;
 };
 
 int s2n_config_defaults_init(void);
