@@ -179,14 +179,14 @@ int main(int argc, char **argv)
 
     /* s2n_client_deserialize_session_state */
     {
-        uint8_t tls12_ticket[S2N_STATE_SIZE_IN_BYTES] = {
+        const uint8_t tls12_ticket[S2N_STATE_SIZE_IN_BYTES] = {
             S2N_TLS12_SERIALIZED_FORMAT_VERSION,
             S2N_TLS12,
             TLS_RSA_WITH_AES_128_GCM_SHA256,
             TICKET_ISSUE_TIME_BYTES,
         };
 
-        uint8_t tls13_ticket[] = {
+        const uint8_t tls13_ticket[] = {
             S2N_TLS13_SERIALIZED_FORMAT_VERSION,
             S2N_TLS13,
             TLS_AES_128_GCM_SHA256,
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             /* Initialize client ticket */
-            uint8_t client_ticket[] = { CLIENT_TICKET };
+            const uint8_t client_ticket[] = { CLIENT_TICKET };
             EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, sizeof(client_ticket)));
             EXPECT_MEMCPY_SUCCESS(conn->client_ticket.data, client_ticket, sizeof(client_ticket));
 
