@@ -322,6 +322,11 @@ int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, uint32_t
     POSIX_ENSURE_REF(first_psk);
     *max_early_data_size = first_psk->early_data_config.max_early_data_size;
 
+    /* For the server, we should use the minimum of the limit retrieved from the ticket
+     * and the current limit being set for new tickets.
+     * This is defensive: even if more early data was previously allowed, the server may not be
+     * willing or able to handle that much early data now.
+     */
     if (conn->mode == S2N_SERVER && first_psk->type == S2N_PSK_TYPE_RESUMPTION) {
         uint32_t server_max_early_data_size = 0;
         POSIX_GUARD_RESULT(s2n_early_data_get_server_max_size(conn, &server_max_early_data_size));
