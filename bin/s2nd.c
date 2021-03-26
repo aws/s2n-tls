@@ -372,8 +372,14 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         echo(conn, fd);
     }
 
+    /* TODO: Some integration tests fail with this change. This is a work around until we fix those. */
+    /* After the integration tests are fixed, the below shutdown and `if` clause should be replaced with: */
+    /* GUARD_EXIT(s2n_shutdown(conn, &blocked), "Error shutting down connection"); */
     s2n_blocked_status blocked;
-    GUARD_RETURN(s2n_shutdown(conn, &blocked), "Error shutting down connection");
+    int shutdown_rc = s2n_shutdown(conn, &blocked);
+    if (shutdown_rc == -1 && blocked != S2N_BLOCKED_ON_READ) {
+        return -1;
+    }
 
     GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
 
