@@ -165,6 +165,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&output, &extensions_len));
             EXPECT_EQUAL(extensions_len, 0);
 
+            EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
+
             EXPECT_TRUE(conn->tickets_sent == test_tickets_sent + 1);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -233,6 +235,51 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &new_ticket_age_add));
 
             EXPECT_NOT_EQUAL(original_ticket_age_add, new_ticket_age_add);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_stuffer_free(&output));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
+        /* Test that the message written by the server includes extensions.
+         * Specifically, check for the early_data_indication extension. */
+        {
+            const uint32_t expected_max_early_data_size = 10;
+
+            /* Calculate extension list offset. Extension list should be last. */
+            const uint32_t extension_list_offset = sizeof(uint32_t) /* max_early_data_size */
+                    + sizeof(uint16_t) /* size of extension */
+                    + sizeof(uint16_t) /* type of extension */;
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, expected_max_early_data_size));
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+
+            struct s2n_stuffer output = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+
+            EXPECT_OK(s2n_tls13_server_nst_write(conn, &output));
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&output,
+                    s2n_stuffer_data_available(&output) - extension_list_offset));
+
+            uint16_t extension_type = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&output, &extension_type));
+            EXPECT_EQUAL(extension_type, TLS_EXTENSION_EARLY_DATA);
+
+            uint16_t extension_size = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&output, &extension_size));
+            EXPECT_EQUAL(extension_size, sizeof(uint32_t));
+
+            uint32_t actual_max_early_data_size = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &actual_max_early_data_size));
+            EXPECT_EQUAL(actual_max_early_data_size, expected_max_early_data_size);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_stuffer_free(&output));
@@ -517,7 +564,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn);
             EXPECT_NOT_NULL(config);
 
-            struct s2n_connection *server_conn = s2n_connection_new(S2N_CLIENT);
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(server_conn);
 
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
@@ -538,6 +585,45 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_tls13_server_nst_write(server_conn, &stuffer));
             EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, sizeof(uint8_t) + SIZEOF_UINT24));
             EXPECT_OK(s2n_tls13_server_nst_recv(client_conn, &stuffer));
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
+        /* Test that the client processes extensions.
+         * Specifically, check for the early_data_indication extension. */
+        {
+            const uint32_t expected_max_early_data_size = 17;
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
+            EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
+            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(client_conn);
+            client_conn->actual_protocol_version = S2N_TLS13;
+            client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(server_conn);
+            server_conn->actual_protocol_version = S2N_TLS13;
+            server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, expected_max_early_data_size));
+
+            struct s2n_stuffer stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+            EXPECT_EQUAL(client_conn->server_max_early_data_size, 0);
+            EXPECT_OK(s2n_tls13_server_nst_write(server_conn, &stuffer));
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, sizeof(uint8_t) + SIZEOF_UINT24));
+            EXPECT_OK(s2n_tls13_server_nst_recv(client_conn, &stuffer));
+            EXPECT_EQUAL(client_conn->server_max_early_data_size, expected_max_early_data_size);
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -748,5 +834,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(config));
     }
+
     END_TEST();
 }
