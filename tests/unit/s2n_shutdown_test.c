@@ -14,6 +14,9 @@
  */
 
 #include "s2n_test.h"
+
+#include "testlib/s2n_testlib.h"
+
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_shutdown.c"
 
