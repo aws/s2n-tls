@@ -121,6 +121,24 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
 
+        /* Server does not support TLS1.3 */
+        {
+            struct s2n_connection *client_conn = NULL, *server_conn = NULL;
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+
+            EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "test_all"));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_with_cert));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                    S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
+
         /* Early data accepted */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
