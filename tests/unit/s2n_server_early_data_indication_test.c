@@ -274,8 +274,8 @@ int main(int argc, char **argv)
              * to manually trigger the retry. */
             server_conn->early_data_state = S2N_EARLY_DATA_REJECTED;
             EXPECT_SUCCESS(s2n_set_hello_retry_required(server_conn));
-            server_conn->handshake.message_number = 1;
-            client_conn->handshake.message_number = 1;
+            server_conn->handshake.message_number = 2;
+            client_conn->handshake.message_number = 2;
 
             EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,

@@ -86,6 +86,8 @@ int main(int argc, char **argv)
 
             EXPECT_FALSE(WITH_EARLY_DATA(client_conn));
             EXPECT_FALSE(WITH_EARLY_DATA(server_conn));
+            EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(client_conn));
+            EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(server_conn));
             EXPECT_FALSE(IS_FULL_HANDSHAKE(client_conn));
             EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
             EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
@@ -110,6 +112,8 @@ int main(int argc, char **argv)
 
             EXPECT_FALSE(WITH_EARLY_DATA(client_conn));
             EXPECT_FALSE(WITH_EARLY_DATA(server_conn));
+            EXPECT_FALSE(WITH_EARLY_CLIENT_CCS(client_conn));
+            EXPECT_FALSE(WITH_EARLY_CLIENT_CCS(server_conn));
             EXPECT_FALSE(IS_FULL_HANDSHAKE(client_conn));
             EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
             EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
@@ -135,6 +139,8 @@ int main(int argc, char **argv)
 
             EXPECT_TRUE(WITH_EARLY_DATA(client_conn));
             EXPECT_TRUE(WITH_EARLY_DATA(server_conn));
+            EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(client_conn));
+            EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(server_conn));
             EXPECT_FALSE(IS_FULL_HANDSHAKE(client_conn));
             EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
             EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
@@ -160,6 +166,8 @@ int main(int argc, char **argv)
 
             EXPECT_FALSE(WITH_EARLY_DATA(client_conn));
             EXPECT_FALSE(WITH_EARLY_DATA(server_conn));
+            EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(client_conn));
+            EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(server_conn));
             EXPECT_FALSE(IS_FULL_HANDSHAKE(client_conn));
             EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
             EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
@@ -186,6 +194,8 @@ int main(int argc, char **argv)
 
             EXPECT_FALSE(WITH_EARLY_DATA(client_conn));
             EXPECT_FALSE(WITH_EARLY_DATA(server_conn));
+            EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(client_conn));
+            EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(server_conn));
             EXPECT_FALSE(IS_FULL_HANDSHAKE(client_conn));
             EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
             EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
@@ -212,6 +222,8 @@ int main(int argc, char **argv)
 
             EXPECT_FALSE(WITH_EARLY_DATA(client_conn));
             EXPECT_FALSE(WITH_EARLY_DATA(server_conn));
+            EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(client_conn));
+            EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(server_conn));
             EXPECT_TRUE(IS_FULL_HANDSHAKE(client_conn));
             EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
             EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
