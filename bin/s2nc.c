@@ -549,7 +549,8 @@ int main(int argc, char *const *argv)
         s2n_blocked_status blocked;
         int shutdown_rc = s2n_shutdown(conn, &blocked);
         if (shutdown_rc == -1 && blocked != S2N_BLOCKED_ON_READ) {
-            return -1;
+            fprintf(stderr, "We only expect to error if we are awaiting a close_notify alert.\n");
+            exit(1);
         }
 
         GUARD_EXIT(s2n_connection_free(conn), "Error freeing connection");
