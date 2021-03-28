@@ -126,10 +126,18 @@ static s2n_result validate_chosen_psk(struct s2n_connection *server_conn, uint8_
     return S2N_RESULT_OK;
 }
 
-static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn,
-        struct s2n_offered_psk_list *psk_identity_list, uint16_t *chosen_wire_index)
+static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, struct s2n_offered_psk_list *psk_identity_list)
 {
-    *chosen_wire_index = TEST_SHARED_PSK_WIRE_INDEX_2;
+    struct s2n_offered_psk offered_psk = { 0 };
+    uint16_t idx = 0;
+    while(s2n_offered_psk_list_has_next(psk_identity_list)) {
+        POSIX_GUARD(s2n_offered_psk_list_next(psk_identity_list, &offered_psk));
+        if (idx == TEST_SHARED_PSK_WIRE_INDEX_2) {
+            POSIX_GUARD(s2n_offered_psk_list_choose_psk(psk_identity_list, &offered_psk));
+            break;
+        }
+        idx++;
+    };
     return S2N_SUCCESS;
 }
 

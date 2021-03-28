@@ -63,13 +63,14 @@ S2N_CLEANUP_RESULT s2n_psk_parameters_wipe_secrets(struct s2n_psk_parameters *pa
 
 struct s2n_offered_psk {
     struct s2n_blob identity;
+    uint16_t wire_index;
 };
 
 struct s2n_offered_psk_list {
+    struct s2n_connection *conn;
     struct s2n_stuffer wire_data;
+    uint16_t wire_index;
 };
-S2N_RESULT s2n_offered_psk_list_get_index(struct s2n_offered_psk_list *list, uint16_t psk_index,
-        struct s2n_offered_psk *offered_psk);
 
 S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn);
 
@@ -104,9 +105,9 @@ int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t** identity
 struct s2n_offered_psk_list;
 bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list);
 int s2n_offered_psk_list_next(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
-int s2n_offered_psk_list_reset(struct s2n_offered_psk_list *psk_list);
+int s2n_offered_psk_list_reread(struct s2n_offered_psk_list *psk_list);
+int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
 
 typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn,
-                                          struct s2n_offered_psk_list *psk_list,
-                                          uint16_t *chosen_wire_index);
+                                          struct s2n_offered_psk_list *psk_list);
 int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb);

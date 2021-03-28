@@ -24,10 +24,8 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
 
-static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn,
-        struct s2n_offered_psk_list *psk_identity_list, uint16_t *chosen_wire_index)
+static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, struct s2n_offered_psk_list *psk_identity_list)
 {
-    *chosen_wire_index = 0;
     return S2N_SUCCESS;
 }
 
