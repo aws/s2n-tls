@@ -47,8 +47,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
 
         /* Verify state after alert */
-        EXPECT_SUCCESS(server_conn->close_notify_received);
-        EXPECT_SUCCESS(client_conn->close_notify_received);
+        EXPECT_TRUE(server_conn->close_notify_received);
+        EXPECT_TRUE(client_conn->close_notify_received);
 
         /* Cleanup */
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -80,8 +80,55 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
 
         /* Verify state after alert */
-        EXPECT_SUCCESS(server_conn->close_notify_received);
+        EXPECT_TRUE(server_conn->close_notify_received);
         EXPECT_SUCCESS(client_conn->close_notify_received);
+
+        /* Cleanup */
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+    }
+
+    /* Verify successful shutdown. Client and Server initiated. */
+    {
+        /* Setup connections */
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+
+        /* /1* Create nonblocking pipes *1/ */
+        /* struct s2n_test_io_pair io_pair; */
+        /* EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair)); */
+        /* EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair)); */
+        /* EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair)); */
+
+        struct s2n_stuffer server_input;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_input, 0));
+        struct s2n_stuffer server_output;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_output, 0));
+
+        struct s2n_stuffer client_input;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_input, 0));
+        struct s2n_stuffer client_output;
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_output, 0));
+
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_input, &server_output, server_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_input, &client_output, client_conn));
+
+
+        /* Verify state prior to alert */
+        EXPECT_FALSE(server_conn->close_notify_received);
+        EXPECT_FALSE(client_conn->close_notify_received);
+
+        s2n_blocked_status server_blocked;
+        s2n_blocked_status client_blocked;
+
+        /* /1* Verify successful shutdown. Server initiated. *1/ */
+        /* EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(client_conn, &client_blocked), S2N_ERR_IO_BLOCKED); */
+        /* EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked)); */
+        /* EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked)); */
+
+        /* Verify state after alert */
+        /* EXPECT_TRUE(server_conn->close_notify_received); */
+        /* EXPECT_TRUE(client_conn->close_notify_received); */
 
         /* Cleanup */
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
