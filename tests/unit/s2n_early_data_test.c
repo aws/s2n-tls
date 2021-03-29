@@ -964,7 +964,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->early_data_bytes, limit + 1);
         }
 
-        /* Bytes not record if would overflow */
+        /* Prevents early_data_bytes from overflowing */
         {
             conn->early_data_bytes = UINT64_MAX - 2;
             EXPECT_ERROR_WITH_ERRNO(s2n_early_data_record_bytes(conn, 1), S2N_ERR_MAX_EARLY_DATA_SIZE);
@@ -1054,11 +1054,10 @@ int main(int argc, char **argv)
         EXPECT_ERROR_WITH_ERRNO(s2n_early_data_validate_recv(NULL), S2N_ERR_NULL);
 
         const uint32_t limit = 10;
-        struct s2n_connection *valid_connection = s2n_connection_new(S2N_CLIENT);
+        struct s2n_connection *valid_connection = s2n_connection_new(S2N_SERVER);
         EXPECT_NOT_NULL(valid_connection);
         EXPECT_OK(s2n_append_test_psk_with_early_data(valid_connection, limit, &s2n_tls13_aes_256_gcm_sha384));
         EXPECT_SUCCESS(s2n_connection_set_early_data_expected(valid_connection));
-        valid_connection->mode = S2N_SERVER;
         valid_connection->early_data_state = S2N_EARLY_DATA_ACCEPTED;
         valid_connection->early_data_bytes = 0;
         valid_connection->handshake.handshake_type = NEGOTIATED | WITH_EARLY_DATA;
