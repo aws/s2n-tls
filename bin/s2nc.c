@@ -543,9 +543,10 @@ int main(int argc, char *const *argv)
             echo(conn, sockfd);
         }
 
-        /* TODO: Some integration tests fail with this change. This is a work around until we fix those. */
-        /* After the integration tests are fixed, the below shutdown and `if` clause should be replaced with: */
-        /* GUARD_EXIT(s2n_shutdown(conn, &blocked), "Error shutting down connection"); */
+        /* The following call can block on receiving a close_notify if we initiate the shutdown or if the */
+        /* peer fails to send a close_notify. */
+        /* TODO: However, we should expect to receive a close_notify from the peer and shutdown gracefully. */
+        /* Please see tracking issue for more detail: https://github.com/aws/s2n-tls/issues/2692 */
         s2n_blocked_status blocked;
         int shutdown_rc = s2n_shutdown(conn, &blocked);
         if (shutdown_rc == -1 && blocked != S2N_BLOCKED_ON_READ) {
