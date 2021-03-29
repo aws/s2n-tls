@@ -24,7 +24,7 @@ import uuid
 
 from common.s2n_test_common import wait_for_output
 from common.s2n_test_openssl import run_openssl_connection_test
-from common.s2n_test_scenario import get_scenarios, Mode, Cipher, Version, Curve
+from common.s2n_test_scenario import get_scenarios, Mode, Cipher, Version, Curve, get_libcrypto_match
 from common.s2n_test_reporting import Result, Status
 import common.s2n_test_common as util
 import time
@@ -121,7 +121,12 @@ def main():
     port = args.port
 
     failed = 0
-
+    libcrypto_matches, libcrypto_msg = get_libcrypto_match()
+    if libcrypto_matches:
+        print("\n\ts2nc libcrypto matches S2N_LIBCRYPTO")
+    else:
+        print("\tPossible mismatch of LibCrypto: \n\t%s" % libcrypto_msg)
+        failed+=1
     print("\n\tRunning TLS1.3 handshake tests with openssl: %s" % os.popen('openssl version').read())
     failed += run_openssl_connection_test(get_scenarios(host, port, versions=[Version.TLS13], s2n_modes=Mode.all(), ciphers=Cipher.all()))
     print("\n\tRunning TLS1.3 HRR tests with openssl: %s" % os.popen('openssl version').read())

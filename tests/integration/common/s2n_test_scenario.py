@@ -22,6 +22,7 @@ cipher, version, etc.
 import itertools
 import multiprocessing
 import os
+import re
 from enum import Enum as BaseEnum
 from multiprocessing.pool import ThreadPool
 
@@ -107,6 +108,42 @@ class Cipher():
 def get_libcrypto():
     return str(os.getenv("S2N_LIBCRYPTO")).strip('"')
 
+
+def get_libcrypto_match(s2nx="../../bin/s2nc"):
+    """
+    Given an executable path, compare the linked libcrypto to S2N_LIBCRYPTO, return True on match.
+    Note: libre, boring (and likely others) might not match, as their names and
+    true identities are hidden. In the case of the CI, we have the library name in the path.
+    Considered using nm to inspect the .so, but LibreSSL doesn't have any symbols with its name.
+
+    example ldd output line we're looking for:
+     '\tlibcrypto.so => /usr/lib/x86_64-linux-gnu/libcrypto.so (0x00007fd093b7f000)',
+
+    """
+    match = False
+    message = "No link to libcrypto found"
+    libcrypto = get_libcrypto()
+    # Replace openssl with the actual name of the library
+    libcrypto = libcrypto.replace("openssl-", "libcrypto.so.")
+    # if ldd isn't found, no exception is raised.
+    linked_to = os.popen('ldd '+s2nx).read().split("\n")
+    # Remove wonky ldd tab/space padding
+    stripped = [s.strip() for s in linked_to]
+    for ldd_line in stripped:
+        # libcrypto is on the left
+        if len(ldd_line) > 0 and 'libcrypto' in ldd_line.split()[0]:
+            library_path = ldd_line.split("=>")[1].split()[0]
+            # Unwind symlinks
+            if os.path.islink(library_path):
+                ldd_line = os.popen('readlink -f '+library_path).read().strip()
+            # Trim off the patch version number, it isn't always present.
+            libcrypto = re.sub(r"(so\.\d+\.\d+)\.\d+", r"\1", libcrypto)
+            if libcrypto in ldd_line:
+                match = True
+                message = "\t{} linked to {}\n".format(s2nx, ldd_line)
+            else:
+                message = "\t{} libcrypto uncertain; expected: {}\n\t\t found: {}\n".format(s2nx, libcrypto, ldd_line)
+    return match, message
 
 ALL_CIPHERS = [
     Cipher("TLS_AES_256_GCM_SHA384", Version.TLS13),

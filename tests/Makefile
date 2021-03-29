@@ -13,9 +13,10 @@
 # permissions and limitations under the License.
 #
 
+# BoringSSL/AWS-lc does not have an `openssl version` command.
 OPENSSL_VERSION=$(shell $(LIBCRYPTO_ROOT)/bin/openssl version 2> /dev/null || echo 1)
 ifeq (${OPENSSL_VERSION}, 1)
-	COMPILE_INFO=Compiled with the missing version of openssl
+	COMPILE_INFO=Unable to find openssl version - or LIBCRYPTO_ROOT is pointing at BoringSSL/AWS-lc
 else
 	COMPILE_INFO=Compiled with ${OPENSSL_VERSION}.
 endif

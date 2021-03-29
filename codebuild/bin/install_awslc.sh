@@ -28,12 +28,14 @@ BUILD_DIR=$1
 INSTALL_DIR=$2
 source codebuild/bin/jobs.sh
 
-cd "$BUILD_DIR"
-git clone https://github.com/awslabs/aws-lc.git
-mkdir build
-cd build
+# Disable go proxy.  see https://github.com/golang/go/issues/33985
+go env -w GOPRIVATE="*"
 
-cmake ../aws-lc -GNinja -DBUILD_SHARED_LIBS=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
+cd "$BUILD_DIR"
+git clone --depth 1 https://github.com/awslabs/aws-lc.git
+cd aws-lc
+cmake . -Bbuild -GNinja -DBUILD_SHARED_LIBS=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
+cd build
 ninja -j "${JOBS}" install
 
 popd
