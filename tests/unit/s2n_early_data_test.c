@@ -1060,6 +1060,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_early_data_expected(valid_connection));
         valid_connection->early_data_state = S2N_EARLY_DATA_ACCEPTED;
         valid_connection->early_data_bytes = 0;
+        valid_connection->actual_protocol_version = S2N_TLS13;
         valid_connection->handshake.handshake_type = NEGOTIATED | WITH_EARLY_DATA;
         while(s2n_conn_get_current_message_type(valid_connection) != END_OF_EARLY_DATA) {
             valid_connection->handshake.message_number++;
