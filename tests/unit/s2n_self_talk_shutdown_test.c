@@ -100,18 +100,16 @@ int main(int argc, char **argv)
         /* EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair)); */
         /* EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair)); */
 
-        struct s2n_stuffer server_input;
+        struct s2n_stuffer server_input, server_output;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_input, 0));
-        struct s2n_stuffer server_output;
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_output, 0));
 
-        struct s2n_stuffer client_input;
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_input, 0));
-        struct s2n_stuffer client_output;
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_output, 0));
+        /* struct s2n_stuffer client_input, client_output; */
+        /* EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_input, 0)); */
+        /* EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_output, 0)); */
 
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_input, &server_output, server_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_input, &client_output, client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_output, &server_input, client_conn));
 
 
         /* Verify state prior to alert */
@@ -121,14 +119,14 @@ int main(int argc, char **argv)
         s2n_blocked_status server_blocked;
         s2n_blocked_status client_blocked;
 
-        /* /1* Verify successful shutdown. Server initiated. *1/ */
-        /* EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(client_conn, &client_blocked), S2N_ERR_IO_BLOCKED); */
-        /* EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked)); */
-        /* EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked)); */
+        /* Verify successful shutdown. Server initiated. */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(client_conn, &client_blocked), S2N_ERR_IO_BLOCKED);
+        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
+        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
 
         /* Verify state after alert */
-        /* EXPECT_TRUE(server_conn->close_notify_received); */
-        /* EXPECT_TRUE(client_conn->close_notify_received); */
+        EXPECT_TRUE(server_conn->close_notify_received);
+        EXPECT_SUCCESS(client_conn->close_notify_received);
 
         /* Cleanup */
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
