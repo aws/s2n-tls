@@ -39,7 +39,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(server_conn->close_notify_received);
         EXPECT_FALSE(client_conn->close_notify_received);
 
-        /* Verify successful shutdown. Server initiated. */
+        /* Verify successful shutdown */
         EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(server_conn, &server_blocked), S2N_ERR_IO_BLOCKED);
         EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
         EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(server_conn->close_notify_received);
         EXPECT_FALSE(client_conn->close_notify_received);
 
-        /* Verify successful shutdown. Server initiated. */
+        /* Verify successful shutdown. */
         EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(client_conn, &client_blocked), S2N_ERR_IO_BLOCKED);
         EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
         EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
