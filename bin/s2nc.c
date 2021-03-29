@@ -553,6 +553,8 @@ int main(int argc, char *const *argv)
             exit(1);
         }
 
+        GUARD_EXIT(s2n_shutdown(conn, &blocked), "Error shutting down connection");
+
         GUARD_EXIT(s2n_connection_free(conn), "Error freeing connection");
 
         GUARD_EXIT(s2n_config_free(config), "Error freeing configuration");
