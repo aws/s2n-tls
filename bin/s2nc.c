@@ -550,7 +550,7 @@ int main(int argc, char *const *argv)
         s2n_blocked_status blocked;
         int shutdown_rc = s2n_shutdown(conn, &blocked);
         if (shutdown_rc == -1 && blocked != S2N_BLOCKED_ON_READ) {
-            fprintf(stderr, "We only expect to error if we are awaiting a close_notify alert.\n");
+            fprintf(stderr, "Unexpected error during shutdown: '%s'\n", s2n_strerror(s2n_errno, "NULL"));
             exit(1);
         }
 
