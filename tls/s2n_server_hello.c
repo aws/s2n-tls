@@ -134,6 +134,13 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         S2N_ERROR_IF(s2n_client_detect_downgrade_mechanism(conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
         POSIX_ENSURE(!conn->config->quic_enabled, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
+        /*
+         *= https://tools.ietf.org/rfc/rfc8446#appendix-D.3
+         *# A client that attempts to send 0-RTT data MUST fail a connection if
+         *# it receives a ServerHello with TLS 1.2 or older.
+         */
+        POSIX_ENSURE(conn->early_data_state != S2N_EARLY_DATA_REQUESTED, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+
         const struct s2n_security_policy *security_policy;
         POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
