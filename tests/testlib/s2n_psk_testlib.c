@@ -19,21 +19,32 @@
 
 #define S2N_TEST_PSK_VALUE "psk_test"
 
+struct s2n_psk* s2n_test_psk_new(struct s2n_connection *conn)
+{
+    PTR_ENSURE_REF(conn);
+
+    /* We're assuming the index will only take one digit */
+    uint8_t buffer[sizeof(S2N_TEST_PSK_VALUE) + 1] = { 0 };
+    int r = snprintf((char*) buffer, sizeof(buffer), "%s%u", S2N_TEST_PSK_VALUE, conn->psk_params.psk_list.len);
+    PTR_ENSURE_GT(r, 0);
+    PTR_ENSURE_LT(r, sizeof(buffer));
+
+    DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
+    PTR_GUARD_POSIX(s2n_psk_set_identity(psk, buffer, sizeof(buffer)));
+    PTR_GUARD_POSIX(s2n_psk_set_secret(psk, buffer, sizeof(buffer)));
+
+    struct s2n_psk *result_psk = psk;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(psk);
+    return result_psk;
+}
+
 S2N_RESULT s2n_append_test_psk_with_early_data(struct s2n_connection *conn, uint32_t max_early_data,
         const struct s2n_cipher_suite *cipher_suite)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(cipher_suite);
 
-    /* We're assuming the index will only take one digit */
-    uint8_t buffer[sizeof(S2N_TEST_PSK_VALUE) + 1] = { 0 };
-    int r = snprintf((char*) buffer, sizeof(buffer), "%s%u", S2N_TEST_PSK_VALUE, conn->psk_params.psk_list.len);
-    RESULT_ENSURE_GT(r, 0);
-    RESULT_ENSURE_LT(r, sizeof(buffer));
-
-    DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
-    RESULT_GUARD_POSIX(s2n_psk_set_identity(psk, buffer, sizeof(buffer)));
-    RESULT_GUARD_POSIX(s2n_psk_set_secret(psk, buffer, sizeof(buffer)));
+    DEFER_CLEANUP(struct s2n_psk *psk = s2n_test_psk_new(conn), s2n_psk_free);
     psk->hmac_alg = cipher_suite->prf_alg;
     if (max_early_data > 0) {
         RESULT_GUARD_POSIX(s2n_psk_configure_early_data(psk, max_early_data,
@@ -42,7 +53,6 @@ S2N_RESULT s2n_append_test_psk_with_early_data(struct s2n_connection *conn, uint
     RESULT_GUARD_POSIX(s2n_connection_append_psk(conn, psk));
     return S2N_RESULT_OK;
 }
-
 
 S2N_RESULT s2n_append_test_chosen_psk_with_early_data(struct s2n_connection *conn, uint32_t max_early_data,
         const struct s2n_cipher_suite *cipher_suite)

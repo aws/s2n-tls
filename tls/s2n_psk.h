@@ -25,7 +25,7 @@
 #include "utils/s2n_result.h"
 
 typedef enum {
-    S2N_PSK_TYPE_RESUMPTION,
+    S2N_PSK_TYPE_RESUMPTION = 0,
     S2N_PSK_TYPE_EXTERNAL,
 } s2n_psk_type;
 
@@ -50,6 +50,7 @@ S2N_CLEANUP_RESULT s2n_psk_wipe(struct s2n_psk *psk);
 S2N_RESULT s2n_psk_clone(struct s2n_psk *new_psk, struct s2n_psk *original_psk);
 
 struct s2n_psk_parameters {
+    s2n_psk_type type;
     struct s2n_array psk_list;
     uint16_t binder_list_size;
     uint16_t chosen_psk_wire_index;
@@ -95,6 +96,10 @@ int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secr
 int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac);
 
 int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk);
+
+typedef enum { S2N_PSK_MODE_RESUMPTION, S2N_PSK_MODE_EXTERNAL } s2n_psk_mode;
+int s2n_config_set_psk_mode(struct s2n_config *config, s2n_psk_mode mode);
+int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode);
 
 struct s2n_offered_psk;
 struct s2n_offered_psk* s2n_offered_psk_new();

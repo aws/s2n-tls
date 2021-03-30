@@ -526,6 +526,10 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     }
     conn->tickets_to_send = config->initial_tickets_to_send;
 
+    if (conn->psk_params.psk_list.len == 0) {
+        POSIX_GUARD(s2n_connection_set_psk_mode(conn, config->psk_mode));
+    }
+
     conn->config = config;
     return 0;
 }

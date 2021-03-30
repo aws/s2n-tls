@@ -485,10 +485,22 @@ int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac)
     return S2N_SUCCESS;
 }
 
+static S2N_RESULT s2n_connection_set_psk_type(struct s2n_connection *conn, s2n_psk_type type)
+{
+    RESULT_ENSURE_REF(conn);
+    if (conn->psk_params.psk_list.len != 0) {
+        RESULT_ENSURE(conn->psk_params.type == type, S2N_ERR_PSK_MODE);
+    }
+    conn->psk_params.type = type;
+    return S2N_RESULT_OK;
+}
+
 int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *input_psk)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(input_psk);
+    POSIX_GUARD_RESULT(s2n_connection_set_psk_type(conn, input_psk->type));
+
     struct s2n_array *psk_list = &conn->psk_params.psk_list;
     
     /* Check for duplicate identities */
@@ -518,5 +530,31 @@ int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *input
     POSIX_GUARD_RESULT(s2n_array_insert_and_copy(psk_list, psk_list->len, &new_psk));
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(new_psk);
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_psk_mode(struct s2n_config *config, s2n_psk_mode mode)
+{
+    POSIX_ENSURE_REF(config);
+    config->psk_mode = mode;
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode)
+{
+    POSIX_ENSURE_REF(conn);
+    s2n_psk_type type = 0;
+    switch(mode) {
+        case S2N_PSK_MODE_RESUMPTION:
+            type = S2N_PSK_TYPE_RESUMPTION;
+            break;
+        case S2N_PSK_MODE_EXTERNAL:
+            type = S2N_PSK_TYPE_EXTERNAL;
+            break;
+        default:
+            POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
+            break;
+    }
+    POSIX_GUARD_RESULT(s2n_connection_set_psk_type(conn, type));
     return S2N_SUCCESS;
 }
