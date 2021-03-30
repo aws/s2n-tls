@@ -617,7 +617,7 @@ static const char* tls13_handshake_type_names[] = {
     "HELLO_RETRY_REQUEST|",
     "MIDDLEBOX_COMPAT|",
     "WITH_EARLY_DATA|",
-    "EARLY_CLIENT_CCS",
+    "EARLY_CLIENT_CCS|",
 };
 
 #define IS_TLS13_HANDSHAKE( conn )    ((conn)->actual_protocol_version == S2N_TLS13)
