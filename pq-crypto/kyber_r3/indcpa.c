@@ -210,7 +210,7 @@ int indcpa_keypair(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES], uint8_t sk[KYBER_IND
     uint8_t nonce = 0;
     polyvec a[KYBER_K], e, pkpv, skpv;
 
-    GUARD_AS_POSIX(s2n_get_random_bytes(buf, KYBER_SYMBYTES));
+    POSIX_GUARD_RESULT(s2n_get_random_bytes(buf, KYBER_SYMBYTES));
     hash_g(buf, buf, KYBER_SYMBYTES);
 
     gen_a(a, publicseed);

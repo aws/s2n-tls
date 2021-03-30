@@ -24,14 +24,14 @@
 **************************************************/
 int kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 {
-    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     GUARD(indcpa_keypair(pk, sk));
     for(size_t i = 0; i < KYBER_INDCPA_PUBLICKEYBYTES; i++) {
         sk[i + KYBER_INDCPA_SECRETKEYBYTES] = pk[i];
     }
     hash_h(sk+KYBER_SECRETKEYBYTES-2*KYBER_SYMBYTES, pk, KYBER_PUBLICKEYBYTES);
     /* Value z for pseudo-random output on reject */
-    GUARD_AS_POSIX(s2n_get_random_bytes(sk+KYBER_SECRETKEYBYTES-KYBER_SYMBYTES, KYBER_SYMBYTES));
+    POSIX_GUARD_RESULT(s2n_get_random_bytes(sk+KYBER_SECRETKEYBYTES-KYBER_SYMBYTES, KYBER_SYMBYTES));
     return 0;
 }
 
@@ -52,12 +52,12 @@ int kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 **************************************************/
 int kyber_512_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsigned char *pk)
 {
-    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     uint8_t buf[2*KYBER_SYMBYTES];
     /* Will contain key, coins */
     uint8_t kr[2*KYBER_SYMBYTES];
 
-    GUARD_AS_POSIX(s2n_get_random_bytes(buf, KYBER_SYMBYTES));
+    POSIX_GUARD_RESULT(s2n_get_random_bytes(buf, KYBER_SYMBYTES));
     /* Don't release system RNG output */
     hash_h(buf, buf, KYBER_SYMBYTES);
 
@@ -94,7 +94,7 @@ int kyber_512_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsi
 **************************************************/
 int kyber_512_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, const unsigned char *sk)
 {
-    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     int fail;
     uint8_t buf[2*KYBER_SYMBYTES];
     /* Will contain key, coins */
