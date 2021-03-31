@@ -202,8 +202,10 @@ static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connecti
     uint8_t secret[S2N_TLS_SECRET_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, secret, secret_len));
 
-    /* Remove all previously-set resumption PSKs */
+    /* Make sure that this connection is configured for resumption PSKs, not external PSKs */
     RESULT_GUARD(s2n_connection_set_psk_type(conn, S2N_PSK_TYPE_RESUMPTION));
+    /* Remove all previously-set PSKs. To keep the session ticket API behavior consistent
+     * across protocol versions, we currently only support setting a single resumption PSK. */
     RESULT_GUARD(s2n_psk_parameters_wipe(&conn->psk_params));
 
     /* Construct a PSK from ticket values */
