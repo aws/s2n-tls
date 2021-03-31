@@ -379,8 +379,37 @@ int main()
         }
     }
 
+    /* Test minimum_version field */
     {
         EXPECT_SUCCESS(s2n_reset_tls13());
+
+        s2n_extension_type test_extension_type_with_min = test_extension_type;
+        test_extension_type_with_min.minimum_version = S2N_TLS13;
+
+        /* If any of these methods actually execute, they will fail */
+        test_extension_type_with_min.if_missing = s2n_extension_error_if_missing;
+        test_extension_type_with_min.send = s2n_extension_send_unimplemented;
+        test_extension_type_with_min.recv = s2n_extension_recv_unimplemented;
+
+        struct s2n_connection conn = { 0 };
+
+        /* Does not meet minimum.
+         * No methods execute, so no errors. */
+        {
+            conn.actual_protocol_version = S2N_TLS12;
+            EXPECT_SUCCESS(s2n_extension_recv(&test_extension_type_with_min, &conn, NULL));
+            EXPECT_SUCCESS(s2n_extension_send(&test_extension_type_with_min, &conn, NULL));
+            EXPECT_SUCCESS(s2n_extension_is_missing(&test_extension_type_with_min, &conn));
+        }
+
+        /* Meets minimum.
+         * All methods execute, so all errors. */
+        {
+            conn.actual_protocol_version = S2N_TLS13;
+            EXPECT_FAILURE(s2n_extension_recv(&test_extension_type_with_min, &conn, NULL));
+            EXPECT_FAILURE(s2n_extension_send(&test_extension_type_with_min, &conn, NULL));
+            EXPECT_FAILURE(s2n_extension_is_missing(&test_extension_type_with_min, &conn));
+        }
 
         /* Functional test: minimum-TLS1.3 extensions only used for TLS1.3 */
         {

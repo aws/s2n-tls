@@ -35,6 +35,7 @@ struct s2n_connection;
 typedef struct {
     uint16_t iana_value;
     unsigned is_response:1;
+    uint16_t minimum_version;
 
     int (*send) (struct s2n_connection *conn, struct s2n_stuffer *out);
     int (*recv) (struct s2n_connection *conn, struct s2n_stuffer *in);
