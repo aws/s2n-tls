@@ -26,7 +26,7 @@ static void init_basis(const digit_t *gen, f2elm_t *XP, f2elm_t *XQ, f2elm_t *XR
  * Outputs random value in [0, 2^Floor(Log(2, oB)) - 1] */
 int random_mod_order_B(unsigned char* random_digits)
 {
-    GUARD_AS_POSIX(s2n_get_random_bytes(random_digits, SECRETKEY_B_BYTES));
+    POSIX_GUARD_RESULT(s2n_get_random_bytes(random_digits, SECRETKEY_B_BYTES));
     random_digits[SECRETKEY_B_BYTES-1] &= MASK_BOB;     // Masking last byte
 
     return 0;

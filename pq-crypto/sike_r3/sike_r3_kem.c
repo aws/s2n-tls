@@ -19,11 +19,11 @@
  *          public key pk (CRYPTO_PUBLICKEYBYTES bytes) */
 int sike_p434_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 {
-    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     // Generate lower portion of secret key sk <- s||SK
-    GUARD_AS_POSIX(s2n_get_random_bytes(sk, MSG_BYTES));
-    GUARD(random_mod_order_B(sk + MSG_BYTES));
+    POSIX_GUARD_RESULT(s2n_get_random_bytes(sk, MSG_BYTES));
+    POSIX_GUARD(random_mod_order_B(sk + MSG_BYTES));
 
     // Generate public key pk
     EphemeralKeyGeneration_B(sk + MSG_BYTES, pk);
@@ -40,7 +40,7 @@ int sike_p434_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
  *          ciphertext message ct (CRYPTO_CIPHERTEXTBYTES = CRYPTO_PUBLICKEYBYTES + MSG_BYTES bytes) */
 int sike_p434_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsigned char *pk)
 {
-    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     unsigned char ephemeralsk[SECRETKEY_A_BYTES];
     unsigned char jinvariant[FP2_ENCODED_BYTES];
@@ -48,7 +48,7 @@ int sike_p434_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsi
     unsigned char temp[CRYPTO_CIPHERTEXTBYTES+MSG_BYTES];
 
     // Generate ephemeralsk <- G(m||pk) mod oA 
-    GUARD_AS_POSIX(s2n_get_random_bytes(temp, MSG_BYTES));
+    POSIX_GUARD_RESULT(s2n_get_random_bytes(temp, MSG_BYTES));
     memcpy(&temp[MSG_BYTES], pk, CRYPTO_PUBLICKEYBYTES);
     shake256(ephemeralsk, SECRETKEY_A_BYTES, temp, CRYPTO_PUBLICKEYBYTES+MSG_BYTES);
     ephemeralsk[SECRETKEY_A_BYTES - 1] &= MASK_ALICE;
@@ -74,7 +74,7 @@ int sike_p434_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsi
  * Outputs: shared secret ss      (CRYPTO_BYTES bytes) */
 int sike_p434_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, const unsigned char *sk)
 {
-    ENSURE_POSIX(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     unsigned char ephemeralsk_[SECRETKEY_A_BYTES];
     unsigned char jinvariant_[FP2_ENCODED_BYTES];
