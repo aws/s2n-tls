@@ -14,6 +14,7 @@
  */
 
 #include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
 #include "tls/extensions/s2n_extension_type.h"
 #include "utils/s2n_bitmap.h"
@@ -375,6 +376,113 @@ int main()
             S2N_CBIT_SET(conn.extension_requests_sent, test_extension_id);
             EXPECT_FAILURE_WITH_ERRNO(s2n_extension_is_missing(&extension_type_with_error_if_missing, &conn),
                     S2N_ERR_MISSING_EXTENSION);
+        }
+    }
+
+    {
+        EXPECT_SUCCESS(s2n_reset_tls13());
+
+        /* Functional test: minimum-TLS1.3 extensions only used for TLS1.3 */
+        {
+            struct s2n_cert_chain_and_key *cert_chain = NULL;
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_chain,
+                    S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
+            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
+
+            uint16_t key_shares_id = s2n_extension_iana_value_to_id(TLS_EXTENSION_KEY_SHARE);
+
+            /* Both TLS1.3 */
+            {
+                struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+                EXPECT_NOT_NULL(client_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+                struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_NOT_NULL(server_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+                struct s2n_test_io_pair io_pair = { 0 };
+                EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+                EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+                /* All expected CLIENT_HELLO extensions sent and received */
+                EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_HELLO));
+                EXPECT_TRUE(S2N_CBIT_TEST(client_conn->extension_requests_sent, key_shares_id));
+                EXPECT_TRUE(S2N_CBIT_TEST(server_conn->extension_requests_received, key_shares_id));
+
+                /* All expected SERVER_HELLO extensions sent and received */
+                EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, ENCRYPTED_EXTENSIONS));
+                EXPECT_TRUE(S2N_CBIT_TEST(client_conn->extension_requests_received, key_shares_id));
+                EXPECT_TRUE(S2N_CBIT_TEST(server_conn->extension_requests_sent, key_shares_id));
+
+                EXPECT_SUCCESS(s2n_connection_free(client_conn));
+                EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            }
+
+            /* Client TLS1.2 */
+            {
+                struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+                EXPECT_NOT_NULL(client_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "test_all_tls12"));
+
+                struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_NOT_NULL(server_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+                struct s2n_test_io_pair io_pair = { 0 };
+                EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+                EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+                /* No expected CLIENT_HELLO extensions sent and received */
+                EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_HELLO));
+                EXPECT_FALSE(S2N_CBIT_TEST(client_conn->extension_requests_sent, key_shares_id));
+                EXPECT_FALSE(S2N_CBIT_TEST(server_conn->extension_requests_received, key_shares_id));
+
+                /* No expected SERVER_HELLO extensions sent and received */
+                EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, ENCRYPTED_EXTENSIONS));
+                EXPECT_FALSE(S2N_CBIT_TEST(client_conn->extension_requests_received, key_shares_id));
+                EXPECT_FALSE(S2N_CBIT_TEST(server_conn->extension_requests_sent, key_shares_id));
+
+                EXPECT_SUCCESS(s2n_connection_free(client_conn));
+                EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            }
+
+            /* Server TLS1.2 */
+            {
+                struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+                EXPECT_NOT_NULL(client_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+                struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+                EXPECT_NOT_NULL(server_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
+
+                struct s2n_test_io_pair io_pair = { 0 };
+                EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+                EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+                /* Expected CLIENT_HELLO extensions sent, but not received */
+                EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_HELLO));
+                EXPECT_TRUE(S2N_CBIT_TEST(client_conn->extension_requests_sent, key_shares_id));
+                EXPECT_FALSE(S2N_CBIT_TEST(server_conn->extension_requests_received, key_shares_id));
+
+                /* No expected SERVER_HELLO extensions sent and received */
+                EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, ENCRYPTED_EXTENSIONS));
+                EXPECT_FALSE(S2N_CBIT_TEST(client_conn->extension_requests_received, key_shares_id));
+                EXPECT_FALSE(S2N_CBIT_TEST(server_conn->extension_requests_sent, key_shares_id));
+
+                EXPECT_SUCCESS(s2n_connection_free(client_conn));
+                EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            }
+
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_chain));
         }
     }
 
