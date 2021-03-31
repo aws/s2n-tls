@@ -63,7 +63,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, PSK_KEY_EXCHANGE_MODE_SIZE));
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&out, TLS_PSK_DHE_KE_MODE));
 
-            EXPECT_SUCCESS(s2n_psk_key_exchange_modes_extension.recv(conn, &out));
+            EXPECT_SUCCESS(s2n_extension_recv(&s2n_psk_key_exchange_modes_extension, conn, &out));
             EXPECT_EQUAL(conn->psk_params.psk_ke_mode, S2N_PSK_KE_UNKNOWN);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));

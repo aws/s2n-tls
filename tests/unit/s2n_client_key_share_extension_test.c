@@ -572,7 +572,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_enable_tls13());
             server_conn->actual_protocol_version = S2N_TLS12;
-            EXPECT_SUCCESS(s2n_client_key_share_extension.recv(server_conn, &key_share_extension));
+            EXPECT_SUCCESS(s2n_extension_recv(&s2n_client_key_share_extension, server_conn, &key_share_extension));
             EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), key_share_extension_size);
 
             EXPECT_SUCCESS(s2n_enable_tls13());

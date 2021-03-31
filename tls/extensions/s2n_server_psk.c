@@ -39,7 +39,7 @@ const s2n_extension_type s2n_server_psk_extension = {
 static bool s2n_server_psk_should_send(struct s2n_connection *conn)
 {
     /* Only send a server pre_shared_key extension if a chosen PSK is set on the connection */
-    return conn->psk_params.chosen_psk;
+    return conn && conn->psk_params.chosen_psk;
 }
 
 static int s2n_server_psk_send(struct s2n_connection *conn, struct s2n_stuffer *out)

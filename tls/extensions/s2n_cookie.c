@@ -36,6 +36,7 @@ static int s2n_cookie_recv(struct s2n_connection *conn, struct s2n_stuffer *exte
 
 const s2n_extension_type s2n_server_cookie_extension = {
     .iana_value = TLS_EXTENSION_COOKIE,
+    .minimum_version = S2N_TLS13,
     .is_response = false,
     .send = s2n_cookie_send,
     .recv = s2n_cookie_recv,
