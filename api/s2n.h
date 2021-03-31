@@ -280,8 +280,15 @@ S2N_API
 extern void *s2n_connection_get_ctx(struct s2n_connection *conn);
 
 typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
+typedef enum { S2N_CLIENT_HELLO_CB_BLOCKING, S2N_CLIENT_HELLO_CB_NONBLOCKING } s2n_client_hello_cb_mode;
 S2N_API
 extern int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_callback, void *ctx);
+S2N_API
+extern int s2n_config_set_client_hello_cb_mode(struct s2n_config *config, s2n_client_hello_cb_mode cb_mode);
+S2N_API
+extern int s2n_client_hello_cb_done(struct s2n_connection *conn);
+S2N_API
+extern int s2n_connection_server_name_extension_used(struct s2n_connection *conn);
 
 struct s2n_client_hello;
 S2N_API

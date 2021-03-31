@@ -109,7 +109,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
         EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS12);
         EXPECT_EQUAL(server_conn->client_hello_version, S2N_SSLv2);
-        EXPECT_EQUAL(server_conn->client_hello.parsed, 1);
+        EXPECT_EQUAL(server_conn->client_hello.callback_invoked, 1);
 
         s2n_connection_free(server_conn);
 

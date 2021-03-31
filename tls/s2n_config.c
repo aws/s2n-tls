@@ -100,6 +100,8 @@ static int s2n_config_init(struct s2n_config *config)
     config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
     config->check_ocsp = 1;
 
+    config->client_hello_cb_mode = S2N_CLIENT_HELLO_CB_BLOCKING;
+
     POSIX_GUARD(s2n_config_setup_default(config));
     if (s2n_use_default_tls13_config()) {
         POSIX_GUARD(s2n_config_setup_tls13(config));
@@ -630,10 +632,21 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
 
 int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_cb, void *ctx)
 {
+    POSIX_ENSURE_REF(config);
+
     config->client_hello_cb = client_hello_cb;
     config->client_hello_cb_ctx = ctx;
-
     return 0;
+}
+
+int s2n_config_set_client_hello_cb_mode(struct s2n_config *config, s2n_client_hello_cb_mode cb_mode)
+{
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE(cb_mode == S2N_CLIENT_HELLO_CB_BLOCKING ||
+            cb_mode == S2N_CLIENT_HELLO_CB_NONBLOCKING, S2N_ERR_INVALID_STATE);
+
+    config->client_hello_cb_mode = cb_mode;
+    return S2N_SUCCESS;
 }
 
 int s2n_config_send_max_fragment_length(struct s2n_config *config, s2n_max_frag_len mfl_code)

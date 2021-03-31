@@ -843,15 +843,53 @@ that will be called after ClientHello was parsed.
 typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
 ```
 
-The callback function take as an input s2n-tls connection, which received
-ClientHello and context provided in **s2n_config_set_client_hello_cb**. The
-callback can get any ClientHello information from the connection and use
-**s2n_connection_set_config** call to change the config of the connection.
+The callback function takes a s2n-tls connection as input, which receives the
+ClientHello and the context previously provided in **s2n_config_set_client_hello_cb**.
+The callback can access any ClientHello information from the connection and use
+the **s2n_connection_set_config** call to change the config of the connection.
 
-If any of the properties of the connection were changed based on server_name
-extension the callback must return 1, otherwise the callback can return 0
-to continue handshake in s2n-tls or it can return negative value to make s2n-tls
-terminate handshake early with fatal handshake failure alert.
+```c
+int s2n_config_set_client_hello_cb_mode(struct s2n_config *config, s2n_client_hello_cb_mode cb_mode);
+```
+Sets the callback execution mode.
+
+The callback can be be invoked in two modes
+- **S2N_CLIENT_HELLO_CB_BLOCKING** (default):
+
+    In this mode s2n-tls expects the callback to complete its work
+    and return the appropriate response code before the handshake continues.
+    If any of the connection properties were changed based on the server_name
+    extension the callback must either return a value greater than 0 or invoke **s2n_connection_server_name_extension_used**,
+    otherwise the callback returns 0 to continue the handshake.
+
+- **S2N_CLIENT_HELLO_CB_NONBLOCKING**:
+
+    In non-blocking mode, s2n-tls expects the callback to not complete its work. If the callback
+    returns a response code of 0 s2n-tls will return **S2N_FAILURE** with **S2N_ERR_T_BLOCKED**
+    error type and **s2n_blocked_status** set to **S2N_BLOCKED_ON_APPLICATION_INPUT**.
+    The handshake is paused and further calls to **s2n_negotiate** will continue to return the
+    same error until **s2n_client_hello_cb_done** is invoked for the **s2n_connection** to resume
+    the handshake. This allows s2n-tls clients to process client_hello without
+    blocking and then resume the handshake at a later time.
+    If any of the connection properties were changed on the basis of the server_name extension then
+    **s2n_connection_server_name_extension_used** must be invoked before marking the callback done.
+
+The callback can return a negative value to make s2n-tls terminate the
+handshake early with a fatal handshake failure alert.
+
+```c
+int s2n_client_hello_cb_done(struct s2n_connection *conn)
+```
+Marks the non-blocking callback as complete.
+Can be invoked from within the callback when operating in non-blocking mode
+to continue the handshake.
+
+```c
+int s2n_client_server_name_used(struct s2n_connection *conn)
+```
+Indicates that connection properties were changed on the basis of server_name.
+Triggers a s2n-tls server to send the server_name extension. Must be called
+before s2n-tls finishes processing the ClientHello.
 
 ### s2n\_config\_set\_alert\_behavior
 ```c
