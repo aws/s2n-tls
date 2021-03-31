@@ -115,13 +115,11 @@ static S2N_RESULT s2n_generate_obfuscated_ticket_age(struct s2n_psk *psk, uint64
 
     RESULT_ENSURE(current_time >= psk->ticket_issue_time, S2N_ERR_INTEGER_OVERFLOW);
 
-    /* Convert current_time and issue_time to milliseconds */
-    uint64_t current_time_in_millis = current_time / ONE_MILLISEC_IN_NANOS;
-    uint64_t issue_time_in_millis = psk->ticket_issue_time / ONE_MILLISEC_IN_NANOS;
-
     /* Calculate ticket age */
-    uint64_t ticket_age_in_millis = current_time_in_millis - issue_time_in_millis;
+    uint64_t ticket_age_in_nanos = current_time - psk->ticket_issue_time;
 
+    /* Convert ticket age to milliseconds */
+    uint64_t ticket_age_in_millis = ticket_age_in_nanos / ONE_MILLISEC_IN_NANOS;
     RESULT_ENSURE(ticket_age_in_millis <= UINT32_MAX, S2N_ERR_SAFETY);
 
     /* Add the ticket_age_add value to the ticket age in milliseconds. The resulting uint32_t value
