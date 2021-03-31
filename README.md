@@ -48,7 +48,7 @@ mkdir s2n_tls_build
 cd s2n_tls_build
 cmake -GNinja \
     -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_PREFIX_PATH=/usr/local/opt/openssl@1.1 \
+    -DCMAKE_PREFIX_PATH=$(dirname $(dirname $(brew list openssl@1.1|grep libcrypto.dylib))) \
     ../s2n-tls
 ninja -j6
 CTEST_PARALLEL_LEVEL=5 ninja test
