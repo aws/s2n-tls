@@ -35,15 +35,20 @@ If you are building on OSX, or simply don't want to execute the entire build scr
 An example of building on OSX:
 
 ```sh
+# Install required dependencies using homebrew
 brew install ninja cmake
-git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n-tls.git
-mkdir s2n_tls_build
-cd s2n_tls_build
 
-# Build with debug symbols and a specific OpenSSL version
+# Clone the s2n-tls source repository into the `s2n-tls` directory
+git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n-tls.git
+
+# Create a build directory parallel to the source directory
+mkdir s2n_tls_build
+
+# From the build directory, build s2n-tls with debug symbols and a specific OpenSSL version
+cd s2n_tls_build
 cmake -GNinja \
     -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_PREFIX_PATH=/usr/local/Cellar/openssl@1.1/1.1.1g \
+    -DCMAKE_PREFIX_PATH=$(dirname $(dirname $(brew list openssl@1.1|grep libcrypto.dylib))) \
     ../s2n-tls
 ninja -j6
 CTEST_PARALLEL_LEVEL=5 ninja test
