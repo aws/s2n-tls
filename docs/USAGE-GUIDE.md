@@ -859,7 +859,7 @@ The callback can be be invoked in two modes
     In this mode s2n-tls expects the callback to complete its work
     and return the appropriate response code before the handshake continues.
     If any of the connection properties were changed based on the server_name
-    extension the callback must either return 1 or invoke **s2n_client_hello_server_name_used**,
+    extension the callback must either return 1 or invoke **s2n_connection_server_name_extension_used**,
     otherwise the callback returns 0 to continue the handshake.
 
 - **S2N_CLIENT_HELLO_CB_NONBLOCKING**:
@@ -872,7 +872,7 @@ The callback can be be invoked in two modes
     the handshake. This allows s2n-tls clients to process client_hello without
     blocking and then resume the handshake at a later time.
     If any of the connection properties were changed on the basis of the server_name extension then
-    **s2n_client_hello_server_name_used** must be invoked before marking the callback done.
+    **s2n_connection_server_name_extension_used** must be invoked before marking the callback done.
 
 The callback can return a negative value to make s2n-tls terminate the
 handshake early with a fatal handshake failure alert.
