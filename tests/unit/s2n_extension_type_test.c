@@ -17,6 +17,7 @@
 #include "testlib/s2n_testlib.h"
 
 #include "tls/extensions/s2n_extension_type.h"
+#include "tls/extensions/s2n_extension_type_lists.h"
 #include "utils/s2n_bitmap.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
@@ -409,6 +410,24 @@ int main()
             EXPECT_FAILURE(s2n_extension_recv(&test_extension_type_with_min, &conn, NULL));
             EXPECT_FAILURE(s2n_extension_send(&test_extension_type_with_min, &conn, NULL));
             EXPECT_FAILURE(s2n_extension_is_missing(&test_extension_type_with_min, &conn));
+        }
+
+        /* Ensure that no extension type sets nonzero minimum_version < S2N_TLS13.
+         * Currently, nonzero minimum_version < S2N_TLS13 will not necessarily work because earlier versions
+         * do not set their protocol version until after processing all extensions.
+         */
+        {
+            s2n_extension_type_list *list = NULL;
+            const s2n_extension_type *type = NULL;
+            for (s2n_extension_list_id list_i = 0; list_i < S2N_EXTENSION_LIST_IDS_COUNT; list_i++) {
+                EXPECT_SUCCESS(s2n_extension_type_list_get(list_i, &list));
+                EXPECT_NOT_NULL(list);
+                for (size_t ext_i = 0; ext_i < list->count; ext_i++) {
+                    type = list->extension_types[ext_i];
+                    EXPECT_TRUE(type->minimum_version == 0 ||
+                            type->minimum_version >= S2N_TLS13);
+                }
+            }
         }
 
         /* Functional test: minimum-TLS1.3 extensions only used for TLS1.3 */
