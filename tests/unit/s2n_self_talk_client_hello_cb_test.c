@@ -216,10 +216,10 @@ int s2n_negotiate_blocking_ch_cb(struct s2n_connection *conn, struct client_hell
     s2n_blocked_status blocked;
     EXPECT_NOT_NULL(conn);
     
-    return s2n_negotiate(conn, &blocked);
+    int rc = s2n_negotiate(conn, &blocked);
     /* verify client hello cb has been invoked */
     EXPECT_EQUAL(ch_ctx->invoked, 1);
-    return S2N_SUCCESS;
+    return rc;
 }
 
 int server_recv(struct s2n_connection *conn)
