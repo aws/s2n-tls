@@ -45,7 +45,7 @@
 #include "utils/s2n_safety.h"
 
 struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn) {
-    if (conn->client_hello.parsed != 1) {
+    if (conn->client_hello.callback_invoked != 1) {
         return NULL;
     }
 
@@ -113,17 +113,14 @@ ssize_t s2n_client_hello_get_cipher_suites_length(struct s2n_client_hello *ch) {
 
 int s2n_client_hello_cb_done(struct s2n_connection *conn)
 {
-    struct s2n_client_hello *client_hello;
-
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->config);
     POSIX_ENSURE(conn->config->client_hello_cb_mode ==
         S2N_CLIENT_HELLO_CB_NONBLOCKING, S2N_ERR_INVALID_STATE);
-    POSIX_GUARD_PTR(client_hello = s2n_connection_get_client_hello(conn));
-    POSIX_ENSURE(client_hello->parsed == 1, S2N_ERR_ASYNC_NOT_PERFORMED);
+    POSIX_ENSURE(conn->client_hello.callback_invoked == 1, S2N_ERR_ASYNC_NOT_PERFORMED);
 
-    client_hello->callback_async_blocked = 0;
-    client_hello->callback_async_done = 1;
+    conn->client_hello.callback_async_blocked = 0;
+    conn->client_hello.callback_async_done = 1;
 
     return S2N_SUCCESS;
 }
@@ -323,14 +320,17 @@ int s2n_process_client_hello(struct s2n_connection *conn)
 
 static S2N_RESULT s2n_client_hello_process_cb_response(struct s2n_connection *conn, int rc)
 {
-    if (rc >= 0) {
-        if (conn->config->client_hello_cb_mode == S2N_CLIENT_HELLO_CB_BLOCKING) {
-            if (rc) {
+    if (rc < 0) {
+        goto fail;
+    }
+    switch(conn->config->client_hello_cb_mode) {
+        case S2N_CLIENT_HELLO_CB_BLOCKING : {
+            if(rc) {
                 conn->server_name_used = 1;
             }
             return S2N_RESULT_OK;
         }
-        if (conn->config->client_hello_cb_mode == S2N_CLIENT_HELLO_CB_NONBLOCKING) {
+        case S2N_CLIENT_HELLO_CB_NONBLOCKING : {
             if (conn->client_hello.callback_async_done) {
                 return S2N_RESULT_OK;
             }
@@ -338,7 +338,8 @@ static S2N_RESULT s2n_client_hello_process_cb_response(struct s2n_connection *co
             RESULT_BAIL(S2N_ERR_ASYNC_BLOCKED);
         }
     }
-    /* unknown mode | rc < 0*/
+fail:
+    /* rc < 0 */
     RESULT_GUARD_POSIX(s2n_queue_reader_handshake_failure_alert(conn));
     RESULT_BAIL(S2N_ERR_CANCELLED);
 }
@@ -355,9 +356,9 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     }
     /* If the CLIENT_HELLO has already been parsed, then we should not call
      * the client_hello_cb a second time. */
-    if (conn->client_hello.parsed == 0) {
+    if (conn->client_hello.callback_invoked == 0) {
         /* Mark the collected client hello as available when parsing is done and before the client hello callback */
-        conn->client_hello.parsed = 1;
+        conn->client_hello.callback_invoked = 1;
 
         /* Call client_hello_cb if exists, letting application to modify s2n_connection or swap s2n_config */
         if (conn->config->client_hello_cb) {
