@@ -149,8 +149,14 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_with_cert));
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
-                    S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+            /* Stop the TLS1.2 server before the CLIENT_KEY message. At that point, it will attempt to read
+             * a CLIENT_KEY message but instead receive CLIENT_CHANGE_CIPHER_SPEC. But this error is
+             * irrelevant to the test: TLS1.2 servers aren't expected to successfully handle early data.
+             *
+             * What we really care about is how the client reacts to the TLS1.2 SERVER_HELLO.
+             */
+            EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
+                    CLIENT_KEY), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
