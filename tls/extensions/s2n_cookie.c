@@ -22,6 +22,7 @@
 
 const s2n_extension_type s2n_client_cookie_extension = {
     .iana_value = TLS_EXTENSION_COOKIE,
+    .minimum_version = S2N_TLS13,
     .is_response = true,
     .send = s2n_extension_send_noop,
     .recv = s2n_extension_recv_noop,
@@ -44,8 +45,7 @@ const s2n_extension_type s2n_server_cookie_extension = {
 
 static bool s2n_cookie_should_send(struct s2n_connection *conn)
 {
-    return s2n_extension_send_if_tls13_connection(conn)
-            && conn && s2n_stuffer_data_available(&conn->cookie_stuffer) > 0;
+    return conn && s2n_stuffer_data_available(&conn->cookie_stuffer) > 0;
 }
 
 static int s2n_cookie_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -60,9 +60,6 @@ static int s2n_cookie_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 static int s2n_cookie_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     POSIX_ENSURE_REF(conn);
-    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
-        return S2N_SUCCESS;
-    }
 
     uint16_t cookie_len;
     POSIX_GUARD(s2n_stuffer_read_uint16(extension, &cookie_len));

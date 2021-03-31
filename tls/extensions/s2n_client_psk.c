@@ -34,6 +34,7 @@ static int s2n_client_psk_is_missing(struct s2n_connection *conn);
 
 const s2n_extension_type s2n_client_psk_extension = {
     .iana_value = TLS_EXTENSION_PRE_SHARED_KEY,
+    .minimum_version = S2N_TLS13,
     .is_response = false,
     .send = s2n_client_psk_send,
     .recv = s2n_client_psk_recv,
@@ -61,10 +62,6 @@ int s2n_client_psk_is_missing(struct s2n_connection *conn)
 bool s2n_client_psk_should_send(struct s2n_connection *conn)
 {
     if (conn == NULL) {
-        return false;
-    }
-
-    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         return false;
     }
 
@@ -318,10 +315,6 @@ static S2N_RESULT s2n_client_psk_recv_binders(struct s2n_connection *conn, struc
 int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     POSIX_ENSURE_REF(conn);
-
-    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
-        return S2N_SUCCESS;
-    }
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
