@@ -578,6 +578,7 @@ int main()
             EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, max_early_data));
 
             DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
             psk->type = S2N_PSK_TYPE_RESUMPTION;

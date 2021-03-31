@@ -255,6 +255,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_NO_CERT_FOUND, "Certificate not found") \
     ERR_ENTRY(S2N_ERR_CERT_NOT_VALIDATED, "Certificate not validated") \
     ERR_ENTRY(S2N_ERR_MAX_EARLY_DATA_SIZE, "Maximum early data bytes exceeded") \
+    ERR_ENTRY(S2N_ERR_EARLY_DATA_BLOCKED, "Blocked on early data") \
 
 /* clang-format on */
 

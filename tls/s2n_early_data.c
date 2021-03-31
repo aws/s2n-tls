@@ -51,6 +51,13 @@ int s2n_connection_set_early_data_expected(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
+int s2n_connection_set_end_of_early_data(struct s2n_connection *conn)
+{
+    POSIX_ENSURE_REF(conn);
+    conn->early_data_expected = false;
+    return S2N_SUCCESS;
+}
+
 static S2N_RESULT s2n_early_data_validate(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
@@ -230,18 +237,6 @@ S2N_RESULT s2n_early_data_config_clone(struct s2n_psk *new_psk, struct s2n_early
             old_config->context.size));
 
     return S2N_RESULT_OK;
-}
-
-int s2n_end_of_early_data_send(struct s2n_connection *conn)
-{
-    POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_END_OF_EARLY_DATA));
-    return S2N_SUCCESS;
-}
-
-int s2n_end_of_early_data_recv(struct s2n_connection *conn)
-{
-    POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_END_OF_EARLY_DATA));
-    return S2N_SUCCESS;
 }
 
 int s2n_connection_get_early_data_status(struct s2n_connection *conn, s2n_early_data_status_t *status)

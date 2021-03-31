@@ -128,6 +128,7 @@ ssize_t s2n_recv_impl(struct s2n_connection * conn, void *buf, ssize_t size, s2n
     *blocked = S2N_BLOCKED_ON_READ;
 
     S2N_ERROR_IF(conn->config->quic_enabled, S2N_ERR_UNSUPPORTED_WITH_QUIC);
+    POSIX_GUARD_RESULT(s2n_early_data_validate_recv(conn));
 
     while (size && !conn->closed) {
         int isSSLv2 = 0;
@@ -201,6 +202,7 @@ ssize_t s2n_recv_impl(struct s2n_connection * conn, void *buf, ssize_t size, s2n
         *blocked = S2N_NOT_BLOCKED;
     }
 
+    POSIX_GUARD_RESULT(s2n_early_data_record_bytes(conn, bytes_read));
     return bytes_read;
 }
 

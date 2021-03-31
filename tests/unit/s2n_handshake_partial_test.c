@@ -171,6 +171,7 @@ int main()
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), END_OF_EARLY_DATA);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), END_OF_EARLY_DATA);
 
+            EXPECT_SUCCESS(s2n_connection_set_end_of_early_data(client_conn));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);
