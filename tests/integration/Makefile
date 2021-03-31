@@ -42,7 +42,7 @@ ifeq ($(OQS_OPENSSL_1_1_1_INSTALL_DIR),)
 	OQS_OPENSSL_1_1_1_INSTALL_DIR:=${CURDIR}/../../test-deps/oqs_openssl-1.1.1
 endif
 
-TESTS = tls13 client_endpoints dynamic_record old_s_client s_client s_server pq_handshake
+TESTS = tls13 client_endpoints dynamic_record old_s_client s_client s_server
 
 ifndef S2N_NO_PQ
 	TESTS += pq_handshake
@@ -50,7 +50,7 @@ endif
 
 #TODO: these tests are currenly failing on AL2
 ifneq ($(DISTRO), "amazon linux")
-	TETS+= gnutls_cli gnutls_serv sslyze
+	TESTS += gnutls_cli gnutls_serv sslyze
 endif
 
 .PHONY : all

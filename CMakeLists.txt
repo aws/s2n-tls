@@ -48,9 +48,9 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL "Release")
     file(COPY ${TEST_PEM_FILES} DESTINATION "pems")
 endif ()
 
-if(S2N_NO_PQ OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "aarch64")
+if(S2N_NO_PQ)
     # PQ is disabled, so we do not include any PQ crypto code
-    message(STATUS "S2N_NO_PQ flag (or aarch64) was detected - disabling PQ crypto")
+    message(STATUS "S2N_NO_PQ flag was detected - disabling PQ crypto")
     set(S2N_NO_PQ_ASM ON)
     set(S2N_NO_PQ ON)
 else()
@@ -281,7 +281,7 @@ set(CMAKE_EXE_LINKER_FLAGS_ASAN
 
 set(CMAKE_SHARED_LINKER_FLAGS_ASAN
     "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} -fsanitize=address -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1" CACHE STRING
-    "Linker lags to be used to create shared libraries for Asan build type." FORCE)
+    "Linker flags to be used to create shared libraries for Asan build type." FORCE)
 
 include(CTest)
 if (BUILD_TESTING)
