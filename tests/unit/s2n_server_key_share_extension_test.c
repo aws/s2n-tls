@@ -293,7 +293,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->secure.client_ecc_evp_params[0]));
 
                 client_conn->actual_protocol_version = S2N_TLS12;
-                EXPECT_SUCCESS(s2n_server_key_share_extension.recv(client_conn, &extension_stuffer));
+                EXPECT_SUCCESS(s2n_extension_recv(&s2n_server_key_share_extension, client_conn, &extension_stuffer));
                 EXPECT_NULL(client_conn->secure.server_ecc_evp_params.negotiated_curve);
                 EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&extension_stuffer), 0);
 

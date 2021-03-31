@@ -132,10 +132,13 @@ int main(int argc, char **argv)
 
         EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
 
+        /* If send is called with a NULL stuffer, it will fail.
+         * So a failure indicates that send was called.
+         */
         conn->actual_protocol_version = S2N_TLS12;
-        EXPECT_FALSE(s2n_client_psk_extension.should_send(conn));
+        EXPECT_SUCCESS(s2n_extension_send(&s2n_client_psk_extension, conn, NULL));
         conn->actual_protocol_version = S2N_TLS13;
-        EXPECT_TRUE(s2n_client_psk_extension.should_send(conn));
+        EXPECT_FAILURE(s2n_extension_send(&s2n_client_psk_extension, conn, NULL));
 
         /* Only send the extension after a retry if at least one PSK matches the cipher suite */
         {
@@ -926,7 +929,7 @@ int main(int argc, char **argv)
 
             /* Should be a no-op if using TLS1.2 */
             conn->actual_protocol_version = S2N_TLS12;
-            EXPECT_SUCCESS(s2n_client_psk_recv(conn, &extension));
+            EXPECT_SUCCESS(s2n_extension_recv(&s2n_client_psk_extension, conn, &extension));
             EXPECT_NULL(conn->psk_params.chosen_psk);
             EXPECT_EQUAL(s2n_stuffer_data_available(&extension), sizeof(extension_data));
 

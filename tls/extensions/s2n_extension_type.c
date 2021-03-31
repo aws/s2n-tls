@@ -95,6 +95,11 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
         return S2N_SUCCESS;
     }
 
+    /* Do not send an extension that is not valid for the protocol version */
+    if (extension_type->minimum_version > conn->actual_protocol_version) {
+        return S2N_SUCCESS;
+    }
+
     /* Check if we need to send. Some extensions are only sent if specific conditions are met. */
     if (!extension_type->should_send(conn)) {
         return S2N_SUCCESS;
@@ -131,9 +136,14 @@ int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_conn
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     /* Do not accept a response if we did not send a request */
-    if(extension_type->is_response &&
+    if (extension_type->is_response &&
             !S2N_CBIT_TEST(conn->extension_requests_sent, extension_id)) {
         POSIX_BAIL(S2N_ERR_UNSUPPORTED_EXTENSION);
+    }
+
+    /* Do not process an extension not valid for the protocol version */
+    if (extension_type->minimum_version > conn->actual_protocol_version) {
+        return S2N_SUCCESS;
     }
 
     POSIX_GUARD(extension_type->recv(conn, in));
@@ -158,6 +168,11 @@ int s2n_extension_is_missing(const s2n_extension_type *extension_type, struct s2
     /* Do not consider an extension missing if we did not send a request */
     if(extension_type->is_response &&
             !S2N_CBIT_TEST(conn->extension_requests_sent, extension_id)) {
+        return S2N_SUCCESS;
+    }
+
+    /* Do not consider an extension missing if it is not valid for the protocol version */
+    if (extension_type->minimum_version > conn->actual_protocol_version) {
         return S2N_SUCCESS;
     }
 

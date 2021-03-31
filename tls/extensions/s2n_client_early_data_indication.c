@@ -43,10 +43,6 @@ static S2N_RESULT s2n_setup_middlebox_compat_for_early_data(struct s2n_connectio
 {
     RESULT_ENSURE_REF(conn);
 
-    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
-        return S2N_RESULT_OK;
-    }
-
     if (s2n_is_middlebox_compat_enabled(conn)) {
         RESULT_GUARD(s2n_handshake_type_set_tls13_flag(conn, MIDDLEBOX_COMPAT));
         RESULT_GUARD(s2n_handshake_type_set_tls13_flag(conn, EARLY_CLIENT_CCS));

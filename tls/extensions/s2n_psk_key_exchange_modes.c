@@ -28,6 +28,7 @@ static int s2n_psk_key_exchange_modes_recv(struct s2n_connection *conn, struct s
 
 const s2n_extension_type s2n_psk_key_exchange_modes_extension = {
     .iana_value = TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES,
+    .minimum_version = S2N_TLS13,
     .is_response = false,
     .send = s2n_psk_key_exchange_modes_send,
     .recv = s2n_psk_key_exchange_modes_recv,
@@ -56,10 +57,6 @@ static int s2n_psk_key_exchange_modes_send(struct s2n_connection *conn, struct s
 static int s2n_psk_key_exchange_modes_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     POSIX_ENSURE_REF(conn);
-
-    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
-        return S2N_SUCCESS;
-    }
 
     uint8_t psk_ke_mode_list_len;
     POSIX_GUARD(s2n_stuffer_read_uint8(extension, &psk_ke_mode_list_len));
