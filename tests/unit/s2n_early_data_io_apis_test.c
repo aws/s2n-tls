@@ -248,7 +248,7 @@ int main(int argc, char **argv)
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             ssize_t data_size = 0;
-            s2n_early_data_status_t status = S2N_EARLY_DATA_STATUS_UNKNOWN;
+            s2n_early_data_status_t status = 0;
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_send_early_data(client_conn, NULL, 0,
                     &data_size, &blocked), S2N_ERR_IO_BLOCKED);
@@ -285,7 +285,7 @@ int main(int argc, char **argv)
             uint8_t actual_payload[BUFFER_SIZE] = { 0 };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             ssize_t data_size = 0;
-            s2n_early_data_status_t status = S2N_EARLY_DATA_STATUS_UNKNOWN;
+            s2n_early_data_status_t status = 0;
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_send_early_data(client_conn, test_data, sizeof(test_data),
                     &data_size, &blocked), S2N_ERR_IO_BLOCKED);
@@ -456,7 +456,7 @@ int main(int argc, char **argv)
             uint8_t actual_payload[BUFFER_SIZE] = { 0 };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             ssize_t data_size = 0;
-            s2n_early_data_status_t status = S2N_EARLY_DATA_STATUS_UNKNOWN;
+            s2n_early_data_status_t status = 0;
 
             EXPECT_SUCCESS(s2n_send_early_data(client_conn, test_data, sizeof(test_data),
                     &data_size, &blocked));
@@ -491,7 +491,7 @@ int main(int argc, char **argv)
             uint8_t actual_payload[BUFFER_SIZE] = { 0 };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             ssize_t data_size = 0;
-            s2n_early_data_status_t status = S2N_EARLY_DATA_STATUS_UNKNOWN;
+            s2n_early_data_status_t status = 0;
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_send_early_data(client_conn, test_data, sizeof(test_data),
                     &data_size, &blocked), S2N_ERR_IO_BLOCKED);
@@ -573,7 +573,15 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(data_size, 0);
         EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), CLIENT_HELLO);
 
-        /* Write the ClientHello, but block on writing the early data */
+        /* Write the ClientHello, but block on writing the Client CCS message */
+        s2n_allowed_writes = 1;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_send_early_data(client_conn, test_data, sizeof(test_data),
+                &data_size, &blocked), S2N_ERR_IO_BLOCKED);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+        EXPECT_EQUAL(data_size, 0);
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), CLIENT_CHANGE_CIPHER_SPEC);
+
+        /* Write the Client CCS message, but block on writing the early data */
         s2n_allowed_writes = 1;
         EXPECT_FAILURE_WITH_ERRNO(s2n_send_early_data(client_conn, test_data, sizeof(test_data),
                 &data_size, &blocked), S2N_ERR_IO_BLOCKED);
@@ -627,6 +635,14 @@ int main(int argc, char **argv)
         /* Write the last server message, but block on reading the early data */
         s2n_allowed_writes = 1;
         s2n_allowed_reads = 0;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_recv_early_data(server_conn, actual_payload, sizeof(actual_payload),
+                &data_size, &blocked), S2N_ERR_IO_BLOCKED);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
+        EXPECT_EQUAL(data_size, 0);
+        EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), END_OF_EARLY_DATA);
+
+        /* Read the Client CCS message */
+        s2n_allowed_reads = full_record_reads;
         EXPECT_FAILURE_WITH_ERRNO(s2n_recv_early_data(server_conn, actual_payload, sizeof(actual_payload),
                 &data_size, &blocked), S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
@@ -814,6 +830,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, known_psk));
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, max_early_data));
 
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
@@ -853,6 +870,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, known_psk));
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, max_early_data));
 
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
@@ -940,6 +958,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, known_psk_without_early_data));
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, max_early_data));
 
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
@@ -980,6 +999,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, known_psk_with_wrong_cipher_suite));
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, max_early_data));
 
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
