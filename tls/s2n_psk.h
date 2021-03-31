@@ -81,6 +81,8 @@ int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_
 int s2n_psk_verify_binder(struct s2n_connection *conn, struct s2n_psk *psk,
         const struct s2n_blob *partial_client_hello, struct s2n_blob *binder_to_verify);
 
+S2N_RESULT s2n_connection_set_psk_type(struct s2n_connection *conn, s2n_psk_type type);
+
 /* Public Interface -- will be made visible and moved to s2n.h when the PSK feature is released */
 
 typedef enum {

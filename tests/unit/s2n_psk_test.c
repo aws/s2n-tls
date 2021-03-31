@@ -981,12 +981,15 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_psk_mode(NULL, S2N_PSK_MODE_EXTERNAL), S2N_ERR_NULL);
         EXPECT_EQUAL(conn->psk_params.type, S2N_PSK_TYPE_RESUMPTION);
+        EXPECT_FALSE(conn->psk_mode_overridden);
 
         EXPECT_SUCCESS(s2n_connection_set_psk_mode(conn, S2N_PSK_MODE_RESUMPTION));
         EXPECT_EQUAL(conn->psk_params.type, S2N_PSK_TYPE_RESUMPTION);
+        EXPECT_TRUE(conn->psk_mode_overridden);
 
         EXPECT_SUCCESS(s2n_connection_set_psk_mode(conn, S2N_PSK_MODE_EXTERNAL));
         EXPECT_EQUAL(conn->psk_params.type, S2N_PSK_TYPE_EXTERNAL);
+        EXPECT_TRUE(conn->psk_mode_overridden);
 
         DEFER_CLEANUP(struct s2n_psk *test_external_psk = s2n_test_psk_new(conn), s2n_psk_free);
         EXPECT_SUCCESS(s2n_connection_append_psk(conn, test_external_psk));

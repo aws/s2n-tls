@@ -203,7 +203,7 @@ static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connecti
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, secret, secret_len));
 
     /* Remove all previously-set resumption PSKs */
-    RESULT_GUARD_POSIX(s2n_connection_set_psk_mode(conn, S2N_PSK_MODE_RESUMPTION));
+    RESULT_GUARD(s2n_connection_set_psk_type(conn, S2N_PSK_TYPE_RESUMPTION));
     RESULT_GUARD(s2n_psk_parameters_wipe(&conn->psk_params));
 
     /* Construct a PSK from ticket values */

@@ -485,7 +485,7 @@ int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac)
     return S2N_SUCCESS;
 }
 
-static S2N_RESULT s2n_connection_set_psk_type(struct s2n_connection *conn, s2n_psk_type type)
+S2N_RESULT s2n_connection_set_psk_type(struct s2n_connection *conn, s2n_psk_type type)
 {
     RESULT_ENSURE_REF(conn);
     if (conn->psk_params.psk_list.len != 0) {
@@ -556,5 +556,6 @@ int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode)
             break;
     }
     POSIX_GUARD_RESULT(s2n_connection_set_psk_type(conn, type));
+    conn->psk_mode_overridden = true;
     return S2N_SUCCESS;
 }
