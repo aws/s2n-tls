@@ -214,6 +214,42 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test s2n_client_early_data_indiction_send */
+    {
+        /* Set MIDDLEBOX_COMPAT | EARLY_CLIENT_CCS handshake type flags */
+        {
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            EXPECT_EQUAL(conn->handshake.handshake_type, 0);
+
+            /* Don't set if < TLS1.3 */
+            conn->actual_protocol_version = S2N_TLS12;
+            config->quic_enabled = false;
+            EXPECT_SUCCESS(s2n_client_early_data_indication_extension.send(conn, NULL));
+            EXPECT_EQUAL(conn->handshake.handshake_type, 0);
+
+            /* Don't set if middlebox compat disabled */
+            conn->actual_protocol_version = S2N_TLS13;
+            config->quic_enabled = true;
+            EXPECT_SUCCESS(s2n_client_early_data_indication_extension.send(conn, NULL));
+            EXPECT_EQUAL(conn->handshake.handshake_type, 0);
+
+            /* Otherwise, set */
+            conn->actual_protocol_version = S2N_TLS13;
+            config->quic_enabled = false;
+            EXPECT_SUCCESS(s2n_client_early_data_indication_extension.send(conn, NULL));
+            EXPECT_EQUAL(conn->handshake.handshake_type, (MIDDLEBOX_COMPAT | EARLY_CLIENT_CCS));
+
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
+
     /* Test s2n_client_early_data_indiction_recv */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
@@ -396,8 +432,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_hello_retry_required(server_conn));
             /* There is retry handling logic that checks that the current message
              * is a hello retry message, which requires that we be at a specific message number. */
-            server_conn->handshake.message_number = 1;
-            client_conn->handshake.message_number = 1;
+            server_conn->handshake.message_number = 2;
+            client_conn->handshake.message_number = 2;
 
             EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
@@ -450,8 +486,8 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
             /* There is retry handling logic that checks that the current message
              * is a hello retry message, which requires that we be at a specific message number. */
-            server_conn->handshake.message_number = 1;
-            client_conn->handshake.message_number = 1;
+            server_conn->handshake.message_number = 2;
+            client_conn->handshake.message_number = 2;
 
             EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,

@@ -124,7 +124,8 @@ S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16
 int s2n_record_write_protocol_version(struct s2n_connection *conn)
 {
     uint8_t record_protocol_version = conn->actual_protocol_version;
-    if (conn->server_protocol_version == s2n_unknown_protocol_version) {
+    if (conn->server_protocol_version == s2n_unknown_protocol_version
+            && conn->early_data_state != S2N_EARLY_DATA_REQUESTED) {
         /* Some legacy TLS implementations can't handle records with protocol version higher than TLS1.0.
          * To provide maximum compatibility, send record version as TLS1.0 if server protocol version isn't
          * established yet, which happens only during ClientHello message. Note, this has no effect on

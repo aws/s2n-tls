@@ -18,7 +18,7 @@
 #include "utils/s2n_result.h"
 
 /* Maximum number of valid handshakes */
-#define S2N_HANDSHAKES_COUNT        128
+#define S2N_HANDSHAKES_COUNT        256
 
 #define IS_NEGOTIATED(conn)                 \
     ( s2n_handshake_type_check_flag(conn, NEGOTIATED) )
@@ -53,6 +53,9 @@
 #define WITH_EARLY_DATA(conn)               \
     ( s2n_handshake_type_check_tls13_flag(conn, WITH_EARLY_DATA) )
 
+#define WITH_EARLY_CLIENT_CCS(conn)         \
+    ( s2n_handshake_type_check_tls13_flag(conn, EARLY_CLIENT_CCS) )
+
 typedef enum {
     INITIAL                         = 0,
     NEGOTIATED                      = 1,
@@ -78,6 +81,7 @@ typedef enum {
     HELLO_RETRY_REQUEST             = 16,
     MIDDLEBOX_COMPAT                = 32,
     WITH_EARLY_DATA                 = 64,
+    EARLY_CLIENT_CCS                = 128,
 } s2n_tls13_handshake_type_flag;
 
 S2N_RESULT s2n_handshake_type_set_tls13_flag(struct s2n_connection *conn, s2n_tls13_handshake_type_flag flag);

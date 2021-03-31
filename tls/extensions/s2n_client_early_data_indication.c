@@ -24,6 +24,36 @@
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 
+/* S2N determines the handshake type after the ServerHello, but that will be
+ * too late to handle the early data + middlebox compatibility case:
+ *
+ *= https://tools.ietf.org/rfc/rfc8446#appendix-D.3
+ *# -  If not offering early data, the client sends a dummy
+ *#    change_cipher_spec record (see the third paragraph of Section 5)
+ *#    immediately before its second flight.  This may either be before
+ *#    its second ClientHello or before its encrypted handshake flight.
+ *#    If offering early data, the record is placed immediately after the
+ *#    first ClientHello.
+ *
+ * We need to set the handshake type flags in question during the ClientHello.
+ * This will require special [INITIAL | MIDDLEBOX_COMPAT | EARLY_CLIENT_CCS]
+ * entries in the handshake arrays.
+ */
+static S2N_RESULT s2n_setup_middlebox_compat_for_early_data(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+
+    if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
+        return S2N_RESULT_OK;
+    }
+
+    if (s2n_is_middlebox_compat_enabled(conn)) {
+        RESULT_GUARD(s2n_handshake_type_set_tls13_flag(conn, MIDDLEBOX_COMPAT));
+        RESULT_GUARD(s2n_handshake_type_set_tls13_flag(conn, EARLY_CLIENT_CCS));
+    }
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_early_data_config_is_possible(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
@@ -119,6 +149,7 @@ static int s2n_client_early_data_indication_is_missing(struct s2n_connection *co
 
 static int s2n_client_early_data_indication_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
+    POSIX_GUARD_RESULT(s2n_setup_middlebox_compat_for_early_data(conn));
     POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REQUESTED));
     return S2N_SUCCESS;
 }
@@ -131,6 +162,12 @@ static int s2n_client_early_data_indiction_recv(struct s2n_connection *conn, str
      *# "early_data" extension in its followup ClientHello.
      */
     POSIX_ENSURE(conn->handshake.message_number == 0, S2N_ERR_UNSUPPORTED_EXTENSION);
+
+    /* Although technically we could NOT set the [MIDDLEBOX_COMPAT | EARLY_CLIENT_CCS] handshake type
+     * for the server because the server ignores the Client CCS message state, doing so would mean that
+     * the client and server state machines would be out of sync and potentially cause confusion.
+     */
+    POSIX_GUARD_RESULT(s2n_setup_middlebox_compat_for_early_data(conn));
 
     POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REQUESTED));
     return S2N_SUCCESS;
