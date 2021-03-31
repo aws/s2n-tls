@@ -16,13 +16,7 @@
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
-BCS_1=$(SRCS:.c=.bc)
-BCS=$(addprefix $(BITCODE_DIR), $(BCS_1))
-
 .PHONY : all
 all: $(OBJS)
-
-.PHONY : bc
-bc: $(BCS)
 
 include ../../s2n.mk
