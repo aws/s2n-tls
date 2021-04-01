@@ -609,7 +609,7 @@ int main(int argc, char **argv)
             client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
-            struct s2n_connection *server_conn = s2n_connection_new(S2N_CLIENT);
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(server_conn);
             server_conn->actual_protocol_version = S2N_TLS13;
             server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
