@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <sys/param.h>
+
 #include "crypto/s2n_tls13_keys.h"
 
 #include "tls/s2n_handshake.h"
@@ -221,6 +223,10 @@ S2N_RESULT s2n_offered_psk_list_read_next(struct s2n_offered_psk_list *psk_list,
     RESULT_GUARD_POSIX(s2n_stuffer_skip_read(&psk_list->wire_data, sizeof(uint32_t)));
 
     RESULT_GUARD_POSIX(s2n_blob_init(&psk->identity, identity_data, identity_size));
+    psk->wire_index = psk_list->wire_index;
+
+    RESULT_ENSURE(psk_list->wire_index < UINT16_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    psk_list->wire_index++;
     return S2N_RESULT_OK;
 }
 
@@ -234,27 +240,61 @@ int s2n_offered_psk_list_next(struct s2n_offered_psk_list *psk_list, struct s2n_
     return S2N_SUCCESS;
 }
 
-int s2n_offered_psk_list_reset(struct s2n_offered_psk_list *psk_list)
+int s2n_offered_psk_list_reread(struct s2n_offered_psk_list *psk_list)
 {
     POSIX_ENSURE_REF(psk_list);
+    psk_list->wire_index = 0;
     return s2n_stuffer_reread(&psk_list->wire_data);
 }
 
-S2N_RESULT s2n_offered_psk_list_get_index(struct s2n_offered_psk_list *psk_list, uint16_t psk_index, struct s2n_offered_psk *psk)
+/* Match a PSK identity received from the client against the server's known PSK identities.
+ * This method compares a single client identity to all server identities.
+ *
+ * While both the client's offered identities and whether a match was found are public, we should make an attempt
+ * to keep the server's known identities a secret. We will make comparisons to the server's identities constant
+ * time (to hide partial matches) and not end the search early when a match is found (to hide the ordering).
+ *
+ * Keeping these comparisons constant time is not high priority. There's no known attack using these timings,
+ * and an attacker could probably guess the server's known identities just by observing the public identities
+ * sent by clients.
+ */
+static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const struct s2n_blob *wire_identity,
+        struct s2n_psk **match)
 {
-    RESULT_ENSURE_REF(psk_list);
-    RESULT_ENSURE_MUT(psk);
-
-    /* We don't want to lose our original place in the list, so copy it */
-    struct s2n_offered_psk_list psk_list_copy = { .wire_data = psk_list->wire_data };
-    RESULT_GUARD_POSIX(s2n_offered_psk_list_reset(&psk_list_copy));
-
-    uint16_t count = 0;
-    while(count <= psk_index) {
-        RESULT_GUARD_POSIX(s2n_offered_psk_list_next(&psk_list_copy, psk));
-        count++;
+    RESULT_ENSURE_REF(match);
+    RESULT_ENSURE_REF(wire_identity);
+    RESULT_ENSURE_REF(known_psks);
+    *match = NULL;
+    for (size_t i = 0; i < known_psks->len; i++) {
+        struct s2n_psk *psk = NULL;
+        RESULT_GUARD(s2n_array_get(known_psks, i, (void**)&psk));
+        RESULT_ENSURE_REF(psk);
+        RESULT_ENSURE_REF(psk->identity.data);
+        RESULT_ENSURE_REF(wire_identity->data);
+        uint32_t compare_size = MIN(wire_identity->size, psk->identity.size);
+        if (s2n_constant_time_equals(psk->identity.data, wire_identity->data, compare_size)
+            & (psk->identity.size == wire_identity->size) & (!*match)) {
+            *match = psk;
+        }
     }
     return S2N_RESULT_OK;
+}
+
+int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk)
+{
+    POSIX_ENSURE_REF(psk_list);
+    POSIX_ENSURE_REF(psk_list->conn);
+
+    struct s2n_psk_parameters *psk_params = &psk_list->conn->psk_params;
+
+    if (!psk) {
+        psk_params->chosen_psk = NULL;
+        return S2N_SUCCESS;
+    }
+
+    POSIX_GUARD_RESULT(s2n_match_psk_identity(&psk_params->psk_list, &psk->identity, &psk_params->chosen_psk));
+    psk_params->chosen_psk_wire_index = psk->wire_index;
+    return S2N_SUCCESS;
 }
 
 struct s2n_offered_psk* s2n_offered_psk_new()

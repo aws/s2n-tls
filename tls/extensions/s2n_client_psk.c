@@ -137,39 +137,6 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
     return S2N_SUCCESS;
 }
 
-/* Match a PSK identity received from the client against the server's known PSK identities.
- * This method compares a single client identity to all server identities.
- *
- * While both the client's offered identities and whether a match was found are public, we should make an attempt
- * to keep the server's known identities a secret. We will make comparisons to the server's identities constant
- * time (to hide partial matches) and not end the search early when a match is found (to hide the ordering).
- *
- * Keeping these comparisons constant time is not high priority. There's no known attack using these timings,
- * and an attacker could probably guess the server's known identities just by observing the public identities
- * sent by clients.
- */
-static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const struct s2n_blob *wire_identity,
-        struct s2n_psk **match)
-{
-    RESULT_ENSURE_REF(match);
-    RESULT_ENSURE_REF(wire_identity);
-    RESULT_ENSURE_REF(known_psks);
-    *match = NULL;
-    for (size_t i = 0; i < known_psks->len; i++) {
-        struct s2n_psk *psk = NULL;
-        RESULT_GUARD(s2n_array_get(known_psks, i, (void**)&psk));
-        RESULT_ENSURE_REF(psk);
-        RESULT_ENSURE_REF(psk->identity.data);
-        RESULT_ENSURE_REF(wire_identity->data);
-        uint32_t compare_size = MIN(wire_identity->size, psk->identity.size);
-        if (s2n_constant_time_equals(psk->identity.data, wire_identity->data, compare_size)
-            & (psk->identity.size == wire_identity->size) & (!*match)) {
-            *match = psk;
-        }
-    }
-    return S2N_RESULT_OK;
-}
-
 /* Find the first of the server's PSK identities that matches the client's identities.
  * This method compares all server identities to all client identities.
  *
@@ -197,7 +164,7 @@ static S2N_RESULT s2n_select_psk_identity(struct s2n_connection *conn, struct s2
         struct s2n_offered_psk client_psk = { 0 };
         uint16_t wire_index = 0;
 
-        RESULT_GUARD_POSIX(s2n_offered_psk_list_reset(client_identity_list));
+        RESULT_GUARD_POSIX(s2n_offered_psk_list_reread(client_identity_list));
         while(s2n_offered_psk_list_has_next(client_identity_list)) {
             RESULT_GUARD_POSIX(s2n_offered_psk_list_next(client_identity_list, &client_psk));
             uint16_t compare_size = MIN(client_psk.identity.size, server_psk->identity.size);
@@ -219,16 +186,13 @@ static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn,
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(wire_identities_in);
 
-    struct s2n_offered_psk_list identity_list = { .wire_data = *wire_identities_in };
+    struct s2n_offered_psk_list identity_list = {
+        .conn = conn,
+        .wire_data = *wire_identities_in,
+    };
 
     if (conn->config->psk_selection_cb) {
-        RESULT_GUARD_POSIX(conn->config->psk_selection_cb(conn, &identity_list, &conn->psk_params.chosen_psk_wire_index));
-
-        struct s2n_offered_psk chosen_identity = { 0 };
-        RESULT_GUARD(s2n_offered_psk_list_get_index(&identity_list, conn->psk_params.chosen_psk_wire_index,
-                &chosen_identity));
-
-        RESULT_GUARD(s2n_match_psk_identity(&conn->psk_params.psk_list, &chosen_identity.identity, &conn->psk_params.chosen_psk));
+        RESULT_GUARD_POSIX(conn->config->psk_selection_cb(conn, &identity_list));
     } else {
         RESULT_GUARD(s2n_select_psk_identity(conn, &identity_list));
     }
