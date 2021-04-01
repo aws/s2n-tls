@@ -230,6 +230,11 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
 
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
             /* Initialize client ticket */
             const uint8_t client_ticket[] = { CLIENT_TICKET };
             EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, sizeof(client_ticket)));
@@ -254,6 +259,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(psk->ticket_issue_time, ticket_issue_time);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
         }
 
         /* Any existing psks are removed when creating a new resumption psk */
@@ -266,6 +272,11 @@ int main(int argc, char **argv)
 
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             /* Initialize client ticket */
             uint8_t client_ticket[] = { CLIENT_TICKET };
@@ -298,6 +309,7 @@ int main(int argc, char **argv)
             S2N_BLOB_EXPECT_EQUAL(psk->identity, conn->client_ticket);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
         }
 
         /* Functional test: The TLS1.3 client can deserialize what it serializes */
@@ -364,6 +376,36 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_client_deserialize_session_state(conn, &stuffer));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
+
+    /* s2n_validate_ticket_age */
+    {
+        /* Ticket issue time is in the future */
+        {
+            uint64_t current_time = 0;
+            uint64_t issue_time = 10;
+            EXPECT_ERROR_WITH_ERRNO(s2n_validate_ticket_age(current_time, issue_time), S2N_ERR_INVALID_PSK_ISSUE_TIME);
+        }
+
+        /** Ticket age is longer than a week
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+         *= type=test
+         *# Clients MUST NOT cache
+         *# tickets for longer than 7 days, regardless of the ticket_lifetime,
+         *# and MAY delete tickets earlier based on local policy.
+         */
+        {
+            uint64_t current_time = (ONE_WEEK_IN_SEC + 1) * (uint64_t)ONE_SEC_IN_NANOS;
+            uint64_t issue_time = 0;
+            EXPECT_ERROR_WITH_ERRNO(s2n_validate_ticket_age(current_time, issue_time), S2N_ERR_SESSION_TICKET_TOO_OLD);
+        }
+
+        /* Ticket age is a week */
+        {
+            uint64_t current_time = ONE_WEEK_IN_SEC * (uint64_t)ONE_SEC_IN_NANOS;
+            uint64_t issue_time = 0;
+            EXPECT_OK(s2n_validate_ticket_age(current_time, issue_time));
         }
     }
 

@@ -56,6 +56,12 @@ static S2N_RESULT s2n_write_test_identity(struct s2n_stuffer *out, struct s2n_bl
     return S2N_RESULT_OK;
 }
 
+static int mock_time(void *data, uint64_t *nanoseconds)
+{
+    *nanoseconds = MILLIS_TO_NANOS(500);
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -182,7 +188,7 @@ int main(int argc, char **argv)
         {
             current_time = 0;
             psk.ticket_issue_time = 10;
-            EXPECT_ERROR_WITH_ERRNO(s2n_generate_obfuscated_ticket_age(&psk, current_time, &output), S2N_ERR_INTEGER_OVERFLOW);
+            EXPECT_ERROR_WITH_ERRNO(s2n_generate_obfuscated_ticket_age(&psk, current_time, &output), S2N_ERR_INVALID_PSK_ISSUE_TIME);
         }
 
         /* Ticket age is too large to fit in a uint32_t */
@@ -207,9 +213,9 @@ int main(int argc, char **argv)
         } test_cases[] = {
             { .current_time = MILLIS_TO_NANOS(50), .ticket_issue_time = 0, .ticket_age_add = 50, .expected_output = 100 },
             { .current_time = MILLIS_TO_NANOS(500), .ticket_issue_time = 0, .ticket_age_add = 50, .expected_output = 550 },
-            { .current_time = MILLIS_TO_NANOS(UINT32_MAX), .ticket_issue_time = 0, .ticket_age_add = 1, .expected_output = 0 },
-            { .current_time = MILLIS_TO_NANOS(UINT32_MAX), .ticket_issue_time = 0, .ticket_age_add = 50, .expected_output = 50 - 1 },
-            { .current_time = 0, .ticket_issue_time = 0, .ticket_age_add = 50, .expected_output = 50 },
+            { .current_time = MILLIS_TO_NANOS(UINT32_MAX), .ticket_issue_time = 0, .ticket_age_add = 1, .expected_output = 1 },
+            { .current_time = MILLIS_TO_NANOS(UINT32_MAX), .ticket_issue_time = 0, .ticket_age_add = 50, .expected_output = 50 },
+            { .current_time = MILLIS_TO_NANOS(0), .ticket_issue_time = 0, .ticket_age_add = 50, .expected_output = 50 },
         };
 
         for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
@@ -336,16 +342,18 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
             struct s2n_psk *psk = NULL;
             EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk));
             EXPECT_OK(s2n_psk_init(psk, S2N_PSK_TYPE_RESUMPTION));
             EXPECT_SUCCESS(s2n_psk_set_identity(psk, test_identity, sizeof(test_identity)));
             psk->hmac_alg = S2N_HMAC_SHA384;
-            psk->ticket_age_add = 10;
-
-            uint64_t issue_time = 0;
-            POSIX_GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &issue_time));
-            psk->ticket_issue_time = issue_time;
+            psk->ticket_age_add = 50;
+            psk->ticket_issue_time = 0;
 
             EXPECT_SUCCESS(s2n_client_psk_extension.send(conn, &out));
 
@@ -354,9 +362,10 @@ int main(int argc, char **argv)
 
             uint32_t obfuscated_ticket_age = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&out, &obfuscated_ticket_age));
-            EXPECT_TRUE(obfuscated_ticket_age > 0);
+            EXPECT_TRUE(obfuscated_ticket_age == 550);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_stuffer_free(&out));
         }
 
