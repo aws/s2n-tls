@@ -15,6 +15,7 @@
 
 # To ensure CPU compatibility, try to compile all ASM code before including it in the build.
 TRY_COMPILE_SIKEP434R2_ASM = -1
+TRY_COMPILE_SIKEP434R3_ASM = -1
 
 ifndef S2N_NO_PQ_ASM
 	# sikep434r2
@@ -34,4 +35,22 @@ ifndef S2N_NO_PQ_ASM
 
 		SIKEP434R2_ASM_OBJ=$(SIKEP434R2_ASM_SRC:.S=.o)
 	endif
+
+	# sikep434r3
+	SIKEP434R3_ASM_SRC := $(shell find . -name "sikep434r3_fp_x64_asm.S")
+	SIKEP434R3_ASM_TEST_OUT := "test_sikep434r3_fp_x64_asm.o"
+	TRY_COMPILE_SIKEP434R3_ASM := $(shell $(CC) -c -o $(SIKEP434R3_ASM_TEST_OUT) $(SIKEP434R3_ASM_SRC) > /dev/null 2>&1; echo $$?; rm $(SIKEP434R3_ASM_TEST_OUT) > /dev/null 2>&1)
+	ifeq ($(TRY_COMPILE_SIKEP434R3_ASM), 0)
+		CFLAGS += -DS2N_SIKEP434R3_ASM
+		CFLAGS_LLVM += -DS2N_SIKEP434R3_ASM
+
+		# The ADX instruction set is preferred for best performance, but not necessary.
+		TRY_COMPILE_SIKEP434R3_ASM_ADX := $(shell $(CC) -DS2N_ADX -c -o $(SIKEP434R3_ASM_TEST_OUT) $(SIKEP434R3_ASM_SRC) > /dev/null 2>&1; echo $$?; rm $(SIKEP434R3_ASM_TEST_OUT) > /dev/null 2>&1)
+		ifeq ($(TRY_COMPILE_SIKEP434R3_ASM_ADX), 0)
+			CFLAGS += -DS2N_ADX
+			ASFLAGS += -DS2N_ADX
+		endif
+
+		SIKEP434R3_ASM_OBJ=$(SIKEP434R3_ASM_SRC:.S=.o)
+		endif
 endif

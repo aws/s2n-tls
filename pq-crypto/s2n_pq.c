@@ -16,6 +16,7 @@
 #include "s2n_pq.h"
 
 static bool sikep434r2_asm_enabled = false;
+static bool sikep434r3_asm_enabled = false;
 
 #if defined(S2N_CPUID_AVAILABLE)
 /* https://en.wikipedia.org/wiki/CPUID */
@@ -82,6 +83,21 @@ bool s2n_cpu_supports_sikep434r2_asm() {
 #endif /* defined(S2N_SIKEP434R2_ASM) */
 }
 
+bool s2n_cpu_supports_sikep434r3_asm() {
+#if defined(S2N_SIKEP434R3_ASM)
+    /* The sikep434r3 assembly code always requires BMI2. If the assembly
+     * was compiled with support for ADX, we also require ADX at runtime. */
+#if defined(S2N_ADX)
+    return s2n_cpu_supports_bmi2() && s2n_cpu_supports_adx();
+#else
+    return s2n_cpu_supports_bmi2();
+#endif
+#else
+    /* sikep434r3 assembly was not supported at compile time */
+    return false;
+#endif /* defined(S2N_SIKEP434R3_ASM) */
+}
+
 #else /* defined(S2N_CPUID_AVAILABLE) */
 
 /* If CPUID is not available, we cannot perform necessary run-time checks. */
@@ -89,10 +105,18 @@ bool s2n_cpu_supports_sikep434r2_asm() {
     return false;
 }
 
+bool s2n_cpu_supports_sikep434r3_asm() {
+    return false;
+}
+
 #endif /* defined(S2N_CPUID_AVAILABLE) */
 
 bool s2n_sikep434r2_asm_is_enabled() {
     return sikep434r2_asm_enabled;
+}
+
+bool s2n_sikep434r3_asm_is_enabled() {
+    return sikep434r3_asm_enabled;
 }
 
 bool s2n_pq_is_enabled() {
@@ -108,6 +132,11 @@ S2N_RESULT s2n_disable_sikep434r2_asm() {
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_disable_sikep434r3_asm() {
+    sikep434r3_asm_enabled = false;
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_try_enable_sikep434r2_asm() {
     if (s2n_pq_is_enabled() && s2n_cpu_supports_sikep434r2_asm()) {
         sikep434r2_asm_enabled = true;
@@ -115,8 +144,16 @@ S2N_RESULT s2n_try_enable_sikep434r2_asm() {
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_try_enable_sikep434r3_asm() {
+    if (s2n_pq_is_enabled() && s2n_cpu_supports_sikep434r3_asm()) {
+        sikep434r3_asm_enabled = true;
+    }
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_pq_init() {
     RESULT_ENSURE_OK(s2n_try_enable_sikep434r2_asm(), S2N_ERR_SAFETY);
+    RESULT_ENSURE_OK(s2n_try_enable_sikep434r3_asm(), S2N_ERR_SAFETY);
 
     return S2N_RESULT_OK;
 }
