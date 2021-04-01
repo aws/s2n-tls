@@ -16,6 +16,7 @@
 #include <s2n.h>
 #include <stdlib.h>
 #include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
 #include "crypto/s2n_fips.h"
 
@@ -175,6 +176,49 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
+        /* Test that PSK type is set correctly */
+        {
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_EQUAL(config->psk_mode, S2N_PSK_MODE_RESUMPTION);
+
+            /* Overrides connection value */
+            {
+                conn->config = NULL;
+                conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+                EXPECT_EQUAL(conn->psk_params.type, S2N_PSK_TYPE_RESUMPTION);
+                EXPECT_FALSE(conn->psk_mode_overridden);
+            }
+
+            /* Does not override connection value if conn->override_psk_mode set */
+            {
+                conn->config = NULL;
+                conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
+                conn->psk_mode_overridden = true;
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+                EXPECT_EQUAL(conn->psk_params.type, S2N_PSK_TYPE_EXTERNAL);
+                EXPECT_TRUE(conn->psk_mode_overridden);
+                conn->psk_mode_overridden = false;
+            }
+
+            /* Does not override connection value if PSKs already set */
+            {
+                conn->config = NULL;
+                DEFER_CLEANUP(struct s2n_psk *test_external_psk = s2n_test_psk_new(conn), s2n_psk_free);
+                EXPECT_SUCCESS(s2n_connection_append_psk(conn, test_external_psk));
+                EXPECT_EQUAL(conn->psk_params.type, S2N_PSK_TYPE_EXTERNAL);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+                EXPECT_EQUAL(conn->psk_params.type, S2N_PSK_TYPE_EXTERNAL);
+                EXPECT_FALSE(conn->psk_mode_overridden);
+            }
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
     }
 
     END_TEST();

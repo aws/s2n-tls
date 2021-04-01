@@ -329,6 +329,11 @@ struct s2n_connection {
     /* Connection overrides server_max_early_data_size */
     unsigned server_max_early_data_size_overridden:1;
 
+    /* Connection overrides psk_mode.
+     * This means that the connection will keep the existing value of psk_params->type,
+     * even when setting a new config. */
+    unsigned psk_mode_overridden:1;
+
     /* Have we received a close notify alert from the peer. */
     unsigned close_notify_received:1;
 

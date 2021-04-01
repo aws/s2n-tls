@@ -280,13 +280,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_psk_set_secret(&resumption_psk, resumption_data, sizeof(resumption_data)));
             EXPECT_SUCCESS(s2n_connection_append_psk(conn, &resumption_psk));
 
-            /* Add existing external psk */
-            const uint8_t external_data[] = "external data";
-            DEFER_CLEANUP(struct s2n_psk *external_psk = s2n_external_psk_new(), s2n_psk_free);
-            EXPECT_SUCCESS(s2n_psk_set_identity(external_psk, external_data, sizeof(external_data)));
-            EXPECT_SUCCESS(s2n_psk_set_secret(external_psk, external_data, sizeof(external_data)));
-            EXPECT_SUCCESS(s2n_connection_append_psk(conn, external_psk));
-
             EXPECT_OK(s2n_client_deserialize_session_state(conn, &ticket_stuffer));
 
             EXPECT_EQUAL(conn->psk_params.psk_list.len, 1);
@@ -296,6 +289,34 @@ int main(int argc, char **argv)
 
             EXPECT_EQUAL(psk->type, S2N_PSK_TYPE_RESUMPTION);
             S2N_BLOB_EXPECT_EQUAL(psk->identity, conn->client_ticket);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Fails if external PSKs already set */
+        {
+            struct s2n_blob ticket_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls13_ticket, sizeof(tls13_ticket)));
+            struct s2n_stuffer ticket_stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, sizeof(tls13_ticket)));
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+
+            /* Initialize client ticket */
+            uint8_t client_ticket[] = { CLIENT_TICKET };
+            EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, sizeof(client_ticket)));
+            EXPECT_MEMCPY_SUCCESS(conn->client_ticket.data, client_ticket, sizeof(client_ticket));
+
+            /* Add existing external psk */
+            const uint8_t external_data[] = "external data";
+            DEFER_CLEANUP(struct s2n_psk *external_psk = s2n_external_psk_new(), s2n_psk_free);
+            EXPECT_SUCCESS(s2n_psk_set_identity(external_psk, external_data, sizeof(external_data)));
+            EXPECT_SUCCESS(s2n_psk_set_secret(external_psk, external_data, sizeof(external_data)));
+            EXPECT_SUCCESS(s2n_connection_append_psk(conn, external_psk));
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_client_deserialize_session_state(conn, &ticket_stuffer), S2N_ERR_PSK_MODE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
