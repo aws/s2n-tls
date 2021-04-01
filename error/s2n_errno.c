@@ -257,6 +257,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_MAX_EARLY_DATA_SIZE, "Maximum early data bytes exceeded") \
     ERR_ENTRY(S2N_ERR_EARLY_DATA_BLOCKED, "Blocked on early data") \
     ERR_ENTRY(S2N_ERR_PSK_MODE, "Mixing resumption and external PSKs is not supported") \
+    ERR_ENTRY(S2N_ERR_X509_EXTENSION_NOT_FOUND, "X509 extension value not found") \
 
 /* clang-format on */
 

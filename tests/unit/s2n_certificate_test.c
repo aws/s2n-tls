@@ -24,6 +24,9 @@
 #define S2N_DEFAULT_TEST_CERT_CHAIN_LENGTH 3
 #define S2N_CERT_DER_SIZE 2048
 
+#define S2N_RSA_2048_SHA256_INTERMEDIATE_CA_KEY "../pems/rsa_2048_sha256_intermediate_ca_key.pem"
+#define S2N_RSA_2048_SHA256_INTERMEDIATE_CERT_CUSTOM_OID "../pems/rsa_2048_sha256_intermediate_cert_custom_oid.pem"
+
 struct host_verify_data {
     bool callback_invoked;
     bool allow;
@@ -274,6 +277,58 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(s2n_chain_and_key));
+    }
+
+    /* Test s2n_get_x509_extension_oid_value */
+    {
+        /* Test custom OID values */
+        {
+            struct s2n_cert_chain_and_key *custom_cert_chain = NULL;
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&custom_cert_chain, S2N_RSA_2048_SHA256_INTERMEDIATE_CERT_CUSTOM_OID,
+                                                        S2N_RSA_2048_SHA256_INTERMEDIATE_CA_KEY));
+            struct s2n_cert *cert = custom_cert_chain->cert_chain->head;
+            EXPECT_NOT_NULL(cert);
+            struct {
+                const char *oid_field_in;
+                const char *expected_oid_value;
+                bool critical;
+            } test_cases[] = {
+                {.oid_field_in = "1.2.3.4.5.6.7890.1.2.100.1", .expected_oid_value = "keyid:36:61:3F:1B:02:C7:12:2B:53:0A:22:BA:58:B6:A8:80:19:EE:51:85", .critical = false },
+                {.oid_field_in = "1.2.3.4.5.6.7890.1.2.100.2", .expected_oid_value = "IP Address:12.345.67.890", .critical = false },
+                {.oid_field_in = "1.2.3.4.5.6.7890.1.2.100.3", .expected_oid_value = "DNS:12.345.67.890.auto.pdx.ec2.substrate", .critical = false },
+            };
+            for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+                uint8_t *oid_value_out = NULL;
+                uint32_t oid_value_out_len = 0;
+                bool critical = false;
+                const unsigned char *asn1_str = NULL;
+                long plen = 0;
+                int ptag = 0, pclass = 0;
+                DEFER_CLEANUP(ASN1_OCTET_STRING *asn1_octet_str = NULL, s2n_asn1_octet_string_free);
+                uint8_t *asn1_str_data = NULL;
+                DEFER_CLEANUP(unsigned char *utf8_str = NULL, s2n_crypto_free);
+                EXPECT_SUCCESS(s2n_get_x509_extension_oid_value(cert, (const uint8_t *)test_cases[i].oid_field_in,
+                                                                strlen(test_cases[i].oid_field_in), &oid_value_out,
+                                                                &oid_value_out_len, &critical));
+                /* This temporary value is required as ASN1_get_object increments input pointer */
+                asn1_str_data = oid_value_out;
+                asn1_octet_str = d2i_ASN1_OCTET_STRING(NULL, (const unsigned char **)(void *)&asn1_str_data, oid_value_out_len);
+                EXPECT_NOT_NULL(asn1_octet_str); 
+                asn1_str = asn1_octet_str->data;
+                POSIX_ENSURE_REF(asn1_str);
+                int ret = ASN1_get_object(&asn1_str, &plen, &ptag, &pclass, strlen(((const char*)asn1_str)));
+                /* If the 8th bit is set (0x80) then an error occurred.
+                * If the 1st bit is set (0x01) then the length of the value is indefinite,
+                * and the value will end with the 'end-of-contents octets'. 
+                */
+                EXPECT_FALSE((ret & 0x80) && (ret & 0x01));
+                EXPECT_BYTEARRAY_EQUAL((const char*)asn1_str, test_cases[i].expected_oid_value, strlen(test_cases[i].expected_oid_value));
+                EXPECT_EQUAL(critical, test_cases[i].critical);
+                free(oid_value_out);
+            }
+
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(custom_cert_chain));
+        }
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));

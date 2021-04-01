@@ -24,12 +24,18 @@
 #include <strings.h>
 
 #include "crypto/s2n_certificate.h"
+#include <crypto/s2n_openssl_x509.h>
 #include "utils/s2n_array.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_connection.h"
+
+/* A buffer length of 80 should be more than enough to handle any OID encountered in practice.
+ * Ref: https://www.openssl.org/docs/man1.1.0/man3/OBJ_obj2txt.html.
+ */
+#define OID_FIELD_MAX_LEN 80
 
 int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type)
 {
@@ -604,4 +610,75 @@ int s2n_get_cert_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, 
     *out_cert_der = cert->raw.data;
 
     return S2N_SUCCESS;
+}
+
+int s2n_asn1_octet_string_free(ASN1_OCTET_STRING** data)
+{
+    if (*data != NULL) {
+        ASN1_OCTET_STRING_free(*data);
+    }
+    return S2N_SUCCESS;
+}
+
+int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_field_in, const uint32_t oid_field_in_len,
+                                      uint8_t **oid_value_out, uint32_t *oid_value_out_len, bool *critical)
+{
+    POSIX_ENSURE_REF(cert);
+    POSIX_ENSURE_REF(oid_field_in);
+    POSIX_ENSURE_REF(oid_value_out);
+    POSIX_ENSURE_REF(oid_value_out_len);
+    POSIX_ENSURE_REF(cert->raw.data);
+
+    uint8_t *der_in = cert->raw.data;
+    /* Obtain the openssl X509 cert from the ASN1 DER certificate input. 
+     * Note that d2i_X509 increments *der_in to the byte following the parsed data.
+     * Ref: https://www.openssl.org/docs/man1.1.1/man3/d2i_ASN1_OBJECT.html.
+     */
+    DEFER_CLEANUP(X509 *x509_cert = d2i_X509(NULL, (const unsigned char **)(void *)&der_in, cert->raw.size),
+                  X509_free_pointer);
+    POSIX_ENSURE_REF(x509_cert);
+
+    /* Retrieve the number of x509 extensions present in the certificate */
+    int ext_count = X509_get_ext_count(x509_cert);
+    POSIX_ENSURE_GT(ext_count, 0);
+
+    for (size_t loc = 0; loc < ext_count; loc++) {
+        DEFER_CLEANUP(ASN1_OCTET_STRING *oid_asn1_str = NULL, s2n_asn1_octet_string_free);
+        bool match_found = false; 
+
+        /* Retrieve the x509 extension at location loc */
+        X509_EXTENSION *x509_ext = X509_get_ext(x509_cert, loc);
+        POSIX_ENSURE_REF(x509_ext);
+
+        /* Retrieve the x509 extension's critical value */
+        *critical = X509_EXTENSION_get_critical(x509_ext);
+
+        /* Retrieve the extension object/OID/extnId */
+        ASN1_OBJECT *asn1_obj = X509_EXTENSION_get_object(x509_ext);
+        POSIX_ENSURE_REF(asn1_obj);
+        int nid_from_cert = OBJ_obj2nid(asn1_obj);
+        if (nid_from_cert == NID_undef) {
+            char oid_field[OID_FIELD_MAX_LEN] = { 0 };
+            /* 0 here refers to preference of textual representation over numerical one */
+            int oid_len = OBJ_obj2txt(oid_field, sizeof(oid_field), asn1_obj, 0);
+            match_found = (oid_len == oid_field_in_len) && (strcmp(oid_field, (const char *)oid_field_in) == 0);
+        } else { 
+            int nid_from_in = OBJ_txt2nid((const char *)oid_field_in);
+            match_found = (nid_from_in == nid_from_cert); 
+        }
+        if (match_found) {
+           /*If match found, retrieve the corresponding OID value for the x509 extension */
+            oid_asn1_str = X509_EXTENSION_get_data(x509_ext);
+            POSIX_ENSURE_REF(oid_asn1_str);
+            int len = i2d_ASN1_OCTET_STRING(oid_asn1_str, NULL); 
+            *oid_value_out = malloc(sizeof(unsigned char) * len);
+            POSIX_ENSURE_REF(*oid_value_out);
+            uint8_t *oid_value_temp = *oid_value_out;
+            *oid_value_out_len = i2d_ASN1_OCTET_STRING(oid_asn1_str, &oid_value_temp);
+            POSIX_ENSURE_GT(*oid_value_out_len, 0);
+            ZERO_TO_DISABLE_DEFER_CLEANUP(oid_asn1_str);
+            return S2N_SUCCESS;
+        }
+    }
+    POSIX_BAIL(S2N_ERR_X509_EXTENSION_NOT_FOUND);
 }
