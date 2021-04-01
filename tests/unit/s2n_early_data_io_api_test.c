@@ -343,7 +343,10 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(data_size, 1);
             EXPECT_BYTEARRAY_EQUAL(actual_payload, test_data, 1);
 
-            /* Remaining early data should block handshake */
+            /* Remaining early data should block handshake.
+             * We can't successfully call s2n_negotiate again until we've drained all the early data
+             * via s2n_recv_early_data. For safety, we are not allowed to arbitrarily discard any early data.
+             */
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                                 S2N_ERR_BAD_MESSAGE);
 
@@ -674,7 +677,9 @@ int main(int argc, char **argv)
      * The RFC8848s ClientHello uses x25519, which is only available if evp APIs are supported.
      * Otherwise, skip these tests. */
     if (s2n_is_evp_apis_supported()) {
-        DEFER_CLEANUP(struct s2n_psk *known_psk = s2n_external_psk_new(), s2n_psk_free);
+        DEFER_CLEANUP(struct s2n_psk resumption_psk = { 0 }, s2n_psk_wipe);
+        EXPECT_OK(s2n_psk_init(&resumption_psk, S2N_PSK_TYPE_RESUMPTION));
+        struct s2n_psk *known_psk = &resumption_psk;
 
         /**
          *= https://tools.ietf.org/rfc/rfc8448#section-3
@@ -736,7 +741,6 @@ int main(int argc, char **argv)
          */
         const uint32_t max_early_data = 0x00000400;
         EXPECT_SUCCESS(s2n_psk_configure_early_data(known_psk, max_early_data, 0x13, 0x01));
-        known_psk->type = S2N_PSK_TYPE_RESUMPTION;
 
         /** ClientHello record
          *

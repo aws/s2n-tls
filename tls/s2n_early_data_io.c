@@ -142,6 +142,8 @@ S2N_RESULT s2n_send_early_data_impl(struct s2n_connection *conn, const uint8_t *
         return S2N_RESULT_OK;
     }
 
+    /* Attempt to make progress in the handshake even if s2n_send eventually fails.
+     * We only care about the result of this call if it would prevent us from calling s2n_send. */
     if (s2n_negotiate(conn, blocked) < S2N_SUCCESS) {
         if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
             return S2N_RESULT_ERROR;
@@ -150,6 +152,8 @@ S2N_RESULT s2n_send_early_data_impl(struct s2n_connection *conn, const uint8_t *
         }
     }
 
+    /* Attempt to send the early data.
+     * We only care about the result of this call if it fails. */
     uint32_t early_data_to_send = 0;
     RESULT_GUARD_POSIX(s2n_connection_get_remaining_early_data_size(conn, &early_data_to_send));
     early_data_to_send = MIN(data_len, early_data_to_send);
@@ -159,6 +163,7 @@ S2N_RESULT s2n_send_early_data_impl(struct s2n_connection *conn, const uint8_t *
         *data_sent = send_result;
     }
 
+    /* Call s2n_negotiate again to return the current state of the handshake. */
     if (s2n_negotiate(conn, blocked) < S2N_SUCCESS) {
         if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
             return S2N_RESULT_ERROR;
