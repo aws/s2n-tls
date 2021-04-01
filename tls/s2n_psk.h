@@ -115,6 +115,6 @@ int s2n_offered_psk_list_next(struct s2n_offered_psk_list *psk_list, struct s2n_
 int s2n_offered_psk_list_reread(struct s2n_offered_psk_list *psk_list);
 int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
 
-typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn,
+typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn, void *context,
                                           struct s2n_offered_psk_list *psk_list);
-int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb);
+int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb, void *context);

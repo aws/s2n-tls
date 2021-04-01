@@ -25,7 +25,8 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
 
-static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, struct s2n_offered_psk_list *psk_identity_list)
+static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, void *context,
+        struct s2n_offered_psk_list *psk_identity_list)
 {
     return S2N_SUCCESS;
 }
@@ -142,13 +143,18 @@ int main(int argc, char **argv)
 
         /* Safety checks */
         {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(NULL, s2n_test_select_psk_identity_callback), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(config, NULL), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(NULL, s2n_test_select_psk_identity_callback,
+                    NULL), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(config, NULL, NULL), S2N_ERR_NULL);
         }
 
+        uint8_t context = 13;
+
         EXPECT_NULL(config->psk_selection_cb);
-        EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_select_psk_identity_callback));
+        EXPECT_NULL(config->psk_selection_ctx);
+        EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_select_psk_identity_callback, &context));
         EXPECT_EQUAL(config->psk_selection_cb, s2n_test_select_psk_identity_callback);
+        EXPECT_EQUAL(config->psk_selection_ctx, &context);
         EXPECT_SUCCESS(s2n_config_free(config));
     }
 
