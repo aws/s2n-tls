@@ -531,6 +531,33 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
 
+        /* s2n_recv fails if it encounters a handshake message instead of early data.
+         * Because of the restriction that we only read early data on the EndOfEarlyData state,
+         * we could only encounter the EndOfEarlyData message. */
+        {
+            struct s2n_connection *client_conn = NULL, *server_conn = NULL;
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+
+            EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            uint8_t test_buffer[TEST_MAX_EARLY_DATA_SIZE] = { 0 };
+
+            EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
+                    END_OF_EARLY_DATA));
+            EXPECT_SUCCESS(s2n_connection_set_end_of_early_data(client_conn));
+            EXPECT_SUCCESS(s2n_negotiate(client_conn, &blocked));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server_conn, test_buffer, sizeof(test_buffer), &blocked),
+                    S2N_ERR_BAD_MESSAGE);
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
+
         /* s2n_recv fails on too much early data */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
