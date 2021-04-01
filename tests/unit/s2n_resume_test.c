@@ -30,6 +30,8 @@
 #define SECRET 0x03, 0x04
 #define CLIENT_TICKET 0x10, 0x10
 
+#define SECONDS_TO_NANOS(seconds) ((seconds) * (uint64_t)ONE_SEC_IN_NANOS)
+
 const uint64_t ticket_issue_time = 283686952306183;
 static int s2n_test_session_ticket_callback(struct s2n_connection *conn, struct s2n_session_ticket *ticket)
 {
@@ -383,9 +385,9 @@ int main(int argc, char **argv)
     {
         /* Ticket issue time is in the future */
         {
-            uint64_t current_time = 0;
+            uint64_t current_time = SECONDS_TO_NANOS(0);
             uint64_t issue_time = 10;
-            EXPECT_ERROR_WITH_ERRNO(s2n_validate_ticket_age(current_time, issue_time), S2N_ERR_INVALID_PSK_ISSUE_TIME);
+            EXPECT_ERROR_WITH_ERRNO(s2n_validate_ticket_age(current_time, issue_time), S2N_ERR_INVALID_SESSION_TICKET);
         }
 
         /** Ticket age is longer than a week
@@ -396,14 +398,14 @@ int main(int argc, char **argv)
          *# and MAY delete tickets earlier based on local policy.
          */
         {
-            uint64_t current_time = (ONE_WEEK_IN_SEC + 1) * (uint64_t)ONE_SEC_IN_NANOS;
+            uint64_t current_time = SECONDS_TO_NANOS(ONE_WEEK_IN_SEC + 1);
             uint64_t issue_time = 0;
-            EXPECT_ERROR_WITH_ERRNO(s2n_validate_ticket_age(current_time, issue_time), S2N_ERR_SESSION_TICKET_TOO_OLD);
+            EXPECT_ERROR_WITH_ERRNO(s2n_validate_ticket_age(current_time, issue_time), S2N_ERR_INVALID_SESSION_TICKET);
         }
 
-        /* Ticket age is a week */
+        /* Ticket age is a exactly a week */
         {
-            uint64_t current_time = ONE_WEEK_IN_SEC * (uint64_t)ONE_SEC_IN_NANOS;
+            uint64_t current_time = SECONDS_TO_NANOS(ONE_WEEK_IN_SEC);
             uint64_t issue_time = 0;
             EXPECT_OK(s2n_validate_ticket_age(current_time, issue_time));
         }

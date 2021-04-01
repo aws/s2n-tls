@@ -188,7 +188,7 @@ int main(int argc, char **argv)
         {
             current_time = 0;
             psk.ticket_issue_time = 10;
-            EXPECT_ERROR_WITH_ERRNO(s2n_generate_obfuscated_ticket_age(&psk, current_time, &output), S2N_ERR_INVALID_PSK_ISSUE_TIME);
+            EXPECT_ERROR_WITH_ERRNO(s2n_generate_obfuscated_ticket_age(&psk, current_time, &output), S2N_ERR_SAFETY);
         }
 
         /* Ticket age is too large to fit in a uint32_t */
@@ -213,8 +213,9 @@ int main(int argc, char **argv)
         } test_cases[] = {
             { .current_time = MILLIS_TO_NANOS(50), .ticket_issue_time = 0, .ticket_age_add = 50, .expected_output = 100 },
             { .current_time = MILLIS_TO_NANOS(500), .ticket_issue_time = 0, .ticket_age_add = 50, .expected_output = 550 },
-            { .current_time = MILLIS_TO_NANOS(UINT32_MAX), .ticket_issue_time = 0, .ticket_age_add = 1, .expected_output = 1 },
-            { .current_time = MILLIS_TO_NANOS(UINT32_MAX), .ticket_issue_time = 0, .ticket_age_add = 50, .expected_output = 50 },
+            { .current_time = MILLIS_TO_NANOS(UINT32_MAX), .ticket_issue_time = 0, .ticket_age_add = 1, .expected_output = 0 },
+            { .current_time = MILLIS_TO_NANOS(UINT32_MAX), .ticket_issue_time = 0, .ticket_age_add = 2, .expected_output = 1 },
+            { .current_time = MILLIS_TO_NANOS(UINT32_MAX), .ticket_issue_time = 0, .ticket_age_add = 50, .expected_output = 49 },
             { .current_time = MILLIS_TO_NANOS(0), .ticket_issue_time = 0, .ticket_age_add = 50, .expected_output = 50 },
         };
 
