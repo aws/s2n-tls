@@ -19,3 +19,4 @@
 
 extern const s2n_extension_type s2n_client_early_data_indication_extension;
 extern const s2n_extension_type s2n_server_early_data_indication_extension;
+extern const s2n_extension_type s2n_nst_early_data_indication_extension;

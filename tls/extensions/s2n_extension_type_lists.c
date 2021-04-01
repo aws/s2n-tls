@@ -123,6 +123,10 @@ static const s2n_extension_type *const certificate_extensions[] = {
         &s2n_server_sct_list_extension,
 };
 
+static const s2n_extension_type *const nst_extensions[] = {
+        &s2n_nst_early_data_indication_extension,
+};
+
 #define S2N_EXTENSION_LIST(list) { .extension_types = (list), .count = s2n_array_len(list) }
 
 static s2n_extension_type_list extension_lists[] = {
@@ -133,6 +137,7 @@ static s2n_extension_type_list extension_lists[] = {
         [S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS] = S2N_EXTENSION_LIST(encrypted_extensions),
         [S2N_EXTENSION_LIST_CERT_REQ] = S2N_EXTENSION_LIST(cert_req_extensions),
         [S2N_EXTENSION_LIST_CERTIFICATE] = S2N_EXTENSION_LIST(certificate_extensions),
+        [S2N_EXTENSION_LIST_NST] = S2N_EXTENSION_LIST(nst_extensions),
         [S2N_EXTENSION_LIST_EMPTY] = { .extension_types = NULL, .count = 0 },
 };
 
