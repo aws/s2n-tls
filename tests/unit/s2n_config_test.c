@@ -140,21 +140,22 @@ int main(int argc, char **argv)
     {
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
-
-        /* Safety checks */
-        {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(NULL, s2n_test_select_psk_identity_callback,
-                    NULL), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(config, NULL, NULL), S2N_ERR_NULL);
-        }
-
         uint8_t context = 13;
 
+        /* Safety check */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(
+                NULL, s2n_test_select_psk_identity_callback, &context), S2N_ERR_NULL);
         EXPECT_NULL(config->psk_selection_cb);
         EXPECT_NULL(config->psk_selection_ctx);
+
         EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_select_psk_identity_callback, &context));
         EXPECT_EQUAL(config->psk_selection_cb, s2n_test_select_psk_identity_callback);
         EXPECT_EQUAL(config->psk_selection_ctx, &context);
+
+        EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, NULL, NULL));
+        EXPECT_NULL(config->psk_selection_cb);
+        EXPECT_NULL(config->psk_selection_ctx);
+
         EXPECT_SUCCESS(s2n_config_free(config));
     }
 
