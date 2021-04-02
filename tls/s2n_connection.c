@@ -200,7 +200,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     PTR_GUARD_POSIX(s2n_stuffer_init(&conn->writer_alert_out, &blob));
 
     blob = (struct s2n_blob) {0};
-    PTR_GUARD_POSIX(s2n_blob_init(&blob, conn->ticket_ext_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
+    PTR_GUARD_POSIX(s2n_blob_init(&blob, conn->ticket_ext_data, S2N_MAX_STATE_SIZE_IN_BYTES));
     PTR_GUARD_POSIX(s2n_stuffer_init(&conn->client_ticket_to_decrypt, &blob));
 
     /* Allocate long term key memory */

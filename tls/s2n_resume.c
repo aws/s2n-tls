@@ -111,16 +111,12 @@ static S2N_RESULT s2n_serialize_resumption_state(struct s2n_connection *conn, st
     return S2N_RESULT_OK;
 }
 
-static int s2n_deserialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *from)
+static int s2n_tls12_deserialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *from)
 {
-    uint8_t format;
-    uint8_t protocol_version;
-    uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN];
+    uint8_t protocol_version = 0;
+    uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
 
-    S2N_ERROR_IF(s2n_stuffer_data_available(from) < S2N_STATE_SIZE_IN_BYTES, S2N_ERR_STUFFER_OUT_OF_DATA);
-
-    POSIX_GUARD(s2n_stuffer_read_uint8(from, &format));
-    S2N_ERROR_IF(format != S2N_TLS12_SERIALIZED_FORMAT_VERSION, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
+    S2N_ERROR_IF(s2n_stuffer_data_available(from) < S2N_STATE_SIZE_IN_BYTES - sizeof(uint8_t), S2N_ERR_STUFFER_OUT_OF_DATA);
 
     POSIX_GUARD(s2n_stuffer_read_uint8(from, &protocol_version));
     S2N_ERROR_IF(protocol_version != conn->actual_protocol_version, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
@@ -194,14 +190,15 @@ static S2N_RESULT s2n_validate_ticket_age(uint64_t current_time, uint64_t ticket
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connection *conn, struct s2n_stuffer *from)
+static S2N_RESULT s2n_tls13_deserialize_session_state(struct s2n_connection *conn, struct s2n_blob *identity, struct s2n_stuffer *from)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(identity);
     RESULT_ENSURE_REF(from);
 
     DEFER_CLEANUP(struct s2n_psk psk = { 0 }, s2n_psk_wipe);
     RESULT_GUARD(s2n_psk_init(&psk, S2N_PSK_TYPE_RESUMPTION));
-    RESULT_GUARD_POSIX(s2n_psk_set_identity(&psk, conn->client_ticket.data, conn->client_ticket.size));
+    RESULT_GUARD_POSIX(s2n_psk_set_identity(&psk, identity->data, identity->size));
 
     uint8_t protocol_version = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &protocol_version));
@@ -266,7 +263,25 @@ static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connecti
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_client_deserialize_session_state(struct s2n_connection *conn, struct s2n_stuffer *from)
+static S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, struct s2n_blob *identity, struct s2n_stuffer *from)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(from);
+
+    uint8_t format = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &format));
+
+    if (format == S2N_TLS12_SERIALIZED_FORMAT_VERSION) {
+        RESULT_GUARD_POSIX(s2n_tls12_deserialize_resumption_state(conn, from));
+    } else if (format == S2N_TLS13_SERIALIZED_FORMAT_VERSION) {
+        RESULT_GUARD(s2n_tls13_deserialize_session_state(conn, &conn->client_ticket_to_decrypt.blob, from));
+    } else {
+        RESULT_BAIL(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
+    }
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_client_deserialize_session_state(struct s2n_connection *conn, struct s2n_blob *identity, struct s2n_stuffer *from)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(from);
@@ -277,7 +292,7 @@ static S2N_RESULT s2n_client_deserialize_session_state(struct s2n_connection *co
     if (format == S2N_TLS12_SERIALIZED_FORMAT_VERSION) {
         RESULT_GUARD(s2n_tls12_client_deserialize_session_state(conn, from));
     } else if (format == S2N_TLS13_SERIALIZED_FORMAT_VERSION) {
-        RESULT_GUARD(s2n_tls13_client_deserialize_session_state(conn, from));
+        RESULT_GUARD(s2n_tls13_deserialize_session_state(conn, identity, from));
     } else {
         RESULT_BAIL(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     }
@@ -297,7 +312,7 @@ static int s2n_client_deserialize_with_session_id(struct s2n_connection *conn, s
     conn->session_id_len = session_id_len;
     POSIX_GUARD(s2n_stuffer_read_bytes(from, conn->session_id, session_id_len));
 
-    POSIX_GUARD_RESULT(s2n_client_deserialize_session_state(conn, from));
+    POSIX_GUARD_RESULT(s2n_client_deserialize_session_state(conn, NULL, from));
 
     return 0;
 }
@@ -314,7 +329,7 @@ static int s2n_client_deserialize_with_session_ticket(struct s2n_connection *con
     POSIX_GUARD(s2n_realloc(&conn->client_ticket, session_ticket_len));
     POSIX_GUARD(s2n_stuffer_read(from, &conn->client_ticket));
 
-    POSIX_GUARD_RESULT(s2n_client_deserialize_session_state(conn, from));
+    POSIX_GUARD_RESULT(s2n_client_deserialize_session_state(conn, &conn->client_ticket, from));
 
     return 0;
 }
@@ -689,12 +704,12 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn)
     POSIX_GUARD(s2n_blob_init(&aad_blob, aad_data, sizeof(aad_data)));
     struct s2n_stuffer aad = {0};
 
-    uint8_t s_data[S2N_STATE_SIZE_IN_BYTES] = { 0 };
+    uint8_t s_data[S2N_MAX_STATE_SIZE_IN_BYTES] = { 0 };
     struct s2n_blob state_blob = {0};
     POSIX_GUARD(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
     struct s2n_stuffer state = {0};
 
-    uint8_t en_data[S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = {0};
+    uint8_t en_data[S2N_MAX_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = {0};
     struct s2n_blob en_blob = {0};
     POSIX_GUARD(s2n_blob_init(&en_blob, en_data, sizeof(en_data)));
 
@@ -717,14 +732,16 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_write_bytes(&aad, key->implicit_aad, S2N_TICKET_AAD_IMPLICIT_LEN));
     POSIX_GUARD(s2n_stuffer_write_bytes(&aad, key->key_name, S2N_TICKET_KEY_NAME_LEN));
 
+    /* Resize the blob with the true encrypted data size */
+    en_blob.size = s2n_stuffer_data_available(from);
     POSIX_GUARD(s2n_stuffer_read(from, &en_blob));
-
     POSIX_GUARD(s2n_aes256_gcm.io.aead.decrypt(&aes_ticket_key, &iv, &aad_blob, &en_blob, &en_blob));
 
     POSIX_GUARD(s2n_stuffer_init(&state, &state_blob));
-    POSIX_GUARD(s2n_stuffer_write_bytes(&state, en_data, S2N_STATE_SIZE_IN_BYTES));
+    uint16_t state_size = en_blob.size - S2N_TLS_GCM_TAG_LEN;
+    POSIX_GUARD(s2n_stuffer_write_bytes(&state, en_data, state_size));
 
-    POSIX_GUARD(s2n_deserialize_resumption_state(conn, &state));
+    POSIX_GUARD_RESULT(s2n_deserialize_resumption_state(conn, &conn->client_ticket_to_decrypt.blob, &state));
 
     uint64_t now;
     POSIX_GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &now));
@@ -800,7 +817,7 @@ int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *f
     POSIX_GUARD(s2n_stuffer_init(&state, &state_blob));
     POSIX_GUARD(s2n_stuffer_write_bytes(&state, en_data, S2N_STATE_SIZE_IN_BYTES));
 
-    POSIX_GUARD(s2n_deserialize_resumption_state(conn, &state));
+    POSIX_GUARD_RESULT(s2n_deserialize_resumption_state(conn, NULL, &state));
 
     POSIX_GUARD(s2n_aes256_gcm.destroy_key(&aes_ticket_key));
     POSIX_GUARD(s2n_session_key_free(&aes_ticket_key));

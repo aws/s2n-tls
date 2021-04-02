@@ -296,7 +296,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
 
-            EXPECT_OK(s2n_client_deserialize_session_state(conn, &ticket_stuffer));
+            EXPECT_OK(s2n_client_deserialize_session_state(conn, NULL, &ticket_stuffer));
 
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_rsa_with_aes_128_gcm_sha256);
@@ -327,7 +327,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, sizeof(client_ticket)));
             EXPECT_MEMCPY_SUCCESS(conn->client_ticket.data, client_ticket, sizeof(client_ticket));
 
-            EXPECT_OK(s2n_client_deserialize_session_state(conn, &ticket_stuffer));
+            EXPECT_OK(s2n_client_deserialize_session_state(conn, &conn->client_ticket, &ticket_stuffer));
 
             struct s2n_psk *psk = NULL;
             EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
@@ -420,7 +420,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_psk_set_secret(&resumption_psk, resumption_data, sizeof(resumption_data)));
             EXPECT_SUCCESS(s2n_connection_append_psk(conn, &resumption_psk));
 
-            EXPECT_OK(s2n_client_deserialize_session_state(conn, &ticket_stuffer));
+            EXPECT_OK(s2n_client_deserialize_session_state(conn, &conn->client_ticket, &ticket_stuffer));
 
             EXPECT_EQUAL(conn->psk_params.psk_list.len, 1);
             struct s2n_psk *psk = NULL;
@@ -462,7 +462,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_psk_set_secret(external_psk, external_data, sizeof(external_data)));
             EXPECT_SUCCESS(s2n_connection_append_psk(conn, external_psk));
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_client_deserialize_session_state(conn, &ticket_stuffer), S2N_ERR_PSK_MODE);
+            EXPECT_ERROR_WITH_ERRNO(s2n_client_deserialize_session_state(conn, &conn->client_ticket, &ticket_stuffer), S2N_ERR_PSK_MODE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
@@ -491,7 +491,7 @@ int main(int argc, char **argv)
             EXPECT_MEMCPY_SUCCESS(conn->client_ticket.data, client_ticket, sizeof(client_ticket));
 
             EXPECT_OK(s2n_serialize_resumption_state(conn, &ticket_fields, &stuffer));
-            EXPECT_OK(s2n_client_deserialize_session_state(conn, &stuffer));
+            EXPECT_OK(s2n_client_deserialize_session_state(conn, &conn->client_ticket, &stuffer));
 
             /* Check PSK values are correct */
             struct s2n_psk *psk = NULL;
@@ -578,7 +578,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &state_blob));
 
             EXPECT_OK(s2n_serialize_resumption_state(conn, NULL, &stuffer));
-            EXPECT_OK(s2n_client_deserialize_session_state(conn, &stuffer));
+            EXPECT_OK(s2n_client_deserialize_session_state(conn, NULL, &stuffer));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -665,9 +665,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
-        /* Check session ticket size is correct for a small secret in TLS13 session resumption. The 
-         * contents of the encrypted output will be tested once the TLS1.3 deserialization function
-         * is written. */
+        /* Check session ticket can be decrypted with a small secret in TLS13 session resumption. */
         {
             struct s2n_connection *conn;
             struct s2n_config *config;
@@ -684,6 +682,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
@@ -693,17 +692,14 @@ int main(int argc, char **argv)
             EXPECT_TRUE(ticket_fields.session_secret.size < S2N_TLS_SECRET_LEN);
 
             EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &ticket_fields, &output));
-
-            uint32_t expected_size = FIXED_ENCRYPTED_TICKET_SIZE + test_session_secret.size;
-            EXPECT_EQUAL(expected_size, s2n_stuffer_data_available(&output));
+            conn->client_ticket_to_decrypt = output;
+            EXPECT_SUCCESS(s2n_decrypt_session_ticket(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
-        /* Check session ticket size is correct for the maximum size secret in TLS13 session resumption. The 
-         * contents of the encrypted output will be tested once the TLS1.3 deserialization function
-         * is written. */
+        /* Check session ticket can be decrypted with the maximum size secret in TLS13 session resumption. */
         {
             struct s2n_connection *conn;
             struct s2n_config *config;
@@ -720,6 +716,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
@@ -729,9 +726,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(ticket_fields.session_secret.size, S2N_TLS_SECRET_LEN);
 
             EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &ticket_fields, &output));
-
-            uint32_t expected_size = FIXED_ENCRYPTED_TICKET_SIZE + S2N_TLS_SECRET_LEN;
-            EXPECT_EQUAL(expected_size, s2n_stuffer_data_available(&output));
+            conn->client_ticket_to_decrypt = output;
+            EXPECT_SUCCESS(s2n_decrypt_session_ticket(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
@@ -766,13 +762,8 @@ int main(int argc, char **argv)
             struct s2n_ticket_fields ticket_fields = { .ticket_age_add = 1, .session_secret = test_master_secret };
 
             EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &ticket_fields, &output));
-
-            uint32_t expected_size = FIXED_ENCRYPTED_TICKET_SIZE + test_master_secret.size
-                        + sizeof(uint16_t) /* size of context size */
-                        + sizeof(test_early_data_context)
-                        + sizeof(uint8_t) /* application protocol size */
-                        + strlen(test_app_proto);
-            EXPECT_EQUAL(expected_size, s2n_stuffer_data_available(&output));
+            conn->client_ticket_to_decrypt = output;
+            EXPECT_SUCCESS(s2n_decrypt_session_ticket(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
