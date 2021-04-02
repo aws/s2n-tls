@@ -49,6 +49,22 @@ int s2n_post_handshake_recv(struct s2n_connection *conn)
             case TLS_SERVER_NEW_SESSION_TICKET:
                 POSIX_GUARD_RESULT(s2n_tls13_server_nst_recv(conn, &post_handshake_stuffer));
                 break;
+            case TLS_HELLO_REQUEST:
+            case TLS_CLIENT_HELLO:
+            case TLS_SERVER_HELLO:
+            case TLS_END_OF_EARLY_DATA:
+            case TLS_ENCRYPTED_EXTENSIONS:
+            case TLS_CERTIFICATE:
+            case TLS_SERVER_KEY:
+            case TLS_CERT_REQ:
+            case TLS_SERVER_HELLO_DONE:
+            case TLS_CERT_VERIFY:
+            case TLS_CLIENT_KEY:
+            case TLS_FINISHED:
+            case TLS_SERVER_CERT_STATUS:
+                /* All other known handshake messages should be rejected */
+                POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
+                break;
             default:
                 /* Ignore all other messages */
                 break;
