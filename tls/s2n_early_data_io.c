@@ -168,10 +168,12 @@ S2N_RESULT s2n_send_early_data_impl(struct s2n_connection *conn, const uint8_t *
         if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
             return S2N_RESULT_ERROR;
         } else if (*blocked == S2N_BLOCKED_ON_EARLY_DATA) {
+            *blocked = S2N_NOT_BLOCKED;
             return S2N_RESULT_OK;
         } else if (s2n_early_data_can_continue(conn)) {
             return S2N_RESULT_ERROR;
         } else {
+            *blocked = S2N_NOT_BLOCKED;
             return S2N_RESULT_OK;
         }
     }
@@ -181,9 +183,15 @@ S2N_RESULT s2n_send_early_data_impl(struct s2n_connection *conn, const uint8_t *
 int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data, ssize_t data_len,
         ssize_t *data_sent, s2n_blocked_status *blocked)
 {
+    /* Calling this method indicates that we expect early data. */
     POSIX_GUARD(s2n_connection_set_early_data_expected(conn));
+
     s2n_result result = s2n_send_early_data_impl(conn, data, data_len, data_sent, blocked);
+
+    /* Unless s2n_send_early_data is called again (undoing this), we are done sending early data.
+     * If s2n_negotiate is called next, we could send the EndOfEarlyData message. */
     POSIX_GUARD(s2n_connection_set_end_of_early_data(conn));
+
     POSIX_GUARD_RESULT(result);
     return S2N_SUCCESS;
 }
@@ -212,6 +220,7 @@ S2N_RESULT s2n_recv_early_data_impl(struct s2n_connection *conn, uint8_t *data, 
             if (s2n_early_data_can_continue(conn)) {
                 return S2N_RESULT_ERROR;
             } else {
+                *blocked = S2N_NOT_BLOCKED;
                 return S2N_RESULT_OK;
             }
         }
@@ -227,9 +236,14 @@ S2N_RESULT s2n_recv_early_data_impl(struct s2n_connection *conn, uint8_t *data, 
 int s2n_recv_early_data(struct s2n_connection *conn, uint8_t *data, ssize_t max_data_len,
         ssize_t *data_received, s2n_blocked_status *blocked)
 {
+    /* Calling this method indicates that we expect early data. */
     POSIX_GUARD(s2n_connection_set_early_data_expected(conn));
+
     s2n_result result = s2n_recv_early_data_impl(conn, data, max_data_len, data_received, blocked);
+
+    /* Unless s2n_recv_early_data is called again (undoing this), we are done accepting early data. */
     POSIX_GUARD(s2n_connection_set_end_of_early_data(conn));
+
     POSIX_GUARD_RESULT(result);
     return S2N_SUCCESS;
 }

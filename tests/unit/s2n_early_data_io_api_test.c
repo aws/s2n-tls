@@ -20,6 +20,9 @@
 
 #define BUFFER_SIZE 100
 
+#define EXPECT_NOT_BLOCKED(conn, blocked, expected_msg) \
+    EXPECT_EQUAL((blocked), S2N_NOT_BLOCKED); \
+    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), (expected_msg))
 #define EXPECT_BLOCKED_ON_EARLY_DATA(result) EXPECT_FAILURE_WITH_ERRNO((result), S2N_ERR_EARLY_DATA_BLOCKED)
 #define EXPECT_BLOCKED_ON_IO(result) EXPECT_FAILURE_WITH_ERRNO((result), S2N_ERR_IO_BLOCKED)
 #define EXPECT_BLOCKED_ON(conn, blocked, expected_blocked, expected_msg) \
@@ -345,6 +348,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_recv_early_data(server_conn, actual_payload, sizeof(actual_payload),
                     &data_size, &blocked));
+            EXPECT_NOT_BLOCKED(server_conn, blocked, APPLICATION_DATA);
             EXPECT_EQUAL(data_size, sizeof(test_data) - 1);
             EXPECT_BYTEARRAY_EQUAL(actual_payload, test_data + 1, sizeof(test_data) - 1);
 
@@ -378,7 +382,7 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < 10; i++) {
                 EXPECT_SUCCESS(s2n_send_early_data(client_conn, test_data, sizeof(test_data),
                         &data_size, &blocked));
-                EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), END_OF_EARLY_DATA);
+                EXPECT_NOT_BLOCKED(client_conn, blocked, END_OF_EARLY_DATA);
                 EXPECT_EQUAL(data_size, sizeof(test_data));
 
                 EXPECT_BLOCKED_ON_IO(s2n_recv_early_data(server_conn, actual_payload, sizeof(actual_payload), &data_size, &blocked));
@@ -450,7 +454,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_send_early_data(client_conn, test_data, sizeof(test_data),
                     &data_size, &blocked));
-            EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
+            EXPECT_NOT_BLOCKED(client_conn, blocked, SERVER_HELLO);
             EXPECT_EQUAL(data_size, 0);
 
             EXPECT_SUCCESS(s2n_connection_get_early_data_status(client_conn, &status));
@@ -458,7 +462,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_recv_early_data(server_conn, actual_payload, sizeof(actual_payload),
                     &data_size, &blocked));
-            EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), CLIENT_FINISHED);
+            EXPECT_NOT_BLOCKED(server_conn, blocked, CLIENT_FINISHED);
             EXPECT_EQUAL(data_size, 0);
 
             EXPECT_SUCCESS(s2n_connection_get_early_data_status(server_conn, &status));
@@ -492,7 +496,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_recv_early_data(server_conn, actual_payload, sizeof(actual_payload),
                     &data_size, &blocked));
-            EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), CLIENT_FINISHED);
+            EXPECT_NOT_BLOCKED(server_conn, blocked, CLIENT_FINISHED);
             EXPECT_EQUAL(data_size, 0);
 
             EXPECT_SUCCESS(s2n_connection_get_early_data_status(server_conn, &status));
@@ -500,7 +504,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_send_early_data(client_conn, test_data, sizeof(test_data),
                     &data_size, &blocked));
-            EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
+            EXPECT_NOT_BLOCKED(client_conn, blocked, APPLICATION_DATA);
             EXPECT_EQUAL(data_size, 0);
 
             EXPECT_SUCCESS(s2n_connection_get_early_data_status(client_conn, &status));
@@ -809,9 +813,9 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_recv_early_data(server_conn, actual_payload, sizeof(actual_payload),
                     &data_read, &blocked));
+            EXPECT_NOT_BLOCKED(server_conn, blocked, CLIENT_FINISHED);
             EXPECT_EQUAL(data_read, payload.size);
             EXPECT_BYTEARRAY_EQUAL(actual_payload, payload.data, payload.size);
-            EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), CLIENT_FINISHED);
             EXPECT_EQUAL(server_conn->early_data_state, S2N_END_OF_EARLY_DATA);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
@@ -884,8 +888,8 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < repeat_count; i++) {
                 EXPECT_SUCCESS(s2n_recv_early_data(server_conn, actual_payload, sizeof(actual_payload),
                         &data_read, &blocked));
+                EXPECT_NOT_BLOCKED(server_conn, blocked, CLIENT_FINISHED);
                 EXPECT_EQUAL(data_read, 0);
-                EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), CLIENT_FINISHED);
                 EXPECT_EQUAL(server_conn->early_data_state, S2N_END_OF_EARLY_DATA);
             }
 
@@ -927,7 +931,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_recv_early_data(server_conn, actual_payload, sizeof(actual_payload),
                     &data_read, &blocked));
-            EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), CLIENT_HELLO);
+            EXPECT_NOT_BLOCKED(server_conn, blocked, CLIENT_HELLO);
             EXPECT_EQUAL(data_read, 0);
 
             EXPECT_BLOCKED_ON_IO(s2n_negotiate(server_conn, &blocked));
@@ -968,8 +972,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_recv_early_data(server_conn, actual_payload, sizeof(actual_payload),
                     &data_read, &blocked));
+            EXPECT_NOT_BLOCKED(server_conn, blocked, CLIENT_FINISHED);
             EXPECT_EQUAL(data_read, 0);
-            EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), CLIENT_FINISHED);
             EXPECT_EQUAL(server_conn->early_data_state, S2N_EARLY_DATA_REJECTED);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&input));
