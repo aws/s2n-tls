@@ -106,7 +106,9 @@ struct s2n_config {
     uint16_t max_verify_cert_chain_depth;
 
     s2n_async_pkey_fn async_pkey_cb;
+
     s2n_psk_selection_callback psk_selection_cb;
+    void *psk_selection_ctx;
 
     s2n_key_log_fn key_log_cb;
     void *key_log_ctx;

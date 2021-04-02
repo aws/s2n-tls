@@ -230,6 +230,7 @@ static S2N_RESULT s2n_select_psk_identity(struct s2n_connection *conn, struct s2
 static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn, struct s2n_stuffer *wire_identities_in)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
     RESULT_ENSURE_REF(wire_identities_in);
 
     struct s2n_offered_psk_list identity_list = {
@@ -238,7 +239,7 @@ static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn,
     };
 
     if (conn->config->psk_selection_cb) {
-        RESULT_GUARD_POSIX(conn->config->psk_selection_cb(conn, &identity_list));
+        RESULT_GUARD_POSIX(conn->config->psk_selection_cb(conn, conn->config->psk_selection_ctx, &identity_list));
     } else {
         RESULT_GUARD(s2n_select_psk_identity(conn, &identity_list));
     }

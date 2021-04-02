@@ -34,15 +34,16 @@ struct s2n_psk_test_case {
     size_t identity_size;
 };
 
-uint16_t s2n_test_customer_wire_index_choice;
-static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn,
+static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, void *context,
         struct s2n_offered_psk_list *psk_identity_list)
 {
+    uint16_t *wire_index_choice = (uint16_t*) context;
+
     struct s2n_offered_psk offered_psk = { 0 };
     uint16_t idx = 0;
     while(s2n_offered_psk_list_has_next(psk_identity_list)) {
         POSIX_GUARD(s2n_offered_psk_list_next(psk_identity_list, &offered_psk));
-        if (idx == s2n_test_customer_wire_index_choice) {
+        if (idx == *wire_index_choice) {
             POSIX_GUARD(s2n_offered_psk_list_choose_psk(psk_identity_list, &offered_psk));
             break;
         }
@@ -51,7 +52,7 @@ static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn,
     return S2N_SUCCESS;
 }
 
-static int s2n_test_error_select_psk_identity_callback(struct s2n_connection *conn,
+static int s2n_test_error_select_psk_identity_callback(struct s2n_connection *conn, void *context,
         struct s2n_offered_psk_list *psk_identity_list)
 {
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
@@ -671,7 +672,7 @@ int main(int argc, char **argv)
         {
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_error_select_psk_identity_callback));
+            EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_error_select_psk_identity_callback, NULL));
 
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -691,7 +692,9 @@ int main(int argc, char **argv)
         {
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_select_psk_identity_callback));
+
+            uint16_t expected_wire_choice = 0;
+            EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_select_psk_identity_callback, &expected_wire_choice));
 
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -706,7 +709,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire_identities_in, 0));
             EXPECT_OK(s2n_write_test_identity(&wire_identities_in, &match_psk->identity));
 
-            s2n_test_customer_wire_index_choice = 0;
             EXPECT_OK(s2n_client_psk_recv_identity_list(conn, &wire_identities_in));
             EXPECT_EQUAL(conn->psk_params.chosen_psk, match_psk);
             EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, 0);
@@ -720,7 +722,9 @@ int main(int argc, char **argv)
         {
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_select_psk_identity_callback));
+
+            uint16_t expected_wire_choice = 10;
+            EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_select_psk_identity_callback, &expected_wire_choice));
 
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -735,7 +739,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire_identities_in, 0));
             EXPECT_OK(s2n_write_test_identity(&wire_identities_in, &match_psk->identity));
 
-            s2n_test_customer_wire_index_choice = 10;
             EXPECT_ERROR(s2n_client_psk_recv_identity_list(conn, &wire_identities_in));
             EXPECT_EQUAL(conn->psk_params.chosen_psk, NULL);
 
@@ -748,7 +751,9 @@ int main(int argc, char **argv)
         {
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_select_psk_identity_callback));
+
+            uint16_t expected_wire_choice = 0;
+            EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_select_psk_identity_callback, &expected_wire_choice));
 
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -766,7 +771,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire_identities_in, 0));
             EXPECT_OK(s2n_write_test_identity(&wire_identities_in, &wire_identity));
 
-            s2n_test_customer_wire_index_choice = 0;
             EXPECT_ERROR(s2n_client_psk_recv_identity_list(conn, &wire_identities_in));
             EXPECT_EQUAL(conn->psk_params.chosen_psk, NULL);
 
