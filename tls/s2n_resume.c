@@ -174,6 +174,15 @@ static S2N_RESULT s2n_tls12_client_deserialize_session_state(struct s2n_connecti
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_validate_ticket_age(uint64_t current_time, uint64_t ticket_issue_time)
+{
+    RESULT_ENSURE(current_time >= ticket_issue_time, S2N_ERR_INVALID_SESSION_TICKET);
+    uint64_t ticket_age_in_nanos = current_time - ticket_issue_time;
+    uint64_t ticket_age_in_sec = ticket_age_in_nanos / ONE_SEC_IN_NANOS;
+    RESULT_ENSURE(ticket_age_in_sec <= ONE_WEEK_IN_SEC, S2N_ERR_INVALID_SESSION_TICKET);
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connection *conn, struct s2n_stuffer *from)
 {
     RESULT_ENSURE_REF(conn);
@@ -191,6 +200,16 @@ static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connecti
 
     uint64_t issue_time = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &issue_time));
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+     *# Clients MUST NOT cache
+     *# tickets for longer than 7 days, regardless of the ticket_lifetime,
+     *# and MAY delete tickets earlier based on local policy.
+     */
+    uint64_t current_time = 0;
+    RESULT_GUARD_POSIX(conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time));
+    RESULT_GUARD(s2n_validate_ticket_age(current_time, issue_time));
 
     uint32_t ticket_age_add = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(from, &ticket_age_add));

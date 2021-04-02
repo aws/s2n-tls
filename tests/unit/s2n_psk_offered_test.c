@@ -337,7 +337,7 @@ int main(int argc, char **argv)
 
         struct s2n_psk *psk2 = NULL;
         EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &psk2));
-        EXPECT_OK(s2n_psk_init(psk2, S2N_PSK_TYPE_RESUMPTION));
+        EXPECT_OK(s2n_psk_init(psk2, S2N_PSK_TYPE_EXTERNAL));
         EXPECT_SUCCESS(s2n_psk_set_identity(psk2, wire_identity_2, sizeof(wire_identity_2)));
         EXPECT_SUCCESS(s2n_psk_set_secret(psk2, test_secret, sizeof(test_secret)));
 
