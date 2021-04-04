@@ -144,13 +144,17 @@ S2N_RESULT s2n_send_early_data_impl(struct s2n_connection *conn, const uint8_t *
 
     /* Attempt to make progress in the handshake even if s2n_send eventually fails.
      * We only care about the result of this call if it would prevent us from calling s2n_send. */
-    if (s2n_negotiate(conn, blocked) < S2N_SUCCESS) {
+    int negotiate_result = s2n_negotiate(conn, blocked);
+    if (negotiate_result < S2N_SUCCESS) {
         if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
             return S2N_RESULT_ERROR;
         } else if (*blocked != S2N_BLOCKED_ON_EARLY_DATA && *blocked != S2N_BLOCKED_ON_READ) {
             return S2N_RESULT_ERROR;
         }
     }
+    /* Save the error status for later */
+    int negotiate_error = s2n_errno;
+    s2n_blocked_status negotiate_blocked = *blocked;
 
     /* Attempt to send the early data.
      * We only care about the result of this call if it fails. */
@@ -162,18 +166,18 @@ S2N_RESULT s2n_send_early_data_impl(struct s2n_connection *conn, const uint8_t *
         RESULT_GUARD_POSIX(send_result);
         *data_sent = send_result;
     }
+    *blocked = S2N_NOT_BLOCKED;
 
-    /* Call s2n_negotiate again to return the current state of the handshake. */
-    if (s2n_negotiate(conn, blocked) < S2N_SUCCESS) {
-        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-            return S2N_RESULT_ERROR;
-        } else if (*blocked == S2N_BLOCKED_ON_EARLY_DATA) {
-            *blocked = S2N_NOT_BLOCKED;
+    /* Since the send was successful, report the result of the original negotiate call.
+     * If we got this far, the result must have been success or a blocking error. */
+    if (negotiate_result < S2N_SUCCESS) {
+        RESULT_ENSURE_EQ(s2n_error_get_type(negotiate_error), S2N_ERR_T_BLOCKED);
+        if (negotiate_blocked == S2N_BLOCKED_ON_EARLY_DATA) {
             return S2N_RESULT_OK;
         } else if (s2n_early_data_can_continue(conn)) {
-            return S2N_RESULT_ERROR;
+            *blocked = negotiate_blocked;
+            RESULT_BAIL(negotiate_error);
         } else {
-            *blocked = S2N_NOT_BLOCKED;
             return S2N_RESULT_OK;
         }
     }
