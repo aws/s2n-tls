@@ -36,7 +36,7 @@
  * Ref: https://www.openssl.org/docs/man1.1.0/man3/OBJ_obj2txt.html.
  */
 #define OID_FIELD_MAX_LEN 80
-
+#define OCTET_STRING_OFFSET 2
 int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type)
 {
     POSIX_ENSURE_REF(cert);
@@ -620,6 +620,29 @@ static int s2n_buffer_free(uint8_t** data)
     return S2N_SUCCESS;
 }
 
+int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t **out_data, uint32_t *out_len)
+{
+    POSIX_ENSURE_REF(extension_data);
+    POSIX_ENSURE_REF(out_data);
+    POSIX_ENSURE_REF(out_len);
+
+    *out_len = extension_len - OCTET_STRING_OFFSET;
+    POSIX_ENSURE_GT(*out_len, 0);
+
+    DEFER_CLEANUP(uint8_t *temp_buf = NULL, s2n_buffer_free);
+    temp_buf = malloc(sizeof(unsigned char) * (*out_len));
+    POSIX_ENSURE_REF(temp_buf);
+
+    const uint8_t *temp_extension_data = extension_data; 
+
+    temp_extension_data += OCTET_STRING_OFFSET;
+    POSIX_CHECKED_MEMCPY(temp_buf, temp_extension_data, *out_len);
+    *out_data = temp_buf;
+
+    ZERO_TO_DISABLE_DEFER_CLEANUP(temp_buf);
+    return S2N_SUCCESS;
+}
+
 int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_field_in, const uint32_t oid_field_in_len,
                                       uint8_t **oid_value_out, uint32_t *oid_value_out_len, bool *critical)
 {
@@ -684,8 +707,8 @@ int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_f
              */ 
             unsigned char *internal_data = ASN1_STRING_data(oid_asn1_str);
             POSIX_ENSURE_REF(internal_data);
+            POSIX_CHECKED_MEMCPY(temp_buf, internal_data, (*oid_value_out_len));
             *oid_value_out = temp_buf;
-            POSIX_CHECKED_MEMCPY(*oid_value_out, internal_data, (*oid_value_out_len));
             ZERO_TO_DISABLE_DEFER_CLEANUP(temp_buf);
             return S2N_SUCCESS;
         }

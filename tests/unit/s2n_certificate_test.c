@@ -359,6 +359,15 @@ int main(int argc, char **argv)
                                                             &oid_value_out_len, &critical));
             EXPECT_BYTEARRAY_EQUAL(oid_value_out, test_cases[i].expected_oid.data, test_cases[i].expected_oid.size);
             EXPECT_EQUAL(critical, test_cases[i].critical);
+            if ( i > 3) {
+                uint8_t *utf8_str_data = NULL;
+                uint32_t utf8_str_len = 0;
+                EXPECT_SUCCESS(s2n_get_utf8_string_from_extension_data(oid_value_out, oid_value_out_len, &utf8_str_data,
+                                                                       &utf8_str_len));
+                EXPECT_EQUAL(utf8_str_len, strlen((const char *)test_cases[i].expected_utf8_oid));
+                EXPECT_BYTEARRAY_EQUAL(utf8_str_data, test_cases[i].expected_utf8_oid, utf8_str_len);
+                free(utf8_str_data);
+            }
             free(oid_value_out);
         }
 
