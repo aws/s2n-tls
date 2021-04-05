@@ -281,6 +281,12 @@ int main(int argc, char **argv)
 
     /* Test s2n_get_x509_extension_oid_value */
     {
+        uint8_t *oid_value_out = NULL;
+        uint32_t oid_value_out_len = 0;
+        bool critical = false;
+        uint8_t *utf8_str_data = NULL;
+        uint32_t utf8_str_len = 0;
+
         struct s2n_cert_chain_and_key *custom_cert_chain = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&custom_cert_chain,
                                                        S2N_RSA_2048_SHA256_INTERMEDIATE_CERT_CUSTOM_OID,
@@ -351,25 +357,35 @@ int main(int argc, char **argv)
         };
 
         for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
-            uint8_t *oid_value_out = NULL;
-            uint32_t oid_value_out_len = 0;
-            bool critical = false;
+            oid_value_out = NULL;
+            oid_value_out_len = 0;
+            critical = false;
+            utf8_str_data = NULL;
+            utf8_str_len = 0;
             EXPECT_SUCCESS(s2n_get_x509_extension_oid_value(cert, (const uint8_t *)test_cases[i].oid_in,
                                                             strlen(test_cases[i].oid_in), &oid_value_out,
                                                             &oid_value_out_len, &critical));
             EXPECT_BYTEARRAY_EQUAL(oid_value_out, test_cases[i].expected_oid.data, test_cases[i].expected_oid.size);
             EXPECT_EQUAL(critical, test_cases[i].critical);
-            if ( i > 3) {
-                uint8_t *utf8_str_data = NULL;
-                uint32_t utf8_str_len = 0;
+            if (i > 3) {
                 EXPECT_SUCCESS(s2n_get_utf8_string_from_extension_data(oid_value_out, oid_value_out_len, &utf8_str_data,
                                                                        &utf8_str_len));
                 EXPECT_EQUAL(utf8_str_len, strlen((const char *)test_cases[i].expected_utf8_oid));
                 EXPECT_BYTEARRAY_EQUAL(utf8_str_data, test_cases[i].expected_utf8_oid, utf8_str_len);
                 free(utf8_str_data);
+            } else {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(oid_value_out, oid_value_out_len,
+                                                                                  &utf8_str_data, &utf8_str_len),
+                                                                                  S2N_ERR_INVALID_X509_EXTENSION_TYPE);
             }
             free(oid_value_out);
         }
+
+        /* Failure case for Invalid X509 extension OID value */
+        const uint8_t invalid_oid_id[] = "Invalid X509 extension";
+        EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(cert, invalid_oid_id, strlen((const char *)invalid_oid_id),
+                                                                   &oid_value_out, &oid_value_out_len, &critical),
+                                  S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND);
 
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(custom_cert_chain));
     }

@@ -36,7 +36,7 @@
  * Ref: https://www.openssl.org/docs/man1.1.0/man3/OBJ_obj2txt.html.
  */
 #define OID_FIELD_MAX_LEN 80
-#define OCTET_STRING_OFFSET 2
+
 int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type)
 {
     POSIX_ENSURE_REF(cert);
@@ -620,23 +620,43 @@ static int s2n_buffer_free(uint8_t** data)
     return S2N_SUCCESS;
 }
 
+static int s2n_asn1_string_free(ASN1_STRING** data)
+{
+    if (*data != NULL) {
+        ASN1_STRING_free(*data);
+    }
+    return S2N_SUCCESS;
+}
+
 int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t **out_data, uint32_t *out_len)
 {
     POSIX_ENSURE_REF(extension_data);
     POSIX_ENSURE_REF(out_data);
     POSIX_ENSURE_REF(out_len);
 
-    *out_len = extension_len - OCTET_STRING_OFFSET;
+    DEFER_CLEANUP(ASN1_STRING *asn1_str = NULL, s2n_asn1_string_free);
+    const uint8_t *asn1_str_data = extension_data;
+    /* Note that d2i_ASN1_UTF8STRING increments *der_in to the byte following the parsed data.
+     * Ref: https://www.openssl.org/docs/man1.1.0/man3/d2i_ASN1_UTF8STRING.html.
+     */
+    asn1_str = d2i_ASN1_UTF8STRING(NULL, (const unsigned char **)(void *)&asn1_str_data, extension_len);
+    POSIX_ENSURE(asn1_str != NULL, S2N_ERR_INVALID_X509_EXTENSION_TYPE);
+    int type = ASN1_STRING_type(asn1_str);
+    POSIX_ENSURE(type == V_ASN1_UTF8STRING, S2N_ERR_INVALID_X509_EXTENSION_TYPE);
+    
+    *out_len = ASN1_STRING_length(asn1_str);
     POSIX_ENSURE_GT(*out_len, 0);
 
+    /* ASN1_STRING_data() returns an internal pointer to the data. 
+     * Since this is an internal pointer it should not be freed or modified in any way.
+     * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_data.html.
+     */ 
+    unsigned char *internal_data = ASN1_STRING_data(asn1_str);
+    POSIX_ENSURE_REF(internal_data);
     DEFER_CLEANUP(uint8_t *temp_buf = NULL, s2n_buffer_free);
     temp_buf = malloc(sizeof(unsigned char) * (*out_len));
     POSIX_ENSURE_REF(temp_buf);
-
-    const uint8_t *temp_extension_data = extension_data; 
-
-    temp_extension_data += OCTET_STRING_OFFSET;
-    POSIX_CHECKED_MEMCPY(temp_buf, temp_extension_data, *out_len);
+    POSIX_CHECKED_MEMCPY(temp_buf, internal_data, (*out_len));
     *out_data = temp_buf;
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(temp_buf);
@@ -655,7 +675,7 @@ int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_f
     uint8_t *der_in = cert->raw.data;
     /* Obtain the openssl X509 cert from the ASN1 DER certificate input. 
      * Note that d2i_X509 increments *der_in to the byte following the parsed data.
-     * Ref: https://www.openssl.org/docs/man1.1.1/man3/d2i_ASN1_OBJECT.html.
+     * Ref: https://www.openssl.org/docs/man1.1.0/man3/d2i_X509.html.
      */
     DEFER_CLEANUP(X509 *x509_cert = d2i_X509(NULL, (const unsigned char **)(void *)&der_in, cert->raw.size),
                   X509_free_pointer);
@@ -703,7 +723,7 @@ int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_f
             POSIX_ENSURE_REF(temp_buf);
             /* ASN1_STRING_data() returns an internal pointer to the data. 
              * Since this is an internal pointer it should not be freed or modified in any way.
-             * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_length.html.
+             * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_data.html.
              */ 
             unsigned char *internal_data = ASN1_STRING_data(oid_asn1_str);
             POSIX_ENSURE_REF(internal_data);
@@ -714,5 +734,5 @@ int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_f
         }
     }
 
-    POSIX_BAIL(S2N_ERR_X509_EXTENSION_NOT_FOUND);
+    POSIX_BAIL(S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND);
 }
