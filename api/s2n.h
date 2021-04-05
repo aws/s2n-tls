@@ -512,7 +512,7 @@ extern int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn,
  * @param oid_field_in_len represents the length of the input buffer `oid_field_in`.
  * @param oid_value_out A pointer to the output buffer which will hold the DER encoding of an ASN.1 X.509 certificate extension value returned. 
  * @param oid_value_out_len  This return value represents the length of the output buffer `oid_value_out`.
- * @param critical  This return value contains the boolean value for `critical`.
+ * @param critical This return value contains the boolean value for `critical`.
  */
 S2N_API 
 extern int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_field_in, const uint32_t oid_field_in_len,
@@ -526,7 +526,7 @@ extern int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t
  * @param extension_data A pointer to the DER encoded ASN.1 X.509 certificate extension value being read.
  * @param extension_len represents the length of the input buffer `extension_data`.
  * @param out_data A pointer to the output buffer which will hold the UTF8 String representation of the DER encoded ASN.1 X.509 certificate extension data returned. 
- * @param out_len  This return value represents the length of the output buffer `out_data`.
+ * @param out_len This return value represents the length of the output buffer `out_data`.
  */
 S2N_API 
 extern int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t **out_data, uint32_t *out_len);
