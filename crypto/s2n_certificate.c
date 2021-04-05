@@ -620,6 +620,35 @@ int s2n_asn1_octet_string_free(ASN1_OCTET_STRING** data)
     return S2N_SUCCESS;
 }
 
+int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t **out_data, uint32_t *out_len)
+{
+    POSIX_ENSURE_REF(extension_data);
+    POSIX_ENSURE_REF(out_data);
+    POSIX_ENSURE_REF(out_len);
+    /* This temporary value is required as ASN1_get_object increments input pointer */
+    const uint8_t *asn1_str_data = extension_data;
+    const unsigned char *asn1_str = NULL;
+    long plen = 0;
+    int ptag = 0, pclass = 0;
+    DEFER_CLEANUP(ASN1_OCTET_STRING *asn1_octet_str = NULL, s2n_asn1_octet_string_free);
+    asn1_octet_str = d2i_ASN1_OCTET_STRING(NULL, (const unsigned char **)(void *)&asn1_str_data, extension_len);
+    POSIX_ENSURE_REF(asn1_octet_str); 
+    asn1_str = asn1_octet_str->data;
+    POSIX_ENSURE_REF(asn1_str);
+    int ret = ASN1_get_object(&asn1_str, &plen, &ptag, &pclass, strlen(((const char*)asn1_str)));
+    /* If the 8th bit is set (0x80) then an error occurred.
+     * If the 1st bit is set (0x01) then the length of the value is indefinite,
+     * and the value will end with the 'end-of-contents octets'. 
+     */
+    POSIX_ENSURE((ret & 0x80) && (ret & 0x01) == false, S2N_ERR_SAFETY);
+    *out_len = strlen(((const char*)asn1_str));
+    POSIX_ENSURE_GT(*out_len, 0); 
+    *out_data = malloc(sizeof(unsigned char) * (*out_len));
+    POSIX_ENSURE_REF(*out_data);
+    POSIX_CHECKED_MEMCPY(*out_data, asn1_str, *out_len);
+    return S2N_SUCCESS;
+}
+
 int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_field_in, const uint32_t oid_field_in_len,
                                       uint8_t **oid_value_out, uint32_t *oid_value_out_len, bool *critical)
 {
