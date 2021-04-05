@@ -1458,6 +1458,24 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 
 **s2n_connection_get_peer_cert_chain** gets the validated peer certificate chain from the s2n connection object.
 
+### s2n\_get\_x509\_extension\_oid\_value
+
+```c
+int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_field_in, const uint32_t oid_field_in_len,
+                                      uint8_t **oid_value_out, uint32_t *oid_value_out_len, bool *critical);
+```
+
+**s2n_get_x509_extension_oid_value** gets the DER encoding of an ASN.1 X.509 certificate extension value, it's length and a boolean critical.
+
+
+### s2n\_get\_utf8\_string\_from\_extension\_data
+
+```c
+int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t **out_data, uint32_t *out_len);
+```
+
+**s2n_get_utf8_string_from_extension_data** gets the UTF8 String representation of the DER encoded ASN.1 X.509 certificate extension data.
+
 ### Session Resumption Related calls
 
 ```c
