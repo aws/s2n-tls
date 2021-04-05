@@ -77,7 +77,5 @@ int s2n_get_cert_chain_length(const struct s2n_cert_chain_and_key *chain_and_key
 int s2n_get_cert_from_cert_chain(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, const uint32_t cert_idx);
 int s2n_get_cert_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, uint32_t *cert_length);
 int s2n_cert_chain_free(struct s2n_cert_chain *cert_chain);
-int s2n_asn1_octet_string_free(ASN1_OCTET_STRING** data);
-int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t **out_data, uint32_t *out_len);
 int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_field_in, const uint32_t oid_field_in_len,
                                       uint8_t **oid_value_out, uint32_t *oid_value_out_len, bool *critical);

@@ -612,40 +612,11 @@ int s2n_get_cert_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, 
     return S2N_SUCCESS;
 }
 
-int s2n_asn1_octet_string_free(ASN1_OCTET_STRING** data)
+static int s2n_buffer_free(uint8_t** data)
 {
     if (*data != NULL) {
-        ASN1_OCTET_STRING_free(*data);
+        free(*data);
     }
-    return S2N_SUCCESS;
-}
-
-int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t **out_data, uint32_t *out_len)
-{
-    POSIX_ENSURE_REF(extension_data);
-    POSIX_ENSURE_REF(out_data);
-    POSIX_ENSURE_REF(out_len);
-    /* This temporary value is required as ASN1_get_object increments input pointer */
-    const uint8_t *asn1_str_data = extension_data;
-    const unsigned char *asn1_str = NULL;
-    long plen = 0;
-    int ptag = 0, pclass = 0;
-    DEFER_CLEANUP(ASN1_OCTET_STRING *asn1_octet_str = NULL, s2n_asn1_octet_string_free);
-    asn1_octet_str = d2i_ASN1_OCTET_STRING(NULL, (const unsigned char **)(void *)&asn1_str_data, extension_len);
-    POSIX_ENSURE_REF(asn1_octet_str); 
-    asn1_str = asn1_octet_str->data;
-    POSIX_ENSURE_REF(asn1_str);
-    int ret = ASN1_get_object(&asn1_str, &plen, &ptag, &pclass, strlen(((const char*)asn1_str)));
-    /* If the 8th bit is set (0x80) then an error occurred.
-     * If the 1st bit is set (0x01) then the length of the value is indefinite,
-     * and the value will end with the 'end-of-contents octets'. 
-     */
-    POSIX_ENSURE_EQ((ret & 0x80) && (ret & 0x01), false);
-    *out_len = strlen(((const char*)asn1_str));
-    POSIX_ENSURE_GT(*out_len, 0); 
-    *out_data = malloc(sizeof(unsigned char) * (*out_len));
-    POSIX_ENSURE_REF(*out_data);
-    POSIX_CHECKED_MEMCPY(*out_data, asn1_str, *out_len);
     return S2N_SUCCESS;
 }
 
@@ -672,7 +643,7 @@ int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_f
     POSIX_ENSURE_GT(ext_count, 0);
 
     for (size_t loc = 0; loc < ext_count; loc++) {
-        DEFER_CLEANUP(ASN1_OCTET_STRING *oid_asn1_str = NULL, s2n_asn1_octet_string_free);
+        ASN1_OCTET_STRING *oid_asn1_str = NULL;
         bool match_found = false; 
 
         /* Retrieve the x509 extension at location loc */
@@ -695,19 +666,30 @@ int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_f
             int nid_from_in = OBJ_txt2nid((const char *)oid_field_in);
             match_found = (nid_from_in == nid_from_cert); 
         }
+        /* If match found, retrieve the corresponding OID value for the x509 extension */
         if (match_found) {
-           /*If match found, retrieve the corresponding OID value for the x509 extension */
+            /* X509_EXTENSION_get_data() returns the data of extension ex. 
+             * The returned pointer is an internal value which must not be freed up. 
+             */
             oid_asn1_str = X509_EXTENSION_get_data(x509_ext);
             POSIX_ENSURE_REF(oid_asn1_str);
-            int len = i2d_ASN1_OCTET_STRING(oid_asn1_str, NULL); 
-            *oid_value_out = malloc(sizeof(unsigned char) * len);
-            POSIX_ENSURE_REF(*oid_value_out);
-            uint8_t *oid_value_temp = *oid_value_out;
-            *oid_value_out_len = i2d_ASN1_OCTET_STRING(oid_asn1_str, &oid_value_temp);
+            *oid_value_out_len = ASN1_STRING_length(oid_asn1_str);
             POSIX_ENSURE_GT(*oid_value_out_len, 0);
-            ZERO_TO_DISABLE_DEFER_CLEANUP(oid_asn1_str);
+            DEFER_CLEANUP(uint8_t *temp_buf = NULL, s2n_buffer_free);
+            temp_buf = malloc(sizeof(unsigned char) * (*oid_value_out_len));
+            POSIX_ENSURE_REF(temp_buf);
+            /* ASN1_STRING_data() returns an internal pointer to the data. 
+             * Since this is an internal pointer it should not be freed or modified in any way.
+             * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_length.html.
+             */ 
+            unsigned char *internal_data = ASN1_STRING_data(oid_asn1_str);
+            POSIX_ENSURE_REF(internal_data);
+            *oid_value_out = temp_buf;
+            POSIX_CHECKED_MEMCPY(*oid_value_out, internal_data, (*oid_value_out_len));
+            ZERO_TO_DISABLE_DEFER_CLEANUP(temp_buf);
             return S2N_SUCCESS;
         }
     }
+
     POSIX_BAIL(S2N_ERR_X509_EXTENSION_NOT_FOUND);
 }

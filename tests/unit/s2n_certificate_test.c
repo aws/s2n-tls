@@ -281,40 +281,88 @@ int main(int argc, char **argv)
 
     /* Test s2n_get_x509_extension_oid_value */
     {
-        /* Test custom OID values */
-        {
-            struct s2n_cert_chain_and_key *custom_cert_chain = NULL;
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&custom_cert_chain, S2N_RSA_2048_SHA256_INTERMEDIATE_CERT_CUSTOM_OID,
-                                                        S2N_RSA_2048_SHA256_INTERMEDIATE_CA_KEY));
-            struct s2n_cert *cert = custom_cert_chain->cert_chain->head;
-            EXPECT_NOT_NULL(cert);
-            struct {
-                const char *oid_field_in;
-                const char *expected_oid_value;
-                bool critical;
-            } test_cases[] = {
-                {.oid_field_in = "1.2.3.4.5.6.7890.1.2.100.1", .expected_oid_value = "keyid:36:61:3F:1B:02:C7:12:2B:53:0A:22:BA:58:B6:A8:80:19:EE:51:85", .critical = false },
-                {.oid_field_in = "1.2.3.4.5.6.7890.1.2.100.2", .expected_oid_value = "IP Address:12.345.67.890", .critical = false },
-                {.oid_field_in = "1.2.3.4.5.6.7890.1.2.100.3", .expected_oid_value = "DNS:12.345.67.890.auto.pdx.ec2.substrate", .critical = false },
-            };
-            for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
-                uint8_t *oid_value_out = NULL;
-                uint32_t oid_value_out_len = 0;
-                bool critical = false;
-                uint8_t *utf8_str_data = NULL;
-                uint32_t utf8_str_len = 0;
-                EXPECT_SUCCESS(s2n_get_x509_extension_oid_value(cert, (const uint8_t *)test_cases[i].oid_field_in,
-                                                                strlen(test_cases[i].oid_field_in), &oid_value_out,
-                                                                &oid_value_out_len, &critical));
-                EXPECT_SUCCESS(s2n_get_utf8_string_from_extension_data(oid_value_out, oid_value_out_len, &utf8_str_data, &utf8_str_len));
-                EXPECT_BYTEARRAY_EQUAL(utf8_str_data, test_cases[i].expected_oid_value, strlen(test_cases[i].expected_oid_value));
-                EXPECT_EQUAL(critical, test_cases[i].critical);
-                free(utf8_str_data);
-                free(oid_value_out);
-            }
+        struct s2n_cert_chain_and_key *custom_cert_chain = NULL;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&custom_cert_chain,
+                                                       S2N_RSA_2048_SHA256_INTERMEDIATE_CERT_CUSTOM_OID,
+                                                       S2N_RSA_2048_SHA256_INTERMEDIATE_CA_KEY));
+        struct s2n_cert *cert = custom_cert_chain->cert_chain->head;
+        EXPECT_NOT_NULL(cert);
 
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(custom_cert_chain));
+        S2N_BLOB_FROM_HEX(subject_key_id_blob, "04 14 F9 19 58 9D 9E 97 89 9C 27 67 5B 62 19 \
+                                                2A 1E 27 D6 4E 1E F6");
+        S2N_BLOB_FROM_HEX(authority_key_id_blob, "30 16 80 14 56 9E 26 B6 09 4C 2E AC C8 4E 51 \
+                                                E1 AD 7F E7 92 84 28 D4 3E");
+        S2N_BLOB_FROM_HEX(basic_constraints_blob, "30 06 01 01 FF 02 01 00");
+        S2N_BLOB_FROM_HEX(key_usage_blob, "03 02 01 86");
+        S2N_BLOB_FROM_HEX(custom_oid_1_blob, "0C 41 6B 65 79 69 64 3A 33 \
+                                              36 3A 36 31 3A 33 46 3A 31 42 3A 30 32 3A 43 37 \
+                                              3A 31 32 3A 32 42 3A 35 33 3A 30 41 3A 32 32 3A \
+                                              42 41 3A 35 38 3A 42 36 3A 41 38 3A 38 30 3A 31 \
+                                              39 3A 45 45 3A 35 31 3A 38 35");
+        S2N_BLOB_FROM_HEX(custom_oid_2_blob, "0C 18 49 50 20 41 64 64 72 65 73 73 3A 31 32 2E \
+                                              33 34 35 2E 36 37 2E 38 39 30");
+        S2N_BLOB_FROM_HEX(custom_oid_3_blob, "0C 28 44 4E 53 3A 31 32 2E 33 34 35 2E 36 37 2E \
+                                              38 39 30 2E 61 75 74 6F 2E 70 64 78 2E 65 63 32 \
+                                              2E 73 75 62 73 74 72 61 74 65");
+
+        struct {
+        const char *oid_in;
+        const char *expected_utf8_oid;
+        struct s2n_blob expected_oid;
+        bool critical;
+        } test_cases[] = {
+            {
+                .oid_in = "X509v3 Subject Key Identifier",
+                .expected_oid = subject_key_id_blob,
+                .critical = false
+            },
+            {
+                .oid_in = "X509v3 Authority Key Identifier",
+                .expected_oid = authority_key_id_blob,
+                .critical = false
+            },
+            {
+                .oid_in = "X509v3 Basic Constraints",
+                .expected_oid = basic_constraints_blob,
+                .critical = true
+            },
+            {
+                .oid_in = "X509v3 Key Usage",
+                .expected_oid = key_usage_blob,
+                .critical = true
+            },
+            {
+                .oid_in = "1.2.3.4.5.6.7890.1.2.100.1",
+                .expected_utf8_oid = "keyid:36:61:3F:1B:02:C7:12:2B:53:0A:22:BA:58:B6:A8:80:19:EE:51:85",
+                .expected_oid = custom_oid_1_blob,
+                .critical = false
+            },
+            {
+                .oid_in = "1.2.3.4.5.6.7890.1.2.100.2",
+                .expected_utf8_oid = "IP Address:12.345.67.890",
+                .expected_oid = custom_oid_2_blob,
+                .critical = false 
+            },
+            {   .oid_in = "1.2.3.4.5.6.7890.1.2.100.3",
+                .expected_utf8_oid = "DNS:12.345.67.890.auto.pdx.ec2.substrate",
+                .expected_oid = custom_oid_3_blob,
+                .critical = false 
+            },
+        };
+
+        for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+            uint8_t *oid_value_out = NULL;
+            uint32_t oid_value_out_len = 0;
+            bool critical = false;
+            EXPECT_SUCCESS(s2n_get_x509_extension_oid_value(cert, (const uint8_t *)test_cases[i].oid_in,
+                                                            strlen(test_cases[i].oid_in), &oid_value_out,
+                                                            &oid_value_out_len, &critical));
+            EXPECT_BYTEARRAY_EQUAL(oid_value_out, test_cases[i].expected_oid.data, test_cases[i].expected_oid.size);
+            EXPECT_EQUAL(critical, test_cases[i].critical);
+            free(oid_value_out);
         }
+
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(custom_cert_chain));
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
