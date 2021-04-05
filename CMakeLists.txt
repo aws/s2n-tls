@@ -195,7 +195,7 @@ set(CMAKE_C_FLAGS_DEBUGOPT "")
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
         -Wno-missing-braces -fvisibility=hidden -DS2N_EXPORTS
-        -Wa,--noexecstack -Wl,-z,relro -Wl,-z,now # make assembler output compatible with SELinux
+	-Wa,--noexecstack -Wl,-z,relro -Wl,-z,now
 )
 
 if(S2N_NO_PQ)
