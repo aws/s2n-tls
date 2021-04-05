@@ -326,7 +326,7 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
     POSIX_ENSURE_REF(chain_and_key);
 
     POSIX_GUARD(s2n_cert_chain_and_key_set_cert_chain(chain_and_key, chain_pem));
-    POSIX_GUARD(s2n_cert_chain_and_key_set_private_key(chain_and_key, private_key_pem));
+    //POSIX_GUARD(s2n_cert_chain_and_key_set_private_key(chain_and_key, private_key_pem));
 
     /* Parse the leaf cert for the public key and certificate type */
     DEFER_CLEANUP(struct s2n_pkey public_key = {0}, s2n_pkey_free);
@@ -336,7 +336,7 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
     POSIX_GUARD(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, pkey_type));
 
     /* Validate the leaf cert's public key matches the provided private key */
-    POSIX_GUARD(s2n_pkey_match(&public_key, chain_and_key->private_key));
+    //POSIX_GUARD(s2n_pkey_match(&public_key, chain_and_key->private_key));
 
     /* Populate name information from the SAN/CN for the leaf certificate */
     POSIX_GUARD(s2n_cert_chain_and_key_set_names(chain_and_key, &chain_and_key->cert_chain->head->raw));
