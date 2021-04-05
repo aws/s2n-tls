@@ -27,6 +27,8 @@
 #define S2N_RSA_2048_SHA256_INTERMEDIATE_CA_KEY "../pems/rsa_2048_sha256_intermediate_ca_key.pem"
 #define S2N_RSA_2048_SHA256_INTERMEDIATE_CERT_CUSTOM_OID "../pems/rsa_2048_sha256_intermediate_cert_custom_oid.pem"
 
+#define OID_VALUE_MAX_LEN UINT16_MAX
+
 struct host_verify_data {
     bool callback_invoked;
     bool allow;
@@ -279,13 +281,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(s2n_chain_and_key));
     }
 
-    /* Test s2n_get_x509_extension_oid_value */
+    /* Test X509 Extension helper functions s2n_get_x509_extension_oid_value and 
+     * s2n_get_utf8_string_from_extension_data */
     {
-        uint8_t *oid_value_out = NULL;
-        uint32_t oid_value_out_len = 0;
+        struct s2n_blob oid_value_out = { 0 };
+        struct s2n_blob utf8_str = { 0 };
         bool critical = false;
-        uint8_t *utf8_str_data = NULL;
-        uint32_t utf8_str_len = 0;
 
         struct s2n_cert_chain_and_key *custom_cert_chain = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&custom_cert_chain,
@@ -293,6 +294,46 @@ int main(int argc, char **argv)
                                                        S2N_RSA_2048_SHA256_INTERMEDIATE_CA_KEY));
         struct s2n_cert *cert = custom_cert_chain->cert_chain->head;
         EXPECT_NOT_NULL(cert);
+    
+        /* Safety checks for s2n_get_x509_extension_oid_value */ 
+        {
+            EXPECT_SUCCESS(s2n_alloc(&oid_value_out, OID_VALUE_MAX_LEN));
+            const uint8_t oid_id[] = "Example X509 extension OID";
+            size_t oid_len = strlen((const char*)oid_id);
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(NULL, oid_id, oid_len,
+                                                &oid_value_out.data, &oid_value_out.size, &critical), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(cert, NULL, oid_len,
+                                                &oid_value_out.data, &oid_value_out.size, &critical), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(cert, oid_id, 0, &oid_value_out.data,
+                                                &oid_value_out.size, &critical), S2N_ERR_SAFETY);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(cert, oid_id, oid_len, 
+                                                NULL, &oid_value_out.size, &critical), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(cert, oid_id, oid_len,
+                                                 &oid_value_out.data, NULL, &critical), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(cert, oid_id, oid_len,
+                                                 &oid_value_out.data, &oid_value_out.size, NULL), S2N_ERR_NULL);
+
+            s2n_free(&oid_value_out);
+        }
+    
+        /* Safety checks for s2n_get_utf8_string_from_extension_data */ 
+        {
+            const uint8_t der_oid_value[] = "DER encoded X509 extension value";
+            size_t der_oid_value_len = strlen((const char *)der_oid_value);
+
+            EXPECT_SUCCESS(s2n_alloc(&utf8_str, OID_VALUE_MAX_LEN));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(NULL, der_oid_value_len, &utf8_str.data,
+                                                                       &utf8_str.size), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(der_oid_value, 0, &utf8_str.data,
+                                                                       &utf8_str.size), S2N_ERR_SAFETY);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(der_oid_value, der_oid_value_len, NULL,
+                                                                       &utf8_str.size), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(der_oid_value, der_oid_value_len,
+                                                                       &utf8_str.data, NULL), S2N_ERR_NULL);
+
+            s2n_free(&utf8_str);
+        }
 
         S2N_BLOB_FROM_HEX(subject_key_id_blob, "04 14 F9 19 58 9D 9E 97 89 9C 27 67 5B 62 19 \
                                                 2A 1E 27 D6 4E 1E F6");
@@ -357,36 +398,35 @@ int main(int argc, char **argv)
         };
 
         for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
-            oid_value_out = NULL;
-            oid_value_out_len = 0;
-            critical = false;
-            utf8_str_data = NULL;
-            utf8_str_len = 0;
+            EXPECT_SUCCESS(s2n_alloc(&oid_value_out, OID_VALUE_MAX_LEN));
+            EXPECT_SUCCESS(s2n_alloc(&utf8_str, OID_VALUE_MAX_LEN));
             EXPECT_SUCCESS(s2n_get_x509_extension_oid_value(cert, (const uint8_t *)test_cases[i].oid_in,
-                                                            strlen(test_cases[i].oid_in), &oid_value_out,
-                                                            &oid_value_out_len, &critical));
-            EXPECT_BYTEARRAY_EQUAL(oid_value_out, test_cases[i].expected_oid.data, test_cases[i].expected_oid.size);
+                                                            strlen(test_cases[i].oid_in), &oid_value_out.data,
+                                                            &oid_value_out.size, &critical));
+            EXPECT_BYTEARRAY_EQUAL(oid_value_out.data, test_cases[i].expected_oid.data, test_cases[i].expected_oid.size);
             EXPECT_EQUAL(critical, test_cases[i].critical);
             if (i > 3) {
-                EXPECT_SUCCESS(s2n_get_utf8_string_from_extension_data(oid_value_out, oid_value_out_len, &utf8_str_data,
-                                                                       &utf8_str_len));
-                EXPECT_EQUAL(utf8_str_len, strlen((const char *)test_cases[i].expected_utf8_oid));
-                EXPECT_BYTEARRAY_EQUAL(utf8_str_data, test_cases[i].expected_utf8_oid, utf8_str_len);
-                free(utf8_str_data);
+                EXPECT_SUCCESS(s2n_get_utf8_string_from_extension_data(oid_value_out.data, oid_value_out.size, &utf8_str.data,
+                                                                       &utf8_str.size));
+                EXPECT_EQUAL(utf8_str.size, strlen((const char *)test_cases[i].expected_utf8_oid));
+                EXPECT_BYTEARRAY_EQUAL(utf8_str.data, test_cases[i].expected_utf8_oid, utf8_str.size);
             } else {
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(oid_value_out, oid_value_out_len,
-                                                                                  &utf8_str_data, &utf8_str_len),
+                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(oid_value_out.data, oid_value_out.size,
+                                                                                  &utf8_str.data, &utf8_str.size),
                                                                                   S2N_ERR_INVALID_X509_EXTENSION_TYPE);
             }
-            free(oid_value_out);
+            s2n_free(&oid_value_out);
+            s2n_free(&utf8_str);
         }
 
         /* Failure case for Invalid X509 extension OID value */
+        EXPECT_SUCCESS(s2n_alloc(&oid_value_out, OID_VALUE_MAX_LEN));
         const uint8_t invalid_oid_id[] = "Invalid X509 extension";
         EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(cert, invalid_oid_id, strlen((const char *)invalid_oid_id),
-                                                                   &oid_value_out, &oid_value_out_len, &critical),
+                                                                   &oid_value_out.data, &oid_value_out.size, &critical),
                                   S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND);
 
+        s2n_free(&oid_value_out);
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(custom_cert_chain));
     }
 

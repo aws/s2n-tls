@@ -612,14 +612,6 @@ int s2n_get_cert_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, 
     return S2N_SUCCESS;
 }
 
-static int s2n_buffer_free(uint8_t** data)
-{
-    if (*data != NULL) {
-        free(*data);
-    }
-    return S2N_SUCCESS;
-}
-
 static int s2n_asn1_string_free(ASN1_STRING** data)
 {
     if (*data != NULL) {
@@ -631,6 +623,7 @@ static int s2n_asn1_string_free(ASN1_STRING** data)
 int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t **out_data, uint32_t *out_len)
 {
     POSIX_ENSURE_REF(extension_data);
+    POSIX_ENSURE_GT(extension_len, 0);
     POSIX_ENSURE_REF(out_data);
     POSIX_ENSURE_REF(out_len);
 
@@ -653,13 +646,8 @@ int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint3
      */ 
     unsigned char *internal_data = ASN1_STRING_data(asn1_str);
     POSIX_ENSURE_REF(internal_data);
-    DEFER_CLEANUP(uint8_t *temp_buf = NULL, s2n_buffer_free);
-    temp_buf = malloc(sizeof(unsigned char) * (*out_len));
-    POSIX_ENSURE_REF(temp_buf);
-    POSIX_CHECKED_MEMCPY(temp_buf, internal_data, (*out_len));
-    *out_data = temp_buf;
+    POSIX_CHECKED_MEMCPY(*out_data, internal_data, (*out_len));
 
-    ZERO_TO_DISABLE_DEFER_CLEANUP(temp_buf);
     return S2N_SUCCESS;
 }
 
@@ -668,8 +656,10 @@ int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_f
 {
     POSIX_ENSURE_REF(cert);
     POSIX_ENSURE_REF(oid_field_in);
+    POSIX_ENSURE_GT(oid_field_in_len, 0);
     POSIX_ENSURE_REF(oid_value_out);
     POSIX_ENSURE_REF(oid_value_out_len);
+    POSIX_ENSURE_REF(critical);
     POSIX_ENSURE_REF(cert->raw.data);
 
     uint8_t *der_in = cert->raw.data;
@@ -718,18 +708,13 @@ int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_f
             POSIX_ENSURE_REF(oid_asn1_str);
             *oid_value_out_len = ASN1_STRING_length(oid_asn1_str);
             POSIX_ENSURE_GT(*oid_value_out_len, 0);
-            DEFER_CLEANUP(uint8_t *temp_buf = NULL, s2n_buffer_free);
-            temp_buf = malloc(sizeof(unsigned char) * (*oid_value_out_len));
-            POSIX_ENSURE_REF(temp_buf);
             /* ASN1_STRING_data() returns an internal pointer to the data. 
              * Since this is an internal pointer it should not be freed or modified in any way.
              * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_data.html.
              */ 
             unsigned char *internal_data = ASN1_STRING_data(oid_asn1_str);
             POSIX_ENSURE_REF(internal_data);
-            POSIX_CHECKED_MEMCPY(temp_buf, internal_data, (*oid_value_out_len));
-            *oid_value_out = temp_buf;
-            ZERO_TO_DISABLE_DEFER_CLEANUP(temp_buf);
+            POSIX_CHECKED_MEMCPY(*oid_value_out, internal_data, (*oid_value_out_len));
             return S2N_SUCCESS;
         }
     }
