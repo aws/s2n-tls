@@ -25,11 +25,11 @@ static char str_buffer[STRING_LEN];
 static s2n_blocked_status blocked;
 
 struct buffer {
-    char buf[STRING_LEN];
+    uint8_t buf[STRING_LEN];
     uint16_t index;
 };
 
-struct buffer response_buffer = { };
+struct buffer response_buffer;
 
 #define SEND(...) do { \
     sprintf(str_buffer, __VA_ARGS__); \
