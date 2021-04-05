@@ -166,8 +166,13 @@ int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, c
 {
     struct session_cache_entry *cache = ctx;
 
-    POSIX_ENSURE_INCLUSIVE_RANGE(1, key_size, MAX_KEY_LEN);
-    POSIX_ENSURE_INCLUSIVE_RANGE(1, value_size, MAX_VAL_LEN);
+    if (key_size < 1 || key_size > MAX_KEY_LEN) {
+        return S2N_FAILURE;
+    }
+
+    if (value_size < 1 || value_size > MAX_VAL_LEN) {
+        return S2N_FAILURE;
+    }
 
     uint8_t idx = ((const uint8_t *)key)[0];
 
@@ -182,15 +187,19 @@ int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, c
 
 int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t * value_size)
 {
+    if (conn == NULL || ctx == NULL || key == NULL || value == NULL) return S2N_FAILURE;
+
     struct session_cache_entry *cache = ctx;
 
-    POSIX_ENSURE_INCLUSIVE_RANGE(1, key_size, MAX_KEY_LEN);
+    if (key_size < 1 || key_size > MAX_KEY_LEN) {
+        return S2N_FAILURE;
+    }
 
     uint8_t idx = ((const uint8_t *)key)[0];
 
-    POSIX_ENSURE(cache[idx].key_len == key_size, S2N_ERR_INVALID_ARGUMENT);
-    POSIX_ENSURE(memcmp(cache[idx].key, key, key_size) == 0, S2N_ERR_INVALID_ARGUMENT);
-    POSIX_ENSURE(*value_size >= cache[idx].value_len, S2N_ERR_INVALID_ARGUMENT);
+    if (cache[idx].key_len != key_size) return S2N_FAILURE;
+    if (memcmp(cache[idx].key, key, key_size) != 0) return S2N_FAILURE;
+    if (*value_size < cache[idx].value_len) return S2N_FAILURE;
 
     *value_size = cache[idx].value_len;
     memcpy(value, cache[idx].value, cache[idx].value_len);
@@ -207,13 +216,15 @@ int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *ke
 {
     struct session_cache_entry *cache = ctx;
 
-    POSIX_ENSURE_INCLUSIVE_RANGE(1, key_size, MAX_KEY_LEN);
+    if (key_size < 1 || key_size > MAX_KEY_LEN) {
+        return S2N_FAILURE;
+    }
 
     uint8_t idx = ((const uint8_t *)key)[0];
 
     if (cache[idx].key_len != 0) {
-        POSIX_ENSURE(cache[idx].key_len == key_size, S2N_ERR_INVALID_ARGUMENT);
-        POSIX_ENSURE(memcmp(cache[idx].key, key, key_size) == 0, S2N_ERR_INVALID_ARGUMENT);
+        if (cache[idx].key_len != key_size) return S2N_FAILURE;
+        if (memcmp(cache[idx].key, key, key_size) != 0) return S2N_FAILURE;
     }
 
     cache[idx].key_len = 0;
@@ -736,7 +747,7 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(fstat(fd, &st), "Error fstat-ing session ticket key file");
 
             st_key = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-            POSIX_ENSURE(st_key != MAP_FAILED, S2N_ERR_MMAP);
+            if (st_key == MAP_FAILED) return S2N_FAILURE;
 
             st_key_length = st.st_size;
 

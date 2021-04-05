@@ -612,6 +612,9 @@ extern int s2n_config_set_key_log_cb(struct s2n_config *config, s2n_key_log_fn c
 S2N_API
 extern int s2n_config_enable_cert_req_dss_legacy_compat(struct s2n_config *config);
 
+S2N_API
+extern int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn, const char* curve_name);
+
 #ifdef __cplusplus
 }
 #endif

@@ -18,22 +18,28 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "error/s2n_errno.h"
-#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
 #define STRING_LEN 1024
 static char str_buffer[STRING_LEN];
 static s2n_blocked_status blocked;
 
+struct buffer {
+    char buf[STRING_LEN];
+    uint16_t index;
+};
+
+struct buffer response_buffer = { };
+
 #define SEND(...) do { \
     sprintf(str_buffer, __VA_ARGS__); \
-    POSIX_GUARD(s2n_send(conn, str_buffer, strlen(str_buffer), &blocked)); \
+    s2n_send(conn, str_buffer, strlen(str_buffer), &blocked); \
 } while (0)
 
 #define BUFFER(...) do { \
     sprintf(str_buffer, __VA_ARGS__); \
-    POSIX_GUARD(s2n_stuffer_write_bytes(&stuffer, (const uint8_t *)str_buffer, strlen(str_buffer))); \
+    memcpy(&response_buffer.buf[response_buffer.index], (const uint8_t *)str_buffer, strlen(str_buffer)); \
+    response_buffer.index += strlen(str_buffer); \
 } while (0)
 
 static int flush(uint32_t left, uint8_t *buffer, struct s2n_connection *conn, s2n_blocked_status *blocked_status)
@@ -88,9 +94,6 @@ int https(struct s2n_connection *conn, uint32_t bench)
         return bench_handler(conn, bench);
     }
 
-    DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
-    POSIX_GUARD(s2n_stuffer_growable_alloc(&stuffer, 1024));
-
     BUFFER("<html><body><h1>Hello from s2n server</h1><pre>");
 
     BUFFER("Client hello version: %d\n", s2n_connection_get_client_hello_version(conn));
@@ -112,10 +115,13 @@ int https(struct s2n_connection *conn, uint32_t bench)
     BUFFER("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
     BUFFER("Session resumption: %s\n", s2n_connection_is_session_resumed(conn) ? "true" : "false");
 
-    uint32_t content_length = s2n_stuffer_data_available(&stuffer);
+    uint32_t content_length = response_buffer.index;
 
-    uint8_t *content = s2n_stuffer_raw_read(&stuffer, content_length);
-    POSIX_ENSURE_REF(content);
+    uint8_t *content = response_buffer.buf;
+
+    if (NULL == content) {
+        return S2N_FAILURE;
+    }
 
     HEADERS(content_length);
     POSIX_GUARD(flush(content_length, content, conn, &blocked));
