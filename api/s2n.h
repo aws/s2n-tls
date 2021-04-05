@@ -178,6 +178,8 @@ extern struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void);
 S2N_API
 extern int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem);
 S2N_API
+extern int s2n_cert_chain_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem);
+S2N_API
 extern int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key);
 S2N_API
 extern int s2n_cert_chain_and_key_set_ctx(struct s2n_cert_chain_and_key *cert_and_key, void *ctx);
@@ -601,6 +603,7 @@ S2N_API
 extern const char *s2n_connection_get_last_message_name(struct s2n_connection *conn);
 
 struct s2n_async_pkey_op;
+typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
 
 typedef int (*s2n_async_pkey_fn)(struct s2n_connection *conn, struct s2n_async_pkey_op *op);
 S2N_API
@@ -612,6 +615,14 @@ extern int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_conn
 S2N_API
 extern int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
 
+S2N_API
+extern int s2n_async_get_op_type(struct s2n_async_pkey_op *op, s2n_async_pkey_op_type * type);
+S2N_API
+extern int s2n_async_pkey_op_get_input_size(struct s2n_async_pkey_op *op, uint32_t * data_len );
+S2N_API
+extern int s2n_async_pkey_op_get_input(struct s2n_async_pkey_op *op, uint8_t * data, uint32_t data_len );
+S2N_API
+extern int s2n_async_pkey_copy_output(struct s2n_async_pkey_op *op, uint8_t * data, uint32_t data_len);
 /**
  * Callback function for handling key log events
  *
