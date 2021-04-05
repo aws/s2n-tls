@@ -640,7 +640,7 @@ int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint3
      * If the 1st bit is set (0x01) then the length of the value is indefinite,
      * and the value will end with the 'end-of-contents octets'. 
      */
-    POSIX_ENSURE((ret & 0x80) && (ret & 0x01) == false, S2N_ERR_SAFETY);
+    POSIX_ENSURE_EQ((ret & 0x80) && (ret & 0x01), false);
     *out_len = strlen(((const char*)asn1_str));
     POSIX_ENSURE_GT(*out_len, 0); 
     *out_data = malloc(sizeof(unsigned char) * (*out_len));

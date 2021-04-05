@@ -301,29 +301,15 @@ int main(int argc, char **argv)
                 uint8_t *oid_value_out = NULL;
                 uint32_t oid_value_out_len = 0;
                 bool critical = false;
-                const unsigned char *asn1_str = NULL;
-                long plen = 0;
-                int ptag = 0, pclass = 0;
-                DEFER_CLEANUP(ASN1_OCTET_STRING *asn1_octet_str = NULL, s2n_asn1_octet_string_free);
-                uint8_t *asn1_str_data = NULL;
-                DEFER_CLEANUP(unsigned char *utf8_str = NULL, s2n_crypto_free);
+                uint8_t *utf8_str_data = NULL;
+                uint32_t utf8_str_len = 0;
                 EXPECT_SUCCESS(s2n_get_x509_extension_oid_value(cert, (const uint8_t *)test_cases[i].oid_field_in,
                                                                 strlen(test_cases[i].oid_field_in), &oid_value_out,
                                                                 &oid_value_out_len, &critical));
-                /* This temporary value is required as ASN1_get_object increments input pointer */
-                asn1_str_data = oid_value_out;
-                asn1_octet_str = d2i_ASN1_OCTET_STRING(NULL, (const unsigned char **)(void *)&asn1_str_data, oid_value_out_len);
-                EXPECT_NOT_NULL(asn1_octet_str); 
-                asn1_str = asn1_octet_str->data;
-                POSIX_ENSURE_REF(asn1_str);
-                int ret = ASN1_get_object(&asn1_str, &plen, &ptag, &pclass, strlen(((const char*)asn1_str)));
-                /* If the 8th bit is set (0x80) then an error occurred.
-                * If the 1st bit is set (0x01) then the length of the value is indefinite,
-                * and the value will end with the 'end-of-contents octets'. 
-                */
-                EXPECT_FALSE((ret & 0x80) && (ret & 0x01));
-                EXPECT_BYTEARRAY_EQUAL((const char*)asn1_str, test_cases[i].expected_oid_value, strlen(test_cases[i].expected_oid_value));
+                EXPECT_SUCCESS(s2n_get_utf8_string_from_extension_data(oid_value_out, oid_value_out_len, &utf8_str_data, &utf8_str_len));
+                EXPECT_BYTEARRAY_EQUAL(utf8_str_data, test_cases[i].expected_oid_value, strlen(test_cases[i].expected_oid_value));
                 EXPECT_EQUAL(critical, test_cases[i].critical);
+                free(utf8_str_data);
                 free(oid_value_out);
             }
 
