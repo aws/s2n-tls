@@ -50,6 +50,7 @@ DEFAULT_CFLAGS += -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-s
 
 COVERAGE_CFLAGS = -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
+LDFLAGS = -z relro -z now -z noexecstack
 
 FUZZ_CFLAGS = -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
 
