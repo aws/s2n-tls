@@ -620,7 +620,7 @@ static int s2n_asn1_string_free(ASN1_STRING** data)
     return S2N_SUCCESS;
 }
 
-int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t **out_data, uint32_t *out_len)
+int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len)
 {
     POSIX_ENSURE_REF(extension_data);
     POSIX_ENSURE_GT(extension_len, 0);
@@ -628,17 +628,20 @@ int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint3
     POSIX_ENSURE_REF(out_len);
 
     DEFER_CLEANUP(ASN1_STRING *asn1_str = NULL, s2n_asn1_string_free);
-    const uint8_t *asn1_str_data = extension_data;
     /* Note that d2i_ASN1_UTF8STRING increments *der_in to the byte following the parsed data.
-     * Ref: https://www.openssl.org/docs/man1.1.0/man3/d2i_ASN1_UTF8STRING.html.
+     * Using a temporary variable is mandatory to prevent memory free-ing errors.
+     * Ref to the warning section here for more information:
+     * https://www.openssl.org/docs/man1.1.0/man3/d2i_ASN1_UTF8STRING.html.
      */
+    const uint8_t *asn1_str_data = extension_data;
     asn1_str = d2i_ASN1_UTF8STRING(NULL, (const unsigned char **)(void *)&asn1_str_data, extension_len);
     POSIX_ENSURE(asn1_str != NULL, S2N_ERR_INVALID_X509_EXTENSION_TYPE);
     int type = ASN1_STRING_type(asn1_str);
     POSIX_ENSURE(type == V_ASN1_UTF8STRING, S2N_ERR_INVALID_X509_EXTENSION_TYPE);
     
-    *out_len = ASN1_STRING_length(asn1_str);
-    POSIX_ENSURE_GT(*out_len, 0);
+    int len = ASN1_STRING_length(asn1_str);
+    POSIX_ENSURE(*out_len >= len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+    *out_len = len;
 
     /* ASN1_STRING_data() returns an internal pointer to the data. 
      * Since this is an internal pointer it should not be freed or modified in any way.
@@ -646,13 +649,13 @@ int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint3
      */ 
     unsigned char *internal_data = ASN1_STRING_data(asn1_str);
     POSIX_ENSURE_REF(internal_data);
-    POSIX_CHECKED_MEMCPY(*out_data, internal_data, (*out_len));
+    POSIX_CHECKED_MEMCPY(out_data, internal_data, (*out_len));
 
     return S2N_SUCCESS;
 }
 
 int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_field_in, const uint32_t oid_field_in_len,
-                                      uint8_t **oid_value_out, uint32_t *oid_value_out_len, bool *critical)
+                                      uint8_t *oid_value_out, uint32_t *oid_value_out_len, bool *critical)
 {
     POSIX_ENSURE_REF(cert);
     POSIX_ENSURE_REF(oid_field_in);
@@ -679,16 +682,23 @@ int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_f
         ASN1_OCTET_STRING *oid_asn1_str = NULL;
         bool match_found = false; 
 
-        /* Retrieve the x509 extension at location loc */
+        /* Retrieve the x509 extension at location loc.
+         * X509_get_ext() retrieves extension loc from x.
+         * The index loc can take any value from 0 to X509_get_ext_count(x) - 1.
+         * The returned extension is an internal pointer which must not be freed up by the application.
+         * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_get_ext.html.
+         */
         X509_EXTENSION *x509_ext = X509_get_ext(x509_cert, loc);
         POSIX_ENSURE_REF(x509_ext);
 
-        /* Retrieve the x509 extension's critical value */
-        *critical = X509_EXTENSION_get_critical(x509_ext);
-
-        /* Retrieve the extension object/OID/extnId */
+        /* Retrieve the extension object/OID/extnId. 
+         * X509_EXTENSION_get_object() returns the extension type of `x509_ext` as an ASN1_OBJECT pointer. 
+         * The returned pointer is an internal value which must not be freed up. 
+         * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_EXTENSION_get_object.html.
+         */
         ASN1_OBJECT *asn1_obj = X509_EXTENSION_get_object(x509_ext);
         POSIX_ENSURE_REF(asn1_obj);
+
         int nid_from_cert = OBJ_obj2nid(asn1_obj);
         if (nid_from_cert == NID_undef) {
             char oid_field[OID_FIELD_MAX_LEN] = { 0 };
@@ -701,20 +711,23 @@ int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_f
         }
         /* If match found, retrieve the corresponding OID value for the x509 extension */
         if (match_found) {
-            /* X509_EXTENSION_get_data() returns the data of extension ex. 
+            /* X509_EXTENSION_get_data() returns the data of extension `x509_ext`. 
              * The returned pointer is an internal value which must not be freed up. 
              */
             oid_asn1_str = X509_EXTENSION_get_data(x509_ext);
             POSIX_ENSURE_REF(oid_asn1_str);
-            *oid_value_out_len = ASN1_STRING_length(oid_asn1_str);
-            POSIX_ENSURE_GT(*oid_value_out_len, 0);
+            int len = ASN1_STRING_length(oid_asn1_str);
+            POSIX_ENSURE(*oid_value_out_len >= len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+            *oid_value_out_len = len;
             /* ASN1_STRING_data() returns an internal pointer to the data. 
              * Since this is an internal pointer it should not be freed or modified in any way.
              * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_data.html.
              */ 
             unsigned char *internal_data = ASN1_STRING_data(oid_asn1_str);
             POSIX_ENSURE_REF(internal_data);
-            POSIX_CHECKED_MEMCPY(*oid_value_out, internal_data, (*oid_value_out_len));
+            POSIX_CHECKED_MEMCPY(oid_value_out, internal_data, (*oid_value_out_len));
+            /* Retrieve the x509 extension's critical value */
+            *critical = X509_EXTENSION_get_critical(x509_ext);
             return S2N_SUCCESS;
         }
     }

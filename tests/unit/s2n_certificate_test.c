@@ -28,6 +28,7 @@
 #define S2N_RSA_2048_SHA256_INTERMEDIATE_CERT_CUSTOM_OID "../pems/rsa_2048_sha256_intermediate_cert_custom_oid.pem"
 
 #define OID_VALUE_MAX_LEN UINT16_MAX
+#define OFFSET_INSUFFICIENT_MEM_SIZE 3
 
 struct host_verify_data {
     bool callback_invoked;
@@ -79,7 +80,7 @@ static S2N_RESULT s2n_compare_utf8_strings(struct s2n_blob *input_der, const cha
     DEFER_CLEANUP(struct s2n_blob utf8_str = { 0 }, s2n_free);
     RESULT_GUARD_POSIX(s2n_alloc(&utf8_str, OID_VALUE_MAX_LEN));
 
-    RESULT_GUARD_POSIX(s2n_get_utf8_string_from_extension_data(input_der->data, input_der->size, &utf8_str.data, &utf8_str.size));
+    RESULT_GUARD_POSIX(s2n_get_utf8_string_from_extension_data(input_der->data, input_der->size, utf8_str.data, &utf8_str.size));
 
     ENSURE_EQ(utf8_str.size, expected_utf8_len);
     ENSURE_EQ(memcmp(utf8_str.data, expected_utf8_str, utf8_str.size), 0);
@@ -332,47 +333,47 @@ int main(int argc, char **argv)
                                               2E 73 75 62 73 74 72 61 74 65");
 
         struct {
-        const char *oid_in;
-        const char *expected_utf8_oid;
-        struct s2n_blob expected_oid;
-        struct s2n_blob returned_der;
-        bool critical;
+            const char *oid_in;
+            const char *expected_utf8;
+            struct s2n_blob expected_der;
+            struct s2n_blob returned_der;
+            bool critical;
         } test_cases[] = {
             {
                 .oid_in = "X509v3 Subject Key Identifier",
-                .expected_oid = subject_key_id_blob,
+                .expected_der = subject_key_id_blob,
                 .critical = false
             },
             {
                 .oid_in = "X509v3 Authority Key Identifier",
-                .expected_oid = authority_key_id_blob,
+                .expected_der = authority_key_id_blob,
                 .critical = false
             },
             {
                 .oid_in = "X509v3 Basic Constraints",
-                .expected_oid = basic_constraints_blob,
+                .expected_der = basic_constraints_blob,
                 .critical = true
             },
             {
                 .oid_in = "X509v3 Key Usage",
-                .expected_oid = key_usage_blob,
+                .expected_der = key_usage_blob,
                 .critical = true
             },
             {
                 .oid_in = "1.2.3.4.5.6.7890.1.2.100.1",
-                .expected_utf8_oid = "keyid:36:61:3F:1B:02:C7:12:2B:53:0A:22:BA:58:B6:A8:80:19:EE:51:85",
-                .expected_oid = custom_oid_1_blob,
+                .expected_utf8 = "keyid:36:61:3F:1B:02:C7:12:2B:53:0A:22:BA:58:B6:A8:80:19:EE:51:85",
+                .expected_der = custom_oid_1_blob,
                 .critical = false
             },
             {
                 .oid_in = "1.2.3.4.5.6.7890.1.2.100.2",
-                .expected_utf8_oid = "IP Address:12.345.67.890",
-                .expected_oid = custom_oid_2_blob,
+                .expected_utf8 = "IP Address:12.345.67.890",
+                .expected_der = custom_oid_2_blob,
                 .critical = false 
             },
             {   .oid_in = "1.2.3.4.5.6.7890.1.2.100.3",
-                .expected_utf8_oid = "DNS:12.345.67.890.auto.pdx.ec2.substrate",
-                .expected_oid = custom_oid_3_blob,
+                .expected_utf8 = "DNS:12.345.67.890.auto.pdx.ec2.substrate",
+                .expected_der = custom_oid_3_blob,
                 .critical = false 
             },
             {   .oid_in = "Invalid X509 extension",
@@ -389,18 +390,17 @@ int main(int argc, char **argv)
                 size_t oid_len = strlen((const char*)oid_id);
 
                 EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(NULL, oid_id, oid_len,
-                                                    &oid_value_out.data, &oid_value_out.size, &critical), S2N_ERR_NULL);
+                                                    oid_value_out.data, &oid_value_out.size, &critical), S2N_ERR_NULL);
                 EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(cert, NULL, oid_len,
-                                                    &oid_value_out.data, &oid_value_out.size, &critical), S2N_ERR_NULL);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(cert, oid_id, 0, &oid_value_out.data,
-                                                    &oid_value_out.size, &critical), S2N_ERR_SAFETY);
+                                                    oid_value_out.data, &oid_value_out.size, &critical), S2N_ERR_NULL);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(cert, oid_id, 0, 
+                                                    oid_value_out.data, &oid_value_out.size, &critical), S2N_ERR_SAFETY);
                 EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(cert, oid_id, oid_len, 
                                                     NULL, &oid_value_out.size, &critical), S2N_ERR_NULL);
                 EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(cert, oid_id, oid_len,
-                                                    &oid_value_out.data, NULL, &critical), S2N_ERR_NULL);
+                                                    oid_value_out.data, NULL, &critical), S2N_ERR_NULL);
                 EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(cert, oid_id, oid_len,
-                                                    &oid_value_out.data, &oid_value_out.size, NULL), S2N_ERR_NULL);
-
+                                                    oid_value_out.data, &oid_value_out.size, NULL), S2N_ERR_NULL);
                 EXPECT_SUCCESS(s2n_free(&oid_value_out));
             }
 
@@ -408,19 +408,29 @@ int main(int argc, char **argv)
             for (i = 0; i < s2n_array_len(test_cases) - 1; i++) {
                 EXPECT_SUCCESS(s2n_alloc(&test_cases[i].returned_der, OID_VALUE_MAX_LEN));
                 EXPECT_SUCCESS(s2n_get_x509_extension_oid_value(cert, (const uint8_t *)test_cases[i].oid_in,
-                                                                strlen(test_cases[i].oid_in), &test_cases[i].returned_der.data,
+                                                                strlen(test_cases[i].oid_in), test_cases[i].returned_der.data,
                                                                 &test_cases[i].returned_der.size, &critical));
-                EXPECT_BYTEARRAY_EQUAL(test_cases[i].returned_der.data, test_cases[i].expected_oid.data, test_cases[i].expected_oid.size);
+                EXPECT_BYTEARRAY_EQUAL(test_cases[i].returned_der.data, test_cases[i].expected_der.data, test_cases[i].expected_der.size);
                 EXPECT_EQUAL(critical, test_cases[i].critical);
             }
 
-            /* Test failure case for Invalid X509 extension OID value */
+            /* Test failure case for insufficient amount of memory allocated */
+            {
+                size_t insuf_test_case = 0;
+                EXPECT_SUCCESS(s2n_alloc(&oid_value_out, test_cases[insuf_test_case].returned_der.size - OFFSET_INSUFFICIENT_MEM_SIZE));
+                EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(cert, (const uint8_t *)test_cases[insuf_test_case].oid_in,
+                                                    strlen(test_cases[insuf_test_case].oid_in), oid_value_out.data,
+                                                    &oid_value_out.size, &critical), S2N_ERR_INSUFFICIENT_MEM_SIZE);
+                EXPECT_SUCCESS(s2n_free(&oid_value_out));
+            }
+
+            /* Test failure case for invalid X509 extension OID */
             {
                 size_t invalid_test_case = s2n_array_len(test_cases) - 1;
                 EXPECT_SUCCESS(s2n_alloc(&test_cases[invalid_test_case].returned_der, OID_VALUE_MAX_LEN));
                 EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_oid_value(cert, (const uint8_t *)test_cases[invalid_test_case].oid_in,
-                                                    strlen(test_cases[invalid_test_case].oid_in), &test_cases[i].returned_der.data,
-                                                    &test_cases[i].returned_der.size, &critical), S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND);
+                                                    strlen(test_cases[invalid_test_case].oid_in), test_cases[invalid_test_case].returned_der.data,
+                                                    &test_cases[invalid_test_case].returned_der.size, &critical), S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND);
             }
         }
 
@@ -432,14 +442,14 @@ int main(int argc, char **argv)
                 size_t der_oid_value_len = strlen((const char *)der_oid_value);
 
                 EXPECT_SUCCESS(s2n_alloc(&utf8_str, OID_VALUE_MAX_LEN));
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(NULL, der_oid_value_len, &utf8_str.data,
+                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(NULL, der_oid_value_len, utf8_str.data,
                                                                         &utf8_str.size), S2N_ERR_NULL);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(der_oid_value, 0, &utf8_str.data,
+                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(der_oid_value, 0, utf8_str.data,
                                                                         &utf8_str.size), S2N_ERR_SAFETY);
                 EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(der_oid_value, der_oid_value_len, NULL,
                                                                         &utf8_str.size), S2N_ERR_NULL);
                 EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(der_oid_value, der_oid_value_len,
-                                                                        &utf8_str.data, NULL), S2N_ERR_NULL);
+                                                                        utf8_str.data, NULL), S2N_ERR_NULL);
 
                 EXPECT_SUCCESS(s2n_free(&utf8_str));
             }
@@ -447,13 +457,25 @@ int main(int argc, char **argv)
             /* Test success and failure cases for s2n_get_utf8_string_from_extension_data */
             for (i = 0; i < s2n_array_len(test_cases) - 1; i++) {
                 if (i > 3) {
-                    EXPECT_OK(s2n_compare_utf8_strings(&test_cases[i].returned_der, test_cases[i].expected_utf8_oid,
-                                                       strlen((const char *)test_cases[i].expected_utf8_oid)));
+                    EXPECT_OK(s2n_compare_utf8_strings(&test_cases[i].returned_der, test_cases[i].expected_utf8,
+                                                       strlen((const char *)test_cases[i].expected_utf8)));
                 } else {
                     EXPECT_ERROR_WITH_ERRNO(s2n_compare_utf8_strings(
-                        &test_cases[i].returned_der, (const char *)test_cases[i].expected_oid.data,
-                        test_cases[i].expected_oid.size), S2N_ERR_INVALID_X509_EXTENSION_TYPE);
+                        &test_cases[i].returned_der, (const char *)test_cases[i].expected_der.data,
+                        test_cases[i].expected_der.size), S2N_ERR_INVALID_X509_EXTENSION_TYPE);
                 }
+            }
+
+            /* Test failure case for insufficient amount of memory allocated */
+            {
+                size_t insuf_test_case = 4;
+                EXPECT_SUCCESS(s2n_alloc(&utf8_str, test_cases[insuf_test_case].returned_der.size - OFFSET_INSUFFICIENT_MEM_SIZE));
+                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(
+                                                                        test_cases[insuf_test_case].returned_der.data,
+                                                                        test_cases[insuf_test_case].returned_der.size,
+                                                                        utf8_str.data, &utf8_str.size), 
+                                                                        S2N_ERR_INSUFFICIENT_MEM_SIZE);
+                EXPECT_SUCCESS(s2n_free(&utf8_str));
             }
         }
 
