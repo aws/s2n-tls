@@ -376,7 +376,7 @@ int main(int argc, char **argv)
                 .expected_der = custom_oid_3_blob,
                 .critical = false 
             },
-            {   .oid_in = "Invalid X509 extension",
+            {   .oid_in = "1.2.3.4.5.6.7890.1.2.100",
                 .critical = false
             },
         };

@@ -32,11 +32,6 @@
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_connection.h"
 
-/* A buffer length of 80 should be more than enough to handle any OID encountered in practice.
- * Ref: https://www.openssl.org/docs/man1.1.0/man3/OBJ_obj2txt.html.
- */
-#define OID_FIELD_MAX_LEN 80
-
 int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type)
 {
     POSIX_ENSURE_REF(cert);
@@ -612,6 +607,14 @@ int s2n_get_cert_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, 
     return S2N_SUCCESS;
 }
 
+static int s2n_asn1_obj_free(ASN1_OBJECT ** data)
+{
+    if (*data != NULL) {
+         ASN1_OBJECT_free(*data);
+    }
+    return S2N_SUCCESS;
+}
+
 static int s2n_asn1_string_free(ASN1_STRING** data)
 {
     if (*data != NULL) {
@@ -636,9 +639,15 @@ int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint3
     const uint8_t *asn1_str_data = extension_data;
     asn1_str = d2i_ASN1_UTF8STRING(NULL, (const unsigned char **)(void *)&asn1_str_data, extension_len);
     POSIX_ENSURE(asn1_str != NULL, S2N_ERR_INVALID_X509_EXTENSION_TYPE);
+    /* ASN1_STRING_type() returns the type of `asn1_str`, using standard constants such as V_ASN1_OCTET_STRING.
+     * Ref: https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_type.html. 
+     */
     int type = ASN1_STRING_type(asn1_str);
     POSIX_ENSURE(type == V_ASN1_UTF8STRING, S2N_ERR_INVALID_X509_EXTENSION_TYPE);
-    
+
+    /* ASN1_STRING_length() returns the length of the content of `oid_asn1_str`.
+     * Ref: https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_length.html.
+    */
     int len = ASN1_STRING_length(asn1_str);
     POSIX_ENSURE(*out_len >= len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
     *out_len = len;
@@ -665,18 +674,31 @@ int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_f
     POSIX_ENSURE_REF(critical);
     POSIX_ENSURE_REF(cert->raw.data);
 
-    uint8_t *der_in = cert->raw.data;
-    /* Obtain the openssl X509 cert from the ASN1 DER certificate input. 
+    /* Obtain the openssl x509 cert from the ASN1 DER certificate input. 
      * Note that d2i_X509 increments *der_in to the byte following the parsed data.
-     * Ref: https://www.openssl.org/docs/man1.1.0/man3/d2i_X509.html.
+     * Using a temporary variable is mandatory to prevent memory free-ing errors.
+     * Ref to the warning section here for more information:
+     * https://www.openssl.org/docs/man1.1.0/man3/d2i_X509.html.
      */
+    uint8_t *der_in = cert->raw.data;
     DEFER_CLEANUP(X509 *x509_cert = d2i_X509(NULL, (const unsigned char **)(void *)&der_in, cert->raw.size),
                   X509_free_pointer);
     POSIX_ENSURE_REF(x509_cert);
 
-    /* Retrieve the number of x509 extensions present in the certificate */
+    /* Retrieve the number of x509 extensions present in the certificate 
+     * X509_get_ext_count returns the number of extensions in the x509 certificate. 
+     * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_get_ext_count.html.
+     */
     int ext_count = X509_get_ext_count(x509_cert);
     POSIX_ENSURE_GT(ext_count, 0);
+
+    /* OBJ_txt2obj() converts the input text string into an ASN1_OBJECT structure.
+     * If no_name is 0 then long names and short names will be interpreted as well as numerical forms.
+     * If no_name is 1 only the numerical form is acceptable. 
+     * Ref: https://www.openssl.org/docs/man1.1.0/man3/OBJ_txt2obj.html.
+     */
+    DEFER_CLEANUP(ASN1_OBJECT *asn1_obj_in = OBJ_txt2obj((const char *)oid_field_in, 0), s2n_asn1_obj_free);
+    POSIX_ENSURE_REF(asn1_obj_in);
 
     for (size_t loc = 0; loc < ext_count; loc++) {
         ASN1_OCTET_STRING *oid_asn1_str = NULL;
@@ -699,23 +721,22 @@ int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_f
         ASN1_OBJECT *asn1_obj = X509_EXTENSION_get_object(x509_ext);
         POSIX_ENSURE_REF(asn1_obj);
 
-        int nid_from_cert = OBJ_obj2nid(asn1_obj);
-        if (nid_from_cert == NID_undef) {
-            char oid_field[OID_FIELD_MAX_LEN] = { 0 };
-            /* 0 here refers to preference of textual representation over numerical one */
-            int oid_len = OBJ_obj2txt(oid_field, sizeof(oid_field), asn1_obj, 0);
-            match_found = (oid_len == oid_field_in_len) && (strcmp(oid_field, (const char *)oid_field_in) == 0);
-        } else { 
-            int nid_from_in = OBJ_txt2nid((const char *)oid_field_in);
-            match_found = (nid_from_in == nid_from_cert); 
-        }
+        /* OBJ_cmp() compares a to b. If the two are identical 0 is returned.
+         * Ref: https://www.openssl.org/docs/man1.1.0/man3/OBJ_txt2obj.html.
+         */
+        match_found = (0 == OBJ_cmp(asn1_obj_in, asn1_obj));
+
         /* If match found, retrieve the corresponding OID value for the x509 extension */
         if (match_found) {
             /* X509_EXTENSION_get_data() returns the data of extension `x509_ext`. 
-             * The returned pointer is an internal value which must not be freed up. 
+             * The returned pointer is an internal value which must not be freed up.
+             * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_EXTENSION_get_data.html.
              */
             oid_asn1_str = X509_EXTENSION_get_data(x509_ext);
             POSIX_ENSURE_REF(oid_asn1_str);
+            /* ASN1_STRING_length() returns the length of the content of `oid_asn1_str`.
+             * Ref: https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_length.html.
+             */
             int len = ASN1_STRING_length(oid_asn1_str);
             POSIX_ENSURE(*oid_value_out_len >= len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
             *oid_value_out_len = len;
@@ -726,7 +747,11 @@ int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_f
             unsigned char *internal_data = ASN1_STRING_data(oid_asn1_str);
             POSIX_ENSURE_REF(internal_data);
             POSIX_CHECKED_MEMCPY(oid_value_out, internal_data, (*oid_value_out_len));
-            /* Retrieve the x509 extension's critical value */
+            /* Retrieve the x509 extension's critical value.
+             * X509_EXTENSION_get_critical() returns the criticality of extension `x509_ext`,
+             * it returns 1 for critical and 0 for non-critical.
+             * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_EXTENSION_get_critical.html.
+             */
             *critical = X509_EXTENSION_get_critical(x509_ext);
             return S2N_SUCCESS;
         }
