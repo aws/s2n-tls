@@ -1461,7 +1461,7 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 ### s2n\_cert\_get\_x509\_extension\_value\_length
 
 ```c
-int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len, uint32_t ext_value_len);
+int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid, uint32_t ext_value_len);
 ```
 
 **s2n_cert_get_x509_extension_value_length** gets the length of the DER encoding of an ASN.1 X.509 certificate extension value.
@@ -1470,8 +1470,7 @@ int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_
 ### s2n\_cert\_get\_x509\_extension\_value
 
 ```c
-int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len,
-                                      uint8_t *ext_value, uint32_t *ext_value_len, bool *critical);
+int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, uint8_t *ext_value, uint32_t *ext_value_len, bool *critical);
 ```
 
 **s2n_cert_get_x509_extension_value** gets the DER encoding of an ASN.1 X.509 certificate extension value, it's length and a boolean critical.

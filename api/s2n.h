@@ -506,20 +506,17 @@ extern int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn,
  * Returns the length of the DER encoded extension value of the ASN.1 X.509 certificate extension.
  * 
  * @param cert A pointer to the s2n_cert object being read.
- * @param oid A pointer to a buffer that contains the OID of the X.509 certificate extension to be read.
- * @param oid_len represents the length of the input buffer `oid`.
+ * @param oid A null-terminated cstring that contains the OID of the X.509 certificate extension to be read.
  * @param ext_value_len This return value contains the length of DER encoded extension value of the ASN.1 X.509 certificate extension.
  */
 S2N_API 
-extern int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid,
-                                            const uint32_t oid_len, uint32_t *ext_value_len);
+extern int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid, uint32_t *ext_value_len);
 
 /**
  * Returns the DER encoding of an ASN.1 X.509 certificate extension value, it's length and a boolean critical.
  * 
  * @param cert A pointer to the s2n_cert object being read.
- * @param oid A pointer to a buffer that contains the OID of the X.509 certificate extension to be read.
- * @param oid_len represents the length of the input buffer `oid`.
+ * @param oid A null-terminated cstring that contains the OID of the X.509 certificate extension to be read.
  * @param ext_value A pointer to the output buffer which will hold the DER encoding of an ASN.1 X.509 certificate extension value returned. 
  * @param ext_value_len  This value is both an input and output parameter and represents the length of the output buffer `ext_value`. 
  * When used as an input parameter, the caller must use this parameter to convey the maximum length of `ext_value`. 
@@ -527,8 +524,7 @@ extern int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const
  * @param critical This return value contains the boolean value for `critical`.
  */
 S2N_API 
-extern int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len,
-                                      uint8_t *ext_value, uint32_t *ext_value_len, bool *critical);
+extern int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, uint8_t *ext_value, uint32_t *ext_value_len, bool *critical);
 
 /**
  * Returns the UTF8 String length of the ASN.1 X.509 certificate extension data. 
