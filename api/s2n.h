@@ -503,11 +503,24 @@ S2N_API
 extern int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain);
 
 /**
+ * Returns the length of DER encoded extension value of the ASN.1 X.509 certificate extension.
+ * 
+ * @param cert A pointer to the s2n_cert object being read.
+ * @param oid_field_in A pointer to a buffer that contains the OID of the X.509 certificate extension to be read.
+ * @param oid_field_in_len represents the length of the input buffer `oid_field_in`.
+ * @param oid_value_len This return value contains the length of DER encoded extension value of the ASN.1 X.509 certificate extension.
+ */
+S2N_API 
+extern int s2n_get_x509_extension_oid_value_length(struct s2n_cert *cert, const uint8_t *oid_field_in,
+                                            const uint32_t oid_field_in_len, uint32_t *oid_value_len);
+
+/**
  * Returns the DER encoding of an ASN.1 X.509 certificate extension value, it's length and a boolean critical.
  * 
  * Note that the memory for `oid_value_out` must be allocated by the caller. The size for this buffer must 
  * be the maximum value of OID value expected by the caller plus an offset of 2 for the ASN1 X.509 DER encoding sequence.
- * If the memory allocated is less that required amount, an error is returned.  
+ * If the memory allocated is less that required amount, an error is returned. Use `s2n_get_x509_extension_oid_value_length` API 
+ * to determine the size required.
  * 
  * @param cert A pointer to the s2n_cert object being read.
  * @param oid_field_in A pointer to a buffer that contains the OID of the X.509 certificate extension to be read.
@@ -523,10 +536,21 @@ extern int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t
                                       uint8_t *oid_value_out, uint32_t *oid_value_out_len, bool *critical);
 
 /**
+ * Returns the UTF8 String length of the DER encoded ASN.1 X.509 certificate extension data. 
+ * 
+ * @param extension_data A pointer to the DER encoded ASN.1 X.509 certificate extension value being read.
+ * @param extension_len represents the length of the input buffer `extension_data`.
+ * @param utf8_str_len This return value contains the UTF8 String length of the DER encoded ASN.1 X.509 certificate extension data.
+ */
+S2N_API 
+extern int s2n_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len);
+
+/**
  * Returns the UTF8 String representation of the DER encoded ASN.1 X.509 certificate extension data. 
  * 
  * Note that the memory for `out_data` must be allocated by the caller. The sizeof `out_data` must be atleast `extension_len` - 2.
- * If the memory allocated is less that required amount, an error is returned.
+ * If the memory allocated is less that required amount, an error is returned. Use `s2n_get_utf8_string_from_extension_data_length` API 
+ * to determine the size required.
  * 
  * @param extension_data A pointer to the DER encoded ASN.1 X.509 certificate extension value being read.
  * @param extension_len represents the length of the input buffer `extension_data`.
