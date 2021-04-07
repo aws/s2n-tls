@@ -9,7 +9,7 @@
 
 #include "sampling.h"
 
-#define MAX_WLIST_SIZE (T > D ? T : D)
+#define MAX_WLIST_SIZE (T1 > DV ? T1 : DV)
 
 void secure_set_bits(OUT pad_r_t *   r,
                      IN const size_t first_pos,

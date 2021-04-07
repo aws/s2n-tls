@@ -7,12 +7,12 @@
 
 #pragma once
 
+#include "utils/s2n_safety.h"
+
 #define SUCCESS 0
 #define FAIL    (-1)
 
 #define ret_t int __attribute__((warn_unused_result))
-#define GUARD(x) \
-  if((x) != SUCCESS) return FAIL
 
 enum _bike_err
 {

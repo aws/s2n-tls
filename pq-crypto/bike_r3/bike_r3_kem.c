@@ -5,11 +5,12 @@
  * AWS Cryptographic Algorithms Group.
  */
 
-#include "kem.h"
 #include "decode.h"
 #include "gf2x.h"
 #include "sampling.h"
 #include "sha.h"
+#include "tls/s2n_kem.h"
+#include "pq-crypto/s2n_pq.h"
 
 // m_t and seed_t have the same size and thus can be considered
 // to be of the same type. However, for security reasons we distinguish
@@ -125,7 +126,7 @@ _INLINE_ ret_t reencrypt(OUT m_t *m, IN const pad_e_t *e, IN const ct_t *l_ct)
 ////////////////////////////////////////////////////////////////////////////////
 // The three APIs below (keypair, encapsulate, decapsulate) are defined by NIST:
 ////////////////////////////////////////////////////////////////////////////////
-int crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
+int BIKE1_L1_R3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
 {
   DEFER_CLEANUP(aligned_sk_t l_sk = {0}, sk_cleanup);
 
@@ -180,7 +181,7 @@ int crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
 // Encapsulate - pk is the public key,
 //               ct is a key encapsulation message (ciphertext),
 //               ss is the shared secret.
-int crypto_kem_enc(OUT unsigned char *     ct,
+int BIKE1_L1_R3_crypto_kem_enc(OUT unsigned char *     ct,
                    OUT unsigned char *     ss,
                    IN const unsigned char *pk)
 {
@@ -221,7 +222,7 @@ int crypto_kem_enc(OUT unsigned char *     ct,
 // Decapsulate - ct is a key encapsulation message (ciphertext),
 //               sk is the private key,
 //               ss is the shared secret
-int crypto_kem_dec(OUT unsigned char *     ss,
+int BIKE1_L1_R3_crypto_kem_dec(OUT unsigned char *     ss,
                    IN const unsigned char *ct,
                    IN const unsigned char *sk)
 {
@@ -250,7 +251,7 @@ int crypto_kem_dec(OUT unsigned char *     ss,
 
   // Decode and on success check if |e|=T (all in constant-time)
   volatile uint32_t success_cond = (decode(&e, &l_ct, &l_sk) == SUCCESS);
-  success_cond &= secure_cmp32(T, r_bits_vector_weight(&e.val[0]) +
+  success_cond &= secure_cmp32(T1, r_bits_vector_weight(&e.val[0]) +
                                     r_bits_vector_weight(&e.val[1]));
 
   // Set appropriate error based on the success condition

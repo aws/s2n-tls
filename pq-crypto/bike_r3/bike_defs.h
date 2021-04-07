@@ -20,8 +20,8 @@
 
 #if(LEVEL == 3)
 #  define R_BITS 24659
-#  define D      103
-#  define T      199
+#  define DV      103
+#  define T1      199
 
 #  define THRESHOLD_COEFF0 15.2588
 #  define THRESHOLD_COEFF1 0.005265
@@ -29,11 +29,11 @@
 
 // The gf2m code is optimized to a block in this case:
 #  define BLOCK_BITS 32768
-#elif(LEVEL == 1)
+#elif (LEVEL == 1)
 // 64-bits of post-quantum security parameters (BIKE paper):
 #  define R_BITS 12323
-#  define D      71
-#  define T      134
+#  define DV      71
+#  define T1      134
 
 #  define THRESHOLD_COEFF0 13.530
 #  define THRESHOLD_COEFF1 0.0069722
@@ -85,7 +85,7 @@
 //////////////////////////////////
 #define BGF_DECODER
 #define DELTA  3
-#define SLICES (LOG2_MSB(D) + 1)
+#define SLICES (LOG2_MSB(DV) + 1)
 
 // GF2X inversion can only handle R < 32768
 bike_static_assert((R_BITS < 32768), r_too_large_for_inversion);

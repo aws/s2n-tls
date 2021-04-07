@@ -7,14 +7,13 @@
 
 #include "sampling.h"
 #include "defs.h"
-#include "x86_64_intrinsic.h"
 
 // SIMD implementation of is_new function requires the size of wlist
 // to be a multiple of the number of DWORDS in a SIMD register (REG_DWORDS).
 // The function is used both for generating D and T random number so we define
 // two separate macros.
-#define WLIST_SIZE_ADJUSTED_D (REG_DWORDS * DIVIDE_AND_CEIL(D, REG_DWORDS))
-#define WLIST_SIZE_ADJUSTED_T (REG_DWORDS * DIVIDE_AND_CEIL(T, REG_DWORDS))
+#define WLIST_SIZE_ADJUSTED_D (REG_DWORDS * DIVIDE_AND_CEIL(DV, REG_DWORDS))
+#define WLIST_SIZE_ADJUSTED_T (REG_DWORDS * DIVIDE_AND_CEIL(T1, REG_DWORDS))
 
 void get_seeds(OUT seeds_t *seeds)
 {
@@ -200,10 +199,10 @@ ret_t generate_sparse_rep(OUT pad_r_t *r,
 {
   idx_t wlist_temp[WLIST_SIZE_ADJUSTED_D] = {0};
 
-  GUARD(generate_indices_mod_z(wlist_temp, D, R_BITS, prf_state));
+  GUARD(generate_indices_mod_z(wlist_temp, DV, R_BITS, prf_state));
 
-  bike_memcpy(wlist, wlist_temp, D * sizeof(idx_t));
-  secure_set_bits(r, 0, wlist, D);
+  bike_memcpy(wlist, wlist_temp, DV * sizeof(idx_t));
+  secure_set_bits(r, 0, wlist, DV);
 
   return SUCCESS;
 }
@@ -215,11 +214,11 @@ ret_t generate_error_vector(OUT pad_e_t *e, IN const seed_t *seed)
   GUARD(init_aes_ctr_prf_state(&prf_state, MAX_AES_INVOKATION, seed));
 
   idx_t wlist[WLIST_SIZE_ADJUSTED_T] = {0};
-  GUARD(generate_indices_mod_z(wlist, T, N_BITS, &prf_state));
+  GUARD(generate_indices_mod_z(wlist, T1, N_BITS, &prf_state));
 
   // (e0, e1) hold bits 0..R_BITS-1 and R_BITS..2*R_BITS-1 of the error, resp.
-  secure_set_bits(&e->val[0], 0, wlist, T);
-  secure_set_bits(&e->val[1], R_BITS, wlist, T);
+  secure_set_bits(&e->val[0], 0, wlist, T1);
+  secure_set_bits(&e->val[1], R_BITS, wlist, T1);
 
   // Clean the padding of the elements
   PE0_RAW(e)[R_BYTES - 1] &= LAST_R_BYTE_MASK;

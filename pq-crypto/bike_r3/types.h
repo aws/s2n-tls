@@ -61,7 +61,7 @@ typedef struct ss_st {
 typedef uint32_t idx_t;
 
 typedef struct compressed_idx_d_s {
-  idx_t val[D];
+  idx_t val[DV];
 } compressed_idx_d_t;
 
 typedef compressed_idx_d_t compressed_idx_d_ar_t[N0];

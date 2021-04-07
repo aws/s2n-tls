@@ -194,7 +194,7 @@ _INLINE_ void find_err1(OUT e_t *e,
 
     // 1) Right-rotate the syndrome for every secret key set bit index
     //    Then slice-add it to the UPC array.
-    for(size_t j = 0; j < D; j++) {
+    for(size_t j = 0; j < DV; j++) {
       rotate_right(&rotated_syndrome, syndrome, wlist[i].val[j]);
       bit_sliced_adder(&upc, &rotated_syndrome, LOG2_MSB(j + 1));
     }
@@ -251,7 +251,7 @@ _INLINE_ void find_err2(OUT e_t *e,
 
     // 1) Right-rotate the syndrome, for every index of a set bit in the secret
     // key. Then slice-add it to the UPC array.
-    for(size_t j = 0; j < D; j++) {
+    for(size_t j = 0; j < DV; j++) {
       rotate_right(&rotated_syndrome, syndrome, wlist[i].val[j]);
       bit_sliced_adder(&upc, &rotated_syndrome, LOG2_MSB(j + 1));
     }
@@ -315,14 +315,14 @@ ret_t decode(OUT e_t *e, IN const ct_t *ct, IN const sk_t *sk)
          r_bits_vector_weight(&e->val[0]) + r_bits_vector_weight(&e->val[1]));
     DMSG("    Weight of syndrome: %lu\n", r_bits_vector_weight((r_t *)s.qw));
 
-    find_err2(e, &black_e, &s, sk->wlist, ((D + 1) / 2) + 1);
+    find_err2(e, &black_e, &s, sk->wlist, ((DV + 1) / 2) + 1);
     GUARD(recompute_syndrome(&s, &c0, &h0, &pk, e));
 
     DMSG("    Weight of e: %lu\n",
          r_bits_vector_weight(&e->val[0]) + r_bits_vector_weight(&e->val[1]));
     DMSG("    Weight of syndrome: %lu\n", r_bits_vector_weight((r_t *)s.qw));
 
-    find_err2(e, &gray_e, &s, sk->wlist, ((D + 1) / 2) + 1);
+    find_err2(e, &gray_e, &s, sk->wlist, ((DV + 1) / 2) + 1);
     GUARD(recompute_syndrome(&s, &c0, &h0, &pk, e));
   }
 

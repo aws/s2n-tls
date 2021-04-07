@@ -7,11 +7,7 @@
 
 #pragma once
 
-#if defined(USE_OPENSSL)
-#  include <openssl/evp.h>
-#else
-#  include <immintrin.h>
-#endif
+#include <openssl/evp.h>
 
 #include "cleanup.h"
 
@@ -27,8 +23,6 @@ typedef ALIGN(16) struct aes256_key_s {
 } aes256_key_t;
 
 CLEANUP_FUNC(aes256_key, aes256_key_t)
-
-#if defined(USE_OPENSSL)
 
 // Using OpenSSL structures
 typedef EVP_CIPHER_CTX *aes256_ks_t;
@@ -66,18 +60,3 @@ _INLINE_ void aes256_free_ks(OUT aes256_ks_t *ks)
   EVP_CIPHER_CTX_free(*ks);
   ks = NULL;
 }
-
-#else
-
-typedef ALIGN(16) struct aes256_ks_s {
-  __m128i keys[AES256_ROUNDS + 1];
-} aes256_ks_t;
-
-ret_t aes256_key_expansion(OUT aes256_ks_t *ks, IN const aes256_key_t *key);
-
-ret_t aes256_enc(OUT uint8_t *ct, IN const uint8_t *pt, IN const aes256_ks_t *ks);
-
-// Empty function
-_INLINE_ void aes256_free_ks(OUT BIKE_UNUSED_ATT aes256_ks_t *ks) {}
-
-#endif // USE_OPENSSL

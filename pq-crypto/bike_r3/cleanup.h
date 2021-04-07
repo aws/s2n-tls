@@ -13,20 +13,6 @@
 #define DEFER_CLEANUP(_thealloc, _thecleanup) \
   __attribute__((cleanup(_thecleanup))) _thealloc
 
-/* Create a cleanup function for pointers from function func, which accepts a
- * pointer. This is useful for DEFER_CLEANUP, as it passes &_thealloc into
- * _thecleanup function. This way,
- * if _thealloc is a pointer _thecleanup would receive a pointer to a
- * pointer.*/
-#define DEFINE_POINTER_CLEANUP_FUNC(type, func) \
-  static inline void func##_pointer((type)*p)   \
-  {                                             \
-    if(p && *p) {                               \
-      func(*p);                                 \
-    }                                           \
-  }                                             \
-  struct __useless_struct_to_allow_trailing_semicolon__
-
 // len is bytes length of in
 _INLINE_ void secure_clean(OUT uint8_t *p, IN const uint32_t len)
 {
