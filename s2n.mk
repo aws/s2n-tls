@@ -116,6 +116,10 @@ ifdef S2N_DEBUG
 	CFLAGS += ${DEBUG_CFLAGS}
 endif
 
+ifdef S2N_GDB
+	CFLAGS += ${DEBUG_CFLAGS} -Og
+endif
+
 # Prepare CPPFLAGS by stripping out the unsupported options
 CPPFLAGS = ${CFLAGS}
 CPPFLAGS:=$(filter-out -Wimplicit,${CPPFLAGS})
