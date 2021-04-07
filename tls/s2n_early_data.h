@@ -77,3 +77,8 @@ int s2n_connection_get_early_data_status(struct s2n_connection *conn, s2n_early_
 
 int s2n_connection_get_remaining_early_data_size(struct s2n_connection *conn, uint32_t *allowed_early_data_size);
 int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, uint32_t *max_early_data_size);
+
+int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data, ssize_t data_len,
+        ssize_t *data_sent, s2n_blocked_status *blocked);
+int s2n_recv_early_data(struct s2n_connection *conn, uint8_t *data, ssize_t max_data_len,
+        ssize_t *data_received, s2n_blocked_status *blocked);
