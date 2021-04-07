@@ -502,6 +502,54 @@ extern int s2n_get_cert_der(const struct s2n_cert *cert, const uint8_t **out_cer
 S2N_API
 extern int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain);
 
+/**
+ * Returns the length of the DER encoded extension value of the ASN.1 X.509 certificate extension.
+ * 
+ * @param cert A pointer to the s2n_cert object being read.
+ * @param oid A null-terminated cstring that contains the OID of the X.509 certificate extension to be read.
+ * @param ext_value_len This return value contains the length of DER encoded extension value of the ASN.1 X.509 certificate extension.
+ */
+S2N_API 
+extern int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid, uint32_t *ext_value_len);
+
+/**
+ * Returns the DER encoding of an ASN.1 X.509 certificate extension value, it's length and a boolean critical.
+ * 
+ * @param cert A pointer to the s2n_cert object being read.
+ * @param oid A null-terminated cstring that contains the OID of the X.509 certificate extension to be read.
+ * @param ext_value A pointer to the output buffer which will hold the DER encoding of an ASN.1 X.509 certificate extension value returned. 
+ * @param ext_value_len  This value is both an input and output parameter and represents the length of the output buffer `ext_value`. 
+ * When used as an input parameter, the caller must use this parameter to convey the maximum length of `ext_value`. 
+ * When used as an output parameter, `ext_value_len` holds the actual length of the DER encoding of the ASN.1 X.509 certificate extension value returned. 
+ * @param critical This return value contains the boolean value for `critical`.
+ */
+S2N_API 
+extern int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, uint8_t *ext_value, uint32_t *ext_value_len, bool *critical);
+
+/**
+ * Returns the UTF8 String length of the ASN.1 X.509 certificate extension data. 
+ * 
+ * @param extension_data A pointer to the DER encoded ASN.1 X.509 certificate extension value being read.
+ * @param extension_len represents the length of the input buffer `extension_data`.
+ * @param utf8_str_len This return value contains the UTF8 String length of the ASN.1 X.509 certificate extension data.
+ */
+S2N_API 
+extern int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len);
+
+/**
+ * Returns the UTF8 String representation of the DER encoded ASN.1 X.509 certificate extension data.
+ * 
+ * @param extension_data A pointer to the DER encoded ASN.1 X.509 certificate extension value being read.
+ * @param extension_len represents the length of the input buffer `extension_data`.
+ * @param out_data A pointer to the output buffer which will hold the UTF8 String representation of the DER encoded ASN.1 X.509 
+ * certificate extension data returned. 
+ * @param out_len This value is both an input and output parameter and represents the length of the output buffer `out_data`.
+ * When used as an input parameter, the caller must use this parameter to convey the maximum length of `out_data`. 
+ * When used as an output parameter, `out_len` holds the actual length of UTF8 String returned.
+ */
+S2N_API 
+extern int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len);
+
 S2N_API
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
 S2N_API
