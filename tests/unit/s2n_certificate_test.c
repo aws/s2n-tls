@@ -80,7 +80,7 @@ static S2N_RESULT s2n_compare_utf8_strings(struct s2n_blob *input_der, const cha
     DEFER_CLEANUP(struct s2n_blob utf8_str = { 0 }, s2n_free);
     RESULT_GUARD_POSIX(s2n_alloc(&utf8_str, utf8_len_in));
 
-    RESULT_GUARD_POSIX(s2n_get_utf8_string_from_extension_data(input_der->data, input_der->size, utf8_str.data, &utf8_str.size));
+    RESULT_GUARD_POSIX(s2n_cert_get_utf8_string_from_extension_data(input_der->data, input_der->size, utf8_str.data, &utf8_str.size));
 
     ENSURE_EQ(utf8_str.size, expected_utf8_len);
     ENSURE_EQ(memcmp(utf8_str.data, expected_utf8_str, utf8_str.size), 0);
@@ -300,8 +300,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(s2n_chain_and_key));
     }
 
-    /* Test X509 Extension helper functions s2n_get_x509_extension_value and 
-     * s2n_get_utf8_string_from_extension_data */
+    /* Test X509 Extension helper functions s2n_cert_get_x509_extension_value and 
+     * s2n_cert_get_utf8_string_from_extension_data */
     {
         struct s2n_blob ext_value = { 0 };
         struct s2n_blob utf8_str = { 0 };
@@ -383,7 +383,7 @@ int main(int argc, char **argv)
             },
         };
 
-        /* Test s2n_get_x509_extension_value_length */ 
+        /* Test s2n_cert_get_x509_extension_value_length */ 
         {
             /* Safety checks */ 
             {
@@ -391,14 +391,14 @@ int main(int argc, char **argv)
                 uint32_t oid_len = strlen((const char*)oid);
                 uint32_t ext_value_len = 0;
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_value_length(NULL, oid, oid_len, &ext_value_len), S2N_ERR_NULL);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_value_length(cert, NULL, oid_len, &ext_value_len), S2N_ERR_NULL);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_value_length(cert, oid, 0, &ext_value_len), S2N_ERR_SAFETY);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value_length(NULL, oid, oid_len, &ext_value_len), S2N_ERR_NULL);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value_length(cert, NULL, oid_len, &ext_value_len), S2N_ERR_NULL);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value_length(cert, oid, 0, &ext_value_len), S2N_ERR_SAFETY);
             }
 
             /* Test success cases */
             for (i = 0; i < s2n_array_len(test_cases) - 1; i++) {
-                EXPECT_SUCCESS(s2n_get_x509_extension_value_length(cert, (const uint8_t *)test_cases[i].oid,
+                EXPECT_SUCCESS(s2n_cert_get_x509_extension_value_length(cert, (const uint8_t *)test_cases[i].oid,
                                                                 strlen(test_cases[i].oid), &test_cases[i].ext_value_len));
                 EXPECT_EQUAL(test_cases[i].ext_value_len, test_cases[i].expected_der.size);
             }
@@ -406,14 +406,14 @@ int main(int argc, char **argv)
             /* Test failure case for invalid X509 extension OID */
             {
                 size_t invalid_test_case = s2n_array_len(test_cases) - 1;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_value_length(cert, (const uint8_t *)test_cases[invalid_test_case].oid,
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value_length(cert, (const uint8_t *)test_cases[invalid_test_case].oid,
                                                      strlen(test_cases[invalid_test_case].oid), &test_cases[i].ext_value_len),
                                                      S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND);
             }
 
         }
 
-        /* Test s2n_get_x509_extension_value */
+        /* Test s2n_cert_get_x509_extension_value */
         {
             /* Safety checks */ 
             {
@@ -421,26 +421,26 @@ int main(int argc, char **argv)
                 uint32_t oid_len = strlen((const char*)oid);
                 EXPECT_SUCCESS(s2n_alloc(&ext_value, ext_value_MAX_LEN));
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_value(NULL, oid, oid_len,
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value(NULL, oid, oid_len,
                                                     ext_value.data, &ext_value.size, &critical), S2N_ERR_NULL);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_value(cert, NULL, oid_len,
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value(cert, NULL, oid_len,
                                                     ext_value.data, &ext_value.size, &critical), S2N_ERR_NULL);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_value(cert, oid, 0, 
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value(cert, oid, 0, 
                                                     ext_value.data, &ext_value.size, &critical), S2N_ERR_SAFETY);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_value(cert, oid, oid_len, 
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value(cert, oid, oid_len, 
                                                     NULL, &ext_value.size, &critical), S2N_ERR_NULL);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_value(cert, oid, oid_len,
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value(cert, oid, oid_len,
                                                     ext_value.data, NULL, &critical), S2N_ERR_NULL);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_value(cert, oid, oid_len,
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value(cert, oid, oid_len,
                                                     ext_value.data, &ext_value.size, NULL), S2N_ERR_NULL);
 
                 EXPECT_SUCCESS(s2n_free(&ext_value));
             }
 
-            /* Test success cases for s2n_get_x509_extension_value */
+            /* Test success cases for s2n_cert_get_x509_extension_value */
             for (i = 0; i < s2n_array_len(test_cases) - 1; i++) {
                 EXPECT_SUCCESS(s2n_alloc(&test_cases[i].returned_der, test_cases[i].ext_value_len));
-                EXPECT_SUCCESS(s2n_get_x509_extension_value(cert, (const uint8_t *)test_cases[i].oid,
+                EXPECT_SUCCESS(s2n_cert_get_x509_extension_value(cert, (const uint8_t *)test_cases[i].oid,
                                                                 strlen(test_cases[i].oid), test_cases[i].returned_der.data,
                                                                 &test_cases[i].returned_der.size, &critical));
                 EXPECT_BYTEARRAY_EQUAL(test_cases[i].returned_der.data, test_cases[i].expected_der.data, test_cases[i].expected_der.size);
@@ -451,7 +451,7 @@ int main(int argc, char **argv)
             {
                 size_t insuf_test_case = 0;
                 EXPECT_SUCCESS(s2n_alloc(&ext_value, test_cases[insuf_test_case].returned_der.size - OFFSET_INSUFFICIENT_MEM_SIZE));
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_value(cert, (const uint8_t *)test_cases[insuf_test_case].oid,
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value(cert, (const uint8_t *)test_cases[insuf_test_case].oid,
                                                     strlen(test_cases[insuf_test_case].oid), ext_value.data,
                                                     &ext_value.size, &critical), S2N_ERR_INSUFFICIENT_MEM_SIZE);
                 EXPECT_SUCCESS(s2n_free(&ext_value));
@@ -461,13 +461,13 @@ int main(int argc, char **argv)
             {
                 size_t invalid_test_case = s2n_array_len(test_cases) - 1;
                 EXPECT_SUCCESS(s2n_alloc(&test_cases[invalid_test_case].returned_der, ext_value_MAX_LEN));
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_x509_extension_value(cert, (const uint8_t *)test_cases[invalid_test_case].oid,
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_x509_extension_value(cert, (const uint8_t *)test_cases[invalid_test_case].oid,
                                                     strlen(test_cases[invalid_test_case].oid), test_cases[invalid_test_case].returned_der.data,
                                                     &test_cases[invalid_test_case].returned_der.size, &critical), S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND);
             }
         }
 
-        /* Test s2n_get_utf8_string_from_extension_data_length */
+        /* Test s2n_cert_get_utf8_string_from_extension_data_length */
         {
             /* Safety checks */ 
             {
@@ -475,20 +475,20 @@ int main(int argc, char **argv)
                 size_t der_ext_value_len = strlen((const char *)der_ext_value);
                 uint32_t utf8_len = 0;
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data_length(NULL, der_ext_value_len, &utf8_len), S2N_ERR_NULL);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data_length(der_ext_value, 0, &utf8_len), S2N_ERR_SAFETY);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data_length(der_ext_value, der_ext_value_len, 0), S2N_ERR_NULL);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_utf8_string_from_extension_data_length(NULL, der_ext_value_len, &utf8_len), S2N_ERR_NULL);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_utf8_string_from_extension_data_length(der_ext_value, 0, &utf8_len), S2N_ERR_SAFETY);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_utf8_string_from_extension_data_length(der_ext_value, der_ext_value_len, 0), S2N_ERR_NULL);
             }
 
             /* Test success and failure cases */
             for (i = 0; i < s2n_array_len(test_cases) - 1; i++) {
                 if (i > 3) {
-                    EXPECT_SUCCESS(s2n_get_utf8_string_from_extension_data_length(test_cases[i].returned_der.data,
+                    EXPECT_SUCCESS(s2n_cert_get_utf8_string_from_extension_data_length(test_cases[i].returned_der.data,
                                                                                   test_cases[i].returned_der.size,
                                                                                   &test_cases[i].utf8_len));
                     EXPECT_EQUAL(test_cases[i].utf8_len, strlen((const char *)test_cases[i].expected_utf8));
                 } else {
-                    EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data_length(
+                    EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_utf8_string_from_extension_data_length(
                                                   test_cases[i].returned_der.data, 
                                                   test_cases[i].returned_der.size,
                                                   &test_cases[i].utf8_len), S2N_ERR_INVALID_X509_EXTENSION_TYPE);
@@ -499,7 +499,7 @@ int main(int argc, char **argv)
             {
                 size_t insuf_test_case = 4;
                 EXPECT_SUCCESS(s2n_alloc(&utf8_str, test_cases[insuf_test_case].returned_der.size - OFFSET_INSUFFICIENT_MEM_SIZE));
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_utf8_string_from_extension_data(
                                                                         test_cases[insuf_test_case].returned_der.data,
                                                                         test_cases[insuf_test_case].returned_der.size,
                                                                         utf8_str.data, &utf8_str.size), 
@@ -509,7 +509,7 @@ int main(int argc, char **argv)
 
         }
 
-        /* Test s2n_get_utf8_string_from_extension_data */
+        /* Test s2n_cert_get_utf8_string_from_extension_data */
         {
             /* Safety checks */ 
             {
@@ -517,19 +517,19 @@ int main(int argc, char **argv)
                 size_t der_ext_value_len = strlen((const char *)der_ext_value);
                 EXPECT_SUCCESS(s2n_alloc(&utf8_str, ext_value_MAX_LEN));
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(NULL, der_ext_value_len, utf8_str.data,
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_utf8_string_from_extension_data(NULL, der_ext_value_len, utf8_str.data,
                                                                         &utf8_str.size), S2N_ERR_NULL);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(der_ext_value, 0, utf8_str.data,
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_utf8_string_from_extension_data(der_ext_value, 0, utf8_str.data,
                                                                         &utf8_str.size), S2N_ERR_SAFETY);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(der_ext_value, der_ext_value_len, NULL,
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_utf8_string_from_extension_data(der_ext_value, der_ext_value_len, NULL,
                                                                         &utf8_str.size), S2N_ERR_NULL);
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(der_ext_value, der_ext_value_len,
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_utf8_string_from_extension_data(der_ext_value, der_ext_value_len,
                                                                         utf8_str.data, NULL), S2N_ERR_NULL);
 
                 EXPECT_SUCCESS(s2n_free(&utf8_str));
             }
 
-            /* Test success and failure cases for s2n_get_utf8_string_from_extension_data */
+            /* Test success and failure cases for s2n_cert_get_utf8_string_from_extension_data */
             for (i = 0; i < s2n_array_len(test_cases) - 1; i++) {
                 if (i > 3) {
                     EXPECT_OK(s2n_compare_utf8_strings(&test_cases[i].returned_der, test_cases[i].expected_utf8,
@@ -545,7 +545,7 @@ int main(int argc, char **argv)
             {
                 size_t insuf_test_case = 4;
                 EXPECT_SUCCESS(s2n_alloc(&utf8_str, test_cases[insuf_test_case].returned_der.size - OFFSET_INSUFFICIENT_MEM_SIZE));
-                EXPECT_FAILURE_WITH_ERRNO(s2n_get_utf8_string_from_extension_data(
+                EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_utf8_string_from_extension_data(
                                                                         test_cases[insuf_test_case].returned_der.data,
                                                                         test_cases[insuf_test_case].returned_der.size,
                                                                         utf8_str.data, &utf8_str.size), 

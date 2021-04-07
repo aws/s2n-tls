@@ -655,7 +655,7 @@ static int s2n_utf8_string_from_extension_data(const uint8_t *extension_data, ui
     return S2N_SUCCESS; 
 }
 
-int s2n_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len)
+int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len)
 {
     POSIX_ENSURE_REF(extension_data);
     POSIX_ENSURE_GT(extension_len, 0);
@@ -666,7 +666,7 @@ int s2n_get_utf8_string_from_extension_data_length(const uint8_t *extension_data
     return S2N_SUCCESS;
 }
 
-int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len)
+int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len)
 {
     POSIX_ENSURE_REF(extension_data);
     POSIX_ENSURE_GT(extension_len, 0);
@@ -771,7 +771,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid, c
     POSIX_BAIL(S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND);
 }
 
-int s2n_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid,
+int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid,
                                             const uint32_t oid_len, uint32_t *ext_value_len)
 {
     POSIX_ENSURE_REF(cert);
@@ -784,7 +784,7 @@ int s2n_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oi
     return S2N_SUCCESS;
 }
 
-int s2n_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len,
+int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len,
                                       uint8_t *ext_value, uint32_t *ext_value_len, bool *critical)
 {
     POSIX_ENSURE_REF(cert);

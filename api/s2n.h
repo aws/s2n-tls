@@ -511,7 +511,7 @@ extern int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn,
  * @param ext_value_len This return value contains the length of DER encoded extension value of the ASN.1 X.509 certificate extension.
  */
 S2N_API 
-extern int s2n_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid,
+extern int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid,
                                             const uint32_t oid_len, uint32_t *ext_value_len);
 
 /**
@@ -527,7 +527,7 @@ extern int s2n_get_x509_extension_value_length(struct s2n_cert *cert, const uint
  * @param critical This return value contains the boolean value for `critical`.
  */
 S2N_API 
-extern int s2n_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len,
+extern int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len,
                                       uint8_t *ext_value, uint32_t *ext_value_len, bool *critical);
 
 /**
@@ -538,7 +538,7 @@ extern int s2n_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oi
  * @param utf8_str_len This return value contains the UTF8 String length of the ASN.1 X.509 certificate extension data.
  */
 S2N_API 
-extern int s2n_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len);
+extern int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len);
 
 /**
  * Returns the UTF8 String representation of the DER encoded ASN.1 X.509 certificate extension data.
@@ -552,7 +552,7 @@ extern int s2n_get_utf8_string_from_extension_data_length(const uint8_t *extensi
  * When used as an output parameter, `out_len` holds the actual length of UTF8 String returned.
  */
 S2N_API 
-extern int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len);
+extern int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len);
 
 S2N_API
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);

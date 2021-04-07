@@ -1458,40 +1458,40 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 
 **s2n_connection_get_peer_cert_chain** gets the validated peer certificate chain from the s2n connection object.
 
-### s2n\_get\_x509\_extension\_oid\_value\_length
+### s2n\_cert\_get\_x509\_extension\_value\_length
 
 ```c
-int s2n_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len, uint32_t ext_value_len);
+int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len, uint32_t ext_value_len);
 ```
 
-**s2n_get_x509_extension_value_length** gets the length of the DER encoding of an ASN.1 X.509 certificate extension value.
+**s2n_cert_get_x509_extension_value_length** gets the length of the DER encoding of an ASN.1 X.509 certificate extension value.
 
 
-### s2n\_get\_x509\_extension\_oid\_value
+### s2n\_cert\_get\_x509\_extension\_value
 
 ```c
-int s2n_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len,
+int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len,
                                       uint8_t *ext_value, uint32_t *ext_value_len, bool *critical);
 ```
 
-**s2n_get_x509_extension_value** gets the DER encoding of an ASN.1 X.509 certificate extension value, it's length and a boolean critical.
+**s2n_cert_get_x509_extension_value** gets the DER encoding of an ASN.1 X.509 certificate extension value, it's length and a boolean critical.
 
 
-### s2n\_get\_utf8\_string\_from\_extension\_data\_length
-
-```c
-int s2n_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len);
-```
-
-**s2n_get_utf8_string_from_extension_data** gets the UTF8 String length of the ASN.1 X.509 certificate extension data.
-
-### s2n\_get\_utf8\_string\_from\_extension\_data
+### s2n\_cert\_get\_utf8\_string\_from\_extension\_data\_length
 
 ```c
-int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len);
+int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len);
 ```
 
-**s2n_get_utf8_string_from_extension_data** gets the UTF8 String representation of the DER encoded ASN.1 X.509 certificate extension data.
+**s2n_cert_get_utf8_string_from_extension_data** gets the UTF8 String length of the ASN.1 X.509 certificate extension data.
+
+### s2n\_cert\_get\_utf8\_string\_from\_extension\_data
+
+```c
+int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len);
+```
+
+**s2n_cert_get_utf8_string_from_extension_data** gets the UTF8 String representation of the DER encoded ASN.1 X.509 certificate extension data.
 
 ### Session Resumption Related calls
 

@@ -77,8 +77,8 @@ int s2n_get_cert_chain_length(const struct s2n_cert_chain_and_key *chain_and_key
 int s2n_get_cert_from_cert_chain(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, const uint32_t cert_idx);
 int s2n_get_cert_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, uint32_t *cert_length);
 int s2n_cert_chain_free(struct s2n_cert_chain *cert_chain);
-int s2n_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len, uint32_t *ext_value_len);
-int s2n_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len,
+int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len, uint32_t *ext_value_len);
+int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len,
                                       uint8_t *ext_value, uint32_t *ext_value_len, bool *critical);
-int s2n_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len);
-int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len);
+int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len);
+int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len);

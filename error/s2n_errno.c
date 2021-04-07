@@ -259,7 +259,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_PSK_MODE, "Mixing resumption and external PSKs is not supported") \
     ERR_ENTRY(S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND, "X509 extension value not found") \
     ERR_ENTRY(S2N_ERR_INVALID_X509_EXTENSION_TYPE, "Invalid X509 extension type") \
-    ERR_ENTRY(S2N_ERR_INSUFFICIENT_MEM_SIZE, "Insufficient memory size") \
+    ERR_ENTRY(S2N_ERR_INSUFFICIENT_MEM_SIZE, "The provided buffer size is not large enough to contain the output data. Try increasing the allocation size.") \
 
 /* clang-format on */
 
