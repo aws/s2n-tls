@@ -1461,20 +1461,20 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 ### s2n\_get\_x509\_extension\_oid\_value\_length
 
 ```c
-int s2n_get_x509_extension_oid_value_length(struct s2n_cert *cert, const uint8_t *oid_field_in, const uint32_t oid_field_in_len, uint32_t oid_value_len);
+int s2n_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len, uint32_t ext_value_len);
 ```
 
-**s2n_get_x509_extension_oid_value_length** gets the length of the DER encoding of an ASN.1 X.509 certificate extension value.
+**s2n_get_x509_extension_value_length** gets the length of the DER encoding of an ASN.1 X.509 certificate extension value.
 
 
 ### s2n\_get\_x509\_extension\_oid\_value
 
 ```c
-int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_field_in, const uint32_t oid_field_in_len,
-                                      uint8_t *oid_value_out, uint32_t *oid_value_out_len, bool *critical);
+int s2n_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len,
+                                      uint8_t *ext_value, uint32_t *ext_value_len, bool *critical);
 ```
 
-**s2n_get_x509_extension_oid_value** gets the DER encoding of an ASN.1 X.509 certificate extension value, it's length and a boolean critical.
+**s2n_get_x509_extension_value** gets the DER encoding of an ASN.1 X.509 certificate extension value, it's length and a boolean critical.
 
 
 ### s2n\_get\_utf8\_string\_from\_extension\_data\_length
@@ -1483,7 +1483,7 @@ int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_f
 int s2n_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len);
 ```
 
-**s2n_get_utf8_string_from_extension_data** gets the UTF8 String length of the DER encoded ASN.1 X.509 certificate extension data.
+**s2n_get_utf8_string_from_extension_data** gets the UTF8 String length of the ASN.1 X.509 certificate extension data.
 
 ### s2n\_get\_utf8\_string\_from\_extension\_data
 

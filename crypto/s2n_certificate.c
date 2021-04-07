@@ -678,8 +678,8 @@ int s2n_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint3
     return S2N_SUCCESS;
 }
 
-static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid_field_in, const uint32_t oid_field_in_len,
-                                      uint8_t *oid_value_out, uint32_t *oid_value_out_len, bool *critical)
+static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len,
+                                      uint8_t *ext_value, uint32_t *ext_value_len, bool *critical)
 {
     POSIX_ENSURE_REF(cert->raw.data);
     /* Obtain the openssl x509 cert from the ASN1 DER certificate input. 
@@ -705,7 +705,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid_fi
      * If no_name is 1 only the numerical form is acceptable. 
      * Ref: https://www.openssl.org/docs/man1.1.0/man3/OBJ_txt2obj.html.
      */
-    DEFER_CLEANUP(ASN1_OBJECT *asn1_obj_in = OBJ_txt2obj((const char *)oid_field_in, 0), s2n_asn1_obj_free);
+    DEFER_CLEANUP(ASN1_OBJECT *asn1_obj_in = OBJ_txt2obj((const char *)oid, 0), s2n_asn1_obj_free);
     POSIX_ENSURE_REF(asn1_obj_in);
 
     for (size_t loc = 0; loc < ext_count; loc++) {
@@ -745,15 +745,15 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid_fi
             * Ref: https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_length.html.
             */    
             int len = ASN1_STRING_length(asn1_str);
-            if (oid_value_out != NULL) {
-                POSIX_ENSURE(*oid_value_out_len >= len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+            if (ext_value != NULL) {
+                POSIX_ENSURE(*ext_value_len >= len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
                 /* ASN1_STRING_data() returns an internal pointer to the data. 
                 * Since this is an internal pointer it should not be freed or modified in any way.
                 * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_data.html.
                 */
                 unsigned char *internal_data = ASN1_STRING_data(asn1_str);
                 POSIX_ENSURE_REF(internal_data);
-                POSIX_CHECKED_MEMCPY(oid_value_out, internal_data, len);
+                POSIX_CHECKED_MEMCPY(ext_value, internal_data, len);
             }
             if (critical != NULL) {
                /* Retrieve the x509 extension's critical value.
@@ -763,7 +763,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid_fi
                 */
                 *critical = X509_EXTENSION_get_critical(x509_ext);
             }
-            *oid_value_out_len = len;
+            *ext_value_len = len;
             return S2N_SUCCESS;
         }
     }
@@ -771,30 +771,30 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid_fi
     POSIX_BAIL(S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND);
 }
 
-int s2n_get_x509_extension_oid_value_length(struct s2n_cert *cert, const uint8_t *oid_field_in,
-                                            const uint32_t oid_field_in_len, uint32_t *oid_value_len)
+int s2n_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid,
+                                            const uint32_t oid_len, uint32_t *ext_value_len)
 {
     POSIX_ENSURE_REF(cert);
-    POSIX_ENSURE_REF(oid_field_in);
-    POSIX_ENSURE_GT(oid_field_in_len, 0);
-    POSIX_ENSURE_REF(oid_value_len);
+    POSIX_ENSURE_REF(oid);
+    POSIX_ENSURE_GT(oid_len, 0);
+    POSIX_ENSURE_REF(ext_value_len);
 
-    POSIX_GUARD(s2n_parse_x509_extension(cert, oid_field_in, oid_field_in_len, NULL, oid_value_len, NULL));
+    POSIX_GUARD(s2n_parse_x509_extension(cert, oid, oid_len, NULL, ext_value_len, NULL));
 
     return S2N_SUCCESS;
 }
 
-int s2n_get_x509_extension_oid_value(struct s2n_cert *cert, const uint8_t *oid_field_in, const uint32_t oid_field_in_len,
-                                      uint8_t *oid_value_out, uint32_t *oid_value_out_len, bool *critical)
+int s2n_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, const uint32_t oid_len,
+                                      uint8_t *ext_value, uint32_t *ext_value_len, bool *critical)
 {
     POSIX_ENSURE_REF(cert);
-    POSIX_ENSURE_REF(oid_field_in);
-    POSIX_ENSURE_GT(oid_field_in_len, 0);
-    POSIX_ENSURE_REF(oid_value_out);
-    POSIX_ENSURE_REF(oid_value_out_len);
+    POSIX_ENSURE_REF(oid);
+    POSIX_ENSURE_GT(oid_len, 0);
+    POSIX_ENSURE_REF(ext_value);
+    POSIX_ENSURE_REF(ext_value_len);
     POSIX_ENSURE_REF(critical);
 
-    POSIX_GUARD(s2n_parse_x509_extension(cert, oid_field_in, oid_field_in_len, oid_value_out, oid_value_out_len, critical));
+    POSIX_GUARD(s2n_parse_x509_extension(cert, oid, oid_len, ext_value, ext_value_len, critical));
 
     return S2N_SUCCESS;
 }
