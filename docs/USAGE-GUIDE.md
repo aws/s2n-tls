@@ -1426,21 +1426,21 @@ Return the certificate that was used during the TLS handshake.
 This function returns NULL if the certificate selection phase of the handshake has not completed
  or if a certificate was not requested by the peer.
 
-### s2n\_cert\_get\_cert\_chain\_length
+### s2n\_cert\_chain\_get\_length
 
 ```c
-int s2n_cert_get_cert_chain_length(const struct s2n_cert_chain_and_key *chain_and_key, uint32_t *cert_length);
+int s2n_cert_chain_get_length(const struct s2n_cert_chain_and_key *chain_and_key, uint32_t *cert_length);
 ```
 
-**s2n_cert_get_cert_chain_length** gets the length of the certificate chain `chain_and_key`. If the certificate chain `chain_and_key` is NULL an error is thrown.
+**s2n_cert_chain_get_length** gets the length of the certificate chain `chain_and_key`. If the certificate chain `chain_and_key` is NULL an error is thrown.
 
-### s2n\_cert_\_get\_cert\_from\_cert\_chain
+### s2n\_cert_\_chain\_get\_cert
 
 ```c
-int s2n_cert_get_cert_from_cert_chain(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, const uint32_t cert_idx);
+int s2n_cert_chain_get_cert(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, const uint32_t cert_idx);
 ```
 
-**s2n_cert_get_cert_from_cert_chain** gets the certificate `out_cert` present at the index `cert_idx` of the certificate chain `chain_and_key`.  If the certificate chain `chain_and_key` is NULL or the certificate index value is not in the acceptable range for the input certificate chain, an error is thrown. Note that the index of the head_cert is zero.
+**s2n_cert_chain_get_cert** gets the certificate `out_cert` present at the index `cert_idx` of the certificate chain `chain_and_key`.  If the certificate chain `chain_and_key` is NULL or the certificate index value is not in the acceptable range for the input certificate chain, an error is thrown. Note that the index of the head_cert is zero.
 
 ### s2n\_cert\_get\_der
 
