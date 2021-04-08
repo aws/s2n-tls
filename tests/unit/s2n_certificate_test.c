@@ -47,7 +47,7 @@ static S2N_RESULT s2n_compare_cert_chain(struct s2n_connection *conn, struct s2n
     ENSURE_REF(conn);
     ENSURE_REF(test_peer_chain);
     uint32_t cert_chain_length = 0;
-    RESULT_GUARD_POSIX(s2n_get_cert_chain_length(test_peer_chain, &cert_chain_length));
+    RESULT_GUARD_POSIX(s2n_cert_get_cert_chain_length(test_peer_chain, &cert_chain_length));
     DEFER_CLEANUP(STACK_OF(X509) *cert_chain_validated = X509_STORE_CTX_get1_chain(conn->x509_validator.store_ctx),
                   s2n_openssl_x509_stack_pop_free);
     ENSURE_REF(cert_chain_validated);
@@ -62,7 +62,7 @@ static S2N_RESULT s2n_compare_cert_chain(struct s2n_connection *conn, struct s2n
         ENSURE_REF(cert_data_from_validator);
         ENSURE_GT(cert_size_from_validator, 0);
 
-        RESULT_GUARD_POSIX(s2n_get_cert_from_cert_chain(test_peer_chain, &cur_cert, cert_idx));
+        RESULT_GUARD_POSIX(s2n_cert_get_cert_from_cert_chain(test_peer_chain, &cur_cert, cert_idx));
         ENSURE_REF(cur_cert);
         ENSURE_EQ(cert_size_from_validator, cur_cert->raw.size);
         ENSURE_EQ(memcmp(cert_data_from_validator, cur_cert->raw.data, cur_cert->raw.size), 0);
@@ -97,43 +97,43 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(
         s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
-    /* Test s2n_get_cert_chain_length */ 
+    /* Test s2n_cert_get_cert_chain_length */ 
     {
         uint32_t length = 0;
 
         /* Safety checks */
         {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_chain_length(NULL, &length), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_chain_length(chain_and_key, NULL), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_cert_chain_length(NULL, &length), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_cert_chain_length(chain_and_key, NULL), S2N_ERR_NULL);
         }
 
         /* Test success case */
-        EXPECT_SUCCESS(s2n_get_cert_chain_length(chain_and_key, &length));
+        EXPECT_SUCCESS(s2n_cert_get_cert_chain_length(chain_and_key, &length));
         EXPECT_EQUAL(length, S2N_DEFAULT_TEST_CERT_CHAIN_LENGTH);
 
     }
 
-    /* Test s2n_get_cert_from_cert_chain */
+    /* Test s2n_cert_get_cert_from_cert_chain */
     {
         struct s2n_cert *out_cert = NULL;
         uint32_t cert_idx = 0;
 
         /* Safety checks */
         {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_from_cert_chain(NULL, &out_cert, cert_idx), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_from_cert_chain(chain_and_key, NULL, cert_idx), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_cert_from_cert_chain(NULL, &out_cert, cert_idx), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_cert_from_cert_chain(chain_and_key, NULL, cert_idx), S2N_ERR_NULL);
         }
 
         struct s2n_cert *cur_cert = chain_and_key->cert_chain->head;
 
         /* Test error case for invalid cert_idx, the valid range of cert_idx is 0 to cert_chain_length - 1 */  
         cert_idx = S2N_DEFAULT_TEST_CERT_CHAIN_LENGTH;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_from_cert_chain(chain_and_key, &out_cert, cert_idx), S2N_ERR_NO_CERT_FOUND);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_cert_from_cert_chain(chain_and_key, &out_cert, cert_idx), S2N_ERR_NO_CERT_FOUND);
 
         /* Test success case */
         for (size_t i = 0; i < S2N_DEFAULT_TEST_CERT_CHAIN_LENGTH; i++)
         {
-            EXPECT_SUCCESS(s2n_get_cert_from_cert_chain(chain_and_key, &out_cert, i));
+            EXPECT_SUCCESS(s2n_cert_get_cert_from_cert_chain(chain_and_key, &out_cert, i));
             EXPECT_NOT_NULL(cur_cert);
             EXPECT_EQUAL(out_cert, cur_cert);
             cur_cert = cur_cert->next;
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 
     }
 
-    /* Test s2n_get_cert_der */ 
+    /* Test s2n_cert_get_cert_der */ 
     {
         struct s2n_cert *cert = chain_and_key->cert_chain->head;
         const uint8_t *out_cert_der = NULL;
@@ -149,12 +149,12 @@ int main(int argc, char **argv)
 
         /* Safety checks */
         {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_der(NULL, &out_cert_der, &cert_len), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_der(cert, NULL, &cert_len), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_get_cert_der(cert, &out_cert_der, NULL), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_cert_der(NULL, &out_cert_der, &cert_len), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_cert_der(cert, NULL, &cert_len), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_cert_der(cert, &out_cert_der, NULL), S2N_ERR_NULL);
         }
 
-        EXPECT_SUCCESS(s2n_get_cert_der(cert, &out_cert_der, &cert_len));
+        EXPECT_SUCCESS(s2n_cert_get_cert_der(cert, &out_cert_der, &cert_len));
         EXPECT_EQUAL(cert_len, cert->raw.size); 
         EXPECT_BYTEARRAY_EQUAL(out_cert_der, cert->raw.data, cert_len);
     }
