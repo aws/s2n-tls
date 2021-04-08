@@ -1442,13 +1442,13 @@ int s2n_cert_get_cert_from_cert_chain(const struct s2n_cert_chain_and_key *chain
 
 **s2n_cert_get_cert_from_cert_chain** gets the certificate `out_cert` present at the index `cert_idx` of the certificate chain `chain_and_key`.  If the certificate chain `chain_and_key` is NULL or the certificate index value is not in the acceptable range for the input certificate chain, an error is thrown. Note that the index of the head_cert is zero.
 
-### s2n\_cert\_get\_cert\_der
+### s2n\_cert\_get\_der
 
 ```c
-int s2n_cert_get_cert_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, uint32_t *cert_length);
+int s2n_cert_get_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, uint32_t *cert_length);
 ```
 
-**s2n_cert_get_cert_der** gets the certificate `cert` in .der format which is returned in the buffer `out_cert_der`, `cert_len` represents the length of the certificate. 
+**s2n_cert_get_der** gets the certificate `cert` in .der format which is returned in the buffer `out_cert_der`, `cert_len` represents the length of the certificate. 
 
 ### s2n\_connection\_get_peer\_cert\_chain
 

@@ -487,7 +487,7 @@ extern int s2n_cert_get_cert_from_cert_chain(const struct s2n_cert_chain_and_key
  * @param cert_length This return value represents the length of the certificate.
  */
 S2N_API
-extern int s2n_cert_get_cert_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, uint32_t *cert_length);
+extern int s2n_cert_get_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, uint32_t *cert_length);
 
 /**
  * Returns the validated peer certificate chain as a `s2n_cert_chain_and_key` opaque object.

@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 
     }
 
-    /* Test s2n_cert_get_cert_der */ 
+    /* Test s2n_cert_get_der */ 
     {
         struct s2n_cert *cert = chain_and_key->cert_chain->head;
         const uint8_t *out_cert_der = NULL;
@@ -149,12 +149,12 @@ int main(int argc, char **argv)
 
         /* Safety checks */
         {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_cert_der(NULL, &out_cert_der, &cert_len), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_cert_der(cert, NULL, &cert_len), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_cert_der(cert, &out_cert_der, NULL), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_der(NULL, &out_cert_der, &cert_len), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_der(cert, NULL, &cert_len), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_get_der(cert, &out_cert_der, NULL), S2N_ERR_NULL);
         }
 
-        EXPECT_SUCCESS(s2n_cert_get_cert_der(cert, &out_cert_der, &cert_len));
+        EXPECT_SUCCESS(s2n_cert_get_der(cert, &out_cert_der, &cert_len));
         EXPECT_EQUAL(cert_len, cert->raw.size); 
         EXPECT_BYTEARRAY_EQUAL(out_cert_der, cert->raw.data, cert_len);
     }
