@@ -1177,7 +1177,8 @@ const char *s2n_get_server_name(struct s2n_connection *conn);
 
 **s2n_get_server_name** returns the server name associated with a connection,
 or NULL if none is found. This can be used by a server to determine which server
-name the client is using.
+name the client is using. This function returns the first ServerName entry in the ServerNameList
+sent by the client. Subsequent entries are not returned.
 
 ### s2n\_connection\_set\_blinding
 
