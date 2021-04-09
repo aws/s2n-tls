@@ -116,6 +116,8 @@ struct s2n_config {
     s2n_session_ticket_fn session_ticket_cb;
     void *session_ticket_ctx;
 
+    s2n_early_data_cb early_data_cb;
+
     uint32_t server_max_early_data_size;
 
     s2n_psk_mode psk_mode;

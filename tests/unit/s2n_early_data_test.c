@@ -84,6 +84,25 @@ static S2N_RESULT s2n_test_config_buffers_freed(struct s2n_early_data_config *co
     return S2N_RESULT_OK;
 }
 
+static int s2n_test_early_data_cb(struct s2n_connection *conn, struct s2n_offered_early_data *early_data)
+{
+    POSIX_ENSURE_REF(conn);
+
+    uint16_t context_len = 0;
+    POSIX_GUARD(s2n_offered_early_data_get_context_length(early_data, &context_len));
+    POSIX_ENSURE_EQ(context_len, 1);
+
+    uint8_t context = 0;
+    POSIX_GUARD(s2n_offered_early_data_get_context(early_data, &context, 1));
+
+    if (context) {
+        POSIX_GUARD(s2n_offered_early_data_reject(early_data));
+    } else {
+        POSIX_GUARD(s2n_offered_early_data_accept(early_data));
+    }
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -596,6 +615,45 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
+
+        /* Triggers callback to let application reject early data */
+        {
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
+            EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(conn, nonzero_max_early_data, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(conn));
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->actual_protocol_version = S2N_TLS13;
+
+            /* Without callback set, accepts early data */
+            conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+            EXPECT_OK(s2n_early_data_accept_or_reject(conn));
+            EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_ACCEPTED);
+
+            uint8_t reject_early_data = false;
+            EXPECT_SUCCESS(s2n_config_set_early_data_cb(config, s2n_test_early_data_cb));
+
+            /* With callback set, may still accept early data */
+            conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+            EXPECT_SUCCESS(s2n_psk_set_context(conn->psk_params.chosen_psk, &reject_early_data, sizeof(reject_early_data)));
+            EXPECT_OK(s2n_early_data_accept_or_reject(conn));
+            EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_ACCEPTED);
+
+            /* With callback set, may reject early data */
+            reject_early_data = true;
+            conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+            EXPECT_SUCCESS(s2n_psk_set_context(conn->psk_params.chosen_psk, &reject_early_data, sizeof(reject_early_data)));
+            EXPECT_OK(s2n_early_data_accept_or_reject(conn));
+            EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_REJECTED);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
     }
 
     /* Test s2n_connection_get_early_data_status */
@@ -1105,6 +1163,128 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_early_data_validate_recv(&conn));
 
         EXPECT_SUCCESS(s2n_connection_free(valid_connection));
+    }
+
+    /* Test s2n_config_set_early_data_cb */
+    {
+        struct s2n_config *config = s2n_config_new();
+
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_early_data_cb(NULL, s2n_test_early_data_cb), S2N_ERR_NULL);
+        EXPECT_EQUAL(config->early_data_cb, 0);
+
+        /* Set callback */
+        EXPECT_SUCCESS(s2n_config_set_early_data_cb(config, s2n_test_early_data_cb));
+        EXPECT_EQUAL(config->early_data_cb, s2n_test_early_data_cb);
+
+        /* Clear callback */
+        EXPECT_SUCCESS(s2n_config_set_early_data_cb(config, NULL));
+        EXPECT_EQUAL(config->early_data_cb, NULL);
+
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
+    /* Test s2n_offered_early_data_get_context and s2n_offered_early_data_get_context_length */
+    {
+        struct s2n_offered_early_data early_data = { 0 };
+        const uint8_t context[] = "psk context";
+        const uint8_t empty_context[sizeof(context)] = { 0 };
+        uint8_t actual_context[sizeof(context)] = { 0 };
+        uint16_t length = 1;
+
+        /* Safety */
+        {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_get_context_length(NULL, &length), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_get_context(NULL, actual_context, 1), S2N_ERR_NULL);
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_get_context_length(&early_data, NULL), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_get_context(&early_data, NULL, 1), S2N_ERR_NULL);
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_get_context_length(&early_data, &length), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_get_context(&early_data, actual_context, 1), S2N_ERR_NULL);
+
+            early_data.conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_get_context_length(&early_data, &length), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_get_context(&early_data, actual_context, 1), S2N_ERR_NULL);
+            EXPECT_SUCCESS(s2n_connection_free(early_data.conn));
+        }
+
+        /* No context */
+        {
+            early_data.conn = s2n_connection_new(S2N_SERVER);
+            DEFER_CLEANUP(struct s2n_psk *test_psk = s2n_test_psk_new(early_data.conn), s2n_psk_free);
+            early_data.conn->psk_params.chosen_psk = test_psk;
+
+            EXPECT_SUCCESS(s2n_offered_early_data_get_context_length(&early_data, &length));
+            EXPECT_EQUAL(length, 0);
+
+            EXPECT_SUCCESS(s2n_offered_early_data_get_context(&early_data, actual_context, 0));
+            EXPECT_BYTEARRAY_EQUAL(actual_context, empty_context, sizeof(empty_context));
+
+            EXPECT_SUCCESS(s2n_offered_early_data_get_context(&early_data, actual_context, sizeof(actual_context)));
+            EXPECT_BYTEARRAY_EQUAL(actual_context, empty_context, sizeof(empty_context));
+
+            EXPECT_SUCCESS(s2n_connection_free(early_data.conn));
+        }
+
+        /* Context */
+        {
+            early_data.conn = s2n_connection_new(S2N_SERVER);
+            DEFER_CLEANUP(struct s2n_psk *test_psk = s2n_test_psk_new(early_data.conn), s2n_psk_free);
+            EXPECT_SUCCESS(s2n_psk_set_context(test_psk, context, sizeof(context)));
+            early_data.conn->psk_params.chosen_psk = test_psk;
+
+            EXPECT_SUCCESS(s2n_offered_early_data_get_context_length(&early_data, &length));
+            EXPECT_EQUAL(length, sizeof(context));
+
+            EXPECT_SUCCESS(s2n_offered_early_data_get_context(&early_data, actual_context, sizeof(actual_context)));
+            EXPECT_BYTEARRAY_EQUAL(actual_context, context, sizeof(context));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_get_context(&early_data, actual_context, 1),
+                    S2N_ERR_INSUFFICIENT_MEM_SIZE);
+
+            EXPECT_SUCCESS(s2n_connection_free(early_data.conn));
+        }
+    }
+
+    /* Test s2n_offered_early_data_reject */
+    {
+        struct s2n_offered_early_data early_data = { .conn = NULL };
+
+        /* Safety */
+        {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_reject(NULL), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_reject(&early_data), S2N_ERR_NULL);
+        }
+
+        /* Reject early data */
+        {
+            early_data.conn = s2n_connection_new(S2N_SERVER);
+            early_data.conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+            EXPECT_SUCCESS(s2n_offered_early_data_reject(&early_data));
+            EXPECT_EQUAL(early_data.conn->early_data_state, S2N_EARLY_DATA_REJECTED);
+            EXPECT_SUCCESS(s2n_connection_free(early_data.conn));
+        }
+    }
+
+    /* Test s2n_offered_early_data_accept */
+    {
+        struct s2n_offered_early_data early_data = { .conn = NULL };
+
+        /* Safety */
+        {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_accept(NULL), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_early_data_accept(&early_data), S2N_ERR_NULL);
+        }
+
+        /* Accept early data */
+        {
+            early_data.conn = s2n_connection_new(S2N_SERVER);
+            early_data.conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+            EXPECT_SUCCESS(s2n_offered_early_data_accept(&early_data));
+            EXPECT_EQUAL(early_data.conn->early_data_state, S2N_EARLY_DATA_ACCEPTED);
+            EXPECT_SUCCESS(s2n_connection_free(early_data.conn));
+        }
     }
 
     END_TEST();
