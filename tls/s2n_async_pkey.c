@@ -166,7 +166,6 @@ S2N_RESULT s2n_async_pkey_decrypt_async(struct s2n_connection *conn, struct s2n_
     RESULT_GUARD_POSIX(s2n_dup(init_decrypted, &decrypt->decrypted));
 
     /* Block the handshake and set async state to invoking to block async states */
-    RESULT_GUARD_POSIX(s2n_conn_set_handshake_read_block(conn));
     conn->handshake.async_state = S2N_ASYNC_INVOKING_CALLBACK;
 
     /* Move op to tmp to avoid DEFER_CLEANUP freeing the op, as it will be owned by callback */
@@ -236,7 +235,6 @@ S2N_RESULT s2n_async_pkey_sign_async(struct s2n_connection *conn, s2n_signature_
     RESULT_GUARD_POSIX(s2n_hash_copy(&sign->digest, digest));
 
     /* Block the handshake and set async state to invoking to block async states */
-    RESULT_GUARD_POSIX(s2n_conn_set_handshake_read_block(conn));
     conn->handshake.async_state = S2N_ASYNC_INVOKING_CALLBACK;
 
     /* Move op to tmp to avoid DEFER_CLEANUP freeing the op, as it will be owned by callback */
