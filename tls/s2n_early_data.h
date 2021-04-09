@@ -58,6 +58,7 @@ S2N_RESULT s2n_early_data_validate_recv(struct s2n_connection *conn);
 
 int s2n_config_set_server_max_early_data_size(struct s2n_config *config, uint32_t max_early_data_size);
 int s2n_connection_set_server_max_early_data_size(struct s2n_connection *conn, uint32_t max_early_data_size);
+int s2n_connection_set_server_early_data_context(struct s2n_connection *conn, const uint8_t *context, uint16_t context_size);
 
 int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data_size,
         uint8_t cipher_suite_first_byte, uint8_t cipher_suite_second_byte);
