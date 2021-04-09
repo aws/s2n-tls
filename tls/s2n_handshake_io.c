@@ -1348,6 +1348,7 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
     } else {
         /* The read handler processed the record successfully, we are done with this
          * record. Advance the state machine. */
+        POSIX_GUARD(s2n_tls13_handle_secrets(conn));
         POSIX_GUARD(s2n_advance_message(conn));
     }
 

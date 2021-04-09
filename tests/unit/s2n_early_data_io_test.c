@@ -44,6 +44,14 @@ static S2N_RESULT s2n_test_client_and_server_new(struct s2n_connection **client_
     return S2N_RESULT_OK;
 }
 
+struct s2n_offered_early_data *async_early_data = NULL;
+static int s2n_test_async_early_data_cb(struct s2n_connection *conn, struct s2n_offered_early_data *early_data)
+{
+    POSIX_ENSURE_REF(conn);
+    async_early_data = early_data;
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -201,6 +209,54 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
 
+        /* Early data accepted asynchronously */
+        {
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_early_data_cb(config, s2n_test_async_early_data_cb));
+            EXPECT_NOT_NULL(config);
+
+            struct s2n_connection *client_conn = NULL, *server_conn = NULL;
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+            EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+
+            /* Blocks on processing the ClientHello */
+            EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(server_conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
+
+            /* Still blocks if called again */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(server_conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
+
+            /* Accept early data */
+            EXPECT_SUCCESS(s2n_offered_early_data_accept(async_early_data));
+
+            /* Finish early data */
+            EXPECT_SUCCESS(s2n_connection_set_end_of_early_data(client_conn));
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            EXPECT_TRUE(WITH_EARLY_DATA(client_conn));
+            EXPECT_TRUE(WITH_EARLY_DATA(server_conn));
+            EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(client_conn));
+            EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(server_conn));
+            EXPECT_FALSE(IS_FULL_HANDSHAKE(client_conn));
+            EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
+            EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
+            EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
+
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
         /* Early data rejected */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
@@ -226,6 +282,49 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
+
+        /* Early data rejected asynchronously */
+        {
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_early_data_cb(config, s2n_test_async_early_data_cb));
+            EXPECT_NOT_NULL(config);
+
+            struct s2n_connection *client_conn = NULL, *server_conn = NULL;
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+            EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+
+            /* Blocks on processing the ClientHello */
+            EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(server_conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
+
+            /* Still blocks if called again */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(server_conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
+
+            EXPECT_SUCCESS(s2n_offered_early_data_reject(async_early_data));
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            EXPECT_FALSE(WITH_EARLY_DATA(client_conn));
+            EXPECT_FALSE(WITH_EARLY_DATA(server_conn));
+            EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(client_conn));
+            EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(server_conn));
+            EXPECT_FALSE(IS_FULL_HANDSHAKE(client_conn));
+            EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
+            EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
+            EXPECT_FALSE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
         }
 
         /* Early data rejected and ignored */

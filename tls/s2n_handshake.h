@@ -162,6 +162,10 @@ struct s2n_handshake {
     /* State of the async pkey operation during handshake */
     s2n_async_state async_state;
 
+    /* State of the async early data callback.
+     * If not initialized, then the callback has not been triggered yet. */
+    struct s2n_offered_early_data early_data_async_state;
+
     /* Indicates the CLIENT_HELLO message has been completely received */
     unsigned client_hello_received:1;
 
