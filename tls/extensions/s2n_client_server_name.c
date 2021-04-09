@@ -39,7 +39,7 @@ const s2n_extension_type s2n_client_server_name_extension = {
 
 static bool s2n_client_server_name_should_send(struct s2n_connection *conn)
 {
-    return conn && strlen(conn->server_name) > 0;
+    return conn && conn->server_name[0] != '\0';
 }
 
 static int s2n_client_server_name_send(struct s2n_connection *conn, struct s2n_stuffer *out)
