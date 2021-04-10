@@ -13,3 +13,4 @@ if (BUILD_SHARED_LIBS)
 else()
     include(${CMAKE_CURRENT_LIST_DIR}/static/@PROJECT_NAME@-targets.cmake)
 endif()
+
