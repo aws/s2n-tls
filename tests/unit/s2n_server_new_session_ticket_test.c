@@ -773,6 +773,44 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
         }
+
+        /* Sends large ticket - TLS13_MAX_NEW_SESSION_TICKET_SIZE is set correctly */
+        {
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            conn->tickets_to_send = 1;
+            /* TLS1.3 tickets contain extra fields */
+            conn->actual_protocol_version = S2N_TLS13;
+            /* Largest possible TLS1.3 secret size */
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            /* Necessary for extensions, which contribute to size */
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, 10));
+
+            /* Setup io */
+            struct s2n_stuffer output = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&output, &output, conn));
+
+            s2n_blocked_status blocked = 0;
+            EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+
+            uint32_t expected_max_size = s2n_stuffer_data_available(&output) - S2N_TLS_RECORD_HEADER_LENGTH;
+            if (TLS13_EXPECTED_NEW_SESSION_TICKET_SIZE != expected_max_size) {
+                fprintf(stdout, "\nTLS13_EXPECTED_NEW_SESSION_TICKET_SIZE (%i) should be %i\n",
+                        TLS13_EXPECTED_NEW_SESSION_TICKET_SIZE, expected_max_size);
+            }
+            EXPECT_EQUAL(TLS13_EXPECTED_NEW_SESSION_TICKET_SIZE, expected_max_size);
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&output));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
     }
 
     /* Functional test: s2n_negotiate sends new session tickets after the handshake is complete */

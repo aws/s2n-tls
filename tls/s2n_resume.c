@@ -627,20 +627,18 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_ticket_fi
     POSIX_GUARD(s2n_stuffer_write_bytes(&aad, key->implicit_aad, S2N_TICKET_AAD_IMPLICIT_LEN));
     POSIX_GUARD(s2n_stuffer_write_bytes(&aad, key->key_name, S2N_TICKET_KEY_NAME_LEN));
 
-    struct s2n_blob state_blob = { 0 };
-    struct s2n_stuffer state = { 0 };
+    uint32_t unencrypted_size = s2n_stuffer_data_available(to);
+    POSIX_GUARD_RESULT(s2n_serialize_resumption_state(conn, ticket_fields, to));
+    POSIX_GUARD(s2n_stuffer_skip_write(to, S2N_TLS_GCM_TAG_LEN));
 
-    uint8_t s_data[S2N_MAX_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = { 0 };
-    POSIX_GUARD(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
-    POSIX_GUARD(s2n_stuffer_init(&state, &state_blob));
-    POSIX_GUARD_RESULT(s2n_serialize_resumption_state(conn, ticket_fields, &state));
-    
-    /* Get the correct session resumption ticket size */
-    state_blob.size = s2n_stuffer_data_available(&state) + S2N_TLS_GCM_TAG_LEN;
+    struct s2n_blob state_blob = { 0 };
+    struct s2n_stuffer copy_for_encryption = *to;
+    POSIX_GUARD(s2n_stuffer_skip_read(&copy_for_encryption, unencrypted_size));
+    uint32_t state_blob_size = s2n_stuffer_data_available(&copy_for_encryption);
+    uint8_t *state_blob_data = s2n_stuffer_raw_read(&copy_for_encryption, state_blob_size);
+    POSIX_GUARD(s2n_blob_init(&state_blob, state_blob_data, state_blob_size));
 
     POSIX_GUARD(s2n_aes256_gcm.io.aead.encrypt(&aes_ticket_key, &iv, &aad_blob, &state_blob, &state_blob));
-
-    POSIX_GUARD(s2n_stuffer_write(to, &state_blob));
 
     POSIX_GUARD(s2n_aes256_gcm.destroy_key(&aes_ticket_key));
     POSIX_GUARD(s2n_session_key_free(&aes_ticket_key));
