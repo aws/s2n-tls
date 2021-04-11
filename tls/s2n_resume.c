@@ -86,6 +86,16 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, ticket_fields->session_secret.size));
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, ticket_fields->session_secret.data, ticket_fields->session_secret.size));
 
+    uint32_t server_max_early_data = 0;
+    RESULT_GUARD(s2n_early_data_get_server_max_size(conn, &server_max_early_data));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(out, server_max_early_data));
+    if (server_max_early_data > 0) {
+        RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, strlen(conn->application_protocol)));
+        RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, (uint8_t *) conn->application_protocol, strlen(conn->application_protocol)));
+        RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(out, conn->server_early_data_context.size));
+        RESULT_GUARD_POSIX(s2n_stuffer_write(out, &conn->server_early_data_context));
+    }
+
     return S2N_RESULT_OK;
 }
 
@@ -188,6 +198,10 @@ static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connecti
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(from);
 
+    DEFER_CLEANUP(struct s2n_psk psk = { 0 }, s2n_psk_wipe);
+    RESULT_GUARD(s2n_psk_init(&psk, S2N_PSK_TYPE_RESUMPTION));
+    RESULT_GUARD_POSIX(s2n_psk_set_identity(&psk, conn->client_ticket.data, conn->client_ticket.size));
+
     uint8_t protocol_version = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &protocol_version));
     RESULT_ENSURE_GTE(protocol_version, S2N_TLS13);
@@ -197,9 +211,9 @@ static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connecti
     struct s2n_cipher_suite *cipher_suite = NULL;
     RESULT_GUARD(s2n_cipher_suite_from_iana(iana_id, &cipher_suite));
     RESULT_ENSURE_REF(cipher_suite);
+    psk.hmac_alg = cipher_suite->prf_alg;
 
-    uint64_t issue_time = 0;
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &issue_time));
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &psk.ticket_issue_time));
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
@@ -209,36 +223,42 @@ static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connecti
      */
     uint64_t current_time = 0;
     RESULT_GUARD_POSIX(conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time));
-    RESULT_GUARD(s2n_validate_ticket_age(current_time, issue_time));
+    RESULT_GUARD(s2n_validate_ticket_age(current_time, psk.ticket_issue_time));
 
-    uint32_t ticket_age_add = 0;
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(from, &ticket_age_add));
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(from, &psk.ticket_age_add));
 
     uint8_t secret_len = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &secret_len));
     RESULT_ENSURE_LTE(secret_len, S2N_TLS_SECRET_LEN);
-    
-    uint8_t secret[S2N_TLS_SECRET_LEN] = { 0 };
-    RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, secret, secret_len));
+    uint8_t *secret_data = s2n_stuffer_raw_read(from, secret_len);
+    RESULT_GUARD_POSIX(s2n_psk_set_secret(&psk, secret_data, secret_len));
+
+    uint32_t max_early_data_size = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(from, &max_early_data_size));
+
+    if (max_early_data_size > 0) {
+        RESULT_GUARD_POSIX(s2n_psk_configure_early_data(&psk, max_early_data_size,
+                iana_id[0], iana_id[1]));
+
+        uint8_t app_proto_size = 0;
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &app_proto_size));
+        uint8_t *app_proto_data = s2n_stuffer_raw_read(from, app_proto_size);
+        RESULT_GUARD_POSIX(s2n_psk_set_application_protocol(&psk, app_proto_data, app_proto_size));
+
+        uint16_t early_data_context_size = 0;
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(from, &early_data_context_size));
+        uint8_t *early_data_context_data = s2n_stuffer_raw_read(from, early_data_context_size);
+        RESULT_GUARD_POSIX(s2n_psk_set_context(&psk, early_data_context_data, early_data_context_size));
+    }
 
     /* Make sure that this connection is configured for resumption PSKs, not external PSKs */
     RESULT_GUARD(s2n_connection_set_psk_type(conn, S2N_PSK_TYPE_RESUMPTION));
     /* Remove all previously-set PSKs. To keep the session ticket API behavior consistent
      * across protocol versions, we currently only support setting a single resumption PSK. */
     RESULT_GUARD(s2n_psk_parameters_wipe(&conn->psk_params));
-
-    /* Construct a PSK from ticket values */
-    DEFER_CLEANUP(struct s2n_psk psk = { 0 }, s2n_psk_wipe);
-    RESULT_GUARD(s2n_psk_init(&psk, S2N_PSK_TYPE_RESUMPTION));
-    RESULT_GUARD_POSIX(s2n_psk_set_identity(&psk, conn->client_ticket.data, conn->client_ticket.size));
-    RESULT_GUARD_POSIX(s2n_psk_set_secret(&psk, secret, secret_len));
-    psk.hmac_alg = cipher_suite->prf_alg;
-    psk.ticket_issue_time = issue_time;
-    psk.ticket_age_add = ticket_age_add;
     RESULT_GUARD_POSIX(s2n_connection_append_psk(conn, &psk));
 
     RESULT_ENSURE(s2n_stuffer_data_available(from) == 0, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
-
     return S2N_RESULT_OK;
 }
 

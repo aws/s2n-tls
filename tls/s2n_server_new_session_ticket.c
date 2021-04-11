@@ -32,8 +32,10 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 
-#define TLS13_EXPECTED_NEW_SESSION_TICKET_SIZE 136
-#define TLS13_EXPECTED_CLIENT_TICKET_SIZE 177
+#define TLS13_FIXED_NEW_SESSION_TICKET_SIZE     143
+#define TLS13_FIXED_CLIENT_TICKET_SIZE          188
+#define TLS13_VARIABLE_TICKET_FIELD_SIZE(conn) \
+    ( strlen(conn->application_protocol) + conn->server_early_data_context.size )
 
 int s2n_server_nst_recv(struct s2n_connection *conn) {
     POSIX_GUARD(s2n_stuffer_read_uint32(&conn->handshake.io, &conn->ticket_lifetime_hint));
@@ -108,7 +110,8 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
     RESULT_ENSURE(conn->tickets_sent <= conn->tickets_to_send, S2N_ERR_INTEGER_OVERFLOW);
 
     DEFER_CLEANUP(struct s2n_stuffer nst_stuffer = { 0 }, s2n_stuffer_free);
-    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&nst_stuffer, TLS13_EXPECTED_NEW_SESSION_TICKET_SIZE));
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&nst_stuffer,
+            TLS13_FIXED_NEW_SESSION_TICKET_SIZE + TLS13_VARIABLE_TICKET_FIELD_SIZE(conn)));
 
     while (conn->tickets_to_send - conn->tickets_sent > 0) {
         RESULT_GUARD(s2n_tls13_server_nst_write(conn, &nst_stuffer));
@@ -318,7 +321,8 @@ S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stu
 
         /* Serialize resumption state */
         DEFER_CLEANUP(struct s2n_stuffer session_stuffer = { 0 }, s2n_stuffer_free);
-        RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&session_stuffer, TLS13_EXPECTED_CLIENT_TICKET_SIZE));
+        RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&session_stuffer,
+                TLS13_FIXED_NEW_SESSION_TICKET_SIZE + TLS13_VARIABLE_TICKET_FIELD_SIZE(conn)));
         RESULT_GUARD_POSIX(s2n_client_serialize_resumption_state(conn, &ticket_fields, &session_stuffer));
 
         session_stuffer.blob.size = s2n_stuffer_data_available(&session_stuffer);
