@@ -316,19 +316,13 @@ S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stu
         uint8_t session_secret_data[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
         RESULT_GUARD_POSIX(s2n_generate_session_secret(conn, &nonce, session_secret_data, &ticket_fields.session_secret));
 
-        /* Alloc some memory for the serialized session ticket */
-        DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
-        RESULT_GUARD_POSIX(s2n_alloc(&mem, S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN + \
-                conn->client_ticket.size + S2N_MAX_STATE_SIZE_IN_BYTES));
-
-        struct s2n_stuffer session_stuffer = { 0 };
-        RESULT_GUARD_POSIX(s2n_stuffer_init(&session_stuffer, &mem));
-
         /* Serialize resumption state */
+        DEFER_CLEANUP(struct s2n_stuffer session_stuffer = { 0 }, s2n_stuffer_free);
+        RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&session_stuffer, TLS13_EXPECTED_CLIENT_TICKET_SIZE));
         RESULT_GUARD_POSIX(s2n_client_serialize_resumption_state(conn, &ticket_fields, &session_stuffer));
+
         session_stuffer.blob.size = s2n_stuffer_data_available(&session_stuffer);
         struct s2n_session_ticket ticket = { .ticket_data = session_stuffer.blob, .session_lifetime = ticket_lifetime };
-
         RESULT_GUARD_POSIX(conn->config->session_ticket_cb(conn, &ticket));
     }
 

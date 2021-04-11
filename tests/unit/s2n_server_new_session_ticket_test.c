@@ -630,6 +630,46 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_config_free(config));
         }
+
+        /* Test with large ticket - TLS13_EXPECTED_CLIENT_TICKET_SIZE is correct */
+        {
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
+            EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
+            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            client_conn->actual_protocol_version = S2N_TLS13;
+            /* Cipher suite with max key size */
+            client_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            server_conn->actual_protocol_version = S2N_TLS13;
+            /* Cipher suite with max key size */
+            server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+            EXPECT_OK(s2n_tls13_server_nst_write(server_conn, &stuffer));
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, sizeof(uint8_t) + SIZEOF_UINT24));
+            EXPECT_OK(s2n_tls13_server_nst_recv(client_conn, &stuffer));
+
+            if (cb_session_data_len != TLS13_EXPECTED_CLIENT_TICKET_SIZE) {
+                fprintf(stdout, "\nTLS13_EXPECTED_CLIENT_TICKET_SIZE (%i) should be %i\n",
+                        TLS13_EXPECTED_CLIENT_TICKET_SIZE, (int) cb_session_data_len);
+            }
+            EXPECT_EQUAL(cb_session_data_len, TLS13_EXPECTED_CLIENT_TICKET_SIZE);
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
     }
 
     /* s2n_tls13_server_nst_send */
