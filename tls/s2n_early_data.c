@@ -167,6 +167,18 @@ S2N_RESULT s2n_early_data_get_server_max_size(struct s2n_connection *conn, uint3
     return S2N_RESULT_OK;
 }
 
+int s2n_connection_set_server_early_data_context(struct s2n_connection *conn, const uint8_t *context, uint16_t context_size)
+{
+    POSIX_ENSURE_REF(conn);
+    if (context_size > 0) {
+        POSIX_ENSURE_REF(context);
+    }
+
+    POSIX_GUARD(s2n_realloc(&conn->server_early_data_context, context_size));
+    POSIX_CHECKED_MEMCPY(conn->server_early_data_context.data, context, context_size);
+    return S2N_SUCCESS;
+}
+
 S2N_CLEANUP_RESULT s2n_early_data_config_free(struct s2n_early_data_config *config)
 {
     if (config == NULL) {

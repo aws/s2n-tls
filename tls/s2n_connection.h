@@ -356,6 +356,7 @@ struct s2n_connection {
 
     s2n_early_data_state early_data_state;
     uint32_t server_max_early_data_size;
+    struct s2n_blob server_early_data_context;
 };
 
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);
