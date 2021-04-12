@@ -42,6 +42,7 @@
 #include "common.h"
 
 #include "utils/s2n_safety.h"
+#include "tls/s2n_connection.h"
 
 #define MAX_CERTIFICATES 50
 
@@ -290,6 +291,10 @@ void usage()
     fprintf(stderr, "    Send number of bytes in https server mode to test throughput.\n");
     fprintf(stderr, "  -L --key-log <path>\n");
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
+    fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
+                    "    A comma separated list of psk paramaters specified in an order namely: psk_identity, psk_secret and psk_hmac_alg.\n"
+                    "    There are no whitespaces allowed before of after the comma.\n"
+                    "    Ex: --psk psk_id,psk_secret,S2N_PSK_HMAC_SHA256 --psk shared_id,shared_secret,S2N_PSK_HMAC_SHA384.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -313,6 +318,7 @@ struct conn_settings {
     int max_conns;
     const char *ca_dir;
     const char *ca_file;
+    struct s2n_array *psk_list;
 };
 
 int handle_connection(int fd, struct s2n_config *config, struct conn_settings settings)
@@ -353,6 +359,12 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
 
     if (settings.use_corked_io) {
         GUARD_RETURN(s2n_connection_use_corked_io(conn), "Error setting corked io");
+    }
+
+    for (size_t i = 0; i < settings.psk_list->len; i++) {
+        struct s2n_psk *psk = NULL;
+        POSIX_GUARD_RESULT(s2n_array_get(settings.psk_list, i, (void**) &psk));
+        GUARD_EXIT(s2n_connection_append_psk(conn, psk), "Error appending psk");
     }
 
     if (negotiate(conn, fd) != S2N_SUCCESS) {
@@ -414,6 +426,8 @@ int main(int argc, char *const *argv)
     const char *certificates[MAX_CERTIFICATES] = { 0 };
     const char *private_keys[MAX_CERTIFICATES] = { 0 };
 
+    GUARD_EXIT(s2n_init(), "Error running s2n_init()");
+
     struct conn_settings conn_settings = { 0 };
     int fips_mode = 0;
     int parallelize = 0;
@@ -422,6 +436,7 @@ int main(int argc, char *const *argv)
     conn_settings.session_ticket = 1;
     conn_settings.session_cache = 1;
     conn_settings.max_conns = -1;
+    conn_settings.psk_list = NULL;
 
     struct option long_options[] = {
         {"ciphers", required_argument, NULL, 'c'},
@@ -450,12 +465,13 @@ int main(int argc, char *const *argv)
         {"alpn", required_argument, 0, 'A'},
         {"non-blocking", no_argument, 0, 'B'},
         {"key-log", required_argument, 0, 'L'},
+        {"psk", required_argument, 0, 'P'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:A:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:A:P:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -556,6 +572,12 @@ int main(int argc, char *const *argv)
         case 'L':
             key_log_path = optarg;
             break;
+        case 'P':
+            conn_settings.psk_list = s2n_array_new(sizeof(struct s2n_psk));
+            POSIX_ENSURE_REF(conn_settings.psk_list);
+            POSIX_GUARD_RESULT(s2n_array_init(conn_settings.psk_list, sizeof(struct s2n_psk)));
+            s2n_setup_external_psk(conn_settings.psk_list, optarg);
+            break;
         case '?':
         default:
             fprintf(stdout, "getopt_long returned: %d", c);
@@ -642,8 +664,6 @@ int main(int argc, char *const *argv)
         exit(1);
 #endif
     }
-
-    GUARD_EXIT(s2n_init(), "Error running s2n_init()");
 
     printf("Listening on %s:%s\n", host, port);
 
@@ -833,6 +853,11 @@ int main(int argc, char *const *argv)
     if (key_log_file) {
         fclose(key_log_file);
     }
+
+    if (conn_settings.psk_list) {
+        POSIX_GUARD_RESULT(s2n_array_free(conn_settings.psk_list));
+    }
+
 
     GUARD_EXIT(s2n_cleanup(),  "Error running s2n_cleanup()");
 

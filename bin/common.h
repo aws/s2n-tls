@@ -16,6 +16,9 @@
 #pragma once
 
 #include <stdint.h>
+#include "tls/s2n_psk.h"
+#include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
 
 #define GUARD_EXIT(x, msg)  \
   do {                      \
@@ -40,3 +43,4 @@ int https(struct s2n_connection *conn, uint32_t bench);
 int key_log_callback(void *ctx, struct s2n_connection *conn, uint8_t *logline, size_t len);
 
 char *load_file_to_cstring(const char *path);
+int s2n_setup_external_psk(struct s2n_array *psk_list, char *params);

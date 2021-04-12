@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include "common.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -20,6 +21,7 @@
 #include <errno.h>
 #include <s2n.h>
 
+#define PSK_SECRET_SIZE_MAX 2048
 char *load_file_to_cstring(const char *path)
 {
     FILE *pem_file = fopen(path, "rb");
@@ -64,7 +66,8 @@ char *load_file_to_cstring(const char *path)
     return pem_out;
 }
 
-int key_log_callback(void *file, struct s2n_connection *conn, uint8_t *logline, size_t len) {
+int key_log_callback(void *file, struct s2n_connection *conn, uint8_t *logline, size_t len)
+{
     if (fwrite(logline, 1, len, (FILE *)file) != len) {
         return S2N_FAILURE;
     }
@@ -74,4 +77,57 @@ int key_log_callback(void *file, struct s2n_connection *conn, uint8_t *logline, 
     }
 
     return fflush((FILE *)file);
+}
+
+static int s2n_get_psk_hmac_alg(s2n_psk_hmac *psk_hmac, char *hmac_str)
+{
+    POSIX_ENSURE_REF(psk_hmac);
+    POSIX_ENSURE_REF(hmac_str);
+
+    if (strcmp(hmac_str, "S2N_PSK_HMAC_SHA256") == 0) {
+        *psk_hmac = S2N_PSK_HMAC_SHA256;
+    } else if (strcmp(hmac_str, "S2N_PSK_HMAC_SHA384") == 0) {
+        *psk_hmac = S2N_PSK_HMAC_SHA384;
+    } else {
+        return S2N_FAILURE;
+    }
+    return S2N_SUCCESS;
+}
+
+int s2n_setup_external_psk(struct s2n_array *psk_list, char *params)
+{
+    POSIX_ENSURE_REF(psk_list);
+    POSIX_ENSURE_REF(params);
+
+    struct s2n_psk *psk = NULL;
+    POSIX_GUARD_RESULT(s2n_array_pushback(psk_list, (void **)&psk));
+    POSIX_ENSURE_REF(psk);
+    POSIX_GUARD_RESULT(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
+    /* Default HMAC algorithm is S2N_PSK_HMAC_SHA256 */
+    s2n_psk_hmac psk_hmac_alg = S2N_PSK_HMAC_SHA256;
+    size_t idx = 0;
+    for (char *token = strtok(params, ","); token != NULL; token = strtok(NULL, ","), idx++) {
+        struct s2n_blob secret = { 0 };
+        uint8_t secret_buf[PSK_SECRET_SIZE_MAX] = { 0 };
+        switch (idx) {
+            case 0:
+                GUARD_EXIT(s2n_psk_set_identity(psk, (const uint8_t *)token, strlen(token)),
+                             "Error setting psk identity");
+                break;
+            case 1:
+                POSIX_GUARD(s2n_blob_init(&secret, secret_buf, sizeof(secret_buf)));
+                POSIX_GUARD(s2n_hex_string_to_bytes((const uint8_t *)token, &secret));
+                GUARD_EXIT(s2n_psk_set_secret(psk, secret.data, secret.size),
+                             "Error setting psk secret");
+                break;
+            case 2:
+                GUARD_EXIT(s2n_get_psk_hmac_alg(&psk_hmac_alg, token), "Invalid psk hmac algorithm");
+                GUARD_EXIT(s2n_psk_set_hmac(psk, psk_hmac_alg), "Error setting psk hmac algorithm");
+                break;
+            default:
+                break;
+        }
+    }
+
+    return S2N_SUCCESS;
 }
