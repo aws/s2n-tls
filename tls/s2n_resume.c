@@ -231,6 +231,7 @@ static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connecti
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &secret_len));
     RESULT_ENSURE_LTE(secret_len, S2N_TLS_SECRET_LEN);
     uint8_t *secret_data = s2n_stuffer_raw_read(from, secret_len);
+    RESULT_ENSURE_REF(secret_data);
     RESULT_GUARD_POSIX(s2n_psk_set_secret(&psk, secret_data, secret_len));
 
     uint32_t max_early_data_size = 0;
@@ -243,11 +244,13 @@ static S2N_RESULT s2n_tls13_client_deserialize_session_state(struct s2n_connecti
         uint8_t app_proto_size = 0;
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &app_proto_size));
         uint8_t *app_proto_data = s2n_stuffer_raw_read(from, app_proto_size);
+        RESULT_ENSURE_REF(app_proto_data);
         RESULT_GUARD_POSIX(s2n_psk_set_application_protocol(&psk, app_proto_data, app_proto_size));
 
         uint16_t early_data_context_size = 0;
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(from, &early_data_context_size));
         uint8_t *early_data_context_data = s2n_stuffer_raw_read(from, early_data_context_size);
+        RESULT_ENSURE_REF(early_data_context_data);
         RESULT_GUARD_POSIX(s2n_psk_set_context(&psk, early_data_context_data, early_data_context_size));
     }
 
@@ -656,6 +659,7 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_ticket_fi
     POSIX_GUARD(s2n_stuffer_skip_read(&copy_for_encryption, unencrypted_size));
     uint32_t state_blob_size = s2n_stuffer_data_available(&copy_for_encryption);
     uint8_t *state_blob_data = s2n_stuffer_raw_read(&copy_for_encryption, state_blob_size);
+    POSIX_ENSURE_REF(state_blob_data);
     POSIX_GUARD(s2n_blob_init(&state_blob, state_blob_data, state_blob_size));
 
     POSIX_GUARD(s2n_aes256_gcm.io.aead.encrypt(&aes_ticket_key, &iv, &aad_blob, &state_blob, &state_blob));
