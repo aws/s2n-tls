@@ -45,6 +45,10 @@ struct s2n_early_data_config {
 S2N_CLEANUP_RESULT s2n_early_data_config_free(struct s2n_early_data_config *config);
 S2N_RESULT s2n_early_data_config_clone(struct s2n_psk *new_psk, struct s2n_early_data_config *old_config);
 
+struct s2n_offered_early_data {
+    struct s2n_connection *conn;
+};
+
 bool s2n_early_data_is_valid_for_connection(struct s2n_connection *conn);
 S2N_RESULT s2n_early_data_accept_or_reject(struct s2n_connection *conn);
 
@@ -83,3 +87,11 @@ int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data, ssize_
         ssize_t *data_sent, s2n_blocked_status *blocked);
 int s2n_recv_early_data(struct s2n_connection *conn, uint8_t *data, ssize_t max_data_len,
         ssize_t *data_received, s2n_blocked_status *blocked);
+
+struct s2n_offered_early_data;
+typedef int (*s2n_early_data_cb)(struct s2n_connection *conn, struct s2n_offered_early_data *early_data);
+int s2n_config_set_early_data_cb(struct s2n_config *config, s2n_early_data_cb cb);
+int s2n_offered_early_data_get_context_length(struct s2n_offered_early_data *early_data, uint16_t *context_len);
+int s2n_offered_early_data_get_context(struct s2n_offered_early_data *early_data, uint8_t *context, uint16_t max_len);
+int s2n_offered_early_data_reject(struct s2n_offered_early_data *early_data);
+int s2n_offered_early_data_accept(struct s2n_offered_early_data *early_data);
