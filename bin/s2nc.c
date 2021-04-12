@@ -35,7 +35,6 @@
 #include <error/s2n_errno.h>
 
 #include "tls/s2n_connection.h"
-#include "utils/s2n_safety.h"
 
 #define S2N_MAX_ECC_CURVE_NAME_LENGTH 10
 
@@ -92,6 +91,10 @@ void usage()
                     "    By default, the client will generate keyshares for all curves present in the ecc_preferences list.\n");
     fprintf(stderr, "  -L --key-log <path>\n");
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
+    fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
+                    "    A comma separated list of psk paramaters specified in an order namely: psk_identity, psk_secret and psk_hmac_alg.\n"
+                    "    Note that the psk-secret is hex-encoded. There are no whitespaces allowed before of after the comma.\n"
+                    "    Ex: --psk psk_id,psk_secret,S2N_PSK_HMAC_SHA256 --psk shared_id,shared_secret,S2N_PSK_HMAC_SHA384.\n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -259,6 +262,10 @@ int main(int argc, char *const *argv)
     char *token = NULL;
     const char *key_log_path = NULL;
     FILE *key_log_file = NULL;
+    struct s2n_psk *psk_list[S2N_MAX_PSK_LIST_LENGTH] = { NULL };
+    size_t psk_idx = 0;
+
+    GUARD_EXIT(s2n_init(), "Error running s2n_init()");
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -282,12 +289,13 @@ int main(int argc, char *const *argv)
         {"keyshares", required_argument, 0, 'K'},
         {"non-blocking", no_argument, 0, 'B'},
         {"key-log", required_argument, 0, 'L'},
+        {"psk", required_argument, 0, 'P'},
         { 0 },
     };
 
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:irTCK:BL:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:irTCK:BL:P:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -369,6 +377,9 @@ int main(int argc, char *const *argv)
         case 'L':
             key_log_path = optarg;
             break;
+        case 'P':
+            POSIX_GUARD(s2n_setup_external_psk(psk_list, &psk_idx, optarg));
+            break;
         case '?':
         default:
             usage();
@@ -402,8 +413,6 @@ int main(int argc, char *const *argv)
         fprintf(stderr, "Error disabling SIGPIPE\n");
         exit(1);
     }
-
-    GUARD_EXIT(s2n_init(), "Error running s2n_init()");
 
     if ((r = getaddrinfo(host, port, &hints, &ai_list)) != 0) {
         fprintf(stderr, "error: %s\n", gai_strerror(r));
@@ -507,6 +516,12 @@ int main(int argc, char *const *argv)
         /* Update session state in connection if exists */
         if (session_state_length > 0) {
             GUARD_EXIT(s2n_connection_set_session(conn, session_state, session_state_length), "Error setting session state in connection");
+        }
+
+        for (size_t i = 0; i < psk_idx; i++) {
+            struct s2n_psk *psk = psk_list[i];
+            GUARD_EXIT(s2n_connection_append_psk(conn, psk), "Error appending psk to the connection");
+            POSIX_GUARD(s2n_psk_free(&psk));
         }
 
         /* See echo.c */
