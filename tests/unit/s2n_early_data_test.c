@@ -940,14 +940,14 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->server_early_data_context.size, sizeof(data));
         EXPECT_BYTEARRAY_EQUAL(conn->server_early_data_context.data, data, sizeof(data));
 
+        /* Clear context */
+        EXPECT_SUCCESS(s2n_connection_set_server_early_data_context(conn, NULL, 0));
+        EXPECT_EQUAL(conn->server_early_data_context.size, 0);
+
         /* Set context again */
         EXPECT_SUCCESS(s2n_connection_set_server_early_data_context(conn, data, 1));
         EXPECT_EQUAL(conn->server_early_data_context.size, 1);
         EXPECT_BYTEARRAY_EQUAL(conn->server_early_data_context.data, data, 1);
-
-        /* Clear context */
-        EXPECT_SUCCESS(s2n_connection_set_server_early_data_context(conn, NULL, 0));
-        EXPECT_EQUAL(conn->server_early_data_context.size, 0);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
