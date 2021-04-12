@@ -96,9 +96,9 @@ static int s2n_test_early_data_cb(struct s2n_connection *conn, struct s2n_offere
     POSIX_GUARD(s2n_offered_early_data_get_context(early_data, &context, 1));
 
     if (context) {
-        POSIX_GUARD(s2n_offered_early_data_reject(early_data));
-    } else {
         POSIX_GUARD(s2n_offered_early_data_accept(early_data));
+    } else {
+        POSIX_GUARD(s2n_offered_early_data_reject(early_data));
     }
     return S2N_SUCCESS;
 }
@@ -635,19 +635,19 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_early_data_accept_or_reject(conn));
             EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_ACCEPTED);
 
-            uint8_t reject_early_data = false;
+            uint8_t accept_early_data = true;
             EXPECT_SUCCESS(s2n_config_set_early_data_cb(config, s2n_test_early_data_cb));
 
             /* With callback set, may still accept early data */
             conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
-            EXPECT_SUCCESS(s2n_psk_set_context(conn->psk_params.chosen_psk, &reject_early_data, sizeof(reject_early_data)));
+            EXPECT_SUCCESS(s2n_psk_set_context(conn->psk_params.chosen_psk, &accept_early_data, sizeof(accept_early_data)));
             EXPECT_OK(s2n_early_data_accept_or_reject(conn));
             EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_ACCEPTED);
 
             /* With callback set, may reject early data */
-            reject_early_data = true;
+            accept_early_data = false;
             conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
-            EXPECT_SUCCESS(s2n_psk_set_context(conn->psk_params.chosen_psk, &reject_early_data, sizeof(reject_early_data)));
+            EXPECT_SUCCESS(s2n_psk_set_context(conn->psk_params.chosen_psk, &accept_early_data, sizeof(accept_early_data)));
             EXPECT_OK(s2n_early_data_accept_or_reject(conn));
             EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_REJECTED);
 
