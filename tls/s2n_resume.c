@@ -190,15 +190,15 @@ static S2N_RESULT s2n_validate_ticket_age(uint64_t current_time, uint64_t ticket
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_tls13_deserialize_session_state(struct s2n_connection *conn, struct s2n_blob *identity, struct s2n_stuffer *from)
+static S2N_RESULT s2n_tls13_deserialize_session_state(struct s2n_connection *conn, struct s2n_blob *psk_identity, struct s2n_stuffer *from)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(identity);
+    RESULT_ENSURE_REF(psk_identity);
     RESULT_ENSURE_REF(from);
 
     DEFER_CLEANUP(struct s2n_psk psk = { 0 }, s2n_psk_wipe);
     RESULT_GUARD(s2n_psk_init(&psk, S2N_PSK_TYPE_RESUMPTION));
-    RESULT_GUARD_POSIX(s2n_psk_set_identity(&psk, identity->data, identity->size));
+    RESULT_GUARD_POSIX(s2n_psk_set_identity(&psk, psk_identity->data, psk_identity->size));
 
     uint8_t protocol_version = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &protocol_version));
@@ -263,7 +263,7 @@ static S2N_RESULT s2n_tls13_deserialize_session_state(struct s2n_connection *con
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, struct s2n_blob *identity, struct s2n_stuffer *from)
+static S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, struct s2n_blob *psk_identity, struct s2n_stuffer *from)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(from);
@@ -278,7 +278,7 @@ static S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, 
             RESULT_GUARD(s2n_tls12_client_deserialize_session_state(conn, from));
         }  
     } else if (format == S2N_TLS13_SERIALIZED_FORMAT_VERSION) {
-        RESULT_GUARD(s2n_tls13_deserialize_session_state(conn, identity, from));
+        RESULT_GUARD(s2n_tls13_deserialize_session_state(conn, psk_identity, from));
     } else {
         RESULT_BAIL(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     }

@@ -648,6 +648,27 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
+
+        /* Functional test: The TLS1.2 server can deserialize what it serializes */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+
+            conn->actual_protocol_version = S2N_TLS12;
+            conn->secure.cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
+
+            uint8_t s_data[S2N_STATE_SIZE_IN_BYTES] = { 0 };
+            struct s2n_blob state_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
+            struct s2n_stuffer stuffer = { 0 };
+
+            EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &state_blob));
+
+            EXPECT_OK(s2n_serialize_resumption_state(conn, NULL, &stuffer));
+            EXPECT_OK(s2n_deserialize_resumption_state(conn, NULL, &stuffer));
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
     }
 
     /* s2n_validate_ticket_age */
