@@ -130,12 +130,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
+        uint32_t tls13_state_size_without_early_data = 0;
+
         /* Test TLS1.3 serialization */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
-
             conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
@@ -144,6 +145,7 @@ int main(int argc, char **argv)
             struct s2n_ticket_fields ticket_fields = { .ticket_age_add = 1, .session_secret = test_session_secret };
 
             EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &ticket_fields, &output));
+            tls13_state_size_without_early_data = s2n_stuffer_data_available(&output);
 
             uint8_t serial_id = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &serial_id));
@@ -172,6 +174,59 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&output, session_secret, secret_len));
             EXPECT_BYTEARRAY_EQUAL(test_session_secret.data, session_secret, secret_len);
             
+            uint32_t max_early_data_size = 1;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &max_early_data_size));
+            EXPECT_EQUAL(max_early_data_size, 0);
+
+            EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Test TLS1.3 serialization with early data */
+        {
+            const uint32_t test_max_early_data_size = UINT8_MAX;
+            const uint8_t test_early_data_context[] = "context";
+            const uint8_t test_app_protocol[] = "protocol";
+
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, test_max_early_data_size));
+            EXPECT_SUCCESS(s2n_connection_set_server_early_data_context(conn, test_early_data_context, sizeof(test_early_data_context)));
+            EXPECT_MEMCPY_SUCCESS(conn->application_protocol, test_app_protocol, sizeof(test_app_protocol));
+            conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+            conn->actual_protocol_version = S2N_TLS13;
+
+            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+
+            struct s2n_ticket_fields ticket_fields = { .ticket_age_add = 1, .session_secret = test_session_secret };
+
+            EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &ticket_fields, &output));
+
+            uint32_t max_early_data_size = 0;
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, tls13_state_size_without_early_data - sizeof(max_early_data_size)));
+            EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &max_early_data_size));
+            EXPECT_EQUAL(max_early_data_size, test_max_early_data_size);
+
+            uint8_t app_protocol_size = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &app_protocol_size));
+            EXPECT_NOT_EQUAL(app_protocol_size, 0);
+            EXPECT_EQUAL(app_protocol_size, strlen((const char*) test_app_protocol));
+
+            uint8_t app_protocol[sizeof(test_app_protocol)] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&output, app_protocol, app_protocol_size));
+            EXPECT_BYTEARRAY_EQUAL(app_protocol, test_app_protocol, sizeof(test_app_protocol));
+
+            uint16_t early_data_context_size = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&output, &early_data_context_size));
+            EXPECT_NOT_EQUAL(early_data_context_size, 0);
+            EXPECT_EQUAL(early_data_context_size, sizeof(test_early_data_context));
+
+            uint8_t early_data_context[sizeof(test_early_data_context)] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&output, early_data_context, early_data_context_size));
+            EXPECT_BYTEARRAY_EQUAL(early_data_context, test_early_data_context, sizeof(test_early_data_context));
+
+            EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
@@ -458,6 +513,54 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
+        /* Functional test: The TLS1.3 client can deserialize what it serializes with early data */
+        {
+            const uint32_t test_max_early_data_size = 100;
+            const uint8_t test_early_data_context[] = "test context";
+            const uint8_t test_app_protocol[] = "test protocol";
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, test_max_early_data_size));
+            EXPECT_SUCCESS(s2n_connection_set_server_early_data_context(conn, test_early_data_context, sizeof(test_early_data_context)));
+            EXPECT_MEMCPY_SUCCESS(conn->application_protocol, test_app_protocol, sizeof(test_app_protocol));
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+            /* Initialize client ticket */
+            struct s2n_ticket_fields ticket_fields = { .ticket_age_add = TICKET_AGE_ADD, .session_secret = test_session_secret };
+            uint8_t client_ticket[] = { CLIENT_TICKET };
+            EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, sizeof(client_ticket)));
+            EXPECT_MEMCPY_SUCCESS(conn->client_ticket.data, client_ticket, sizeof(client_ticket));
+
+            EXPECT_OK(s2n_serialize_resumption_state(conn, &ticket_fields, &stuffer));
+            EXPECT_OK(s2n_client_deserialize_session_state(conn, &stuffer));
+
+            /* Check PSK values are correct */
+            struct s2n_psk *psk = NULL;
+            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+            EXPECT_NOT_NULL(psk);
+
+            EXPECT_EQUAL(psk->early_data_config.protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(psk->early_data_config.max_early_data_size, test_max_early_data_size);
+            EXPECT_EQUAL(psk->early_data_config.cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
+            EXPECT_EQUAL(psk->early_data_config.application_protocol.size, strlen((const char*) test_app_protocol));
+            EXPECT_BYTEARRAY_EQUAL(psk->early_data_config.application_protocol.data, test_app_protocol, sizeof(test_app_protocol));
+            EXPECT_EQUAL(psk->early_data_config.context.size, sizeof(test_early_data_context));
+            EXPECT_BYTEARRAY_EQUAL(psk->early_data_config.context.data, test_early_data_context, sizeof(test_early_data_context));
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
         /* Functional test: The TLS1.2 client can deserialize what it serializes */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
@@ -639,18 +742,18 @@ int main(int argc, char **argv)
         {
             const uint8_t test_early_data_context[] = "context";
             const char test_app_proto[] = "https";
-            struct s2n_connection *conn;
-            struct s2n_config *config;
-            uint64_t current_time;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            EXPECT_NOT_NULL(config = s2n_config_new());
 
             /* Setting up session resumption encryption key */
+            uint64_t current_time = 0;
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
             EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *)ticket_key_name),
                          ticket_key.data, ticket_key.size, current_time/ONE_SEC_IN_NANOS));
 
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, 10));
             EXPECT_SUCCESS(s2n_connection_set_server_early_data_context(conn, test_early_data_context, sizeof(test_early_data_context)));

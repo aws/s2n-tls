@@ -631,7 +631,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
-        /* Test with large ticket - TLS13_FIXED_CLIENT_TICKET_SIZE is correct */
+        /* Test S2N_TLS13_CLIENT_SESSION_TICKET_SIZE(conn) */
         {
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
@@ -658,15 +658,56 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-            EXPECT_OK(s2n_tls13_server_nst_write(server_conn, &stuffer));
-            EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, sizeof(uint8_t) + SIZEOF_UINT24));
-            EXPECT_OK(s2n_tls13_server_nst_recv(client_conn, &stuffer));
+            /* Test with no variable fields */
+            {
+                EXPECT_OK(s2n_tls13_server_nst_write(server_conn, &stuffer));
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, sizeof(uint8_t) + SIZEOF_UINT24));
+                EXPECT_OK(s2n_tls13_server_nst_recv(client_conn, &stuffer));
 
-            if (cb_session_data_len != TLS13_FIXED_CLIENT_TICKET_SIZE) {
-                fprintf(stdout, "\nTLS13_FIXED_CLIENT_TICKET_SIZE (%i) should be %i\n",
-                        TLS13_FIXED_CLIENT_TICKET_SIZE, (int) cb_session_data_len);
+                EXPECT_EQUAL(S2N_TLS13_VARIABLE_SESSION_STATE_SIZE(client_conn), 0);
+                if (cb_session_data_len != S2N_TLS13_CLIENT_SESSION_TICKET_SIZE(client_conn)) {
+                    fprintf(stdout, "\nS2N_TLS13_CLIENT_SESSION_TICKET_SIZE fixed size (%i) should be %i\n",
+                            (int) S2N_TLS13_CLIENT_SESSION_TICKET_SIZE(client_conn) - client_conn->client_ticket.size,
+                            (int) cb_session_data_len - client_conn->client_ticket.size);
+                }
+                EXPECT_EQUAL(cb_session_data_len, S2N_TLS13_CLIENT_SESSION_TICKET_SIZE(client_conn));
             }
-            EXPECT_EQUAL(cb_session_data_len, TLS13_FIXED_CLIENT_TICKET_SIZE);
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+
+            /* Test with some variable fields */
+            {
+                const uint8_t app_protocol[] = "https";
+                EXPECT_MEMCPY_SUCCESS(client_conn->application_protocol, app_protocol, sizeof(app_protocol));
+
+                EXPECT_OK(s2n_tls13_server_nst_write(server_conn, &stuffer));
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, sizeof(uint8_t) + SIZEOF_UINT24));
+                EXPECT_OK(s2n_tls13_server_nst_recv(client_conn, &stuffer));
+
+                EXPECT_NOT_EQUAL(S2N_TLS13_VARIABLE_SESSION_STATE_SIZE(client_conn), 0);
+                EXPECT_EQUAL(cb_session_data_len, S2N_TLS13_CLIENT_SESSION_TICKET_SIZE(client_conn));
+            }
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+
+            /* Test with all variable fields */
+            {
+                const uint8_t early_data_context[] = "early data context";
+                EXPECT_SUCCESS(s2n_connection_set_server_early_data_context(server_conn,
+                        early_data_context, sizeof(early_data_context)));
+
+                const uint8_t app_protocol[] = "https";
+                EXPECT_MEMCPY_SUCCESS(client_conn->application_protocol, app_protocol, sizeof(app_protocol));
+                EXPECT_MEMCPY_SUCCESS(server_conn->application_protocol, app_protocol, sizeof(app_protocol));
+
+                EXPECT_OK(s2n_tls13_server_nst_write(server_conn, &stuffer));
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, sizeof(uint8_t) + SIZEOF_UINT24));
+                EXPECT_OK(s2n_tls13_server_nst_recv(client_conn, &stuffer));
+
+                EXPECT_NOT_EQUAL(S2N_TLS13_VARIABLE_SESSION_STATE_SIZE(client_conn), 0);
+                EXPECT_NOT_EQUAL(S2N_TLS13_VARIABLE_SESSION_STATE_SIZE(server_conn), 0);
+                EXPECT_EQUAL(cb_session_data_len, S2N_TLS13_CLIENT_SESSION_TICKET_SIZE(client_conn));
+            }
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -845,7 +886,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
-        /* Sends large ticket - TLS13_MAX_NEW_SESSION_TICKET_SIZE is set correctly */
+        /* Test S2N_TLS13_NEW_SESSION_TICKET_SIZE(conn) */
         {
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
@@ -855,7 +896,6 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            conn->tickets_to_send = 1;
             /* TLS1.3 tickets contain extra fields */
             conn->actual_protocol_version = S2N_TLS13;
             /* Largest possible TLS1.3 secret size */
@@ -868,15 +908,60 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&output, &output, conn));
 
-            s2n_blocked_status blocked = 0;
-            EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            /* Test with no variable fields */
+            {
+                conn->tickets_to_send++;
+                s2n_blocked_status blocked = 0;
+                EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+                EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&output), 0);
 
-            uint32_t expected_max_size = s2n_stuffer_data_available(&output) - S2N_TLS_RECORD_HEADER_LENGTH;
-            if (TLS13_FIXED_NEW_SESSION_TICKET_SIZE != expected_max_size) {
-                fprintf(stdout, "\nTLS13_FIXED_NEW_SESSION_TICKET_SIZE (%i) should be %i\n",
-                        TLS13_FIXED_NEW_SESSION_TICKET_SIZE, expected_max_size);
+                uint32_t expected_max_size = s2n_stuffer_data_available(&output) - S2N_TLS_RECORD_HEADER_LENGTH;
+                EXPECT_EQUAL(S2N_TLS13_VARIABLE_SESSION_STATE_SIZE(conn), 0);
+                if (S2N_TLS13_NEW_SESSION_TICKET_SIZE(conn) != expected_max_size) {
+                    fprintf(stdout, "\nS2N_TLS13_NEW_SESSION_TICKET_SIZE (%i) should be %i\n",
+                            (int) S2N_TLS13_NEW_SESSION_TICKET_SIZE(conn), expected_max_size);
+                }
+                EXPECT_EQUAL(S2N_TLS13_NEW_SESSION_TICKET_SIZE(conn), expected_max_size);
             }
-            EXPECT_EQUAL(TLS13_FIXED_NEW_SESSION_TICKET_SIZE, expected_max_size);
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&output));
+
+            /* Test with some variable fields */
+            {
+                const uint8_t early_data_context[] = "early data context";
+                EXPECT_SUCCESS(s2n_connection_set_server_early_data_context(conn,
+                        early_data_context, sizeof(early_data_context)));
+
+                conn->tickets_to_send++;
+                s2n_blocked_status blocked = 0;
+                EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+                EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&output), 0);
+
+                uint32_t expected_max_size = s2n_stuffer_data_available(&output) - S2N_TLS_RECORD_HEADER_LENGTH;
+                EXPECT_NOT_EQUAL(S2N_TLS13_VARIABLE_SESSION_STATE_SIZE(conn), 0);
+                EXPECT_EQUAL(S2N_TLS13_NEW_SESSION_TICKET_SIZE(conn), expected_max_size);
+            }
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&output));
+
+            /* Test with all variable fields */
+            {
+                const uint8_t early_data_context[] = "different early data context";
+                EXPECT_SUCCESS(s2n_connection_set_server_early_data_context(conn,
+                        early_data_context, sizeof(early_data_context)));
+
+                const uint8_t app_protocol[] = "https";
+                EXPECT_MEMCPY_SUCCESS(conn->application_protocol, app_protocol, sizeof(app_protocol));
+
+                conn->tickets_to_send++;
+                s2n_blocked_status blocked = 0;
+                EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+                EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&output), 0);
+
+                uint32_t expected_max_size = s2n_stuffer_data_available(&output) - S2N_TLS_RECORD_HEADER_LENGTH;
+                EXPECT_NOT_EQUAL(S2N_TLS13_VARIABLE_SESSION_STATE_SIZE(conn), 0);
+                EXPECT_EQUAL(S2N_TLS13_NEW_SESSION_TICKET_SIZE(conn), expected_max_size);
+            }
 
             EXPECT_SUCCESS(s2n_stuffer_free(&output));
             EXPECT_SUCCESS(s2n_connection_free(conn));
