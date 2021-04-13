@@ -114,7 +114,7 @@ endif
 
 ifdef S2N_GDB
     S2N_DEBUG = 1
-    CFLAGS += -Og
+    CFLAGS += -O0
 endif
 
 ifdef S2N_DEBUG

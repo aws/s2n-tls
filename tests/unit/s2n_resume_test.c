@@ -248,7 +248,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* s2n_client_deserialize_session_state */
+    /* s2n_deserialize_resumption_state */
     {
         uint8_t tls12_ticket[S2N_STATE_SIZE_IN_BYTES] = {
             S2N_TLS12_SERIALIZED_FORMAT_VERSION,
@@ -283,6 +283,27 @@ int main(int argc, char **argv)
             EARLY_DATA_CONTEXT,
         };
 
+        uint8_t faulty_format_ticket[] = {
+            0xFF,
+        };
+
+        /* Serialized ticket with incorrect format errors */
+        {
+            struct s2n_blob ticket_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, faulty_format_ticket, sizeof(faulty_format_ticket)));
+            struct s2n_stuffer ticket_stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, sizeof(faulty_format_ticket)));
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_deserialize_resumption_state(conn, NULL, &ticket_stuffer),
+                     S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
         /* Deserialized ticket sets correct connection values for session resumption in TLS1.2 */
         {
             struct s2n_blob ticket_blob = { 0 };
@@ -296,7 +317,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
 
-            EXPECT_OK(s2n_client_deserialize_session_state(conn, NULL, &ticket_stuffer));
+            EXPECT_OK(s2n_deserialize_resumption_state(conn, NULL, &ticket_stuffer));
 
             EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_rsa_with_aes_128_gcm_sha256);
@@ -327,7 +348,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, sizeof(client_ticket)));
             EXPECT_MEMCPY_SUCCESS(conn->client_ticket.data, client_ticket, sizeof(client_ticket));
 
-            EXPECT_OK(s2n_client_deserialize_session_state(conn, &conn->client_ticket, &ticket_stuffer));
+            EXPECT_OK(s2n_deserialize_resumption_state(conn, &conn->client_ticket, &ticket_stuffer));
 
             struct s2n_psk *psk = NULL;
             EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
@@ -420,7 +441,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_psk_set_secret(&resumption_psk, resumption_data, sizeof(resumption_data)));
             EXPECT_SUCCESS(s2n_connection_append_psk(conn, &resumption_psk));
 
-            EXPECT_OK(s2n_client_deserialize_session_state(conn, &conn->client_ticket, &ticket_stuffer));
+            EXPECT_OK(s2n_deserialize_resumption_state(conn, &conn->client_ticket, &ticket_stuffer));
 
             EXPECT_EQUAL(conn->psk_params.psk_list.len, 1);
             struct s2n_psk *psk = NULL;
@@ -462,7 +483,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_psk_set_secret(external_psk, external_data, sizeof(external_data)));
             EXPECT_SUCCESS(s2n_connection_append_psk(conn, external_psk));
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_client_deserialize_session_state(conn, &conn->client_ticket, &ticket_stuffer), S2N_ERR_PSK_MODE);
+            EXPECT_ERROR_WITH_ERRNO(s2n_deserialize_resumption_state(conn, &conn->client_ticket, &ticket_stuffer), S2N_ERR_PSK_MODE);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
@@ -491,7 +512,7 @@ int main(int argc, char **argv)
             EXPECT_MEMCPY_SUCCESS(conn->client_ticket.data, client_ticket, sizeof(client_ticket));
 
             EXPECT_OK(s2n_serialize_resumption_state(conn, &ticket_fields, &stuffer));
-            EXPECT_OK(s2n_client_deserialize_session_state(conn, &conn->client_ticket, &stuffer));
+            EXPECT_OK(s2n_deserialize_resumption_state(conn, &conn->client_ticket, &stuffer));
 
             /* Check PSK values are correct */
             struct s2n_psk *psk = NULL;
@@ -562,6 +583,51 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
+        /* Functional test: The TLS1.3 server can deserialize what it serializes */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+            struct s2n_ticket_fields ticket_fields = { .ticket_age_add = TICKET_AGE_ADD, .session_secret = test_session_secret };
+
+            /* Initialize identity for psk */
+            uint8_t ticket[] = { CLIENT_TICKET };
+            struct s2n_blob ticket_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket, sizeof(ticket)));
+
+            EXPECT_OK(s2n_serialize_resumption_state(conn, &ticket_fields, &stuffer));
+            EXPECT_OK(s2n_deserialize_resumption_state(conn, &ticket_blob, &stuffer));
+
+            /* Check PSK values are correct */
+            struct s2n_psk *psk = NULL;
+            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+            EXPECT_NOT_NULL(psk);
+
+            EXPECT_EQUAL(psk->type, S2N_PSK_TYPE_RESUMPTION);
+            S2N_BLOB_EXPECT_EQUAL(psk->identity, ticket_blob);
+
+            EXPECT_EQUAL(psk->secret.size, test_session_secret.size);
+            EXPECT_BYTEARRAY_EQUAL(psk->secret.data, test_session_secret.data, test_session_secret.size);
+
+            EXPECT_EQUAL(psk->hmac_alg, conn->secure.cipher_suite->prf_alg);
+
+            EXPECT_EQUAL(psk->ticket_age_add, TICKET_AGE_ADD);
+            EXPECT_EQUAL(psk->ticket_issue_time, ticket_issue_time);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
         /* Functional test: The TLS1.2 client can deserialize what it serializes */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
@@ -578,7 +644,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &state_blob));
 
             EXPECT_OK(s2n_serialize_resumption_state(conn, NULL, &stuffer));
-            EXPECT_OK(s2n_client_deserialize_session_state(conn, NULL, &stuffer));
+            EXPECT_OK(s2n_deserialize_resumption_state(conn, NULL, &stuffer));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }

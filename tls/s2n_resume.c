@@ -272,25 +272,11 @@ static S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, 
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &format));
 
     if (format == S2N_TLS12_SERIALIZED_FORMAT_VERSION) {
-        RESULT_GUARD_POSIX(s2n_tls12_deserialize_resumption_state(conn, from));
-    } else if (format == S2N_TLS13_SERIALIZED_FORMAT_VERSION) {
-        RESULT_GUARD(s2n_tls13_deserialize_session_state(conn, &conn->client_ticket_to_decrypt.blob, from));
-    } else {
-        RESULT_BAIL(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
-    }
-    return S2N_RESULT_OK;
-}
-
-static S2N_RESULT s2n_client_deserialize_session_state(struct s2n_connection *conn, struct s2n_blob *identity, struct s2n_stuffer *from)
-{
-    RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(from);
-
-    uint8_t format = 0;
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &format));
-
-    if (format == S2N_TLS12_SERIALIZED_FORMAT_VERSION) {
-        RESULT_GUARD(s2n_tls12_client_deserialize_session_state(conn, from));
+        if (conn->mode == S2N_SERVER) {
+            RESULT_GUARD_POSIX(s2n_tls12_deserialize_resumption_state(conn, from));
+        } else {
+            RESULT_GUARD(s2n_tls12_client_deserialize_session_state(conn, from));
+        }  
     } else if (format == S2N_TLS13_SERIALIZED_FORMAT_VERSION) {
         RESULT_GUARD(s2n_tls13_deserialize_session_state(conn, identity, from));
     } else {
@@ -312,7 +298,7 @@ static int s2n_client_deserialize_with_session_id(struct s2n_connection *conn, s
     conn->session_id_len = session_id_len;
     POSIX_GUARD(s2n_stuffer_read_bytes(from, conn->session_id, session_id_len));
 
-    POSIX_GUARD_RESULT(s2n_client_deserialize_session_state(conn, NULL, from));
+    POSIX_GUARD_RESULT(s2n_deserialize_resumption_state(conn, NULL, from));
 
     return 0;
 }
@@ -329,7 +315,7 @@ static int s2n_client_deserialize_with_session_ticket(struct s2n_connection *con
     POSIX_GUARD(s2n_realloc(&conn->client_ticket, session_ticket_len));
     POSIX_GUARD(s2n_stuffer_read(from, &conn->client_ticket));
 
-    POSIX_GUARD_RESULT(s2n_client_deserialize_session_state(conn, &conn->client_ticket, from));
+    POSIX_GUARD_RESULT(s2n_deserialize_resumption_state(conn, &conn->client_ticket, from));
 
     return 0;
 }
@@ -764,7 +750,6 @@ int s2n_encrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *t
 {
     return s2n_encrypt_session_ticket(conn, NULL, to);
 }
-
 
 int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *from)
 {
