@@ -128,6 +128,10 @@ _INLINE_ ret_t reencrypt(OUT m_t *m, IN const pad_e_t *e, IN const ct_t *l_ct)
 ////////////////////////////////////////////////////////////////////////////////
 int BIKE1_L1_R3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
 {
+  POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+  POSIX_ENSURE_REF(sk);
+  POSIX_ENSURE_REF(pk);
+
   DEFER_CLEANUP(aligned_sk_t l_sk = {0}, sk_cleanup);
 
   // The secret key is (h0, h1),
@@ -145,7 +149,7 @@ int BIKE1_L1_R3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
   // An AES_PRF state for the secret key
   DEFER_CLEANUP(aes_ctr_prf_state_t h_prf_state = {0}, aes_ctr_prf_state_cleanup);
 
-  get_seeds(&seeds);
+  POSIX_GUARD(get_seeds(&seeds));
   GUARD(init_aes_ctr_prf_state(&h_prf_state, MAX_AES_INVOKATION, &seeds.seed[0]));
 
   // Generate the secret key (h0, h1) with weight w/2
@@ -185,6 +189,11 @@ int BIKE1_L1_R3_crypto_kem_enc(OUT unsigned char *     ct,
                    OUT unsigned char *     ss,
                    IN const unsigned char *pk)
 {
+  POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+  POSIX_ENSURE_REF(pk);
+  POSIX_ENSURE_REF(ct);
+  POSIX_ENSURE_REF(ss);
+
   // Public values (they do not require cleanup on exit).
   pk_t l_pk;
   ct_t l_ct;
@@ -198,7 +207,7 @@ int BIKE1_L1_R3_crypto_kem_enc(OUT unsigned char *     ct,
   // alignment issues on non x86_64 processors.
   bike_memcpy(&l_pk, pk, sizeof(l_pk));
 
-  get_seeds(&seeds);
+  POSIX_GUARD(get_seeds(&seeds));
 
   // e = H(m) = H(seed[0])
   convert_seed_to_m_type(&m, &seeds.seed[0]);
@@ -226,6 +235,11 @@ int BIKE1_L1_R3_crypto_kem_dec(OUT unsigned char *     ss,
                    IN const unsigned char *ct,
                    IN const unsigned char *sk)
 {
+  POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+  POSIX_ENSURE_REF(sk);
+  POSIX_ENSURE_REF(ct);
+  POSIX_ENSURE_REF(ss);
+
   // Public values, does not require a cleanup on exit
   ct_t l_ct;
 
@@ -246,7 +260,7 @@ int BIKE1_L1_R3_crypto_kem_dec(OUT unsigned char *     ss,
   // Generate a random error vector to be used in case of decoding failure
   // (Note: possibly, a "fixed" zeroed error vector could suffice too,
   // and serve this generation)
-  get_seeds(&seeds);
+  POSIX_GUARD(get_seeds(&seeds));
   GUARD(generate_error_vector(&e_prime, &seeds.seed[0]));
 
   // Decode and on success check if |e|=T (all in constant-time)

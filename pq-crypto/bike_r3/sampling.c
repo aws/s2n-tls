@@ -15,22 +15,6 @@
 #define WLIST_SIZE_ADJUSTED_D (REG_DWORDS * DIVIDE_AND_CEIL(DV, REG_DWORDS))
 #define WLIST_SIZE_ADJUSTED_T (REG_DWORDS * DIVIDE_AND_CEIL(T1, REG_DWORDS))
 
-void get_seeds(OUT seeds_t *seeds)
-{
-#if defined(USE_NIST_RAND)
-  randombytes((uint8_t *)seeds, NUM_OF_SEEDS * sizeof(seed_t));
-#else
-  for(uint32_t i = 0; i < NUM_OF_SEEDS; ++i) {
-    for(uint32_t j = 0; j < sizeof(seed_t); ++j) {
-      seeds->seed[i].raw[j] = rand();
-    }
-  }
-#endif
-  for(uint32_t i = 0; i < NUM_OF_SEEDS; ++i) {
-    print("s: ", (uint64_t *)&seeds->seed[i], SIZEOF_BITS(seed_t));
-  }
-}
-
 // BSR returns ceil(log2(val))
 _INLINE_ uint8_t bit_scan_reverse_vartime(IN uint64_t val)
 {

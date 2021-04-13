@@ -34,6 +34,7 @@
  *     e5089. https://doi.org/10.1002/cpe.5089.
  */
 
+#include "error.h"
 #include "decode.h"
 #include "cleanup.h"
 #include "gf2x.h"

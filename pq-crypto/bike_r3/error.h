@@ -19,7 +19,8 @@ enum _bike_err
   E_DECODING_FAILURE         = 1,
   E_AES_CTR_PRF_INIT_FAIL    = 2,
   E_AES_OVER_USED            = 3,
-  EXTERNAL_LIB_ERROR_OPENSSL = 4
+  EXTERNAL_LIB_ERROR_OPENSSL = 4,
+  E_FAIL_TO_GET_SEED         = 5
 };
 
 typedef enum _bike_err _bike_err_t;

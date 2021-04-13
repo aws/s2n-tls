@@ -40,6 +40,12 @@ static const struct s2n_kem_test_vector test_vectors[] = {
                 .disable_asm = s2n_pq_noop_asm,
         },
         {
+                .kem = &s2n_bike1_l1_r3,
+                .asm_is_enabled = s2n_pq_no_asm_available,
+                .enable_asm = s2n_pq_noop_asm,
+                .disable_asm = s2n_pq_noop_asm,
+        },
+        {
                 .kem = &s2n_sike_p503_r1,
                 .asm_is_enabled = s2n_pq_no_asm_available,
                 .enable_asm = s2n_pq_noop_asm,

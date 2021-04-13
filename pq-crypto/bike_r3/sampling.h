@@ -7,13 +7,10 @@
 
 #pragma once
 
-#if defined(USE_NIST_RAND)
-#  include "../../tests/FromNIST/rng.h"
-#else
-#  include <stdlib.h>
-#endif
-
+#include <stdlib.h>
 #include "aes_ctr_prf.h"
+#include "pq-crypto/s2n_pq_random.h"
+#include "utils/s2n_result.h"
 #include "utilities.h"
 
 typedef enum
@@ -22,7 +19,13 @@ typedef enum
   MUST_BE_ODD    = 1
 } must_be_odd_t;
 
-void get_seeds(OUT seeds_t *seeds);
+_INLINE_ ret_t get_seeds(OUT seeds_t *seeds) {
+  if(s2n_result_is_ok(s2n_get_random_bytes(seeds->seed[0].raw, sizeof(seeds_t)))) {
+    return SUCCESS;
+  } else {
+    BIKE_ERROR(E_FAIL_TO_GET_SEED);
+  }
+}
 
 // Returns an array of r pseudorandom bits. If an odd
 // weight of r is required, set must_be_odd to MUST_BE_ODD.
