@@ -143,6 +143,7 @@ const struct s2n_kem *bike_kems[] = {
 const struct s2n_kem *sike_kems[] = {
         &s2n_sike_p503_r1,
         &s2n_sike_p434_r2,
+        &s2n_sike_p434_r3,
 };
 
 const struct s2n_kem *kyber_kems[] = {
