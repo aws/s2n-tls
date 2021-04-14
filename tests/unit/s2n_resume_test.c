@@ -21,8 +21,6 @@
 #include "tls/s2n_resume.c"
 #include "utils/s2n_safety.h"
 
-#define S2N_TLS13_STATE_SIZE_WITHOUT_SECRET S2N_MAX_STATE_SIZE_IN_BYTES - S2N_TLS_SECRET_LEN
-
 #define TICKET_ISSUE_TIME_BYTES 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
 #define TICKET_AGE_ADD_BYTES 0x01, 0x01, 0x01, 0x01
 #define TICKET_AGE_ADD 16843009
@@ -38,13 +36,6 @@
 #define EARLY_DATA_CONTEXT 0x07, 0x08, 0x09
 
 #define SECONDS_TO_NANOS(seconds) ((seconds) * (uint64_t)ONE_SEC_IN_NANOS)
-
-#define SIZE_OF_MAX_EARLY_DATA_SIZE sizeof(uint32_t)
-#define FIXED_ENCRYPTED_TICKET_SIZE (S2N_TICKET_KEY_NAME_LEN + \
-                                     S2N_TLS_GCM_IV_LEN + \
-                                     S2N_TLS13_STATE_SIZE_WITHOUT_SECRET + \
-                                     S2N_TLS_GCM_TAG_LEN + \
-                                     SIZE_OF_MAX_EARLY_DATA_SIZE)
 
 const uint64_t ticket_issue_time = 283686952306183;
 static int s2n_test_session_ticket_callback(struct s2n_connection *conn, struct s2n_session_ticket *ticket)
@@ -84,7 +75,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
         conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
 
-        uint8_t s_data[S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = { 0 };
+        uint8_t s_data[S2N_TLS12_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = { 0 };
         struct s2n_blob state_blob = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
         struct s2n_stuffer output = { 0 };
@@ -250,7 +241,7 @@ int main(int argc, char **argv)
 
     /* s2n_deserialize_resumption_state */
     {
-        uint8_t tls12_ticket[S2N_STATE_SIZE_IN_BYTES] = {
+        uint8_t tls12_ticket[S2N_TLS12_STATE_SIZE_IN_BYTES] = {
             S2N_TLS12_SERIALIZED_FORMAT_VERSION,
             S2N_TLS12,
             TLS_RSA_WITH_AES_128_GCM_SHA256,
@@ -598,7 +589,7 @@ int main(int argc, char **argv)
                 conn->actual_protocol_version = S2N_TLS12;
                 conn->secure.cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
 
-                uint8_t s_data[S2N_STATE_SIZE_IN_BYTES] = { 0 };
+                uint8_t s_data[S2N_TLS12_STATE_SIZE_IN_BYTES] = { 0 };
                 struct s2n_blob state_blob = { 0 };
                 EXPECT_SUCCESS(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
                 struct s2n_stuffer stuffer = { 0 };

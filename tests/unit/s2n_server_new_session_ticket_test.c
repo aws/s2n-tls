@@ -469,8 +469,8 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(&session_stuffer, &ticket_size));
                 EXPECT_EQUAL(ticket_size, sizeof(test_ticket));
 
-                uint8_t ticket[S2N_MAX_TICKET_SIZE_IN_BYTES] = { 0 };
-                EXPECT_SUCCESS(s2n_stuffer_read_bytes(&session_stuffer, ticket, ticket_size));
+                uint8_t *ticket = s2n_stuffer_raw_read(&session_stuffer, ticket_size);
+                EXPECT_NOT_NULL(ticket);
                 EXPECT_BYTEARRAY_EQUAL(ticket, test_ticket, ticket_size);
             }
 
