@@ -48,7 +48,7 @@ void PQCLEAN_KYBER512_CLEAN_kyber_shake128_squeezeblocks(uint8_t *output, size_t
 * Arguments:   - uint8_t *output:      pointer to output
 *              - size_t outlen:        number of requested output bytes
 *              - const uint8_t * key:  pointer to the key (of length KYBER_SYMBYTES)
-*              - const uint8_t nonce:  single-byte nonce (public PRF input)
+*              - uint8_t nonce:  single-byte nonce (public PRF input)
 **************************************************/
 void PQCLEAN_KYBER512_CLEAN_shake256_prf(uint8_t *output, size_t outlen, const uint8_t *key, uint8_t nonce) {
     uint8_t extkey[KYBER_SYMBYTES + 1];
