@@ -44,7 +44,6 @@ struct s2n_async_pkey_op;
             case S2N_ASYNC_INVOKED_COMPLETE:                               \
                 /* clean up state and return a success from handler */     \
                 __tmp_conn->handshake.async_state = S2N_ASYNC_NOT_INVOKED; \
-                POSIX_GUARD(s2n_conn_clear_handshake_read_block(__tmp_conn));    \
                 return S2N_SUCCESS;                                        \
         }                                                                  \
     } while (0)

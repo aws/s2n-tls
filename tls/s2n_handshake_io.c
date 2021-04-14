@@ -869,24 +869,6 @@ int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_conn_set_handshake_read_block(struct s2n_connection *conn)
-{
-    POSIX_ENSURE_REF(conn);
-
-    conn->handshake.paused = 1;
-
-    return 0;
-}
-
-int s2n_conn_clear_handshake_read_block(struct s2n_connection *conn)
-{
-    POSIX_ENSURE_REF(conn);
-
-    conn->handshake.paused = 0;
-
-    return 0;
-}
-
 const char *s2n_connection_get_last_message_name(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
@@ -1322,6 +1304,9 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
+    /* Resume the handshake */
+    conn->handshake.paused = false;
+
     if (!CONNECTION_IS_WRITER(conn)) {
         /* We're done parsing the record, reset everything */
         POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
@@ -1397,6 +1382,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
 
                 if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
                     *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
+                    conn->handshake.paused = true;
                 } else if (s2n_errno == S2N_ERR_EARLY_DATA_BLOCKED) {
                     *blocked = S2N_BLOCKED_ON_EARLY_DATA;
                 }
@@ -1416,6 +1402,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
 
                 if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
                     *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
+                    conn->handshake.paused = true;
                 } else if (s2n_errno == S2N_ERR_EARLY_DATA_BLOCKED) {
                     *blocked = S2N_BLOCKED_ON_EARLY_DATA;
                 }
