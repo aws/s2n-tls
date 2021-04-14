@@ -16,9 +16,9 @@
 *              for CCA-secure Kyber key encapsulation mechanism
 *
 * Arguments:   - unsigned char *pk: pointer to output public key
-*                (an already allocated array of CRYPTO_PUBLICKEYBYTES bytes)
+*                (an already allocated array of KYBER_512_R3_PUBLIC_KEY_BYTES bytes)
 *              - unsigned char *sk: pointer to output private key
-*                (an already allocated array of CRYPTO_SECRETKEYBYTES bytes)
+*                (an already allocated array of KYBER_512_R3_SECRET_KEY_BYTES bytes)
 *
 * Returns 0 (success)
 **************************************************/
@@ -42,11 +42,11 @@ int kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 *              secret for given public key
 *
 * Arguments:   - unsigned char *ct: pointer to output cipher text
-*                (an already allocated array of CRYPTO_CIPHERTEXTBYTES bytes)
+*                (an already allocated array of KYBER_512_R3_CIPHERTEXT_BYTES bytes)
 *              - unsigned char *ss: pointer to output shared secret
-*                (an already allocated array of CRYPTO_BYTES bytes)
+*                (an already allocated array of KYBER_512_R3_SHARED_SECRET_BYTES bytes)
 *              - const unsigned char *pk: pointer to input public key
-*                (an already allocated array of CRYPTO_PUBLICKEYBYTES bytes)
+*                (an already allocated array of KYBER_512_R3_PUBLIC_KEY_BYTES bytes)
 *
 * Returns 0 (success)
 **************************************************/
@@ -82,11 +82,11 @@ int kyber_512_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsi
 *              cipher text and private key
 *
 * Arguments:   - unsigned char *ss: pointer to output shared secret
-*                (an already allocated array of CRYPTO_BYTES bytes)
+*                (an already allocated array of KYBER_512_R3_SHARED_SECRET_BYTES bytes)
 *              - const unsigned char *ct: pointer to input cipher text
-*                (an already allocated array of CRYPTO_CIPHERTEXTBYTES bytes)
+*                (an already allocated array of KYBER_512_R3_CIPHERTEXT_BYTES bytes)
 *              - const unsigned char *sk: pointer to input private key
-*                (an already allocated array of CRYPTO_SECRETKEYBYTES bytes)
+*                (an already allocated array of KYBER_512_R3_SECRET_KEY_BYTES bytes)
 *
 * Returns 0.
 *
