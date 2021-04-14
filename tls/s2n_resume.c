@@ -690,15 +690,6 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn)
     POSIX_GUARD(s2n_blob_init(&aad_blob, aad_data, sizeof(aad_data)));
     struct s2n_stuffer aad = {0};
 
-    uint8_t s_data[S2N_MAX_STATE_SIZE_IN_BYTES] = { 0 };
-    struct s2n_blob state_blob = {0};
-    POSIX_GUARD(s2n_blob_init(&state_blob, s_data, sizeof(s_data)));
-    struct s2n_stuffer state = {0};
-
-    uint8_t en_data[S2N_MAX_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = {0};
-    struct s2n_blob en_blob = {0};
-    POSIX_GUARD(s2n_blob_init(&en_blob, en_data, sizeof(en_data)));
-
     from = &conn->client_ticket_to_decrypt;
     POSIX_GUARD(s2n_stuffer_read_bytes(from, key_name, S2N_TICKET_KEY_NAME_LEN));
 
@@ -718,16 +709,20 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_write_bytes(&aad, key->implicit_aad, S2N_TICKET_AAD_IMPLICIT_LEN));
     POSIX_GUARD(s2n_stuffer_write_bytes(&aad, key->key_name, S2N_TICKET_KEY_NAME_LEN));
 
-    /* Resize the blob with the true encrypted data size */
-    en_blob.size = s2n_stuffer_data_available(from);
-    POSIX_GUARD(s2n_stuffer_read(from, &en_blob));
-    POSIX_GUARD(s2n_aes256_gcm.io.aead.decrypt(&aes_ticket_key, &iv, &aad_blob, &en_blob, &en_blob));
+    struct s2n_blob en_blob = { 0 };
+    uint32_t en_blob_size = s2n_stuffer_data_available(from);
+    uint8_t *en_blob_data = s2n_stuffer_raw_read(from, en_blob_size);
+    POSIX_ENSURE_REF(en_blob_data);
+    POSIX_GUARD(s2n_blob_init(&en_blob, en_blob_data, en_blob_size));
+    POSIX_GUARD(s2n_aes256_gcm.io.aead.decrypt(&aes_ticket_key, &iv, &aad_blob, &en_blob, &en_blob));    
 
-    POSIX_GUARD(s2n_stuffer_init(&state, &state_blob));
-    uint16_t state_size = en_blob.size - S2N_TLS_GCM_TAG_LEN;
-    POSIX_GUARD(s2n_stuffer_write_bytes(&state, en_data, state_size));
-
-    POSIX_GUARD_RESULT(s2n_deserialize_resumption_state(conn, &conn->client_ticket_to_decrypt.blob, &state));
+    struct s2n_blob state_blob = { 0 };
+    uint32_t state_blob_size = en_blob_size - S2N_TLS_GCM_TAG_LEN;
+    POSIX_GUARD(s2n_blob_init(&state_blob, en_blob.data, state_blob_size));
+    struct s2n_stuffer state_stuffer = { 0 };
+    POSIX_GUARD(s2n_stuffer_init(&state_stuffer, &state_blob));
+    POSIX_GUARD(s2n_stuffer_skip_write(&state_stuffer, state_blob_size));
+    POSIX_GUARD_RESULT(s2n_deserialize_resumption_state(conn, &conn->client_ticket_to_decrypt.blob, &state_stuffer));
 
     uint64_t now;
     POSIX_GUARD(conn->config->wall_clock(conn->config->sys_clock_ctx, &now));
