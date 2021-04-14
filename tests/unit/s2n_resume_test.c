@@ -491,19 +491,13 @@ int main(int argc, char **argv)
 
         /* Functional test: Both TLS1.3 client and server can deserialize what they serialize */
         {
-            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-            EXPECT_NOT_NULL(client_conn);
-            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-            EXPECT_NOT_NULL(server_conn);
-
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
 
-            struct s2n_connection *connections[] = { client_conn, server_conn };
-
-            for (size_t i = 0; i <= 1; i++) {
-                struct s2n_connection *conn = connections[i];
+            for (s2n_mode mode = S2N_SERVER; mode <= S2N_CLIENT; mode++) {
+                struct s2n_connection *conn = s2n_connection_new(mode);
+                EXPECT_NOT_NULL(conn);
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
                 conn->actual_protocol_version = S2N_TLS13;
@@ -536,10 +530,10 @@ int main(int argc, char **argv)
 
                 EXPECT_EQUAL(psk->ticket_age_add, TICKET_AGE_ADD);
                 EXPECT_EQUAL(psk->ticket_issue_time, ticket_issue_time);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
             }
 
-            EXPECT_SUCCESS(s2n_connection_free(client_conn));
-            EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
@@ -594,15 +588,13 @@ int main(int argc, char **argv)
 
         /* Functional test: Both TLS1.2 client and server can deserialize what they serialize */
         {
-            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-            EXPECT_NOT_NULL(client_conn);
-            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-            EXPECT_NOT_NULL(server_conn);
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
 
-            struct s2n_connection *connections[] = { client_conn, server_conn };
-
-            for (size_t i = 0; i <= 1; i++) {
-                struct s2n_connection *conn = connections[i];
+            for (s2n_mode mode = S2N_SERVER; mode <= S2N_CLIENT; mode++) {
+                struct s2n_connection *conn = s2n_connection_new(mode);
+                EXPECT_NOT_NULL(conn);
                 conn->actual_protocol_version = S2N_TLS12;
                 conn->secure.cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
 
@@ -615,10 +607,11 @@ int main(int argc, char **argv)
 
                 EXPECT_OK(s2n_serialize_resumption_state(conn, NULL, &stuffer));
                 EXPECT_OK(s2n_deserialize_resumption_state(conn, NULL, &stuffer));
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
             }
 
-            EXPECT_SUCCESS(s2n_connection_free(client_conn));
-            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
         }
     }
 
@@ -826,7 +819,7 @@ int main(int argc, char **argv)
             struct s2n_psk *psk = NULL;
             EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
             EXPECT_NOT_NULL(psk);
-            EXPECT_EQUAL(psk->hmac_alg, s2n_tls13_aes_128_gcm_sha256.prf_alg);
+            EXPECT_EQUAL(psk->early_data_config.cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
