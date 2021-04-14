@@ -113,6 +113,10 @@ S2N_RESULT s2n_early_data_accept_or_reject(struct s2n_connection *conn)
         return S2N_RESULT_OK;
     }
 
+    if (conn->handshake.early_data_async_state.conn) {
+        RESULT_BAIL(S2N_ERR_ASYNC_BLOCKED);
+    }
+
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
      *# If any of these checks fail, the server MUST NOT respond with the
@@ -137,11 +141,17 @@ S2N_RESULT s2n_early_data_accept_or_reject(struct s2n_connection *conn)
 
     /* If early data would otherwise be accepted, let the application apply any additional restrictions.
      * For example, an application could use this callback to implement anti-replay protections.
+     *
+     * This callback can be either synchronous or asynchronous. The handshake will not proceed until
+     * the application either accepts or rejects early data.
      */
     RESULT_ENSURE_REF(conn->config);
     if (conn->config->early_data_cb) {
-        struct s2n_offered_early_data offered_early_data = { .conn = conn };
-        RESULT_GUARD_POSIX(conn->config->early_data_cb(conn, &offered_early_data));
+        conn->handshake.early_data_async_state.conn = conn;
+        RESULT_GUARD_POSIX(conn->config->early_data_cb(conn, &conn->handshake.early_data_async_state));
+        if (conn->early_data_state == S2N_EARLY_DATA_REQUESTED) {
+            RESULT_BAIL(S2N_ERR_ASYNC_BLOCKED);
+        }
     } else {
         RESULT_GUARD(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_ACCEPTED));
     }

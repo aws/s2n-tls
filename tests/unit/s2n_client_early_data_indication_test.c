@@ -296,7 +296,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
-            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_SUCCESS(s2n_establish_session(server_conn));
 
             EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_NOT_REQUESTED);
             EXPECT_EQUAL(server_conn->early_data_state, S2N_EARLY_DATA_NOT_REQUESTED);
@@ -323,7 +323,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
-            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_SUCCESS(s2n_establish_session(server_conn));
 
             EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
             EXPECT_EQUAL(server_conn->early_data_state, S2N_EARLY_DATA_REJECTED);
@@ -351,7 +351,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
-            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_SUCCESS(s2n_establish_session(server_conn));
 
             EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
             EXPECT_EQUAL(server_conn->early_data_state, S2N_EARLY_DATA_ACCEPTED);
@@ -379,7 +379,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
-            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_SUCCESS(s2n_establish_session(server_conn));
 
             EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_NOT_REQUESTED);
             EXPECT_EQUAL(server_conn->early_data_state, S2N_EARLY_DATA_NOT_REQUESTED);
@@ -425,7 +425,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
-            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_SUCCESS(s2n_establish_session(server_conn));
             EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
 
             /* Force a retry */
@@ -479,7 +479,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
-            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_SUCCESS(s2n_establish_session(server_conn));
             EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
             EXPECT_EQUAL(server_conn->early_data_state, S2N_EARLY_DATA_REJECTED);
 

@@ -103,6 +103,14 @@ static int s2n_test_early_data_cb(struct s2n_connection *conn, struct s2n_offere
     return S2N_SUCCESS;
 }
 
+struct s2n_offered_early_data *async_early_data = NULL;
+static int s2n_test_async_early_data_cb(struct s2n_connection *conn, struct s2n_offered_early_data *early_data)
+{
+    POSIX_ENSURE_REF(conn);
+    async_early_data = early_data;
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -639,6 +647,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_early_data_cb(config, s2n_test_early_data_cb));
 
             /* With callback set, may still accept early data */
+            conn->handshake.early_data_async_state = (struct s2n_offered_early_data){ 0 };
             conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
             EXPECT_SUCCESS(s2n_psk_set_context(conn->psk_params.chosen_psk, &accept_early_data, sizeof(accept_early_data)));
             EXPECT_OK(s2n_early_data_accept_or_reject(conn));
@@ -646,8 +655,45 @@ int main(int argc, char **argv)
 
             /* With callback set, may reject early data */
             accept_early_data = false;
+            conn->handshake.early_data_async_state = (struct s2n_offered_early_data){ 0 };
             conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
             EXPECT_SUCCESS(s2n_psk_set_context(conn->psk_params.chosen_psk, &accept_early_data, sizeof(accept_early_data)));
+            EXPECT_OK(s2n_early_data_accept_or_reject(conn));
+            EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_REJECTED);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
+        /* Application rejects early data asynchronously */
+        {
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_early_data_cb(config, s2n_test_async_early_data_cb));
+            EXPECT_NOT_NULL(config);
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
+            EXPECT_OK(s2n_append_test_chosen_psk_with_early_data(conn, nonzero_max_early_data, &s2n_tls13_aes_256_gcm_sha384));
+            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(conn));
+            conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
+
+            /* No decision yet: blocked */
+            EXPECT_ERROR_WITH_ERRNO(s2n_early_data_accept_or_reject(conn), S2N_ERR_ASYNC_BLOCKED);
+            EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
+
+            /* If called again, still blocked */
+            EXPECT_ERROR_WITH_ERRNO(s2n_early_data_accept_or_reject(conn), S2N_ERR_ASYNC_BLOCKED);
+            EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
+
+            /* Make decision */
+            EXPECT_SUCCESS(s2n_offered_early_data_reject(async_early_data));
+            EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_REJECTED);
+
+            /* Complete */
             EXPECT_OK(s2n_early_data_accept_or_reject(conn));
             EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_REJECTED);
 

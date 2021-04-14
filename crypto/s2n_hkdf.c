@@ -51,8 +51,9 @@ static int s2n_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, 
     uint8_t prev[MAX_DIGEST_SIZE] = { 0 };
 
     uint32_t done_len = 0;
-    uint8_t hash_len;
+    uint8_t hash_len = 0;
     POSIX_GUARD(s2n_hmac_digest_size(alg, &hash_len));
+    POSIX_ENSURE_GT(hash_len, 0);
     uint32_t total_rounds = output->size / hash_len;
     if (output->size % hash_len) {
         total_rounds++;

@@ -38,6 +38,7 @@ int s2n_establish_session(struct s2n_connection *conn)
         conn->handshake.client_hello_received = 1;
     }
 
+    POSIX_GUARD_RESULT(s2n_early_data_accept_or_reject(conn));
     POSIX_GUARD(s2n_conn_set_handshake_type(conn));
 
     if (conn->client_hello_version != S2N_SSLv2)
