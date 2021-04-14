@@ -90,8 +90,9 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
     RESULT_GUARD(s2n_early_data_get_server_max_size(conn, &server_max_early_data));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(out, server_max_early_data));
     if (server_max_early_data > 0) {
-        RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, strlen(conn->application_protocol)));
-        RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, (uint8_t *) conn->application_protocol, strlen(conn->application_protocol)));
+        uint8_t application_protocol_len = strlen(conn->application_protocol);
+        RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, application_protocol_len));
+        RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, (uint8_t *) conn->application_protocol, application_protocol_len));
         RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(out, conn->server_early_data_context.size));
         RESULT_GUARD_POSIX(s2n_stuffer_write(out, &conn->server_early_data_context));
     }
@@ -650,13 +651,13 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_ticket_fi
     POSIX_GUARD(s2n_stuffer_write_bytes(&aad, key->implicit_aad, S2N_TICKET_AAD_IMPLICIT_LEN));
     POSIX_GUARD(s2n_stuffer_write_bytes(&aad, key->key_name, S2N_TICKET_KEY_NAME_LEN));
 
-    uint32_t unencrypted_size = s2n_stuffer_data_available(to);
+    uint32_t plaintext_header_size = s2n_stuffer_data_available(to);
     POSIX_GUARD_RESULT(s2n_serialize_resumption_state(conn, ticket_fields, to));
     POSIX_GUARD(s2n_stuffer_skip_write(to, S2N_TLS_GCM_TAG_LEN));
 
     struct s2n_blob state_blob = { 0 };
     struct s2n_stuffer copy_for_encryption = *to;
-    POSIX_GUARD(s2n_stuffer_skip_read(&copy_for_encryption, unencrypted_size));
+    POSIX_GUARD(s2n_stuffer_skip_read(&copy_for_encryption, plaintext_header_size));
     uint32_t state_blob_size = s2n_stuffer_data_available(&copy_for_encryption);
     uint8_t *state_blob_data = s2n_stuffer_raw_read(&copy_for_encryption, state_blob_size);
     POSIX_ENSURE_REF(state_blob_data);
