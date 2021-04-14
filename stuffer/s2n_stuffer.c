@@ -180,6 +180,7 @@ int s2n_stuffer_reread(struct s2n_stuffer *stuffer)
 
 int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
 {
+    POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     if (size >= stuffer->write_cursor) {
         return s2n_stuffer_wipe(stuffer);
     }
@@ -189,6 +190,7 @@ int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
     POSIX_CHECKED_MEMSET(stuffer->blob.data + stuffer->write_cursor, S2N_WIPE_PATTERN, size);
     stuffer->read_cursor = MIN(stuffer->read_cursor, stuffer->write_cursor);
 
+    POSIX_POSTCONDITION(s2n_stuffer_validate(stuffer));
     return S2N_SUCCESS;
 }
 
@@ -198,6 +200,7 @@ bool s2n_stuffer_is_consumed(struct s2n_stuffer *stuffer) {
 
 int s2n_stuffer_wipe(struct s2n_stuffer *stuffer)
 {
+    POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     if (!s2n_stuffer_is_wiped(stuffer)) {
         POSIX_CHECKED_MEMSET(stuffer->blob.data, S2N_WIPE_PATTERN, stuffer->high_water_mark);
     }
@@ -206,6 +209,7 @@ int s2n_stuffer_wipe(struct s2n_stuffer *stuffer)
     stuffer->write_cursor = 0;
     stuffer->read_cursor = 0;
     stuffer->high_water_mark = 0;
+    POSIX_POSTCONDITION(s2n_stuffer_validate(stuffer));
     return S2N_SUCCESS;
 }
 
