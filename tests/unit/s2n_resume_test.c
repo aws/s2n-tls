@@ -518,6 +518,7 @@ int main(int argc, char **argv)
             const uint32_t test_max_early_data_size = 100;
             const uint8_t test_early_data_context[] = "test context";
             const uint8_t test_app_protocol[] = "test protocol";
+            const uint8_t test_app_protocol_len = strlen((const char *)test_app_protocol);
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
@@ -552,8 +553,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(psk->early_data_config.protocol_version, S2N_TLS13);
             EXPECT_EQUAL(psk->early_data_config.max_early_data_size, test_max_early_data_size);
             EXPECT_EQUAL(psk->early_data_config.cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
-            EXPECT_EQUAL(psk->early_data_config.application_protocol.size, strlen((const char*) test_app_protocol));
-            EXPECT_BYTEARRAY_EQUAL(psk->early_data_config.application_protocol.data, test_app_protocol, sizeof(test_app_protocol));
+            EXPECT_EQUAL(psk->early_data_config.application_protocol.size, test_app_protocol_len);
+            EXPECT_BYTEARRAY_EQUAL(psk->early_data_config.application_protocol.data, test_app_protocol, test_app_protocol_len);
             EXPECT_EQUAL(psk->early_data_config.context.size, sizeof(test_early_data_context));
             EXPECT_BYTEARRAY_EQUAL(psk->early_data_config.context.data, test_early_data_context, sizeof(test_early_data_context));
 
