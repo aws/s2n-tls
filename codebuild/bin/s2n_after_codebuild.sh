@@ -17,10 +17,11 @@ set -ex
 
 # Upload Code Coverage Information to CodeCov.io
 if [[ "$CODECOV_IO_UPLOAD" == "true" ]]; then
+    echo "Skipping coverage upload"
     if [[ "$FUZZ_COVERAGE" == "true" ]]; then
-        bash <(curl -s https://codecov.io/bash) -f coverage/fuzz/codecov.txt -F ${TESTS};
+        # bash <(curl -s https://codecov.io/bash) -f coverage/fuzz/codecov.txt -F ${TESTS};
     else
-        bash <(curl -s https://codecov.io/bash) -F ${TESTS};
+        # bash <(curl -s https://codecov.io/bash) -F ${TESTS};
     fi
 fi
 
