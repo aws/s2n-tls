@@ -12,6 +12,7 @@ option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
 for older compilers or uncommon platforms." OFF)
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain.
 You likely want this on older compilers." OFF)
+option(VISIBILITY_PUBLIC "Private internal symbols will be exported. Useful for running tests when building with -DBUILD_SHARED_LIBS=ON" OFF)
 
 file(GLOB API_HEADERS "api/*.h")
 
@@ -194,9 +195,15 @@ set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
-        -Wno-missing-braces -fvisibility=hidden -DS2N_EXPORTS
+        -Wno-missing-braces -DS2N_EXPORTS
         -Wa,--noexecstack
 )
+
+if(VISIBILITY_PUBLIC)
+    target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=default)
+else()
+    target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=hidden)
+endif()
 
 if(NOT APPLE)
     set(CMAKE_SHARED_LINKER_FLAGS -Wl,-z,noexecstack,-z,relro,-z,now)
