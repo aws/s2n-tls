@@ -18,9 +18,9 @@ set -ex
 # Upload Code Coverage Information to CodeCov.io
 if [[ "$CODECOV_IO_UPLOAD" == "true" ]]; then
     if [[ "$FUZZ_COVERAGE" == "true" ]]; then
-        codecov_uploader.sh -f coverage/fuzz/codecov.txt -F ${TESTS};
+        codebuild/bin/codecov_uploader.sh -f coverage/fuzz/codecov.txt -F ${TESTS};
     else
-        codecov_uploader.sh -F ${TESTS};
+        codebuild/bin/codecov_uploader.sh -F ${TESTS};
     fi
 fi
 
