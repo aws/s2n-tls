@@ -73,7 +73,7 @@ struct s2n_kem_group_params {
 
 extern const struct s2n_kem s2n_bike1_l1_r1;
 extern const struct s2n_kem s2n_bike1_l1_r2;
-extern const struct s2n_kem s2n_bike1_l1_r3;
+extern const struct s2n_kem s2n_bike_l1_r3;
 extern const struct s2n_kem s2n_sike_p503_r1;
 extern const struct s2n_kem s2n_sike_p434_r2;
 extern const struct s2n_kem s2n_kyber_512_r2;
@@ -169,14 +169,14 @@ int BIKE1_L1_R2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
 int BIKE1_L1_R2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk);
 int BIKE1_L1_R2_crypto_kem_dec(OUT unsigned char * ss, IN const unsigned char *ct, IN const unsigned char *sk);
 
-/* bike1_l1_r3 */
-#define BIKE1_L1_R3_SECRET_KEY_BYTES    5223
-#define BIKE1_L1_R3_PUBLIC_KEY_BYTES    1541
-#define BIKE1_L1_R3_CIPHERTEXT_BYTES    1573
-#define BIKE1_L1_R3_SHARED_SECRET_BYTES 32
-int BIKE1_L1_R3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk);
-int BIKE1_L1_R3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk);
-int BIKE1_L1_R3_crypto_kem_dec(OUT unsigned char * ss, IN const unsigned char *ct, IN const unsigned char *sk);
+/* bike_l1_r3 */
+#define BIKE_L1_R3_SECRET_KEY_BYTES    5223
+#define BIKE_L1_R3_PUBLIC_KEY_BYTES    1541
+#define BIKE_L1_R3_CIPHERTEXT_BYTES    1573
+#define BIKE_L1_R3_SHARED_SECRET_BYTES 32
+int BIKE_L1_R3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk);
+int BIKE_L1_R3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk);
+int BIKE_L1_R3_crypto_kem_dec(OUT unsigned char * ss, IN const unsigned char *ct, IN const unsigned char *sk);
 
 /* kyber512r2 (the defined constants are identical for both regular and 90's version) */
 #define KYBER_512_R2_PUBLIC_KEY_BYTES 800

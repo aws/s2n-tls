@@ -87,11 +87,11 @@
                                    : ((v) < 128 ? 7 \
                                                 : ((v) < 256 ? 8 : 9)))))))))
 
-#  define REG_T uint64_t
-#  define LOAD(mem)       (mem)[0]
-#  define STORE(mem, val) (mem)[0] = val
-#  define SLLI_I64(a, imm) ((a) << (imm))
-#  define SRLI_I64(a, imm) ((a) >> (imm))
+#define REG_T uint64_t
+#define LOAD(mem)       (mem)[0]
+#define STORE(mem, val) (mem)[0] = val
+#define SLLI_I64(a, imm) ((a) << (imm))
+#define SRLI_I64(a, imm) ((a) >> (imm))
 
 // NOLINT is used to avoid the sizeof(T)/sizeof(T) warning when REG_T is defined
 // to be uint64_t

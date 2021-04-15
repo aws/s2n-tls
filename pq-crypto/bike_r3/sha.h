@@ -7,9 +7,11 @@
 
 #pragma once
 
+#include <openssl/sha.h>
 #include "cleanup.h"
 #include "error.h"
 #include "types.h"
+#include "utilities.h"
 
 #define SHA384_DGST_BYTES  48ULL
 #define SHA384_DGST_QWORDS (SHA384_DGST_BYTES / 8)
@@ -27,10 +29,6 @@ bike_static_assert(sizeof(sha384_dgst_t) == SHA384_DGST_BYTES, sha384_dgst_size)
 
 typedef sha384_dgst_t sha_dgst_t;
 CLEANUP_FUNC(sha_dgst, sha_dgst_t)
-
-
-#  include "utilities.h"
-#  include <openssl/sha.h>
 
 _INLINE_ ret_t sha(OUT sha_dgst_t *  dgst,
                    IN const uint32_t byte_len,

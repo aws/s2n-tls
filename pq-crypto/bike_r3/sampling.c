@@ -38,7 +38,7 @@ _INLINE_ ret_t get_rand_mod_len(OUT uint32_t *    rand_pos,
   do {
     // Generate a 32 bits (pseudo) random value.
     // This can be optimized to take only 16 bits.
-    GUARD(aes_ctr_prf((uint8_t *)rand_pos, prf_state, sizeof(*rand_pos)));
+    POSIX_GUARD(aes_ctr_prf((uint8_t *)rand_pos, prf_state, sizeof(*rand_pos)));
 
     // Mask relevant bits only
     (*rand_pos) &= mask;
@@ -73,7 +73,7 @@ ret_t sample_uniform_r_bits_with_fixed_prf_context(
   IN const must_be_odd_t      must_be_odd)
 {
   // Generate random data
-  GUARD(aes_ctr_prf(r->raw, prf_state, R_BYTES));
+  POSIX_GUARD(aes_ctr_prf(r->raw, prf_state, R_BYTES));
 
   // Mask upper bits of the MSByte
   r->raw[R_BYTES - 1] &= MASK(R_BITS + 8 - (R_BYTES * 8));
@@ -153,7 +153,7 @@ ret_t generate_indices_mod_z(OUT idx_t *     out,
 
   // Generate num_indices unique (pseudo) random numbers modulo z
   do {
-    GUARD(get_rand_mod_len(&out[ctr], z, prf_state));
+    POSIX_GUARD(get_rand_mod_len(&out[ctr], z, prf_state));
     ctr += is_new(out, ctr);
   } while(ctr < num_indices);
 
@@ -170,9 +170,9 @@ ret_t sample_uniform_r_bits(OUT r_t *r,
   // For the seedexpander
   DEFER_CLEANUP(aes_ctr_prf_state_t prf_state = {0}, aes_ctr_prf_state_cleanup);
 
-  GUARD(init_aes_ctr_prf_state(&prf_state, MAX_AES_INVOKATION, seed));
+  POSIX_GUARD(init_aes_ctr_prf_state(&prf_state, MAX_AES_INVOKATION, seed));
 
-  GUARD(sample_uniform_r_bits_with_fixed_prf_context(r, &prf_state, must_be_odd));
+  POSIX_GUARD(sample_uniform_r_bits_with_fixed_prf_context(r, &prf_state, must_be_odd));
 
   return SUCCESS;
 }
@@ -183,7 +183,7 @@ ret_t generate_sparse_rep(OUT pad_r_t *r,
 {
   idx_t wlist_temp[WLIST_SIZE_ADJUSTED_D] = {0};
 
-  GUARD(generate_indices_mod_z(wlist_temp, DV, R_BITS, prf_state));
+  POSIX_GUARD(generate_indices_mod_z(wlist_temp, DV, R_BITS, prf_state));
 
   bike_memcpy(wlist, wlist_temp, DV * sizeof(idx_t));
   secure_set_bits(r, 0, wlist, DV);
@@ -195,10 +195,10 @@ ret_t generate_error_vector(OUT pad_e_t *e, IN const seed_t *seed)
 {
   DEFER_CLEANUP(aes_ctr_prf_state_t prf_state = {0}, aes_ctr_prf_state_cleanup);
 
-  GUARD(init_aes_ctr_prf_state(&prf_state, MAX_AES_INVOKATION, seed));
+  POSIX_GUARD(init_aes_ctr_prf_state(&prf_state, MAX_AES_INVOKATION, seed));
 
   idx_t wlist[WLIST_SIZE_ADJUSTED_T] = {0};
-  GUARD(generate_indices_mod_z(wlist, T1, N_BITS, &prf_state));
+  POSIX_GUARD(generate_indices_mod_z(wlist, T1, N_BITS, &prf_state));
 
   // (e0, e1) hold bits 0..R_BITS-1 and R_BITS..2*R_BITS-1 of the error, resp.
   secure_set_bits(&e->val[0], 0, wlist, T1);

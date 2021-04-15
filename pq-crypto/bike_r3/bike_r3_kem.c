@@ -46,7 +46,7 @@ _INLINE_ ret_t function_l(OUT m_t *out, IN const pad_e_t *e)
   tmp.val[0] = e->val[0].val;
   tmp.val[1] = e->val[1].val;
 
-  GUARD(sha(&dgst, sizeof(tmp), (uint8_t *)&tmp));
+  POSIX_GUARD(sha(&dgst, sizeof(tmp), (uint8_t *)&tmp));
 
   // Truncate the SHA384 digest to a 256-bits m_t
   bike_static_assert(sizeof(dgst) >= sizeof(*out), dgst_size_lt_m_size);
@@ -66,7 +66,7 @@ _INLINE_ ret_t function_k(OUT ss_t *out, IN const m_t *m, IN const ct_t *ct)
   tmp.c0 = ct->c0;
   tmp.c1 = ct->c1;
 
-  GUARD(sha(&dgst, sizeof(tmp), (uint8_t *)&tmp));
+  POSIX_GUARD(sha(&dgst, sizeof(tmp), (uint8_t *)&tmp));
 
   // Truncate the SHA384 digest to a 256-bits value
   // to subsequently use it as a seed.
@@ -94,7 +94,7 @@ _INLINE_ ret_t encrypt(OUT ct_t *ct,
   ct->c0 = p_ct.val;
 
   // c1 = L(e0, e1)
-  GUARD(function_l(&ct->c1, e));
+  POSIX_GUARD(function_l(&ct->c1, e));
 
   // m xor L(e0, e1)
   for(size_t i = 0; i < sizeof(*m); i++) {
@@ -113,7 +113,7 @@ _INLINE_ ret_t reencrypt(OUT m_t *m, IN const pad_e_t *e, IN const ct_t *l_ct)
 {
   DEFER_CLEANUP(m_t tmp, m_cleanup);
 
-  GUARD(function_l(&tmp, e));
+  POSIX_GUARD(function_l(&tmp, e));
 
   // m' = c1 ^ L(e')
   for(size_t i = 0; i < sizeof(*m); i++) {
@@ -126,7 +126,7 @@ _INLINE_ ret_t reencrypt(OUT m_t *m, IN const pad_e_t *e, IN const ct_t *l_ct)
 ////////////////////////////////////////////////////////////////////////////////
 // The three APIs below (keypair, encapsulate, decapsulate) are defined by NIST:
 ////////////////////////////////////////////////////////////////////////////////
-int BIKE1_L1_R3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
+int BIKE_L1_R3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
 {
   POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
   POSIX_ENSURE_REF(sk);
@@ -150,11 +150,11 @@ int BIKE1_L1_R3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
   DEFER_CLEANUP(aes_ctr_prf_state_t h_prf_state = {0}, aes_ctr_prf_state_cleanup);
 
   POSIX_GUARD(get_seeds(&seeds));
-  GUARD(init_aes_ctr_prf_state(&h_prf_state, MAX_AES_INVOKATION, &seeds.seed[0]));
+  POSIX_GUARD(init_aes_ctr_prf_state(&h_prf_state, MAX_AES_INVOKATION, &seeds.seed[0]));
 
   // Generate the secret key (h0, h1) with weight w/2
-  GUARD(generate_sparse_rep(&h0, l_sk.wlist[0].val, &h_prf_state));
-  GUARD(generate_sparse_rep(&h1, l_sk.wlist[1].val, &h_prf_state));
+  POSIX_GUARD(generate_sparse_rep(&h0, l_sk.wlist[0].val, &h_prf_state));
+  POSIX_GUARD(generate_sparse_rep(&h1, l_sk.wlist[1].val, &h_prf_state));
 
   // Generate sigma
   convert_seed_to_m_type(&l_sk.sigma, &seeds.seed[1]);
@@ -185,7 +185,7 @@ int BIKE1_L1_R3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
 // Encapsulate - pk is the public key,
 //               ct is a key encapsulation message (ciphertext),
 //               ss is the shared secret.
-int BIKE1_L1_R3_crypto_kem_enc(OUT unsigned char *     ct,
+int BIKE_L1_R3_crypto_kem_enc(OUT unsigned char *     ct,
                    OUT unsigned char *     ss,
                    IN const unsigned char *pk)
 {
@@ -211,13 +211,13 @@ int BIKE1_L1_R3_crypto_kem_enc(OUT unsigned char *     ct,
 
   // e = H(m) = H(seed[0])
   convert_seed_to_m_type(&m, &seeds.seed[0]);
-  GUARD(function_h(&e, &m));
+  POSIX_GUARD(function_h(&e, &m));
 
   // Calculate the ciphertext
-  GUARD(encrypt(&l_ct, &e, &l_pk, &m));
+  POSIX_GUARD(encrypt(&l_ct, &e, &l_pk, &m));
 
   // Generate the shared secret
-  GUARD(function_k(&l_ss, &m, &l_ct));
+  POSIX_GUARD(function_k(&l_ss, &m, &l_ct));
 
   print("ss: ", (uint64_t *)l_ss.raw, SIZEOF_BITS(l_ss));
 
@@ -231,7 +231,7 @@ int BIKE1_L1_R3_crypto_kem_enc(OUT unsigned char *     ct,
 // Decapsulate - ct is a key encapsulation message (ciphertext),
 //               sk is the private key,
 //               ss is the shared secret
-int BIKE1_L1_R3_crypto_kem_dec(OUT unsigned char *     ss,
+int BIKE_L1_R3_crypto_kem_dec(OUT unsigned char *     ss,
                    IN const unsigned char *ct,
                    IN const unsigned char *sk)
 {
@@ -261,7 +261,7 @@ int BIKE1_L1_R3_crypto_kem_dec(OUT unsigned char *     ss,
   // (Note: possibly, a "fixed" zeroed error vector could suffice too,
   // and serve this generation)
   POSIX_GUARD(get_seeds(&seeds));
-  GUARD(generate_error_vector(&e_prime, &seeds.seed[0]));
+  POSIX_GUARD(generate_error_vector(&e_prime, &seeds.seed[0]));
 
   // Decode and on success check if |e|=T (all in constant-time)
   volatile uint32_t success_cond = (decode(&e, &l_ct, &l_sk) == SUCCESS);
@@ -277,11 +277,11 @@ int BIKE1_L1_R3_crypto_kem_dec(OUT unsigned char *     ss,
     PE1_RAW(&e_prime)[i] |= (u8_barrier(mask) & E1_RAW(&e)[i]);
   }
 
-  GUARD(reencrypt(&m_prime, &e_prime, &l_ct));
+  POSIX_GUARD(reencrypt(&m_prime, &e_prime, &l_ct));
 
   // Check if H(m') is equal to (e0', e1')
   // (in constant-time)
-  GUARD(function_h(&e_tmp, &m_prime));
+  POSIX_GUARD(function_h(&e_tmp, &m_prime));
   success_cond = secure_cmp(PE0_RAW(&e_prime), PE0_RAW(&e_tmp), R_BYTES);
   success_cond &= secure_cmp(PE1_RAW(&e_prime), PE1_RAW(&e_tmp), R_BYTES);
 
@@ -293,7 +293,7 @@ int BIKE1_L1_R3_crypto_kem_dec(OUT unsigned char *     ss,
   }
 
   // Generate the shared secret
-  GUARD(function_k(&l_ss, &m_prime, &l_ct));
+  POSIX_GUARD(function_k(&l_ss, &m_prime, &l_ct));
 
   // Copy the data into the output buffer
   bike_memcpy(ss, &l_ss, sizeof(l_ss));

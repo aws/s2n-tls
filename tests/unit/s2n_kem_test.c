@@ -354,7 +354,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(compatible_params->kem_count, 3);
         EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_bike1_l1_r1.kem_extension_id);
         EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_bike1_l1_r2.kem_extension_id);
-        EXPECT_EQUAL(compatible_params->kems[2]->kem_extension_id, s2n_bike1_l1_r3.kem_extension_id);
+        EXPECT_EQUAL(compatible_params->kems[2]->kem_extension_id, s2n_bike_l1_r3.kem_extension_id);
 
         compatible_params = NULL;
         EXPECT_SUCCESS(s2n_cipher_suite_to_kem(sike_iana, &compatible_params));

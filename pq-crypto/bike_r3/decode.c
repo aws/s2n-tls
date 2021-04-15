@@ -108,7 +108,7 @@ _INLINE_ ret_t recompute_syndrome(OUT syndrome_t *syndrome,
   gf2x_mod_add(&tmp_c0, &tmp_c0, &e0);
 
   // Recompute the syndrome using the updated ciphertext
-  GUARD(compute_syndrome(syndrome, &tmp_c0, h0));
+  POSIX_GUARD(compute_syndrome(syndrome, &tmp_c0, h0));
 
   return SUCCESS;
 }
@@ -291,7 +291,7 @@ ret_t decode(OUT e_t *e, IN const ct_t *ct, IN const sk_t *sk)
 
   DEFER_CLEANUP(syndrome_t s = {0}, syndrome_cleanup);
   DMSG("  Computing s.\n");
-  GUARD(compute_syndrome(&s, &c0, &h0));
+  POSIX_GUARD(compute_syndrome(&s, &c0, &h0));
   dup(&s);
 
   // Reset (init) the error because it is xored in the find_err functions.
@@ -306,7 +306,7 @@ ret_t decode(OUT e_t *e, IN const ct_t *ct, IN const sk_t *sk)
     DMSG("    Weight of syndrome: %lu\n", r_bits_vector_weight((r_t *)s.qw));
 
     find_err1(e, &black_e, &gray_e, &s, sk->wlist, threshold);
-    GUARD(recompute_syndrome(&s, &c0, &h0, &pk, e));
+    POSIX_GUARD(recompute_syndrome(&s, &c0, &h0, &pk, e));
 #if defined(BGF_DECODER)
     if(iter >= 1) {
       continue;
@@ -317,14 +317,14 @@ ret_t decode(OUT e_t *e, IN const ct_t *ct, IN const sk_t *sk)
     DMSG("    Weight of syndrome: %lu\n", r_bits_vector_weight((r_t *)s.qw));
 
     find_err2(e, &black_e, &s, sk->wlist, ((DV + 1) / 2) + 1);
-    GUARD(recompute_syndrome(&s, &c0, &h0, &pk, e));
+    POSIX_GUARD(recompute_syndrome(&s, &c0, &h0, &pk, e));
 
     DMSG("    Weight of e: %lu\n",
          r_bits_vector_weight(&e->val[0]) + r_bits_vector_weight(&e->val[1]));
     DMSG("    Weight of syndrome: %lu\n", r_bits_vector_weight((r_t *)s.qw));
 
     find_err2(e, &gray_e, &s, sk->wlist, ((DV + 1) / 2) + 1);
-    GUARD(recompute_syndrome(&s, &c0, &h0, &pk, e));
+    POSIX_GUARD(recompute_syndrome(&s, &c0, &h0, &pk, e));
   }
 
   if(r_bits_vector_weight((r_t *)s.qw) > 0) {

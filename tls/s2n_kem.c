@@ -46,16 +46,16 @@ const struct s2n_kem s2n_bike1_l1_r2 = {
         .decapsulate = &BIKE1_L1_R2_crypto_kem_dec,
 };
 
-const struct s2n_kem s2n_bike1_l1_r3 = {
-        .name = "BIKE1r3-Level1",
+const struct s2n_kem s2n_bike_l1_r3 = {
+        .name = "BIKEr3-Level1",
         .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R3,
-        .public_key_length = BIKE1_L1_R3_PUBLIC_KEY_BYTES,
-        .private_key_length = BIKE1_L1_R3_SECRET_KEY_BYTES,
-        .shared_secret_key_length = BIKE1_L1_R3_SHARED_SECRET_BYTES,
-        .ciphertext_length = BIKE1_L1_R3_CIPHERTEXT_BYTES,
-        .generate_keypair = &BIKE1_L1_R3_crypto_kem_keypair,
-        .encapsulate = &BIKE1_L1_R3_crypto_kem_enc,
-        .decapsulate = &BIKE1_L1_R3_crypto_kem_dec,
+        .public_key_length = BIKE_L1_R3_PUBLIC_KEY_BYTES,
+        .private_key_length = BIKE_L1_R3_SECRET_KEY_BYTES,
+        .shared_secret_key_length = BIKE_L1_R3_SHARED_SECRET_BYTES,
+        .ciphertext_length = BIKE_L1_R3_CIPHERTEXT_BYTES,
+        .generate_keypair = &BIKE_L1_R3_crypto_kem_keypair,
+        .encapsulate = &BIKE_L1_R3_crypto_kem_enc,
+        .decapsulate = &BIKE_L1_R3_crypto_kem_dec,
 };
 
 const struct s2n_kem s2n_sike_p503_r1 = {
@@ -113,7 +113,7 @@ const struct s2n_kem s2n_kyber_512_90s_r2 = {
 const struct s2n_kem *bike_kems[] = {
         &s2n_bike1_l1_r1,
         &s2n_bike1_l1_r2,
-        &s2n_bike1_l1_r3
+        &s2n_bike_l1_r3
 };
 
 const struct s2n_kem *sike_kems[] = {

@@ -23,7 +23,7 @@ ret_t init_aes_ctr_prf_state(OUT aes_ctr_prf_state_t *s,
   bike_static_assert(sizeof(*seed) == sizeof(key.raw), seed_size_equals_ky_size);
   bike_memcpy(key.raw, seed->raw, sizeof(key.raw));
 
-  GUARD(aes256_key_expansion(&s->ks, &key));
+  POSIX_GUARD(aes256_key_expansion(&s->ks, &key));
 
   // Initialize buffer and counter
   s->ctr.u.qw[0]    = 0;
@@ -52,7 +52,7 @@ _INLINE_ ret_t perform_aes(OUT uint8_t *ct, IN OUT aes_ctr_prf_state_t *s)
     BIKE_ERROR(E_AES_OVER_USED);
   }
 
-  GUARD(aes256_enc(ct, s->ctr.u.bytes, &s->ks));
+  POSIX_GUARD(aes256_enc(ct, s->ctr.u.bytes, &s->ks));
 
   s->ctr.u.qw[0]++;
   s->rem_invokations--;
@@ -83,11 +83,11 @@ ret_t aes_ctr_prf(OUT uint8_t *a,
 
   // Copy full AES blocks
   while((len - idx) >= AES256_BLOCK_BYTES) {
-    GUARD(perform_aes(&a[idx], s));
+    POSIX_GUARD(perform_aes(&a[idx], s));
     idx += AES256_BLOCK_BYTES;
   }
 
-  GUARD(perform_aes(s->buffer.u.bytes, s));
+  POSIX_GUARD(perform_aes(s->buffer.u.bytes, s));
 
   // Copy the tail
   s->pos = len - idx;
