@@ -29,7 +29,8 @@ the default installation on your machine will be used.
 (Optional): Set the CMake variable `BUILD_SHARED_LIBS=ON` to build shared libraries. The default is static.
 
 (Optional): Set the CMake variable `VISIBILITY_PUBLIC=ON` to export private internal symbols. By default only symbols
-marked with `S2N_API` will be exported. This is required for running tests when building with `BUILD_SHARED_LIBS=ON`.
+marked with `S2N_API` will be exported. This is enabled by default when building with `BUILD_SHARED_LIBS=ON`, except when
+`BUILD_TESTING=OFF` is specified.
  
 We recommend an out-of-source build. Suppose you have a directory `s2n` which contains the s2n-tls source code. At the same level
 we can create a directory called `s2n-build`

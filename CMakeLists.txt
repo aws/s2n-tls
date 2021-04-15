@@ -12,7 +12,9 @@ option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
 for older compilers or uncommon platforms." OFF)
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain.
 You likely want this on older compilers." OFF)
-option(VISIBILITY_PUBLIC "Private internal symbols will be exported. Useful for running tests when building with -DBUILD_SHARED_LIBS=ON" OFF)
+option(VISIBILITY_PUBLIC "Private internal symbols will be exported. This is enabled by default when building with -DBUILD_SHARED_LIBS=ON (default=OFF) and -DBUILD_TESTING=ON (default=ON)" OFF)
+# Turn BUILD_TESTING=ON by default
+include(CTest)
 
 file(GLOB API_HEADERS "api/*.h")
 
@@ -199,7 +201,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Werro
         -Wa,--noexecstack
 )
 
-if(VISIBILITY_PUBLIC)
+if(VISIBILITY_PUBLIC OR (BUILD_TESTING AND BUILD_SHARED_LIBS))
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=default)
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=hidden)
@@ -264,7 +266,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURR
 
 target_include_directories(${PROJECT_NAME} PRIVATE $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
-include(CTest)
 if (BUILD_TESTING)
     enable_testing()
 
