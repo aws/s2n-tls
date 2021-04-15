@@ -93,7 +93,7 @@ void usage()
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
     fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
                     "    A comma separated list of psk paramaters specified in an order namely: psk_identity, psk_secret and psk_hmac_alg.\n"
-                    "    There are no whitespaces allowed before of after the comma.\n"
+                    "    Note that the psk-secret is hex-encoded. There are no whitespaces allowed before of after the comma.\n"
                     "    Ex: --psk psk_id,psk_secret,S2N_PSK_HMAC_SHA256 --psk shared_id,shared_secret,S2N_PSK_HMAC_SHA384.\n");
     fprintf(stderr, "\n");
     exit(1);
@@ -262,7 +262,8 @@ int main(int argc, char *const *argv)
     char *token = NULL;
     const char *key_log_path = NULL;
     FILE *key_log_file = NULL;
-    struct s2n_array *psk_list = NULL;
+    struct s2n_psk *psk_list[S2N_MAX_PSK_LIST_LENGTH] = { NULL };
+    size_t psk_idx = 0;
 
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");
 
@@ -377,10 +378,7 @@ int main(int argc, char *const *argv)
             key_log_path = optarg;
             break;
         case 'P':
-            psk_list = s2n_array_new(sizeof(struct s2n_array));
-            POSIX_ENSURE_REF(psk_list);
-            POSIX_GUARD_RESULT(s2n_array_init(psk_list, sizeof(struct s2n_psk)));
-            POSIX_GUARD(s2n_setup_external_psk(psk_list, optarg));
+            POSIX_GUARD(s2n_setup_external_psk(psk_list, &psk_idx, optarg));
             break;
         case '?':
         default:
@@ -520,10 +518,10 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(s2n_connection_set_session(conn, session_state, session_state_length), "Error setting session state in connection");
         }
 
-        for (size_t i = 0; i < psk_list->len; i++) {
-            struct s2n_psk *psk = NULL;
-            POSIX_GUARD_RESULT(s2n_array_get(psk_list, i, (void**) &psk));
-            GUARD_EXIT(s2n_connection_append_psk(conn, psk), "Error appending psk");
+        for (size_t i = 0; i < psk_idx; i++) {
+            struct s2n_psk *psk = psk_list[i];
+            GUARD_EXIT(s2n_connection_append_psk(conn, psk), "Error appending psk to the connection");
+            POSIX_GUARD(s2n_psk_free(&psk));
         }
 
         /* See echo.c */
@@ -581,10 +579,6 @@ int main(int argc, char *const *argv)
 
     if (key_log_file) {
         fclose(key_log_file);
-    }
-
-    if (psk_list) {
-        POSIX_GUARD_RESULT(s2n_array_free(psk_list));
     }
 
     GUARD_EXIT(s2n_cleanup(), "Error running s2n_cleanup()");

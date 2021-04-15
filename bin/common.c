@@ -94,13 +94,13 @@ static int s2n_get_psk_hmac_alg(s2n_psk_hmac *psk_hmac, char *hmac_str)
     return S2N_SUCCESS;
 }
 
-int s2n_setup_external_psk(struct s2n_array *psk_list, char *params)
+int s2n_setup_external_psk(struct s2n_psk *psk_list[S2N_MAX_PSK_LIST_LENGTH], size_t *psk_idx, char *params)
 {
     POSIX_ENSURE_REF(psk_list);
+    POSIX_ENSURE_REF(psk_idx);
     POSIX_ENSURE_REF(params);
 
-    struct s2n_psk *psk = NULL;
-    POSIX_GUARD_RESULT(s2n_array_pushback(psk_list, (void **)&psk));
+    struct s2n_psk *psk = s2n_external_psk_new();
     POSIX_ENSURE_REF(psk);
     POSIX_GUARD_RESULT(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
     /* Default HMAC algorithm is S2N_PSK_HMAC_SHA256 */
@@ -129,5 +129,6 @@ int s2n_setup_external_psk(struct s2n_array *psk_list, char *params)
         }
     }
 
+    psk_list[(*psk_idx)++] = psk;
     return S2N_SUCCESS;
 }

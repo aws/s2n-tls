@@ -434,7 +434,7 @@ int main(int argc, char **argv)
             "ff5dd36d64e861be7fd61d2827db279cce145077d454a3664d4e6da4d29ee03725"
             "a6a4dafcd0fc67d2aea70529513e3da2677fa5906c5b3f7d8f92f228bda40dda72"
             "1470f9fbf297b5aea617646fac5c03272e970727c621a79141ef5f7de6505e5bfb"
-            "c388e93343694093934ae4d357fad6aacb");
+            "c388e93343694093934ae4d357");
         S2N_BLOB_FROM_HEX(client_hello_prefix,
             "010001fc03031bc3ceb6bbe39cff938355b5a50adb6db21b7a6af649d7b4bc419d"
             "7876487d95000006130113031302010001cd0000000b0009000006736572766572"
