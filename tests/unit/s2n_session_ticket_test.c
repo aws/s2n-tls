@@ -24,6 +24,7 @@
 
 #include "crypto/s2n_fips.h"
 #include "utils/s2n_safety.h"
+#include "utils/s2n_bitmap.h"
 
 #define S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS    (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS) / ONE_SEC_IN_NANOS
 #define S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES     S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN
@@ -49,7 +50,7 @@ static int mock_time(void *data, uint64_t *nanoseconds)
     return S2N_SUCCESS;
 }
 
-uint8_t cb_session_data[S2N_TLS12_SESSION_SIZE] = { 0 };
+uint8_t cb_session_data[S2N_TLS12_SESSION_SIZE * 2] = { 0 };
 size_t cb_session_data_len = 0;
 uint32_t cb_session_lifetime = 0;
 static int s2n_test_session_ticket_callback(struct s2n_connection *conn, struct s2n_session_ticket *ticket)
@@ -119,10 +120,15 @@ int main(int argc, char **argv)
      * 16) Add keys out of order and pre-emptively add a key.
      * 17) Handshake with client auth and session ticket enabled.
      * 18) Session resumption APIs and session_ticket_cb return the same values when receiving a new ticket in TLS1.2
+     * 19) Session resumption APIs and session_ticket_cb return sane values when receiving a new ticket in TLS1.3
+     * 20) Client has TLS1.3 ticket but negotiates TLS1.2, so does full handshake
      */
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
+
+    DEFER_CLEANUP(struct s2n_stuffer tls13_serialized_session_state = { 0 }, s2n_stuffer_free);
+    EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&tls13_serialized_session_state, 0));
 
     struct s2n_test_io_pair io_pair;
     EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
@@ -133,6 +139,10 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
     EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
+
+    struct s2n_cert_chain_and_key *ecdsa_chain_and_key = NULL;
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
+            S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
 
@@ -1111,8 +1121,109 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
     }
 
+    EXPECT_SUCCESS(s2n_reset_tls13());
+
+    /* Session resumption APIs and session_ticket_cb return sane values
+     * when receiving a new ticket in TLS1.3
+     * TODO: https://github.com/aws/s2n-tls/issues/2553
+     */
+    {
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
+        EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name1, strlen((char *)ticket_key_name1),
+                ticket_key1, sizeof(ticket_key1), 0));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+
+        /* Send one NewSessionTicket */
+        cb_session_data_len = 0;
+        EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_callback, NULL));
+        EXPECT_SUCCESS(s2n_config_set_initial_ticket_count(config, 1));
+
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Verify that TLS1.3 was negotiated */
+        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+
+        /* Receive and save the issued session ticket for the next test */
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        uint8_t out = 0;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_recv(client_conn, &out, 1, &blocked), S2N_ERR_IO_BLOCKED);
+        EXPECT_NOT_EQUAL(cb_session_data_len, 0);
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&tls13_serialized_session_state, cb_session_data, cb_session_data_len));
+
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
+    /* Client has TLS1.3 ticket but negotiates TLS1.2 */
+    {
+        s2n_extension_type_id client_session_ticket_ext_id = 0, psk_ext_id = 0;
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PRE_SHARED_KEY, &psk_ext_id));
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SESSION_TICKET, &client_session_ticket_ext_id));
+
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
+        EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name1, strlen((char *)ticket_key_name1),
+                ticket_key1, sizeof(ticket_key1), 0));
+
+        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "test_all"));
+        EXPECT_SUCCESS(s2n_connection_set_session(client_conn,  tls13_serialized_session_state.blob.data,
+                s2n_stuffer_data_available(&tls13_serialized_session_state)));
+
+        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default"));
+
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Verify that TLS1.2 was negotiated */
+        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+
+        /* Verify that the client did NOT try to use TLS1.2 tickets */
+        EXPECT_FALSE(S2N_CBIT_TEST(client_conn->extension_requests_sent, client_session_ticket_ext_id));
+        EXPECT_FALSE(S2N_CBIT_TEST(client_conn->extension_requests_sent, client_session_ticket_ext_id));
+
+        /* Verify that the client tried to use TLS1.3 tickets, but the server ignored them */
+        EXPECT_TRUE(S2N_CBIT_TEST(client_conn->extension_requests_sent, psk_ext_id));
+        EXPECT_FALSE(S2N_CBIT_TEST(server_conn->extension_requests_sent, psk_ext_id));
+
+        /* Verify that a full handshake occurred instead */
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(client_conn));
+        EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
     free(cert_chain);
     free(private_key);
     END_TEST();
