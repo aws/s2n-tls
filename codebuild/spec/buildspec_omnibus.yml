@@ -201,7 +201,7 @@ batch:
           TESTS: integration
           GCC_VERSION: 6
           S2N_COVERAGE: true
-          CODECOV_IO_UPLOAD: true
+          CODECOV_IO_UPLOAD: false
 
     # Saw
     - identifier: s2nSawBike
@@ -290,7 +290,7 @@ batch:
           S2N_LIBCRYPTO: 'openssl-1.1.1'
           BUILD_S2N: 'true'
           S2N_COVERAGE: 'true'
-          CODECOV_IO_UPLOAD: 'true'
+          CODECOV_IO_UPLOAD: 'false'
           CODECOV_TOKEN: 'e460b7c1-6019-4a50-b65d-555c4a8fbc22'
 
     - identifier: s2nAsanOpenssl102
@@ -317,7 +317,7 @@ batch:
           TESTS: fuzz
           FUZZ_TIMEOUT_SEC: 60
           FUZZ_COVERAGE: true
-          CODECOV_IO_UPLOAD: true
+          CODECOV_IO_UPLOAD: false
 
     - identifier: s2nFuzzerOpenSSL102
       buildspec: codebuild/spec/buildspec_ubuntu_fuzz_artifacts.yml
