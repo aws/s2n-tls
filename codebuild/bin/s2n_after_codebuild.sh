@@ -17,6 +17,8 @@ set -ex
 
 # Upload Code Coverage Information to CodeCov.io
 if [[ "$CODECOV_IO_UPLOAD" == "true" ]]; then
+    # Evaluate more coverage options and re-renable
+    # https://github.com/aws/s2n-tls/issues/2349
     echo "Skipping coverage upload"
     if [[ "$FUZZ_COVERAGE" == "true" ]]; then
         # bash <(curl -s https://codecov.io/bash) -f coverage/fuzz/codecov.txt -F ${TESTS};
