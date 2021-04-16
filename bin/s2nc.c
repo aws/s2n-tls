@@ -35,6 +35,7 @@
 #include <error/s2n_errno.h>
 
 #include "tls/s2n_connection.h"
+#include "utils/s2n_safety.h"
 
 #define S2N_MAX_ECC_CURVE_NAME_LENGTH 10
 
@@ -378,7 +379,7 @@ int main(int argc, char *const *argv)
             key_log_path = optarg;
             break;
         case 'P':
-            POSIX_GUARD(s2n_setup_external_psk(psk_list, &psk_idx, optarg));
+            GUARD_EXIT(s2n_setup_external_psk(psk_list, &psk_idx, optarg), "Error setting external PSK parameters");
             break;
         case '?':
         default:
@@ -521,7 +522,7 @@ int main(int argc, char *const *argv)
         for (size_t i = 0; i < psk_idx; i++) {
             struct s2n_psk *psk = psk_list[i];
             GUARD_EXIT(s2n_connection_append_psk(conn, psk), "Error appending psk to the connection");
-            POSIX_GUARD(s2n_psk_free(&psk));
+            GUARD_EXIT(s2n_psk_free(&psk), "Error freeing psk");
         }
 
         /* See echo.c */

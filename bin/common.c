@@ -80,8 +80,8 @@ int key_log_callback(void *file, struct s2n_connection *conn, uint8_t *logline, 
 
 static int s2n_get_psk_hmac_alg(s2n_psk_hmac *psk_hmac, char *hmac_str)
 {
-    POSIX_ENSURE_REF(psk_hmac);
-    POSIX_ENSURE_REF(hmac_str);
+    GUARD_EXIT_NULL(psk_hmac, "PSK HMAC is NULL");
+    GUARD_EXIT_NULL(hmac_str, "HMAC string is NULL");
 
     if (strcmp(hmac_str, "S2N_PSK_HMAC_SHA256") == 0) {
         *psk_hmac = S2N_PSK_HMAC_SHA256;
@@ -95,12 +95,12 @@ static int s2n_get_psk_hmac_alg(s2n_psk_hmac *psk_hmac, char *hmac_str)
 
 int s2n_setup_external_psk(struct s2n_psk *psk_list[S2N_MAX_PSK_LIST_LENGTH], size_t *psk_idx, char *params)
 {
-    POSIX_ENSURE_REF(psk_list);
-    POSIX_ENSURE_REF(psk_idx);
-    POSIX_ENSURE_REF(params);
+    GUARD_EXIT_NULL(psk_list, "PSK list is NULL");
+    GUARD_EXIT_NULL(psk_idx, "PSK index is NULL");
+    GUARD_EXIT_NULL(params, "PSK parameters is NULL");
 
     struct s2n_psk *psk = s2n_external_psk_new();
-    POSIX_ENSURE_REF(psk);
+    GUARD_EXIT_NULL(psk, "Error initializing PSK, NULL value obtained");
     /* Default HMAC algorithm is S2N_PSK_HMAC_SHA256 */
     s2n_psk_hmac psk_hmac_alg = S2N_PSK_HMAC_SHA256;
     size_t idx = 0;
@@ -113,9 +113,14 @@ int s2n_setup_external_psk(struct s2n_psk *psk_list[S2N_MAX_PSK_LIST_LENGTH], si
                              "Error setting psk identity");
                 break;
             case 1:
+                /* Ref: https://www.openssl.org/docs/man1.1.0/man3/OPENSSL_hexstr2buf.html
+                 * OPENSSL_hexstr2buf() parses str as a hex string and returns a pointer to the parsed value. 
+                 * The memory is allocated by calling OPENSSL_malloc() and should be released by calling OPENSSL_free().
+                 */
                 secret = OPENSSL_hexstr2buf((const char *)token, &secret_len);
-                POSIX_ENSURE_REF(secret);
+                GUARD_EXIT_NULL(secret, "Error converting hex-encoded secret value to bytes");
                 GUARD_EXIT(s2n_psk_set_secret(psk, (const uint8_t *)secret, secret_len), "Error setting psk secret");
+                OPENSSL_free(secret);
                 break;
             case 2:
                 GUARD_EXIT(s2n_get_psk_hmac_alg(&psk_hmac_alg, token), "Invalid psk hmac algorithm");

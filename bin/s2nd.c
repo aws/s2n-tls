@@ -292,7 +292,7 @@ void usage()
     fprintf(stderr, "  -L --key-log <path>\n");
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
     fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
-                    "    A comma-separated list of psk parameters in this order: : psk_identity, psk_secret and psk_hmac_alg.\n"
+                    "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
                     "    Note that the psk-secret is hex-encoded. There are no whitespaces allowed before or after the comma.\n"
                     "    Ex: --psk psk_id,psk_secret,S2N_PSK_HMAC_SHA256 --psk shared_id,shared_secret,S2N_PSK_HMAC_SHA384.\n");
     fprintf(stderr, "  -h,--help\n");
@@ -365,7 +365,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
     for (size_t i = 0; i < settings.psk_idx; i++) {
         struct s2n_psk *psk = settings.psk_list[i];
         GUARD_EXIT(s2n_connection_append_psk(conn, psk), "Error appending psk");
-        POSIX_GUARD(s2n_psk_free(&psk));
+        GUARD_EXIT(s2n_psk_free(&psk), "Error freeing psk");
     }
 
     if (negotiate(conn, fd) != S2N_SUCCESS) {
@@ -574,7 +574,7 @@ int main(int argc, char *const *argv)
             key_log_path = optarg;
             break;
         case 'P':
-            POSIX_GUARD(s2n_setup_external_psk(conn_settings.psk_list, &conn_settings.psk_idx, optarg));
+            GUARD_EXIT(s2n_setup_external_psk(conn_settings.psk_list, &conn_settings.psk_idx, optarg), "Error setting external PSK parameters");
             break;
         case '?':
         default:

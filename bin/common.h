@@ -16,8 +16,16 @@
 #pragma once
 
 #include <stdint.h>
+/* Remove once the PSK feature is released i.e PSK APIs are made visible and moved to s2n.h */
 #include "tls/s2n_psk.h"
-#include "utils/s2n_safety.h"
+
+#define GUARD_EXIT_NULL(x, msg)  \
+  do {                           \
+    if (x == NULL) {             \
+      print_s2n_error(msg);      \
+      exit(1);                   \
+    }                            \
+  } while (0)
 
 #define GUARD_EXIT(x, msg)  \
   do {                      \
