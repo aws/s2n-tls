@@ -326,7 +326,7 @@ int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec* io
     POSIX_ENSURE(S2N_MEM_IS_READABLE(ptr, size), S2N_ERR_NULL);
 
     size_t size_left = size, to_skip = offs;
-    for (int i = 0; i < iov_count; i++) {
+    for (size_t i = 0; i < iov_count; i++) {
         if (to_skip >= iov[i].iov_len) {
             to_skip -= iov[i].iov_len;
             continue;

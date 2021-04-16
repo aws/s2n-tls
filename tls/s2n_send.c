@@ -129,7 +129,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
         bufs = _bufs;
         count = _count;
     }
-    for (int i = 0; i < count; i++) {
+    for (ssize_t i = 0; i < count; i++) {
         total_size += bufs[i].iov_len;
     }
     total_size -= offs;
