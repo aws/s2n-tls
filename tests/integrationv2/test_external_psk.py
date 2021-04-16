@@ -37,10 +37,6 @@ s2n_server_only_psk = 's2n_server_psk_identity,'\
                       'a64dafcd0fc67d2a,'\
                       'S2N_PSK_HMAC_SHA256'\
 
-s2n_invalid_hmac_psk = 'psk_identity,'\
-                       'f9bf29b5aea6aea7,'\
-                       'S2N_PSK_HMAC_SHA512'\
-
 S2N_CLIENT_PSK_PARAMETERS = [ 
     [ '--psk', s2n_client_only_psk ],
     [ '--psk', s2n_known_value_psk ], 
@@ -53,7 +49,6 @@ S2N_SERVER_PSK_PARAMETERS = [
     [ '--psk', s2n_server_only_psk, '--psk', s2n_known_value_psk ], 
 ]
 
-S2N_INVALID_PSK_PARAMETERS = [ [ '--psk', s2n_invalid_hmac_psk ], ]
 OPENSSL_PSK_PARAMETERS = [ '-psk_identity', shared_psk_identity, '--psk', shared_psk_secret ]
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -196,33 +191,3 @@ def test_external_psk_s2nd_with_openssl_client(managed_process, s2n_server_psk_p
         assert random_bytes in results.stdout 
         assert results.exit_code == 0
         assert results.exception is None
-
-@pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("invalid_psk_params", S2N_INVALID_PSK_PARAMETERS, ids=get_parameter_name)
-def test_external_psk_invalid_params(managed_process, invalid_psk_params):
-    port = next(available_ports)
-    random_bytes = data_bytes(64)
-    client_options = ProviderOptions(
-        mode=S2N.ClientMode,
-        host="localhost",
-        port=port,
-        cipher=Ciphers.CHACHA20_POLY1305_SHA256,
-        data_to_send=random_bytes,
-        insecure=True,
-        extra_flags=invalid_psk_params,
-        protocol=Protocols.TLS13)
-
-    server_options = copy.copy(client_options)
-    server_options.data_to_send = None
-    server_options.mode = S2N.ServerMode
-
-    server = managed_process(S2N, server_options, timeout=20)
-    client = managed_process(S2N, client_options, timeout=20)
-
-    for results in client.get_results():
-        assert b"Invalid psk hmac algorithm" in results.stderr
-        assert results.exit_code != 0
-
-    for results in server.get_results():
-        assert b"Invalid psk hmac algorithm" in results.stderr
-        assert results.exit_code != 0
