@@ -20,15 +20,7 @@
 #include "stuffer/s2n_stuffer.h"
 
 #define S2N_STATE_LIFETIME_IN_NANOS     54000000000000      /* 15 hours */
-#define S2N_STATE_SIZE_IN_BYTES         (1 + 8 + 1 + S2N_TLS_CIPHER_SUITE_LEN + S2N_TLS_SECRET_LEN)
-
-#define S2N_MAX_STATE_SIZE_IN_BYTES     sizeof(uint8_t)  +  /* serialization format */  \
-                                        sizeof(uint8_t)  +  /* protocol version */      \
-                                        sizeof(uint16_t) +  /* cipher suite */          \
-                                        sizeof(uint64_t) +  /* ticket issue time */     \
-                                        sizeof(uint32_t) +  /* ticket age add */        \
-                                        sizeof(uint8_t)  +  /* secret size */           \
-                                        S2N_TLS_SECRET_LEN
+#define S2N_TLS12_STATE_SIZE_IN_BYTES   (1 + 8 + 1 + S2N_TLS_CIPHER_SUITE_LEN + S2N_TLS_SECRET_LEN)
 
 #define S2N_TLS_SESSION_CACHE_TTL       (6 * 60 * 60)
 #define S2N_TICKET_KEY_NAME_LEN         16
@@ -39,10 +31,7 @@
 #define ONE_MILLISEC_IN_NANOS           1000000
 #define ONE_WEEK_IN_SEC                 604800
 #define S2N_TLS12_TICKET_SIZE_IN_BYTES  (S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN +     \
-        S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN)
-
-#define S2N_MAX_TICKET_SIZE_IN_BYTES    (S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN +     \
-        S2N_MAX_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN)
+        S2N_TLS12_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN)
 
 #define S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS        7200000000000     /* 2 hours */
 #define S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS                46800000000000    /* 13 hours */
@@ -55,7 +44,7 @@
 #define S2N_TLS12_SESSION_SIZE          S2N_STATE_FORMAT_LEN + \
                                         S2N_SESSION_TICKET_SIZE_LEN + \
                                         S2N_TLS12_TICKET_SIZE_IN_BYTES + \
-                                        S2N_STATE_SIZE_IN_BYTES
+                                        S2N_TLS12_STATE_SIZE_IN_BYTES
 
 struct s2n_connection;
 struct s2n_config;

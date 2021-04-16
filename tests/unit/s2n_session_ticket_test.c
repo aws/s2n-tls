@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 
     size_t serialized_session_state_length = 0;
     uint8_t s2n_state_with_session_id = S2N_STATE_WITH_SESSION_ID;
-    uint8_t serialized_session_state[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES + S2N_STATE_SIZE_IN_BYTES] = { 0 };
+    uint8_t serialized_session_state[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES + S2N_TLS12_STATE_SIZE_IN_BYTES] = { 0 };
 
     /* Session ticket keys. Taken from test vectors in https://tools.ietf.org/html/rfc5869 */
     uint8_t ticket_key_name1[16] = "2016.07.26.15\0";
@@ -623,7 +623,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
 
         /* Verify that client_ticket is empty */
-        EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), 1 + 1 + client_conn->session_id_len + S2N_STATE_SIZE_IN_BYTES);
+        EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), 1 + 1 + client_conn->session_id_len + S2N_TLS12_STATE_SIZE_IN_BYTES);
         EXPECT_EQUAL(memcmp(serialized_session_state, &s2n_state_with_session_id, 1), 0);
         EXPECT_NOT_EQUAL(memcmp(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name2, strlen((char *)ticket_key_name2)), 0);
 
@@ -1013,7 +1013,7 @@ int main(int argc, char **argv)
         uint8_t valid_iv[S2N_TLS_GCM_IV_LEN] = {0};
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, valid_iv, sizeof(valid_iv)));
 
-        uint8_t invalid_en_data[S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = {0};
+        uint8_t invalid_en_data[S2N_TLS12_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = {0};
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, invalid_en_data, sizeof(invalid_en_data)));
 
         server_conn->session_ticket_status = S2N_DECRYPT_TICKET;
@@ -1039,7 +1039,7 @@ int main(int argc, char **argv)
         uint8_t valid_iv[S2N_TLS_GCM_IV_LEN] = {0};
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, valid_iv, sizeof(valid_iv)));
 
-        uint8_t invalid_en_data[S2N_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = {0};
+        uint8_t invalid_en_data[S2N_TLS12_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN] = {0};
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, invalid_en_data, sizeof(invalid_en_data)));
 
         server_conn->session_ticket_status = S2N_DECRYPT_TICKET;
