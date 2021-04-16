@@ -37,10 +37,6 @@ s2n_server_only_psk = 's2n_server_psk_identity,'\
                       'a64dafcd0fc67d2a,'\
                       'S2N_PSK_HMAC_SHA256'\
 
-s2n_shared_psk = 's2n_psk_identity,'\
-                 'f9bf29b5aea6aea7,'\
-                 'S2N_PSK_HMAC_SHA256'\
-
 s2n_invalid_hmac_psk = 'psk_identity,'\
                        'f9bf29b5aea6aea7,'\
                        'S2N_PSK_HMAC_SHA512'\
@@ -48,53 +44,24 @@ s2n_invalid_hmac_psk = 'psk_identity,'\
 S2N_CLIENT_PSK_PARAMETERS = [ 
     [ '--psk', s2n_client_only_psk ],
     [ '--psk', s2n_known_value_psk ], 
-    [ '--psk', s2n_invalid_hmac_psk ],
-    [ '--psk', s2n_client_only_psk, '--psk', s2n_shared_psk ], 
+    [ '--psk', s2n_client_only_psk, '--psk', s2n_known_value_psk ], 
 ]
 
 S2N_SERVER_PSK_PARAMETERS = [
     [ '--psk', s2n_server_only_psk ],
     [ '--psk', s2n_known_value_psk ],
-    [ '--psk', s2n_invalid_hmac_psk ],
-    [ '--psk', s2n_server_only_psk, '--psk', s2n_shared_psk ], 
+    [ '--psk', s2n_server_only_psk, '--psk', s2n_known_value_psk ], 
 ]
 
-OPENSSL_PSK_PARAMETER = [ '-psk_identity', shared_psk_identity, '--psk', shared_psk_secret ]
-
-def s2n_assert_chosen_psk(idx, results, random_bytes, is_s2nd=False, is_peer_openssl_server=False):
-    if idx == 0:
-        assert b"Chosen PSK type: S2N_PSK_TYPE_EXTERNAL" not in results.stdout
-        assert b"Chosen PSK identity" not in results.stdout
-        if is_s2nd:
-            assert random_bytes in results.stdout
-            assert results.exit_code == 0
-        if is_peer_openssl_server:
-            assert b"Failed to negotiate: 'TLS alert received'. Error encountered in s2n_alerts.c line 122" in results.stderr
-            assert results.exit_code != 0
-        else:
-            assert results.exit_code == 0
-    elif idx == 1:
-        assert b"Chosen PSK type: S2N_PSK_TYPE_EXTERNAL" in results.stdout
-        assert bytes("Chosen PSK identity: {}".format(shared_psk_identity).encode('utf-8')) in results.stdout
-        if is_s2nd:
-            assert random_bytes in results.stdout
-        assert results.exit_code == 0   
-    elif idx == 2:
-        assert b"Invalid psk hmac algorithm" in results.stderr
-        assert results.exit_code != 0
-    elif idx == 3: 
-        assert b"Chosen PSK type: S2N_PSK_TYPE_EXTERNAL" in results.stdout
-        assert b"Chosen PSK identity: s2n_psk_identity" in results.stdout
-        if is_s2nd:
-            assert random_bytes in results.stdout
-        assert results.exit_code == 0
+S2N_INVALID_PSK_PARAMETERS = [ [ '--psk', s2n_invalid_hmac_psk ], ]
+OPENSSL_PSK_PARAMETERS = [ '-psk_identity', shared_psk_identity, '--psk', shared_psk_secret ]
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("client_psk_params", S2N_CLIENT_PSK_PARAMETERS, ids=get_parameter_name)
 def test_external_psk_s2nc_with_s2nd(managed_process, client_psk_params):
     port = next(available_ports)
-
     random_bytes = data_bytes(64)
+
     client_options = ProviderOptions(
         mode=S2N.ClientMode,
         host="localhost",
@@ -119,19 +86,32 @@ def test_external_psk_s2nc_with_s2nd(managed_process, client_psk_params):
     client = managed_process(S2N, client_options, timeout=20)
 
     for results in client.get_results():
-        s2n_assert_chosen_psk(idx, results, random_bytes)
+        if idx == 0:
+            assert b"Chosen PSK type: S2N_PSK_TYPE_EXTERNAL" not in results.stdout
+            assert b"Chosen PSK identity" not in results.stdout
+        else:
+            assert b"Chosen PSK type: S2N_PSK_TYPE_EXTERNAL" in results.stdout
+            assert bytes("Chosen PSK identity: {}".format(shared_psk_identity).encode('utf-8')) in results.stdout
+        assert results.exit_code == 0
         assert results.exception is None
 
     for results in server.get_results():
-        s2n_assert_chosen_psk(idx, results, random_bytes, True)
+        if idx == 0:
+            assert b"Chosen PSK type: S2N_PSK_TYPE_EXTERNAL" not in results.stdout
+            assert b"Chosen PSK identity" not in results.stdout
+        else:
+            assert b"Chosen PSK type: S2N_PSK_TYPE_EXTERNAL" in results.stdout
+            assert bytes("Chosen PSK identity: {}".format(shared_psk_identity).encode('utf-8')) in results.stdout
+        assert random_bytes in results.stdout
+        assert results.exit_code == 0
         assert results.exception is None
 
 pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("s2n_client_psk_params", S2N_CLIENT_PSK_PARAMETERS[:3], ids=get_parameter_name)
+@pytest.mark.parametrize("s2n_client_psk_params", S2N_CLIENT_PSK_PARAMETERS[:2], ids=get_parameter_name)
 def test_external_psk_s2nc_with_openssl_server(managed_process, s2n_client_psk_params):
     port = next(available_ports)
-
     random_bytes = data_bytes(64)
+
     client_options = ProviderOptions(
         mode=S2N.ClientMode,
         host="localhost",
@@ -148,34 +128,38 @@ def test_external_psk_s2nc_with_openssl_server(managed_process, s2n_client_psk_p
     server_options = copy.copy(client_options)
     server_options.data_to_send = None
     server_options.mode = OpenSSL.ServerMode
-    server_options.extra_flags = OPENSSL_PSK_PARAMETER
+    server_options.extra_flags = OPENSSL_PSK_PARAMETERS
     idx = S2N_CLIENT_PSK_PARAMETERS.index(s2n_client_psk_params)
     server = managed_process(OpenSSL, server_options, timeout=20)
     client = managed_process(S2N, client_options, timeout=20)
 
     for results in client.get_results():
-        s2n_assert_chosen_psk(idx, results, random_bytes, False, True)
+        if idx == 0:
+            assert b"Chosen PSK type: S2N_PSK_TYPE_EXTERNAL" not in results.stdout
+            assert b"Chosen PSK identity" not in results.stdout
+            assert b"Failed to negotiate: 'TLS alert received'. Error encountered in s2n_alerts.c line 122" in results.stderr
+            assert results.exit_code != 0
+        else:
+            assert b"Chosen PSK type: S2N_PSK_TYPE_EXTERNAL" in results.stdout
+            assert bytes("Chosen PSK identity: {}".format(shared_psk_identity).encode('utf-8')) in results.stdout
+            assert results.exit_code == 0
         assert results.exception is None
 
     for results in server.get_results():
         if idx == 0:
             assert b"PSK warning: client identity not what we expected" in results.stdout
             assert b"error:141F906E:SSL routines:tls_parse_ctos_psk:bad extension:ssl/statem/extensions_srvr.c:1272" in results.stderr
-            assert results.exception is None
-            assert results.exit_code == 0
-        elif idx % 2 == 1:
-            assert b"PSK key given, setting server callback" in results.stdout
-            assert results.exception is None
-            assert results.exit_code == 0
         else:
-            assert results.exit_code != 0
+            assert b"PSK key given, setting server callback" in results.stdout
+        assert results.exception is None
+        assert results.exit_code == 0
 
 pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("s2n_server_psk_params", S2N_SERVER_PSK_PARAMETERS[:3], ids=get_parameter_name)
+@pytest.mark.parametrize("s2n_server_psk_params", S2N_SERVER_PSK_PARAMETERS[:2], ids=get_parameter_name)
 def test_external_psk_s2nd_with_openssl_client(managed_process, s2n_server_psk_params):
     port = next(available_ports)
-
     random_bytes = data_bytes(64)
+
     client_options = ProviderOptions(
         mode=OpenSSL.ClientMode,
         host="localhost",
@@ -186,7 +170,7 @@ def test_external_psk_s2nd_with_openssl_client(managed_process, s2n_server_psk_p
         cert=Certificates.ECDSA_256.cert,
         trust_store=Certificates.ECDSA_256.cert,
         insecure=False,
-        extra_flags=OPENSSL_PSK_PARAMETER,
+        extra_flags=OPENSSL_PSK_PARAMETERS,
         protocol=Protocols.TLS13)
 
     server_options = copy.copy(client_options)
@@ -197,17 +181,48 @@ def test_external_psk_s2nd_with_openssl_client(managed_process, s2n_server_psk_p
     server = managed_process(S2N, server_options, timeout=20)
     client = managed_process(OpenSSL, client_options, timeout=20)
 
+    for results in client.get_results():
+        assert b"PSK key given, setting client callback" in results.stdout
+        assert results.exception is None
+        assert results.exit_code == 0
+
     for results in server.get_results():
-        s2n_assert_chosen_psk(idx, results, random_bytes, True)
+        if idx == 0:
+            assert b"Chosen PSK type: S2N_PSK_TYPE_EXTERNAL" not in results.stdout
+            assert b"Chosen PSK identity" not in results.stdout
+        else:
+            assert b"Chosen PSK type: S2N_PSK_TYPE_EXTERNAL" in results.stdout
+            assert bytes("Chosen PSK identity: {}".format(shared_psk_identity).encode('utf-8')) in results.stdout
+        assert random_bytes in results.stdout 
+        assert results.exit_code == 0
         assert results.exception is None
 
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("invalid_psk_params", S2N_INVALID_PSK_PARAMETERS, ids=get_parameter_name)
+def test_external_psk_invalid_params(managed_process, invalid_psk_params):
+    port = next(available_ports)
+    random_bytes = data_bytes(64)
+    client_options = ProviderOptions(
+        mode=S2N.ClientMode,
+        host="localhost",
+        port=port,
+        cipher=Ciphers.CHACHA20_POLY1305_SHA256,
+        data_to_send=random_bytes,
+        insecure=True,
+        extra_flags=invalid_psk_params,
+        protocol=Protocols.TLS13)
+
+    server_options = copy.copy(client_options)
+    server_options.data_to_send = None
+    server_options.mode = S2N.ServerMode
+
+    server = managed_process(S2N, server_options, timeout=20)
+    client = managed_process(S2N, client_options, timeout=20)
+
     for results in client.get_results():
-        if idx == 0:
-            assert results.exception is None
-            assert results.exit_code == 0
-        elif idx % 2 == 1:
-            assert b"PSK key given, setting client callback" in results.stdout
-            assert results.exception is None
-            assert results.exit_code == 0
-        else:
-            assert results.exit_code != 0
+        assert b"Invalid psk hmac algorithm" in results.stderr
+        assert results.exit_code != 0
+
+    for results in server.get_results():
+        assert b"Invalid psk hmac algorithm" in results.stderr
+        assert results.exit_code != 0

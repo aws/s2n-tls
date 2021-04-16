@@ -292,8 +292,8 @@ void usage()
     fprintf(stderr, "  -L --key-log <path>\n");
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
     fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
-                    "    A comma separated list of psk paramaters specified in an order namely: psk_identity, psk_secret and psk_hmac_alg.\n"
-                    "    Note that the psk-secret is hex-encoded. There are no whitespaces allowed before of after the comma.\n"
+                    "    A comma-separated list of psk parameters in this order: : psk_identity, psk_secret and psk_hmac_alg.\n"
+                    "    Note that the psk-secret is hex-encoded. There are no whitespaces allowed before or after the comma.\n"
                     "    Ex: --psk psk_id,psk_secret,S2N_PSK_HMAC_SHA256 --psk shared_id,shared_secret,S2N_PSK_HMAC_SHA384.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
