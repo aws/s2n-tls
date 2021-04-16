@@ -248,8 +248,6 @@ int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_ke
  * https://cabforum.org/pipermail/public/2016-April/007242.html
  */
 
-DEFINE_POINTER_CLEANUP_FUNC(unsigned char *, OPENSSL_free);
-
 int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
 {
     POSIX_ENSURE_REF(chain_and_key->cn_names);
@@ -275,14 +273,13 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
          * direct ASCII equivalent. Any non ASCII bytes in the string will fail later when we
          * actually compare hostnames.
          */
-        DEFER_CLEANUP(unsigned char *utf8_str, OPENSSL_free_pointer);
+        DEFER_CLEANUP(unsigned char *utf8_str, s2n_crypto_free);
         const int utf8_out_len = ASN1_STRING_to_UTF8(&utf8_str, asn1_str);
         if (utf8_out_len < 0) {
             /* On failure, ASN1_STRING_to_UTF8 does not allocate any memory */
             continue;
         } else if (utf8_out_len == 0) {
             /* We still need to free memory here see https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-7521 */
-            OPENSSL_free(utf8_str);
         } else {
             struct s2n_blob *cn_name = NULL;
             POSIX_GUARD_RESULT(s2n_array_pushback(chain_and_key->cn_names, (void **)&cn_name));
