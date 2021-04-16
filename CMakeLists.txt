@@ -12,6 +12,8 @@ option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
 for older compilers or uncommon platforms." OFF)
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain.
 You likely want this on older compilers." OFF)
+# Turn BUILD_TESTING=ON by default
+include(CTest)
 
 file(GLOB API_HEADERS "api/*.h")
 
@@ -194,9 +196,14 @@ set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
-        -Wno-missing-braces -fvisibility=hidden -DS2N_EXPORTS
-        -Wa,--noexecstack
+        -Wno-missing-braces -Wa,--noexecstack
 )
+
+if(BUILD_TESTING AND BUILD_SHARED_LIBS)
+    target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=default)
+else()
+    target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=hidden -DS2N_EXPORTS)
+endif()
 
 if(NOT APPLE)
     set(CMAKE_SHARED_LINKER_FLAGS -Wl,-z,noexecstack,-z,relro,-z,now)
@@ -257,7 +264,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURR
 
 target_include_directories(${PROJECT_NAME} PRIVATE $<TARGET_PROPERTY:LibCrypto::Crypto,INTERFACE_INCLUDE_DIRECTORIES>)
 
-include(CTest)
 if (BUILD_TESTING)
     enable_testing()
 
