@@ -416,14 +416,16 @@ int s2n_async_get_op_type(struct s2n_async_pkey_op *op, s2n_async_pkey_op_type *
     switch (op->type) {
         case S2N_ASYNC_DECRYPT:
             *type = S2N_ASYNC_DECRYPT;
-            return S2N_SUCCESS;
+            break;
         case S2N_ASYNC_SIGN:
             *type = S2N_ASYNC_SIGN;
-            return S2N_SUCCESS;
-            /* No default for compiler warnings */
+            break;
+        default:
+            POSIX_BAIL(S2N_ERR_NOT_INITIALIZED);
+            break;
     }
 
-    return S2N_FAILURE;
+    return S2N_SUCCESS;
 }
 
 int s2n_async_pkey_op_get_input_size(struct s2n_async_pkey_op *op, uint32_t * data_len )

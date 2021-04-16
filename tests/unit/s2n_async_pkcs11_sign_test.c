@@ -532,7 +532,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_config = s2n_config_new());
 
             /* Second half of suites is ECDSA. */
-            if(i >= (sizeof(test_cipher_suites) / sizeof(test_cipher_suites[0]))/2) {
+            if(i >= s2n_array_len(test_cipher_suites) / (s2n_array_len(test_cipher_suites[0]))/2) {
                 EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_ECDSA_P256_PKCS1_CERT_CHAIN, NULL));
 
                 EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20190214"));
