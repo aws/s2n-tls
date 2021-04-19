@@ -245,11 +245,12 @@ BIKE_R1_COPY = $(addprefix s2n/pq-crypto/bike_r1/, $(notdir $(BIKE_R1_C)))
 BIKE_R2_C = $(wildcard ../../pq-crypto/bike_r2/*.c) $(wildcard ../../pq-crypto/bike_r2/*.h) ../../pq-crypto/bike_r2/Makefile
 BIKE_R2_COPY = $(addprefix s2n/pq-crypto/bike_r2/, $(notdir $(BIKE_R2_C)))
 
+# PQ SAW proofs only exist for SIKE and BIKE round 1 and round 2. But the SAW Makefile still requires
+# that we copy and build all PQ code (e.g. for kyber, round 3 SIKE/BIKE)
+
 BIKE_R3_C = $(wildcard ../../pq-crypto/bike_r3/*.c) $(wildcard ../../pq-crypto/bike_r3/*.h) ../../pq-crypto/bike_r3/Makefile
 BIKE_R3_COPY = $(addprefix s2n/pq-crypto/bike_r3/, $(notdir $(BIKE_R3_C)))
 
-# PQ SAW proofs only exist for SIKE and BIKE round 1 and round 2. But the SAW Makefile still requires
-# that we copy and build all PQ code (e.g. for kyber, round 3 SIKE/BIKE)
 KYBER_R2_C = $(wildcard ../../pq-crypto/kyber_r2/*.c) $(wildcard ../../pq-crypto/kyber_r2/*.h) ../../pq-crypto/kyber_r2/Makefile
 KYBER_R2_COPY = $(addprefix s2n/pq-crypto/kyber_r2/, $(notdir $(KYBER_R2_C)))
 
