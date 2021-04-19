@@ -14,4 +14,8 @@
  */
 #pragma once
 
+#include <stdint.h>
+
 extern char *s2n_strcpy(char *buf, char *last, const char *str);
+int s2n_str_hex_to_bytes_length(const uint8_t *hex, uint32_t *out_bytes_len);
+int s2n_str_hex_to_bytes(const uint8_t *hex, uint8_t *out_bytes, uint32_t *out_bytes_len);

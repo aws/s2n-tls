@@ -613,6 +613,27 @@ S2N_API
 extern int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
 
 /**
+ * Returns the length of the bytes representation of the hex-encoded string.
+ * 
+ * @param hex A pointer to the hex-encoded string being read.
+ * @param out_bytes_len represents the length of the output bytes buffer.
+ */
+S2N_API
+extern int s2n_str_hex_to_bytes_length(const uint8_t *hex, uint32_t *out_bytes_len);
+
+/**
+ * Returns the bytes representation of the hex-encoded string.
+ * 
+ * @param hex A pointer to the hex-encoded string being read.
+ * @param out_bytes A pointer to the output buffer which will hold the bytes representation of the hex encoded string. 
+ * @param out_bytes_len This value is both an input and output parameter and represents the length of the output buffer `out_bytes`.
+ * When used as an input parameter, the caller must use this parameter to convey the maximum length of `out_bytes`. 
+ * When used as an output parameter, `out_bytes_len` holds the actual length of bytes representation of the hex-encoded string.
+ */
+S2N_API
+extern int s2n_str_hex_to_bytes(const uint8_t *hex, uint8_t *out_bytes, uint32_t *out_bytes_len);
+
+/**
  * Callback function for handling key log events
  *
  * THIS SHOULD BE USED FOR DEBUGGING PURPOSES ONLY!

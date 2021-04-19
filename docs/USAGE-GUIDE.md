@@ -1492,6 +1492,22 @@ int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, 
 
 **s2n_cert_get_utf8_string_from_extension_data** gets the UTF8 String representation of the DER encoded ASN.1 X.509 certificate extension data.
 
+### s2n\_str\_hex\_to\_bytes\_length
+
+```c
+int s2n_str_hex_to_bytes_length(const uint8_t *hex, uint32_t *out_bytes_len);
+```
+
+**s2n_str_hex_to_bytes_length** returns the length of the bytes representation of the hex-encoded string.
+
+### s2n\_str\_hex\_to\_bytes
+
+```c
+int s2n_str_hex_to_bytes(const uint8_t *hex, uint8_t *out_bytes, uint32_t *out_bytes_len);
+```
+
+**s2n_str_hex_to_bytes** returns the bytes representation of the hex-encoded string.
+
 ### Session Resumption Related calls
 
 ```c

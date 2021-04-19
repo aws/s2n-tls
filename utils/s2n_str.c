@@ -15,6 +15,9 @@
 #include <string.h>
 #include <sys/param.h>
 #include "utils/s2n_str.h"
+#include "utils/s2n_blob.h"
+#include "utils/s2n_mem.h"
+#include "utils/s2n_safety.h"
 
 char *s2n_strcpy(char *buf, char *last, const char *str) {
 
@@ -46,4 +49,33 @@ char *s2n_strcpy(char *buf, char *last, const char *str) {
     *p = '\0';
 
     return p;
+}
+
+int s2n_str_hex_to_bytes_length(const uint8_t *hex, uint32_t *out_bytes_len)
+{
+    POSIX_ENSURE_REF(hex);
+    POSIX_ENSURE_REF(out_bytes_len);
+
+    DEFER_CLEANUP(struct s2n_blob bytes_blob = { 0 }, s2n_free);
+    POSIX_GUARD(s2n_alloc(&bytes_blob, strlen((const char *)hex) / 2));
+    POSIX_GUARD(s2n_hex_string_to_bytes(hex, &bytes_blob));
+    *out_bytes_len = bytes_blob.size; 
+
+    return S2N_SUCCESS;
+}
+
+int s2n_str_hex_to_bytes(const uint8_t *hex, uint8_t *out_bytes, uint32_t *out_bytes_len)
+{
+    POSIX_ENSURE_REF(hex);
+    POSIX_ENSURE_REF(out_bytes);
+    POSIX_ENSURE_REF(out_bytes_len);
+
+    DEFER_CLEANUP(struct s2n_blob bytes_blob = { 0 }, s2n_free);
+    POSIX_GUARD(s2n_alloc(&bytes_blob, strlen((const char *)hex) / 2));
+    POSIX_GUARD(s2n_hex_string_to_bytes(hex, &bytes_blob));
+    POSIX_ENSURE(*out_bytes_len >= bytes_blob.size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+    *out_bytes_len = bytes_blob.size; 
+    POSIX_CHECKED_MEMCPY(out_bytes, bytes_blob.data, bytes_blob.size);
+
+    return S2N_SUCCESS;
 }
