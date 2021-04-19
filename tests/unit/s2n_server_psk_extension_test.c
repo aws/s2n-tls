@@ -55,6 +55,8 @@ static s2n_result setup_server_psks(struct s2n_connection *server_conn)
 {
     RESULT_ENSURE_REF(server_conn);
 
+    EXPECT_OK(s2n_connection_set_psk_type(server_conn, S2N_PSK_TYPE_EXTERNAL));
+
     /* Setup shared PSK for server */
     struct s2n_psk *shared_psk = NULL;
     RESULT_GUARD(s2n_array_pushback(&server_conn->psk_params.psk_list, (void**) &shared_psk));
