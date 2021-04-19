@@ -36,13 +36,11 @@
 #include <error/s2n_errno.h>
 
 #include <openssl/crypto.h>
-#include <openssl/err.h>
 
 #include <s2n.h>
 #include "common.h"
 
 #include "utils/s2n_safety.h"
-#include "tls/s2n_connection.h"
 
 #define MAX_CERTIFICATES 50
 
@@ -427,10 +425,8 @@ int main(int argc, char *const *argv)
     const char *certificates[MAX_CERTIFICATES] = { 0 };
     const char *private_keys[MAX_CERTIFICATES] = { 0 };
 
-    GUARD_EXIT(s2n_init(), "Error running s2n_init()");
-
     struct conn_settings conn_settings = { 0 };
-    int fips_mode = 0;
+    int s2n_init_set = 0;
     int parallelize = 0;
     int non_blocking = 0;
     long int bytes = 0;
@@ -470,6 +466,7 @@ int main(int argc, char *const *argv)
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
+
     while (1) {
         int option_index = 0;
         int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:A:P:", long_options, &option_index);
@@ -491,7 +488,10 @@ int main(int argc, char *const *argv)
             conn_settings.enable_mfl = 1;
             break;
         case 'f':
-            fips_mode = 1;
+            if (s2n_init_set == 1) {
+                fprintf(stderr, "Cannot set fips mode after initializing s2n-tls!\n");
+            }
+            S2N_OPTIONALLY_ENABLE_FIPS_MODE();
             break;
         case 'h':
             usage();
@@ -574,6 +574,11 @@ int main(int argc, char *const *argv)
             key_log_path = optarg;
             break;
         case 'P':
+            if (s2n_init_set == 0) 
+            {
+                GUARD_EXIT(s2n_init(), "Error running s2n_init()");
+                s2n_init_set = 1;
+            }
             GUARD_EXIT(s2n_setup_external_psk(conn_settings.psk_list, &conn_settings.psk_idx, optarg), "Error setting external PSK parameters");
             break;
         case '?':
@@ -622,6 +627,11 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
+    if (s2n_init_set == 0)
+    {
+        GUARD_EXIT(s2n_init(), "Error running s2n_init()");
+    }
+
     if ((r = getaddrinfo(host, port, &hints, &ai)) < 0) {
         fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(r));
         exit(1);
@@ -646,21 +656,6 @@ int main(int argc, char *const *argv)
     if (listen(sockfd, 1) == -1) {
         fprintf(stderr, "listen error: %s\n", strerror(errno));
         exit(1);
-    }
-
-    if (fips_mode) {
-#ifdef OPENSSL_FIPS
-        if (FIPS_mode_set(1) == 0) {
-            unsigned long fips_rc = ERR_get_error();
-            char ssl_error_buf[256]; /* Openssl claims you need no more than 120 bytes for error strings */
-            fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf));
-            exit(1);
-        }
-        printf("s2nd entered FIPS mode\n");
-#else
-        fprintf(stderr, "Error entering FIPS mode. s2nd is not linked with a FIPS-capable libcrypto.\n");
-        exit(1);
-#endif
     }
 
     printf("Listening on %s:%s\n", host, port);
