@@ -652,6 +652,8 @@ int main(int argc, char **argv)
         ticket_age_add = 1000;
         conn->config->session_state_lifetime_in_nanos = MILLIS_TO_NANOS(UINT32_MAX);
         EXPECT_OK(s2n_validate_ticket_lifetime(conn, obfuscated_ticket_age, ticket_age_add));
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     /* Test: s2n_select_resumption_psk */
