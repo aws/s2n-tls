@@ -29,6 +29,7 @@ else
 all: $(OBJS)
 	$(MAKE) -C bike_r1
 	$(MAKE) -C bike_r2
+	$(MAKE) -C bike_r3
 	$(MAKE) -C sike_r1
 	$(MAKE) -C sike_r2 try_include_asm
 	$(MAKE) -C kyber_r2
@@ -65,6 +66,7 @@ run-lcov: lcov
 clean: decruft
 	$(MAKE) -C bike_r1 decruft
 	$(MAKE) -C bike_r2 decruft
+	$(MAKE) -C bike_r3 decruft
 	$(MAKE) -C sike_r1 decruft
 	$(MAKE) -C sike_r2 decruft
 	$(MAKE) -C kyber_r2 decruft
