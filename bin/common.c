@@ -101,9 +101,9 @@ static const uint8_t hex_inverse[256] = {
 
 int s2n_str_hex_to_bytes(const uint8_t *hex, uint8_t *out_bytes, uint32_t *out_bytes_len)
 {
-    GUARD_EXIT_NULL(hex, "The hex-encoded string read is NULL\n");
-    GUARD_EXIT_NULL(out_bytes, "The output bytes buffer is NULL\n");
-    GUARD_EXIT_NULL(out_bytes_len, "The output bytes buffer length is NULL\n");
+    GUARD_EXIT_NULL(hex);
+    GUARD_EXIT_NULL(out_bytes);
+    GUARD_EXIT_NULL(out_bytes_len);
 
     uint32_t len_with_spaces = strlen((const char*)hex);
     size_t i = 0, j = 0;
@@ -138,8 +138,8 @@ int s2n_str_hex_to_bytes(const uint8_t *hex, uint8_t *out_bytes, uint32_t *out_b
 
 static int s2n_get_psk_hmac_alg(s2n_psk_hmac *psk_hmac, char *hmac_str)
 {
-    GUARD_EXIT_NULL(psk_hmac, "PSK HMAC is NULL");
-    GUARD_EXIT_NULL(hmac_str, "HMAC string is NULL");
+    GUARD_EXIT_NULL(psk_hmac);
+    GUARD_EXIT_NULL(hmac_str);
 
     if (strcmp(hmac_str, "S2N_PSK_HMAC_SHA256") == 0) {
         *psk_hmac = S2N_PSK_HMAC_SHA256;
@@ -153,12 +153,12 @@ static int s2n_get_psk_hmac_alg(s2n_psk_hmac *psk_hmac, char *hmac_str)
 
 int s2n_setup_external_psk(struct s2n_psk *psk_list[S2N_MAX_PSK_LIST_LENGTH], size_t *psk_idx, char *params)
 {
-    GUARD_EXIT_NULL(psk_list, "PSK list is NULL");
-    GUARD_EXIT_NULL(psk_idx, "PSK index is NULL");
-    GUARD_EXIT_NULL(params, "PSK parameters is NULL");
+    GUARD_EXIT_NULL(psk_list);
+    GUARD_EXIT_NULL(psk_idx);
+    GUARD_EXIT_NULL(params);
 
     struct s2n_psk *psk = s2n_external_psk_new();
-    GUARD_EXIT_NULL(psk, "Error initializing PSK, NULL value obtained");
+    GUARD_EXIT_NULL(psk);
     /* Default HMAC algorithm is S2N_PSK_HMAC_SHA256 */
     s2n_psk_hmac psk_hmac_alg = S2N_PSK_HMAC_SHA256;
     size_t idx = 0;
@@ -172,7 +172,8 @@ int s2n_setup_external_psk(struct s2n_psk *psk_list[S2N_MAX_PSK_LIST_LENGTH], si
                 break;
             case 1:
                 secret_len = strlen(token) / 2;
-                GUARD_EXIT_NULL(secret = malloc(secret_len), "Error allocating memory for psk secret");
+                secret = malloc(secret_len);
+                GUARD_EXIT_NULL(secret);
                 GUARD_EXIT(s2n_str_hex_to_bytes((const uint8_t *)token, secret, &secret_len), "Error converting hex-encoded psk secret to bytes");
                 GUARD_EXIT(s2n_psk_set_secret(psk, (const uint8_t *)secret, secret_len), "Error setting psk secret");
                 free(secret);

@@ -37,13 +37,13 @@
 #define S2N_OPTIONALLY_ENABLE_FIPS_MODE()
 #endif
 
-#define GUARD_EXIT_NULL(x, msg)  \
-  do {                           \
-    if (x == NULL) {             \
-      print_s2n_error(msg);      \
-      exit(1);                   \
-    }                            \
-  } while (0)
+#define GUARD_EXIT_NULL(x)                                 \
+    do {                                                   \
+        if (x == NULL) {                                   \
+            fprintf(stderr, "NULL pointer encountered\n"); \
+            exit(1);                                       \
+        }                                                  \
+    } while (0)
 
 #define GUARD_EXIT(x, msg)  \
   do {                      \

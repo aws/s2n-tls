@@ -32,6 +32,7 @@
 #include "crypto/s2n_rsa.h"
 #include "crypto/s2n_pkey.h"
 #include "tls/s2n_connection.h"
+#include "common.h"
 
 #define STDIO_BUFSIZE  10240
 
@@ -72,7 +73,7 @@ static int wait_for_event(int fd, s2n_blocked_status blocked)
 
 int negotiate(struct s2n_connection *conn, int fd)
 {
-    POSIX_ENSURE_REF(conn);
+    GUARD_EXIT_NULL(conn);
 
     s2n_blocked_status blocked;
     while (s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {
