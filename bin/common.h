@@ -22,16 +22,17 @@
 #ifdef OPENSSL_FIPS
 #include <openssl/err.h>
 
-#define S2N_OPTIONALLY_ENABLE_FIPS_MODE() \
-    do { \
-        if (FIPS_mode_set(1) == 0) { \
-            unsigned long fips_rc = ERR_get_error(); \
-            char ssl_error_buf[256]; \
-            fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, ERR_error_string(fips_rc, ssl_error_buf)); \
-            return 1; \
-        } \
-        printf("s2nd entered FIPS mode\n"); \
-    } while (0)
+#define S2N_OPTIONALLY_ENABLE_FIPS_MODE()                                                             \
+        do {                                                                                          \
+            if (FIPS_mode_set(1) == 0) {                                                              \
+                unsigned long fips_rc = ERR_get_error();                                              \
+                char          ssl_error_buf[ 256 ];                                                   \
+                fprintf(stderr, "s2nd failed to enter FIPS mode with RC: %lu; String: %s\n", fips_rc, \
+                        ERR_error_string(fips_rc, ssl_error_buf));                                    \
+                return 1;                                                                             \
+            }                                                                                         \
+            printf("s2nd entered FIPS mode\n");                                                       \
+        } while (0)
 
 #else
 #define S2N_OPTIONALLY_ENABLE_FIPS_MODE()

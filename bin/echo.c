@@ -31,7 +31,6 @@
 
 #include "crypto/s2n_rsa.h"
 #include "crypto/s2n_pkey.h"
-#include "tls/s2n_connection.h"
 #include "common.h"
 
 #define STDIO_BUFSIZE  10240
@@ -142,9 +141,11 @@ int negotiate(struct s2n_connection *conn, int fd)
         printf("Resumed session\n");
     }
 
-    if (conn->psk_params.chosen_psk) {
-        printf("Chosen PSK type: %s\n", (conn->psk_params.chosen_psk->type) ? "S2N_PSK_TYPE_EXTERNAL" : "S2N_PSK_TYPE_RESUMPTION");
-        printf("Chosen PSK identity: %s\n", conn->psk_params.chosen_psk->identity.data);
+    struct s2n_psk chosen_psk = { 0 };
+    GUARD_EXIT(s2n_connection_get_chosen_psk(conn, &chosen_psk), "Error getting chosen psk from the connection");
+    if (chosen_psk.identity != NULL) {
+        printf("Chosen PSK type: %s\n", (chosen_psk.type) ? "S2N_PSK_TYPE_EXTERNAL" : "S2N_PSK_TYPE_RESUMPTION");
+        printf("Chosen PSK identity: %s\n", chosen_psk.identity.data);
     }
 
     return 0;

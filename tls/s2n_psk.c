@@ -599,3 +599,12 @@ int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode)
     conn->psk_mode_overridden = true;
     return S2N_SUCCESS;
 }
+
+int s2n_connection_get_chosen_psk(struct s2n_connection *conn, struct s2n_psk *chosen_psk)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(chosen_psk);
+
+    POSIX_GUARD_RESULT(s2n_psk_clone(chosen_psk, conn->psk_params.chosen_psk));
+    return S2N_SUCCESS;
+}
