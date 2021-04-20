@@ -438,9 +438,7 @@ int s2n_async_pkey_op_get_input_size(struct s2n_async_pkey_op *op, uint32_t * da
         struct s2n_async_pkey_decrypt_data *decrypt = &op->op.decrypt;
         struct s2n_blob *in = &decrypt->encrypted;
         *data_len = in->size;
-    }
-    else
-    {
+    } else {
         struct s2n_async_pkey_sign_data *sign = &op->op.sign;
         struct s2n_hash_state *digest = &sign->digest;
 
@@ -465,9 +463,7 @@ int s2n_async_pkey_op_get_input(struct s2n_async_pkey_op *op, uint8_t * data, ui
 
         POSIX_ENSURE_LTE(in->size, data_len);
         POSIX_CHECKED_MEMCPY(data, in->data, in->size);
-    }
-    else
-    {
+    } else {
         struct s2n_async_pkey_sign_data *sign = &op->op.sign;
         struct s2n_hash_state *digest = &sign->digest;
 
@@ -494,9 +490,7 @@ int s2n_async_pkey_copy_output(struct s2n_async_pkey_op *op, uint8_t * data, uin
     {
         struct s2n_async_pkey_decrypt_data *decrypt = &op->op.decrypt;
         out = &decrypt->decrypted;
-    }
-    else
-    {
+    } else {
         struct s2n_async_pkey_sign_data *sign = &op->op.sign;
         out = &sign->signature;
     }

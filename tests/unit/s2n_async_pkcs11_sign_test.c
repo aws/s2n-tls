@@ -110,9 +110,7 @@ int pkcs11_sig_to_asn1_sig(uint8_t * sig, uint32_t * siglen)
             sig[4] = 0x0;                           /* Write the 0x00 pad. */
             (void)memcpy(&sig[5], temp_buff, 32);   /* Copy the 32-byte R value. */
             temp_sig_ptr = sig + 33;                /* Increment the pointer to compensate for padded R length.    */
-        }
-        else
-        {
+        } else {
             sig[3] = 0x20;                          /* R length with be 32 bytes. */
             (void) memcpy(&sig[4], temp_buff, 32);  /* Copy 32 bytes of R into the signature buffer. */
             temp_sig_ptr = sig + 32;                /* Increment the pointer for 32 byte R length. */
@@ -134,9 +132,7 @@ int pkcs11_sig_to_asn1_sig(uint8_t * sig, uint32_t * siglen)
             temp_sig_ptr += 2;                                /* temp_sig_ptr was pointing at the S-length.  Increment by 2 to hop over length and 0 padding. */
 
             (void)memcpy(temp_sig_ptr, &temp_buff[32], 32);   /* Copy the S value. */
-        }
-        else
-        {
+        } else {
             temp_sig_ptr[0] = 0x20;                           /* S length will be 32 bytes. */
             temp_sig_ptr++;                                     /* Hop pointer over the length byte. */
             (void)memcpy(temp_sig_ptr, &temp_buff[32], 32);   /* Copy the S value. */
@@ -294,9 +290,7 @@ static int pkcs11_decrypt(CK_SESSION_HANDLE session,
         mechanism.mechanism = CKM_RSA_PKCS;
         mechanism.pParameter= NULL;
         mechanism.ulParameterLen = 0 ;
-    }
-    else
-    {
+    } else {
         mechanism.mechanism = CKM_ECDSA;
         mechanism.pParameter= NULL;
         mechanism.ulParameterLen = 0 ;
@@ -368,9 +362,7 @@ static int pkcs11_sign(CK_SESSION_HANDLE session,
         mechanism.mechanism = CKM_RSA_PKCS;
         mechanism.pParameter= NULL;
         mechanism.ulParameterLen = 0 ;
-    }
-    else
-    {
+    } else {
         temp_digest = hash_buf;
         temp_digest_len = hash_len;
         mechanism.mechanism = CKM_ECDSA;
@@ -440,9 +432,7 @@ void * pkey_task(void * params)
     if(type == S2N_ASYNC_DECRYPT)
     {
         pkcs11_decrypt(session, handle, input, input_len, &output, &output_len);
-    }
-    else
-    {
+    } else {
         pkcs11_sign(session, handle, input, input_len, &output, &output_len);
     }
     pthread_mutex_unlock(&pkcs11_mutex);
@@ -532,14 +522,13 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_config = s2n_config_new());
 
             /* Second half of suites is ECDSA. */
-            if(i >= s2n_array_len(test_cipher_suites) / (s2n_array_len(test_cipher_suites[0]))/2) {
+            if(i >= 2) {
                 EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_ECDSA_P256_PKCS1_CERT_CHAIN, NULL));
 
                 EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20190214"));
                 EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, ecdsa_chain_and_key));
                 EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_ECDSA_P256_PKCS1_CERT_CHAIN, NULL));
-            }
-            else {
+            } else {
                 EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
                 EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
