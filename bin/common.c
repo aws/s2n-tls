@@ -114,17 +114,20 @@ int s2n_str_hex_to_bytes(const uint8_t *hex, uint8_t *out_bytes, uint32_t *out_b
         }
 
         uint8_t high_nibble = hex_inverse[hex[j]];
-        if (high_nibble != 255) {
-            fprintf(stderr, "Invalid HEX encountered!");
+        if (high_nibble == 255) {
+            fprintf(stderr, "Invalid HEX encountered!\n");
+            return S2N_FAILURE;
         }
 
         uint8_t low_nibble = hex_inverse[hex[j + 1]];
-        if (low_nibble != 255) {
-            fprintf(stderr, "Invalid HEX encountered!");
+        if (low_nibble == 255) {
+            fprintf(stderr, "Invalid HEX encountered!\n");
+            return S2N_FAILURE;
         }
 
         if(*out_bytes_len < i) {
-            fprintf(stderr, "Insufficient memory for bytes buffer, try increasing the allocation size!");
+            fprintf(stderr, "Insufficient memory for bytes buffer, try increasing the allocation size!\n");
+            return S2N_FAILURE;
         }
         out_bytes[i] = high_nibble << 4 | low_nibble;
 
@@ -171,16 +174,16 @@ int s2n_setup_external_psk(struct s2n_psk *psk_list[S2N_MAX_PSK_LIST_LENGTH], si
                              "Error setting psk identity");
                 break;
             case 1:
-                secret_len = strlen(token) / 2;
+                secret_len = strlen(token);
                 secret = malloc(secret_len);
                 GUARD_EXIT_NULL(secret);
-                GUARD_EXIT(s2n_str_hex_to_bytes((const uint8_t *)token, secret, &secret_len), "Error converting hex-encoded psk secret to bytes");
-                GUARD_EXIT(s2n_psk_set_secret(psk, (const uint8_t *)secret, secret_len), "Error setting psk secret");
+                GUARD_EXIT(s2n_str_hex_to_bytes((const uint8_t *)token, secret, &secret_len), "Error converting hex-encoded psk secret to bytes\n");
+                GUARD_EXIT(s2n_psk_set_secret(psk, secret, secret_len), "Error setting psk secret\n");
                 free(secret);
                 break;
             case 2:
-                GUARD_EXIT(s2n_get_psk_hmac_alg(&psk_hmac_alg, token), "Invalid psk hmac algorithm");
-                GUARD_EXIT(s2n_psk_set_hmac(psk, psk_hmac_alg), "Error setting psk hmac algorithm");
+                GUARD_EXIT(s2n_get_psk_hmac_alg(&psk_hmac_alg, token), "Invalid psk hmac algorithm\n");
+                GUARD_EXIT(s2n_psk_set_hmac(psk, psk_hmac_alg), "Error setting psk hmac algorithm\n");
                 break;
             default:
                 break;

@@ -1004,7 +1004,6 @@ int main(int argc, char **argv)
         struct s2n_connection *conn = NULL;
         DEFER_CLEANUP(struct s2n_psk *chosen_psk = s2n_external_psk_new(), s2n_psk_free);
         const uint8_t test_identity[] = "identity";
-        const uint8_t test_secret[] = "secret";
 
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
@@ -1018,14 +1017,13 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
         EXPECT_SUCCESS(s2n_psk_set_identity(psk, test_identity, sizeof(test_identity)));
-        EXPECT_SUCCESS(s2n_psk_set_secret(psk, test_secret, sizeof(test_secret)));
 
         conn->psk_params.chosen_psk = psk;
         EXPECT_SUCCESS(s2n_connection_get_chosen_psk(conn, chosen_psk));
         EXPECT_EQUAL(chosen_psk->identity.size, sizeof(test_identity));
         EXPECT_BYTEARRAY_EQUAL(chosen_psk->identity.data, test_identity, sizeof(test_identity));  
-        EXPECT_EQUAL(chosen_psk->secret.size, sizeof(test_secret));
-        EXPECT_BYTEARRAY_EQUAL(chosen_psk->secret.data, test_secret, sizeof(test_secret));
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     /* Test s2n_psk_get_type */

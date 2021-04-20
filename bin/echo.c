@@ -150,9 +150,9 @@ int negotiate(struct s2n_connection *conn, int fd)
         uint8_t chosen_psk_type = 0; 
         GUARD_EXIT(s2n_psk_get_type(&chosen_psk, &chosen_psk_type), "Error getting chosen psk type\n");
         printf("Chosen PSK type: %s\n", (chosen_psk_type) ? "S2N_PSK_TYPE_EXTERNAL" : "S2N_PSK_TYPE_RESUMPTION");
-        
-        uint8_t *identity = NULL; 
-        identity = malloc(identity_length);
+
+        uint8_t *identity = malloc(identity_length);
+        GUARD_EXIT_NULL(identity);
         GUARD_EXIT(s2n_psk_get_identity(&chosen_psk, identity, &identity_length), "Error getting chosen psk identity\n");
         printf("Chosen PSK identity: %s\n", identity);
         free(identity);

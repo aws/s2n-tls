@@ -605,7 +605,16 @@ int s2n_connection_get_chosen_psk(struct s2n_connection *conn, struct s2n_psk *c
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(chosen_psk);
 
-    POSIX_GUARD_RESULT(s2n_psk_clone(chosen_psk, conn->psk_params.chosen_psk));
+    struct s2n_psk *conn_chosen_psk = conn->psk_params.chosen_psk;
+    if (conn_chosen_psk == NULL) {
+        return S2N_SUCCESS;
+    }
+
+    struct s2n_psk psk = *chosen_psk;
+    *chosen_psk = *conn_chosen_psk;
+    chosen_psk->identity = psk.identity;
+    POSIX_GUARD(s2n_psk_set_identity(chosen_psk, conn_chosen_psk->identity.data, conn_chosen_psk->identity.size));
+
     return S2N_SUCCESS;
 }
 
