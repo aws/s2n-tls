@@ -608,3 +608,34 @@ int s2n_connection_get_chosen_psk(struct s2n_connection *conn, struct s2n_psk *c
     POSIX_GUARD_RESULT(s2n_psk_clone(chosen_psk, conn->psk_params.chosen_psk));
     return S2N_SUCCESS;
 }
+
+int s2n_psk_get_type(struct s2n_psk *psk, uint8_t *type)
+{
+    POSIX_ENSURE_REF(psk);
+    POSIX_ENSURE_REF(type);
+
+    *type = psk->type;
+    return S2N_SUCCESS;
+}
+
+int s2n_psk_get_identity_length(struct s2n_psk *psk, uint16_t *identity_length)
+{
+    POSIX_ENSURE_REF(psk);
+    POSIX_ENSURE_REF(identity_length);
+
+    *identity_length = psk->identity.size;
+    return S2N_SUCCESS;
+}
+
+int s2n_psk_get_identity(struct s2n_psk *psk, uint8_t *identity, uint16_t *identity_length)
+{
+    POSIX_ENSURE_REF(psk);
+    POSIX_ENSURE_REF(identity);
+    POSIX_ENSURE_REF(identity_length);
+
+    POSIX_ENSURE(*identity_length >= psk->identity.size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+    *identity_length = psk->identity.size;
+    POSIX_CHECKED_MEMCPY(identity, psk->identity.data, psk->identity.size);
+
+    return S2N_SUCCESS;
+}

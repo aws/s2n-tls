@@ -142,10 +142,20 @@ int negotiate(struct s2n_connection *conn, int fd)
     }
 
     struct s2n_psk chosen_psk = { 0 };
-    GUARD_EXIT(s2n_connection_get_chosen_psk(conn, &chosen_psk), "Error getting chosen psk from the connection");
-    if (chosen_psk.identity != NULL) {
-        printf("Chosen PSK type: %s\n", (chosen_psk.type) ? "S2N_PSK_TYPE_EXTERNAL" : "S2N_PSK_TYPE_RESUMPTION");
-        printf("Chosen PSK identity: %s\n", chosen_psk.identity.data);
+    GUARD_EXIT(s2n_connection_get_chosen_psk(conn, &chosen_psk), "Error getting chosen psk from the connection\n");
+    uint16_t identity_length = 0;
+    GUARD_EXIT(s2n_psk_get_identity_length(&chosen_psk, &identity_length), "Error getting chosen psk identity length\n");
+    
+    if (identity_length != 0) {
+        uint8_t chosen_psk_type = 0; 
+        GUARD_EXIT(s2n_psk_get_type(&chosen_psk, &chosen_psk_type), "Error getting chosen psk type\n");
+        printf("Chosen PSK type: %s\n", (chosen_psk_type) ? "S2N_PSK_TYPE_EXTERNAL" : "S2N_PSK_TYPE_RESUMPTION");
+        
+        uint8_t *identity = NULL; 
+        identity = malloc(identity_length);
+        GUARD_EXIT(s2n_psk_get_identity(&chosen_psk, identity, &identity_length), "Error getting chosen psk identity\n");
+        printf("Chosen PSK identity: %s\n", identity);
+        free(identity);
     }
 
     return 0;
