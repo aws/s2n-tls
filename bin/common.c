@@ -78,6 +78,64 @@ int key_log_callback(void *file, struct s2n_connection *conn, uint8_t *logline, 
     return fflush((FILE *)file);
 }
 
+/* An inverse map from an ascii value to a hexidecimal nibble value
+ * accounts for all possible char values, where 255 is invalid value */
+static const uint8_t hex_inverse[256] = {
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+      0,   1,   2,   3,   4,   5,   6,   7,   8,   9, 255, 255, 255, 255, 255, 255,
+    255,  10,  11,  12,  13,  14,  15, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255,  10,  11,  12,  13,  14,  15, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
+};
+
+int s2n_str_hex_to_bytes(const uint8_t *hex, uint8_t *out_bytes, uint32_t *out_bytes_len)
+{
+    GUARD_EXIT_NULL(hex, "The hex-encoded string read is NULL\n");
+    GUARD_EXIT_NULL(out_bytes, "The output bytes buffer is NULL\n");
+    GUARD_EXIT_NULL(out_bytes_len, "The output bytes buffer length is NULL\n");
+
+    uint32_t len_with_spaces = strlen((const char*)hex);
+    size_t i = 0, j = 0;
+    while (j < len_with_spaces) {
+        if (hex[j] == ' ') {
+            j++;
+            continue;
+        }
+
+        uint8_t high_nibble = hex_inverse[hex[j]];
+        if (high_nibble != 255) {
+            fprintf(stderr, "Invalid HEX encountered!");
+        }
+
+        uint8_t low_nibble = hex_inverse[hex[j + 1]];
+        if (low_nibble != 255) {
+            fprintf(stderr, "Invalid HEX encountered!");
+        }
+
+        if(*out_bytes_len < i) {
+            fprintf(stderr, "Insufficient memory for bytes buffer, try increasing the allocation size!");
+        }
+        out_bytes[i] = high_nibble << 4 | low_nibble;
+
+        i++;
+        j+=2;
+    }
+    *out_bytes_len = i;
+
+    return S2N_SUCCESS;
+}
+
 static int s2n_get_psk_hmac_alg(s2n_psk_hmac *psk_hmac, char *hmac_str)
 {
     GUARD_EXIT_NULL(psk_hmac, "PSK HMAC is NULL");
@@ -105,22 +163,19 @@ int s2n_setup_external_psk(struct s2n_psk *psk_list[S2N_MAX_PSK_LIST_LENGTH], si
     s2n_psk_hmac psk_hmac_alg = S2N_PSK_HMAC_SHA256;
     size_t idx = 0;
     for (char *token = strtok(params, ","); token != NULL; token = strtok(NULL, ","), idx++) {
-        unsigned char *secret = NULL;
-        long secret_len = 0;
+        uint8_t *secret = NULL;
+        uint32_t secret_len = 0;
         switch (idx) {
             case 0:
                 GUARD_EXIT(s2n_psk_set_identity(psk, (const uint8_t *)token, strlen(token)),
                              "Error setting psk identity");
                 break;
             case 1:
-                /* Ref: https://www.openssl.org/docs/man1.1.0/man3/OPENSSL_hexstr2buf.html
-                 * OPENSSL_hexstr2buf() parses str as a hex string and returns a pointer to the parsed value. 
-                 * The memory is allocated by calling OPENSSL_malloc() and should be released by calling OPENSSL_free().
-                 */
-                secret = OPENSSL_hexstr2buf((const char *)token, &secret_len);
-                GUARD_EXIT_NULL(secret, "Error converting hex-encoded secret value to bytes");
+                secret_len = strlen(token) / 2;
+                GUARD_EXIT_NULL(secret = malloc(secret_len), "Error allocating memory for psk secret");
+                GUARD_EXIT(s2n_str_hex_to_bytes((const uint8_t *)token, secret, &secret_len), "Error converting hex-encoded psk secret to bytes");
                 GUARD_EXIT(s2n_psk_set_secret(psk, (const uint8_t *)secret, secret_len), "Error setting psk secret");
-                OPENSSL_free(secret);
+                free(secret);
                 break;
             case 2:
                 GUARD_EXIT(s2n_get_psk_hmac_alg(&psk_hmac_alg, token), "Invalid psk hmac algorithm");
