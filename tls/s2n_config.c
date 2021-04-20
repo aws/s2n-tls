@@ -505,7 +505,7 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
 
     /* Validate certs being set before clearing auto-chosen defaults or previously set defaults */
     struct certs_by_type new_defaults = {{ 0 }};
-    for (int i = 0; i < num_cert_key_pairs; i++) {
+    for (uint32_t i = 0; i < num_cert_key_pairs; i++) {
         POSIX_ENSURE_REF(cert_key_pairs[i]);
         s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pairs[i]);
         S2N_ERROR_IF(new_defaults.certs[cert_type] != NULL, S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE);
@@ -513,7 +513,7 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
     }
 
     POSIX_GUARD(s2n_config_clear_default_certificates(config));
-    for (int i = 0; i < num_cert_key_pairs; i++) {
+    for (uint32_t i = 0; i < num_cert_key_pairs; i++) {
         s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pairs[i]);
         config->default_certs_by_type.certs[cert_type] = cert_key_pairs[i];
     }
