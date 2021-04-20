@@ -150,6 +150,7 @@ extern int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, char target);
 extern int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const uint32_t min, const uint32_t max, uint32_t *skipped);
 extern int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char* target);
 extern int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *str);
+extern int s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t length);
 
 /* Read a private key from a PEM encoded stuffer to an ASN1/DER encoded one */
 extern int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
