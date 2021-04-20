@@ -132,8 +132,8 @@ int main(int argc, char **argv)
                     TLS_AES_128_GCM_SHA256,
                 };
 
-                /* S2N_HASH_SHA256 is a matching hash algorithm for the cipher suite present in valid_tls13_wire_ciphers */
-                conn->psk_params.chosen_psk->hmac_alg = S2N_HASH_SHA256;
+                /* S2N_HMAC_SHA256 is a matching hmac algorithm for the cipher suite present in valid_tls13_wire_ciphers */
+                conn->psk_params.chosen_psk->hmac_alg = S2N_HMAC_SHA256;
                 EXPECT_SUCCESS(s2n_set_cipher_as_client(conn, valid_tls13_wire_ciphers));
                 EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
 
