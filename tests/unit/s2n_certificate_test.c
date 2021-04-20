@@ -44,28 +44,28 @@ static uint8_t verify_host_fn(const char *host_name, size_t host_name_len, void 
 
 static S2N_RESULT s2n_compare_cert_chain(struct s2n_connection *conn, struct s2n_cert_chain_and_key *test_peer_chain)
 {
-    ENSURE_REF(conn);
-    ENSURE_REF(test_peer_chain);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(test_peer_chain);
     uint32_t cert_chain_length = 0;
     RESULT_GUARD_POSIX(s2n_cert_chain_get_length(test_peer_chain, &cert_chain_length));
     DEFER_CLEANUP(STACK_OF(X509) *cert_chain_validated = X509_STORE_CTX_get1_chain(conn->x509_validator.store_ctx),
                   s2n_openssl_x509_stack_pop_free);
-    ENSURE_REF(cert_chain_validated);
-    ENSURE_EQ(cert_chain_length, sk_X509_num(cert_chain_validated));
+    RESULT_ENSURE_REF(cert_chain_validated);
+    RESULT_ENSURE_EQ(cert_chain_length, sk_X509_num(cert_chain_validated));
     struct s2n_cert *cur_cert = NULL;
 
     for (size_t cert_idx = 0; cert_idx < cert_chain_length; cert_idx++) {
         X509 *cert = sk_X509_value(cert_chain_validated, cert_idx);
-        ENSURE_REF(cert);
+        RESULT_ENSURE_REF(cert);
         DEFER_CLEANUP(uint8_t *cert_data_from_validator = NULL, s2n_crypto_free);
         int cert_size_from_validator = i2d_X509(cert, &cert_data_from_validator);
-        ENSURE_REF(cert_data_from_validator);
-        ENSURE_GT(cert_size_from_validator, 0);
+        RESULT_ENSURE_REF(cert_data_from_validator);
+        RESULT_ENSURE_GT(cert_size_from_validator, 0);
 
         RESULT_GUARD_POSIX(s2n_cert_chain_get_cert(test_peer_chain, &cur_cert, cert_idx));
-        ENSURE_REF(cur_cert);
-        ENSURE_EQ(cert_size_from_validator, cur_cert->raw.size);
-        ENSURE_EQ(memcmp(cert_data_from_validator, cur_cert->raw.data, cur_cert->raw.size), 0);
+        RESULT_ENSURE_REF(cur_cert);
+        RESULT_ENSURE_EQ(cert_size_from_validator, cur_cert->raw.size);
+        RESULT_ENSURE_EQ(memcmp(cert_data_from_validator, cur_cert->raw.data, cur_cert->raw.size), 0);
     }
 
     return S2N_RESULT_OK;
@@ -73,17 +73,17 @@ static S2N_RESULT s2n_compare_cert_chain(struct s2n_connection *conn, struct s2n
 
 static S2N_RESULT s2n_compare_utf8_strings(struct s2n_blob *input_der, const char *expected_utf8_str, uint32_t utf8_len_in, uint32_t expected_utf8_len)
 {
-    ENSURE_REF(input_der);
-    ENSURE_REF(expected_utf8_str);
-    ENSURE_GT(expected_utf8_len, 0);
+    RESULT_ENSURE_REF(input_der);
+    RESULT_ENSURE_REF(expected_utf8_str);
+    RESULT_ENSURE_GT(expected_utf8_len, 0);
 
     DEFER_CLEANUP(struct s2n_blob utf8_str = { 0 }, s2n_free);
     RESULT_GUARD_POSIX(s2n_alloc(&utf8_str, utf8_len_in));
 
     RESULT_GUARD_POSIX(s2n_cert_get_utf8_string_from_extension_data(input_der->data, input_der->size, utf8_str.data, &utf8_str.size));
 
-    ENSURE_EQ(utf8_str.size, expected_utf8_len);
-    ENSURE_EQ(memcmp(utf8_str.data, expected_utf8_str, utf8_str.size), 0);
+    RESULT_ENSURE_EQ(utf8_str.size, expected_utf8_len);
+    RESULT_ENSURE_EQ(memcmp(utf8_str.data, expected_utf8_str, utf8_str.size), 0);
 
     RESULT_GUARD_POSIX(s2n_free(&utf8_str));
     return S2N_RESULT_OK;
