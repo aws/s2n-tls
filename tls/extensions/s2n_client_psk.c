@@ -96,8 +96,8 @@ bool s2n_client_psk_should_send(struct s2n_connection *conn)
 */
 static S2N_RESULT s2n_generate_obfuscated_ticket_age(struct s2n_psk *psk, uint64_t current_time, uint32_t *output)
 {
-    ENSURE_REF(psk);
-    ENSURE_MUT(output);
+    RESULT_ENSURE_REF(psk);
+    RESULT_ENSURE_MUT(output);
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
