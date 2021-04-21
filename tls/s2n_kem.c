@@ -243,7 +243,7 @@ const struct s2n_kem_group s2n_x25519_sike_p434_r3 = { 0 };
 const struct s2n_kem_group s2n_x25519_bike1_l1_r2 = { 0 };
 const struct s2n_kem_group s2n_x25519_kyber_512_r2 = { 0 };
 #endif
-#else // S2N_NO_PQ
+#else /* S2N_NO_PQ */
 const struct s2n_iana_to_kem kem_mapping[0] = { };
 #endif
 

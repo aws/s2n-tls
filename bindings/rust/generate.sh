@@ -10,6 +10,7 @@ mkdir -p s2n-tls-sys/lib
 # we copy the C sources into the `lib` directory so they get published in the
 # actual crate artifact.
 cp -r \
+  --update \
   ../../api \
   ../../crypto \
   ../../error \
