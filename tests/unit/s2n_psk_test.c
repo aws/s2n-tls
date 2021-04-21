@@ -1052,5 +1052,33 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
+    /* Test s2n_psk_validate_keying_material */
+    {
+        /* Safety */
+        EXPECT_ERROR_WITH_ERRNO(s2n_psk_validate_keying_material(NULL), S2N_ERR_NULL);
+
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        DEFER_CLEANUP(struct s2n_psk *chosen_psk = s2n_test_psk_new(conn), s2n_psk_free);
+
+        /* No-op if no chosen PSK */
+        EXPECT_OK(s2n_psk_validate_keying_material(conn));
+        conn->psk_params.chosen_psk = chosen_psk;
+
+        /* No-op if chosen PSK is external */
+        chosen_psk->type = S2N_PSK_TYPE_EXTERNAL;
+        EXPECT_OK(s2n_psk_validate_keying_material(conn));
+        chosen_psk->type = S2N_PSK_TYPE_RESUMPTION;
+
+        /* Okay if chosen PSK's material is not expired */
+        chosen_psk->keying_material_expiration = UINT64_MAX;
+        EXPECT_OK(s2n_psk_validate_keying_material(conn));
+
+        /* Fails if chosen PSK's material is expired */
+        chosen_psk->keying_material_expiration = 0;
+        EXPECT_ERROR_WITH_ERRNO(s2n_psk_validate_keying_material(conn), S2N_ERR_KEYING_MATERIAL_EXPIRED);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
     END_TEST();
 }

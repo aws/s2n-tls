@@ -843,6 +843,68 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
+        /* Send no more tickets if keying material is expired
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1:
+         *= type=test
+         *# Note that in principle it is possible to continue issuing new tickets
+         *# which indefinitely extend the lifetime of the keying material
+         *# originally derived from an initial non-PSK handshake (which was most
+         *# likely tied to the peer's certificate). It is RECOMMENDED that
+         *# implementations place limits on the total lifetime of such keying
+         *# material; these limits should take into account the lifetime of the
+         *# peer's certificate, the likelihood of intervening revocation, and the
+         *# time since the peer's online CertificateVerify signature.
+         */
+        {
+            const uint8_t current_tickets = 10;
+            const uint8_t new_tickets = 5;
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->tickets_sent = current_tickets;
+            conn->tickets_to_send = current_tickets;
+
+            struct s2n_stuffer stuffer;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+
+            /* Can request new tickets */
+            EXPECT_SUCCESS(s2n_connection_add_new_tickets_to_send(conn, new_tickets));
+            EXPECT_EQUAL(conn->tickets_sent, current_tickets);
+            EXPECT_EQUAL(conn->tickets_to_send, current_tickets + new_tickets);
+
+            /* Add expired keying material */
+            DEFER_CLEANUP(struct s2n_psk *chosen_psk = s2n_test_psk_new(conn), s2n_psk_free);
+            EXPECT_NOT_NULL(chosen_psk);
+            chosen_psk->type = S2N_PSK_TYPE_RESUMPTION;
+            chosen_psk->keying_material_expiration = 0;
+            conn->psk_params.chosen_psk = chosen_psk;
+
+            /* Despite tickets requested, no tickets sent */
+            s2n_blocked_status blocked = 0;
+            EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+            EXPECT_EQUAL(conn->tickets_sent, current_tickets);
+            EXPECT_EQUAL(conn->tickets_to_send, current_tickets);
+
+            /* Can't request more tickets */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_add_new_tickets_to_send(conn, new_tickets),
+                    S2N_ERR_KEYING_MATERIAL_EXPIRED);
+            EXPECT_EQUAL(conn->tickets_sent, current_tickets);
+            EXPECT_EQUAL(conn->tickets_to_send, current_tickets);
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
         /* Sends multiple new session tickets */
         {
             struct s2n_config *config;

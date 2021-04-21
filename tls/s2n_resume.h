@@ -100,6 +100,7 @@ int s2n_client_serialize_resumption_state(struct s2n_connection *conn, struct s2
  * once we release the session resumption API. */
 int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num);
 int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num);
+int s2n_connection_set_server_keying_material_lifetime(struct s2n_connection *conn, uint32_t lifetime_in_secs);
 
 struct s2n_session_ticket;
 typedef int (*s2n_session_ticket_fn)(struct s2n_connection *conn, struct s2n_session_ticket *ticket);

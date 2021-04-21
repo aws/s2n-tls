@@ -26,6 +26,7 @@
 #define TICKET_AGE_ADD 16843009
 #define SECRET_LEN 0x02
 #define SECRET 0x03, 0x04
+#define KEYING_MATERIAL_EXPIRATION_BYTES 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08
 #define EMPTY_EARLY_DATA_SIZE 0x00, 0x00, 0x00, 0x00
 #define CLIENT_TICKET 0x10, 0x10
 
@@ -35,9 +36,13 @@
 #define EARLY_DATA_CONTEXT_LEN 0x03
 #define EARLY_DATA_CONTEXT 0x07, 0x08, 0x09
 
+#define SIZE_OF_MAX_EARLY_DATA_SIZE sizeof(uint32_t)
+
 #define SECONDS_TO_NANOS(seconds) ((seconds) * (uint64_t)ONE_SEC_IN_NANOS)
 
 const uint64_t ticket_issue_time = 283686952306183;
+const uint64_t keying_material_expiration = 283686952306184;
+
 static int s2n_test_session_ticket_callback(struct s2n_connection *conn, struct s2n_session_ticket *ticket)
 {
     return S2N_SUCCESS;
@@ -45,7 +50,11 @@ static int s2n_test_session_ticket_callback(struct s2n_connection *conn, struct 
 
 static int mock_time(void *data, uint64_t *nanoseconds)
 {
-    *nanoseconds = ticket_issue_time;
+    if (data) {
+        *nanoseconds = *((uint64_t*) data);
+    } else {
+        *nanoseconds = ticket_issue_time;
+    }
     return S2N_SUCCESS;
 }
 
@@ -121,12 +130,18 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        uint32_t tls13_state_size_without_early_data = 0;
+        uint32_t tls13_client_state_size = 0;
+        uint32_t tls13_server_state_size = 0;
 
-        /* Test TLS1.3 serialization */
+        /* Test TLS1.3 client serialization */
         {
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
+
             struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
 
@@ -136,7 +151,7 @@ int main(int argc, char **argv)
             struct s2n_ticket_fields ticket_fields = { .ticket_age_add = 1, .session_secret = test_session_secret };
 
             EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &ticket_fields, &output));
-            tls13_state_size_without_early_data = s2n_stuffer_data_available(&output);
+            tls13_client_state_size = s2n_stuffer_data_available(&output);
 
             uint8_t serial_id = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &serial_id));
@@ -150,8 +165,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&output, iana_value, S2N_TLS_CIPHER_SUITE_LEN));
             EXPECT_BYTEARRAY_EQUAL(conn->secure.cipher_suite->iana_value, &iana_value, S2N_TLS_CIPHER_SUITE_LEN);
 
-            /* Current time */
-            EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, sizeof(uint64_t)));
+            uint64_t actual_ticket_issue_time = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint64(&output, &actual_ticket_issue_time));
+            EXPECT_EQUAL(actual_ticket_issue_time, ticket_issue_time);
 
             uint32_t ticket_age_add = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &ticket_age_add));
@@ -164,13 +180,91 @@ int main(int argc, char **argv)
             uint8_t session_secret[S2N_TLS_SECRET_LEN] = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&output, session_secret, secret_len));
             EXPECT_BYTEARRAY_EQUAL(test_session_secret.data, session_secret, secret_len);
-            
+
             uint32_t max_early_data_size = 1;
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &max_early_data_size));
             EXPECT_EQUAL(max_early_data_size, 0);
 
             EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
             EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
+        /* Test TLS1.3 server serialization: keying material expiration time */
+        {
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(conn, 1));
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+
+            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+
+            struct s2n_ticket_fields ticket_fields = { .ticket_age_add = 1, .session_secret = test_session_secret };
+
+            /* New expiration time */
+            {
+                uint64_t expected_expiration_time = ticket_issue_time + ONE_SEC_IN_NANOS;
+
+                EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &ticket_fields, &output));
+                tls13_server_state_size = s2n_stuffer_data_available(&output);
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, tls13_client_state_size - SIZE_OF_MAX_EARLY_DATA_SIZE));
+
+                uint64_t actual_keying_material_expiration = 0;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint64(&output, &actual_keying_material_expiration));
+                EXPECT_EQUAL(actual_keying_material_expiration, expected_expiration_time);
+
+                EXPECT_EQUAL(s2n_stuffer_data_available(&output), SIZE_OF_MAX_EARLY_DATA_SIZE);
+                EXPECT_SUCCESS(s2n_stuffer_wipe(&output));
+            }
+
+            DEFER_CLEANUP(struct s2n_psk *chosen_psk = s2n_test_psk_new(conn), s2n_psk_free);
+            EXPECT_NOT_NULL(chosen_psk);
+            chosen_psk->type = S2N_PSK_TYPE_RESUMPTION;
+            conn->psk_params.chosen_psk = chosen_psk;
+
+            /* Existing expiration time */
+            {
+                uint64_t expected_expiration_time = ticket_issue_time + 1;
+                chosen_psk->keying_material_expiration = expected_expiration_time;
+
+                EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &ticket_fields, &output));
+                tls13_server_state_size = s2n_stuffer_data_available(&output);
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, tls13_client_state_size - SIZE_OF_MAX_EARLY_DATA_SIZE));
+
+                uint64_t actual_keying_material_expiration = 0;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint64(&output, &actual_keying_material_expiration));
+                EXPECT_EQUAL(actual_keying_material_expiration, expected_expiration_time);
+
+                EXPECT_EQUAL(s2n_stuffer_data_available(&output), SIZE_OF_MAX_EARLY_DATA_SIZE);
+                EXPECT_SUCCESS(s2n_stuffer_wipe(&output));
+            }
+
+            /* Existing expiration time not supported by server settings */
+            {
+                uint64_t expected_expiration_time = ticket_issue_time + ONE_SEC_IN_NANOS;
+                chosen_psk->keying_material_expiration = UINT64_MAX;
+
+                EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &ticket_fields, &output));
+                tls13_server_state_size = s2n_stuffer_data_available(&output);
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, tls13_client_state_size - SIZE_OF_MAX_EARLY_DATA_SIZE));
+
+                uint64_t actual_keying_material_expiration = 0;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint64(&output, &actual_keying_material_expiration));
+                EXPECT_EQUAL(actual_keying_material_expiration, expected_expiration_time);
+
+                EXPECT_EQUAL(s2n_stuffer_data_available(&output), SIZE_OF_MAX_EARLY_DATA_SIZE);
+                EXPECT_SUCCESS(s2n_stuffer_wipe(&output));
+            }
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
         }
 
         /* Test TLS1.3 serialization with early data */
@@ -193,9 +287,9 @@ int main(int argc, char **argv)
             struct s2n_ticket_fields ticket_fields = { .ticket_age_add = 1, .session_secret = test_session_secret };
 
             EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &ticket_fields, &output));
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, tls13_server_state_size - SIZE_OF_MAX_EARLY_DATA_SIZE));
 
             uint32_t max_early_data_size = 0;
-            EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, tls13_state_size_without_early_data - sizeof(max_early_data_size)));
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &max_early_data_size));
             EXPECT_EQUAL(max_early_data_size, test_max_early_data_size);
 
@@ -259,6 +353,18 @@ int main(int argc, char **argv)
             EMPTY_EARLY_DATA_SIZE,
         };
 
+        uint8_t tls13_server_ticket[] = {
+            S2N_TLS13_SERIALIZED_FORMAT_VERSION,
+            S2N_TLS13,
+            TLS_AES_128_GCM_SHA256,
+            TICKET_ISSUE_TIME_BYTES,
+            TICKET_AGE_ADD_BYTES,
+            SECRET_LEN,
+            SECRET,
+            KEYING_MATERIAL_EXPIRATION_BYTES,
+            EMPTY_EARLY_DATA_SIZE,
+        };
+
         uint8_t tls13_ticket_with_early_data[] = {
             S2N_TLS13_SERIALIZED_FORMAT_VERSION,
             S2N_TLS13,
@@ -278,7 +384,7 @@ int main(int argc, char **argv)
             0xFF,
         };
 
-        /* Serialized ticket with incorrect format errors */
+        /* Deserialize ticket with incorrect format errors */
         {
             struct s2n_blob ticket_blob = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, faulty_format_ticket, sizeof(faulty_format_ticket)));
@@ -356,6 +462,69 @@ int main(int argc, char **argv)
 
             EXPECT_EQUAL(psk->ticket_age_add, TICKET_AGE_ADD);
             EXPECT_EQUAL(psk->ticket_issue_time, ticket_issue_time);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
+        /* Deserialized TLS1.3 server ticket sets correct keying material value */
+        {
+            struct s2n_blob ticket_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls13_server_ticket, sizeof(tls13_server_ticket)));
+            struct s2n_stuffer ticket_stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, ticket_blob.size));
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            /* Initialize client ticket */
+            const uint8_t client_ticket[] = { CLIENT_TICKET };
+            EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, sizeof(client_ticket)));
+            EXPECT_MEMCPY_SUCCESS(conn->client_ticket.data, client_ticket, sizeof(client_ticket));
+
+            EXPECT_OK(s2n_deserialize_resumption_state(conn, &conn->client_ticket, &ticket_stuffer));
+
+            struct s2n_psk *psk = NULL;
+            EXPECT_OK(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+            EXPECT_NOT_NULL(psk);
+
+            EXPECT_EQUAL(psk->ticket_issue_time, ticket_issue_time);
+            EXPECT_EQUAL(psk->keying_material_expiration, keying_material_expiration);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
+        /* Deserializing TLS1.3 server ticket fails for expired keying material */
+        {
+            struct s2n_blob ticket_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls13_server_ticket, sizeof(tls13_server_ticket)));
+            struct s2n_stuffer ticket_stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, ticket_blob.size));
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            uint64_t current_time = keying_material_expiration;
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, &current_time));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            /* Initialize client ticket */
+            const uint8_t client_ticket[] = { CLIENT_TICKET };
+            EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, sizeof(client_ticket)));
+            EXPECT_MEMCPY_SUCCESS(conn->client_ticket.data, client_ticket, sizeof(client_ticket));
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_deserialize_resumption_state(conn, &conn->client_ticket, &ticket_stuffer),
+                    S2N_ERR_KEYING_MATERIAL_EXPIRED);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
@@ -864,6 +1033,23 @@ int main(int argc, char **argv)
             
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
+
+        /* Fails if keying material expired */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            conn->tickets_to_send = UINT16_MAX;
+
+            DEFER_CLEANUP(struct s2n_psk *chosen_psk = s2n_test_psk_new(conn), s2n_psk_free);
+            EXPECT_NOT_NULL(chosen_psk);
+            chosen_psk->type = S2N_PSK_TYPE_RESUMPTION;
+            chosen_psk->keying_material_expiration = 0;
+            conn->psk_params.chosen_psk = chosen_psk;
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_add_new_tickets_to_send(conn, 1), S2N_ERR_KEYING_MATERIAL_EXPIRED);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
     }
 
     /* s2n_config_set_session_ticket_cb */
@@ -971,6 +1157,22 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_session_ticket_get_lifetime(&session_ticket, &ticket_lifetime));
             EXPECT_EQUAL(lifetime, ticket_lifetime);
         }
+    }
+
+    /* s2n_connection_set_server_keying_material_lifetime */
+    {
+        struct s2n_connection conn = { 0 };
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_server_keying_material_lifetime(NULL, 0), S2N_ERR_NULL);
+
+        EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(&conn, 1));
+        EXPECT_EQUAL(conn.server_keying_material_lifetime, 1);
+
+        EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(&conn, 0));
+        EXPECT_EQUAL(conn.server_keying_material_lifetime, 0);
+
+        EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(&conn, UINT32_MAX));
+        EXPECT_EQUAL(conn.server_keying_material_lifetime, UINT32_MAX);
     }
 
     END_TEST();

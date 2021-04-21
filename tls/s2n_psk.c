@@ -633,3 +633,19 @@ int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint
 
     return S2N_SUCCESS;
 }
+
+S2N_RESULT s2n_psk_validate_keying_material(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+
+    struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
+    if (!chosen_psk || chosen_psk->type != S2N_PSK_TYPE_RESUMPTION) {
+        return S2N_RESULT_OK;
+    }
+
+    uint64_t current_time = 0;
+    RESULT_GUARD_POSIX(conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time));
+    RESULT_ENSURE(chosen_psk->keying_material_expiration > current_time, S2N_ERR_KEYING_MATERIAL_EXPIRED);
+
+    return S2N_RESULT_OK;
+}

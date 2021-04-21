@@ -44,6 +44,12 @@ struct s2n_psk {
     uint64_t ticket_issue_time;
     struct s2n_blob early_secret;
     struct s2n_early_data_config early_data_config;
+
+    /* This field is used with session tickets to track the lifetime
+     * of the original full handshake across multiple tickets.
+     * See https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+     */
+    uint64_t keying_material_expiration;
 };
 S2N_RESULT s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type);
 S2N_CLEANUP_RESULT s2n_psk_wipe(struct s2n_psk *psk);
@@ -83,6 +89,7 @@ int s2n_psk_verify_binder(struct s2n_connection *conn, struct s2n_psk *psk,
         const struct s2n_blob *partial_client_hello, struct s2n_blob *binder_to_verify);
 
 S2N_RESULT s2n_connection_set_psk_type(struct s2n_connection *conn, s2n_psk_type type);
+S2N_RESULT s2n_psk_validate_keying_material(struct s2n_connection *conn);
 
 /* Public Interface -- will be made visible and moved to s2n.h when the PSK feature is released */
 

@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 #include <math.h>
+#include <sys/param.h>
 
 #include <s2n.h>
 
@@ -65,6 +66,27 @@ static int s2n_tls12_serialize_resumption_state(struct s2n_connection *conn, str
     return 0;
 }
 
+static S2N_RESULT s2n_tls13_serialize_keying_material_expiration(struct s2n_connection *conn,
+        uint64_t now, struct s2n_stuffer *out)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(out);
+
+    if (conn->mode != S2N_SERVER) {
+        return S2N_RESULT_OK;
+    }
+
+    struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
+    uint64_t expiration_timestamp = now + (conn->server_keying_material_lifetime * (uint64_t) ONE_SEC_IN_NANOS);
+
+    if (chosen_psk && chosen_psk->type == S2N_PSK_TYPE_RESUMPTION) {
+        expiration_timestamp = MIN(chosen_psk->keying_material_expiration, expiration_timestamp);
+    }
+
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint64(out, expiration_timestamp));
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *conn, struct s2n_ticket_fields *ticket_fields,
         struct s2n_stuffer *out)
 {
@@ -85,6 +107,7 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
     RESULT_ENSURE_LTE(ticket_fields->session_secret.size, UINT8_MAX);
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, ticket_fields->session_secret.size));
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, ticket_fields->session_secret.data, ticket_fields->session_secret.size));
+    RESULT_GUARD(s2n_tls13_serialize_keying_material_expiration(conn, current_time, out));
 
     uint32_t server_max_early_data = 0;
     RESULT_GUARD(s2n_early_data_get_server_max_size(conn, &server_max_early_data));
@@ -232,9 +255,13 @@ static S2N_RESULT s2n_tls13_deserialize_session_state(struct s2n_connection *con
     RESULT_ENSURE_REF(secret_data);
     RESULT_GUARD_POSIX(s2n_psk_set_secret(&psk, secret_data, secret_len));
 
+    if (conn->mode == S2N_SERVER) {
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &psk.keying_material_expiration));
+        RESULT_ENSURE(psk.keying_material_expiration > current_time, S2N_ERR_KEYING_MATERIAL_EXPIRED);
+    }
+
     uint32_t max_early_data_size = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(from, &max_early_data_size));
-
     if (max_early_data_size > 0) {
         RESULT_GUARD_POSIX(s2n_psk_configure_early_data(&psk, max_early_data_size,
                 iana_id[0], iana_id[1]));
@@ -862,11 +889,19 @@ int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num)
 
 int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num) {
     POSIX_ENSURE_REF(conn);
+    POSIX_GUARD_RESULT(s2n_psk_validate_keying_material(conn));
 
     uint32_t out = conn->tickets_to_send + num;
     POSIX_ENSURE(out <= UINT16_MAX, S2N_ERR_INTEGER_OVERFLOW);
     conn->tickets_to_send = out;
 
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_set_server_keying_material_lifetime(struct s2n_connection *conn, uint32_t lifetime_in_secs)
+{
+    POSIX_ENSURE_REF(conn);
+    conn->server_keying_material_lifetime = lifetime_in_secs;
     return S2N_SUCCESS;
 }
 
