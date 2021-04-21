@@ -15,6 +15,14 @@
 
 #include "tls/s2n_kem_preferences.h"
 
+const struct s2n_kem_preferences kem_preferences_null = {
+    .kem_count = 0,
+    .kems = NULL,
+    .tls13_kem_group_count = 0,
+    .tls13_kem_groups = NULL,
+};
+
+#ifndef S2N_NO_PQ
 /* Extension list for round 1 PQ KEMs, in order of preference */
 const struct s2n_kem *pq_kems_r1[2] = {
     &s2n_bike1_l1_r1,
@@ -113,13 +121,14 @@ const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2020_12 = {
     .tls13_kem_group_count = s2n_array_len(pq_kem_groups_r2),
     .tls13_kem_groups = pq_kem_groups_r2,
 };
-
-const struct s2n_kem_preferences kem_preferences_null = {
-    .kem_count = 0,
-    .kems = NULL,
-    .tls13_kem_group_count = 0,
-    .tls13_kem_groups = NULL,
-};
+#else // S2N_NO_PQ
+const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2019_06 = kem_preferences_null;
+const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_02 = kem_preferences_null;
+const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_07 = kem_preferences_null;
+const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2019_11 = kem_preferences_null;
+const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2020_02 = kem_preferences_null;
+const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2020_12 = kem_preferences_null;
+#endif // S2N_NO_PQ
 
 /* Determines if query_iana_id corresponds to a tls13_kem_group for these KEM preferences. */
 bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferences *kem_preferences,

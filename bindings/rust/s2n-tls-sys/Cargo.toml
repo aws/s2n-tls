@@ -1,0 +1,19 @@
+[package]
+name = "s2n-tls-sys"
+version = "0.1.0"
+authors = ["Cameron Bytheway <bythewc@amazon.com>"]
+edition = "2018"
+links = "s2n-tls"
+license = "Apache-2.0"
+
+[features]
+default = []
+pq = []
+quic = []
+
+[dependencies]
+libc = "0.2"
+openssl-sys = { version = "0.9" }
+
+[build-dependencies]
+cc = { version = "1.0", features = ["parallel"] }

@@ -1,0 +1,26 @@
+---
+name: Bindings
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        id: toolchain
+        with:
+          toolchain: stable
+          override: true
+
+      - uses: camshaft/rust-cache@v1
+
+      - name: Generate
+        run: ./bindings/rust/generate.sh
+
+      # TODO if tagging a release, publish to crates.io

@@ -21,6 +21,7 @@
 #include "utils/s2n_safety.h"
 #include "pq-crypto/s2n_pq.h"
 
+#ifndef S2N_NO_PQ
 /* The KEM IDs and names come from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
 const struct s2n_kem s2n_bike1_l1_r1 = {
         .name = "BIKE1r1-Level1",
@@ -241,6 +242,9 @@ const struct s2n_kem_group s2n_x25519_kyber_512_r2 = {
 const struct s2n_kem_group s2n_x25519_sike_p434_r3 = { 0 };
 const struct s2n_kem_group s2n_x25519_bike1_l1_r2 = { 0 };
 const struct s2n_kem_group s2n_x25519_kyber_512_r2 = { 0 };
+#endif
+#else // S2N_NO_PQ
+const struct s2n_iana_to_kem kem_mapping[0] = { };
 #endif
 
 /* Helper safety macro to call the NIST PQ KEM functions. The NIST
