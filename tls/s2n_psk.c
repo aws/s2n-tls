@@ -619,15 +619,6 @@ int s2n_connection_get_chosen_psk(struct s2n_connection *conn, struct s2n_psk *c
     return S2N_SUCCESS;
 }
 
-int s2n_psk_get_type(struct s2n_psk *psk, uint8_t *type)
-{
-    POSIX_ENSURE_REF(psk);
-    POSIX_ENSURE_REF(type);
-
-    *type = psk->type;
-    return S2N_SUCCESS;
-}
-
 int s2n_psk_get_identity_length(struct s2n_psk *psk, uint16_t *identity_length)
 {
     POSIX_ENSURE_REF(psk);

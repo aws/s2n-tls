@@ -1026,22 +1026,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test s2n_psk_get_type */
-    {
-        struct s2n_psk ext_psk = { .type = S2N_PSK_TYPE_EXTERNAL };
-        struct s2n_psk res_psk = { .type = S2N_PSK_TYPE_RESUMPTION };
-        uint8_t type = 0;
-
-        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_get_type(NULL, &type), S2N_ERR_NULL);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_get_type(&ext_psk, NULL), S2N_ERR_NULL);
-
-        EXPECT_SUCCESS(s2n_psk_get_type(&ext_psk, &type));
-        EXPECT_EQUAL(type, S2N_PSK_TYPE_EXTERNAL);
-
-        EXPECT_SUCCESS(s2n_psk_get_type(&res_psk, &type));
-        EXPECT_EQUAL(type, S2N_PSK_TYPE_RESUMPTION);
-    }
-
     /* Test s2n_psk_get_identity_length */
     {
         const uint8_t test_identity[] = "identity";
