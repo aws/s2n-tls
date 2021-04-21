@@ -8,20 +8,20 @@
 * Description: Absorb step of the SHAKE128 specialized for the Kyber context.
 
 * Arguments:   - keccak_state *s:           pointer to (uninitialized) output Keccak state
-*              - const uint8_t *input:      pointer to KYBER_SYMBYTES input to be absorbed into s
+*              - const uint8_t *input:      pointer to S2N_KYBER_512_R3_SYMBYTES input to be absorbed into s
 *              - uint8_t i                  additional byte of input
 *              - uint8_t j                  additional byte of input
 **************************************************/
 void PQCLEAN_KYBER512_CLEAN_kyber_shake128_absorb(keccak_state *s, const uint8_t *input, uint8_t x, uint8_t y) {
     size_t i;
-    uint8_t extseed[KYBER_SYMBYTES + 2];
+    uint8_t extseed[S2N_KYBER_512_R3_SYMBYTES + 2];
 
-    for (i = 0; i < KYBER_SYMBYTES; i++) {
+    for (i = 0; i < S2N_KYBER_512_R3_SYMBYTES; i++) {
         extseed[i] = input[i];
     }
     extseed[i++] = x;
     extseed[i]   = y;
-    shake128_absorb(s, extseed, KYBER_SYMBYTES + 2);
+    shake128_absorb(s, extseed, S2N_KYBER_512_R3_SYMBYTES + 2);
 }
 
 /*************************************************
@@ -47,17 +47,17 @@ void PQCLEAN_KYBER512_CLEAN_kyber_shake128_squeezeblocks(uint8_t *output, size_t
 *
 * Arguments:   - uint8_t *output:      pointer to output
 *              - size_t outlen:        number of requested output bytes
-*              - const uint8_t * key:  pointer to the key (of length KYBER_SYMBYTES)
+*              - const uint8_t * key:  pointer to the key (of length S2N_KYBER_512_R3_SYMBYTES)
 *              - uint8_t nonce:  single-byte nonce (public PRF input)
 **************************************************/
 void PQCLEAN_KYBER512_CLEAN_shake256_prf(uint8_t *output, size_t outlen, const uint8_t *key, uint8_t nonce) {
-    uint8_t extkey[KYBER_SYMBYTES + 1];
+    uint8_t extkey[S2N_KYBER_512_R3_SYMBYTES + 1];
     size_t i;
 
-    for (i = 0; i < KYBER_SYMBYTES; i++) {
+    for (i = 0; i < S2N_KYBER_512_R3_SYMBYTES; i++) {
         extkey[i] = key[i];
     }
     extkey[i] = nonce;
 
-    shake256(output, outlen, extkey, KYBER_SYMBYTES + 1);
+    shake256(output, outlen, extkey, S2N_KYBER_512_R3_SYMBYTES + 1);
 }

@@ -26,12 +26,12 @@ int s2n_kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     POSIX_GUARD(indcpa_keypair(pk, sk));
-    for(size_t i = 0; i < KYBER_INDCPA_PUBLICKEYBYTES; i++) {
-        sk[i + KYBER_INDCPA_SECRETKEYBYTES] = pk[i];
+    for(size_t i = 0; i < S2N_KYBER_512_R3_INDCPA_PUBLICKEYBYTES; i++) {
+        sk[i + S2N_KYBER_512_R3_INDCPA_SECRETKEYBYTES] = pk[i];
     }
-    hash_h(sk+KYBER_SECRETKEYBYTES-2*KYBER_SYMBYTES, pk, KYBER_PUBLICKEYBYTES);
+    hash_h(sk+S2N_KYBER_512_R3_SECRET_KEY_BYTES-2*S2N_KYBER_512_R3_SYMBYTES, pk, S2N_KYBER_512_R3_PUBLIC_KEY_BYTES);
     /* Value z for pseudo-random output on reject */
-    POSIX_GUARD_RESULT(s2n_get_random_bytes(sk+KYBER_SECRETKEYBYTES-KYBER_SYMBYTES, KYBER_SYMBYTES));
+    POSIX_GUARD_RESULT(s2n_get_random_bytes(sk+S2N_KYBER_512_R3_SECRET_KEY_BYTES-S2N_KYBER_512_R3_SYMBYTES, S2N_KYBER_512_R3_SYMBYTES));
     return S2N_SUCCESS;
 }
 
@@ -53,25 +53,25 @@ int s2n_kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 int s2n_kyber_512_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsigned char *pk)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-    uint8_t buf[2*KYBER_SYMBYTES];
+    uint8_t buf[2*S2N_KYBER_512_R3_SYMBYTES];
     /* Will contain key, coins */
-    uint8_t kr[2*KYBER_SYMBYTES];
+    uint8_t kr[2*S2N_KYBER_512_R3_SYMBYTES];
 
-    POSIX_GUARD_RESULT(s2n_get_random_bytes(buf, KYBER_SYMBYTES));
+    POSIX_GUARD_RESULT(s2n_get_random_bytes(buf, S2N_KYBER_512_R3_SYMBYTES));
     /* Don't release system RNG output */
-    hash_h(buf, buf, KYBER_SYMBYTES);
+    hash_h(buf, buf, S2N_KYBER_512_R3_SYMBYTES);
 
     /* Multitarget countermeasure for coins + contributory KEM */
-    hash_h(buf+KYBER_SYMBYTES, pk, KYBER_PUBLICKEYBYTES);
-    hash_g(kr, buf, 2*KYBER_SYMBYTES);
+    hash_h(buf+S2N_KYBER_512_R3_SYMBYTES, pk, S2N_KYBER_512_R3_PUBLIC_KEY_BYTES);
+    hash_g(kr, buf, 2*S2N_KYBER_512_R3_SYMBYTES);
 
-    /* coins are in kr+KYBER_SYMBYTES */
-    indcpa_enc(ct, buf, pk, kr+KYBER_SYMBYTES);
+    /* coins are in kr+S2N_KYBER_512_R3_SYMBYTES */
+    indcpa_enc(ct, buf, pk, kr+S2N_KYBER_512_R3_SYMBYTES);
 
     /* overwrite coins in kr with H(c) */
-    hash_h(kr+KYBER_SYMBYTES, ct, KYBER_CIPHERTEXTBYTES);
+    hash_h(kr+S2N_KYBER_512_R3_SYMBYTES, ct, S2N_KYBER_512_R3_CIPHERTEXT_BYTES);
     /* hash concatenation of pre-k and H(c) to k */
-    kdf(ss, kr, 2*KYBER_SYMBYTES);
+    kdf(ss, kr, 2*S2N_KYBER_512_R3_SYMBYTES);
     return S2N_SUCCESS;
 }
 
@@ -96,32 +96,32 @@ int s2n_kyber_512_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, 
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     int fail;
-    uint8_t buf[2*KYBER_SYMBYTES];
+    uint8_t buf[2*S2N_KYBER_512_R3_SYMBYTES];
     /* Will contain key, coins */
-    uint8_t kr[2*KYBER_SYMBYTES];
-    uint8_t cmp[KYBER_CIPHERTEXTBYTES];
-    const uint8_t *pk = sk+KYBER_INDCPA_SECRETKEYBYTES;
+    uint8_t kr[2*S2N_KYBER_512_R3_SYMBYTES];
+    uint8_t cmp[S2N_KYBER_512_R3_CIPHERTEXT_BYTES];
+    const uint8_t *pk = sk+S2N_KYBER_512_R3_INDCPA_SECRETKEYBYTES;
 
     indcpa_dec(buf, ct, sk);
 
     /* Multitarget countermeasure for coins + contributory KEM */
-    for(size_t i = 0; i < KYBER_SYMBYTES; i++) {
-        buf[KYBER_SYMBYTES + i] = sk[KYBER_SECRETKEYBYTES - 2 * KYBER_SYMBYTES + i];
+    for(size_t i = 0; i < S2N_KYBER_512_R3_SYMBYTES; i++) {
+        buf[S2N_KYBER_512_R3_SYMBYTES + i] = sk[S2N_KYBER_512_R3_SECRET_KEY_BYTES - 2 * S2N_KYBER_512_R3_SYMBYTES + i];
     }
-    hash_g(kr, buf, 2*KYBER_SYMBYTES);
+    hash_g(kr, buf, 2*S2N_KYBER_512_R3_SYMBYTES);
 
-    /* coins are in kr+KYBER_SYMBYTES */
-    indcpa_enc(cmp, buf, pk, kr+KYBER_SYMBYTES);
+    /* coins are in kr+S2N_KYBER_512_R3_SYMBYTES */
+    indcpa_enc(cmp, buf, pk, kr+S2N_KYBER_512_R3_SYMBYTES);
 
-    fail = verify(ct, cmp, KYBER_CIPHERTEXTBYTES);
+    fail = verify(ct, cmp, S2N_KYBER_512_R3_CIPHERTEXT_BYTES);
 
     /* overwrite coins in kr with H(c) */
-    hash_h(kr+KYBER_SYMBYTES, ct, KYBER_CIPHERTEXTBYTES);
+    hash_h(kr+S2N_KYBER_512_R3_SYMBYTES, ct, S2N_KYBER_512_R3_CIPHERTEXT_BYTES);
 
     /* Overwrite pre-k with z on re-encryption failure */
-    cmov(kr, sk+KYBER_SECRETKEYBYTES-KYBER_SYMBYTES, KYBER_SYMBYTES, fail);
+    cmov(kr, sk+S2N_KYBER_512_R3_SECRET_KEY_BYTES-S2N_KYBER_512_R3_SYMBYTES, S2N_KYBER_512_R3_SYMBYTES, fail);
 
     /* hash concatenation of pre-k and H(c) to k */
-    kdf(ss, kr, 2*KYBER_SYMBYTES);
+    kdf(ss, kr, 2*S2N_KYBER_512_R3_SYMBYTES);
     return S2N_SUCCESS;
 }
