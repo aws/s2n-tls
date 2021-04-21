@@ -4,21 +4,22 @@
 #include <stdint.h>
 #include "params.h"
 
-#define SHAKE128_RATE 168
-#define SHAKE256_RATE 136
-#define SHA3_256_RATE 136
-#define SHA3_384_RATE 104
-#define SHA3_512_RATE 72
+#define S2N_KYBER_512_R3_SHAKE128_RATE 168
+#define S2N_KYBER_512_R3_SHAKE256_RATE 136
+#define S2N_KYBER_512_R3_SHA3_256_RATE 136
+#define S2N_KYBER_512_R3_SHA3_384_RATE 104
+#define S2N_KYBER_512_R3_SHA3_512_RATE 72
 
-#define PQC_SHAKEINCCTX_BYTES (sizeof(uint64_t)*26)
-#define PQC_SHAKECTX_BYTES (sizeof(uint64_t)*25)
+#define S2N_KYBER_512_R3_PQC_SHAKECTX_BYTES (sizeof(uint64_t)*25)
 
 // Context for non-incremental API
+#define shake128ctx S2N_KYBER_512_R3_NAMESPACE(shake128ctx)
 typedef struct {
     uint64_t* ctx;
 } shake128ctx;
 
 // Context for non-incremental API
+#define shake256ctx S2N_KYBER_512_R3_NAMESPACE(shake256ctx)
 typedef struct {
     uint64_t* ctx;
 } shake256ctx;

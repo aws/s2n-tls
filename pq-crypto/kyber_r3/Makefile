@@ -13,7 +13,7 @@
 # permissions and limitations under the License.
 #
 
-SRCS=cbd.c fips202.c indcpa.c kyber_r3_kem.c ntt.c poly.c polyvec.c reduce.c verify.c symmetric-shake.c
+SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
 .PHONY : all

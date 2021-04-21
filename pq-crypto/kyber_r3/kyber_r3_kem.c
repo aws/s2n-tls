@@ -28,7 +28,7 @@ int s2n_kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
     for(size_t i = 0; i < S2N_KYBER_512_R3_INDCPA_PUBLICKEYBYTES; i++) {
         sk[i + S2N_KYBER_512_R3_INDCPA_SECRETKEYBYTES] = pk[i];
     }
-    hash_h(sk+S2N_KYBER_512_R3_SECRET_KEY_BYTES-2*S2N_KYBER_512_R3_SYMBYTES, pk, S2N_KYBER_512_R3_PUBLIC_KEY_BYTES);
+    sha3_256(sk+S2N_KYBER_512_R3_SECRET_KEY_BYTES-2*S2N_KYBER_512_R3_SYMBYTES, pk, S2N_KYBER_512_R3_PUBLIC_KEY_BYTES);
     /* Value z for pseudo-random output on reject */
     POSIX_GUARD_RESULT(s2n_get_random_bytes(sk+S2N_KYBER_512_R3_SECRET_KEY_BYTES-S2N_KYBER_512_R3_SYMBYTES, S2N_KYBER_512_R3_SYMBYTES));
     return S2N_SUCCESS;
@@ -58,19 +58,19 @@ int s2n_kyber_512_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const 
 
     POSIX_GUARD_RESULT(s2n_get_random_bytes(buf, S2N_KYBER_512_R3_SYMBYTES));
     /* Don't release system RNG output */
-    hash_h(buf, buf, S2N_KYBER_512_R3_SYMBYTES);
+    sha3_256(buf, buf, S2N_KYBER_512_R3_SYMBYTES);
 
     /* Multitarget countermeasure for coins + contributory KEM */
-    hash_h(buf+S2N_KYBER_512_R3_SYMBYTES, pk, S2N_KYBER_512_R3_PUBLIC_KEY_BYTES);
-    hash_g(kr, buf, 2*S2N_KYBER_512_R3_SYMBYTES);
+    sha3_256(buf+S2N_KYBER_512_R3_SYMBYTES, pk, S2N_KYBER_512_R3_PUBLIC_KEY_BYTES);
+    sha3_512(kr, buf, 2*S2N_KYBER_512_R3_SYMBYTES);
 
     /* coins are in kr+S2N_KYBER_512_R3_SYMBYTES */
     indcpa_enc(ct, buf, pk, kr+S2N_KYBER_512_R3_SYMBYTES);
 
     /* overwrite coins in kr with H(c) */
-    hash_h(kr+S2N_KYBER_512_R3_SYMBYTES, ct, S2N_KYBER_512_R3_CIPHERTEXT_BYTES);
+    sha3_256(kr+S2N_KYBER_512_R3_SYMBYTES, ct, S2N_KYBER_512_R3_CIPHERTEXT_BYTES);
     /* hash concatenation of pre-k and H(c) to k */
-    kdf(ss, kr, 2*S2N_KYBER_512_R3_SYMBYTES);
+    shake256(ss, S2N_KYBER_512_R3_SSBYTES, kr, 2*S2N_KYBER_512_R3_SYMBYTES);
     return S2N_SUCCESS;
 }
 
@@ -106,7 +106,7 @@ int s2n_kyber_512_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, 
     for(size_t i = 0; i < S2N_KYBER_512_R3_SYMBYTES; i++) {
         buf[S2N_KYBER_512_R3_SYMBYTES + i] = sk[S2N_KYBER_512_R3_SECRET_KEY_BYTES - 2 * S2N_KYBER_512_R3_SYMBYTES + i];
     }
-    hash_g(kr, buf, 2*S2N_KYBER_512_R3_SYMBYTES);
+    sha3_512(kr, buf, 2*S2N_KYBER_512_R3_SYMBYTES);
 
     /* coins are in kr+S2N_KYBER_512_R3_SYMBYTES */
     indcpa_enc(cmp, buf, pk, kr+S2N_KYBER_512_R3_SYMBYTES);
@@ -116,13 +116,13 @@ int s2n_kyber_512_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, 
     int dont_copy = s2n_constant_time_equals(ct, cmp, S2N_KYBER_512_R3_CIPHERTEXT_BYTES);
 
     /* overwrite coins in kr with H(c) */
-    hash_h(kr+S2N_KYBER_512_R3_SYMBYTES, ct, S2N_KYBER_512_R3_CIPHERTEXT_BYTES);
+    sha3_256(kr+S2N_KYBER_512_R3_SYMBYTES, ct, S2N_KYBER_512_R3_CIPHERTEXT_BYTES);
 
     /* Overwrite pre-k with z on re-encryption failure */
     POSIX_GUARD(s2n_constant_time_copy_or_dont(kr, sk+S2N_KYBER_512_R3_SECRET_KEY_BYTES-S2N_KYBER_512_R3_SYMBYTES,
             S2N_KYBER_512_R3_SYMBYTES, dont_copy));
 
     /* hash concatenation of pre-k and H(c) to k */
-    kdf(ss, kr, 2*S2N_KYBER_512_R3_SYMBYTES);
+    shake256(ss, S2N_KYBER_512_R3_SSBYTES, kr, 2*S2N_KYBER_512_R3_SYMBYTES);
     return S2N_SUCCESS;
 }

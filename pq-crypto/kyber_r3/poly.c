@@ -152,7 +152,7 @@ void poly_tomsg(uint8_t msg[S2N_KYBER_512_R3_INDCPA_MSGBYTES], poly *a) {
 **************************************************/
 void poly_getnoise_eta1(poly *r, const uint8_t seed[S2N_KYBER_512_R3_SYMBYTES], uint8_t nonce) {
     uint8_t buf[S2N_KYBER_512_R3_ETA1 * S2N_KYBER_512_R3_N / 4];
-    prf(buf, sizeof(buf), seed, nonce);
+    shake256_prf(buf, sizeof(buf), seed, nonce);
     cbd_eta1(r, buf);
 }
 
@@ -170,7 +170,7 @@ void poly_getnoise_eta1(poly *r, const uint8_t seed[S2N_KYBER_512_R3_SYMBYTES], 
 **************************************************/
 void poly_getnoise_eta2(poly *r, const uint8_t seed[S2N_KYBER_512_R3_SYMBYTES], uint8_t nonce) {
     uint8_t buf[S2N_KYBER_512_R3_ETA2 * S2N_KYBER_512_R3_N / 4];
-    prf(buf, sizeof(buf), seed, nonce);
+    shake256_prf(buf, sizeof(buf), seed, nonce);
     cbd_eta2(r, buf);
 }
 

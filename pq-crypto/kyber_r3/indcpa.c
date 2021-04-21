@@ -4,6 +4,7 @@
 #include "indcpa.h"
 #include "poly.h"
 #include "polyvec.h"
+#include "fips202.h"
 #include "ntt.h"
 #include "symmetric.h"
 #include "pq-crypto/s2n_pq_random.h"
@@ -151,9 +152,9 @@ static unsigned int rej_uniform(int16_t *r, unsigned int len, const uint8_t *buf
 *              - int transposed:      boolean deciding whether A or A^T
 *                                     is generated
 **************************************************/
+#define XOF_BLOCKBYTES 168
 #define GEN_MATRIX_NBLOCKS ((12*S2N_KYBER_512_R3_N/8*(1 << 12)/S2N_KYBER_512_R3_Q + XOF_BLOCKBYTES)/XOF_BLOCKBYTES)
-// Not static for benchmarking
-void gen_matrix(polyvec *a, const uint8_t seed[S2N_KYBER_512_R3_SYMBYTES], int transposed) {
+static void gen_matrix(polyvec *a, const uint8_t seed[S2N_KYBER_512_R3_SYMBYTES], int transposed) {
     unsigned int ctr, buflen, off;
     uint8_t buf[GEN_MATRIX_NBLOCKS * XOF_BLOCKBYTES + 2];
     xof_state state;
@@ -161,12 +162,12 @@ void gen_matrix(polyvec *a, const uint8_t seed[S2N_KYBER_512_R3_SYMBYTES], int t
     for (unsigned int i = 0; i < S2N_KYBER_512_R3_K; i++) {
         for (unsigned int j = 0; j < S2N_KYBER_512_R3_K; j++) {
             if (transposed) {
-                xof_absorb(&state, seed, i, j);
+                kyber_shake128_absorb(&state, seed, i, j);
             } else {
-                xof_absorb(&state, seed, j, i);
+                kyber_shake128_absorb(&state, seed, j, i);
             }
 
-            xof_squeezeblocks(buf, GEN_MATRIX_NBLOCKS, &state);
+            shake128_squeezeblocks(buf, GEN_MATRIX_NBLOCKS, &state);
             buflen = GEN_MATRIX_NBLOCKS * XOF_BLOCKBYTES;
             ctr = rej_uniform(a[i].vec[j].coeffs, S2N_KYBER_512_R3_N, buf, buflen);
 
@@ -175,11 +176,11 @@ void gen_matrix(polyvec *a, const uint8_t seed[S2N_KYBER_512_R3_SYMBYTES], int t
                 for (unsigned int k = 0; k < off; k++) {
                     buf[k] = buf[buflen - off + k];
                 }
-                xof_squeezeblocks(buf + off, 1, &state);
+                shake128_squeezeblocks(buf + off, 1, &state);
                 buflen = off + XOF_BLOCKBYTES;
                 ctr += rej_uniform(a[i].vec[j].coeffs + ctr, S2N_KYBER_512_R3_N - ctr, buf, buflen);
             }
-            xof_ctx_release(&state);
+            shake128_ctx_release(&state);
         }
     }
 }
@@ -206,7 +207,7 @@ int indcpa_keypair(uint8_t pk[S2N_KYBER_512_R3_INDCPA_PUBLICKEYBYTES], uint8_t s
     polyvec a[S2N_KYBER_512_R3_K], e, pkpv, skpv;
 
     POSIX_GUARD_RESULT(s2n_get_random_bytes(buf, S2N_KYBER_512_R3_SYMBYTES));
-    hash_g(buf, buf, S2N_KYBER_512_R3_SYMBYTES);
+    sha3_512(buf, buf, S2N_KYBER_512_R3_SYMBYTES);
 
     gen_matrix(a, publicseed, 0);
 

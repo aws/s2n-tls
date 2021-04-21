@@ -416,11 +416,11 @@ static void keccak_squeezeblocks(uint8_t *h, size_t nblocks,
  *              - size_t inlen: length of input in bytes
  **************************************************/
 void shake128_absorb(shake128ctx *state, const uint8_t *input, size_t inlen) {
-    state->ctx = malloc(PQC_SHAKECTX_BYTES);
+    state->ctx = malloc(S2N_KYBER_512_R3_PQC_SHAKECTX_BYTES);
     if (state->ctx == NULL) {
         exit(111);
     }
-    keccak_absorb(state->ctx, SHAKE128_RATE, input, inlen, 0x1F);
+    keccak_absorb(state->ctx, S2N_KYBER_512_R3_SHAKE128_RATE, input, inlen, 0x1F);
 }
 
 /*************************************************
@@ -436,7 +436,7 @@ void shake128_absorb(shake128ctx *state, const uint8_t *input, size_t inlen) {
  *              - shake128ctx *state: pointer to input/output Keccak state
  **************************************************/
 void shake128_squeezeblocks(uint8_t *output, size_t nblocks, shake128ctx *state) {
-    keccak_squeezeblocks(output, nblocks, state->ctx, SHAKE128_RATE);
+    keccak_squeezeblocks(output, nblocks, state->ctx, S2N_KYBER_512_R3_SHAKE128_RATE);
 }
 
 /** Release the allocated state. Call only once. */
@@ -456,11 +456,11 @@ void shake128_ctx_release(shake128ctx *state) {
  *              - size_t inlen: length of input in bytes
  **************************************************/
 void shake256_absorb(shake256ctx *state, const uint8_t *input, size_t inlen) {
-    state->ctx = malloc(PQC_SHAKECTX_BYTES);
+    state->ctx = malloc(S2N_KYBER_512_R3_PQC_SHAKECTX_BYTES);
     if (state->ctx == NULL) {
         exit(111);
     }
-    keccak_absorb(state->ctx, SHAKE256_RATE, input, inlen, 0x1F);
+    keccak_absorb(state->ctx, S2N_KYBER_512_R3_SHAKE256_RATE, input, inlen, 0x1F);
 }
 
 /*************************************************
@@ -476,7 +476,7 @@ void shake256_absorb(shake256ctx *state, const uint8_t *input, size_t inlen) {
  *              - shake256ctx *state: pointer to input/output Keccak state
  **************************************************/
 void shake256_squeezeblocks(uint8_t *output, size_t nblocks, shake256ctx *state) {
-    keccak_squeezeblocks(output, nblocks, state->ctx, SHAKE256_RATE);
+    keccak_squeezeblocks(output, nblocks, state->ctx, S2N_KYBER_512_R3_SHAKE256_RATE);
 }
 
 /** Release the allocated state. Call only once. */
@@ -496,15 +496,15 @@ void shake256_ctx_release(shake256ctx *state) {
  **************************************************/
 void shake256(uint8_t *output, size_t outlen,
               const uint8_t *input, size_t inlen) {
-    size_t nblocks = outlen / SHAKE256_RATE;
-    uint8_t t[SHAKE256_RATE];
+    size_t nblocks = outlen / S2N_KYBER_512_R3_SHAKE256_RATE;
+    uint8_t t[S2N_KYBER_512_R3_SHAKE256_RATE];
     shake256ctx s;
 
     shake256_absorb(&s, input, inlen);
     shake256_squeezeblocks(output, nblocks, &s);
 
-    output += nblocks * SHAKE256_RATE;
-    outlen -= nblocks * SHAKE256_RATE;
+    output += nblocks * S2N_KYBER_512_R3_SHAKE256_RATE;
+    outlen -= nblocks * S2N_KYBER_512_R3_SHAKE256_RATE;
 
     if (outlen) {
         shake256_squeezeblocks(t, 1, &s);
@@ -526,13 +526,13 @@ void shake256(uint8_t *output, size_t outlen,
  **************************************************/
 void sha3_256(uint8_t *output, const uint8_t *input, size_t inlen) {
     uint64_t s[25];
-    uint8_t t[SHA3_256_RATE];
+    uint8_t t[S2N_KYBER_512_R3_SHA3_256_RATE];
 
     /* Absorb input */
-    keccak_absorb(s, SHA3_256_RATE, input, inlen, 0x06);
+    keccak_absorb(s, S2N_KYBER_512_R3_SHA3_256_RATE, input, inlen, 0x06);
 
     /* Squeeze output */
-    keccak_squeezeblocks(t, 1, s, SHA3_256_RATE);
+    keccak_squeezeblocks(t, 1, s, S2N_KYBER_512_R3_SHA3_256_RATE);
 
     for (size_t i = 0; i < 32; i++) {
         output[i] = t[i];
@@ -550,13 +550,13 @@ void sha3_256(uint8_t *output, const uint8_t *input, size_t inlen) {
  **************************************************/
 void sha3_512(uint8_t *output, const uint8_t *input, size_t inlen) {
     uint64_t s[25];
-    uint8_t t[SHA3_512_RATE];
+    uint8_t t[S2N_KYBER_512_R3_SHA3_512_RATE];
 
     /* Absorb input */
-    keccak_absorb(s, SHA3_512_RATE, input, inlen, 0x06);
+    keccak_absorb(s, S2N_KYBER_512_R3_SHA3_512_RATE, input, inlen, 0x06);
 
     /* Squeeze output */
-    keccak_squeezeblocks(t, 1, s, SHA3_512_RATE);
+    keccak_squeezeblocks(t, 1, s, S2N_KYBER_512_R3_SHA3_512_RATE);
 
     for (size_t i = 0; i < 64; i++) {
         output[i] = t[i];

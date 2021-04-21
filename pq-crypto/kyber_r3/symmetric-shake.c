@@ -12,7 +12,7 @@
 *              - uint8_t i                  additional byte of input
 *              - uint8_t j                  additional byte of input
 **************************************************/
-void PQCLEAN_KYBER512_CLEAN_kyber_shake128_absorb(keccak_state *s, const uint8_t *input, uint8_t x, uint8_t y) {
+void kyber_shake128_absorb(keccak_state *s, const uint8_t *input, uint8_t x, uint8_t y) {
     size_t i;
     uint8_t extseed[S2N_KYBER_512_R3_SYMBYTES + 2];
 
@@ -22,21 +22,6 @@ void PQCLEAN_KYBER512_CLEAN_kyber_shake128_absorb(keccak_state *s, const uint8_t
     extseed[i++] = x;
     extseed[i]   = y;
     shake128_absorb(s, extseed, S2N_KYBER_512_R3_SYMBYTES + 2);
-}
-
-/*************************************************
-* Name:        kyber_shake128_squeezeblocks
-*
-* Description: Squeeze step of SHAKE128 XOF. Squeezes full blocks of SHAKE128_RATE bytes each.
-*              Modifies the state. Can be called multiple times to keep squeezing,
-*              i.e., is incremental.
-*
-* Arguments:   - uint8_t *output:            pointer to output blocks
-*              - unsigned long long nblocks: number of blocks to be squeezed (written to output)
-*              - keccak_state *s:            pointer to in/output Keccak state
-**************************************************/
-void PQCLEAN_KYBER512_CLEAN_kyber_shake128_squeezeblocks(uint8_t *output, size_t nblocks, keccak_state *s) {
-    shake128_squeezeblocks(output, nblocks, s);
 }
 
 /*************************************************
@@ -50,7 +35,7 @@ void PQCLEAN_KYBER512_CLEAN_kyber_shake128_squeezeblocks(uint8_t *output, size_t
 *              - const uint8_t * key:  pointer to the key (of length S2N_KYBER_512_R3_SYMBYTES)
 *              - uint8_t nonce:  single-byte nonce (public PRF input)
 **************************************************/
-void PQCLEAN_KYBER512_CLEAN_shake256_prf(uint8_t *output, size_t outlen, const uint8_t *key, uint8_t nonce) {
+void shake256_prf(uint8_t *output, size_t outlen, const uint8_t *key, uint8_t nonce) {
     uint8_t extkey[S2N_KYBER_512_R3_SYMBYTES + 1];
     size_t i;
 

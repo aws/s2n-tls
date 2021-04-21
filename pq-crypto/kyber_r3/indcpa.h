@@ -4,9 +4,6 @@
 #include "params.h"
 #include "polyvec.h"
 
-#define gen_matrix S2N_KYBER_512_R3_NAMESPACE(gen_matrix)
-void gen_matrix(polyvec *a, const uint8_t seed[S2N_KYBER_512_R3_SYMBYTES], int transposed);
-
 #define indcpa_keypair S2N_KYBER_512_R3_NAMESPACE(indcpa_keypair)
 int indcpa_keypair(uint8_t pk[S2N_KYBER_512_R3_INDCPA_PUBLICKEYBYTES], uint8_t sk[S2N_KYBER_512_R3_INDCPA_SECRETKEYBYTES]);
 

@@ -18,7 +18,7 @@ int16_t montgomery_reduce(int32_t a) {
     int32_t t;
     int16_t u;
 
-    u = a * QINV;
+    u = a * S2N_KYBER_512_R3_QINV;
     t = (int32_t)u * S2N_KYBER_512_R3_Q;
     t = a - t;
     t >>= 16;

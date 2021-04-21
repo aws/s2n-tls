@@ -4,6 +4,7 @@
 #include "params.h"
 #include "poly.h"
 
+#define polyvec S2N_KYBER_512_R3_NAMESPACE(polyvec)
 typedef struct {
     poly vec[S2N_KYBER_512_R3_K];
 } polyvec;
