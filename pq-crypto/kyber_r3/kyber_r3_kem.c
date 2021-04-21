@@ -25,14 +25,14 @@
 int kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-    GUARD(indcpa_keypair(pk, sk));
+    POSIX_GUARD(indcpa_keypair(pk, sk));
     for(size_t i = 0; i < KYBER_INDCPA_PUBLICKEYBYTES; i++) {
         sk[i + KYBER_INDCPA_SECRETKEYBYTES] = pk[i];
     }
     hash_h(sk+KYBER_SECRETKEYBYTES-2*KYBER_SYMBYTES, pk, KYBER_PUBLICKEYBYTES);
     /* Value z for pseudo-random output on reject */
     POSIX_GUARD_RESULT(s2n_get_random_bytes(sk+KYBER_SECRETKEYBYTES-KYBER_SYMBYTES, KYBER_SYMBYTES));
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /*************************************************
@@ -72,7 +72,7 @@ int kyber_512_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsi
     hash_h(kr+KYBER_SYMBYTES, ct, KYBER_CIPHERTEXTBYTES);
     /* hash concatenation of pre-k and H(c) to k */
     kdf(ss, kr, 2*KYBER_SYMBYTES);
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /*************************************************
@@ -123,5 +123,5 @@ int kyber_512_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, cons
 
     /* hash concatenation of pre-k and H(c) to k */
     kdf(ss, kr, 2*KYBER_SYMBYTES);
-    return 0;
+    return S2N_SUCCESS;
 }
