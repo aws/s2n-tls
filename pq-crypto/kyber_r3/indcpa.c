@@ -138,9 +138,6 @@ static unsigned int rej_uniform(int16_t *r, unsigned int len, const uint8_t *buf
     return ctr;
 }
 
-#define gen_a(A,B)  gen_matrix(A,B,0)
-#define gen_at(A,B) gen_matrix(A,B,1)
-
 /*************************************************
 * Name:        gen_matrix
 *
@@ -154,8 +151,7 @@ static unsigned int rej_uniform(int16_t *r, unsigned int len, const uint8_t *buf
 *              - int transposed:      boolean deciding whether A or A^T
 *                                     is generated
 **************************************************/
-#define GEN_MATRIX_NBLOCKS ((12*KYBER_N/8*(1 << 12)/KYBER_Q \
-                             + XOF_BLOCKBYTES)/XOF_BLOCKBYTES)
+#define GEN_MATRIX_NBLOCKS ((12*KYBER_N/8*(1 << 12)/KYBER_Q + XOF_BLOCKBYTES)/XOF_BLOCKBYTES)
 // Not static for benchmarking
 void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed) {
     unsigned int ctr, buflen, off;
@@ -212,7 +208,7 @@ int indcpa_keypair(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES], uint8_t sk[KYBER_IND
     POSIX_GUARD_RESULT(s2n_get_random_bytes(buf, KYBER_SYMBYTES));
     hash_g(buf, buf, KYBER_SYMBYTES);
 
-    gen_a(a, publicseed);
+    gen_matrix(a, publicseed, 0);
 
     for (unsigned int i = 0; i < KYBER_K; i++) {
         poly_getnoise_eta1(&skpv.vec[i], noiseseed, nonce++);
@@ -265,7 +261,7 @@ void indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES], const uint8_t m[KYBER_INDCPA_MSGB
 
     unpack_pk(&pkpv, seed, pk);
     poly_frommsg(&k, m);
-    gen_at(at, seed);
+    gen_matrix(at, seed, 1);
 
     for (unsigned int i = 0; i < KYBER_K; i++) {
         poly_getnoise_eta1(sp.vec + i, coins, nonce++);
