@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include "params.h"
 #include "symmetric.h"
-#include "verify.h"
 #include "indcpa.h"
 #include "tls/s2n_kem.h"
 #include "utils/s2n_safety.h"
@@ -95,7 +94,6 @@ int s2n_kyber_512_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const 
 int s2n_kyber_512_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, const unsigned char *sk)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-    int fail;
     uint8_t buf[2*S2N_KYBER_512_R3_SYMBYTES];
     /* Will contain key, coins */
     uint8_t kr[2*S2N_KYBER_512_R3_SYMBYTES];
@@ -113,13 +111,16 @@ int s2n_kyber_512_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, 
     /* coins are in kr+S2N_KYBER_512_R3_SYMBYTES */
     indcpa_enc(cmp, buf, pk, kr+S2N_KYBER_512_R3_SYMBYTES);
 
-    fail = verify(ct, cmp, S2N_KYBER_512_R3_CIPHERTEXT_BYTES);
+    /* If ct and cmp are equal (dont_copy = 1), decryption has succeeded and we do NOT overwrite pre-k below.
+     * If ct and cmp are not equal (dont_copy = 0), decryption fails and we do overwrite pre-k. */
+    int dont_copy = s2n_constant_time_equals(ct, cmp, S2N_KYBER_512_R3_CIPHERTEXT_BYTES);
 
     /* overwrite coins in kr with H(c) */
     hash_h(kr+S2N_KYBER_512_R3_SYMBYTES, ct, S2N_KYBER_512_R3_CIPHERTEXT_BYTES);
 
     /* Overwrite pre-k with z on re-encryption failure */
-    cmov(kr, sk+S2N_KYBER_512_R3_SECRET_KEY_BYTES-S2N_KYBER_512_R3_SYMBYTES, S2N_KYBER_512_R3_SYMBYTES, fail);
+    POSIX_GUARD(s2n_constant_time_copy_or_dont(kr, sk+S2N_KYBER_512_R3_SECRET_KEY_BYTES-S2N_KYBER_512_R3_SYMBYTES,
+            S2N_KYBER_512_R3_SYMBYTES, dont_copy));
 
     /* hash concatenation of pre-k and H(c) to k */
     kdf(ss, kr, 2*S2N_KYBER_512_R3_SYMBYTES);
