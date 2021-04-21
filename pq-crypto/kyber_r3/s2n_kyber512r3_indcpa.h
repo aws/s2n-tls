@@ -1,8 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "params.h"
-#include "polyvec.h"
+#include "s2n_kyber512r3_params.h"
 
 #define indcpa_keypair S2N_KYBER_512_R3_NAMESPACE(indcpa_keypair)
 int indcpa_keypair(uint8_t pk[S2N_KYBER_512_R3_INDCPA_PUBLICKEYBYTES], uint8_t sk[S2N_KYBER_512_R3_INDCPA_SECRETKEYBYTES]);

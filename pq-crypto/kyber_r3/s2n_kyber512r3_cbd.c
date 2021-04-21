@@ -1,6 +1,6 @@
 #include <stdint.h>
-#include "params.h"
-#include "cbd.h"
+#include "s2n_kyber512r3_params.h"
+#include "s2n_kyber512r3_cbd.h"
 
 /*************************************************
 * Name:        load32_littleendian

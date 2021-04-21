@@ -1,8 +1,8 @@
 #pragma once
 
 #include <stdint.h>
-#include "params.h"
-#include "poly.h"
+#include "s2n_kyber512r3_params.h"
+#include "s2n_kyber512r3_poly.h"
 
 #define polyvec S2N_KYBER_512_R3_NAMESPACE(polyvec)
 typedef struct {
