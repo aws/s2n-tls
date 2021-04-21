@@ -120,7 +120,7 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
     }
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1:
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
      *# Note that in principle it is possible to continue issuing new tickets
      *# which indefinitely extend the lifetime of the keying material
      *# originally derived from an initial non-PSK handshake (which was most

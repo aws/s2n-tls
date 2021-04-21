@@ -845,7 +845,7 @@ int main(int argc, char **argv)
 
         /* Send no more tickets if keying material is expired
          *
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1:
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
          *= type=test
          *# Note that in principle it is possible to continue issuing new tickets
          *# which indefinitely extend the lifetime of the keying material
