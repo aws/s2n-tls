@@ -16,13 +16,13 @@
 *              for CCA-secure Kyber key encapsulation mechanism
 *
 * Arguments:   - unsigned char *pk: pointer to output public key
-*                (an already allocated array of KYBER_512_R3_PUBLIC_KEY_BYTES bytes)
+*                (an already allocated array of S2N_KYBER_512_R3_PUBLIC_KEY_BYTES bytes)
 *              - unsigned char *sk: pointer to output private key
-*                (an already allocated array of KYBER_512_R3_SECRET_KEY_BYTES bytes)
+*                (an already allocated array of S2N_KYBER_512_R3_SECRET_KEY_BYTES bytes)
 *
 * Returns 0 (success)
 **************************************************/
-int kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
+int s2n_kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     POSIX_GUARD(indcpa_keypair(pk, sk));
@@ -42,15 +42,15 @@ int kyber_512_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 *              secret for given public key
 *
 * Arguments:   - unsigned char *ct: pointer to output cipher text
-*                (an already allocated array of KYBER_512_R3_CIPHERTEXT_BYTES bytes)
+*                (an already allocated array of S2N_KYBER_512_R3_CIPHERTEXT_BYTES bytes)
 *              - unsigned char *ss: pointer to output shared secret
-*                (an already allocated array of KYBER_512_R3_SHARED_SECRET_BYTES bytes)
+*                (an already allocated array of S2N_KYBER_512_R3_SHARED_SECRET_BYTES bytes)
 *              - const unsigned char *pk: pointer to input public key
-*                (an already allocated array of KYBER_512_R3_PUBLIC_KEY_BYTES bytes)
+*                (an already allocated array of S2N_KYBER_512_R3_PUBLIC_KEY_BYTES bytes)
 *
 * Returns 0 (success)
 **************************************************/
-int kyber_512_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsigned char *pk)
+int s2n_kyber_512_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsigned char *pk)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     uint8_t buf[2*KYBER_SYMBYTES];
@@ -82,17 +82,17 @@ int kyber_512_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsi
 *              cipher text and private key
 *
 * Arguments:   - unsigned char *ss: pointer to output shared secret
-*                (an already allocated array of KYBER_512_R3_SHARED_SECRET_BYTES bytes)
+*                (an already allocated array of S2N_KYBER_512_R3_SHARED_SECRET_BYTES bytes)
 *              - const unsigned char *ct: pointer to input cipher text
-*                (an already allocated array of KYBER_512_R3_CIPHERTEXT_BYTES bytes)
+*                (an already allocated array of S2N_KYBER_512_R3_CIPHERTEXT_BYTES bytes)
 *              - const unsigned char *sk: pointer to input private key
-*                (an already allocated array of KYBER_512_R3_SECRET_KEY_BYTES bytes)
+*                (an already allocated array of S2N_KYBER_512_R3_SECRET_KEY_BYTES bytes)
 *
 * Returns 0.
 *
 * On failure, ss will contain a pseudo-random value.
 **************************************************/
-int kyber_512_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, const unsigned char *sk)
+int s2n_kyber_512_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, const unsigned char *sk)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     int fail;

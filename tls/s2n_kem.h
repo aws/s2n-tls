@@ -192,10 +192,10 @@ int kyber_512_90s_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss
 int kyber_512_90s_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
 
 /* kyber512r3 */
-#define KYBER_512_R3_PUBLIC_KEY_BYTES 800
-#define KYBER_512_R3_SECRET_KEY_BYTES 1632
-#define KYBER_512_R3_CIPHERTEXT_BYTES 768
-#define KYBER_512_R3_SHARED_SECRET_BYTES 32
-int kyber_512_r3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk);
-int kyber_512_r3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk);
-int kyber_512_r3_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
+#define S2N_KYBER_512_R3_PUBLIC_KEY_BYTES 800
+#define S2N_KYBER_512_R3_SECRET_KEY_BYTES 1632
+#define S2N_KYBER_512_R3_CIPHERTEXT_BYTES 768
+#define S2N_KYBER_512_R3_SHARED_SECRET_BYTES 32
+int s2n_kyber_512_r3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk);
+int s2n_kyber_512_r3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk);
+int s2n_kyber_512_r3_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
