@@ -277,6 +277,9 @@ static S2N_RESULT s2n_select_resumption_psk(struct s2n_connection *conn, struct 
             continue;
         }
 
+        /* If the decrypt_session_ticket method succeeds, all previously-set PSKs have been wiped
+         * and a new PSK has been added. Therefore we can be assured that the first PSK in our list
+         * is the one we just read. */
         struct s2n_psk *psk = NULL;
         RESULT_GUARD(s2n_array_get(&conn->psk_params.psk_list, 0, (void**)&psk));
         RESULT_ENSURE_REF(psk);
@@ -284,6 +287,9 @@ static S2N_RESULT s2n_select_resumption_psk(struct s2n_connection *conn, struct 
 
         conn->psk_params.chosen_psk = psk;
         conn->psk_params.chosen_psk_wire_index = wire_index;
+
+        /* Select the first resumption PSK that can be decrypted */
+        break;
     }
 
     RESULT_ENSURE_REF(conn->psk_params.chosen_psk);

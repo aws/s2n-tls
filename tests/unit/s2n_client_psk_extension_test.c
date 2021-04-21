@@ -705,6 +705,7 @@ int main(int argc, char **argv)
 
             /* First valid resumption psk is chosen */
             {
+                conn->psk_params.chosen_psk_wire_index = 0;
                 conn->psk_params.chosen_psk = NULL;
                 EXPECT_SUCCESS(s2n_stuffer_rewrite(&wire_identities_in));
 
@@ -713,17 +714,20 @@ int main(int argc, char **argv)
                 struct s2n_blob bad_identity = { 0 };
                 EXPECT_SUCCESS(s2n_blob_init(&bad_identity, bad_identity_data, sizeof(bad_identity_data)));
 
-                uint8_t valid_psk_idx = 5;
-                for (size_t i = 0; i < valid_psk_idx; i++) {
+                uint8_t invalid_psk_idx = 5;
+                for (size_t i = 0; i < invalid_psk_idx; i++) {
                     EXPECT_OK(s2n_write_test_identity(&wire_identities_in, &bad_identity));
                 }
 
                 /* Write valid resumption psk */
                 EXPECT_OK(s2n_write_test_identity(&wire_identities_in, &psk_identity.blob));
 
+                /* Write second valid resumption psk */
+                EXPECT_OK(s2n_write_test_identity(&wire_identities_in, &psk_identity.blob));
+
                 EXPECT_OK(s2n_select_resumption_psk(conn, &wire_identities_in));
 
-                EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, valid_psk_idx);
+                EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, invalid_psk_idx);
                 EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
 
                 /* Sanity check psk creation is correct */
@@ -732,6 +736,7 @@ int main(int argc, char **argv)
 
             /* No valid resumption psks */
             {
+                conn->psk_params.chosen_psk_wire_index = 0;
                 conn->psk_params.chosen_psk = NULL;
                 EXPECT_SUCCESS(s2n_stuffer_rewrite(&wire_identities_in));
 
@@ -747,6 +752,7 @@ int main(int argc, char **argv)
 
             /* Ticket has expired */
             {
+                conn->psk_params.chosen_psk_wire_index = 0;
                 conn->psk_params.chosen_psk = NULL;
                 EXPECT_SUCCESS(s2n_stuffer_rewrite(&wire_identities_in));
 
