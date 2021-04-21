@@ -71,6 +71,7 @@ static int mock_time(void *data, uint64_t *nanoseconds)
     *nanoseconds = MILLIS_TO_NANOS(500);
     return S2N_SUCCESS;
 }
+
 static int s2n_setup_ticket_key(struct s2n_config *config)
 {
     /**
@@ -92,6 +93,7 @@ static int s2n_setup_ticket_key(struct s2n_config *config)
                 ticket_key.data, ticket_key.size, current_time/ONE_SEC_IN_NANOS));
     return S2N_SUCCESS;
 }
+
 static S2N_RESULT s2n_setup_encrypted_ticket(struct s2n_connection *conn, struct s2n_stuffer *output)
 {
     struct s2n_ticket_fields ticket_fields = { 0 };
@@ -644,7 +646,7 @@ int main(int argc, char **argv)
         /* Ticket age is greater than session lifetime */
         obfuscated_ticket_age = 101;
         conn->config->session_state_lifetime_in_nanos = MILLIS_TO_NANOS(100);
-        EXPECT_ERROR(s2n_validate_ticket_lifetime(conn, obfuscated_ticket_age, ticket_age_add));
+        EXPECT_ERROR_WITH_ERRNO(s2n_validate_ticket_lifetime(conn, obfuscated_ticket_age, ticket_age_add), S2N_ERR_INVALID_SESSION_TICKET);
 
         /* ticket_age_add is greater than obfuscated ticket age and ticket age
          * is smaller than session lifetime */
@@ -660,11 +662,11 @@ int main(int argc, char **argv)
     {
         /* Safety checks */
         {
-            struct s2n_stuffer wire_identities_in = { 0 };
+            struct s2n_offered_psk_list identity_list = { 0 };
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(conn);
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_select_resumption_psk(NULL, &wire_identities_in), S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(s2n_select_resumption_psk(NULL, &identity_list), S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(s2n_select_resumption_psk(conn, NULL), S2N_ERR_NULL);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -672,9 +674,6 @@ int main(int argc, char **argv)
 
         /* Setup for creating a test resumption psk */
         {
-            DEFER_CLEANUP(struct s2n_stuffer wire_identities_in = { 0 }, s2n_stuffer_free);
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire_identities_in, 0));
-
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(conn);
 
@@ -690,11 +689,14 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&psk_identity, 0));
             EXPECT_OK(s2n_setup_encrypted_ticket(conn, &psk_identity));
 
+            struct s2n_offered_psk_list identity_list = { .conn = conn };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&identity_list.wire_data, 0));
+
             /* One valid resumption psk is received */
             {
-                EXPECT_OK(s2n_write_test_identity(&wire_identities_in, &psk_identity.blob));
+                EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &psk_identity.blob));
 
-                EXPECT_OK(s2n_select_resumption_psk(conn, &wire_identities_in));
+                EXPECT_OK(s2n_select_resumption_psk(conn, &identity_list));
 
                 EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, 0);
                 EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
@@ -707,7 +709,7 @@ int main(int argc, char **argv)
             {
                 conn->psk_params.chosen_psk_wire_index = 0;
                 conn->psk_params.chosen_psk = NULL;
-                EXPECT_SUCCESS(s2n_stuffer_rewrite(&wire_identities_in));
+                EXPECT_SUCCESS(s2n_stuffer_rewrite(&identity_list.wire_data));
 
                 /* Write invalid resumption psk */
                 uint8_t bad_identity_data[] = "hello";
@@ -716,16 +718,16 @@ int main(int argc, char **argv)
 
                 uint8_t invalid_psk_idx = 5;
                 for (size_t i = 0; i < invalid_psk_idx; i++) {
-                    EXPECT_OK(s2n_write_test_identity(&wire_identities_in, &bad_identity));
+                    EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &bad_identity));
                 }
 
                 /* Write valid resumption psk */
-                EXPECT_OK(s2n_write_test_identity(&wire_identities_in, &psk_identity.blob));
+                EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &psk_identity.blob));
 
                 /* Write second valid resumption psk */
-                EXPECT_OK(s2n_write_test_identity(&wire_identities_in, &psk_identity.blob));
+                EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &psk_identity.blob));
 
-                EXPECT_OK(s2n_select_resumption_psk(conn, &wire_identities_in));
+                EXPECT_OK(s2n_select_resumption_psk(conn, &identity_list));
 
                 EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, invalid_psk_idx);
                 EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
@@ -738,15 +740,15 @@ int main(int argc, char **argv)
             {
                 conn->psk_params.chosen_psk_wire_index = 0;
                 conn->psk_params.chosen_psk = NULL;
-                EXPECT_SUCCESS(s2n_stuffer_rewrite(&wire_identities_in));
+                EXPECT_SUCCESS(s2n_stuffer_rewrite(&identity_list.wire_data));
 
                 /* Write invalid resumption psk */
                 uint8_t bad_identity_data[] = "hello";
                 struct s2n_blob bad_identity = { 0 };
                 EXPECT_SUCCESS(s2n_blob_init(&bad_identity, bad_identity_data, sizeof(bad_identity_data)));
-                EXPECT_OK(s2n_write_test_identity(&wire_identities_in, &bad_identity));
+                EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &bad_identity));
 
-                EXPECT_ERROR_WITH_ERRNO(s2n_select_resumption_psk(conn, &wire_identities_in), S2N_ERR_NULL);
+                EXPECT_ERROR_WITH_ERRNO(s2n_select_resumption_psk(conn, &identity_list), S2N_ERR_BAD_MESSAGE);
                 EXPECT_NULL(conn->psk_params.chosen_psk);
             }
 
@@ -754,18 +756,19 @@ int main(int argc, char **argv)
             {
                 conn->psk_params.chosen_psk_wire_index = 0;
                 conn->psk_params.chosen_psk = NULL;
-                EXPECT_SUCCESS(s2n_stuffer_rewrite(&wire_identities_in));
+                EXPECT_SUCCESS(s2n_stuffer_rewrite(&identity_list.wire_data));
 
                 uint16_t psk_identity_size = s2n_stuffer_data_available(&psk_identity);
-                EXPECT_SUCCESS(s2n_stuffer_write_uint16(&wire_identities_in, psk_identity_size));
-                EXPECT_SUCCESS(s2n_stuffer_write(&wire_identities_in, &psk_identity.blob));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint16(&identity_list.wire_data, psk_identity_size));
+                EXPECT_SUCCESS(s2n_stuffer_write(&identity_list.wire_data, &psk_identity.blob));
                 /* Obfuscated ticket age is larger than the session lifetime */
-                EXPECT_SUCCESS(s2n_stuffer_write_uint32(&wire_identities_in, 100));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint32(&identity_list.wire_data, 100));
                 conn->config->session_state_lifetime_in_nanos = 0;
 
-                EXPECT_ERROR_WITH_ERRNO(s2n_select_resumption_psk(conn, &wire_identities_in), S2N_ERR_SAFETY);
+                EXPECT_ERROR_WITH_ERRNO(s2n_select_resumption_psk(conn, &identity_list), S2N_ERR_INVALID_SESSION_TICKET);
                 EXPECT_NULL(conn->psk_params.chosen_psk);
             }
+            EXPECT_SUCCESS(s2n_stuffer_free(&identity_list.wire_data));
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
         }
@@ -803,6 +806,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            EXPECT_OK(s2n_connection_set_psk_type(conn, S2N_PSK_TYPE_EXTERNAL));
 
             struct s2n_stuffer wire_identities_in = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_alloc(&wire_identities_in, sizeof(wire_identities)));

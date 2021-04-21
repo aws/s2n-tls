@@ -243,35 +243,26 @@ static S2N_RESULT s2n_validate_ticket_lifetime(struct s2n_connection *conn, uint
      * may wrap, resulting in the modulo 2^32 operation. */
     uint32_t ticket_age_in_millis = obfuscated_ticket_age - ticket_age_add;
     uint32_t session_lifetime_in_millis = conn->config->session_state_lifetime_in_nanos / ONE_MILLISEC_IN_NANOS;
-    RESULT_ENSURE_LTE(ticket_age_in_millis, session_lifetime_in_millis);
+    RESULT_ENSURE(ticket_age_in_millis <= session_lifetime_in_millis, S2N_ERR_INVALID_SESSION_TICKET);
 
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_select_resumption_psk(struct s2n_connection *conn, struct s2n_stuffer *wire_identities_in) {
+static S2N_RESULT s2n_select_resumption_psk(struct s2n_connection *conn, struct s2n_offered_psk_list *client_identity_list) {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(wire_identities_in);
+    RESULT_ENSURE_REF(client_identity_list);
 
     uint16_t wire_index = 0;
+    struct s2n_offered_psk client_psk = { 0 };
 
-    while (s2n_stuffer_data_available(wire_identities_in)) {
-        uint16_t identity_size = 0;
-        RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(wire_identities_in, &identity_size));
-
-        uint8_t *identity_data = NULL;
-        identity_data = s2n_stuffer_raw_read(wire_identities_in, identity_size);
-        RESULT_ENSURE_REF(identity_data);
-
-        uint32_t obfuscated_ticket_age = 0;
-        RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(wire_identities_in, &obfuscated_ticket_age));
-
-        struct s2n_blob ticket_blob = { 0 };
+    while(s2n_offered_psk_list_has_next(client_identity_list)) {
+        RESULT_GUARD_POSIX(s2n_offered_psk_list_next(client_identity_list, &client_psk));
         struct s2n_stuffer ticket_stuffer = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&ticket_blob, identity_data, identity_size));
-        RESULT_GUARD_POSIX(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
-        RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&ticket_stuffer, ticket_blob.size));
+        RESULT_GUARD_POSIX(s2n_stuffer_init(&ticket_stuffer, &client_psk.identity));
+        RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&ticket_stuffer, client_psk.identity.size));
         conn->client_ticket_to_decrypt = ticket_stuffer;
 
+        /* Select the first resumption PSK that can be decrypted */
         if (s2n_decrypt_session_ticket(conn) != S2N_SUCCESS) {
             wire_index++;
             continue;
@@ -283,17 +274,15 @@ static S2N_RESULT s2n_select_resumption_psk(struct s2n_connection *conn, struct 
         struct s2n_psk *psk = NULL;
         RESULT_GUARD(s2n_array_get(&conn->psk_params.psk_list, 0, (void**)&psk));
         RESULT_ENSURE_REF(psk);
-        RESULT_GUARD(s2n_validate_ticket_lifetime(conn, obfuscated_ticket_age, psk->ticket_age_add));
+        RESULT_GUARD(s2n_validate_ticket_lifetime(conn, client_psk.obfuscated_ticket_age, psk->ticket_age_add));
 
         conn->psk_params.chosen_psk = psk;
         conn->psk_params.chosen_psk_wire_index = wire_index;
 
-        /* Select the first resumption PSK that can be decrypted */
-        break;
+        return S2N_RESULT_OK;
     }
 
-    RESULT_ENSURE_REF(conn->psk_params.chosen_psk);
-    return S2N_RESULT_OK;
+    RESULT_BAIL(S2N_ERR_BAD_MESSAGE);
 }
 
 static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn, struct s2n_stuffer *wire_identities_in)
@@ -312,7 +301,7 @@ static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn,
     } else if(conn->psk_params.type == S2N_PSK_TYPE_EXTERNAL) {
         RESULT_GUARD(s2n_select_external_psk(conn, &identity_list));
     } else if(conn->psk_params.type == S2N_PSK_TYPE_RESUMPTION) {
-        RESULT_GUARD(s2n_select_resumption_psk(conn, wire_identities_in));
+        RESULT_GUARD(s2n_select_resumption_psk(conn, &identity_list));
     }
 
     RESULT_ENSURE_REF(conn->psk_params.chosen_psk);

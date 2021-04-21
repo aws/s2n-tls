@@ -215,12 +215,12 @@ S2N_RESULT s2n_offered_psk_list_read_next(struct s2n_offered_psk_list *psk_list,
     identity_data = s2n_stuffer_raw_read(&psk_list->wire_data, identity_size);
     RESULT_ENSURE_REF(identity_data);
 
-    /**
+    /** This value will only be used for servers parsing resumption PSKs. 
      *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
      *# For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
      *# used, and servers MUST ignore the value.
      */
-    RESULT_GUARD_POSIX(s2n_stuffer_skip_read(&psk_list->wire_data, sizeof(uint32_t)));
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(&psk_list->wire_data, &psk->obfuscated_ticket_age));
 
     RESULT_GUARD_POSIX(s2n_blob_init(&psk->identity, identity_data, identity_size));
     psk->wire_index = psk_list->wire_index;
