@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "sikep434r3.h"
+#include "s2n_sikep434r3.h"
 
 /*********************** Key encapsulation mechanism API ***********************/
 

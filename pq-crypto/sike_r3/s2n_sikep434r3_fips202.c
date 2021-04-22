@@ -15,7 +15,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include <string.h>
-#include "fips202.h"
+#include "s2n_sikep434r3_fips202.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define NROUNDS 24

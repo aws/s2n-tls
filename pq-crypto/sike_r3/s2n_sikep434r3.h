@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "config.h"
+#include "s2n_sikep434r3_config.h"
 
 #define S2N_SIKE_P434_R3_NAMESPACE(s) s2n_sike_p434_r3_##s
 

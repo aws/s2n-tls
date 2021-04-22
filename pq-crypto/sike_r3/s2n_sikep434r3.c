@@ -4,7 +4,7 @@
 * Abstract: supersingular isogeny parameters and generation of functions for P434
 *********************************************************************************************/
 
-#include "sikep434r3.h"
+#include "s2n_sikep434r3.h"
 
 // Encoding of field elements, elements over Z_order, elements over GF(p^2) and elliptic curve points:
 // --------------------------------------------------------------------------------------------------

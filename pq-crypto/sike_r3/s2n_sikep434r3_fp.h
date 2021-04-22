@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "sikep434r3.h"
+#include "s2n_sikep434r3.h"
 
 #define mp_sub434_p2 S2N_SIKE_P434_R3_NAMESPACE(mp_sub434_p2)
 void mp_sub434_p2(const digit_t* a, const digit_t* b, digit_t* c);

@@ -4,9 +4,9 @@
 * Abstract: modular arithmetic for P434
 *********************************************************************************************/
 
-#include "sikep434r3.h"
-#include "fp.h"
-#include "fpx.h"
+#include "s2n_sikep434r3.h"
+#include "s2n_sikep434r3_fp.h"
+#include "s2n_sikep434r3_fpx.h"
 
 /* Multiprecision subtraction with correction with 2*p, c = a-b+2p. */
 void mp_sub434_p2(const digit_t* a, const digit_t* b, digit_t* c)
