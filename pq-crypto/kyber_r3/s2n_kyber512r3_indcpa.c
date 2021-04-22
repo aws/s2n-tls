@@ -179,7 +179,6 @@ static void gen_matrix(polyvec *a, const uint8_t seed[S2N_KYBER_512_R3_SYMBYTES]
                 buflen = off + XOF_BLOCKBYTES;
                 ctr += rej_uniform(a[i].vec[j].coeffs + ctr, S2N_KYBER_512_R3_N - ctr, buf, buflen);
             }
-            shake128_ctx_release(&state);
         }
     }
 }
