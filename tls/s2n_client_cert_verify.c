@@ -81,7 +81,7 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-int s2n_client_cert_verify_send_complete(struct s2n_connection *conn, struct s2n_blob *signature)
+static int s2n_client_cert_verify_send_complete(struct s2n_connection *conn, struct s2n_blob *signature)
 {
     struct s2n_stuffer *out = &conn->handshake.io;
 

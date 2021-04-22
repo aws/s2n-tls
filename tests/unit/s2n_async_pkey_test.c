@@ -172,6 +172,8 @@ int async_pkey_perform_op(struct s2n_connection *conn, struct s2n_async_pkey_op 
     EXPECT_NOT_NULL(op);
 
     struct task_params *params = malloc(sizeof(struct task_params));
+    EXPECT_NOT_NULL(params);
+    
     params->conn = conn; 
     params->op = op; 
 
