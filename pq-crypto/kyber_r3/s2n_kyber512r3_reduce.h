@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "s2n_kyber512r3_params.h"
 
-#define S2N_KYBER_512_R3_QINV 62209 // q^-1 mod 2^16
+#define S2N_KYBER_512_R3_QINV 62209 /* q^-1 mod 2^16 */
 
 #define montgomery_reduce S2N_KYBER_512_R3_NAMESPACE(montgomery_reduce)
 int16_t montgomery_reduce(int32_t a);

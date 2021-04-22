@@ -219,7 +219,7 @@ int indcpa_keypair(uint8_t pk[S2N_KYBER_512_R3_INDCPA_PUBLICKEYBYTES], uint8_t s
     polyvec_ntt(&skpv);
     polyvec_ntt(&e);
 
-    // matrix-vector multiplication
+    //* matrix-vector multiplication */
     for (unsigned int i = 0; i < S2N_KYBER_512_R3_K; i++) {
         polyvec_pointwise_acc_montgomery(&pkpv.vec[i], &a[i], &skpv);
         poly_tomont(&pkpv.vec[i]);
@@ -272,7 +272,7 @@ void indcpa_enc(uint8_t c[S2N_KYBER_512_R3_INDCPA_BYTES], const uint8_t m[S2N_KY
 
     polyvec_ntt(&sp);
 
-    // matrix-vector multiplication
+    /* matrix-vector multiplication */
     for (unsigned int i = 0; i < S2N_KYBER_512_R3_K; i++) {
         polyvec_pointwise_acc_montgomery(&bp.vec[i], &at[i], &sp);
     }

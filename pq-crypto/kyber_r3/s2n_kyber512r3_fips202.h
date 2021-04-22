@@ -12,13 +12,13 @@
 
 #define S2N_KYBER_512_R3_PQC_SHAKECTX_SIZE 25
 
-// Context for non-incremental API
+/* Context for non-incremental API */
 #define shake128ctx S2N_KYBER_512_R3_NAMESPACE(shake128ctx)
 typedef struct {
     uint64_t ctx[S2N_KYBER_512_R3_PQC_SHAKECTX_SIZE];
 } shake128ctx;
 
-// Context for non-incremental API
+/* Context for non-incremental API */
 #define shake256ctx S2N_KYBER_512_R3_NAMESPACE(shake256ctx)
 typedef struct {
     uint64_t ctx[S2N_KYBER_512_R3_PQC_SHAKECTX_SIZE];
