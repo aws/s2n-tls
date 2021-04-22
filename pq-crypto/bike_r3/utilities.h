@@ -12,26 +12,6 @@
 
 #include "types.h"
 
-#define ROTR64(x, s) (((x) >> (s)) | (x) << (64 - (s)))
-
-#if defined(__GNUC__) && __GNUC__ >= 2
-_INLINE_ uint64_t bswap_64(uint64_t x) { return __builtin_bswap64(x); }
-#else
-#  define ROTR16(x, s) (((x) >> (s)) | (x) << (16 - (s)))
-
-_INLINE_ uint32_t bswap_32(uint32_t x)
-{
-  x = ROTR16(x, 16);
-  x = ((x & UINT32_C(0xff00ff00)) >> 8) | ((x & UINT32_C(0x00ff00ff)) << 8);
-  return x;
-}
-
-_INLINE_ uint64_t bswap_64(uint64_t x)
-{
-  return bswap_32(x >> 32) | (((uint64_t)bswap_32(x)) << 32);
-}
-#endif
-
 uint64_t r_bits_vector_weight(IN const r_t *in);
 
 // "VALUE_BARRIER returns |a|, but prevents GCC and Clang from reasoning about
@@ -157,30 +137,3 @@ _INLINE_ void *bike_memset(void *dst, const int ch, size_t byte_len)
 
   return memset(dst, ch, byte_len);
 }
-
-#if defined(VERBOSE)
-// Printing values in Little Endian
-void print_LE(IN const uint64_t *in, IN uint32_t bits_num);
-
-// Printing values in Big Endian convention
-void print_BE(IN const uint64_t *in, IN uint32_t bits_num);
-
-#  if defined(PRINT_IN_BE)
-// Print in Big Endian
-#    define print(name, in, bits_num) \
-      do {                            \
-        DMSG(name);                   \
-        print_BE(in, bits_num);       \
-      } while(0)
-#  else
-// Print in Little Endian
-#    define print(name, in, bits_num) \
-      do {                            \
-        DMSG(name);                   \
-        print_LE(in, bits_num);       \
-      } while(0)
-#  endif
-#else
-// No prints at all
-#  define print(name, in, bits_num)
-#endif

@@ -101,11 +101,6 @@ _INLINE_ ret_t encrypt(OUT ct_t *ct,
     ct->c1.raw[i] ^= m->raw[i];
   }
 
-  print("e0: ", (const uint64_t *)PE0_RAW(e), R_BITS);
-  print("e1: ", (const uint64_t *)PE1_RAW(e), R_BITS);
-  print("c0:  ", (uint64_t *)ct->c0.raw, R_BITS);
-  print("c1:  ", (uint64_t *)ct->c1.raw, M_BITS);
-
   return SUCCESS;
 }
 
@@ -172,13 +167,6 @@ int BIKE_L1_R3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
   bike_memcpy(sk, &l_sk, sizeof(l_sk));
   bike_memcpy(pk, &l_sk.pk, sizeof(l_sk.pk));
 
-  print("h:  ", (uint64_t *)&l_sk.pk, R_BITS);
-  print("h0: ", (uint64_t *)&l_sk.bin[0], R_BITS);
-  print("h1: ", (uint64_t *)&l_sk.bin[1], R_BITS);
-  print("h0 wlist:", (uint64_t *)&l_sk.wlist[0], SIZEOF_BITS(compressed_idx_d_t));
-  print("h1 wlist:", (uint64_t *)&l_sk.wlist[1], SIZEOF_BITS(compressed_idx_d_t));
-  print("sigma: ", (uint64_t *)l_sk.sigma.raw, M_BITS);
-
   return SUCCESS;
 }
 
@@ -218,8 +206,6 @@ int BIKE_L1_R3_crypto_kem_enc(OUT unsigned char *     ct,
 
   // Generate the shared secret
   POSIX_GUARD(function_k(&l_ss, &m, &l_ct));
-
-  print("ss: ", (uint64_t *)l_ss.raw, SIZEOF_BITS(l_ss));
 
   // Copy the data to the output buffers
   bike_memcpy(ct, &l_ct, sizeof(l_ct));
