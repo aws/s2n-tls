@@ -14,6 +14,7 @@
  */
 
 #include <stdint.h>
+#include <pthread.h>
 #include <s2n.h>
 
 #include "s2n_test.h"
@@ -23,6 +24,8 @@
 #include "tls/s2n_connection.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
+
+struct s2n_async_pkey_op *pkey_op = NULL;
 
 const uint8_t test_signature_data[] = "I signed this";
 const uint32_t test_signature_size = sizeof(test_signature_data);
@@ -39,6 +42,86 @@ static int test_sign(const struct s2n_pkey *priv_key, s2n_signature_algorithm si
 {
     POSIX_CHECKED_MEMCPY(signature->data, test_signature_data, test_signature_size);
     signature->size = test_signature_size;
+    return S2N_SUCCESS;
+}
+
+struct task_params {
+    struct s2n_connection *conn;
+    struct s2n_async_pkey_op *op;
+};
+
+void *pkey_task(void *param)
+{
+    struct task_params *params = (struct task_params*)param;
+
+    struct s2n_cert_chain_and_key *chain_and_key = s2n_connection_get_selected_cert(params->conn);
+    EXPECT_NOT_NULL(chain_and_key);
+
+    s2n_cert_private_key *pkey = s2n_cert_chain_and_key_get_private_key(chain_and_key);
+    EXPECT_NOT_NULL(pkey);
+
+    EXPECT_SUCCESS(s2n_async_pkey_op_perform(params->op, pkey));
+
+    free(params);
+    pthread_exit(NULL);
+}
+
+int async_pkey_perform_op(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
+{
+    EXPECT_NOT_NULL(conn);
+    EXPECT_NOT_NULL(op);
+
+    pkey_op = op;
+
+    struct task_params *params = malloc(sizeof(struct task_params));
+    EXPECT_NOT_NULL(params);
+    
+    params->conn = conn; 
+    params->op = op; 
+
+    pthread_t worker = {0};
+    POSIX_GUARD(pthread_create(&worker, NULL, &pkey_task, params));
+    POSIX_GUARD(pthread_detach(worker));
+
+    return S2N_SUCCESS;
+}
+
+static int try_handshake(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
+{
+    s2n_blocked_status server_blocked = {0};
+    s2n_blocked_status client_blocked = {0};
+
+    int server_rc = 0;
+    int client_rc= 0;
+
+    do {
+        client_rc = s2n_negotiate(client_conn, &client_blocked);
+        if (!(client_rc == 0 || (client_blocked && s2n_error_get_type(s2n_errno) == S2N_ERR_T_BLOCKED))) {
+            return S2N_FAILURE;
+        }
+
+        if(client_blocked == S2N_BLOCKED_ON_APPLICATION_INPUT && pkey_op != NULL) {
+            if(s2n_async_pkey_op_apply(pkey_op, client_conn) == S2N_SUCCESS) {
+                EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
+                pkey_op = NULL;
+            }
+        }
+
+        server_rc = s2n_negotiate(server_conn, &server_blocked);
+        if (!(server_rc == 0 || (server_blocked && s2n_error_get_type(s2n_errno) == S2N_ERR_T_BLOCKED))) {
+            return S2N_FAILURE;
+        }
+
+        if(server_blocked == S2N_BLOCKED_ON_APPLICATION_INPUT && pkey_op != NULL) {
+            if(s2n_async_pkey_op_apply(pkey_op, server_conn) == S2N_SUCCESS) {
+                EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
+                pkey_op = NULL;
+            }
+        } 
+    } while (client_blocked || server_blocked);
+
+    POSIX_GUARD(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
     return S2N_SUCCESS;
 }
 
@@ -78,6 +161,57 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(signature_data, test_signature_data, test_signature_size);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+    }
+
+    /*  Test: client certificate verify. */
+    {
+        struct s2n_cert_chain_and_key *chain_and_key;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+        struct s2n_config *server_config, *client_config;
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_perform_op));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
+
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(client_config, async_pkey_perform_op));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20170210"));
+
+        /* Create connection */
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED));
+
+
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED));
+
+        /* Create nonblocking pipes */
+        struct s2n_test_io_pair io_pair = {0};
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+        EXPECT_SUCCESS(try_handshake(server_conn, client_conn));
+
+        /* Verify that both connections negotiated Mutual Auth */
+        EXPECT_TRUE(s2n_connection_client_cert_used(server_conn));
+        EXPECT_TRUE(s2n_connection_client_cert_used(client_conn));
+
+        /* Free the data */
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     }
 

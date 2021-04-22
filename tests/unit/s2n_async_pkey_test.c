@@ -25,8 +25,6 @@
 #include "tls/s2n_cipher_suites.h"
 #include "utils/s2n_safety.h"
 
-#include <pthread.h>
-
 struct s2n_async_pkey_op *pkey_op = NULL;
 
 typedef int (async_handler)(struct s2n_connection *conn);
@@ -141,45 +139,6 @@ int async_pkey_apply_in_callback(struct s2n_connection *conn, struct s2n_async_p
 int async_pkey_store_callback(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
 {
     pkey_op = op;
-    return S2N_SUCCESS;
-}
-
-struct task_params {
-    struct s2n_connection *conn;
-    struct s2n_async_pkey_op *op;
-};
-
-void *pkey_task(void *param)
-{
-    struct task_params *params = (struct task_params*)param;
-
-    struct s2n_cert_chain_and_key *chain_and_key = s2n_connection_get_selected_cert(params->conn);
-    EXPECT_NOT_NULL(chain_and_key);
-
-    s2n_cert_private_key *pkey = s2n_cert_chain_and_key_get_private_key(chain_and_key);
-    EXPECT_NOT_NULL(pkey);
-
-    EXPECT_SUCCESS(s2n_async_pkey_op_perform(params->op, pkey));
-    EXPECT_SUCCESS(s2n_async_pkey_op_apply(params->op, params->conn));
-
-    free(params);
-    pthread_exit(NULL);
-}
-
-int async_pkey_perform_op(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
-{
-    EXPECT_NOT_NULL(conn);
-    EXPECT_NOT_NULL(op);
-
-    struct task_params *params = malloc(sizeof(struct task_params));
-    EXPECT_NOT_NULL(params);
-    
-    params->conn = conn; 
-    params->op = op; 
-
-    pthread_t worker;
-    POSIX_GUARD(pthread_create(&worker, NULL, &pkey_task, params));
-
     return S2N_SUCCESS;
 }
 
@@ -329,52 +288,6 @@ int main(int argc, char **argv)
 
             EXPECT_FAILURE_WITH_ERRNO(
                     try_handshake(server_conn, client_conn, async_handler_free_pkey_op), S2N_ERR_ASYNC_BLOCKED);
-
-            /* Free the data */
-            EXPECT_SUCCESS(s2n_connection_free(server_conn));
-            EXPECT_SUCCESS(s2n_connection_free(client_conn));
-            EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-            EXPECT_SUCCESS(s2n_config_free(server_config));
-            EXPECT_SUCCESS(s2n_config_free(client_config));
-        }
-
-        /*  Test: client certificate verify */
-        {
-            struct s2n_config *server_config, *client_config;
-            EXPECT_NOT_NULL(server_config = s2n_config_new());
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
-            EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
-            EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_perform_op));
-            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
-            server_config->security_policy = &server_security_policy;
-
-            EXPECT_NOT_NULL(client_config = s2n_config_new());
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
-            EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(client_config, async_pkey_perform_op));
-            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
-
-            /* Create connection */
-            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-            EXPECT_NOT_NULL(client_conn);
-            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-            EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED));
-
-            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-            EXPECT_NOT_NULL(server_conn);
-            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-            EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED));
-
-            /* Create nonblocking pipes */
-            struct s2n_test_io_pair io_pair;
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
-            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
-
-            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-
-            /* Verify that both connections negotiated Mutual Auth */
-            EXPECT_TRUE(s2n_connection_client_cert_used(server_conn));
-            EXPECT_TRUE(s2n_connection_client_cert_used(client_conn));
 
             /* Free the data */
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
