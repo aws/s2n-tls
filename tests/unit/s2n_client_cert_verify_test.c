@@ -25,7 +25,8 @@
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
-struct s2n_async_pkey_op *pkey_op = NULL;
+static struct s2n_async_pkey_op *pkey_op = NULL;
+static pthread_t worker = {0};
 
 const uint8_t test_signature_data[] = "I signed this";
 const uint32_t test_signature_size = sizeof(test_signature_data);
@@ -79,9 +80,7 @@ int async_pkey_perform_op(struct s2n_connection *conn, struct s2n_async_pkey_op 
     params->conn = conn; 
     params->op = op; 
 
-    pthread_t worker = {0};
     POSIX_GUARD(pthread_create(&worker, NULL, &pkey_task, params));
-    POSIX_GUARD(pthread_detach(worker));
 
     return S2N_SUCCESS;
 }
@@ -91,8 +90,8 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
     s2n_blocked_status server_blocked = {0};
     s2n_blocked_status client_blocked = {0};
 
-    int server_rc = 0;
-    int client_rc= 0;
+    int server_rc;
+    int client_rc;
 
     do {
         client_rc = s2n_negotiate(client_conn, &client_blocked);
@@ -102,6 +101,7 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
 
         if(client_blocked == S2N_BLOCKED_ON_APPLICATION_INPUT && pkey_op != NULL) {
             if(s2n_async_pkey_op_apply(pkey_op, client_conn) == S2N_SUCCESS) {
+                POSIX_GUARD(pthread_join(worker, NULL));
                 EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
                 pkey_op = NULL;
             }
@@ -114,6 +114,7 @@ static int try_handshake(struct s2n_connection *server_conn, struct s2n_connecti
 
         if(server_blocked == S2N_BLOCKED_ON_APPLICATION_INPUT && pkey_op != NULL) {
             if(s2n_async_pkey_op_apply(pkey_op, server_conn) == S2N_SUCCESS) {
+                POSIX_GUARD(pthread_join(worker, NULL));
                 EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
                 pkey_op = NULL;
             }
