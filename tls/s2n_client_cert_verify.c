@@ -87,6 +87,7 @@ int s2n_client_cert_verify_send_complete(struct s2n_connection *conn, struct s2n
 
     POSIX_GUARD(s2n_stuffer_write_uint16(out, signature->size));
     POSIX_GUARD(s2n_stuffer_write(out, signature));
+    POSIX_GUARD(s2n_free(signature));
 
     /* Client certificate has been verified. Minimize required handshake hash algs */
     POSIX_GUARD(s2n_conn_update_required_handshake_hashes(conn));
