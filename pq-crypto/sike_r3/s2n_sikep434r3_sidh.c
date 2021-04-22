@@ -15,11 +15,11 @@
 static void init_basis(const digit_t *gen, f2elm_t *XP, f2elm_t *XQ, f2elm_t *XR)
 {
     fpcopy(gen,                  XP->e[0]);
-    fpcopy(gen +   NWORDS_FIELD, XP->e[1]);
-    fpcopy(gen + 2*NWORDS_FIELD, XQ->e[0]);
-    fpcopy(gen + 3*NWORDS_FIELD, XQ->e[1]);
-    fpcopy(gen + 4*NWORDS_FIELD, XR->e[0]);
-    fpcopy(gen + 5*NWORDS_FIELD, XR->e[1]);
+    fpcopy(gen +   S2N_SIKE_P434_R3_NWORDS_FIELD, XP->e[1]);
+    fpcopy(gen + 2*S2N_SIKE_P434_R3_NWORDS_FIELD, XQ->e[0]);
+    fpcopy(gen + 3*S2N_SIKE_P434_R3_NWORDS_FIELD, XQ->e[1]);
+    fpcopy(gen + 4*S2N_SIKE_P434_R3_NWORDS_FIELD, XR->e[0]);
+    fpcopy(gen + 5*S2N_SIKE_P434_R3_NWORDS_FIELD, XR->e[1]);
 }
 
 /* Generation of Bob's secret key
@@ -204,9 +204,9 @@ int EphemeralSecretAgreement_A(const unsigned char* PrivateKeyA, const unsigned 
 
     // Initialize constants: A24plus = A+2C, C24 = 4C, where C=1
     get_A(&PKB[0], &PKB[1], &PKB[2], A);
-    mp_add((const digit_t*)&Montgomery_one, (const digit_t*)&Montgomery_one, C24->e[0], NWORDS_FIELD);
+    mp_add((const digit_t*)&Montgomery_one, (const digit_t*)&Montgomery_one, C24->e[0], S2N_SIKE_P434_R3_NWORDS_FIELD);
     mp2_add(A, C24, A24plus);
-    mp_add(C24->e[0], C24->e[0], C24->e[0], NWORDS_FIELD);
+    mp_add(C24->e[0], C24->e[0], C24->e[0], S2N_SIKE_P434_R3_NWORDS_FIELD);
 
     // Retrieve kernel point
     decode_to_digits(PrivateKeyA, SecretKeyA, SECRETKEY_A_BYTES, NWORDS_ORDER);
@@ -268,7 +268,7 @@ int EphemeralSecretAgreement_B(const unsigned char* PrivateKeyB, const unsigned 
 
     // Initialize constants: A24plus = A+2C, A24minus = A-2C, where C=1
     get_A(&PKB[0], &PKB[1], &PKB[2], A);
-    mp_add((const digit_t*)&Montgomery_one, (const digit_t*)&Montgomery_one, A24minus->e[0], NWORDS_FIELD);
+    mp_add((const digit_t*)&Montgomery_one, (const digit_t*)&Montgomery_one, A24minus->e[0], S2N_SIKE_P434_R3_NWORDS_FIELD);
     mp2_add(A, A24minus, A24plus);
     mp2_sub_p2(A, A24minus, A24minus);
 

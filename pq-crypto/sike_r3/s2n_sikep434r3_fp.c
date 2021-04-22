@@ -13,12 +13,12 @@ void mp_sub434_p2(const digit_t* a, const digit_t* b, digit_t* c)
 {
     unsigned int i, borrow = 0;
 
-    for (i = 0; i < NWORDS_FIELD; i++) {
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
         SUBC(borrow, a[i], b[i], borrow, c[i]); 
     }
 
     borrow = 0;
-    for (i = 0; i < NWORDS_FIELD; i++) {
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
         ADDC(borrow, c[i], ((const digit_t*)p434x2)[i], borrow, c[i]);
     }
 }
@@ -28,12 +28,12 @@ void mp_sub434_p4(const digit_t* a, const digit_t* b, digit_t* c)
 {
     unsigned int i, borrow = 0;
 
-    for (i = 0; i < NWORDS_FIELD; i++) {
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
         SUBC(borrow, a[i], b[i], borrow, c[i]);
     }
 
     borrow = 0;
-    for (i = 0; i < NWORDS_FIELD; i++) {
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
         ADDC(borrow, c[i], ((const digit_t*)p434x4)[i], borrow, c[i]);
     }
 }
@@ -46,18 +46,18 @@ void fpadd434(const digit_t* a, const digit_t* b, digit_t* c)
     unsigned int i, carry = 0;
     digit_t mask;
 
-    for (i = 0; i < NWORDS_FIELD; i++) {
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
         ADDC(carry, a[i], b[i], carry, c[i]); 
     }
 
     carry = 0;
-    for (i = 0; i < NWORDS_FIELD; i++) {
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
         SUBC(carry, c[i], ((const digit_t*)p434x2)[i], carry, c[i]);
     }
     mask = 0 - (digit_t)carry;
 
     carry = 0;
-    for (i = 0; i < NWORDS_FIELD; i++) {
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
         ADDC(carry, c[i], ((const digit_t*)p434x2)[i] & mask, carry, c[i]);
     }
 }
@@ -70,13 +70,13 @@ void fpsub434(const digit_t* a, const digit_t* b, digit_t* c)
     unsigned int i, borrow = 0;
     digit_t mask;
 
-    for (i = 0; i < NWORDS_FIELD; i++) {
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
         SUBC(borrow, a[i], b[i], borrow, c[i]); 
     }
     mask = 0 - (digit_t)borrow;
 
     borrow = 0;
-    for (i = 0; i < NWORDS_FIELD; i++) {
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
         ADDC(borrow, c[i], ((const digit_t*)p434x2)[i] & mask, borrow, c[i]);
     }
 }
@@ -87,7 +87,7 @@ void fpneg434(digit_t* a)
 {
     unsigned int i, borrow = 0;
 
-    for (i = 0; i < NWORDS_FIELD; i++) {
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
         SUBC(borrow, ((const digit_t*)p434x2)[i], a[i], borrow, a[i]);
     }
 }
@@ -101,11 +101,11 @@ void fpdiv2_434(const digit_t* a, digit_t* c)
     digit_t mask;
 
     mask = 0 - (digit_t)(a[0] & 1);    // If a is odd compute a+p434
-    for (i = 0; i < NWORDS_FIELD; i++) {
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
         ADDC(carry, a[i], ((const digit_t*)p434)[i] & mask, carry, c[i]);
     }
 
-    mp_shiftr1(c, NWORDS_FIELD);
+    mp_shiftr1(c, S2N_SIKE_P434_R3_NWORDS_FIELD);
 }
 
 /* Modular correction to reduce field element a in [0, 2*p434-1] to [0, p434-1]. */
@@ -114,13 +114,13 @@ void fpcorrection434(digit_t* a)
     unsigned int i, borrow = 0;
     digit_t mask;
 
-    for (i = 0; i < NWORDS_FIELD; i++) {
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
         SUBC(borrow, a[i], ((const digit_t*)p434)[i], borrow, a[i]);
     }
     mask = 0 - (digit_t)borrow;
 
     borrow = 0;
-    for (i = 0; i < NWORDS_FIELD; i++) {
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
         ADDC(borrow, a[i], ((const digit_t*)p434)[i] & mask, borrow, a[i]);
     }
 }
@@ -200,16 +200,16 @@ void mp_mul(const digit_t* a, const digit_t* b, digit_t* c, const unsigned int n
  * ma is assumed to be in Montgomery representation. */
 void rdc_mont(digit_t* ma, digit_t* mc)
 {
-    unsigned int i, j, carry, count = p434_ZERO_WORDS;
+    unsigned int i, j, carry, count = S2N_SIKE_P434_R3_ZERO_WORDS;
     digit_t UV[2], t = 0, u = 0, v = 0;
 
-    for (i = 0; i < NWORDS_FIELD; i++) {
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
         mc[i] = 0;
     }
 
-    for (i = 0; i < NWORDS_FIELD; i++) {
+    for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
         for (j = 0; j < i; j++) {
-            if (j < (i-p434_ZERO_WORDS+1)) { 
+            if (j < (i-S2N_SIKE_P434_R3_ZERO_WORDS+1)) {
                 MUL(mc[j], ((const digit_t*)p434p1)[i-j], UV+1, UV[0]);
                 ADDC(0, UV[0], v, carry, v); 
                 ADDC(carry, UV[1], u, carry, u); 
@@ -225,12 +225,12 @@ void rdc_mont(digit_t* ma, digit_t* mc)
         t = 0;
     }    
 
-    for (i = NWORDS_FIELD; i < 2*NWORDS_FIELD-1; i++) {
+    for (i = S2N_SIKE_P434_R3_NWORDS_FIELD; i < 2*S2N_SIKE_P434_R3_NWORDS_FIELD-1; i++) {
         if (count > 0) {
             count -= 1;
         }
-        for (j = i-NWORDS_FIELD+1; j < NWORDS_FIELD; j++) {
-            if (j < (NWORDS_FIELD-count)) { 
+        for (j = i-S2N_SIKE_P434_R3_NWORDS_FIELD+1; j < S2N_SIKE_P434_R3_NWORDS_FIELD; j++) {
+            if (j < (S2N_SIKE_P434_R3_NWORDS_FIELD-count)) {
                 MUL(mc[j], ((const digit_t*)p434p1)[i-j], UV+1, UV[0]);
                 ADDC(0, UV[0], v, carry, v); 
                 ADDC(carry, UV[1], u, carry, u); 
@@ -240,7 +240,7 @@ void rdc_mont(digit_t* ma, digit_t* mc)
         ADDC(0, v, ma[i], carry, v); 
         ADDC(carry, u, 0, carry, u); 
         t += carry; 
-        mc[i-NWORDS_FIELD] = v;
+        mc[i-S2N_SIKE_P434_R3_NWORDS_FIELD] = v;
         v = u;
         u = t;
         t = 0;
@@ -248,6 +248,6 @@ void rdc_mont(digit_t* ma, digit_t* mc)
 
     /* `carry` isn't read after this, but it's still a necessary argument to the macro */
     /* cppcheck-suppress unreadVariable */
-    ADDC(0, v, ma[2*NWORDS_FIELD-1], carry, v); 
-    mc[NWORDS_FIELD-1] = v;
+    ADDC(0, v, ma[2*S2N_SIKE_P434_R3_NWORDS_FIELD-1], carry, v);
+    mc[S2N_SIKE_P434_R3_NWORDS_FIELD-1] = v;
 }

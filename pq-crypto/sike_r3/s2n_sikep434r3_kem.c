@@ -15,9 +15,9 @@
 #include "s2n_sikep434r3_api.h"
 
 /* SIKE's key generation
- * Outputs: secret key sk (CRYPTO_SECRETKEYBYTES = MSG_BYTES + SECRETKEY_B_BYTES + CRYPTO_PUBLICKEYBYTES bytes)
- *          public key pk (CRYPTO_PUBLICKEYBYTES bytes) */
-int sike_p434_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
+ * Outputs: secret key sk (S2N_SIKE_P434_R3_SECRET_KEY_BYTES = MSG_BYTES + SECRETKEY_B_BYTES + S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES bytes)
+ *          public key pk (S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES bytes) */
+int s2n_sike_p434_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
@@ -29,28 +29,28 @@ int sike_p434_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
     EphemeralKeyGeneration_B(sk + MSG_BYTES, pk);
 
     // Append public key pk to secret key sk
-    memcpy(&sk[MSG_BYTES + SECRETKEY_B_BYTES], pk, CRYPTO_PUBLICKEYBYTES);
+    memcpy(&sk[MSG_BYTES + SECRETKEY_B_BYTES], pk, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES);
 
     return 0;
 }
 
 /* SIKE's encapsulation
- * Input:   public key pk         (CRYPTO_PUBLICKEYBYTES bytes)
- * Outputs: shared secret ss      (CRYPTO_BYTES bytes)
- *          ciphertext message ct (CRYPTO_CIPHERTEXTBYTES = CRYPTO_PUBLICKEYBYTES + MSG_BYTES bytes) */
-int sike_p434_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsigned char *pk)
+ * Input:   public key pk         (S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES bytes)
+ * Outputs: shared secret ss      (S2N_SIKE_P434_R3_SHARED_SECRET_BYTES bytes)
+ *          ciphertext message ct (S2N_SIKE_P434_R3_CIPHERTEXT_BYTES = S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES + MSG_BYTES bytes) */
+int s2n_sike_p434_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsigned char *pk)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     unsigned char ephemeralsk[SECRETKEY_A_BYTES];
     unsigned char jinvariant[FP2_ENCODED_BYTES];
     unsigned char h[MSG_BYTES];
-    unsigned char temp[CRYPTO_CIPHERTEXTBYTES+MSG_BYTES];
+    unsigned char temp[S2N_SIKE_P434_R3_CIPHERTEXT_BYTES+MSG_BYTES];
 
     // Generate ephemeralsk <- G(m||pk) mod oA 
     POSIX_GUARD_RESULT(s2n_get_random_bytes(temp, MSG_BYTES));
-    memcpy(&temp[MSG_BYTES], pk, CRYPTO_PUBLICKEYBYTES);
-    shake256(ephemeralsk, SECRETKEY_A_BYTES, temp, CRYPTO_PUBLICKEYBYTES+MSG_BYTES);
+    memcpy(&temp[MSG_BYTES], pk, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES);
+    shake256(ephemeralsk, SECRETKEY_A_BYTES, temp, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES+MSG_BYTES);
     ephemeralsk[SECRETKEY_A_BYTES - 1] &= MASK_ALICE;
 
     // Encrypt
@@ -58,49 +58,49 @@ int sike_p434_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const unsi
     EphemeralSecretAgreement_A(ephemeralsk, pk, jinvariant);
     shake256(h, MSG_BYTES, jinvariant, FP2_ENCODED_BYTES);
     for (int i = 0; i < MSG_BYTES; i++) {
-        ct[i + CRYPTO_PUBLICKEYBYTES] = temp[i] ^ h[i];
+        ct[i + S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES] = temp[i] ^ h[i];
     }
 
     // Generate shared secret ss <- H(m||ct)
-    memcpy(&temp[MSG_BYTES], ct, CRYPTO_CIPHERTEXTBYTES);
-    shake256(ss, CRYPTO_BYTES, temp, CRYPTO_CIPHERTEXTBYTES+MSG_BYTES);
+    memcpy(&temp[MSG_BYTES], ct, S2N_SIKE_P434_R3_CIPHERTEXT_BYTES);
+    shake256(ss, S2N_SIKE_P434_R3_SHARED_SECRET_BYTES, temp, S2N_SIKE_P434_R3_CIPHERTEXT_BYTES+MSG_BYTES);
 
     return 0;
 }
 
 /* SIKE's decapsulation
- * Input:   secret key sk         (CRYPTO_SECRETKEYBYTES = MSG_BYTES + SECRETKEY_B_BYTES + CRYPTO_PUBLICKEYBYTES bytes)
- *          ciphertext message ct (CRYPTO_CIPHERTEXTBYTES = CRYPTO_PUBLICKEYBYTES + MSG_BYTES bytes)
- * Outputs: shared secret ss      (CRYPTO_BYTES bytes) */
-int sike_p434_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, const unsigned char *sk)
+ * Input:   secret key sk         (S2N_SIKE_P434_R3_SECRET_KEY_BYTES = MSG_BYTES + SECRETKEY_B_BYTES + S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES bytes)
+ *          ciphertext message ct (S2N_SIKE_P434_R3_CIPHERTEXT_BYTES = S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES + MSG_BYTES bytes)
+ * Outputs: shared secret ss      (S2N_SIKE_P434_R3_SHARED_SECRET_BYTES bytes) */
+int s2n_sike_p434_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, const unsigned char *sk)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
     unsigned char ephemeralsk_[SECRETKEY_A_BYTES];
     unsigned char jinvariant_[FP2_ENCODED_BYTES];
     unsigned char h_[MSG_BYTES];
-    unsigned char c0_[CRYPTO_PUBLICKEYBYTES];
-    unsigned char temp[CRYPTO_CIPHERTEXTBYTES+MSG_BYTES];
+    unsigned char c0_[S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES];
+    unsigned char temp[S2N_SIKE_P434_R3_CIPHERTEXT_BYTES+MSG_BYTES];
 
     // Decrypt
     EphemeralSecretAgreement_B(sk + MSG_BYTES, ct, jinvariant_);
     shake256(h_, MSG_BYTES, jinvariant_, FP2_ENCODED_BYTES);
     for (int i = 0; i < MSG_BYTES; i++) {
-        temp[i] = ct[i + CRYPTO_PUBLICKEYBYTES] ^ h_[i];
+        temp[i] = ct[i + S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES] ^ h_[i];
     }
 
     // Generate ephemeralsk_ <- G(m||pk) mod oA
-    memcpy(&temp[MSG_BYTES], &sk[MSG_BYTES + SECRETKEY_B_BYTES], CRYPTO_PUBLICKEYBYTES);
-    shake256(ephemeralsk_, SECRETKEY_A_BYTES, temp, CRYPTO_PUBLICKEYBYTES+MSG_BYTES);
+    memcpy(&temp[MSG_BYTES], &sk[MSG_BYTES + SECRETKEY_B_BYTES], S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES);
+    shake256(ephemeralsk_, SECRETKEY_A_BYTES, temp, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES+MSG_BYTES);
     ephemeralsk_[SECRETKEY_A_BYTES - 1] &= MASK_ALICE;
     
     // Generate shared secret ss <- H(m||ct), or output ss <- H(s||ct) in case of ct verification failure
     EphemeralKeyGeneration_A(ephemeralsk_, c0_);
     // If selector = 0 then do ss = H(m||ct), else if selector = -1 load s to do ss = H(s||ct)
-    int8_t selector = ct_compare(c0_, ct, CRYPTO_PUBLICKEYBYTES);
+    int8_t selector = ct_compare(c0_, ct, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES);
     ct_cmov(temp, sk, MSG_BYTES, selector);
-    memcpy(&temp[MSG_BYTES], ct, CRYPTO_CIPHERTEXTBYTES);
-    shake256(ss, CRYPTO_BYTES, temp, CRYPTO_CIPHERTEXTBYTES+MSG_BYTES);
+    memcpy(&temp[MSG_BYTES], ct, S2N_SIKE_P434_R3_CIPHERTEXT_BYTES);
+    shake256(ss, S2N_SIKE_P434_R3_SHARED_SECRET_BYTES, temp, S2N_SIKE_P434_R3_CIPHERTEXT_BYTES+MSG_BYTES);
 
     return 0;
 }

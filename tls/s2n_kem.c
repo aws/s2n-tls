@@ -121,13 +121,13 @@ const struct s2n_kem s2n_kyber_512_r3 = {
 const struct s2n_kem s2n_sike_p434_r3 = {
         .name = "SIKEp434r3-KEM",
         .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3,
-        .public_key_length = SIKE_P434_R3_PUBLIC_KEY_BYTES,
-        .private_key_length = SIKE_P434_R3_SECRET_KEY_BYTES,
-        .shared_secret_key_length = SIKE_P434_R3_SHARED_SECRET_BYTES,
-        .ciphertext_length = SIKE_P434_R3_CIPHERTEXT_BYTES,
-        .generate_keypair = &sike_p434_r3_crypto_kem_keypair,
-        .encapsulate = &sike_p434_r3_crypto_kem_enc,
-        .decapsulate = &sike_p434_r3_crypto_kem_dec,
+        .public_key_length = S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES,
+        .private_key_length = S2N_SIKE_P434_R3_SECRET_KEY_BYTES,
+        .shared_secret_key_length = S2N_SIKE_P434_R3_SHARED_SECRET_BYTES,
+        .ciphertext_length = S2N_SIKE_P434_R3_CIPHERTEXT_BYTES,
+        .generate_keypair = &s2n_sike_p434_r3_crypto_kem_keypair,
+        .encapsulate = &s2n_sike_p434_r3_crypto_kem_enc,
+        .decapsulate = &s2n_sike_p434_r3_crypto_kem_dec,
 };
 
 /* These lists should be kept up to date with the above KEMs. Order in the lists
@@ -549,15 +549,12 @@ int kyber_512_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *c
 int kyber_512_90s_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 int kyber_512_90s_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 int kyber_512_90s_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
-<<<<<<< HEAD
 /* kyber512r3 */
 int s2n_kyber_512_r3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 int s2n_kyber_512_r3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 int s2n_kyber_512_r3_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
-=======
 /* sikep434r3 */
-int sike_p434_r3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
-int sike_p434_r3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
-int sike_p434_r3_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
->>>>>>> s2n-ify sike_r3 code
+int s2n_sike_p434_r3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
+int s2n_sike_p434_r3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
+int s2n_sike_p434_r3_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 #endif

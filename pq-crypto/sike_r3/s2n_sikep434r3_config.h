@@ -10,59 +10,20 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-// Definition of operating system
-#define OS_NIX       2
-#define OS_TARGET OS_NIX
-
-// Definition of compiler
-#define COMPILER_GCC     2
-#define COMPILER_CLANG   3
-
-#if defined(__GNUC__)         // GNU GCC compiler
-    #define COMPILER COMPILER_GCC   
-#elif defined(__clang__)        // Clang compiler
-    #define COMPILER COMPILER_CLANG
-#else
-    #error -- "Unsupported COMPILER"
-#endif
-
-// Definition of the targeted architecture and basic data types
-#define TARGET_AMD64        1
-#define TARGET_x86          2
-#define TARGET_S390X        3
-#define TARGET_ARM          4
-#define TARGET_ARM64        5
-
-#if defined(_AMD64_) || defined(__x86_64)
-    #define TARGET TARGET_AMD64
-    #define RADIX           64
-    #define LOG2RADIX       6  
-    typedef uint64_t        digit_t;        // Unsigned 64-bit digit
-    typedef uint32_t        hdigit_t;       // Unsigned 32-bit digit
-#elif defined(_X86_)
-    #define TARGET TARGET_x86
-    #define RADIX           32
-    #define LOG2RADIX       5  
-    typedef uint32_t        digit_t;        // Unsigned 32-bit digit
-    typedef uint16_t        hdigit_t;       // Unsigned 16-bit digit  
-#elif defined(_S390X_)
-    #define TARGET TARGET_S390X
-    #define RADIX           64
-    #define LOG2RADIX       6  
-    typedef uint64_t        digit_t;        // Unsigned 64-bit digit
-    typedef uint32_t        hdigit_t;       // Unsigned 32-bit digit
-#elif defined(_ARM_)
-    #define TARGET TARGET_ARM
-    #define RADIX           32
-    #define LOG2RADIX       5  
-    typedef uint32_t        digit_t;        // Unsigned 32-bit digit
-    typedef uint16_t        hdigit_t;       // Unsigned 16-bit digit  
-#elif defined(_ARM64_)
-    #define TARGET TARGET_ARM64
-    #define RADIX           64
-    #define LOG2RADIX       6  
-    typedef uint64_t        digit_t;        // Unsigned 64-bit digit
-    typedef uint32_t        hdigit_t;       // Unsigned 32-bit digit
+#if defined(_AMD64_) || defined(__x86_64) || defined(_S390X_) || defined(_ARM64_) || defined(__powerpc64__) || (defined(__riscv) && (__riscv_xlen == 64))
+    #define S2N_SIKE_P434_R3_NWORDS_FIELD 7 /* Number of words of a 434-bit field element */
+    #define S2N_SIKE_P434_R3_ZERO_WORDS 3 /* Number of "0" digits in the least significant part of p434 + 1 */
+    #define S2N_SIKE_P434_R3_RADIX 64
+    #define S2N_SIKE_P434_R3_LOG2RADIX 6
+    typedef uint64_t digit_t;
+    typedef uint32_t hdigit_t;
+#elif defined(_X86_) || defined(_ARM_)
+    #define S2N_SIKE_P434_R3_NWORDS_FIELD 14 /* Number of words of a 434-bit field element */
+    #define S2N_SIKE_P434_R3_ZERO_WORDS 6 /* Number of "0" digits in the least significant part of p434 + 1 */
+    #define S2N_SIKE_P434_R3_RADIX 32
+    #define S2N_SIKE_P434_R3_LOG2RADIX 5
+    typedef uint32_t digit_t;
+    typedef uint16_t hdigit_t;
 #else
     #error -- "Unsupported ARCHITECTURE"
 #endif
@@ -74,9 +35,9 @@
 // 64-bit byte swap
 #define BSWAP64(i) __builtin_bswap64((i))
 
-#if RADIX == 32
+#if S2N_SIKE_P434_R3_RADIX == 32
     #define BSWAP_DIGIT(i) BSWAP32((i))
-#elif RADIX == 64
+#elif S2N_SIKE_P434_R3_RADIX == 64
     #define BSWAP_DIGIT(i) BSWAP64((i))
 #endif
 
@@ -97,7 +58,7 @@
 
 static __inline unsigned int is_digit_nonzero_ct(const digit_t x)
 { // Is x != 0?
-    return (unsigned int)((x | (0-x)) >> (RADIX-1));
+    return (unsigned int)((x | (0-x)) >> (S2N_SIKE_P434_R3_RADIX-1));
 }
 
 static __inline unsigned int is_digit_zero_ct(const digit_t x)
@@ -107,7 +68,7 @@ static __inline unsigned int is_digit_zero_ct(const digit_t x)
 
 static __inline unsigned int is_digit_lessthan_ct(const digit_t x, const digit_t y)
 { // Is x < y?
-    return (unsigned int)((x ^ ((x ^ y) | ((x - y) ^ y))) >> (RADIX-1));
+    return (unsigned int)((x ^ ((x ^ y) | ((x - y) ^ y))) >> (S2N_SIKE_P434_R3_RADIX-1));
 }
 
 /* Definitions for generic C implementation */

@@ -10,11 +10,6 @@
 
 /*********************** Key encapsulation mechanism API ***********************/
 
-#define CRYPTO_SECRETKEYBYTES     374    // MSG_BYTES + SECRETKEY_B_BYTES + CRYPTO_PUBLICKEYBYTES bytes
-#define CRYPTO_PUBLICKEYBYTES     330
-#define CRYPTO_BYTES               16
-#define CRYPTO_CIPHERTEXTBYTES    346    // CRYPTO_PUBLICKEYBYTES + MSG_BYTES bytes
-
 // Encoding of keys for KEM-based isogeny system "SIKEp434" (wire format):
 // ----------------------------------------------------------------------
 // Elements over GF(p434) are encoded in 55 octets in little endian format (i.e., the least significant octet is located in the lowest memory address). 

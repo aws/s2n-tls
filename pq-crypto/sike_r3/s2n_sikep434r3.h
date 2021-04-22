@@ -10,21 +10,13 @@
 
 #define S2N_SIKE_P434_R3_NAMESPACE(s) s2n_sike_p434_r3_##s
 
-#if (TARGET == TARGET_AMD64) || (TARGET == TARGET_ARM64) || (TARGET == TARGET_S390X)
-    #define NWORDS_FIELD    7               // Number of words of a 434-bit field element
-    #define p434_ZERO_WORDS 3               // Number of "0" digits in the least significant part of p434 + 1
-#elif (TARGET == TARGET_x86) || (TARGET == TARGET_ARM)
-    #define NWORDS_FIELD    14
-    #define p434_ZERO_WORDS 6
-#endif
-
 // Basic constants
 #define NBITS_FIELD             434
 #define MAXBITS_FIELD           448
-#define MAXWORDS_FIELD          ((MAXBITS_FIELD+RADIX-1)/RADIX)     // Max. number of words to represent field elements
+#define MAXWORDS_FIELD          ((MAXBITS_FIELD+S2N_SIKE_P434_R3_RADIX-1)/S2N_SIKE_P434_R3_RADIX)     // Max. number of words to represent field elements
 #define NWORDS64_FIELD          ((NBITS_FIELD+63)/64)               // Number of 64-bit words of a 434-bit field element
 #define NBITS_ORDER             256
-#define NWORDS_ORDER            ((NBITS_ORDER+RADIX-1)/RADIX)       // Number of words of oA and oB, where oA and oB are the subgroup orders of Alice and Bob, resp.
+#define NWORDS_ORDER            ((NBITS_ORDER+S2N_SIKE_P434_R3_RADIX-1)/S2N_SIKE_P434_R3_RADIX)       // Number of words of oA and oB, where oA and oB are the subgroup orders of Alice and Bob, resp.
 #define NWORDS64_ORDER          ((NBITS_ORDER+63)/64)               // Number of 64-bit words of a 224-bit element
 #define MAXBITS_ORDER           NBITS_ORDER
 #define ALICE                   0
@@ -48,8 +40,8 @@
 #define FP2_ENCODED_BYTES       2*((NBITS_FIELD + 7) / 8)
 
 // SIDH's basic element definitions and point representations
-typedef digit_t felm_t[NWORDS_FIELD];                                 // Datatype for representing 434-bit field elements (448-bit max.)
-typedef digit_t dfelm_t[2*NWORDS_FIELD];                              // Datatype for representing double-precision 2x434-bit field elements (2x448-bit max.)
+typedef digit_t felm_t[S2N_SIKE_P434_R3_NWORDS_FIELD];                                 // Datatype for representing 434-bit field elements (448-bit max.)
+typedef digit_t dfelm_t[2*S2N_SIKE_P434_R3_NWORDS_FIELD];                              // Datatype for representing double-precision 2x434-bit field elements (2x448-bit max.)
 typedef struct felm_s {
     felm_t e[2];
 } f2elm_t; // Datatype for representing quadratic extension field elements GF(p434^2)

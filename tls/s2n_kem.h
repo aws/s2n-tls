@@ -205,10 +205,10 @@ int s2n_kyber_512_r3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss
 int s2n_kyber_512_r3_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
 
 /* sikep434r3 */
-#define SIKE_P434_R3_PUBLIC_KEY_BYTES 330
-#define SIKE_P434_R3_SECRET_KEY_BYTES 374
-#define SIKE_P434_R3_CIPHERTEXT_BYTES 346
-#define SIKE_P434_R3_SHARED_SECRET_BYTES 16
-int sike_p434_r3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk);
-int sike_p434_r3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk);
-int sike_p434_r3_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
+#define S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES 330
+#define S2N_SIKE_P434_R3_SECRET_KEY_BYTES 374
+#define S2N_SIKE_P434_R3_CIPHERTEXT_BYTES 346
+#define S2N_SIKE_P434_R3_SHARED_SECRET_BYTES 16
+int s2n_sike_p434_r3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk);
+int s2n_sike_p434_r3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk);
+int s2n_sike_p434_r3_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
