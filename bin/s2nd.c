@@ -393,10 +393,6 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         exit(1);
     }
 
-    for (size_t i = 0; i < settings.psk_list_len; i++) {
-        free(settings.psk_optarg_list[i]);
-    }
-
     GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
 
     GUARD_RETURN(s2n_connection_free(conn), "Error freeing connection");
@@ -574,15 +570,10 @@ int main(int argc, char *const *argv)
             break;
         case 'P':
             if (conn_settings.psk_list_len >= S2N_MAX_PSK_LIST_LENGTH) {
-                for (size_t i = 0; i < conn_settings.psk_list_len; i++) {
-                    free(conn_settings.psk_optarg_list[i]);
-                }
                 fprintf(stderr, "Error setting psks, maximum number of psks permitted is 10.\n");
                 exit(1);
             }
-            conn_settings.psk_optarg_list[conn_settings.psk_list_len] = malloc(strlen(optarg) + 1);
-            strcpy(conn_settings.psk_optarg_list[conn_settings.psk_list_len], optarg);
-            conn_settings.psk_list_len += 1;
+            conn_settings.psk_optarg_list[conn_settings.psk_list_len++] = optarg;
             break;
         case '?':
         default:

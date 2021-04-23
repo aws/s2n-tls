@@ -378,15 +378,10 @@ int main(int argc, char *const *argv)
             break;
         case 'P':
             if (psk_list_len >= S2N_MAX_PSK_LIST_LENGTH) {
-                for (size_t i = 0; i < psk_list_len; i++) {
-                    free(psk_optarg_list[i]);
-                }
                 fprintf(stderr, "Error setting psks, maximum number of psks permitted is 10.\n");
                 exit(1);
             }
-            psk_optarg_list[psk_list_len] = malloc(strlen(optarg)+ 1);
-            strcpy(psk_optarg_list[psk_list_len], optarg);
-            psk_list_len += 1;
+            psk_optarg_list[psk_list_len++] = optarg;
             break;
         case '?':
         default:
@@ -585,10 +580,6 @@ int main(int argc, char *const *argv)
 
     if (key_log_file) {
         fclose(key_log_file);
-    }
-
-    for (size_t i = 0; i < psk_list_len; i++) {
-        free(psk_optarg_list[i]);
     }
 
     GUARD_EXIT(s2n_cleanup(), "Error running s2n_cleanup()");
