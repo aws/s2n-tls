@@ -213,7 +213,12 @@ int main(int argc, char **argv)
             EXPECT_ERROR_WITH_ERRNO(s2n_offered_psk_list_read_next(NULL, &psk), S2N_ERR_NULL);
         }
 
-        /* External PSKs skip obfuscated ticket age parsing */
+        /**
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+         *= type=test
+         *# For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
+         *# used, and servers MUST ignore the value.
+         */
         {
             struct s2n_offered_psk psk = { 0 };
             struct s2n_offered_psk_list psk_list = { 0 };
