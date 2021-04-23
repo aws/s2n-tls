@@ -617,11 +617,10 @@ int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *con
 }
 
 int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint8_t *identity,
-                                               uint16_t *identity_length)
+                                               uint16_t max_identity_length)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(identity);
-    POSIX_ENSURE_REF(identity_length);
 
     struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
 
@@ -629,8 +628,7 @@ int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint
         return S2N_SUCCESS;
     }
 
-    POSIX_ENSURE(*identity_length >= chosen_psk->identity.size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
-    *identity_length = chosen_psk->identity.size;
+    POSIX_ENSURE(chosen_psk->identity.size <= max_identity_length, S2N_ERR_INSUFFICIENT_MEM_SIZE);
     POSIX_CHECKED_MEMCPY(identity, chosen_psk->identity.data, chosen_psk->identity.size);
 
     return S2N_SUCCESS;

@@ -1029,30 +1029,26 @@ int main(int argc, char **argv)
         const uint8_t empty_identity[sizeof(psk_identity)] = { 0 };
         struct s2n_connection *conn = NULL;
         uint8_t identity[sizeof(psk_identity)] = { 0 };
-        uint16_t identity_length = 0;
+        uint16_t max_identity_length = 0;
 
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity(NULL, identity,  &identity_length), S2N_ERR_NULL);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity(conn, NULL,  &identity_length), S2N_ERR_NULL);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity(conn, identity,  NULL), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity(NULL, identity, max_identity_length), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity(conn, NULL, max_identity_length), S2N_ERR_NULL);
     
         EXPECT_NULL(conn->psk_params.chosen_psk);
-        EXPECT_SUCCESS(s2n_connection_get_negotiated_psk_identity(conn, identity, &identity_length));
-        EXPECT_EQUAL(identity_length, 0);
+        EXPECT_SUCCESS(s2n_connection_get_negotiated_psk_identity(conn, identity, max_identity_length));
+        EXPECT_EQUAL(max_identity_length, 0);
         EXPECT_BYTEARRAY_EQUAL(identity, empty_identity, sizeof(empty_identity));  
 
         DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
         EXPECT_SUCCESS(s2n_psk_set_identity(psk, psk_identity, sizeof(psk_identity)));
         conn->psk_params.chosen_psk = psk;
-        EXPECT_SUCCESS(s2n_connection_get_negotiated_psk_identity_length(conn, &identity_length));
-        EXPECT_SUCCESS(s2n_connection_get_negotiated_psk_identity(conn, identity, &identity_length));
-        EXPECT_EQUAL(identity_length, sizeof(psk_identity));
-        EXPECT_BYTEARRAY_EQUAL(identity, psk_identity, sizeof(psk_identity));  
+        EXPECT_SUCCESS(s2n_connection_get_negotiated_psk_identity_length(conn, &max_identity_length));
+        EXPECT_SUCCESS(s2n_connection_get_negotiated_psk_identity(conn, identity, max_identity_length));
+        EXPECT_BYTEARRAY_EQUAL(identity, psk_identity, sizeof(psk_identity));          
 
-        identity_length -= 1;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity(conn, identity, &identity_length), S2N_ERR_INSUFFICIENT_MEM_SIZE);
-
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_negotiated_psk_identity(conn, identity, 0), S2N_ERR_INSUFFICIENT_MEM_SIZE);
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
