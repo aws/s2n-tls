@@ -100,6 +100,9 @@ int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac);
 
 int s2n_psk_get_identity_length(struct s2n_psk *psk, uint16_t *identity_length);
 int s2n_psk_get_identity(struct s2n_psk *psk, uint8_t *identity, uint16_t *identity_length);
+int s2n_psk_get_secret_length(struct s2n_psk *psk, uint16_t *secret_length);
+int s2n_psk_get_secret(struct s2n_psk *psk, uint8_t *secret, uint16_t *secret_length);
+int s2n_psk_get_hmac(struct s2n_psk *psk, s2n_psk_hmac *hmac);
 
 int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk);
 

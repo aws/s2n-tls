@@ -657,3 +657,40 @@ int s2n_psk_get_identity(struct s2n_psk *psk, uint8_t *identity, uint16_t *ident
 
     return S2N_SUCCESS;
 }
+
+int s2n_psk_get_secret_length(struct s2n_psk *psk, uint16_t *secret_length)
+{
+    POSIX_ENSURE_REF(psk);
+    POSIX_ENSURE_REF(secret_length);
+
+    *secret_length = psk->secret.size;
+    return S2N_SUCCESS;
+}
+
+int s2n_psk_get_secret(struct s2n_psk *psk, uint8_t *secret, uint16_t *secret_length)
+{
+    POSIX_ENSURE_REF(psk);
+    POSIX_ENSURE_REF(secret);
+    POSIX_ENSURE_REF(secret_length);
+
+    POSIX_ENSURE(*secret_length >= psk->secret.size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+    *secret_length = psk->secret.size;
+    POSIX_CHECKED_MEMCPY(secret, psk->secret.data, psk->secret.size);
+
+    return S2N_SUCCESS;
+}
+
+int s2n_psk_get_hmac(struct s2n_psk *psk, s2n_psk_hmac *hmac)
+{
+    POSIX_ENSURE_REF(psk);
+    POSIX_ENSURE_REF(hmac);
+
+    switch(psk->hmac_alg) {
+        case S2N_HMAC_SHA256: *hmac = S2N_PSK_HMAC_SHA256; break;
+        case S2N_HMAC_SHA384: *hmac = S2N_PSK_HMAC_SHA384; break;
+        default:
+            POSIX_BAIL(S2N_ERR_HMAC_INVALID_ALGORITHM);
+    }
+
+    return S2N_SUCCESS;
+}

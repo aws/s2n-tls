@@ -1024,6 +1024,7 @@ int main(int argc, char **argv)
     }
 
     const uint8_t psk_identity[] = "identity";
+    const uint8_t psk_secret[] = "secret";
 
     /* Test: s2n_connection_get_negotiated_psk_identity */
     {
@@ -1089,6 +1090,57 @@ int main(int argc, char **argv)
 
         identity_length -= 1;
         EXPECT_FAILURE_WITH_ERRNO(s2n_psk_get_identity(psk, identity, &identity_length), S2N_ERR_INSUFFICIENT_MEM_SIZE);
+    }
+
+    /* Test s2n_psk_get_secret_length */ 
+    { 
+        uint16_t secret_length = 0;
+
+        DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
+        EXPECT_SUCCESS(s2n_psk_set_secret(psk, psk_secret, sizeof(psk_secret)));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_get_secret_length(NULL, &secret_length), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_get_secret_length(psk, NULL), S2N_ERR_NULL);
+    
+        EXPECT_SUCCESS(s2n_psk_get_secret_length(psk, &secret_length));
+        EXPECT_EQUAL(secret_length, sizeof(psk_secret));
+    }
+
+    /* Test s2n_psk_get_secret */ 
+    {
+        uint8_t secret[sizeof(psk_secret)] = { 0 };
+        uint16_t secret_length = 0;
+
+        DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
+        EXPECT_SUCCESS(s2n_psk_set_secret(psk, psk_secret, sizeof(psk_secret)));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_get_secret(NULL, secret, &secret_length), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_get_secret(psk, NULL, &secret_length), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_get_secret(psk, secret, NULL), S2N_ERR_NULL);
+
+        EXPECT_SUCCESS(s2n_psk_get_secret_length(psk, &secret_length));
+        EXPECT_SUCCESS(s2n_psk_get_secret(psk, secret, &secret_length));
+
+        EXPECT_EQUAL(secret_length, sizeof(psk_secret));
+        EXPECT_BYTEARRAY_EQUAL(secret, psk_secret, sizeof(psk_secret));
+
+        secret_length -= 1;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_get_secret(psk, secret, &secret_length), S2N_ERR_INSUFFICIENT_MEM_SIZE);
+
+    }
+
+    /* Test s2n_psk_get_hmac */
+    {
+        s2n_psk_hmac hmac;
+        DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_get_hmac(psk, NULL), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_psk_get_hmac(NULL, &hmac), S2N_ERR_NULL);
+
+        EXPECT_SUCCESS(s2n_psk_set_hmac(psk, S2N_PSK_HMAC_SHA384));
+
+        EXPECT_SUCCESS(s2n_psk_get_hmac(psk, &hmac));
+        EXPECT_EQUAL(hmac, S2N_PSK_HMAC_SHA384);
     }
 
     END_TEST();
