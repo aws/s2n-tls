@@ -99,13 +99,12 @@ static const uint8_t hex_inverse[256] = {
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
 };
 
-int s2n_str_hex_to_bytes(const uint8_t *hex, uint8_t *out_bytes, uint32_t *out_bytes_len)
+int s2n_str_hex_to_bytes(const unsigned char *hex, uint8_t *out_bytes, uint32_t max_out_bytes_len)
 {
     GUARD_EXIT_NULL(hex);
     GUARD_EXIT_NULL(out_bytes);
-    GUARD_EXIT_NULL(out_bytes_len);
 
-    uint32_t len_with_spaces = strlen((const char*)hex);
+    uint32_t len_with_spaces = strlen((const char *)hex);
     size_t i = 0, j = 0;
     while (j < len_with_spaces) {
         if (hex[j] == ' ') {
@@ -125,7 +124,7 @@ int s2n_str_hex_to_bytes(const uint8_t *hex, uint8_t *out_bytes, uint32_t *out_b
             return S2N_FAILURE;
         }
 
-        if(*out_bytes_len < i) {
+        if(max_out_bytes_len < i) {
             fprintf(stderr, "Insufficient memory for bytes buffer, try increasing the allocation size\n");
             return S2N_FAILURE;
         }
@@ -134,7 +133,6 @@ int s2n_str_hex_to_bytes(const uint8_t *hex, uint8_t *out_bytes, uint32_t *out_b
         i++;
         j+=2;
     }
-    *out_bytes_len = i;
 
     return S2N_SUCCESS;
 }
@@ -144,9 +142,9 @@ static int s2n_get_psk_hmac_alg(s2n_psk_hmac *psk_hmac, char *hmac_str)
     GUARD_EXIT_NULL(psk_hmac);
     GUARD_EXIT_NULL(hmac_str);
 
-    if (strcmp(hmac_str, "S2N_PSK_HMAC_SHA256") == 0) {
+    if (strcmp(hmac_str, "SHA256") == 0) {
         *psk_hmac = S2N_PSK_HMAC_SHA256;
-    } else if (strcmp(hmac_str, "S2N_PSK_HMAC_SHA384") == 0) {
+    } else if (strcmp(hmac_str, "SHA384") == 0) {
         *psk_hmac = S2N_PSK_HMAC_SHA384;
     } else {
         return S2N_FAILURE;
@@ -154,37 +152,52 @@ static int s2n_get_psk_hmac_alg(s2n_psk_hmac *psk_hmac, char *hmac_str)
     return S2N_SUCCESS;
 }
 
-int s2n_setup_external_psk(struct s2n_psk **psk, char *params)
+static int s2n_setup_external_psk(struct s2n_psk **psk, char *params)
 {
     GUARD_EXIT_NULL(psk);
     GUARD_EXIT_NULL(params);
 
     size_t token_idx = 0;
     for (char *token = strtok(params, ","); token != NULL; token = strtok(NULL, ","), token_idx++) {
-        uint8_t *secret = NULL;
-        uint32_t secret_len = 0;
-        s2n_psk_hmac psk_hmac_alg;
         switch (token_idx) {
             case 0:
                 GUARD_EXIT(s2n_psk_set_identity(*psk, (const uint8_t *)token, strlen(token)),
-                             "Error setting psk identity\n");
+                           "Error setting psk identity\n");
                 break;
-            case 1:
-                secret_len = strlen(token);
-                secret = malloc(secret_len);
-                GUARD_EXIT_NULL(secret);
-                GUARD_EXIT(s2n_str_hex_to_bytes((const uint8_t *)token, secret, &secret_len), "Error converting hex-encoded psk secret to bytes\n");
-                GUARD_EXIT(s2n_psk_set_secret(*psk, secret, secret_len), "Error setting psk secret\n");
-                free(secret);
+            case 1: {
+                    uint32_t max_secret_len = strlen(token)/2;
+                    uint8_t *secret = malloc(max_secret_len);
+                    GUARD_EXIT_NULL(secret);
+                    GUARD_EXIT(s2n_str_hex_to_bytes((const unsigned char *)token, secret, max_secret_len), "Error converting hex-encoded psk secret to bytes\n");
+                    GUARD_EXIT(s2n_psk_set_secret(*psk, secret, max_secret_len), "Error setting psk secret\n");
+                    free(secret);
+                }
                 break;
-            case 2:
-                GUARD_EXIT(s2n_get_psk_hmac_alg(&psk_hmac_alg, token), "Invalid psk hmac algorithm\n");
-                GUARD_EXIT(s2n_psk_set_hmac(*psk, psk_hmac_alg), "Error setting psk hmac algorithm\n");
+            case 2: {
+                    s2n_psk_hmac psk_hmac_alg;
+                    GUARD_EXIT(s2n_get_psk_hmac_alg(&psk_hmac_alg, token), "Invalid psk hmac algorithm\n");
+                    GUARD_EXIT(s2n_psk_set_hmac(*psk, psk_hmac_alg), "Error setting psk hmac algorithm\n");
+                } 
                 break;
             default:
                 break;
         }
     }
 
+    return S2N_SUCCESS;
+}
+
+int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH], size_t psk_list_len)
+{
+    GUARD_EXIT_NULL(conn);
+    GUARD_EXIT_NULL(psk_optarg_list);
+
+    for (size_t i = 0; i < psk_list_len; i++) {
+        struct s2n_psk *psk = s2n_external_psk_new();
+        GUARD_EXIT_NULL(psk);
+        GUARD_EXIT(s2n_setup_external_psk(&psk, psk_optarg_list[i]), "Error setting external PSK parameters\n");
+        GUARD_EXIT(s2n_connection_append_psk(conn, psk), "Error appending psk to the connection\n");
+        GUARD_EXIT(s2n_psk_free(&psk), "Error freeing psk\n");
+    } 
     return S2N_SUCCESS;
 }

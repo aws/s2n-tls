@@ -95,7 +95,7 @@ void usage()
     fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
                     "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
                     "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded and there are no whitespaces allowed before or after the comma.\n"
-                    "    Ex: --psk psk_id,psk_secret,S2N_PSK_HMAC_SHA256 --psk shared_id,shared_secret,S2N_PSK_HMAC_SHA384.\n");
+                    "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -528,14 +528,7 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(s2n_connection_set_session(conn, session_state, session_state_length), "Error setting session state in connection");
         }
 
-        for (size_t i = 0; i < psk_list_len; i++) {
-            struct s2n_psk *psk = s2n_external_psk_new();
-            GUARD_EXIT_NULL(psk);
-            GUARD_EXIT(s2n_setup_external_psk(&psk, psk_optarg_list[i]), "Error setting external PSK parameters\n");
-            GUARD_EXIT(s2n_connection_append_psk(conn, psk), "Error appending psk to the connection\n");
-            GUARD_EXIT(s2n_psk_free(&psk), "Error freeing psk\n");
-            free(psk_optarg_list[i]);
-        }
+        GUARD_EXIT(s2n_setup_external_psk_list(conn, psk_optarg_list, psk_list_len), "Error setting external psk list"); 
 
         /* See echo.c */
         if (negotiate(conn, sockfd) != 0) {
@@ -592,6 +585,10 @@ int main(int argc, char *const *argv)
 
     if (key_log_file) {
         fclose(key_log_file);
+    }
+
+    for (size_t i = 0; i < psk_list_len; i++) {
+        free(psk_optarg_list[i]);
     }
 
     GUARD_EXIT(s2n_cleanup(), "Error running s2n_cleanup()");

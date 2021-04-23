@@ -293,7 +293,7 @@ void usage()
     fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
                     "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
                     "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded and there are no whitespaces allowed before or after the comma.\n"
-                    "    Ex: --psk psk_id,psk_secret,S2N_PSK_HMAC_SHA256 --psk shared_id,shared_secret,S2N_PSK_HMAC_SHA384.\n");
+                    "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -361,14 +361,9 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         GUARD_RETURN(s2n_connection_use_corked_io(conn), "Error setting corked io");
     }
 
-    for (size_t i = 0; i < settings.psk_list_len; i++) {
-        struct s2n_psk *psk = s2n_external_psk_new();
-        GUARD_EXIT_NULL(psk);
-        GUARD_EXIT(s2n_setup_external_psk(&psk, settings.psk_optarg_list[i]), "Error setting external PSK parameters\n");
-        GUARD_EXIT(s2n_connection_append_psk(conn, psk), "Error appending psk to the connection\n");
-        GUARD_EXIT(s2n_psk_free(&psk), "Error freeing psk\n");
-        free(settings.psk_optarg_list[i]);
-    }
+    GUARD_EXIT(
+        s2n_setup_external_psk_list(conn, settings.psk_optarg_list, settings.psk_list_len),
+        "Error setting external psk list");
 
     if (negotiate(conn, fd) != S2N_SUCCESS) {
         if (settings.mutual_auth) {
@@ -396,6 +391,10 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
     if (shutdown_rc == -1 && blocked != S2N_BLOCKED_ON_READ) {
         fprintf(stderr, "Unexpected error during shutdown: '%s'\n", s2n_strerror(s2n_errno, "NULL"));
         exit(1);
+    }
+
+    for (size_t i = 0; i < settings.psk_list_len; i++) {
+        free(settings.psk_optarg_list[i]);
     }
 
     GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
