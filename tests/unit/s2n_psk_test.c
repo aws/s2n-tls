@@ -1054,10 +1054,18 @@ int main(int argc, char **argv)
 
     /* Test s2n_psk_validate_keying_material */
     {
+        uint64_t current_time = 100;
+
         /* Safety */
         EXPECT_ERROR_WITH_ERRNO(s2n_psk_validate_keying_material(NULL), S2N_ERR_NULL);
 
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+        EXPECT_OK(s2n_config_mock_wall_clock(config, &current_time));
+
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
         DEFER_CLEANUP(struct s2n_psk *chosen_psk = s2n_test_psk_new(conn), s2n_psk_free);
 
         /* No-op if no chosen PSK */
@@ -1079,7 +1087,20 @@ int main(int argc, char **argv)
         chosen_psk->keying_material_expiration = 0;
         EXPECT_ERROR_WITH_ERRNO(s2n_psk_validate_keying_material(conn), S2N_ERR_KEYING_MATERIAL_EXPIRED);
 
+        /* Fails if chosen PSK's material expires at current_time */
+        chosen_psk->keying_material_expiration = current_time;
+        EXPECT_ERROR_WITH_ERRNO(s2n_psk_validate_keying_material(conn), S2N_ERR_KEYING_MATERIAL_EXPIRED);
+
+        /* Fails if chosen PSK's material has less than 1s left to live */
+        chosen_psk->keying_material_expiration = current_time + 1;
+        EXPECT_ERROR_WITH_ERRNO(s2n_psk_validate_keying_material(conn), S2N_ERR_KEYING_MATERIAL_EXPIRED);
+
+        /* Okay if chosen PSK's material has more than 1s left to live */
+        chosen_psk->keying_material_expiration = current_time + ONE_SEC_IN_NANOS + 1;
+        EXPECT_OK(s2n_psk_validate_keying_material(conn));
+
         EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
     }
 
     END_TEST();

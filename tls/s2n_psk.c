@@ -643,9 +643,15 @@ S2N_RESULT s2n_psk_validate_keying_material(struct s2n_connection *conn)
         return S2N_RESULT_OK;
     }
 
+    /*
+     * The minimum ticket lifetime is 1s, because ticket_lifetime is given
+     * in seconds and 0 indicates that the ticket should be immediately discarded.
+     */
+    uint32_t min_lifetime = ONE_SEC_IN_NANOS;
+
     uint64_t current_time = 0;
     RESULT_GUARD_POSIX(conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time));
-    RESULT_ENSURE(chosen_psk->keying_material_expiration > current_time, S2N_ERR_KEYING_MATERIAL_EXPIRED);
+    RESULT_ENSURE(chosen_psk->keying_material_expiration > current_time + min_lifetime, S2N_ERR_KEYING_MATERIAL_EXPIRED);
 
     return S2N_RESULT_OK;
 }

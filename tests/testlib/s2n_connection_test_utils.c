@@ -230,3 +230,18 @@ int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_
 
     return S2N_SUCCESS;
 }
+
+static int mock_time(void *data, uint64_t *nanoseconds)
+{
+    POSIX_ENSURE_REF(data);
+    POSIX_ENSURE_REF(nanoseconds);
+    *nanoseconds = *((uint64_t*) data);
+    return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_config_mock_wall_clock(struct s2n_config *config, uint64_t *test_time_in_ns)
+{
+    RESULT_ENSURE_REF(config);
+    RESULT_GUARD_POSIX(s2n_config_set_wall_clock(config, mock_time, test_time_in_ns));
+    return S2N_RESULT_OK;
+}

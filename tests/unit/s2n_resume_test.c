@@ -50,11 +50,7 @@ static int s2n_test_session_ticket_callback(struct s2n_connection *conn, struct 
 
 static int mock_time(void *data, uint64_t *nanoseconds)
 {
-    if (data) {
-        *nanoseconds = *((uint64_t*) data);
-    } else {
-        *nanoseconds = ticket_issue_time;
-    }
+    *nanoseconds = ticket_issue_time;
     return S2N_SUCCESS;
 }
 
@@ -515,7 +511,7 @@ int main(int argc, char **argv)
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
             uint64_t current_time = keying_material_expiration;
-            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, &current_time));
+            EXPECT_OK(s2n_config_mock_wall_clock(config, &current_time));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             /* Initialize client ticket */
