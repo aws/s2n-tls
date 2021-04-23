@@ -104,6 +104,9 @@ typedef enum { S2N_PSK_MODE_RESUMPTION, S2N_PSK_MODE_EXTERNAL } s2n_psk_mode;
 int s2n_config_set_psk_mode(struct s2n_config *config, s2n_psk_mode mode);
 int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode);
 
+int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *conn, uint16_t *identity_length);
+int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint8_t *identity, uint16_t max_identity_length);
+
 struct s2n_offered_psk;
 struct s2n_offered_psk* s2n_offered_psk_new();
 int s2n_offered_psk_free(struct s2n_offered_psk **psk);
