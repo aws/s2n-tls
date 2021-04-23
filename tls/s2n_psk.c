@@ -318,9 +318,8 @@ int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struc
         return S2N_SUCCESS;
     }
     
-    if(psk_params->type == S2N_PSK_TYPE_EXTERNAL) {
+    if (psk_params->type == S2N_PSK_TYPE_EXTERNAL) {
         POSIX_GUARD_RESULT(s2n_match_psk_identity(&psk_params->psk_list, &psk->identity, &psk_params->chosen_psk));
-        psk_params->chosen_psk_wire_index = psk->wire_index;
     } else {
         struct s2n_stuffer ticket_stuffer = { 0 };
         POSIX_GUARD(s2n_stuffer_init(&ticket_stuffer, &psk->identity));
@@ -329,18 +328,14 @@ int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struc
 
         POSIX_GUARD(s2n_decrypt_session_ticket(psk_list->conn));
 
-        /* If the decrypt_session_ticket method succeeds, all previously-set PSKs have been wiped
-         * and a new PSK has been added. Therefore we can be assured that the first PSK in our list
-         * is the one we just read. */
-        POSIX_ENSURE_EQ(psk_params->psk_list.len, 1);
+        /* If the decrypt_session_ticket method succeeds, a new PSK has been added. */
         struct s2n_psk *decrypted_psk = NULL;
-        POSIX_GUARD_RESULT(s2n_array_get(&psk_params->psk_list, 0, (void**)&decrypted_psk));
+        POSIX_GUARD_RESULT(s2n_match_psk_identity(&psk_params->psk_list, &psk->identity, &decrypted_psk));
         POSIX_ENSURE_REF(decrypted_psk);
         POSIX_GUARD_RESULT(s2n_validate_ticket_lifetime(psk_list->conn, psk->obfuscated_ticket_age, decrypted_psk->ticket_age_add));
-
-        psk_params->chosen_psk_wire_index = psk->wire_index;
         psk_params->chosen_psk = decrypted_psk;
     }
+    psk_params->chosen_psk_wire_index = psk->wire_index;
     return S2N_SUCCESS;
 }
 

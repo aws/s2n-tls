@@ -234,10 +234,10 @@ static S2N_RESULT s2n_select_resumption_psk(struct s2n_connection *conn, struct 
     struct s2n_offered_psk client_psk = { 0 };
     conn->psk_params.chosen_psk = NULL;
 
-    while(s2n_offered_psk_list_has_next(client_identity_list)) {
+    while (s2n_offered_psk_list_has_next(client_identity_list)) {
         RESULT_GUARD_POSIX(s2n_offered_psk_list_next(client_identity_list, &client_psk));
         /* Select the first resumption PSK that can be decrypted */
-        if(s2n_offered_psk_list_choose_psk(client_identity_list, &client_psk) != S2N_SUCCESS) {
+        if (s2n_offered_psk_list_choose_psk(client_identity_list, &client_psk) != S2N_SUCCESS) {
             continue;
         }
 

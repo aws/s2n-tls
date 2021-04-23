@@ -455,15 +455,20 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->psk_params.chosen_psk, expected_match);
             EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, wire_index);
         }
+        
+        EXPECT_SUCCESS(s2n_connection_free(conn));
 
-        /* Setup for creating a test resumption psk */
+        /* Test: Valid resumption psk is received */
         {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_setup_ticket_key(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            conn->psk_params.type = S2N_PSK_TYPE_RESUMPTION;
 
+            conn->psk_params.type = S2N_PSK_TYPE_RESUMPTION;
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
@@ -473,59 +478,82 @@ int main(int argc, char **argv)
 
             struct s2n_offered_psk_list identity_list = { .conn = conn };
 
-            /* Valid resumption psk is received */
-            {
-                DEFER_CLEANUP(struct s2n_stuffer test_stuffer = { 0 }, s2n_stuffer_free);
-                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&test_stuffer, 0));
-                EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test_stuffer, psk_identity.blob.data, psk_identity.blob.size));
-                test_stuffer.blob.size = s2n_stuffer_data_available(&psk_identity);
-                struct s2n_offered_psk client_psk = { .identity = test_stuffer.blob, .wire_index = wire_index };
+            DEFER_CLEANUP(struct s2n_stuffer test_stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&test_stuffer, 0));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test_stuffer, psk_identity.blob.data, psk_identity.blob.size));
+            test_stuffer.blob.size = s2n_stuffer_data_available(&psk_identity);
+            
+            struct s2n_offered_psk client_psk = { .identity = test_stuffer.blob, .wire_index = wire_index };
 
-                EXPECT_SUCCESS(s2n_offered_psk_list_choose_psk(&identity_list, &client_psk));
+            EXPECT_SUCCESS(s2n_offered_psk_list_choose_psk(&identity_list, &client_psk));
 
-                EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, wire_index);
-                EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
+            EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, wire_index);
+            EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
 
-                /* Sanity check psk creation is correct */
-                EXPECT_EQUAL(conn->psk_params.chosen_psk->hmac_alg, s2n_tls13_aes_128_gcm_sha256.prf_alg);
-            }
-
-            /* Invalid resumption psk is received */
-            {
-                conn->psk_params.chosen_psk_wire_index = 0;
-                conn->psk_params.chosen_psk = NULL;
-
-                struct s2n_offered_psk client_psk = { .identity = wire_identity, .wire_index = wire_index };
-
-                EXPECT_FAILURE(s2n_offered_psk_list_choose_psk(&identity_list, &client_psk));
-
-                EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, 0);
-                EXPECT_NULL(conn->psk_params.chosen_psk);
-            }
-
-            /* Resumption psk has expired */
-            {
-                conn->psk_params.chosen_psk_wire_index = 0;
-                conn->psk_params.chosen_psk = NULL;
-
-                DEFER_CLEANUP(struct s2n_stuffer test_stuffer = { 0 }, s2n_stuffer_free);
-                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&test_stuffer, 0));
-                EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test_stuffer, psk_identity.blob.data, psk_identity.blob.size));
-                test_stuffer.blob.size = s2n_stuffer_data_available(&psk_identity);
-    
-                /* Obfuscated ticket age is larger than the session lifetime */
-                struct s2n_offered_psk client_psk = { .identity = psk_identity.blob, .wire_index = wire_index, .obfuscated_ticket_age = 100 };
-                conn->config->session_state_lifetime_in_nanos = 0;
-
-                EXPECT_FAILURE_WITH_ERRNO(s2n_offered_psk_list_choose_psk(&identity_list, &client_psk), S2N_ERR_INVALID_SESSION_TICKET);
-
-                EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, 0);
-                EXPECT_NULL(conn->psk_params.chosen_psk);
-            }
+            /* Sanity check psk creation is correct */
+            EXPECT_EQUAL(conn->psk_params.chosen_psk->hmac_alg, s2n_tls13_aes_128_gcm_sha256.prf_alg);
 
             EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
         }
-        EXPECT_SUCCESS(s2n_connection_free(conn));
+
+        /* Resumption psk has expired */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_setup_ticket_key(config));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            conn->psk_params.type = S2N_PSK_TYPE_RESUMPTION;
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
+            DEFER_CLEANUP(struct s2n_stuffer psk_identity = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&psk_identity, 0));
+            EXPECT_OK(s2n_setup_encrypted_ticket(conn, &psk_identity));
+
+            struct s2n_offered_psk_list identity_list = { .conn = conn };
+
+            DEFER_CLEANUP(struct s2n_stuffer test_stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&test_stuffer, 0));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test_stuffer, psk_identity.blob.data, psk_identity.blob.size));
+            test_stuffer.blob.size = s2n_stuffer_data_available(&psk_identity);
+
+            /* Obfuscated ticket age is larger than the session lifetime */
+            struct s2n_offered_psk client_psk = { .identity = psk_identity.blob, .wire_index = wire_index, .obfuscated_ticket_age = 100 };
+            conn->config->session_state_lifetime_in_nanos = 0;
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_psk_list_choose_psk(&identity_list, &client_psk), S2N_ERR_INVALID_SESSION_TICKET);
+
+            EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, 0);
+            EXPECT_NULL(conn->psk_params.chosen_psk);
+
+            EXPECT_SUCCESS(s2n_config_free(config));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Invalid resumption psk is received */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+
+            conn->psk_params.type = S2N_PSK_TYPE_RESUMPTION;
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
+            struct s2n_offered_psk_list identity_list = { .conn = conn };
+            struct s2n_offered_psk client_psk = { .identity = wire_identity, .wire_index = wire_index };
+
+            EXPECT_FAILURE(s2n_offered_psk_list_choose_psk(&identity_list, &client_psk));
+
+            EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, 0);
+            EXPECT_NULL(conn->psk_params.chosen_psk);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
     }
 
     /* Functional test: Process the output of sending the psk extension */

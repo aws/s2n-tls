@@ -624,7 +624,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, test_cases[i].wire_match_index);
                 EXPECT_EQUAL(conn->psk_params.chosen_psk, expected_chosen_psk);
             } else {
-                EXPECT_ERROR(s2n_select_external_psk(conn, &client_identity_list));
+                EXPECT_ERROR_WITH_ERRNO(s2n_select_external_psk(conn, &client_identity_list), S2N_ERR_NULL);
                 EXPECT_NULL(conn->psk_params.chosen_psk);
             }
 
@@ -647,7 +647,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* Setup for creating a test resumption psk */
+        /* One valid resumption psk is received */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(conn);
@@ -667,70 +667,92 @@ int main(int argc, char **argv)
             struct s2n_offered_psk_list identity_list = { .conn = conn };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&identity_list.wire_data, 0));
 
-            /* One valid resumption psk is received */
-            {
-                EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &psk_identity.blob));
+            EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &psk_identity.blob));
 
-                EXPECT_OK(s2n_select_resumption_psk(conn, &identity_list));
+            EXPECT_OK(s2n_select_resumption_psk(conn, &identity_list));
 
-                EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, 0);
-                EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
+            EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, 0);
+            EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
 
-                /* Sanity check psk creation is correct */
-                EXPECT_EQUAL(conn->psk_params.chosen_psk->hmac_alg, s2n_tls13_aes_128_gcm_sha256.prf_alg);
-            }
-
-            /* First valid resumption psk is chosen */
-            {
-                conn->psk_params.chosen_psk_wire_index = 0;
-                conn->psk_params.chosen_psk = NULL;
-                EXPECT_SUCCESS(s2n_stuffer_rewrite(&identity_list.wire_data));
-                EXPECT_SUCCESS(s2n_offered_psk_list_reread(&identity_list));
-
-                /* Write invalid resumption psk */
-                uint8_t bad_identity_data[] = "hello";
-                struct s2n_blob bad_identity = { 0 };
-                EXPECT_SUCCESS(s2n_blob_init(&bad_identity, bad_identity_data, sizeof(bad_identity_data)));
-
-                uint8_t psk_idx = 5;
-                for (size_t i = 0; i < psk_idx; i++) {
-                    EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &bad_identity));
-                }
-
-                /* Write valid resumption psk */
-                EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &psk_identity.blob));
-
-                /* Write second valid resumption psk */
-                EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &psk_identity.blob));
-
-                EXPECT_OK(s2n_select_resumption_psk(conn, &identity_list));
-
-                EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, psk_idx);
-                EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
-
-                /* Sanity check psk creation is correct */
-                EXPECT_EQUAL(conn->psk_params.chosen_psk->hmac_alg, s2n_tls13_aes_128_gcm_sha256.prf_alg);
-            }
-
-            /* No valid resumption psks */
-            {
-                conn->psk_params.chosen_psk_wire_index = 0;
-                conn->psk_params.chosen_psk = NULL;
-                EXPECT_SUCCESS(s2n_stuffer_rewrite(&identity_list.wire_data));
-
-                /* Write invalid resumption psk */
-                uint8_t bad_identity_data[] = "hello";
-                struct s2n_blob bad_identity = { 0 };
-                EXPECT_SUCCESS(s2n_blob_init(&bad_identity, bad_identity_data, sizeof(bad_identity_data)));
-                EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &bad_identity));
-
-                EXPECT_ERROR_WITH_ERRNO(s2n_select_resumption_psk(conn, &identity_list), S2N_ERR_INVALID_SESSION_TICKET);
-                EXPECT_NULL(conn->psk_params.chosen_psk);
-            }
+            /* Sanity check psk creation is correct */
+            EXPECT_EQUAL(conn->psk_params.chosen_psk->hmac_alg, s2n_tls13_aes_128_gcm_sha256.prf_alg);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&identity_list.wire_data));
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
+        /* First valid resumption psk is chosen */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_setup_ticket_key(config));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
+            DEFER_CLEANUP(struct s2n_stuffer psk_identity = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&psk_identity, 0));
+            EXPECT_OK(s2n_setup_encrypted_ticket(conn, &psk_identity));
+
+            struct s2n_offered_psk_list identity_list = { .conn = conn };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&identity_list.wire_data, 0));
+
+            /* Write invalid resumption psk */
+            uint8_t bad_identity_data[] = "hello";
+            struct s2n_blob bad_identity = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&bad_identity, bad_identity_data, sizeof(bad_identity_data)));
+
+            uint8_t psk_idx = 5;
+            for (size_t i = 0; i < psk_idx; i++) {
+                EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &bad_identity));
+            }
+
+            /* Write valid resumption psk */
+            EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &psk_identity.blob));
+
+            /* Write second valid resumption psk */
+            EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &psk_identity.blob));
+
+            EXPECT_OK(s2n_select_resumption_psk(conn, &identity_list));
+
+            EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, psk_idx);
+            EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
+
+            /* Sanity check psk creation is correct */
+            EXPECT_EQUAL(conn->psk_params.chosen_psk->hmac_alg, s2n_tls13_aes_128_gcm_sha256.prf_alg);
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&identity_list.wire_data));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
+        /* No valid resumption psks */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
+            struct s2n_offered_psk_list identity_list = { .conn = conn };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&identity_list.wire_data, 0));
+
+            /* Write invalid resumption psk */
+            uint8_t bad_identity_data[] = "hello";
+            struct s2n_blob bad_identity = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&bad_identity, bad_identity_data, sizeof(bad_identity_data)));
+            EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &bad_identity));
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_select_resumption_psk(conn, &identity_list), S2N_ERR_INVALID_SESSION_TICKET);
+            EXPECT_NULL(conn->psk_params.chosen_psk);
+        
+            EXPECT_SUCCESS(s2n_stuffer_free(&identity_list.wire_data));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
         }
     }
 
@@ -953,11 +975,17 @@ int main(int argc, char **argv)
 
             /* Resumption psk was selected */
             {
+                /* Write invalid resumption PSK */
+                struct s2n_blob wire_identity = { 0 };
+                EXPECT_SUCCESS(s2n_blob_init(&wire_identity, test_bytes_data_2, sizeof(test_bytes_data_2)));
+                EXPECT_OK(s2n_write_test_identity(&wire_identities_in, &wire_identity));
+
+                /* Write valid resumption PSK */
                 EXPECT_OK(s2n_write_test_identity(&wire_identities_in, &psk_identity.blob));
 
                 EXPECT_OK(s2n_client_psk_recv_identity_list(conn, &wire_identities_in));
 
-                EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, 0);
+                EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, 1);
                 EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
             }
             
