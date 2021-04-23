@@ -94,7 +94,7 @@ void usage()
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
     fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
                     "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
-                    "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded and there are no whitespaces allowed before or after the comma.\n"
+                    "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace is not allowed before or after the commas.\n"
                     "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
     fprintf(stderr, "\n");
     exit(1);

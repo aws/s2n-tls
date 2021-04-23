@@ -292,7 +292,7 @@ void usage()
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
     fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
                     "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
-                    "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded and there are no whitespaces allowed before or after the comma.\n"
+                    "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace is not allowed before or after the commas.\n"
                     "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
@@ -361,7 +361,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         GUARD_RETURN(s2n_connection_use_corked_io(conn), "Error setting corked io");
     }
 
-    GUARD_EXIT(
+    GUARD_RETURN(
         s2n_setup_external_psk_list(conn, settings.psk_optarg_list, settings.psk_list_len),
         "Error setting external psk list");
 
