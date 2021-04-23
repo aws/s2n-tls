@@ -449,8 +449,8 @@ int s2n_connection_get_session_length(struct s2n_connection *conn)
 
 int s2n_connection_is_session_resumed(struct s2n_connection *conn)
 {
-    return conn && (s2n_connection_get_protocol_version(conn) < S2N_TLS13)
-           && IS_RESUMPTION_HANDSHAKE(conn);
+    return conn && IS_RESUMPTION_HANDSHAKE(conn)
+        && (conn->actual_protocol_version < S2N_TLS13 || conn->psk_params.type == S2N_PSK_TYPE_RESUMPTION);
 }
 
 int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn)

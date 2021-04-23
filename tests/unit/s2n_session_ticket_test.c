@@ -1051,23 +1051,45 @@ int main(int argc, char **argv)
 
     /* Test s2n_connection_is_session_resumed */
     {
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        /* TLS1.2 */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            conn->actual_protocol_version = S2N_TLS12;
 
-        EXPECT_TRUE(s2n_connection_get_protocol_version(server_conn) == S2N_TLS12);
-        EXPECT_TRUE(server_conn->handshake.handshake_type == INITIAL);
-        EXPECT_FALSE(s2n_connection_is_session_resumed(server_conn));
+            conn->handshake.handshake_type = INITIAL;
+            EXPECT_FALSE(s2n_connection_is_session_resumed(conn));
 
-        server_conn->handshake.handshake_type = NEGOTIATED | WITH_SESSION_TICKET;
-        EXPECT_TRUE(s2n_connection_is_session_resumed(server_conn));
+            conn->handshake.handshake_type = NEGOTIATED | WITH_SESSION_TICKET;
+            EXPECT_TRUE(s2n_connection_is_session_resumed(conn));
 
-        server_conn->actual_protocol_version = S2N_TLS13;
-        server_conn->handshake.handshake_type = INITIAL;
-        EXPECT_FALSE(s2n_connection_is_session_resumed(server_conn));
+            /* Ignores PSK mode */
+            conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
+            EXPECT_TRUE(s2n_connection_is_session_resumed(conn));
 
-        server_conn->handshake.handshake_type = NEGOTIATED | WITH_SESSION_TICKET;
-        EXPECT_FALSE(s2n_connection_is_session_resumed(server_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
 
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        /* TLS1.3 */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            conn->actual_protocol_version = S2N_TLS13;
+
+            conn->handshake.handshake_type = INITIAL;
+            conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
+            EXPECT_FALSE(s2n_connection_is_session_resumed(conn));
+
+            conn->handshake.handshake_type = NEGOTIATED | WITH_SESSION_TICKET;
+            conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
+            EXPECT_FALSE(s2n_connection_is_session_resumed(conn));
+
+            conn->handshake.handshake_type = NEGOTIATED | WITH_SESSION_TICKET;
+            conn->psk_params.type = S2N_PSK_TYPE_RESUMPTION;
+            EXPECT_TRUE(s2n_connection_is_session_resumed(conn));
+
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
     }
 
     /* Session resumption APIs and session_ticket_cb return the same values
