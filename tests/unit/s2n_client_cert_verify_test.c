@@ -74,20 +74,20 @@ int async_pkey_perform_op(struct s2n_connection *conn, struct s2n_async_pkey_op 
 
 static int negotiate(struct s2n_connection *conn, s2n_blocked_status *block) 
 {
-        int rc = s2n_negotiate(conn, block);
-        if (!(rc == 0 || (*block && s2n_error_get_type(s2n_errno) == S2N_ERR_T_BLOCKED))) {
-            return S2N_FAILURE;
-        }
+    int rc = s2n_negotiate(conn, block);
+    if (!(rc == 0 || (*block && s2n_error_get_type(s2n_errno) == S2N_ERR_T_BLOCKED))) {
+        return S2N_FAILURE;
+    }
 
-        if (*block == S2N_BLOCKED_ON_APPLICATION_INPUT && pkey_op != NULL) {
-            if (s2n_async_pkey_op_apply(pkey_op, conn) == S2N_SUCCESS) {
-                EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
-                pkey_op = NULL;
-                pkey_conn = NULL;
-            }
+    if (*block == S2N_BLOCKED_ON_APPLICATION_INPUT && pkey_op != NULL) {
+        if (s2n_async_pkey_op_apply(pkey_op, conn) == S2N_SUCCESS) {
+            EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
+            pkey_op = NULL;
+            pkey_conn = NULL;
         }
+    }
 
-        return S2N_SUCCESS;
+    return S2N_SUCCESS;
 }
 
 static int try_handshake(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
