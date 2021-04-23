@@ -84,7 +84,7 @@ static int s2n_setup_ticket_key(struct s2n_config *config)
     "90b6c73bb50f9c3122ec844ad7c2b3e5");
 
     /* Set up encryption key */
-    uint64_t current_time;
+    uint64_t current_time = 0;
     uint8_t ticket_key_name[16] = "2016.07.26.15\0";
 
     POSIX_GUARD(s2n_config_set_session_tickets_onoff(config, 1));
@@ -692,8 +692,8 @@ int main(int argc, char **argv)
                 struct s2n_blob bad_identity = { 0 };
                 EXPECT_SUCCESS(s2n_blob_init(&bad_identity, bad_identity_data, sizeof(bad_identity_data)));
 
-                uint8_t invalid_psk_idx = 5;
-                for (size_t i = 0; i < invalid_psk_idx; i++) {
+                uint8_t psk_idx = 5;
+                for (size_t i = 0; i < psk_idx; i++) {
                     EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &bad_identity));
                 }
 
@@ -705,7 +705,7 @@ int main(int argc, char **argv)
 
                 EXPECT_OK(s2n_select_resumption_psk(conn, &identity_list));
 
-                EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, invalid_psk_idx);
+                EXPECT_EQUAL(conn->psk_params.chosen_psk_wire_index, psk_idx);
                 EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
 
                 /* Sanity check psk creation is correct */
@@ -724,7 +724,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_blob_init(&bad_identity, bad_identity_data, sizeof(bad_identity_data)));
                 EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &bad_identity));
 
-                EXPECT_ERROR_WITH_ERRNO(s2n_select_resumption_psk(conn, &identity_list), S2N_ERR_BAD_MESSAGE);
+                EXPECT_ERROR_WITH_ERRNO(s2n_select_resumption_psk(conn, &identity_list), S2N_ERR_INVALID_SESSION_TICKET);
                 EXPECT_NULL(conn->psk_params.chosen_psk);
             }
 

@@ -232,6 +232,7 @@ static S2N_RESULT s2n_select_resumption_psk(struct s2n_connection *conn, struct 
     RESULT_ENSURE_REF(client_identity_list);
 
     struct s2n_offered_psk client_psk = { 0 };
+    conn->psk_params.chosen_psk = NULL;
 
     while(s2n_offered_psk_list_has_next(client_identity_list)) {
         RESULT_GUARD_POSIX(s2n_offered_psk_list_next(client_identity_list, &client_psk));
@@ -243,7 +244,7 @@ static S2N_RESULT s2n_select_resumption_psk(struct s2n_connection *conn, struct 
         return S2N_RESULT_OK;
     }
 
-    RESULT_BAIL(S2N_ERR_BAD_MESSAGE);
+    RESULT_BAIL(S2N_ERR_INVALID_SESSION_TICKET);
 }
 
 static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn, struct s2n_stuffer *wire_identities_in)
