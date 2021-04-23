@@ -76,9 +76,9 @@ static S2N_RESULT s2n_tls13_serialize_keying_material_expiration(struct s2n_conn
         return S2N_RESULT_OK;
     }
 
-    struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
     uint64_t expiration_timestamp = now + (conn->server_keying_material_lifetime * (uint64_t) ONE_SEC_IN_NANOS);
 
+    struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
     if (chosen_psk && chosen_psk->type == S2N_PSK_TYPE_RESUMPTION) {
         expiration_timestamp = MIN(chosen_psk->keying_material_expiration, expiration_timestamp);
     }

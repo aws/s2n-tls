@@ -1062,11 +1062,13 @@ int main(int argc, char **argv)
 
         /* No-op if no chosen PSK */
         EXPECT_OK(s2n_psk_validate_keying_material(conn));
+
         conn->psk_params.chosen_psk = chosen_psk;
 
         /* No-op if chosen PSK is external */
         chosen_psk->type = S2N_PSK_TYPE_EXTERNAL;
         EXPECT_OK(s2n_psk_validate_keying_material(conn));
+
         chosen_psk->type = S2N_PSK_TYPE_RESUMPTION;
 
         /* Okay if chosen PSK's material is not expired */
