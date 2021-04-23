@@ -814,7 +814,6 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
-
             EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -905,6 +904,85 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
+        /* s2n_config_set_session_tickets_onoff used to enable tickets */
+        {
+            uint8_t test_data[S2N_TICKET_KEY_NAME_LEN] = "data";
+            uint64_t current_time = 0;
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, true));
+            EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
+            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, test_data, sizeof(test_data),
+                    test_data, sizeof(test_data), current_time / ONE_SEC_IN_NANOS));
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
+            /* Setup io */
+            struct s2n_stuffer stuffer;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+
+            s2n_blocked_status blocked = 0;
+            EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_NOT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+
+            /* Request more tickets */
+            EXPECT_SUCCESS(s2n_connection_add_new_tickets_to_send(conn, 1));
+            EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_NOT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+
+            /* Turn tickets off */
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, false));
+
+            /* Request more tickets */
+            EXPECT_SUCCESS(s2n_connection_add_new_tickets_to_send(conn, 1));
+            EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
+        /* s2n_config_set_initial_ticket_count used to enable tickets */
+        {
+            uint8_t test_data[S2N_TICKET_KEY_NAME_LEN] = "data";
+            uint64_t current_time = 0;
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_initial_ticket_count(config, 1));
+            EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
+            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, test_data, sizeof(test_data),
+                    test_data, sizeof(test_data), current_time / ONE_SEC_IN_NANOS));
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
+            /* Setup io */
+            struct s2n_stuffer stuffer;
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+
+            s2n_blocked_status blocked = 0;
+            EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_NOT_EQUAL(0, s2n_stuffer_data_available(&stuffer));
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
         /* Sends multiple new session tickets */
         {
             struct s2n_config *config;
@@ -972,7 +1050,6 @@ int main(int argc, char **argv)
 
             /* Test with no variable fields */
             {
-                conn->tickets_to_send++;
                 s2n_blocked_status blocked = 0;
                 EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
                 EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&output), 0);

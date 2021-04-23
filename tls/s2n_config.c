@@ -687,6 +687,9 @@ int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enab
     }
 
     config->use_tickets = enabled;
+    if (config->initial_tickets_to_send == 0) {
+        config->initial_tickets_to_send = 1;
+    }
 
     /* session ticket || session id is enabled */
     if (enabled) {

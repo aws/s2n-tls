@@ -991,8 +991,13 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_EQUAL(conn->tickets_to_send, 0);
+        EXPECT_FALSE(config->use_tickets);
+
+        EXPECT_SUCCESS(s2n_config_set_initial_ticket_count(config, 0));
+        EXPECT_TRUE(config->use_tickets);
 
         EXPECT_SUCCESS(s2n_config_set_initial_ticket_count(config, num_tickets));
+        EXPECT_TRUE(config->use_tickets);
 
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
         EXPECT_EQUAL(conn->tickets_to_send, num_tickets);
