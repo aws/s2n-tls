@@ -31,6 +31,7 @@
 
 #include "crypto/s2n_rsa.h"
 #include "crypto/s2n_pkey.h"
+#include "common.h"
 
 #define STDIO_BUFSIZE  10240
 
@@ -136,6 +137,16 @@ int negotiate(struct s2n_connection *conn, int fd)
     printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
     if (s2n_connection_is_session_resumed(conn)) {
         printf("Resumed session\n");
+    }
+
+    uint16_t identity_length = 0;
+    GUARD_EXIT(s2n_connection_get_negotiated_psk_identity_length(conn, &identity_length), "Error getting negotiated psk identity length from the connection\n");
+    if (identity_length != 0) {
+        uint8_t *identity = malloc(identity_length);
+        GUARD_EXIT_NULL(identity);
+        GUARD_EXIT(s2n_connection_get_negotiated_psk_identity(conn, identity, identity_length), "Error getting negotiated psk identity from the connection\n");
+        printf("Negotiated PSK identity: %s\n", identity);
+        free(identity);
     }
 
     return 0;
