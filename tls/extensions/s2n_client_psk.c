@@ -227,57 +227,18 @@ static S2N_RESULT s2n_select_external_psk(struct s2n_connection *conn, struct s2
     return S2N_RESULT_OK;
 }
 
-/**
- *= https://tools.ietf.org/html/rfc8446#section-4.2.10  
- *# For PSKs provisioned via NewSessionTicket, a server MUST validate
- *#  that the ticket age for the selected PSK identity (computed by
- *#  subtracting ticket_age_add from PskIdentity.obfuscated_ticket_age
- *#  modulo 2^32) is within a small tolerance of the time since the ticket
- *#  was issued (see Section 8).
- **/
-static S2N_RESULT s2n_validate_ticket_lifetime(struct s2n_connection *conn, uint32_t obfuscated_ticket_age, uint32_t ticket_age_add) 
-{
-    RESULT_ENSURE_REF(conn);
-
-    /* Subtract the ticket_age_add value from the ticket age in milliseconds. The resulting uint32_t value
-     * may wrap, resulting in the modulo 2^32 operation. */
-    uint32_t ticket_age_in_millis = obfuscated_ticket_age - ticket_age_add;
-    uint32_t session_lifetime_in_millis = conn->config->session_state_lifetime_in_nanos / ONE_MILLISEC_IN_NANOS;
-    RESULT_ENSURE(ticket_age_in_millis <= session_lifetime_in_millis, S2N_ERR_INVALID_SESSION_TICKET);
-
-    return S2N_RESULT_OK;
-}
-
 static S2N_RESULT s2n_select_resumption_psk(struct s2n_connection *conn, struct s2n_offered_psk_list *client_identity_list) {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(client_identity_list);
 
-    uint16_t wire_index = 0;
     struct s2n_offered_psk client_psk = { 0 };
 
     while(s2n_offered_psk_list_has_next(client_identity_list)) {
         RESULT_GUARD_POSIX(s2n_offered_psk_list_next(client_identity_list, &client_psk));
-        struct s2n_stuffer ticket_stuffer = { 0 };
-        RESULT_GUARD_POSIX(s2n_stuffer_init(&ticket_stuffer, &client_psk.identity));
-        RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&ticket_stuffer, client_psk.identity.size));
-        conn->client_ticket_to_decrypt = ticket_stuffer;
-
         /* Select the first resumption PSK that can be decrypted */
-        if (s2n_decrypt_session_ticket(conn) != S2N_SUCCESS) {
-            wire_index++;
+        if(s2n_offered_psk_list_choose_psk(client_identity_list, &client_psk) != S2N_SUCCESS) {
             continue;
         }
-
-        /* If the decrypt_session_ticket method succeeds, all previously-set PSKs have been wiped
-         * and a new PSK has been added. Therefore we can be assured that the first PSK in our list
-         * is the one we just read. */
-        struct s2n_psk *psk = NULL;
-        RESULT_GUARD(s2n_array_get(&conn->psk_params.psk_list, 0, (void**)&psk));
-        RESULT_ENSURE_REF(psk);
-        RESULT_GUARD(s2n_validate_ticket_lifetime(conn, client_psk.obfuscated_ticket_age, psk->ticket_age_add));
-
-        conn->psk_params.chosen_psk = psk;
-        conn->psk_params.chosen_psk_wire_index = wire_index;
 
         return S2N_RESULT_OK;
     }
