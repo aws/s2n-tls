@@ -608,10 +608,10 @@ int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *con
     struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
 
     if (chosen_psk == NULL) {
-        POSIX_BAIL(S2N_ERR_NEGOTIATED_PSK_NOT_FOUND);
+        *identity_length = 0;
+    } else {
+        *identity_length = chosen_psk->identity.size;
     }
-
-    *identity_length = chosen_psk->identity.size;
 
     return S2N_SUCCESS;
 }
@@ -626,7 +626,7 @@ int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint
     struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
 
     if (chosen_psk == NULL) {
-        POSIX_BAIL(S2N_ERR_NEGOTIATED_PSK_NOT_FOUND);
+        return S2N_SUCCESS;
     }
 
     POSIX_ENSURE(*identity_length >= chosen_psk->identity.size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
