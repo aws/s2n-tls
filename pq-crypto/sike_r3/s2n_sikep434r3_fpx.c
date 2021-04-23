@@ -44,21 +44,22 @@ void ct_cmov(uint8_t *r, const uint8_t *a, unsigned int len, int8_t selector)
 /* Encoding digits to bytes according to endianness */
 __inline static void encode_to_bytes(const digit_t* x, unsigned char* enc, int nbytes)
 {
-#ifdef _BIG_ENDIAN_
-    int ndigits = nbytes / sizeof(digit_t);
-    int rem = nbytes % sizeof(digit_t);
+    if (is_big_endian()) {
+        int ndigits = nbytes / sizeof(digit_t);
+        int rem = nbytes % sizeof(digit_t);
 
-    for (int i = 0; i < ndigits; i++) {
-        ((digit_t*)enc)[i] = BSWAP_DIGIT(x[i]);
-    }
+        for (int i = 0; i < ndigits; i++) {
+            digit_t temp = S2N_SIKE_P434_R3_BSWAP_DIGIT(x[i]);
+            memcpy(enc + (i * sizeof(digit_t)), (unsigned char *)&temp, sizeof(digit_t));
+        }
 
-    if (rem) {
-        digit_t ld = BSWAP_DIGIT(x[ndigits]);
-        memcpy(enc + ndigits*sizeof(digit_t), (unsigned char*)&ld, rem);
+        if (rem) {
+            digit_t ld = S2N_SIKE_P434_R3_BSWAP_DIGIT(x[ndigits]);
+            memcpy(enc + ndigits * sizeof(digit_t), (unsigned char *) &ld, rem);
+        }
+    } else {
+        memcpy(enc, (const unsigned char *) x, nbytes);
     }
-#else    
-    memcpy(enc, (const unsigned char*)x, nbytes);
-#endif
 }
 
 /* Conversion of GF(p^2) element from Montgomery to standard representation,
@@ -68,15 +69,15 @@ void fp2_encode(const f2elm_t *x, unsigned char *enc)
     f2elm_t t;
 
     from_fp2mont(x, &t);
-    encode_to_bytes(t.e[0], enc, FP2_ENCODED_BYTES / 2);
-    encode_to_bytes(t.e[1], enc + FP2_ENCODED_BYTES / 2, FP2_ENCODED_BYTES / 2);
+    encode_to_bytes(t.e[0], enc, S2N_SIKE_P434_R3_FP2_ENCODED_BYTES / 2);
+    encode_to_bytes(t.e[1], enc + S2N_SIKE_P434_R3_FP2_ENCODED_BYTES / 2, S2N_SIKE_P434_R3_FP2_ENCODED_BYTES / 2);
 }
 
 /* Parse byte sequence back into GF(p^2) element, and conversion to Montgomery representation */
 void fp2_decode(const unsigned char *x, f2elm_t *dec)
 {
-    decode_to_digits(x, dec->e[0], FP2_ENCODED_BYTES / 2, S2N_SIKE_P434_R3_NWORDS_FIELD);
-    decode_to_digits(x + FP2_ENCODED_BYTES / 2, dec->e[1], FP2_ENCODED_BYTES / 2, S2N_SIKE_P434_R3_NWORDS_FIELD);
+    decode_to_digits(x, dec->e[0], S2N_SIKE_P434_R3_FP2_ENCODED_BYTES / 2, S2N_SIKE_P434_R3_NWORDS_FIELD);
+    decode_to_digits(x + S2N_SIKE_P434_R3_FP2_ENCODED_BYTES / 2, dec->e[1], S2N_SIKE_P434_R3_FP2_ENCODED_BYTES / 2, S2N_SIKE_P434_R3_NWORDS_FIELD);
     to_fp2mont(dec, dec);
 }
 
@@ -147,7 +148,7 @@ unsigned int mp_add(const digit_t* a, const digit_t* b, digit_t* c, const unsign
     unsigned int i, carry = 0;
         
     for (i = 0; i < nwords; i++) {                      
-        ADDC(carry, a[i], b[i], carry, c[i]);
+        S2N_SIKE_P434_R3_ADDC(carry, a[i], b[i], carry, c[i]);
     }
 
     return carry;
@@ -173,21 +174,21 @@ static unsigned int mp_sub(const digit_t* a, const digit_t* b, digit_t* c, const
     unsigned int i, borrow = 0;
 
     for (i = 0; i < nwords; i++) {
-        SUBC(borrow, a[i], b[i], borrow, c[i]);
+        S2N_SIKE_P434_R3_SUBC(borrow, a[i], b[i], borrow, c[i]);
     }
 
     return borrow;
 }
 
-/* Multiprecision subtraction followed by addition with p*2^MAXBITS_FIELD,
- * c = a-b+(p*2^MAXBITS_FIELD) if a-b < 0, otherwise c=a-b. */
+/* Multiprecision subtraction followed by addition with p*2^S2N_SIKE_P434_R3_MAXBITS_FIELD,
+ * c = a-b+(p*2^S2N_SIKE_P434_R3_MAXBITS_FIELD) if a-b < 0, otherwise c=a-b. */
 __inline static void mp_subaddfast(const digit_t* a, const digit_t* b, digit_t* c)
 {
     felm_t t1;
 
     digit_t mask = 0 - (digit_t)mp_sub(a, b, c, 2*S2N_SIKE_P434_R3_NWORDS_FIELD);
     for (int i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
-        t1[i] = ((const digit_t *) PRIME)[i] & mask;
+        t1[i] = ((const digit_t *) p434)[i] & mask;
     }
     mp_addfast((digit_t*)&c[S2N_SIKE_P434_R3_NWORDS_FIELD], t1, (digit_t*)&c[S2N_SIKE_P434_R3_NWORDS_FIELD]);
 }
@@ -213,7 +214,7 @@ void fp2mul_mont(const f2elm_t *a, const f2elm_t *b, f2elm_t *c)
     mp_mul(a->e[1], b->e[1], tt2, S2N_SIKE_P434_R3_NWORDS_FIELD);           // tt2 = a1*b1
     mp_mul(t1, t2, tt3, S2N_SIKE_P434_R3_NWORDS_FIELD);               // tt3 = (a0+a1)*(b0+b1)
     mp_dblsubfast(tt1, tt2, tt3);                    // tt3 = (a0+a1)*(b0+b1) - a0*b0 - a1*b1
-    mp_subaddfast(tt1, tt2, tt1);                    // tt1 = a0*b0 - a1*b1 + p*2^MAXBITS_FIELD if a0*b0 - a1*b1 < 0, else tt1 = a0*b0 - a1*b1
+    mp_subaddfast(tt1, tt2, tt1);                    // tt1 = a0*b0 - a1*b1 + p*2^S2N_SIKE_P434_R3_MAXBITS_FIELD if a0*b0 - a1*b1 < 0, else tt1 = a0*b0 - a1*b1
     rdc_mont(tt3, c->e[1]);                             // c[1] = (a0+a1)*(b0+b1) - a0*b0 - a1*b1
     rdc_mont(tt1, c->e[0]);                             // c[0] = a0*b0 - a1*b1
 }
@@ -411,7 +412,7 @@ void mp_shiftr1(digit_t* x, const unsigned int nwords)
     unsigned int i;
 
     for (i = 0; i < nwords-1; i++) {
-        SHIFTR(x[i+1], x[i], 1, x[i], S2N_SIKE_P434_R3_RADIX);
+        S2N_SIKE_P434_R3_SHIFTR(x[i+1], x[i], 1, x[i], S2N_SIKE_P434_R3_RADIX);
     }
     x[nwords-1] >>= 1;
 }
@@ -420,11 +421,12 @@ void decode_to_digits(const unsigned char* x, digit_t* dec, int nbytes, int ndig
 {
     dec[ndigits - 1] = 0;
     memcpy((unsigned char*)dec, x, nbytes);
-#ifdef _BIG_ENDIAN_
-    for (int i = 0; i < ndigits; i++) {
-        dec[i] = BSWAP_DIGIT(dec[i]);
+
+    if (is_big_endian()) {
+        for (int i = 0; i < ndigits; i++) {
+            dec[i] = S2N_SIKE_P434_R3_BSWAP_DIGIT(dec[i]);
+        }
     }
-#endif
 }
 
 void fpcopy(const felm_t a, felm_t c)

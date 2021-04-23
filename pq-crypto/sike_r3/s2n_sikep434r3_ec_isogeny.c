@@ -309,10 +309,10 @@ void LADDER3PT(const f2elm_t *xP, const f2elm_t *xQ, const f2elm_t *xPQ, const d
     digit_t mask;
     int i, nbits, swap, prevbit = 0;
 
-    if (AliceOrBob == ALICE) {
-        nbits = OALICE_BITS;
+    if (AliceOrBob == S2N_SIKE_P434_R3_ALICE) {
+        nbits = S2N_SIKE_P434_R3_OALICE_BITS;
     } else {
-        nbits = OBOB_BITS - 1;
+        nbits = S2N_SIKE_P434_R3_OBOB_BITS - 1;
     }
 
     // Initializing constant
