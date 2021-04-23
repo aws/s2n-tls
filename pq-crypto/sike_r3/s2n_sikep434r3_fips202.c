@@ -12,9 +12,8 @@
 *********************************************************************************************/  
 
 #include <stdint.h>
-#include <assert.h>
 #include <stddef.h>
-#include <string.h>
+#include "s2n_sikep434r3.h"
 #include "s2n_sikep434r3_fips202.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))

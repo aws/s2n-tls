@@ -7,8 +7,8 @@
 #pragma once
 
 #include <string.h>
-#include "s2n_sikep434r3_fp.h"
 #include "s2n_sikep434r3.h"
+#include "s2n_sikep434r3_fp.h"
 
 #define ct_compare S2N_SIKE_P434_R3_NAMESPACE(ct_compare)
 int8_t ct_compare(const uint8_t *a, const uint8_t *b, unsigned int len);

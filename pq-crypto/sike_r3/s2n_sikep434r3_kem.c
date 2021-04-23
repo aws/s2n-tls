@@ -5,12 +5,12 @@
 *********************************************************************************************/ 
 
 #include <string.h>
+#include "s2n_sikep434r3.h"
 #include "s2n_sikep434r3_fips202.h"
 #include "utils/s2n_safety.h"
 #include "tls/s2n_kem.h"
 #include "pq-crypto/s2n_pq.h"
 #include "pq-crypto/s2n_pq_random.h"
-#include "s2n_sikep434r3.h"
 #include "s2n_sikep434r3_fpx.h"
 #include "s2n_sikep434r3_api.h"
 
