@@ -71,7 +71,7 @@ int s2n_fuzz_init(int *argc, char **argv[])
     POSIX_ENSURE_REF(private_key_pem);
     POSIX_ENSURE_REF(dhparams_pem);
 
-    s2n_read_test_pem_and_len(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, &cert_chain_pem, S2N_MAX_TEST_PEM_SIZE);
+    s2n_read_test_pem_and_len(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, &cert_chain_len, S2N_MAX_TEST_PEM_SIZE);
     s2n_read_test_pem_and_len(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, &private_key_len, S2N_MAX_TEST_PEM_SIZE);
     s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE);
 
@@ -81,7 +81,7 @@ int s2n_fuzz_init(int *argc, char **argv[])
     POSIX_ENSURE_REF(config);
     POSIX_ENSURE_REF(chain_and_key);
 
-    s2n_cert_chain_and_key_load_pem_using_len(chain_and_key, cert_chain_pem, cert_chain_pem, private_key_pem, private_key_len);
+    s2n_cert_chain_and_key_load_pem_using_len(chain_and_key, cert_chain_pem, cert_chain_len, private_key_pem, private_key_len);
     s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key);
     s2n_config_add_dhparams(config, dhparams_pem);
 
