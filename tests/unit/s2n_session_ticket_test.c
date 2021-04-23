@@ -1067,7 +1067,7 @@ int main(int argc, char **argv)
             conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
             EXPECT_TRUE(s2n_connection_is_session_resumed(conn));
 
-            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
         /* TLS1.3 */
@@ -1088,7 +1088,7 @@ int main(int argc, char **argv)
             conn->psk_params.type = S2N_PSK_TYPE_RESUMPTION;
             EXPECT_TRUE(s2n_connection_is_session_resumed(conn));
 
-            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
         }
     }
 
