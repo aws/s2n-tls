@@ -92,32 +92,32 @@ typedef enum {
 } s2n_psk_hmac;
 
 struct s2n_psk;
-struct s2n_psk* s2n_external_psk_new();
-int s2n_psk_free(struct s2n_psk **psk);
-int s2n_psk_set_identity(struct s2n_psk *psk, const uint8_t *identity, uint16_t identity_size);
-int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secret_size);
-int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac);
+S2N_API struct s2n_psk* s2n_external_psk_new();
+S2N_API int s2n_psk_free(struct s2n_psk **psk);
+S2N_API int s2n_psk_set_identity(struct s2n_psk *psk, const uint8_t *identity, uint16_t identity_size);
+S2N_API int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secret_size);
+S2N_API int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac);
 
-int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk);
+S2N_API int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk);
 
 typedef enum { S2N_PSK_MODE_RESUMPTION, S2N_PSK_MODE_EXTERNAL } s2n_psk_mode;
-int s2n_config_set_psk_mode(struct s2n_config *config, s2n_psk_mode mode);
-int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode);
+S2N_API int s2n_config_set_psk_mode(struct s2n_config *config, s2n_psk_mode mode);
+S2N_API int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode);
 
-int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *conn, uint16_t *identity_length);
-int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint8_t *identity, uint16_t max_identity_length);
+S2N_API int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *conn, uint16_t *identity_length);
+S2N_API int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint8_t *identity, uint16_t max_identity_length);
 
 struct s2n_offered_psk;
-struct s2n_offered_psk* s2n_offered_psk_new();
-int s2n_offered_psk_free(struct s2n_offered_psk **psk);
-int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t** identity, uint16_t *size);
+S2N_API struct s2n_offered_psk* s2n_offered_psk_new();
+S2N_API int s2n_offered_psk_free(struct s2n_offered_psk **psk);
+S2N_API int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t** identity, uint16_t *size);
 
 struct s2n_offered_psk_list;
-bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list);
-int s2n_offered_psk_list_next(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
-int s2n_offered_psk_list_reread(struct s2n_offered_psk_list *psk_list);
-int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
+S2N_API bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list);
+S2N_API int s2n_offered_psk_list_next(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
+S2N_API int s2n_offered_psk_list_reread(struct s2n_offered_psk_list *psk_list);
+S2N_API int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
 
 typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn, void *context,
                                           struct s2n_offered_psk_list *psk_list);
-int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb, void *context);
+S2N_API int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb, void *context);
