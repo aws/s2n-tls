@@ -237,11 +237,9 @@ static S2N_RESULT s2n_select_resumption_psk(struct s2n_connection *conn, struct 
     while (s2n_offered_psk_list_has_next(client_identity_list)) {
         RESULT_GUARD_POSIX(s2n_offered_psk_list_next(client_identity_list, &client_psk));
         /* Select the first resumption PSK that can be decrypted */
-        if (s2n_offered_psk_list_choose_psk(client_identity_list, &client_psk) != S2N_SUCCESS) {
-            continue;
+        if (s2n_offered_psk_list_choose_psk(client_identity_list, &client_psk) == S2N_SUCCESS) {
+            return S2N_RESULT_OK;
         }
-
-        return S2N_RESULT_OK;
     }
 
     RESULT_BAIL(S2N_ERR_INVALID_SESSION_TICKET);

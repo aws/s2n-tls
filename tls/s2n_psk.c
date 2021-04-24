@@ -297,6 +297,10 @@ static S2N_RESULT s2n_validate_ticket_lifetime(struct s2n_connection *conn, uint
 {
     RESULT_ENSURE_REF(conn);
 
+    if (conn->psk_params.type == S2N_PSK_TYPE_EXTERNAL) {
+        return S2N_RESULT_OK;
+    }
+
     /* Subtract the ticket_age_add value from the ticket age in milliseconds. The resulting uint32_t value
      * may wrap, resulting in the modulo 2^32 operation. */
     uint32_t ticket_age_in_millis = obfuscated_ticket_age - ticket_age_add;
@@ -318,24 +322,20 @@ int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struc
         return S2N_SUCCESS;
     }
     
-    if (psk_params->type == S2N_PSK_TYPE_EXTERNAL) {
-        POSIX_GUARD_RESULT(s2n_match_psk_identity(&psk_params->psk_list, &psk->identity, &psk_params->chosen_psk));
-    } else {
-        struct s2n_stuffer ticket_stuffer = { 0 };
-        POSIX_GUARD(s2n_stuffer_init(&ticket_stuffer, &psk->identity));
-        POSIX_GUARD(s2n_stuffer_skip_write(&ticket_stuffer, psk->identity.size));
-        psk_list->conn->client_ticket_to_decrypt = ticket_stuffer;
+    if (psk_params->type == S2N_PSK_TYPE_RESUMPTION) {
+        POSIX_GUARD(s2n_stuffer_init(&psk_list->conn->client_ticket_to_decrypt, &psk->identity));
+        POSIX_GUARD(s2n_stuffer_skip_write(&psk_list->conn->client_ticket_to_decrypt, psk->identity.size));
 
+        /* s2n_decrypt_session_ticket appends a new PSK with the decrypted values. */
         POSIX_GUARD(s2n_decrypt_session_ticket(psk_list->conn));
-
-        /* If the decrypt_session_ticket method succeeds, a new PSK has been added. */
-        struct s2n_psk *decrypted_psk = NULL;
-        POSIX_GUARD_RESULT(s2n_match_psk_identity(&psk_params->psk_list, &psk->identity, &decrypted_psk));
-        POSIX_ENSURE_REF(decrypted_psk);
-        POSIX_GUARD_RESULT(s2n_validate_ticket_lifetime(psk_list->conn, psk->obfuscated_ticket_age, decrypted_psk->ticket_age_add));
-        psk_params->chosen_psk = decrypted_psk;
     }
+    struct s2n_psk *chosen_psk = NULL;
+    POSIX_GUARD_RESULT(s2n_match_psk_identity(&psk_params->psk_list, &psk->identity, &chosen_psk));
+    POSIX_ENSURE_REF(chosen_psk);
+    POSIX_GUARD_RESULT(s2n_validate_ticket_lifetime(psk_list->conn, psk->obfuscated_ticket_age, chosen_psk->ticket_age_add));
+    psk_params->chosen_psk = chosen_psk;
     psk_params->chosen_psk_wire_index = psk->wire_index;
+
     return S2N_SUCCESS;
 }
 

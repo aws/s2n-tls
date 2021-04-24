@@ -34,7 +34,7 @@ static int s2n_setup_ticket_key(struct s2n_config *config)
     "90b6c73bb50f9c3122ec844ad7c2b3e5");
 
     /* Set up encryption key */
-    uint64_t current_time;
+    uint64_t current_time = 0;
     uint8_t ticket_key_name[16] = "2016.07.26.15\0";
 
     POSIX_GUARD(s2n_config_set_session_tickets_onoff(config, 1));
@@ -415,7 +415,7 @@ int main(int argc, char **argv)
 
         /* Test: No known PSKs */
         {
-            EXPECT_SUCCESS(s2n_offered_psk_list_choose_psk(&offered_psk_list, &offered_psk));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_psk_list_choose_psk(&offered_psk_list, &offered_psk), S2N_ERR_NULL);
             EXPECT_NULL(conn->psk_params.chosen_psk);
         }
 
@@ -426,7 +426,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_psk_init(different_identity, S2N_PSK_TYPE_EXTERNAL));
             EXPECT_SUCCESS(s2n_psk_set_identity(different_identity, wire_identity_2, sizeof(wire_identity_2)));
 
-            EXPECT_SUCCESS(s2n_offered_psk_list_choose_psk(&offered_psk_list, &offered_psk));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_offered_psk_list_choose_psk(&offered_psk_list, &offered_psk), S2N_ERR_NULL);
             EXPECT_NULL(conn->psk_params.chosen_psk);
         }
 
