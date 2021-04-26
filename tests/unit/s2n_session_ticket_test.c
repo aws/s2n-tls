@@ -1080,11 +1080,11 @@ int main(int argc, char **argv)
             conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
             EXPECT_FALSE(s2n_connection_is_session_resumed(conn));
 
-            conn->handshake.handshake_type = NEGOTIATED | WITH_SESSION_TICKET;
+            conn->handshake.handshake_type = NEGOTIATED;
             conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
             EXPECT_FALSE(s2n_connection_is_session_resumed(conn));
 
-            conn->handshake.handshake_type = NEGOTIATED | WITH_SESSION_TICKET;
+            conn->handshake.handshake_type = NEGOTIATED;
             conn->psk_params.type = S2N_PSK_TYPE_RESUMPTION;
             EXPECT_TRUE(s2n_connection_is_session_resumed(conn));
 
