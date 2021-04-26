@@ -65,6 +65,7 @@ S2N_CLEANUP_RESULT s2n_psk_parameters_wipe_secrets(struct s2n_psk_parameters *pa
 struct s2n_offered_psk {
     struct s2n_blob identity;
     uint16_t wire_index;
+    uint32_t obfuscated_ticket_age;
 };
 
 struct s2n_offered_psk_list {

@@ -120,7 +120,7 @@ static S2N_RESULT s2n_generate_obfuscated_ticket_age(struct s2n_psk *psk, uint64
     RESULT_ENSURE(ticket_age_in_millis <= UINT32_MAX, S2N_ERR_SAFETY);
 
     /* Add the ticket_age_add value to the ticket age in milliseconds. The resulting uint32_t value
-     * will wrap, resulting in the modulo 2^32 operation. */
+     * may wrap, resulting in the modulo 2^32 operation. */
     *output = ticket_age_in_millis + psk->ticket_age_add;
 
     return S2N_RESULT_OK;
@@ -194,7 +194,7 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
  * and an attacker could probably guess the server's known identities just by observing the public identities
  * sent by clients.
  */
-static S2N_RESULT s2n_select_psk_identity(struct s2n_connection *conn, struct s2n_offered_psk_list *client_identity_list)
+static S2N_RESULT s2n_select_external_psk(struct s2n_connection *conn, struct s2n_offered_psk_list *client_identity_list)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(client_identity_list);
@@ -227,6 +227,24 @@ static S2N_RESULT s2n_select_psk_identity(struct s2n_connection *conn, struct s2
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_select_resumption_psk(struct s2n_connection *conn, struct s2n_offered_psk_list *client_identity_list) {
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(client_identity_list);
+
+    struct s2n_offered_psk client_psk = { 0 };
+    conn->psk_params.chosen_psk = NULL;
+
+    while (s2n_offered_psk_list_has_next(client_identity_list)) {
+        RESULT_GUARD_POSIX(s2n_offered_psk_list_next(client_identity_list, &client_psk));
+        /* Select the first resumption PSK that can be decrypted */
+        if (s2n_offered_psk_list_choose_psk(client_identity_list, &client_psk) == S2N_SUCCESS) {
+            return S2N_RESULT_OK;
+        }
+    }
+
+    RESULT_BAIL(S2N_ERR_INVALID_SESSION_TICKET);
+}
+
 static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn, struct s2n_stuffer *wire_identities_in)
 {
     RESULT_ENSURE_REF(conn);
@@ -240,9 +258,12 @@ static S2N_RESULT s2n_client_psk_recv_identity_list(struct s2n_connection *conn,
 
     if (conn->config->psk_selection_cb) {
         RESULT_GUARD_POSIX(conn->config->psk_selection_cb(conn, conn->config->psk_selection_ctx, &identity_list));
-    } else {
-        RESULT_GUARD(s2n_select_psk_identity(conn, &identity_list));
+    } else if(conn->psk_params.type == S2N_PSK_TYPE_EXTERNAL) {
+        RESULT_GUARD(s2n_select_external_psk(conn, &identity_list));
+    } else if(conn->psk_params.type == S2N_PSK_TYPE_RESUMPTION) {
+        RESULT_GUARD(s2n_select_resumption_psk(conn, &identity_list));
     }
+
     RESULT_ENSURE_REF(conn->psk_params.chosen_psk);
     return S2N_RESULT_OK;
 }

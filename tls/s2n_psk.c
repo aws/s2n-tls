@@ -205,6 +205,7 @@ bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list)
 S2N_RESULT s2n_offered_psk_list_read_next(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk)
 {
     RESULT_ENSURE_REF(psk_list);
+    RESULT_ENSURE_REF(psk_list->conn);
     RESULT_ENSURE_MUT(psk);
 
     uint16_t identity_size = 0;
@@ -220,7 +221,11 @@ S2N_RESULT s2n_offered_psk_list_read_next(struct s2n_offered_psk_list *psk_list,
      *# For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
      *# used, and servers MUST ignore the value.
      */
-    RESULT_GUARD_POSIX(s2n_stuffer_skip_read(&psk_list->wire_data, sizeof(uint32_t)));
+    if (psk_list->conn->psk_params.type == S2N_PSK_TYPE_EXTERNAL) {
+        RESULT_GUARD_POSIX(s2n_stuffer_skip_read(&psk_list->wire_data, sizeof(uint32_t)));
+    } else {
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(&psk_list->wire_data, &psk->obfuscated_ticket_age));
+    }
 
     RESULT_GUARD_POSIX(s2n_blob_init(&psk->identity, identity_data, identity_size));
     psk->wire_index = psk_list->wire_index;
@@ -280,6 +285,31 @@ static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const str
     return S2N_RESULT_OK;
 }
 
+/**
+ *= https://tools.ietf.org/html/rfc8446#section-4.2.10  
+ *# For PSKs provisioned via NewSessionTicket, a server MUST validate
+ *#  that the ticket age for the selected PSK identity (computed by
+ *#  subtracting ticket_age_add from PskIdentity.obfuscated_ticket_age
+ *#  modulo 2^32) is within a small tolerance of the time since the ticket
+ *#  was issued (see Section 8).
+ **/
+static S2N_RESULT s2n_validate_ticket_lifetime(struct s2n_connection *conn, uint32_t obfuscated_ticket_age, uint32_t ticket_age_add) 
+{
+    RESULT_ENSURE_REF(conn);
+
+    if (conn->psk_params.type == S2N_PSK_TYPE_EXTERNAL) {
+        return S2N_RESULT_OK;
+    }
+
+    /* Subtract the ticket_age_add value from the ticket age in milliseconds. The resulting uint32_t value
+     * may wrap, resulting in the modulo 2^32 operation. */
+    uint32_t ticket_age_in_millis = obfuscated_ticket_age - ticket_age_add;
+    uint32_t session_lifetime_in_millis = conn->config->session_state_lifetime_in_nanos / ONE_MILLISEC_IN_NANOS;
+    RESULT_ENSURE(ticket_age_in_millis <= session_lifetime_in_millis, S2N_ERR_INVALID_SESSION_TICKET);
+
+    return S2N_RESULT_OK;
+}
+
 int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk)
 {
     POSIX_ENSURE_REF(psk_list);
@@ -291,9 +321,21 @@ int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struc
         psk_params->chosen_psk = NULL;
         return S2N_SUCCESS;
     }
+    
+    if (psk_params->type == S2N_PSK_TYPE_RESUMPTION) {
+        POSIX_GUARD(s2n_stuffer_init(&psk_list->conn->client_ticket_to_decrypt, &psk->identity));
+        POSIX_GUARD(s2n_stuffer_skip_write(&psk_list->conn->client_ticket_to_decrypt, psk->identity.size));
 
-    POSIX_GUARD_RESULT(s2n_match_psk_identity(&psk_params->psk_list, &psk->identity, &psk_params->chosen_psk));
+        /* s2n_decrypt_session_ticket appends a new PSK with the decrypted values. */
+        POSIX_GUARD(s2n_decrypt_session_ticket(psk_list->conn));
+    }
+    struct s2n_psk *chosen_psk = NULL;
+    POSIX_GUARD_RESULT(s2n_match_psk_identity(&psk_params->psk_list, &psk->identity, &chosen_psk));
+    POSIX_ENSURE_REF(chosen_psk);
+    POSIX_GUARD_RESULT(s2n_validate_ticket_lifetime(psk_list->conn, psk->obfuscated_ticket_age, chosen_psk->ticket_age_add));
+    psk_params->chosen_psk = chosen_psk;
     psk_params->chosen_psk_wire_index = psk->wire_index;
+
     return S2N_SUCCESS;
 }
 
