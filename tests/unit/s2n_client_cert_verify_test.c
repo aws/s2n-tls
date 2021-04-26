@@ -47,7 +47,7 @@ static int test_sign(const struct s2n_pkey *priv_key, s2n_signature_algorithm si
     return S2N_SUCCESS;
 }
 
-void *pkey_task(void *param)
+void *s2n_test_pkey_task(void *param)
 {
     struct s2n_cert_chain_and_key *chain_and_key = s2n_connection_get_selected_cert(pkey_conn);
     EXPECT_NOT_NULL(chain_and_key);
@@ -67,12 +67,12 @@ int async_pkey_perform_op(struct s2n_connection *conn, struct s2n_async_pkey_op 
     pkey_op = op;
     pkey_conn = conn;
 
-    POSIX_GUARD(pthread_create(&worker, NULL, &pkey_task, NULL));
+    POSIX_GUARD(pthread_create(&worker, NULL, &s2n_test_pkey_task, NULL));
 
     return S2N_SUCCESS;
 }
 
-static int negotiate(struct s2n_connection *conn, s2n_blocked_status *block) 
+static int s2n_test_negotiate_with_async_pkey_op(struct s2n_connection *conn, s2n_blocked_status *block) 
 {
     int rc = s2n_negotiate(conn, block);
     if (!(rc == 0 || (*block && s2n_error_get_type(s2n_errno) == S2N_ERR_T_BLOCKED))) {
@@ -90,14 +90,14 @@ static int negotiate(struct s2n_connection *conn, s2n_blocked_status *block)
     return S2N_SUCCESS;
 }
 
-static int try_handshake(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
+static int s2n_try_handshake_with_async_pkey_op(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
 {
     s2n_blocked_status server_blocked = { 0 };
     s2n_blocked_status client_blocked = { 0 };
 
     do {
-        EXPECT_SUCCESS(negotiate(client_conn, &client_blocked));
-        EXPECT_SUCCESS(negotiate(server_conn, &server_blocked));
+        EXPECT_SUCCESS(s2n_test_negotiate_with_async_pkey_op(client_conn, &client_blocked));
+        EXPECT_SUCCESS(s2n_test_negotiate_with_async_pkey_op(server_conn, &server_blocked));
 
         POSIX_GUARD(pthread_join(worker, NULL));
     } while (client_blocked || server_blocked);
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     }
 
-    /*  Test: client certificate verify. */
+    /*  Test: async private key operations. */
     {
         struct s2n_cert_chain_and_key *chain_and_key;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
@@ -157,6 +157,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(config, async_pkey_perform_op));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        /* This cipher preference is set to avoid TLS 1.3. */
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
 
         /* Create connection */
@@ -176,7 +177,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
-        EXPECT_SUCCESS(try_handshake(server_conn, client_conn));
+        EXPECT_SUCCESS(s2n_try_handshake_with_async_pkey_op(server_conn, client_conn));
 
         /* Verify that both connections negotiated Mutual Auth */
         EXPECT_TRUE(s2n_connection_client_cert_used(server_conn));
