@@ -80,6 +80,7 @@ static int s2n_test_negotiate_with_async_pkey_op(struct s2n_connection *conn, s2
     }
 
     if (*block == S2N_BLOCKED_ON_APPLICATION_INPUT && pkey_op != NULL) {
+        POSIX_GUARD(pthread_join(worker, NULL));
         if (s2n_async_pkey_op_apply(pkey_op, conn) == S2N_SUCCESS) {
             EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
             pkey_op = NULL;
@@ -98,8 +99,6 @@ static int s2n_try_handshake_with_async_pkey_op(struct s2n_connection *server_co
     do {
         EXPECT_SUCCESS(s2n_test_negotiate_with_async_pkey_op(client_conn, &client_blocked));
         EXPECT_SUCCESS(s2n_test_negotiate_with_async_pkey_op(server_conn, &server_blocked));
-
-        POSIX_GUARD(pthread_join(worker, NULL));
     } while (client_blocked || server_blocked);
 
     POSIX_GUARD(s2n_shutdown_test_server_and_client(server_conn, client_conn));
