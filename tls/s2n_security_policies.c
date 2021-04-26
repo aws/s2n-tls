@@ -70,6 +70,14 @@ const struct s2n_security_policy security_policy_20170405 = {
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
+const struct s2n_security_policy security_policy_20170405_gcm = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_20170405_gcm,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
+};
+
 const struct s2n_security_policy security_policy_elb_2015_04 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &elb_security_policy_2015_04,
@@ -441,6 +449,14 @@ const struct s2n_security_policy security_policy_20190214 = {
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
+const struct s2n_security_policy security_policy_20190214_gcm = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_20190214_gcm,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
+};
+
 const struct s2n_security_policy security_policy_20170328 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20170328,
@@ -449,9 +465,25 @@ const struct s2n_security_policy security_policy_20170328 = {
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
+const struct s2n_security_policy security_policy_20170328_gcm = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_20170328_gcm,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
+};
+
 const struct s2n_security_policy security_policy_20170718 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20170718,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
+};
+
+const struct s2n_security_policy security_policy_20170718_gcm = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_20170718_gcm,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
@@ -581,9 +613,13 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="20160824", .security_policy=&security_policy_20160824, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20170210", .security_policy=&security_policy_20170210, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20170328", .security_policy=&security_policy_20170328, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="20170328_gcm", .security_policy=&security_policy_20170328_gcm, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20190214", .security_policy=&security_policy_20190214, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="20190214_gcm", .security_policy=&security_policy_20190214_gcm, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20170405", .security_policy=&security_policy_20170405, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="20170405_gcm", .security_policy=&security_policy_20170405_gcm, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20170718", .security_policy=&security_policy_20170718, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="20170718_gcm", .security_policy=&security_policy_20170718_gcm, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20190120", .security_policy=&security_policy_20190120, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20190121", .security_policy=&security_policy_20190121, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="20190122", .security_policy=&security_policy_20190122, .ecc_extension_required=0, .pq_kem_extension_required=0 },
