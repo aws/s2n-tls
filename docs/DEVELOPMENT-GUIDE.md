@@ -159,7 +159,7 @@ As discussed below, s2n-tls rarely allocates resources, and so has nothing to cl
 #define DEFER_CLEANUP(_thealloc, _thecleanup) ...
 ```
 
-`GUARD_GOTO( x , label )` does traditional "goto" style cleanup: if the function `x` returns an error, control is transfered to label `label`.  It is the responsibility of the code at `label` to cleanup any resources, and then return `S2N_RESULT_ERROR`.
+`GUARD_GOTO( x , label )` does traditional "goto" style cleanup: if the function `x` returns an error, control is transferred to label `label`.  It is the responsibility of the code at `label` to cleanup any resources, and then return `S2N_RESULT_ERROR`.
 
 `DEFER_CLEANUP(_thealloc, _thecleanup)` is a more failsafe way of ensuring that resources are cleaned up, using the ` __attribute__((cleanup())` destructor mechanism available in modern C compilers.  When the variable declared in `_thealloc` goes out of scope, the cleanup function `_thecleanup` is automatically called.  This guarantees that resources will be cleaned up, no matter how the function exits.
 
