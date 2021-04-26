@@ -22,6 +22,9 @@
 #define S2N_STATE_LIFETIME_IN_NANOS     54000000000000      /* 15 hours */
 #define S2N_TLS12_STATE_SIZE_IN_BYTES   (1 + 8 + 1 + S2N_TLS_CIPHER_SUITE_LEN + S2N_TLS_SECRET_LEN)
 
+#define S2N_TLS13_FIXED_STATE_SIZE              21
+#define S2N_TLS13_FIXED_EARLY_DATA_STATE_SIZE   3
+
 #define S2N_TLS_SESSION_CACHE_TTL       (6 * 60 * 60)
 #define S2N_TICKET_KEY_NAME_LEN         16
 #define S2N_TICKET_AAD_IMPLICIT_LEN     12
@@ -72,7 +75,7 @@ struct s2n_session_ticket {
 };
 
 extern struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t *name);
-extern int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_ticket_fields *ticket_fields, struct s2n_stuffer *to);
+extern int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *to);
 extern int s2n_decrypt_session_ticket(struct s2n_connection *conn);
 extern int s2n_encrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *to); 
 extern int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *from); 
@@ -94,7 +97,7 @@ typedef enum {
 extern int s2n_allowed_to_cache_connection(struct s2n_connection *conn);
 extern int s2n_resume_from_cache(struct s2n_connection *conn);
 extern int s2n_store_to_cache(struct s2n_connection *conn);
-int s2n_client_serialize_resumption_state(struct s2n_connection *conn, struct s2n_ticket_fields *ticket_fields, struct s2n_stuffer *to);
+S2N_RESULT s2n_connection_get_session_state_size(struct s2n_connection *conn, size_t *state_size);
 
 /* These functions will be labeled S2N_API and become a publicly visible api 
  * once we release the session resumption API. */

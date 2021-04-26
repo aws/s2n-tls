@@ -46,12 +46,13 @@ static int s2n_setup_ticket_key(struct s2n_config *config)
 
 static S2N_RESULT s2n_setup_encrypted_ticket(struct s2n_connection *conn, struct s2n_stuffer *output)
 {
-    struct s2n_ticket_fields ticket_fields = { 0 };
+    conn->tls13_ticket_fields = (struct s2n_ticket_fields) { 0 };
     uint8_t test_secret_data[] = "test secret";
-    RESULT_GUARD_POSIX(s2n_blob_init(&ticket_fields.session_secret, test_secret_data, sizeof(test_secret_data)));
+    RESULT_GUARD_POSIX(s2n_alloc(&conn->tls13_ticket_fields.session_secret, sizeof(test_secret_data)));
+    RESULT_CHECKED_MEMCPY(conn->tls13_ticket_fields.session_secret.data, test_secret_data, sizeof(test_secret_data));
 
     /* Create a valid resumption psk identity */
-    RESULT_GUARD_POSIX(s2n_encrypt_session_ticket(conn, &ticket_fields, output));
+    RESULT_GUARD_POSIX(s2n_encrypt_session_ticket(conn, output));
     output->blob.size = s2n_stuffer_data_available(output);
 
     return S2N_RESULT_OK;
