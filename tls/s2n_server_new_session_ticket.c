@@ -46,7 +46,7 @@
  */
 #define S2N_TLS13_VARIABLE_SESSION_STATE_SIZE(conn) ( ((uint8_t) strlen(conn->application_protocol)) + conn->server_early_data_context.size )
 
-#define S2N_TLS13_NEW_SESSION_TICKET_SIZE(conn)     ( 143 + S2N_TLS13_VARIABLE_SESSION_STATE_SIZE(conn) )
+#define S2N_TLS13_NEW_SESSION_TICKET_SIZE(conn)     ( 151 + S2N_TLS13_VARIABLE_SESSION_STATE_SIZE(conn) )
 #define S2N_TLS13_CLIENT_SESSION_TICKET_SIZE(conn)  ( 75 + conn->client_ticket.size + S2N_TLS13_VARIABLE_SESSION_STATE_SIZE(conn) )
 
 int s2n_server_nst_recv(struct s2n_connection *conn) {
@@ -116,6 +116,22 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
     RESULT_ENSURE_REF(conn);
 
     if (conn->mode != S2N_SERVER || conn->actual_protocol_version < S2N_TLS13) {
+        return S2N_RESULT_OK;
+    }
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+     *# Note that in principle it is possible to continue issuing new tickets
+     *# which indefinitely extend the lifetime of the keying material
+     *# originally derived from an initial non-PSK handshake (which was most
+     *# likely tied to the peer's certificate). It is RECOMMENDED that
+     *# implementations place limits on the total lifetime of such keying
+     *# material; these limits should take into account the lifetime of the
+     *# peer's certificate, the likelihood of intervening revocation, and the
+     *# time since the peer's online CertificateVerify signature.
+     */
+    if (s2n_result_is_error(s2n_psk_validate_keying_material(conn))) {
+        conn->tickets_to_send = conn->tickets_sent;
         return S2N_RESULT_OK;
     }
 

@@ -725,6 +725,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_connection_init_hmacs(conn));
 
     POSIX_GUARD_RESULT(s2n_psk_parameters_init(&conn->psk_params));
+    conn->server_keying_material_lifetime = ONE_WEEK_IN_SEC;
 
     /* Require all handshakes hashes. This set can be reduced as the handshake progresses. */
     POSIX_GUARD(s2n_handshake_require_all_hashes(&conn->handshake));

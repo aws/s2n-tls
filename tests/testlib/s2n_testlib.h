@@ -59,6 +59,8 @@ int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn);
 int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn);
 int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_t version);
 
+S2N_RESULT s2n_config_mock_wall_clock(struct s2n_config *config, uint64_t *test_time_in_ns);
+
 struct s2n_psk* s2n_test_psk_new(struct s2n_connection *conn);
 S2N_RESULT s2n_append_test_psk_with_early_data(struct s2n_connection *conn, uint32_t max_early_data,
         const struct s2n_cipher_suite *cipher_suite);
