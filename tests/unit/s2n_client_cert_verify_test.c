@@ -142,23 +142,28 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
-        struct s2n_config *config;
-        EXPECT_NOT_NULL(config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-        EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(config, s2n_async_pkey_store_op));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        struct s2n_config *client_config;
+        EXPECT_NOT_NULL(client_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(client_config, s2n_async_pkey_store_op));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
         /* This cipher preference is set to avoid TLS 1.3. */
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20170210"));
 
         /* Create connection */
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(client_conn);
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED));
+
+        struct s2n_config *server_config;
+        EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
 
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
         EXPECT_NOT_NULL(server_conn);
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED));
 
         /* Create nonblocking pipes */
@@ -182,7 +187,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
+        EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     }
 
