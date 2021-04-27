@@ -77,8 +77,6 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
     POSIX_GUARD(s2n_hash_copy(&conn->handshake.ccv_hash_copy, &hash_state));
 
     S2N_ASYNC_PKEY_SIGN(conn, chosen_sig_scheme.sig_alg, &conn->handshake.ccv_hash_copy, s2n_client_cert_verify_send_complete);
-
-    return S2N_SUCCESS;
 }
 
 static int s2n_client_cert_verify_send_complete(struct s2n_connection *conn, struct s2n_blob *signature)

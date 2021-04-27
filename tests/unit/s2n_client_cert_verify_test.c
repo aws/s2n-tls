@@ -27,7 +27,6 @@
 
 static struct s2n_async_pkey_op *pkey_op = NULL;
 static struct s2n_connection *pkey_conn = NULL;
-static pthread_t worker = { 0 };
 
 const uint8_t test_signature_data[] = "I signed this";
 const uint32_t test_signature_size = sizeof(test_signature_data);
@@ -47,7 +46,7 @@ static int test_sign(const struct s2n_pkey *priv_key, s2n_signature_algorithm si
     return S2N_SUCCESS;
 }
 
-void *s2n_test_pkey_task(void *param)
+int s2n_async_pkey_store_perform(void)
 {
     struct s2n_cert_chain_and_key *chain_and_key = s2n_connection_get_selected_cert(pkey_conn);
     EXPECT_NOT_NULL(chain_and_key);
@@ -56,18 +55,16 @@ void *s2n_test_pkey_task(void *param)
     EXPECT_NOT_NULL(pkey);
 
     EXPECT_SUCCESS(s2n_async_pkey_op_perform(pkey_op, pkey));
-    pthread_exit(NULL);
+    return S2N_SUCCESS;
 }
 
-int async_pkey_perform_op(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
+int s2n_async_pkey_store_op(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
 {
     EXPECT_NOT_NULL(conn);
     EXPECT_NOT_NULL(op);
 
     pkey_op = op;
     pkey_conn = conn;
-
-    POSIX_GUARD(pthread_create(&worker, NULL, &s2n_test_pkey_task, NULL));
 
     return S2N_SUCCESS;
 }
@@ -80,12 +77,11 @@ static int s2n_test_negotiate_with_async_pkey_op(struct s2n_connection *conn, s2
     }
 
     if (*block == S2N_BLOCKED_ON_APPLICATION_INPUT && pkey_op != NULL) {
-        POSIX_GUARD(pthread_join(worker, NULL));
-        if (s2n_async_pkey_op_apply(pkey_op, conn) == S2N_SUCCESS) {
-            EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
-            pkey_op = NULL;
-            pkey_conn = NULL;
-        }
+        EXPECT_SUCCESS(s2n_async_pkey_store_perform());
+        EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
+        EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
+        pkey_op = NULL;
+        pkey_conn = NULL;
     }
 
     return S2N_SUCCESS;
@@ -154,7 +150,7 @@ int main(int argc, char **argv)
         struct s2n_config *config;
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-        EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(config, async_pkey_perform_op));
+        EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(config, s2n_async_pkey_store_op));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         /* This cipher preference is set to avoid TLS 1.3. */
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
