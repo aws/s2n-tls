@@ -45,18 +45,6 @@ static int test_sign(const struct s2n_pkey *priv_key, s2n_signature_algorithm si
     return S2N_SUCCESS;
 }
 
-int s2n_async_pkey_perform_stored_op(void)
-{
-    struct s2n_cert_chain_and_key *chain_and_key = s2n_connection_get_selected_cert(pkey_conn);
-    EXPECT_NOT_NULL(chain_and_key);
-
-    s2n_cert_private_key *pkey = s2n_cert_chain_and_key_get_private_key(chain_and_key);
-    EXPECT_NOT_NULL(pkey);
-
-    EXPECT_SUCCESS(s2n_async_pkey_op_perform(pkey_op, pkey));
-    return S2N_SUCCESS;
-}
-
 int s2n_async_pkey_store_op(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
 {
     EXPECT_NOT_NULL(conn);
@@ -76,7 +64,13 @@ static int s2n_test_negotiate_with_async_pkey_op(struct s2n_connection *conn, s2
     }
 
     if (*block == S2N_BLOCKED_ON_APPLICATION_INPUT && pkey_op != NULL) {
-        EXPECT_SUCCESS(s2n_async_pkey_perform_stored_op());
+        struct s2n_cert_chain_and_key *chain_and_key = s2n_connection_get_selected_cert(pkey_conn);
+        EXPECT_NOT_NULL(chain_and_key);
+
+        s2n_cert_private_key *pkey = s2n_cert_chain_and_key_get_private_key(chain_and_key);
+        EXPECT_NOT_NULL(pkey);
+
+        EXPECT_SUCCESS(s2n_async_pkey_op_perform(pkey_op, pkey));
         EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
         EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
         pkey_op = NULL;
