@@ -883,6 +883,7 @@ int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num)
     POSIX_ENSURE_REF(config);
 
     config->initial_tickets_to_send = num;
+    POSIX_GUARD(s2n_config_set_session_tickets_onoff(config, true));
 
     return S2N_SUCCESS;
 }
