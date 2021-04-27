@@ -14,7 +14,6 @@
  */
 
 #include <stdint.h>
-#include <pthread.h>
 #include <s2n.h>
 
 #include "s2n_test.h"
