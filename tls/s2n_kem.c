@@ -511,6 +511,10 @@ int BIKE1_L1_R1_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct
 int BIKE1_L1_R2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 int BIKE1_L1_R2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 int BIKE1_L1_R2_crypto_kem_dec(OUT unsigned char * ss, IN const unsigned char *ct, IN const unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
+/* bike1l1r3*/
+int BIKE_L1_R3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
+int BIKE_L1_R3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
+int BIKE_L1_R3_crypto_kem_dec(OUT unsigned char * ss, IN const unsigned char *ct, IN const unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 /* kyber512r2 */
 int kyber_512_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 int kyber_512_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
