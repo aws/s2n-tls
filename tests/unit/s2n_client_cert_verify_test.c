@@ -24,6 +24,7 @@
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
+static bool async_callback_invoked = false;
 static struct s2n_async_pkey_op *pkey_op = NULL;
 static struct s2n_connection *pkey_conn = NULL;
 
@@ -50,6 +51,7 @@ int s2n_async_pkey_store_op(struct s2n_connection *conn, struct s2n_async_pkey_o
     EXPECT_NOT_NULL(conn);
     EXPECT_NOT_NULL(op);
 
+    async_callback_invoked = true;
     pkey_op = op;
     pkey_conn = conn;
 
@@ -166,6 +168,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
         EXPECT_SUCCESS(s2n_try_handshake_with_async_pkey_op(server_conn, client_conn));
+
+        /* Make sure async callback was used during the handshake. */
+        EXPECT_TRUE(async_callback_invoked);
 
         /* Verify that both connections negotiated Mutual Auth */
         EXPECT_TRUE(s2n_connection_client_cert_used(server_conn));
