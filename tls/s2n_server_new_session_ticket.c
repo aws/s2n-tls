@@ -115,7 +115,7 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
 {
     RESULT_ENSURE_REF(conn);
 
-    if (conn->mode != S2N_SERVER || conn->actual_protocol_version < S2N_TLS13) {
+    if (conn->mode != S2N_SERVER || conn->actual_protocol_version < S2N_TLS13 || !conn->config->use_tickets) {
         return S2N_RESULT_OK;
     }
 

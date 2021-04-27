@@ -226,5 +226,30 @@ int main(int argc, char **argv)
         }
     }
 
+    /* s2n_config_set_session_tickets_onoff */
+    {
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_session_tickets_onoff(NULL, true), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_session_tickets_onoff(NULL, false), S2N_ERR_NULL);
+
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, true));
+        EXPECT_TRUE(config->use_tickets);
+        EXPECT_EQUAL(config->initial_tickets_to_send, 1);
+
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, false));
+        EXPECT_FALSE(config->use_tickets);
+        EXPECT_EQUAL(config->initial_tickets_to_send, 1);
+
+        config->initial_tickets_to_send = 10;
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, true));
+        EXPECT_TRUE(config->use_tickets);
+        EXPECT_EQUAL(config->initial_tickets_to_send, 10);
+
+        EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
     END_TEST();
 }
