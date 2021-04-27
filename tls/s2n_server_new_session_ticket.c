@@ -324,6 +324,8 @@ S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stu
         if (ticket_lifetime == 0) {
             return S2N_RESULT_OK;
         }
+        conn->ticket_lifetime_hint = ticket_lifetime;
+
         struct s2n_ticket_fields ticket_fields = { 0 };
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(input, &ticket_fields.ticket_age_add));
 

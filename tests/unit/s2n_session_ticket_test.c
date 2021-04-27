@@ -1164,6 +1164,9 @@ int main(int argc, char **argv)
         EXPECT_NOT_EQUAL(cb_session_data_len, 0);
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&tls13_serialized_session_state, cb_session_data, cb_session_data_len));
 
+        /* Verify correct session ticket lifetime "hint" */
+        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), cb_session_lifetime);
+
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
