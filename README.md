@@ -28,7 +28,6 @@ codebuild/bin/s2n_codebuild.sh
 
 ## Quickstart for OSX (or other platforms)
 
-If you are building on OSX, or simply don't want to execute the entire build script above, you can use build tools like Ninja.
 
 ### OSX
 
