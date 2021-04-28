@@ -1194,7 +1194,7 @@ int main(int argc, char **argv)
         /* Verify correct session ticket lifetime "hint" */
         EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), cb_session_lifetime);
 
-        /* Verify the old session ticket APIs produce the same results as the callback */
+        /* Verify the session ticket APIs produce the same results as the callback */
         DEFER_CLEANUP(struct s2n_blob legacy_api_ticket = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_realloc(&legacy_api_ticket, cb_session_data_len));
         EXPECT_EQUAL(s2n_connection_get_session_length(client_conn), cb_session_data_len);

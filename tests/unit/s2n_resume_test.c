@@ -103,7 +103,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* Minimal TLS1.3 state: all variable fields empty, no early data */
+        /* Minimal TLS1.3 state: all variable fields empty, zero-length session secret, no early data */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS13;
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
 
-        /* TLS1.3 with secret */
+        /* TLS1.3 with non-zero session secret */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS13;

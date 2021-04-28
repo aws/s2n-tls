@@ -32,6 +32,15 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_random.h"
 
+/*
+ * The maximum size of the NewSessionTicket message, not taking into account the
+ * ticket itself.
+ *
+ * To get the actual maximum size required for the NewSessionTicket message, we'll need
+ * to add the size of the ticket, which is much less predictable.
+ *
+ * This constant is enforced via unit tests.
+ */
 #define S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE 79
 
 int s2n_server_nst_recv(struct s2n_connection *conn) {
@@ -343,7 +352,7 @@ S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stu
         /* Retrieve serialized session data */
         const uint16_t session_state_size = s2n_connection_get_session_length(conn);
         DEFER_CLEANUP(struct s2n_blob session_state = { 0 }, s2n_free);
-        RESULT_GUARD_POSIX(s2n_alloc(&session_state, session_state_size));
+        RESULT_GUARD_POSIX(s2n_realloc(&session_state, session_state_size));
         RESULT_GUARD_POSIX(s2n_connection_get_session(conn, session_state.data, session_state.size));
 
         struct s2n_session_ticket ticket = {
