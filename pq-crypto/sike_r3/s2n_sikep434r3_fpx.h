@@ -10,12 +10,6 @@
 #include "s2n_sikep434r3.h"
 #include "s2n_sikep434r3_fp.h"
 
-#define ct_compare S2N_SIKE_P434_R3_NAMESPACE(ct_compare)
-int8_t ct_compare(const uint8_t *a, const uint8_t *b, unsigned int len);
-
-#define ct_cmov S2N_SIKE_P434_R3_NAMESPACE(ct_cmov)
-void ct_cmov(uint8_t *r, const uint8_t *a, unsigned int len, int8_t selector);
-
 #define fp2_encode S2N_SIKE_P434_R3_NAMESPACE(fp2_encode)
 void fp2_encode(const f2elm_t *x, unsigned char *enc);
 

@@ -19,28 +19,6 @@ static void fpinv_mont(felm_t a);
 static void to_fp2mont(const f2elm_t *a, f2elm_t *mc);
 static void from_fp2mont(const f2elm_t *ma, f2elm_t *c);
 
-/* Compare two byte arrays in constant time.
- * Returns 0 if the byte arrays are equal, -1 otherwise. */
-int8_t ct_compare(const uint8_t *a, const uint8_t *b, unsigned int len)
-{
-    uint8_t r = 0;
-
-    for (unsigned int i = 0; i < len; i++) {
-        r |= a[i] ^ b[i];
-    }
-
-    return (-(int8_t)r) >> (8*sizeof(uint8_t)-1);
-}
-
-/* Conditional move in constant time.
- * If selector = -1 then load r with a, else if selector = 0 then keep r. */
-void ct_cmov(uint8_t *r, const uint8_t *a, unsigned int len, int8_t selector)
-{
-    for (unsigned int i = 0; i < len; i++) {
-        r[i] ^= selector & (a[i] ^ r[i]);
-    }
-}
-
 /* Encoding digits to bytes according to endianness */
 __inline static void encode_to_bytes(const digit_t* x, unsigned char* enc, int nbytes)
 {

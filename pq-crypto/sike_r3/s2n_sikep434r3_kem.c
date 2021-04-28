@@ -31,7 +31,7 @@ int s2n_sike_p434_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
     // Append public key pk to secret key sk
     memcpy(&sk[S2N_SIKE_P434_R3_MSG_BYTES + S2N_SIKE_P434_R3_SECRETKEY_B_BYTES], pk, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES);
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* SIKE's encapsulation
@@ -65,7 +65,7 @@ int s2n_sike_p434_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const 
     memcpy(&temp[S2N_SIKE_P434_R3_MSG_BYTES], ct, S2N_SIKE_P434_R3_CIPHERTEXT_BYTES);
     shake256(ss, S2N_SIKE_P434_R3_SHARED_SECRET_BYTES, temp, S2N_SIKE_P434_R3_CIPHERTEXT_BYTES+S2N_SIKE_P434_R3_MSG_BYTES);
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 /* SIKE's decapsulation
@@ -93,14 +93,20 @@ int s2n_sike_p434_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, 
     memcpy(&temp[S2N_SIKE_P434_R3_MSG_BYTES], &sk[S2N_SIKE_P434_R3_MSG_BYTES + S2N_SIKE_P434_R3_SECRETKEY_B_BYTES], S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES);
     shake256(ephemeralsk_, S2N_SIKE_P434_R3_SECRETKEY_A_BYTES, temp, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES+S2N_SIKE_P434_R3_MSG_BYTES);
     ephemeralsk_[S2N_SIKE_P434_R3_SECRETKEY_A_BYTES - 1] &= S2N_SIKE_P434_R3_MASK_ALICE;
-    
+
     // Generate shared secret ss <- H(m||ct), or output ss <- H(s||ct) in case of ct verification failure
     EphemeralKeyGeneration_A(ephemeralsk_, c0_);
-    // If selector = 0 then do ss = H(m||ct), else if selector = -1 load s to do ss = H(s||ct)
-    int8_t selector = ct_compare(c0_, ct, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES);
-    ct_cmov(temp, sk, S2N_SIKE_P434_R3_MSG_BYTES, selector);
+
+    // Verify ciphertext.
+    // If c0_ and ct are NOT equal, decaps failed and we overwrite the shared secret
+    // with pseudorandom noise (ss = H(s||ct)) by performing the copy (dont_copy = false).
+    //
+    // If c0_ and ct are equal, then decaps succeeded and we skip the overwrite and output
+    // the actual shared secret: ss = H(m||ct) (dont_copy = true).
+    bool dont_copy = s2n_constant_time_equals(c0_, ct, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES);
+    POSIX_GUARD(s2n_constant_time_copy_or_dont(temp, sk, S2N_SIKE_P434_R3_MSG_BYTES, dont_copy));
     memcpy(&temp[S2N_SIKE_P434_R3_MSG_BYTES], ct, S2N_SIKE_P434_R3_CIPHERTEXT_BYTES);
     shake256(ss, S2N_SIKE_P434_R3_SHARED_SECRET_BYTES, temp, S2N_SIKE_P434_R3_CIPHERTEXT_BYTES+S2N_SIKE_P434_R3_MSG_BYTES);
 
-    return 0;
+    return S2N_SUCCESS;
 }
