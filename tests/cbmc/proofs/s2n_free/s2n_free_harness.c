@@ -27,22 +27,9 @@ void s2n_free_harness()
 
     nondet_s2n_mem_init();
 
-    struct s2n_blob old_blob = *blob;
-
     if (s2n_free(blob) == S2N_SUCCESS) {
         /* If the call worked, assert all bytes in the blob struct
            are zero */
         assert_all_zeroes(blob, sizeof(*blob));
     }
-
-#pragma CPROVER check push
-#pragma CPROVER check disable "pointer"
-    /* Regardless of the result of s2n_free, verify that the
-       data pointed to in the blob was zeroed */
-    if (old_blob.size > 0 && old_blob.data != NULL) {
-        size_t i;
-        __CPROVER_assume(i < old_blob.size);
-        assert(old_blob.data[ i ] == 0);
-    }
-#pragma CPROVER check pop
 }
