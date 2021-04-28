@@ -46,7 +46,8 @@ typedef enum parser_state {
 } parser_state;
 
 static inline long get_gmt_offset(struct tm *t) {
-#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__ANDROID__) || defined(ANDROID) || defined(__APPLE__) && defined(__MACH__)
+    /* See: https://sourceware.org/git/?p=glibc.git;a=blob;f=include/features.h;h=ba272078cf2263ec88e039fda7524c136a4a7953;hb=HEAD */
+#if defined(__USE_MISC) || (defined(__APPLE__) && defined(__MACH__))
     return t->tm_gmtoff;
 #else
     return t->__tm_gmtoff;
@@ -68,166 +69,151 @@ static inline void get_current_timesettings(long *gmt_offset, int *is_dst) {
  * just do a character at a time and change the state per character encountered.
  * when finished the above time structure should be filled in along with some
  * crazy timezone info we'll need shortly afterwards.*/
-static S2N_RESULT process_state(parser_state *state, char current_char, struct parser_args *args) {
-    switch (*state) {
-        case ON_YEAR_DIGIT_1:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->time.tm_year = args->current_digit;
-            *state = ON_YEAR_DIGIT_2;
-            return S2N_RESULT_OK;
-        case ON_YEAR_DIGIT_2:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->time.tm_year = args->time.tm_year * 10 + args->current_digit;
-            *state = ON_YEAR_DIGIT_3;
-            return S2N_RESULT_OK;
-        case ON_YEAR_DIGIT_3:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->time.tm_year = args->time.tm_year * 10 + args->current_digit;
-            *state = ON_YEAR_DIGIT_4;
-            return S2N_RESULT_OK;
-        case ON_YEAR_DIGIT_4:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->time.tm_year = args->time.tm_year * 10 + args->current_digit;
-            args->time.tm_year -= 1900;
-            if (args->time.tm_year < 0) {
-                return S2N_RESULT_ERROR;
-            }
+    static S2N_RESULT process_state(parser_state * state, char current_char, struct parser_args *args)
+    {
+        switch (*state) {
+            case ON_YEAR_DIGIT_1:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->time.tm_year = args->current_digit;
+                *state             = ON_YEAR_DIGIT_2;
+                return S2N_RESULT_OK;
+            case ON_YEAR_DIGIT_2:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->time.tm_year = args->time.tm_year * 10 + args->current_digit;
+                *state             = ON_YEAR_DIGIT_3;
+                return S2N_RESULT_OK;
+            case ON_YEAR_DIGIT_3:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->time.tm_year = args->time.tm_year * 10 + args->current_digit;
+                *state             = ON_YEAR_DIGIT_4;
+                return S2N_RESULT_OK;
+            case ON_YEAR_DIGIT_4:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->time.tm_year = args->time.tm_year * 10 + args->current_digit;
+                args->time.tm_year -= 1900;
+                if (args->time.tm_year < 0) { return S2N_RESULT_ERROR; }
 
-            *state = ON_MONTH_DIGIT_1;
-            return S2N_RESULT_OK;
-        case ON_MONTH_DIGIT_1:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->time.tm_mon = args->current_digit;
-            *state = ON_MONTH_DIGIT_2;
-            return S2N_RESULT_OK;
-        case ON_MONTH_DIGIT_2:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->time.tm_mon = args->time.tm_mon * 10 + args->current_digit;
-            args->time.tm_mon -= 1;
+                *state = ON_MONTH_DIGIT_1;
+                return S2N_RESULT_OK;
+            case ON_MONTH_DIGIT_1:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->time.tm_mon = args->current_digit;
+                *state            = ON_MONTH_DIGIT_2;
+                return S2N_RESULT_OK;
+            case ON_MONTH_DIGIT_2:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->time.tm_mon = args->time.tm_mon * 10 + args->current_digit;
+                args->time.tm_mon -= 1;
 
-            if (args->time.tm_mon < 0 || args->time.tm_mon > 11) {
-                return S2N_RESULT_ERROR;
-            }
+                if (args->time.tm_mon < 0 || args->time.tm_mon > 11) { return S2N_RESULT_ERROR; }
 
-            *state = ON_DAY_DIGIT_1;
-            return S2N_RESULT_OK;
-        case ON_DAY_DIGIT_1:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->time.tm_mday = args->current_digit;
-            *state = ON_DAY_DIGIT_2;
-            return S2N_RESULT_OK;
-        case ON_DAY_DIGIT_2:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->time.tm_mday = args->time.tm_mday * 10 + args->current_digit;
+                *state = ON_DAY_DIGIT_1;
+                return S2N_RESULT_OK;
+            case ON_DAY_DIGIT_1:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->time.tm_mday = args->current_digit;
+                *state             = ON_DAY_DIGIT_2;
+                return S2N_RESULT_OK;
+            case ON_DAY_DIGIT_2:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->time.tm_mday = args->time.tm_mday * 10 + args->current_digit;
 
-            if (args->time.tm_mday < 0 || args->time.tm_mday > 31) {
-                return S2N_RESULT_ERROR;
-            }
+                if (args->time.tm_mday < 0 || args->time.tm_mday > 31) { return S2N_RESULT_ERROR; }
 
-            *state = ON_HOUR_DIGIT_1;
-            return S2N_RESULT_OK;
-        case ON_HOUR_DIGIT_1:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->time.tm_hour = args->current_digit;
-            *state = ON_HOUR_DIGIT_2;
-            return S2N_RESULT_OK;
-        case ON_HOUR_DIGIT_2:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->time.tm_hour = args->time.tm_hour * 10 + args->current_digit;
+                *state = ON_HOUR_DIGIT_1;
+                return S2N_RESULT_OK;
+            case ON_HOUR_DIGIT_1:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->time.tm_hour = args->current_digit;
+                *state             = ON_HOUR_DIGIT_2;
+                return S2N_RESULT_OK;
+            case ON_HOUR_DIGIT_2:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->time.tm_hour = args->time.tm_hour * 10 + args->current_digit;
 
-            if (args->time.tm_hour < 0 || args->time.tm_hour > 23) {
-                return S2N_RESULT_ERROR;
-            }
+                if (args->time.tm_hour < 0 || args->time.tm_hour > 23) { return S2N_RESULT_ERROR; }
 
-            *state = ON_MINUTE_DIGIT_1;
-            return S2N_RESULT_OK;
-        case ON_MINUTE_DIGIT_1:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->time.tm_min = args->current_digit;
-            *state = ON_MINUTE_DIGIT_2;
-            return S2N_RESULT_OK;
-        case ON_MINUTE_DIGIT_2:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->time.tm_min = args->time.tm_min * 10 + args->current_digit;
+                *state = ON_MINUTE_DIGIT_1;
+                return S2N_RESULT_OK;
+            case ON_MINUTE_DIGIT_1:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->time.tm_min = args->current_digit;
+                *state            = ON_MINUTE_DIGIT_2;
+                return S2N_RESULT_OK;
+            case ON_MINUTE_DIGIT_2:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->time.tm_min = args->time.tm_min * 10 + args->current_digit;
 
-            if (args->time.tm_min < 0 || args->time.tm_min > 59) {
-                return S2N_RESULT_ERROR;
-            }
+                if (args->time.tm_min < 0 || args->time.tm_min > 59) { return S2N_RESULT_ERROR; }
 
-            *state = ON_SECOND_DIGIT_1;
-            return S2N_RESULT_OK;
-        case ON_SECOND_DIGIT_1:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->time.tm_sec = args->current_digit;
-            *state = ON_SECOND_DIGIT_2;
-            return S2N_RESULT_OK;
-        case ON_SECOND_DIGIT_2:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->time.tm_sec = args->time.tm_sec * 10 + args->current_digit;
+                *state = ON_SECOND_DIGIT_1;
+                return S2N_RESULT_OK;
+            case ON_SECOND_DIGIT_1:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->time.tm_sec = args->current_digit;
+                *state            = ON_SECOND_DIGIT_2;
+                return S2N_RESULT_OK;
+            case ON_SECOND_DIGIT_2:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->time.tm_sec = args->time.tm_sec * 10 + args->current_digit;
 
-            if (args->time.tm_sec < 0 || args->time.tm_sec > 59) {
-                return S2N_RESULT_ERROR;
-            }
+                if (args->time.tm_sec < 0 || args->time.tm_sec > 59) { return S2N_RESULT_ERROR; }
 
-            *state = ON_SUBSECOND;
-            return S2N_RESULT_OK;
-        case ON_SUBSECOND:
-            if (current_char == '.' || isdigit(current_char)) {
                 *state = ON_SUBSECOND;
                 return S2N_RESULT_OK;
-            }
-            FALL_THROUGH;
-        case ON_TIMEZONE:
-            if (current_char == 'Z' || current_char == 'z') {
-                args->local_time_assumed = 0;
+            case ON_SUBSECOND:
+                if (current_char == '.' || isdigit(current_char)) {
+                    *state = ON_SUBSECOND;
+                    return S2N_RESULT_OK;
+                }
+                FALL_THROUGH;
+            case ON_TIMEZONE:
+                if (current_char == 'Z' || current_char == 'z') {
+                    args->local_time_assumed = 0;
+                    *state                   = FINISHED;
+                    return S2N_RESULT_OK;
+                } else if (current_char == '-') {
+                    args->local_time_assumed = 0;
+                    args->offset_negative    = 1;
+                    *state                   = ON_OFFSET_HOURS_DIGIT_1;
+                    return S2N_RESULT_OK;
+                } else if (current_char == '+') {
+                    args->local_time_assumed = 0;
+                    args->offset_negative    = 0;
+                    *state                   = ON_OFFSET_HOURS_DIGIT_1;
+                    return S2N_RESULT_OK;
+                }
+
+                return S2N_RESULT_ERROR;
+            case ON_OFFSET_HOURS_DIGIT_1:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->offset_hours = args->current_digit;
+                *state             = ON_OFFSET_HOURS_DIGIT_2;
+                return S2N_RESULT_OK;
+            case ON_OFFSET_HOURS_DIGIT_2:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->offset_hours = args->offset_hours * 10 + args->current_digit;
+
+                if (args->offset_hours < 0 || args->offset_hours > 23) { return S2N_RESULT_ERROR; }
+
+                *state = ON_OFFSET_MINUTES_DIGIT_1;
+                return S2N_RESULT_OK;
+            case ON_OFFSET_MINUTES_DIGIT_1:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->offset_minutes = args->current_digit;
+                *state               = ON_OFFSET_MINUTES_DIGIT_2;
+                return S2N_RESULT_OK;
+            case ON_OFFSET_MINUTES_DIGIT_2:
+                PARSE_DIGIT(current_char, args->current_digit);
+                args->offset_minutes = args->offset_minutes * 10 + args->current_digit;
+
+                if (args->offset_minutes < 0 || args->offset_minutes > 23) { return S2N_RESULT_ERROR; }
+
                 *state = FINISHED;
                 return S2N_RESULT_OK;
-            } else if (current_char == '-') {
-                args->local_time_assumed = 0;
-                args->offset_negative = 1;
-                *state = ON_OFFSET_HOURS_DIGIT_1;
-                return S2N_RESULT_OK;
-            } else if (current_char == '+') {
-                args->local_time_assumed = 0;
-                args->offset_negative = 0;
-                *state = ON_OFFSET_HOURS_DIGIT_1;
-                return S2N_RESULT_OK;
-            }
-
-            return S2N_RESULT_ERROR;
-        case ON_OFFSET_HOURS_DIGIT_1:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->offset_hours = args->current_digit;
-            *state = ON_OFFSET_HOURS_DIGIT_2;
-            return S2N_RESULT_OK;
-        case ON_OFFSET_HOURS_DIGIT_2:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->offset_hours = args->offset_hours * 10 + args->current_digit;
-
-            if (args->offset_hours < 0 || args->offset_hours > 23) {
+            default:
                 return S2N_RESULT_ERROR;
-            }
-
-            *state = ON_OFFSET_MINUTES_DIGIT_1;
-            return S2N_RESULT_OK;
-        case ON_OFFSET_MINUTES_DIGIT_1:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->offset_minutes = args->current_digit;
-            *state = ON_OFFSET_MINUTES_DIGIT_2;
-            return S2N_RESULT_OK;
-        case ON_OFFSET_MINUTES_DIGIT_2:
-            PARSE_DIGIT(current_char, args->current_digit);
-            args->offset_minutes = args->offset_minutes * 10 + args->current_digit;
-
-            if (args->offset_minutes < 0 || args->offset_minutes > 23) {
-                return S2N_RESULT_ERROR;
-            }
-
-            *state = FINISHED;
-            return S2N_RESULT_OK;
-        default:
-            return S2N_RESULT_ERROR;
-    }
+        }
 }
 
 S2N_RESULT s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32_t len, uint64_t *ticks) {
@@ -286,4 +272,3 @@ S2N_RESULT s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32
     *ticks = ((uint64_t) clock_data - gmt_offset) * 1000000000;
     return S2N_RESULT_OK;
 }
-
