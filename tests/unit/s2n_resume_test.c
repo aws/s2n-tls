@@ -90,7 +90,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_size, S2N_TLS12_STATE_SIZE_IN_BYTES);
 
             /* Result matches actual size of data */
-            struct s2n_stuffer actual_data = { 0 };
+            DEFER_CLEANUP(struct s2n_stuffer actual_data = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&actual_data, actual_size));
             EXPECT_SUCCESS(s2n_tls12_serialize_resumption_state(conn, &actual_data));
             const uint32_t expected_size = s2n_stuffer_data_available(&actual_data);
@@ -101,7 +101,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_size, s2n_stuffer_data_available(&actual_data));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_stuffer_free(&actual_data));
         }
 
         /* Minimal TLS1.3 state: all variable fields empty, no early data */
@@ -115,7 +114,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_size, S2N_TLS13_FIXED_STATE_SIZE);
 
             /* Result matches actual size of data */
-            struct s2n_stuffer actual_data = { 0 };
+            DEFER_CLEANUP(struct s2n_stuffer actual_data = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&actual_data, actual_size));
             EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &actual_data));
             const uint32_t expected_size = s2n_stuffer_data_available(&actual_data);
@@ -126,7 +125,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_size, expected_size);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_stuffer_free(&actual_data));
         }
 
         /* TLS1.3 with secret */
@@ -146,13 +144,12 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_size, S2N_TLS13_FIXED_STATE_SIZE + secret_size);
 
             /* Result matches actual size of data */
-            struct s2n_stuffer actual_data = { 0 };
+            DEFER_CLEANUP(struct s2n_stuffer actual_data = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&actual_data, actual_size));
             EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &actual_data));
             EXPECT_EQUAL(actual_size, s2n_stuffer_data_available(&actual_data));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_stuffer_free(&actual_data));
         }
 
         /* Minimal TLS1.3 with early data: all variable fields empty */
@@ -167,7 +164,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_size, S2N_TLS13_FIXED_STATE_SIZE + S2N_TLS13_FIXED_EARLY_DATA_STATE_SIZE);
 
             /* Result matches actual size of data */
-            struct s2n_stuffer actual_data = { 0 };
+            DEFER_CLEANUP(struct s2n_stuffer actual_data = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&actual_data, actual_size));
             EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &actual_data));
             const uint32_t expected_size = s2n_stuffer_data_available(&actual_data);
@@ -178,7 +175,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_size, expected_size);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_stuffer_free(&actual_data));
         }
 
         /* TLS1.3 with early data: all variable fields set */
@@ -203,13 +199,12 @@ int main(int argc, char **argv)
             EXPECT_NOT_EQUAL(actual_size, 0);
 
             /* Result matches actual size of data */
-            struct s2n_stuffer actual_data = { 0 };
+            DEFER_CLEANUP(struct s2n_stuffer actual_data = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&actual_data, actual_size));
             EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &actual_data));
             EXPECT_EQUAL(actual_size, s2n_stuffer_data_available(&actual_data));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_stuffer_free(&actual_data));
         }
     }
 

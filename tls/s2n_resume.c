@@ -159,7 +159,7 @@ static int s2n_tls12_deserialize_resumption_state(struct s2n_connection *conn, s
     return 0;
 }
 
-int s2n_client_serialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *to)
+static int s2n_client_serialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *to)
 {
     /* Serialize session ticket */
    if (conn->config->use_tickets && conn->client_ticket.size > 0) {
