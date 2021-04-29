@@ -518,7 +518,7 @@ static S2N_RESULT s2n_async_pkey_get_input_sign(struct s2n_async_pkey_op *op, ui
 
     RESULT_ENSURE_LTE(digest_length, data_len);
     
-    RESULT_CHECKED_MEMCPY(data, digest_data, data_len);
+    RESULT_CHECKED_MEMCPY(data, digest_data, digest_length);
 
     return S2N_RESULT_OK;
 }
