@@ -90,7 +90,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     int check = MIN(255, (payload_and_padding_size - 1));
 
     int cutoff = check - padding_length;
-    for (int i = 0, j = decrypted->size - 1 - check; i < check && j < decrypted->size; i++, j++) {
+    for (uint32_t i = 0, j = decrypted->size - 1 - check; i < check && j < decrypted->size; i++, j++) {
         uint8_t mask = ~(0xff << ((i >= cutoff) * 8));
         mismatches |= (decrypted->data[j] ^ padding_length) & mask;
     }

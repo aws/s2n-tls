@@ -73,4 +73,4 @@ typedef int (*s2n_secret_cb) (void* context, struct s2n_connection *conn,
  * The callback function will ONLY be triggered if QUIC is enabled. This API is not intended to be
  * used outside of a QUIC implementation.
  */
-int s2n_connection_set_secret_callback(struct s2n_connection *conn, s2n_secret_cb cb_func, void *ctx);
+S2N_API int s2n_connection_set_secret_callback(struct s2n_connection *conn, s2n_secret_cb cb_func, void *ctx);

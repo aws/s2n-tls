@@ -505,7 +505,7 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
 
     /* Validate certs being set before clearing auto-chosen defaults or previously set defaults */
     struct certs_by_type new_defaults = {{ 0 }};
-    for (int i = 0; i < num_cert_key_pairs; i++) {
+    for (uint32_t i = 0; i < num_cert_key_pairs; i++) {
         POSIX_ENSURE_REF(cert_key_pairs[i]);
         s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pairs[i]);
         S2N_ERROR_IF(new_defaults.certs[cert_type] != NULL, S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE);
@@ -513,7 +513,7 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
     }
 
     POSIX_GUARD(s2n_config_clear_default_certificates(config));
-    for (int i = 0; i < num_cert_key_pairs; i++) {
+    for (uint32_t i = 0; i < num_cert_key_pairs; i++) {
         s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pairs[i]);
         config->default_certs_by_type.certs[cert_type] = cert_key_pairs[i];
     }
@@ -687,6 +687,12 @@ int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enab
     }
 
     config->use_tickets = enabled;
+    if (config->initial_tickets_to_send == 0) {
+        /* Normally initial_tickets_to_send is set via s2n_config_set_initial_ticket_count.
+         * However, s2n_config_set_initial_ticket_count calls this method.
+         * So we set initial_tickets_to_send directly to avoid infinite recursion. */
+        config->initial_tickets_to_send = 1;
+    }
 
     /* session ticket || session id is enabled */
     if (enabled) {
@@ -846,11 +852,11 @@ int s2n_config_enable_cert_req_dss_legacy_compat(struct s2n_config *config)
     return S2N_SUCCESS;
 }
 
-int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb)
+int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb, void *context)
 {
     POSIX_ENSURE_REF(config);
-    POSIX_ENSURE_REF(cb);
     config->psk_selection_cb = cb;
+    config->psk_selection_ctx = context;
     return S2N_SUCCESS;
 }
 

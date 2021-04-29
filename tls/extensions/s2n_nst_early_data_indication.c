@@ -58,7 +58,9 @@ static int s2n_nst_early_data_indication_send(struct s2n_connection *conn, struc
 static int s2n_nst_early_data_indiction_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_GUARD(s2n_stuffer_read_uint32(in, &conn->server_max_early_data_size));
+    uint32_t server_max_early_data = 0;
+    POSIX_GUARD(s2n_stuffer_read_uint32(in, &server_max_early_data));
+    POSIX_GUARD(s2n_connection_set_server_max_early_data_size(conn, server_max_early_data));
     return S2N_SUCCESS;
 }
 

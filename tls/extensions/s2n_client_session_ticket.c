@@ -17,6 +17,8 @@
 #include <stdint.h>
 
 #include "tls/extensions/s2n_client_session_ticket.h"
+
+#include "tls/extensions/s2n_client_psk.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_resume.h"
@@ -38,7 +40,7 @@ const s2n_extension_type s2n_client_session_ticket_extension = {
 
 static bool s2n_client_session_ticket_should_send(struct s2n_connection *conn)
 {
-    return conn->config->use_tickets;
+    return conn->config->use_tickets && !s2n_client_psk_should_send(conn);
 }
 
 static int s2n_client_session_ticket_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -49,7 +51,7 @@ static int s2n_client_session_ticket_send(struct s2n_connection *conn, struct s2
 
 static int s2n_client_session_ticket_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    if (conn->config->use_tickets != 1) {
+    if (conn->config->use_tickets != 1 || conn->actual_protocol_version > S2N_TLS12) {
         /* Ignore the extension. */
         return S2N_SUCCESS;
     }

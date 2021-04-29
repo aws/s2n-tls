@@ -240,12 +240,18 @@ static int s2n_parse_client_hello(struct s2n_connection *conn)
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     POSIX_ENSURE_REF(ecc_pref);
+    POSIX_ENSURE_GT(ecc_pref->count, 0);
 
-    /* This is going to be our fallback if the client has no preference. */
-    /* A TLS-compliant application MUST support key exchange with secp256r1 (NIST P-256) */
-    /* and SHOULD support key exchange with X25519 [RFC7748]. */
-    /* - https://tools.ietf.org/html/rfc8446#section-9.1 */
-    conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+    if (s2n_ecc_preferences_includes_curve(ecc_pref, TLS_EC_CURVE_SECP_256_R1)) {
+        /* This is going to be our fallback if the client has no preference. */
+        /* A TLS-compliant application MUST support key exchange with secp256r1 (NIST P-256) */
+        /* and SHOULD support key exchange with X25519 [RFC7748]. */
+        /* - https://tools.ietf.org/html/rfc8446#section-9.1 */
+        conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+    } else {
+        /* P-256 is the preferred fallback option. These prefs don't support it, so choose whatever curve is first. */
+        conn->secure.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+    }
 
     POSIX_GUARD(s2n_extension_list_parse(in, &conn->client_hello.extensions));
 
@@ -297,9 +303,6 @@ int s2n_process_client_hello(struct s2n_connection *conn)
 
     /* Now choose the ciphers we have certs for. */
     POSIX_GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
-
-    /* Check that early data requirements are met, if early data requested */
-    POSIX_GUARD_RESULT(s2n_early_data_accept_or_reject(conn));
 
     /* If we're using a PSK, we don't need to choose a signature algorithm or certificate,
      * because no additional auth is required. */

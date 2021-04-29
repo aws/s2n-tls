@@ -44,7 +44,10 @@ mkdir -p "$LIBFUZZER_INSTALL_DIR"/lib && cp libFuzzer.a "$LIBFUZZER_INSTALL_DIR"
 
 # Run AFL instead of libfuzzer if AFL_FUZZ is set. Not compatible with fuzz coverage.
 if [[ "$AFL_FUZZ" == "true" && "$FUZZ_COVERAGE" != "true" ]]; then
-	mkdir -p "$LIBFUZZER_INSTALL_DIR" && curl https://raw.githubusercontent.com/google/clusterfuzz/master/docs/setting-up-fuzzing/build_afl.bash > "$LIBFUZZER_INSTALL_DIR"/build_afl.bash
+	# Clusterfuzz's bash script changed from AFL to AFL++ on April 1, 2021; this
+	# commit (ac5ac9e4604ea03cfd643185ad1e3800e952ea44) pins the script to an older version
+	# of Clusterfuzz until we support AFL++.
+	mkdir -p "$LIBFUZZER_INSTALL_DIR" && curl https://raw.githubusercontent.com/google/clusterfuzz/ac5ac9e4604ea03cfd643185ad1e3800e952ea44/docs/setting-up-fuzzing/build_afl.bash > "$LIBFUZZER_INSTALL_DIR"/build_afl.bash
 	chmod +x "$LIBFUZZER_INSTALL_DIR"/build_afl.bash
 	cd "$LIBFUZZER_INSTALL_DIR"
 	"$LIBFUZZER_INSTALL_DIR"/build_afl.bash

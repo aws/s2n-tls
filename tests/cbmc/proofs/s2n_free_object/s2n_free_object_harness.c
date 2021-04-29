@@ -27,23 +27,8 @@ void s2n_free_object_harness()
 
     nondet_s2n_mem_init();
 
-    uint8_t *old_data = data;
-
     /* Operation under verification. */
     if (s2n_free_object(&data, size) == S2N_SUCCESS) {
         assert(data == NULL);
     }
-
-#pragma CPROVER check push
-#pragma CPROVER check disable "pointer"
-    /*
-     * Regardless of the result of s2n_free, verify that the
-     * data pointed to in the blob was zeroed.
-    */
-    if (size > 0 && old_data != NULL) {
-        size_t i;
-        __CPROVER_assume(i < size);
-        assert(old_data[i] == 0);
-    }
-#pragma CPROVER check pop
 }

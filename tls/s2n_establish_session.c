@@ -32,14 +32,13 @@
  * provided session ID in its cache. */
 int s2n_establish_session(struct s2n_connection *conn)
 {
-    POSIX_GUARD(s2n_conn_set_handshake_read_block(conn));
-
     /* Start by receiving and processing the entire CLIENT_HELLO message */
     if (!conn->handshake.client_hello_received) {
         POSIX_GUARD(s2n_client_hello_recv(conn));
         conn->handshake.client_hello_received = 1;
     }
 
+    POSIX_GUARD_RESULT(s2n_early_data_accept_or_reject(conn));
     POSIX_GUARD(s2n_conn_set_handshake_type(conn));
 
     if (conn->client_hello_version != S2N_SSLv2)
@@ -47,8 +46,6 @@ int s2n_establish_session(struct s2n_connection *conn)
         /* We've selected the parameters for the handshake, update the required hashes for this connection */
         POSIX_GUARD(s2n_conn_update_required_handshake_hashes(conn));
     }
-
-    POSIX_GUARD(s2n_conn_clear_handshake_read_block(conn));
 
     return 0;
 }

@@ -126,7 +126,8 @@ static s2n_result validate_chosen_psk(struct s2n_connection *server_conn, uint8_
     return S2N_RESULT_OK;
 }
 
-static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, struct s2n_offered_psk_list *psk_identity_list)
+static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, void *context,
+        struct s2n_offered_psk_list *psk_identity_list)
 {
     struct s2n_offered_psk offered_psk = { 0 };
     uint16_t idx = 0;
@@ -206,7 +207,7 @@ int main(int argc, char **argv)
         EXPECT_OK(setup_server_psks(server_conn));
 
         /* Set the customer callback to select PSK identity */ 
-        EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(server_conn->config, s2n_test_select_psk_identity_callback));
+        EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(server_conn->config, s2n_test_select_psk_identity_callback, NULL));
         EXPECT_EQUAL(server_conn->config->psk_selection_cb, s2n_test_select_psk_identity_callback);
 
         /* Negotiate handshake */

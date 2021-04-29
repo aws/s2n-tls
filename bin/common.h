@@ -16,6 +16,16 @@
 #pragma once
 
 #include <stdint.h>
+/* Remove once the PSK feature is released */
+#include "tls/s2n_psk.h"
+
+#define GUARD_EXIT_NULL(x)                                 \
+    do {                                                   \
+        if (x == NULL) {                                   \
+            fprintf(stderr, "NULL pointer encountered\n"); \
+            exit(1);                                       \
+        }                                                  \
+    } while (0)
 
 #define GUARD_EXIT(x, msg)  \
   do {                      \
@@ -33,6 +43,8 @@
     }                        \
   } while (0)
 
+#define S2N_MAX_PSK_LIST_LENGTH 10
+
 void print_s2n_error(const char *app_error);
 int echo(struct s2n_connection *conn, int sockfd);
 int negotiate(struct s2n_connection *conn, int sockfd);
@@ -40,3 +52,5 @@ int https(struct s2n_connection *conn, uint32_t bench);
 int key_log_callback(void *ctx, struct s2n_connection *conn, uint8_t *logline, size_t len);
 
 char *load_file_to_cstring(const char *path);
+int s2n_str_hex_to_bytes(const unsigned char *hex, uint8_t *out_bytes, uint32_t max_out_bytes_len);
+int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH], size_t psk_list_len);

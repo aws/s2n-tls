@@ -61,7 +61,7 @@ int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t of
     uint32_t slice_size = 0;
     POSIX_GUARD(s2n_add_overflow(offset, size, &slice_size));
     POSIX_ENSURE(b->size >= slice_size, S2N_ERR_SIZE_MISMATCH);
-    slice->data = b->data + offset;
+    slice->data = (b->data) ? (b->data + offset) : NULL;
     slice->size = size;
     slice->growable = 0;
     slice->allocated = 0;

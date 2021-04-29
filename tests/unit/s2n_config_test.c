@@ -25,7 +25,8 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
 
-static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, struct s2n_offered_psk_list *psk_identity_list)
+static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, void *context,
+        struct s2n_offered_psk_list *psk_identity_list)
 {
     return S2N_SUCCESS;
 }
@@ -139,16 +140,22 @@ int main(int argc, char **argv)
     {
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
+        uint8_t context = 13;
 
-        /* Safety checks */
-        {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(NULL, s2n_test_select_psk_identity_callback), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(config, NULL), S2N_ERR_NULL);
-        }
-
+        /* Safety check */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(
+                NULL, s2n_test_select_psk_identity_callback, &context), S2N_ERR_NULL);
         EXPECT_NULL(config->psk_selection_cb);
-        EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_select_psk_identity_callback));
+        EXPECT_NULL(config->psk_selection_ctx);
+
+        EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_select_psk_identity_callback, &context));
         EXPECT_EQUAL(config->psk_selection_cb, s2n_test_select_psk_identity_callback);
+        EXPECT_EQUAL(config->psk_selection_ctx, &context);
+
+        EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, NULL, NULL));
+        EXPECT_NULL(config->psk_selection_cb);
+        EXPECT_NULL(config->psk_selection_ctx);
+
         EXPECT_SUCCESS(s2n_config_free(config));
     }
 
@@ -217,6 +224,31 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
         }
+    }
+
+    /* s2n_config_set_session_tickets_onoff */
+    {
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_session_tickets_onoff(NULL, true), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_session_tickets_onoff(NULL, false), S2N_ERR_NULL);
+
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, true));
+        EXPECT_TRUE(config->use_tickets);
+        EXPECT_EQUAL(config->initial_tickets_to_send, 1);
+
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, false));
+        EXPECT_FALSE(config->use_tickets);
+        EXPECT_EQUAL(config->initial_tickets_to_send, 1);
+
+        config->initial_tickets_to_send = 10;
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, true));
+        EXPECT_TRUE(config->use_tickets);
+        EXPECT_EQUAL(config->initial_tickets_to_send, 10);
+
+        EXPECT_SUCCESS(s2n_config_free(config));
     }
 
     END_TEST();

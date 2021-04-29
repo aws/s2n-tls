@@ -25,6 +25,11 @@
 #include "tls/s2n_post_handshake.h"
 #include "utils/s2n_safety.h"
 
+/* Include to get access to the handshake state machine
+ * to verify we don't allow its messages post-handshake.
+ */
+#include "tls/s2n_handshake_io.c"
+
 #define KEY_UPDATE_MESSAGE_SIZE sizeof(uint8_t) + /* message id */  \
                                 SIZEOF_UINT24   + /* message len */ \
                                 sizeof(uint8_t)   /* message */
@@ -131,6 +136,47 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
+
+        /* No non-post handshake messages can be received.
+         * This means that no handshake message that appears in the handshake state machine
+         * should be allowed.
+         */
+        {
+            /* For TLS1.2 */
+            for (size_t i = 0; i < s2n_array_len(state_machine); i++) {
+                if (state_machine[i].record_type != TLS_HANDSHAKE) {
+                    break;
+                }
+
+                struct s2n_connection *conn;
+                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+                conn->actual_protocol_version = S2N_TLS13;
+
+                EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, state_machine[i].message_type));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, 0));
+                EXPECT_FAILURE_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+
+            /* For TLS1.3 */
+            for (size_t i = 0; i < s2n_array_len(tls13_state_machine); i++) {
+                if (tls13_state_machine[i].record_type != TLS_HANDSHAKE) {
+                    break;
+                }
+
+                struct s2n_connection *conn;
+                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+                conn->actual_protocol_version = S2N_TLS13;
+
+                EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, tls13_state_machine[i].message_type));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, 0));
+                EXPECT_FAILURE_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_BAD_MESSAGE);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+        }
+
     }
 
     /* post_handshake_send */

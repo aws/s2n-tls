@@ -1208,9 +1208,9 @@ int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uin
 
 **s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**
 change the behavior of s2n-tls when sending data to prefer either throughput
-or low latency. Connections prefering low latency will be encrypted using small
+or low latency. Connections preferring low latency will be encrypted using small
 record sizes that can be decrypted sooner by the recipient. Connections
-prefering throughput will use large record sizes that minimize overhead.
+preferring throughput will use large record sizes that minimize overhead.
 
 -Connections default to an 8k outgoing maximum
 
@@ -1426,29 +1426,29 @@ Return the certificate that was used during the TLS handshake.
 This function returns NULL if the certificate selection phase of the handshake has not completed
  or if a certificate was not requested by the peer.
 
-### s2n\_get\_cert\_chain\_length
+### s2n\_cert\_chain\_get\_length
 
 ```c
-int s2n_get_cert_chain_length(const struct s2n_cert_chain_and_key *chain_and_key, uint32_t *cert_length);
+int s2n_cert_chain_get_length(const struct s2n_cert_chain_and_key *chain_and_key, uint32_t *cert_length);
 ```
 
-**s2n_get_cert_chain_length** gets the length of the certificate chain `chain_and_key`. If the certificate chain `chain_and_key` is NULL an error is thrown.
+**s2n_cert_chain_get_length** gets the length of the certificate chain `chain_and_key`. If the certificate chain `chain_and_key` is NULL an error is thrown.
 
-### s2n\_get\_cert\_from\_cert\_chain
+### s2n\_cert_\_chain\_get\_cert
 
 ```c
-int s2n_get_cert_from_cert_chain(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, const uint32_t cert_idx);
+int s2n_cert_chain_get_cert(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, const uint32_t cert_idx);
 ```
 
-**s2n_get_cert_from_cert_chain** gets the certificate `out_cert` present at the index `cert_idx` of the certificate chain `chain_and_key`.  If the certificate chain `chain_and_key` is NULL or the certificate index value is not in the acceptable range for the input certificate chain, an error is thrown. Note that the index of the head_cert is zero.
+**s2n_cert_chain_get_cert** gets the certificate `out_cert` present at the index `cert_idx` of the certificate chain `chain_and_key`.  If the certificate chain `chain_and_key` is NULL or the certificate index value is not in the acceptable range for the input certificate chain, an error is thrown. Note that the index of the head_cert is zero.
 
-### s2n\_get\_cert\_der
+### s2n\_cert\_get\_der
 
 ```c
-int s2n_get_cert_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, uint32_t *cert_length);
+int s2n_cert_get_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, uint32_t *cert_length);
 ```
 
-**s2n_get_cert_der** gets the certificate `cert` in .der format which is returned in the buffer `out_cert_der`, `cert_len` represents the length of the certificate. 
+**s2n_cert_get_der** gets the certificate `cert` in .der format which is returned in the buffer `out_cert_der`, `cert_len` represents the length of the certificate. 
 
 ### s2n\_connection\_get_peer\_cert\_chain
 
@@ -1457,6 +1457,40 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 ```
 
 **s2n_connection_get_peer_cert_chain** gets the validated peer certificate chain from the s2n connection object.
+
+### s2n\_cert\_get\_x509\_extension\_value\_length
+
+```c
+int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid, uint32_t ext_value_len);
+```
+
+**s2n_cert_get_x509_extension_value_length** gets the length of the DER encoding of an ASN.1 X.509 certificate extension value.
+
+
+### s2n\_cert\_get\_x509\_extension\_value
+
+```c
+int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, uint8_t *ext_value, uint32_t *ext_value_len, bool *critical);
+```
+
+**s2n_cert_get_x509_extension_value** gets the DER encoding of an ASN.1 X.509 certificate extension value, it's length and a boolean critical.
+
+
+### s2n\_cert\_get\_utf8\_string\_from\_extension\_data\_length
+
+```c
+int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len);
+```
+
+**s2n_cert_get_utf8_string_from_extension_data** gets the UTF8 String length of the ASN.1 X.509 certificate extension data.
+
+### s2n\_cert\_get\_utf8\_string\_from\_extension\_data
+
+```c
+int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len);
+```
+
+**s2n_cert_get_utf8_string_from_extension_data** gets the UTF8 String representation of the DER encoded ASN.1 X.509 certificate extension data.
 
 ### Session Resumption Related calls
 

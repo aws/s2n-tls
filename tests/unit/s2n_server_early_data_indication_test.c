@@ -26,7 +26,7 @@ static S2N_RESULT s2n_exchange_hellos(struct s2n_connection *client_conn, struct
     RESULT_GUARD_POSIX(s2n_client_hello_send(client_conn));
     RESULT_GUARD_POSIX(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
             s2n_stuffer_data_available(&client_conn->handshake.io)));
-    RESULT_GUARD_POSIX(s2n_client_hello_recv(server_conn));
+    RESULT_GUARD_POSIX(s2n_establish_session(server_conn));
 
     RESULT_GUARD_POSIX(s2n_server_hello_send(server_conn));
     RESULT_GUARD_POSIX(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,

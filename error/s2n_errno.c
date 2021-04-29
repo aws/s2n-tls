@@ -176,7 +176,8 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_ASYNC_CALLBACK_FAILED, "Callback associated with async private keys function has failed") \
     ERR_ENTRY(S2N_ERR_ASYNC_MORE_THAN_ONE, "Only one asynchronous operation can be in-progress at the same time") \
     ERR_ENTRY(S2N_ERR_NO_ALERT, "No Alert present") \
-    ERR_ENTRY(S2N_ERR_CLIENT_MODE, "operation not allowed in client mode") \
+    ERR_ENTRY(S2N_ERR_SERVER_MODE, "Operation not allowed in server mode") \
+    ERR_ENTRY(S2N_ERR_CLIENT_MODE, "Operation not allowed in client mode") \
     ERR_ENTRY(S2N_ERR_CLIENT_MODE_DISABLED, "client connections not allowed") \
     ERR_ENTRY(S2N_ERR_TOO_MANY_CERTIFICATES, "only 1 certificate is supported in client mode") \
     ERR_ENTRY(S2N_ERR_TOO_MANY_SIGNATURE_SCHEMES, "Max supported length of SignatureAlgorithms/SignatureSchemes list is 32") \
@@ -248,6 +249,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_PQ_DISABLED, "Post-quantum crypto is disabled") \
     ERR_ENTRY(S2N_ERR_DUPLICATE_PSK_IDENTITIES, "The list of pre-shared keys provided contains duplicate psk identities") \
     ERR_ENTRY(S2N_ERR_OFFERED_PSKS_TOO_LONG, "The total pre-shared key data is too long to send over the wire") \
+    ERR_ENTRY(S2N_ERR_INVALID_SESSION_TICKET, "Session ticket data is not valid") \
     ERR_ENTRY(S2N_ERR_REENTRANCY, "Original execution must complete before method can be called again") \
     ERR_ENTRY(S2N_ERR_INVALID_CERT_STATE, "Certificate validation entered an invalid state and is not able to continue") \
     ERR_ENTRY(S2N_ERR_INVALID_EARLY_DATA_STATE, "Early data in invalid state") \
@@ -257,6 +259,10 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_MAX_EARLY_DATA_SIZE, "Maximum early data bytes exceeded") \
     ERR_ENTRY(S2N_ERR_EARLY_DATA_BLOCKED, "Blocked on early data") \
     ERR_ENTRY(S2N_ERR_PSK_MODE, "Mixing resumption and external PSKs is not supported") \
+    ERR_ENTRY(S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND, "X509 extension value not found") \
+    ERR_ENTRY(S2N_ERR_INVALID_X509_EXTENSION_TYPE, "Invalid X509 extension type") \
+    ERR_ENTRY(S2N_ERR_INSUFFICIENT_MEM_SIZE, "The provided buffer size is not large enough to contain the output data. Try increasing the allocation size.") \
+    ERR_ENTRY(S2N_ERR_KEYING_MATERIAL_EXPIRED, "The lifetime of the connection keying material has exceeded the limit. Perform a new full handshake.") \
 
 /* clang-format on */
 

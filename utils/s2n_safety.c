@@ -68,7 +68,7 @@ bool s2n_constant_time_equals(const uint8_t * a, const uint8_t * b, const uint32
     }
 
     uint8_t xor = 0;
-    for (int i = 0; i < len; i++) {
+    for (uint32_t i = 0; i < len; i++) {
         /* Invariants must hold for each execution of the loop
 	 * and at loop exit, hence the <= */
         S2N_INVARIANT(i <= len);
