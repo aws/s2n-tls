@@ -20,6 +20,7 @@ index ae8e5783..cc06a2d0 100644
 -    S2N_PUBLIC_INPUT(src);
 -    S2N_PUBLIC_INPUT(len);
 -
- /* This underflows a value of 0 to the maximum value via arithmetic underflow,
-  * so the check for arithmetic overflow/underflow needs to be disabled for CBMC.
-  * Additionally, uint_fast16_t is defined as the fastest available unsigned
+     uint8_t mask = (((0xFFFF & dont) - 1) >> 8) & 0xFF;
+
+     /* dont = 0 : mask = 0xff */
+     /* dont > 0 : mask = 0x00 */
