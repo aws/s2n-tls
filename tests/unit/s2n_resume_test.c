@@ -538,7 +538,7 @@ int main(int argc, char **argv)
             conn->tls13_ticket_fields = (struct s2n_ticket_fields) { .ticket_age_add = 1 };
             EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
 
-            conn->tls13_ticket_fields.session_secret.size = UINT8_MAX + 1;
+            EXPECT_SUCCESS(s2n_realloc(&conn->tls13_ticket_fields.session_secret, UINT8_MAX + 1));
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_serialize_resumption_state(conn, &output), S2N_ERR_SAFETY);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
