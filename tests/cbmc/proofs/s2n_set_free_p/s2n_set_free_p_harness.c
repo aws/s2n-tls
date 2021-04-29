@@ -25,22 +25,8 @@ void s2n_set_free_p_harness()
 
     nondet_s2n_mem_init();
 
-    struct s2n_set old_set = *set;
-
     /* Operation under verification. */
     if(s2n_result_is_ok(s2n_set_free_p(&set))) {
         assert(set == NULL);
     }
-#pragma CPROVER check push
-#pragma CPROVER check disable "pointer"
-    /*
-     * Regardless of the result of s2n_free, verify that the
-     * data pointed to in the blob was zeroed.
-     */
-    if (old_set.data->mem.size > 0 && old_set.data->mem.data != NULL) {
-        size_t i;
-        __CPROVER_assume(i < old_set.data->mem.size);
-        assert(old_set.data->mem.data[i] == 0);
-    }
-#pragma CPROVER check pop
 }

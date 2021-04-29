@@ -26,21 +26,6 @@ void s2n_array_free_harness()
 
     nondet_s2n_mem_init();
 
-    struct s2n_array old_array = *array;
-
     /* Operation under verification. */
     s2n_array_free(array);
-
-#pragma CPROVER check push
-#pragma CPROVER check disable "pointer"
-    /*
-     * Regardless of the result of s2n_free, verify that the
-     * data pointed to in the blob was zeroed.
-     */
-    if (old_array.mem.size > 0 && old_array.mem.data != NULL) {
-        size_t i;
-        __CPROVER_assume(i < old_array.mem.size);
-        assert(old_array.mem.data[i] == 0);
-    }
-#pragma CPROVER check pop
 }
