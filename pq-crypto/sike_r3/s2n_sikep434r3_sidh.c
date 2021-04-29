@@ -27,7 +27,7 @@ static void init_basis(const digit_t *gen, f2elm_t *XP, f2elm_t *XQ, f2elm_t *XR
 int random_mod_order_B(unsigned char* random_digits)
 {
     POSIX_GUARD_RESULT(s2n_get_random_bytes(random_digits, S2N_SIKE_P434_R3_SECRETKEY_B_BYTES));
-    random_digits[S2N_SIKE_P434_R3_SECRETKEY_B_BYTES-1] &= S2N_SIKE_P434_R3_MASK_BOB;     // Masking last byte
+    random_digits[S2N_SIKE_P434_R3_SECRETKEY_B_BYTES-1] &= S2N_SIKE_P434_R3_MASK_BOB; /* Masking last byte */
 
     return 0;
 }
@@ -44,25 +44,25 @@ int EphemeralKeyGeneration_A(const unsigned char* PrivateKeyA, unsigned char* Pu
     unsigned int i, row, m, tree_index = 0, pts_index[S2N_SIKE_P434_R3_MAX_INT_POINTS_ALICE], npts = 0, ii = 0;
     digit_t SecretKeyA[S2N_SIKE_P434_R3_NWORDS_ORDER] = {0};
 
-    // Initialize basis points
+    /* Initialize basis points */
     init_basis((const digit_t*)A_gen, XPA, XQA, XRA);
     init_basis((const digit_t*)B_gen, &phiP->X, &phiQ->X, &phiR->X);
     fpcopy((const digit_t*)&Montgomery_one, (phiP->Z.e)[0]);
     fpcopy((const digit_t*)&Montgomery_one, (phiQ->Z.e)[0]);
     fpcopy((const digit_t*)&Montgomery_one, (phiR->Z.e)[0]);
 
-    // Initialize constants: A24plus = A+2C, C24 = 4C, where A=6, C=1
+    /* Initialize constants: A24plus = A+2C, C24 = 4C, where A=6, C=1 */
     fpcopy((const digit_t*)&Montgomery_one, A24plus->e[0]);
     mp2_add(A24plus, A24plus, A24plus);
     mp2_add(A24plus, A24plus, C24);
     mp2_add(A24plus, C24, A);
     mp2_add(C24, C24, A24plus);
 
-    // Retrieve kernel point
+    /* Retrieve kernel point */
     decode_to_digits(PrivateKeyA, SecretKeyA, S2N_SIKE_P434_R3_SECRETKEY_A_BYTES, S2N_SIKE_P434_R3_NWORDS_ORDER);
     LADDER3PT(XPA, XQA, XRA, SecretKeyA, S2N_SIKE_P434_R3_ALICE, R, A);
 
-    // Traverse tree
+    /* Traverse tree */
     tree_index = 0;
     for (row = 1; row < S2N_SIKE_P434_R3_MAX_ALICE; row++) {
         while (tree_index < S2N_SIKE_P434_R3_MAX_ALICE-row) {
@@ -98,7 +98,7 @@ int EphemeralKeyGeneration_A(const unsigned char* PrivateKeyA, unsigned char* Pu
     fp2mul_mont(&phiQ->X, &phiQ->Z, &phiQ->X);
     fp2mul_mont(&phiR->X, &phiR->Z, &phiR->X);
                 
-    // Format public key                   
+    /* Format public key */
     fp2_encode(&phiP->X, PublicKeyA);
     fp2_encode(&phiQ->X, PublicKeyA + S2N_SIKE_P434_R3_FP2_ENCODED_BYTES);
     fp2_encode(&phiR->X, PublicKeyA + 2*S2N_SIKE_P434_R3_FP2_ENCODED_BYTES);
@@ -119,25 +119,25 @@ int EphemeralKeyGeneration_B(const unsigned char* PrivateKeyB, unsigned char* Pu
     unsigned int i, row, m, tree_index = 0, pts_index[S2N_SIKE_P434_R3_MAX_INT_POINTS_BOB], npts = 0, ii = 0;
     digit_t SecretKeyB[S2N_SIKE_P434_R3_NWORDS_ORDER] = {0};
 
-    // Initialize basis points
+    /* Initialize basis points */
     init_basis((const digit_t*)B_gen, XPB, XQB, XRB);
     init_basis((const digit_t*)A_gen, &phiP->X, &phiQ->X, &phiR->X);
     fpcopy((const digit_t*)&Montgomery_one, (phiP->Z.e)[0]);
     fpcopy((const digit_t*)&Montgomery_one, (phiQ->Z.e)[0]);
     fpcopy((const digit_t*)&Montgomery_one, (phiR->Z.e)[0]);
 
-    // Initialize constants: A24minus = A-2C, A24plus = A+2C, where A=6, C=1
+    /* Initialize constants: A24minus = A-2C, A24plus = A+2C, where A=6, C=1 */
     fpcopy((const digit_t*)&Montgomery_one, A24plus->e[0]);
     mp2_add(A24plus, A24plus, A24plus);
     mp2_add(A24plus, A24plus, A24minus);
     mp2_add(A24plus, A24minus, A);
     mp2_add(A24minus, A24minus, A24plus);
 
-    // Retrieve kernel point
+    /* Retrieve kernel point */
     decode_to_digits(PrivateKeyB, SecretKeyB, S2N_SIKE_P434_R3_SECRETKEY_B_BYTES, S2N_SIKE_P434_R3_NWORDS_ORDER);
     LADDER3PT(XPB, XQB, XRB, SecretKeyB, S2N_SIKE_P434_R3_BOB, R, A);
     
-    // Traverse tree
+    /* Traverse tree */
     tree_index = 0;
     for (row = 1; row < S2N_SIKE_P434_R3_MAX_BOB; row++) {
         while (tree_index < S2N_SIKE_P434_R3_MAX_BOB-row) {
@@ -173,7 +173,7 @@ int EphemeralKeyGeneration_B(const unsigned char* PrivateKeyB, unsigned char* Pu
     fp2mul_mont(&phiQ->X, &phiQ->Z, &phiQ->X);
     fp2mul_mont(&phiR->X, &phiR->Z, &phiR->X);
 
-    // Format public key
+    /* Format public key */
     fp2_encode(&phiP->X, PublicKeyB);
     fp2_encode(&phiQ->X, PublicKeyB + S2N_SIKE_P434_R3_FP2_ENCODED_BYTES);
     fp2_encode(&phiR->X, PublicKeyB + 2*S2N_SIKE_P434_R3_FP2_ENCODED_BYTES);
@@ -197,22 +197,22 @@ int EphemeralSecretAgreement_A(const unsigned char* PrivateKeyA, const unsigned 
     unsigned int i, row, m, tree_index = 0, pts_index[S2N_SIKE_P434_R3_MAX_INT_POINTS_ALICE], npts = 0, ii = 0;
     digit_t SecretKeyA[S2N_SIKE_P434_R3_NWORDS_ORDER] = {0};
       
-    // Initialize images of Bob's basis
+    /* Initialize images of Bob's basis */
     fp2_decode(PublicKeyB, &PKB[0]);
     fp2_decode(PublicKeyB + S2N_SIKE_P434_R3_FP2_ENCODED_BYTES, &PKB[1]);
     fp2_decode(PublicKeyB + 2*S2N_SIKE_P434_R3_FP2_ENCODED_BYTES, &PKB[2]);
 
-    // Initialize constants: A24plus = A+2C, C24 = 4C, where C=1
+    /* Initialize constants: A24plus = A+2C, C24 = 4C, where C=1 */
     get_A(&PKB[0], &PKB[1], &PKB[2], A);
     mp_add((const digit_t*)&Montgomery_one, (const digit_t*)&Montgomery_one, C24->e[0], S2N_SIKE_P434_R3_NWORDS_FIELD);
     mp2_add(A, C24, A24plus);
     mp_add(C24->e[0], C24->e[0], C24->e[0], S2N_SIKE_P434_R3_NWORDS_FIELD);
 
-    // Retrieve kernel point
+    /* Retrieve kernel point */
     decode_to_digits(PrivateKeyA, SecretKeyA, S2N_SIKE_P434_R3_SECRETKEY_A_BYTES, S2N_SIKE_P434_R3_NWORDS_ORDER);
     LADDER3PT(&PKB[0], &PKB[1], &PKB[2], SecretKeyA, S2N_SIKE_P434_R3_ALICE, R, A);
 
-    // Traverse tree
+    /* Traverse tree */
     tree_index = 0;
     for (row = 1; row < S2N_SIKE_P434_R3_MAX_ALICE; row++) {
         while (tree_index < S2N_SIKE_P434_R3_MAX_ALICE-row) {
@@ -240,7 +240,7 @@ int EphemeralSecretAgreement_A(const unsigned char* PrivateKeyA, const unsigned 
     fp2sub(A24plus, C24, A24plus);
     fp2add(A24plus, A24plus, A24plus);
     j_inv(A24plus, C24, jinv);
-    fp2_encode(jinv, SharedSecretA);    // Format shared secret
+    fp2_encode(jinv, SharedSecretA); /* Format shared secret */
 
     return 0;
 }
@@ -261,22 +261,22 @@ int EphemeralSecretAgreement_B(const unsigned char* PrivateKeyB, const unsigned 
     unsigned int i, row, m, tree_index = 0, pts_index[S2N_SIKE_P434_R3_MAX_INT_POINTS_BOB], npts = 0, ii = 0;
     digit_t SecretKeyB[S2N_SIKE_P434_R3_NWORDS_ORDER] = {0};
       
-    // Initialize images of Alice's basis
+    /* Initialize images of Alice's basis */
     fp2_decode(PublicKeyA, &PKB[0]);
     fp2_decode(PublicKeyA + S2N_SIKE_P434_R3_FP2_ENCODED_BYTES, &PKB[1]);
     fp2_decode(PublicKeyA + 2*S2N_SIKE_P434_R3_FP2_ENCODED_BYTES, &PKB[2]);
 
-    // Initialize constants: A24plus = A+2C, A24minus = A-2C, where C=1
+    /* Initialize constants: A24plus = A+2C, A24minus = A-2C, where C=1 */
     get_A(&PKB[0], &PKB[1], &PKB[2], A);
     mp_add((const digit_t*)&Montgomery_one, (const digit_t*)&Montgomery_one, A24minus->e[0], S2N_SIKE_P434_R3_NWORDS_FIELD);
     mp2_add(A, A24minus, A24plus);
     mp2_sub_p2(A, A24minus, A24minus);
 
-    // Retrieve kernel point
+    /* Retrieve kernel point */
     decode_to_digits(PrivateKeyB, SecretKeyB, S2N_SIKE_P434_R3_SECRETKEY_B_BYTES, S2N_SIKE_P434_R3_NWORDS_ORDER);
     LADDER3PT(&PKB[0], &PKB[1], &PKB[2], SecretKeyB, S2N_SIKE_P434_R3_BOB, R, A);
     
-    // Traverse tree
+    /* Traverse tree */
     tree_index = 0;
     for (row = 1; row < S2N_SIKE_P434_R3_MAX_BOB; row++) {
         while (tree_index < S2N_SIKE_P434_R3_MAX_BOB-row) {
@@ -304,7 +304,7 @@ int EphemeralSecretAgreement_B(const unsigned char* PrivateKeyB, const unsigned 
     fp2add(A, A, A);
     fp2sub(A24plus, A24minus, A24plus);
     j_inv(A, A24plus, jinv);
-    fp2_encode(jinv, SharedSecretB);    // Format shared secret
+    fp2_encode(jinv, SharedSecretB); /* Format shared secret */
 
     return 0;
 }
