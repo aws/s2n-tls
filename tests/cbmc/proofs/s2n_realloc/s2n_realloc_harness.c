@@ -53,7 +53,9 @@ void s2n_realloc_harness()
             }
 #pragma CPROVER check pop
         } else {
-            assert_all_zeroes(blob->data + blob->size, old_blob.size - blob->size);
+            if(blob->data) {
+                assert_all_zeroes(blob->data + blob->size, old_blob.size - blob->size);
+            }
         }
     }
 }

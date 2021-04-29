@@ -228,7 +228,7 @@ void *s2n_stuffer_raw_read(struct s2n_stuffer *stuffer, uint32_t data_len)
 
     stuffer->tainted = 1;
 
-    return stuffer->blob.data + stuffer->read_cursor - data_len;
+    return (stuffer->blob.data) ? (stuffer->blob.data + stuffer->read_cursor - data_len) : NULL;
 }
 
 int s2n_stuffer_read(struct s2n_stuffer *stuffer, struct s2n_blob *out)
@@ -242,7 +242,7 @@ int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out
 {
     POSIX_GUARD(s2n_stuffer_skip_read(stuffer, out->size));
 
-    void *ptr = stuffer->blob.data + stuffer->read_cursor - out->size;
+    void *ptr = (stuffer->blob.data) ? (stuffer->blob.data + stuffer->read_cursor - out->size) : NULL;
     POSIX_ENSURE(S2N_MEM_IS_READABLE(ptr, out->size), S2N_ERR_NULL);
 
     POSIX_CHECKED_MEMCPY(out->data, ptr, out->size);
@@ -292,7 +292,7 @@ void *s2n_stuffer_raw_write(struct s2n_stuffer *stuffer, const uint32_t data_len
 
     stuffer->tainted = 1;
 
-    return stuffer->blob.data + stuffer->write_cursor - data_len;
+    return (stuffer->blob.data) ? (stuffer->blob.data + stuffer->write_cursor - data_len) : NULL;
 }
 
 int s2n_stuffer_write(struct s2n_stuffer *stuffer, const struct s2n_blob *in)
@@ -358,8 +358,8 @@ static int s2n_stuffer_copy_impl(struct s2n_stuffer *from, struct s2n_stuffer *t
     POSIX_GUARD(s2n_stuffer_skip_read(from, len));
     POSIX_GUARD(s2n_stuffer_skip_write(to, len));
 
-    uint8_t *from_ptr = from->blob.data + from->read_cursor - len;
-    uint8_t *to_ptr = to->blob.data + to->write_cursor - len;
+    uint8_t *from_ptr = (from->blob.data) ? (from->blob.data + from->read_cursor - len) : NULL;
+    uint8_t *to_ptr = (to->blob.data) ? (to->blob.data + to->write_cursor - len) : NULL;
 
     POSIX_CHECKED_MEMCPY(to_ptr, from_ptr, len);
 
