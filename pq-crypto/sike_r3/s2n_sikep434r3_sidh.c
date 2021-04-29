@@ -41,7 +41,7 @@ int EphemeralKeyGeneration_A(const unsigned char* PrivateKeyA, unsigned char* Pu
     point_proj_t R, phiP = {0}, phiQ = {0}, phiR = {0}, pts[S2N_SIKE_P434_R3_MAX_INT_POINTS_ALICE];
     f2elm_t _XPA, _XQA, _XRA, coeff[3], _A24plus = {0}, _C24 = {0}, _A = {0};
     f2elm_t *XPA=&_XPA, *XQA=&_XQA, *XRA=&_XRA, *A24plus=&_A24plus, *C24=&_C24, *A=&_A;
-    unsigned int i, row, m, index = 0, pts_index[S2N_SIKE_P434_R3_MAX_INT_POINTS_ALICE], npts = 0, ii = 0;
+    unsigned int i, row, m, tree_index = 0, pts_index[S2N_SIKE_P434_R3_MAX_INT_POINTS_ALICE], npts = 0, ii = 0;
     digit_t SecretKeyA[S2N_SIKE_P434_R3_NWORDS_ORDER] = {0};
 
     // Initialize basis points
@@ -63,15 +63,15 @@ int EphemeralKeyGeneration_A(const unsigned char* PrivateKeyA, unsigned char* Pu
     LADDER3PT(XPA, XQA, XRA, SecretKeyA, S2N_SIKE_P434_R3_ALICE, R, A);
 
     // Traverse tree
-    index = 0;        
+    tree_index = 0;
     for (row = 1; row < S2N_SIKE_P434_R3_MAX_ALICE; row++) {
-        while (index < S2N_SIKE_P434_R3_MAX_ALICE-row) {
+        while (tree_index < S2N_SIKE_P434_R3_MAX_ALICE-row) {
             fp2copy(&R->X, &pts[npts]->X);
             fp2copy(&R->Z, &pts[npts]->Z);
-            pts_index[npts++] = index;
+            pts_index[npts++] = tree_index;
             m = strat_Alice[ii++];
             xDBLe(R, R, A24plus, C24, (int)(2*m));
-            index += m;
+            tree_index += m;
         }
         get_4_isog(R, A24plus, C24, coeff);
 
@@ -84,7 +84,7 @@ int EphemeralKeyGeneration_A(const unsigned char* PrivateKeyA, unsigned char* Pu
 
         fp2copy(&pts[npts-1]->X, &R->X);
         fp2copy(&pts[npts-1]->Z, &R->Z);
-        index = pts_index[npts-1];
+        tree_index = pts_index[npts-1];
         npts -= 1;
     }
 
@@ -116,7 +116,7 @@ int EphemeralKeyGeneration_B(const unsigned char* PrivateKeyB, unsigned char* Pu
     f2elm_t _XPB, _XQB, _XRB, coeff[3], _A24plus = {0}, _A24minus = {0}, _A = {0};
     f2elm_t *XPB=&_XPB, *XQB=&_XQB, *XRB=&_XRB, *A24plus=&_A24plus, *A24minus=&_A24minus, *A=&_A;
 
-    unsigned int i, row, m, index = 0, pts_index[S2N_SIKE_P434_R3_MAX_INT_POINTS_BOB], npts = 0, ii = 0;
+    unsigned int i, row, m, tree_index = 0, pts_index[S2N_SIKE_P434_R3_MAX_INT_POINTS_BOB], npts = 0, ii = 0;
     digit_t SecretKeyB[S2N_SIKE_P434_R3_NWORDS_ORDER] = {0};
 
     // Initialize basis points
@@ -138,15 +138,15 @@ int EphemeralKeyGeneration_B(const unsigned char* PrivateKeyB, unsigned char* Pu
     LADDER3PT(XPB, XQB, XRB, SecretKeyB, S2N_SIKE_P434_R3_BOB, R, A);
     
     // Traverse tree
-    index = 0;  
+    tree_index = 0;
     for (row = 1; row < S2N_SIKE_P434_R3_MAX_BOB; row++) {
-        while (index < S2N_SIKE_P434_R3_MAX_BOB-row) {
+        while (tree_index < S2N_SIKE_P434_R3_MAX_BOB-row) {
             fp2copy(&R->X, &pts[npts]->X);
             fp2copy(&R->Z, &pts[npts]->Z);
-            pts_index[npts++] = index;
+            pts_index[npts++] = tree_index;
             m = strat_Bob[ii++];
             xTPLe(R, R, A24minus, A24plus, (int)m);
-            index += m;
+            tree_index += m;
         } 
         get_3_isog(R, A24minus, A24plus, coeff);
 
@@ -159,7 +159,7 @@ int EphemeralKeyGeneration_B(const unsigned char* PrivateKeyB, unsigned char* Pu
 
         fp2copy(&pts[npts-1]->X, &R->X);
         fp2copy(&pts[npts-1]->Z, &R->Z);
-        index = pts_index[npts-1];
+        tree_index = pts_index[npts-1];
         npts -= 1;
     }
     
@@ -194,7 +194,7 @@ int EphemeralSecretAgreement_A(const unsigned char* PrivateKeyA, const unsigned 
     f2elm_t coeff[3], PKB[3], _jinv;
     f2elm_t _A24plus = {0}, _C24 = {0}, _A = {0};
     f2elm_t *jinv=&_jinv, *A24plus=&_A24plus, *C24=&_C24, *A=&_A;
-    unsigned int i, row, m, index = 0, pts_index[S2N_SIKE_P434_R3_MAX_INT_POINTS_ALICE], npts = 0, ii = 0;
+    unsigned int i, row, m, tree_index = 0, pts_index[S2N_SIKE_P434_R3_MAX_INT_POINTS_ALICE], npts = 0, ii = 0;
     digit_t SecretKeyA[S2N_SIKE_P434_R3_NWORDS_ORDER] = {0};
       
     // Initialize images of Bob's basis
@@ -213,15 +213,15 @@ int EphemeralSecretAgreement_A(const unsigned char* PrivateKeyA, const unsigned 
     LADDER3PT(&PKB[0], &PKB[1], &PKB[2], SecretKeyA, S2N_SIKE_P434_R3_ALICE, R, A);
 
     // Traverse tree
-    index = 0;
+    tree_index = 0;
     for (row = 1; row < S2N_SIKE_P434_R3_MAX_ALICE; row++) {
-        while (index < S2N_SIKE_P434_R3_MAX_ALICE-row) {
+        while (tree_index < S2N_SIKE_P434_R3_MAX_ALICE-row) {
             fp2copy(&R->X, &pts[npts]->X);
             fp2copy(&R->Z, &pts[npts]->Z);
-            pts_index[npts++] = index;
+            pts_index[npts++] = tree_index;
             m = strat_Alice[ii++];
             xDBLe(R, R, A24plus, C24, (int)(2*m));
-            index += m;
+            tree_index += m;
         }
         get_4_isog(R, A24plus, C24, coeff);
 
@@ -231,7 +231,7 @@ int EphemeralSecretAgreement_A(const unsigned char* PrivateKeyA, const unsigned 
 
         fp2copy(&pts[npts-1]->X, &R->X);
         fp2copy(&pts[npts-1]->Z, &R->Z);
-        index = pts_index[npts-1];
+        tree_index = pts_index[npts-1];
         npts -= 1;
     }
 
@@ -258,7 +258,7 @@ int EphemeralSecretAgreement_B(const unsigned char* PrivateKeyB, const unsigned 
     f2elm_t coeff[3], PKB[3], _jinv;
     f2elm_t _A24plus = {0}, _A24minus = {0}, _A = {0};
     f2elm_t *jinv=&_jinv, *A24plus=&_A24plus, *A24minus=&_A24minus, *A=&_A;
-    unsigned int i, row, m, index = 0, pts_index[S2N_SIKE_P434_R3_MAX_INT_POINTS_BOB], npts = 0, ii = 0;
+    unsigned int i, row, m, tree_index = 0, pts_index[S2N_SIKE_P434_R3_MAX_INT_POINTS_BOB], npts = 0, ii = 0;
     digit_t SecretKeyB[S2N_SIKE_P434_R3_NWORDS_ORDER] = {0};
       
     // Initialize images of Alice's basis
@@ -277,15 +277,15 @@ int EphemeralSecretAgreement_B(const unsigned char* PrivateKeyB, const unsigned 
     LADDER3PT(&PKB[0], &PKB[1], &PKB[2], SecretKeyB, S2N_SIKE_P434_R3_BOB, R, A);
     
     // Traverse tree
-    index = 0;  
+    tree_index = 0;
     for (row = 1; row < S2N_SIKE_P434_R3_MAX_BOB; row++) {
-        while (index < S2N_SIKE_P434_R3_MAX_BOB-row) {
+        while (tree_index < S2N_SIKE_P434_R3_MAX_BOB-row) {
             fp2copy(&R->X, &pts[npts]->X);
             fp2copy(&R->Z, &pts[npts]->Z);
-            pts_index[npts++] = index;
+            pts_index[npts++] = tree_index;
             m = strat_Bob[ii++];
             xTPLe(R, R, A24minus, A24plus, (int)m);
-            index += m;
+            tree_index += m;
         }
         get_3_isog(R, A24minus, A24plus, coeff);
 
@@ -295,7 +295,7 @@ int EphemeralSecretAgreement_B(const unsigned char* PrivateKeyB, const unsigned 
 
         fp2copy(&pts[npts-1]->X, &R->X);
         fp2copy(&pts[npts-1]->Z, &R->Z);
-        index = pts_index[npts-1];
+        tree_index = pts_index[npts-1];
         npts -= 1;
     }
      
