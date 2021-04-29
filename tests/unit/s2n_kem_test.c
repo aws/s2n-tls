@@ -649,8 +649,8 @@ int main(int argc, char **argv)
     {
         /* Failure cases for s2n_get_kem_from_extension_id() */
         const struct s2n_kem *returned_kem = NULL;
-        kem_extension_size non_existant_kem_id = 65535;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(non_existant_kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        kem_extension_size non_existent_kem_id = 65535;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(non_existent_kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     }
 
     END_TEST();
