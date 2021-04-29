@@ -43,7 +43,7 @@ uint64_t bswap64(uint64_t x);
     typedef uint32_t hdigit_t;
 #elif defined(_X86_) || defined(_ARM_)
     #define S2N_SIKE_P434_R3_NWORDS_FIELD    14 /* Number of words of a 434-bit field element */
-    #define S2N_SIKE_P434_R3_ZERO_WORDS      6 /* Number of "0" digits in the least significant part of p434 + 1 */
+    #define S2N_SIKE_P434_R3_ZERO_WORDS      6  /* Number of "0" digits in the least significant part of p434 + 1 */
     #define S2N_SIKE_P434_R3_RADIX           32
     #define S2N_SIKE_P434_R3_LOG2RADIX       5
     #define S2N_SIKE_P434_R3_BSWAP_DIGIT(i)  bswap32((i))
@@ -125,28 +125,28 @@ static __inline unsigned int is_digit_lessthan_ct(const digit_t x, const digit_t
 
 typedef uint64_t uint128_t[2];
 
-// Digit multiplication
+/* Digit multiplication */
 #define S2N_SIKE_P434_R3_MUL(multiplier, multiplicand, hi, lo)                                    \
     digit_x_digit((multiplier), (multiplicand), &(lo));
 
-// Digit addition with carry
+/* Digit addition with carry */
 #define S2N_SIKE_P434_R3_ADDC(carryIn, addend1, addend2, carryOut, sumOut)                        \
     { digit_t tempReg = (addend1) + (digit_t)(carryIn);                                           \
     (sumOut) = (addend2) + tempReg;                                                               \
     (carryOut) = (is_digit_lessthan_ct(tempReg, (digit_t)(carryIn)) | is_digit_lessthan_ct((sumOut), tempReg)); }
 
-// Digit subtraction with borrow
+/* Digit subtraction with borrow */
 #define S2N_SIKE_P434_R3_SUBC(borrowIn, minuend, subtrahend, borrowOut, differenceOut)            \
     { digit_t tempReg = (minuend) - (subtrahend);                                                 \
     unsigned int borrowReg = (is_digit_lessthan_ct((minuend), (subtrahend)) | ((borrowIn) & is_digit_zero_ct(tempReg)));  \
     (differenceOut) = tempReg - (digit_t)(borrowIn);                                              \
     (borrowOut) = borrowReg; }
 
-// Shift right with flexible datatype
+/* Shift right with flexible datatype */
 #define S2N_SIKE_P434_R3_SHIFTR(highIn, lowIn, shift, shiftOut, DigitSize)                        \
     (shiftOut) = ((lowIn) >> (shift)) ^ ((highIn) << ((DigitSize) - (shift)));
 
-// Fixed parameters for computation
+/* Fixed parameters for computation */
 #define p434 S2N_SIKE_P434_R3_NAMESPACE(p434)
 extern const uint64_t p434[S2N_SIKE_P434_R3_NWORDS64_FIELD];
 

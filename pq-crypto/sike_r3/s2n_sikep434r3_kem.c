@@ -21,14 +21,14 @@ int s2n_sike_p434_r3_crypto_kem_keypair(unsigned char *pk, unsigned char *sk)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
 
-    // Generate lower portion of secret key sk <- s||SK
+    /* Generate lower portion of secret key sk <- s||SK */
     POSIX_GUARD_RESULT(s2n_get_random_bytes(sk, S2N_SIKE_P434_R3_MSG_BYTES));
     POSIX_GUARD(random_mod_order_B(sk + S2N_SIKE_P434_R3_MSG_BYTES));
 
-    // Generate public key pk
+    /* Generate public key pk */
     EphemeralKeyGeneration_B(sk + S2N_SIKE_P434_R3_MSG_BYTES, pk);
 
-    // Append public key pk to secret key sk
+    /* Append public key pk to secret key sk */
     memcpy(&sk[S2N_SIKE_P434_R3_MSG_BYTES + S2N_SIKE_P434_R3_SECRETKEY_B_BYTES], pk, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES);
 
     return S2N_SUCCESS;
@@ -47,13 +47,13 @@ int s2n_sike_p434_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const 
     unsigned char h[S2N_SIKE_P434_R3_MSG_BYTES];
     unsigned char temp[S2N_SIKE_P434_R3_CIPHERTEXT_BYTES+S2N_SIKE_P434_R3_MSG_BYTES];
 
-    // Generate ephemeralsk <- G(m||pk) mod oA 
+    /* Generate ephemeralsk <- G(m||pk) mod oA */
     POSIX_GUARD_RESULT(s2n_get_random_bytes(temp, S2N_SIKE_P434_R3_MSG_BYTES));
     memcpy(&temp[S2N_SIKE_P434_R3_MSG_BYTES], pk, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES);
     shake256(ephemeralsk, S2N_SIKE_P434_R3_SECRETKEY_A_BYTES, temp, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES+S2N_SIKE_P434_R3_MSG_BYTES);
     ephemeralsk[S2N_SIKE_P434_R3_SECRETKEY_A_BYTES - 1] &= S2N_SIKE_P434_R3_MASK_ALICE;
 
-    // Encrypt
+    /* Encrypt */
     EphemeralKeyGeneration_A(ephemeralsk, ct);
     EphemeralSecretAgreement_A(ephemeralsk, pk, jinvariant);
     shake256(h, S2N_SIKE_P434_R3_MSG_BYTES, jinvariant, S2N_SIKE_P434_R3_FP2_ENCODED_BYTES);
@@ -61,7 +61,7 @@ int s2n_sike_p434_r3_crypto_kem_enc(unsigned char *ct, unsigned char *ss, const 
         ct[i + S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES] = temp[i] ^ h[i];
     }
 
-    // Generate shared secret ss <- H(m||ct)
+    /* Generate shared secret ss <- H(m||ct) */
     memcpy(&temp[S2N_SIKE_P434_R3_MSG_BYTES], ct, S2N_SIKE_P434_R3_CIPHERTEXT_BYTES);
     shake256(ss, S2N_SIKE_P434_R3_SHARED_SECRET_BYTES, temp, S2N_SIKE_P434_R3_CIPHERTEXT_BYTES+S2N_SIKE_P434_R3_MSG_BYTES);
 
@@ -82,27 +82,27 @@ int s2n_sike_p434_r3_crypto_kem_dec(unsigned char *ss, const unsigned char *ct, 
     unsigned char c0_[S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES];
     unsigned char temp[S2N_SIKE_P434_R3_CIPHERTEXT_BYTES+S2N_SIKE_P434_R3_MSG_BYTES];
 
-    // Decrypt
+    /* Decrypt */
     EphemeralSecretAgreement_B(sk + S2N_SIKE_P434_R3_MSG_BYTES, ct, jinvariant_);
     shake256(h_, S2N_SIKE_P434_R3_MSG_BYTES, jinvariant_, S2N_SIKE_P434_R3_FP2_ENCODED_BYTES);
     for (int i = 0; i < S2N_SIKE_P434_R3_MSG_BYTES; i++) {
         temp[i] = ct[i + S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES] ^ h_[i];
     }
 
-    // Generate ephemeralsk_ <- G(m||pk) mod oA
+    /* Generate ephemeralsk_ <- G(m||pk) mod oA */
     memcpy(&temp[S2N_SIKE_P434_R3_MSG_BYTES], &sk[S2N_SIKE_P434_R3_MSG_BYTES + S2N_SIKE_P434_R3_SECRETKEY_B_BYTES], S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES);
     shake256(ephemeralsk_, S2N_SIKE_P434_R3_SECRETKEY_A_BYTES, temp, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES+S2N_SIKE_P434_R3_MSG_BYTES);
     ephemeralsk_[S2N_SIKE_P434_R3_SECRETKEY_A_BYTES - 1] &= S2N_SIKE_P434_R3_MASK_ALICE;
 
-    // Generate shared secret ss <- H(m||ct), or output ss <- H(s||ct) in case of ct verification failure
+    /* Generate shared secret ss <- H(m||ct), or output ss <- H(s||ct) in case of ct verification failure */
     EphemeralKeyGeneration_A(ephemeralsk_, c0_);
 
-    // Verify ciphertext.
-    // If c0_ and ct are NOT equal, decaps failed and we overwrite the shared secret
-    // with pseudorandom noise (ss = H(s||ct)) by performing the copy (dont_copy = false).
-    //
-    // If c0_ and ct are equal, then decaps succeeded and we skip the overwrite and output
-    // the actual shared secret: ss = H(m||ct) (dont_copy = true).
+    /* Verify ciphertext.
+     * If c0_ and ct are NOT equal, decaps failed and we overwrite the shared secret
+     * with pseudorandom noise (ss = H(s||ct)) by performing the copy (dont_copy = false).
+     *
+     * If c0_ and ct are equal, then decaps succeeded and we skip the overwrite and output
+     * the actual shared secret: ss = H(m||ct) (dont_copy = true). */
     bool dont_copy = s2n_constant_time_equals(c0_, ct, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES);
     POSIX_GUARD(s2n_constant_time_copy_or_dont(temp, sk, S2N_SIKE_P434_R3_MSG_BYTES, dont_copy));
     memcpy(&temp[S2N_SIKE_P434_R3_MSG_BYTES], ct, S2N_SIKE_P434_R3_CIPHERTEXT_BYTES);

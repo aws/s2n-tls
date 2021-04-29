@@ -100,7 +100,7 @@ void fpdiv2_434(const digit_t* a, digit_t* c)
     unsigned int i, carry = 0;
     digit_t mask;
 
-    mask = 0 - (digit_t)(a[0] & 1);    // If a is odd compute a+p434
+    mask = 0 - (digit_t)(a[0] & 1); /* If a is odd compute a+p434 */
     for (i = 0; i < S2N_SIKE_P434_R3_NWORDS_FIELD; i++) {
         S2N_SIKE_P434_R3_ADDC(carry, a[i], ((const digit_t*)p434)[i] & mask, carry, c[i]);
     }
@@ -132,8 +132,8 @@ void digit_x_digit(const digit_t a, const digit_t b, digit_t* c)
     digit_t albl, albh, ahbl, ahbh, res1, res2, res3, carry;
     digit_t mask_low = (digit_t)(-1) >> (sizeof(digit_t)*4), mask_high = (digit_t)(-1) << (sizeof(digit_t)*4);
 
-    al = a & mask_low;                        // Low part
-    ah = a >> (sizeof(digit_t) * 4);          // High part
+    al = a & mask_low;                        /* Low part */
+    ah = a >> (sizeof(digit_t) * 4);          /* High part */
     bl = b & mask_low;
     bh = b >> (sizeof(digit_t) * 4);
 
@@ -141,22 +141,22 @@ void digit_x_digit(const digit_t a, const digit_t b, digit_t* c)
     albh = al*bh;
     ahbl = ah*bl;
     ahbh = ah*bh;
-    c[0] = albl & mask_low;                   // C00
+    c[0] = albl & mask_low;                   /* C00 */
 
     res1 = albl >> (sizeof(digit_t) * 4);
     res2 = ahbl & mask_low;
     res3 = albh & mask_low;  
     temp = res1 + res2 + res3;
     carry = temp >> (sizeof(digit_t) * 4);
-    c[0] ^= temp << (sizeof(digit_t) * 4);    // C01   
+    c[0] ^= temp << (sizeof(digit_t) * 4);    /* C01 */
 
     res1 = ahbl >> (sizeof(digit_t) * 4);
     res2 = albh >> (sizeof(digit_t) * 4);
     res3 = ahbh & mask_low;
     temp = res1 + res2 + res3 + carry;
-    c[1] = temp & mask_low;                   // C10 
+    c[1] = temp & mask_low;                   /* C10 */
     carry = temp & mask_high; 
-    c[1] ^= (ahbh & mask_high) + carry;       // C11
+    c[1] ^= (ahbh & mask_high) + carry;       /* C11 */
 }
 
 /* Multiprecision comba multiply, c = a*b, where lng(a) = lng(b) = nwords. */
