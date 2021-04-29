@@ -178,6 +178,7 @@ int async_pkey_signature_callback(struct s2n_connection *conn, struct s2n_async_
     EXPECT_SUCCESS(s2n_hash_init(&digest, S2N_HASH_SHA1));
     EXPECT_SUCCESS(s2n_hash_update(&digest, test_digest_data, test_digest_size));
     EXPECT_SUCCESS(s2n_hash_digest(&digest, expected_digest.data, expected_digest.size));
+    EXPECT_SUCCESS(s2n_hash_free(&digest));
 
     EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input.data, input.size));
     EXPECT_BYTEARRAY_EQUAL(input.data, expected_digest.data, expected_digest.size);
@@ -480,6 +481,8 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
+
+    EXPECT_SUCCESS(s2n_hash_free(&digest));
 
     END_TEST();
     return 0;
