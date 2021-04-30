@@ -54,6 +54,30 @@ int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, str
     return S2N_SUCCESS;
 }
 
+S2N_RESULT s2n_negotiate_test_server_and_client_with_early_data(struct s2n_connection *server_conn,
+        struct s2n_connection *client_conn, struct s2n_blob *early_data_to_send, struct s2n_blob *early_data_received)
+{
+    bool server_done = false, client_done = false;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    ssize_t total_data_sent = 0, total_data_recv = 0;
+    ssize_t data_sent = 0, data_recv = 0;
+
+    do {
+        bool client_success = (s2n_send_early_data(client_conn, early_data_to_send->data + total_data_sent,
+                early_data_to_send->size - total_data_sent, &data_sent, &blocked) >= S2N_SUCCESS);
+        total_data_sent += data_sent;
+        RESULT_GUARD(s2n_validate_negotiate_result(client_success, server_done, &client_done));
+
+        bool server_success = (s2n_recv_early_data(server_conn, early_data_received->data + total_data_recv,
+                early_data_received->size - total_data_recv, &data_recv, &blocked) >= S2N_SUCCESS);
+        total_data_recv += data_recv;
+        RESULT_GUARD(s2n_validate_negotiate_result(server_success, server_done, &server_done));
+    } while (!(client_done && data_recv == 0));
+
+    RESULT_GUARD_POSIX(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_negotiate_test_server_and_client_until_message(struct s2n_connection *server_conn,
         struct s2n_connection *client_conn, message_type_t message_type)
 {
