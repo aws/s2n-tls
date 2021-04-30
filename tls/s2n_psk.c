@@ -322,7 +322,7 @@ int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struc
         return S2N_SUCCESS;
     }
     
-    if (psk_params->type == S2N_PSK_TYPE_RESUMPTION) {
+    if (psk_params->type == S2N_PSK_TYPE_RESUMPTION && psk_list->conn->config->use_tickets) {
         POSIX_GUARD(s2n_stuffer_init(&psk_list->conn->client_ticket_to_decrypt, &psk->identity));
         POSIX_GUARD(s2n_stuffer_skip_write(&psk_list->conn->client_ticket_to_decrypt, psk->identity.size));
 
