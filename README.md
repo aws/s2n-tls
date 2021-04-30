@@ -36,23 +36,32 @@ An example of building on OSX:
 
 ```sh
 # Install required dependencies using homebrew
-brew install ninja cmake
+brew install ninja cmake coreutils openssl@1.1
 
 # Clone the s2n-tls source repository into the `s2n-tls` directory
 git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n-tls.git
+cd s2n-tls
 
-# Create a build directory parallel to the source directory
-mkdir s2n_tls_build
-
-# From the build directory, build s2n-tls with debug symbols and a specific OpenSSL version
-cd s2n_tls_build
-cmake -GNinja \
+# Create a build directory, and build s2n-tls with debug symbols and a specific OpenSSL version.
+cmake . -Bbuild -GNinja \
     -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_PREFIX_PATH=$(dirname $(dirname $(brew list openssl@1.1|grep libcrypto.dylib))) \
-    ../s2n-tls
-ninja -j6
-CTEST_PARALLEL_LEVEL=5 ninja test
+    -DCMAKE_PREFIX_PATH=$(dirname $(dirname $(brew list openssl@1.1|grep libcrypto.dylib)))
+cmake --build ./build -j $(nproc)
+CTEST_PARALLEL_LEVEL=$(nproc) ninja -C build test
 ```
+
+### Amazonlinux2
+
+Install dependancies with `./codebuild/bin/install_al2_dependencies.sh` after cloning.
+
+```sh
+git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n-tls.git
+cd s2n-tls
+cmake . -Bbuild -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cmake --build ./build -j $(nproc)
+CTEST_PARALLEL_LEVEL=$(nproc) make -C build test
+```
+
 
 ## Have a Question?
 If you have any questions about Submitting PR's, Opening Issues, s2n-tls API usage, or something similar, we have a public chatroom available here to answer your questions: https://gitter.im/aws/s2n-tls
