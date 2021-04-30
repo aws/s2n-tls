@@ -1,8 +1,8 @@
 #include <stddef.h>
 #include <stdint.h>
-#include "s2n_kyber512r3_params.h"
-#include "s2n_kyber512r3_symmetric.h"
-#include "s2n_kyber512r3_indcpa.h"
+#include "kyber512r3_params.h"
+#include "kyber512r3_symmetric.h"
+#include "kyber512r3_indcpa.h"
 #include "tls/s2n_kem.h"
 #include "utils/s2n_safety.h"
 #include "pq-crypto/s2n_pq_random.h"

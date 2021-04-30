@@ -1,7 +1,7 @@
 #pragma once
 
-#include "s2n_kyber512r3_params.h"
-#include "s2n_kyber512r3_fips202.h"
+#include "kyber512r3_params.h"
+#include "kyber512r3_fips202.h"
 #include <stdint.h>
 
 #define keccak_state S2N_KYBER_512_R3_NAMESPACE(keccak_state)

@@ -1,10 +1,10 @@
 #include <stdint.h>
-#include "s2n_kyber512r3_params.h"
-#include "s2n_kyber512r3_poly.h"
-#include "s2n_kyber512r3_ntt.h"
-#include "s2n_kyber512r3_reduce.h"
-#include "s2n_kyber512r3_cbd.h"
-#include "s2n_kyber512r3_symmetric.h"
+#include "kyber512r3_params.h"
+#include "kyber512r3_poly.h"
+#include "kyber512r3_ntt.h"
+#include "kyber512r3_reduce.h"
+#include "kyber512r3_cbd.h"
+#include "kyber512r3_symmetric.h"
 
 /*************************************************
 * Name:        poly_compress

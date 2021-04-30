@@ -1,7 +1,7 @@
 #include <stdint.h>
-#include "s2n_kyber512r3_params.h"
-#include "s2n_kyber512r3_ntt.h"
-#include "s2n_kyber512r3_reduce.h"
+#include "kyber512r3_params.h"
+#include "kyber512r3_ntt.h"
+#include "kyber512r3_reduce.h"
 
 const int16_t zetas[128] = {
     2285, 2571, 2970, 1812, 1493, 1422, 287, 202, 3158, 622, 1577, 182, 962,

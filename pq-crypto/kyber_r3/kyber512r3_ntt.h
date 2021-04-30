@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "s2n_kyber512r3_params.h"
+#include "kyber512r3_params.h"
 
 #define zetas S2N_KYBER_512_R3_NAMESPACE(zetas)
 extern const int16_t zetas[128];

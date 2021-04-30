@@ -1,11 +1,11 @@
 #include <stddef.h>
 #include <stdint.h>
-#include "s2n_kyber512r3_params.h"
-#include "s2n_kyber512r3_indcpa.h"
-#include "s2n_kyber512r3_poly.h"
-#include "s2n_kyber512r3_polyvec.h"
-#include "s2n_kyber512r3_fips202.h"
-#include "s2n_kyber512r3_symmetric.h"
+#include "kyber512r3_params.h"
+#include "kyber512r3_indcpa.h"
+#include "kyber512r3_poly.h"
+#include "kyber512r3_polyvec.h"
+#include "kyber512r3_fips202.h"
+#include "kyber512r3_symmetric.h"
 #include "pq-crypto/s2n_pq_random.h"
 #include "utils/s2n_safety.h"
 

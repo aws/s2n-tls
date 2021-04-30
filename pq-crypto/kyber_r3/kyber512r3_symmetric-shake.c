@@ -1,6 +1,6 @@
-#include "s2n_kyber512r3_params.h"
-#include "s2n_kyber512r3_fips202.h"
-#include "s2n_kyber512r3_symmetric.h"
+#include "kyber512r3_params.h"
+#include "kyber512r3_fips202.h"
+#include "kyber512r3_symmetric.h"
 #include <stdlib.h>
 
 /*************************************************
