@@ -5,14 +5,14 @@
 *********************************************************************************************/ 
 
 #include <string.h>
-#include "s2n_sikep434r3.h"
-#include "s2n_sikep434r3_fips202.h"
+#include "sikep434r3.h"
+#include "sikep434r3_fips202.h"
 #include "utils/s2n_safety.h"
 #include "tls/s2n_kem.h"
 #include "pq-crypto/s2n_pq.h"
 #include "pq-crypto/s2n_pq_random.h"
-#include "s2n_sikep434r3_fpx.h"
-#include "s2n_sikep434r3_api.h"
+#include "sikep434r3_fpx.h"
+#include "sikep434r3_api.h"
 
 /* SIKE's key generation
  * Outputs: secret key sk (S2N_SIKE_P434_R3_SECRET_KEY_BYTES = S2N_SIKE_P434_R3_MSG_BYTES + S2N_SIKE_P434_R3_SECRETKEY_B_BYTES + S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES bytes)

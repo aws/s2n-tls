@@ -5,9 +5,9 @@
 *********************************************************************************************/
 
 #include <string.h>
-#include "s2n_sikep434r3.h"
-#include "s2n_sikep434r3_fp.h"
-#include "s2n_sikep434r3_fpx.h"
+#include "sikep434r3.h"
+#include "sikep434r3_fp.h"
+#include "sikep434r3_fpx.h"
 
 static void fpmul_mont(const felm_t ma, const felm_t mb, felm_t mc);
 static void to_mont(const felm_t a, felm_t mc);

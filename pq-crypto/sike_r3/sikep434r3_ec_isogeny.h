@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "s2n_sikep434r3.h"
+#include "sikep434r3.h"
 
 #define xDBL S2N_SIKE_P434_R3_NAMESPACE(xDBL)
 void xDBL(const point_proj_t P, point_proj_t Q, const f2elm_t *A24plus, const f2elm_t *C24);

@@ -13,8 +13,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "s2n_sikep434r3.h"
-#include "s2n_sikep434r3_fips202.h"
+#include "sikep434r3.h"
+#include "sikep434r3_fips202.h"
 
 #define NROUNDS 24
 #define ROL(a, offset) ((a << offset) ^ (a >> (64-offset)))

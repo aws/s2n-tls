@@ -14,7 +14,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "s2n_sikep434r3.h"
+#include "sikep434r3.h"
 
 #define SHAKE128_RATE 168
 #define SHAKE256_RATE 136

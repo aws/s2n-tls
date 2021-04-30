@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "s2n_sikep434r3.h"
+#include "sikep434r3.h"
 
 /*********************** Key encapsulation mechanism API ***********************/
 /* Encoding of keys for KEM-based isogeny system "SIKEp434" (wire format):

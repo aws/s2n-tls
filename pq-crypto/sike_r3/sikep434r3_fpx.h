@@ -7,8 +7,8 @@
 #pragma once
 
 #include <string.h>
-#include "s2n_sikep434r3.h"
-#include "s2n_sikep434r3_fp.h"
+#include "sikep434r3.h"
+#include "sikep434r3_fp.h"
 
 #define fp2_encode S2N_SIKE_P434_R3_NAMESPACE(fp2_encode)
 void fp2_encode(const f2elm_t *x, unsigned char *enc);

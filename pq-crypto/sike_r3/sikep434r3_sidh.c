@@ -4,12 +4,12 @@
 * Abstract: ephemeral supersingular isogeny Diffie-Hellman key exchange (SIDH)
 *********************************************************************************************/
 
-#include "s2n_sikep434r3.h"
+#include "sikep434r3.h"
 #include "pq-crypto/s2n_pq_random.h"
 #include "utils/s2n_safety.h"
-#include "s2n_sikep434r3_fpx.h"
-#include "s2n_sikep434r3_ec_isogeny.h"
-#include "s2n_sikep434r3_api.h"
+#include "sikep434r3_fpx.h"
+#include "sikep434r3_ec_isogeny.h"
+#include "sikep434r3_api.h"
 
 /* Initialization of basis points */
 static void init_basis(const digit_t *gen, f2elm_t *XP, f2elm_t *XQ, f2elm_t *XR)

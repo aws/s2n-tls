@@ -4,9 +4,9 @@
 * Abstract: elliptic curve and isogeny functions
 *********************************************************************************************/
 
-#include "s2n_sikep434r3.h"
-#include "s2n_sikep434r3_fpx.h"
-#include "s2n_sikep434r3_ec_isogeny.h"
+#include "sikep434r3.h"
+#include "sikep434r3_fpx.h"
+#include "sikep434r3_ec_isogeny.h"
 
 /* Doubling of a Montgomery point in projective coordinates (X:Z).
  * Input: projective Montgomery x-coordinates P = (X1:Z1), where x1=X1/Z1 and Montgomery curve constants A+2C and 4C.
