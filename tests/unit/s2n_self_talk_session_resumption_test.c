@@ -23,7 +23,7 @@
     (((client->handshake.handshake_type) & HELLO_RETRY_REQUEST) \
      && ((server->handshake.handshake_type) & HELLO_RETRY_REQUEST))
 
-static int s2n_test_session_ticket_cb(void *ctx, struct s2n_connection *conn, struct s2n_session_ticket *ticket)
+static int s2n_test_session_ticket_cb(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(ticket);
@@ -252,52 +252,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
 
-    /* HRR with session resumption */
-    {
-        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-        EXPECT_NOT_NULL(client_conn);
-        EXPECT_NOT_NULL(server_conn);
-
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_client_config));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-
-        /* Create nonblocking pipes */
-        struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
-
-        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
-
-        /* Negotiate handshake */
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-
-        /* Validate handshake type */
-        EXPECT_TRUE(IS_HELLO_RETRY(client_conn, server_conn));
-        EXPECT_TRUE(ARE_FULL_HANDSHAKES(client_conn, server_conn));
-
-        /* Receive and save the issued session ticket for the next connection */
-        EXPECT_OK(s2n_test_recv_new_session_ticket(client_conn));
-
-        /* Prepare client and server for new connection */
-        EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
-        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
-
-        /* Client sets up a resumption connection with the received session ticket data */
-        size_t cb_session_data_len = s2n_stuffer_data_available(&cb_session_data);
-        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, cb_session_data.blob.data, cb_session_data_len));
-        EXPECT_SUCCESS(s2n_stuffer_rewrite(&cb_session_data));
-
-        /* Negotiate new connection */
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-        EXPECT_FALSE(ARE_FULL_HANDSHAKES(client_conn, server_conn));
-
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-    }
-
     /* Test: A client with a valid TLS1.2 session ticket and TLS1.3 cipher preferences
      * will fail connecting to a TLS1.3 server. This is because the server
      * interprets the client as a TLS1.2 client and sends the client a TLS1.2 Server Hello.
@@ -343,6 +297,98 @@ int main(int argc, char **argv)
 
         /* Negotiate second connection */
         EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+    }
+
+    /* HRR when issuing session resumption ticket */
+    {
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_NOT_NULL(server_conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_client_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        /* Create nonblocking pipes */
+        struct s2n_test_io_pair io_pair = { 0 };
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+
+        /* Negotiate handshake */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Validate handshake type */
+        EXPECT_TRUE(IS_HELLO_RETRY(client_conn, server_conn));
+        EXPECT_TRUE(ARE_FULL_HANDSHAKES(client_conn, server_conn));
+
+        /* Receive and save the issued session ticket for the next connection */
+        EXPECT_OK(s2n_test_recv_new_session_ticket(client_conn));
+
+        /* Prepare client and server for new connection */
+        EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* Client sets up a resumption connection with the received session ticket data */
+        size_t cb_session_data_len = s2n_stuffer_data_available(&cb_session_data);
+        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, cb_session_data.blob.data, cb_session_data_len));
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(&cb_session_data));
+
+        /* Negotiate new connection */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_FALSE(ARE_FULL_HANDSHAKES(client_conn, server_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+    }
+
+    /* HRR when resuming a session */
+    {
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_NOT_NULL(server_conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_client_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        /* Create nonblocking pipes */
+        struct s2n_test_io_pair io_pair = { 0 };
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* Negotiate handshake */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Validate handshake type */
+        EXPECT_TRUE(ARE_FULL_HANDSHAKES(client_conn, server_conn));
+
+        /* Receive and save the issued session ticket for the next connection */
+        EXPECT_OK(s2n_test_recv_new_session_ticket(client_conn));
+
+        /* Prepare client and server for new connection */
+        EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_connection_set_keyshare_by_name_for_testing(client_conn, "none"));
+
+        /* Client sets up a resumption connection with the received session ticket data */
+        size_t cb_session_data_len = s2n_stuffer_data_available(&cb_session_data);
+        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, cb_session_data.blob.data, cb_session_data_len));
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(&cb_session_data));
+
+        /* Negotiate new connection */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_FALSE(ARE_FULL_HANDSHAKES(client_conn, server_conn));
+        EXPECT_TRUE(IS_HELLO_RETRY(client_conn, server_conn));
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));

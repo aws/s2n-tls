@@ -44,9 +44,6 @@
 #define S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE 79
 
 int s2n_server_nst_recv(struct s2n_connection *conn) {
-    if (!conn->config->use_tickets) {
-        return S2N_SUCCESS;
-    }
 
     POSIX_GUARD(s2n_stuffer_read_uint32(&conn->handshake.io, &conn->ticket_lifetime_hint));
 
@@ -72,7 +69,7 @@ int s2n_server_nst_recv(struct s2n_connection *conn) {
 
             struct s2n_session_ticket ticket = { .ticket_data = mem, .session_lifetime = session_lifetime };
 
-            POSIX_GUARD(conn->config->session_ticket_cb(conn->config->session_ticket_ctx, conn, &ticket));
+            POSIX_GUARD(conn->config->session_ticket_cb(conn, conn->config->session_ticket_ctx, &ticket));
         }
     }
 
@@ -366,7 +363,7 @@ S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stu
                 .ticket_data = session_state,
                 .session_lifetime = session_lifetime
         };
-        RESULT_GUARD_POSIX(conn->config->session_ticket_cb(conn->config->session_ticket_ctx, conn, &ticket));
+        RESULT_GUARD_POSIX(conn->config->session_ticket_cb(conn, conn->config->session_ticket_ctx, &ticket));
     }
 
     return S2N_RESULT_OK;

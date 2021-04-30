@@ -168,6 +168,7 @@ static int s2n_client_serialize_resumption_state(struct s2n_connection *conn, st
        POSIX_GUARD(s2n_stuffer_write(to, &conn->client_ticket));
    } else {
        /* Serialize session id */
+       POSIX_ENSURE_LT(conn->actual_protocol_version, S2N_TLS13);
        POSIX_GUARD(s2n_stuffer_write_uint8(to, S2N_STATE_WITH_SESSION_ID));
        POSIX_GUARD(s2n_stuffer_write_uint8(to, conn->session_id_len));
        POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->session_id, conn->session_id_len));
