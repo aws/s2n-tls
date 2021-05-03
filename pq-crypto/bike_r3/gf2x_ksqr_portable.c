@@ -25,7 +25,7 @@
 // For improved performance, we compute the result by inverted permutation pi1:
 //     pi1 : (j * 2^-k) % r --> j.
 // Input argument l_param is defined as the value (2^-k) % r.
-void k_squaring(OUT pad_r_t *c, IN const pad_r_t *a, IN const size_t l_param)
+void k_sqr_port(OUT pad_r_t *c, IN const pad_r_t *a, IN const size_t l_param)
 {
   bike_memset(c->val.raw, 0, sizeof(c->val));
 

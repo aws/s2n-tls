@@ -29,7 +29,7 @@
 
 // The gf2m code is optimized to a block in this case:
 #  define BLOCK_BITS 32768
-#elif (LEVEL == 1)
+#elif(LEVEL == 1)
 // 64-bits of post-quantum security parameters (BIKE paper):
 #  define R_BITS 12323
 #  define DV      71

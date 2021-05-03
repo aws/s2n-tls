@@ -60,7 +60,6 @@ else()
         "pq-crypto/*.c"
         "pq-crypto/bike_r1/*.c"
         "pq-crypto/bike_r2/*.c"
-        "pq-crypto/bike_r3/*.c"
         "pq-crypto/sike_r1/fp_generic_r1.c"
         "pq-crypto/sike_r1/P503_r1.c"
         "pq-crypto/sike_r1/sike_r1_kem.c"
@@ -71,6 +70,27 @@ else()
         "pq-crypto/kyber_90s_r2/*.c"
         "pq-crypto/kyber_r3/*.c"
         "pq-crypto/sike_r3/*.c")
+        "pq-crypto/kyber_90s_r2/*.c")
+
+    # The BIKE Round-3 code has AVX optimizations for x86_64 platforms,
+    # so we include these files only when compiling on x86_64 platform,
+    # otherwise we include only the portable implementation.
+    if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(x86_64|amd64|AMD64)$" AND NOT S2N_NO_PQ_ASM)
+        list(APPEND PQ_SRC "pq-crypto/bike_r3/*.c")
+        set(BIKE_R3_X86_64_OPT_SUPPORTED ON)
+    else()
+        list(APPEND PQ_SRC
+            "pq-crypto/bike_r3/aes_ctr_prf.c"
+            "pq-crypto/bike_r3/bike_r3_kem.c"
+            "pq-crypto/bike_r3/decode.c"
+            "pq-crypto/bike_r3/error.c"
+            "pq-crypto/bike_r3/gf2x_inv.c"
+            "pq-crypto/bike_r3/gf2x_mul.c"
+            "pq-crypto/bike_r3/sampling.c"
+            "pq-crypto/bike_r3/utilities.c"
+            "pq-crypto/bike_r3/*_portable.c")
+        set(BIKE_R3_X86_64_OPT_SUPPORTED OFF)
+    endif()
 endif()
 
 ##be nice to visual studio users
@@ -223,6 +243,27 @@ endif()
 if(SIKEP434R2_ASM_SUPPORTED)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_SIKEP434R2_ASM)
     message(STATUS "Enabling SIKEP434R2 assembly code")
+endif()
+
+if(BIKE_R3_X86_64_OPT_SUPPORTED)
+    # If BIKE_R3 x86_64 optimizations are supported we add the required
+    # compile flags to files containing the optimized code.
+
+    FILE(GLOB BIKE_R3_AVX2_SRCS "pq-crypto/bike_r3/*_avx2.c")
+    FILE(GLOB BIKE_R3_AVX512_SRCS "pq-crypto/bike_r3/*_avx512.c")
+    FILE(GLOB BIKE_R3_PCLMUL_SRCS "pq-crypto/bike_r3/*_pclmul.c")
+    FILE(GLOB BIKE_R3_VPCLMUL_SRCS "pq-crypto/bike_r3/*_vpclmul.c")
+
+    set(BIKE_R3_AVX512_FLAGS "-mavx512f;-mavx512bw;-mavx512dq")
+
+    set_source_files_properties(${BIKE_R3_AVX2_SRCS} PROPERTIES COMPILE_OPTIONS "-mavx2")
+    set_source_files_properties(${BIKE_R3_AVX512_SRCS} PROPERTIES COMPILE_OPTIONS "${BIKE_R3_AVX512_FLAGS}")
+    set_source_files_properties(${BIKE_R3_PCLMUL_SRCS} PROPERTIES COMPILE_OPTIONS "-mpclmul")
+    set_source_files_properties(${BIKE_R3_VPCLMUL_SRCS} PROPERTIES COMPILE_OPTIONS "-mvpclmulqdq;${BIKE_R3_AVX512_FLAGS}")
+
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_X86_64)
+
+    message(STATUS "Enabling BIKE_R3 x86_64 optimizations")
 endif()
 
 if(ADX_SUPPORTED)

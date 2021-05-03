@@ -21,7 +21,12 @@
 #include "crypto/s2n_fips.h"
 
 bool s2n_sikep434r2_asm_is_enabled(void);
+bool s2n_bike_r3_is_avx2_enabled(void);
+bool s2n_bike_r3_is_avx512_enabled(void);
+bool s2n_bike_r3_is_pclmul_enabled(void);
+bool s2n_bike_r3_is_vpclmul_enabled(void);
 bool s2n_pq_is_enabled(void);
 S2N_RESULT s2n_disable_sikep434r2_asm(void);
+S2N_RESULT s2n_disable_bike_r3_x86_64_opt(void);
 S2N_RESULT s2n_try_enable_sikep434r2_asm(void);
 S2N_RESULT s2n_pq_init(void);

@@ -17,6 +17,12 @@
 
 static bool sikep434r2_asm_enabled = false;
 
+/* BIKE Round-3 code supports several levels of optimization */
+static bool bike_r3_avx2_enabled    = false;
+static bool bike_r3_avx512_enabled  = false;
+static bool bike_r3_pclmul_enabled  = false;
+static bool bike_r3_vpclmul_enabled = false;
+
 #if defined(S2N_CPUID_AVAILABLE)
 /* https://en.wikipedia.org/wiki/CPUID */
 #include <cpuid.h>
@@ -34,6 +40,11 @@ static bool sikep434r2_asm_enabled = false;
 #if !defined(bit_BMI2)
     #define bit_BMI2 (1 << 8)
 #endif
+
+/* BIKE related CPU features */
+#define EBX_BIT_AVX2    (1 << 5)
+#define EBX_BIT_AVX512  (1 << 16)
+#define ECX_BIT_VPCLMUL (1 << 10)
 
 bool s2n_get_cpuid_count(uint32_t leaf, uint32_t sub_leaf, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx) {
     /* 0x80000000 probes for extended cpuid info */
@@ -82,6 +93,26 @@ bool s2n_cpu_supports_sikep434r2_asm() {
 #endif /* defined(S2N_SIKEP434R2_ASM) */
 }
 
+void s2n_bike_r3_x86_64_opt_init() {
+#if defined(S2N_BIKE_R3_X86_64)
+
+    uint32_t eax, ebx, ecx, edx;
+    if (!s2n_get_cpuid_count(EXTENDED_FEATURES_LEAF, EXTENDED_FEATURES_SUBLEAF_ZERO, &eax, &ebx, &ecx, &edx)) {
+        return;
+    }
+
+    bike_r3_avx2_enabled    = (ebx & EBX_BIT_AVX2) != 0;
+    bike_r3_avx512_enabled  = (ebx & EBX_BIT_AVX512) != 0;
+    bike_r3_pclmul_enabled  = bike_r3_avx2_enabled;
+    bike_r3_vpclmul_enabled = (ecx & ECX_BIT_VPCLMUL) != 0;
+#else
+    bike_r3_avx2_enabled    = false;
+    bike_r3_avx512_enabled  = false;
+    bike_r3_pclmul_enabled  = false;
+    bike_r3_vpclmul_enabled = false;
+#endif
+}
+
 #else /* defined(S2N_CPUID_AVAILABLE) */
 
 /* If CPUID is not available, we cannot perform necessary run-time checks. */
@@ -89,10 +120,33 @@ bool s2n_cpu_supports_sikep434r2_asm() {
     return false;
 }
 
+void s2n_bike_r3_x86_64_opt_init() {
+    bike_r3_avx2_enabled    = false;
+    bike_r3_avx512_enabled  = false;
+    bike_r3_pclmul_enabled  = false;
+    bike_r3_vpclmul_enabled = false;
+}
+
 #endif /* defined(S2N_CPUID_AVAILABLE) */
 
 bool s2n_sikep434r2_asm_is_enabled() {
     return sikep434r2_asm_enabled;
+}
+
+bool s2n_bike_r3_is_avx2_enabled() {
+    return bike_r3_avx2_enabled;
+}
+
+bool s2n_bike_r3_is_avx512_enabled() {
+    return bike_r3_avx512_enabled;
+}
+
+bool s2n_bike_r3_is_pclmul_enabled() {
+    return bike_r3_pclmul_enabled;
+}
+
+bool s2n_bike_r3_is_vpclmul_enabled() {
+    return bike_r3_vpclmul_enabled;
 }
 
 bool s2n_pq_is_enabled() {
@@ -108,6 +162,14 @@ S2N_RESULT s2n_disable_sikep434r2_asm() {
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_disable_bike_r3_x86_64_opt() {
+    bike_r3_avx2_enabled    = false;
+    bike_r3_avx512_enabled  = false;
+    bike_r3_pclmul_enabled  = false;
+    bike_r3_vpclmul_enabled = false;
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_try_enable_sikep434r2_asm() {
     if (s2n_pq_is_enabled() && s2n_cpu_supports_sikep434r2_asm()) {
         sikep434r2_asm_enabled = true;
@@ -117,6 +179,7 @@ S2N_RESULT s2n_try_enable_sikep434r2_asm() {
 
 S2N_RESULT s2n_pq_init() {
     RESULT_ENSURE_OK(s2n_try_enable_sikep434r2_asm(), S2N_ERR_SAFETY);
+    s2n_bike_r3_x86_64_opt_init();
 
     return S2N_RESULT_OK;
 }

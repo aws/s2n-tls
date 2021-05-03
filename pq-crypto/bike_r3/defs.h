@@ -30,7 +30,7 @@
 #endif
 
 // Divide by the divider and round up to next integer
-#define DIVIDE_AND_CEIL(x, divider) (((x) + (divider)-1) / (divider))
+#define DIVIDE_AND_CEIL(x, divider) (((x) + (divider) - 1) / (divider))
 
 // Bit manipulations
 // Linux Assemblies, except for Ubuntu, cannot understand what ULL mean.
@@ -49,9 +49,6 @@
 
 #define WORDS_IN_YMM (BYTES_IN_YMM / sizeof(uint16_t))
 #define WORDS_IN_ZMM (BYTES_IN_ZMM / sizeof(uint16_t))
-
-#define DWORDS_IN_YMM (BYTES_IN_YMM / sizeof(uint32_t))
-#define DWORDS_IN_ZMM (BYTES_IN_ZMM / sizeof(uint32_t))
 
 #define QWORDS_IN_XMM (BYTES_IN_XMM / sizeof(uint64_t))
 #define QWORDS_IN_YMM (BYTES_IN_YMM / sizeof(uint64_t))
@@ -86,17 +83,6 @@
                                    ? 6              \
                                    : ((v) < 128 ? 7 \
                                                 : ((v) < 256 ? 8 : 9)))))))))
-
-#define REG_T uint64_t
-#define LOAD(mem)       (mem)[0]
-#define STORE(mem, val) (mem)[0] = val
-#define SLLI_I64(a, imm) ((a) << (imm))
-#define SRLI_I64(a, imm) ((a) >> (imm))
-
-// NOLINT is used to avoid the sizeof(T)/sizeof(T) warning when REG_T is defined
-// to be uint64_t
-#define REG_QWORDS (sizeof(REG_T) / sizeof(uint64_t)) // NOLINT
-#define REG_DWORDS (sizeof(REG_T) / sizeof(uint32_t)) // NOLINT
 
 ////////////////////////////////////////////
 //             Debug

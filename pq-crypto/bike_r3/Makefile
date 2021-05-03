@@ -17,7 +17,10 @@
 
 include ../../s2n.mk
 
-SRCS=$(wildcard *.c)
+# TODO: Add the x86_64 optimized implementations to the Makefile build system,
+#       similarly as it was done for SIKE. The CMake build system already
+#       supports compiling the optimized files.
+SRCS=aes_ctr_prf.c bike_r3_kem.c decode.c decode_portable.c error.c gf2x_inv.c gf2x_ksqr_portable.c gf2x_mul.c gf2x_mul_base_portable.c gf2x_mul_portable.c sampling.c sampling_portable.c utilities.c
 OBJS=$(SRCS:.c=.o)
 
 #WA for GCC 4.8.5 bug.
