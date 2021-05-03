@@ -12,6 +12,7 @@ option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
 for older compilers or uncommon platforms." OFF)
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain.
 You likely want this on older compilers." OFF)
+option(USE_OPENSSL "Set this if you want to use your system's OpenSSL 1.0.2/1.1.1 compatible libcrypto" ON)
 # Turn BUILD_TESTING=ON by default
 include(CTest)
 
@@ -258,7 +259,7 @@ endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
 
-if (NOT IN_SOURCE_BUILD)
+if (USE_OPENSSL OR NOT IN_SOURCE_BUILD)
     find_package(LibCrypto REQUIRED)
 endif()
 target_link_libraries(${PROJECT_NAME} PUBLIC crypto ${OS_LIBS} m)
