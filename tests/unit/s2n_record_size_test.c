@@ -333,7 +333,7 @@ int main(int argc, char **argv)
         /* Testing a big 100k blob to be written */
         s2n_stack_blob(big_blob, ONE_HUNDRED_K, ONE_HUNDRED_K);
 
-        /* Test that s2n_record_write() doesn't error on writting large payloads.
+        /* Test that s2n_record_write() doesn't error on writing large payloads.
          * Also asserts the bytes written on the wire.
          */
         server_conn->wire_bytes_out = 0;
