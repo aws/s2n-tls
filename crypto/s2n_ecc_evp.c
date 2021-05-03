@@ -157,9 +157,12 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
     POSIX_ENSURE_REF(peer_public);
     POSIX_ENSURE_REF(own_key);
 
-    /* From RFC 8446 Section 4.2.8.2: For the curves secp256r1, secp384r1, and secp521r1, peers MUST validate 
+    /* From RFC 8446(TLS1.3) Section 4.2.8.2: For the curves secp256r1, secp384r1, and secp521r1, peers MUST validate 
      * each other's public value Q by ensuring that the point is a valid point on the elliptic curve.
      * For the curve x25519 and x448 the peer public-key validation check doesn't apply.
+     * From RFC 8422(TLS1.2) Section 5.11: With the NIST curves, each party MUST validate the public key sent by its peer
+     * in the ClientKeyExchange and ServerKeyExchange messages. A receiving party MUST check that the x and y parameters from 
+     * the peer's public value satisfy the curve equation, y^2 = x^3 + ax + b mod p.
      */
     if (iana_id != TLS_EC_CURVE_ECDH_X25519 && iana_id != TLS_EC_CURVE_ECDH_X448) {
         DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(peer_public), EC_KEY_free_pointer);
