@@ -63,6 +63,51 @@ static int async_handler_wipe_connection_and_apply(struct s2n_connection *conn)
     return S2N_FAILURE;
 }
 
+static int async_handler_sign_with_different_pkey_and_apply(struct s2n_connection *conn) {
+
+    /* Check that we have pkey_op */
+    EXPECT_NOT_NULL(pkey_op);
+
+    /* Retrieve cipher suite for the server connection */
+    struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
+    POSIX_ENSURE_REF(cipher_suite);
+
+    /* Test only sign operation */
+    if (cipher_suite->key_exchange_alg != NULL && cipher_suite->key_exchange_alg->is_ephemeral) {
+        /* Extract pkey */
+        struct s2n_cert_chain_and_key *chain_and_key = s2n_connection_get_selected_cert(conn);
+        EXPECT_NOT_NULL(chain_and_key);
+
+        s2n_cert_private_key *pkey = s2n_cert_chain_and_key_get_private_key(chain_and_key);
+        EXPECT_NOT_NULL(pkey);
+
+        /* Test that we can perform pkey operation */
+        EXPECT_SUCCESS(s2n_async_pkey_op_perform(pkey_op, pkey));
+
+        /* Create new chain and key, and modify current server conn */
+        struct s2n_cert_chain_and_key *chain_and_key_2 = NULL;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key_2,
+                S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+
+        /* Change server conn cert data */
+        EXPECT_NOT_NULL(conn->handshake_params.our_chain_and_key);
+        conn->handshake_params.our_chain_and_key = chain_and_key_2;
+
+        /* Test that pkey op can't be applied to wrong pkey */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(pkey_op, conn), S2N_ERR_VERIFY_SIGNATURE);
+
+        /* Set chain_and_key back to original value and free new chain_and_key */
+        conn->handshake_params.our_chain_and_key = chain_and_key;
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key_2));
+    }
+
+    /* Free the pkey op */
+    EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
+    pkey_op = NULL;
+
+    return S2N_FAILURE;
+}
+
 static int async_handler_free_pkey_op(struct s2n_connection *conn)
 {
     static int function_entered = 0;
@@ -296,6 +341,48 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(server_config));
             EXPECT_SUCCESS(s2n_config_free(client_config));
         }
+
+        /*  Test: sign with different pkey and apply with s2n_connection having different chain_and_key */
+        {
+
+            struct s2n_config *server_config, *client_config;
+            EXPECT_NOT_NULL(server_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_async_pkey_validation_mode(server_config, S2N_ASYNC_PKEY_VALIDATION_STRICT));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
+            EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_store_callback));
+            server_config->security_policy = &server_security_policy;
+
+            EXPECT_NOT_NULL(client_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+
+            /* Create connection */
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+            /* Create nonblocking pipes */
+            struct s2n_test_io_pair io_pair;
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+            EXPECT_EQUAL(try_handshake(server_conn, client_conn, async_handler_sign_with_different_pkey_and_apply),
+                    S2N_FAILURE);
+
+            /* Free the data */
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+            EXPECT_SUCCESS(s2n_config_free(server_config));
+            EXPECT_SUCCESS(s2n_config_free(client_config));
+        }
     }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
@@ -303,4 +390,5 @@ int main(int argc, char **argv)
     END_TEST();
     return 0;
 }
+
 

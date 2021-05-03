@@ -601,6 +601,7 @@ S2N_API
 extern const char *s2n_connection_get_last_message_name(struct s2n_connection *conn);
 
 struct s2n_async_pkey_op;
+typedef enum { S2N_ASYNC_PKEY_VALIDATION_SKIP, S2N_ASYNC_PKEY_VALIDATION_STRICT } s2n_async_pkey_validation_mode;
 
 typedef int (*s2n_async_pkey_fn)(struct s2n_connection *conn, struct s2n_async_pkey_op *op);
 S2N_API
@@ -611,6 +612,8 @@ S2N_API
 extern int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn);
 S2N_API
 extern int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
+S2N_API
+extern int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_async_pkey_validation_mode mode);
 
 /**
  * Callback function for handling key log events
@@ -663,3 +666,4 @@ extern int s2n_config_enable_cert_req_dss_legacy_compat(struct s2n_config *confi
 #ifdef __cplusplus
 }
 #endif
+
