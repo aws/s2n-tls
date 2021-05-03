@@ -157,11 +157,11 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
     POSIX_ENSURE_REF(peer_public);
     POSIX_ENSURE_REF(own_key);
 
-    /* From RFC 8446 Section 4.2.8.2: For the curves secp256r1 and secp384r1 peers MUST validate each other's
-     * public value Q by ensuring that the point is a valid point on the elliptic curve.
-     * For the curve x25519 the peer public-key validation check doesn't apply.
+    /* From RFC 8446 Section 4.2.8.2: For the curves secp256r1, secp384r1, and secp521r1, peers MUST validate 
+     * each other's public value Q by ensuring that the point is a valid point on the elliptic curve.
+     * For the curve x25519 and x448 the peer public-key validation check doesn't apply.
      */
-    if (iana_id == TLS_EC_CURVE_SECP_256_R1 || iana_id == TLS_EC_CURVE_SECP_384_R1) {
+    if (iana_id != TLS_EC_CURVE_ECDH_X25519 && iana_id != TLS_EC_CURVE_ECDH_X448) {
         DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(peer_public), EC_KEY_free_pointer);
         S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
         POSIX_GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_SHARED_SECRET);
