@@ -43,7 +43,7 @@
 const uint64_t ticket_issue_time = 283686952306183;
 const uint64_t keying_material_expiration = 283686952306184;
 
-static int s2n_test_session_ticket_callback(struct s2n_connection *conn, struct s2n_session_ticket *ticket)
+static int s2n_test_session_ticket_callback(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket)
 {
     return S2N_SUCCESS;
 }

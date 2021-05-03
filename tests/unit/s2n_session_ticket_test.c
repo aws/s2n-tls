@@ -53,7 +53,7 @@ static int mock_time(void *data, uint64_t *nanoseconds)
 uint8_t cb_session_data[S2N_TLS12_SESSION_SIZE * 2] = { 0 };
 size_t cb_session_data_len = 0;
 uint32_t cb_session_lifetime = 0;
-static int s2n_test_session_ticket_callback(struct s2n_connection *conn, struct s2n_session_ticket *ticket)
+static int s2n_test_session_ticket_callback(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket)
 {
     EXPECT_NOT_NULL(conn);
     EXPECT_NOT_NULL(ticket);

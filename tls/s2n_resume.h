@@ -106,7 +106,7 @@ int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t 
 int s2n_connection_set_server_keying_material_lifetime(struct s2n_connection *conn, uint32_t lifetime_in_secs);
 
 struct s2n_session_ticket;
-typedef int (*s2n_session_ticket_fn)(struct s2n_connection *conn, struct s2n_session_ticket *ticket);
+typedef int (*s2n_session_ticket_fn)(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket);
 int s2n_config_set_session_ticket_cb(struct s2n_config *config, s2n_session_ticket_fn callback, void *ctx);
 int s2n_session_ticket_get_data_len(struct s2n_session_ticket *ticket, size_t *data_len);
 int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, size_t max_data_len, uint8_t *data);

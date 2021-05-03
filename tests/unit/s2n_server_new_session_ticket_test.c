@@ -39,7 +39,7 @@
 size_t cb_session_data_len = 0;
 uint8_t cb_session_data[MAX_TEST_SESSION_SIZE] = { 0 };
 uint32_t cb_session_lifetime = 0;
-static int s2n_test_session_ticket_cb(struct s2n_connection *conn, struct s2n_session_ticket *ticket)
+static int s2n_test_session_ticket_cb(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(ticket);
@@ -422,6 +422,32 @@ int main(int argc, char **argv)
             TEST_TICKET,         /* ticket */
             0x00, 0x00,          /* extensions len */
         };
+
+        /* Does not read ticket message if config->use_tickets is not set */
+        {
+            struct s2n_config *config = s2n_config_new();
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_NOT_NULL(config);
+
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            /* Set up input stuffer */
+            DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+
+            struct s2n_blob nst_message = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&nst_message, nst_data, sizeof(nst_data)));
+            EXPECT_SUCCESS(s2n_stuffer_write(&input, &nst_message));
+
+            EXPECT_OK(s2n_tls13_server_nst_recv(conn, &input));
+
+            EXPECT_EQUAL(conn->client_ticket.size, 0);
+            EXPECT_TRUE(s2n_stuffer_data_available(&input) > 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
 
         /* Tests session_ticket_cb correctly serializes session data from an arbitrary new session ticket message */
         {

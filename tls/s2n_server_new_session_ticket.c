@@ -68,11 +68,11 @@ int s2n_server_nst_recv(struct s2n_connection *conn) {
 
             struct s2n_session_ticket ticket = { .ticket_data = mem, .session_lifetime = session_lifetime };
 
-            POSIX_GUARD(conn->config->session_ticket_cb(conn, &ticket));
+            POSIX_GUARD(conn->config->session_ticket_cb(conn, conn->config->session_ticket_ctx, &ticket));
         }
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_server_nst_send(struct s2n_connection *conn)
@@ -311,6 +311,9 @@ S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stu
 
     RESULT_ENSURE(conn->mode == S2N_CLIENT, S2N_ERR_BAD_MESSAGE);
 
+    if (!conn->config->use_tickets) {
+        return S2N_RESULT_OK;
+    }
     struct s2n_ticket_fields *ticket_fields = &conn->tls13_ticket_fields;
 
     /* Handle `ticket_lifetime` field */
@@ -359,7 +362,7 @@ S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stu
                 .ticket_data = session_state,
                 .session_lifetime = session_lifetime
         };
-        RESULT_GUARD_POSIX(conn->config->session_ticket_cb(conn, &ticket));
+        RESULT_GUARD_POSIX(conn->config->session_ticket_cb(conn, conn->config->session_ticket_ctx, &ticket));
     }
 
     return S2N_RESULT_OK;
