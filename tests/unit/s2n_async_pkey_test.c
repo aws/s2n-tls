@@ -455,7 +455,7 @@ int main(int argc, char **argv)
 
         struct s2n_blob decrypted_data = { 0 };
         /* Re-use the encrypted data buffer to make sure that the data was actually transformed in the callback. 
-         * If we filled this with the decrypted data, we would not if the decryption happened in the callback. */
+         * If we filled this with the decrypted data, we would not know if the decryption happened in the callback. */
         EXPECT_SUCCESS(s2n_blob_init(&decrypted_data, test_encrypted_data, test_encrypted_size));
 
         EXPECT_FALSE(s2n_result_is_ok(s2n_async_pkey_decrypt(conn, &encrypted_data, &decrypted_data, s2n_async_decrypt_complete)));
@@ -487,4 +487,3 @@ int main(int argc, char **argv)
     END_TEST();
     return 0;
 }
-
