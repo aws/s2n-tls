@@ -77,14 +77,14 @@ static S2N_RESULT s2n_async_pkey_decrypt_sync(struct s2n_connection *conn, struc
 
 static S2N_RESULT s2n_async_pkey_decrypt_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *pkey);
 static S2N_RESULT s2n_async_pkey_decrypt_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn);
-static S2N_RESULT s2n_async_pkey_get_input_size_decrypt(struct s2n_async_pkey_op *op, uint32_t * data_len);
+static S2N_RESULT s2n_async_pkey_get_input_size_decrypt(struct s2n_async_pkey_op *op, uint32_t *data_len);
 static S2N_RESULT s2n_async_pkey_get_input_decrypt(struct s2n_async_pkey_op *op, uint8_t *data, uint32_t data_len);
 static S2N_RESULT s2n_async_pkey_op_set_output_decrypt(struct s2n_async_pkey_op *op, const uint8_t *data, uint32_t data_len);
 static S2N_RESULT s2n_async_pkey_decrypt_free(struct s2n_async_pkey_op *op);
 
 static S2N_RESULT s2n_async_pkey_sign_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *pkey);
 static S2N_RESULT s2n_async_pkey_sign_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn);
-static S2N_RESULT s2n_async_pkey_get_input_size_sign(struct s2n_async_pkey_op *op, uint32_t * data_len);
+static S2N_RESULT s2n_async_pkey_get_input_size_sign(struct s2n_async_pkey_op *op, uint32_t *data_len);
 static S2N_RESULT s2n_async_pkey_get_input_sign(struct s2n_async_pkey_op *op, uint8_t *data, uint32_t data_len);
 static S2N_RESULT s2n_async_pkey_op_set_output_sign(struct s2n_async_pkey_op *op, const uint8_t *data, uint32_t data_len);
 static S2N_RESULT s2n_async_pkey_sign_free(struct s2n_async_pkey_op *op);
@@ -428,17 +428,7 @@ int s2n_async_pkey_op_get_op_type(struct s2n_async_pkey_op *op, s2n_async_pkey_o
     POSIX_ENSURE_REF(op);
     POSIX_ENSURE_REF(type);
 
-    switch (op->type) {
-        case S2N_ASYNC_DECRYPT:
-            *type = S2N_ASYNC_DECRYPT;
-            break;
-        case S2N_ASYNC_SIGN:
-            *type = S2N_ASYNC_SIGN;
-            break;
-        default:
-            POSIX_BAIL(S2N_ERR_ASYNC_OP_UNINITIALIZED);
-            break;
-    }
+    *type = op->type;
 
     return S2N_SUCCESS;
 }
@@ -508,13 +498,17 @@ static S2N_RESULT s2n_async_pkey_get_input_decrypt(struct s2n_async_pkey_op *op,
 static S2N_RESULT s2n_async_pkey_get_input_sign(struct s2n_async_pkey_op *op, uint8_t *data, uint32_t data_len)
 {
     struct s2n_async_pkey_sign_data *sign = &op->op.sign;
-    struct s2n_hash_state *digest = &sign->digest;
+
+    struct s2n_hash_state digest_copy = { 0 };
+    RESULT_GUARD_POSIX(s2n_hash_new(&digest_copy));
+    RESULT_GUARD_POSIX(s2n_hash_copy(&digest_copy, &sign->digest));
 
     uint8_t digest_length = 0;
     uint8_t digest_data[S2N_MAX_DIGEST_LEN] = { 0 };
 
-    RESULT_GUARD_POSIX(s2n_hash_digest_size(digest->alg, &digest_length));
-    RESULT_GUARD_POSIX(s2n_hash_digest(digest, digest_data, digest_length));
+    RESULT_GUARD_POSIX(s2n_hash_digest_size(digest_copy.alg, &digest_length));
+    RESULT_GUARD_POSIX(s2n_hash_digest(&digest_copy, digest_data, digest_length));
+    RESULT_GUARD_POSIX(s2n_hash_free(&digest_copy));
 
     RESULT_ENSURE_LTE(digest_length, data_len);
     
@@ -552,9 +546,9 @@ static S2N_RESULT s2n_async_pkey_op_set_output_decrypt(struct s2n_async_pkey_op 
 static S2N_RESULT s2n_async_pkey_op_set_output_sign(struct s2n_async_pkey_op *op, const uint8_t *data, uint32_t data_len)
 {
     struct s2n_async_pkey_sign_data *sign = &op->op.sign;
-    struct s2n_blob * sigcopy = &sign->signature;
+    struct s2n_blob *sigcopy = &sign->signature;
 
-    RESULT_GUARD_POSIX(s2n_alloc(sigcopy, data_len));
+    RESULT_GUARD_POSIX(s2n_realloc(sigcopy, data_len));
     RESULT_CHECKED_MEMCPY(sigcopy->data, data, data_len);
 
     return S2N_RESULT_OK;

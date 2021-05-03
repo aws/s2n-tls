@@ -181,6 +181,8 @@ int async_pkey_signature_callback(struct s2n_connection *conn, struct s2n_async_
     EXPECT_SUCCESS(s2n_hash_free(&digest));
 
     EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input.data, input.size));
+    EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input.data, input.size));
+
     EXPECT_BYTEARRAY_EQUAL(input.data, expected_digest.data, expected_digest.size);
     EXPECT_SUCCESS(s2n_free(&input));
     EXPECT_SUCCESS(s2n_free(&expected_digest));
@@ -262,7 +264,7 @@ int async_pkey_invalid_complete(struct s2n_connection *conn, struct s2n_blob *si
 {
     /* This function should never be called. If this does get called that means the completion function was called even
      * though there were issues with the callback. See async_pkey_invalid_input_callback. */
-    EXPECT_TRUE(false);
+    FAIL();
     return S2N_FAILURE;
 }
 
