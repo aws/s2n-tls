@@ -75,7 +75,7 @@ static int s2n_mem_free_mlock_impl(void *ptr, uint32_t size)
 {
     int munlock_rc = munlock(ptr, size);
     free(ptr);
-    POSIX_GUARD(munlock_rc);
+    POSIX_ENSURE(munlock_rc == 0, S2N_ERR_MUNLOCK);
 
     return S2N_SUCCESS;
 }

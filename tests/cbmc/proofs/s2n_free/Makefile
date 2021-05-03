@@ -11,7 +11,7 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-CHECKFLAGS +=
+CHECKFLAGS += --memory-leak-check
 
 PROOF_UID = s2n_free
 HARNESS_ENTRY = $(PROOF_UID)_harness

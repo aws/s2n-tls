@@ -23,19 +23,35 @@
 
 void s2n_blob_zeroize_free_harness()
 {
+    /* Non-deterministic inputs. */
     struct s2n_blob *blob = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(blob)));
 
+    /* Assumptions. */
     nondet_s2n_mem_init();
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(blob)));
 
     const struct s2n_blob old_blob = *blob;
 
-    if (s2n_blob_zeroize_free(blob) == S2N_SUCCESS) {
-        /* If the call worked, assert all bytes in the blob struct
-           are zero */
+    /* Operation under verification. */
+    int result = s2n_blob_zeroize_free(blob);
+    if (result == S2N_SUCCESS) {
+        /* Postconditions. */
+        assert(S2N_IMPLIES(s2n_blob_is_growable(&old_blob), blob->data == NULL));
         assert_all_zeroes(blob->data, old_blob.size);
         if (old_blob.size != 0 && s2n_blob_is_growable(&old_blob)) {
             assert(!S2N_MEM_IS_READABLE(blob->data, old_blob.size));
         }
     }
+
+    /* Cleanup after expected error cases, for memory leak check. */
+    bool failed_before_free = (s2n_errno == S2N_ERR_NOT_INITIALIZED) || (s2n_errno == S2N_ERR_FREE_STATIC_BLOB);
+    if ((result != S2N_SUCCESS && failed_before_free) || !blob->allocated) {
+        /* 1. `s2n_free` failed _before_ calling `free`, either because:
+              (a) s2n was not initialized, or (b) the blob was a static blob.
+           2. `blob` is not growable, then `s2n_free` is not supposed to `free` even if successful.
+        */
+        free(blob->data);
+    }
+    /* 3. `free` our heap-allocated `blob` since `s2n_blob_zeroize_free` only `free`s the contents. */
+    free(blob);
 }
