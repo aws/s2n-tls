@@ -38,7 +38,7 @@ void s2n_hmac_free_harness()
     int result = s2n_hmac_free(state);
 
     /* Post-conditions. */
-    assert (result == S2N_SUCCESS);
+    assert(result == S2N_SUCCESS);
     if (state != NULL) {
         assert(state->inner.hash_impl->free != NULL);
         assert(state->inner_just_key.hash_impl->free != NULL);
