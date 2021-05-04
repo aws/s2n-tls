@@ -36,7 +36,7 @@ void s2n_hash_free_harness()
     assert(result == S2N_SUCCESS);
     if (state != NULL) {
         assert(state->hash_impl->free != NULL);
-        if(s2n_is_in_fips_mode()) {
+        if (s2n_is_in_fips_mode()) {
             assert(state->digest.high_level.evp.ctx == NULL);
             assert(state->digest.high_level.evp_md5_secondary.ctx == NULL);
             assert_rc_decrement_on_hash_state(&saved_hash_state);
