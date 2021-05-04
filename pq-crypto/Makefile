@@ -73,11 +73,8 @@ clean: decruft
 	$(MAKE) -C sike_r2 decruft
 	$(MAKE) -C kyber_r2 decruft
 	$(MAKE) -C kyber_90s_r2 decruft
-<<<<<<< HEAD
 	$(MAKE) -C kyber_r3 decruft
-=======
 	$(MAKE) -C sike_r3 decruft
->>>>>>> s2n-ify sike_r3 code
 
 include ../s2n.mk
 include ./s2n_pq_asm.mk

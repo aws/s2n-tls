@@ -78,11 +78,8 @@ extern const struct s2n_kem s2n_sike_p503_r1;
 extern const struct s2n_kem s2n_sike_p434_r2;
 extern const struct s2n_kem s2n_kyber_512_r2;
 extern const struct s2n_kem s2n_kyber_512_90s_r2;
-<<<<<<< HEAD
 extern const struct s2n_kem s2n_kyber_512_r3;
-=======
 extern const struct s2n_kem s2n_sike_p434_r3;
->>>>>>> s2n-ify sike_r3 code
 
 /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
 #if EVP_APIS_SUPPORTED
