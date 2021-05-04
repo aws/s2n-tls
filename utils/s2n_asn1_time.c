@@ -46,7 +46,8 @@ typedef enum parser_state {
 } parser_state;
 
 static inline long get_gmt_offset(struct tm *t) {
-#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__ANDROID__) || defined(ANDROID) || defined(__APPLE__) && defined(__MACH__)
+    /* See: https://sourceware.org/git/?p=glibc.git;a=blob;f=include/features.h;h=ba272078cf2263ec88e039fda7524c136a4a7953;hb=HEAD */
+#if defined(__USE_MISC) || (defined(__APPLE__) && defined(__MACH__))
     return t->tm_gmtoff;
 #else
     return t->__tm_gmtoff;
@@ -286,4 +287,3 @@ S2N_RESULT s2n_asn1_time_to_nano_since_epoch_ticks(const char *asn1_time, uint32
     *ticks = ((uint64_t) clock_data - gmt_offset) * 1000000000;
     return S2N_RESULT_OK;
 }
-
