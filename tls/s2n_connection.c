@@ -1451,12 +1451,29 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
     return S2N_SUCCESS;
 }
 
+static S2N_RESULT s2n_connection_choose_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme ** sig_scheme)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(sig_scheme);
+
+    if (conn->mode == S2N_SERVER) {
+        *sig_scheme = &conn->secure.conn_sig_scheme;
+    } else {
+        *sig_scheme = &conn->secure.client_cert_sig_scheme;
+    }
+
+    return S2N_RESULT_OK;
+}
+
 int s2n_connection_get_selected_digest_alg(struct s2n_connection *conn, s2n_handshake_hash_algorithm *chosen_alg)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(chosen_alg);
 
-    switch (conn->secure.conn_sig_scheme.hash_alg) {
+    struct s2n_signature_scheme * sig_scheme = NULL;
+    POSIX_GUARD_RESULT(s2n_connection_choose_sig_scheme(conn, &sig_scheme));
+    
+    switch (sig_scheme->hash_alg) {
         case S2N_HASH_MD5:
             *chosen_alg = S2N_HANDSHAKE_HASH_MD5;
             break;
@@ -1490,8 +1507,11 @@ int s2n_connection_get_selected_signature_alg(struct s2n_connection *conn, s2n_h
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(chosen_alg);
+
+    struct s2n_signature_scheme * sig_scheme = NULL;
+    POSIX_GUARD_RESULT(s2n_connection_choose_sig_scheme(conn, &sig_scheme));
     
-    switch (conn->secure.conn_sig_scheme.sig_alg) {
+    switch (sig_scheme->sig_alg) {
         case S2N_SIGNATURE_RSA:
             *chosen_alg = S2N_HANDSHAKE_SIGNATURE_RSA;
             break;
