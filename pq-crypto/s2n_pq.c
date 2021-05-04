@@ -84,7 +84,7 @@ bool s2n_cpu_supports_sikep434r2_asm() {
 }
 
 bool s2n_cpu_supports_sikep434r3_asm() {
-#if defined(S2N_SIKEP434R3_ASM)
+#if defined(S2N_SIKE_P434_R3_ASM)
     /* The sikep434r3 assembly code always requires BMI2. If the assembly
      * was compiled with support for ADX, we also require ADX at runtime. */
 #if defined(S2N_ADX)
@@ -95,7 +95,7 @@ bool s2n_cpu_supports_sikep434r3_asm() {
 #else
     /* sikep434r3 assembly was not supported at compile time */
     return false;
-#endif /* defined(S2N_SIKEP434R3_ASM) */
+#endif /* defined(S2N_SIKE_P434_R3_ASM) */
 }
 
 #else /* defined(S2N_CPUID_AVAILABLE) */

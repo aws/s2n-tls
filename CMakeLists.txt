@@ -253,7 +253,7 @@ if(SIKEP434R2_ASM_SUPPORTED)
 endif()
 
 if(SIKEP434R3_ASM_SUPPORTED)
-    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_SIKEP434R3_ASM)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_SIKE_P434_R3_ASM)
     message(STATUS "Enabling SIKEP434R3 assembly code")
 endif()
 
