@@ -40,7 +40,7 @@ void s2n_dh_params_free_harness()
     }
     
     /* Cleanup before memory leak check.
-       1. free our heap-allocated `dh_params`, since `s2n_dh_params_free` only `free`s the contents.
-    */
+     * 1. free our heap-allocated `dh_params`, since `s2n_dh_params_free` only `free`s the contents.
+     */
     free(dh_params);
 }
