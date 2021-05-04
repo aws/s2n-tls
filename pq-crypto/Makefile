@@ -34,6 +34,7 @@ all: $(OBJS)
 	$(MAKE) -C sike_r2 try_include_asm
 	$(MAKE) -C kyber_r2
 	$(MAKE) -C kyber_90s_r2
+	$(MAKE) -C kyber_r3
 endif
 
 .PHONY : sike_r1_bc
@@ -71,6 +72,7 @@ clean: decruft
 	$(MAKE) -C sike_r2 decruft
 	$(MAKE) -C kyber_r2 decruft
 	$(MAKE) -C kyber_90s_r2 decruft
+	$(MAKE) -C kyber_r3 decruft
 
 include ../s2n.mk
 include ./s2n_pq_asm.mk

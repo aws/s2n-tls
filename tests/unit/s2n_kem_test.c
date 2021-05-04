@@ -366,9 +366,10 @@ int main(int argc, char **argv)
         compatible_params = NULL;
         EXPECT_SUCCESS(s2n_cipher_suite_to_kem(kyber_iana, &compatible_params));
         EXPECT_NOT_NULL(compatible_params);
-        EXPECT_EQUAL(compatible_params->kem_count, 2);
+        EXPECT_EQUAL(compatible_params->kem_count, 3);
         EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_kyber_512_r2.kem_extension_id);
         EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_kyber_512_90s_r2.kem_extension_id);
+        EXPECT_EQUAL(compatible_params->kems[2]->kem_extension_id, s2n_kyber_512_r3.kem_extension_id);
     }
 
     {

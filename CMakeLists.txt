@@ -50,7 +50,8 @@ else()
         "pq-crypto/sike_r1/*.h"
         "pq-crypto/sike_r2/*.h"
         "pq-crypto/kyber_r2/*.h"
-        "pq-crypto/kyber_90s_r2/*.h")
+        "pq-crypto/kyber_90s_r2/*.h"
+        "pq-crypto/kyber_r3/*.h")
 
     # The SIKE code #includes .c files directly, including all sike_r*/*.c breaks the build due to duplicates
     file(GLOB PQ_SRC
@@ -65,7 +66,8 @@ else()
         "pq-crypto/sike_r2/fips202.c"
         "pq-crypto/sike_r2/P434.c"
         "pq-crypto/kyber_r2/*.c"
-        "pq-crypto/kyber_90s_r2/*.c")
+        "pq-crypto/kyber_90s_r2/*.c"
+        "pq-crypto/kyber_r3/*.c")
 endif()
 
 ##be nice to visual studio users
