@@ -13,7 +13,7 @@
 /* Multiprecision subtraction with correction with 2*p, c = a-b+2p. */
 void mp_sub434_p2(const digit_t* a, const digit_t* b, digit_t* c)
 {
-#if defined(S2N_SIKEP434R3_ASM)
+#if defined(S2N_SIKE_P434_R3_ASM)
     if (s2n_sikep434r3_asm_is_enabled()) {
         mp_sub434_p2_asm(a, b, c);
         return;
@@ -35,7 +35,7 @@ void mp_sub434_p2(const digit_t* a, const digit_t* b, digit_t* c)
 /* Multiprecision subtraction with correction with 4*p, c = a-b+4p. */
 void mp_sub434_p4(const digit_t* a, const digit_t* b, digit_t* c)
 {
-#if defined(S2N_SIKEP434R3_ASM)
+#if defined(S2N_SIKE_P434_R3_ASM)
     if (s2n_sikep434r3_asm_is_enabled()) {
         mp_sub434_p4_asm(a, b, c);
         return;
@@ -59,7 +59,7 @@ void mp_sub434_p4(const digit_t* a, const digit_t* b, digit_t* c)
  * Output: c in [0, 2*p434-1] */
 void fpadd434(const digit_t* a, const digit_t* b, digit_t* c)
 {
-#if defined(S2N_SIKEP434R3_ASM)
+#if defined(S2N_SIKE_P434_R3_ASM)
     if (s2n_sikep434r3_asm_is_enabled()) {
         fpadd434_asm(a, b, c);
         return;
@@ -89,7 +89,7 @@ void fpadd434(const digit_t* a, const digit_t* b, digit_t* c)
  * Output: c in [0, 2*p434-1] */
 void fpsub434(const digit_t* a, const digit_t* b, digit_t* c)
 {
-#if defined(S2N_SIKEP434R3_ASM)
+#if defined(S2N_SIKE_P434_R3_ASM)
     if (s2n_sikep434r3_asm_is_enabled()) {
         fpsub434_asm(a, b, c);
         return;
@@ -191,7 +191,7 @@ void digit_x_digit(const digit_t a, const digit_t b, digit_t* c)
 /* Multiprecision comba multiply, c = a*b, where lng(a) = lng(b) = nwords. */
 void mp_mul(const digit_t* a, const digit_t* b, digit_t* c, const unsigned int nwords)
 {
-#if defined(S2N_SIKEP434R3_ASM)
+#if defined(S2N_SIKE_P434_R3_ASM)
     if (s2n_sikep434r3_asm_is_enabled()) {
         S2N_SIKE_P434_R3_UNREFERENCED_PARAMETER(nwords);
         mul434_asm(a, b, c);
@@ -237,7 +237,7 @@ void mp_mul(const digit_t* a, const digit_t* b, digit_t* c, const unsigned int n
  * ma is assumed to be in Montgomery representation. */
 void rdc_mont(digit_t* ma, digit_t* mc)
 {
-#if defined(S2N_SIKEP434R3_ASM)
+#if defined(S2N_SIKE_P434_R3_ASM)
     if (s2n_sikep434r3_asm_is_enabled()) {
         rdc434_asm(ma, mc);
         return;

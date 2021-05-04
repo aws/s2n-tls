@@ -6,7 +6,7 @@
 
 #pragma once
 
-#if defined(S2N_SIKEP434R3_ASM)
+#if defined(S2N_SIKE_P434_R3_ASM)
 
 #define fpadd434_asm S2N_SIKE_P434_R3_NAMESPACE(fpadd434_asm)
 void fpadd434_asm(const digit_t* a, const digit_t* b, digit_t* c);
