@@ -204,6 +204,7 @@
 #define TLS_EC_CURVE_SECP_384_R1           24
 #define TLS_EC_CURVE_SECP_521_R1           25
 #define TLS_EC_CURVE_ECDH_X25519           29
+#define TLS_EC_CURVE_ECDH_X448             30
 
 /* Ethernet maximum transmission unit (MTU)
  * MTU is usually associated with the Ethernet protocol,
