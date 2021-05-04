@@ -163,31 +163,38 @@ int async_pkey_signature_callback(struct s2n_connection *conn, struct s2n_async_
     EXPECT_EQUAL(type, S2N_ASYNC_SIGN);
 
     uint8_t expected_size = 0;
-    EXPECT_SUCCESS(s2n_hash_digest_size(S2N_HASH_SHA1, &expected_size));
+    EXPECT_SUCCESS(s2n_hash_digest_size(S2N_HASH_SHA256, &expected_size));
 
     uint32_t input_size = 0;
     EXPECT_SUCCESS(s2n_async_pkey_op_get_input_size(op, &input_size));
     EXPECT_EQUAL(input_size, expected_size);
 
-    struct s2n_blob input = { 0 };
-    EXPECT_SUCCESS(s2n_alloc(&input, input_size));
+    struct s2n_blob input1 = { 0 };
+    EXPECT_SUCCESS(s2n_alloc(&input1, input_size));
+
+    struct s2n_blob input2 = { 0 };
+    EXPECT_SUCCESS(s2n_alloc(&input2, input_size));
 
     struct s2n_blob expected_digest = { 0 };
     EXPECT_SUCCESS(s2n_alloc(&expected_digest, expected_size));
 
     struct s2n_hash_state digest = { 0 };
     EXPECT_SUCCESS(s2n_hash_new(&digest));
-    EXPECT_SUCCESS(s2n_hash_init(&digest, S2N_HASH_SHA1));
+    EXPECT_SUCCESS(s2n_hash_init(&digest, S2N_HASH_SHA256));
     EXPECT_SUCCESS(s2n_hash_update(&digest, test_digest_data, test_digest_size));
     EXPECT_SUCCESS(s2n_hash_digest(&digest, expected_digest.data, expected_digest.size));
     EXPECT_SUCCESS(s2n_hash_free(&digest));
 
-    EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input.data, input.size));
-    POSIX_CHECKED_MEMSET(input.data, 0x00, input.size);
-    EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input.data, input.size));
+    /* Make sure that s2n_async_pkey_op_get_input can be called multiple times, and the returned values are the same. */ 
+    EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input1.data, input1.size));
+    EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input2.data, input2.size));
 
-    EXPECT_BYTEARRAY_EQUAL(input.data, expected_digest.data, expected_digest.size);
-    EXPECT_SUCCESS(s2n_free(&input));
+    EXPECT_EQUAL(input1.size, input2.size);
+    EXPECT_BYTEARRAY_EQUAL(input1.data, input2.data, input1.size);
+    EXPECT_BYTEARRAY_EQUAL(input1.data, expected_digest.data, expected_size);
+
+    EXPECT_SUCCESS(s2n_free(&input1));
+    EXPECT_SUCCESS(s2n_free(&input2));
     EXPECT_SUCCESS(s2n_free(&expected_digest));
 
     EXPECT_SUCCESS(s2n_async_pkey_op_set_output(op, test_signature_data, test_signature_size));
@@ -208,17 +215,25 @@ int async_pkey_decrypt_callback(struct s2n_connection *conn, struct s2n_async_pk
     EXPECT_SUCCESS(s2n_async_pkey_op_get_input_size(op, &input_size));
     EXPECT_EQUAL(input_size, test_encrypted_size);
 
-    struct s2n_blob input_buffer = { 0 };
-    EXPECT_SUCCESS(s2n_alloc(&input_buffer, input_size));
+    struct s2n_blob input_buffer1 = { 0 };
+    EXPECT_SUCCESS(s2n_alloc(&input_buffer1, input_size));
 
-    EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input_buffer.data, input_buffer.size));
-    EXPECT_BYTEARRAY_EQUAL(input_buffer.data, test_encrypted_data, test_encrypted_size);
+    struct s2n_blob input_buffer2 = { 0 };
+    EXPECT_SUCCESS(s2n_alloc(&input_buffer2, input_size));
 
-    POSIX_CHECKED_MEMSET(input_buffer.data, 0x00, input_buffer.size);
-    EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input_buffer.data, input_buffer.size));
-    EXPECT_BYTEARRAY_EQUAL(input_buffer.data, test_encrypted_data, test_encrypted_size);
+    /* Make sure that s2n_async_pkey_op_get_input can be called multiple times, and the returned values are the same. */ 
+    EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input_buffer1.data, input_buffer1.size));
+    EXPECT_BYTEARRAY_EQUAL(input_buffer1.data, test_encrypted_data, test_encrypted_size);
 
-    EXPECT_SUCCESS(s2n_free(&input_buffer));
+    EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input_buffer2.data, input_buffer2.size));
+    EXPECT_BYTEARRAY_EQUAL(input_buffer2.data, test_encrypted_data, test_encrypted_size);
+
+    EXPECT_EQUAL(input_buffer1.size, input_buffer2.size);
+    EXPECT_EQUAL(input_buffer1.size, test_encrypted_size);
+    EXPECT_BYTEARRAY_EQUAL(input_buffer1.data, input_buffer2.data, test_encrypted_size);
+
+    EXPECT_SUCCESS(s2n_free(&input_buffer1));
+    EXPECT_SUCCESS(s2n_free(&input_buffer2));
 
     EXPECT_SUCCESS(s2n_async_pkey_op_set_output(op, test_decrypted_data, test_decrypted_size));
     offload_callback_count++;
@@ -440,7 +455,7 @@ int main(int argc, char **argv)
 
     struct s2n_hash_state digest = { 0 };
     EXPECT_SUCCESS(s2n_hash_new(&digest));
-    EXPECT_SUCCESS(s2n_hash_init(&digest, S2N_HASH_SHA1));
+    EXPECT_SUCCESS(s2n_hash_init(&digest, S2N_HASH_SHA256));
     EXPECT_SUCCESS(s2n_hash_update(&digest, test_digest_data, test_digest_size));
 
     /* Test: signature offload. */
