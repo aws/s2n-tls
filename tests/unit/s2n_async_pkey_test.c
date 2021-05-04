@@ -37,6 +37,8 @@ const uint32_t test_encrypted_size = sizeof(test_encrypted_data);
 uint8_t test_decrypted_data[] = "I decrypted this";
 const uint32_t test_decrypted_size = sizeof(test_decrypted_data);
 
+uint8_t offload_callback_count = 0;
+
 typedef int (async_handler)(struct s2n_connection *conn);
 
 static int async_handler_fail(struct s2n_connection *conn)
@@ -181,6 +183,7 @@ int async_pkey_signature_callback(struct s2n_connection *conn, struct s2n_async_
     EXPECT_SUCCESS(s2n_hash_free(&digest));
 
     EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input.data, input.size));
+    POSIX_CHECKED_MEMSET(input.data, 0x00, input.size);
     EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input.data, input.size));
 
     EXPECT_BYTEARRAY_EQUAL(input.data, expected_digest.data, expected_digest.size);
@@ -188,6 +191,7 @@ int async_pkey_signature_callback(struct s2n_connection *conn, struct s2n_async_
     EXPECT_SUCCESS(s2n_free(&expected_digest));
 
     EXPECT_SUCCESS(s2n_async_pkey_op_set_output(op, test_signature_data, test_signature_size));
+    offload_callback_count++;
 
     return S2N_SUCCESS;
 }
@@ -209,9 +213,15 @@ int async_pkey_decrypt_callback(struct s2n_connection *conn, struct s2n_async_pk
 
     EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input_buffer.data, input_buffer.size));
     EXPECT_BYTEARRAY_EQUAL(input_buffer.data, test_encrypted_data, test_encrypted_size);
+
+    POSIX_CHECKED_MEMSET(input_buffer.data, 0x00, input_buffer.size);
+    EXPECT_SUCCESS(s2n_async_pkey_op_get_input(op, input_buffer.data, input_buffer.size));
+    EXPECT_BYTEARRAY_EQUAL(input_buffer.data, test_encrypted_data, test_encrypted_size);
+
     EXPECT_SUCCESS(s2n_free(&input_buffer));
 
     EXPECT_SUCCESS(s2n_async_pkey_op_set_output(op, test_decrypted_data, test_decrypted_size));
+    offload_callback_count++;
 
     return S2N_SUCCESS;
 }
@@ -223,6 +233,7 @@ int s2n_async_sign_complete(struct s2n_connection *conn, struct s2n_blob *signat
 
     EXPECT_EQUAL(signature->size, test_signature_size);
     EXPECT_BYTEARRAY_EQUAL(signature->data, test_signature_data, test_signature_size);
+    offload_callback_count++;
 
     return S2N_SUCCESS;
 }
@@ -235,6 +246,7 @@ int s2n_async_decrypt_complete(struct s2n_connection *conn, bool rsa_failed, str
 
     EXPECT_EQUAL(decrypted->size, test_decrypted_size);
     EXPECT_BYTEARRAY_EQUAL(decrypted->data, test_decrypted_data, test_decrypted_size);
+    offload_callback_count++;
 
     return S2N_SUCCESS;
 }
@@ -256,15 +268,15 @@ int async_pkey_invalid_input_callback(struct s2n_connection *conn, struct s2n_as
     EXPECT_FAILURE(s2n_async_pkey_op_get_input(op, placeholder_buffer, input_size-1));
 
     EXPECT_FAILURE(s2n_async_pkey_op_set_output(op, NULL, test_signature_size));
+    offload_callback_count++;
 
     return S2N_FAILURE;
 }
 
 int async_pkey_invalid_complete(struct s2n_connection *conn, struct s2n_blob *signature)
 {
-    /* This function should never be called. If this does get called that means the completion function was called even
-     * though there were issues with the callback. See async_pkey_invalid_input_callback. */
-    FAIL();
+    FAIL_MSG("Invalid async pkey callback was invoked. The callback should never be invoked if there was an earlier"
+            " failure in the async_pkey_op.");
     return S2N_FAILURE;
 }
 
@@ -433,15 +445,18 @@ int main(int argc, char **argv)
 
     /* Test: signature offload. */
     {
+        EXPECT_EQUAL(0, offload_callback_count);
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(conn);
         conn->config->async_pkey_cb = async_pkey_signature_callback;
 
         EXPECT_FALSE(s2n_result_is_ok(s2n_async_pkey_sign(conn, S2N_SIGNATURE_ECDSA, &digest, s2n_async_sign_complete)));
         EXPECT_TRUE(s2n_errno == S2N_ERR_ASYNC_BLOCKED);
+        EXPECT_EQUAL(1, offload_callback_count);
 
         EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
         EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
+        EXPECT_EQUAL(2, offload_callback_count);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
@@ -462,9 +477,11 @@ int main(int argc, char **argv)
 
         EXPECT_FALSE(s2n_result_is_ok(s2n_async_pkey_decrypt(conn, &encrypted_data, &decrypted_data, s2n_async_decrypt_complete)));
         EXPECT_TRUE(s2n_errno == S2N_ERR_ASYNC_BLOCKED);
+        EXPECT_EQUAL(3, offload_callback_count);
 
         EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
         EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
+        EXPECT_EQUAL(4, offload_callback_count);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
@@ -477,9 +494,11 @@ int main(int argc, char **argv)
 
         EXPECT_FALSE(s2n_result_is_ok(s2n_async_pkey_sign(conn, S2N_SIGNATURE_ECDSA, &digest, async_pkey_invalid_complete)));
         EXPECT_TRUE(s2n_errno == S2N_ERR_ASYNC_CALLBACK_FAILED);
+        EXPECT_EQUAL(5, offload_callback_count);
 
         EXPECT_FAILURE(s2n_async_pkey_op_apply(pkey_op, conn));
         EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
+        EXPECT_EQUAL(5, offload_callback_count);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }

@@ -507,6 +507,8 @@ static S2N_RESULT s2n_async_pkey_get_input_sign(struct s2n_async_pkey_op *op, ui
     uint8_t digest_data[S2N_MAX_DIGEST_LEN] = { 0 };
 
     RESULT_GUARD_POSIX(s2n_hash_digest_size(digest_copy.alg, &digest_length));
+
+    RESULT_ENSURE_LTE(digest_length, S2N_MAX_DIGEST_LEN);
     RESULT_GUARD_POSIX(s2n_hash_digest(&digest_copy, digest_data, digest_length));
     RESULT_GUARD_POSIX(s2n_hash_free(&digest_copy));
 
