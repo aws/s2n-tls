@@ -29,7 +29,7 @@ BUILD_DIR=$1
 INSTALL_DIR=$2
 OS_NAME=$3
 source codebuild/bin/jobs.sh
-RELEASE=1_1_1g
+RELEASE=1_1_1k
 
 cd "$BUILD_DIR"
 curl --retry 3 -L https://github.com/openssl/openssl/archive/OpenSSL_${RELEASE}.zip --output OpenSSL_${RELEASE}.zip

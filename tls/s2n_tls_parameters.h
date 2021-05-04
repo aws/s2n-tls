@@ -68,8 +68,10 @@
 #define TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R3 25
 #define TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1 10
 #define TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2 19
+#define TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3 19 /* Not a typo; sikep434 r2 and r3 use the same extension ID */
 #define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R2 23
 #define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_90S_R2 24
+#define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3 28
 
 /* TLS 1.3 hybrid post-quantum definitions are from the proposed reserved range defined
  * in https://tools.ietf.org/html/draft-stebila-tls-hybrid-design. Values for interoperability
@@ -203,6 +205,7 @@
 #define TLS_EC_CURVE_SECP_384_R1           24
 #define TLS_EC_CURVE_SECP_521_R1           25
 #define TLS_EC_CURVE_ECDH_X25519           29
+#define TLS_EC_CURVE_ECDH_X448             30
 
 /* Ethernet maximum transmission unit (MTU)
  * MTU is usually associated with the Ethernet protocol,

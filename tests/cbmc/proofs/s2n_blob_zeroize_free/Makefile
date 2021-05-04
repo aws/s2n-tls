@@ -13,7 +13,7 @@
 #
 # Expected runtime is around 5 seconds.
 
-CHECKFLAGS +=
+CHECKFLAGS += --memory-leak-check
 
 PROOF_UID = s2n_blob_zeroize_free
 HARNESS_ENTRY = $(PROOF_UID)_harness

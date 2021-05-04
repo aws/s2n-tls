@@ -44,7 +44,9 @@ void s2n_blob_slice_harness()
         assert(slice->size == size);
         assert(slice->growable == 0);
         assert(slice->allocated == 0);
-        assert_bytes_match(blob->data + offset, slice->data, slice->size);
+        if (blob->data) {
+            assert_bytes_match(blob->data + offset, slice->data, slice->size);
+        }
     } else {
         assert_blob_equivalence(slice, &old_slice, &old_byte_from_slice);
     }

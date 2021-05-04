@@ -28,7 +28,7 @@
 #define MAX_TEST_SESSION_SIZE 300
 
 uint8_t session_ticket_counter = 0;
-static int s2n_test_session_ticket_cb(struct s2n_connection *conn, struct s2n_session_ticket *ticket)
+static int s2n_test_session_ticket_cb(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(ticket);

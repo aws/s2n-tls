@@ -1177,7 +1177,8 @@ const char *s2n_get_server_name(struct s2n_connection *conn);
 
 **s2n_get_server_name** returns the server name associated with a connection,
 or NULL if none is found. This can be used by a server to determine which server
-name the client is using.
+name the client is using. This function returns the first ServerName entry in the ServerNameList
+sent by the client. Subsequent entries are not returned.
 
 ### s2n\_connection\_set\_blinding
 
@@ -1208,9 +1209,9 @@ int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uin
 
 **s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**
 change the behavior of s2n-tls when sending data to prefer either throughput
-or low latency. Connections prefering low latency will be encrypted using small
+or low latency. Connections preferring low latency will be encrypted using small
 record sizes that can be decrypted sooner by the recipient. Connections
-prefering throughput will use large record sizes that minimize overhead.
+preferring throughput will use large record sizes that minimize overhead.
 
 -Connections default to an 8k outgoing maximum
 

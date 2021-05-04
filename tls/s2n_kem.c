@@ -106,6 +106,30 @@ const struct s2n_kem s2n_kyber_512_90s_r2 = {
         .decapsulate = &kyber_512_90s_r2_crypto_kem_dec,
 };
 
+const struct s2n_kem s2n_kyber_512_r3 = {
+        .name = "kyber512r3",
+        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3,
+        .public_key_length = S2N_KYBER_512_R3_PUBLIC_KEY_BYTES,
+        .private_key_length = S2N_KYBER_512_R3_SECRET_KEY_BYTES,
+        .shared_secret_key_length = S2N_KYBER_512_R3_SHARED_SECRET_BYTES,
+        .ciphertext_length = S2N_KYBER_512_R3_CIPHERTEXT_BYTES,
+        .generate_keypair = &s2n_kyber_512_r3_crypto_kem_keypair,
+        .encapsulate = &s2n_kyber_512_r3_crypto_kem_enc,
+        .decapsulate = &s2n_kyber_512_r3_crypto_kem_dec,
+};
+
+const struct s2n_kem s2n_sike_p434_r3 = {
+        .name = "SIKEp434r3-KEM",
+        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3,
+        .public_key_length = S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES,
+        .private_key_length = S2N_SIKE_P434_R3_SECRET_KEY_BYTES,
+        .shared_secret_key_length = S2N_SIKE_P434_R3_SHARED_SECRET_BYTES,
+        .ciphertext_length = S2N_SIKE_P434_R3_CIPHERTEXT_BYTES,
+        .generate_keypair = &s2n_sike_p434_r3_crypto_kem_keypair,
+        .encapsulate = &s2n_sike_p434_r3_crypto_kem_enc,
+        .decapsulate = &s2n_sike_p434_r3_crypto_kem_dec,
+};
+
 /* These lists should be kept up to date with the above KEMs. Order in the lists
  * does not matter. Adding a KEM to these lists will not automatically enable
  * support for the KEM extension - that must be added via the KEM preferences &
@@ -119,11 +143,13 @@ const struct s2n_kem *bike_kems[] = {
 const struct s2n_kem *sike_kems[] = {
         &s2n_sike_p503_r1,
         &s2n_sike_p434_r2,
+        &s2n_sike_p434_r3,
 };
 
 const struct s2n_kem *kyber_kems[] = {
         &s2n_kyber_512_r2,
         &s2n_kyber_512_90s_r2,
+        &s2n_kyber_512_r3,
 };
 
 const struct s2n_iana_to_kem kem_mapping[3] = {
@@ -511,6 +537,10 @@ int BIKE1_L1_R1_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct
 int BIKE1_L1_R2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 int BIKE1_L1_R2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 int BIKE1_L1_R2_crypto_kem_dec(OUT unsigned char * ss, IN const unsigned char *ct, IN const unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
+/* bike1l1r3*/
+int BIKE_L1_R3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
+int BIKE_L1_R3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
+int BIKE_L1_R3_crypto_kem_dec(OUT unsigned char * ss, IN const unsigned char *ct, IN const unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 /* kyber512r2 */
 int kyber_512_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 int kyber_512_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
@@ -519,4 +549,12 @@ int kyber_512_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *c
 int kyber_512_90s_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 int kyber_512_90s_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 int kyber_512_90s_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
+/* kyber512r3 */
+int s2n_kyber_512_r3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
+int s2n_kyber_512_r3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
+int s2n_kyber_512_r3_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
+/* sikep434r3 */
+int s2n_sike_p434_r3_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
+int s2n_sike_p434_r3_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
+int s2n_sike_p434_r3_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk) { POSIX_BAIL(S2N_ERR_UNIMPLEMENTED); }
 #endif
