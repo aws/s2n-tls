@@ -5,6 +5,7 @@
 *********************************************************************************************/
 
 #include "sikep434r3.h"
+#include "pq-crypto/s2n_pq.h"
 #include "sikep434r3_fp.h"
 #include "sikep434r3_fpx.h"
 #include "sikep434r3_fp_x64_asm.h"
@@ -192,7 +193,7 @@ void mp_mul(const digit_t* a, const digit_t* b, digit_t* c, const unsigned int n
 {
 #if defined(S2N_SIKEP434R3_ASM)
     if (s2n_sikep434r3_asm_is_enabled()) {
-        UNREFERENCED_PARAMETER(nwords);
+        S2N_SIKE_P434_R3_UNREFERENCED_PARAMETER(nwords);
         mul434_asm(a, b, c);
         return;
     }
