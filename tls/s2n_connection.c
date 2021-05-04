@@ -1450,3 +1450,64 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 
     return S2N_SUCCESS;
 }
+
+int s2n_connection_get_selected_digest_alg(struct s2n_connection *conn, s2n_handshake_hash_algorithm *chosen_alg)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(chosen_alg);
+
+    switch (conn->secure.conn_sig_scheme.hash_alg) {
+        case S2N_HASH_MD5:
+            *chosen_alg = S2N_HANDSHAKE_HASH_MD5;
+            break;
+        case S2N_HASH_SHA1:
+            *chosen_alg = S2N_HANDSHAKE_HASH_SHA1;
+            break;
+        case S2N_HASH_SHA224:
+            *chosen_alg = S2N_HANDSHAKE_HASH_SHA224;
+            break;
+        case S2N_HASH_SHA256:
+            *chosen_alg = S2N_HANDSHAKE_HASH_SHA256;
+            break;
+        case S2N_HASH_SHA384:
+            *chosen_alg = S2N_HANDSHAKE_HASH_SHA384;
+            break;
+        case S2N_HASH_SHA512:
+            *chosen_alg = S2N_HANDSHAKE_HASH_SHA512;
+            break;
+        case S2N_HASH_MD5_SHA1:
+            *chosen_alg = S2N_HANDSHAKE_HASH_MD5_SHA1;
+            break;
+        default:
+            POSIX_BAIL(S2N_ERR_INVALID_STATE);
+            break;
+    }
+
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_get_selected_signature_alg(struct s2n_connection *conn, s2n_handshake_signature_algorithm *chosen_alg)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(chosen_alg);
+    
+    switch (conn->secure.conn_sig_scheme.sig_alg) {
+        case S2N_SIGNATURE_RSA:
+            *chosen_alg = S2N_HANDSHAKE_SIGNATURE_RSA;
+            break;
+        case S2N_SIGNATURE_ECDSA:
+            *chosen_alg = S2N_HANDSHAKE_SIGNATURE_ECDSA;
+            break;
+        case S2N_SIGNATURE_RSA_PSS_RSAE:
+            *chosen_alg = S2N_HANDSHAKE_SIGNATURE_RSA_PSS_RSAE;
+            break;
+        case S2N_SIGNATURE_RSA_PSS_PSS:
+            *chosen_alg = S2N_HANDSHAKE_SIGNATURE_RSA_PSS_PSS;
+            break;
+        default:
+            POSIX_BAIL(S2N_ERR_INVALID_STATE);
+            break;
+    }
+
+    return S2N_SUCCESS;
+}

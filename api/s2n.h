@@ -436,6 +436,23 @@ extern int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 S2N_API
 extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
 
+typedef enum {
+    S2N_HANDSHAKE_SIGNATURE_RSA,
+    S2N_HANDSHAKE_SIGNATURE_ECDSA,
+    S2N_HANDSHAKE_SIGNATURE_RSA_PSS_RSAE,
+    S2N_HANDSHAKE_SIGNATURE_RSA_PSS_PSS
+} s2n_handshake_signature_algorithm;
+
+typedef enum {
+    S2N_HANDSHAKE_HASH_MD5,
+    S2N_HANDSHAKE_HASH_SHA1,
+    S2N_HANDSHAKE_HASH_SHA224,
+    S2N_HANDSHAKE_HASH_SHA256,
+    S2N_HANDSHAKE_HASH_SHA384,
+    S2N_HANDSHAKE_HASH_SHA512,
+    S2N_HANDSHAKE_HASH_MD5_SHA1,
+} s2n_handshake_hash_algorithm;
+
 S2N_API
 extern struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2n_connection *conn);
 
