@@ -1626,6 +1626,42 @@ failure for the same **op**.
 be called for each of the **op** received in **s2n_async_pkey_fn** to
 avoid any memory leaks.
 
+### Offloading asynchronous private key operations
+**The s2n_async_pkey_op_\*** API can be used to perform a private key operation 
+outside of the S2N context. The application can query the type of private 
+key operation by calling **s2n_async_pkey_op_get_op_type**. In order to perform 
+an operation, the application must ask S2N to copy the operation's input into an 
+application supplied buffer. The appropriate buffer size can be determined by calling 
+**s2n_async_pkey_op_get_input_size**. Once a buffer of proper size is 
+allocated, the application can request the input data from the **s2n_async_pkey_op** 
+by calling **s2n_async_pkey_op_get_input**. After the operation is completed, the 
+finished output can be copied back to S2N by calling **s2n_async_pkey_op_set_output**. 
+Once the output is set the asynchronous private key operation can be completed by
+following the steps outlined [above](#Asynchronous-private-key-operations-related-calls)
+by applying the operation, and freeing the op object.
+
+
+```c
+typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
+
+extern int s2n_async_pkey_op_get_op_type(struct s2n_async_pkey_op *op, s2n_async_pkey_op_type *type);
+extern int s2n_async_pkey_op_get_input_size(struct s2n_async_pkey_op *op, uint32_t *data_len);
+extern int s2n_async_pkey_op_get_input(struct s2n_async_pkey_op *op, uint8_t *data, uint32_t data_len);
+extern int s2n_async_pkey_op_set_output(struct s2n_async_pkey_op *op, const uint8_t *data, uint32_t data_len);
+```
+
+**s2n_async_pkey_op_type** contains the private key operation types.
+**s2n_async_pkey_op_get_op_type** retrieves the operation type of the **op**.
+**s2n_async_pkey_op_get_input_size** queries the **op** for the size of the input data.
+**s2n_async_pkey_op_get_input** retrieves the input data buffer from the **op**. 
+The **op** will copy the data into a buffer passed in through the **data** parameter. 
+This buffer is owned by the application, and it is the responsibility of the 
+application to free it.
+**s2n_async_pkey_op_set_output** the **op** will copy the passed in data buffer, 
+and use it to complete the private key operation. The data buffer is owned 
+by the application. Once **s2n_async_pkey_op_set_output** has returned, 
+the application is free to release the data buffer.
+
 ### s2n\_connection\_free\_handshake
 
 ```c
