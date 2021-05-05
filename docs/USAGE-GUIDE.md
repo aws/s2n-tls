@@ -901,6 +901,14 @@ Sets whether or not a connection should terminate on receiving a WARNING alert f
 
 This setting is ignored in TLS1.3. TLS1.3 terminates a connection for all alerts except user_canceled.
 
+### s2n\_config\_set\_async\_pkey\_validation\_mode
+```c
+int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_async_pkey_validation_mode mode);
+```
+Sets whether or not a connection should validate signature during async sign call. `mode` can only take following values : 
+- `S2N_ASYNC_PKEY_VALIDATION_SKIP` - default behavior: s2n_tls will skip all signature validation during async sign call
+- `S2N_ASYNC_PKEY_VALIDATION_STRICT` - validation feature buy in. 
+
 ## Certificate-related functions
 
 ### s2n\_cert\_chain\_and\_key\_new
@@ -1866,3 +1874,4 @@ function that can free memory.
 
 To understand the API it may be easiest to see examples in action. s2n-tls's [bin/](https://github.com/aws/s2n-tls/blob/main/bin/) directory
 includes an example client (s2nc) and server (s2nd).
+
