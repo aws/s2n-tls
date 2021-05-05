@@ -30,17 +30,15 @@ void s2n_dh_params_free_harness()
     nondet_s2n_mem_init();
 
     /* Operation under verification. */
-    int result = s2n_dh_params_free(dh_params);
-
-    /* Postconditions. */
-    if (result == S2N_SUCCESS) {
+    if (s2n_dh_params_free(dh_params) == S2N_SUCCESS) {
         assert(dh_params->dh == NULL);
     } else {
         assert(dh_params == NULL && s2n_errno == S2N_ERR_NULL);
     }
     
     /* Cleanup before memory leak check.
-     * 1. free our heap-allocated `dh_params`, since `s2n_dh_params_free` only `free`s the contents.
+     * `free` our heap-allocated `dh_params` object,
+     * since `s2n_dh_params_free` only `free`s the contents.
      */
     free(dh_params);
 }

@@ -30,10 +30,10 @@ struct store_byte_from_buffer {
 };
 
 /**
- * Reference counted keys (EVP_PKEY and EC_KEY) store the reference counts
- * within the key itself, thus making them potentially unavailable after the
- * keys get deallocated.
- * In the `rc_keys_from_evp_pkey_ctx`, we store the reference counts outside of the keys,
+ * Reference counted keys (EVP_PKEY and EC_KEY) store the reference count
+ * within the key itself, thus making it potentially unavailable after the
+ * key get deallocated.
+ * In the `rc_keys_from_evp_pkey_ctx`, we store the reference count outside of the key,
  * so we can assert properties on them regardless of whether keys was deallocated or not.
  */
 struct rc_keys_from_evp_pkey_ctx {
@@ -132,7 +132,7 @@ void assert_rc_decrement_on_hash_state(struct rc_keys_from_hash_state *storage);
 void assert_rc_unchanged_on_hash_state(struct rc_keys_from_hash_state *storage);
 
 /**
- * Saves reference-counted keys from an `EVP_PKEY_CTX`.
+ * Save reference-counted keys from an `EVP_PKEY_CTX`.
  * Afterwards, one can assert that keys have changed as expected (e.g. after `s2n_hash_free`), i.e.,
  * reference counts have either decreased by 1: see `assert_rc_decrement_on_evp_pkey_ctx`.
  * Additionally, one can also `free` the keys that are left with non-zero reference counts,
@@ -141,7 +141,7 @@ void assert_rc_unchanged_on_hash_state(struct rc_keys_from_hash_state *storage);
 void save_rc_keys_from_evp_pkey_ctx(const EVP_PKEY_CTX *pctx, struct rc_keys_from_evp_pkey_ctx *storage);
 
 /**
- * Saves reference-counted keys from an `s2n_hash_state`.
+ * Save reference-counted keys from an `s2n_hash_state`.
  * Afterwards, one can assert that keys have changed as expected (e.g. after `s2n_hash_free`), i.e.,
  * reference counts have either decreased by 1: see `assert_rc_decrement_on_hash_state`.
  * Additionally, one can also `free` the keys that are left with non-zero reference counts,

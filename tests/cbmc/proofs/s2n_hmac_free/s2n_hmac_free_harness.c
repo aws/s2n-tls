@@ -35,10 +35,7 @@ void s2n_hmac_free_harness()
     save_rc_keys_from_hash_state(&state->outer_just_key, &saved_outer_just_key_hash_state);
 
     /* Operation under verification. */
-    int result = s2n_hmac_free(state);
-
-    /* Post-conditions. */
-    assert(result == S2N_SUCCESS);
+    assert(s2n_hmac_free(state) == S2N_SUCCESS);
     if (state != NULL) {
         assert(state->inner.hash_impl->free != NULL);
         assert(state->inner_just_key.hash_impl->free != NULL);
@@ -90,7 +87,8 @@ void s2n_hmac_free_harness()
         }
 
         /* 2. `free` leftover reference-counted keys (i.e. those with non-zero ref-count),
-              since they are not automatically `free`d until their ref count reaches 0. */
+         *    since they are not automatically `free`d until their ref count reaches 0.
+         */
         free_rc_keys_from_hash_state(&saved_inner_hash_state);
         free_rc_keys_from_hash_state(&saved_inner_just_key_hash_state);
         free_rc_keys_from_hash_state(&saved_inner_hash_state);

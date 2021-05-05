@@ -30,10 +30,7 @@ void s2n_hash_free_harness()
     save_rc_keys_from_hash_state(state, &saved_hash_state);
 
     /* Operation under verification. */
-    int result = s2n_hash_free(state);
-
-    /* Post-conditions. */
-    assert(result == S2N_SUCCESS);
+    assert(s2n_hash_free(state) == S2N_SUCCESS);
     if (state != NULL) {
         assert(state->hash_impl->free != NULL);
         if (s2n_is_in_fips_mode()) {
