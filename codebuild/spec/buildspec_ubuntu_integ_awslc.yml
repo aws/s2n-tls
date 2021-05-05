@@ -56,7 +56,6 @@ phases:
       - printenv
       - GCC_VERSION=4.8 $CB_BIN_DIR/s2n_codebuild.sh
       - GCC_VERSION=6 $CB_BIN_DIR/s2n_codebuild.sh
-      - GCC_VERSION=9 $CB_BIN_DIR/s2n_codebuild.sh
   post_build:
     commands:
       - echo Build completed on `date`
