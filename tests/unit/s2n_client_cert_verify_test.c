@@ -149,6 +149,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
         /* This cipher preference is set to avoid TLS 1.3. */
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20170210"));
+        /* Enable signature validation to test S2N_CLIENT connection signature for async sign operation */
+        EXPECT_SUCCESS(s2n_config_set_async_pkey_validation_mode(client_config, S2N_ASYNC_PKEY_VALIDATION_STRICT));
 
         /* Create connection */
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
@@ -194,3 +196,4 @@ int main(int argc, char **argv)
 
     END_TEST();
 }
+

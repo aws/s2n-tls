@@ -347,6 +347,7 @@ int main(int argc, char **argv)
 
             struct s2n_config *server_config, *client_config;
             EXPECT_NOT_NULL(server_config = s2n_config_new());
+            /* Enable signature validation for async sign call */
             EXPECT_SUCCESS(s2n_config_set_async_pkey_validation_mode(server_config, S2N_ASYNC_PKEY_VALIDATION_STRICT));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
