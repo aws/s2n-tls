@@ -73,10 +73,9 @@ static int s2n_mem_cleanup_impl(void)
 
 static int s2n_mem_free_mlock_impl(void *ptr, uint32_t size)
 {
-    int munlock_rc = munlock(ptr, size);
+    /* Perform a best-effort `munlock`: ignore any errors during unlocking. */
+    munlock(ptr, size);
     free(ptr);
-    POSIX_ENSURE(munlock_rc == 0, S2N_ERR_MUNLOCK);
-
     return S2N_SUCCESS;
 }
 
