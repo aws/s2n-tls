@@ -41,7 +41,7 @@ uint64_t bswap64(uint64_t x);
     #define S2N_SIKE_P434_R3_BSWAP_DIGIT(i)  bswap64((i))
     typedef uint64_t digit_t;
     typedef uint32_t hdigit_t;
-#else
+#elif defined(_X86_) || defined(_ARM_) || defined(__arm__) || defined(__i386__)
     #define S2N_SIKE_P434_R3_NWORDS_FIELD    14 /* Number of words of a 434-bit field element */
     #define S2N_SIKE_P434_R3_ZERO_WORDS      6  /* Number of "0" digits in the least significant part of p434 + 1 */
     #define S2N_SIKE_P434_R3_RADIX           32
@@ -49,6 +49,8 @@ uint64_t bswap64(uint64_t x);
     #define S2N_SIKE_P434_R3_BSWAP_DIGIT(i)  bswap32((i))
     typedef uint32_t digit_t;
     typedef uint16_t hdigit_t;
+#else
+    #error -- "Unsupported ARCHITECTURE"
 #endif
 
 /* Basic constants */
