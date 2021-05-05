@@ -873,6 +873,14 @@ int s2n_config_set_key_log_cb(struct s2n_config *config, s2n_key_log_fn callback
 int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_async_pkey_validation_mode mode) {
     POSIX_ENSURE_REF(config);
 
+    switch(mode) {
+        case S2N_ASYNC_PKEY_VALIDATION_SKIP:
+        case S2N_ASYNC_PKEY_VALIDATION_STRICT:
+            break;
+        default:
+            POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
+            break;
+    }
     config->async_pkey_validation_mode = mode;
 
     return S2N_SUCCESS;

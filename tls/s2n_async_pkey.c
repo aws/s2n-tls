@@ -37,7 +37,6 @@ struct s2n_async_pkey_decrypt_data {
 struct s2n_async_pkey_sign_data {
     s2n_async_pkey_sign_complete on_complete;
     struct s2n_hash_state        digest;
-    struct s2n_hash_state        digest_copy;
     s2n_signature_algorithm      sig_alg;
     struct s2n_blob              signature;
 };
@@ -383,13 +382,19 @@ S2N_RESULT s2n_async_pkey_sign_perform(struct s2n_async_pkey_op *op, s2n_cert_pr
     RESULT_GUARD(s2n_pkey_size(pkey, &maximum_signature_length));
     RESULT_GUARD_POSIX(s2n_alloc(&sign->signature, maximum_signature_length));
 
-    /* Copy s2n_hash_state for signature validation only if validation feature is buy in */
+    /* If signature validation mode is S2N_ASYNC_PKEY_VALIDATION_STRICT
+     * then use local hash copy to sign the signature */
     if (op->conn->config->async_pkey_validation_mode == S2N_ASYNC_PKEY_VALIDATION_STRICT) {
-        RESULT_GUARD_POSIX(s2n_hash_new(&sign->digest_copy));
-        RESULT_GUARD_POSIX(s2n_hash_copy(&sign->digest_copy, &sign->digest));
-    }
+        DEFER_CLEANUP(struct s2n_hash_state hash_state_copy, s2n_hash_free);
+        RESULT_GUARD_POSIX(s2n_hash_new(&hash_state_copy));
+        RESULT_GUARD_POSIX(s2n_hash_copy(&hash_state_copy, &sign->digest));
 
-    RESULT_GUARD_POSIX(s2n_pkey_sign(pkey, sign->sig_alg, &sign->digest, &sign->signature));
+        RESULT_GUARD_POSIX(s2n_pkey_sign(pkey, sign->sig_alg, &hash_state_copy, &sign->signature));
+
+        RESULT_GUARD_POSIX(s2n_hash_free(&hash_state_copy));
+    } else {
+        RESULT_GUARD_POSIX(s2n_pkey_sign(pkey, sign->sig_alg, &sign->digest, &sign->signature));
+    }
 
     return S2N_RESULT_OK;
 }
@@ -404,26 +409,25 @@ S2N_RESULT s2n_async_pkey_sign_apply(struct s2n_async_pkey_op *op, struct s2n_co
     /* Perform signature validation only if validation feature is buy in */
     RESULT_ENSURE_REF(conn->config);
     if (conn->config->async_pkey_validation_mode == S2N_ASYNC_PKEY_VALIDATION_STRICT) {
-        RESULT_ENSURE(!(s2n_async_pkey_verify_signature(conn, sign->sig_alg,
-                        &sign->digest_copy, &sign->signature) < 0), S2N_ERR_VERIFY_SIGNATURE);
+        RESULT_ENSURE(s2n_result_is_ok(s2n_async_pkey_verify_signature(conn, sign->sig_alg,
+                        &sign->digest, &sign->signature)), S2N_ERR_VERIFY_SIGNATURE);
     }
-
 
     RESULT_GUARD_POSIX(sign->on_complete(conn, &sign->signature));
 
     return S2N_RESULT_OK;
 }
 
-int s2n_async_pkey_verify_signature(struct s2n_connection *conn, s2n_signature_algorithm sig_alg,
+S2N_RESULT s2n_async_pkey_verify_signature(struct s2n_connection *conn, s2n_signature_algorithm sig_alg,
                                     struct s2n_hash_state *digest, struct s2n_blob *signature) {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->handshake_params.our_chain_and_key);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->handshake_params.our_chain_and_key);
 
-    POSIX_GUARD(s2n_pkey_check_key_exists(&conn->handshake_params.our_chain_and_key->cert_chain->head->public_key));
-    POSIX_GUARD(s2n_pkey_verify(&conn->handshake_params.our_chain_and_key->cert_chain->head->public_key,
+    RESULT_GUARD_POSIX(s2n_pkey_check_key_exists(&conn->handshake_params.our_chain_and_key->cert_chain->head->public_key));
+    RESULT_GUARD_POSIX(s2n_pkey_verify(&conn->handshake_params.our_chain_and_key->cert_chain->head->public_key,
                                     sig_alg, digest, signature));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_async_pkey_sign_free(struct s2n_async_pkey_op *op)
@@ -434,13 +438,8 @@ S2N_RESULT s2n_async_pkey_sign_free(struct s2n_async_pkey_op *op)
     struct s2n_async_pkey_sign_data *sign = &op->op.sign;
 
     RESULT_GUARD_POSIX(s2n_hash_free(&sign->digest));
-    /* Free digest_copy only if validation feature was buy in */
-    if (op->conn->config->async_pkey_validation_mode == S2N_ASYNC_PKEY_VALIDATION_STRICT) {
-        RESULT_GUARD_POSIX(s2n_hash_free(&sign->digest_copy));
-    }
     RESULT_GUARD_POSIX(s2n_free(&sign->signature));
 
     return S2N_RESULT_OK;
 }
-
 

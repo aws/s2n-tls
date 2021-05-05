@@ -63,8 +63,8 @@ static int async_handler_wipe_connection_and_apply(struct s2n_connection *conn)
     return S2N_FAILURE;
 }
 
-static int async_handler_sign_with_different_pkey_and_apply(struct s2n_connection *conn) {
-
+static int async_handler_sign_with_different_pkey_and_apply(struct s2n_connection *conn)
+{
     /* Check that we have pkey_op */
     EXPECT_NOT_NULL(pkey_op);
 
@@ -93,8 +93,12 @@ static int async_handler_sign_with_different_pkey_and_apply(struct s2n_connectio
         EXPECT_NOT_NULL(conn->handshake_params.our_chain_and_key);
         conn->handshake_params.our_chain_and_key = chain_and_key_2;
 
-        /* Test that pkey op can't be applied to wrong pkey */
+        /* Test that async sign operation will fail as signature was performed over different private key */
         EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(pkey_op, conn), S2N_ERR_VERIFY_SIGNATURE);
+
+        /* Set signature validation mode to S2N_ASYNC_PKEY_VALIDATION_SKIP and test that async sign apply will pass */
+        EXPECT_SUCCESS(s2n_config_set_async_pkey_validation_mode(conn->config, S2N_ASYNC_PKEY_VALIDATION_SKIP));
+        EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
 
         /* Set chain_and_key back to original value and free new chain_and_key */
         conn->handshake_params.our_chain_and_key = chain_and_key;
@@ -342,17 +346,17 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(client_config));
         }
 
-        /*  Test: sign with different pkey and apply with s2n_connection having different chain_and_key */
+        /* Test: Apply invalid signature */
         {
 
             struct s2n_config *server_config, *client_config;
             EXPECT_NOT_NULL(server_config = s2n_config_new());
-            /* Enable signature validation for async sign call */
-            EXPECT_SUCCESS(s2n_config_set_async_pkey_validation_mode(server_config, S2N_ASYNC_PKEY_VALIDATION_STRICT));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
             EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_store_callback));
             server_config->security_policy = &server_security_policy;
+            /* Enable signature validation for async sign call */
+            EXPECT_SUCCESS(s2n_config_set_async_pkey_validation_mode(server_config, S2N_ASYNC_PKEY_VALIDATION_STRICT));
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
@@ -391,5 +395,4 @@ int main(int argc, char **argv)
     END_TEST();
     return 0;
 }
-
 
