@@ -1638,7 +1638,7 @@ by calling **s2n_async_pkey_op_get_input**. After the operation is completed, th
 finished output can be copied back to S2N by calling **s2n_async_pkey_op_set_output**. 
 Once the output is set the asynchronous private key operation can be completed by
 following the steps outlined [above](#Asynchronous-private-key-operations-related-calls)
-by applying the operation, and freeing the op object.
+to apply the operation and free the op object.
 
 
 ```c
