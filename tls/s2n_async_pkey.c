@@ -511,7 +511,7 @@ static S2N_RESULT s2n_async_pkey_get_input_sign(struct s2n_async_pkey_op *op, ui
 
     struct s2n_async_pkey_sign_data *sign = &op->op.sign;
 
-    struct s2n_hash_state digest_copy = { 0 };
+    DEFER_CLEANUP(struct s2n_hash_state digest_copy = { 0 }, s2n_hash_free);
     RESULT_GUARD_POSIX(s2n_hash_new(&digest_copy));
     RESULT_GUARD_POSIX(s2n_hash_copy(&digest_copy, &sign->digest));
 
@@ -521,7 +521,6 @@ static S2N_RESULT s2n_async_pkey_get_input_sign(struct s2n_async_pkey_op *op, ui
 
     RESULT_ENSURE_LTE(digest_length, data_len);
     RESULT_GUARD_POSIX(s2n_hash_digest(&digest_copy, data, digest_length));
-    RESULT_GUARD_POSIX(s2n_hash_free(&digest_copy));
 
     return S2N_RESULT_OK;
 }
