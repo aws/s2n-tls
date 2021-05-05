@@ -156,9 +156,9 @@ EVP_MD_CTX* cbmc_allocate_EVP_MD_CTX() {
 void cbmc_populate_s2n_evp_digest(struct s2n_evp_digest *evp_digest) {
     if (evp_digest != NULL) {
         /* `evp_digest->md` is never allocated.
-           It is always initialized based on the hashing algorithm.
-           If required, this initialization should be done in the validation function.
-        */
+         * It is always initialized based on the hashing algorithm.
+         * If required, this initialization should be done in the validation function.
+         */
         evp_digest->ctx = cbmc_allocate_EVP_MD_CTX();
     }
 }
@@ -174,9 +174,9 @@ void cbmc_populate_s2n_hash_state(struct s2n_hash_state* state)
 {
     if (state != NULL) {
         /* `state->hash_impl` is never allocated.
-           It is always initialized based on the hashing algorithm.
-           If required, this initialization should be done in the validation function.
-        */
+         * It is always initialized based on the hashing algorithm.
+         * If required, this initialization should be done in the validation function.
+         */
         cbmc_populate_s2n_evp_digest(&state->digest.high_level.evp);
         cbmc_populate_s2n_evp_digest(&state->digest.high_level.evp_md5_secondary);
     }

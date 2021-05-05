@@ -32,8 +32,6 @@ void s2n_dh_params_free_harness()
     /* Operation under verification. */
     if (s2n_dh_params_free(dh_params) == S2N_SUCCESS) {
         assert(dh_params->dh == NULL);
-    } else {
-        assert(dh_params == NULL && s2n_errno == S2N_ERR_NULL);
     }
     
     /* Cleanup before memory leak check.
