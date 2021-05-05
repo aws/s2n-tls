@@ -119,13 +119,7 @@ struct s2n_dh_params *cbmc_allocate_dh_params()
 {
     struct s2n_dh_params *dh_params = malloc(sizeof(*dh_params));
     if (dh_params != NULL) {
-        dh_params->dh = malloc(sizeof(*(dh_params->dh)));
-        if (dh_params->dh != NULL) {
-            dh_params->dh->pub_key  = malloc(sizeof(*(dh_params->dh->pub_key)));
-            dh_params->dh->priv_key = malloc(sizeof(*(dh_params->dh->priv_key)));
-            dh_params->dh->p        = malloc(sizeof(*(dh_params->dh->p)));
-            dh_params->dh->g        = malloc(sizeof(*(dh_params->dh->g)));
-        }
+        dh_params->dh = DH_new();
     }
     return dh_params;
 }
@@ -159,48 +153,51 @@ EVP_MD_CTX* cbmc_allocate_EVP_MD_CTX() {
     return ctx;
 }
 
-struct s2n_hash_state* cbmc_allocate_s2n_hash_state()
-{
-    struct s2n_hash_state *state = malloc(sizeof(*state));
-    if (state != NULL)
-    {
-        state->hash_impl = malloc(sizeof(*(state->hash_impl)));
-        state->digest.high_level.evp.md = malloc(sizeof(*(state->digest.high_level.evp.md)));
-        state->digest.high_level.evp.ctx = cbmc_allocate_EVP_MD_CTX();
-        state->digest.high_level.evp_md5_secondary.md = malloc(sizeof(*(state->digest.high_level.evp_md5_secondary.md)));
-        state->digest.high_level.evp_md5_secondary.ctx = cbmc_allocate_EVP_MD_CTX();
+void cbmc_populate_s2n_evp_digest(struct s2n_evp_digest *evp_digest) {
+    if (evp_digest != NULL) {
+        /* `evp_digest->md` is never allocated.
+         * It is always initialized based on the hashing algorithm.
+         * If required, this initialization should be done in the validation function.
+         */
+        evp_digest->ctx = cbmc_allocate_EVP_MD_CTX();
     }
-    return state;
 }
 
 struct s2n_evp_digest* cbmc_allocate_s2n_evp_digest()
 {
     struct s2n_evp_digest *evp_digest = malloc(sizeof(*evp_digest));
-    if (evp_digest != NULL)
-    {
-        evp_digest->md = malloc(sizeof(*(evp_digest->md)));
-        evp_digest->ctx = malloc(sizeof(*(evp_digest->ctx)));
-    }
+    cbmc_populate_s2n_evp_digest(evp_digest);
     return evp_digest;
 }
 
+void cbmc_populate_s2n_hash_state(struct s2n_hash_state* state)
+{
+    if (state != NULL) {
+        /* `state->hash_impl` is never allocated.
+         * It is always initialized based on the hashing algorithm.
+         * If required, this initialization should be done in the validation function.
+         */
+        cbmc_populate_s2n_evp_digest(&state->digest.high_level.evp);
+        cbmc_populate_s2n_evp_digest(&state->digest.high_level.evp_md5_secondary);
+    }
+    return state;
+}
+
+struct s2n_hash_state* cbmc_allocate_s2n_hash_state()
+{
+    struct s2n_hash_state *state = malloc(sizeof(*state));
+    cbmc_populate_s2n_hash_state(state);
+    return state;
+}
 
 struct s2n_hmac_state* cbmc_allocate_s2n_hmac_state()
 {
     struct s2n_hmac_state *state = malloc(sizeof(*state));
     if (state != NULL) {
-        struct s2n_hash_state *inner = cbmc_allocate_s2n_hash_state();
-        __CPROVER_assume(inner != NULL); /* Declared on stack. */
-        state->inner = *inner;
-        struct s2n_hash_state *inner_just_key = cbmc_allocate_s2n_hash_state();
-        __CPROVER_assume(inner_just_key != NULL); /* Declared on stack. */
-        state->inner_just_key = *inner_just_key;
-        struct s2n_hash_state *outer = cbmc_allocate_s2n_hash_state();
-        __CPROVER_assume(outer != NULL); /* Declared on stack. */
-        state->outer = *outer;
-        struct s2n_hash_state *outer_just_key = cbmc_allocate_s2n_hash_state();
-        __CPROVER_assume(outer_just_key != NULL); /* Declared on stack. */
-        state->outer_just_key = *outer_just_key;
+        cbmc_populate_s2n_hash_state(&state->inner);
+        cbmc_populate_s2n_hash_state(&state->inner_just_key);
+        cbmc_populate_s2n_hash_state(&state->outer);
+        cbmc_populate_s2n_hash_state(&state->outer_just_key);
     }
     return state;
 }
@@ -209,34 +206,14 @@ struct s2n_hmac_evp_backup* cbmc_allocate_s2n_hmac_evp_backup()
 {
     struct s2n_hmac_evp_backup *backup = malloc(sizeof(*backup));
     if(backup != NULL) {
-        /* inner */
-        struct s2n_evp_digest *inner_evp = cbmc_allocate_s2n_evp_digest();
-        __CPROVER_assume(inner_evp != NULL);
-        backup->inner.evp = *inner_evp;
-        struct s2n_evp_digest *inner_evp_md5_secondary = cbmc_allocate_s2n_evp_digest();
-        __CPROVER_assume(inner_evp_md5_secondary != NULL);
-        backup->inner.evp_md5_secondary = *inner_evp_md5_secondary;
-        /* inner_just_key */
-        struct s2n_evp_digest *inner_just_key_evp = cbmc_allocate_s2n_evp_digest();
-        __CPROVER_assume(inner_just_key_evp != NULL);
-        backup->inner_just_key.evp = *inner_just_key_evp;
-        struct s2n_evp_digest *inner_just_key_evp_md5_secondary = cbmc_allocate_s2n_evp_digest();
-        __CPROVER_assume(inner_just_key_evp_md5_secondary != NULL);
-        backup->inner_just_key.evp_md5_secondary = *inner_just_key_evp_md5_secondary;
-        /* outer */
-        struct s2n_evp_digest *outer_evp = cbmc_allocate_s2n_evp_digest();
-        __CPROVER_assume(outer_evp != NULL);
-        backup->outer.evp = *outer_evp;
-        struct s2n_evp_digest *outer_evp_md5_secondary = cbmc_allocate_s2n_evp_digest();
-        __CPROVER_assume(outer_evp_md5_secondary != NULL);
-        backup->outer.evp_md5_secondary = *outer_evp_md5_secondary;
-        /* outer_just_key */
-        struct s2n_evp_digest *outer_just_key_evp = cbmc_allocate_s2n_evp_digest();
-        __CPROVER_assume(outer_just_key_evp != NULL);
-        backup->outer_just_key.evp = *outer_just_key_evp;
-        struct s2n_evp_digest *outer_just_key_evp_md5_secondary = cbmc_allocate_s2n_evp_digest();
-        __CPROVER_assume(outer_just_key_evp_md5_secondary != NULL);
-        backup->outer_just_key.evp_md5_secondary = *outer_just_key_evp_md5_secondary;
+        cbmc_populate_s2n_evp_digest(&backup->inner.evp);
+        cbmc_populate_s2n_evp_digest(&backup->inner.evp_md5_secondary);
+        cbmc_populate_s2n_evp_digest(&backup->inner_just_key.evp);
+        cbmc_populate_s2n_evp_digest(&backup->inner_just_key.evp_md5_secondary);
+        cbmc_populate_s2n_evp_digest(&backup->outer.evp);
+        cbmc_populate_s2n_evp_digest(&backup->outer.evp_md5_secondary);
+        cbmc_populate_s2n_evp_digest(&backup->outer_just_key.evp);
+        cbmc_populate_s2n_evp_digest(&backup->outer_just_key.evp_md5_secondary);
     }
     return backup;
 }

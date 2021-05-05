@@ -123,3 +123,13 @@ struct s2n_hmac_state* cbmc_allocate_s2n_hmac_state();
  * Properly allocates s2n_hmac_state for CBMC proofs.
  */
 struct s2n_hmac_evp_backup* cbmc_allocate_s2n_hmac_evp_backup();
+
+/*
+ * Populates the fields of a pre-allocated s2n_evp_digest for CBMC proofs.
+ */
+void cbmc_populate_s2n_evp_digest(struct s2n_evp_digest *evp_digest);
+
+/*
+ * Populates the fields of a pre-allocated s2n_hash_state for CBMC proofs.
+ */
+void cbmc_populate_s2n_hash_state(struct s2n_hash_state *state);
