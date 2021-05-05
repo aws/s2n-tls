@@ -9,7 +9,7 @@ s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be 
 [![codecov](https://codecov.io/gh/aws/s2n-tls/branch/main/graph/badge.svg)](https://codecov.io/gh/aws/s2n-tls)
 [![Github forks](https://img.shields.io/github/forks/aws/s2n-tls.svg)](https://github.com/aws/s2n-tls/network)
 [![Github stars](https://img.shields.io/github/stars/aws/s2n-tls.svg)](https://github.com/aws/s2n-tls/stargazers)
-[![Join the chat at https://gitter.im/aws/s2n-tls](https://badges.gitter.im/aws/s2n-tls.svg)](https://gitter.im/aws/s2n-tls?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://gitter.im/awslabs/s2n](https://badges.gitter.im/awslabs/s2n.svg)](https://gitter.im/awslabs/s2n?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Quickstart for Ubuntu
 1. Fork s2n-tls on GitHub
