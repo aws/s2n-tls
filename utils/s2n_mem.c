@@ -73,9 +73,7 @@ static int s2n_mem_cleanup_impl(void)
 
 static int s2n_mem_free_mlock_impl(void *ptr, uint32_t size)
 {
-    /* We do a best-effort `munlock` and ignore any errors during unlocking.
-     * More details at https://github.com/aws/s2n-tls/issues/2803.
-     */
+    /* Perform a best-effort `munlock`: ignore any errors during unlocking. */
     munlock(ptr, size);
     free(ptr);
     return S2N_SUCCESS;
