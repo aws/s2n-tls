@@ -25,6 +25,9 @@
 #include "tls/s2n_cipher_suites.h"
 #include "utils/s2n_safety.h"
 
+/* Include source to test on a specific pkey_op type */
+#include "tls/s2n_async_pkey.h"
+
 struct s2n_async_pkey_op *pkey_op = NULL;
 
 typedef int (async_handler)(struct s2n_connection *conn);
@@ -68,22 +71,17 @@ static int async_handler_sign_with_different_pkey_and_apply(struct s2n_connectio
     /* Check that we have pkey_op */
     EXPECT_NOT_NULL(pkey_op);
 
-    /* Retrieve cipher suite for the server connection */
-    struct s2n_cipher_suite *cipher_suite = conn->secure.cipher_suite;
-    POSIX_ENSURE_REF(cipher_suite);
+    /* Extract pkey */
+    struct s2n_cert_chain_and_key *chain_and_key = s2n_connection_get_selected_cert(conn);
+    EXPECT_NOT_NULL(chain_and_key);
+    s2n_cert_private_key *pkey = s2n_cert_chain_and_key_get_private_key(chain_and_key);
+    EXPECT_NOT_NULL(pkey);
 
-    /* Test only sign operation */
-    if (cipher_suite->key_exchange_alg != NULL && cipher_suite->key_exchange_alg->is_ephemeral) {
-        /* Extract pkey */
-        struct s2n_cert_chain_and_key *chain_and_key = s2n_connection_get_selected_cert(conn);
-        EXPECT_NOT_NULL(chain_and_key);
+    /* Test that we can perform pkey operation */
+    EXPECT_SUCCESS(s2n_async_pkey_op_perform(pkey_op, pkey));
 
-        s2n_cert_private_key *pkey = s2n_cert_chain_and_key_get_private_key(chain_and_key);
-        EXPECT_NOT_NULL(pkey);
-
-        /* Test that we can perform pkey operation */
-        EXPECT_SUCCESS(s2n_async_pkey_op_perform(pkey_op, pkey));
-
+    /* Test apply with different certificate chain only for sign operation */
+    if (pkey_op->type == S2N_ASYNC_SIGN) {
         /* Create new chain and key, and modify current server conn */
         struct s2n_cert_chain_and_key *chain_and_key_2 = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key_2,
@@ -96,20 +94,23 @@ static int async_handler_sign_with_different_pkey_and_apply(struct s2n_connectio
         /* Test that async sign operation will fail as signature was performed over different private key */
         EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(pkey_op, conn), S2N_ERR_VERIFY_SIGNATURE);
 
-        /* Set signature validation mode to S2N_ASYNC_PKEY_VALIDATION_SKIP and test that async sign apply will pass */
+        /* Set signature validation mode to S2N_ASYNC_PKEY_VALIDATION_SKIP and test that async sign apply will pass now*/
         EXPECT_SUCCESS(s2n_config_set_async_pkey_validation_mode(conn->config, S2N_ASYNC_PKEY_VALIDATION_SKIP));
         EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
 
         /* Set chain_and_key back to original value and free new chain_and_key */
         conn->handshake_params.our_chain_and_key = chain_and_key;
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key_2));
+    } else {
+        /* Test decrypt operation passes */
+        EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
     }
 
     /* Free the pkey op */
     EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
     pkey_op = NULL;
 
-    return S2N_FAILURE;
+    return S2N_SUCCESS;
 }
 
 static int async_handler_free_pkey_op(struct s2n_connection *conn)
@@ -348,7 +349,6 @@ int main(int argc, char **argv)
 
         /* Test: Apply invalid signature */
         {
-
             struct s2n_config *server_config, *client_config;
             EXPECT_NOT_NULL(server_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
@@ -378,8 +378,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
-            EXPECT_EQUAL(try_handshake(server_conn, client_conn, async_handler_sign_with_different_pkey_and_apply),
-                    S2N_FAILURE);
+            EXPECT_SUCCESS(try_handshake(server_conn, client_conn, async_handler_sign_with_different_pkey_and_apply));
 
             /* Free the data */
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -395,4 +394,3 @@ int main(int argc, char **argv)
     END_TEST();
     return 0;
 }
-

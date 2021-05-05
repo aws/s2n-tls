@@ -905,9 +905,11 @@ This setting is ignored in TLS1.3. TLS1.3 terminates a connection for all alerts
 ```c
 int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_async_pkey_validation_mode mode);
 ```
-Sets whether or not a connection should validate signature during async sign call. `mode` can only take following values : 
-- `S2N_ASYNC_PKEY_VALIDATION_SKIP` - default behavior: s2n_tls will skip all signature validation during async sign call
-- `S2N_ASYNC_PKEY_VALIDATION_STRICT` - validation feature buy in. 
+Sets whether or not a connection should validate the signature during an async sign call. 
+This feature is useful to ensure that the private key used for the signature matches the public key stored on the connection. 
+`mode` can only take following values : 
+- `S2N_ASYNC_PKEY_VALIDATION_SKIP` - default behavior: s2n-tls will skip all signature validation
+- `S2N_ASYNC_PKEY_VALIDATION_STRICT` - the signature will be validated using the connection's stored public key 
 
 ## Certificate-related functions
 
@@ -1874,4 +1876,3 @@ function that can free memory.
 
 To understand the API it may be easiest to see examples in action. s2n-tls's [bin/](https://github.com/aws/s2n-tls/blob/main/bin/) directory
 includes an example client (s2nc) and server (s2nd).
-

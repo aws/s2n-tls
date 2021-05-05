@@ -885,4 +885,3 @@ int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_asy
 
     return S2N_SUCCESS;
 }
-

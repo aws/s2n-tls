@@ -25,33 +25,6 @@
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
-typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
-
-struct s2n_async_pkey_decrypt_data {
-    s2n_async_pkey_decrypt_complete on_complete;
-    struct s2n_blob                 encrypted;
-    struct s2n_blob                 decrypted;
-    unsigned                        rsa_failed : 1;
-};
-
-struct s2n_async_pkey_sign_data {
-    s2n_async_pkey_sign_complete on_complete;
-    struct s2n_hash_state        digest;
-    s2n_signature_algorithm      sig_alg;
-    struct s2n_blob              signature;
-};
-
-struct s2n_async_pkey_op {
-    s2n_async_pkey_op_type type;
-    struct s2n_connection *conn;
-    unsigned               complete : 1;
-    unsigned               applied : 1;
-    union {
-        struct s2n_async_pkey_decrypt_data decrypt;
-        struct s2n_async_pkey_sign_data    sign;
-    } op;
-};
-
 struct s2n_async_pkey_op_actions {
     S2N_RESULT (*perform)(struct s2n_async_pkey_op *op, s2n_cert_private_key *pkey);
     S2N_RESULT (*apply)(struct s2n_async_pkey_op *op, struct s2n_connection *conn);
@@ -374,6 +347,7 @@ S2N_RESULT s2n_async_pkey_sign_perform(struct s2n_async_pkey_op *op, s2n_cert_pr
 {
     RESULT_ENSURE_REF(op);
     RESULT_ENSURE_REF(op->conn);
+    RESULT_ENSURE_REF(op->conn->config);
     RESULT_ENSURE_REF(pkey);
 
     struct s2n_async_pkey_sign_data *sign = &op->op.sign;
@@ -390,8 +364,6 @@ S2N_RESULT s2n_async_pkey_sign_perform(struct s2n_async_pkey_op *op, s2n_cert_pr
         RESULT_GUARD_POSIX(s2n_hash_copy(&hash_state_copy, &sign->digest));
 
         RESULT_GUARD_POSIX(s2n_pkey_sign(pkey, sign->sig_alg, &hash_state_copy, &sign->signature));
-
-        RESULT_GUARD_POSIX(s2n_hash_free(&hash_state_copy));
     } else {
         RESULT_GUARD_POSIX(s2n_pkey_sign(pkey, sign->sig_alg, &sign->digest, &sign->signature));
     }
@@ -433,7 +405,6 @@ S2N_RESULT s2n_async_pkey_verify_signature(struct s2n_connection *conn, s2n_sign
 S2N_RESULT s2n_async_pkey_sign_free(struct s2n_async_pkey_op *op)
 {
     RESULT_ENSURE_REF(op);
-    RESULT_ENSURE_REF(op->conn);
 
     struct s2n_async_pkey_sign_data *sign = &op->op.sign;
 
@@ -442,4 +413,3 @@ S2N_RESULT s2n_async_pkey_sign_free(struct s2n_async_pkey_op *op)
 
     return S2N_RESULT_OK;
 }
-

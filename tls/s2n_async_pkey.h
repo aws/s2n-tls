@@ -21,6 +21,32 @@
 
 typedef int (*s2n_async_pkey_sign_complete)(struct s2n_connection *conn, struct s2n_blob *signature);
 typedef int (*s2n_async_pkey_decrypt_complete)(struct s2n_connection *conn, bool rsa_failed, struct s2n_blob *decrypted);
+typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
+
+struct s2n_async_pkey_decrypt_data {
+    s2n_async_pkey_decrypt_complete on_complete;
+    struct s2n_blob                 encrypted;
+    struct s2n_blob                 decrypted;
+    unsigned                        rsa_failed : 1;
+};
+
+struct s2n_async_pkey_sign_data {
+    s2n_async_pkey_sign_complete on_complete;
+    struct s2n_hash_state        digest;
+    s2n_signature_algorithm      sig_alg;
+    struct s2n_blob              signature;
+};
+
+struct s2n_async_pkey_op {
+    s2n_async_pkey_op_type type;
+    struct s2n_connection *conn;
+    unsigned               complete : 1;
+    unsigned               applied : 1;
+    union {
+        struct s2n_async_pkey_decrypt_data decrypt;
+        struct s2n_async_pkey_sign_data    sign;
+    } op;
+};
 
 struct s2n_async_pkey_op;
 
@@ -70,5 +96,3 @@ S2N_RESULT s2n_async_pkey_decrypt(struct s2n_connection *conn, struct s2n_blob *
                            s2n_async_pkey_decrypt_complete on_complete);
 S2N_RESULT s2n_async_pkey_sign(struct s2n_connection *conn, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
                         s2n_async_pkey_sign_complete on_complete);
-
-

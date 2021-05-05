@@ -40,14 +40,6 @@ int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type)
     return 0;
 }
 
-int s2n_cert_set_public_key(struct s2n_cert *cert, s2n_cert_public_key public_key)
-{
-    POSIX_ENSURE_REF(cert);
-    cert->public_key = public_key;
-
-    return 0;
-}
-
 int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, struct s2n_stuffer *chain_in_stuffer)
 {
     DEFER_CLEANUP(struct s2n_stuffer cert_out_stuffer = {0}, s2n_stuffer_free);
@@ -348,14 +340,12 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
     POSIX_GUARD(s2n_pkey_match(&public_key, chain_and_key->private_key));
 
     /* Store public key at cert_chain to cut down expensive use of s2n_asn1der_to_public_key_and_type */
-    POSIX_GUARD(s2n_cert_set_public_key(chain_and_key->cert_chain->head, public_key));
-
-    /* Reset the old struct, so we don't clean up chain_and_key->cert_chain->head */
-    s2n_pkey_zero_init(&public_key);
+    chain_and_key->cert_chain->head->public_key = public_key;
 
     /* Populate name information from the SAN/CN for the leaf certificate */
     POSIX_GUARD(s2n_cert_chain_and_key_set_names(chain_and_key, &chain_and_key->cert_chain->head->raw));
 
+    ZERO_TO_DISABLE_DEFER_CLEANUP(public_key);
     return 0;
 }
 
@@ -809,4 +799,3 @@ int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid,
 
     return S2N_SUCCESS;
 }
-

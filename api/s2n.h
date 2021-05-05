@@ -666,4 +666,3 @@ extern int s2n_config_enable_cert_req_dss_legacy_compat(struct s2n_config *confi
 #ifdef __cplusplus
 }
 #endif
-
