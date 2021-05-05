@@ -219,6 +219,8 @@ int s2n_free_object(uint8_t **p_data, uint32_t size)
     if (*p_data == NULL) {
         return S2N_SUCCESS;
     }
+    
+    POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
     struct s2n_blob b = {.data = *p_data, .allocated = size, .size = size, .growable = 1};
 
     /* s2n_free() will call free() even if it returns error (for a growable blob).
