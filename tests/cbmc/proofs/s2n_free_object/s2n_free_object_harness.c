@@ -27,7 +27,6 @@ void s2n_free_object_harness()
 
     /* Assumptions. */
     nondet_s2n_mem_init();
-    uint8_t *old_data = data;
 
     /* Operation under verification. */
     int result = s2n_free_object(&data, size);
@@ -37,10 +36,7 @@ void s2n_free_object_harness()
 
     /* Cleanup after expected error cases, for memory leak check. */
     if (result != S2N_SUCCESS && s2n_errno == S2N_ERR_NOT_INITIALIZED) {
-        /* 1. `s2n_free` failed because s2n was not initialized.
-              Note that `data` is still set to `NULL`, even if the call fails,
-              so we can't use `data` here.
-        */
-        free(old_data);
+        /* `s2n_free` failed because s2n was not initialized. */
+        free(data);
     }
 }
