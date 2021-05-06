@@ -70,4 +70,3 @@ S2N_RESULT s2n_async_pkey_decrypt(struct s2n_connection *conn, struct s2n_blob *
                            s2n_async_pkey_decrypt_complete on_complete);
 S2N_RESULT s2n_async_pkey_sign(struct s2n_connection *conn, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
                         s2n_async_pkey_sign_complete on_complete);
-
