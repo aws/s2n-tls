@@ -341,11 +341,11 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
 
     /* Store public key at cert_chain to cut down expensive use of s2n_asn1der_to_public_key_and_type */
     chain_and_key->cert_chain->head->public_key = public_key;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(public_key);
 
     /* Populate name information from the SAN/CN for the leaf certificate */
     POSIX_GUARD(s2n_cert_chain_and_key_set_names(chain_and_key, &chain_and_key->cert_chain->head->raw));
 
-    ZERO_TO_DISABLE_DEFER_CLEANUP(public_key);
     return 0;
 }
 

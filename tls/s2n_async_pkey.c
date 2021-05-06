@@ -25,6 +25,33 @@
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
+typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
+
+struct s2n_async_pkey_decrypt_data {
+    s2n_async_pkey_decrypt_complete on_complete;
+    struct s2n_blob                 encrypted;
+    struct s2n_blob                 decrypted;
+    unsigned                        rsa_failed : 1;
+};
+
+struct s2n_async_pkey_sign_data {
+    s2n_async_pkey_sign_complete on_complete;
+    struct s2n_hash_state        digest;
+    s2n_signature_algorithm      sig_alg;
+    struct s2n_blob              signature;
+};
+
+struct s2n_async_pkey_op {
+    s2n_async_pkey_op_type type;
+    struct s2n_connection *conn;
+    unsigned               complete : 1;
+    unsigned               applied : 1;
+    union {
+        struct s2n_async_pkey_decrypt_data decrypt;
+        struct s2n_async_pkey_sign_data    sign;
+    } op;
+};
+
 struct s2n_async_pkey_op_actions {
     S2N_RESULT (*perform)(struct s2n_async_pkey_op *op, s2n_cert_private_key *pkey);
     S2N_RESULT (*apply)(struct s2n_async_pkey_op *op, struct s2n_connection *conn);
@@ -394,6 +421,8 @@ S2N_RESULT s2n_async_pkey_verify_signature(struct s2n_connection *conn, s2n_sign
                                     struct s2n_hash_state *digest, struct s2n_blob *signature) {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->handshake_params.our_chain_and_key);
+    RESULT_ENSURE_REF(digest);
+    RESULT_ENSURE_REF(signature);
 
     RESULT_GUARD_POSIX(s2n_pkey_check_key_exists(&conn->handshake_params.our_chain_and_key->cert_chain->head->public_key));
     RESULT_GUARD_POSIX(s2n_pkey_verify(&conn->handshake_params.our_chain_and_key->cert_chain->head->public_key,
