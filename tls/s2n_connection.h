@@ -386,5 +386,7 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn);
 /* `none` keyword represents a list of empty keyshares */
 int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn, const char* curve_name);
-int s2n_connection_get_selected_signature_alg(struct s2n_connection *conn, s2n_handshake_signature_algorithm *chosen_alg);
-int s2n_connection_get_selected_digest_alg(struct s2n_connection *conn, s2n_handshake_hash_algorithm *chosen_alg);
+int s2n_connection_get_selected_signature_algorithm(struct s2n_connection *conn, s2n_handshake_signature_algorithm *chosen_alg);
+int s2n_connection_get_selected_digest_algorithm(struct s2n_connection *conn, s2n_handshake_hash_algorithm *chosen_alg);
+int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_connection *conn, s2n_handshake_signature_algorithm *chosen_alg);
+int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connection *conn, s2n_handshake_hash_algorithm *chosen_alg);
