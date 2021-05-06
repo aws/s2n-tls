@@ -52,6 +52,7 @@ int early_data_recv(struct s2n_connection *conn);
 int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len);
 int https(struct s2n_connection *conn, uint32_t bench);
 int key_log_callback(void *ctx, struct s2n_connection *conn, uint8_t *logline, size_t len);
+int recv_session_ticket(struct s2n_connection *conn, int fd);
 
 char *load_file_to_cstring(const char *path);
 int s2n_str_hex_to_bytes(const unsigned char *hex, uint8_t *out_bytes, uint32_t max_out_bytes_len);

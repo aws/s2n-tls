@@ -140,7 +140,7 @@ class S2N(Provider):
             cmd_line.append('-e')
 
         # This is the last thing printed by s2nc before it is ready to send/receive data
-        self.ready_to_send_input_marker = 'Cipher negotiated:'
+        self.ready_to_send_input_marker = 'Ready to send'
 
         if self.options.use_session_ticket is False:
             cmd_line.append('-T')
