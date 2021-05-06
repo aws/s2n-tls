@@ -1657,10 +1657,10 @@ extern int s2n_async_pkey_op_set_output(struct s2n_async_pkey_op *op, const uint
 The **op** will copy the data into a buffer passed in through the **data** parameter. 
 This buffer is owned by the application, and it is the responsibility of the 
 application to free it.
-**s2n_async_pkey_op_set_output** the **op** will copy the passed in data buffer, 
-and use it to complete the private key operation. The data buffer is owned 
-by the application. Once **s2n_async_pkey_op_set_output** has returned, 
-the application is free to release the data buffer.
+**s2n_async_pkey_op_set_output** copies the inputted data buffer, and uses it 
+to complete the private key operation. The data buffer is owned by the application. 
+Once **s2n_async_pkey_op_set_output** has returned, the application is free to 
+release the data buffer.
 
 ### s2n\_connection\_free\_handshake
 
