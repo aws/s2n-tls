@@ -199,7 +199,7 @@ int s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob)
 
     /* Always mix in additional entropy, for prediction resistance.
         If s2n_drbg_mix is removed: must implement reseeding according to limit
-        specified in NIST SP800-90A 10.2.1 Table 3 */
+        specified in NIST SP800-90A 10.2.1 Table 3. */
     POSIX_GUARD(s2n_drbg_mix(drbg, &zeros));
     POSIX_GUARD(s2n_drbg_bits(drbg, blob));
     POSIX_GUARD(s2n_drbg_update(drbg, &zeros));
