@@ -1454,6 +1454,7 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 static S2N_RESULT s2n_convert_signature_scheme_to_handshake_hash_algorithm(struct s2n_signature_scheme *sig_scheme, s2n_handshake_hash_algorithm *converted_scheme)
 {
     RESULT_ENSURE_REF(sig_scheme);
+    RESULT_ENSURE_REF(converted_scheme);
 
     switch (sig_scheme->hash_alg) {
         case S2N_HASH_MD5:
@@ -1507,6 +1508,7 @@ int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connecti
 static S2N_RESULT s2n_convert_signature_scheme_to_handshake_signature_algorithm(struct s2n_signature_scheme *sig_scheme, s2n_handshake_signature_algorithm *converted_scheme)
 {
     RESULT_ENSURE_REF(sig_scheme);
+    RESULT_ENSURE_REF(converted_scheme);
 
     switch (sig_scheme->sig_alg) {
         case S2N_SIGNATURE_RSA:
