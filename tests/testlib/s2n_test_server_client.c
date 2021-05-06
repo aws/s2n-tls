@@ -62,6 +62,14 @@ S2N_RESULT s2n_negotiate_test_server_and_client_with_early_data(struct s2n_conne
     ssize_t total_data_sent = 0, total_data_recv = 0;
     ssize_t data_sent = 0, data_recv = 0;
 
+    /* We call s2n_send_early_data and s2n_recv_early_data to handle the early data before
+     * calling s2n_negotiate to complete the handshake.
+     *
+     * s2n_recv_early_data does not indicate success until it receives the EndOfEarlyData message,
+     * indicating that the client is done sending early data. However, the client does not send the
+     * EndOfEarlyData message until s2n_negotiate is called. So we need to exit the early data loop
+     * once the client is done, ignoring whether or not the server is done.
+     */
     do {
         bool client_success = (s2n_send_early_data(client_conn, early_data_to_send->data + total_data_sent,
                 early_data_to_send->size - total_data_sent, &data_sent, &blocked) >= S2N_SUCCESS);
@@ -71,10 +79,14 @@ S2N_RESULT s2n_negotiate_test_server_and_client_with_early_data(struct s2n_conne
         bool server_success = (s2n_recv_early_data(server_conn, early_data_received->data + total_data_recv,
                 early_data_received->size - total_data_recv, &data_recv, &blocked) >= S2N_SUCCESS);
         total_data_recv += data_recv;
-        RESULT_GUARD(s2n_validate_negotiate_result(server_success, server_done, &server_done));
-    } while (!(client_done && data_recv == 0));
+        /* We pass in client_done==false to avoid the server erroring on blocked IO.
+         * The s2n_negotiate calls later will resolve that blocked condition. */
+        RESULT_GUARD(s2n_validate_negotiate_result(server_success, false, &server_done));
+    } while (total_data_sent < early_data_to_send->size && !client_done);
 
+    /* Finish the handshake */
     RESULT_GUARD_POSIX(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
     return S2N_RESULT_OK;
 }
 

@@ -343,7 +343,8 @@ int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, uint32_t
     POSIX_GUARD_RESULT(s2n_early_data_get_server_max_size(conn, &server_max_early_data_size));
 
     if (conn->psk_params.psk_list.len == 0) {
-        /* The server can load its PSKs during the handshake, either via the PSK selection callback
+        /* This method may be called by the server before loading its PSKs.
+         * The server can load its PSKs during the handshake, either via the PSK selection callback
          * or by receiving a stateless session ticket.
          *
          * Before that happens, we should make an optimistic assumption of the early data size.
