@@ -197,14 +197,21 @@ file(GLOB S2N_SRC
 )
 
 add_library(${PROJECT_NAME} ${S2N_HEADERS} ${S2N_SRC})
-set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
+set_target_properties(${PROJECT_NAME}
+                      PROPERTIES LINKER_LANGUAGE C
+                                 C_STANDARD 99 )
 
-set(CMAKE_C_FLAGS_DEBUGOPT "")
+# Disabling access to execstack
+target_compile_options(${PROJECT_NAME} PRIVATE -Wa,--noexecstack )
 
-target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
-        -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
-        -Wno-missing-braces -Wa,--noexecstack
-)
+#set extra warning flags for debug build
+if (CMAKE_BUILD_TYPE STREQUAL "" OR CMAKE_BUILD_TYPE MATCHES Debug)
+    target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment )
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wchar-subscripts -Wuninitialized -Wshadow )
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wcast-qual -Wcast-align -Wwrite-strings )
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wno-deprecated-declarations -Wno-unknown-pragmas )
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wformat-security -Wno-missing-braces )
+endif ()
 
 if(BUILD_TESTING AND BUILD_SHARED_LIBS)
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=default)
