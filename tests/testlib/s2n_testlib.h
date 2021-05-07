@@ -159,6 +159,8 @@ int s2n_negotiate_test_server_and_client(struct s2n_connection *server_conn, str
 S2N_RESULT s2n_negotiate_test_server_and_client_until_message(struct s2n_connection *server_conn,
         struct s2n_connection *client_conn, message_type_t message_type);
 int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);
+S2N_RESULT s2n_negotiate_test_server_and_client_with_early_data(struct s2n_connection *server_conn,
+        struct s2n_connection *client_conn, struct s2n_blob *early_data_to_send, struct s2n_blob *early_data_received);
 
 int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file);
 int s2n_test_hybrid_ecdhe_kem_with_kat(const struct s2n_kem *kem, struct s2n_cipher_suite *cipher_suite,

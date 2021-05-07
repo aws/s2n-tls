@@ -932,6 +932,36 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
+
+        /* If in server mode, fall back to the server limit */
+        {
+            const uint32_t server_limit = 15;
+            uint32_t actual_bytes = 0;
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(server_conn);
+
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(client_conn);
+
+            /* No PSKs: use server limit for initial connection */
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, server_limit));
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(server_conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, server_limit);
+
+            /* Client mode: don't use server limit for initial connection */
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(client_conn, server_limit));
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(client_conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, 0);
+
+            /* Negotiated connection: once a connection is negotiated, no PSKs means no early data */
+            server_conn->handshake.handshake_type = NEGOTIATED;
+            EXPECT_SUCCESS(s2n_connection_get_max_early_data_size(server_conn, &actual_bytes));
+            EXPECT_EQUAL(actual_bytes, 0);
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        }
     }
 
     /* Test s2n_config_set_server_max_early_data_size */

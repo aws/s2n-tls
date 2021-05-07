@@ -653,6 +653,46 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
+        /* Test that the client can handle different max_early_data_size values. */
+        {
+            const uint32_t expected_max_early_data_sizes[] = { 17, 0, UINT16_MAX, 0, 20, UINT32_MAX, 5, 0 };
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
+            EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
+            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(client_conn);
+            client_conn->actual_protocol_version = S2N_TLS13;
+            client_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(server_conn);
+            server_conn->actual_protocol_version = S2N_TLS13;
+            server_conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+            struct s2n_stuffer stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+            for (size_t i = 0; i < s2n_array_len(expected_max_early_data_sizes); i++) {
+                EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, expected_max_early_data_sizes[i]));
+                EXPECT_OK(s2n_tls13_server_nst_write(server_conn, &stuffer));
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, sizeof(uint8_t) + SIZEOF_UINT24));
+                EXPECT_OK(s2n_tls13_server_nst_recv(client_conn, &stuffer));
+                EXPECT_EQUAL(client_conn->server_max_early_data_size, expected_max_early_data_sizes[i]);
+                EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
+            }
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
         /* Can't write ticket larger than allowed size of a PSK identity */
         {
             struct s2n_config *config = s2n_config_new();
