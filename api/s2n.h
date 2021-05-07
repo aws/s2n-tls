@@ -437,6 +437,7 @@ S2N_API
 extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
 
 typedef enum {
+    S2N_HANDSHAKE_SIGNATURE_UNKOWN,
     S2N_HANDSHAKE_SIGNATURE_RSA,
     S2N_HANDSHAKE_SIGNATURE_ECDSA,
     S2N_HANDSHAKE_SIGNATURE_RSA_PSS_RSAE,
@@ -444,6 +445,7 @@ typedef enum {
 } s2n_handshake_signature_algorithm;
 
 typedef enum {
+    S2N_HANDSHAKE_HASH_UNKOWN,
     S2N_HANDSHAKE_HASH_MD5,
     S2N_HANDSHAKE_HASH_SHA1,
     S2N_HANDSHAKE_HASH_SHA224,

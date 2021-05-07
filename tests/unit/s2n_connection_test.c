@@ -169,8 +169,17 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         s2n_handshake_hash_algorithm output = { 0 };
-        EXPECT_FAILURE(s2n_connection_get_selected_digest_algorithm(conn, &output));
-        EXPECT_FAILURE(s2n_connection_get_selected_client_cert_digest_algorithm(conn, &output));
+
+        EXPECT_FAILURE(s2n_connection_get_selected_digest_algorithm(NULL, &output));
+        EXPECT_FAILURE(s2n_connection_get_selected_digest_algorithm(conn, NULL));
+        EXPECT_FAILURE(s2n_connection_get_selected_client_cert_digest_algorithm(NULL, &output));
+        EXPECT_FAILURE(s2n_connection_get_selected_client_cert_digest_algorithm(conn, NULL));
+
+        EXPECT_SUCCESS(s2n_connection_get_selected_client_cert_digest_algorithm(conn, &output));
+        EXPECT_EQUAL(S2N_HANDSHAKE_HASH_UNKOWN, output);
+
+        EXPECT_SUCCESS(s2n_connection_get_selected_digest_algorithm(conn, &output));
+        EXPECT_EQUAL(S2N_HANDSHAKE_HASH_UNKOWN, output);
 
         s2n_hash_algorithm inputs[] = { S2N_HASH_MD5, S2N_HASH_SHA1, S2N_HASH_SHA224, S2N_HASH_SHA256, S2N_HASH_SHA384, 
                                         S2N_HASH_SHA512, S2N_HASH_MD5_SHA1 };
@@ -200,8 +209,17 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         s2n_handshake_signature_algorithm output = { 0 };
-        EXPECT_FAILURE(s2n_connection_get_selected_signature_algorithm(conn, &output));
-        EXPECT_FAILURE(s2n_connection_get_selected_client_cert_signature_algorithm(conn, &output));
+
+        EXPECT_FAILURE(s2n_connection_get_selected_signature_algorithm(NULL, &output));
+        EXPECT_FAILURE(s2n_connection_get_selected_signature_algorithm(conn, NULL));
+        EXPECT_FAILURE(s2n_connection_get_selected_client_cert_signature_algorithm(NULL, &output));
+        EXPECT_FAILURE(s2n_connection_get_selected_client_cert_signature_algorithm(conn, NULL));
+
+        EXPECT_SUCCESS(s2n_connection_get_selected_client_cert_signature_algorithm(conn, &output));
+        EXPECT_EQUAL(S2N_HANDSHAKE_SIGNATURE_UNKOWN, output);
+
+        EXPECT_SUCCESS(s2n_connection_get_selected_signature_algorithm(conn, &output));
+        EXPECT_EQUAL(S2N_HANDSHAKE_SIGNATURE_UNKOWN, output);
 
         s2n_signature_algorithm inputs[] = { S2N_SIGNATURE_RSA, S2N_SIGNATURE_ECDSA, S2N_SIGNATURE_RSA_PSS_RSAE, S2N_SIGNATURE_RSA_PSS_PSS };
         s2n_handshake_signature_algorithm expected_output[] = { S2N_HANDSHAKE_SIGNATURE_RSA, S2N_HANDSHAKE_SIGNATURE_ECDSA, 
