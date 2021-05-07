@@ -1479,7 +1479,7 @@ static S2N_RESULT s2n_convert_signature_scheme_to_handshake_hash_algorithm(struc
             *converted_scheme = S2N_HANDSHAKE_HASH_MD5_SHA1;
             break;
         default:
-            *converted_scheme = S2N_HANDSHAKE_HASH_UNKOWN;
+            *converted_scheme = S2N_HANDSHAKE_HASH_NONE;
             break;
     }
 
@@ -1524,7 +1524,7 @@ static S2N_RESULT s2n_convert_signature_scheme_to_handshake_signature_algorithm(
             *converted_scheme = S2N_HANDSHAKE_SIGNATURE_RSA_PSS_PSS;
             break;
         default:
-            *converted_scheme = S2N_HANDSHAKE_SIGNATURE_UNKOWN;
+            *converted_scheme = S2N_HANDSHAKE_SIGNATURE_ANONYMOUS;
             break;
     }
 
