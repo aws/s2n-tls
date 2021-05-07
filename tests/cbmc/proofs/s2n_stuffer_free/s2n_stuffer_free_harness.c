@@ -22,11 +22,31 @@
 
 void s2n_stuffer_free_harness()
 {
+    /* Non-deterministic inputs. */
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
 
+    /* Assumptions. */
     nondet_s2n_mem_init();
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
+    bool old_alloced = stuffer ? stuffer->alloced : false;
+    struct uint8_t *old_data = stuffer ? stuffer->blob.data : NULL;
 
-    if (s2n_stuffer_free(stuffer) == S2N_SUCCESS && stuffer != NULL) {
+    /* Operation under verification. */
+    int result = s2n_stuffer_free(stuffer);
+    if (result == S2N_SUCCESS && stuffer != NULL) {
         assert_all_zeroes(stuffer, sizeof(*stuffer));
     }
+
+    /* Cleanup after expected error cases, for memory leak check. */
+    if ((result == S2N_FAILURE && s2n_errno == S2N_ERR_NOT_INITIALIZED) || !old_alloced) {
+        /**
+         * 1. `s2n_free` failed _before_ calling `free`, or
+         * 2. `stuffer` did not own its blob (so `alloced` was `0`).
+         *    Note that `stuffer` is zero-ed out (without `free`-ing the blob) in this case,
+         *    so we can't use `stuffer->alloced` and `stuffer->blob.data` here.
+         */
+        free(old_data);
+    }
+    /* 3. free our heap-allocated `stuffer` since `s2n_stuffer_free` only `free`s the contents. */
+    free(stuffer);
 }
