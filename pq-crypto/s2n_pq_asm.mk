@@ -39,13 +39,13 @@ ifndef S2N_NO_PQ_ASM
 	# sikep434r3
 	SIKEP434R3_ASM_SRC := $(shell find . -name "sikep434r3_fp_x64_asm.S")
 	SIKEP434R3_ASM_TEST_OUT := "test_sikep434r3_fp_x64_asm.o"
-	TRY_COMPILE_SIKEP434R3_ASM := $(shell $(CC) -c -o $(SIKEP434R3_ASM_TEST_OUT) $(SIKEP434R3_ASM_SRC) > /dev/null 2>&1; echo $$?; rm $(SIKEP434R3_ASM_TEST_OUT) > /dev/null 2>&1)
+	TRY_COMPILE_SIKEP434R3_ASM := $(shell $(CC) $(CFLAGS) -c -o $(SIKEP434R3_ASM_TEST_OUT) $(SIKEP434R3_ASM_SRC) > /dev/null 2>&1; echo $$?; rm $(SIKEP434R3_ASM_TEST_OUT) > /dev/null 2>&1)
 	ifeq ($(TRY_COMPILE_SIKEP434R3_ASM), 0)
 		CFLAGS += -DS2N_SIKE_P434_R3_ASM
 		CFLAGS_LLVM += -DS2N_SIKE_P434_R3_ASM
 
 		# The ADX instruction set is preferred for best performance, but not necessary.
-		TRY_COMPILE_SIKEP434R3_ASM_ADX := $(shell $(CC) -DS2N_ADX -c -o $(SIKEP434R3_ASM_TEST_OUT) $(SIKEP434R3_ASM_SRC) > /dev/null 2>&1; echo $$?; rm $(SIKEP434R3_ASM_TEST_OUT) > /dev/null 2>&1)
+		TRY_COMPILE_SIKEP434R3_ASM_ADX := $(shell $(CC) $(CFLAGS) -DS2N_ADX -c -o $(SIKEP434R3_ASM_TEST_OUT) $(SIKEP434R3_ASM_SRC) > /dev/null 2>&1; echo $$?; rm $(SIKEP434R3_ASM_TEST_OUT) > /dev/null 2>&1)
 		ifeq ($(TRY_COMPILE_SIKEP434R3_ASM_ADX), 0)
 			CFLAGS += -DS2N_ADX
 			ASFLAGS += -DS2N_ADX

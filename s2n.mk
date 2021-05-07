@@ -146,12 +146,12 @@ ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
     CFLAGS += ${DEFAULT_CFLAGS} ${DEBUG_CFLAGS} ${FUZZ_CFLAGS}
 
     # Filter out the visibility settings if we are fuzzing
-    CFLAGS := $(filter-out -fvisibility=hidden,$(CFLAGS))
-    CFLAGS := $(filter-out -DS2N_EXPORTS,$(CFLAGS))
-    DEFAULT_CFLAGS := $(filter-out -fvisibility=hidden,$(DEFAULT_CFLAGS))
-    DEFAULT_CFLAGS := $(filter-out -DS2N_EXPORTS,$(DEFAULT_CFLAGS))
-    CPPFLAGS := $(filter-out -fvisibility=hidden,$(CPPFLAGS))
-    CPPFLAGS := $(filter-out -DS2N_EXPORTS,$(CPPFLAGS))
+#    CFLAGS := $(filter-out -fvisibility=hidden,$(CFLAGS))
+#    CFLAGS := $(filter-out -DS2N_EXPORTS,$(CFLAGS))
+#    DEFAULT_CFLAGS := $(filter-out -fvisibility=hidden,$(DEFAULT_CFLAGS))
+#    DEFAULT_CFLAGS := $(filter-out -DS2N_EXPORTS,$(DEFAULT_CFLAGS))
+#    CPPFLAGS := $(filter-out -fvisibility=hidden,$(CPPFLAGS))
+#    CPPFLAGS := $(filter-out -DS2N_EXPORTS,$(CPPFLAGS))
 
 endif
 
