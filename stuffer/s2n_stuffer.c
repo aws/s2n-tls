@@ -25,15 +25,13 @@
 
 S2N_RESULT s2n_stuffer_validate(const struct s2n_stuffer* stuffer)
 {
-    RESULT_ENSURE_REF(stuffer);
-    RESULT_GUARD(s2n_blob_validate(&stuffer->blob));
-
     /**
      * Note that we do not assert any properties on the tainted field,
      * as any boolean value in that field is valid.
      */
+    RESULT_ENSURE_REF(stuffer);
+    RESULT_GUARD(s2n_blob_validate(&stuffer->blob));
     RESULT_ENSURE(S2N_IMPLIES(stuffer->growable, stuffer->alloced), S2N_ERR_SAFETY);
-    RESULT_ENSURE(S2N_IMPLIES(stuffer->alloced, stuffer->blob.growable), S2N_ERR_SAFETY);
 
     /* <= is valid because we can have a fully written/read stuffer */
     RESULT_DEBUG_ENSURE(stuffer->high_water_mark <= stuffer->blob.size, S2N_ERR_SAFETY);
