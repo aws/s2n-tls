@@ -13,7 +13,7 @@
 
 # Expected runtime is 10 seconds.
 
-CHECKFLAGS +=
+CHECKFLAGS += --memory-leak-check
 
 PROOF_UID = s2n_stuffer_free
 HARNESS_ENTRY = $(PROOF_UID)_harness
