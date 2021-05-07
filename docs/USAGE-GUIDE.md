@@ -228,8 +228,7 @@ are intended to be stable (API and ABI) within major version numbers of s2n-tls 
 and structures used in s2n-tls internally can not be considered stable and their parameters, names, and 
 sizes may change.
 
-At this time (Summer 2015), there has been no numbered release of s2n-tls and all APIs are subject to change based
-on the feedback and preferences of early adopters.
+The VERSIONING.rst document contains more details about s2n's approach to versions and API changes.
 
 ## Preprocessor macros
 
