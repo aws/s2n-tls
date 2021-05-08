@@ -122,6 +122,7 @@ int main(int argc, char **argv)
      * 18) Session resumption APIs and session_ticket_cb return the same values when receiving a new ticket in TLS1.2
      * 19) Session resumption APIs and session_ticket_cb return sane values when receiving a new ticket in TLS1.3
      * 20) Client has TLS1.3 ticket but negotiates TLS1.2, so does full handshake
+     * 21) Negative tests to verify protections against `s2n_config_add_ticket_crypto_key` API misuse
      */
 
     BEGIN_TEST();
@@ -1256,6 +1257,22 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_config_free(config));
+    }
+
+    /* `s2n_config_add_ticket_crypto_key` API misuse test */
+    {
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
+        /* Empty name */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_ticket_crypto_key(config, ticket_key_name1, 0,
+                ticket_key1, sizeof(ticket_key1), 0), S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
+        /* Empty key */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_ticket_crypto_key(config, ticket_key_name1, strlen((char *)ticket_key_name1),
+                ticket_key1, 0, 0), S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
+        /* Name and key are the same */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_ticket_crypto_key(config, ticket_key1, sizeof(ticket_key1),
+                ticket_key1, sizeof(ticket_key1), 0), S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
     }
 
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));

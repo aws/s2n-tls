@@ -762,8 +762,9 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     uint32_t ticket_keys_len = 0;
     POSIX_GUARD_RESULT(s2n_set_len(config->ticket_keys, &ticket_keys_len));
     S2N_ERROR_IF(ticket_keys_len >= S2N_MAX_TICKET_KEYS, S2N_ERR_TICKET_KEY_LIMIT);
-
     S2N_ERROR_IF(name_len == 0 || name_len > S2N_TICKET_KEY_NAME_LEN || s2n_find_ticket_key(config, name), S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
+    const bool ticket_key_and_name_equal = name_len == key_len && memcmp(name, key, key_len) == 0;
+    POSIX_ENSURE(!ticket_key_and_name_equal, S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
 
     uint8_t output_pad[S2N_AES256_KEY_LEN + S2N_TICKET_AAD_IMPLICIT_LEN];
     struct s2n_blob out_key = { .data = output_pad, .size = sizeof(output_pad) };

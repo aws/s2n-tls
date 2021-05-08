@@ -1570,7 +1570,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *n
 ```
 
 - **enabled** when set to 0 will disable session resumption using session ticket
-- **name** name of the session ticket key that should be randomly generated to avoid collisions
+- **name** name of the session ticket key that should be randomly generated to avoid collisions. name is written unencrypted in the NewSessionTicket message. Do not use a value considered private for this parameter.
 - **name_len** length of session ticket key name
 - **key** key used to perform encryption/decryption of session ticket
 - **key_len** length of the session ticket key
