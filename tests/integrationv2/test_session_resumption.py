@@ -185,7 +185,7 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, pro
     num_full_connections = 1
     num_resumed_connections = 5
 
-    server_close_marker = b'Client has finished sending data'
+    client_data = b'Client has finished sending data'
 
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
@@ -195,7 +195,7 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, pro
         curve=curve,
         insecure=True,
         use_session_ticket=True,
-        data_to_send=server_close_marker,
+        data_to_send=client_data,
         reconnect=True,
         protocol=protocol)
 
@@ -205,12 +205,12 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, pro
     server_options.cert = certificate.cert
     server_options.use_session_ticket = False
     server_options.reconnects_before_exit = num_resumed_connections + num_full_connections
-    client_send_marker = b"Server has finished sending data"
-    server_options.data_to_send = [random_bytes, random_bytes, random_bytes, random_bytes, client_send_marker]
-
+    end_of_server_data = b"Server has finished sending data"
+    server_options.data_to_send = [random_bytes, random_bytes, random_bytes, random_bytes, end_of_server_data]
     send_marker = 'Secure Renegotiation IS supported'
-    server = managed_process(provider, server_options, timeout=5, send_marker=send_marker, close_marker=str(server_close_marker))
-    client = managed_process(S2N, client_options, timeout=5, send_marker=str(client_send_marker))
+
+    server = managed_process(provider, server_options, timeout=5, send_marker=send_marker, close_marker=str(client_data))
+    client = managed_process(S2N, client_options, timeout=5, send_marker=str(end_of_server_data))
 
     s2n_version = get_expected_s2n_version(protocol, OpenSSL)
 
