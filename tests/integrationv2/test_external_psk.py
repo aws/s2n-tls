@@ -48,8 +48,7 @@ psk_identity_marker = [b"2c0",
                        b"c09a2be785abc55c", b"d226097a3a982117", b"283f82a03a143efd", b"3ff5dd36d64e861b", b"e7fd61d2827db279",
                        b"cce145077d454a36", b"64d4e6da4d29ee03", b"725a6a4dafcd0fc6", b"7d2aea70529513e3", b"da2677fa5906c5b3",
                        b"f7d8f92f228bda40", b"7b5aea617646fac5", b"c03272e970727c62", b"1a79141ef5f7de65", b"05e5bfbc388e9334",
-                       b"3694093934ae4d35"
-                       ]
+                       b"3694093934ae4d35"]
 
 
 class Outcome(enum.Enum):
@@ -79,8 +78,9 @@ OPENSSL_TEST_CASE = namedtuple(
     'OPENSSL_TEST_CASE', 'cipher certificate s2n_params openssl_params outcome')
 
 OPENSSL_SERVER_S2NC_TEST_SUITE = [
-    OPENSSL_TEST_CASE(cipher=Ciphers.AES128_GCM_SHA256, certificate=None, s2n_params=[
-                      '--psk', s2n_known_value_psk_sha256], openssl_params=openssl_psk_parameters, outcome=Outcome.psk_connection),
+    # The following test is flaky and is temporarily disabled. See issue: https://github.com/aws/s2n-tls/issues/2818
+    # OPENSSL_TEST_CASE(cipher=Ciphers.AES128_GCM_SHA256, certificate=None, s2n_params=[
+    #                  '--psk', s2n_known_value_psk_sha256], openssl_params=openssl_psk_parameters, outcome=Outcome.psk_connection),
     OPENSSL_TEST_CASE(cipher=Ciphers.CHACHA20_POLY1305_SHA256, certificate=Certificates.ECDSA_256, s2n_params=[
                       '--psk', s2n_psk_parameters_sha384, '--psk', s2n_psk_parameters_sha256], openssl_params=openssl_psk_parameters, outcome=Outcome.connection_failed),
     OPENSSL_TEST_CASE(cipher=Ciphers.AES256_GCM_SHA384, certificate=None, s2n_params=[
@@ -94,7 +94,7 @@ OPENSSL_CLIENT_S2ND_TEST_SUITE = [
                       '--psk', s2n_psk_parameters_sha384, '--psk', s2n_psk_parameters_sha256], openssl_params=openssl_psk_parameters, outcome=Outcome.full_handshake),
     OPENSSL_TEST_CASE(cipher=Ciphers.AES256_GCM_SHA384, certificate=None, s2n_params=[
                       '--psk', s2n_psk_parameters_sha384, '--psk', s2n_psk_parameters_sha256], openssl_params=openssl_psk_parameters, outcome=Outcome.full_handshake),
-    # Note that the following test case's outcome is `full_handshake` instead of `connection_failed` because s2nd uses a default certificate if a certificate is not provided.
+    # Note that the following test case's outcome is `full_handshake` instead of `connection_failed` because s2nd uses a default certificate if a certificate is not provided. 
     OPENSSL_TEST_CASE(cipher=Ciphers.AES256_GCM_SHA384, certificate=None, s2n_params=[
                       '--psk', s2n_psk_parameters_sha384, '--psk', s2n_psk_parameters_sha256], openssl_params=openssl_psk_parameters, outcome=Outcome.full_handshake)
 ]
@@ -127,7 +127,6 @@ def validate_openssl(outcome, results):
         assert results.exception is None
         assert results.exit_code == 0
     else:
-
         assert results.exit_code != 0
 
 

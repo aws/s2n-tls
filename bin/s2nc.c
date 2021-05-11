@@ -443,6 +443,7 @@ int main(int argc, char *const *argv)
 
         if (connected == 0) {
             fprintf(stderr, "Failed to connect to %s:%s\n", host, port);
+            fprintf(stderr, "connect error: %s\n", strerror(errno));
             exit(1);
         }
 
