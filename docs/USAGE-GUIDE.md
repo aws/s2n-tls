@@ -1690,7 +1690,7 @@ by calling **s2n_async_pkey_op_get_input**. After the operation is completed, th
 finished output can be copied back to S2N by calling **s2n_async_pkey_op_set_output**. 
 Once the output is set the asynchronous private key operation can be completed by
 following the steps outlined [above](#Asynchronous-private-key-operations-related-calls)
-to apply the operation and free the op object. 
+to apply the operation and free the op object.
 
 The [handshake algorithm getters](#S2N-Get-Selected-Handshake-Algorithms) and [certificate context](#s2n-cert-chain-and-key-get-ctx) APIs can be helpful for determining the private key and what private key algorithm to use.
 
