@@ -187,6 +187,9 @@ class S2N(Provider):
         """
         cmd_line = ['s2nd', '-X', '--self-service-blinding', '--non-blocking']
 
+        # This is the last thing printed by s2nd before it is ready to begin
+        self.ready_to_test_marker = 's2n is ready'
+
         if self.options.key is not None:
             cmd_line.extend(['--key', self.options.key])
         if self.options.cert is not None:
