@@ -31,20 +31,62 @@
 
 #endif
 
-// These variables are declared+defined in sikep434r3.{h, c}
-#define p434 S2N_SIKE_P434_R3_NAMESPACE(p434)
-.extern p434
-
-#define p434x2 S2N_SIKE_P434_R3_NAMESPACE(p434x2)
-.extern p434x2
-
-#define p434x4 S2N_SIKE_P434_R3_NAMESPACE(p434x4)
-.extern p434x4
-
-#define p434p1 S2N_SIKE_P434_R3_NAMESPACE(p434p1)
-.extern p434p1
-
 .text
+
+#define asm_p434 S2N_SIKE_P434_R3_NAMESPACE(asm_p434)
+.align 32
+.type   asm_p434, @object
+.size   asm_p434, 56
+asm_p434:
+.quad   -1
+.quad   -1
+.quad   -1
+.quad   -161717841442111489
+.quad   8918917783347572387
+.quad   7853257225132122198
+.quad   620258357900100
+
+
+#define asm_p434x2 S2N_SIKE_P434_R3_NAMESPACE(asm_p434x2)
+.align 32
+.type   asm_p434x2, @object
+.size   asm_p434x2, 56
+asm_p434x2:
+.quad   -2
+.quad   -1
+.quad   -1
+.quad   -323435682884222977
+.quad   -608908507014406841
+.quad   -2740229623445307220
+.quad   1240516715800200
+
+
+#define asm_p434x4 S2N_SIKE_P434_R3_NAMESPACE(asm_p434x4)
+.align 32
+.type   asm_p434x4, @object
+.size   asm_p434x4, 56
+asm_p434x4:
+.quad   -4
+.quad   -1
+.quad   -1
+.quad   -646871365768445953
+.quad   -1217817014028813681
+.quad   -5480459246890614439
+.quad   2481033431600401
+
+
+#define asm_p434p1 S2N_SIKE_P434_R3_NAMESPACE(asm_p434p1)
+.align 32
+.type   asm_p434p1, @object
+.size   asm_p434p1, 56
+asm_p434p1:
+.quad   0
+.quad   0
+.quad   0
+.quad   -161717841442111488
+.quad   8918917783347572387
+.quad   7853257225132122198
+.quad   620258357900100
 
 //***********************************************************************
 //  Field addition
@@ -76,18 +118,18 @@ fpadd434_asm:
   adc    r13, [reg_p2+40] 
   adc    r14, [reg_p2+48]
 
-  mov    rbx, [rip+p434x2]
+  mov    rbx, [rip+asm_p434x2]
   sub    r8, rbx
-  mov    rcx, [rip+p434x2+8]
+  mov    rcx, [rip+asm_p434x2+8]
   sbb    r9, rcx
   sbb    r10, rcx
-  mov    rdi, [rip+p434x2+24]
+  mov    rdi, [rip+asm_p434x2+24]
   sbb    r11, rdi
-  mov    rsi, [rip+p434x2+32]
+  mov    rsi, [rip+asm_p434x2+32]
   sbb    r12, rsi
-  mov    rbp, [rip+p434x2+40]
+  mov    rbp, [rip+asm_p434x2+40]
   sbb    r13, rbp
-  mov    r15, [rip+p434x2+48]
+  mov    r15, [rip+asm_p434x2+48]
   sbb    r14, r15
   sbb    rax, 0
   
@@ -149,9 +191,9 @@ fpsub434_asm:
   sbb    r14, [reg_p2+48]
   sbb    rax, 0
   
-  mov    rcx, [rip+p434x2]
-  mov    rdi, [rip+p434x2+8]
-  mov    rsi, [rip+p434x2+24]
+  mov    rcx, [rip+asm_p434x2]
+  mov    rdi, [rip+asm_p434x2+8]
+  mov    rsi, [rip+asm_p434x2+24]
   and    rcx, rax
   and    rdi, rax
   and    rsi, rax  
@@ -165,9 +207,9 @@ fpsub434_asm:
   mov    [reg_p3+24], r11 
   setc   cl  
 
-  mov    r8, [rip+p434x2+32]
-  mov    rdi, [rip+p434x2+40]
-  mov    rsi, [rip+p434x2+48]
+  mov    r8, [rip+asm_p434x2+32]
+  mov    rdi, [rip+asm_p434x2+40]
+  mov    rsi, [rip+asm_p434x2+48]
   and    r8, rax
   and    rdi, rax
   and    rsi, rax  
@@ -236,7 +278,7 @@ fpsub434_asm:
 #define mp_sub434_p2_asm S2N_SIKE_P434_R3_NAMESPACE(mp_sub434_p2_asm)
 .global mp_sub434_p2_asm
 mp_sub434_p2_asm:
-  SUB434_PX  p434x2
+  SUB434_PX  asm_p434x2
   ret
 
 //***********************************************************************
@@ -246,7 +288,7 @@ mp_sub434_p2_asm:
 #define mp_sub434_p4_asm S2N_SIKE_P434_R3_NAMESPACE(mp_sub434_p4_asm)
 .global mp_sub434_p4_asm
 mp_sub434_p4_asm:
-  SUB434_PX  p434x4
+  SUB434_PX  asm_p434x4
   ret
     
 ///////////////////////////////////////////////////////////////// MACRO
@@ -724,13 +766,13 @@ rdc434_asm:
   // a[0-1] x p434p1_nz --> result: r8:r13
   mov    rdx, [reg_p1]
   mov    r14, [reg_p1+8]
-  mulx   r9, r8, [rip+p434p1+24]   // result r8
+  mulx   r9, r8, [rip+asm_p434p1+24]   // result r8
   push   r12
   push   r13
   push   r15
   push   rbp
   push   rbx
-  MUL128x256_SCHOOL rdx, r14, [rip+p434p1+24], r8, r9, r10, r11, r12, r13
+  MUL128x256_SCHOOL rdx, r14, [rip+asm_p434p1+24], r8, r9, r10, r11, r12, r13
 
   mov    rdx, [reg_p1+16]
   mov    rcx, [reg_p1+72]
@@ -741,7 +783,7 @@ rdc434_asm:
   adc    r12, [reg_p1+56]
   adc    r13, [reg_p1+64]
   adc    rcx, 0
-  mulx   rbp, rbx, [rip+p434p1+24]   // result rbx
+  mulx   rbp, rbx, [rip+asm_p434p1+24]   // result rbx
   mov    [reg_p2], r9
   mov    [reg_p2+8], r10
   mov    [reg_p2+16], r11
@@ -757,7 +799,7 @@ rdc434_asm:
   adc    rdi, 0
 
   // a[2-3] x p434p1_nz --> result: rbx, rbp, r12:r15
-  MUL128x256_SCHOOL rdx, r8, [rip+p434p1+24], rbx, rbp, r12, r13, r14, r15
+  MUL128x256_SCHOOL rdx, r8, [rip+asm_p434p1+24], rbx, rbp, r12, r13, r14, r15
 
   mov    rdx, [reg_p2]
   add    rbx, [reg_p2+8]
@@ -768,7 +810,7 @@ rdc434_asm:
   mov    rcx, 0
   adc    r15, r9
   adc    rcx, r10
-  mulx   r9, r8, [rip+p434p1+24]   // result r8
+  mulx   r9, r8, [rip+asm_p434p1+24]   // result r8
   mov    [reg_p2], rbp
   mov    [reg_p2+8], r12
   mov    [reg_p2+16], r13
@@ -776,7 +818,7 @@ rdc434_asm:
   adc    rdi, 0
 
   // a[4-5] x p434p1_nz --> result: r8:r13
-  MUL128x256_SCHOOL rdx, rbx, [rip+p434p1+24], r8, r9, r10, rbp, r12, r13
+  MUL128x256_SCHOOL rdx, rbx, [rip+asm_p434p1+24], r8, r9, r10, rbp, r12, r13
 
   mov    rdx, [reg_p2]
   add    r8, [reg_p2+8]
@@ -786,12 +828,12 @@ rdc434_asm:
   adc    r12, rcx
   adc    r13, r11
   adc    rdi, 0
-  mulx   r15, r14, [rip+p434p1+24]  // result r14
+  mulx   r15, r14, [rip+asm_p434p1+24]  // result r14
   mov    [reg_p2], r8        // Final result c0-c1
   mov    [reg_p2+8], r9
 
   // a[6-7] x p434p1_nz --> result: r14:r15, r8:r9, r11
-  MUL64x256_SCHOOL rdx, [rip+p434p1+24], r14, r15, r8, r9, r11, rcx
+  MUL64x256_SCHOOL rdx, [rip+asm_p434p1+24], r14, r15, r8, r9, r11, rcx
 
   // Final result c2:c6
   add    r14, r10
@@ -897,11 +939,11 @@ mp_subadd434x2_asm:
   sbb    rax, 0
 
   // Add p434 anded with the mask in rax 
-  mov    r8, [rip+p434]
-  mov    r9, [rip+p434+24]
-  mov    r10, [rip+p434+32]
-  mov    rdi, [rip+p434+40]
-  mov    rsi, [rip+p434+48]
+  mov    r8, [rip+asm_p434]
+  mov    r9, [rip+asm_p434+24]
+  mov    r10, [rip+asm_p434+32]
+  mov    rdi, [rip+asm_p434+40]
+  mov    rsi, [rip+asm_p434+48]
   and    r8, rax
   and    r9, rax
   and    r10, rax
