@@ -182,10 +182,16 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, pro
     port = str(next(available_ports))
 
     random_bytes = data_bytes(64)
+
+    # The reconnect option for s2nc allows the client to reconnect automatically
+    # five times. In this test we expect one full connection and five resumption
+    # connections.
     num_full_connections = 1
     num_resumed_connections = 5
 
     client_data = b'Client has finished sending data'
+    end_of_server_data = b"Server has finished sending data"
+    send_marker = 'Secure Renegotiation IS supported'
 
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
@@ -203,24 +209,24 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, pro
     server_options.mode = Provider.ServerMode
     server_options.key = certificate.key
     server_options.cert = certificate.cert
-    server_options.use_session_ticket = False
     server_options.reconnects_before_exit = num_resumed_connections + num_full_connections
-    end_of_server_data = b"Server has finished sending data"
     server_options.data_to_send = [random_bytes, random_bytes, random_bytes, random_bytes, end_of_server_data]
-    send_marker = 'Secure Renegotiation IS supported'
 
     server = managed_process(provider, server_options, timeout=5, send_marker=send_marker, close_marker=str(client_data))
     client = managed_process(S2N, client_options, timeout=5, send_marker=str(end_of_server_data))
 
     s2n_version = get_expected_s2n_version(protocol, OpenSSL)
 
+    # s2nc indicates the number of resumed connections in its output
     for results in client.get_results():
         assert results.exception is None
         assert results.exit_code == 0
         assert results.stdout.count(b'Resumed session') == num_resumed_connections
         assert bytes("Actual protocol version: {}".format(s2n_version).encode('utf-8')) in results.stdout
 
+    # s_server only writes one certificate message in all of the connections
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
+        assert bytes("6 server accepts that finished".encode('utf-8')) in results.stdout
         assert results.stderr.count(b'SSL_accept:SSLv3/TLS write certificate') == num_full_connections
