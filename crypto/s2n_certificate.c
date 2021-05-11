@@ -69,11 +69,6 @@ int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, st
             S2N_ERROR_PRESERVE_ERRNO();
         }
 
-        /* Initialize public key */
-        s2n_cert_public_key public_key;
-        POSIX_GUARD(s2n_pkey_zero_init(&public_key));
-        new_node->public_key = public_key;
-
         /* Additional 3 bytes for the length field in the protocol */
         chain_size += new_node->raw.size + 3;
         new_node->next = NULL;
@@ -334,22 +329,22 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
     POSIX_GUARD(s2n_cert_chain_and_key_set_cert_chain(chain_and_key, chain_pem));
     POSIX_GUARD(s2n_cert_chain_and_key_set_private_key(chain_and_key, private_key_pem));
 
-    /* Using cert_chain public key */
-    POSIX_GUARD(s2n_pkey_zero_init(&chain_and_key->cert_chain->head->public_key));
-
     /* Parse the leaf cert for the public key and certificate type */
+    DEFER_CLEANUP(struct s2n_pkey public_key = {0}, s2n_pkey_free);
     s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
-    POSIX_GUARD(s2n_asn1der_to_public_key_and_type(&chain_and_key->cert_chain->head->public_key,
-                                                   &pkey_type, &chain_and_key->cert_chain->head->raw));
+    POSIX_GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &chain_and_key->cert_chain->head->raw));
     S2N_ERROR_IF(pkey_type == S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
     POSIX_GUARD(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, pkey_type));
 
     /* Validate the leaf cert's public key matches the provided private key */
-    POSIX_GUARD(s2n_pkey_match(&chain_and_key->cert_chain->head->public_key, chain_and_key->private_key));
+    POSIX_GUARD(s2n_pkey_match(&public_key, chain_and_key->private_key));
 
     /* Populate name information from the SAN/CN for the leaf certificate */
     POSIX_GUARD(s2n_cert_chain_and_key_set_names(chain_and_key, &chain_and_key->cert_chain->head->raw));
 
+    /* Store parsed public key for later use */
+    chain_and_key->cert_chain->head->public_key = public_key;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(public_key);
     return 0;
 }
 
@@ -358,6 +353,8 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
     if (cert_and_key == NULL) {
         return 0;
     }
+    /* Create a temporary s2n_pkey for cleaning up any links to cert_chain->head->public_key */
+    DEFER_CLEANUP(struct s2n_pkey public_key_temp = {0}, s2n_pkey_free);
 
     /* Walk the chain and free the certs */
     if (cert_and_key->cert_chain) {
@@ -365,8 +362,8 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
         while (node) {
             /* Free the cert */
             POSIX_GUARD(s2n_free(&node->raw));
-            /* Free public key */
-            POSIX_GUARD(s2n_pkey_free(&node->public_key));
+            /* Link public_key to local variable and let it all be cleaned up automatically */
+            node->public_key = public_key_temp;
             /* update head so it won't point to freed memory */
             cert_and_key->cert_chain->head = node->next;
             /* Free the node */

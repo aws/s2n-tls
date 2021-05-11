@@ -31,7 +31,7 @@
 struct s2n_async_pkey_op *pkey_op = NULL;
 
 typedef int (async_handler)(struct s2n_connection *conn);
-static int async_handler_called = 0;
+static int async_handler_sign_operation_called = 0;
 
 static int async_handler_fail(struct s2n_connection *conn)
 {
@@ -104,13 +104,10 @@ static int async_handler_sign_with_different_pkey_and_apply(struct s2n_connectio
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key_2));
 
         /* Increment flag counter for sign operation */
-        async_handler_called++;
+        async_handler_sign_operation_called++;
     } else {
         /* Test decrypt operation passes */
         EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
-
-        /* Increment flag counter for decrypt operation */
-        async_handler_called++;
     }
 
     /* Free the pkey op */
@@ -386,10 +383,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
             EXPECT_SUCCESS(try_handshake(server_conn, client_conn, async_handler_sign_with_different_pkey_and_apply));
-            EXPECT_EQUAL(async_handler_called, 1);
-
-            /* Reset counter */
-            async_handler_called = 0;
 
             /* Free the data */
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
@@ -399,6 +392,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(client_config));
         }
     }
+
+    /* Test if sign operation was called atleast once for 'Test: Apply invalid signature' */
+    EXPECT_TRUE(async_handler_sign_operation_called > 0);
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
