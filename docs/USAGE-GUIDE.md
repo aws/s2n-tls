@@ -233,7 +233,7 @@ The VERSIONING.rst document contains more details about s2n's approach to versio
 ## Preprocessor macros
 
 s2n-tls defines five preprocessor macros that are used to determine what 
-version of SSL/TLS is in use on a connection. 
+version of SSL/TLS is in use on a connection.
 
 ```c
 #define S2N_SSLv2 20
@@ -241,9 +241,10 @@ version of SSL/TLS is in use on a connection.
 #define S2N_TLS10 31
 #define S2N_TLS11 32
 #define S2N_TLS12 33
+#define S2N_TLS13 34
 ```
 
-These correspond to SSL2.0, SSL3.0, TLS1.0, TLS1.1 and TLS1.2 respectively.
+These correspond to SSL2.0, SSL3.0, TLS1.0, TLS1.1, TLS1.2 and TLS1.3 respectively.
 Note that s2n-tls does not support SSL2.0 for sending and receiving encrypted data,
 but does accept SSL2.0 hello messages.
 
@@ -273,7 +274,10 @@ an error "category". See [Error Handling](#error-handling) for more detail.
 ### s2n_mode
 
 ```c
-typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
+typedef enum {
+  S2N_SERVER,
+  S2N_CLIENT
+} s2n_mode;
 ```
 
 **s2n_mode** is used to declare connections as server or client type, respectively.
@@ -281,12 +285,18 @@ typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
 ### s2n_blocked_status
 
 ```c
-typedef enum { S2N_NOT_BLOCKED, S2N_BLOCKED_ON_READ, S2N_BLOCKED_ON_WRITE } s2n_blocked_status;
+typedef enum {
+    S2N_NOT_BLOCKED = 0,
+    S2N_BLOCKED_ON_READ,
+    S2N_BLOCKED_ON_WRITE,
+    S2N_BLOCKED_ON_APPLICATION_INPUT,
+    S2N_BLOCKED_ON_EARLY_DATA,
+} s2n_blocked_status;
 ```
 
 **s2n_blocked_status** is used in non-blocking mode to indicate in which
 direction s2n-tls became blocked on I/O before it returned control to the caller.
-This allows an application to avoid retrying s2n-tls operations until I/O is 
+This allows an application to avoid retrying s2n-tls operations until I/O is
 possible in that direction.
 
 ### s2n_blinding
@@ -1434,7 +1444,7 @@ int s2n_cert_chain_get_length(const struct s2n_cert_chain_and_key *chain_and_key
 
 **s2n_cert_chain_get_length** gets the length of the certificate chain `chain_and_key`. If the certificate chain `chain_and_key` is NULL an error is thrown.
 
-### s2n\_cert_\_chain\_get\_cert
+### s2n\_cert\_chain\_get\_cert
 
 ```c
 int s2n_cert_chain_get_cert(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, const uint32_t cert_idx);
