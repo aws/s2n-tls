@@ -231,7 +231,7 @@ S2N_RESULT s2n_try_enable_bike_r3_opt_pclmul() {
 }
 
 S2N_RESULT s2n_try_enable_bike_r3_opt_avx2() {
-    // When AVX2 is available, PCLMUL is too by default.
+    /* When AVX2 is available, PCLMUL is too by default. */
     RESULT_ENSURE_OK(s2n_try_enable_bike_r3_opt_pclmul(), S2N_ERR_SAFETY);
     if (s2n_pq_is_enabled() && s2n_cpu_supports_bike_r3_avx2()) {
         bike_r3_avx2_enabled = true;
@@ -240,7 +240,7 @@ S2N_RESULT s2n_try_enable_bike_r3_opt_avx2() {
 }
 
 S2N_RESULT s2n_try_enable_bike_r3_opt_avx512() {
-    // When AVX512 is available, AVX2 is too by default.
+    /* When AVX512 is available, AVX2 is too by default. */
     RESULT_ENSURE_OK(s2n_try_enable_bike_r3_opt_avx2(), S2N_ERR_SAFETY);
     if (s2n_pq_is_enabled() && s2n_cpu_supports_bike_r3_avx512()) {
         bike_r3_avx512_enabled = true;
@@ -249,7 +249,7 @@ S2N_RESULT s2n_try_enable_bike_r3_opt_avx512() {
 }
 
 S2N_RESULT s2n_try_enable_bike_r3_opt_vpclmul() {
-    // When VPCLMUL is available, AVX512 is too by default.
+    /* When VPCLMUL is available, AVX512 is too by default. */
     RESULT_ENSURE_OK(s2n_try_enable_bike_r3_opt_avx512(), S2N_ERR_SAFETY);
     if (s2n_pq_is_enabled() && s2n_cpu_supports_bike_r3_vpclmul()) {
         bike_r3_vpclmul_enabled = true;
