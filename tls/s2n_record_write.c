@@ -219,6 +219,12 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         implicit_iv = conn->client->client_implicit_iv;
     }
 
+    /* The NULL stream cipher MUST NEVER be used for ApplicationData.
+     * Writing ApplicationData unencrypted defeats the purpose of TLS. */
+    if (cipher_suite->record_alg->cipher == &s2n_null_cipher) {
+        POSIX_ENSURE(content_type != TLS_APPLICATION_DATA, S2N_ERR_ENCRYPT);
+    }
+
     const int is_tls13_record = cipher_suite->record_alg->flags & S2N_TLS13_RECORD_AEAD_NONCE;
     s2n_stack_blob(aad, is_tls13_record ? S2N_TLS13_AAD_LEN : S2N_TLS_MAX_AAD_LEN, S2N_TLS_MAX_AAD_LEN);
 
