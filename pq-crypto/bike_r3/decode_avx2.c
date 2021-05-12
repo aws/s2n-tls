@@ -18,6 +18,8 @@
  *     e5089. https://doi.org/10.1002/cpe.5089.
  */
 
+#if defined(S2N_BIKE_R3_AVX2)
+
 #include "decode.h"
 #include "decode_internal.h"
 #include "utilities.h"
@@ -165,3 +167,7 @@ void bit_slice_full_subtract_avx2(OUT upc_t *upc, IN uint8_t val)
     }
   }
 }
+
+#endif
+
+typedef int dummy_typedef_to_avoid_empty_translation_unit_warning;

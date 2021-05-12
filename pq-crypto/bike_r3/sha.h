@@ -10,6 +10,9 @@
 #include "cleanup.h"
 #include "error.h"
 #include "types.h"
+#include "utilities.h"
+
+#include <openssl/sha.h>
 
 #define SHA384_DGST_BYTES  48ULL
 #define SHA384_DGST_QWORDS (SHA384_DGST_BYTES / 8)
@@ -28,25 +31,6 @@ bike_static_assert(sizeof(sha384_dgst_t) == SHA384_DGST_BYTES, sha384_dgst_size)
 typedef sha384_dgst_t sha_dgst_t;
 CLEANUP_FUNC(sha_dgst, sha_dgst_t)
 
-#if defined(STANDALONE_IMPL)
-
-#  define HASH_BLOCK_BYTES 128ULL
-
-typedef struct sha512_dgst_s {
-  union {
-    uint8_t  raw[SHA512_DGST_BYTES];
-    uint64_t qw[SHA512_DGST_QWORDS];
-  } u;
-} sha512_dgst_t;
-bike_static_assert(sizeof(sha512_dgst_t) == SHA512_DGST_BYTES, sha512_dgst_size);
-
-ret_t sha(OUT sha_dgst_t *dgst, IN uint32_t byte_len, IN const uint8_t *msg);
-
-#else // USE_OPENSSL
-
-#  include "utilities.h"
-#  include <openssl/sha.h>
-
 _INLINE_ ret_t sha(OUT sha_dgst_t *  dgst,
                    IN const uint32_t byte_len,
                    IN const uint8_t *msg)
@@ -57,5 +41,3 @@ _INLINE_ ret_t sha(OUT sha_dgst_t *  dgst,
 
   return FAIL;
 }
-
-#endif // USE_OPENSSL

@@ -60,6 +60,7 @@ else()
         "pq-crypto/*.c"
         "pq-crypto/bike_r1/*.c"
         "pq-crypto/bike_r2/*.c"
+        "pq-crypto/bike_r3/*.c"
         "pq-crypto/sike_r1/fp_generic_r1.c"
         "pq-crypto/sike_r1/P503_r1.c"
         "pq-crypto/sike_r1/sike_r1_kem.c"
@@ -71,26 +72,6 @@ else()
         "pq-crypto/kyber_r3/*.c"
         "pq-crypto/sike_r3/*.c")
         "pq-crypto/kyber_90s_r2/*.c")
-
-    # The BIKE Round-3 code has AVX optimizations for x86_64 platforms,
-    # so we include these files only when compiling on x86_64 platform,
-    # otherwise we include only the portable implementation.
-    if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(x86_64|amd64|AMD64)$" AND NOT S2N_NO_PQ_ASM)
-        list(APPEND PQ_SRC "pq-crypto/bike_r3/*.c")
-        set(BIKE_R3_X86_64_OPT_SUPPORTED ON)
-    else()
-        list(APPEND PQ_SRC
-            "pq-crypto/bike_r3/aes_ctr_prf.c"
-            "pq-crypto/bike_r3/bike_r3_kem.c"
-            "pq-crypto/bike_r3/decode.c"
-            "pq-crypto/bike_r3/error.c"
-            "pq-crypto/bike_r3/gf2x_inv.c"
-            "pq-crypto/bike_r3/gf2x_mul.c"
-            "pq-crypto/bike_r3/sampling.c"
-            "pq-crypto/bike_r3/utilities.c"
-            "pq-crypto/bike_r3/*_portable.c")
-        set(BIKE_R3_X86_64_OPT_SUPPORTED OFF)
-    endif()
 endif()
 
 ##be nice to visual studio users
@@ -149,6 +130,41 @@ else()
             COMPILE_DEFINITIONS
                 "-DS2N_ADX"
         )
+    endif()
+
+    # BIKE Round-3 code has several different optimizations which require
+    # specific compiler flags to be supported by the compiler.
+    # So for each needed instruction set extension we check if the compiler
+    # supports it and set proper compiler flags to be added later to the
+    # BIKE compilation units.
+    if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(x86_64|amd64|AMD64)$")
+        # First, check if the compiler supports the specific instruction set
+        # extensions. For example, gcc-4 doesn't fully support AVX-512, while
+        # gcc-7 doesn't support VPCLMUL extension.
+        try_compile(BIKE_R3_AVX2_SUPPORTED
+                ${CMAKE_BINARY_DIR}
+                "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
+                COMPILE_DEFINITIONS "-mavx2")
+
+        set(BIKE_R3_AVX512_FLAGS "-mavx512f -mavx512bw -mavx512dq")
+        try_compile(BIKE_R3_AVX512_SUPPORTED
+                ${CMAKE_BINARY_DIR}
+                "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
+                COMPILE_DEFINITIONS ${BIKE_R3_AVX512_FLAGS})
+
+        try_compile(BIKE_R3_PCLMUL_SUPPORTED
+                ${CMAKE_BINARY_DIR}
+                "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
+                COMPILE_DEFINITIONS "-mpclmul")
+
+        try_compile(BIKE_R3_VPCLMUL_SUPPORTED
+            ${CMAKE_BINARY_DIR}
+            "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
+            COMPILE_DEFINITIONS "-mvpclmulqdq")
+
+        if(BIKE_R3_AVX2_SUPPORTED OR BIKE_R3_AVX512_SUPPORTED OR BIKE_R3_PCLMUL_SUPPORTED OR BIKE_R3_VPCLMUL_SUPPORTED)
+            set(BIKE_R3_X86_64_OPT_SUPPORTED ON)
+        endif()
     endif()
 endif()
 
@@ -246,22 +262,32 @@ if(SIKEP434R2_ASM_SUPPORTED)
 endif()
 
 if(BIKE_R3_X86_64_OPT_SUPPORTED)
-    # If BIKE_R3 x86_64 optimizations are supported we add the required
-    # compile flags to files containing the optimized code.
+    # If any of the BIKE_R3 x86_64 optimizations is supported (this was checked
+    # earlier in the file), we add the required compile flags to files that
+    # contain the optimized code.
+    if(BIKE_R3_AVX2_SUPPORTED)
+        FILE(GLOB BIKE_R3_AVX2_SRCS "pq-crypto/bike_r3/*_avx2.c")
+        set_source_files_properties(${BIKE_R3_AVX2_SRCS} PROPERTIES COMPILE_FLAGS -mavx2)
+        target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_AVX2)
+    endif()
 
-    FILE(GLOB BIKE_R3_AVX2_SRCS "pq-crypto/bike_r3/*_avx2.c")
-    FILE(GLOB BIKE_R3_AVX512_SRCS "pq-crypto/bike_r3/*_avx512.c")
-    FILE(GLOB BIKE_R3_PCLMUL_SRCS "pq-crypto/bike_r3/*_pclmul.c")
-    FILE(GLOB BIKE_R3_VPCLMUL_SRCS "pq-crypto/bike_r3/*_vpclmul.c")
+    if(BIKE_R3_AVX512_SUPPORTED)
+        FILE(GLOB BIKE_R3_AVX512_SRCS "pq-crypto/bike_r3/*_avx512.c")
+        set_source_files_properties(${BIKE_R3_AVX512_SRCS} PROPERTIES COMPILE_FLAGS ${BIKE_R3_AVX512_FLAGS})
+        target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_AVX512)
+    endif()
 
-    set(BIKE_R3_AVX512_FLAGS "-mavx512f;-mavx512bw;-mavx512dq")
+    if(BIKE_R3_PCLMUL_SUPPORTED)
+        FILE(GLOB BIKE_R3_PCLMUL_SRCS "pq-crypto/bike_r3/*_pclmul.c")
+        set_source_files_properties(${BIKE_R3_PCLMUL_SRCS} PROPERTIES COMPILE_FLAGS -mpclmul)
+        target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_PCLMUL)
+    endif()
 
-    set_source_files_properties(${BIKE_R3_AVX2_SRCS} PROPERTIES COMPILE_OPTIONS "-mavx2")
-    set_source_files_properties(${BIKE_R3_AVX512_SRCS} PROPERTIES COMPILE_OPTIONS "${BIKE_R3_AVX512_FLAGS}")
-    set_source_files_properties(${BIKE_R3_PCLMUL_SRCS} PROPERTIES COMPILE_OPTIONS "-mpclmul")
-    set_source_files_properties(${BIKE_R3_VPCLMUL_SRCS} PROPERTIES COMPILE_OPTIONS "-mvpclmulqdq;${BIKE_R3_AVX512_FLAGS}")
-
-    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_X86_64)
+    if(BIKE_R3_VPCLMUL_SUPPORTED)
+        FILE(GLOB BIKE_R3_VPCLMUL_SRCS "pq-crypto/bike_r3/*_vpclmul.c")
+        set_source_files_properties(${BIKE_R3_VPCLMUL_SRCS} PROPERTIES COMPILE_FLAGS -mvpclmulqdq ${BIKE_R3_AVX512_FLAGS})
+        target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_VPCLMUL)
+    endif()
 
     message(STATUS "Enabling BIKE_R3 x86_64 optimizations")
 endif()

@@ -5,6 +5,8 @@
  * AWS Cryptographic Algorithms Group.
  */
 
+#if defined(S2N_BIKE_R3_PCLMUL)
+
 #include <immintrin.h>
 
 #include "gf2x_internal.h"
@@ -147,3 +149,7 @@ void gf2x_sqr_pclmul(OUT dbl_pad_r_t *c, IN const pad_r_t *a)
     STORE128(&c64[i * 2 + QWORDS_IN_XMM], vr1);
   }
 }
+
+#endif
+
+typedef int dummy_typedef_to_avoid_empty_translation_unit_warning;

@@ -5,6 +5,8 @@
  * AWS Cryptographic Algorithms Group.
  */
 
+#if defined(S2N_BIKE_R3_AVX512)
+
 #include <assert.h>
 
 #include "cleanup.h"
@@ -101,3 +103,7 @@ void gf2x_red_avx512(OUT pad_r_t *c, IN const dbl_pad_r_t *a)
   secure_clean((uint8_t *)&c64[R_QWORDS],
                (R_PADDED_QWORDS - R_QWORDS) * sizeof(uint64_t));
 }
+
+#endif
+
+typedef int dummy_typedef_to_avoid_empty_translation_unit_warning;

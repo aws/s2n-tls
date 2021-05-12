@@ -13,7 +13,7 @@
 
 #pragma once
 
-#if defined(S2N_BIKE_R3_X86_64)
+#if defined(S2N_BIKE_R3_AVX2) || defined(S2N_BIKE_R3_AVX512)
 #  include <immintrin.h>
 #endif
 

@@ -10,6 +10,8 @@
  * 2020. https://eprint.iacr.org/2020/298.pdf
  */
 
+#if defined(S2N_BIKE_R3_AVX512)
+
 #include "cleanup.h"
 #include "gf2x_internal.h"
 
@@ -127,3 +129,7 @@ void k_sqr_avx512(OUT pad_r_t *c, IN const pad_r_t *a, IN const size_t l_param)
   secure_clean(a_bytes, sizeof(a_bytes));
   secure_clean(c_bytes, sizeof(c_bytes));
 }
+
+#endif
+
+typedef int dummy_typedef_to_avoid_empty_translation_unit_warning;

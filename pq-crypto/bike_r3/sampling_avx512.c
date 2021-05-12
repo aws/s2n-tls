@@ -5,6 +5,8 @@
  * AWS Cryptographic Algorithms Group.
  */
 
+#if defined(S2N_BIKE_R3_AVX512)
+
 #include <assert.h>
 
 #include "sampling_internal.h"
@@ -108,3 +110,7 @@ int is_new_avx512(IN const idx_t *wlist, IN const size_t ctr)
 
   return 1;
 }
+
+#endif
+
+typedef int dummy_typedef_to_avoid_empty_translation_unit_warning;
