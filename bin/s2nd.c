@@ -376,6 +376,8 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
+    GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
+
     if (settings.https_server) {
         https(conn, settings.https_bench);
     } else if (!settings.only_negotiate) {

@@ -552,6 +552,8 @@ int main(int argc, char *const *argv)
             s2n_connection_set_dynamic_record_threshold(conn, dyn_rec_threshold, dyn_rec_timeout);
         }
 
+        GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
+
         if (echo_input == 1) {
             fflush(stdout);
             fflush(stderr);
