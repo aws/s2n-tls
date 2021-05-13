@@ -41,9 +41,9 @@ uint8_t offload_callback_count = 0;
 
 typedef int (async_handler)(struct s2n_connection *conn);
 
-/* Declaring a counter to check if sign operation is called at least once for all cipher_suites
+/* Declaring a flag to check if sign operation is called at least once for all cipher_suites
    while performing handshake through handler (async_handler_sign_with_different_pkey_and_apply) */
-static int async_handler_sign_operation_called = 0;
+static bool async_handler_sign_operation_called = false;
 
 static int async_handler_fail(struct s2n_connection *conn)
 {
@@ -119,8 +119,8 @@ static int async_handler_sign_with_different_pkey_and_apply(struct s2n_connectio
         conn->handshake_params.our_chain_and_key = chain_and_key;
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key_2));
 
-        /* Increment flag counter for sign operation */
-        async_handler_sign_operation_called++;
+        /* Update async_handler_sign_operation_called flag to true */
+        async_handler_sign_operation_called = true;
     } else {
         /* Test decrypt operation passes */
         EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
@@ -550,15 +550,15 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Test if sign operation was called at least once for 'Test: Apply invalid signature'
-       Below counter holds the aggregate value for all cipher_suites and not limited to single unit test run */
-    EXPECT_TRUE(async_handler_sign_operation_called > 0);
+    /* Test if sign operation was called at least once for 'Test: Apply invalid signature',
+       the flag holds the value after executing handshakes for all cipher_suites */
+    EXPECT_EQUAL(async_handler_sign_operation_called, true);
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
     struct s2n_hash_state digest = { 0 };
     EXPECT_SUCCESS(s2n_hash_new(&digest));
-    EXPECT_SUCCESS(s2n_hash_init(&digest, S2N_HASH_SHA256));q
+    EXPECT_SUCCESS(s2n_hash_init(&digest, S2N_HASH_SHA256));
     EXPECT_SUCCESS(s2n_hash_update(&digest, test_digest_data, test_digest_size));
 
     /* Test: signature offload. */
