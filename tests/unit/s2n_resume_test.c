@@ -281,6 +281,52 @@ int main(int argc, char **argv)
         }
     }
 
+    /* s2n_connection_get_session_id_length */ 
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_session_id_length(NULL), S2N_ERR_NULL);
+        conn->session_id_len = 5;
+ 
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_EQUAL(s2n_connection_get_session_id_length(conn), 5);
+
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_session_id_length(conn), S2N_ERR_UNIMPLEMENTED);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* s2n_connection_get_session_id */
+    {
+        uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN];
+        struct s2n_blob session_id_blob = { 0 };
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_session_id(NULL, session_id, S2N_TLS_SESSION_ID_MAX_LEN),
+                                  S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_session_id(conn, NULL, S2N_TLS_SESSION_ID_MAX_LEN), S2N_ERR_NULL);
+
+        EXPECT_SUCCESS(s2n_blob_init(&session_id_blob, conn->session_id, S2N_TLS_SESSION_ID_MAX_LEN));
+        EXPECT_OK(s2n_get_public_random_data(&session_id_blob));
+        conn->session_id_len = session_id_blob.size;
+
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_session_id(conn, session_id, S2N_TLS_SESSION_ID_MAX_LEN),
+                                  S2N_ERR_UNIMPLEMENTED);
+
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_EQUAL(s2n_connection_get_session_id(conn, session_id, S2N_TLS_SESSION_ID_MAX_LEN), conn->session_id_len);
+        EXPECT_BYTEARRAY_EQUAL(session_id, session_id_blob.data, session_id_blob.size);
+        
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_session_id(conn, session_id, conn->session_id_len - 1),
+                                  S2N_ERR_SESSION_ID_TOO_LONG);
+     
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
     /* s2n_tls12_serialize_resumption_state */
     {
         struct s2n_connection *conn;
