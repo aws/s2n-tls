@@ -445,12 +445,14 @@ int main(int argc, char **argv)
              * An error will only occur if the encryption happens to produce a known record type as the
              * last non-padding byte.
              *
-             * The chance this test produces a false negative:
-             * Ignoring the more complicated case where we strip "padding" off the end of the encrypted record,
-             * we handle 4 record types (HANDSHAKE, APPLICATION_DATA, ALERT, and CHANGE_CIPHER_SPEC).
-             * (((256 - 4) / 256) ^ 300) = 0.009, < 1%
+             * We handle 4 record types (HANDSHAKE, APPLICATION_DATA, ALERT, and CHANGE_CIPHER_SPEC).
+             * So the chance this test produces a false negative (succeeds when it should fail):
+             * (((256 - 4) / 256) ^ 450) = 0.0008, < 0.1%
+             *
+             * (This calculation ignores the case where the encryption produces an apparently padded record.
+             *  That would increase the number of records not ignored, making a false negative even less likely)
              */
-            const size_t repetitions = 300;
+            const size_t repetitions = 450;
             for(size_t i = 0; i < repetitions; i++) {
                 EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
                 EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));

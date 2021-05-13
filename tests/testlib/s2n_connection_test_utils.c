@@ -246,6 +246,10 @@ S2N_RESULT s2n_config_mock_wall_clock(struct s2n_config *config, uint64_t *test_
     return S2N_RESULT_OK;
 }
 
+/* Sets the encryption and decryption keys to enable sending and receiving encrypted data.
+ * Basically, it bypasses the usual key exchange -> shared secret -> derive keys process
+ * and just uses static mock keys.
+ */
 S2N_RESULT s2n_connection_set_secrets(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
