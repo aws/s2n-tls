@@ -143,6 +143,12 @@ int s2n_record_parse(struct s2n_connection *conn)
         conn->server = current_server_crypto;
     }
 
+    /* The NULL stream cipher MUST NEVER be used for ApplicationData.
+     * If ApplicationData is unencrypted, we can't trust it. */
+    if (cipher_suite->record_alg->cipher == &s2n_null_cipher) {
+        POSIX_ENSURE(content_type != TLS_APPLICATION_DATA, S2N_ERR_DECRYPT);
+    }
+
     switch (cipher_suite->record_alg->cipher->type) {
     case S2N_AEAD:
         POSIX_GUARD(s2n_record_parse_aead(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
