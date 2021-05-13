@@ -42,7 +42,7 @@ uint8_t offload_callback_count = 0;
 typedef int (async_handler)(struct s2n_connection *conn);
 
 /* Declaring a flag to check if sign operation is called at least once for all cipher_suites
-   while performing handshake through handler (async_handler_sign_with_different_pkey_and_apply) */
+ * while performing handshake through handler (async_handler_sign_with_different_pkey_and_apply) */
 static bool async_handler_sign_operation_called = false;
 
 static int async_handler_fail(struct s2n_connection *conn)
@@ -551,7 +551,7 @@ int main(int argc, char **argv)
     }
 
     /* Test if sign operation was called at least once for 'Test: Apply invalid signature',
-       the flag holds the value after executing handshakes for all cipher_suites */
+     * the flag holds the value after executing handshakes for all cipher_suites */
     EXPECT_EQUAL(async_handler_sign_operation_called, true);
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
