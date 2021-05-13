@@ -342,9 +342,6 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
     /* Populate name information from the SAN/CN for the leaf certificate */
     POSIX_GUARD(s2n_cert_chain_and_key_set_names(chain_and_key, &chain_and_key->cert_chain->head->raw));
 
-    /* Store parsed public key for later use */
-    chain_and_key->cert_chain->head->public_key = public_key;
-    ZERO_TO_DISABLE_DEFER_CLEANUP(public_key);
     return 0;
 }
 
@@ -353,8 +350,6 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
     if (cert_and_key == NULL) {
         return 0;
     }
-    /* Create a temporary s2n_pkey for cleaning up any links to cert_chain->head->public_key */
-    DEFER_CLEANUP(struct s2n_pkey public_key_temp = {0}, s2n_pkey_free);
 
     /* Walk the chain and free the certs */
     if (cert_and_key->cert_chain) {
@@ -362,8 +357,6 @@ int s2n_cert_chain_and_key_free(struct s2n_cert_chain_and_key *cert_and_key)
         while (node) {
             /* Free the cert */
             POSIX_GUARD(s2n_free(&node->raw));
-            /* Link public_key to local variable and let it all be cleaned up automatically */
-            node->public_key = public_key_temp;
             /* update head so it won't point to freed memory */
             cert_and_key->cert_chain->head = node->next;
             /* Free the node */
