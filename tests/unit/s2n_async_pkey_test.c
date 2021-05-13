@@ -26,9 +26,6 @@
 #include "utils/s2n_safety.h"
 #include "tls/s2n_async_pkey.h"
 
-/* Include source to test on a specific pkey_op type */
-#include "tls/s2n_async_pkey.c"
-
 struct s2n_async_pkey_op *pkey_op = NULL;
 
 uint8_t test_digest_data[] = "I hashed this";
@@ -43,6 +40,9 @@ const uint32_t test_decrypted_size = sizeof(test_decrypted_data);
 uint8_t offload_callback_count = 0;
 
 typedef int (async_handler)(struct s2n_connection *conn);
+
+/* Declaring a counter to check if sign operation is called at least once for all cipher_suites
+   while performing handshake through handler (async_handler_sign_with_different_pkey_and_apply) */
 static int async_handler_sign_operation_called = 0;
 
 static int async_handler_fail(struct s2n_connection *conn)
@@ -93,8 +93,12 @@ static int async_handler_sign_with_different_pkey_and_apply(struct s2n_connectio
     /* Test that we can perform pkey operation */
     EXPECT_SUCCESS(s2n_async_pkey_op_perform(pkey_op, pkey));
 
+    /* Get type for pkey_op */
+    s2n_async_pkey_op_type type = { 0 };
+    EXPECT_SUCCESS(s2n_async_pkey_op_get_op_type(pkey_op, &type));
+
     /* Test apply with different certificate chain only for sign operation */
-    if (pkey_op->type == S2N_ASYNC_SIGN) {
+    if (type == S2N_ASYNC_SIGN) {
         /* Create new chain and key, and modify current server conn */
         struct s2n_cert_chain_and_key *chain_and_key_2 = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key_2,
@@ -546,14 +550,15 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Test if sign operation was called atleast once for 'Test: Apply invalid signature' */
+    /* Test if sign operation was called at least once for 'Test: Apply invalid signature'
+       Below counter holds the aggregate value for all cipher_suites and not limited to single unit test run */
     EXPECT_TRUE(async_handler_sign_operation_called > 0);
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
     struct s2n_hash_state digest = { 0 };
     EXPECT_SUCCESS(s2n_hash_new(&digest));
-    EXPECT_SUCCESS(s2n_hash_init(&digest, S2N_HASH_SHA256));
+    EXPECT_SUCCESS(s2n_hash_init(&digest, S2N_HASH_SHA256));q
     EXPECT_SUCCESS(s2n_hash_update(&digest, test_digest_data, test_digest_size));
 
     /* Test: signature offload. */
