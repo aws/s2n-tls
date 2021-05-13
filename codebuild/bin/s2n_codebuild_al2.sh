@@ -27,7 +27,7 @@ fi
 case "$TESTS" in
   "unit") cmake . -Bbuild -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
           cmake --build ./build -j $(nproc)
-          CTEST_PARALLEL_LEVEL=$(nproc) make -C build test
+          CTEST_PARALLEL_LEVEL=$(nproc) make -C build test;;
   *) echo "Unknown test"
      exit 1;;
 esac
