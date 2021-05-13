@@ -56,7 +56,7 @@ static int s2n_mem_init_impl(void)
 
     page_size = (uint32_t) sysconf_rc;
 
-    if (getenv("S2N_DONT_MLOCK")) {
+    if (getenv("S2N_DONT_MLOCK") || s2n_in_unit_test()) {
         s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
         s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;
     }
