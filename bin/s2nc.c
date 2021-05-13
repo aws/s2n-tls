@@ -96,6 +96,8 @@ void usage()
                     "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
                     "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace is not allowed before or after the commas.\n"
                     "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
+    fprintf(stderr, "  -E ,--early-data <file path>\n");
+    fprintf(stderr, "    Sends data in file path as early data to the server. Early data will only be set if s2nc receives a session ticket and resumes a session.");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -265,6 +267,8 @@ int main(int argc, char *const *argv)
     FILE *key_log_file = NULL;
     char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH];
     size_t psk_list_len = 0;
+    char *early_data = NULL;
+    bool early_data_input = false;
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -289,12 +293,13 @@ int main(int argc, char *const *argv)
         {"non-blocking", no_argument, 0, 'B'},
         {"key-log", required_argument, 0, 'L'},
         {"psk", required_argument, 0, 'P'},
+        {"early-data", required_argument, 0, 'E'},
         { 0 },
     };
 
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:irTCK:BL:P:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:irTCK:BL:P:E:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -382,6 +387,10 @@ int main(int argc, char *const *argv)
                 exit(1);
             }
             psk_optarg_list[psk_list_len++] = optarg;
+            break;
+        case 'E':
+            early_data = load_file_to_cstring(optarg);
+            early_data_input = true;
             break;
         case '?':
         default:
@@ -523,7 +532,12 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(s2n_connection_set_session(conn, session_state, session_state_length), "Error setting session state in connection");
         }
 
-        GUARD_EXIT(s2n_setup_external_psk_list(conn, psk_optarg_list, psk_list_len), "Error setting external psk list"); 
+        GUARD_EXIT(s2n_setup_external_psk_list(conn, psk_optarg_list, psk_list_len), "Error setting external psk list");
+
+        if (early_data_input && session_state_length) {
+            uint32_t early_data_length = strlen(early_data);
+            early_data_send(conn, (uint8_t *)early_data, early_data_length);
+        }
 
         /* See echo.c */
         if (negotiate(conn, sockfd) != 0) {
@@ -535,6 +549,10 @@ int main(int argc, char *const *argv)
 
         /* Save session state from connection if reconnect is enabled */
         if (reconnect > 0) {
+            /* Only need to wait to receive the session ticket in TLS1.3 */
+            if ((conn->actual_protocol_version >= S2N_TLS13 ) && session_ticket && (recv_session_ticket(conn, sockfd) != S2N_SUCCESS)) {
+                S2N_ERROR_PRESERVE_ERRNO();
+            }
             if (!session_ticket && s2n_connection_get_session_id_length(conn) <= 0) {
                 printf("Endpoint sent empty session id so cannot resume session\n");
                 exit(1);
@@ -586,6 +604,7 @@ int main(int argc, char *const *argv)
 
     GUARD_EXIT(s2n_cleanup(), "Error running s2n_cleanup()");
 
+    free(early_data);
     free(session_state);
     freeaddrinfo(ai_list);
     return 0;

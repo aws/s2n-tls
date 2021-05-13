@@ -48,6 +48,9 @@
 void print_s2n_error(const char *app_error);
 int echo(struct s2n_connection *conn, int sockfd);
 int negotiate(struct s2n_connection *conn, int sockfd);
+int recv_session_ticket(struct s2n_connection *conn, int fd);
+int early_data_recv(struct s2n_connection *conn);
+int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len);
 int https(struct s2n_connection *conn, uint32_t bench);
 int key_log_callback(void *ctx, struct s2n_connection *conn, uint8_t *logline, size_t len);
 

@@ -70,6 +70,75 @@ static int wait_for_event(int fd, s2n_blocked_status blocked)
     return S2N_SUCCESS;
 }
 
+int recv_session_ticket(struct s2n_connection *conn, int fd)
+{
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    uint8_t out[100] = { 0 };
+    ssize_t bytes_read = 0;
+
+    /* s2nc needs to call s2n_recv until it successfully reads some data from the server.
+     * The output buffer is an arbitrary size to catch whatever bytes the server is sending. */
+    do {
+        bytes_read = s2n_recv(conn, &out, sizeof(out), &blocked);
+    } while (bytes_read < 0);
+
+    if (bytes_read > 0) {
+        for (size_t i = 0; i < bytes_read; i++) {
+            fprintf(stdout, "%c", out[i]);
+        }
+    }
+
+    return S2N_SUCCESS;
+}
+
+int early_data_recv(struct s2n_connection *conn)
+{
+    uint32_t max_early_data_size = 0;
+    GUARD_RETURN(s2n_connection_get_max_early_data_size(conn, &max_early_data_size), "Error getting max early data size");
+    if (max_early_data_size == 0) {
+        return S2N_SUCCESS;
+    }
+
+    ssize_t total_data_recv = 0;
+    ssize_t data_recv = 0;
+    bool server_success = 0;
+    s2n_blocked_status blocked = 0;
+    uint8_t *early_data_received = malloc(max_early_data_size);
+
+    do {
+        server_success = (s2n_recv_early_data(conn, early_data_received + total_data_recv,
+                max_early_data_size - total_data_recv, &data_recv, &blocked) >= S2N_SUCCESS);
+        total_data_recv += data_recv;
+
+    } while (!server_success);
+
+    if (total_data_recv > 0) {
+        fprintf(stdout, "Early Data received:\n");
+        for (size_t i = 0; i < total_data_recv; i++) {
+            fprintf(stdout, "%c", early_data_received[i]);
+        }
+    }
+
+    free(early_data_received);
+
+    return S2N_SUCCESS;
+}
+
+int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len)
+{
+    s2n_blocked_status blocked = 0;
+    ssize_t total_data_sent = 0;
+    ssize_t data_sent = 0;
+    bool client_success = 0;
+    do {
+        client_success = (s2n_send_early_data(conn, data + total_data_sent,
+        len - total_data_sent, &data_sent, &blocked) >= S2N_SUCCESS);
+        total_data_sent += data_sent;
+    } while (total_data_sent < len && !client_success);
+
+    return S2N_SUCCESS;
+}
+
 int negotiate(struct s2n_connection *conn, int fd)
 {
     s2n_blocked_status blocked;
@@ -135,13 +204,15 @@ int negotiate(struct s2n_connection *conn, int fd)
     }
 
     printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(conn));
-    if (s2n_connection_is_session_resumed(conn)) {
+
+    bool session_resumed = s2n_connection_is_session_resumed(conn);
+    if (session_resumed) {
         printf("Resumed session\n");
     }
 
     uint16_t identity_length = 0;
     GUARD_EXIT(s2n_connection_get_negotiated_psk_identity_length(conn, &identity_length), "Error getting negotiated psk identity length from the connection\n");
-    if (identity_length != 0) {
+    if (identity_length != 0 && !session_resumed) {
         uint8_t *identity = malloc(identity_length);
         GUARD_EXIT_NULL(identity);
         GUARD_EXIT(s2n_connection_get_negotiated_psk_identity(conn, identity, identity_length), "Error getting negotiated psk identity from the connection\n");
