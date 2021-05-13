@@ -316,6 +316,16 @@ batch:
           S2N_NO_PQ: 1
           BUILD_S2N: 'true'
 
+    - identifier: s2nUnitAl2
+      buildspec: codebuild/spec/buildspec_amazonlinux2.yml
+      env:
+        image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_SMALL
+        variables:
+          TESTS: unit
+          S2N_NO_PQ: 1
+
     # Fuzz tests
     - identifier: s2nFuzzerOpenSSL111Coverage
       buildspec: codebuild/spec/buildspec_ubuntu_fuzz_artifacts.yml
