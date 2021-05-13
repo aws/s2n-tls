@@ -181,23 +181,18 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_get_selected_digest_algorithm(conn, &output));
         EXPECT_EQUAL(S2N_HANDSHAKE_HASH_NONE, output);
 
-        s2n_hash_algorithm inputs[] = { S2N_HASH_MD5, S2N_HASH_SHA1, S2N_HASH_SHA224, S2N_HASH_SHA256, S2N_HASH_SHA384, 
-                                        S2N_HASH_SHA512, S2N_HASH_SENTINEL, S2N_HASH_NONE };
-        EXPECT_EQUAL(S2N_HASH_SENTINEL, s2n_array_len(inputs));
-
         s2n_handshake_hash_algorithm expected_output[] = { S2N_HANDSHAKE_HASH_MD5, S2N_HANDSHAKE_HASH_SHA1, 
                                                            S2N_HANDSHAKE_HASH_SHA224, S2N_HANDSHAKE_HASH_SHA256, 
                                                            S2N_HANDSHAKE_HASH_SHA384, S2N_HANDSHAKE_HASH_SHA512, 
                                                            S2N_HANDSHAKE_HASH_NONE, S2N_HANDSHAKE_HASH_NONE };
-        EXPECT_EQUAL(s2n_array_len(expected_output), s2n_array_len(inputs));
 
-        for (int i = 0; i < s2n_array_len(inputs); i++) {
-            conn->secure.client_cert_sig_scheme.hash_alg = inputs[i];
+        for (size_t i = S2N_HANDSHAKE_HASH_NONE; i < S2N_HASH_SENTINEL; i++) {
+            conn->secure.client_cert_sig_scheme.hash_alg = i;
             EXPECT_SUCCESS(s2n_connection_get_selected_client_cert_digest_algorithm(conn, &output));
             conn->secure.client_cert_sig_scheme.hash_alg = 0;
             EXPECT_EQUAL(expected_output[i], output);
 
-            conn->secure.conn_sig_scheme.hash_alg = inputs[i];
+            conn->secure.conn_sig_scheme.hash_alg = i;
             EXPECT_SUCCESS(s2n_connection_get_selected_digest_algorithm(conn, &output));
             conn->secure.conn_sig_scheme.hash_alg = 0;
             EXPECT_EQUAL(expected_output[i], output);
@@ -224,14 +219,17 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_get_selected_signature_algorithm(conn, &output));
         EXPECT_EQUAL(S2N_HANDSHAKE_SIGNATURE_ANONYMOUS, output);
 
-        s2n_signature_algorithm inputs[] = { S2N_SIGNATURE_ANONYMOUS, S2N_SIGNATURE_RSA, S2N_SIGNATURE_ECDSA, S2N_SIGNATURE_RSA_PSS_RSAE, S2N_SIGNATURE_RSA_PSS_PSS, S2N_SIGNATURE_SENTINEL };
+        s2n_signature_algorithm inputs[] = { S2N_SIGNATURE_ANONYMOUS, S2N_SIGNATURE_RSA, 
+                                             S2N_SIGNATURE_ECDSA, S2N_SIGNATURE_RSA_PSS_RSAE, 
+                                             S2N_SIGNATURE_RSA_PSS_PSS, S2N_SIGNATURE_SENTINEL };
         /* If this fails, the S2N_SIGNATURE_SENTINEL value has changed, and a new enum has likely been added to s2n_handshake_signature_algorithm. */
         EXPECT_EQUAL(S2N_SIGNATURE_SENTINEL, 0xE2);
-        s2n_handshake_signature_algorithm expected_output[] = { S2N_HANDSHAKE_SIGNATURE_ANONYMOUS, S2N_HANDSHAKE_SIGNATURE_RSA, S2N_HANDSHAKE_SIGNATURE_ECDSA, 
-                                                                S2N_HANDSHAKE_SIGNATURE_RSA_PSS_RSAE, S2N_HANDSHAKE_SIGNATURE_RSA_PSS_PSS, S2N_HANDSHAKE_SIGNATURE_ANONYMOUS };
+        s2n_handshake_signature_algorithm expected_output[] = { S2N_HANDSHAKE_SIGNATURE_ANONYMOUS, S2N_HANDSHAKE_SIGNATURE_RSA, 
+                                                                S2N_HANDSHAKE_SIGNATURE_ECDSA, S2N_HANDSHAKE_SIGNATURE_RSA_PSS_RSAE, 
+                                                                S2N_HANDSHAKE_SIGNATURE_RSA_PSS_PSS, S2N_HANDSHAKE_SIGNATURE_ANONYMOUS };
         EXPECT_EQUAL(s2n_array_len(expected_output), s2n_array_len(inputs));
 
-        for (int i = 0; i < s2n_array_len(inputs); i++) {
+        for (size_t i = 0; i < s2n_array_len(inputs); i++) {
             conn->secure.client_cert_sig_scheme.sig_alg = inputs[i];
             EXPECT_SUCCESS(s2n_connection_get_selected_client_cert_signature_algorithm(conn, &output));
             conn->secure.client_cert_sig_scheme.sig_alg = 0;

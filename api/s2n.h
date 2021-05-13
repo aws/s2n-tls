@@ -455,10 +455,14 @@ typedef enum {
     S2N_HANDSHAKE_HASH_MD5_SHA1,
 } s2n_handshake_hash_algorithm;
 
-int s2n_connection_get_selected_signature_algorithm(struct s2n_connection *conn, s2n_handshake_signature_algorithm *chosen_alg);
-int s2n_connection_get_selected_digest_algorithm(struct s2n_connection *conn, s2n_handshake_hash_algorithm *chosen_alg);
-int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_connection *conn, s2n_handshake_signature_algorithm *chosen_alg);
-int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connection *conn, s2n_handshake_hash_algorithm *chosen_alg);
+S2N_API
+extern int s2n_connection_get_selected_signature_algorithm(struct s2n_connection *conn, s2n_handshake_signature_algorithm *chosen_alg);
+S2N_API
+extern int s2n_connection_get_selected_digest_algorithm(struct s2n_connection *conn, s2n_handshake_hash_algorithm *chosen_alg);
+S2N_API
+extern int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_connection *conn, s2n_handshake_signature_algorithm *chosen_alg);
+S2N_API
+extern int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connection *conn, s2n_handshake_hash_algorithm *chosen_alg);
 
 S2N_API
 extern struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2n_connection *conn);
