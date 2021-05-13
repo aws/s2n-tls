@@ -304,6 +304,8 @@ static S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, 
             RESULT_GUARD(s2n_tls12_client_deserialize_session_state(conn, from));
         }  
     } else if (format == S2N_TLS13_SERIALIZED_FORMAT_VERSION) {
+        /* Stateful session resumption is not yet implemented in TLS1.3 */
+        RESULT_ENSURE_EQ(conn->config->use_tickets, 1);
         RESULT_GUARD(s2n_tls13_deserialize_session_state(conn, psk_identity, from));
     } else {
         RESULT_BAIL(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
