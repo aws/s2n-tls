@@ -251,7 +251,7 @@ ret_t decode(OUT e_t *e, IN const ct_t *ct, IN const sk_t *sk)
     DMSG("    Weight of syndrome: %lu\n", r_bits_vector_weight((r_t *)s.qw));
 
     find_err1(e, &black_e, &gray_e, &s, sk->wlist, threshold, &ctx);
-      POSIX_GUARD(recompute_syndrome(&s, &c0, &h0, &pk, e, &ctx));
+    POSIX_GUARD(recompute_syndrome(&s, &c0, &h0, &pk, e, &ctx));
 #if defined(BGF_DECODER)
     if(iter >= 1) {
       continue;
@@ -262,14 +262,14 @@ ret_t decode(OUT e_t *e, IN const ct_t *ct, IN const sk_t *sk)
     DMSG("    Weight of syndrome: %lu\n", r_bits_vector_weight((r_t *)s.qw));
 
     find_err2(e, &black_e, &s, sk->wlist, ((DV + 1) / 2) + 1, &ctx);
-      POSIX_GUARD(recompute_syndrome(&s, &c0, &h0, &pk, e, &ctx));
+    POSIX_GUARD(recompute_syndrome(&s, &c0, &h0, &pk, e, &ctx));
 
     DMSG("    Weight of e: %lu\n",
          r_bits_vector_weight(&e->val[0]) + r_bits_vector_weight(&e->val[1]));
     DMSG("    Weight of syndrome: %lu\n", r_bits_vector_weight((r_t *)s.qw));
 
     find_err2(e, &gray_e, &s, sk->wlist, ((DV + 1) / 2) + 1, &ctx);
-      POSIX_GUARD(recompute_syndrome(&s, &c0, &h0, &pk, e, &ctx));
+    POSIX_GUARD(recompute_syndrome(&s, &c0, &h0, &pk, e, &ctx));
   }
 
   if(r_bits_vector_weight((r_t *)s.qw) > 0) {

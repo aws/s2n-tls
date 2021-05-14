@@ -105,7 +105,7 @@ bike_static_assert((R_BITS == 24659), gf2x_inv_r_doesnt_match_parameters);
 void gf2x_mod_inv(OUT pad_r_t *c, IN const pad_r_t *a)
 {
   // Initialize gf2x methods struct
-  gf2x_ctx ctx;
+  gf2x_ctx ctx = {0};
   gf2x_ctx_init(&ctx);
 
   // Note that exp0/1_k/l are predefined constants that depend only on the value

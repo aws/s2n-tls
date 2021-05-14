@@ -106,7 +106,7 @@ void gf2x_mod_mul(OUT pad_r_t *c, IN const pad_r_t *a, IN const pad_r_t *b)
   bike_static_assert((R_PADDED_BYTES % 2 == 0), karatzuba_n_is_odd);
 
   // Initialize gf2x methods struct
-  gf2x_ctx ctx;
+  gf2x_ctx ctx = {0};
   gf2x_ctx_init(&ctx);
 
   gf2x_mod_mul_with_ctx(c, a, b, &ctx);
