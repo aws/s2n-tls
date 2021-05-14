@@ -620,7 +620,7 @@ static const char* tls13_handshake_type_names[] = {
     "EARLY_CLIENT_CCS|",
 };
 
-#define IS_TLS13_HANDSHAKE( conn )    ((conn)->actual_protocol_version == S2N_TLS13)
+#define IS_TLS13_HANDSHAKE( conn )    ((conn != NULL) ? ((conn)->actual_protocol_version == S2N_TLS13) : false)
 
 #define ACTIVE_STATE_MACHINE( conn )  (IS_TLS13_HANDSHAKE(conn) ? tls13_state_machine : state_machine)
 #define ACTIVE_HANDSHAKES( conn )     (IS_TLS13_HANDSHAKE(conn) ? tls13_handshakes : handshakes)
@@ -640,7 +640,7 @@ static const char* tls13_handshake_type_names[] = {
 /* Used in our test cases */
 message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn)
 {
-    return ACTIVE_MESSAGE(conn);
+    return (s2n_result_is_ok(s2n_connection_validate(conn))) ? ACTIVE_MESSAGE(conn) : -1;
 }
 
 static int s2n_advance_message(struct s2n_connection *conn)

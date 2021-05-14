@@ -1565,3 +1565,10 @@ int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_conne
 
     return S2N_SUCCESS;
 }
+
+S2N_RESULT s2n_connection_validate(const struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_GUARD(s2n_handshake_validate(&(conn->handshake)));
+    return S2N_RESULT_OK;
+}

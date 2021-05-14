@@ -196,3 +196,4 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
 S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t *message_type);
 S2N_RESULT s2n_quic_write_handshake_message(struct s2n_connection *conn, struct s2n_blob *in);
 S2N_RESULT s2n_negotiate_until_message(struct s2n_connection *conn, s2n_blocked_status *blocked, message_type_t end_message);
+S2N_RESULT s2n_handshake_validate(const struct s2n_handshake *s2n_handshake);
