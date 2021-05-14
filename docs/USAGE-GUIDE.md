@@ -914,12 +914,10 @@ This setting is ignored in TLS1.3. TLS1.3 terminates a connection for all alerts
 ```c
 int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_async_pkey_validation_mode mode);
 ```
-Sets whether or not a connection should enforce stricter signature validation during `s2n_async_pkey_op_apply` call. 
-`mode` can only take following values : 
-- `S2N_ASYNC_PKEY_VALIDATION_FAST` - default behavior: s2n-tls will perform only validations which are fast to perform, 
-such as ensuring that op was performed and matches the conn which it was initiated with.
-- `S2N_ASYNC_PKEY_VALIDATION_STRICT` - in addition to previous checks, s2n-tls will also ensure that signature created as 
-result of async private key sign operation matches with the public key on the connection.
+Sets whether or not a connection should enforce strict signature validation during the `s2n_async_pkey_op_apply` call. 
+`mode` can take the following values: 
+- `S2N_ASYNC_PKEY_VALIDATION_FAST` - default behavior: s2n-tls will perform only the minimum validation required for safe use of the asyn pkey operation.
+- `S2N_ASYNC_PKEY_VALIDATION_STRICT` - in addition to the previous checks, s2n-tls will also ensure that the signature created as a result of the async private key sign operation matches the public key on the connection.
 
 ## Certificate-related functions
 
