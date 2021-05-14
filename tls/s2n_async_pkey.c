@@ -42,6 +42,7 @@ struct s2n_async_pkey_sign_data {
 struct s2n_async_pkey_op {
     s2n_async_pkey_op_type type;
     struct s2n_connection *conn;
+    s2n_async_pkey_validation_mode validation_mode;
     unsigned               complete : 1;
     unsigned               applied : 1;
     union {
@@ -171,6 +172,7 @@ S2N_RESULT s2n_async_pkey_decrypt_async(struct s2n_connection *conn, struct s2n_
 
     op->type = S2N_ASYNC_DECRYPT;
     op->conn = conn;
+    op->validation_mode = conn->config->async_pkey_validation_mode;
 
     struct s2n_async_pkey_decrypt_data *decrypt = &op->op.decrypt;
     decrypt->on_complete                        = on_complete;
@@ -239,6 +241,7 @@ S2N_RESULT s2n_async_pkey_sign_async(struct s2n_connection *conn, s2n_signature_
 
     op->type = S2N_ASYNC_SIGN;
     op->conn = conn;
+    op->validation_mode = conn->config->async_pkey_validation_mode;
 
     struct s2n_async_pkey_sign_data *sign = &op->op.sign;
     sign->on_complete                     = on_complete;
@@ -386,6 +389,8 @@ S2N_RESULT s2n_async_pkey_decrypt_free(struct s2n_async_pkey_op *op)
 S2N_RESULT s2n_async_pkey_sign_perform(struct s2n_async_pkey_op *op, s2n_cert_private_key *pkey)
 {
     RESULT_ENSURE_REF(op);
+    RESULT_ENSURE_REF(op->conn);
+    RESULT_ENSURE_REF(op->conn->config);
     RESULT_ENSURE_REF(pkey);
 
     struct s2n_async_pkey_sign_data *sign = &op->op.sign;
@@ -394,7 +399,17 @@ S2N_RESULT s2n_async_pkey_sign_perform(struct s2n_async_pkey_op *op, s2n_cert_pr
     RESULT_GUARD(s2n_pkey_size(pkey, &maximum_signature_length));
     RESULT_GUARD_POSIX(s2n_alloc(&sign->signature, maximum_signature_length));
 
-    RESULT_GUARD_POSIX(s2n_pkey_sign(pkey, sign->sig_alg, &sign->digest, &sign->signature));
+    /* If validation mode is S2N_ASYNC_PKEY_VALIDATION_STRICT
+     * then use local hash copy to sign the signature */
+    if (op->validation_mode == S2N_ASYNC_PKEY_VALIDATION_STRICT) {
+        DEFER_CLEANUP(struct s2n_hash_state hash_state_copy, s2n_hash_free);
+        RESULT_GUARD_POSIX(s2n_hash_new(&hash_state_copy));
+        RESULT_GUARD_POSIX(s2n_hash_copy(&hash_state_copy, &sign->digest));
+
+        RESULT_GUARD_POSIX(s2n_pkey_sign(pkey, sign->sig_alg, &hash_state_copy, &sign->signature));
+    } else {
+        RESULT_GUARD_POSIX(s2n_pkey_sign(pkey, sign->sig_alg, &sign->digest, &sign->signature));
+    }
 
     return S2N_RESULT_OK;
 }
@@ -406,7 +421,29 @@ S2N_RESULT s2n_async_pkey_sign_apply(struct s2n_async_pkey_op *op, struct s2n_co
 
     struct s2n_async_pkey_sign_data *sign = &op->op.sign;
 
+    /* Perform signature validation only if validation feature is opt in */
+    if (op->validation_mode == S2N_ASYNC_PKEY_VALIDATION_STRICT) {
+        RESULT_GUARD(s2n_async_pkey_verify_signature(conn, sign->sig_alg, &sign->digest, &sign->signature));
+    }
+
     RESULT_GUARD_POSIX(sign->on_complete(conn, &sign->signature));
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_async_pkey_verify_signature(struct s2n_connection *conn, s2n_signature_algorithm sig_alg,
+                                    struct s2n_hash_state *digest, struct s2n_blob *signature) {
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->handshake_params.our_chain_and_key);
+    RESULT_ENSURE_REF(digest);
+    RESULT_ENSURE_REF(signature);
+
+    /* Parse public key for the cert */
+    DEFER_CLEANUP(struct s2n_pkey public_key = {0}, s2n_pkey_free);
+    s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+    RESULT_GUARD_POSIX(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type,
+                                                &conn->handshake_params.our_chain_and_key->cert_chain->head->raw));
+    RESULT_ENSURE(s2n_pkey_verify(&public_key, sig_alg, digest, signature) == S2N_SUCCESS, S2N_ERR_VERIFY_SIGNATURE);
 
     return S2N_RESULT_OK;
 }
@@ -421,6 +458,20 @@ S2N_RESULT s2n_async_pkey_sign_free(struct s2n_async_pkey_op *op)
     RESULT_GUARD_POSIX(s2n_free(&sign->signature));
 
     return S2N_RESULT_OK;
+}
+
+int s2n_async_pkey_op_set_validation_mode(struct s2n_async_pkey_op *op, s2n_async_pkey_validation_mode mode)
+{
+    POSIX_ENSURE_REF(op);
+
+    switch(mode) {
+        case S2N_ASYNC_PKEY_VALIDATION_FAST:
+        case S2N_ASYNC_PKEY_VALIDATION_STRICT:
+            op->validation_mode = mode;
+            return S2N_SUCCESS;
+    }
+
+    POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
 }
 
 int s2n_async_pkey_op_get_op_type(struct s2n_async_pkey_op *op, s2n_async_pkey_op_type *type)

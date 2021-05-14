@@ -910,6 +910,15 @@ Sets whether or not a connection should terminate on receiving a WARNING alert f
 
 This setting is ignored in TLS1.3. TLS1.3 terminates a connection for all alerts except user_canceled.
 
+### s2n\_config\_set\_async\_pkey\_validation\_mode
+```c
+int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_async_pkey_validation_mode mode);
+```
+Sets whether or not a connection should enforce strict signature validation during the `s2n_async_pkey_op_apply` call. 
+`mode` can take the following values: 
+- `S2N_ASYNC_PKEY_VALIDATION_FAST` - default behavior: s2n-tls will perform only the minimum validation required for safe use of the asyn pkey operation.
+- `S2N_ASYNC_PKEY_VALIDATION_STRICT` - in addition to the previous checks, s2n-tls will also ensure that the signature created as a result of the async private key sign operation matches the public key on the connection.
+
 ## Certificate-related functions
 
 ### s2n\_cert\_chain\_and\_key\_new

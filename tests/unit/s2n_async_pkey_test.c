@@ -41,6 +41,10 @@ uint8_t offload_callback_count = 0;
 
 typedef int (async_handler)(struct s2n_connection *conn);
 
+/* Declaring a flag to check if sign operation is called at least once for all cipher_suites
+ * while performing handshake through handler (async_handler_sign_with_different_pkey_and_apply) */
+static bool async_handler_sign_operation_called = false;
+
 static int async_handler_fail(struct s2n_connection *conn)
 {
     FAIL_MSG("async_handler_fail should never get invoked");
@@ -73,6 +77,60 @@ static int async_handler_wipe_connection_and_apply(struct s2n_connection *conn)
     pkey_op = NULL;
 
     return S2N_FAILURE;
+}
+
+static int async_handler_sign_with_different_pkey_and_apply(struct s2n_connection *conn)
+{
+    /* Check that we have pkey_op */
+    EXPECT_NOT_NULL(pkey_op);
+
+    /* Extract pkey */
+    struct s2n_cert_chain_and_key *chain_and_key = s2n_connection_get_selected_cert(conn);
+    EXPECT_NOT_NULL(chain_and_key);
+    s2n_cert_private_key *pkey = s2n_cert_chain_and_key_get_private_key(chain_and_key);
+    EXPECT_NOT_NULL(pkey);
+
+    /* Test that we can perform pkey operation */
+    EXPECT_SUCCESS(s2n_async_pkey_op_perform(pkey_op, pkey));
+
+    /* Get type for pkey_op */
+    s2n_async_pkey_op_type type = { 0 };
+    EXPECT_SUCCESS(s2n_async_pkey_op_get_op_type(pkey_op, &type));
+
+    /* Test apply with different certificate chain only for sign operation */
+    if (type == S2N_ASYNC_SIGN) {
+        /* Create new chain and key, and modify current server conn */
+        struct s2n_cert_chain_and_key *chain_and_key_2 = NULL;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key_2,
+                S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+
+        /* Change server conn cert data */
+        EXPECT_NOT_NULL(conn->handshake_params.our_chain_and_key);
+        conn->handshake_params.our_chain_and_key = chain_and_key_2;
+
+        /* Test that async sign operation will fail as signature was performed over different private key */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(pkey_op, conn), S2N_ERR_VERIFY_SIGNATURE);
+
+        /* Set pkey_op's validation mode to S2N_ASYNC_PKEY_VALIDATION_FAST and test that async sign apply will pass now */
+        EXPECT_SUCCESS(s2n_async_pkey_op_set_validation_mode(pkey_op, S2N_ASYNC_PKEY_VALIDATION_FAST));
+        EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
+
+        /* Set chain_and_key back to original value and free new chain_and_key */
+        conn->handshake_params.our_chain_and_key = chain_and_key;
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key_2));
+
+        /* Update async_handler_sign_operation_called flag to true */
+        async_handler_sign_operation_called = true;
+    } else {
+        /* Test decrypt operation passes */
+        EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
+    }
+
+    /* Free the pkey op */
+    EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
+    pkey_op = NULL;
+
+    return S2N_SUCCESS;
 }
 
 static int async_handler_free_pkey_op(struct s2n_connection *conn)
@@ -449,7 +507,52 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(server_config));
             EXPECT_SUCCESS(s2n_config_free(client_config));
         }
+
+        /* Test: Apply invalid signature */
+        {
+            struct s2n_config *server_config, *client_config;
+            EXPECT_NOT_NULL(server_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
+            EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_store_callback));
+            server_config->security_policy = &server_security_policy;
+            /* Enable signature validation for async sign call */
+            EXPECT_SUCCESS(s2n_config_set_async_pkey_validation_mode(server_config, S2N_ASYNC_PKEY_VALIDATION_STRICT));
+
+            EXPECT_NOT_NULL(client_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+
+            /* Create connection */
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+            /* Create nonblocking pipes */
+            struct s2n_test_io_pair io_pair;
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+            EXPECT_SUCCESS(try_handshake(server_conn, client_conn, async_handler_sign_with_different_pkey_and_apply));
+
+            /* Free the data */
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+            EXPECT_SUCCESS(s2n_config_free(server_config));
+            EXPECT_SUCCESS(s2n_config_free(client_config));
+        }
     }
+
+    /* Test if sign operation was called at least once for 'Test: Apply invalid signature',
+     * the flag holds the value after executing handshakes for all cipher_suites */
+    EXPECT_EQUAL(async_handler_sign_operation_called, true);
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
 
