@@ -71,7 +71,6 @@ static int s2n_get_cert_type_for_sig_alg(s2n_signature_algorithm sig_alg, s2n_pk
             *cert_type = S2N_PKEY_TYPE_RSA_PSS;
             return S2N_SUCCESS;
         case S2N_SIGNATURE_ANONYMOUS:
-        case S2N_SIGNATURE_SENTINEL:
             POSIX_BAIL(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }
     POSIX_BAIL(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);

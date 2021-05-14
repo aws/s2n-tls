@@ -126,27 +126,6 @@
  */
 #define TLS_QUIC_TRANSPORT_PARAMETERS      0xffa5
 
-/* TLS Signature Algorithms - RFC 5246 7.4.1.4.1 */
-/* https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16 */
-#define TLS_SIGNATURE_ALGORITHM_ANONYMOUS   0
-#define TLS_SIGNATURE_ALGORITHM_RSA         1
-#define TLS_SIGNATURE_ALGORITHM_DSA         2
-#define TLS_SIGNATURE_ALGORITHM_ECDSA       3
-#define TLS_SIGNATURE_ALGORITHM_PRIVATE     224
-
-#define TLS_SIGNATURE_ALGORITHM_COUNT       4
-
-/* TLS Hash Algorithm - https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */
-/* https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-18 */
-#define TLS_HASH_ALGORITHM_ANONYMOUS        0
-#define TLS_HASH_ALGORITHM_MD5              1
-#define TLS_HASH_ALGORITHM_SHA1             2
-#define TLS_HASH_ALGORITHM_SHA224           3
-#define TLS_HASH_ALGORITHM_SHA256           4
-#define TLS_HASH_ALGORITHM_SHA384           5
-#define TLS_HASH_ALGORITHM_SHA512           6
-#define TLS_HASH_ALGORITHM_COUNT            7
-
 /* TLS SignatureScheme (Backwards compatible with SigHash and SigAlg values above) */
 /* Defined here: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme */
 #define TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA1             0x0201

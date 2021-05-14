@@ -436,33 +436,41 @@ extern int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 S2N_API
 extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
 
+/* TLS Signature Algorithms - RFC 5246 7.4.1.4.1 */ 
+/* https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16 */ 
 typedef enum {
-    S2N_HANDSHAKE_SIGNATURE_ANONYMOUS,
-    S2N_HANDSHAKE_SIGNATURE_RSA,
-    S2N_HANDSHAKE_SIGNATURE_ECDSA,
-    S2N_HANDSHAKE_SIGNATURE_RSA_PSS_RSAE,
-    S2N_HANDSHAKE_SIGNATURE_RSA_PSS_PSS
-} s2n_handshake_signature_algorithm;
+    S2N_TLS_SIGNATURE_ANONYMOUS = 0,
+    S2N_TLS_SIGNATURE_RSA = 1,
+    S2N_TLS_SIGNATURE_ECDSA = 3,
 
+    /* Use Private Range for RSA PSS since it's not defined there */
+    S2N_TLS_SIGNATURE_RSA_PSS_RSAE = 224,
+    S2N_TLS_SIGNATURE_RSA_PSS_PSS
+} s2n_tls_signature_algorithm;
+
+/* TLS Hash Algorithm - https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */ 
+/* https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-18 */ 
 typedef enum {
-    S2N_HANDSHAKE_HASH_NONE,
-    S2N_HANDSHAKE_HASH_MD5,
-    S2N_HANDSHAKE_HASH_SHA1,
-    S2N_HANDSHAKE_HASH_SHA224,
-    S2N_HANDSHAKE_HASH_SHA256,
-    S2N_HANDSHAKE_HASH_SHA384,
-    S2N_HANDSHAKE_HASH_SHA512,
-    S2N_HANDSHAKE_HASH_MD5_SHA1,
-} s2n_handshake_hash_algorithm;
+    S2N_TLS_HASH_NONE = 0,
+    S2N_TLS_HASH_MD5 = 1,
+    S2N_TLS_HASH_SHA1 = 2,
+    S2N_TLS_HASH_SHA224 = 3,
+    S2N_TLS_HASH_SHA256 = 4,
+    S2N_TLS_HASH_SHA384 = 5,
+    S2N_TLS_HASH_SHA512 = 6,
+    
+    /* Use Private Range for MD5_SHA1 */
+    S2N_TLS_HASH_MD5_SHA1 = 224
+} s2n_tls_hash_algorithm;
 
 S2N_API
-extern int s2n_connection_get_selected_signature_algorithm(struct s2n_connection *conn, s2n_handshake_signature_algorithm *chosen_alg);
+extern int s2n_connection_get_selected_signature_algorithm(struct s2n_connection *conn, s2n_tls_signature_algorithm *chosen_alg);
 S2N_API
-extern int s2n_connection_get_selected_digest_algorithm(struct s2n_connection *conn, s2n_handshake_hash_algorithm *chosen_alg);
+extern int s2n_connection_get_selected_digest_algorithm(struct s2n_connection *conn, s2n_tls_hash_algorithm *chosen_alg);
 S2N_API
-extern int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_connection *conn, s2n_handshake_signature_algorithm *chosen_alg);
+extern int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_connection *conn, s2n_tls_signature_algorithm *chosen_alg);
 S2N_API
-extern int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connection *conn, s2n_handshake_hash_algorithm *chosen_alg);
+extern int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connection *conn, s2n_tls_hash_algorithm *chosen_alg);
 
 S2N_API
 extern struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2n_connection *conn);
