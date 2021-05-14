@@ -25,5 +25,5 @@ typedef enum {
 
     /* Use Private Range for RSA PSS */
     S2N_SIGNATURE_RSA_PSS_RSAE = S2N_TLS_SIGNATURE_RSA_PSS_RSAE,
-    S2N_SIGNATURE_RSA_PSS_PSS,
+    S2N_SIGNATURE_RSA_PSS_PSS
 } s2n_signature_algorithm;
