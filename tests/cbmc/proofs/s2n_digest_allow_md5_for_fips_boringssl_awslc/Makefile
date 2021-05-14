@@ -18,7 +18,7 @@ DEFINES += -DOPENSSL_IS_AWSLC=1
 
 CBMCFLAGS +=
 
-PROOF_UID = s2n_digest_allow_md5_for_fips
+PROOF_UID = s2n_digest_allow_md5_for_fips_boringssl_awslc
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
