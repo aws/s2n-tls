@@ -181,12 +181,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_get_selected_digest_algorithm(conn, &output));
         EXPECT_EQUAL(S2N_HANDSHAKE_HASH_NONE, output);
 
-        s2n_handshake_hash_algorithm expected_output[] = { S2N_HANDSHAKE_HASH_MD5, S2N_HANDSHAKE_HASH_SHA1, 
-                                                           S2N_HANDSHAKE_HASH_SHA224, S2N_HANDSHAKE_HASH_SHA256, 
-                                                           S2N_HANDSHAKE_HASH_SHA384, S2N_HANDSHAKE_HASH_SHA512, 
-                                                           S2N_HANDSHAKE_HASH_NONE, S2N_HANDSHAKE_HASH_NONE };
+        s2n_handshake_hash_algorithm expected_output[] = { S2N_HANDSHAKE_HASH_NONE, S2N_HANDSHAKE_HASH_MD5, 
+                                                           S2N_HANDSHAKE_HASH_SHA1, S2N_HANDSHAKE_HASH_SHA224, 
+                                                           S2N_HANDSHAKE_HASH_SHA256, S2N_HANDSHAKE_HASH_SHA384, 
+                                                           S2N_HANDSHAKE_HASH_SHA512, S2N_HANDSHAKE_HASH_MD5_SHA1,
+                                                           S2N_HANDSHAKE_HASH_NONE };
 
-        for (size_t i = S2N_HANDSHAKE_HASH_NONE; i < S2N_HASH_SENTINEL; i++) {
+        for (size_t i = S2N_HANDSHAKE_HASH_NONE; i <= S2N_HASH_SENTINEL; i++) {
             conn->secure.client_cert_sig_scheme.hash_alg = i;
             EXPECT_SUCCESS(s2n_connection_get_selected_client_cert_digest_algorithm(conn, &output));
             conn->secure.client_cert_sig_scheme.hash_alg = 0;
