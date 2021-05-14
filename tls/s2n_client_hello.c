@@ -66,7 +66,7 @@ static S2N_RESULT s2n_generate_client_session_id(struct s2n_connection *conn)
         return S2N_RESULT_OK;
     }
 
-    /* Only generate the session id for pre-TLS1.3 if using tickets */
+    /* Only generate the session id for pre-TLS1.3 if not using tickets */
     if (conn->client_protocol_version < S2N_TLS13 && !conn->config->use_tickets) {
         return S2N_RESULT_OK;
     }

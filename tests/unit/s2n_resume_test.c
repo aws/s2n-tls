@@ -931,12 +931,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            uint8_t session_id[] = { SESSION_ID_DATA };
-            struct s2n_blob psk_identity = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&psk_identity, session_id, sizeof(session_id)));
-
-            EXPECT_ERROR_WITH_ERRNO(s2n_deserialize_resumption_state(conn, &psk_identity, &session_id_stuffer),
-                                      S2N_ERR_SAFETY);
+            EXPECT_ERROR_WITH_ERRNO(s2n_deserialize_resumption_state(conn, NULL, &session_id_stuffer),
+                                      S2N_ERR_NULL);
             EXPECT_EQUAL(conn->secure.cipher_suite, &s2n_null_cipher_suite);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
