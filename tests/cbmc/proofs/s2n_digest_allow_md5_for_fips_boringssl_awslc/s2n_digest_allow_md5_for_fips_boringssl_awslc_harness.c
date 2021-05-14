@@ -18,7 +18,7 @@
 #include "api/s2n.h"
 #include "crypto/s2n_evp.h"
 
-void s2n_digest_allow_md5_for_fips_harness()
+void s2n_digest_allow_md5_for_fips_boringssl_awslc_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_evp_digest *evp_digest = cbmc_allocate_s2n_evp_digest();
