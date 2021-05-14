@@ -294,7 +294,7 @@ void usage()
                     "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
                     "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace is not allowed before or after the commas.\n"
                     "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
-    fprintf(stderr, "  -E, --max_early_data \n");
+    fprintf(stderr, "  -E, --max-early-data \n");
     fprintf(stderr, "    Sets maximum early data allowed in session tickets. \n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
@@ -385,7 +385,8 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
     if (settings.https_server) {
         https(conn, settings.https_bench);
     } else if (!settings.only_negotiate) {
-        echo(conn, fd);
+        bool stop_echo = false;
+        echo(conn, fd, &stop_echo);
     }
 
     /* The following call can block on receiving a close_notify if we initiate the shutdown or if the */
@@ -469,7 +470,7 @@ int main(int argc, char *const *argv)
         {"non-blocking", no_argument, 0, 'B'},
         {"key-log", required_argument, 0, 'L'},
         {"psk", required_argument, 0, 'P'},
-        {"max_early_data", required_argument, 0, 'E'},
+        {"max-early-data", required_argument, 0, 'E'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };

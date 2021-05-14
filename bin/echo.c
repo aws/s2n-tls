@@ -70,27 +70,6 @@ static int wait_for_event(int fd, s2n_blocked_status blocked)
     return S2N_SUCCESS;
 }
 
-int recv_session_ticket(struct s2n_connection *conn, int fd)
-{
-    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    uint8_t out[100] = { 0 };
-    ssize_t bytes_read = 0;
-
-    /* s2nc needs to call s2n_recv until it successfully reads some data from the server.
-     * The output buffer is an arbitrary size to catch whatever bytes the server is sending. */
-    do {
-        bytes_read = s2n_recv(conn, &out, sizeof(out), &blocked);
-    } while (bytes_read < 0);
-
-    if (bytes_read > 0) {
-        for (size_t i = 0; i < bytes_read; i++) {
-            fprintf(stdout, "%c", out[i]);
-        }
-    }
-
-    return S2N_SUCCESS;
-}
-
 int early_data_recv(struct s2n_connection *conn)
 {
     uint32_t max_early_data_size = 0;
@@ -109,7 +88,6 @@ int early_data_recv(struct s2n_connection *conn)
         server_success = (s2n_recv_early_data(conn, early_data_received + total_data_recv,
                 max_early_data_size - total_data_recv, &data_recv, &blocked) >= S2N_SUCCESS);
         total_data_recv += data_recv;
-
     } while (!server_success);
 
     if (total_data_recv > 0) {
@@ -132,7 +110,7 @@ int early_data_send(struct s2n_connection *conn, uint8_t *data, uint32_t len)
     bool client_success = 0;
     do {
         client_success = (s2n_send_early_data(conn, data + total_data_sent,
-        len - total_data_sent, &data_sent, &blocked) >= S2N_SUCCESS);
+                len - total_data_sent, &data_sent, &blocked) >= S2N_SUCCESS);
         total_data_sent += data_sent;
     } while (total_data_sent < len && !client_success);
 
@@ -223,7 +201,7 @@ int negotiate(struct s2n_connection *conn, int fd)
     return 0;
 }
 
-int echo(struct s2n_connection *conn, int sockfd)
+int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
 {
     struct pollfd readers[2];
 
@@ -236,10 +214,12 @@ int echo(struct s2n_connection *conn, int sockfd)
     errno = 0;
 
     /* Act as a simple proxy between stdin and the SSL connection */
-    int p;
+    int p = 0;
     s2n_blocked_status blocked;
     do {
-        while ((p = poll(readers, 2, -1)) > 0) {
+        /* echo will send and receive Application Data back and forth between
+         * client and server until stop_echo is true. */
+        while (!(*stop_echo) && (p = poll(readers, 2, -1)) > 0) {
             char buffer[STDIO_BUFSIZE];
             ssize_t bytes_read = 0;
             ssize_t bytes_written = 0;
