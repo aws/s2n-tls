@@ -83,6 +83,7 @@ int early_data_recv(struct s2n_connection *conn)
     bool server_success = 0;
     s2n_blocked_status blocked = 0;
     uint8_t *early_data_received = malloc(max_early_data_size);
+    GUARD_EXIT_NULL(early_data_received);
 
     do {
         server_success = (s2n_recv_early_data(conn, early_data_received + total_data_recv,
@@ -91,7 +92,7 @@ int early_data_recv(struct s2n_connection *conn)
     } while (!server_success);
 
     if (total_data_recv > 0) {
-        fprintf(stdout, "Early Data received:\n");
+        fprintf(stdout, "Early Data received: ");
         for (size_t i = 0; i < total_data_recv; i++) {
             fprintf(stdout, "%c", early_data_received[i]);
         }
@@ -218,8 +219,11 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
     s2n_blocked_status blocked;
     do {
         /* echo will send and receive Application Data back and forth between
-         * client and server until stop_echo is true. */
-        while (!(*stop_echo) && (p = poll(readers, 2, -1)) > 0) {
+         * client and server, until stop_echo is true. */
+        while (!(*stop_echo)) {
+            if ((p = poll(readers, 2, -1)) < 0) {
+                return 0;
+            }
             char buffer[STDIO_BUFSIZE];
             ssize_t bytes_read = 0;
             ssize_t bytes_written = 0;

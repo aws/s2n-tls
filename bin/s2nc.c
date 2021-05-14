@@ -131,7 +131,10 @@ static int test_session_ticket_cb(struct s2n_connection *conn, void *ctx, struct
 
     GUARD_EXIT(s2n_session_ticket_get_data_len(ticket, &session_state_length), "Error getting ticket length ");
     session_state = realloc(session_state, session_state_length);
-    GUARD_EXIT_NULL(session_state);
+    if(session_state == NULL) {
+        print_s2n_error("Error getting new session state");
+        exit(1);
+    }
     GUARD_EXIT(s2n_session_ticket_get_data(ticket, session_state_length, session_state), "Error getting ticket data");
 
     bool *session_ticket_recv = (bool *)ctx;
@@ -406,6 +409,7 @@ int main(int argc, char *const *argv)
             break;
         case 'E':
             early_data = load_file_to_cstring(optarg);
+            GUARD_EXIT_NULL(early_data);
             break;
         case '?':
         default:
@@ -551,6 +555,7 @@ int main(int argc, char *const *argv)
 
         GUARD_EXIT(s2n_setup_external_psk_list(conn, psk_optarg_list, psk_list_len), "Error setting external psk list");
 
+        /* Send early data if we have a session ticket in our possession */
         if (early_data && session_state_length) {
             uint32_t early_data_length = strlen(early_data);
             GUARD_EXIT(early_data_send(conn, (uint8_t *)early_data, early_data_length), "Error sending early data");
@@ -568,7 +573,7 @@ int main(int argc, char *const *argv)
         if (reconnect > 0) {
             /* Only need to wait to receive the session ticket in TLS1.3 */
             if ((conn->actual_protocol_version >= S2N_TLS13 ) && session_ticket) {
-                echo(conn, sockfd, &session_ticket_recv);
+                GUARD_EXIT(echo(conn, sockfd, &session_ticket_recv), "Error calling echo");
             }
         }
 
