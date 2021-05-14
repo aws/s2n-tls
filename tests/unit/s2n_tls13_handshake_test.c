@@ -223,7 +223,7 @@ int main(int argc, char **argv)
         server_conn->server = &server_conn->initial;
         S2N_BLOB_FROM_HEX(deadbeef_from_server, "DEADBEEF");
 
-        EXPECT_SUCCESS(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &deadbeef_from_server));
+        EXPECT_SUCCESS(s2n_record_write(server_conn, TLS_HANDSHAKE, &deadbeef_from_server));
         EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->out), 9);
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
@@ -245,7 +245,7 @@ int main(int argc, char **argv)
         /* client writes message to server in plaintext */
         client_conn->client = &client_conn->initial;
         S2N_BLOB_FROM_HEX(cafefood_from_client, "CAFED00D");
-        EXPECT_SUCCESS(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &cafefood_from_client));
+        EXPECT_SUCCESS(s2n_record_write(client_conn, TLS_HANDSHAKE, &cafefood_from_client));
 
         /* unencrypted length */
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->out), 9);
@@ -255,16 +255,6 @@ int main(int argc, char **argv)
         client_conn->client = &client_conn->secure;
         EXPECT_SUCCESS(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &cafefood_from_client));
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->out), 26);
-        EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->header_in, 5));
-        EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->in, s2n_stuffer_data_available(&client_conn->out)));
-
-        /* if aead payload is parsed as plaintext, it would be of length 21 */
-        server_conn->client = &server_conn->initial;
-        EXPECT_SUCCESS(s2n_record_parse(server_conn));
-        EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->in), 21);
-        EXPECT_SUCCESS(s2n_stuffer_reread(&client_conn->out));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->header_in));
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->in));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->header_in, 5));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->out, &server_conn->in, s2n_stuffer_data_available(&client_conn->out)));
 

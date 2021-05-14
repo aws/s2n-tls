@@ -76,7 +76,7 @@ struct s2n_session_ticket {
 
 extern struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t *name);
 extern int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *to);
-extern int s2n_decrypt_session_ticket(struct s2n_connection *conn);
+extern int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *from);
 extern int s2n_encrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *to); 
 extern int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *from); 
 extern int s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config);

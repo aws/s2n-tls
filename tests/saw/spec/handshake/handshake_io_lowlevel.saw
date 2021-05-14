@@ -358,8 +358,9 @@ let s2n_generate_new_client_session_id_spec = do {
 // a noop function that returns 0 from the perspective of our current proof
 let s2n_decrypt_session_ticket_spec = do {
     pconn <- crucible_alloc_readonly (llvm_struct "struct.s2n_connection");
+    from <- crucible_alloc_readonly (llvm_struct "struct.s2n_stuffer");
 
-    crucible_execute_func [pconn];
+    crucible_execute_func [pconn, from];
     crucible_return (crucible_term {{ 0 : [32] }});
 };
 
