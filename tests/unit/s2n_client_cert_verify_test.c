@@ -23,8 +23,10 @@
 #include "tls/s2n_connection.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
+#include "tls/s2n_async_pkey.h"
 
 static bool async_callback_invoked = false;
+static bool async_sign_operation_called_s2n_client = false;
 static struct s2n_async_pkey_op *pkey_op = NULL;
 static struct s2n_connection *pkey_conn = NULL;
 
@@ -73,7 +75,41 @@ static int s2n_test_negotiate_with_async_pkey_op(struct s2n_connection *conn, s2
         EXPECT_NOT_NULL(pkey);
 
         EXPECT_SUCCESS(s2n_async_pkey_op_perform(pkey_op, pkey));
-        EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
+
+        /* Get type for pkey_op */
+        s2n_async_pkey_op_type type = { 0 };
+        EXPECT_SUCCESS(s2n_async_pkey_op_get_op_type(pkey_op, &type));
+
+        /* Test if signature with wrong private key fails at verification when apply */
+        if (type == S2N_ASYNC_SIGN) {
+            /* Create new chain and key, and modify current server conn */
+            struct s2n_cert_chain_and_key *chain_and_key_2 = NULL;
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key_2,
+                    S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+
+            /* Change server conn cert data */
+            EXPECT_NOT_NULL(conn->handshake_params.our_chain_and_key);
+            conn->handshake_params.our_chain_and_key = chain_and_key_2;
+
+            /* Test that async sign operation will fail as signature was performed over different private key */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(pkey_op, conn), S2N_ERR_VERIFY_SIGNATURE);
+
+            /* Set pkey_op's validation mode to S2N_ASYNC_PKEY_VALIDATION_FAST and test that async sign apply will pass now */
+            EXPECT_SUCCESS(s2n_async_pkey_op_set_validation_mode(pkey_op, S2N_ASYNC_PKEY_VALIDATION_FAST));
+            EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
+
+            /* Set chain_and_key back to original value and free new chain_and_key */
+            conn->handshake_params.our_chain_and_key = chain_and_key;
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key_2));
+
+            /* Set flag to test if sign operation called for S2N_CLIENT */
+            if (conn->mode == S2N_CLIENT) {
+                async_sign_operation_called_s2n_client = true;
+            }
+        } else {
+            EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
+        }
+
         EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
         pkey_op = NULL;
         pkey_conn = NULL;
@@ -178,6 +214,9 @@ int main(int argc, char **argv)
 
         /* Make sure async callback was used during the handshake. */
         EXPECT_TRUE(async_callback_invoked);
+
+        /* Make sure async sign operation was called at least once for S2N_CLIENT */
+        EXPECT_TRUE(async_sign_operation_called_s2n_client);
 
         /* Verify that both connections negotiated Mutual Auth */
         EXPECT_TRUE(s2n_connection_client_cert_used(server_conn));

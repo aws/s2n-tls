@@ -111,8 +111,8 @@ static int async_handler_sign_with_different_pkey_and_apply(struct s2n_connectio
         /* Test that async sign operation will fail as signature was performed over different private key */
         EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(pkey_op, conn), S2N_ERR_VERIFY_SIGNATURE);
 
-        /* Set signature validation mode to S2N_ASYNC_PKEY_VALIDATION_SKIP and test that async sign apply will pass now*/
-        EXPECT_SUCCESS(s2n_config_set_async_pkey_validation_mode(conn->config, S2N_ASYNC_PKEY_VALIDATION_SKIP));
+        /* Set pkey_op's validation mode to S2N_ASYNC_PKEY_VALIDATION_FAST and test that async sign apply will pass now */
+        EXPECT_SUCCESS(s2n_async_pkey_op_set_validation_mode(pkey_op, S2N_ASYNC_PKEY_VALIDATION_FAST));
         EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
 
         /* Set chain_and_key back to original value and free new chain_and_key */
