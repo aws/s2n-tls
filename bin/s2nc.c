@@ -585,12 +585,13 @@ int main(int argc, char *const *argv)
                 GUARD_EXIT(echo(conn, sockfd, &session_ticket_recv), "Error calling echo");
             } else {
                 if (!session_ticket && s2n_connection_get_session_id_length(conn) <= 0) {
-                    printf("Endpoint sent empty session id so cannot resume session\n");
+                    print_s2n_error("Endpoint sent empty session id so cannot resume session");
                     exit(1);
                 }
                 free(session_state);
                 session_state_length = s2n_connection_get_session_length(conn);
                 session_state = calloc(session_state_length, sizeof(uint8_t));
+                GUARD_EXIT_NULL(session_state);
                 if (s2n_connection_get_session(conn, session_state, session_state_length) != session_state_length) {
                     print_s2n_error("Error getting serialized session state");
                     exit(1);
