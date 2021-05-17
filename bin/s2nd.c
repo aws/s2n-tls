@@ -294,6 +294,8 @@ void usage()
                     "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
                     "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace is not allowed before or after the commas.\n"
                     "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
+    fprintf(stderr, "  -E, --max-early-data \n");
+    fprintf(stderr, "    Sets maximum early data allowed in session tickets. \n");
     fprintf(stderr, "  -h,--help\n");
     fprintf(stderr, "    Display this message and quit.\n");
 
@@ -365,6 +367,8 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         s2n_setup_external_psk_list(conn, settings.psk_optarg_list, settings.psk_list_len),
         "Error setting external psk list");
 
+    GUARD_RETURN(early_data_recv(conn), "Error receiving early data");
+
     if (negotiate(conn, fd) != S2N_SUCCESS) {
         if (settings.mutual_auth) {
             if (!s2n_connection_client_cert_used(conn)) {
@@ -381,7 +385,8 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
     if (settings.https_server) {
         https(conn, settings.https_bench);
     } else if (!settings.only_negotiate) {
-        echo(conn, fd);
+        bool stop_echo = false;
+        echo(conn, fd, &stop_echo);
     }
 
     /* The following call can block on receiving a close_notify if we initiate the shutdown or if the */
@@ -435,6 +440,7 @@ int main(int argc, char *const *argv)
     conn_settings.session_cache = 1;
     conn_settings.max_conns = -1;
     conn_settings.psk_list_len = 0;
+    int max_early_data = 0;
 
     struct option long_options[] = {
         {"ciphers", required_argument, NULL, 'c'},
@@ -464,12 +470,13 @@ int main(int argc, char *const *argv)
         {"non-blocking", no_argument, 0, 'B'},
         {"key-log", required_argument, 0, 'L'},
         {"psk", required_argument, 0, 'P'},
+        {"max-early-data", required_argument, 0, 'E'},
         /* Per getopt(3) the last element of the array has to be filled with all zeros */
         { 0 },
     };
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:A:P:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "c:hmnst:d:iTCX::wb:A:P:E:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -576,6 +583,9 @@ int main(int argc, char *const *argv)
                 exit(1);
             }
             conn_settings.psk_optarg_list[conn_settings.psk_list_len++] = optarg;
+            break;
+        case 'E':
+            max_early_data = atoi(optarg);
             break;
         case '?':
         default:
@@ -716,6 +726,8 @@ int main(int argc, char *const *argv)
 
         close(fd);
     }
+
+    GUARD_EXIT(s2n_config_set_server_max_early_data_size(config, max_early_data), "Error setting max early data");
 
     GUARD_EXIT(s2n_config_add_dhparams(config, dhparams), "Error adding DH parameters");
 
