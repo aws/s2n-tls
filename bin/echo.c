@@ -96,6 +96,7 @@ int early_data_recv(struct s2n_connection *conn)
         for (size_t i = 0; i < total_data_recv; i++) {
             fprintf(stdout, "%c", early_data_received[i]);
         }
+        fprintf(stdout, "\n");
     }
 
     free(early_data_received);
@@ -220,10 +221,7 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
     do {
         /* echo will send and receive Application Data back and forth between
          * client and server, until stop_echo is true. */
-        while (!(*stop_echo)) {
-            if ((p = poll(readers, 2, -1)) < 0) {
-                return 0;
-            }
+        while (!(*stop_echo) && (p = poll(readers, 2, -1)) > 0) {
             char buffer[STDIO_BUFSIZE];
             ssize_t bytes_read = 0;
             ssize_t bytes_written = 0;
