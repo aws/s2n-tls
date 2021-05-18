@@ -30,6 +30,7 @@
 #include "utils/s2n_array.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_map_internal.h"
+#include "utils/s2n_safety_macros.h"
 #include "utils/s2n_set.h"
 
 /*
