@@ -124,7 +124,6 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
         insecure=True,
         reconnect=False,
         extra_flags = ['-sess_out', path_to_ticket],
-        data_to_send = data_bytes(4096),
         protocol=protocol)
 
     server_options = copy.copy(client_options)
@@ -186,8 +185,6 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
 def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, protocol, provider, certificate):
     port = str(next(available_ports))
 
-    random_bytes = data_bytes(64)
-
     # The reconnect option for s2nc allows the client to reconnect automatically
     # five times. In this test we expect one full connection and five resumption
     # connections.
@@ -202,7 +199,6 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, pro
         curve=curve,
         insecure=True,
         use_session_ticket=True,
-        data_to_send=random_bytes,
         reconnect=True,
         protocol=protocol)
 
@@ -282,6 +278,8 @@ def test_s2nd_falls_back_to_full_connection(managed_process, tmp_path, cipher, c
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
+        # Server should have sent certificate message as this is a full connection
+        assert b'SSL_accept:SSLv3/TLS write certificate' in results.stderr
 
     # Client inputs received session ticket to resume a session
     assert os.path.exists(path_to_ticket)
@@ -301,7 +299,7 @@ def test_s2nd_falls_back_to_full_connection(managed_process, tmp_path, cipher, c
     for results in client.get_results():
         assert results.exception is None
         assert results.exit_code == 0
-        assert bytes("SSL_connect:SSLv3/TLS read server certificate".encode('utf-8'))
+        assert bytes("SSL_connect:SSLv3/TLS read server certificate".encode('utf-8')) in results.stderr
 
     # The server should indicate a session has not been resumed
     for results in server.get_results():
