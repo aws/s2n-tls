@@ -108,10 +108,13 @@ def test_session_resumption_s2n_client(managed_process, cipher, curve, protocol,
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
-def test_tls13_session_resumption_s2n_server(managed_process, cipher, curve, protocol, provider, certificate):
+def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, curve, protocol, provider, certificate):
     port = str(next(available_ports))
 
-    ticket_filename = 'session_ticket_' + port
+    ticket_filename = 'session_ticket_' + port + '.pem'
+    # Use temp directory to store session tickets
+    p = tmp_path / ticket_filename
+    path_to_ticket = str(p)
 
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
@@ -121,7 +124,7 @@ def test_tls13_session_resumption_s2n_server(managed_process, cipher, curve, pro
         curve=curve,
         insecure=True,
         reconnect=False,
-        extra_flags = ['-sess_out', ticket_filename],
+        extra_flags = ['-sess_out', path_to_ticket],
         data_to_send = data_bytes(4096),
         protocol=protocol)
 
@@ -135,17 +138,21 @@ def test_tls13_session_resumption_s2n_server(managed_process, cipher, curve, pro
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(provider, client_options, timeout=5)
 
+    # The client should have received a session ticket
     for results in client.get_results():
         assert results.exception is None
         assert results.exit_code == 0
+        assert b'Post-Handshake New Session Ticket arrived:' in results.stdout
 
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
+        # The first connection is a full handshake
+        assert b'Resumed session' not in results.stdout
 
-    # Client inputs stored session ticket to resume a session
-    assert os.path.exists(ticket_filename)
-    client_options.extra_flags = ['-sess_in', ticket_filename]
+    # Client inputs received session ticket to resume a session
+    assert os.path.exists(path_to_ticket)
+    client_options.extra_flags = ['-sess_in', path_to_ticket]
 
     port = str(next(available_ports))
     client_options.port = port
@@ -157,11 +164,9 @@ def test_tls13_session_resumption_s2n_server(managed_process, cipher, curve, pro
     openssl_version = get_expected_openssl_version(protocol)
     s2n_version = get_expected_s2n_version(protocol, OpenSSL)
 
-    # The client should have received a session ticket
     for results in client.get_results():
         assert results.exception is None
         assert results.exit_code == 0
-        assert b'Post-Handshake New Session Ticket arrived:' in results.stdout
         assert bytes("Protocol  : {}".format(openssl_version).encode('utf-8')) in results.stdout
 
     # The server should indicate a session has been resumed
@@ -189,10 +194,6 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, pro
     num_full_connections = 1
     num_resumed_connections = 5
 
-    client_data = b'Client has finished sending data'
-    end_of_server_data = b"Server has finished sending data"
-    send_marker = 'Secure Renegotiation IS supported'
-
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
         host="localhost",
@@ -201,7 +202,7 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, pro
         curve=curve,
         insecure=True,
         use_session_ticket=True,
-        data_to_send=client_data,
+        data_to_send=random_bytes,
         reconnect=True,
         protocol=protocol)
 
@@ -210,10 +211,9 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, pro
     server_options.key = certificate.key
     server_options.cert = certificate.cert
     server_options.reconnects_before_exit = num_resumed_connections + num_full_connections
-    server_options.data_to_send = [random_bytes, random_bytes, random_bytes, random_bytes, end_of_server_data]
 
-    server = managed_process(provider, server_options, timeout=5, send_marker=send_marker, close_marker=str(client_data))
-    client = managed_process(S2N, client_options, timeout=5, send_marker=str(end_of_server_data))
+    server = managed_process(provider, server_options, timeout=5)
+    client = managed_process(S2N, client_options, timeout=5)
 
     s2n_version = get_expected_s2n_version(protocol, OpenSSL)
 
