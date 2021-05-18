@@ -111,9 +111,8 @@ def test_session_resumption_s2n_client(managed_process, cipher, curve, protocol,
 def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, curve, protocol, provider, certificate):
     port = str(next(available_ports))
 
-    ticket_filename = 'session_ticket_' + port + '.pem'
     # Use temp directory to store session tickets
-    p = tmp_path / ticket_filename
+    p = tmp_path / 'ticket.pem'
     path_to_ticket = str(p)
 
     client_options = ProviderOptions(
@@ -224,9 +223,10 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, pro
         assert results.stdout.count(b'Resumed session') == num_resumed_connections
         assert bytes("Actual protocol version: {}".format(s2n_version).encode('utf-8')) in results.stdout
 
-    # s_server only writes one certificate message in all of the connections
+    server_accepts_str = str(num_resumed_connections + num_full_connections) + " server accepts that finished"
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
-        assert bytes("6 server accepts that finished".encode('utf-8')) in results.stdout
+        assert bytes(server_accepts_str.encode('utf-8')) in results.stdout
+        # s_server only writes one certificate message in all of the connections
         assert results.stderr.count(b'SSL_accept:SSLv3/TLS write certificate') == num_full_connections
