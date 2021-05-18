@@ -543,6 +543,68 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
+
+        /* Test TLS1.3 client serialization when conn->tls13_ticket_fields is empty and resumption psk is present */
+        {
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
+
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+
+            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+
+	        /* Set non-empty resumption psk */
+            struct s2n_psk *resumption_psk = NULL;
+            EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void**) &resumption_psk));
+            EXPECT_OK(s2n_psk_init(resumption_psk, S2N_PSK_TYPE_RESUMPTION));
+            EXPECT_SUCCESS(s2n_psk_set_secret(resumption_psk, test_session_secret.data, test_session_secret.size));
+            resumption_psk->ticket_age_add = TICKET_AGE_ADD;
+
+            EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &output));
+            tls13_client_state_size = s2n_stuffer_data_available(&output);
+
+            uint8_t serial_id = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &serial_id));
+            EXPECT_EQUAL(serial_id, S2N_TLS13_SERIALIZED_FORMAT_VERSION);
+
+            uint8_t version = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &version));
+            EXPECT_EQUAL(version, S2N_TLS13);
+
+            uint8_t iana_value[2] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&output, iana_value, S2N_TLS_CIPHER_SUITE_LEN));
+            EXPECT_BYTEARRAY_EQUAL(conn->secure.cipher_suite->iana_value, &iana_value, S2N_TLS_CIPHER_SUITE_LEN);
+
+            uint64_t actual_ticket_issue_time = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint64(&output, &actual_ticket_issue_time));
+            EXPECT_EQUAL(actual_ticket_issue_time, ticket_issue_time);
+
+            uint32_t ticket_age_add = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &ticket_age_add));
+            EXPECT_EQUAL(ticket_age_add, TICKET_AGE_ADD);
+
+            uint8_t secret_len = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &secret_len));
+            EXPECT_EQUAL(secret_len, test_session_secret.size);
+
+            uint8_t session_secret[S2N_TLS_SECRET_LEN] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&output, session_secret, secret_len));
+            EXPECT_BYTEARRAY_EQUAL(test_session_secret.data, session_secret, secret_len);
+
+            uint32_t max_early_data_size = 1;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &max_early_data_size));
+            EXPECT_EQUAL(max_early_data_size, 0);
+
+            EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
     }
 
     /* s2n_deserialize_resumption_state */

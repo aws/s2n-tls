@@ -93,7 +93,20 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
     RESULT_ENSURE_REF(out);
 
     uint64_t current_time = 0;
-    struct s2n_ticket_fields *ticket_fields = &conn->tls13_ticket_fields;
+
+    struct s2n_ticket_fields *ticket_fields;
+    struct s2n_ticket_fields tls13_ticket_fields = { 0 };
+
+    if (conn->tls13_ticket_fields.session_secret.data == NULL && conn->psk_params.psk_list.len > 0) {
+        struct s2n_psk *resumption_psk = NULL;
+        RESULT_GUARD(s2n_array_get(&conn->psk_params.psk_list, 0, ( void ** )&resumption_psk));
+        RESULT_ENSURE_REF(resumption_psk);
+        tls13_ticket_fields = (struct s2n_ticket_fields) { .session_secret = resumption_psk->secret,
+                                                           .ticket_age_add = resumption_psk->ticket_age_add };
+        ticket_fields = &tls13_ticket_fields;
+    } else {
+        ticket_fields = &conn->tls13_ticket_fields;
+    }
 
     /* Get the time */
     RESULT_GUARD_POSIX(conn->config->wall_clock(conn->config->sys_clock_ctx, &current_time));
