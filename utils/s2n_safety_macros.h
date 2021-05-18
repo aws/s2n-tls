@@ -524,9 +524,3 @@
  * Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `NULL`
  */
 #define PTR_GUARD_POSIX(result)                               __S2N_ENSURE((result) >= S2N_SUCCESS, return NULL)
-
-/**
- * Ensures `(result) != NULL`, otherwise the function will return `NULL`
- */
-#define PTR_GUARD_PTR(result)                                 __S2N_ENSURE((result) != NULL, return NULL)
-

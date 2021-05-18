@@ -460,9 +460,3 @@ Ensures `s2n_result_is_ok(result)`, otherwise the function will return `NULL`
 ### PTR_GUARD_POSIX(result)
 
 Ensures `(result) >= S2N_SUCCESS`, otherwise the function will return `NULL`
-
-
-### PTR_GUARD_PTR(result)
-
-Ensures `(result) != NULL`, otherwise the function will return `NULL`
-
