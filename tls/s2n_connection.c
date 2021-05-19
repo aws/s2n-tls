@@ -1451,7 +1451,7 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
     return S2N_SUCCESS;
 }
 
-static S2N_RESULT s2n_convert_signature_scheme_to_handshake_hash_algorithm(struct s2n_signature_scheme *sig_scheme, s2n_tls_hash_algorithm *converted_scheme)
+static S2N_RESULT s2n_signature_scheme_to_tls_iana(struct s2n_signature_scheme *sig_scheme, s2n_tls_hash_algorithm *converted_scheme)
 {
     RESULT_ENSURE_REF(sig_scheme);
     RESULT_ENSURE_REF(converted_scheme);
@@ -1491,7 +1491,7 @@ int s2n_connection_get_selected_digest_algorithm(struct s2n_connection *conn, s2
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(converted_scheme);
 
-    POSIX_GUARD_RESULT(s2n_convert_signature_scheme_to_handshake_hash_algorithm(&conn->secure.conn_sig_scheme, converted_scheme));
+    POSIX_GUARD_RESULT(s2n_signature_scheme_to_tls_iana(&conn->secure.conn_sig_scheme, converted_scheme));
 
     return S2N_SUCCESS;
 }
@@ -1501,11 +1501,11 @@ int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connecti
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(converted_scheme);
 
-    POSIX_GUARD_RESULT(s2n_convert_signature_scheme_to_handshake_hash_algorithm(&conn->secure.client_cert_sig_scheme, converted_scheme));
+    POSIX_GUARD_RESULT(s2n_signature_scheme_to_tls_iana(&conn->secure.client_cert_sig_scheme, converted_scheme));
     return S2N_SUCCESS;
 }
 
-static S2N_RESULT s2n_convert_signature_scheme_to_handshake_signature_algorithm(struct s2n_signature_scheme *sig_scheme, s2n_tls_signature_algorithm *converted_scheme)
+static S2N_RESULT s2n_signature_scheme_to_signature_algorithm(struct s2n_signature_scheme *sig_scheme, s2n_tls_signature_algorithm *converted_scheme)
 {
     RESULT_ENSURE_REF(sig_scheme);
     RESULT_ENSURE_REF(converted_scheme);
@@ -1536,7 +1536,7 @@ int s2n_connection_get_selected_signature_algorithm(struct s2n_connection *conn,
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(converted_scheme);
 
-    POSIX_GUARD_RESULT(s2n_convert_signature_scheme_to_handshake_signature_algorithm(&conn->secure.conn_sig_scheme, converted_scheme));
+    POSIX_GUARD_RESULT(s2n_signature_scheme_to_signature_algorithm(&conn->secure.conn_sig_scheme, converted_scheme));
 
     return S2N_SUCCESS;
 }
@@ -1546,7 +1546,7 @@ int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_conne
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(converted_scheme);
 
-    POSIX_GUARD_RESULT(s2n_convert_signature_scheme_to_handshake_signature_algorithm(&conn->secure.client_cert_sig_scheme, converted_scheme));
+    POSIX_GUARD_RESULT(s2n_signature_scheme_to_signature_algorithm(&conn->secure.client_cert_sig_scheme, converted_scheme));
 
     return S2N_SUCCESS;
 }

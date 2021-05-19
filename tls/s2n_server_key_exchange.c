@@ -18,7 +18,6 @@
 #include "error/s2n_errno.h"
 
 #include "tls/s2n_async_pkey.h"
-#include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_kex.h"
 #include "tls/s2n_cipher_suites.h"
