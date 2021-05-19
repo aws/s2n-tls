@@ -7,7 +7,7 @@ from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, AL
 from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, get_expected_openssl_version
+from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -123,6 +123,7 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
         curve=curve,
         insecure=True,
         reconnect=False,
+        data_to_send=data_bytes(4069),
         extra_flags = ['-sess_out', path_to_ticket],
         protocol=protocol)
 
@@ -159,13 +160,11 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(provider, client_options, timeout=5)
 
-    openssl_version = get_expected_openssl_version(protocol)
     s2n_version = get_expected_s2n_version(protocol, OpenSSL)
 
     for results in client.get_results():
         assert results.exception is None
         assert results.exit_code == 0
-        assert bytes("Protocol  : {}".format(openssl_version).encode('utf-8')) in results.stdout
 
     # The server should indicate a session has been resumed
     for results in server.get_results():
