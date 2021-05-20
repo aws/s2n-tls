@@ -1062,25 +1062,8 @@ static int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
     /* We're done with the record, wipe it */
     POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
-    if (r < 0) {
-        /* Don't invoke blinding on some of the common errors */
-        switch (s2n_errno) {
-            case S2N_ERR_CANCELLED:
-            case S2N_ERR_CIPHER_NOT_SUPPORTED:
-            case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
-                conn->closed = 1;
-                break;
-            case S2N_ERR_IO_BLOCKED:
-            case S2N_ERR_ASYNC_BLOCKED:
-                /* A blocking condition is retryable, so we should return without killing the connection. */
-                S2N_ERROR_PRESERVE_ERRNO();
-                break;
-            default:
-                POSIX_GUARD(s2n_connection_kill(conn));
-        }
 
-        return r;
-    }
+    POSIX_GUARD(r);
 
     conn->in_status = ENCRYPTED;
 
@@ -1258,25 +1241,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
 
         POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
-        if (r < 0) {
-            /* Don't invoke blinding on some of the common errors */
-            switch (s2n_errno) {
-                case S2N_ERR_CANCELLED:
-                case S2N_ERR_CIPHER_NOT_SUPPORTED:
-                case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
-                    conn->closed = 1;
-                    break;
-                case S2N_ERR_IO_BLOCKED:
-                case S2N_ERR_ASYNC_BLOCKED:
-                    /* A blocking condition is retryable, so we should return without killing the connection. */
-                    S2N_ERROR_PRESERVE_ERRNO();
-                    break;
-                default:
-                    POSIX_GUARD(s2n_connection_kill(conn));
-            }
-
-            return r;
-        }
+        POSIX_GUARD(r);
 
         /* Update the secrets, if necessary */
         POSIX_GUARD(s2n_tls13_handle_secrets(conn));
@@ -1307,30 +1272,30 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
     /* Resume the handshake */
     conn->handshake.paused = false;
 
-    if (!CONNECTION_IS_WRITER(conn)) {
-        /* We're done parsing the record, reset everything */
-        POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
-        POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
-        conn->in_status = ENCRYPTED;
-    }
-
-    if (r < 0) {
-        /* There is some other problem and we should kill the connection. */
-        if (conn->session_id_len) {
-            s2n_try_delete_session_cache(conn);
-        }
-
-        POSIX_GUARD(s2n_connection_kill(conn));
-        S2N_ERROR_PRESERVE_ERRNO();
-    }
-
     if (CONNECTION_IS_WRITER(conn)) {
-        /* If we're the writer and handler just finished, update the record header if
+        POSIX_GUARD(r);
+
+        /* If we're the writer and the handler just finished, update the record header if
          * needed and let the s2n_handshake_write_io write the data to the socket */
         if (EXPECTED_RECORD_TYPE(conn) == TLS_HANDSHAKE) {
             POSIX_GUARD(s2n_handshake_finish_header(&conn->handshake.io));
         }
     } else {
+        /* We're done parsing the record, reset everything */
+        POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
+        POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
+        conn->in_status = ENCRYPTED;
+
+        if (r < 0) {
+            /* There is some other problem and we should kill the connection. */
+            if (conn->session_id_len) {
+                s2n_try_delete_session_cache(conn);
+            }
+
+            POSIX_GUARD_RESULT(s2n_connection_handle_read_error(conn, s2n_errno));
+            S2N_ERROR_PRESERVE_ERRNO();
+        }
+
         /* The read handler processed the record successfully, we are done with this
          * record. Advance the state machine. */
         POSIX_GUARD(s2n_tls13_handle_secrets(conn));
@@ -1408,6 +1373,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
                     *blocked = S2N_BLOCKED_ON_EARLY_DATA;
                 }
 
+                POSIX_GUARD_RESULT(s2n_connection_handle_read_error(conn, s2n_errno));
                 S2N_ERROR_PRESERVE_ERRNO();
             }
         }

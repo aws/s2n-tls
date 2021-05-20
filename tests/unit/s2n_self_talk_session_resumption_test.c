@@ -216,6 +216,7 @@ int main(int argc, char **argv)
 
         for (size_t i = 0; i < 10; i++) {
             /* Prepare client and server for new connection */
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
             EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
@@ -237,6 +238,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_issue_new_session_ticket(server_conn, client_conn, &early_data_case));
         }
 
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
@@ -266,6 +268,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_test_issue_new_session_ticket(server_conn, client_conn, &no_early_data));
 
         /* Prepare client and server for new connection */
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
@@ -316,6 +319,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_test_issue_new_session_ticket(server_conn, client_conn, &early_data_case));
 
         /* Prepare client and server for a second connection */
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
@@ -336,6 +340,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
 
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
@@ -373,6 +378,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_get_session(client_conn, tls12_session_ticket, tls12_session_ticket_len));
 
         /* Prepare client and server for a second connection */
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
@@ -424,6 +430,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_test_issue_new_session_ticket(server_conn, client_conn, &early_data_case));
 
         /* Prepare client and server for new connection */
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
@@ -476,6 +483,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&cb_session_data, &tls13_ticket, s2n_stuffer_data_available(&cb_session_data)));
 
         /* Prepare client and server for a second connection */
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
@@ -490,6 +498,7 @@ int main(int argc, char **argv)
 
         /* Switch between TLS1.2 and TLS1.3 resumption */
         for (size_t i = 0; i < 10; i++) {
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
             EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));

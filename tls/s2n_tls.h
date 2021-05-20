@@ -80,6 +80,7 @@ extern int s2n_handshake_finish_header(struct s2n_stuffer *out);
 extern int s2n_handshake_parse_header(struct s2n_connection *conn, uint8_t * message_type, uint32_t * length);
 extern int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int *isSSLv2);
 extern int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status * blocked);
+S2N_RESULT s2n_connection_handle_read_error(struct s2n_connection *conn, int error);
 
 extern uint16_t mfl_code_to_length[5];
 

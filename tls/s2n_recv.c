@@ -82,15 +82,9 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
         conn->header_in.blob.data[0] &= 0x7f;
         *isSSLv2 = 1;
 
-        if (s2n_sslv2_record_header_parse(conn, record_type, &conn->client_protocol_version, &fragment_length) < 0) {
-            POSIX_GUARD(s2n_connection_kill(conn));
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
+        POSIX_GUARD(s2n_sslv2_record_header_parse(conn, record_type, &conn->client_protocol_version, &fragment_length));
     } else {
-        if (s2n_record_header_parse(conn, record_type, &fragment_length) < 0) {
-            POSIX_GUARD(s2n_connection_kill(conn));
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
+        POSIX_GUARD(s2n_record_header_parse(conn, record_type, &fragment_length));
     }
 
     /* Read enough to have the whole record */
@@ -101,10 +95,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     }
 
     /* Decrypt and parse the record */
-    if (s2n_record_parse(conn) < 0) {
-        POSIX_GUARD(s2n_connection_kill(conn));
-        S2N_ERROR_PRESERVE_ERRNO();
-    }
+    POSIX_GUARD(s2n_record_parse(conn));
 
     /* In TLS 1.3, encrypted handshake records would appear to be of record type
     * TLS_APPLICATION_DATA. The actual record content type is found after the encrypted
@@ -208,10 +199,20 @@ ssize_t s2n_recv_impl(struct s2n_connection * conn, void *buf, ssize_t size, s2n
 
 ssize_t s2n_recv(struct s2n_connection * conn, void *buf, ssize_t size, s2n_blocked_status * blocked)
 {
+    *blocked = S2N_NOT_BLOCKED;
+
+    /* Check for proper usage */
+    S2N_ERROR_IF(conn->config->quic_enabled, S2N_ERR_UNSUPPORTED_WITH_QUIC);
+    POSIX_GUARD_RESULT(s2n_early_data_validate_recv(conn));
     POSIX_ENSURE(!conn->recv_in_use, S2N_ERR_REENTRANCY);
+
     conn->recv_in_use = true;
     ssize_t result = s2n_recv_impl(conn, buf, size, blocked);
     conn->recv_in_use = false;
+
+    if (result < 0) {
+        POSIX_GUARD_RESULT(s2n_connection_handle_read_error(conn, s2n_errno));
+    }
     return result;
 }
 
