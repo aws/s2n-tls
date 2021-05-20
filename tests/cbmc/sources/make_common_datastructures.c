@@ -146,32 +146,84 @@ struct s2n_dh_params *cbmc_allocate_dh_params()
     return dh_params;
 }
 
-EVP_MD_CTX* cbmc_allocate_EVP_MD_CTX() {
-    EVP_MD_CTX *ctx = malloc(sizeof(*ctx));
+void cbmc_populate_BIGNUM(BIGNUM *bignum)
+{
+    CBMC_ENSURE_REF(bignum);
+    bignum->d = malloc(sizeof(*(bignum->d)));
+}
+
+BIGNUM *cbmc_allocate_BIGNUM()
+{
+    BIGNUM *bignum = malloc(sizeof(*bignum));
+    cbmc_populate_BIGNUM(bignum);
+    return bignum;
+}
+
+void cbmc_populate_EC_GROUP(EC_GROUP *ec_group)
+{
+    CBMC_ENSURE_REF(ec_group);
+    ec_group->order = cbmc_allocate_BIGNUM();
+}
+
+EC_GROUP *cbmc_allocate_EC_GROUP()
+{
+    EC_GROUP *ec_group = malloc(sizeof(*ec_group));
+    cbmc_populate_EC_GROUP(ec_group);
+    return ec_group;
+}
+
+void cbmc_populate_EC_KEY(EC_KEY *ec_key)
+{
+    CBMC_ENSURE_REF(ec_key);
+    ec_key->group    = cbmc_allocate_EC_GROUP();
+    ec_key->priv_key = cbmc_allocate_BIGNUM();
+}
+
+EC_KEY *cbmc_allocate_EC_KEY()
+{
+    EC_KEY *ec_key = malloc(sizeof(*ec_key));
+    cbmc_populate_EC_KEY(ec_key);
+    return ec_key;
+}
+
+void cbmc_populate_EVP_PKEY(EVP_PKEY *evp_pkey)
+{
+    CBMC_ENSURE_REF(evp_pkey);
+    evp_pkey->ec_key = cbmc_allocate_EC_KEY();
+}
+
+EVP_PKEY *cbmc_allocate_EVP_PKEY()
+{
+    EVP_PKEY *evp_pkey = malloc(sizeof(*evp_pkey));
+    cbmc_populate_EVP_PKEY(evp_pkey);
+    return evp_pkey;
+}
+
+void cbmc_populate_EVP_PKEY_CTX(EVP_PKEY_CTX *evp_pkey_ctx)
+{
+    CBMC_ENSURE_REF(evp_pkey_ctx);
+    evp_pkey_ctx->pkey = cbmc_allocate_EVP_PKEY();
+}
+
+EVP_PKEY_CTX *cbmc_allocate_EVP_PKEY_CTX()
+{
+    EVP_PKEY_CTX *evp_pkey_ctx = malloc(sizeof(*evp_pkey_ctx));
+    cbmc_populate_EVP_PKEY_CTX(evp_pkey_ctx);
+    return evp_pkey_ctx;
+}
+
+void cbmc_populate_EVP_MD_CTX(EVP_MD_CTX *ctx)
+{
     CBMC_ENSURE_REF(ctx);
     ctx->digest  = malloc(sizeof(*(ctx->digest)));
     ctx->md_data = malloc(EVP_MAX_MD_SIZE);
-    ctx->pctx    = malloc(sizeof(*(ctx->pctx)));
-    if (ctx->pctx != NULL) {
-        ctx->pctx->pkey = malloc(sizeof(*(ctx->pctx->pkey)));
-        if (ctx->pctx->pkey != NULL) {
-            ctx->pctx->pkey->ec_key = malloc(sizeof(*(ctx->pctx->pkey->ec_key)));
-            if (ctx->pctx->pkey->ec_key != NULL) {
-                ctx->pctx->pkey->ec_key->group = malloc(sizeof(*(ctx->pctx->pkey->ec_key->group)));
-                if (ctx->pctx->pkey->ec_key->group != NULL) {
-                    ctx->pctx->pkey->ec_key->group->order = malloc(sizeof(*(ctx->pctx->pkey->ec_key->group->order)));
-                    if (ctx->pctx->pkey->ec_key->group->order != NULL) {
-                        ctx->pctx->pkey->ec_key->group->order->d =
-                            malloc(sizeof(*(ctx->pctx->pkey->ec_key->group->order->d)));
-                    }
-                }
-                ctx->pctx->pkey->ec_key->priv_key = malloc(sizeof(*(ctx->pctx->pkey->ec_key->priv_key)));
-                if (ctx->pctx->pkey->ec_key->priv_key != NULL) {
-                    ctx->pctx->pkey->ec_key->priv_key->d = malloc(sizeof(*(ctx->pctx->pkey->ec_key->priv_key->d)));
-                }
-            }
-        }
-    }
+    ctx->pctx    = cbmc_allocate_EVP_PKEY_CTX();
+}
+
+EVP_MD_CTX *cbmc_allocate_EVP_MD_CTX()
+{
+    EVP_MD_CTX *ctx = malloc(sizeof(*ctx));
+    cbmc_populate_EVP_MD_CTX(ctx);
     return ctx;
 }
 

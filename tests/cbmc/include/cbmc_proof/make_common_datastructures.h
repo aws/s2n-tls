@@ -126,7 +126,62 @@ void cbmc_populate_s2n_dh_params(struct s2n_dh_params *s2n_dh_params);
 struct s2n_dh_params *cbmc_allocate_dh_params();
 
 /*
- * Properly allocates s2n_hash_state for CBMC proofs.
+ * Populates the fields of a pre-allocated BIGNUM for CBMC proofs.
+ */
+void cbmc_populate_BIGNUM(BIGNUM *bignum);
+
+/*
+ * Properly allocates BIGNUM for CBMC proofs.
+ */
+BIGNUM *cbmc_allocate_BIGNUM();
+
+/*
+ * Populates the fields of a pre-allocated EC_GROUP for CBMC proofs.
+ */
+void cbmc_populate_EC_GROUP(EC_GROUP *ec_group);
+
+/*
+ * Properly allocates EC_GROUP for CBMC proofs.
+ */
+EC_GROUP *cbmc_allocate_EC_GROUP();
+
+/*
+ * Populates the fields of a pre-allocated EC_KEY for CBMC proofs.
+ */
+void cbmc_populate_EC_KEY(EC_KEY *ec_key);
+
+/*
+ * Properly allocates EC_KEY for CBMC proofs.
+ */
+EC_KEY *cbmc_allocate_EC_KEY();
+
+/*
+ * Populates the fields of a pre-allocated EVP_PKEY for CBMC proofs.
+ */
+void cbmc_populate_EVP_PKEY(EVP_PKEY *evp_pkey);
+
+/*
+ * Properly allocates EVP_PKEY for CBMC proofs.
+ */
+EVP_PKEY *cbmc_allocate_EVP_PKEY();
+
+/*
+ * Populates the fields of a pre-allocated EVP_PKEY_CTX for CBMC proofs.
+ */
+void cbmc_populate_EVP_PKEY_CTX(EVP_PKEY_CTX *evp_pkey_ctx);
+
+/*
+ * Properly allocates EVP_PKEY_CTX for CBMC proofs.
+ */
+EVP_PKEY_CTX *cbmc_allocate_EVP_PKEY_CTX();
+
+/*
+ * Populates the fields of a pre-allocated EVP_MD_CTX for CBMC proofs.
+ */
+void cbmc_populate_EVP_MD_CTX(EVP_MD_CTX *ctx);
+
+/*
+ * Properly allocates EVP_MD_CTX for CBMC proofs.
  */
 EVP_MD_CTX* cbmc_allocate_EVP_MD_CTX();
 
