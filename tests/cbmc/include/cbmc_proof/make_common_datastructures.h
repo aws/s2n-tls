@@ -148,7 +148,7 @@ void cbmc_populate_s2n_evp_hmac_state(struct s2n_evp_hmac_state *evp_hmac_state)
 /*
  * Properly allocates s2n_evp_hmac_state for CBMC proofs.
  */
-struct s2n_evp_hmac_state* cbmc_allocate_s2n_evp_hmac_state();
+struct s2n_evp_hmac_state *cbmc_allocate_s2n_evp_hmac_state();
 
 /*
  * Populates the fields of a pre-allocated s2n_hash_state for CBMC proofs.
@@ -188,37 +188,37 @@ void cbmc_populate_s2n_map(struct s2n_map *s2n_map);
 /*
  * Properly allocates s2n_map for CBMC proofs.
  */
-struct s2n_map* cbmc_allocate_s2n_map();
+struct s2n_map *cbmc_allocate_s2n_map();
 
 /*
  * Properly allocates s2n_cipher_preferences for CBMC proofs.
  */
-struct s2n_cipher_preferences* cbmc_allocate_s2n_cipher_preferences();
+struct s2n_cipher_preferences *cbmc_allocate_s2n_cipher_preferences();
 
 /*
  * Properly allocates s2n_kem_preferences for CBMC proofs.
  */
-struct s2n_kem_preferences* cbmc_allocate_s2n_kem_preferences();
+struct s2n_kem_preferences *cbmc_allocate_s2n_kem_preferences();
 
 /*
  * Properly allocates s2n_signature_preferences for CBMC proofs.
  */
-struct s2n_signature_preferences* cbmc_allocate_s2n_signature_preferences();
+struct s2n_signature_preferences *cbmc_allocate_s2n_signature_preferences();
 
 /*
  * Properly allocates s2n_ecc_preferences for CBMC proofs.
  */
-struct s2n_ecc_preferences* cbmc_allocate_s2n_ecc_preferences();
+struct s2n_ecc_preferences *cbmc_allocate_s2n_ecc_preferences();
 
 /*
  * Properly allocates s2n_security_policy for CBMC proofs.
  */
-struct s2n_security_policy* cbmc_allocate_s2n_security_policy();
+struct s2n_security_policy *cbmc_allocate_s2n_security_policy();
 
 /*
  * Properly allocates X509_STORE for CBMC proofs.
  */
-X509_STORE* cbmc_allocate_X509_STORE();
+X509_STORE *cbmc_allocate_X509_STORE();
 
 /*
  * Populates the fields of a pre-allocated s2n_x509_trust_store for CBMC proofs.
@@ -228,7 +228,7 @@ void cbmc_populate_s2n_x509_trust_store(struct s2n_x509_trust_store *s2n_x509_tr
 /*
  * Properly allocates s2n_config for CBMC proofs.
  */
-struct s2n_config* cbmc_allocate_s2n_config();
+struct s2n_config *cbmc_allocate_s2n_config();
 
 /*
  * Populates the fields of a pre-allocated s2n_rsa_key for CBMC proofs.
@@ -248,7 +248,7 @@ void cbmc_populate_s2n_pkey(struct s2n_pkey *s2n_pkey);
 /*
  * Properly allocates s2n_pkey for CBMC proofs.
  */
-struct s2n_pkey* cbmc_allocate_s2n_pkey();
+struct s2n_pkey *cbmc_allocate_s2n_pkey();
 
 /*
  * Populates the fields of a pre-allocated s2n_ecc_evp_params for CBMC proofs.
@@ -258,17 +258,17 @@ void cbmc_populate_s2n_ecc_evp_params(struct s2n_ecc_evp_params *s2n_ecc_evp_par
 /*
  * Properly allocates s2n_ecc_named_curve for CBMC proofs.
  */
-struct s2n_ecc_named_curve * cbmc_allocate_s2n_ecc_named_curve();
+struct s2n_ecc_named_curve *cbmc_allocate_s2n_ecc_named_curve();
 
 /*
  * Properly allocates s2n_kem for CBMC proofs.
  */
-struct s2n_kem* cbmc_allocate_s2n_kem();
+struct s2n_kem *cbmc_allocate_s2n_kem();
 
 /*
  * Properly allocates s2n_kem_group for CBMC proofs.
  */
-struct s2n_kem_group* cbmc_allocate_s2n_kem_group();
+struct s2n_kem_group *cbmc_allocate_s2n_kem_group();
 
 /*
  * Populates the fields of a pre-allocated s2n_kem_params for CBMC proofs.
@@ -293,22 +293,22 @@ void cbmc_populate_s2n_signature_scheme(struct s2n_signature_scheme *s2n_signatu
 /*
  * Properly allocates s2n_kex for CBMC proofs.
  */
-struct s2n_kex* cbmc_allocate_s2n_kex();
+struct s2n_kex *cbmc_allocate_s2n_kex();
 
 /*
  * Properly allocates s2n_cipher for CBMC proofs.
  */
-struct s2n_cipher* cbmc_allocate_s2n_cipher();
+struct s2n_cipher *cbmc_allocate_s2n_cipher();
 
 /*
  * Properly allocates s2n_record_algorithm for CBMC proofs.
  */
-struct s2n_record_algorithm* cbmc_allocate_s2n_record_algorithm();
+struct s2n_record_algorithm *cbmc_allocate_s2n_record_algorithm();
 
 /*
  * Properly allocates s2n_cipher_suite for CBMC proofs.
  */
-struct s2n_cipher_suite* cbmc_allocate_s2n_cipher_suite();
+struct s2n_cipher_suite *cbmc_allocate_s2n_cipher_suite();
 
 /*
  * Populates the fields of a pre-allocated s2n_session_key for CBMC proofs.
@@ -323,7 +323,7 @@ void cbmc_populate_s2n_crypto_parameters(struct s2n_crypto_parameters *s2n_crypt
 /*
  * Properly allocates s2n_crypto_parameters for CBMC proofs.
  */
-struct s2n_crypto_parameters* cbmc_allocate_s2n_crypto_parameters();
+struct s2n_crypto_parameters *cbmc_allocate_s2n_crypto_parameters();
 
 /*
  * Populates the fields of a pre-allocated s2n_cert for CBMC proofs.
@@ -333,7 +333,7 @@ void cbmc_populate_s2n_cert(struct s2n_cert *s2n_cert);
 /*
  * Properly allocates s2n_cert for CBMC proofs.
  */
-struct s2n_cert* cbmc_allocate_s2n_cert();
+struct s2n_cert *cbmc_allocate_s2n_cert();
 
 /*
  * Populates the fields of a pre-allocated s2n_cert_chain for CBMC proofs.
@@ -368,7 +368,7 @@ void cbmc_populate_s2n_psk(struct s2n_psk *s2n_psk);
 /*
  * Properly allocates s2n_psk for CBMC proofs.
  */
-struct s2n_psk* cbmc_allocate_s2n_psk();
+struct s2n_psk *cbmc_allocate_s2n_psk();
 
 /*
  * Populates the fields of a pre-allocated s2n_psk_parameters for CBMC proofs.
@@ -408,4 +408,4 @@ void cbmc_populate_s2n_connection(struct s2n_connection *s2n_connection);
 /*
  * Properly allocates s2n_connection for CBMC proofs.
  */
-struct s2n_connection* cbmc_allocate_s2n_connection();
+struct s2n_connection *cbmc_allocate_s2n_connection();
