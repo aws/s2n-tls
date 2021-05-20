@@ -281,6 +281,23 @@ int main(int argc, char **argv)
         }
     }
 
+    /* s2n_connection_get_session_id_length */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_session_id_length(NULL), S2N_ERR_NULL);
+
+        conn->session_id_len = 5;
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_EQUAL(s2n_connection_get_session_id_length(conn), 5);
+
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_EQUAL(s2n_connection_get_session_id_length(conn), 0);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
     /* s2n_tls12_serialize_resumption_state */
     {
         struct s2n_connection *conn;

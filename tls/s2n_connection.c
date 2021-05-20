@@ -1161,6 +1161,10 @@ const char *s2n_get_application_protocol(struct s2n_connection *conn)
 int s2n_connection_get_session_id_length(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
+    /* Stateful session resumption in TLS1.3 using session id is not yet supported. */
+    if (conn->actual_protocol_version >= S2N_TLS13) {
+        return 0;
+    }
     return conn->session_id_len;
 }
 
