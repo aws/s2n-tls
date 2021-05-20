@@ -35,7 +35,6 @@
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls.h"
-#include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_security_policies.h"
 
 #include "stuffer/s2n_stuffer.h"
