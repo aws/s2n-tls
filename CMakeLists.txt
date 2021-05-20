@@ -1,6 +1,10 @@
 cmake_minimum_required (VERSION 3.0)
 project (s2n C)
 
+if(POLICY CMP0077)
+    cmake_policy(SET CMP0077 NEW) #option does nothing when a normal variable of the same name exists.
+endif()
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -12,6 +16,8 @@ option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
 for older compilers or uncommon platforms." OFF)
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain.
 You likely want this on older compilers." OFF)
+option(SEARCH_LIBCRYPTO "Set this if you want to let S2N search libcrypto for you,
+otherwise a crypto target need to be defined." ON)
 # Turn BUILD_TESTING=ON by default
 include(CTest)
 
