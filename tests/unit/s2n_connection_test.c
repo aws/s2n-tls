@@ -45,19 +45,6 @@ static int s2n_server_name_test_callback(struct s2n_connection *conn, void *ctx)
     return S2N_SUCCESS;
 }
 
-static bool s2n_is_valid_signature_algorithm(s2n_tls_signature_algorithm sign_alg) {
-    switch (sign_alg) {
-        case S2N_TLS_SIGNATURE_ANONYMOUS:
-        case S2N_TLS_SIGNATURE_RSA:
-        case S2N_TLS_SIGNATURE_ECDSA:
-        case S2N_TLS_SIGNATURE_RSA_PSS_RSAE:
-        case S2N_TLS_SIGNATURE_RSA_PSS_PSS:
-            return true;
-        default:
-            return false;
-    }
-}
-
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -250,7 +237,8 @@ int main(int argc, char **argv)
         for (size_t i = 0; i <= UINT16_MAX; i++) {
             conn->secure.client_cert_sig_scheme.sig_alg = i;
             conn->secure.conn_sig_scheme.sig_alg = i;
-            if (s2n_is_valid_signature_algorithm(i)) {
+
+            if (i < s2n_array_len(expected_output)) {
                 EXPECT_SUCCESS(s2n_connection_get_selected_client_cert_signature_algorithm(conn, &output));
                 EXPECT_EQUAL(expected_output[i], output);
 
