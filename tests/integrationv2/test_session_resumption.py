@@ -227,8 +227,8 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, pro
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
-        assert not results.stderr
         if provider is S2N:
+            assert not results.stderr
             assert results.stdout.count(b'Resumed session') == num_resumed_connections
             assert bytes("Actual protocol version: {}".format(s2n_version).encode('utf-8')) in results.stdout
         else:
