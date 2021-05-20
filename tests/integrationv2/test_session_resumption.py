@@ -160,11 +160,13 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(provider, client_options, timeout=5)
 
-    s2n_version = get_expected_s2n_version(protocol, OpenSSL)
+    s2n_version = get_expected_s2n_version(protocol, provider)
 
+    # Client as not read server certificate message as this is a resumed session
     for results in client.get_results():
         assert results.exception is None
         assert results.exit_code == 0
+        assert bytes("SSL_connect:SSLv3/TLS read server certificate".encode('utf-8')) not in results.stderr
 
     # The server should indicate a session has been resumed
     for results in server.get_results():
@@ -180,7 +182,7 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [OpenSSL, S2N], ids=get_parameter_name)
 def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, protocol, provider, certificate):
     port = str(next(available_ports))
 
@@ -221,12 +223,18 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, pro
         assert bytes("Actual protocol version: {}".format(s2n_version).encode('utf-8')) in results.stdout
 
     server_accepts_str = str(num_resumed_connections + num_full_connections) + " server accepts that finished"
+
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
-        assert bytes(server_accepts_str.encode('utf-8')) in results.stdout
-        # s_server only writes one certificate message in all of the connections
-        assert results.stderr.count(b'SSL_accept:SSLv3/TLS write certificate') == num_full_connections
+        assert not results.stderr
+        if provider is S2N:
+            assert results.stdout.count(b'Resumed session') == num_resumed_connections
+            assert bytes("Actual protocol version: {}".format(s2n_version).encode('utf-8')) in results.stdout
+        else:
+            assert bytes(server_accepts_str.encode('utf-8')) in results.stdout
+            # s_server only writes one certificate message in all of the connections
+            assert results.stderr.count(b'SSL_accept:SSLv3/TLS write certificate') == num_full_connections
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)

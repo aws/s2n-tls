@@ -575,12 +575,11 @@ int main(int argc, char *const *argv)
 
         printf("Connected to %s:%s\n", host, port);
 
-        /* Save session state from connection if reconnect is enabled */
-        if (reconnect > 0) {
+        /* Save session state from connection if reconnect is enabled. */
+        if (reconnect >= 0) {
             if (conn->actual_protocol_version >= S2N_TLS13) {
                 if (!session_ticket) {
-                    print_s2n_error("s2nc can only reconnect in TLS1.3 with session tickets.");
-                    exit(1);
+                    break;
                 }
                 GUARD_EXIT(echo(conn, sockfd, &session_ticket_recv), "Error calling echo");
             } else {
