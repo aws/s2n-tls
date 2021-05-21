@@ -53,7 +53,7 @@ _INLINE_ void sampling_ctx_init(sampling_ctx *ctx)
     ctx->is_new          = is_new_avx512;
   } else
 #endif
-#if defined(S2N_BIKE_R3_AVX512)
+#if defined(S2N_BIKE_R3_AVX2)
   if(s2n_bike_r3_is_avx2_enabled()) {
     ctx->secure_set_bits = secure_set_bits_avx2;
     ctx->is_new          = is_new_avx2;

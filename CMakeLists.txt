@@ -71,7 +71,6 @@ else()
         "pq-crypto/kyber_90s_r2/*.c"
         "pq-crypto/kyber_r3/*.c"
         "pq-crypto/sike_r3/*.c")
-        "pq-crypto/kyber_90s_r2/*.c")
 endif()
 
 ##be nice to visual studio users
@@ -142,25 +141,26 @@ else()
         # extensions. For example, gcc-4 doesn't fully support AVX-512, while
         # gcc-7 doesn't support VPCLMUL extension.
         try_compile(BIKE_R3_AVX2_SUPPORTED
-                ${CMAKE_BINARY_DIR}
-                "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
-                COMPILE_DEFINITIONS "-mavx2")
+            ${CMAKE_BINARY_DIR}
+            "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
+            COMPILE_DEFINITIONS "-mavx2")
 
         set(BIKE_R3_AVX512_FLAGS "-mavx512f -mavx512bw -mavx512dq")
         try_compile(BIKE_R3_AVX512_SUPPORTED
-                ${CMAKE_BINARY_DIR}
-                "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
-                COMPILE_DEFINITIONS ${BIKE_R3_AVX512_FLAGS})
+            ${CMAKE_BINARY_DIR}
+            "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
+            COMPILE_DEFINITIONS ${BIKE_R3_AVX512_FLAGS})
 
         try_compile(BIKE_R3_PCLMUL_SUPPORTED
-                ${CMAKE_BINARY_DIR}
-                "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
-                COMPILE_DEFINITIONS "-mpclmul")
+            ${CMAKE_BINARY_DIR}
+            "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
+            COMPILE_DEFINITIONS "-mpclmul")
 
+        set(BIKE_R3_VPCLMUL_FLAGS "-mvpclmulqdq -mavx512f -mavx512bw -mavx512dq")
         try_compile(BIKE_R3_VPCLMUL_SUPPORTED
             ${CMAKE_BINARY_DIR}
             "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
-            COMPILE_DEFINITIONS "-mvpclmulqdq")
+            COMPILE_DEFINITIONS ${BIKE_R3_VPCLMUL_FLAGS})
 
         if(BIKE_R3_AVX2_SUPPORTED OR BIKE_R3_AVX512_SUPPORTED OR BIKE_R3_PCLMUL_SUPPORTED OR BIKE_R3_VPCLMUL_SUPPORTED)
             set(BIKE_R3_X86_64_OPT_SUPPORTED ON)
@@ -285,7 +285,7 @@ if(BIKE_R3_X86_64_OPT_SUPPORTED)
 
     if(BIKE_R3_VPCLMUL_SUPPORTED)
         FILE(GLOB BIKE_R3_VPCLMUL_SRCS "pq-crypto/bike_r3/*_vpclmul.c")
-        set_source_files_properties(${BIKE_R3_VPCLMUL_SRCS} PROPERTIES COMPILE_FLAGS -mvpclmulqdq ${BIKE_R3_AVX512_FLAGS})
+        set_source_files_properties(${BIKE_R3_VPCLMUL_SRCS} PROPERTIES COMPILE_FLAGS ${BIKE_R3_VPCLMUL_FLAGS})
         target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_VPCLMUL)
     endif()
 
