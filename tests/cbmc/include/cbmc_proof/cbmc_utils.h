@@ -23,6 +23,10 @@
 #include <utils/s2n_blob.h>
 
 #define IMPLIES(a, b) (!(a) || (b))
+#define CBMC_ENSURE_REF(cond)    \
+    do {                         \
+        if (!(cond)) { return; } \
+    } while (0)
 
 struct store_byte_from_buffer {
     size_t  idx;

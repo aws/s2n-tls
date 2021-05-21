@@ -8,3 +8,4 @@ property.xml
 
 .litani_cache_dir
 .ninja_log
+.ninja_deps
