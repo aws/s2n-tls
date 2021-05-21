@@ -35,7 +35,7 @@ all: $(OBJS)
 	$(MAKE) -C kyber_r2
 	$(MAKE) -C kyber_90s_r2
 	$(MAKE) -C kyber_r3
-	$(MAKE) -C sike_r3
+	$(MAKE) -C sike_r3 try_include_asm
 endif
 
 .PHONY : sike_r1_bc

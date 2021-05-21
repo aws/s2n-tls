@@ -100,6 +100,9 @@ typedef struct { f2elm_t X; f2elm_t Z; } point_proj;
 #define point_proj_t S2N_SIKE_P434_R3_NAMESPACE(point_proj_t)
 typedef point_proj point_proj_t[1];
 
+/* Macro to avoid compiler warnings when detecting unreferenced parameters */
+#define S2N_SIKE_P434_R3_UNREFERENCED_PARAMETER(PAR) ((void)(PAR))
+
 /********************** Constant-time unsigned comparisons ***********************/
 /* The following functions return 1 (TRUE) if condition is true, 0 (FALSE) otherwise */
 
