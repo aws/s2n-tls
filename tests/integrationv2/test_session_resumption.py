@@ -107,8 +107,7 @@ def test_session_resumption_s2n_client(managed_process, cipher, curve, protocol,
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
-def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, curve, protocol, provider, certificate):
+def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, curve, protocol, certificate):
     port = str(next(available_ports))
 
     # Use temp directory to store session tickets
@@ -135,7 +134,7 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
     server_options.extra_flags = None
 
     server = managed_process(S2N, server_options, timeout=5)
-    client = managed_process(provider, client_options, timeout=5)
+    client = managed_process(OpenSSL, client_options, timeout=5)
 
     # The client should have received a session ticket
     for results in client.get_results():
@@ -158,11 +157,11 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
     server_options.port = port
 
     server = managed_process(S2N, server_options, timeout=5)
-    client = managed_process(provider, client_options, timeout=5)
+    client = managed_process(OpenSSL, client_options, timeout=5)
 
-    s2n_version = get_expected_s2n_version(protocol, provider)
+    s2n_version = get_expected_s2n_version(protocol, OpenSSL)
 
-    # Client as not read server certificate message as this is a resumed session
+    # Client has not read server certificate message as this is a resumed session
     for results in client.get_results():
         assert results.exception is None
         assert results.exit_code == 0
@@ -241,8 +240,7 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, pro
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
-def test_s2nd_falls_back_to_full_connection(managed_process, tmp_path, cipher, curve, protocol, provider, certificate):
+def test_s2nd_falls_back_to_full_connection(managed_process, tmp_path, cipher, curve, protocol, certificate):
     port = str(next(available_ports))
 
     # Use temp directory to store session tickets
@@ -273,8 +271,8 @@ def test_s2nd_falls_back_to_full_connection(managed_process, tmp_path, cipher, c
     server_options.cert = certificate.cert
     server_options.extra_flags = None
 
-    server = managed_process(provider, server_options, timeout=5)
-    client = managed_process(provider, client_options, timeout=5)
+    server = managed_process(OpenSSL, server_options, timeout=5)
+    client = managed_process(OpenSSL, client_options, timeout=5)
 
     # The client should have received a session ticket
     for results in client.get_results():
@@ -298,7 +296,7 @@ def test_s2nd_falls_back_to_full_connection(managed_process, tmp_path, cipher, c
 
     # Switch providers so now s2n is the server
     server = managed_process(S2N, server_options, timeout=5)
-    client = managed_process(provider, client_options, timeout=5)
+    client = managed_process(OpenSSL, client_options, timeout=5)
 
     s2n_version = get_expected_s2n_version(protocol, OpenSSL)
 

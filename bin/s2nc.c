@@ -576,25 +576,27 @@ int main(int argc, char *const *argv)
         printf("Connected to %s:%s\n", host, port);
 
         /* Save session state from connection if reconnect is enabled. */
-        if (reconnect > 0 && conn->actual_protocol_version < S2N_TLS13) {
-            if (!session_ticket && s2n_connection_get_session_id_length(conn) <= 0) {
-                print_s2n_error("Endpoint sent empty session id so cannot resume session");
-                exit(1);
+        if (reconnect > 0) {
+            if (conn->actual_protocol_version >= S2N_TLS13) {
+                if (!session_ticket) {
+                    print_s2n_error("s2nc can only reconnect in TLS1.3 with session tickets.");
+                    exit(1);
+                }
+                GUARD_EXIT(echo(conn, sockfd, &session_ticket_recv), "Error calling echo");
+            } else {
+                if (!session_ticket && s2n_connection_get_session_id_length(conn) <= 0) {
+                    print_s2n_error("Endpoint sent empty session id so cannot resume session");
+                    exit(1);
+                }
+                free(session_state);
+                session_state_length = s2n_connection_get_session_length(conn);
+                session_state = calloc(session_state_length, sizeof(uint8_t));
+                GUARD_EXIT_NULL(session_state);
+                if (s2n_connection_get_session(conn, session_state, session_state_length) != session_state_length) {
+                    print_s2n_error("Error getting serialized session state");
+                    exit(1);
+                }
             }
-            free(session_state);
-            session_state_length = s2n_connection_get_session_length(conn);
-            session_state = calloc(session_state_length, sizeof(uint8_t));
-            GUARD_EXIT_NULL(session_state);
-            if (s2n_connection_get_session(conn, session_state, session_state_length) != session_state_length) {
-                print_s2n_error("Error getting serialized session state");
-                exit(1);
-            }
-        }
-
-        /* We call echo each reconnect if session tickets are enabled in TLS1.3
-         * to ensure we've read any post-handshake messages sent by the server. */
-        if (conn->actual_protocol_version >= S2N_TLS13 && session_ticket) {
-            GUARD_EXIT(echo(conn, sockfd, &session_ticket_recv), "Error calling echo");
         }
 
         if (dyn_rec_threshold > 0 && dyn_rec_timeout > 0) {
