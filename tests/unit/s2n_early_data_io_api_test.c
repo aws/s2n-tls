@@ -347,9 +347,12 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                                 S2N_ERR_BAD_MESSAGE);
 
-            /* Read the remaining early data properly */
+            /* Pretend we didn't test the above error condition.
+             * The S2N_ERR_BAD_MESSAGE error triggered S2N to close the connection. */
             server_conn->closed = false;
             client_conn->closed = false;
+
+            /* Read the remaining early data properly */
             EXPECT_SUCCESS(s2n_recv_early_data(server_conn, actual_payload, sizeof(actual_payload),
                     &data_size, &blocked));
 
