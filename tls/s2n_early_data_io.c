@@ -38,9 +38,10 @@ int s2n_end_of_early_data_recv(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-bool s2n_is_rejected_early_data(struct s2n_connection *conn)
+bool s2n_is_rejected_early_data(struct s2n_connection *conn, uint8_t record_type)
 {
     return conn && (conn->early_data_state == S2N_EARLY_DATA_REJECTED)
+            && record_type == TLS_APPLICATION_DATA
             /* Only servers receive early data. */
             && (conn->mode == S2N_SERVER)
             /* Early data can only be accepted before the end of the handshake. */
