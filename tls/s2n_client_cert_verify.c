@@ -25,7 +25,9 @@
 #include "stuffer/s2n_stuffer.h"
 
 #include "utils/s2n_safety.h"
+#include "tls/s2n_async_pkey.h"
 
+static int s2n_client_cert_verify_send_complete(struct s2n_connection *conn, struct s2n_blob *signature);
 
 int s2n_client_cert_verify_recv(struct s2n_connection *conn)
 {
@@ -54,11 +56,12 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
     /* Client certificate has been verified. Minimize required handshake hash algs */
     POSIX_GUARD(s2n_conn_update_required_handshake_hashes(conn));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_client_cert_verify_send(struct s2n_connection *conn)
 {
+    S2N_ASYNC_PKEY_GUARD(conn);
     struct s2n_stuffer *out = &conn->handshake.io;
 
     struct s2n_signature_scheme chosen_sig_scheme = s2n_rsa_pkcs1_md5_sha1;
@@ -73,20 +76,18 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
     POSIX_GUARD(s2n_handshake_get_hash_state(conn, chosen_sig_scheme.hash_alg, &hash_state));
     POSIX_GUARD(s2n_hash_copy(&conn->handshake.ccv_hash_copy, &hash_state));
 
-    struct s2n_cert_chain_and_key *cert_chain_and_key = conn->handshake_params.our_chain_and_key;
+    S2N_ASYNC_PKEY_SIGN(conn, chosen_sig_scheme.sig_alg, &conn->handshake.ccv_hash_copy, s2n_client_cert_verify_send_complete);
+}
 
-    DEFER_CLEANUP(struct s2n_blob signature = {0}, s2n_free);
-    uint32_t max_signature_size = 0;
-    POSIX_GUARD_RESULT(s2n_pkey_size(cert_chain_and_key->private_key, &max_signature_size));
-    POSIX_GUARD(s2n_alloc(&signature, max_signature_size));
+static int s2n_client_cert_verify_send_complete(struct s2n_connection *conn, struct s2n_blob *signature)
+{
+    struct s2n_stuffer *out = &conn->handshake.io;
 
-    POSIX_GUARD(s2n_pkey_sign(cert_chain_and_key->private_key, chosen_sig_scheme.sig_alg, &conn->handshake.ccv_hash_copy, &signature));
-
-    POSIX_GUARD(s2n_stuffer_write_uint16(out, signature.size));
-    POSIX_GUARD(s2n_stuffer_write(out, &signature));
+    POSIX_GUARD(s2n_stuffer_write_uint16(out, signature->size));
+    POSIX_GUARD(s2n_stuffer_write(out, signature));
 
     /* Client certificate has been verified. Minimize required handshake hash algs */
     POSIX_GUARD(s2n_conn_update_required_handshake_hashes(conn));
 
-    return 0;
+    return S2N_SUCCESS;
 }

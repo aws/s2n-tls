@@ -796,6 +796,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, known_psk));
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, max_early_data));
+            /* We need to explicitly set the psk_params type to skip our stateless session resumption recv 
+             * code because the handshake traces we're using are meant for stateful session resumption.
+             * TODO: https://github.com/aws/s2n-tls/issues/2742 */
+            server_conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
 
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
@@ -836,6 +840,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, known_psk));
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, max_early_data));
+            /* We need to explicitly set the psk_params type to skip our stateless session resumption recv 
+             * code because the handshake traces we're using are meant for stateful session resumption.
+             * TODO: https://github.com/aws/s2n-tls/issues/2742 */
+            server_conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
 
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
@@ -914,6 +922,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, known_psk_without_early_data));
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, max_early_data));
+            /* We need to explicitly set the psk_params type to skip our stateless session resumption recv 
+             * code because the handshake traces we're using are meant for stateful session resumption.
+             * TODO: https://github.com/aws/s2n-tls/issues/2742 */
+            server_conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
 
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
@@ -955,6 +967,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, known_psk_with_wrong_cipher_suite));
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, max_early_data));
+            /* We need to explicitly set the psk_params type to skip our stateless session resumption recv 
+             * code because the handshake traces we're using are meant for stateful session resumption.
+             * TODO: https://github.com/aws/s2n-tls/issues/2742 */
+            server_conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
 
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);

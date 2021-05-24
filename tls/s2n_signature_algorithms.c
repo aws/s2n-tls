@@ -21,7 +21,6 @@
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_kex.h"
-#include "tls/s2n_tls_digest_preferences.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_signature_scheme.h"
 #include "tls/s2n_security_policies.h"

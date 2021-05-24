@@ -339,7 +339,21 @@ int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, uint32_t
     POSIX_ENSURE_REF(max_early_data_size);
     *max_early_data_size = 0;
 
+    uint32_t server_max_early_data_size = 0;
+    POSIX_GUARD_RESULT(s2n_early_data_get_server_max_size(conn, &server_max_early_data_size));
+
     if (conn->psk_params.psk_list.len == 0) {
+        /* This method may be called by the server before loading its PSKs.
+         * The server can load its PSKs during the handshake, either via the PSK selection callback
+         * or by receiving a stateless session ticket.
+         *
+         * Before that happens, we should make an optimistic assumption of the early data size.
+         * That way, the max early data size always decreases (for example, it won't go from 0 -> UINT32_MAX
+         * after receiving a PSK in the ClientHello).
+         */
+        if (conn->mode == S2N_SERVER && !IS_NEGOTIATED(conn)) {
+            *max_early_data_size = server_max_early_data_size;
+        }
         return S2N_SUCCESS;
     }
 
@@ -358,8 +372,6 @@ int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, uint32_t
      * while setting up this connection, not during a previous connection.
      */
     if (conn->mode == S2N_SERVER && first_psk->type == S2N_PSK_TYPE_RESUMPTION) {
-        uint32_t server_max_early_data_size = 0;
-        POSIX_GUARD_RESULT(s2n_early_data_get_server_max_size(conn, &server_max_early_data_size));
         *max_early_data_size = MIN(*max_early_data_size, server_max_early_data_size);
     }
 

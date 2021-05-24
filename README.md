@@ -9,7 +9,7 @@ s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be 
 [![codecov](https://codecov.io/gh/aws/s2n-tls/branch/main/graph/badge.svg)](https://codecov.io/gh/aws/s2n-tls)
 [![Github forks](https://img.shields.io/github/forks/aws/s2n-tls.svg)](https://github.com/aws/s2n-tls/network)
 [![Github stars](https://img.shields.io/github/stars/aws/s2n-tls.svg)](https://github.com/aws/s2n-tls/stargazers)
-[![Join the chat at https://gitter.im/aws/s2n-tls](https://badges.gitter.im/aws/s2n-tls.svg)](https://gitter.im/aws/s2n-tls?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://gitter.im/awslabs/s2n](https://badges.gitter.im/awslabs/s2n.svg)](https://gitter.im/awslabs/s2n?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Quickstart for Ubuntu
 1. Fork s2n-tls on GitHub
@@ -36,26 +36,35 @@ An example of building on OSX:
 
 ```sh
 # Install required dependencies using homebrew
-brew install ninja cmake
+brew install ninja cmake coreutils openssl@1.1
 
 # Clone the s2n-tls source repository into the `s2n-tls` directory
 git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n-tls.git
+cd s2n-tls
 
-# Create a build directory parallel to the source directory
-mkdir s2n_tls_build
-
-# From the build directory, build s2n-tls with debug symbols and a specific OpenSSL version
-cd s2n_tls_build
-cmake -GNinja \
+# Create a build directory, and build s2n-tls with debug symbols and a specific OpenSSL version.
+cmake . -Bbuild -GNinja \
     -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_PREFIX_PATH=$(dirname $(dirname $(brew list openssl@1.1|grep libcrypto.dylib))) \
-    ../s2n-tls
-ninja -j6
-CTEST_PARALLEL_LEVEL=5 ninja test
+    -DCMAKE_PREFIX_PATH=$(dirname $(dirname $(brew list openssl@1.1|grep libcrypto.dylib)))
+cmake --build ./build -j $(nproc)
+CTEST_PARALLEL_LEVEL=$(nproc) ninja -C build test
 ```
 
+### Amazonlinux2
+
+Install dependancies with `./codebuild/bin/install_al2_dependencies.sh` after cloning.
+
+```sh
+git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n-tls.git
+cd s2n-tls
+cmake . -Bbuild -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cmake --build ./build -j $(nproc)
+CTEST_PARALLEL_LEVEL=$(nproc) make -C build test
+```
+
+
 ## Have a Question?
-If you have any questions about Submitting PR's, Opening Issues, s2n-tls API usage, or something similar, we have a public chatroom available here to answer your questions: https://gitter.im/aws/s2n-tls
+If you have any questions about Submitting PR's, Opening Issues, s2n-tls API usage, or something similar, we have a public chatroom available here to answer your questions: https://gitter.im/awslabs/s2n
 
 Otherwise, if you think you might have found a security impacting issue, please instead follow [our Security Notification Process.](#security-issue-notifications)
 

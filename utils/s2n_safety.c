@@ -94,16 +94,7 @@ int s2n_constant_time_copy_or_dont(uint8_t * dest, const uint8_t * src, uint32_t
     S2N_PUBLIC_INPUT(src);
     S2N_PUBLIC_INPUT(len);
 
-/* This underflows a value of 0 to the maximum value via arithmetic underflow,
- * so the check for arithmetic overflow/underflow needs to be disabled for CBMC.
- * Additionally, uint_fast16_t is defined as the fastest available unsigned
- * integer with 16 bits or greater, and is not guaranteed to be 16 bits long.
- * To handle this, the conversion overflow check also needs to be enabled. */
-#pragma CPROVER check push
-#pragma CPROVER check disable "conversion"
-#pragma CPROVER check disable "unsigned-overflow"
-    uint8_t mask = ((uint_fast16_t)((uint_fast16_t)(dont) - 1)) >> 8;
-#pragma CPROVER check pop
+    uint8_t mask = (((0xFFFF & dont) - 1) >> 8) & 0xFF;
 
     /* dont = 0 : mask = 0xff */
     /* dont > 0 : mask = 0x00 */
@@ -147,33 +138,19 @@ int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t * dst, const uint8_t * src, ui
 
     dont_copy |= src[0] ^ 0x00;
     dont_copy |= src[1] ^ 0x02;
+    dont_copy |= *(start_of_data-1) ^ 0x00;
 
-/* Since -1 is being used, we need to disable the pointer overflow check for CBMC. */
-#pragma CPROVER check push
-#pragma CPROVER check disable "pointer-overflow"
-    dont_copy |= start_of_data[-1] ^ 0x00;
-#pragma CPROVER check pop
-
-/* This underflows a value of 0 to the maximum value via arithmetic underflow,
- * so the check for arithmetic overflow/underflow needs to be disabled for CBMC.
- * Additionally, uint_fast16_t is defined as the fastest available unsigned
- * integer with 16 bits or greater, and is not guaranteed to be 16 bits long.
- * To handle this, the conversion overflow check also needs to be enabled. */
-#pragma CPROVER check push
-#pragma CPROVER check disable "conversion"
-#pragma CPROVER check disable "unsigned-overflow"
     for (uint32_t i = 2; i < srclen - expectlen - 1; i++) {
         /* Note! We avoid using logical NOT (!) here; while in practice
          * many compilers will use constant-time sequences for this operator,
          * at least on x86 (e.g. cmp -> setcc, or vectorized pcmpeq), this is
          * not guaranteed to hold, and some architectures might not have a
          * convenient mechanism for generating a branchless logical not. */
-        uint8_t mask = ((uint_fast16_t)((uint_fast16_t)(src[i]) - 1)) >> 8;
+        uint8_t mask = (((0xFFFF & src[i]) - 1) >> 8) & 0xFF;
         /* src[i] = 0 : mask = 0xff */
         /* src[i] > 0 : mask = 0x00 */
         dont_copy |= mask;
     }
-#pragma CPROVER check pop
 
     s2n_constant_time_copy_or_dont(dst, start_of_data, expectlen, dont_copy);
 

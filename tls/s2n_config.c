@@ -94,6 +94,7 @@ static int s2n_config_init(struct s2n_config *config)
     config->session_state_lifetime_in_nanos = S2N_STATE_LIFETIME_IN_NANOS;
     config->encrypt_decrypt_key_lifetime_in_nanos = S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS;
     config->decrypt_key_lifetime_in_nanos = S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS;
+    config->async_pkey_validation_mode = S2N_ASYNC_PKEY_VALIDATION_FAST;
 
     /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
      * authenticate any client certificates. */
@@ -687,6 +688,14 @@ int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enab
     }
 
     config->use_tickets = enabled;
+    /* TODO: The S2N_IN_TEST check is temporary until TLS1.3 session resumption is officially released.
+     * https://github.com/aws/s2n-tls/issues/2808 */
+    if (S2N_IN_TEST && config->initial_tickets_to_send == 0) {
+        /* Normally initial_tickets_to_send is set via s2n_config_set_initial_ticket_count.
+         * However, s2n_config_set_initial_ticket_count calls this method.
+         * So we set initial_tickets_to_send directly to avoid infinite recursion. */
+        config->initial_tickets_to_send = 1;
+    }
 
     /* session ticket || session id is enabled */
     if (enabled) {
@@ -861,4 +870,17 @@ int s2n_config_set_key_log_cb(struct s2n_config *config, s2n_key_log_fn callback
     config->key_log_ctx = ctx;
 
     return S2N_SUCCESS;
+}
+
+int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_async_pkey_validation_mode mode) {
+    POSIX_ENSURE_REF(config);
+
+    switch(mode) {
+        case S2N_ASYNC_PKEY_VALIDATION_FAST:
+        case S2N_ASYNC_PKEY_VALIDATION_STRICT:
+            config->async_pkey_validation_mode = mode;
+            return S2N_SUCCESS;
+    }
+
+    POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
 }

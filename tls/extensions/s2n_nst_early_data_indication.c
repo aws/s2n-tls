@@ -64,11 +64,17 @@ static int s2n_nst_early_data_indiction_recv(struct s2n_connection *conn, struct
     return S2N_SUCCESS;
 }
 
+static int s2n_nst_early_data_indication_missing(struct s2n_connection *conn)
+{
+    POSIX_GUARD(s2n_connection_set_server_max_early_data_size(conn, 0));
+    return S2N_SUCCESS;
+}
+
 const s2n_extension_type s2n_nst_early_data_indication_extension = {
     .iana_value = TLS_EXTENSION_EARLY_DATA,
     .is_response = false,
     .send = s2n_nst_early_data_indication_send,
     .recv = s2n_nst_early_data_indiction_recv,
     .should_send = s2n_nst_early_data_indication_should_send,
-    .if_missing = s2n_extension_noop_if_missing,
+    .if_missing = s2n_nst_early_data_indication_missing,
 };

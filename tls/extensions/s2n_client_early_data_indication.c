@@ -27,7 +27,7 @@
 /* S2N determines the handshake type after the ServerHello, but that will be
  * too late to handle the early data + middlebox compatibility case:
  *
- *= https://tools.ietf.org/rfc/rfc8446#appendix-D.3
+ *= https://tools.ietf.org/rfc/rfc8446#appendix-D.4
  *# -  If not offering early data, the client sends a dummy
  *#    change_cipher_spec record (see the third paragraph of Section 5)
  *#    immediately before its second flight.  This may either be before

@@ -228,13 +228,12 @@ are intended to be stable (API and ABI) within major version numbers of s2n-tls 
 and structures used in s2n-tls internally can not be considered stable and their parameters, names, and 
 sizes may change.
 
-At this time (Summer 2015), there has been no numbered release of s2n-tls and all APIs are subject to change based
-on the feedback and preferences of early adopters.
+The VERSIONING.rst document contains more details about s2n's approach to versions and API changes.
 
 ## Preprocessor macros
 
 s2n-tls defines five preprocessor macros that are used to determine what 
-version of SSL/TLS is in use on a connection. 
+version of SSL/TLS is in use on a connection.
 
 ```c
 #define S2N_SSLv2 20
@@ -242,9 +241,10 @@ version of SSL/TLS is in use on a connection.
 #define S2N_TLS10 31
 #define S2N_TLS11 32
 #define S2N_TLS12 33
+#define S2N_TLS13 34
 ```
 
-These correspond to SSL2.0, SSL3.0, TLS1.0, TLS1.1 and TLS1.2 respectively.
+These correspond to SSL2.0, SSL3.0, TLS1.0, TLS1.1, TLS1.2 and TLS1.3 respectively.
 Note that s2n-tls does not support SSL2.0 for sending and receiving encrypted data,
 but does accept SSL2.0 hello messages.
 
@@ -274,7 +274,10 @@ an error "category". See [Error Handling](#error-handling) for more detail.
 ### s2n_mode
 
 ```c
-typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
+typedef enum {
+  S2N_SERVER,
+  S2N_CLIENT
+} s2n_mode;
 ```
 
 **s2n_mode** is used to declare connections as server or client type, respectively.
@@ -282,12 +285,18 @@ typedef enum { S2N_SERVER, S2N_CLIENT } s2n_mode;
 ### s2n_blocked_status
 
 ```c
-typedef enum { S2N_NOT_BLOCKED, S2N_BLOCKED_ON_READ, S2N_BLOCKED_ON_WRITE } s2n_blocked_status;
+typedef enum {
+    S2N_NOT_BLOCKED = 0,
+    S2N_BLOCKED_ON_READ,
+    S2N_BLOCKED_ON_WRITE,
+    S2N_BLOCKED_ON_APPLICATION_INPUT,
+    S2N_BLOCKED_ON_EARLY_DATA,
+} s2n_blocked_status;
 ```
 
 **s2n_blocked_status** is used in non-blocking mode to indicate in which
 direction s2n-tls became blocked on I/O before it returned control to the caller.
-This allows an application to avoid retrying s2n-tls operations until I/O is 
+This allows an application to avoid retrying s2n-tls operations until I/O is
 possible in that direction.
 
 ### s2n_blinding
@@ -901,6 +910,15 @@ Sets whether or not a connection should terminate on receiving a WARNING alert f
 
 This setting is ignored in TLS1.3. TLS1.3 terminates a connection for all alerts except user_canceled.
 
+### s2n\_config\_set\_async\_pkey\_validation\_mode
+```c
+int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_async_pkey_validation_mode mode);
+```
+Sets whether or not a connection should enforce strict signature validation during the `s2n_async_pkey_op_apply` call. 
+`mode` can take the following values: 
+- `S2N_ASYNC_PKEY_VALIDATION_FAST` - default behavior: s2n-tls will perform only the minimum validation required for safe use of the asyn pkey operation.
+- `S2N_ASYNC_PKEY_VALIDATION_STRICT` - in addition to the previous checks, s2n-tls will also ensure that the signature created as a result of the async private key sign operation matches the public key on the connection.
+
 ## Certificate-related functions
 
 ### s2n\_cert\_chain\_and\_key\_new
@@ -1190,7 +1208,8 @@ const char *s2n_get_server_name(struct s2n_connection *conn);
 
 **s2n_get_server_name** returns the server name associated with a connection,
 or NULL if none is found. This can be used by a server to determine which server
-name the client is using.
+name the client is using. This function returns the first ServerName entry in the ServerNameList
+sent by the client. Subsequent entries are not returned.
 
 ### s2n\_connection\_set\_blinding
 
@@ -1221,9 +1240,9 @@ int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uin
 
 **s2n_connection_prefer_throughput** and **s2n_connection_prefer_low_latency**
 change the behavior of s2n-tls when sending data to prefer either throughput
-or low latency. Connections prefering low latency will be encrypted using small
+or low latency. Connections preferring low latency will be encrypted using small
 record sizes that can be decrypted sooner by the recipient. Connections
-prefering throughput will use large record sizes that minimize overhead.
+preferring throughput will use large record sizes that minimize overhead.
 
 -Connections default to an 8k outgoing maximum
 
@@ -1447,7 +1466,7 @@ int s2n_cert_chain_get_length(const struct s2n_cert_chain_and_key *chain_and_key
 
 **s2n_cert_chain_get_length** gets the length of the certificate chain `chain_and_key`. If the certificate chain `chain_and_key` is NULL an error is thrown.
 
-### s2n\_cert_\_chain\_get\_cert
+### s2n\_cert\_chain\_get\_cert
 
 ```c
 int s2n_cert_chain_get_cert(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, const uint32_t cert_idx);
@@ -1535,7 +1554,7 @@ handshake.
 
 **s2n_connection_get_session_length** returns number of bytes needed to store serialized session state; it can be used to allocate the **session** buffer.
 
-**s2n_connection_get_session_id_length** returns session id length from the connection.
+**s2n_connection_get_session_id_length** returns session id length from the connection. Session id length will be 0 for TLS versions >= TLS1.3 as stateful session resumption has not yet been implemented in TLS1.3.
 
 **s2n_connection_get_session_id** get the session id from the connection and copies into the **session_id** buffer and returns the number of bytes that were copied.
 
@@ -1637,6 +1656,42 @@ failure for the same **op**.
 **s2n_async_pkey_op_free** frees the memory for **op**. Should eventually
 be called for each of the **op** received in **s2n_async_pkey_fn** to
 avoid any memory leaks.
+
+### Offloading asynchronous private key operations
+**The s2n_async_pkey_op_\*** API can be used to perform a private key operation 
+outside of the S2N context. The application can query the type of private 
+key operation by calling **s2n_async_pkey_op_get_op_type**. In order to perform 
+an operation, the application must ask S2N to copy the operation's input into an 
+application supplied buffer. The appropriate buffer size can be determined by calling 
+**s2n_async_pkey_op_get_input_size**. Once a buffer of proper size is 
+allocated, the application can request the input data from the **s2n_async_pkey_op** 
+by calling **s2n_async_pkey_op_get_input**. After the operation is completed, the 
+finished output can be copied back to S2N by calling **s2n_async_pkey_op_set_output**. 
+Once the output is set the asynchronous private key operation can be completed by
+following the steps outlined [above](#Asynchronous-private-key-operations-related-calls)
+to apply the operation and free the op object.
+
+
+```c
+typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
+
+extern int s2n_async_pkey_op_get_op_type(struct s2n_async_pkey_op *op, s2n_async_pkey_op_type *type);
+extern int s2n_async_pkey_op_get_input_size(struct s2n_async_pkey_op *op, uint32_t *data_len);
+extern int s2n_async_pkey_op_get_input(struct s2n_async_pkey_op *op, uint8_t *data, uint32_t data_len);
+extern int s2n_async_pkey_op_set_output(struct s2n_async_pkey_op *op, const uint8_t *data, uint32_t data_len);
+```
+
+**s2n_async_pkey_op_type** contains the private key operation types.
+**s2n_async_pkey_op_get_op_type** retrieves the operation type of the **op**.
+**s2n_async_pkey_op_get_input_size** queries the **op** for the size of the input data.
+**s2n_async_pkey_op_get_input** retrieves the input data buffer from the **op**. 
+The **op** will copy the data into a buffer passed in through the **data** parameter. 
+This buffer is owned by the application, and it is the responsibility of the 
+application to free it.
+**s2n_async_pkey_op_set_output** copies the inputted data buffer, and uses it 
+to complete the private key operation. The data buffer is owned by the application. 
+Once **s2n_async_pkey_op_set_output** has returned, the application is free to 
+release the data buffer.
 
 ### s2n\_connection\_free\_handshake
 

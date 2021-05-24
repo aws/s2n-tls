@@ -438,6 +438,42 @@ extern int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 S2N_API
 extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
 
+/* TLS Signature Algorithms - RFC 5246 7.4.1.4.1 */ 
+/* https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16 */ 
+typedef enum {
+    S2N_TLS_SIGNATURE_ANONYMOUS = 0,
+    S2N_TLS_SIGNATURE_RSA = 1,
+    S2N_TLS_SIGNATURE_ECDSA = 3,
+
+    /* Use Private Range for RSA PSS since it's not defined there */
+    S2N_TLS_SIGNATURE_RSA_PSS_RSAE = 224,
+    S2N_TLS_SIGNATURE_RSA_PSS_PSS
+} s2n_tls_signature_algorithm;
+
+/* TLS Hash Algorithm - https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */ 
+/* https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-18 */ 
+typedef enum {
+    S2N_TLS_HASH_NONE = 0,
+    S2N_TLS_HASH_MD5 = 1,
+    S2N_TLS_HASH_SHA1 = 2,
+    S2N_TLS_HASH_SHA224 = 3,
+    S2N_TLS_HASH_SHA256 = 4,
+    S2N_TLS_HASH_SHA384 = 5,
+    S2N_TLS_HASH_SHA512 = 6,
+    
+    /* Use Private Range for MD5_SHA1 */
+    S2N_TLS_HASH_MD5_SHA1 = 224
+} s2n_tls_hash_algorithm;
+
+S2N_API
+extern int s2n_connection_get_selected_signature_algorithm(struct s2n_connection *conn, s2n_tls_signature_algorithm *chosen_alg);
+S2N_API
+extern int s2n_connection_get_selected_digest_algorithm(struct s2n_connection *conn, s2n_tls_hash_algorithm *chosen_alg);
+S2N_API
+extern int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_connection *conn, s2n_tls_signature_algorithm *chosen_alg);
+S2N_API
+extern int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connection *conn, s2n_tls_hash_algorithm *chosen_alg);
+
 S2N_API
 extern struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2n_connection *conn);
 
@@ -456,9 +492,17 @@ extern int s2n_cert_chain_get_length(const struct s2n_cert_chain_and_key *chain_
  * Note that the index of the leaf certificate is zero. If the certificate chain `chain_and_key` is NULL or the
  * certificate index value is not in the acceptable range for the input certificate chain, an error is returned.
  * 
+ * # Safety 
+ *
+ * There is no memory allocation required for `out_cert` buffer prior to calling the `s2n_cert_chain_get_cert` API.
+ * The `out_cert` will contain the pointer to the s2n_cert initialized within the input s2n_cert_chain_and_key `chain_and_key`.
+ * The pointer to the output s2n certificate `out_cert` is valid until `chain_and_key` is freed up. 
+ * If a caller wishes to persist the `out_cert` beyond the lifetime of `chain_and_key`, the contents would need to be
+ * copied prior to freeing `chain_and_key`.
+ *
  * @param chain_and_key A pointer to the s2n_cert_chain_and_key object being read.
+ * @param out_cert A pointer to the output s2n_cert `out_cert` present at the index `cert_idx` of the certificate chain `chain_and_key`.
  * @param cert_idx The certificate index for the requested certificate within the s2n certificate chain.
- * @param cert_length This return value represents the length of the s2n certificate chain `chain_and_key`.
  */
 S2N_API
 extern int s2n_cert_chain_get_cert(const struct s2n_cert_chain_and_key *chain_and_key, struct s2n_cert **out_cert, const uint32_t cert_idx);
@@ -603,6 +647,8 @@ S2N_API
 extern const char *s2n_connection_get_last_message_name(struct s2n_connection *conn);
 
 struct s2n_async_pkey_op;
+typedef enum { S2N_ASYNC_PKEY_VALIDATION_FAST, S2N_ASYNC_PKEY_VALIDATION_STRICT } s2n_async_pkey_validation_mode;
+typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
 
 typedef int (*s2n_async_pkey_fn)(struct s2n_connection *conn, struct s2n_async_pkey_op *op);
 S2N_API
@@ -613,6 +659,17 @@ S2N_API
 extern int s2n_async_pkey_op_apply(struct s2n_async_pkey_op *op, struct s2n_connection *conn);
 S2N_API
 extern int s2n_async_pkey_op_free(struct s2n_async_pkey_op *op);
+S2N_API
+extern int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_async_pkey_validation_mode mode);
+
+S2N_API
+extern int s2n_async_pkey_op_get_op_type(struct s2n_async_pkey_op *op, s2n_async_pkey_op_type *type);
+S2N_API
+extern int s2n_async_pkey_op_get_input_size(struct s2n_async_pkey_op *op, uint32_t *data_len);
+S2N_API
+extern int s2n_async_pkey_op_get_input(struct s2n_async_pkey_op *op, uint8_t *data, uint32_t data_len);
+S2N_API
+extern int s2n_async_pkey_op_set_output(struct s2n_async_pkey_op *op, const uint8_t *data, uint32_t data_len);
 
 /**
  * Callback function for handling key log events

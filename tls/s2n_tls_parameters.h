@@ -68,8 +68,10 @@
 #define TLS_PQ_KEM_EXTENSION_ID_BIKE1_L1_R3 25
 #define TLS_PQ_KEM_EXTENSION_ID_SIKE_P503_R1 10
 #define TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2 19
+#define TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3 19 /* Not a typo; sikep434 r2 and r3 use the same extension ID */
 #define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R2 23
 #define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_90S_R2 24
+#define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3 28
 
 /* TLS 1.3 hybrid post-quantum definitions are from the proposed reserved range defined
  * in https://tools.ietf.org/html/draft-stebila-tls-hybrid-design. Values for interoperability
@@ -124,27 +126,6 @@
  *#   } ExtensionType;
  */
 #define TLS_QUIC_TRANSPORT_PARAMETERS      0xffa5
-
-/* TLS Signature Algorithms - RFC 5246 7.4.1.4.1 */
-/* https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16 */
-#define TLS_SIGNATURE_ALGORITHM_ANONYMOUS   0
-#define TLS_SIGNATURE_ALGORITHM_RSA         1
-#define TLS_SIGNATURE_ALGORITHM_DSA         2
-#define TLS_SIGNATURE_ALGORITHM_ECDSA       3
-#define TLS_SIGNATURE_ALGORITHM_PRIVATE     224
-
-#define TLS_SIGNATURE_ALGORITHM_COUNT       4
-
-/* TLS Hash Algorithm - https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */
-/* https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-18 */
-#define TLS_HASH_ALGORITHM_ANONYMOUS        0
-#define TLS_HASH_ALGORITHM_MD5              1
-#define TLS_HASH_ALGORITHM_SHA1             2
-#define TLS_HASH_ALGORITHM_SHA224           3
-#define TLS_HASH_ALGORITHM_SHA256           4
-#define TLS_HASH_ALGORITHM_SHA384           5
-#define TLS_HASH_ALGORITHM_SHA512           6
-#define TLS_HASH_ALGORITHM_COUNT            7
 
 /* TLS SignatureScheme (Backwards compatible with SigHash and SigAlg values above) */
 /* Defined here: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme */
@@ -203,6 +184,7 @@
 #define TLS_EC_CURVE_SECP_384_R1           24
 #define TLS_EC_CURVE_SECP_521_R1           25
 #define TLS_EC_CURVE_ECDH_X25519           29
+#define TLS_EC_CURVE_ECDH_X448             30
 
 /* Ethernet maximum transmission unit (MTU)
  * MTU is usually associated with the Ethernet protocol,

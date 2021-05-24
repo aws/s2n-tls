@@ -13,7 +13,7 @@
 
 # Expected runtime is less than 10 seconds.
 
-CBMCFLAGS +=
+CBMCFLAGS += --memory-leak-check
 
 PROOF_UID = s2n_array_free_p
 HARNESS_ENTRY = $(PROOF_UID)_harness

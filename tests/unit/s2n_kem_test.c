@@ -359,16 +359,18 @@ int main(int argc, char **argv)
         compatible_params = NULL;
         EXPECT_SUCCESS(s2n_cipher_suite_to_kem(sike_iana, &compatible_params));
         EXPECT_NOT_NULL(compatible_params);
-        EXPECT_EQUAL(compatible_params->kem_count, 2);
+        EXPECT_EQUAL(compatible_params->kem_count, 3);
         EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_sike_p503_r1.kem_extension_id);
         EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_sike_p434_r2.kem_extension_id);
+        EXPECT_EQUAL(compatible_params->kems[2]->kem_extension_id, s2n_sike_p434_r3.kem_extension_id);
 
         compatible_params = NULL;
         EXPECT_SUCCESS(s2n_cipher_suite_to_kem(kyber_iana, &compatible_params));
         EXPECT_NOT_NULL(compatible_params);
-        EXPECT_EQUAL(compatible_params->kem_count, 2);
+        EXPECT_EQUAL(compatible_params->kem_count, 3);
         EXPECT_EQUAL(compatible_params->kems[0]->kem_extension_id, s2n_kyber_512_r2.kem_extension_id);
         EXPECT_EQUAL(compatible_params->kems[1]->kem_extension_id, s2n_kyber_512_90s_r2.kem_extension_id);
+        EXPECT_EQUAL(compatible_params->kems[2]->kem_extension_id, s2n_kyber_512_r3.kem_extension_id);
     }
 
     {
@@ -649,8 +651,8 @@ int main(int argc, char **argv)
     {
         /* Failure cases for s2n_get_kem_from_extension_id() */
         const struct s2n_kem *returned_kem = NULL;
-        kem_extension_size non_existant_kem_id = 65535;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(non_existant_kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        kem_extension_size non_existent_kem_id = 65535;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_get_kem_from_extension_id(non_existent_kem_id, &returned_kem), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     }
 
     END_TEST();

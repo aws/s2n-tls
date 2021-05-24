@@ -21,25 +21,25 @@ void s2n_set_free_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_set *set = cbmc_allocate_s2n_set();
+
+    /* Assumptions. */
+    nondet_s2n_mem_init();
     __CPROVER_assume(s2n_result_is_ok(s2n_set_validate(set)));
 
-    nondet_s2n_mem_init();
-
-    struct s2n_set old_set = *set;
-
     /* Operation under verification. */
-    s2n_set_free(set);
-
-#pragma CPROVER check push
-#pragma CPROVER check disable "pointer"
-    /*
-     * Regardless of the result of s2n_free, verify that the
-     * data pointed to in the blob was zeroed.
-     */
-    if (old_set.data->mem.size > 0 && old_set.data->mem.data != NULL) {
-        size_t i;
-        __CPROVER_assume(i < old_set.data->mem.size);
-        assert(old_set.data->mem.data[i] == 0);
+    s2n_result result = s2n_set_free(set);
+    if (s2n_result_is_error(result)) {
+        assert(s2n_errno != S2N_ERR_FREE_STATIC_BLOB);
     }
-#pragma CPROVER check pop
+
+    /**
+     * Cleanup after expected error cases, for memory leak check.
+     * It's good proof practice not to mix state mutations (below) with property checks (above).
+     */
+    if (s2n_result_is_error(result) && s2n_errno == S2N_ERR_NOT_INITIALIZED) {
+        /* s2n was not initialized, this failure is expected. */
+        free(set->data->mem.data);
+        free(set->data);
+        free(set);
+    }
 }

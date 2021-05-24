@@ -92,6 +92,12 @@ void usage()
                     "    By default, the client will generate keyshares for all curves present in the ecc_preferences list.\n");
     fprintf(stderr, "  -L --key-log <path>\n");
     fprintf(stderr, "    Enable NSS key logging into the provided path\n");
+    fprintf(stderr, "  -P --psk <psk-identity,psk-secret,psk-hmac-alg> \n"
+                    "    A comma-separated list of psk parameters in this order: psk_identity, psk_secret and psk_hmac_alg.\n"
+                    "    Note that the maximum number of permitted psks is 10, the psk-secret is hex-encoded, and whitespace is not allowed before or after the commas.\n"
+                    "    Ex: --psk psk_id,psk_secret,SHA256 --psk shared_id,shared_secret,SHA384.\n");
+    fprintf(stderr, "  -E ,--early-data <file path>\n");
+    fprintf(stderr, "    Sends data in file path as early data to the server. Early data will only be sent if s2nc receives a session ticket and resumes a session.");
     fprintf(stderr, "\n");
     exit(1);
 }
@@ -114,6 +120,27 @@ static uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, v
     }
 
     return (uint8_t) (strcasecmp(host_name, verify_data->trusted_host) == 0);
+}
+
+size_t session_state_length = 0;
+uint8_t *session_state = NULL;
+static int test_session_ticket_cb(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket)
+{
+    GUARD_EXIT_NULL(conn);
+    GUARD_EXIT_NULL(ticket);
+
+    GUARD_EXIT(s2n_session_ticket_get_data_len(ticket, &session_state_length), "Error getting ticket length ");
+    session_state = realloc(session_state, session_state_length);
+    if(session_state == NULL) {
+        print_s2n_error("Error getting new session state");
+        exit(1);
+    }
+    GUARD_EXIT(s2n_session_ticket_get_data(ticket, session_state_length, session_state), "Error getting ticket data");
+
+    bool *session_ticket_recv = (bool *)ctx;
+    *session_ticket_recv = 1;
+
+    return S2N_SUCCESS;
 }
 
 static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs, s2n_status_request_type type,
@@ -227,8 +254,7 @@ int main(int argc, char *const *argv)
 {
     struct addrinfo hints, *ai_list, *ai;
     int r, sockfd = 0;
-    ssize_t session_state_length = 0;
-    uint8_t *session_state = NULL;
+    bool session_ticket_recv = 0;
     /* Optional args */
     const char *alpn_protocols = NULL;
     const char *server_name = NULL;
@@ -259,6 +285,9 @@ int main(int argc, char *const *argv)
     char *token = NULL;
     const char *key_log_path = NULL;
     FILE *key_log_file = NULL;
+    char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH];
+    size_t psk_list_len = 0;
+    char *early_data = NULL;
 
     static struct option long_options[] = {
         {"alpn", required_argument, 0, 'a'},
@@ -282,12 +311,14 @@ int main(int argc, char *const *argv)
         {"keyshares", required_argument, 0, 'K'},
         {"non-blocking", no_argument, 0, 'B'},
         {"key-log", required_argument, 0, 'L'},
+        {"psk", required_argument, 0, 'P'},
+        {"early-data", required_argument, 0, 'E'},
         { 0 },
     };
 
     while (1) {
         int option_index = 0;
-        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:irTCK:BL:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "a:c:ehn:m:sf:d:l:k:D:t:irTCK:BL:P:E:", long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -368,6 +399,17 @@ int main(int argc, char *const *argv)
             break;
         case 'L':
             key_log_path = optarg;
+            break;
+        case 'P':
+            if (psk_list_len >= S2N_MAX_PSK_LIST_LENGTH) {
+                fprintf(stderr, "Error setting psks, maximum number of psks permitted is 10.\n");
+                exit(1);
+            }
+            psk_optarg_list[psk_list_len++] = optarg;
+            break;
+        case 'E':
+            early_data = load_file_to_cstring(optarg);
+            GUARD_EXIT_NULL(early_data);
             break;
         case '?':
         default:
@@ -464,6 +506,8 @@ int main(int argc, char *const *argv)
 
         if (session_ticket) {
             GUARD_EXIT(s2n_config_set_session_tickets_onoff(config, 1), "Error enabling session tickets");
+            GUARD_EXIT(s2n_config_set_session_ticket_cb(config, test_session_ticket_cb, &session_ticket_recv), "Error setting session ticket callback");
+            session_ticket_recv = 0;
         }
 
         if (key_log_path) {
@@ -509,6 +553,20 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(s2n_connection_set_session(conn, session_state, session_state_length), "Error setting session state in connection");
         }
 
+        GUARD_EXIT(s2n_setup_external_psk_list(conn, psk_optarg_list, psk_list_len), "Error setting external psk list");
+
+        if (early_data) {
+            if (!session_ticket) {
+                print_s2n_error("Early data can only be used with session tickets.");
+                exit(1);
+            }
+            /* Send early data if we have a received a session ticket from the server */
+            if (session_state_length) {
+                uint32_t early_data_length = strlen(early_data);
+                GUARD_EXIT(early_data_send(conn, (uint8_t *)early_data, early_data_length), "Error sending early data");
+            }
+        }
+
         /* See echo.c */
         if (negotiate(conn, sockfd) != 0) {
             /* Error is printed in negotiate */
@@ -517,18 +575,27 @@ int main(int argc, char *const *argv)
 
         printf("Connected to %s:%s\n", host, port);
 
-        /* Save session state from connection if reconnect is enabled */
+        /* Save session state from connection if reconnect is enabled. */
         if (reconnect > 0) {
-            if (!session_ticket && s2n_connection_get_session_id_length(conn) <= 0) {
-                printf("Endpoint sent empty session id so cannot resume session\n");
-                exit(1);
-            }
-            free(session_state);
-            session_state_length = s2n_connection_get_session_length(conn);
-            session_state = calloc(session_state_length, sizeof(uint8_t));
-            if (s2n_connection_get_session(conn, session_state, session_state_length) != session_state_length) {
-                print_s2n_error("Error getting serialized session state");
-                exit(1);
+            if (conn->actual_protocol_version >= S2N_TLS13) {
+                if (!session_ticket) {
+                    print_s2n_error("s2nc can only reconnect in TLS1.3 with session tickets.");
+                    exit(1);
+                }
+                GUARD_EXIT(echo(conn, sockfd, &session_ticket_recv), "Error calling echo");
+            } else {
+                if (!session_ticket && s2n_connection_get_session_id_length(conn) <= 0) {
+                    print_s2n_error("Endpoint sent empty session id so cannot resume session");
+                    exit(1);
+                }
+                free(session_state);
+                session_state_length = s2n_connection_get_session_length(conn);
+                session_state = calloc(session_state_length, sizeof(uint8_t));
+                GUARD_EXIT_NULL(session_state);
+                if (s2n_connection_get_session(conn, session_state, session_state_length) != session_state_length) {
+                    print_s2n_error("Error getting serialized session state");
+                    exit(1);
+                }
             }
         }
 
@@ -536,10 +603,13 @@ int main(int argc, char *const *argv)
             s2n_connection_set_dynamic_record_threshold(conn, dyn_rec_threshold, dyn_rec_timeout);
         }
 
+        GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
+
         if (echo_input == 1) {
+            bool stop_echo = false;
             fflush(stdout);
             fflush(stderr);
-            echo(conn, sockfd);
+            echo(conn, sockfd, &stop_echo);
         }
 
         /* The following call can block on receiving a close_notify if we initiate the shutdown or if the */
@@ -568,6 +638,7 @@ int main(int argc, char *const *argv)
 
     GUARD_EXIT(s2n_cleanup(), "Error running s2n_cleanup()");
 
+    free(early_data);
     free(session_state);
     freeaddrinfo(ai_list);
     return 0;

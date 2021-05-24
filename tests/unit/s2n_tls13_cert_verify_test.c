@@ -114,7 +114,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         /* Receive and verify cert */
         EXPECT_SUCCESS(s2n_tls13_cert_verify_recv(verifying_conn));
 
-        /* Repeat the above test succesfully */
+        /* Repeat the above test successfully */
         EXPECT_SUCCESS(s2n_tls13_cert_verify_send(sending_conn));
         EXPECT_SUCCESS(s2n_stuffer_copy(&sending_conn->handshake.io, &verifying_conn->handshake.io, s2n_stuffer_data_available(&sending_conn->handshake.io)));
         EXPECT_SUCCESS(s2n_tls13_cert_verify_recv(verifying_conn));

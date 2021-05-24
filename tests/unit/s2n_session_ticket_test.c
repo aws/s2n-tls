@@ -53,7 +53,7 @@ static int mock_time(void *data, uint64_t *nanoseconds)
 uint8_t cb_session_data[S2N_TLS12_SESSION_SIZE * 2] = { 0 };
 size_t cb_session_data_len = 0;
 uint32_t cb_session_lifetime = 0;
-static int s2n_test_session_ticket_callback(struct s2n_connection *conn, struct s2n_session_ticket *ticket)
+static int s2n_test_session_ticket_callback(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket)
 {
     EXPECT_NOT_NULL(conn);
     EXPECT_NOT_NULL(ticket);
@@ -1017,7 +1017,7 @@ int main(int argc, char **argv)
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, invalid_en_data, sizeof(invalid_en_data)));
 
         server_conn->session_ticket_status = S2N_DECRYPT_TICKET;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_decrypt_session_ticket(server_conn), S2N_ERR_DECRYPT);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_decrypt_session_ticket(server_conn, &server_conn->client_ticket_to_decrypt), S2N_ERR_DECRYPT);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -1043,7 +1043,7 @@ int main(int argc, char **argv)
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, invalid_en_data, sizeof(invalid_en_data)));
 
         server_conn->session_ticket_status = S2N_DECRYPT_TICKET;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_decrypt_session_ticket(server_conn), S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_decrypt_session_ticket(server_conn, &server_conn->client_ticket_to_decrypt), S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -1051,23 +1051,45 @@ int main(int argc, char **argv)
 
     /* Test s2n_connection_is_session_resumed */
     {
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        /* TLS1.2 */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            conn->actual_protocol_version = S2N_TLS12;
 
-        EXPECT_TRUE(s2n_connection_get_protocol_version(server_conn) == S2N_TLS12);
-        EXPECT_TRUE(server_conn->handshake.handshake_type == INITIAL);
-        EXPECT_FALSE(s2n_connection_is_session_resumed(server_conn));
+            conn->handshake.handshake_type = INITIAL;
+            EXPECT_FALSE(s2n_connection_is_session_resumed(conn));
 
-        server_conn->handshake.handshake_type = NEGOTIATED | WITH_SESSION_TICKET;
-        EXPECT_TRUE(s2n_connection_is_session_resumed(server_conn));
+            conn->handshake.handshake_type = NEGOTIATED | WITH_SESSION_TICKET;
+            EXPECT_TRUE(s2n_connection_is_session_resumed(conn));
 
-        server_conn->actual_protocol_version = S2N_TLS13;
-        server_conn->handshake.handshake_type = INITIAL;
-        EXPECT_FALSE(s2n_connection_is_session_resumed(server_conn));
+            /* Ignores PSK mode */
+            conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
+            EXPECT_TRUE(s2n_connection_is_session_resumed(conn));
 
-        server_conn->handshake.handshake_type = NEGOTIATED | WITH_SESSION_TICKET;
-        EXPECT_FALSE(s2n_connection_is_session_resumed(server_conn));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
 
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        /* TLS1.3 */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+            conn->actual_protocol_version = S2N_TLS13;
+
+            conn->handshake.handshake_type = INITIAL;
+            conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
+            EXPECT_FALSE(s2n_connection_is_session_resumed(conn));
+
+            conn->handshake.handshake_type = NEGOTIATED;
+            conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
+            EXPECT_FALSE(s2n_connection_is_session_resumed(conn));
+
+            conn->handshake.handshake_type = NEGOTIATED;
+            conn->psk_params.type = S2N_PSK_TYPE_RESUMPTION;
+            EXPECT_TRUE(s2n_connection_is_session_resumed(conn));
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
     }
 
     /* Session resumption APIs and session_ticket_cb return the same values
@@ -1123,9 +1145,8 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_reset_tls13());
 
-    /* Session resumption APIs and session_ticket_cb return sane values
+    /* Session resumption APIs and session_ticket_cb return the same values
      * when receiving a new ticket in TLS1.3
-     * TODO: https://github.com/aws/s2n-tls/issues/2553
      */
     {
         struct s2n_config *config = s2n_config_new();
@@ -1133,10 +1154,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
-        EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name1, strlen((char *)ticket_key_name1),
                 ticket_key1, sizeof(ticket_key1), 0));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+
+        /* Freeze time */
+        POSIX_GUARD(config->wall_clock(config->sys_clock_ctx, &now));
+        EXPECT_OK(s2n_config_mock_wall_clock(config, &now));
 
         /* Send one NewSessionTicket */
         cb_session_data_len = 0;
@@ -1157,12 +1181,25 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
 
+        /* Old TLS1.2 customer code will likely attempt to read the ticket here -- ensure we indicate no ticket yet */
+        EXPECT_EQUAL(s2n_connection_get_session_length(client_conn), 0);
+
         /* Receive and save the issued session ticket for the next test */
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
         uint8_t out = 0;
         EXPECT_FAILURE_WITH_ERRNO(s2n_recv(client_conn, &out, 1, &blocked), S2N_ERR_IO_BLOCKED);
         EXPECT_NOT_EQUAL(cb_session_data_len, 0);
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&tls13_serialized_session_state, cb_session_data, cb_session_data_len));
+
+        /* Verify correct session ticket lifetime "hint" */
+        EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), cb_session_lifetime);
+
+        /* Verify the session ticket APIs produce the same results as the callback */
+        DEFER_CLEANUP(struct s2n_blob legacy_api_ticket = { 0 }, s2n_free);
+        EXPECT_SUCCESS(s2n_realloc(&legacy_api_ticket, cb_session_data_len));
+        EXPECT_EQUAL(s2n_connection_get_session_length(client_conn), cb_session_data_len);
+        EXPECT_SUCCESS(s2n_connection_get_session(client_conn, legacy_api_ticket.data, legacy_api_ticket.size));
+        EXPECT_BYTEARRAY_EQUAL(cb_session_data, legacy_api_ticket.data, legacy_api_ticket.size);
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));

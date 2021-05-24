@@ -18,7 +18,7 @@ from enum import Enum
 
 # Number of lines of output to stdout s2nc or s2nd are expected
 # to produce after a successful handshake
-NUM_EXPECTED_LINES_OUTPUT = 11
+NUM_EXPECTED_LINES_OUTPUT = 12
 
 class OCSP(Enum):
     ENABLED = 1
@@ -81,7 +81,6 @@ ALL_TEST_CIPHERS = [
 MAX_ITERATION_DEPTH = 3
 
 # Expected preferences for SignatureAlgorithms in GnuTLS priority string format
-# See https://github.com/awslabs/s2n/blob/main/tls/s2n_tls_digest_preferences.h
 EXPECTED_RSA_SIGNATURE_ALGORITHM_PREFS = [
     "SIGN-RSA-SHA256",
     "SIGN-RSA-SHA384",

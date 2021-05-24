@@ -13,12 +13,9 @@
 # permissions and limitations under the License.
 #
 
-set -ex
+set -e
 
 source codebuild/bin/s2n_setup_env.sh
-# Defer overriding LD_LIBRARY_PATH so that the overriden paths don't interfere with test install scripts.
-# Some Test install scripts use curl commands to download files from S3, but those commands don't work when forced to load OpenSSL 1.1.1
-source codebuild/bin/s2n_override_paths.sh
 
 # Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default
 # Codebuild Containers aren't allowing prlimit changes (and aren't being caught with the usual cgroup check)
@@ -63,10 +60,16 @@ if [[ "$OS_NAME" == "osx" && "$TESTS" == "integration" ]]; then
     scan-build --status-bugs -o /tmp/scan-build make -j$JOBS; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/* ; [ "$STATUS" -eq "0" ];
 fi
 
+CMAKE_PQ_OPTION="S2N_NO_PQ=False"
+if [[ -n "$S2N_NO_PQ" ]]; then
+    CMAKE_PQ_OPTION="S2N_NO_PQ=True"
+fi
+
 # Run Multiple tests on one flag.
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACPlus" ]] && [[ "$OS_NAME" == "linux" ]]; then make -C tests/saw tmp/verify_HMAC.log tmp/verify_drbg.log sike failure-tests; fi
 
 # Run Individual tests
+if [[ "$TESTS" == "ALL" || "$TESTS" == "unit" ]]; then cmake . -Bbuild -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT -D${CMAKE_PQ_OPTION}; cmake --build ./build; make -C build test ARGS=-j$(nproc); fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "asan" ]]; then make clean; S2N_ADDRESS_SANITIZER=1 make -j $JOBS ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "integration" ]]; then make clean; make integration ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "integrationv2" ]]; then make clean; make integrationv2 ; fi
@@ -80,7 +83,7 @@ if [[ "$TESTS" == "sawHMACFailure" ]]; then make -C tests/saw failure-tests ; fi
 if [[ "$TESTS" == "sawSIKE" ]]; then make -C tests/saw sike ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawBIKE" ]]; then make -C tests/saw bike ; fi
 
-# Generate *.gcov files that can be picked up by the CodeCov.io Bash helper script. Don't run lcov or genhtml 
+# Generate *.gcov files that can be picked up by the CodeCov.io Bash helper script. Don't run lcov or genhtml
 # since those will delete .gcov files as they're processed.
 if [[ "$CODECOV_IO_UPLOAD" == "true" && "$FUZZ_COVERAGE" != "true" ]]; then
     make run-gcov;

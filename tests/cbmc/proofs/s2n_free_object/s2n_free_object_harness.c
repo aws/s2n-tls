@@ -25,25 +25,18 @@ void s2n_free_object_harness()
     uint32_t size;
     uint8_t *data = malloc(size);
 
+    /* Assumptions. */
     nondet_s2n_mem_init();
 
-    uint8_t *old_data = data;
-
     /* Operation under verification. */
-    if (s2n_free_object(&data, size) == S2N_SUCCESS) {
+    int result = s2n_free_object(&data, size);
+    if (result == S2N_SUCCESS) {
         assert(data == NULL);
     }
 
-#pragma CPROVER check push
-#pragma CPROVER check disable "pointer"
-    /*
-     * Regardless of the result of s2n_free, verify that the
-     * data pointed to in the blob was zeroed.
-    */
-    if (size > 0 && old_data != NULL) {
-        size_t i;
-        __CPROVER_assume(i < size);
-        assert(old_data[i] == 0);
+    /* Cleanup after expected error cases, for memory leak check. */
+    if (result != S2N_SUCCESS && s2n_errno == S2N_ERR_NOT_INITIALIZED) {
+        /* `s2n_free` failed because s2n was not initialized. */
+        free(data);
     }
-#pragma CPROVER check pop
 }

@@ -16,16 +16,44 @@
 #pragma once
 
 #include <cbmc_proof/nondet.h>
+#include <crypto/s2n_hash.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stuffer/s2n_stuffer.h>
 #include <utils/s2n_blob.h>
 
 #define IMPLIES(a, b) (!(a) || (b))
+#define CBMC_ENSURE_REF(cond)    \
+    do {                         \
+        if (!(cond)) { return; } \
+    } while (0)
 
 struct store_byte_from_buffer {
     size_t  idx;
     uint8_t byte;
+};
+
+/**
+ * Reference counted keys (EVP_PKEY and EC_KEY) store the reference count
+ * within the key itself, thus making it potentially unavailable after the
+ * key get deallocated.
+ * In the `rc_keys_from_evp_pkey_ctx`, we store the reference count outside of the key,
+ * so we can assert properties on them regardless of whether keys was deallocated or not.
+ */
+struct rc_keys_from_evp_pkey_ctx {
+    EVP_PKEY *pkey;
+    int pkey_refs;
+    EC_KEY *pkey_eckey;
+    int pkey_eckey_refs;
+};
+
+/**
+ * In the `rc_keys_from_hash_state`, we store two `rc_keys_from_evp_pkey_ctx` objects:
+ * one for the `evp` field and another for `evp_md5_secondary` field.
+ */
+struct rc_keys_from_hash_state {
+    struct rc_keys_from_evp_pkey_ctx evp;
+    struct rc_keys_from_evp_pkey_ctx evp_md5;
 };
 
 /**
@@ -86,6 +114,46 @@ void assert_byte_from_buffer_matches(const uint8_t *const buffer, const struct s
 void assert_byte_from_blob_matches(const struct s2n_blob *blob, const struct store_byte_from_buffer *const b);
 
 /**
+ * Assert that the reference counts in `storage` have decremented by 1 (if they were > 1).
+ * We cannot check anything if the previous reference count was 1, because the key is deallocated in that case.
+ */
+void assert_rc_decrement_on_evp_pkey_ctx(struct rc_keys_from_evp_pkey_ctx *storage);
+
+/**
+ * Assert that the reference counts in `storage` have decremented by 1 (if they were > 1).
+ * We cannot check anything if the previous reference count was 1, because the key is deallocated in that case.
+ */
+void assert_rc_unchanged_on_evp_pkey_ctx(struct rc_keys_from_evp_pkey_ctx *storage);
+
+/**
+ * Assert that the reference counts in `storage` are unchanged.
+ */
+void assert_rc_decrement_on_hash_state(struct rc_keys_from_hash_state *storage);
+
+/**
+ * Assert that the reference counts in `storage` are unchanged.
+ */
+void assert_rc_unchanged_on_hash_state(struct rc_keys_from_hash_state *storage);
+
+/**
+ * Save reference-counted keys from an `EVP_PKEY_CTX`.
+ * Afterwards, one can assert that keys have changed as expected (e.g. after `s2n_hash_free`), i.e.,
+ * reference counts have either decreased by 1: see `assert_rc_decrement_on_evp_pkey_ctx`.
+ * Additionally, one can also `free` the keys that are left with non-zero reference counts,
+ * if that's expected, using `free_rc_keys_from_evp_pkey_ctx` for memory leak check to go through.
+ */
+void save_rc_keys_from_evp_pkey_ctx(const EVP_PKEY_CTX *pctx, struct rc_keys_from_evp_pkey_ctx *storage);
+
+/**
+ * Save reference-counted keys from an `s2n_hash_state`.
+ * Afterwards, one can assert that keys have changed as expected (e.g. after `s2n_hash_free`), i.e.,
+ * reference counts have either decreased by 1: see `assert_rc_decrement_on_hash_state`.
+ * Additionally, one can also `free` the keys that are left with non-zero reference counts,
+ * if that's expected, using `free_rc_keys_from_hash_state` for memory leak check to go through.
+ */
+void save_rc_keys_from_hash_state(const struct s2n_hash_state *state, struct rc_keys_from_hash_state *storage);
+
+/**
  * Nondeterministically selects a byte from array and stores it into a store_array_list_byte
  * structure. Afterwards, one can prove using the assert_byte_from_buffer_matches function
  * whether no byte in the array has changed.
@@ -98,6 +166,16 @@ void save_byte_from_array(const uint8_t *const array, const size_t size, struct 
  * whether no byte in the blob has changed.
  */
 void save_byte_from_blob(const struct s2n_blob *blob, struct store_byte_from_buffer *storage);
+
+/**
+ * Free all ref-counted keys in `storage` that earlier had a reference count != 1.
+ */
+void free_rc_keys_from_evp_pkey_ctx(struct rc_keys_from_evp_pkey_ctx *pctx);
+
+/**
+ * Free all ref-counted keys in `storage` that earlier had a reference count != 1.
+ */
+void free_rc_keys_from_hash_state(struct rc_keys_from_hash_state *storage);
 
 /**
  * Standard stub function to compare two items.

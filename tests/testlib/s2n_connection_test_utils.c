@@ -230,3 +230,46 @@ int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_
 
     return S2N_SUCCESS;
 }
+
+static int mock_time(void *data, uint64_t *nanoseconds)
+{
+    POSIX_ENSURE_REF(data);
+    POSIX_ENSURE_REF(nanoseconds);
+    *nanoseconds = *((uint64_t*) data);
+    return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_config_mock_wall_clock(struct s2n_config *config, uint64_t *test_time_in_ns)
+{
+    RESULT_ENSURE_REF(config);
+    RESULT_GUARD_POSIX(s2n_config_set_wall_clock(config, mock_time, test_time_in_ns));
+    return S2N_RESULT_OK;
+}
+
+/* Sets the encryption and decryption keys to enable sending and receiving encrypted data.
+ * Basically, it bypasses the usual key exchange -> shared secret -> derive keys process
+ * and just uses static mock keys.
+ */
+S2N_RESULT s2n_connection_set_secrets(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+    conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+    const struct s2n_cipher *cipher = conn->secure.cipher_suite->record_alg->cipher;
+
+    uint8_t client_key_bytes[S2N_TLS13_SECRET_MAX_LEN] = "client key";
+    struct s2n_blob client_key = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&client_key, client_key_bytes, cipher->key_material_size));
+    RESULT_GUARD_POSIX(cipher->init(&conn->secure.client_key));
+    RESULT_GUARD_POSIX(cipher->set_encryption_key(&conn->secure.client_key, &client_key));
+
+    uint8_t server_key_bytes[S2N_TLS13_SECRET_MAX_LEN] = "server key";
+    struct s2n_blob server_key = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&server_key, server_key_bytes, cipher->key_material_size));
+    RESULT_GUARD_POSIX(cipher->init(&conn->secure.server_key));
+    RESULT_GUARD_POSIX(cipher->set_encryption_key(&conn->secure.server_key, &server_key));
+
+    conn->client = &conn->secure;
+    conn->server = &conn->secure;
+
+    return S2N_RESULT_OK;
+}
