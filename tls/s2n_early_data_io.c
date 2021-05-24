@@ -38,6 +38,15 @@ int s2n_end_of_early_data_recv(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
+bool s2n_is_rejected_early_data(struct s2n_connection *conn)
+{
+    return conn && (conn->early_data_state == S2N_EARLY_DATA_REJECTED)
+            /* Only servers receive early data. */
+            && (conn->mode == S2N_SERVER)
+            /* Early data can only be accepted before the end of the handshake. */
+            && (s2n_conn_get_current_message_type(conn) != APPLICATION_DATA);
+}
+
 static bool s2n_is_early_data_io(struct s2n_connection *conn)
 {
     if (s2n_conn_get_current_message_type(conn) == APPLICATION_DATA) {

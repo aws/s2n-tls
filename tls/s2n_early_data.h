@@ -57,6 +57,7 @@ S2N_RESULT s2n_early_data_get_server_max_size(struct s2n_connection *conn, uint3
 S2N_RESULT s2n_early_data_record_bytes(struct s2n_connection *conn, ssize_t data_len);
 S2N_RESULT s2n_early_data_validate_send(struct s2n_connection *conn, uint32_t bytes_to_send);
 S2N_RESULT s2n_early_data_validate_recv(struct s2n_connection *conn);
+bool s2n_is_rejected_early_data(struct s2n_connection *conn);
 
 /* Public Interface -- will be made visible and moved to s2n.h when the 0RTT feature is released */
 

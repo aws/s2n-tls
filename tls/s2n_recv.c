@@ -102,6 +102,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
 
     /* Decrypt and parse the record */
     if (s2n_record_parse(conn) < 0) {
+        POSIX_ENSURE(!s2n_is_rejected_early_data(conn), S2N_ERR_REJECTED_EARLY_DATA);
         POSIX_GUARD(s2n_connection_kill(conn));
         S2N_ERROR_PRESERVE_ERRNO();
     }
