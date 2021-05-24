@@ -1210,6 +1210,50 @@ uint64_t s2n_connection_get_delay(struct s2n_connection *conn)
     return conn->delay - elapsed;
 }
 
+S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **conn)
+{
+    RESULT_ENSURE_REF(conn);
+    if (*conn == NULL) {
+        return S2N_RESULT_OK;
+    }
+
+    int error_code = s2n_errno;
+    int error_type = s2n_error_get_type(error_code);
+
+    switch(error_type) {
+        case S2N_ERR_T_OK:
+            /* Ignore no error */
+            return S2N_RESULT_OK;
+        case S2N_ERR_T_BLOCKED:
+            /* All blocking errors are retriable and should trigger no further action. */
+            return S2N_RESULT_OK;
+        default:
+            break;
+    }
+
+    switch(error_code) {
+        /* Don't invoke blinding on some of the common errors.
+         *
+         * Be careful adding new errors here. Disabling blinding for an
+         * error that can be triggered by secret / encrypted values can
+         * potentially lead to a side channel attack.
+         *
+         * We may want to someday add an explicit error type for these errors.
+         */
+        case S2N_ERR_CANCELLED:
+        case S2N_ERR_CIPHER_NOT_SUPPORTED:
+        case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
+            (*conn)->closed = 1;
+            return S2N_RESULT_OK;
+        default:
+            break;
+    }
+
+    /* Apply blinding to all other errors */
+    RESULT_GUARD_POSIX(s2n_connection_kill(*conn));
+    return S2N_RESULT_OK;
+}
+
 int s2n_connection_kill(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
