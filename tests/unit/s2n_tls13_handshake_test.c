@@ -529,17 +529,20 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
 
-        char *cert_chain = NULL;
-        char *private_key = NULL;
+        uint8_t *cert_chain = NULL;
+        uint8_t *private_key = NULL;
+        uint32_t cert_chain_len = 0;
+        uint32_t private_key_len = 0;
+
         EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
 
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain, &cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ECDSA_P384_PKCS1_KEY, private_key, &private_key_len, S2N_MAX_TEST_PEM_SIZE));
 
         struct s2n_cert_chain_and_key *default_cert;
         EXPECT_NOT_NULL(default_cert = s2n_cert_chain_and_key_new());
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(default_cert, cert_chain, private_key));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem_bytes(default_cert, cert_chain, cert_chain_len, private_key, private_key_len));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, default_cert));
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));

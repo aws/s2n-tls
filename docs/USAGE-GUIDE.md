@@ -947,6 +947,19 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
 certificate in the chain being your leaf certificate. **private_key_pem**
 should be a PEM encoded private key corresponding to the leaf certificate.
 
+### s2n\_cert\_chain\_and\_key\_load\_pem\_bytes
+
+```c
+int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len, uint8_t *private_key_pem, uint32_t private_key_pem_len);
+```
+
+**s2n_cert_chain_and_key_load_pem_bytes** associates a certificate chain and private key with an **s2n_cert_chain_and_key** object.
+
+**chain_pem** should be a PEM encoded certificate chain, with the first certificate in the chain being your leaf certificate.
+**chain_pem_len** is the length of the certificate chain.
+**private_key_pem** should be a PEM encoded private key corresponding to the leaf certificate.
+**private_key_pem_len** is the length of the private key.
+
 ### s2n\_cert\_chain\_and\_key\_set\_ctx
 
 ```c
