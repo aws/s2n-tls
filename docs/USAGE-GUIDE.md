@@ -1511,6 +1511,71 @@ int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, 
 
 **s2n_cert_get_utf8_string_from_extension_data** gets the UTF8 String representation of the DER encoded ASN.1 X.509 certificate extension data.
 
+### S2N Get Selected Handshake Algorithms
+
+`s2n_tls_signature_algorithm` is defined as:
+
+```c
+typedef enum {
+    S2N_TLS_SIGNATURE_ANONYMOUS = 0,
+    S2N_TLS_SIGNATURE_RSA = 1,
+    S2N_TLS_SIGNATURE_ECDSA = 3,
+
+    /* Use Private Range for RSA PSS since it's not defined there */
+    S2N_TLS_SIGNATURE_RSA_PSS_RSAE = 224,
+    S2N_TLS_SIGNATURE_RSA_PSS_PSS
+} s2n_tls_signature_algorithm;
+```
+
+### s2n\_connection\_get\_selected\_signature\_algorithm
+
+```c
+int s2n_connection_get_selected_signature_algorithm(struct s2n_connection *conn, s2n_tls_signature_algorithm *chosen_alg);
+```
+
+**s2n_connection_get_selected_signature_algorithm** gets the negotiated signature algorithm for the connection. 
+
+### s2n\_connection\_get\_selected\_client\_cert\_signature\_algorithm
+
+```c
+int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_connection *conn, s2n_tls_signature_algorithm *chosen_alg);
+```
+
+**s2n_connection_get_selected_client_cert_signature_algorithm** gets the negotiated signature algorithm for the client certificate as part of the mutual authentication handshake. 
+
+`s2n_tls_hash_algorithm` is defined as:
+
+```c
+typedef enum {
+    S2N_TLS_HASH_NONE = 0,
+    S2N_TLS_HASH_MD5 = 1,
+    S2N_TLS_HASH_SHA1 = 2,
+    S2N_TLS_HASH_SHA224 = 3,
+    S2N_TLS_HASH_SHA256 = 4,
+    S2N_TLS_HASH_SHA384 = 5,
+    S2N_TLS_HASH_SHA512 = 6,
+
+    /* Use Private Range for MD5_SHA1 */
+    S2N_TLS_HASH_MD5_SHA1 = 224
+} s2n_tls_hash_algorithm;
+```
+
+### s2n\_connection\_get\_selected\_digest\_algorithm
+
+```c
+int s2n_connection_get_selected_digest_algorithm(struct s2n_connection *conn, s2n_tls_hash_algorithm *chosen_alg);
+```
+
+**s2n_connection_get_selected_digest_algorithm** gets the negotiated digest algorithm for the connection. 
+
+### s2n\_connection\_get\_selected\_client\_cert\_digest\_algorithm
+
+```c
+int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connection *conn, s2n_tls_hash_algorithm *chosen_alg);
+```
+
+**s2n_connection_get_selected_client_cert_digest_algorithm** gets the negotiated digest algorithm for the client certificate as part of the mutual authentication handshake. 
+
 ### Session Resumption Related calls
 
 ```c
@@ -1658,6 +1723,7 @@ Once the output is set the asynchronous private key operation can be completed b
 following the steps outlined [above](#Asynchronous-private-key-operations-related-calls)
 to apply the operation and free the op object.
 
+The [handshake algorithm getters](###S2N-Get-Selected-Handshake-Algorithms) and [certificate context](#s2n\_cert\_chain\_and\_key\_get\_ctx) APIs can be helpful for determining the private key and what private key algorithm to use.
 
 ```c
 typedef enum { S2N_ASYNC_DECRYPT, S2N_ASYNC_SIGN } s2n_async_pkey_op_type;
