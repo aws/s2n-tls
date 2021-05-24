@@ -151,9 +151,9 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
 
 int main(int argc, char **argv)
 {
-    char *cert_chain;
-    char *private_key;
-    
+    char *cert_chain = NULL;
+    char *private_key = NULL;
+
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
 
@@ -276,8 +276,8 @@ int main(int argc, char **argv)
         const char *sent_server_name = "svr";
         const char *received_server_name;
         struct s2n_cert_chain_and_key *chain_and_key;
-        uint32_t cert_chain_len;
-        uint32_t private_key_len;
+        uint32_t cert_chain_len = 0;
+        uint32_t private_key_len = 0;
 
         uint8_t client_extensions[] = {
             /* Extension type TLS_EXTENSION_SERVER_NAME */
@@ -344,10 +344,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, &cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, &private_key_len, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_DEFAULT_TEST_CERT_CHAIN, (uint8_t *)cert_chain, &cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_DEFAULT_TEST_PRIVATE_KEY, (uint8_t *)private_key, &private_key_len, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem_using_len(chain_and_key, cert_chain, cert_chain_len, private_key, private_key_len));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, (uint8_t *)cert_chain, cert_chain_len, (uint8_t *)private_key, private_key_len));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 

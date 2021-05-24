@@ -41,11 +41,11 @@
 static const uint8_t TLS_VERSIONS[] = {S2N_TLS10, S2N_TLS11, S2N_TLS12};
 
 /* Connection setup variables */
-char *cert_chain_pem;
-char *private_key_pem;
-char *dhparams_pem;
-uint32_t cert_chain_len;
-uint32_t private_key_len;
+uint8_t *cert_chain_pem = NULL;
+uint8_t *private_key_pem = NULL;
+char *dhparams_pem = NULL;
+uint32_t cert_chain_len = 0;
+uint32_t private_key_len = 0;
 struct s2n_config *config;
 struct s2n_cert_chain_and_key *chain_and_key;
 struct s2n_cert_chain_and_key *cert;
@@ -81,7 +81,7 @@ int s2n_fuzz_init(int *argc, char **argv[])
     POSIX_ENSURE_REF(config);
     POSIX_ENSURE_REF(chain_and_key);
 
-    s2n_cert_chain_and_key_load_pem_using_len(chain_and_key, cert_chain_pem, cert_chain_len, private_key_pem, private_key_len);
+    s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, cert_chain_pem, cert_chain_len, private_key_pem, private_key_len);
     s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key);
     s2n_config_add_dhparams(config, dhparams_pem);
 

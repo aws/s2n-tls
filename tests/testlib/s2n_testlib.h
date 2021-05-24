@@ -150,7 +150,7 @@ S2N_RESULT s2n_append_test_chosen_psk_with_early_data(struct s2n_connection *con
 
 /* Read a cert given a path into pem_out */
 int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size);
-int s2n_read_test_pem_and_len(const char *pem_path, char *pem_out, uint32_t *pem_len, long int max_size);
+int s2n_read_test_pem_and_len(const char *pem_path, uint8_t *pem_out, uint32_t *pem_len, long int max_size);
 int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
         const char *cert_chain_file, const char *private_key_file);
 
