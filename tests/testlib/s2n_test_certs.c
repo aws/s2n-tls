@@ -43,7 +43,7 @@ int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size)
 {
     uint32_t pem_len = 0;
 
-    POSIX_GUARD(s2n_read_test_pem_and_len(pem_path, (uint8_t *)pem_out, &pem_len, max_size));
+    POSIX_GUARD(s2n_read_test_pem_and_len(pem_path, (uint8_t *)pem_out, &pem_len, max_size - 1));
     pem_out[pem_len] = '\0';
 
     return 0;
