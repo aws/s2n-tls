@@ -1146,7 +1146,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
          *# "early_data" extension, it MUST terminate the connection with a
          *# "bad_record_mac" alert as per Section 5.2.
          */
-        if ((r < 0) && (s2n_errno == S2N_ERR_EARLY_DATA_TRIAL_DECRYT)) {
+        if ((r < 0) && (s2n_errno == S2N_ERR_EARLY_DATA_TRIAL_DECRYPT)) {
             POSIX_GUARD(s2n_stuffer_reread(&conn->in));
             POSIX_GUARD_RESULT(s2n_early_data_record_bytes(conn, s2n_stuffer_data_available(&conn->in)));
             POSIX_GUARD_RESULT(s2n_wipe_record(conn));
