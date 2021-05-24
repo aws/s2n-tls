@@ -155,7 +155,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* Test: WITH_ERROR_BLINDING macro */
+    /* Test: WITH_ERROR_BLINDING macro
+     * The WITH_ERROR_BLINDING macro relies on the current method exiting early.
+     * We can't trigger that behavior in main, so we call separate test methods.
+     * Each test method verifies that some success cases don't lead to blinding, then
+     * triggers blinding. Back in main, we verify that the blinding occurred. */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
         EXPECT_NOT_NULL(conn);

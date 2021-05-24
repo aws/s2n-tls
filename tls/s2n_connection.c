@@ -1244,13 +1244,13 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
         case S2N_ERR_CIPHER_NOT_SUPPORTED:
         case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
             (*conn)->closed = 1;
-            return S2N_RESULT_OK;
+            break;
         default:
+            /* Apply blinding to all other errors */
+            RESULT_GUARD_POSIX(s2n_connection_kill(*conn));
             break;
     }
 
-    /* Apply blinding to all other errors */
-    RESULT_GUARD_POSIX(s2n_connection_kill(*conn));
     return S2N_RESULT_OK;
 }
 
