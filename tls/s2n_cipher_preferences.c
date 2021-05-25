@@ -311,6 +311,40 @@ const struct s2n_cipher_preferences cipher_preferences_20190214 = {
     .suites = cipher_suites_20190214,
 };
 
+/* 20190214 with aes-gcm prioritized above aes-cbc */
+struct s2n_cipher_suite *cipher_suites_20190214_gcm[] = {
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20190214_gcm = {
+    .count = s2n_array_len(cipher_suites_20190214_gcm),
+    .suites = cipher_suites_20190214_gcm,
+};
+
 struct s2n_cipher_suite *cipher_suites_null[] = {
     &s2n_null_cipher_suite
 };
@@ -348,6 +382,34 @@ const struct s2n_cipher_preferences cipher_preferences_20170328 = {
     .suites = cipher_suites_20170328,
 };
 
+/* Equivalent to cipher_suites_20170328 with aes-gcm prioritized above aes-cbc */
+struct s2n_cipher_suite *cipher_suites_20170328_gcm[] = {
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20170328_gcm = {
+    .count = s2n_array_len(cipher_suites_20170328_gcm),
+    .suites = cipher_suites_20170328_gcm,
+};
+
 /* Preferences optimized for FIPS compatibility. */
 struct s2n_cipher_suite *cipher_suites_20170405[] = {
     &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
@@ -366,6 +428,26 @@ struct s2n_cipher_suite *cipher_suites_20170405[] = {
 const struct s2n_cipher_preferences cipher_preferences_20170405 = {
     .count = s2n_array_len(cipher_suites_20170405),
     .suites = cipher_suites_20170405,
+};
+
+/* Preferences optimized for FIPS compatibility with GCM prioritized */
+struct s2n_cipher_suite *cipher_suites_20170405_gcm[] = {
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20170405_gcm = {
+    .count = s2n_array_len(cipher_suites_20170405_gcm),
+    .suites = cipher_suites_20170405_gcm,
 };
 
 /* Equivalent to cipher_suite_20160411 with 3DES removed.
@@ -388,6 +470,27 @@ struct s2n_cipher_suite *cipher_suites_20170718[] = {
 const struct s2n_cipher_preferences cipher_preferences_20170718 = {
     .count = s2n_array_len(cipher_suites_20170718),
     .suites = cipher_suites_20170718,
+};
+
+/* Equivalent to cipher_suites_20170718 with aes-gcm prioritized above aes-cbc */
+struct s2n_cipher_suite *cipher_suites_20170718_gcm[] = {
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20170718_gcm = {
+    .count = s2n_array_len(cipher_suites_20170718_gcm),
+    .suites = cipher_suites_20170718_gcm,
 };
 
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_2015_04[] = {

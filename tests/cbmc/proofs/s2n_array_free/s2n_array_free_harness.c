@@ -22,10 +22,24 @@ void s2n_array_free_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_array *array = cbmc_allocate_s2n_array();
+
+    /* Assumptions. */
+    nondet_s2n_mem_init();
     __CPROVER_assume(s2n_result_is_ok(s2n_array_validate(array)));
 
-    nondet_s2n_mem_init();
-
     /* Operation under verification. */
-    s2n_array_free(array);
+    s2n_result result = s2n_array_free(array);
+    if (s2n_result_is_error(result)) {
+        assert(s2n_errno != S2N_ERR_FREE_STATIC_BLOB);
+    }
+
+    /**
+     * Cleanup after expected error cases, for memory leak check.
+     * It's good proof practice not to mix state mutations (below) with property checks (above).
+     */
+    if (s2n_result_is_error(result) && s2n_errno == S2N_ERR_NOT_INITIALIZED) {
+        /* s2n was not initialized, this failure is expected. */
+        free(array->mem.data);
+        free(array);
+    }
 }

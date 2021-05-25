@@ -430,6 +430,67 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
 
+        /* Early data rejected due to HRR, but received anyway and ignored.  */
+        {
+            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(client_conn);
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(server_conn);
+
+            struct s2n_test_io_pair io_pair = { 0 };
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+
+            /* We run this multiple times because if the early data is incorrectly processed as a normal,
+             * unencrypted record, it is usually just ignored anyway because the record type is unknown.
+             * An error will only occur if the encryption happens to produce a known record type as the
+             * last non-padding byte.
+             *
+             * We handle 4 record types (HANDSHAKE, APPLICATION_DATA, ALERT, and CHANGE_CIPHER_SPEC).
+             * So the chance this test produces a false negative (succeeds when it should fail):
+             * (((256 - 4) / 256) ^ 450) = 0.0008, < 0.1%
+             *
+             * (This calculation ignores the case where the encryption produces an apparently padded record.
+             *  That would increase the number of records not ignored, making a false negative even less likely)
+             */
+            const size_t repetitions = 450;
+            for(size_t i = 0; i < repetitions; i++) {
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
+                EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
+                EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+                EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
+                EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
+                EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+                EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+                client_conn->security_policy_override = &retry_policy;
+
+                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+                EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
+                EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_HELLO);
+                EXPECT_EQUAL(client_conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
+
+                EXPECT_SUCCESS_S2N_SEND(client_conn, test_data, sizeof(test_data), &blocked);
+
+                EXPECT_SUCCESS(s2n_connection_set_end_of_early_data(client_conn));
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+                EXPECT_FALSE(WITH_EARLY_DATA(client_conn));
+                EXPECT_FALSE(WITH_EARLY_DATA(server_conn));
+                EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(client_conn));
+                EXPECT_TRUE(WITH_EARLY_CLIENT_CCS(server_conn));
+                EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
+                EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
+
+                EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+                EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+            }
+
+            EXPECT_SUCCESS(s2n_connection_free(client_conn));
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+        }
+
         /* PSK rejected altogether */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;

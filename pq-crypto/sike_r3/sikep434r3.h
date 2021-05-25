@@ -33,7 +33,7 @@ uint64_t bswap64(uint64_t x);
 /* Arch specific definitions */
 #define digit_t S2N_SIKE_P434_R3_NAMESPACE(digit_t)
 #define hdigit_t S2N_SIKE_P434_R3_NAMESPACE(hdigit_t)
-#if defined(_AMD64_) || defined(__x86_64) || defined(__aarch64__) || defined(_S390X_) || defined(_ARM64_) || defined(__powerpc64__) || (defined(__riscv) && (__riscv_xlen == 64))
+#if defined(_AMD64_) || defined(__x86_64) || defined(__x86_64__) || defined(__aarch64__) || defined(_S390X_) || defined(_ARM64_) || defined(__powerpc64__) || (defined(__riscv) && (__riscv_xlen == 64))
     #define S2N_SIKE_P434_R3_NWORDS_FIELD    7 /* Number of words of a 434-bit field element */
     #define S2N_SIKE_P434_R3_ZERO_WORDS      3 /* Number of "0" digits in the least significant part of p434 + 1 */
     #define S2N_SIKE_P434_R3_RADIX           64
@@ -41,7 +41,7 @@ uint64_t bswap64(uint64_t x);
     #define S2N_SIKE_P434_R3_BSWAP_DIGIT(i)  bswap64((i))
     typedef uint64_t digit_t;
     typedef uint32_t hdigit_t;
-#elif defined(_X86_) || defined(_ARM_)
+#elif defined(_X86_) || defined(_ARM_) || defined(__arm__) || defined(__i386__)
     #define S2N_SIKE_P434_R3_NWORDS_FIELD    14 /* Number of words of a 434-bit field element */
     #define S2N_SIKE_P434_R3_ZERO_WORDS      6  /* Number of "0" digits in the least significant part of p434 + 1 */
     #define S2N_SIKE_P434_R3_RADIX           32
@@ -99,6 +99,9 @@ typedef struct felm_s {
 typedef struct { f2elm_t X; f2elm_t Z; } point_proj;
 #define point_proj_t S2N_SIKE_P434_R3_NAMESPACE(point_proj_t)
 typedef point_proj point_proj_t[1];
+
+/* Macro to avoid compiler warnings when detecting unreferenced parameters */
+#define S2N_SIKE_P434_R3_UNREFERENCED_PARAMETER(PAR) ((void)(PAR))
 
 /********************** Constant-time unsigned comparisons ***********************/
 /* The following functions return 1 (TRUE) if condition is true, 0 (FALSE) otherwise */

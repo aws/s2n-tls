@@ -91,5 +91,81 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test the same as above but with non null terminated chain and key and
+     * api that accepts length  */
+    {
+        struct s2n_cert_chain_and_key *chain_and_key;
+        uint8_t rsa_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = {0};
+        uint8_t rsa_pss_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = {0};
+        uint8_t ecdsa_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = {0};
+        uint8_t rsa_private_key_pem[S2N_MAX_TEST_PEM_SIZE] = {0};
+        uint8_t rsa_pss_private_key_pem[S2N_MAX_TEST_PEM_SIZE] = {0};
+        uint8_t ecdsa_private_key_pem[S2N_MAX_TEST_PEM_SIZE] = {0};
+
+        uint32_t rsa_cert_chain_len = 0;
+        uint32_t rsa_pss_cert_chain_len = 0;
+        uint32_t ecdsa_cert_chain_len = 0;
+        uint32_t rsa_private_key_len = 0;
+        uint32_t rsa_pss_private_key_len = 0;
+        uint32_t ecdsa_private_key_len = 0;
+
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_RSA_2048_PKCS1_CERT_CHAIN, rsa_cert_chain_pem, &rsa_cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_RSA_PSS_2048_SHA256_CA_CERT, rsa_pss_cert_chain_pem, &rsa_pss_cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, ecdsa_cert_chain_pem, &ecdsa_cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_RSA_2048_PKCS1_KEY, rsa_private_key_pem, &rsa_private_key_len, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_RSA_PSS_2048_SHA256_CA_KEY, rsa_pss_private_key_pem, &rsa_pss_private_key_len, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ECDSA_P384_PKCS1_KEY, ecdsa_private_key_pem, &ecdsa_private_key_len, S2N_MAX_TEST_PEM_SIZE));
+
+        /* Keys of the same type can be compared */
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, rsa_cert_chain_pem, rsa_cert_chain_len, rsa_private_key_pem, rsa_private_key_len));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+        if (s2n_is_rsa_pss_certs_supported()) {
+            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+            EXPECT_SUCCESS(
+                    s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, rsa_pss_cert_chain_pem, rsa_pss_cert_chain_len, rsa_pss_private_key_pem, rsa_pss_private_key_len));
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        }
+
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, ecdsa_cert_chain_pem, ecdsa_cert_chain_len, ecdsa_private_key_pem, ecdsa_private_key_len));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+        /* Keys of different types cannot be compared */
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+        EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, rsa_cert_chain_pem, rsa_cert_chain_len, ecdsa_private_key_pem, ecdsa_private_key_len),
+                                  S2N_ERR_KEY_MISMATCH);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+        EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+        EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, ecdsa_cert_chain_pem, ecdsa_cert_chain_len, rsa_private_key_pem, rsa_private_key_len),
+                                  S2N_ERR_KEY_MISMATCH);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+        if (s2n_is_rsa_pss_certs_supported()) {
+            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, rsa_cert_chain_pem, rsa_cert_chain_len, rsa_pss_private_key_pem, rsa_pss_private_key_len),
+                    S2N_ERR_KEY_MISMATCH);
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, rsa_pss_cert_chain_pem, rsa_pss_cert_chain_len, rsa_private_key_pem, rsa_private_key_len),
+                                      S2N_ERR_KEY_MISMATCH);
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, rsa_pss_cert_chain_pem, rsa_pss_cert_chain_len, ecdsa_private_key_pem, ecdsa_private_key_len),
+                                      S2N_ERR_KEY_MISMATCH);
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+            EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
+            EXPECT_FAILURE_WITH_ERRNO(s2n_cert_chain_and_key_load_pem_bytes(chain_and_key, ecdsa_cert_chain_pem, ecdsa_cert_chain_len, rsa_pss_private_key_pem, rsa_pss_private_key_len),
+                                      S2N_ERR_KEY_MISMATCH);
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        }
+    }
+
     END_TEST();
 }

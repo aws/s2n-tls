@@ -13,18 +13,22 @@
 
 # Expected runtime is less than a minute.
 
-CBMCFLAGS +=
+CBMCFLAGS += --memory-leak-check
 
 PROOF_UID = s2n_hash_free
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
+PROOF_SOURCES += $(OPENSSL_SOURCE)/bn_override.c
+PROOF_SOURCES += $(OPENSSL_SOURCE)/ec_override.c
 PROOF_SOURCES += $(OPENSSL_SOURCE)/evp_override.c
+PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_is_in_fips_mode.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_hash.c
+PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 # We abstract these functions because manual inspection demonstrates they are unreachable.
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_evp_hash_init

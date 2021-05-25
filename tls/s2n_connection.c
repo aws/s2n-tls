@@ -1161,6 +1161,10 @@ const char *s2n_get_application_protocol(struct s2n_connection *conn)
 int s2n_connection_get_session_id_length(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
+    /* Stateful session resumption in TLS1.3 using session id is not yet supported. */
+    if (conn->actual_protocol_version >= S2N_TLS13) {
+        return 0;
+    }
     return conn->session_id_len;
 }
 
@@ -1447,6 +1451,106 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
     }
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(cert_chain);
+
+    return S2N_SUCCESS;
+}
+
+static S2N_RESULT s2n_signature_scheme_to_tls_iana(struct s2n_signature_scheme *sig_scheme, s2n_tls_hash_algorithm *converted_scheme)
+{
+    RESULT_ENSURE_REF(sig_scheme);
+    RESULT_ENSURE_REF(converted_scheme);
+
+    switch (sig_scheme->hash_alg) {
+        case S2N_HASH_MD5:
+            *converted_scheme = S2N_TLS_HASH_MD5;
+            break;
+        case S2N_HASH_SHA1:
+            *converted_scheme = S2N_TLS_HASH_SHA1;
+            break;
+        case S2N_HASH_SHA224:
+            *converted_scheme = S2N_TLS_HASH_SHA224;
+            break;
+        case S2N_HASH_SHA256:
+            *converted_scheme = S2N_TLS_HASH_SHA256;
+            break;
+        case S2N_HASH_SHA384:
+            *converted_scheme = S2N_TLS_HASH_SHA384;
+            break;
+        case S2N_HASH_SHA512:
+            *converted_scheme = S2N_TLS_HASH_SHA512;
+            break;
+        case S2N_HASH_MD5_SHA1:
+            *converted_scheme = S2N_TLS_HASH_MD5_SHA1;
+            break;
+        default:
+            *converted_scheme = S2N_TLS_HASH_NONE;
+            break;
+    }
+
+    return S2N_RESULT_OK;
+}
+
+int s2n_connection_get_selected_digest_algorithm(struct s2n_connection *conn, s2n_tls_hash_algorithm *converted_scheme)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(converted_scheme);
+
+    POSIX_GUARD_RESULT(s2n_signature_scheme_to_tls_iana(&conn->secure.conn_sig_scheme, converted_scheme));
+
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_get_selected_client_cert_digest_algorithm(struct s2n_connection *conn, s2n_tls_hash_algorithm *converted_scheme)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(converted_scheme);
+
+    POSIX_GUARD_RESULT(s2n_signature_scheme_to_tls_iana(&conn->secure.client_cert_sig_scheme, converted_scheme));
+    return S2N_SUCCESS;
+}
+
+static S2N_RESULT s2n_signature_scheme_to_signature_algorithm(struct s2n_signature_scheme *sig_scheme, s2n_tls_signature_algorithm *converted_scheme)
+{
+    RESULT_ENSURE_REF(sig_scheme);
+    RESULT_ENSURE_REF(converted_scheme);
+
+    switch (sig_scheme->sig_alg) {
+        case S2N_SIGNATURE_RSA:
+            *converted_scheme = S2N_TLS_SIGNATURE_RSA;
+            break;
+        case S2N_SIGNATURE_ECDSA:
+            *converted_scheme = S2N_TLS_SIGNATURE_ECDSA;
+            break;
+        case S2N_SIGNATURE_RSA_PSS_RSAE:
+            *converted_scheme = S2N_TLS_SIGNATURE_RSA_PSS_RSAE;
+            break;
+        case S2N_SIGNATURE_RSA_PSS_PSS:
+            *converted_scheme = S2N_TLS_SIGNATURE_RSA_PSS_PSS;
+            break;
+        default:
+            *converted_scheme = S2N_TLS_SIGNATURE_ANONYMOUS;
+            break;
+    }
+
+    return S2N_RESULT_OK;
+}
+
+int s2n_connection_get_selected_signature_algorithm(struct s2n_connection *conn, s2n_tls_signature_algorithm *converted_scheme)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(converted_scheme);
+
+    POSIX_GUARD_RESULT(s2n_signature_scheme_to_signature_algorithm(&conn->secure.conn_sig_scheme, converted_scheme));
+
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_get_selected_client_cert_signature_algorithm(struct s2n_connection *conn, s2n_tls_signature_algorithm *converted_scheme)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(converted_scheme);
+
+    POSIX_GUARD_RESULT(s2n_signature_scheme_to_signature_algorithm(&conn->secure.client_cert_sig_scheme, converted_scheme));
 
     return S2N_SUCCESS;
 }

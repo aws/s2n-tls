@@ -60,11 +60,16 @@ if [[ "$OS_NAME" == "osx" && "$TESTS" == "integration" ]]; then
     scan-build --status-bugs -o /tmp/scan-build make -j$JOBS; STATUS=$?; test $STATUS -ne 0 && cat /tmp/scan-build/*/* ; [ "$STATUS" -eq "0" ];
 fi
 
+CMAKE_PQ_OPTION="S2N_NO_PQ=False"
+if [[ -n "$S2N_NO_PQ" ]]; then
+    CMAKE_PQ_OPTION="S2N_NO_PQ=True"
+fi
+
 # Run Multiple tests on one flag.
 if [[ "$TESTS" == "ALL" || "$TESTS" == "sawHMACPlus" ]] && [[ "$OS_NAME" == "linux" ]]; then make -C tests/saw tmp/verify_HMAC.log tmp/verify_drbg.log sike failure-tests; fi
 
 # Run Individual tests
-if [[ "$TESTS" == "ALL" || "$TESTS" == "unit" ]]; then cmake . -Bbuild -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT; cmake --build ./build; make -C build test ARGS=-j$(nproc); fi
+if [[ "$TESTS" == "ALL" || "$TESTS" == "unit" ]]; then cmake . -Bbuild -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT -D${CMAKE_PQ_OPTION}; cmake --build ./build; make -C build test ARGS=-j$(nproc); fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "asan" ]]; then make clean; S2N_ADDRESS_SANITIZER=1 make -j $JOBS ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "integration" ]]; then make clean; make integration ; fi
 if [[ "$TESTS" == "ALL" || "$TESTS" == "integrationv2" ]]; then make clean; make integrationv2 ; fi

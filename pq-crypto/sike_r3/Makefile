@@ -13,10 +13,22 @@
 # permissions and limitations under the License.
 #
 
-SRCS=$(wildcard *.c)
-OBJS=$(SRCS:.c=.o)
+C_SRCS=$(wildcard *.c)
+C_OBJS=$(C_SRCS:.c=.o)
 
-.PHONY : all
-all: $(OBJS)
+.PHONY : sikep434r3_c
+sikep434r3_c: $(C_OBJS)
 
 include ../../s2n.mk
+include ../s2n_pq_asm.mk
+
+ifeq ($(TRY_COMPILE_SIKEP434R3_ASM), 0)
+.PHONY : sikep434r3_asm
+sikep434r3_asm: $(SIKEP434R3_ASM_OBJ)
+else
+.PHONY : sikep434r3_asm
+sikep434r3_asm: ;
+endif
+
+.PHONY : try_include_asm
+try_include_asm: sikep434r3_c sikep434r3_asm

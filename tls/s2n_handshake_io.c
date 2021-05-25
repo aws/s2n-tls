@@ -807,7 +807,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
     if (conn->config->use_tickets) {
         if (conn->session_ticket_status == S2N_DECRYPT_TICKET) {
-            if (!s2n_decrypt_session_ticket(conn)) {
+            if (!s2n_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt)) {
                 return 0;
             }
 

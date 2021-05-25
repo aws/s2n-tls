@@ -56,7 +56,6 @@ int s2n_server_nst_recv(struct s2n_connection *conn) {
 
         if (conn->config->session_ticket_cb != NULL) {
             size_t session_len = s2n_connection_get_session_length(conn);
-            POSIX_ENSURE_GTE(S2N_TLS12_SESSION_SIZE, session_len);
 
             /* Alloc some memory for the serialized session ticket */
             DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);

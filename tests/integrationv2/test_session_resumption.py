@@ -3,8 +3,8 @@ import os
 import pytest
 import time
 
-from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROTOCOLS
-from common import ProviderOptions, Protocols
+from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROTOCOLS, TLS13_CIPHERS
+from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version
@@ -18,7 +18,6 @@ from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("use_ticket", [True, False])
 def test_session_resumption_s2n_server(managed_process, cipher, curve, protocol, provider, certificate, use_ticket):
-    host = "localhost"
     port = next(available_ports)
 
     client_options = ProviderOptions(
@@ -66,7 +65,6 @@ def test_session_resumption_s2n_server(managed_process, cipher, curve, protocol,
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("use_ticket", [True, False])
 def test_session_resumption_s2n_client(managed_process, cipher, curve, protocol, provider, certificate, use_ticket):
-    host = "localhost"
     port = next(available_ports)
 
     client_options = ProviderOptions(
@@ -102,3 +100,218 @@ def test_session_resumption_s2n_client(managed_process, cipher, curve, protocol,
         assert results.exception is None
         assert results.exit_code == 0
         assert results.stdout.count(bytes("6 server accepts that finished".encode('utf-8')))
+
+
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, curve, protocol, provider, certificate):
+    port = str(next(available_ports))
+
+    # Use temp directory to store session tickets
+    p = tmp_path / 'ticket.pem'
+    path_to_ticket = str(p)
+
+    client_options = ProviderOptions(
+        mode=Provider.ClientMode,
+        host="localhost",
+        port=port,
+        cipher=cipher,
+        curve=curve,
+        insecure=True,
+        reconnect=False,
+        data_to_send=data_bytes(4069),
+        extra_flags = ['-sess_out', path_to_ticket],
+        protocol=protocol)
+
+    server_options = copy.copy(client_options)
+    server_options.mode = Provider.ServerMode
+    server_options.key = certificate.key
+    server_options.cert = certificate.cert
+    server_options.use_session_ticket = True
+    server_options.extra_flags = None
+
+    server = managed_process(S2N, server_options, timeout=5)
+    client = managed_process(provider, client_options, timeout=5)
+
+    # The client should have received a session ticket
+    for results in client.get_results():
+        assert results.exception is None
+        assert results.exit_code == 0
+        assert b'Post-Handshake New Session Ticket arrived:' in results.stdout
+
+    for results in server.get_results():
+        assert results.exception is None
+        assert results.exit_code == 0
+        # The first connection is a full handshake
+        assert b'Resumed session' not in results.stdout
+
+    # Client inputs received session ticket to resume a session
+    assert os.path.exists(path_to_ticket)
+    client_options.extra_flags = ['-sess_in', path_to_ticket]
+
+    port = str(next(available_ports))
+    client_options.port = port
+    server_options.port = port
+
+    server = managed_process(S2N, server_options, timeout=5)
+    client = managed_process(provider, client_options, timeout=5)
+
+    s2n_version = get_expected_s2n_version(protocol, provider)
+
+    # Client has not read server certificate message as this is a resumed session
+    for results in client.get_results():
+        assert results.exception is None
+        assert results.exit_code == 0
+        assert bytes("SSL_connect:SSLv3/TLS read server certificate".encode('utf-8')) not in results.stderr
+
+    # The server should indicate a session has been resumed
+    for results in server.get_results():
+        assert results.exception is None
+        assert results.exit_code == 0
+        assert not results.stderr
+        assert b'Resumed session' in results.stdout
+        assert bytes("Actual protocol version: {}".format(s2n_version).encode('utf-8')) in results.stdout
+
+
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [OpenSSL, S2N], ids=get_parameter_name)
+def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, protocol, provider, certificate):
+    port = str(next(available_ports))
+
+    # The reconnect option for s2nc allows the client to reconnect automatically
+    # five times. In this test we expect one full connection and five resumption
+    # connections.
+    num_full_connections = 1
+    num_resumed_connections = 5
+
+    client_options = ProviderOptions(
+        mode=Provider.ClientMode,
+        host="localhost",
+        port=port,
+        cipher=cipher,
+        curve=curve,
+        insecure=True,
+        use_session_ticket=True,
+        reconnect=True,
+        protocol=protocol)
+
+    server_options = copy.copy(client_options)
+    server_options.mode = Provider.ServerMode
+    server_options.key = certificate.key
+    server_options.cert = certificate.cert
+    server_options.reconnects_before_exit = num_resumed_connections + num_full_connections
+
+    server = managed_process(provider, server_options, timeout=5)
+    client = managed_process(S2N, client_options, timeout=5)
+
+    s2n_version = get_expected_s2n_version(protocol, provider)
+
+    # s2nc indicates the number of resumed connections in its output
+    for results in client.get_results():
+        assert results.exception is None
+        assert results.exit_code == 0
+        assert not results.stderr
+        assert results.stdout.count(b'Resumed session') == num_resumed_connections
+        assert bytes("Actual protocol version: {}".format(s2n_version).encode('utf-8')) in results.stdout
+
+    server_accepts_str = str(num_resumed_connections + num_full_connections) + " server accepts that finished"
+
+    for results in server.get_results():
+        assert results.exception is None
+        assert results.exit_code == 0
+        if provider is S2N:
+            assert not results.stderr
+            assert results.stdout.count(b'Resumed session') == num_resumed_connections
+            assert bytes("Actual protocol version: {}".format(s2n_version).encode('utf-8')) in results.stdout
+        else:
+            assert bytes(server_accepts_str.encode('utf-8')) in results.stdout
+            # s_server only writes one certificate message in all of the connections
+            assert results.stderr.count(b'SSL_accept:SSLv3/TLS write certificate') == num_full_connections
+
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+def test_s2nd_falls_back_to_full_connection(managed_process, tmp_path, cipher, curve, protocol, provider, certificate):
+    port = str(next(available_ports))
+
+    # Use temp directory to store session tickets
+    p = tmp_path / 'ticket.pem'
+    path_to_ticket = str(p)
+
+    """
+    This test will set up a full connection with an Openssl client and server to obtain
+    a valid Openssl session ticket. Then, the Openssl client attempts to send the 
+    received session ticket to an s2n server to resume a session. s2nd will fallback to
+    a full connection as it does not recognize the session ticket.
+    """
+    client_options = ProviderOptions(
+        mode=Provider.ClientMode,
+        host="localhost",
+        port=port,
+        cipher=cipher,
+        curve=curve,
+        insecure=True,
+        reconnect=False,
+        extra_flags = ['-sess_out', path_to_ticket],
+        data_to_send = data_bytes(4069),
+        protocol=protocol)
+
+    server_options = copy.copy(client_options)
+    server_options.mode = Provider.ServerMode
+    server_options.key = certificate.key
+    server_options.cert = certificate.cert
+    server_options.extra_flags = None
+
+    server = managed_process(provider, server_options, timeout=5)
+    client = managed_process(provider, client_options, timeout=5)
+
+    # The client should have received a session ticket
+    for results in client.get_results():
+        assert results.exception is None
+        assert results.exit_code == 0
+        assert b'Post-Handshake New Session Ticket arrived:' in results.stdout
+
+    for results in server.get_results():
+        assert results.exception is None
+        assert results.exit_code == 0
+        # Server should have sent certificate message as this is a full connection
+        assert b'SSL_accept:SSLv3/TLS write certificate' in results.stderr
+
+    # Client inputs received session ticket to resume a session
+    assert os.path.exists(path_to_ticket)
+    client_options.extra_flags = ['-sess_in', path_to_ticket]
+
+    port = str(next(available_ports))
+    client_options.port = port
+    server_options.port = port
+
+    # Switch providers so now s2n is the server
+    server = managed_process(S2N, server_options, timeout=5)
+    client = managed_process(provider, client_options, timeout=5)
+
+    s2n_version = get_expected_s2n_version(protocol, provider)
+
+    # Client has read server certificate because this is a full connection
+    for results in client.get_results():
+        assert results.exception is None
+        assert results.exit_code == 0
+        assert bytes("SSL_connect:SSLv3/TLS read server certificate".encode('utf-8')) in results.stderr
+
+    # The server should indicate a session has not been resumed
+    for results in server.get_results():
+        assert results.exception is None
+        assert not results.stderr
+        assert results.exit_code == 0
+        assert b'Resumed session' not in results.stdout
+        assert bytes("Actual protocol version: {}".format(s2n_version).encode('utf-8')) in results.stdout

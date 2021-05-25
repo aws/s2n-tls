@@ -23,11 +23,16 @@ if [[ "$OS_NAME" == "linux" && -n "$CODEBUILD_BUILD_ARN" ]]; then
     sudo -E ${PRLIMIT_LOCATION} --pid "$$" --memlock=unlimited:unlimited;
 fi
 
+CMAKE_PQ_OPTION="S2N_NO_PQ=False"
+if [[ -n "$S2N_NO_PQ" ]]; then
+    CMAKE_PQ_OPTION="S2N_NO_PQ=True"
+fi
+
 # Linker flags are a workaround for openssl
 case "$TESTS" in
-  "unit") cmake . -Bbuild -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+  "unit") cmake . -Bbuild -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -D${CMAKE_PQ_OPTION}
           cmake --build ./build -j $(nproc)
-          CTEST_PARALLEL_LEVEL=$(nproc) make -C build test
+          CTEST_PARALLEL_LEVEL=$(nproc) make -C build test;;
   *) echo "Unknown test"
      exit 1;;
 esac

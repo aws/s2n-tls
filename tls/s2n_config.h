@@ -121,6 +121,8 @@ struct s2n_config {
     uint32_t server_max_early_data_size;
 
     s2n_psk_mode psk_mode;
+
+    s2n_async_pkey_validation_mode async_pkey_validation_mode;
 };
 
 int s2n_config_defaults_init(void);

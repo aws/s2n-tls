@@ -1017,7 +1017,7 @@ int main(int argc, char **argv)
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, invalid_en_data, sizeof(invalid_en_data)));
 
         server_conn->session_ticket_status = S2N_DECRYPT_TICKET;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_decrypt_session_ticket(server_conn), S2N_ERR_DECRYPT);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_decrypt_session_ticket(server_conn, &server_conn->client_ticket_to_decrypt), S2N_ERR_DECRYPT);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_config_free(server_config));
@@ -1043,7 +1043,7 @@ int main(int argc, char **argv)
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, invalid_en_data, sizeof(invalid_en_data)));
 
         server_conn->session_ticket_status = S2N_DECRYPT_TICKET;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_decrypt_session_ticket(server_conn), S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_decrypt_session_ticket(server_conn, &server_conn->client_ticket_to_decrypt), S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_config_free(server_config));

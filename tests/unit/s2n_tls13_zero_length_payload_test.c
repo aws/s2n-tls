@@ -51,10 +51,15 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         server_conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_connection_set_secrets(server_conn));
 
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_connection_set_secrets(client_conn));
+
+        struct s2n_blob zero_length_data = { 0 };
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
         DEFER_CLEANUP(struct s2n_stuffer client_to_server = {0}, s2n_stuffer_free);
         DEFER_CLEANUP(struct s2n_stuffer server_to_client = {0}, s2n_stuffer_free);
@@ -65,11 +70,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
 
-        S2N_BLOB_FROM_HEX(record_header_blob, tls13_zero_length_application_record_hex);
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&client_to_server, record_header_blob.data, record_header_blob.size));
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_to_client, record_header_blob.data, record_header_blob.size));
-        EXPECT_EQUAL(s2n_stuffer_data_available(&client_to_server), S2N_TLS_RECORD_HEADER_LENGTH + 1);
-        EXPECT_EQUAL(s2n_stuffer_data_available(&server_to_client), S2N_TLS_RECORD_HEADER_LENGTH + 1);
+        EXPECT_SUCCESS(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &zero_length_data));
+        EXPECT_SUCCESS(s2n_flush(client_conn, &blocked));
+        EXPECT_TRUE(s2n_stuffer_data_available(&client_to_server) > 0);
+
+        EXPECT_SUCCESS(s2n_record_write(server_conn, TLS_APPLICATION_DATA, &zero_length_data));
+        EXPECT_SUCCESS(s2n_flush(server_conn, &blocked));
+        EXPECT_TRUE(s2n_stuffer_data_available(&server_to_client) > 0);
 
         uint8_t record_type;
         int isSSLv2;

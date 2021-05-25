@@ -21,12 +21,27 @@ void s2n_set_free_p_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_set *set = cbmc_allocate_s2n_set();
+
+    /* Assumptions. */
+    nondet_s2n_mem_init();
     __CPROVER_assume(s2n_result_is_ok(s2n_set_validate(set)));
 
-    nondet_s2n_mem_init();
-
     /* Operation under verification. */
-    if(s2n_result_is_ok(s2n_set_free_p(&set))) {
+    s2n_result result = s2n_set_free_p(&set);
+    if (s2n_result_is_ok(result)) {
         assert(set == NULL);
+    } else {
+        assert(s2n_errno != S2N_ERR_FREE_STATIC_BLOB);
+    }
+
+    /**
+     * Cleanup after expected error cases, for memory leak check.
+     * It's good proof practice not to mix state mutations (below) with property checks (above).
+     */
+    if (s2n_result_is_error(result) && s2n_errno == S2N_ERR_NOT_INITIALIZED) {
+        /* s2n was not initialized, this failure is expected. */
+        free(set->data->mem.data);
+        free(set->data);
+        free(set);
     }
 }

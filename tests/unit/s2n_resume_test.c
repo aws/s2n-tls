@@ -281,6 +281,23 @@ int main(int argc, char **argv)
         }
     }
 
+    /* s2n_connection_get_session_id_length */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_session_id_length(NULL), S2N_ERR_NULL);
+
+        conn->session_id_len = 5;
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_EQUAL(s2n_connection_get_session_id_length(conn), 5);
+
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_EQUAL(s2n_connection_get_session_id_length(conn), 0);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
     /* s2n_tls12_serialize_resumption_state */
     {
         struct s2n_connection *conn;
@@ -1049,20 +1066,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
             conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
 
-            uint8_t data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
-            struct s2n_blob blob = { 0 };
-            struct s2n_stuffer output = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&blob, data, sizeof(data)));
-            EXPECT_SUCCESS(s2n_stuffer_init(&output, &blob));
-
-            EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &output));
+            EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &conn->client_ticket_to_decrypt));
+            EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&conn->client_ticket_to_decrypt), 0);
 
             /* Wiping the master secret to prove that the decryption function actually writes the master secret */
             memset(conn->secure.master_secret, 0, test_master_secret.size);
 
-            conn->client_ticket_to_decrypt = output;
-            EXPECT_SUCCESS(s2n_decrypt_session_ticket(conn));
-
+            EXPECT_SUCCESS(s2n_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt));
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->client_ticket_to_decrypt), 0);
 
             /* Check decryption was successful by comparing master key */
@@ -1100,10 +1110,9 @@ int main(int argc, char **argv)
             EXPECT_TRUE(conn->tls13_ticket_fields.session_secret.size < S2N_TLS_SECRET_LEN);
 
             EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &output));
-            conn->client_ticket_to_decrypt = output;
-            EXPECT_SUCCESS(s2n_decrypt_session_ticket(conn));
+            EXPECT_SUCCESS(s2n_decrypt_session_ticket(conn, &output));
 
-            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->client_ticket_to_decrypt), 0);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
 
             /* Check decryption was successful */
             struct s2n_psk *psk = NULL;
@@ -1143,10 +1152,9 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->tls13_ticket_fields.session_secret.size, S2N_TLS_SECRET_LEN);
 
             EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &output));
-            conn->client_ticket_to_decrypt = output;
-            EXPECT_SUCCESS(s2n_decrypt_session_ticket(conn));
+            EXPECT_SUCCESS(s2n_decrypt_session_ticket(conn, &output));
 
-            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->client_ticket_to_decrypt), 0);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
 
             /* Check decryption was successful */
             struct s2n_psk *psk = NULL;
@@ -1187,10 +1195,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_dup(&test_master_secret, &conn->tls13_ticket_fields.session_secret));
 
             EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &output));
-            conn->client_ticket_to_decrypt = output;
-            EXPECT_SUCCESS(s2n_decrypt_session_ticket(conn));
+            EXPECT_SUCCESS(s2n_decrypt_session_ticket(conn, &output));
 
-            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->client_ticket_to_decrypt), 0);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
 
             /* Check decryption was successful */
             struct s2n_psk *psk = NULL;

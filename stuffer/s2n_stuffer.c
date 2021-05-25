@@ -26,11 +26,12 @@
 S2N_RESULT s2n_stuffer_validate(const struct s2n_stuffer* stuffer)
 {
     /**
-     * Note that we do not assert any properties on the alloced, growable, and tainted fields,
-     * as all possible combinations of boolean values in those fields are valid.
+     * Note that we do not assert any properties on the tainted field,
+     * as any boolean value in that field is valid.
      */
     RESULT_ENSURE_REF(stuffer);
     RESULT_GUARD(s2n_blob_validate(&stuffer->blob));
+    RESULT_ENSURE(S2N_IMPLIES(stuffer->growable, stuffer->alloced), S2N_ERR_SAFETY);
 
     /* <= is valid because we can have a fully written/read stuffer */
     RESULT_DEBUG_ENSURE(stuffer->high_water_mark <= stuffer->blob.size, S2N_ERR_SAFETY);
@@ -74,6 +75,7 @@ int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in)
     stuffer->alloced = 0;
     stuffer->growable = 0;
     stuffer->tainted = 0;
+    POSIX_POSTCONDITION(s2n_stuffer_validate(stuffer));
     return S2N_SUCCESS;
 }
 
@@ -102,6 +104,7 @@ int s2n_stuffer_growable_alloc(struct s2n_stuffer *stuffer, const uint32_t size)
 
 int s2n_stuffer_free(struct s2n_stuffer *stuffer)
 {
+    POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     if (stuffer != NULL) {
         if (stuffer->alloced) {
             POSIX_GUARD(s2n_free(&stuffer->blob));
