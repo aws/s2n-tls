@@ -200,6 +200,18 @@ int negotiate(struct s2n_connection *conn, int fd)
         free(identity);
     }
 
+    s2n_early_data_status_t early_data_status = 0;
+    GUARD_EXIT(s2n_connection_get_early_data_status(conn, &early_data_status), "Error getting early data status");
+    const char *status_str = NULL;
+    switch(early_data_status) {
+        case S2N_EARLY_DATA_STATUS_OK: status_str = "IN PROGRESS"; break;
+        case S2N_EARLY_DATA_STATUS_NOT_REQUESTED: status_str = "NOT REQUESTED"; break;
+        case S2N_EARLY_DATA_STATUS_REJECTED: status_str = "REJECTED"; break;
+        case S2N_EARLY_DATA_STATUS_END: status_str = "ACCEPTED"; break;
+    }
+    GUARD_EXIT_NULL(status_str);
+    printf("Early Data status: %s\n", status_str);
+
     printf("s2n is ready\n");
     return 0;
 }
