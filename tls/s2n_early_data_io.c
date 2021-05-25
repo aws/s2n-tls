@@ -38,6 +38,24 @@ int s2n_end_of_early_data_recv(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
+/**
+ *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+ *# If the client attempts a 0-RTT handshake but the server
+ *# rejects it, the server will generally not have the 0-RTT record
+ *# protection keys and must instead use trial decryption (either with
+ *# the 1-RTT handshake keys or by looking for a cleartext ClientHello in
+ *# the case of a HelloRetryRequest) to find the first non-0-RTT message.
+ */
+bool s2n_early_data_is_trial_decryption_allowed(struct s2n_connection *conn, uint8_t record_type)
+{
+    return conn && (conn->early_data_state == S2N_EARLY_DATA_REJECTED)
+            && record_type == TLS_APPLICATION_DATA
+            /* Only servers receive early data. */
+            && (conn->mode == S2N_SERVER)
+            /* Early data is only expected during the handshake. */
+            && (s2n_conn_get_current_message_type(conn) != APPLICATION_DATA);
+}
+
 static bool s2n_is_early_data_io(struct s2n_connection *conn)
 {
     if (s2n_conn_get_current_message_type(conn) == APPLICATION_DATA) {
