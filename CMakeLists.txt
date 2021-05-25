@@ -98,6 +98,7 @@ endif()
 # If S2N_NO_PQ_ASM is defined, all PQ assembly options will
 # remain turned off by default.
 set(SIKEP434R2_ASM_SUPPORTED false)
+set(SIKEP434R3_ASM_SUPPORTED false)
 set(ADX_SUPPORTED false)
 
 if(S2N_NO_PQ_ASM)
@@ -105,13 +106,12 @@ if(S2N_NO_PQ_ASM)
 else()
     enable_language(ASM)
 
-    # s2n_pq_asm_noop_test.c is just an empty main() function; the
-    # try_compile function in older versions of CMake requires a main()
+    # sikep434r2
     try_compile(
         SIKEP434R2_ASM_SUPPORTED
         ${CMAKE_BINARY_DIR}
         SOURCES
-            "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
+            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
             "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r2/sikep434r2_fp_x64_asm.S"
     )
 
@@ -124,9 +124,36 @@ else()
             ADX_SUPPORTED
             ${CMAKE_BINARY_DIR}
             SOURCES
-                "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
+                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
                 "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r2/sikep434r2_fp_x64_asm.S"
             COMPILE_DEFINITIONS
+                "-DS2N_ADX"
+        )
+    endif()
+
+    # sikep434r3
+    try_compile(
+            SIKEP434R3_ASM_SUPPORTED
+            ${CMAKE_BINARY_DIR}
+            SOURCES
+            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
+            "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r3/sikep434r3.c"
+            "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r3/sikep434r3_fp_x64_asm.S"
+    )
+
+    if(SIKEP434R3_ASM_SUPPORTED)
+        file(GLOB SIKEP434R3_ASM_SRC "pq-crypto/sike_r3/sikep434r3_fp_x64_asm.S")
+        list(APPEND PQ_SRC ${SIKEP434R3_ASM_SRC})
+
+        # The ADX instruction set is preferred for best performance, but not necessary.
+        try_compile(
+                ADX_SUPPORTED
+                ${CMAKE_BINARY_DIR}
+                SOURCES
+                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
+                "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r3/sikep434r3.c"
+                "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r3/sikep434r3_fp_x64_asm.S"
+                COMPILE_DEFINITIONS
                 "-DS2N_ADX"
         )
     endif()
@@ -142,24 +169,24 @@ else()
         # gcc-7 doesn't support VPCLMUL extension.
         try_compile(BIKE_R3_AVX2_SUPPORTED
             ${CMAKE_BINARY_DIR}
-            "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
+            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
             COMPILE_DEFINITIONS "-mavx2")
 
         set(BIKE_R3_AVX512_FLAGS "-mavx512f -mavx512bw -mavx512dq")
         try_compile(BIKE_R3_AVX512_SUPPORTED
             ${CMAKE_BINARY_DIR}
-            "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
+            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
             COMPILE_DEFINITIONS ${BIKE_R3_AVX512_FLAGS})
 
         try_compile(BIKE_R3_PCLMUL_SUPPORTED
             ${CMAKE_BINARY_DIR}
-            "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
+            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
             COMPILE_DEFINITIONS "-mpclmul")
 
         set(BIKE_R3_VPCLMUL_FLAGS "-mvpclmulqdq -mavx512f -mavx512bw -mavx512dq")
         try_compile(BIKE_R3_VPCLMUL_SUPPORTED
             ${CMAKE_BINARY_DIR}
-            "${CMAKE_CURRENT_LIST_DIR}/tests/unit/s2n_pq_asm_noop_test.c"
+            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
             COMPILE_DEFINITIONS ${BIKE_R3_VPCLMUL_FLAGS})
 
         if(BIKE_R3_AVX2_SUPPORTED OR BIKE_R3_AVX512_SUPPORTED OR BIKE_R3_PCLMUL_SUPPORTED OR BIKE_R3_VPCLMUL_SUPPORTED)
@@ -259,6 +286,11 @@ endif()
 if(SIKEP434R2_ASM_SUPPORTED)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_SIKEP434R2_ASM)
     message(STATUS "Enabling SIKEP434R2 assembly code")
+endif()
+
+if(SIKEP434R3_ASM_SUPPORTED)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_SIKE_P434_R3_ASM)
+    message(STATUS "Enabling SIKEP434R3 assembly code")
 endif()
 
 if(BIKE_R3_X86_64_OPT_SUPPORTED)

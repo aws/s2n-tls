@@ -15,6 +15,7 @@
 
 # To ensure CPU compatibility, try to compile all ASM code before including it in the build.
 TRY_COMPILE_SIKEP434R2_ASM = -1
+TRY_COMPILE_SIKEP434R3_ASM = -1
 
 ifndef S2N_NO_PQ_ASM
 	# sikep434r2
@@ -35,12 +36,29 @@ ifndef S2N_NO_PQ_ASM
 		SIKEP434R2_ASM_OBJ=$(SIKEP434R2_ASM_SRC:.S=.o)
 	endif
 
+	# sikep434r3
+	SIKEP434R3_ASM_SRC := $(shell find . -name "sikep434r3_fp_x64_asm.S")
+	SIKEP434R3_ASM_TEST_OUT := "test_sikep434r3_fp_x64_asm.o"
+	TRY_COMPILE_SIKEP434R3_ASM := $(shell $(CC) -c -o $(SIKEP434R3_ASM_TEST_OUT) $(SIKEP434R3_ASM_SRC) > /dev/null 2>&1; echo $$?; rm $(SIKEP434R3_ASM_TEST_OUT) > /dev/null 2>&1)
+	ifeq ($(TRY_COMPILE_SIKEP434R3_ASM), 0)
+		CFLAGS += -DS2N_SIKE_P434_R3_ASM
+		CFLAGS_LLVM += -DS2N_SIKE_P434_R3_ASM
+
+		# The ADX instruction set is preferred for best performance, but not necessary.
+		TRY_COMPILE_SIKEP434R3_ASM_ADX := $(shell $(CC) -DS2N_ADX -c -o $(SIKEP434R3_ASM_TEST_OUT) $(SIKEP434R3_ASM_SRC) > /dev/null 2>&1; echo $$?; rm $(SIKEP434R3_ASM_TEST_OUT) > /dev/null 2>&1)
+		ifeq ($(TRY_COMPILE_SIKEP434R3_ASM_ADX), 0)
+			CFLAGS += -DS2N_ADX
+			ASFLAGS += -DS2N_ADX
+		endif
+
+		SIKEP434R3_ASM_OBJ=$(SIKEP434R3_ASM_SRC:.S=.o)
+		endif
+
 	# BIKE Round-3 code has several different optimizations
 	# which require specific compiler flags to be supported
 	# by the compiler. So for each needed instruction set
 	# extension we check if the compiler supports it and
 	# set proper flags to be added in the BIKE_R3 Makefile.
-
 	dummy_file := "$(S2N_ROOT)/tests/unit/s2n_pq_asm_noop_test.c"
 	dummy_file_out := "test_bike_r3_avx_support.o"
 	BIKE_R3_AVX2_SUPPORTED := $(shell $(CC) -mavx2 -c -o $(dummy_file_out) $(dummy_file) > /dev/null 2>&1; echo $$?; rm $(dummy_file_out) > /dev/null 2>&1)

@@ -107,9 +107,9 @@ static const struct s2n_kem_test_vector test_vectors[] = {
         {
                 .kem = &s2n_sike_p434_r3,
                 .kat_file = "kats/sike_r3.kat",
-                .asm_is_enabled = s2n_pq_no_asm_available,
-                .enable_asm = s2n_pq_noop_asm,
-                .disable_asm = s2n_pq_noop_asm,
+                .asm_is_enabled = s2n_sikep434r3_asm_is_enabled,
+                .enable_asm = s2n_try_enable_sikep434r3_asm,
+                .disable_asm = s2n_disable_sikep434r3_asm,
         },
 };
 

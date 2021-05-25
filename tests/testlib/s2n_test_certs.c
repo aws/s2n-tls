@@ -41,6 +41,16 @@ int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_ke
 
 int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size)
 {
+    uint32_t pem_len = 0;
+
+    POSIX_GUARD(s2n_read_test_pem_and_len(pem_path, (uint8_t *)pem_out, &pem_len, max_size - 1));
+    pem_out[pem_len] = '\0';
+
+    return 0;
+}
+
+int s2n_read_test_pem_and_len(const char *pem_path, uint8_t *pem_out, uint32_t *pem_len, long int max_size)
+{
     FILE *pem_file = fopen(pem_path, "rb");
     if (!pem_file) {
         POSIX_BAIL(S2N_ERR_NULL);
@@ -52,7 +62,7 @@ int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size)
     /* one extra for the null byte */
     rewind(pem_file);
 
-    if (max_size < (pem_file_size + 1)) {
+    if (max_size < (pem_file_size)) {
         POSIX_BAIL(S2N_ERR_NOMEM);
     }
 
@@ -60,7 +70,7 @@ int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size)
         POSIX_BAIL(S2N_ERR_IO);
     }
 
-    pem_out[pem_file_size] = '\0';
+    *pem_len = pem_file_size;
     fclose(pem_file);
 
     return 0;

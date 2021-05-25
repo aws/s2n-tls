@@ -575,7 +575,7 @@ int main(int argc, char *const *argv)
 
         printf("Connected to %s:%s\n", host, port);
 
-        /* Save session state from connection if reconnect is enabled */
+        /* Save session state from connection if reconnect is enabled. */
         if (reconnect > 0) {
             if (conn->actual_protocol_version >= S2N_TLS13) {
                 if (!session_ticket) {

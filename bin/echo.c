@@ -200,6 +200,7 @@ int negotiate(struct s2n_connection *conn, int fd)
         free(identity);
     }
 
+    printf("s2n is ready\n");
     return 0;
 }
 
