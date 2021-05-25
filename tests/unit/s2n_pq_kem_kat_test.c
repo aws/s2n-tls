@@ -44,9 +44,30 @@ static const struct s2n_kem_test_vector test_vectors[] = {
         {
                 .kem = &s2n_bike_l1_r3,
                 .kat_file = "kats/bike_r3.kat",
-                .asm_is_enabled = s2n_pq_no_asm_available,
-                .enable_asm = s2n_pq_noop_asm,
-                .disable_asm = s2n_pq_noop_asm,
+                .asm_is_enabled = s2n_bike_r3_is_pclmul_enabled,
+                .enable_asm = s2n_try_enable_bike_r3_opt_pclmul,
+                .disable_asm = s2n_disable_bike_r3_opt_all,
+        },
+        {
+                .kem = &s2n_bike_l1_r3,
+                .kat_file = "kats/bike_r3.kat",
+                .asm_is_enabled = s2n_bike_r3_is_avx2_enabled,
+                .enable_asm = s2n_try_enable_bike_r3_opt_avx2,
+                .disable_asm = s2n_disable_bike_r3_opt_all,
+        },
+        {
+                .kem = &s2n_bike_l1_r3,
+                .kat_file = "kats/bike_r3.kat",
+                .asm_is_enabled = s2n_bike_r3_is_avx512_enabled,
+                .enable_asm = s2n_try_enable_bike_r3_opt_avx512,
+                .disable_asm = s2n_disable_bike_r3_opt_all,
+        },
+        {
+                .kem = &s2n_bike_l1_r3,
+                .kat_file = "kats/bike_r3.kat",
+                .asm_is_enabled = s2n_bike_r3_is_vpclmul_enabled,
+                .enable_asm = s2n_try_enable_bike_r3_opt_vpclmul,
+                .disable_asm = s2n_disable_bike_r3_opt_all,
         },
         {
                 .kem = &s2n_sike_p503_r1,

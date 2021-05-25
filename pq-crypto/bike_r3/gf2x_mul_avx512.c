@@ -5,19 +5,21 @@
  * AWS Cryptographic Algorithms Group.
  */
 
+#if defined(S2N_BIKE_R3_AVX512)
+
 #include <assert.h>
 
 #include "cleanup.h"
 #include "gf2x_internal.h"
 
-#define PORTABLE_INTERNAL
+#define AVX512_INTERNAL
 #include "x86_64_intrinsic.h"
 
-void karatzuba_add1_port(OUT uint64_t *alah,
-                         OUT uint64_t *blbh,
-                         IN const uint64_t *a,
-                         IN const uint64_t *b,
-                         IN const size_t    qwords_len)
+void karatzuba_add1_avx512(OUT uint64_t *alah,
+                           OUT uint64_t *blbh,
+                           IN const uint64_t *a,
+                           IN const uint64_t *b,
+                           IN const size_t    qwords_len)
 {
   assert(qwords_len % REG_QWORDS == 0);
 
@@ -34,10 +36,10 @@ void karatzuba_add1_port(OUT uint64_t *alah,
   }
 }
 
-void karatzuba_add2_port(OUT uint64_t *z,
-                         IN const uint64_t *x,
-                         IN const uint64_t *y,
-                         IN const size_t    qwords_len)
+void karatzuba_add2_avx512(OUT uint64_t *z,
+                           IN const uint64_t *x,
+                           IN const uint64_t *y,
+                           IN const size_t    qwords_len)
 {
   assert(qwords_len % REG_QWORDS == 0);
 
@@ -51,9 +53,9 @@ void karatzuba_add2_port(OUT uint64_t *z,
   }
 }
 
-void karatzuba_add3_port(OUT uint64_t *c,
-                         IN const uint64_t *mid,
-                         IN const size_t    qwords_len)
+void karatzuba_add3_avx512(OUT uint64_t *c,
+                           IN const uint64_t *mid,
+                           IN const size_t    qwords_len)
 {
   assert(qwords_len % REG_QWORDS == 0);
 
@@ -77,7 +79,7 @@ void karatzuba_add3_port(OUT uint64_t *c,
 }
 
 // c = a mod (x^r - 1)
-void gf2x_red_port(OUT pad_r_t *c, IN const dbl_pad_r_t *a)
+void gf2x_red_avx512(OUT pad_r_t *c, IN const dbl_pad_r_t *a)
 {
   const uint64_t *a64 = (const uint64_t *)a;
   uint64_t *      c64 = (uint64_t *)c;
@@ -101,3 +103,7 @@ void gf2x_red_port(OUT pad_r_t *c, IN const dbl_pad_r_t *a)
   secure_clean((uint8_t *)&c64[R_QWORDS],
                (R_PADDED_QWORDS - R_QWORDS) * sizeof(uint64_t));
 }
+
+#endif
+
+typedef int dummy_typedef_to_avoid_empty_translation_unit_warning;

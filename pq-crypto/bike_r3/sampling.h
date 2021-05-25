@@ -38,10 +38,3 @@ ret_t generate_sparse_rep(OUT pad_r_t *r,
                           IN OUT aes_ctr_prf_state_t *prf_state);
 
 ret_t generate_error_vector(OUT pad_e_t *e, IN const seed_t *seed);
-
-// When "a" is considered as part of some larger array, then a_first_pos
-// is the start position of "a" in the large array.
-void secure_set_bits(OUT pad_r_t *r,
-                     IN size_t    first_pos,
-                     IN const idx_t *wlist,
-                     IN size_t       w_size);

@@ -7,14 +7,15 @@
 
 #include <assert.h>
 
-#include "sampling.h"
+#include "sampling_internal.h"
+#include "utilities.h"
 
 #define MAX_WLIST_SIZE (T1 > DV ? T1 : DV)
 
-void secure_set_bits(OUT pad_r_t *   r,
-                     IN const size_t first_pos,
-                     IN const idx_t *wlist,
-                     IN const size_t w_size)
+void secure_set_bits_port(OUT pad_r_t *   r,
+                          IN const size_t first_pos,
+                          IN const idx_t *wlist,
+                          IN const size_t w_size)
 {
   assert(w_size <= MAX_WLIST_SIZE);
 
@@ -25,7 +26,7 @@ void secure_set_bits(OUT pad_r_t *   r,
   uint64_t *a64 = (uint64_t *)r;
   uint64_t  val, mask;
 
-  // The size of wlist can be either D or T. So, we set it to max(D, T)
+  // The size of wlist can be either DV or T. So, we set it to max(D, T)
   size_t pos_qw[MAX_WLIST_SIZE];
   size_t pos_bit[MAX_WLIST_SIZE];
 
@@ -45,4 +46,15 @@ void secure_set_bits(OUT pad_r_t *   r,
     }
     a64[i] = val;
   }
+}
+
+int is_new_port(IN const idx_t *wlist, IN const size_t ctr)
+{
+  for(size_t i = 0; i < ctr; i++) {
+    if(wlist[i] == wlist[ctr]) {
+      return 0;
+    }
+  }
+
+  return 1;
 }

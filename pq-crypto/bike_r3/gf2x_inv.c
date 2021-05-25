@@ -14,16 +14,26 @@
 #include "gf2x.h"
 #include "gf2x_internal.h"
 
+// a = a^2 mod (x^r - 1)
+_INLINE_ void gf2x_mod_sqr_in_place(IN OUT pad_r_t *a,
+                                    OUT dbl_pad_r_t *secure_buffer,
+                                    IN const gf2x_ctx *ctx)
+{
+  ctx->sqr(secure_buffer, a);
+  ctx->red(a, secure_buffer);
+}
+
 // c = a^2^2^num_sqrs
 _INLINE_ void repeated_squaring(OUT pad_r_t *c,
                                 IN pad_r_t *    a,
                                 IN const size_t num_sqrs,
-                                OUT dbl_pad_r_t *sec_buf)
+                                OUT dbl_pad_r_t *sec_buf,
+                                IN const gf2x_ctx *ctx)
 {
   c->val = a->val;
 
   for(size_t i = 0; i < num_sqrs; i++) {
-    gf2x_mod_sqr_in_place(c, sec_buf);
+    gf2x_mod_sqr_in_place(c, sec_buf, ctx);
   }
 }
 
@@ -94,6 +104,10 @@ bike_static_assert((R_BITS == 24659), gf2x_inv_r_doesnt_match_parameters);
 // c = a^{-1} mod x^r-1
 void gf2x_mod_inv(OUT pad_r_t *c, IN const pad_r_t *a)
 {
+  // Initialize gf2x methods struct
+  gf2x_ctx ctx = {0};
+  gf2x_ctx_init(&ctx);
+
   // Note that exp0/1_k/l are predefined constants that depend only on the value
   // of R. This value is public. Therefore, branches in this function, which
   // depends on R, are also "public". Code that releases these branches
@@ -115,28 +129,28 @@ void gf2x_mod_inv(OUT pad_r_t *c, IN const pad_r_t *a)
   for(size_t i = 1; i < MAX_I; i++) {
     // Step 5 in [1](Algorithm 2), exponentiation 0: g = f^2^2^(i-1)
     if(exp0_k[i - 1] <= K_SQR_THR) {
-      repeated_squaring(&g, &f, exp0_k[i - 1], &sec_buf);
+      repeated_squaring(&g, &f, exp0_k[i - 1], &sec_buf, &ctx);
     } else {
-      k_squaring(&g, &f, exp0_l[i - 1]);
+      ctx.k_sqr(&g, &f, exp0_l[i - 1]);
     }
 
     // Step 6, [1](Algorithm 2): f = f*g
-    gf2x_mod_mul(&f, &g, &f);
+    gf2x_mod_mul_with_ctx(&f, &g, &f, &ctx);
 
     if(exp1_k[i] != 0) {
       // Step 8, [1](Algorithm 2), exponentiation 1: g = f^2^((r-2) % 2^i)
       if(exp1_k[i] <= K_SQR_THR) {
-        repeated_squaring(&g, &f, exp1_k[i], &sec_buf);
+        repeated_squaring(&g, &f, exp1_k[i], &sec_buf, &ctx);
       } else {
-        k_squaring(&g, &f, exp1_l[i]);
+        ctx.k_sqr(&g, &f, exp1_l[i]);
       }
 
       // Step 9, [1](Algorithm 2): t = t*g;
-      gf2x_mod_mul(&t, &g, &t);
+      gf2x_mod_mul_with_ctx(&t, &g, &t, &ctx);
     }
   }
 
   // Step 10, [1](Algorithm 2): c = t^2
-  gf2x_mod_sqr_in_place(&t, &sec_buf);
+  gf2x_mod_sqr_in_place(&t, &sec_buf, &ctx);
   c->val = t.val;
 }

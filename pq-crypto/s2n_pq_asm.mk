@@ -53,4 +53,36 @@ ifndef S2N_NO_PQ_ASM
 
 		SIKEP434R3_ASM_OBJ=$(SIKEP434R3_ASM_SRC:.S=.o)
 		endif
+
+	# BIKE Round-3 code has several different optimizations
+	# which require specific compiler flags to be supported
+	# by the compiler. So for each needed instruction set
+	# extension we check if the compiler supports it and
+	# set proper flags to be added in the BIKE_R3 Makefile.
+	dummy_file := "$(S2N_ROOT)/tests/unit/s2n_pq_asm_noop_test.c"
+	dummy_file_out := "test_bike_r3_avx_support.o"
+	BIKE_R3_AVX2_SUPPORTED := $(shell $(CC) -mavx2 -c -o $(dummy_file_out) $(dummy_file) > /dev/null 2>&1; echo $$?; rm $(dummy_file_out) > /dev/null 2>&1)
+	ifeq ($(BIKE_R3_AVX2_SUPPORTED), 0)
+		CFLAGS += -DS2N_BIKE_R3_AVX2
+		CFLAGS_LLVM += -DS2N_BIKE_R3_AVX2
+		BIKE_R3_AVX2_FLAGS := -mavx2
+	endif
+	BIKE_R3_AVX512_SUPPORTED := $(shell $(CC) -mavx512f -mavx512bw -mavx512dq -c -o $(dummy_file_out) $(dummy_file) > /dev/null 2>&1; echo $$?; rm $(dummy_file_out) > /dev/null 2>&1)
+	ifeq ($(BIKE_R3_AVX512_SUPPORTED), 0)
+		CFLAGS += -DS2N_BIKE_R3_AVX512
+		CFLAGS_LLVM += -DS2N_BIKE_R3_AVX512
+		BIKE_R3_AVX512_FLAGS := -mavx512f -mavx512bw -mavx512dq
+	endif
+	BIKE_R3_PCLMUL_SUPPORTED := $(shell $(CC) -mpclmul -c -o $(dummy_file_out) $(dummy_file) > /dev/null 2>&1; echo $$?; rm $(dummy_file_out) > /dev/null 2>&1)
+	ifeq ($(BIKE_R3_PCLMUL_SUPPORTED), 0)
+		CFLAGS += -DS2N_BIKE_R3_PCLMUL
+		CFLAGS_LLVM += -DS2N_BIKE_R3_PCLMUL
+		BIKE_R3_PCLMUL_FLAGS := -mpclmul
+	endif
+	BIKE_R3_PCLMUL_SUPPORTED := $(shell $(CC) -mvpclmulqdq -c -o $(dummy_file_out) $(dummy_file) > /dev/null 2>&1; echo $$?; rm $(dummy_file_out) > /dev/null 2>&1)
+	ifeq ($(BIKE_R3_VPCLMUL_SUPPORTED), 0)
+		CFLAGS += -DS2N_BIKE_R3_VPCLMUL
+		CFLAGS_LLVM += -DS2N_BIKE_R3_VPCLMUL
+		BIKE_R3_PCLMUL_FLAGS := -mvpclmulqdq -mavx512f -mavx512bw -mavx512dq
+	endif
 endif
