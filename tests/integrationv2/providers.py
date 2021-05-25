@@ -182,6 +182,9 @@ class S2N(Provider):
         return cmd_line
 
     def setup_server(self):
+        # s2nd prints this message after it begins listening for connections
+        self.ready_to_test_marker = 'Listening on'
+
         """
         Using the passed ProviderOptions, create a command line.
         """

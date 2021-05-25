@@ -405,6 +405,8 @@ class ProviderOptions(object):
 
         # Hostname
         self.host = host
+        if not self.host:
+            self.host = "localhost"
 
         # Port (string because this will be converted to a command line
         self.port = str(port)

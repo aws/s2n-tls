@@ -247,7 +247,7 @@ class ManagedProcess(threading.Thread):
         self.proc_env = proc_env
 
         # Command line to execute in the subprocess
-        self.cmd_line = cmd_line
+        self.cmd_line = list(map(str, cmd_line))
 
         # Total time to wait until killing the subprocess
         self.timeout = timeout
