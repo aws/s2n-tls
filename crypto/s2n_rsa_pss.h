@@ -17,9 +17,7 @@
 
 #include <stdint.h>
 #include <s2n.h>
-#if defined(OPENSSL_IS_AWSLC)
 #include <openssl/bn.h>
-#endif
 
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_rsa.h"
