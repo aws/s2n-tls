@@ -43,6 +43,8 @@ test_client_authentication:
 	$(call run_tox,$@.py)
 test_dynamic_record_sizes:
 	$(call run_tox,$@.py)
+test_early_data:
+	$(call run_tox,$@.py)
 test_happy_path:
 	$(call run_tox,$@.py)
 test_session_resumption:
@@ -64,6 +66,6 @@ test_version_negotiation:
 test_single:
 	$(call run_tox,$(TOX_TEST_NAME))
 
-.PHONY : test_client_authentication test_dynamic_record_sizes test_key_update test_happy_path test_session_resumption test_sni_match test_well_known_endpoints test_fragmentation test_hello_retry_requests test_pq_handshake test_signature_algorithms test_version_negotiation
-all: test_client_authentication test_dynamic_record_sizes test_key_update test_happy_path test_session_resumption test_sni_match test_well_known_endpoints test_fragmentation test_hello_retry_requests test_pq_handshake test_signature_algorithms test_version_negotiation
+.PHONY : test_early_data test_client_authentication test_dynamic_record_sizes test_key_update test_happy_path test_session_resumption test_sni_match test_well_known_endpoints test_fragmentation test_hello_retry_requests test_pq_handshake test_signature_algorithms test_version_negotiation
+all: test_early_data test_client_authentication test_dynamic_record_sizes test_key_update test_happy_path test_session_resumption test_sni_match test_well_known_endpoints test_fragmentation test_hello_retry_requests test_pq_handshake test_signature_algorithms test_version_negotiation
 
