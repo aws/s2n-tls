@@ -17,7 +17,7 @@ for older compilers or uncommon platforms." OFF)
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain.
 You likely want this on older compilers." OFF)
 option(SEARCH_LIBCRYPTO "Set this if you want to let S2N search libcrypto for you,
-otherwise a crypto target need to be defined." ON)
+otherwise a crypto target needs to be defined." ON)
 # Turn BUILD_TESTING=ON by default
 include(CTest)
 
