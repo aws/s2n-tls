@@ -587,7 +587,7 @@ int main(int argc, char **argv)
 
                 /* s2n_connection_get_session will be non-zero if a TLS1.2 ticket was set on the connection and 
                  * zero if a TLS1.3 ticket was set on the connection (pre-handshake). The behavior of returning
-                 * a ticket before negotiating was established in TLS1.2, we can't change the behavior for TLS1.2 tickets. 
+                 * a ticket before negotiating was established in TLS1.2; we can't change the behavior for TLS1.2 tickets. 
                  * However we can ensure that if a TLS1.3 ticket is set on the connection, 
                  * get_session_length will return zero to avoid fooling the user into thinking a new ticket is available.
                  */
