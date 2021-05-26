@@ -83,6 +83,21 @@ extern int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t * dst, const uint8_t * 
  */
 #define ZERO_TO_DISABLE_DEFER_CLEANUP(_thealloc) memset(&_thealloc, 0, sizeof(_thealloc))
 
+/* We want to apply blinding whenever `action` fails.
+ * Unfortunately, because functions in S2N do not have a consistent return type, determining failure is difficult.
+ * Instead, let's rely on the consistent error handling behavior of returning from a method early on error
+ * and apply blinding if our tracking variable goes out of scope early.
+ */
+S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **conn);
+#define WITH_ERROR_BLINDING(conn, action) do { \
+    DEFER_CLEANUP(struct s2n_connection *_conn_to_blind = conn, s2n_connection_apply_error_blinding); \
+    action; \
+    /* The `if` here is to avoid a redundantInitialization warning from cppcheck */ \
+    if (_conn_to_blind) { \
+        _conn_to_blind = NULL; \
+    } \
+} while (0)
+
 /* Creates cleanup function for pointers from function func which accepts a pointer.
  * This is useful for DEFER_CLEANUP as it passes &_thealloc into _thecleanup function,
  * so if _thealloc is a pointer _thecleanup will receive a pointer to a pointer.*/

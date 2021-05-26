@@ -82,15 +82,11 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
         conn->header_in.blob.data[0] &= 0x7f;
         *isSSLv2 = 1;
 
-        if (s2n_sslv2_record_header_parse(conn, record_type, &conn->client_protocol_version, &fragment_length) < 0) {
-            POSIX_GUARD(s2n_connection_kill(conn));
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
+        WITH_ERROR_BLINDING(conn, POSIX_GUARD(
+                s2n_sslv2_record_header_parse(conn, record_type, &conn->client_protocol_version, &fragment_length)));
     } else {
-        if (s2n_record_header_parse(conn, record_type, &fragment_length) < 0) {
-            POSIX_GUARD(s2n_connection_kill(conn));
-            S2N_ERROR_PRESERVE_ERRNO();
-        }
+        WITH_ERROR_BLINDING(conn, POSIX_GUARD(
+                s2n_record_header_parse(conn, record_type, &fragment_length)));
     }
 
     /* Read enough to have the whole record */
@@ -101,10 +97,10 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t * record_type, int
     }
 
     /* Decrypt and parse the record */
-    if (s2n_record_parse(conn) < 0) {
-        POSIX_ENSURE(!s2n_early_data_is_trial_decryption_allowed(conn, *record_type), S2N_ERR_EARLY_DATA_TRIAL_DECRYPT);
-        POSIX_GUARD(s2n_connection_kill(conn));
-        S2N_ERROR_PRESERVE_ERRNO();
+    if (s2n_early_data_is_trial_decryption_allowed(conn, *record_type)) {
+        POSIX_ENSURE(s2n_record_parse(conn) >= S2N_SUCCESS, S2N_ERR_EARLY_DATA_TRIAL_DECRYPT);
+    } else {
+        WITH_ERROR_BLINDING(conn, POSIX_GUARD(s2n_record_parse(conn)));
     }
 
     /* In TLS 1.3, encrypted handshake records would appear to be of record type
@@ -169,7 +165,7 @@ ssize_t s2n_recv_impl(struct s2n_connection * conn, void *buf, ssize_t size, s2n
                     POSIX_GUARD(s2n_flush(conn, blocked));
                     break;
                 case TLS_HANDSHAKE:
-                    POSIX_GUARD(s2n_post_handshake_recv(conn));
+                    WITH_ERROR_BLINDING(conn, POSIX_GUARD(s2n_post_handshake_recv(conn)));
                     break;
             }
             POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));

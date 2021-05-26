@@ -38,9 +38,8 @@ int s2n_key_update_write(struct s2n_blob *out);
 
 int main(int argc, char **argv)
 {
-
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13());
+
     /* s2n_post_handshake_recv */
     {   
         /* post_handshake_recv processes a key update requested message */
@@ -195,7 +194,40 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn)); 
         }
     }
+
+    /* Errors while processing post-handshake messages close the connection */
+    {
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
+
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
+
+        DEFER_CLEANUP(struct s2n_stuffer io_stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&io_stuffer, 0));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, server_conn));
+
+        /* Send just the ClientHello */
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
+
+        /* Try to read the ClientHello as a post-handshake message */
+        uint8_t output_buffer[10] = { 0 };
+        EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server_conn, output_buffer, sizeof(output_buffer), &blocked), S2N_ERR_BAD_MESSAGE);
+
+        /* Error closed connection */
+        EXPECT_TRUE(server_conn->closed);
+
+        /* Error triggers blinding */
+        EXPECT_NOT_EQUAL(s2n_connection_get_delay(server_conn), 0);
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
     END_TEST();
 }
-
-
