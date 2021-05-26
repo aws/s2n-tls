@@ -64,7 +64,7 @@ static int setup_connection(struct s2n_connection *server_conn)
 int s2n_fuzz_init(int *argc, char **argv[])
 {
     struct s2n_blob *public_key = &server_kem_params.public_key;
-    POSIX_GUARD(s2n_alloc(public_key, SIKE_P434_R3_PUBLIC_KEY_BYTES));
+    POSIX_GUARD(s2n_alloc(public_key, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES));
     POSIX_GUARD_RESULT(s2n_kem_generate_keypair(&server_kem_params));
     POSIX_GUARD(s2n_free(public_key));
 
