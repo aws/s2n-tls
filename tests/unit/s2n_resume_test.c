@@ -681,7 +681,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(psk);
 
             EXPECT_EQUAL(psk->type, S2N_PSK_TYPE_RESUMPTION);
-            S2N_BLOB_EXPECT_EQUAL(psk->identity, conn->client_ticket);
+            EXPECT_BYTEARRAY_EQUAL(psk->identity.data, client_ticket, sizeof(client_ticket));
 
             EXPECT_EQUAL(psk->secret.size, SECRET_LEN);
             uint8_t secret[] = { SECRET };
@@ -838,7 +838,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(psk);
 
             EXPECT_EQUAL(psk->type, S2N_PSK_TYPE_RESUMPTION);
-            S2N_BLOB_EXPECT_EQUAL(psk->identity, conn->client_ticket);
+            EXPECT_BYTEARRAY_EQUAL(psk->identity.data, client_ticket, sizeof(client_ticket));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
@@ -911,7 +911,7 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(psk);
 
                 EXPECT_EQUAL(psk->type, S2N_PSK_TYPE_RESUMPTION);
-                S2N_BLOB_EXPECT_EQUAL(psk->identity, conn->client_ticket);
+                EXPECT_BYTEARRAY_EQUAL(psk->identity.data, client_ticket, sizeof(client_ticket));
 
                 EXPECT_EQUAL(psk->secret.size, test_session_secret.size);
                 EXPECT_BYTEARRAY_EQUAL(psk->secret.data, test_session_secret.data, test_session_secret.size);

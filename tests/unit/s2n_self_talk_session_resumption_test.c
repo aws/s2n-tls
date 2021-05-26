@@ -531,6 +531,101 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
 
+    /* Test output of s2n_connection_get_session_length during different stages of the handshake */
+    {
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        /* Create nonblocking pipes */
+        struct s2n_test_io_pair io_pair = { 0 };
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        DEFER_CLEANUP(struct s2n_stuffer tls12_ticket = { 0 }, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer tls13_ticket = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&tls12_ticket, 0));
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&tls13_ticket, 0));
+
+        /* Negotiate initial TLS1.3 handshake */
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_client_config));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_OK(s2n_test_issue_new_session_ticket(server_conn, client_conn, &no_early_data));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&cb_session_data, &tls13_ticket, s2n_stuffer_data_available(&cb_session_data)));
+
+        /* Prepare client and server for a second connection */
+        EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        /* Negotiate initial TLS1.2 handshake */
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls12_client_config));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        int tls12_ticket_length = s2n_connection_get_session_length(client_conn);
+        EXPECT_SUCCESS(s2n_stuffer_skip_write(&tls12_ticket, tls12_ticket_length));
+        EXPECT_SUCCESS(s2n_connection_get_session(client_conn, tls12_ticket.blob.data, tls12_ticket_length));
+
+        struct s2n_stuffer tickets[] = { tls12_ticket, tls13_ticket };
+        struct s2n_config *client_config[] = { tls12_client_config, tls13_client_config };
+        uint32_t session_length = 0;
+
+        for (size_t i = 0; i < s2n_array_len(tickets); i++) {
+            for (size_t j = 0; j < s2n_array_len(client_config); j++) {
+
+                /* Prepare client and server for new connection */
+                EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+                EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+                EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+                EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config[j]));
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+                /* Client sets up a resumption connection with the received session ticket data */
+                EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tickets[i].blob.data, s2n_stuffer_data_available(&tickets[i])));
+
+                /* s2n_connection_get_session will be non-zero if a TLS1.2 ticket was set on the connection and 
+                 * zero if a TLS1.3 ticket was set on the connection (pre-handshake). The behavior of returning
+                 * a ticket before negotiating was established in TLS1.2, we can't change the behavior for TLS1.2 tickets. 
+                 * However we can ensure that if a TLS1.3 ticket is set on the connection, 
+                 * get_session_length will return zero to avoid fooling the user into thinking a new ticket is available.
+                 */
+                session_length = s2n_connection_get_session_length(client_conn);
+                if (i == 0) {
+                    EXPECT_TRUE(session_length > 0);
+                } else {
+                    EXPECT_TRUE(session_length == 0);
+                }
+
+                /* A TLS1.2 ticket on a client with TLS1.3 cipher preferences will fail
+                 * with a downgrade error when negotiating, as shown by a previous test. */
+                if (i == 0 && j == 1) {
+                    continue;
+                }
+
+                /* Negotiate connection */
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+                if (client_conn->actual_protocol_version < S2N_TLS13) {
+                    /* The session length should be non-zero after a client has received a session ticket */
+                    EXPECT_TRUE(s2n_connection_get_session_length(client_conn) > 0);
+
+                } else {
+                    /* The session length should be zero before a client has received a session ticket */
+                    EXPECT_EQUAL(s2n_connection_get_session_length(client_conn), 0);
+
+                    /* Receive the issued TLS1.3 session ticket */
+                    EXPECT_OK(s2n_test_issue_new_session_ticket(server_conn, client_conn, &no_early_data));
+
+                    /* The session length should be non-zero after a client has received a session ticket */
+                    EXPECT_TRUE(s2n_connection_get_session_length(client_conn) > 0);
+                }
+            }
+        }
+    }
+
     /* Clean-up */
     EXPECT_SUCCESS(s2n_config_free(server_config));
     EXPECT_SUCCESS(s2n_config_free(tls13_client_config));

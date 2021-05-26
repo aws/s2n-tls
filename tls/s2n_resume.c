@@ -305,6 +305,9 @@ static S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, 
         }  
     } else if (format == S2N_TLS13_SERIALIZED_FORMAT_VERSION) {
         RESULT_GUARD(s2n_tls13_deserialize_session_state(conn, psk_identity, from));
+        if (conn->mode == S2N_CLIENT) {
+            RESULT_GUARD_POSIX(s2n_free(psk_identity));
+        }
     } else {
         RESULT_BAIL(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     }
