@@ -513,11 +513,11 @@ int main(int argc, char **argv)
 
     {
         const struct s2n_kem_group *test_kem_groups[] = {
-                &s2n_secp256r1_sike_p434_r2,
+                &s2n_secp256r1_sike_p434_r3,
                 &s2n_secp256r1_bike1_l1_r2,
                 &s2n_secp256r1_kyber_512_r2,
 #if EVP_APIS_SUPPORTED
-                &s2n_x25519_sike_p434_r2,
+                &s2n_x25519_sike_p434_r3,
                 &s2n_x25519_bike1_l1_r2,
                 &s2n_x25519_kyber_512_r2,
 #endif
@@ -541,7 +541,7 @@ int main(int argc, char **argv)
         };
 
         const struct s2n_kem_group *kem_groups_sike_bike[] = {
-                &s2n_secp256r1_sike_p434_r2,
+                &s2n_secp256r1_sike_p434_r3,
                 &s2n_secp256r1_bike1_l1_r2
         };
 

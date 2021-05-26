@@ -31,7 +31,6 @@ all: $(OBJS)
 	$(MAKE) -C bike_r2
 	$(MAKE) -C bike_r3
 	$(MAKE) -C sike_r1
-	$(MAKE) -C sike_r2 try_include_asm
 	$(MAKE) -C kyber_r2
 	$(MAKE) -C kyber_90s_r2
 	$(MAKE) -C kyber_r3
@@ -41,10 +40,6 @@ endif
 .PHONY : sike_r1_bc
 sike_r1_bc: $(BCS1)
 	$(MAKE) -C sike_r1 bc
-
-.PHONY : sike_r2_bc
-sike_r2_bc: $(BCS1)
-	$(MAKE) -C sike_r2 bc
 
 .PHONY : bike_r1_bc
 bike_r1_bc: $(BCS1)
@@ -57,7 +52,6 @@ bike_r2_bc: $(BCS1)
 .PHONY : run-gcov
 run-gcov: gcov
 	$(MAKE) -C sike_r1 gcov
-	$(MAKE) -C sike_r2 gcov
 
 .PHONY : run-lcov
 run-lcov: lcov
@@ -70,7 +64,6 @@ clean: decruft
 	$(MAKE) -C bike_r2 decruft
 	$(MAKE) -C bike_r3 decruft
 	$(MAKE) -C sike_r1 decruft
-	$(MAKE) -C sike_r2 decruft
 	$(MAKE) -C kyber_r2 decruft
 	$(MAKE) -C kyber_90s_r2 decruft
 	$(MAKE) -C kyber_r3 decruft

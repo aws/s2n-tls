@@ -54,13 +54,12 @@ else()
         "pq-crypto/bike_r2/*.h"
         "pq-crypto/bike_r3/*.h"
         "pq-crypto/sike_r1/*.h"
-        "pq-crypto/sike_r2/*.h"
         "pq-crypto/kyber_r2/*.h"
         "pq-crypto/kyber_90s_r2/*.h"
         "pq-crypto/kyber_r3/*.h"
         "pq-crypto/sike_r3/*.h")
 
-    # The SIKE r1 and r2 code #includes .c files directly; including sike_r{1, 2}/*.c
+    # The SIKE r1 code #includes .c files directly; including sike_r1/*.c
     # here breaks the build due to duplicates. The SIKE r3 code does not have this issue.
     file(GLOB PQ_SRC
         "pq-crypto/*.c"
@@ -71,8 +70,6 @@ else()
         "pq-crypto/sike_r1/P503_r1.c"
         "pq-crypto/sike_r1/sike_r1_kem.c"
         "pq-crypto/sike_r1/fips202_r1.c"
-        "pq-crypto/sike_r2/fips202.c"
-        "pq-crypto/sike_r2/P434.c"
         "pq-crypto/kyber_r2/*.c"
         "pq-crypto/kyber_90s_r2/*.c"
         "pq-crypto/kyber_r3/*.c"
@@ -103,7 +100,6 @@ endif()
 # The PQ ASM try_compile has to come after we turn on pthread.
 # If S2N_NO_PQ_ASM is defined, all PQ assembly options will
 # remain turned off by default.
-set(SIKEP434R2_ASM_SUPPORTED false)
 set(SIKEP434R3_ASM_SUPPORTED false)
 set(ADX_SUPPORTED false)
 
@@ -111,31 +107,6 @@ if(S2N_NO_PQ_ASM)
     message(STATUS "S2N_NO_PQ_ASM flag was detected - disabling PQ crypto assembly code")
 else()
     enable_language(ASM)
-
-    # sikep434r2
-    try_compile(
-        SIKEP434R2_ASM_SUPPORTED
-        ${CMAKE_BINARY_DIR}
-        SOURCES
-            "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-            "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r2/sikep434r2_fp_x64_asm.S"
-    )
-
-    if(SIKEP434R2_ASM_SUPPORTED)
-        file(GLOB SIKEP434R2_ASM_SRC "pq-crypto/sike_r2/sikep434r2_fp_x64_asm.S")
-        list(APPEND PQ_SRC ${SIKEP434R2_ASM_SRC})
-
-        # The ADX instruction set is preferred for best performance, but not necessary.
-        try_compile(
-            ADX_SUPPORTED
-            ${CMAKE_BINARY_DIR}
-            SOURCES
-                "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-                "${CMAKE_CURRENT_LIST_DIR}/pq-crypto/sike_r2/sikep434r2_fp_x64_asm.S"
-            COMPILE_DEFINITIONS
-                "-DS2N_ADX"
-        )
-    endif()
 
     # sikep434r3
     try_compile(
@@ -288,11 +259,6 @@ endif()
 
 if(S2N_NO_PQ)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_NO_PQ)
-endif()
-
-if(SIKEP434R2_ASM_SUPPORTED)
-    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_SIKEP434R2_ASM)
-    message(STATUS "Enabling SIKEP434R2 assembly code")
 endif()
 
 if(SIKEP434R3_ASM_SUPPORTED)

@@ -173,7 +173,7 @@ int main(int argc, char **argv)
 
         {
             const struct s2n_kem_group *test_kem_groups[] = {
-                &s2n_secp256r1_sike_p434_r2,
+                &s2n_secp256r1_sike_p434_r3,
                 &s2n_secp256r1_bike1_l1_r2,
             };
 
@@ -267,7 +267,7 @@ int main(int argc, char **argv)
                     conn->actual_protocol_version = S2N_TLS13;
                     conn->security_policy_override = &test_security_policy;
 
-                    conn->secure.server_kem_group_params.kem_group = &s2n_secp256r1_sike_p434_r2;
+                    conn->secure.server_kem_group_params.kem_group = &s2n_secp256r1_sike_p434_r3;
                     conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
 
                     EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);

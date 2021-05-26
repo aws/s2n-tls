@@ -24,7 +24,7 @@ const struct s2n_kem *pq_kems_r1[2] = {
 /* Extension list for round 2 and round 1 PQ KEMs, in order of preference */
 const struct s2n_kem *pq_kems_r2r1[4] = {
     &s2n_bike1_l1_r2,
-    &s2n_sike_p434_r2,
+    &s2n_sike_p434_r3,
     &s2n_bike1_l1_r1,
     &s2n_sike_p503_r1,
 };
@@ -32,7 +32,7 @@ const struct s2n_kem *pq_kems_r2r1[4] = {
 const struct s2n_kem *pq_kems_r2r1_2020_07[5] = {
     &s2n_kyber_512_r2,
     &s2n_bike1_l1_r2,
-    &s2n_sike_p434_r2,
+    &s2n_sike_p434_r3,
     &s2n_bike1_l1_r1,
     &s2n_sike_p503_r1,
 };
@@ -45,7 +45,7 @@ const struct s2n_kem *pq_kems_sike_r1[1] = {
 /* Extension list for SIKE P434 Round 2 and SIKE P503 Round 1 only (for testing),
  * in order of preference */
 const struct s2n_kem *pq_kems_sike_r2r1[2] = {
-    &s2n_sike_p434_r2,
+    &s2n_sike_p434_r3,
     &s2n_sike_p503_r1,
 };
 
@@ -55,12 +55,12 @@ const struct s2n_kem_group *pq_kem_groups_r2[] = {
         &s2n_secp256r1_kyber_512_r2,
         &s2n_x25519_bike1_l1_r2,
         &s2n_secp256r1_bike1_l1_r2,
-        &s2n_x25519_sike_p434_r2,
-        &s2n_secp256r1_sike_p434_r2,
+        &s2n_x25519_sike_p434_r3,
+        &s2n_secp256r1_sike_p434_r3,
 #else
         &s2n_secp256r1_kyber_512_r2,
         &s2n_secp256r1_bike1_l1_r2,
-        &s2n_secp256r1_sike_p434_r2,
+        &s2n_secp256r1_sike_p434_r3,
 #endif
 };
 

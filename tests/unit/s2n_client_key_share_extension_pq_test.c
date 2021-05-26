@@ -40,11 +40,11 @@ int main() {
     /* PQ hybrid tests for s2n_client_key_share_extension */
     {
         const struct s2n_kem_group *all_kem_groups[] = {
-                &s2n_secp256r1_sike_p434_r2,
+                &s2n_secp256r1_sike_p434_r3,
                 &s2n_secp256r1_bike1_l1_r2,
                 &s2n_secp256r1_kyber_512_r2,
 #if EVP_APIS_SUPPORTED
-                &s2n_x25519_sike_p434_r2,
+                &s2n_x25519_sike_p434_r3,
                 &s2n_x25519_bike1_l1_r2,
                 &s2n_x25519_kyber_512_r2,
 #endif
@@ -66,7 +66,7 @@ int main() {
         };
 
         const struct s2n_kem_group *kem_groups_sike[] = {
-                &s2n_secp256r1_sike_p434_r2,
+                &s2n_secp256r1_sike_p434_r3,
         };
         const struct s2n_kem_preferences kem_prefs_sike = {
                 .kem_count = 0,
@@ -654,7 +654,7 @@ int main() {
                     /* Send a key share extension with shares for p256_sike, classic p256, and p256_kyber */
                     struct s2n_stuffer_reservation shares_size = {0};
                     EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&key_share_extension, &shares_size));
-                    DEFER_CLEANUP(struct s2n_kem_group_params p256_sike_params = { .kem_group = &s2n_secp256r1_sike_p434_r2 }, s2n_kem_group_free);
+                    DEFER_CLEANUP(struct s2n_kem_group_params p256_sike_params = { .kem_group = &s2n_secp256r1_sike_p434_r3 }, s2n_kem_group_free);
                     EXPECT_SUCCESS(s2n_generate_pq_hybrid_key_share_for_test(&key_share_extension, &p256_sike_params));
                     DEFER_CLEANUP(struct s2n_ecc_evp_params p256_params = { .negotiated_curve = &s2n_ecc_curve_secp256r1 }, s2n_ecc_evp_params_free);
                     EXPECT_SUCCESS(s2n_ecdhe_parameters_send(&p256_params, &key_share_extension));
@@ -696,8 +696,8 @@ int main() {
                     for (size_t pq_index = 0; pq_index < kem_pref->tls13_kem_group_count; pq_index++) {
                         struct s2n_kem_group_params *received_params = &server_conn->secure.client_kem_group_params[pq_index];
 
-                        if (received_params->kem_group == &s2n_secp256r1_sike_p434_r2) {
-                            EXPECT_EQUAL(received_params->kem_params.kem, &s2n_sike_p434_r2);
+                        if (received_params->kem_group == &s2n_secp256r1_sike_p434_r3) {
+                            EXPECT_EQUAL(received_params->kem_params.kem, &s2n_sike_p434_r3);
                             EXPECT_NOT_NULL(received_params->kem_params.public_key.data);
                             EXPECT_EQUAL(received_params->ecc_params.negotiated_curve, &s2n_ecc_curve_secp256r1);
                             EXPECT_NOT_NULL(received_params->ecc_params.evp_pkey);
@@ -739,7 +739,7 @@ int main() {
                     /* Send a key share extension with shares for p256_sike, classic p256, and p256_kyber */
                     struct s2n_stuffer_reservation shares_size = {0};
                     EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&key_share_extension, &shares_size));
-                    DEFER_CLEANUP(struct s2n_kem_group_params p256_sike_params = { .kem_group = &s2n_secp256r1_sike_p434_r2 }, s2n_kem_group_free);
+                    DEFER_CLEANUP(struct s2n_kem_group_params p256_sike_params = { .kem_group = &s2n_secp256r1_sike_p434_r3 }, s2n_kem_group_free);
                     EXPECT_SUCCESS(s2n_generate_pq_hybrid_key_share_for_test(&key_share_extension, &p256_sike_params));
                     DEFER_CLEANUP(struct s2n_ecc_evp_params p256_params = { .negotiated_curve = &s2n_ecc_curve_secp256r1 }, s2n_ecc_evp_params_free);
                     EXPECT_SUCCESS(s2n_ecdhe_parameters_send(&p256_params, &key_share_extension));
@@ -780,8 +780,8 @@ int main() {
                     for (size_t pq_index = 0; pq_index < kem_pref->tls13_kem_group_count; pq_index++) {
                         struct s2n_kem_group_params *received_params = &server_conn->secure.client_kem_group_params[pq_index];
 
-                        if (received_params->kem_group == &s2n_secp256r1_sike_p434_r2) {
-                            EXPECT_EQUAL(received_params->kem_params.kem, &s2n_sike_p434_r2);
+                        if (received_params->kem_group == &s2n_secp256r1_sike_p434_r3) {
+                            EXPECT_EQUAL(received_params->kem_params.kem, &s2n_sike_p434_r3);
                             EXPECT_NOT_NULL(received_params->kem_params.public_key.data);
                             EXPECT_EQUAL(received_params->ecc_params.negotiated_curve, &s2n_ecc_curve_secp256r1);
                             EXPECT_NOT_NULL(received_params->ecc_params.evp_pkey);
@@ -815,7 +815,7 @@ int main() {
                     /* Send a key share extension with shares for p256_sike, classic p256 */
                     struct s2n_stuffer_reservation shares_size = {0};
                     EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&key_share_extension, &shares_size));
-                    EXPECT_SUCCESS(s2n_stuffer_write_uint16(&key_share_extension, TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2));
+                    EXPECT_SUCCESS(s2n_stuffer_write_uint16(&key_share_extension, TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R3));
                     EXPECT_SUCCESS(s2n_stuffer_write_uint16(&key_share_extension, 2)); /* Wrong hybrid share size */
                     EXPECT_SUCCESS(s2n_stuffer_write_uint16(&key_share_extension, 0xFF)); /* Fake hybrid share */
                     DEFER_CLEANUP(struct s2n_ecc_evp_params p256_params = { .negotiated_curve = &s2n_ecc_curve_secp256r1 }, s2n_ecc_evp_params_free);
@@ -880,7 +880,7 @@ int main() {
                     /* Send a key share extension with shares for p256_sike */
                     struct s2n_stuffer_reservation shares_size = {0};
                     EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&key_share_extension, &shares_size));
-                    DEFER_CLEANUP(struct s2n_kem_group_params p256_sike_params = { .kem_group = &s2n_secp256r1_sike_p434_r2 }, s2n_kem_group_free);
+                    DEFER_CLEANUP(struct s2n_kem_group_params p256_sike_params = { .kem_group = &s2n_secp256r1_sike_p434_r3 }, s2n_kem_group_free);
                     EXPECT_SUCCESS(s2n_generate_pq_hybrid_key_share_for_test(&key_share_extension, &p256_sike_params));
                     /* key_share_extension.blob.data[6] is the first byte of the EC share size in the overall hybrid share */
                     key_share_extension.blob.data[6] = ~key_share_extension.blob.data[6];
@@ -935,7 +935,7 @@ int main() {
                     /* Send a key share extension with shares for p256_sike */
                     struct s2n_stuffer_reservation shares_size = {0};
                     EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&key_share_extension, &shares_size));
-                    DEFER_CLEANUP(struct s2n_kem_group_params p256_sike_params = { .kem_group = &s2n_secp256r1_sike_p434_r2 }, s2n_kem_group_free);
+                    DEFER_CLEANUP(struct s2n_kem_group_params p256_sike_params = { .kem_group = &s2n_secp256r1_sike_p434_r3 }, s2n_kem_group_free);
                     EXPECT_SUCCESS(s2n_generate_pq_hybrid_key_share_for_test(&key_share_extension, &p256_sike_params));
                     /* key_share_extension.blob.data[73] is the first byte of the PQ share size in the overall hybrid share */
                     key_share_extension.blob.data[73] = ~key_share_extension.blob.data[73];
@@ -990,9 +990,9 @@ int main() {
                     /* Send a key share extension with two shares for p256_sike */
                     struct s2n_stuffer_reservation shares_size = {0};
                     EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&key_share_extension, &shares_size));
-                    DEFER_CLEANUP(struct s2n_kem_group_params p256_sike_params = { .kem_group = &s2n_secp256r1_sike_p434_r2 }, s2n_kem_group_free);
+                    DEFER_CLEANUP(struct s2n_kem_group_params p256_sike_params = { .kem_group = &s2n_secp256r1_sike_p434_r3 }, s2n_kem_group_free);
                     EXPECT_SUCCESS(s2n_generate_pq_hybrid_key_share_for_test(&key_share_extension, &p256_sike_params));
-                    DEFER_CLEANUP(struct s2n_kem_group_params p256_sike_params_extra = { .kem_group = &s2n_secp256r1_sike_p434_r2 }, s2n_kem_group_free);
+                    DEFER_CLEANUP(struct s2n_kem_group_params p256_sike_params_extra = { .kem_group = &s2n_secp256r1_sike_p434_r3 }, s2n_kem_group_free);
                     EXPECT_SUCCESS(s2n_generate_pq_hybrid_key_share_for_test(&key_share_extension, &p256_sike_params_extra));
                     EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&shares_size));
 
@@ -1000,7 +1000,7 @@ int main() {
                      * so we make a copy of the first share from the wire to ensure that server
                      * saved the correct one. */
                     DEFER_CLEANUP(struct s2n_blob pq_key_share_copy = {0}, s2n_free);
-                    EXPECT_SUCCESS(s2n_copy_pq_share(&key_share_extension, &pq_key_share_copy, &s2n_secp256r1_sike_p434_r2));
+                    EXPECT_SUCCESS(s2n_copy_pq_share(&key_share_extension, &pq_key_share_copy, &s2n_secp256r1_sike_p434_r3));
 
                     EXPECT_SUCCESS(s2n_client_key_share_extension.recv(server_conn, &key_share_extension));
 
@@ -1027,12 +1027,12 @@ int main() {
                     for (size_t pq_index = 0; pq_index < kem_pref->tls13_kem_group_count; pq_index++) {
                         struct s2n_kem_group_params *received_params = &server_conn->secure.client_kem_group_params[pq_index];
 
-                        if (received_params->kem_group == &s2n_secp256r1_sike_p434_r2) {
-                            EXPECT_EQUAL(received_params->kem_params.kem, &s2n_sike_p434_r2);
+                        if (received_params->kem_group == &s2n_secp256r1_sike_p434_r3) {
+                            EXPECT_EQUAL(received_params->kem_params.kem, &s2n_sike_p434_r3);
                             EXPECT_NOT_NULL(received_params->kem_params.public_key.data);
                             EXPECT_EQUAL(received_params->ecc_params.negotiated_curve, &s2n_ecc_curve_secp256r1);
                             EXPECT_NOT_NULL(received_params->ecc_params.evp_pkey);
-                            EXPECT_BYTEARRAY_EQUAL(pq_key_share_copy.data, received_params->kem_params.public_key.data, s2n_sike_p434_r2.public_key_length);
+                            EXPECT_BYTEARRAY_EQUAL(pq_key_share_copy.data, received_params->kem_params.public_key.data, s2n_sike_p434_r3.public_key_length);
                             p256_sike_accepted = true;
                         } else {
                             EXPECT_NULL(received_params->kem_group);
@@ -1063,12 +1063,12 @@ int main() {
                     /* Send a key share extension with two shares for p256_sike */
                     struct s2n_stuffer_reservation shares_size = {0};
                     EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&key_share_extension, &shares_size));
-                    DEFER_CLEANUP(struct s2n_kem_group_params p256_sike_params = { .kem_group = &s2n_secp256r1_sike_p434_r2 }, s2n_kem_group_free);
+                    DEFER_CLEANUP(struct s2n_kem_group_params p256_sike_params = { .kem_group = &s2n_secp256r1_sike_p434_r3 }, s2n_kem_group_free);
                     EXPECT_SUCCESS(s2n_generate_pq_hybrid_key_share_for_test(&key_share_extension, &p256_sike_params));
                     EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&shares_size));
 
                     /* Wipe the EC share so that the point parsing fails */
-                    for (size_t i = 8; i < s2n_secp256r1_sike_p434_r2.curve->share_size; i++) {
+                    for (size_t i = 8; i < s2n_secp256r1_sike_p434_r3.curve->share_size; i++) {
                         key_share_extension.blob.data[i] = 0;
                     }
 

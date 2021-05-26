@@ -164,9 +164,9 @@ int main(int argc, char **argv)
     if (!s2n_pq_is_enabled()) {
         /* Verify s2n_check_kem() and s2n_configure_kem() are performing their pq-enabled checks appropriately. */
         EXPECT_SUCCESS(assert_pq_disabled_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p503_r1));
-        EXPECT_SUCCESS(assert_pq_disabled_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r2));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r3));
         EXPECT_SUCCESS(assert_pq_disabled_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p503_r1));
-        EXPECT_SUCCESS(assert_pq_disabled_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r2));
+        EXPECT_SUCCESS(assert_pq_disabled_checks(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r3));
 
         EXPECT_SUCCESS(assert_pq_disabled_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r1));
         EXPECT_SUCCESS(assert_pq_disabled_checks(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r2));
@@ -179,9 +179,9 @@ int main(int argc, char **argv)
          * KMS-PQ-TLS-1-0-2020-02 supports Round 1 and Round 2 KEMs */
         EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p503_r1));
         EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p503_r1));
-        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r3));
         EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_sike_p503_r1));
-        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_sike_p434_r2));
+        EXPECT_SUCCESS(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_sike_p434_r3));
 
         EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r1));
         EXPECT_SUCCESS(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r1));
@@ -192,34 +192,34 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_kyber_512_r2));
 
         /* Test Failure cases */
-        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r3), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&sike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r3), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p503_r1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r3), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&bike_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p503_r1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_bike1_l1_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p503_r1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_sike_p434_r3), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2019-06", &s2n_kyber_512_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_bike1_l1_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p503_r1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_sike_p434_r3), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-02", &s2n_kyber_512_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_bike1_l1_r1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_bike1_l1_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
         EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_sike_p503_r1), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
-        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_sike_p434_r2), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+        EXPECT_FAILURE_WITH_ERRNO(do_kex_with_kem(&kyber_test_suite, "KMS-PQ-TLS-1-0-2020-07", &s2n_sike_p434_r3), S2N_ERR_KEM_UNSUPPORTED_PARAMS);
     }
 
     END_TEST();

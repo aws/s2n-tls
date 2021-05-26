@@ -1277,7 +1277,7 @@ int main(int argc, char **argv)
          * KEM (-1).*/
         int expected_kem_id;
         if (s2n_pq_is_enabled()) {
-            expected_kem_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2;
+            expected_kem_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3;
         } else {
             expected_kem_id = -1;
         }
@@ -1380,7 +1380,7 @@ int main(int argc, char **argv)
          * to negotiate sikep434r2; else, expect to negotiate no KEM (-1). */
         int expected_kem_id;
         if (s2n_pq_is_enabled()) {
-            expected_kem_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2;
+            expected_kem_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R3;
         } else {
             expected_kem_id = -1;
         }

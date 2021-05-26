@@ -70,18 +70,6 @@ const struct s2n_kem s2n_sike_p503_r1 = {
         .decapsulate = &SIKE_P503_r1_crypto_kem_dec,
 };
 
-const struct s2n_kem s2n_sike_p434_r2 = {
-        .name = "SIKEp434r2-KEM",
-        .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_SIKE_P434_R2,
-        .public_key_length = SIKE_P434_R2_PUBLIC_KEY_BYTES,
-        .private_key_length = SIKE_P434_R2_SECRET_KEY_BYTES,
-        .shared_secret_key_length = SIKE_P434_R2_SHARED_SECRET_BYTES,
-        .ciphertext_length = SIKE_P434_R2_CIPHERTEXT_BYTES,
-        .generate_keypair = &SIKE_P434_r2_crypto_kem_keypair,
-        .encapsulate = &SIKE_P434_r2_crypto_kem_enc,
-        .decapsulate = &SIKE_P434_r2_crypto_kem_dec,
-};
-
 const struct s2n_kem s2n_kyber_512_r2 = {
         .name = "kyber512r2",
         .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R2,
@@ -142,7 +130,6 @@ const struct s2n_kem *bike_kems[] = {
 
 const struct s2n_kem *sike_kems[] = {
         &s2n_sike_p503_r1,
-        &s2n_sike_p434_r2,
         &s2n_sike_p434_r3,
 };
 
@@ -182,15 +169,15 @@ const struct s2n_iana_to_kem kem_mapping[3] = {
  * || ECC key share (variable bytes)
  * || size of PQ key share (2 bytes)
  * || PQ key share (variable bytes) */
-const struct s2n_kem_group s2n_secp256r1_sike_p434_r2 = {
+const struct s2n_kem_group s2n_secp256r1_sike_p434_r3 = {
         .name = "secp256r1_sike-p434-r2",
-        .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R2,
+        .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R3,
         .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) +
-                (S2N_SIZE_OF_KEY_SHARE_SIZE + SIKE_P434_R2_PUBLIC_KEY_BYTES),
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES),
         .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) +
-                (S2N_SIZE_OF_KEY_SHARE_SIZE + SIKE_P434_R2_CIPHERTEXT_BYTES),
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIKE_P434_R3_CIPHERTEXT_BYTES),
         .curve = &s2n_ecc_curve_secp256r1,
-        .kem = &s2n_sike_p434_r2,
+        .kem = &s2n_sike_p434_r3,
 };
 
 const struct s2n_kem_group s2n_secp256r1_bike1_l1_r2 = {
@@ -217,15 +204,15 @@ const struct s2n_kem_group s2n_secp256r1_kyber_512_r2 = {
 };
 
 #if EVP_APIS_SUPPORTED
-const struct s2n_kem_group s2n_x25519_sike_p434_r2 = {
+const struct s2n_kem_group s2n_x25519_sike_p434_r3 = {
         .name = "x25519_sike-p434-r2",
-        .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R2,
+        .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R3,
         .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) +
-                (S2N_SIZE_OF_KEY_SHARE_SIZE + SIKE_P434_R2_PUBLIC_KEY_BYTES),
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES),
         .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) +
-                (S2N_SIZE_OF_KEY_SHARE_SIZE + SIKE_P434_R2_CIPHERTEXT_BYTES),
+                (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIKE_P434_R3_CIPHERTEXT_BYTES),
         .curve = &s2n_ecc_curve_x25519,
-        .kem = &s2n_sike_p434_r2,
+        .kem = &s2n_sike_p434_r3,
 };
 
 const struct s2n_kem_group s2n_x25519_bike1_l1_r2 = {
@@ -251,7 +238,7 @@ const struct s2n_kem_group s2n_x25519_kyber_512_r2 = {
         .kem = &s2n_kyber_512_r2,
 };
 #else
-const struct s2n_kem_group s2n_x25519_sike_p434_r2 = { 0 };
+const struct s2n_kem_group s2n_x25519_sike_p434_r3 = { 0 };
 const struct s2n_kem_group s2n_x25519_bike1_l1_r2 = { 0 };
 const struct s2n_kem_group s2n_x25519_kyber_512_r2 = { 0 };
 #endif

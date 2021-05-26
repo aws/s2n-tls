@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
     const struct hybrid_test_vector aes_128_sha_256_secp256r1_sikep434r2_vector = {
             .cipher_suite = &s2n_tls13_aes_128_gcm_sha256,
             .transcript = FAKE_TRANSCRIPT,
-            .kem_group = &s2n_secp256r1_sike_p434_r2,
+            .kem_group = &s2n_secp256r1_sike_p434_r3,
             .client_ecc_key = CLIENT_SECP256R1_PRIV_KEY,
             .server_ecc_key = SERVER_SECP256R1_PRIV_KEY,
             .pq_secret = &sikep434r2_secret,
@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
     const struct hybrid_test_vector aes_256_sha_384_secp256r1_sikep434r2_vector = {
             .cipher_suite = &s2n_tls13_aes_256_gcm_sha384,
             .transcript = FAKE_TRANSCRIPT,
-            .kem_group = &s2n_secp256r1_sike_p434_r2,
+            .kem_group = &s2n_secp256r1_sike_p434_r3,
             .client_ecc_key = CLIENT_SECP256R1_PRIV_KEY,
             .server_ecc_key = SERVER_SECP256R1_PRIV_KEY,
             .pq_secret = &sikep434r2_secret,
@@ -246,7 +246,7 @@ int main(int argc, char **argv) {
     const struct hybrid_test_vector aes_128_sha_256_x25519_sikep434r2_vector = {
             .cipher_suite = &s2n_tls13_aes_128_gcm_sha256,
             .transcript = FAKE_TRANSCRIPT,
-            .kem_group = &s2n_x25519_sike_p434_r2,
+            .kem_group = &s2n_x25519_sike_p434_r3,
             .client_ecc_key = CLIENT_X25519_PRIV_KEY,
             .server_ecc_key = SERVER_X25519_PRIV_KEY,
             .pq_secret = &sikep434r2_secret,
@@ -261,7 +261,7 @@ int main(int argc, char **argv) {
     const struct hybrid_test_vector aes_256_sha_384_x25519_sikep434r2_vector = {
             .cipher_suite = &s2n_tls13_aes_256_gcm_sha384,
             .transcript = FAKE_TRANSCRIPT,
-            .kem_group = &s2n_x25519_sike_p434_r2,
+            .kem_group = &s2n_x25519_sike_p434_r3,
             .client_ecc_key = CLIENT_X25519_PRIV_KEY,
             .server_ecc_key = SERVER_X25519_PRIV_KEY,
             .pq_secret = &sikep434r2_secret,
