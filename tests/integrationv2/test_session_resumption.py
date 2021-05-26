@@ -109,6 +109,9 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
     p = tmp_path / 'ticket.pem'
     path_to_ticket = str(p)
 
+    server_send_marker = 's2n is ready'
+    data = data_bytes(10)
+
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
         port=port,
@@ -116,7 +119,7 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
         curve=curve,
         insecure=True,
         reconnect=False,
-        data_to_send=data_bytes(4069),
+        data_to_send=data,
         extra_flags = ['-sess_out', path_to_ticket],
         protocol=protocol)
 
@@ -126,9 +129,10 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
     server_options.cert = certificate.cert
     server_options.use_session_ticket = True
     server_options.extra_flags = None
+    server_options.data_to_send = data
 
-    server = managed_process(S2N, server_options, timeout=5)
-    client = managed_process(provider, client_options, timeout=5)
+    server = managed_process(S2N, server_options, timeout=5, send_marker=server_send_marker, close_marker=str(data))
+    client = managed_process(provider, client_options, timeout=5, close_marker=str(data))
 
     # The client should have received a session ticket
     for results in client.get_results():
