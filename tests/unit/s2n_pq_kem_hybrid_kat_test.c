@@ -87,6 +87,17 @@ static const struct s2n_kem_hybrid_test_vector test_vectors[] = {
                 .enable_asm = s2n_pq_noop_asm,
                 .disable_asm = s2n_pq_noop_asm,
         },
+        {
+                .kem = &s2n_sike_p434_r3,
+                .cipher_suite = &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384,
+                .security_policy_name = "KMS-PQ-TLS-1-0-2020-02",
+                .kat_file = "kats/hybrid_ecdhe_sike_r3.kat",
+                .server_key_msg_len = 663,
+                .client_key_msg_len = 414,
+                .asm_is_enabled = s2n_sikep434r3_asm_is_enabled,
+                .enable_asm = s2n_try_enable_sikep434r3_asm,
+                .disable_asm = s2n_disable_sikep434r3_asm,
+        },
 };
 
 int main() {
