@@ -178,10 +178,11 @@ else()
             "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
             COMPILE_DEFINITIONS ${BIKE_R3_AVX512_FLAGS})
 
+        set(BIKE_R3_PCLMUL_FLAGS "-mpclmul -msse2")
         try_compile(BIKE_R3_PCLMUL_SUPPORTED
             ${CMAKE_BINARY_DIR}
             "${CMAKE_CURRENT_LIST_DIR}/tests/features/noop_main.c"
-            COMPILE_DEFINITIONS "-mpclmul")
+            COMPILE_DEFINITIONS ${BIKE_R3_PCLMUL_FLAGS})
 
         set(BIKE_R3_VPCLMUL_FLAGS "-mvpclmulqdq -mavx512f -mavx512bw -mavx512dq")
         try_compile(BIKE_R3_VPCLMUL_SUPPORTED
@@ -311,7 +312,7 @@ if(BIKE_R3_X86_64_OPT_SUPPORTED)
 
     if(BIKE_R3_PCLMUL_SUPPORTED)
         FILE(GLOB BIKE_R3_PCLMUL_SRCS "pq-crypto/bike_r3/*_pclmul.c")
-        set_source_files_properties(${BIKE_R3_PCLMUL_SRCS} PROPERTIES COMPILE_FLAGS -mpclmul)
+        set_source_files_properties(${BIKE_R3_PCLMUL_SRCS} PROPERTIES COMPILE_FLAGS ${BIKE_R3_PCLMUL_FLAGS})
         target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_BIKE_R3_PCLMUL)
     endif()
 
