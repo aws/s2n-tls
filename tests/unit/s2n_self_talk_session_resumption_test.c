@@ -568,9 +568,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_skip_write(&tls12_ticket, tls12_ticket_length));
         EXPECT_SUCCESS(s2n_connection_get_session(client_conn, tls12_ticket.blob.data, tls12_ticket_length));
 
-        struct s2n_stuffer tickets[] = { tls12_ticket, tls13_ticket };
+        struct s2n_stuffer *tickets[] = { &tls12_ticket, &tls13_ticket };
         struct s2n_config *client_config[] = { tls12_client_config, tls13_client_config };
-        uint32_t session_length = 0;
 
         for (size_t i = 0; i < s2n_array_len(tickets); i++) {
             for (size_t j = 0; j < s2n_array_len(client_config); j++) {
@@ -584,7 +583,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
                 /* Client sets up a resumption connection with the received session ticket data */
-                EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tickets[i].blob.data, s2n_stuffer_data_available(&tickets[i])));
+                EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tickets[i]->blob.data, s2n_stuffer_data_available(tickets[i])));
 
                 /* s2n_connection_get_session will be non-zero if a TLS1.2 ticket was set on the connection and 
                  * zero if a TLS1.3 ticket was set on the connection (pre-handshake). The behavior of returning
@@ -592,8 +591,8 @@ int main(int argc, char **argv)
                  * However we can ensure that if a TLS1.3 ticket is set on the connection, 
                  * get_session_length will return zero to avoid fooling the user into thinking a new ticket is available.
                  */
-                session_length = s2n_connection_get_session_length(client_conn);
-                if (i == 0) {
+                uint32_t session_length = s2n_connection_get_session_length(client_conn);
+                if (tickets[i] == &tls12_ticket) {
                     EXPECT_TRUE(session_length > 0);
                 } else {
                     EXPECT_TRUE(session_length == 0);
@@ -601,7 +600,7 @@ int main(int argc, char **argv)
 
                 /* A TLS1.2 ticket on a client with TLS1.3 cipher preferences will fail
                  * with a downgrade error when negotiating, as shown by a previous test. */
-                if (i == 0 && j == 1) {
+                if (tickets[i] == &tls12_ticket && client_config[j] == tls13_client_config) {
                     continue;
                 }
 
@@ -624,6 +623,9 @@ int main(int argc, char **argv)
                 }
             }
         }
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
     /* Clean-up */
