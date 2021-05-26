@@ -73,16 +73,16 @@ ifndef S2N_NO_PQ_ASM
 		CFLAGS_LLVM += -DS2N_BIKE_R3_AVX512
 		BIKE_R3_AVX512_FLAGS := -mavx512f -mavx512bw -mavx512dq
 	endif
-	BIKE_R3_PCLMUL_SUPPORTED := $(shell $(CC) -mpclmul -c -o $(dummy_file_out) $(dummy_file) > /dev/null 2>&1; echo $$?; rm $(dummy_file_out) > /dev/null 2>&1)
+	BIKE_R3_PCLMUL_SUPPORTED := $(shell $(CC) -mpclmul -msse2 -c -o $(dummy_file_out) $(dummy_file) > /dev/null 2>&1; echo $$?; rm $(dummy_file_out) > /dev/null 2>&1)
 	ifeq ($(BIKE_R3_PCLMUL_SUPPORTED), 0)
 		CFLAGS += -DS2N_BIKE_R3_PCLMUL
 		CFLAGS_LLVM += -DS2N_BIKE_R3_PCLMUL
-		BIKE_R3_PCLMUL_FLAGS := -mpclmul
+		BIKE_R3_PCLMUL_FLAGS := -mpclmul -msse2
 	endif
 	BIKE_R3_PCLMUL_SUPPORTED := $(shell $(CC) -mvpclmulqdq -c -o $(dummy_file_out) $(dummy_file) > /dev/null 2>&1; echo $$?; rm $(dummy_file_out) > /dev/null 2>&1)
 	ifeq ($(BIKE_R3_VPCLMUL_SUPPORTED), 0)
 		CFLAGS += -DS2N_BIKE_R3_VPCLMUL
 		CFLAGS_LLVM += -DS2N_BIKE_R3_VPCLMUL
-		BIKE_R3_PCLMUL_FLAGS := -mvpclmulqdq -mavx512f -mavx512bw -mavx512dq
+		BIKE_R3_VPCLMUL_FLAGS := -mvpclmulqdq -mavx512f -mavx512bw -mavx512dq
 	endif
 endif
