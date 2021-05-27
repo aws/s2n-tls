@@ -1273,6 +1273,10 @@ int main(int argc, char **argv)
         /* Name and key are the same */
         EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_ticket_crypto_key(config, ticket_key1, sizeof(ticket_key1),
                 ticket_key1, sizeof(ticket_key1), 0), S2N_ERR_INVALID_TICKET_KEY_NAME_OR_NAME_LENGTH);
+        /* Key is all zeroes */
+        uint8_t zero_key[128] = { 0 };
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_ticket_crypto_key(config, ticket_key1, sizeof(ticket_key1),
+                zero_key, sizeof(zero_key), 0), S2N_ERR_ZERO_TICKET_KEY);
     }
 
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
