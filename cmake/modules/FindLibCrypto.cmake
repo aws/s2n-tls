@@ -15,83 +15,93 @@
 #  LibCrypto_SHARED_LIBRARY    The path to libcrypto.so
 #  LibCrypto_STATIC_LIBRARY    The path to libcrypto.a
 
-find_path(LibCrypto_INCLUDE_DIR
-    NAMES openssl/crypto.h
-    HINTS
-        ${CMAKE_PREFIX_PATH}/include 
-        ${CMAKE_INSTALL_PREFIX}/include
-    )
-find_library(LibCrypto_SHARED_LIBRARY
-    NAMES libcrypto.so libcrypto.dylib
-    HINTS
-    ${CMAKE_PREFIX_PATH}/build/crypto
-    ${CMAKE_PREFIX_PATH}/build
-    ${CMAKE_PREFIX_PATH}
-    ${CMAKE_PREFIX_PATH}/lib64
-    ${CMAKE_PREFIX_PATH}/lib 
-    ${CMAKE_INSTALL_PREFIX}/build/crypto
-    ${CMAKE_INSTALL_PREFIX}/build
-    ${CMAKE_INSTALL_PREFIX}
-    ${CMAKE_INSTALL_PREFIX}/lib64
-    ${CMAKE_INSTALL_PREFIX}/lib
-    )
-find_library(LibCrypto_STATIC_LIBRARY
-    NAMES libcrypto.a
-    HINTS 
-    ${CMAKE_PREFIX_PATH}/build/crypto
-    ${CMAKE_PREFIX_PATH}/build
-    ${CMAKE_PREFIX_PATH}
-    ${CMAKE_PREFIX_PATH}/lib64
-    ${CMAKE_PREFIX_PATH}/lib   
-    ${CMAKE_INSTALL_PREFIX}/build/crypto
-    ${CMAKE_INSTALL_PREFIX}/build
-    ${CMAKE_INSTALL_PREFIX}
-    ${CMAKE_INSTALL_PREFIX}/lib64
-    ${CMAKE_INSTALL_PREFIX}/lib
-    )
+find_package(crypto QUIET)
 
-if (BUILD_SHARED_LIBS)
-    set(LibCrypto_LIBRARY ${LibCrypto_SHARED_LIBRARY})
-else()
-    set(LibCrypto_LIBRARY ${LibCrypto_STATIC_LIBRARY})
-endif()
-
-
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(LibCrypto DEFAULT_MSG
-    LibCrypto_LIBRARY
-    LibCrypto_INCLUDE_DIR
-    )
-
-mark_as_advanced(
-    LibCrypto_ROOT_DIR
-    LibCrypto_INCLUDE_DIR
-    LibCrypto_LIBRARY
-    LibCrypto_SHARED_LIBRARY
-    LibCrypto_STATIC_LIBRARY
-    )
-
-# some versions of cmake have a super esoteric bug around capitalization differences between
-# find dependency and find package, just avoid that here by checking and
-# setting both.
-if(LIBCRYPTO_FOUND OR LibCrypto_FOUND)
+if (crypto_FOUND)
+    get_target_property(crypto_INCLUDE_DIR crypto INTERFACE_INCLUDE_DIRECTORIES)
+    message(STATUS "S2N found target: crypto")
+    message(STATUS "crypto Include Dir: ${crypto_INCLUDE_DIR}")
     set(LIBCRYPTO_FOUND true)
     set(LibCrypto_FOUND true)
-
-    message(STATUS "LibCrypto Include Dir: ${LibCrypto_INCLUDE_DIR}")
-    message(STATUS "LibCrypto Shared Lib:  ${LibCrypto_SHARED_LIBRARY}")
-    message(STATUS "LibCrypto Static Lib:  ${LibCrypto_STATIC_LIBRARY}")
-    if (NOT TARGET LibCrypto::Crypto AND
-        (EXISTS "${LibCrypto_LIBRARY}")
+else()
+    find_path(LibCrypto_INCLUDE_DIR
+        NAMES openssl/crypto.h
+        HINTS
+            ${CMAKE_PREFIX_PATH}/include
+            ${CMAKE_INSTALL_PREFIX}/include
         )
-        set(THREADS_PREFER_PTHREAD_FLAG ON)
-        find_package(Threads REQUIRED)
-        add_library(LibCrypto::Crypto UNKNOWN IMPORTED)
-        set_target_properties(LibCrypto::Crypto PROPERTIES
-            INTERFACE_INCLUDE_DIRECTORIES "${LibCrypto_INCLUDE_DIR}")
-        set_target_properties(LibCrypto::Crypto PROPERTIES
-            IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-            IMPORTED_LOCATION "${LibCrypto_LIBRARY}")
-        add_dependencies(LibCrypto::Crypto Threads::Threads)
+    find_library(LibCrypto_SHARED_LIBRARY
+        NAMES libcrypto.so libcrypto.dylib
+        HINTS
+        ${CMAKE_PREFIX_PATH}/build/crypto
+        ${CMAKE_PREFIX_PATH}/build
+        ${CMAKE_PREFIX_PATH}
+        ${CMAKE_PREFIX_PATH}/lib64
+        ${CMAKE_PREFIX_PATH}/lib
+        ${CMAKE_INSTALL_PREFIX}/build/crypto
+        ${CMAKE_INSTALL_PREFIX}/build
+        ${CMAKE_INSTALL_PREFIX}
+        ${CMAKE_INSTALL_PREFIX}/lib64
+        ${CMAKE_INSTALL_PREFIX}/lib
+        )
+    find_library(LibCrypto_STATIC_LIBRARY
+        NAMES libcrypto.a
+        HINTS
+        ${CMAKE_PREFIX_PATH}/build/crypto
+        ${CMAKE_PREFIX_PATH}/build
+        ${CMAKE_PREFIX_PATH}
+        ${CMAKE_PREFIX_PATH}/lib64
+        ${CMAKE_PREFIX_PATH}/lib
+        ${CMAKE_INSTALL_PREFIX}/build/crypto
+        ${CMAKE_INSTALL_PREFIX}/build
+        ${CMAKE_INSTALL_PREFIX}
+        ${CMAKE_INSTALL_PREFIX}/lib64
+        ${CMAKE_INSTALL_PREFIX}/lib
+        )
+
+    if (BUILD_SHARED_LIBS)
+        set(LibCrypto_LIBRARY ${LibCrypto_SHARED_LIBRARY})
+    else()
+        set(LibCrypto_LIBRARY ${LibCrypto_STATIC_LIBRARY})
+    endif()
+
+
+    include(FindPackageHandleStandardArgs)
+    find_package_handle_standard_args(LibCrypto DEFAULT_MSG
+        LibCrypto_LIBRARY
+        LibCrypto_INCLUDE_DIR
+        )
+
+    mark_as_advanced(
+        LibCrypto_ROOT_DIR
+        LibCrypto_INCLUDE_DIR
+        LibCrypto_LIBRARY
+        LibCrypto_SHARED_LIBRARY
+        LibCrypto_STATIC_LIBRARY
+        )
+
+    # some versions of cmake have a super esoteric bug around capitalization differences between
+    # find dependency and find package, just avoid that here by checking and
+    # setting both.
+    if(LIBCRYPTO_FOUND OR LibCrypto_FOUND)
+        set(LIBCRYPTO_FOUND true)
+        set(LibCrypto_FOUND true)
+
+        message(STATUS "LibCrypto Include Dir: ${LibCrypto_INCLUDE_DIR}")
+        message(STATUS "LibCrypto Shared Lib:  ${LibCrypto_SHARED_LIBRARY}")
+        message(STATUS "LibCrypto Static Lib:  ${LibCrypto_STATIC_LIBRARY}")
+        if (NOT TARGET crypto AND
+            (EXISTS "${LibCrypto_LIBRARY}")
+            )
+            set(THREADS_PREFER_PTHREAD_FLAG ON)
+            find_package(Threads REQUIRED)
+            add_library(crypto UNKNOWN IMPORTED)
+            set_target_properties(crypto PROPERTIES
+                INTERFACE_INCLUDE_DIRECTORIES "${LibCrypto_INCLUDE_DIR}")
+            set_target_properties(crypto PROPERTIES
+                IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                IMPORTED_LOCATION "${LibCrypto_LIBRARY}")
+            add_dependencies(crypto Threads::Threads)
+        endif()
     endif()
 endif()
