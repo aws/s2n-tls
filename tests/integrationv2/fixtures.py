@@ -21,13 +21,15 @@ def managed_process():
     """
     processes = []
 
-    def _fn(provider_class: Provider, options: ProviderOptions, timeout=5, send_marker=None, close_marker=None):
+    def _fn(provider_class: Provider, options: ProviderOptions, timeout=5, send_marker=None, close_marker=None, expect_stderr=None):
         provider = provider_class(options)
         cmd_line = provider.get_cmd_line()
         # The process will default to send markers in the providers.py file
         # if not specified by a test.
         if send_marker is not None:
             provider.ready_to_send_input_marker = send_marker
+        if expect_stderr is None:
+            expect_stderr = provider.expect_stderr
         p = ManagedProcess(cmd_line,
                 provider.set_provider_ready,
                 wait_for_marker=provider.ready_to_test_marker,
@@ -35,7 +37,8 @@ def managed_process():
                 close_marker=close_marker,
                 data_source=options.data_to_send,
                 timeout=timeout,
-                env_overrides=options.env_overrides)
+                env_overrides=options.env_overrides,
+                expect_stderr=expect_stderr)
 
         processes.append(p)
         with p.ready_condition:

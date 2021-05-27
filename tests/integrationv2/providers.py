@@ -15,6 +15,9 @@ class Provider(object):
     ServerMode = "server"
 
     def __init__(self, options: ProviderOptions):
+        # If the provider includes stderr output on a success, set this to True.
+        self.expect_stderr = False
+
         # If the test should wait for a specific output message before beginning,
         # put that message in ready_to_test_marker
         self.ready_to_test_marker = None
@@ -243,6 +246,8 @@ class OpenSSL(Provider):
 
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
+        # We print some OpenSSL logging that includes stderr
+        self.expect_stderr = True
 
     @classmethod
     def get_send_marker(cls):
