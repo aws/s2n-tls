@@ -383,3 +383,63 @@ def test_s2n_server_with_early_data_rejected_via_hrr(managed_process, tmp_path, 
         assert to_bytes(S2N_EARLY_DATA_REJECTED_MARKER) in results.stdout
         assert DATA_TO_SEND in results.stdout
 
+
+"""
+Test the S2N server fails if it receives too much early data.
+"""
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", CLIENT_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("excess_early_data", [1, 10, MAX_EARLY_DATA])
+def test_s2n_server_with_early_data_max_exceeded(managed_process, tmp_path, cipher, curve, protocol, provider, certificate, excess_early_data):
+    ticket_file = str(tmp_path / TICKET_FILE)
+    early_data_file = str(tmp_path / EARLY_DATA_FILE)
+    early_data = get_early_data_bytes(early_data_file, MAX_EARLY_DATA + excess_early_data)
+
+    options = ProviderOptions(
+        port=next(available_ports),
+        cipher=cipher,
+        curve=curve,
+        protocol=protocol,
+        insecure=True,
+        use_session_ticket=True,
+        data_to_send=DATA_TO_SEND,
+    )
+    options.ticket_file = ticket_file
+    options.early_data_file = early_data_file
+    options.max_early_data = MAX_EARLY_DATA + excess_early_data
+
+    get_ticket_from_s2n_server(options, managed_process, provider, certificate)
+    options.max_early_data = MAX_EARLY_DATA
+
+    client_options = copy.copy(options)
+    client_options.mode = Provider.ClientMode
+
+    server_options = copy.copy(options)
+    server_options.mode = Provider.ServerMode
+
+    s2n_server = managed_process(S2N, server_options)
+    client = managed_process(provider, client_options)
+
+    for results in client.get_results():
+        """
+        We can't make any assertions about the client exit_code.
+        To avoid blinding delays, s2nd doesn't call s2n_shutdown for a failed negotiation.
+        That means that instead of sending close_notify, we just close the socket.
+        Whether the peer interprets this as a failure or EoF depends on its state.
+        """
+        assert results.exception is None
+        assert DATA_TO_SEND not in results.stdout
+
+    for results in s2n_server.get_results():
+        assert results.exception is None
+        assert results.exit_code != 0
+        # Full early data should not be reported
+        assert early_data not in results.stdout
+        # Partial early data should be reported
+        assert (to_bytes(S2N_EARLY_DATA_RECV_MARKER) + early_data[:MAX_EARLY_DATA]) in results.stdout
+        assert to_bytes("Bad message encountered") in results.stderr
+
