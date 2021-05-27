@@ -17,6 +17,11 @@
 #  include <immintrin.h>
 #endif
 
+// clang 3.9 doesn't recognize this macro
+#if !defined(_MM_CMPINT_EQ)
+#  define _MM_CMPINT_EQ (0)
+#endif
+
 // For functions in gf2x_mul.c we use exactly the same code for
 // PORTABLE, AVX2, AVX512 implementations. Based on the implementation,
 // we define macros for the different data types (uint64_t, __m256i, __m512i),

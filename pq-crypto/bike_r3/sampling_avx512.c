@@ -66,8 +66,8 @@ void secure_set_bits_avx512(OUT pad_r_t *   r,
     for(size_t w_iter = 0; w_iter < w_size; w_iter++) {
       int32_t w = wlist[w_iter] - first_pos;
       w_pos_qw  = SET1_I64(w >> 6);
-#if defined(__GNUC__) && (__GNUC__ == 6) && !defined(__clang__)
-      // Workaround for gcc-6 which has a bug not allowing the second
+#if (defined(__GNUC__) && ((__GNUC__ == 6) || (__GNUC__ == 5)) && !defined(__clang__)) || (defined(__clang__) && __clang_major__ == 3 && __clang_minor__ == 9)
+      // Workaround for gcc-6, gcc-5, and clang < 3.9, which do not allowing the second
       // argument of SLLI to be non-immediate value.
       __m512i temp = SET1_I64(w & MASK(6));
       w_pos_bit = SLLV_I64(one, temp);
