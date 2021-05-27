@@ -44,8 +44,8 @@ pq_handshake_test_vectors = [
     {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2019-11", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp503r1-KEM"},
 
     {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2019-06", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp503r1-KEM"},
-    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2020-02", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp434r2-KEM"},
-    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp434r2-KEM"},
+    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2020-02", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp434r3-KEM"},
+    {"client_ciphers": "PQ-SIKE-TEST-TLS-1-0-2020-02", "server_ciphers": "KMS-PQ-TLS-1-0-2020-07", "expected_cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "expected_kem": "SIKEp434r3-KEM"},
 
     # The last set of vectors specify a "mismatch" between PQ cipher preferences - a classic handshake should be completed
     {"client_ciphers": "KMS-PQ-TLS-1-0-2019-06", "server_ciphers": "KMS-TLS-1-0-2018-10", "expected_cipher": "ECDHE-RSA-AES256-GCM-SHA384", "expected_kem": "NONE"},
