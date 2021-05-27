@@ -7,7 +7,7 @@ from configuration import available_ports, TLS13_CIPHERS, ALL_TEST_CURVES, ALL_T
 from common import ProviderOptions, Protocols, data_bytes, Curves
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name
+from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
 
 # List of keyshares for hello retry requests client side test.
@@ -40,7 +40,6 @@ def test_hrr_with_s2n_as_client(managed_process, cipher, provider, curve, protoc
     random_bytes = data_bytes(64)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         data_to_send=random_bytes,
@@ -64,21 +63,19 @@ def test_hrr_with_s2n_as_client(managed_process, cipher, provider, curve, protoc
 
     # The client should connect and return without error
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert bytes("Curve: {}".format("x25519").encode('utf-8')) in results.stdout
+        results.is_success()
+        assert to_bytes("Curve: {}".format("x25519")) in results.stdout
 
     marker_part1 = b"cf 21 ad 74 e5"
     marker_part2 = b"9a 61 11 be 1d"
 
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.is_success()
         assert marker_part1 in results.stdout and marker_part2 in results.stdout
         if 'none' in keyshare:
             assert b'"key share" (id=51), len=2\n0000 - 00 00' in results.stdout
         assert b'Supported Elliptic Groups: X25519:P-256:P-384' in results.stdout
-        assert bytes("Shared Elliptic groups: {}".format(server_options.curve).encode('utf-8')) in results.stdout
+        assert to_bytes("Shared Elliptic groups: {}".format(server_options.curve)) in results.stdout
         assert random_bytes in results.stdout
 
 
@@ -94,7 +91,6 @@ def test_hrr_with_s2n_as_server(managed_process, cipher, provider, curve, protoc
     random_bytes = data_bytes(64)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         data_to_send=random_bytes,
@@ -117,10 +113,9 @@ def test_hrr_with_s2n_as_server(managed_process, cipher, provider, curve, protoc
 
     # The client should connect and return without error
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.is_success()
         assert random_bytes in results.stdout
-        assert bytes("Curve: {}".format(CURVE_NAMES[curve.name]).encode('utf-8')) in results.stdout
+        assert to_bytes("Curve: {}".format(CURVE_NAMES[curve.name])) in results.stdout
         assert random_bytes in results.stdout
 
     client_hello_count = 0
@@ -130,8 +125,7 @@ def test_hrr_with_s2n_as_server(managed_process, cipher, provider, curve, protoc
     marker = b"cf 21 ad 74 e5 9a 61 11 be 1d"
 
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.is_success()
         assert marker in results.stdout
         client_hello_count = results.stdout.count(b'ClientHello')
         server_hello_count = results.stdout.count(b'ServerHello')
@@ -155,7 +149,6 @@ def test_hrr_with_default_keyshare(managed_process, cipher, provider, curve, pro
     random_bytes = data_bytes(64)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         data_to_send=random_bytes,
@@ -177,18 +170,16 @@ def test_hrr_with_default_keyshare(managed_process, cipher, provider, curve, pro
 
     # The client should connect and return without error
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert bytes("Curve: {}".format(CURVE_NAMES[curve.name]).encode('utf-8')) in results.stdout
+        results.is_success()
+        assert to_bytes("Curve: {}".format(CURVE_NAMES[curve.name])) in results.stdout
 
     marker_part1 = b"cf 21 ad 74 e5"
     marker_part2 = b"9a 61 11 be 1d"
 
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.is_success()
         assert marker_part1 in results.stdout and marker_part2 in results.stdout
         assert b'Supported Elliptic Groups: X25519:P-256:P-384' in results.stdout
-        assert bytes("Shared Elliptic groups: {}".format(server_options.curve).encode('utf-8')) in results.stdout
+        assert to_bytes("Shared Elliptic groups: {}".format(server_options.curve)) in results.stdout
         assert random_bytes in results.stdout
 

@@ -6,7 +6,7 @@ from common import ProviderOptions, Protocols, Ciphers, pq_enabled
 from fixtures import managed_process
 from global_flags import get_flag, S2N_FIPS_MODE
 from providers import Provider, S2N
-from utils import invalid_test_parameters, get_parameter_name
+from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
 
 ENDPOINTS = [
@@ -81,14 +81,13 @@ def test_well_known_endpoints(managed_process, protocol, endpoint, provider, cip
     else:
         client_options.trust_store = "../integration/trust-store/ca-bundle.crt"
 
-    client = managed_process(provider, client_options, timeout=5)
+    client = managed_process(provider, client_options, timeout=5, expect_stderr=True)
 
     expected_result = EXPECTED_RESULTS.get((endpoint, cipher), None)
 
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.is_success()
 
         if expected_result is not None:
-            assert bytes(expected_result['cipher'].encode('utf-8')) in results.stdout
-            assert bytes(expected_result['kem'].encode('utf-8')) in results.stdout
+            assert to_bytes(expected_result['cipher']) in results.stdout
+            assert to_bytes(expected_result['kem']) in results.stdout
