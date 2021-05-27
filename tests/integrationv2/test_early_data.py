@@ -28,6 +28,7 @@ S2N_EARLY_DATA_RECV_MARKER = "Early Data received: "
 S2N_EARLY_DATA_STATUS_MARKER = "Early Data status: {status}"
 S2N_EARLY_DATA_ACCEPTED_MARKER = S2N_EARLY_DATA_STATUS_MARKER.format(status="ACCEPTED")
 S2N_EARLY_DATA_REJECTED_MARKER = S2N_EARLY_DATA_STATUS_MARKER.format(status="REJECTED")
+S2N_EARLY_DATA_NOT_REQUESTED_MARKER = S2N_EARLY_DATA_STATUS_MARKER.format(status="NOT REQUESTED")
 
 
 class S2N(S2NBase):
@@ -66,7 +67,8 @@ class OpenSSL(OpenSSLBase):
 
     def setup_server(self):
         cmd_line = OpenSSLBase.setup_server(self)
-        cmd_line.extend(['-early_data'])
+        if self.options.max_early_data > 0:
+            cmd_line.extend(['-early_data'])
         return cmd_line
 
 
@@ -219,6 +221,54 @@ def test_s2n_client_with_early_data(managed_process, tmp_path, cipher, protocol,
     for results in server.get_results():
         results.assert_success()
         assert results.stdout.count(early_data) == NUM_RESUMES
+
+
+"""
+Verify that the S2N client doesn't request early data when a server doesn't support early data.
+
+We repeatedly reconnect with max_early_data set to 0. This is basically a test from
+test_session_resumption but with validation that no early data is sent.
+"""
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", SERVER_PROVIDERS, ids=get_parameter_name)
+def test_s2n_client_without_early_data(managed_process, tmp_path, cipher, protocol, provider, certificate):
+    early_data_file = str(tmp_path / EARLY_DATA_FILE)
+    early_data = get_early_data_bytes(early_data_file, MAX_EARLY_DATA)
+
+    options = ProviderOptions(
+        port=next(available_ports),
+        cipher=cipher,
+        protocol=protocol,
+        insecure=True,
+        use_session_ticket=True,
+        reconnect=True,
+    )
+    options.ticket_file = None
+    options.early_data_file = early_data_file
+    options.max_early_data = 0
+
+    client_options = copy.copy(options)
+    client_options.mode = Provider.ClientMode
+
+    server_options = copy.copy(options)
+    server_options.mode = Provider.ServerMode
+    server_options.key = certificate.key # Required for the initial connection
+    server_options.cert = certificate.cert # Required for the initial connection
+    server_options.reconnects_before_exit = NUM_CONNECTIONS
+
+    server = managed_process(provider, server_options)
+    s2n_client = managed_process(S2N, client_options)
+
+    for results in server.get_results():
+        results.assert_success()
+        assert early_data not in results.stdout
+
+    for results in s2n_client.get_results():
+        results.assert_success()
+        assert results.stdout.count(to_bytes(S2N_EARLY_DATA_NOT_REQUESTED_MARKER)) == NUM_CONNECTIONS
 
 
 """
