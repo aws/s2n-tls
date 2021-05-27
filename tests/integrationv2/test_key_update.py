@@ -51,12 +51,12 @@ def test_s2n_server_key_update(managed_process, cipher):
     )
 
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
         assert key_update_marker in str(results.stderr)
         assert server_data in results.stdout
 
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         assert client_data in results.stdout
 
 
@@ -109,10 +109,10 @@ def test_s2n_client_key_update(managed_process, cipher):
     )
 
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
         assert server_data in results.stdout
 
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         assert read_key_update_marker in results.stderr
         assert client_data in results.stdout

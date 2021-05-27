@@ -86,7 +86,7 @@ def test_well_known_endpoints(managed_process, protocol, endpoint, provider, cip
     expected_result = EXPECTED_RESULTS.get((endpoint, cipher), None)
 
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
 
         if expected_result is not None:
             assert to_bytes(expected_result['cipher']) in results.stdout

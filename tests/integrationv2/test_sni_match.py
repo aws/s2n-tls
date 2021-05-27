@@ -58,12 +58,12 @@ def test_sni_match(managed_process, provider, protocol, cert_test_case):
     client = managed_process(provider, client_options, timeout=5)
 
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
         if cert_test_case.client_sni is not None:
             assert to_bytes("Server name: {}".format(cert_test_case.client_sni)) in results.stdout

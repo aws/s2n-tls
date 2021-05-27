@@ -41,12 +41,12 @@ def test_s2nc_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, p
     actual_version = get_expected_s2n_version(protocol, provider)
 
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
         assert to_bytes("Client protocol version: {}".format(client_version)) in results.stdout
         assert to_bytes("Actual protocol version: {}".format(actual_version)) in results.stdout
 
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         if provider is S2N:
             # The server is only TLS12, so it reads the version from the CLIENT_HELLO, which is never above TLS12
             # This check only cares about S2N. Trying to maintain expected output of other providers doesn't
@@ -92,7 +92,7 @@ def test_s2nd_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, p
     actual_version = get_expected_s2n_version(protocol, provider)
 
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
         if provider is S2N:
             # The client will get the server version from the SERVER HELLO, which will be the negotiated version
             assert to_bytes("Server protocol version: {}".format(actual_version)) in results.stdout
@@ -104,7 +104,7 @@ def test_s2nd_tls13_negotiates_tls12(managed_process, cipher, curve, protocol, p
             assert to_bytes("Protocol  : {}".format(openssl_version)) in results.stdout
 
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         assert to_bytes("Server protocol version: {}".format(server_version)) in results.stdout
         assert to_bytes("Actual protocol version: {}".format(actual_version)) in results.stdout
         assert random_bytes in results.stdout

@@ -43,14 +43,14 @@ def test_session_resumption_s2n_server(managed_process, cipher, curve, protocol,
 
     # The client should connect and return without error
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
         assert results.stdout.count(to_bytes("Session-ID:")) == 6
 
     expected_version = get_expected_s2n_version(protocol, OpenSSL)
 
     # S2N should indicate the procotol version in a successful connection.
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         assert results.stdout.count(to_bytes("Actual protocol version: {}".format(expected_version))) == 6
 
 
@@ -88,11 +88,11 @@ def test_session_resumption_s2n_client(managed_process, cipher, curve, protocol,
 
     expected_version = get_expected_s2n_version(protocol, OpenSSL)
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
         assert results.stdout.count(to_bytes("Actual protocol version: {}".format(expected_version))) == 6
 
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         assert results.stdout.count(to_bytes("6 server accepts that finished"))
 
 
@@ -132,11 +132,11 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
 
     # The client should have received a session ticket
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
         assert b'Post-Handshake New Session Ticket arrived:' in results.stdout
 
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         # The first connection is a full handshake
         assert b'Resumed session' not in results.stdout
 
@@ -155,12 +155,12 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
 
     # Client has not read server certificate message as this is a resumed session
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
         assert to_bytes("SSL_connect:SSLv3/TLS read server certificate") not in results.stderr
 
     # The server should indicate a session has been resumed
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         assert b'Resumed session' in results.stdout
         assert to_bytes("Actual protocol version: {}".format(s2n_version)) in results.stdout
 
@@ -203,14 +203,14 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, pro
 
     # s2nc indicates the number of resumed connections in its output
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
         assert results.stdout.count(b'Resumed session') == num_resumed_connections
         assert to_bytes("Actual protocol version: {}".format(s2n_version)) in results.stdout
 
     server_accepts_str = str(num_resumed_connections + num_full_connections) + " server accepts that finished"
 
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         if provider is S2N:
             assert results.stdout.count(b'Resumed session') == num_resumed_connections
             assert to_bytes("Actual protocol version: {}".format(s2n_version)) in results.stdout
@@ -260,11 +260,11 @@ def test_s2nd_falls_back_to_full_connection(managed_process, tmp_path, cipher, c
 
     # The client should have received a session ticket
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
         assert b'Post-Handshake New Session Ticket arrived:' in results.stdout
 
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         # Server should have sent certificate message as this is a full connection
         assert b'SSL_accept:SSLv3/TLS write certificate' in results.stderr
 
@@ -284,11 +284,11 @@ def test_s2nd_falls_back_to_full_connection(managed_process, tmp_path, cipher, c
 
     # Client has read server certificate because this is a full connection
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
         assert to_bytes("SSL_connect:SSLv3/TLS read server certificate") in results.stderr
 
     # The server should indicate a session has not been resumed
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         assert b'Resumed session' not in results.stdout
         assert to_bytes("Actual protocol version: {}".format(s2n_version)) in results.stdout

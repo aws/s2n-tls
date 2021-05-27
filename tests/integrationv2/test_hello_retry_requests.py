@@ -63,14 +63,14 @@ def test_hrr_with_s2n_as_client(managed_process, cipher, provider, curve, protoc
 
     # The client should connect and return without error
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
         assert to_bytes("Curve: {}".format("x25519")) in results.stdout
 
     marker_part1 = b"cf 21 ad 74 e5"
     marker_part2 = b"9a 61 11 be 1d"
 
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         assert marker_part1 in results.stdout and marker_part2 in results.stdout
         if 'none' in keyshare:
             assert b'"key share" (id=51), len=2\n0000 - 00 00' in results.stdout
@@ -113,7 +113,7 @@ def test_hrr_with_s2n_as_server(managed_process, cipher, provider, curve, protoc
 
     # The client should connect and return without error
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         assert random_bytes in results.stdout
         assert to_bytes("Curve: {}".format(CURVE_NAMES[curve.name])) in results.stdout
         assert random_bytes in results.stdout
@@ -125,7 +125,7 @@ def test_hrr_with_s2n_as_server(managed_process, cipher, provider, curve, protoc
     marker = b"cf 21 ad 74 e5 9a 61 11 be 1d"
 
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
         assert marker in results.stdout
         client_hello_count = results.stdout.count(b'ClientHello')
         server_hello_count = results.stdout.count(b'ServerHello')
@@ -170,14 +170,14 @@ def test_hrr_with_default_keyshare(managed_process, cipher, provider, curve, pro
 
     # The client should connect and return without error
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
         assert to_bytes("Curve: {}".format(CURVE_NAMES[curve.name])) in results.stdout
 
     marker_part1 = b"cf 21 ad 74 e5"
     marker_part2 = b"9a 61 11 be 1d"
 
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         assert marker_part1 in results.stdout and marker_part2 in results.stdout
         assert b'Supported Elliptic Groups: X25519:P-256:P-384' in results.stdout
         assert to_bytes("Shared Elliptic groups: {}".format(server_options.curve)) in results.stdout

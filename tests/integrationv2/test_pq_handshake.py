@@ -170,11 +170,11 @@ def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, client_cipher, ser
 
     # Client and server are both s2n; can make meaningful assertions about negotiation for both
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
         assert_s2n_negotiation_parameters(results, expected_result)
 
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         assert_s2n_negotiation_parameters(results, expected_result)
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -211,12 +211,12 @@ def test_s2nc_to_oqs_openssl_pq_handshake(managed_process, protocol, cipher, kem
 
     for results in client.get_results():
         # Client is s2n; can make meaningful assertions about negotiation
-        results.is_success()
+        results.assert_success()
         assert_s2n_negotiation_parameters(results, expected_result)
 
     for results in server.get_results():
         # Server is OQS OpenSSL; just ensure the process exited successfully
-        results.is_success()
+        results.assert_success()
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
@@ -251,9 +251,9 @@ def test_oqs_openssl_to_s2nd_pq_handshake(managed_process, protocol, cipher, kem
 
     for results in client.get_results():
         # Client is OQS OpenSSL; just ensure the process exited successfully
-        results.is_success()
+        results.assert_success()
 
     for results in server.get_results():
         # Server is s2n; can make meaningful assertions about negotiation
-        results.is_success()
+        results.assert_success()
         assert_s2n_negotiation_parameters(results, expected_result)

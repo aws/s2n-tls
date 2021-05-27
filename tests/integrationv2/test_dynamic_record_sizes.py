@@ -72,11 +72,11 @@ def test_s2n_client_dynamic_record(custom_mtu, managed_process, cipher, curve, p
     client = managed_process(S2N, client_options, timeout=5)
 
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
         assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
 
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
 
     # The Tcpdump provider only captures 12 packets. This is enough
     # to detect a packet larger than the MTU, but less than the

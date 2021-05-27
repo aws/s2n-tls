@@ -45,12 +45,12 @@ def test_s2n_server_low_latency(managed_process, multi_cipher, provider, protoco
     client = managed_process(provider, client_options, timeout=5)
 
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
         assert random_bytes in results.stdout
 
@@ -89,11 +89,11 @@ def test_s2n_server_framented_data(managed_process, multi_cipher, provider, prot
     client = managed_process(provider, client_options, timeout=5)
 
     for results in client.get_results():
-        results.is_success()
+        results.assert_success()
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
     for results in server.get_results():
-        results.is_success()
+        results.assert_success()
         assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
         assert random_bytes in results.stdout
