@@ -16,8 +16,8 @@
 #define UNPACKLO(x, y)     _mm_unpacklo_epi64((x), (y))
 #define UNPACKHI(x, y)     _mm_unpackhi_epi64((x), (y))
 #define CLMUL(x, y, imm)   _mm_clmulepi64_si128((x), (y), (imm))
-#define BSRLI(x, imm)      _mm_bsrli_si128((x), (imm))
-#define BSLLI(x, imm)      _mm_bslli_si128((x), (imm))
+#define BSRLI(x, imm)      _mm_srli_si128((x), (imm))
+#define BSLLI(x, imm)      _mm_slli_si128((x), (imm))
 
 // 4x4 Karatsuba multiplication
 _INLINE_ void gf2x_mul4_int(OUT __m128i      c[4],
