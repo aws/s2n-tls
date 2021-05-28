@@ -107,6 +107,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_OK(s2n_handshake_type_set_flag(conn, NEGOTIATED));
 
             /* Result matches constant */
             size_t actual_size = 0;
@@ -132,6 +133,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            EXPECT_OK(s2n_handshake_type_set_flag(conn, NEGOTIATED));
 
             /* Set non-zero length secret */
             uint8_t secret_size = 0;
@@ -157,6 +159,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, 1));
+            EXPECT_OK(s2n_handshake_type_set_flag(conn, NEGOTIATED));
 
             /* Result matches constants */
             size_t actual_size = 0;
@@ -181,6 +184,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_OK(s2n_handshake_type_set_flag(conn, NEGOTIATED));
 
             /* Set non-zero length secret */
             uint8_t secret_size = 0;
@@ -891,6 +895,7 @@ int main(int argc, char **argv)
 
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+                EXPECT_OK(s2n_handshake_type_set_flag(conn, NEGOTIATED));
                 DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
@@ -946,6 +951,7 @@ int main(int argc, char **argv)
             EXPECT_MEMCPY_SUCCESS(conn->application_protocol, test_app_protocol, sizeof(test_app_protocol));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            EXPECT_OK(s2n_handshake_type_set_flag(conn, NEGOTIATED));
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
@@ -1100,6 +1106,7 @@ int main(int argc, char **argv)
 
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            EXPECT_OK(s2n_handshake_type_set_flag(conn, NEGOTIATED));
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
@@ -1142,6 +1149,7 @@ int main(int argc, char **argv)
 
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            EXPECT_OK(s2n_handshake_type_set_flag(conn, NEGOTIATED));
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
@@ -1188,6 +1196,7 @@ int main(int argc, char **argv)
             EXPECT_MEMCPY_SUCCESS(conn->application_protocol, test_app_proto, sizeof(test_app_proto));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            EXPECT_OK(s2n_handshake_type_set_flag(conn, NEGOTIATED));
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));

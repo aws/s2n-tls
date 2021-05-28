@@ -460,6 +460,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
+            EXPECT_OK(s2n_handshake_type_set_flag(conn, NEGOTIATED));
+
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
@@ -707,6 +709,7 @@ int main(int argc, char **argv)
             server_conn->actual_protocol_version = S2N_TLS13;
             server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, 10));
+            EXPECT_OK(s2n_handshake_type_set_flag(server_conn, NEGOTIATED));
 
             /* Set context to be UINT16_MAX */
             uint8_t early_data_context[UINT16_MAX] = { 0 };
@@ -1021,6 +1024,8 @@ int main(int argc, char **argv)
             conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
             /* Necessary for extensions, which contribute to size */
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, 10));
+
+            EXPECT_OK(s2n_handshake_type_set_flag(conn, NEGOTIATED));
 
             /* Setup io */
             struct s2n_stuffer output = { 0 };

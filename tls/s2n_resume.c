@@ -124,7 +124,7 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
 
 static S2N_RESULT s2n_serialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    if(conn->actual_protocol_version < S2N_TLS13) {
+    if(conn->actual_protocol_version < S2N_TLS13 || !IS_NEGOTIATED(conn)) {
         RESULT_GUARD_POSIX(s2n_tls12_serialize_resumption_state(conn, out));
     } else {
         RESULT_GUARD(s2n_tls13_serialize_resumption_state(conn, out));
@@ -306,7 +306,10 @@ static S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, 
     } else if (format == S2N_TLS13_SERIALIZED_FORMAT_VERSION) {
         RESULT_GUARD(s2n_tls13_deserialize_session_state(conn, psk_identity, from));
         if (conn->mode == S2N_CLIENT) {
-            RESULT_GUARD_POSIX(s2n_free(psk_identity));
+            /* Free the client_ticket after setting a psk on the connection.
+             * This prevents s2n_connection_get_session from returning a TLS1.3
+             * ticket before a ticket has been received from the server. */
+            RESULT_GUARD_POSIX(s2n_free(&conn->client_ticket));
         }
     } else {
         RESULT_BAIL(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
@@ -468,7 +471,7 @@ S2N_RESULT s2n_connection_get_session_state_size(struct s2n_connection *conn, si
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(state_size);
 
-    if (conn->actual_protocol_version < S2N_TLS13) {
+    if (conn->actual_protocol_version < S2N_TLS13 || !IS_NEGOTIATED(conn)) {
         *state_size = S2N_TLS12_STATE_SIZE_IN_BYTES;
         return S2N_RESULT_OK;
     }
