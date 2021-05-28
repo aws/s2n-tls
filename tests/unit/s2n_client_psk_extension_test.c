@@ -662,7 +662,6 @@ int main(int argc, char **argv)
             conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             EXPECT_OK(s2n_handshake_type_set_flag(conn, NEGOTIATED));
 
-
             DEFER_CLEANUP(struct s2n_stuffer psk_identity = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&psk_identity, 0));
             EXPECT_OK(s2n_setup_encrypted_ticket(conn, &psk_identity));
