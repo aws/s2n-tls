@@ -9,6 +9,7 @@ from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
+S2N_HRR_MARKER = to_bytes("HELLO_RETRY_REQUEST")
 
 # List of keyshares for hello retry requests client side test.
 HRR_CLIENT_KEYSHARES = [
@@ -65,6 +66,7 @@ def test_hrr_with_s2n_as_client(managed_process, cipher, provider, curve, protoc
     for results in client.get_results():
         results.assert_success()
         assert to_bytes("Curve: {}".format("x25519")) in results.stdout
+        assert S2N_HRR_MARKER in results.stdout
 
     marker_part1 = b"cf 21 ad 74 e5"
     marker_part2 = b"9a 61 11 be 1d"
@@ -117,6 +119,7 @@ def test_hrr_with_s2n_as_server(managed_process, cipher, provider, curve, protoc
         assert random_bytes in results.stdout
         assert to_bytes("Curve: {}".format(CURVE_NAMES[curve.name])) in results.stdout
         assert random_bytes in results.stdout
+        assert S2N_HRR_MARKER in results.stdout
 
     client_hello_count = 0
     server_hello_count = 0
@@ -172,6 +175,7 @@ def test_hrr_with_default_keyshare(managed_process, cipher, provider, curve, pro
     for results in client.get_results():
         results.assert_success()
         assert to_bytes("Curve: {}".format(CURVE_NAMES[curve.name])) in results.stdout
+        assert S2N_HRR_MARKER in results.stdout
 
     marker_part1 = b"cf 21 ad 74 e5"
     marker_part2 = b"9a 61 11 be 1d"
