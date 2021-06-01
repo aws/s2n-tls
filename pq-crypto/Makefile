@@ -56,7 +56,6 @@ run-gcov: gcov
 .PHONY : run-lcov
 run-lcov: lcov
 	$(MAKE) -C sike_r1 lcov
-	$(MAKE) -C sike_r2 lcov
 
 .PHONY : clean
 clean: decruft
