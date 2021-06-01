@@ -142,9 +142,14 @@ int main(int argc, char **argv) {
         EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
         int err_code = s2n_x509_trust_store_add_pem(&trust_store, cert_chain);
-        free(cert_chain);
         EXPECT_EQUAL(0, err_code);
         EXPECT_TRUE(s2n_x509_trust_store_has_certs(&trust_store));
+
+        /* s2n_x509_trust_store_add_pem returns success when trying to add a
+         * certificate that already exists in the trust store */
+        EXPECT_SUCCESS(s2n_x509_trust_store_add_pem(&trust_store, cert_chain));
+
+        free(cert_chain);
         s2n_x509_trust_store_wipe(&trust_store);
     }
 
