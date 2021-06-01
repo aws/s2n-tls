@@ -99,8 +99,7 @@ int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char 
 
         if (!X509_STORE_add_cert(store->trust_store, ca_cert)) {
             unsigned long error = ERR_get_error();
-            POSIX_ENSURE(ERR_GET_REASON(error) == X509_R_CERT_ALREADY_IN_HASH_TABLE,
-                    S2N_ERR_DECODE_CERTIFICATE);
+            POSIX_ENSURE(ERR_GET_REASON(error) == X509_R_CERT_ALREADY_IN_HASH_TABLE, S2N_ERR_DECODE_CERTIFICATE);
         }
     } while (s2n_stuffer_data_available(&pem_in_stuffer));
 
