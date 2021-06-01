@@ -8,7 +8,7 @@ from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, AL
 from common import ProviderOptions, data_bytes, Protocols
 from fixtures import managed_process, custom_mtu
 from providers import Provider, S2N, OpenSSL, Tcpdump
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version
+from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
 
 def find_fragmented_packet(results):
@@ -45,14 +45,12 @@ def find_fragmented_packet(results):
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
 def test_s2n_client_dynamic_record(custom_mtu, managed_process, cipher, curve, provider, protocol, certificate):
-    host = "localhost"
     port = next(available_ports)
 
     # 16384 bytes is enough to reliably get a packet that will exceed the MTU
     bytes_to_send = data_bytes(16384)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         data_to_send=bytes_to_send,
@@ -74,13 +72,11 @@ def test_s2n_client_dynamic_record(custom_mtu, managed_process, cipher, curve, p
     client = managed_process(S2N, client_options, timeout=5)
 
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) in results.stdout
+        results.assert_success()
+        assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
 
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
 
     # The Tcpdump provider only captures 12 packets. This is enough
     # to detect a packet larger than the MTU, but less than the

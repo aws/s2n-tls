@@ -5,7 +5,7 @@ from configuration import available_ports, PROVIDERS, PROTOCOLS
 from common import Ciphers, ProviderOptions, Protocols, data_bytes, KemGroups, Certificates, pq_enabled
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name
+from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
 CIPHERS = [
     None,  # `None` will default to the appropriate `test_all` cipher preference in the S2N client provider
@@ -128,11 +128,11 @@ def get_oqs_openssl_override_env_vars():
 
 def assert_s2n_negotiation_parameters(s2n_results, expected_result):
     if expected_result is not None:
-        assert bytes(("Cipher negotiated: " + expected_result['cipher']).encode('utf-8')) in s2n_results.stdout
-        assert bytes(("KEM: " + expected_result['kem']).encode('utf-8')) in s2n_results.stdout
+        assert to_bytes(("Cipher negotiated: " + expected_result['cipher'])) in s2n_results.stdout
+        assert to_bytes(("KEM: " + expected_result['kem'])) in s2n_results.stdout
         # Purposefully leave off the "KEM Group: " prefix in order to perform partial matches
         # without specifying the curve.
-        assert bytes(expected_result['kem_group'].encode('utf-8')) in s2n_results.stdout
+        assert to_bytes(expected_result['kem_group']) in s2n_results.stdout
 
 
 @pytest.mark.uncollect_if(func=invalid_pq_handshake_test_parameters)
@@ -140,12 +140,10 @@ def assert_s2n_negotiation_parameters(s2n_results, expected_result):
 @pytest.mark.parametrize("client_cipher", CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("server_cipher", CIPHERS, ids=get_parameter_name)
 def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, client_cipher, server_cipher):
-    host = "localhost"
     port = next(available_ports)
 
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host=host,
         port=port,
         insecure=True,
         cipher=client_cipher,
@@ -153,7 +151,6 @@ def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, client_cipher, ser
 
     server_options = ProviderOptions(
         mode=Provider.ServerMode,
-        host=host,
         port=port,
         protocol=protocol,
         cipher=server_cipher,
@@ -173,13 +170,11 @@ def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, client_cipher, ser
 
     # Client and server are both s2n; can make meaningful assertions about negotiation for both
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         assert_s2n_negotiation_parameters(results, expected_result)
 
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         assert_s2n_negotiation_parameters(results, expected_result)
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -191,12 +186,10 @@ def test_s2nc_to_oqs_openssl_pq_handshake(managed_process, protocol, cipher, kem
     if not pq_enabled():
         return
 
-    host = "localhost"
     port = next(available_ports)
 
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host=host,
         port=port,
         insecure=True,
         cipher=cipher,
@@ -204,7 +197,6 @@ def test_s2nc_to_oqs_openssl_pq_handshake(managed_process, protocol, cipher, kem
 
     server_options = ProviderOptions(
         mode=Provider.ServerMode,
-        host=host,
         port=port,
         protocol=protocol,
         cert=Certificates.RSA_4096_SHA512.cert,
@@ -219,14 +211,12 @@ def test_s2nc_to_oqs_openssl_pq_handshake(managed_process, protocol, cipher, kem
 
     for results in client.get_results():
         # Client is s2n; can make meaningful assertions about negotiation
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         assert_s2n_negotiation_parameters(results, expected_result)
 
     for results in server.get_results():
         # Server is OQS OpenSSL; just ensure the process exited successfully
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
@@ -237,12 +227,10 @@ def test_oqs_openssl_to_s2nd_pq_handshake(managed_process, protocol, cipher, kem
     if not pq_enabled():
         return
 
-    host = "localhost"
     port = next(available_ports)
 
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host=host,
         port=port,
         protocol=protocol,
         env_overrides=get_oqs_openssl_override_env_vars(),
@@ -250,7 +238,6 @@ def test_oqs_openssl_to_s2nd_pq_handshake(managed_process, protocol, cipher, kem
 
     server_options = ProviderOptions(
         mode=Provider.ServerMode,
-        host=host,
         port=port,
         protocol=protocol,
         cipher=cipher,
@@ -264,11 +251,9 @@ def test_oqs_openssl_to_s2nd_pq_handshake(managed_process, protocol, cipher, kem
 
     for results in client.get_results():
         # Client is OQS OpenSSL; just ensure the process exited successfully
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
 
     for results in server.get_results():
         # Server is s2n; can make meaningful assertions about negotiation
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         assert_s2n_negotiation_parameters(results, expected_result)

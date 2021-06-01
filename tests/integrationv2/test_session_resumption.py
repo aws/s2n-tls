@@ -7,7 +7,7 @@ from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, AL
 from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version
+from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -22,7 +22,6 @@ def test_session_resumption_s2n_server(managed_process, cipher, curve, protocol,
 
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         curve=curve,
@@ -44,17 +43,15 @@ def test_session_resumption_s2n_server(managed_process, cipher, curve, protocol,
 
     # The client should connect and return without error
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert results.stdout.count(bytes("Session-ID:".encode('utf-8'))) == 6
+        results.assert_success()
+        assert results.stdout.count(to_bytes("Session-ID:")) == 6
 
     expected_version = get_expected_s2n_version(protocol, OpenSSL)
 
     # S2N should indicate the procotol version in a successful connection.
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert results.stdout.count(bytes("Actual protocol version: {}".format(expected_version).encode('utf-8'))) == 6
+        results.assert_success()
+        assert results.stdout.count(to_bytes("Actual protocol version: {}".format(expected_version))) == 6
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -69,7 +66,6 @@ def test_session_resumption_s2n_client(managed_process, cipher, curve, protocol,
 
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         curve=curve,
@@ -92,14 +88,12 @@ def test_session_resumption_s2n_client(managed_process, cipher, curve, protocol,
 
     expected_version = get_expected_s2n_version(protocol, OpenSSL)
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert results.stdout.count(bytes("Actual protocol version: {}".format(expected_version).encode('utf-8'))) == 6
+        results.assert_success()
+        assert results.stdout.count(to_bytes("Actual protocol version: {}".format(expected_version))) == 6
 
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert results.stdout.count(bytes("6 server accepts that finished".encode('utf-8')))
+        results.assert_success()
+        assert results.stdout.count(to_bytes("6 server accepts that finished"))
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -117,7 +111,6 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
 
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         curve=curve,
@@ -139,13 +132,11 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
 
     # The client should have received a session ticket
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         assert b'Post-Handshake New Session Ticket arrived:' in results.stdout
 
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         # The first connection is a full handshake
         assert b'Resumed session' not in results.stdout
 
@@ -164,17 +155,14 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
 
     # Client has not read server certificate message as this is a resumed session
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert bytes("SSL_connect:SSLv3/TLS read server certificate".encode('utf-8')) not in results.stderr
+        results.assert_success()
+        assert to_bytes("SSL_connect:SSLv3/TLS read server certificate") not in results.stderr
 
     # The server should indicate a session has been resumed
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert not results.stderr
+        results.assert_success()
         assert b'Resumed session' in results.stdout
-        assert bytes("Actual protocol version: {}".format(s2n_version).encode('utf-8')) in results.stdout
+        assert to_bytes("Actual protocol version: {}".format(s2n_version)) in results.stdout
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -194,7 +182,6 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, pro
 
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         curve=curve,
@@ -216,23 +203,19 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, pro
 
     # s2nc indicates the number of resumed connections in its output
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert not results.stderr
+        results.assert_success()
         assert results.stdout.count(b'Resumed session') == num_resumed_connections
-        assert bytes("Actual protocol version: {}".format(s2n_version).encode('utf-8')) in results.stdout
+        assert to_bytes("Actual protocol version: {}".format(s2n_version)) in results.stdout
 
     server_accepts_str = str(num_resumed_connections + num_full_connections) + " server accepts that finished"
 
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         if provider is S2N:
-            assert not results.stderr
             assert results.stdout.count(b'Resumed session') == num_resumed_connections
-            assert bytes("Actual protocol version: {}".format(s2n_version).encode('utf-8')) in results.stdout
+            assert to_bytes("Actual protocol version: {}".format(s2n_version)) in results.stdout
         else:
-            assert bytes(server_accepts_str.encode('utf-8')) in results.stdout
+            assert to_bytes(server_accepts_str) in results.stdout
             # s_server only writes one certificate message in all of the connections
             assert results.stderr.count(b'SSL_accept:SSLv3/TLS write certificate') == num_full_connections
 
@@ -257,7 +240,6 @@ def test_s2nd_falls_back_to_full_connection(managed_process, tmp_path, cipher, c
     """
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         curve=curve,
@@ -278,13 +260,11 @@ def test_s2nd_falls_back_to_full_connection(managed_process, tmp_path, cipher, c
 
     # The client should have received a session ticket
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         assert b'Post-Handshake New Session Ticket arrived:' in results.stdout
 
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         # Server should have sent certificate message as this is a full connection
         assert b'SSL_accept:SSLv3/TLS write certificate' in results.stderr
 
@@ -304,14 +284,11 @@ def test_s2nd_falls_back_to_full_connection(managed_process, tmp_path, cipher, c
 
     # Client has read server certificate because this is a full connection
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
-        assert bytes("SSL_connect:SSLv3/TLS read server certificate".encode('utf-8')) in results.stderr
+        results.assert_success()
+        assert to_bytes("SSL_connect:SSLv3/TLS read server certificate") in results.stderr
 
     # The server should indicate a session has not been resumed
     for results in server.get_results():
-        assert results.exception is None
-        assert not results.stderr
-        assert results.exit_code == 0
+        results.assert_success()
         assert b'Resumed session' not in results.stdout
-        assert bytes("Actual protocol version: {}".format(s2n_version).encode('utf-8')) in results.stdout
+        assert to_bytes("Actual protocol version: {}".format(s2n_version)) in results.stdout

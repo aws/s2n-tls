@@ -8,7 +8,7 @@ from configuration import (available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES,
 from common import Certificates, ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version
+from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
 
 # If we test every available cert, the test takes too long.
@@ -32,9 +32,9 @@ def assert_openssl_handshake_complete(results, is_complete=True):
 def assert_s2n_handshake_complete(results, protocol, provider, is_complete=True):
     expected_version = get_expected_s2n_version(protocol, provider)
     if is_complete:
-        assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) in results.stdout
+        assert to_bytes("Actual protocol version: {}".format(expected_version)) in results.stdout
     else:
-        assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) not in results.stdout
+        assert to_bytes("Actual protocol version: {}".format(expected_version)) not in results.stdout
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -52,7 +52,6 @@ def test_client_auth_with_s2n_server(managed_process, cipher, provider, protocol
     random_bytes = data_bytes(64)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         data_to_send=random_bytes,
@@ -75,8 +74,7 @@ def test_client_auth_with_s2n_server(managed_process, cipher, provider, protocol
 
     # Openssl should send a client certificate and complete the handshake
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         assert b'write client certificate' in results.stderr
         assert b'write certificate verify' in results.stderr
         assert_openssl_handshake_complete(results)
@@ -84,8 +82,7 @@ def test_client_auth_with_s2n_server(managed_process, cipher, provider, protocol
 
     # S2N should successfully connect
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         assert_s2n_handshake_complete(results, protocol, provider)
         assert random_bytes in results.stdout
 
@@ -104,7 +101,6 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, ci
 
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         data_to_send=b'',
@@ -157,7 +153,6 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, protocol, 
     random_bytes = data_bytes(64)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         data_to_send=random_bytes,
@@ -177,8 +172,7 @@ def test_client_auth_with_s2n_client_no_cert(managed_process, cipher, protocol, 
 
     # Openssl should tell us that a cert was requested but not received
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         assert b'write certificate request' in results.stderr
         assert b'read client certificate' not in results.stderr
         assert b"peer did not return a certificate" in results.stderr
@@ -208,7 +202,6 @@ def test_client_auth_with_s2n_client_with_cert(managed_process, cipher, protocol
     random_bytes = data_bytes(64)
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
-        host="localhost",
         port=port,
         cipher=cipher,
         data_to_send=random_bytes,
@@ -231,14 +224,12 @@ def test_client_auth_with_s2n_client_with_cert(managed_process, cipher, protocol
 
     # The client should connect and return without error
     for results in client.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         assert_s2n_handshake_complete(results, protocol, provider)
 
     # Openssl should indicate the certificate was successfully received.
     for results in server.get_results():
-        assert results.exception is None
-        assert results.exit_code == 0
+        results.assert_success()
         assert random_bytes[1:] in results.stdout
         assert b'read client certificate' in results.stderr
         assert b'read certificate verify' in results.stderr
