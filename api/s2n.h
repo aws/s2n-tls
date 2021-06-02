@@ -421,21 +421,94 @@ extern int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_
 S2N_API
 extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
 
+/**
+ * Sets the initial number of session tickets to send after a handshake.
+ *
+ * @param config A pointer to the config object.
+ * @param num The number of session tickets that will be sent.
+ */
 S2N_API
 extern int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num);
+
+/**
+ * Increases the amount of session tickets to send after a handshake.
+ *
+ * @param conn A pointer to the s2n_connection object.
+ * @param num The number of additional session tickets to send.
+ */
 S2N_API
 extern int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num);
+
+/**
+ * Sets the keying material lifetime for session tickets so that one session doesn't get re-used ad infinitum.
+ * The default value is one week.
+ *
+ * @param conn A pointer to the s2n_connection object.
+ * @param lifetime_in_secs Lifetime of keying material in seconds.
+ */
 S2N_API
 extern int s2n_connection_set_server_keying_material_lifetime(struct s2n_connection *conn, uint32_t lifetime_in_secs);
 
 struct s2n_session_ticket;
+
+/**
+ * Callback function for receiving a session ticket
+ *
+ * # Safety
+ *
+ * `ctx` MUST be cast into the same type of pointer that was originally created.
+ * `ticket` is an internal pointer that can only be used until this function exits.
+ *
+ * @param conn A pointer to the s2n_connection object.
+ * @param ctx Context for the callback.
+ * @param ticket Pointer to the received session ticket object.
+ */
 typedef int (*s2n_session_ticket_fn)(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket);
+
+/**
+ * Sets a session ticket callback to be called when a client receives a new session ticket.
+ *
+ * # Safety
+ *
+ * `callback` MUST cast `ctx` into the same type of pointer that was originally created.
+ * `ctx` MUST live for at least as long as it is set on the config.
+ *
+ * @param config A pointer to the config object.
+ * @param callback The function that should be called when the callback is triggered.
+ * @param ctx The context to be passed when the callback is called.
+ */
 S2N_API
 extern int s2n_config_set_session_ticket_cb(struct s2n_config *config, s2n_session_ticket_fn callback, void *ctx);
+
+/**
+ * Gets length of session ticket from a s2n_session_ticket object.
+ *
+ * @param ticket Pointer to session ticket object.
+ * @param data_len Pointer to where the length of the session ticket will be stored.
+ */
 S2N_API
 extern int s2n_session_ticket_get_data_len(struct s2n_session_ticket *ticket, size_t *data_len);
+
+/**
+ * Gets the session ticket data from a s2n_session_ticket object.
+ *
+ * # Safety
+ * `data` must have enough memory to store the session ticket data, as the session ticket will be copied
+ * into `data`, if this function executes successfully.
+ *
+ * @param ticket Pointer to session ticket object.
+ * @param max_data_len Maximum length of data that can be written to the data pointer.
+ * @param data Pointer to where the session ticket data will be stored.
+ */
 S2N_API
 extern int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, size_t max_data_len, uint8_t *data);
+
+/**
+ * Gets lifetime of the session ticket from a s2n_session_ticket object.
+ *
+ * @param ticket Pointer to session ticket object.
+ * @param session_lifetime Pointer to a variable where the lifetime of the session ticket will be stored.
+ */
 S2N_API
 extern int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, uint32_t *session_lifetime);
 

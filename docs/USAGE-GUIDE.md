@@ -1018,6 +1018,12 @@ set the public keys found in the Certificate into **public_key_out**.
 s2n-tls includes support for resuming from cached SSL/TLS session, provided 
 the caller sets (and implements) three callback functions.
 
+### s2n\_config\_set\_session\_cache\_onoff
+
+**s2n_config_set_session_cache_onoff** enables the session cache. In order to use the session cache feature
+you will need to set a ticket key with **s2n_config_add_ticket_crypto_key** to encrypt session
+state inside the cache.
+
 ### s2n\_config\_set\_cache\_store\_callback
 
 ```c
@@ -1548,7 +1554,7 @@ handshake.
 
 **s2n_connection_set_session** de-serializes the session state and updates the connection accordingly.
 
-**s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of bytes that were copied. If the first byte in **session** is 1, then the next 2 bytes will contain the session ticket length, followed by session ticket and session state. If the first byte in **session** is 0, then the next byte will contain session id length, followed by session id and session state.
+**s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of bytes that were copied. If the first byte in **session** is 1, then the next 2 bytes will contain the session ticket length, followed by session ticket and session state. If the first byte in **session** is 0, then the next byte will contain session id length, followed by session id and session state. This function was revamped in TLS1.3 to retrieve the last session ticket received by the client.
 
 **s2n_connection_get_session_ticket_lifetime_hint** returns the session ticket lifetime hint in seconds from the server or -1 when session ticket was not used for resumption.
 
@@ -1559,6 +1565,46 @@ handshake.
 **s2n_connection_get_session_id** get the session id from the connection and copies into the **session_id** buffer and returns the number of bytes that were copied.
 
 **s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0, for tls versions < TLS1.3.
+
+## Additional TLS1.3 Session Resumption Related calls
+
+Session resumption works differently in versions TLS1.3 and higher. Session ticket messages are now sent after the
+handshake in "post-handshake" messages. While some of the TLS1.2 session resumption APIs are still relevant for TLS1.3
+session resumption, additional APIs are needed to utilize all the capabilities of TLS1.3 session resumption.
+
+```c
+int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num);
+
+int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num);
+int s2n_connection_set_server_keying_material_lifetime(struct s2n_connection *conn, uint32_t lifetime_in_secs);
+
+typedef int (*s2n_session_ticket_fn)(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket);
+int s2n_config_set_session_ticket_cb(struct s2n_config *config, s2n_session_ticket_fn callback, void *ctx);
+int s2n_session_ticket_get_data_len(struct s2n_session_ticket *ticket, size_t *data_len);
+int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, size_t max_data_len, uint8_t *data);
+int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, uint32_t *session_lifetime);
+```
+
+**s2n_config_set_initial_ticket_count** sets the initial number of session tickets to send.
+
+**s2n_connection_add_new_tickets_to_send** increases the number of session tickets to send by **num**.
+
+**s2n_connection_set_server_keying_material_lifetime** sets the keying material lifetime for session tickets so that one
+session doesn't get re-used ad infinitum.
+
+**s2n_session_ticket_fn** is invoked whenever a client receives a session ticket. Use this callback in conjunction with
+the **s2n_session_ticket** getters to get the serialized ticket data and related information.
+
+**s2n_config_set_session_ticket_cb** sets the session ticket callback function to be invoked whenever the client receives
+a session ticket from the server.
+
+**s2n_session_ticket_get_data_len** takes a s2n_session_ticket object and retrieves the number of bytes needed to store the session ticket.
+
+**s2n_session_ticket_get_data** takes a s2n_session_ticket object and copies the serialized session ticket data into the
+**data** buffer. For this reason **max_data_len** should be set to the maximum amount of bytes that can be copied into
+the **data** buffer.
+
+**s2n_session_ticket_get_lifetime** takes a s2n_session_ticket object and retrieves the lifetime of the ticket in seconds.
 
 ### Session Ticket Specific calls
 
