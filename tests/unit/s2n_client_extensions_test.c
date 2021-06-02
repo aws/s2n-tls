@@ -1271,7 +1271,7 @@ int main(int argc, char **argv)
 
     /* All PQ KEM byte values are from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
     {
-        /* Client requests SIKE ciphersuite and provides SIKE_P434_R2 extension (plus other
+        /* Client requests SIKE ciphersuite and provides SIKE_P434_R3 extension (plus other
          * irrelevant KEM extensions); server is using the round 1 + round 2 preference list.
          * If PQ is enabled, expect to negotiate sikep434r2; else, expect to negotiate no
          * KEM (-1).*/
@@ -1291,7 +1291,7 @@ int main(int argc, char **argv)
                 0x00, 0x06,
                 /* BIKE1_L1_R1 */
                 0x00, 0x01,
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13,
                 /* BIKE1_L1_R2 */
                 0x00, 0x0D,
@@ -1343,7 +1343,7 @@ int main(int argc, char **argv)
                 0x00, 0x06,
                 /* BIKE1_L1_R2 */
                 0x00, 0x0D,
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13,
                 /* BIKE1_L1_R1 */
                 0x00, 0x01,
@@ -1394,7 +1394,7 @@ int main(int argc, char **argv)
                 0x00, 0x04,
                 /* SIKE_P503_R1 */
                 0x00, 0x0A,
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13,
         };
         size_t client_extensions_len = sizeof(client_extensions);
@@ -1562,7 +1562,7 @@ int main(int argc, char **argv)
                 0x00, 0x06,
                 /* KEM names len */
                 0x00, 0x04,
-                /* SIKE_P434_R2 */
+                /* SIKE_P434_R3 */
                 0x00, 0x13,
                 /* BIKE1_L1_R2 */
                 0x00, 0x0D,
