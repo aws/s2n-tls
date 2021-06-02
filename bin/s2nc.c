@@ -470,7 +470,7 @@ int main(int argc, char *const *argv)
         }
 
         if (connected == 0) {
-            fprintf(stderr, "Failed to connect to %s:%s\n", host, port);
+            fprintf(stderr, "Failed to connect to %s:%s, error code: %s\n", host, port, strerror(errno));
             exit(1);
         }
 
