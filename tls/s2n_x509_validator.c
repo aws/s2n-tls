@@ -97,7 +97,10 @@ int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char 
         DEFER_CLEANUP(X509 *ca_cert = d2i_X509(NULL, &data, next_cert.size), X509_free_pointer);
         S2N_ERROR_IF(ca_cert == NULL, S2N_ERR_DECODE_CERTIFICATE);
 
-        POSIX_GUARD_OSSL(X509_STORE_add_cert(store->trust_store, ca_cert), S2N_ERR_DECODE_CERTIFICATE);
+        if (!X509_STORE_add_cert(store->trust_store, ca_cert)) {
+            unsigned long error = ERR_get_error();
+            POSIX_ENSURE(ERR_GET_REASON(error) == X509_R_CERT_ALREADY_IN_HASH_TABLE, S2N_ERR_DECODE_CERTIFICATE);
+        }
     } while (s2n_stuffer_data_available(&pem_in_stuffer));
 
     return 0;
