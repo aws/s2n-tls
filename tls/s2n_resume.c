@@ -285,7 +285,6 @@ static S2N_RESULT s2n_tls13_deserialize_session_state(struct s2n_connection *con
     RESULT_GUARD(s2n_psk_parameters_wipe(&conn->psk_params));
     RESULT_GUARD_POSIX(s2n_connection_append_psk(conn, &psk));
 
-    RESULT_ENSURE(s2n_stuffer_data_available(from) == 0, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     return S2N_RESULT_OK;
 }
 
