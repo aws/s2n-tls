@@ -471,7 +471,7 @@ int main() {
                 EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&key_share_extension,
                         /* Shares size: 12 bytes */
                         "000C"
-                        /* IANA ID for secp256r1_sikep434r2 */
+                        /* IANA ID for secp256r1_sikep434r3 */
                         "2F1F"
                         /* KEM group share size: 8 bytes */
                         "0008"
