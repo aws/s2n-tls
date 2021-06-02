@@ -11,6 +11,8 @@ from fixtures import managed_process
 from providers import Provider, S2N as S2NBase, OpenSSL as OpenSSLBase
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
+from test_hello_retry_requests import S2N_HRR_MARKER
+
 TICKET_FILE = 'ticket'
 EARLY_DATA_FILE = 'early_data'
 
@@ -24,6 +26,7 @@ S2N_DEFAULT_CURVE = Curves.X25519
 S2N_UNSUPPORTED_CURVE = 'X448' # We have no plans to support this curve any time soon
 S2N_HRR_CURVES = list(curve for curve in ALL_TEST_CURVES if curve != S2N_DEFAULT_CURVE)
 
+S2N_EARLY_DATA_MARKER = to_bytes("WITH_EARLY_DATA")
 S2N_EARLY_DATA_RECV_MARKER = "Early Data received: "
 S2N_EARLY_DATA_STATUS_MARKER = "Early Data status: {status}"
 S2N_EARLY_DATA_ACCEPTED_MARKER = S2N_EARLY_DATA_STATUS_MARKER.format(status="ACCEPTED")
@@ -169,6 +172,7 @@ def test_s2n_server_with_early_data(managed_process, tmp_path, cipher, curve, pr
 
     for results in s2n_server.get_results():
         results.assert_success()
+        assert S2N_EARLY_DATA_MARKER in results.stdout
         assert (to_bytes(S2N_EARLY_DATA_RECV_MARKER) + early_data) in results.stdout
         assert to_bytes(S2N_EARLY_DATA_ACCEPTED_MARKER) in results.stdout
         assert DATA_TO_SEND in results.stdout
@@ -216,6 +220,7 @@ def test_s2n_client_with_early_data(managed_process, tmp_path, cipher, protocol,
 
     for results in s2n_client.get_results():
         results.assert_success()
+        assert S2N_EARLY_DATA_MARKER in results.stdout
         assert results.stdout.count(to_bytes(S2N_EARLY_DATA_ACCEPTED_MARKER)) == NUM_RESUMES
 
     for results in server.get_results():
@@ -268,6 +273,7 @@ def test_s2n_client_without_early_data(managed_process, tmp_path, cipher, protoc
 
     for results in s2n_client.get_results():
         results.assert_success()
+        assert S2N_EARLY_DATA_MARKER not in results.stdout
         assert results.stdout.count(to_bytes(S2N_EARLY_DATA_NOT_REQUESTED_MARKER)) == NUM_CONNECTIONS
 
 
@@ -322,6 +328,8 @@ def test_s2n_server_with_early_data_rejected(managed_process, tmp_path, cipher, 
 
     for results in s2n_server.get_results():
         results.assert_success()
+        assert S2N_EARLY_DATA_MARKER not in results.stdout
+        assert S2N_HRR_MARKER not in results.stdout
         assert to_bytes(S2N_EARLY_DATA_RECV_MARKER) not in results.stdout
         assert to_bytes(S2N_EARLY_DATA_REJECTED_MARKER) in results.stdout
         assert DATA_TO_SEND in results.stdout
@@ -374,6 +382,8 @@ def test_s2n_client_with_early_data_rejected_via_hrr(managed_process, tmp_path, 
 
     for results in s2n_client.get_results():
         results.assert_success()
+        assert S2N_EARLY_DATA_MARKER not in results.stdout
+        assert S2N_HRR_MARKER in results.stdout
         assert results.stdout.count(to_bytes(S2N_EARLY_DATA_REJECTED_MARKER)) == NUM_RESUMES
 
     for results in server.get_results():
@@ -429,6 +439,8 @@ def test_s2n_server_with_early_data_rejected_via_hrr(managed_process, tmp_path, 
 
     for results in s2n_server.get_results():
         results.assert_success()
+        assert S2N_EARLY_DATA_MARKER not in results.stdout
+        assert S2N_HRR_MARKER in results.stdout
         assert to_bytes(S2N_EARLY_DATA_RECV_MARKER) not in results.stdout
         assert to_bytes(S2N_EARLY_DATA_REJECTED_MARKER) in results.stdout
         assert DATA_TO_SEND in results.stdout
