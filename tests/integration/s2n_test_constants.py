@@ -18,7 +18,7 @@ from enum import Enum
 
 # Number of lines of output to stdout s2nc or s2nd are expected
 # to produce after a successful handshake
-NUM_EXPECTED_LINES_OUTPUT = 12
+NUM_EXPECTED_LINES_OUTPUT = 13
 
 class OCSP(Enum):
     ENABLED = 1
