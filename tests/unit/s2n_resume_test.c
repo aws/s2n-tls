@@ -807,7 +807,7 @@ int main(int argc, char **argv)
         {
             uint8_t extra_data[] = "more ticket data, maybe from the future";
 
-            struct s2n_stuffer ticket_stuffer = { 0 };
+            DEFER_CLEANUP(struct s2n_stuffer ticket_stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&ticket_stuffer, 0));
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&ticket_stuffer, tls13_ticket_with_early_data,
                     sizeof(tls13_ticket_with_early_data)));
