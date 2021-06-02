@@ -124,7 +124,7 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
 
 static S2N_RESULT s2n_serialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    if(conn->actual_protocol_version < S2N_TLS13 || !IS_NEGOTIATED(conn)) {
+    if(conn->actual_protocol_version < S2N_TLS13) {
         RESULT_GUARD_POSIX(s2n_tls12_serialize_resumption_state(conn, out));
     } else {
         RESULT_GUARD(s2n_tls13_serialize_resumption_state(conn, out));
@@ -471,7 +471,7 @@ S2N_RESULT s2n_connection_get_session_state_size(struct s2n_connection *conn, si
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(state_size);
 
-    if (conn->actual_protocol_version < S2N_TLS13 || !IS_NEGOTIATED(conn)) {
+    if (conn->actual_protocol_version < S2N_TLS13) {
         *state_size = S2N_TLS12_STATE_SIZE_IN_BYTES;
         return S2N_RESULT_OK;
     }
