@@ -237,7 +237,7 @@ int s2n_psk_set_application_protocol(struct s2n_psk *psk, const uint8_t *applica
     return S2N_SUCCESS;
 }
 
-int s2n_psk_set_context(struct s2n_psk *psk, const uint8_t *context, uint16_t size)
+int s2n_psk_set_early_data_context(struct s2n_psk *psk, const uint8_t *context, uint16_t size)
 {
     POSIX_ENSURE_REF(psk);
     if (size > 0) {
@@ -264,7 +264,7 @@ S2N_RESULT s2n_early_data_config_clone(struct s2n_psk *new_psk, struct s2n_early
     /* Clone / realloc blobs */
     RESULT_GUARD_POSIX(s2n_psk_set_application_protocol(new_psk, old_config->application_protocol.data,
             old_config->application_protocol.size));
-    RESULT_GUARD_POSIX(s2n_psk_set_context(new_psk, old_config->context.data,
+    RESULT_GUARD_POSIX(s2n_psk_set_early_data_context(new_psk, old_config->context.data,
             old_config->context.size));
 
     return S2N_RESULT_OK;
