@@ -40,6 +40,17 @@ def get_parameter_name(item):
         return item.__name__
     return str(item)
 
+def get_psk_hash_alg_from_cipher(cipher):
+    """
+    S2N supports only SHA256 and SHA384 PSK Hash Algorithms
+    """
+    if 'SHA256' in cipher.name:
+        return 'SHA256'
+    elif 'SHA384' in cipher.name: 
+        return 'SHA384'
+    else:
+        return None
+
 
 def invalid_test_parameters(*args, **kwargs):
     """
@@ -98,5 +109,16 @@ def invalid_test_parameters(*args, **kwargs):
     if curve is not None:
         if protocol is not None and curve.min_protocol > protocol:
             return True
+
+    psk_hash_alg = get_psk_hash_alg_from_cipher(cipher)
+
+    # If the PSK hash algorithm is None, it is not supported and we can safely skip the test case. 
+    if psk_hash_alg is None:
+        return True
+
+    # In OpenSSL, PSK works only with TLS1.3 ciphersuites based on SHA256 hash algorithm which includes 
+    # all TLS1.3 ciphersuites supported by S2N except TLS_AES_256_GCM_SHA384.
+    if provider == OpenSSL and psk_hash_alg == 'SHA384':
+        return True
 
     return False

@@ -1,198 +1,59 @@
 import copy
-import os
 import pytest
-import time
-import enum
 
-from configuration import available_ports
-from common import ProviderOptions, Protocols, data_bytes, Ciphers, Certificates
+from configuration import available_ports, TLS13_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS
+from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process
 from providers import Provider, S2N, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name, to_bytes
-from collections import namedtuple
+from utils import invalid_test_parameters, get_parameter_name, to_bytes, get_psk_hash_alg_from_cipher
 from enum import Enum, auto
 
-# Test Vectors from https://tools.ietf.org/html/rfc8448#section-4
-shared_psk_identity = '2c035d829359ee5ff7af4ec900000000262a6494dc486d2c8a34cb33fa90bf1b00'\
-                      '70ad3c498883c9367c09a2be785abc55cd226097a3a982117283f82a03a143efd3'\
-                      'ff5dd36d64e861be7fd61d2827db279cce145077d454a3664d4e6da4d29ee03725'\
-                      'a6a4dafcd0fc67d2aea70529513e3da2677fa5906c5b3f7d8f92f228bda40dda72'\
-                      '1470f9fbf297b5aea617646fac5c03272e970727c621a79141ef5f7de6505e5bfb'\
-                      'c388e93343694093934ae4d357'
+# Known value test vectors from https://tools.ietf.org/html/rfc8448#section-4
+known_psk_identity = '2c035d829359ee5ff7af4ec900000000262a6494dc486d2c8a34cb33fa90bf1b00'\
+                     '70ad3c498883c9367c09a2be785abc55cd226097a3a982117283f82a03a143efd3'\
+                     'ff5dd36d64e861be7fd61d2827db279cce145077d454a3664d4e6da4d29ee03725'\
+                     'a6a4dafcd0fc67d2aea70529513e3da2677fa5906c5b3f7d8f92f228bda40dda72'\
+                     '1470f9fbf297b5aea617646fac5c03272e970727c621a79141ef5f7de6505e5bfb'\
+                     'c388e93343694093934ae4d357'
+known_psk_secret = '4ecd0eb6ec3b4d87f5d6028f922ca4c5851a277fd41311c9e62d2c9492e1c4f3'
 
-shared_psk_secret = '4ecd0eb6ec3b4d87f5d6028f922ca4c5851a277fd41311c9e62d2c9492e1c4f3'
+# Arbitrary test vectors
+PSK_IDENTITY_LIST = [ known_psk_identity, 'psk_identity', 'test_psk_identity' ]
+PSK_SECRET_LIST = [ known_psk_secret, 'a6dadae4567876', 'a64dafcd0fc67d2a' ]
+PSK_IDENTITY_NO_MATCH = "PSK_IDENTITY_NO_MATCH"
+PSK_SECRET_NO_MATCH = "e9492e1c"
+PSK_IDENTITY_NO_MATCH_2 = "PSK_IDENTITY_NO_MATCH_2"
+PSK_SECRET_NO_MATCH_2 = "c1e29493fd"
 
-s2n_known_value_psk_sha256 = shared_psk_identity + ',' + shared_psk_secret + ',' + 'SHA256'
-
-s2n_known_value_psk_sha384 = shared_psk_identity + ',' + shared_psk_secret + ',' + 'SHA384'
-
-openssl_known_value_psk_parameters = [ '-psk_identity', shared_psk_identity, '--psk', shared_psk_secret ]
-
-
-# Arbitrary Test vectors
-s2n_psk_parameters_sha384 = 'psk_identity_sha384,'\
-                            'a6dadae4567876,'\
-                            'SHA384'\
-
-s2n_psk_parameters_sha256 = 'psk_identity_sha256,'\
-                            'a64dafcd0fc67d2a,'\
-                            'SHA256'\
+ALL_TEST_CERTS_WITH_EMPTY_CERT = ALL_TEST_CERTS + [ None ]
+PSK_PROVIDERS = [ OpenSSL, S2N ] 
 
 
-# PSK Identity marker to assert with openssl logs
-psk_identity_marker_openssl_client = [ b"2c0",
-                                       b"35d829359ee5ff7a", b"f4ec900000000262", b"a6494dc486d2c8a3", 
-                                       b"4cb33fa90bf1b007", b"0ad3c498883c9367", b"c09a2be785abc55c", 
-                                       b"d226097a3a982117", b"283f82a03a143efd", b"3ff5dd36d64e861b", 
-                                       b"e7fd61d2827db279", b"cce145077d454a36", b"64d4e6da4d29ee03", 
-                                       b"725a6a4dafcd0fc6", b"7d2aea70529513e3", b"da2677fa5906c5b3",
-                                       b"f7d8f92f228bda40", b"dda721470f9fbf29", b"7b5aea617646fac5", 
-                                       b"c03272e970727c62", b"1a79141ef5f7de65", b"05e5bfbc388e9334", 
-                                       b"3694093934ae4d35", b"7.." ]
-
-
-psk_identity_marker_openssl_server = [ b"2c035d829359",
-                                       b"ee5ff7af4ec90000", b"0000262a6494dc48", b"6d2c8a34cb33fa90",
-                                       b"bf1b0070ad3c4988", b"83c9367c09a2be78", b"5abc55cd226097a3",
-                                       b"a982117283f82a03", b"a143efd3ff5dd36d", b"64e861be7fd61d28",
-                                       b"27db279cce145077", b"d454a3664d4e6da4", b"d29ee03725a6a4da",
-                                       b"fcd0fc67d2aea705", b"29513e3da2677fa5", b"906c5b3f7d8f92f2",
-                                       b"28bda40dda721470", b"f9fbf297b5aea617", b"646fac5c03272e97",
-                                       b"0727c621a79141ef", b"5f7de6505e5bfbc3", b"88e9334369409393",
-                                       b"4ae4d357" ]
-
-
-class Outcome(enum.Enum):
+class Outcome(Enum):
     psk_connection = auto()
     full_handshake = auto()
-    connection_failed = auto()
-
-S2N_TEST_CASE = namedtuple(
-    'S2N_TEST_CASE', 'cipher certificate s2nc_params s2nd_params outcome')
-
-S2N_TEST_SUITE = [
-    S2N_TEST_CASE(cipher=Ciphers.CHACHA20_POLY1305_SHA256,
-                  certificate=None,
-                  s2nd_params=[ '--psk', s2n_known_value_psk_sha256 ],
-                  s2nc_params=[ '--psk', s2n_known_value_psk_sha256 ],
-                  outcome=Outcome.psk_connection),
-    S2N_TEST_CASE(cipher=Ciphers.AES256_GCM_SHA384,
-                  certificate=None,
-                  s2nd_params=[ '--psk', s2n_known_value_psk_sha384 ],
-                  s2nc_params=[ '--psk', s2n_known_value_psk_sha384 ],
-                  outcome=Outcome.psk_connection),
-    S2N_TEST_CASE(cipher=Ciphers.AES128_GCM_SHA256,
-                  certificate=None,
-                  s2nd_params=[ '--psk', s2n_psk_parameters_sha384, 
-                                '--psk', s2n_known_value_psk_sha256 ],
-                  s2nc_params=[ '--psk', s2n_psk_parameters_sha256, 
-                                '--psk', s2n_known_value_psk_sha256 ],
-                  outcome=Outcome.psk_connection),
-    # Note that the following test case's outcome is `full_handshake` instead of `connection_failed` 
-    # when `certificate` is set to `None` because s2nd uses a default certificate whencle a certificate is not provided.
-    S2N_TEST_CASE(cipher=Ciphers.CHACHA20_POLY1305_SHA256,
-                  certificate=None,
-                  s2nd_params=[ '--psk', s2n_psk_parameters_sha384 ],
-                  s2nc_params=[ '--psk', s2n_psk_parameters_sha256 ],
-                  outcome=Outcome.full_handshake),
-    S2N_TEST_CASE(cipher=Ciphers.AES128_GCM_SHA256,
-                  certificate=Certificates.ECDSA_256,
-                  s2nd_params=[ '--psk', s2n_psk_parameters_sha384 ],
-                  s2nc_params=[ '--psk', s2n_psk_parameters_sha256 ],
-                  outcome=Outcome.full_handshake)
-]
-
-OPENSSL_TEST_CASE = namedtuple(
-    'OPENSSL_TEST_CASE', 'cipher certificate s2n_params openssl_params outcome')
-
-OPENSSL_SERVER_S2NC_TEST_SUITE = [
-    OPENSSL_TEST_CASE(cipher=Ciphers.AES128_GCM_SHA256,
-                      certificate=None,
-                      s2n_params=[ '--psk', s2n_known_value_psk_sha256 ],
-                      openssl_params=openssl_known_value_psk_parameters,
-                      outcome=Outcome.psk_connection),
-    OPENSSL_TEST_CASE(cipher=Ciphers.CHACHA20_POLY1305_SHA256,
-                      certificate=None,
-                      s2n_params=[ '--psk', s2n_known_value_psk_sha256 ],
-                      openssl_params=openssl_known_value_psk_parameters,
-                      outcome=Outcome.psk_connection),
-    OPENSSL_TEST_CASE(cipher=Ciphers.CHACHA20_POLY1305_SHA256,
-                      certificate=Certificates.ECDSA_256,
-                      s2n_params=[ '--psk', s2n_psk_parameters_sha384,
-                                   '--psk', s2n_psk_parameters_sha256 ],
-                      openssl_params=openssl_known_value_psk_parameters,
-                      outcome=Outcome.connection_failed),
-    OPENSSL_TEST_CASE(cipher=Ciphers.AES256_GCM_SHA384,
-                      certificate=None,
-                      s2n_params=[ '--psk', s2n_psk_parameters_sha384,
-                                   '--psk', s2n_psk_parameters_sha256 ],
-                      openssl_params=openssl_known_value_psk_parameters,
-                      outcome=Outcome.connection_failed)
-]
-
-OPENSSL_CLIENT_S2ND_TEST_SUITE = [
-    OPENSSL_TEST_CASE(cipher=Ciphers.AES128_GCM_SHA256,
-                      certificate=None,
-                      s2n_params=[ '--psk', s2n_known_value_psk_sha256 ],
-                      openssl_params=openssl_known_value_psk_parameters,
-                      outcome=Outcome.psk_connection),
-    OPENSSL_TEST_CASE(cipher=Ciphers.CHACHA20_POLY1305_SHA256,
-                      certificate=None,
-                      s2n_params=[ '--psk', s2n_known_value_psk_sha256 ],
-                      openssl_params=openssl_known_value_psk_parameters,
-                      outcome=Outcome.psk_connection),
-    OPENSSL_TEST_CASE(cipher=Ciphers.AES128_GCM_SHA256,
-                      certificate=Certificates.ECDSA_256,
-                      s2n_params=[ '--psk', s2n_psk_parameters_sha384,
-                                   '--psk', s2n_psk_parameters_sha256 ],
-                      openssl_params=openssl_known_value_psk_parameters,
-                      outcome=Outcome.full_handshake),
-    # Note that the following test case's outcome is `full_handshake` instead of `connection_failed` 
-    # when `certificate` is set to `None` because s2nd uses a default certificate when a certificate is not provided.
-    OPENSSL_TEST_CASE(cipher=Ciphers.CHACHA20_POLY1305_SHA256,
-                      certificate=None,
-                      s2n_params=[ '--psk', s2n_psk_parameters_sha384,
-                                   '--psk', s2n_psk_parameters_sha256 ],
-                      openssl_params=openssl_known_value_psk_parameters,
-                      outcome=Outcome.full_handshake)
-]
+    handshake_failed = auto()
 
 
-def validate_negotiated_psk_s2n(outcome, certificate, results):
-    if outcome == Outcome.psk_connection:
-        assert to_bytes("Negotiated PSK identity: {}".format(
-            shared_psk_identity)) in results.stdout
-    elif outcome == Outcome.full_handshake:
-        assert to_bytes("Negotiated PSK identity: {}".format(
-            shared_psk_identity)) not in results.stdout
-    else:
-        assert results.exit_code != 0
+def setup_s2n_psk_params(psk_identity, psk_secret, psk_hash_alg):
+    return [ '--psk', psk_identity + ',' + psk_secret + ',' + psk_hash_alg ]
 
 
-def validate_negotiated_psk_openssl(outcome, results, marker_list):
-        if outcome == Outcome.psk_connection:
-            for marker in marker_list:
-                assert marker in results.stdout
-        elif outcome == Outcome.full_handshake:
-            assert to_bytes("SSL_connect:SSLv3/TLS read server certificate") in results.stderr
-        else:
-            assert to_bytes("SSL_accept:error") in results.stderr
+def setup_openssl_psk_params(psk_identity, psk_secret):
+    return [ '-psk_identity', psk_identity, '--psk', psk_secret ]
 
 
-def validate_random_bytes(outcome, random_bytes, results):
-    if outcome == Outcome.psk_connection or outcome == Outcome.full_handshake:
-        assert random_bytes in results.stdout
-    else:
-        assert random_bytes not in results.stdout
-
-
-def setup_provider_options(port, cipher, certificate):
+def setup_provider_options(mode, port, cipher, curve, certificate, data_to_send, client_psk_params):
     options = ProviderOptions(
         host="localhost",
         port=port,
         cipher=cipher,
+        curve=curve,
         insecure=True,
-        protocol=Protocols.TLS13)
+        protocol=Protocols.TLS13,
+        data_to_send=data_to_send,
+        mode=mode,
+        extra_flags=client_psk_params)
     if certificate:
         options.key = certificate.key
         options.cert = certificate.cert
@@ -200,95 +61,293 @@ def setup_provider_options(port, cipher, certificate):
     return options
 
 
-@pytest.mark.parametrize("cipher,certificate,s2nc_params,s2nd_params,outcome", S2N_TEST_SUITE)
-def test_external_psk_s2nc_with_s2nd(managed_process, cipher, certificate, s2nc_params, s2nd_params, outcome):
-    port = next(available_ports)
-    random_bytes = data_bytes(10)
-    options = setup_provider_options(port, cipher, certificate)
-
-    client_options = copy.copy(options)
-    client_options.data_to_send = random_bytes
-    client_options.mode = S2N.ClientMode
-    client_options.extra_flags = s2nc_params
-
-    server_options = copy.copy(options)
-    server_options.data_to_send = None
-    server_options.mode = S2N.ServerMode
-    server_options.extra_flags = s2nd_params
-
-    server = managed_process(S2N, server_options, timeout=5, close_marker=str(random_bytes))
-    client = managed_process(S2N, client_options, timeout=5)
-
-    for results in client.get_results():
-        results.assert_success()
-        validate_negotiated_psk_s2n(outcome, certificate, results)
-
-    for results in server.get_results():
-        results.assert_success()
-        validate_negotiated_psk_s2n(outcome, certificate, results)
-        validate_random_bytes(outcome, random_bytes, results)
-
-
-@pytest.mark.parametrize("cipher,certificate,s2nc_params,openssl_params,outcome", OPENSSL_SERVER_S2NC_TEST_SUITE)
-def test_external_psk_s2nc_with_openssl_server(managed_process, cipher, certificate, s2nc_params, openssl_params, outcome):
-    port = next(available_ports)
-    random_bytes = data_bytes(10)
-    options = setup_provider_options(port, cipher, certificate)
-
-    client_options = copy.copy(options)
-    client_options.data_to_send = random_bytes
-    client_options.mode = S2N.ClientMode
-    client_options.extra_flags = s2nc_params
-
-    server_options = copy.copy(options)
-    server_options.data_to_send = None
-    server_options.mode = OpenSSL.ServerMode     
-   
-    if certificate:
-        server_options.extra_flags = openssl_params
+def validate_negotiated_psk_s2n(outcome, psk_identity, results):
+    if outcome == Outcome.psk_connection:
+        assert to_bytes("Negotiated PSK identity: {}".format(psk_identity)) in results.stdout
+    elif outcome == Outcome.full_handshake:
+        assert to_bytes("Negotiated PSK identity: {}".format(psk_identity)) not in results.stdout
     else:
-        server_options.extra_flags = openssl_params + [ '-nocert']
-
-    server = managed_process(OpenSSL, server_options, timeout=5, close_marker=str(random_bytes))
-    client = managed_process(S2N, client_options, timeout=5)
- 
-    for results in client.get_results():
-        if outcome != Outcome.connection_failed:
-            results.assert_success()
-        validate_negotiated_psk_s2n(outcome, certificate, results)
-
-    for results in server.get_results():
-        if outcome != Outcome.connection_failed:
-            results.assert_success()
-        validate_negotiated_psk_openssl(outcome, results, psk_identity_marker_openssl_server)
-        validate_random_bytes(outcome, random_bytes, results)
+        assert results.exit_code != 0
+        assert to_bytes("Failed to negotiate: 'TLS alert received'") in results.stderr
 
 
-@pytest.mark.parametrize("cipher,certificate,s2nd_params,openssl_params,outcome", OPENSSL_CLIENT_S2ND_TEST_SUITE)
-def test_external_psk_s2nd_with_openssl_client(managed_process, certificate, cipher, s2nd_params, openssl_params, outcome):
+def validate_negotiated_psk_openssl(outcome, results):
+    if outcome == Outcome.psk_connection:
+        assert to_bytes("extension \"psk\"") in results.stdout
+    elif outcome == Outcome.full_handshake:
+        assert to_bytes("SSL_connect:SSLv3/TLS read server certificate") in results.stderr
+    else:
+        assert to_bytes("SSL_accept:error in error") in results.stderr
+
+
+"""
+Basic S2N server happy case.
+
+Tests a single psk connection with no fallback option.
+"""
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", PSK_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("psk_identity", PSK_IDENTITY_LIST, ids=get_parameter_name)
+@pytest.mark.parametrize("psk_secret", PSK_SECRET_LIST, ids=get_parameter_name)
+def test_s2n_server_psk_connection(managed_process, cipher, curve, protocol, provider, psk_identity, psk_secret):
     port = next(available_ports)
     random_bytes = data_bytes(10)
-    options = setup_provider_options(port, cipher, certificate)
+    psk_hash_alg = get_psk_hash_alg_from_cipher(cipher)
 
-    client_options = copy.copy(options)
-    client_options.data_to_send = random_bytes
-    client_options.mode = OpenSSL.ClientMode
-    client_options.extra_flags = openssl_params
+    if provider == S2N:
+        client_psk_params = setup_s2n_psk_params(psk_identity, psk_secret, psk_hash_alg)
+    else:
+        client_psk_params = setup_openssl_psk_params(psk_identity, psk_secret)
+    client_options = setup_provider_options(provider.ClientMode, port, cipher, curve, None, random_bytes, client_psk_params)
 
-    server_options = copy.copy(options)
-    server_options.data_to_send = None
-    server_options.mode = S2N.ServerMode
-    server_options.extra_flags = s2nd_params
- 
+    server_psk_params = setup_s2n_psk_params(psk_identity, psk_secret, psk_hash_alg)
+    server_options = setup_provider_options(S2N.ServerMode, port, cipher, curve, None, None, server_psk_params)
+
     server = managed_process(S2N, server_options, timeout=5, close_marker=str(random_bytes))
-    client = managed_process(OpenSSL, client_options, timeout=5)
+    client = managed_process(provider, client_options, timeout=5)
 
     for results in client.get_results():
         results.assert_success()
-        validate_negotiated_psk_openssl(outcome, results, psk_identity_marker_openssl_client)
+        if provider == S2N:
+            validate_negotiated_psk_s2n(Outcome.psk_connection, psk_identity, results)
+        else:
+            validate_negotiated_psk_openssl(Outcome.psk_connection, results)
 
     for results in server.get_results():
         results.assert_success()
-        validate_negotiated_psk_s2n(outcome, certificate, results)
-        validate_random_bytes(outcome, random_bytes, results)
-        
+        validate_negotiated_psk_s2n(Outcome.psk_connection, psk_identity, results)
+        assert random_bytes in results.stdout
+
+
+"""
+Tests S2N server's behavior with multiple PSKs and no fallback options. 
+
+Note that OpenSSL does not support multiple PSKs. 
+"""
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", PSK_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("psk_identity_match", PSK_IDENTITY_LIST, ids=get_parameter_name)
+@pytest.mark.parametrize("psk_secret_match", PSK_SECRET_LIST, ids=get_parameter_name)
+def test_s2n_server_multiple_psks(managed_process, cipher, curve, protocol, provider, psk_identity_match, psk_secret_match):
+    port = next(available_ports)
+    random_bytes = data_bytes(10)
+    psk_hash_alg = get_psk_hash_alg_from_cipher(cipher)
+
+    client_psk_params = []
+    if provider == OpenSSL:
+        """
+        OpenSSL Provider does not support multiple PSKs in the same connection, 
+        the last psk parameter is the psk parameter used in the connection. 
+        """
+        client_psk_params.extend(setup_openssl_psk_params(PSK_IDENTITY_NO_MATCH, PSK_SECRET_NO_MATCH))
+        client_psk_params.extend(setup_openssl_psk_params(psk_identity_match, psk_secret_match))
+    else:
+        client_psk_params.extend(setup_s2n_psk_params(PSK_IDENTITY_NO_MATCH, PSK_SECRET_NO_MATCH, psk_hash_alg))
+        client_psk_params.extend(setup_s2n_psk_params(psk_identity_match, psk_secret_match, psk_hash_alg))
+    client_options = setup_provider_options(provider.ClientMode, port, cipher, curve, None, random_bytes, client_psk_params)
+
+    server_psk_params = setup_s2n_psk_params(psk_identity_match, psk_secret_match, psk_hash_alg)
+    server_psk_params.extend(setup_s2n_psk_params(PSK_IDENTITY_NO_MATCH_2, PSK_SECRET_NO_MATCH_2, psk_hash_alg))
+    server_options = setup_provider_options(S2N.ServerMode, port, cipher, curve, None, None, server_psk_params)
+
+    server = managed_process(S2N, server_options, timeout=5, close_marker=str(random_bytes))
+    client = managed_process(provider, client_options, timeout=5)
+
+    for results in client.get_results():
+        results.assert_success()
+        if provider == S2N:
+            validate_negotiated_psk_s2n(Outcome.psk_connection, psk_identity_match, results)
+        else:
+            validate_negotiated_psk_openssl(Outcome.psk_connection, results)
+
+    for results in server.get_results():
+        results.assert_success()
+        validate_negotiated_psk_s2n(Outcome.psk_connection, psk_identity_match, results)
+        assert random_bytes in results.stdout
+
+
+"""
+Tests S2N Server's fallback to full handshake.
+
+Verify S2N Server's fallback behavior with an invalid PSK parameter and a valid certificate as the input.
+
+Note that S2N Server succeeds with a full handshake when an invalid PSK parameter and an empty 
+certificate is provided as the input, as S2N Server uses a default certificate if a certificate is not provided 
+as the input.
+"""
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", PSK_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("psk_identity", PSK_IDENTITY_LIST, ids=get_parameter_name)
+@pytest.mark.parametrize("psk_secret", PSK_SECRET_LIST, ids=get_parameter_name)
+@pytest.mark.parametrize("certificate", ALL_TEST_CERTS_WITH_EMPTY_CERT, ids=get_parameter_name)
+def test_s2n_server_full_handshake(managed_process, cipher, curve, protocol, provider, psk_identity, psk_secret, certificate):
+    port = next(available_ports)
+    random_bytes = data_bytes(10)
+    psk_hash_alg = get_psk_hash_alg_from_cipher(cipher)
+
+    if provider == S2N:
+        client_psk_params = setup_s2n_psk_params(psk_identity, psk_secret, psk_hash_alg)
+    else:
+        client_psk_params = setup_openssl_psk_params(psk_identity, psk_secret)
+    client_options = setup_provider_options(provider.ClientMode, port, cipher, curve, certificate, random_bytes, client_psk_params)
+
+    server_psk_params = setup_s2n_psk_params(PSK_IDENTITY_NO_MATCH, PSK_SECRET_NO_MATCH, psk_hash_alg)
+    server_options = setup_provider_options(S2N.ServerMode, port, cipher, curve, certificate, None, server_psk_params)
+
+    server = managed_process(S2N, server_options, timeout=5, close_marker=str(random_bytes))
+    client = managed_process(provider, client_options, timeout=5)
+
+    for results in client.get_results():
+        results.assert_success()
+        if provider == S2N:
+            validate_negotiated_psk_s2n(Outcome.full_handshake, psk_identity, results)
+        else:
+            validate_negotiated_psk_openssl(Outcome.full_handshake, results)
+
+    for results in server.get_results():
+        results.assert_success()
+        validate_negotiated_psk_s2n(Outcome.full_handshake, PSK_IDENTITY_NO_MATCH, results)
+        assert random_bytes in results.stdout
+
+
+"""
+Basic S2N client happy case.
+
+Tests a single psk connection with no fallback option.
+"""
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", PSK_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("psk_identity", PSK_IDENTITY_LIST, ids=get_parameter_name)
+@pytest.mark.parametrize("psk_secret", PSK_SECRET_LIST, ids=get_parameter_name)
+def test_s2n_client_psk_connection(managed_process, cipher, curve, protocol, provider, psk_identity, psk_secret):
+    port = next(available_ports)
+    random_bytes = data_bytes(10)
+    psk_hash_alg = get_psk_hash_alg_from_cipher(cipher)
+
+    client_psk_params = setup_s2n_psk_params(psk_identity, psk_secret, psk_hash_alg)
+    client_options = setup_provider_options(S2N.ClientMode, port, cipher, curve, None, random_bytes, client_psk_params)
+
+    if provider == S2N:
+        server_psk_params = setup_s2n_psk_params(psk_identity, psk_secret, psk_hash_alg)
+    else:
+        server_psk_params = setup_openssl_psk_params(psk_identity, psk_secret)
+        server_psk_params += [ '-nocert' ]
+    server_options = setup_provider_options(provider.ServerMode, port, cipher, curve, None, None, server_psk_params)
+
+    server = managed_process(provider, server_options, timeout=5, close_marker=str(random_bytes))
+    client = managed_process(S2N, client_options, timeout=5)
+
+    for results in client.get_results():
+        results.assert_success()
+        validate_negotiated_psk_s2n(Outcome.psk_connection, psk_identity, results)
+
+    for results in server.get_results():
+        results.assert_success()
+        if provider == S2N:
+            validate_negotiated_psk_s2n(Outcome.psk_connection, psk_identity, results)
+        else:
+            validate_negotiated_psk_openssl(Outcome.psk_connection, results)
+        assert random_bytes in results.stdout
+
+
+"""
+Tests S2N client's behavior with multiple PSKs and no fallback option. 
+
+Note that OpenSSL does not support multiple PSKs. 
+"""
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", PSK_PROVIDERS, ids=get_parameter_name)
+@pytest.mark.parametrize("psk_identity_match", PSK_IDENTITY_LIST, ids=get_parameter_name)
+@pytest.mark.parametrize("psk_secret_match", PSK_SECRET_LIST, ids=get_parameter_name)
+def test_s2n_client_multiple_psks(managed_process, cipher, curve, protocol, provider, psk_identity_match, psk_secret_match):
+    port = next(available_ports)
+    random_bytes = data_bytes(10)
+    psk_hash_alg = get_psk_hash_alg_from_cipher(cipher)
+
+    client_psk_params = setup_s2n_psk_params(psk_identity_match, psk_secret_match, psk_hash_alg)
+    client_psk_params.extend(setup_s2n_psk_params(PSK_IDENTITY_NO_MATCH, PSK_SECRET_NO_MATCH, psk_hash_alg))
+    client_options = setup_provider_options(S2N.ClientMode, port, cipher, curve, None, random_bytes, client_psk_params)
+
+    server_psk_params = []
+    if provider == OpenSSL:
+        """
+        OpenSSL Provider does not support multiple PSKs in the same connection, 
+        the last psk params is the final psk used in the connection. 
+        """
+        server_psk_params.extend(setup_openssl_psk_params(PSK_IDENTITY_NO_MATCH_2, PSK_SECRET_NO_MATCH_2))
+        server_psk_params.extend(setup_openssl_psk_params(psk_identity_match, psk_secret_match))
+        server_psk_params += [ '-nocert' ]
+    else:
+        server_psk_params.extend(setup_s2n_psk_params(PSK_IDENTITY_NO_MATCH_2, PSK_SECRET_NO_MATCH_2, psk_hash_alg))
+        server_psk_params.extend(setup_s2n_psk_params(psk_identity_match, psk_secret_match, psk_hash_alg))
+    server_options = setup_provider_options(provider.ServerMode, port, cipher, curve, None, None, server_psk_params)
+
+    server = managed_process(provider, server_options, timeout=5, close_marker=str(random_bytes))
+    client = managed_process(S2N, client_options, timeout=5)
+
+    for results in client.get_results():
+        results.assert_success()
+        validate_negotiated_psk_s2n(Outcome.psk_connection, psk_identity_match, results)
+
+    for results in server.get_results():
+        results.assert_success()
+        if provider == S2N:
+            validate_negotiated_psk_s2n(Outcome.psk_connection, psk_identity_match, results)
+        else:
+            validate_negotiated_psk_openssl(Outcome.psk_connection, results)
+        assert random_bytes in results.stdout
+
+
+"""
+S2N Client fails to succeed with a handshake when an invalid PSK parameter
+and an invalid certificate is provided as the input.
+
+Note that we cannot use S2N Server as a provider input for this test as S2N Server 
+uses a default certificate if a certificate is not provided as the input.
+"""
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
+@pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
+@pytest.mark.parametrize("psk_identity", PSK_IDENTITY_LIST, ids=get_parameter_name)
+@pytest.mark.parametrize("psk_secret", PSK_SECRET_LIST, ids=get_parameter_name)
+def test_s2n_client_psk_handshake_failure(managed_process, cipher, curve, protocol, provider, psk_identity, psk_secret):
+    port = next(available_ports)
+    random_bytes = data_bytes(10)
+    psk_hash_alg = get_psk_hash_alg_from_cipher(cipher)
+
+    client_psk_params = setup_s2n_psk_params(psk_identity, psk_secret, psk_hash_alg)
+    client_options = setup_provider_options(S2N.ClientMode, port, cipher, curve, None, random_bytes, client_psk_params)
+
+    server_psk_params = setup_openssl_psk_params(PSK_IDENTITY_NO_MATCH, PSK_SECRET_NO_MATCH)
+    server_psk_params += [ '-nocert' ]
+    server_options = setup_provider_options(provider.ServerMode, port, cipher, curve, None, None, server_psk_params)
+
+    server = managed_process(provider, server_options, timeout=5, close_marker=str(random_bytes))
+    client = managed_process(S2N, client_options, timeout=5)
+
+    for results in client.get_results():
+        assert to_bytes("Failed to negotiate: 'TLS alert received'") in results.stderr
+        validate_negotiated_psk_s2n(Outcome.handshake_failed, psk_identity, results)
+
+    for results in server.get_results():
+        assert to_bytes("SSL_accept:error in error") in results.stderr
+        validate_negotiated_psk_openssl(Outcome.handshake_failed, results)
+        assert random_bytes not in results.stdout
+

@@ -372,3 +372,4 @@ batch:
           LATEST_CLANG: true
           TESTS: fuzz
           FUZZ_TIMEOUT_SEC: 60
+

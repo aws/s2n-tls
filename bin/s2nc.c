@@ -454,12 +454,16 @@ int main(int argc, char *const *argv)
 
     do {
         int connected = 0;
+        char *socket_error = NULL;
+        char *connect_error = NULL;
         for (ai = ai_list; ai != NULL; ai = ai->ai_next) {
             if ((sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == -1) {
+                socket_error = strerror(errno);
                 continue;
             }
 
             if (connect(sockfd, ai->ai_addr, ai->ai_addrlen) == -1) {
+                connect_error = strerror(errno);
                 close(sockfd);
                 continue;
             }
@@ -470,7 +474,9 @@ int main(int argc, char *const *argv)
         }
 
         if (connected == 0) {
-            fprintf(stderr, "Failed to connect to %s:%s, error code: %s\n", host, port, strerror(errno));
+            fprintf(stderr, "Failed to connect to %s:%s\n", host, port);
+            fprintf(stderr, "socket error: %s\n", socket_error);
+            fprintf(stderr, "connect error: %s\n", connect_error);
             exit(1);
         }
 
