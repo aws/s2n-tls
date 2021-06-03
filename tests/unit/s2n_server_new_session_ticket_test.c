@@ -751,8 +751,10 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, nst_data_without_lifetime, nst_data_without_lifetime_size));
 
                 EXPECT_OK(s2n_tls13_server_nst_recv(conn, &input));
-                EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);
+                /* Verify that the client only got as far as the ticket_lifetime when parsing */
                 EXPECT_EQUAL(s2n_stuffer_data_available(&input), nst_data_without_lifetime_size);
+                /* Verify that the client did not accept + store the ticket */
+                EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
@@ -775,8 +777,10 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, nst_data_without_lifetime, nst_data_without_lifetime_size));
 
                 EXPECT_ERROR_WITH_ERRNO(s2n_tls13_server_nst_recv(conn, &input), S2N_ERR_BAD_MESSAGE);
-                EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);
+                /* Verify that the client only got as far as the ticket_lifetime when parsing */
                 EXPECT_EQUAL(s2n_stuffer_data_available(&input), nst_data_without_lifetime_size);
+                /* Verify that the client did not accept + store the ticket */
+                EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
