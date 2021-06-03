@@ -708,7 +708,7 @@ int main(int argc, char **argv)
             struct s2n_blob bad_identity = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&bad_identity, bad_identity_data, sizeof(bad_identity_data)));
 
-            uint8_t psk_idx = 5;
+            uint8_t psk_idx = MAX_REJECTED_TICKETS - 1;
             for (size_t i = 0; i < psk_idx; i++) {
                 EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &bad_identity));
             }
@@ -754,6 +754,45 @@ int main(int argc, char **argv)
         
             EXPECT_SUCCESS(s2n_stuffer_free(&identity_list.wire_data));
             EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* Fail if too many invalid resumption psks */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(conn);
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_setup_ticket_key(config));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure.cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
+            DEFER_CLEANUP(struct s2n_stuffer psk_identity = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&psk_identity, 0));
+            EXPECT_OK(s2n_setup_encrypted_ticket(conn, &psk_identity));
+
+            /* "hello" is mysteriously not a valid session ticket */
+            uint8_t bad_identity_data[] = "hello";
+            struct s2n_blob bad_identity = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&bad_identity, bad_identity_data, sizeof(bad_identity_data)));
+
+            struct s2n_offered_psk_list identity_list = { .conn = conn };
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&identity_list.wire_data, 0));
+
+            uint8_t bad_psk_count = MAX_REJECTED_TICKETS;
+            for (size_t i = 0; i < bad_psk_count; i++) {
+                EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &bad_identity));
+            }
+            EXPECT_OK(s2n_write_test_identity(&identity_list.wire_data, &psk_identity.blob));
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_select_resumption_psk(conn, &identity_list), S2N_ERR_INVALID_SESSION_TICKET);
+            EXPECT_NULL(conn->psk_params.chosen_psk);
+
+            EXPECT_SUCCESS(s2n_stuffer_free(&identity_list.wire_data));
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
         }
     }
 

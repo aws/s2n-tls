@@ -28,6 +28,11 @@
 #define SIZE_OF_BINDER_SIZE sizeof(uint8_t)
 #define SIZE_OF_BINDER_LIST_SIZE sizeof(uint16_t)
 
+/* To avoid a DoS attack triggered by decrypting too many session tickets,
+ * set a limit on the number of tickets we will attempt to decrypt before giving up.
+ * We may want to make this configurable someday, but just set a reasonable maximum for now. */
+#define MAX_REJECTED_TICKETS 3
+
 static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 static int s2n_client_psk_is_missing(struct s2n_connection *conn);
@@ -234,12 +239,14 @@ static S2N_RESULT s2n_select_resumption_psk(struct s2n_connection *conn, struct 
     struct s2n_offered_psk client_psk = { 0 };
     conn->psk_params.chosen_psk = NULL;
 
-    while (s2n_offered_psk_list_has_next(client_identity_list)) {
+    uint8_t rejected_count = 0;
+    while (s2n_offered_psk_list_has_next(client_identity_list) && (rejected_count < MAX_REJECTED_TICKETS)) {
         RESULT_GUARD_POSIX(s2n_offered_psk_list_next(client_identity_list, &client_psk));
         /* Select the first resumption PSK that can be decrypted */
         if (s2n_offered_psk_list_choose_psk(client_identity_list, &client_psk) == S2N_SUCCESS) {
             return S2N_RESULT_OK;
         }
+        rejected_count++;
     }
 
     RESULT_BAIL(S2N_ERR_INVALID_SESSION_TICKET);
