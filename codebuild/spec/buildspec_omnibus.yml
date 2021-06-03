@@ -152,6 +152,14 @@ batch:
         variables:
           INTEGV2_TEST: test_early_data
 
+    - identifier: s2nIntegrationV2ExternalPSK
+      buildspec: codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          INTEGV2_TEST: test_external_psk
+
     # Individual Integration tests
     - identifier: s2nIntegrationBoringSSLGcc9
       buildspec: codebuild/spec/buildspec_ubuntu.yml
