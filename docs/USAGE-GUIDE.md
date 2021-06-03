@@ -1626,6 +1626,178 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *n
 **s2n_config_add_ticket_crypto_key** adds session ticket key on the server side. It would be ideal to add new keys after every (encrypt_decrypt_key_lifetime_in_nanos/2) nanos because
 this will allow for gradual and linear transition of a key from encrypt-decrypt state to decrypt-only state.
 
+## TLS1.3 Pre-Shared Key (PSK) Related Calls 
+
+### s2n\_external\_psk\_new
+
+```c
+struct s2n_psk* s2n_external_psk_new();
+```
+
+**s2n_external_psk_new** creates a new s2n external PSK object with `S2N_PSK_HMAC_SHA256` as the default PSK hash algorithm. Use `s2n_psk_free` to free the memory allocated to the s2n external PSK object.
+
+### s2n\_psk\_free
+
+```c
+int s2n_psk_free(struct s2n_psk **psk);
+```
+
+**s2n_psk_free** frees the memory associated with the `s2n_psk` object.
+
+### s2n\_psk\_set\_identity
+
+```c
+int s2n_psk_set_identity(struct s2n_psk *psk, const uint8_t *identity, uint16_t identity_size);
+```
+
+**s2n_psk_set_identity** sets the PSK identity for a given PSK object. 
+
+### s2n\_psk\_set\_secret
+
+```c
+int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secret_size);
+```
+
+**s2n_psk_set_secret** sets the PSK secret for a given PSK object. Note that the PSK secret MUST be in hex-encoded format.
+
+### s2n\_psk\_set\_hmac
+
+```c
+int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac);
+```
+
+**s2n_psk_set_hmac** sets the PSK HMAC algorithm for a given PSK object.
+The following enum **s2n_psk_hmac** lists the supported PSK HMAC algorithms:
+
+```c
+typedef enum {
+    S2N_PSK_HMAC_SHA256,
+    S2N_PSK_HMAC_SHA384,
+} s2n_psk_hmac;
+```
+
+### s2n\_connection\_append\_psk
+
+```c
+int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk);
+```
+**s2n_connection_append_psk** appends a PSK to the s2n connection object. If a duplicate PSK identity is found, S2N_ERR_DUPLICATE_PSK_IDENTITIES error is thrown.
+
+### s2n\_config\_set\_psk\_mode
+
+```c
+int s2n_config_set_psk_mode(struct s2n_config *config, s2n_psk_mode mode);
+```
+
+**s2n_config_set_psk_mode** sets the PSK mode on the s2n config object. The following enum **s2n_psk_mode** lists the supported PSK modes.
+
+```c
+typedef enum {
+    S2N_PSK_MODE_RESUMPTION,
+    S2N_PSK_MODE_EXTERNAL
+} s2n_psk_mode;
+```
+
+### s2n\_connection\_set\_psk\_mode
+
+```c
+int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode);
+```
+
+**s2n_connection_set_psk_mode** sets the PSK mode on the s2n connection object. 
+
+### s2n\_connection\_get\_negotiated\_psk\_identity\_length
+
+```c
+int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *conn, uint16_t *identity_length);
+```
+
+**s2n_connection_get_negotiated_psk_identity_length** gets the negotiated PSK identity length from the s2n connection object. 
+
+### s2n\_connection\_get\_negotiated\_psk\_identity
+
+```c
+int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint8_t *identity, uint16_t max_identity_length);
+```
+
+**s2n_connection_get_negotiated_psk_identity** gets the negotiated PSK identity from the s2n connection object. 
+
+### s2n\_offered\_psk\_new
+
+```c 
+struct s2n_offered_psk* s2n_offered_psk_new();
+```
+
+**s2n_offered_psk** creates a new offered PSK object. Use `s2n_offered_psk_free` to free the memory allocated to the s2n offered PSK object. 
+
+### s2n\_offered\_psk\_free
+
+```c
+int s2n_offered_psk_free(struct s2n_offered_psk **psk);
+```
+
+**s2n_offered_psk_free** frees the memory associated with the `s2n_offered_psk` object.
+
+### s2n\_offered\_psk\_get\_identity
+
+```c
+int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t** identity, uint16_t *size);
+```
+
+**s2n_offered_psk_get_identity** gets the PSK identity and PSK identity length for a given offered PSK object. 
+
+### s2n\_offered\_psk\_list\_has\_next
+
+```c
+bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list);
+```
+
+**s2n_offered_psk_list_has_next** checks whether the offered PSK list has an offered psk object next in line in the list.
+If an offered psk exists next in line, this API returns True, otherwise False. 
+
+### s2n\_offered\_psk\_list\_next
+
+**s2n_offered_psk_list_next** obtains the next offered PSK object from the offered PSK list. 
+Use `s2n_offered_psk_list_has_next` prior to this API call to determine if an offered PSK exists next in the list. 
+
+```c
+int s2n_offered_psk_list_next(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
+```
+
+### s2n\_offered\_psk\_list\_reread
+
+```c
+int s2n_offered_psk_list_reread(struct s2n_offered_psk_list *psk_list);
+```
+
+**s2n_offered_psk_list_reread** rereads the offered PSK list from the wire data and resets the PSK wire index to the initial value zero. 
+
+### s2n\_offered\_psk\_list\_choose\_psk
+
+```c
+int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
+```
+
+**s2n_offered_psk_list_choose_psk** chooses a PSK from the offered PSK list. 
+
+
+### s2n\_psk\_selection\_callback
+
+```c
+typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn, void *context,
+                                          struct s2n_offered_psk_list *psk_list);
+```
+
+**s2n_psk_selection_callback** is a callback function to select a PSK from a list of offered PSKs.
+
+### s2n\_config\_set\_psk\_selection\_callback
+
+```c 
+int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb, void *context);
+```
+
+**s2n_config_set_psk_selection_callback** sets the PSK selection callback on the s2n config object.
+
 ### Asynchronous private key operations related calls
 
 When s2n-tls is used in non-blocking mode, this set of functions allows user

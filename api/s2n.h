@@ -687,6 +687,210 @@ extern int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *ex
 S2N_API 
 extern int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len);
 
+/* PSK Hash Algorithm - RFC 8446 Section-2.2 */
+/* https://datatracker.ietf.org/doc/html/rfc8446#section-2.2*/
+typedef enum {
+    S2N_PSK_HMAC_SHA256,
+    S2N_PSK_HMAC_SHA384,
+} s2n_psk_hmac;
+
+struct s2n_psk;
+
+/**
+ * Creates a new s2n external PSK object with `S2N_PSK_HMAC_SHA256` as the default PSK hash algorithm.
+ * 
+ * # Safety 
+ *
+ * Use `s2n_psk_free` to free the memory allocated to the s2n external PSK object created by this API. 
+ *
+ * @return struct s2n_psk* Returns a pointer to the newly created external PSK object.
+ */
+S2N_API
+struct s2n_psk* s2n_external_psk_new();
+
+/**
+ * Frees the memory associated with the `s2n_psk` object.
+ *
+ * @param psk Pointer to the PSK object to be freed.
+ */
+S2N_API 
+int s2n_psk_free(struct s2n_psk **psk);
+
+/**
+ * Sets the PSK identity for a given PSK object. 
+ * 
+ * @param psk A pointer to PSK object to be updated with the PSK secret.
+ * @param identity The PSK identity being set.
+ * @param identity_size The length of the PSK identity being set.
+ */
+S2N_API 
+int s2n_psk_set_identity(struct s2n_psk *psk, const uint8_t *identity, uint16_t identity_size);
+
+/**
+ * Sets the PSK secret for a given PSK object. 
+ * 
+ * @param psk A pointer to PSK object to be updated with the PSK secret.
+ * @param secret The PSK secret in hex-encoded format.
+ * @param secret_size The length of the PSK secret being set.
+ */
+S2N_API 
+int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secret_size);
+
+/**
+ * Sets the PSK HMAC algorithm for a given PSK object. 
+ * 
+ * @param psk A pointer to the PSK object to be updated with the PSK HMAC algorithm.
+ * @param hmac The PSK HMAC algorithm being set. 
+ * The supported PSK HMAC algorithms are listed in the enum `s2n_psk_hmac` above. 
+ */
+S2N_API 
+int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac);
+
+/**
+ * Appends a PSK to the s2n connection object. If a duplicate PSK identity is found, 
+ * S2N_ERR_DUPLICATE_PSK_IDENTITIES error is thrown.
+ * 
+ * @param conn A pointer to the s2n_connection object to be updated with the PSK.
+ * @param psk A pointer to the PSK object to be appended.
+ */
+S2N_API 
+int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk);
+
+/* s2n PSK supported modes for TLS1.3 */ 
+typedef enum { S2N_PSK_MODE_RESUMPTION, S2N_PSK_MODE_EXTERNAL } s2n_psk_mode;
+
+/**
+ * Sets the PSK mode on the s2n config object. 
+ * 
+ * @param config A pointer to the s2n_config object being updated.
+ * @param mode The PSK mode to be set. The supported psk modes are listed in the enum `s2n_psk_mode` above. 
+ */
+S2N_API 
+int s2n_config_set_psk_mode(struct s2n_config *config, s2n_psk_mode mode);
+
+/**
+ * Sets the PSK mode on the s2n connection object. 
+ * 
+ * @param conn A pointer to the s2n_connection object being updated.
+ * @param mode The PSK mode to be set. The supported psk modes are listed in the enum `s2n_psk_mode` above. 
+ */
+S2N_API 
+int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode);
+
+/**
+ * Gets the negotiated PSK identity length from the s2n connection object. 
+ * 
+ * @param conn A pointer to the s2n_connection object that successfully negotiated a PSK connection.
+ * @param identity_length The length of the negotiated PSK identity. 
+ */
+S2N_API 
+int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *conn, uint16_t *identity_length);
+
+/**
+ * Gets the negotiated PSK identity from the s2n connection object. 
+ * 
+ * @param conn A pointer to the s2n_connection object that successfully negotiated a PSK connection.
+ * @param identity The negotiated PSK identity obtained from the s2n_connection object. 
+ * @param max_identity_length The maximum length for the PSK identity. If the negotiated psk_identity length is 
+ * greater than this value `S2N_ERR_INSUFFICIENT_MEM_SIZE` error is thrown.
+ */
+S2N_API 
+int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint8_t *identity, uint16_t max_identity_length);
+
+struct s2n_offered_psk;
+
+/**
+ * Creates a new offered PSK object.
+ * 
+ * # Safety
+ * 
+ * Use `s2n_offered_psk_free` to free the memory allocated to the s2n offered PSK object created by this API. 
+ *
+ * @return struct s2n_offered_psk* Returns a pointer to the newly created offered PSK object.
+ */
+S2N_API 
+struct s2n_offered_psk* s2n_offered_psk_new();
+
+/**
+ * Frees the memory associated with the `s2n_offered_psk` object.
+ *
+ * @param psk A pointer to the `s2n_offered_psk` object to be freed.
+ */
+S2N_API 
+int s2n_offered_psk_free(struct s2n_offered_psk **psk);
+
+/**
+ * Gets the PSK identity and PSK identity length for a given offered PSK object. 
+ * 
+ * @param psk A pointer to the offered PSK object being read.
+ * @param identity The PSK identity being obtained.
+ * @param size The length of the PSK identity being obtained.
+ */
+S2N_API 
+int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t** identity, uint16_t *size);
+
+struct s2n_offered_psk_list;
+
+/**
+ * Checks whether the offered PSK list has an offered psk object next in line in the list.
+ * If an offered psk exists next in line, this API returns True, otherwise False. 
+ * 
+ * @param psk_list A pointer to the offered PSK list being read.
+ * @return bool A boolean value representing whether an offered psk object is present next in line in the offered PSK list.
+ */
+S2N_API 
+bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list);
+
+/**
+ * Obtains the next offered PSK object from the offered PSK list. Use `s2n_offered_psk_list_has_next` 
+ * prior to this API call to determine if an offered PSK exists next in the list. 
+ * 
+ * @param psk_list A pointer to the offered PSK list being read.
+ * @param psk A pointer to the next offered PSK object being obtained.
+ */
+S2N_API 
+int s2n_offered_psk_list_next(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
+
+/**
+ * Rereads the offered PSK list from the wire data and resets the PSK wire index to the initial value zero. 
+ * 
+ * @param psk_list A pointer to the offered PSK list being reread.
+ */
+S2N_API 
+int s2n_offered_psk_list_reread(struct s2n_offered_psk_list *psk_list);
+
+/**
+ * Chooses a PSK from the offered PSK list. 
+ * 
+ * @param psk_list A pointer to the offered PSK list being read.
+ * @param psk A pointer to the chosen PSK from the list of offered PSKs.
+ */
+S2N_API int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
+
+/**
+ * Callback function to select a PSK from a list of offered PSKs.
+ * 
+ * # Safety
+ *
+ * `context` is a void pointer and the caller is responsible for ensuring it is cast to the correct type.
+ *
+ * @param conn A pointer to the s2n_connection object.
+ * @param context A pointer to a context for the caller to pass state to the callback, if needed.
+ * @param psk_list A pointer to the offered PSK list being read.
+ */
+typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn, void *context,
+                                          struct s2n_offered_psk_list *psk_list);
+
+/**
+ * Sets the PSK selection callback on the s2n config object.
+ * 
+ * @param config A pointer to the s2n_config object.
+ * @param cb The function that should be called when the callback is triggered.
+ * @param context A pointer to a context for the caller to pass state to the callback, if needed.
+ */
+S2N_API 
+int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb, void *context);
+
 S2N_API
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
 S2N_API

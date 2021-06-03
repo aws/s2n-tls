@@ -33,6 +33,9 @@
 #include "crypto/s2n_pkey.h"
 #include "common.h"
 
+/* TODO: Remove once the early data feature is released */
+#include "tls/s2n_early_data.h"
+
 #define STDIO_BUFSIZE  10240
 
 void print_s2n_error(const char *app_error)
