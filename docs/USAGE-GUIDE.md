@@ -1590,7 +1590,7 @@ int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, uint32_t 
 
 **s2n_connection_set_server_keying_material_lifetime** sets the keying material lifetime for session tickets. Use this to ensure session tickets don't get reissued past the lifetime of the certificate used to authenticate the original full handshake.
 
-**s2n_session_ticket_fn** is invoked whenever a client receives a session ticket. Use this callback in conjunction with the **s2n_session_ticket** getters to get the serialized ticket data and related information. A **ctx** pointer is provided to let a user to pass state to the callback, if needed.
+**s2n_session_ticket_fn** is invoked whenever a client receives a session ticket. Use this callback in conjunction with the **s2n_session_ticket** getters to get the serialized ticket data and related information. A **ctx** pointer is provided to let a user pass state to the callback, if needed.
 
 **s2n_config_set_session_ticket_cb** sets the session ticket callback function to be invoked whenever the client receives
 a session ticket from the server.
