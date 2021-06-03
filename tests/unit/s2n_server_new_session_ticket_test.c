@@ -22,7 +22,7 @@
 #include "tls/s2n_server_new_session_ticket.c"
 
 #define TEST_TICKET_AGE_ADD  0x01, 0x02, 0x03, 0x04
-#define TEST_LIFETIME        0x01, 0x01, 0x01, 0x01
+#define TEST_LIFETIME        0x00, 0x01, 0x01, 0x01
 #define TEST_TICKET          0x01, 0xFF, 0x23
 
 #define ONE_HOUR_IN_NANOS   3600000000000
@@ -285,6 +285,35 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&output));
             EXPECT_SUCCESS(s2n_config_free(config));
         }
+
+        /* Can't write ticket larger than allowed size of a PSK identity */
+        {
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
+            EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
+            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+
+            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            server_conn->actual_protocol_version = S2N_TLS13;
+            server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, 10));
+
+            /* Set context to be UINT16_MAX */
+            uint8_t early_data_context[UINT16_MAX] = { 0 };
+            EXPECT_SUCCESS(s2n_connection_set_server_early_data_context(server_conn,
+                    early_data_context, sizeof(early_data_context)));
+
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_server_nst_write(server_conn, &stuffer), S2N_ERR_SIZE_MISMATCH);
+
+            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
     }
 
     /* s2n_generate_ticket_lifetime */
@@ -514,8 +543,8 @@ int main(int argc, char **argv)
             /* Check ticket lifetime is what was in the arbitrary nst message */
             {
                 uint8_t test_lifetime[] = { TEST_LIFETIME };
-                uint32_t expected_lifetime = test_lifetime[0] | (test_lifetime[1] << 8) | \
-                                            (test_lifetime[2] << 16) | (test_lifetime[3] << 24);
+                uint32_t expected_lifetime = test_lifetime[3] | (test_lifetime[2] << 8) | \
+                                            (test_lifetime[1] << 16) | (test_lifetime[0] << 24);
                 EXPECT_EQUAL(expected_lifetime, cb_session_lifetime);
             }
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -693,32 +722,69 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
-        /* Can't write ticket larger than allowed size of a PSK identity */
+        /* Test that the client rejects tickets with invalid ticket_lifetime */
         {
+            const size_t lifetime_size = sizeof(uint32_t);
+            const uint8_t *nst_data_without_lifetime = nst_data + lifetime_size;
+            const size_t nst_data_without_lifetime_size = sizeof(nst_data) - lifetime_size;
+
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
-            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
 
-            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-            EXPECT_NOT_NULL(server_conn);
-            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
-            server_conn->actual_protocol_version = S2N_TLS13;
-            server_conn->secure.cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, 10));
+            /**
+             *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+             *= type=test
+             *# The value of zero indicates that the
+             *# ticket should be discarded immediately.
+             */
+            {
+                struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+                conn->actual_protocol_version = S2N_TLS13;
 
-            /* Set context to be UINT16_MAX */
-            uint8_t early_data_context[UINT16_MAX] = { 0 };
-            EXPECT_SUCCESS(s2n_connection_set_server_early_data_context(server_conn,
-                    early_data_context, sizeof(early_data_context)));
+                DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, sizeof(nst_data)));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint32(&input, 0));
+                EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, nst_data_without_lifetime, nst_data_without_lifetime_size));
 
-            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+                EXPECT_OK(s2n_tls13_server_nst_recv(conn, &input));
+                /* Verify that the client only got as far as the ticket_lifetime when parsing */
+                EXPECT_EQUAL(s2n_stuffer_data_available(&input), nst_data_without_lifetime_size);
+                /* Verify that the client did not accept + store the ticket */
+                EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_server_nst_write(server_conn, &stuffer), S2N_ERR_SIZE_MISMATCH);
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
 
-            EXPECT_SUCCESS(s2n_connection_free(server_conn));
+            /**
+             *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+             *= type=test
+             *# Servers MUST NOT use any value greater than
+             *# 604800 seconds (7 days).
+             */
+            {
+                struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+                conn->actual_protocol_version = S2N_TLS13;
+
+                DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, sizeof(nst_data)));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint32(&input, UINT32_MAX));
+                EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, nst_data_without_lifetime, nst_data_without_lifetime_size));
+
+                EXPECT_ERROR_WITH_ERRNO(s2n_tls13_server_nst_recv(conn, &input), S2N_ERR_BAD_MESSAGE);
+                /* Verify that the client only got as far as the ticket_lifetime when parsing */
+                EXPECT_EQUAL(s2n_stuffer_data_available(&input), nst_data_without_lifetime_size);
+                /* Verify that the client did not accept + store the ticket */
+                EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);
+
+                EXPECT_SUCCESS(s2n_connection_free(conn));
+            }
+
             EXPECT_SUCCESS(s2n_config_free(config));
         }
     }

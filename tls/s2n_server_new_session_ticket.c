@@ -316,17 +316,23 @@ S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stu
     struct s2n_ticket_fields *ticket_fields = &conn->tls13_ticket_fields;
 
     /* Handle `ticket_lifetime` field */
-    uint32_t session_lifetime = 0;
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(input, &session_lifetime));
+    uint32_t ticket_lifetime = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(input, &ticket_lifetime));
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+     *# Servers MUST NOT use any value greater than
+     *# 604800 seconds (7 days).
+     */
+    RESULT_ENSURE(ticket_lifetime <= ONE_WEEK_IN_SEC, S2N_ERR_BAD_MESSAGE);
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
      *# The value of zero indicates that the
      *# ticket should be discarded immediately.
      */
-    if (session_lifetime == 0) {
+    if (ticket_lifetime == 0) {
         return S2N_RESULT_OK;
     }
-    conn->ticket_lifetime_hint = session_lifetime;
+    conn->ticket_lifetime_hint = ticket_lifetime;
 
     /* Handle `ticket_age_add` field */
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(input, &ticket_fields->ticket_age_add));
@@ -359,7 +365,7 @@ S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stu
 
         struct s2n_session_ticket ticket = {
                 .ticket_data = session_state,
-                .session_lifetime = session_lifetime
+                .session_lifetime = ticket_lifetime
         };
         RESULT_GUARD_POSIX(conn->config->session_ticket_cb(conn, conn->config->session_ticket_ctx, &ticket));
     }
