@@ -31,7 +31,7 @@
 /* To avoid a DoS attack triggered by decrypting too many session tickets,
  * set a limit on the number of tickets we will attempt to decrypt before giving up.
  * We may want to make this configurable someday, but just set a reasonable maximum for now. */
-#define MAX_REJECTED_TICKETS 5
+#define MAX_REJECTED_TICKETS 3
 
 static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
