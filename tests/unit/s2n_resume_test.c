@@ -801,6 +801,40 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         }
 
+        /* Deserializing state ignores extra data.
+         * This will make it possible to easily add new fields in the future, without needing
+         * to worry about versioning. */
+        {
+            uint8_t extra_data[] = "more ticket data, maybe from the future";
+
+            DEFER_CLEANUP(struct s2n_stuffer ticket_stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&ticket_stuffer, 0));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&ticket_stuffer, tls13_ticket_with_early_data,
+                    sizeof(tls13_ticket_with_early_data)));
+            /* Add some unexpected data */
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&ticket_stuffer, extra_data, sizeof(extra_data)));
+
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+
+            struct s2n_config *config = s2n_config_new();
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            /* Initialize client ticket */
+            const uint8_t client_ticket[] = { CLIENT_TICKET };
+            EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, sizeof(client_ticket)));
+            EXPECT_MEMCPY_SUCCESS(conn->client_ticket.data, client_ticket, sizeof(client_ticket));
+
+            EXPECT_OK(s2n_deserialize_resumption_state(conn, &conn->client_ticket, &ticket_stuffer));
+            EXPECT_EQUAL(conn->psk_params.psk_list.len, 1);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&ticket_stuffer), sizeof(extra_data));
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_config_free(config));
+        }
+
         /* Any existing psks are removed when creating a new resumption psk */
         {
             struct s2n_blob ticket_blob = { 0 };
