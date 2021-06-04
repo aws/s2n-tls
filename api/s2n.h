@@ -727,8 +727,7 @@ struct s2n_psk;
  * Sets the maximum early data that a server will accept.
  *
  * The maximum early data size is both used to limit the client early data bytes the server accepts and is
- * included on new session tickets to communicate the server limit to clients. If too much early data is received,
- * the server will report a protocol error and close the connection.
+ * included on new session tickets to communicate the server limit to clients.
  *
  * If 0, the server rejects all early data requests. If this method is not called, the server max early data size defaults to 0.
  * This API has no effect in client mode.
@@ -770,12 +769,11 @@ S2N_API int s2n_connection_set_server_early_data_context(struct s2n_connection *
 /**
  * Configures a particular pre-shared key to allow early data.
  *
- * `max_early_data_size` must be set to the maximum early data allowed. If too much early data is received,
- * the server will report a protocol error and close the connection.
+ * `max_early_data_size` must be set to the maximum early data accepted by the server.
  *
  * In order to use early data, the cipher suite set on the pre-shared key must match the cipher suite
  * ultimately negotiated by the TLS handshake. Additionally, the cipher suite must have the same
- * hmac algorithm as the pre-shared key. The pre-shared key's hmac algorithm may be set with `s2n_psk_set_hmac`.
+ * hmac algorithm as the pre-shared key.
  *
  * @param psk A pointer to the pre-shared key, created with `s2n_external_psk_new`.
  * @param max_early_data_size The maximum early data that can be sent or received using this key.
@@ -850,8 +848,8 @@ S2N_API int s2n_connection_get_remaining_early_data_size(struct s2n_connection *
 /**
  * Reports the maximum size of the early data allowed by a connection.
  *
- * This is the maximum amount of early data that can be sent and received if early data is requested
- * and then accepted. Sending too much early data will cause the server to close the connection.
+ * This is the maximum amount of early data that can be sent and received, assuming that early data
+ * is requested and accepted.
  *
  * @param conn A pointer to the connection
  * @param max_early_data_size A pointer which will be set to the maximum early data allowed by `conn`
@@ -863,7 +861,7 @@ S2N_API int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, 
  * Called by the client to begin negotiation and send early data.
  *
  * See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#using-early-data--0rtt
- * for usage and examples. Do NOT use if you have not considered the security issues and
+ * for usage and examples. DO NOT USE unless you have considered the security issues and
  * implemented mitigation for anti-replay attacks.
  *
  * @param conn A pointer to the connection
@@ -880,7 +878,7 @@ S2N_API int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data
  * Called by the server to begin negotiation and accept any early data the client sends.
  *
  * See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#using-early-data--0rtt
- * for usage and examples. Do NOT use if you have not considered the security issues and
+ * for usage and examples. DO NOT USE unless you have considered the security issues and
  * implemented mitigation for anti-replay attacks.
  *
  * @param conn A pointer to the connection
@@ -926,9 +924,6 @@ S2N_API int s2n_config_set_early_data_cb(struct s2n_config *config, s2n_early_da
 /**
  * Get the length of the early data context set by the user.
  *
- * The context is set via `s2n_psk_set_early_data_context` for external pre-shared keys
- * or `s2n_connection_set_server_early_data_context` for session tickets.
- *
  * @param early_data A pointer to the early data information
  * @param context_len The length of the user context
  * @return A POSIX error signal.
@@ -937,9 +932,6 @@ S2N_API int s2n_offered_early_data_get_context_length(struct s2n_offered_early_d
 
 /**
  * Get the early data context set by the user.
- *
- * The context is set via `s2n_psk_set_early_data_context` for external pre-shared keys
- * or `s2n_connection_set_server_early_data_context` for session tickets.
  *
  * @param early_data A pointer to the early data information
  * @param context A byte buffer to copy the user context into
