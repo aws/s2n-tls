@@ -32,6 +32,8 @@
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_connection.h"
 
+#define ONE_DAY_IN_SECS 86400
+
 int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type)
 {
     POSIX_ENSURE_REF(cert);
@@ -335,7 +337,28 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
     return 0;
 }
 
-static int s2n_cert_chain_and_key_set_names(struct s2n_cert_chain_and_key *chain_and_key, struct s2n_blob *leaf_bytes)
+DEFINE_POINTER_CLEANUP_FUNC(ASN1_TIME *, ASN1_STRING_free);
+
+static S2N_RESULT s2n_cert_chain_and_key_load_expiration_time(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
+{
+    RESULT_ENSURE_REF(chain_and_key);
+    RESULT_ENSURE_REF(x509_cert);
+
+    const time_t epoch_time = 0;
+    DEFER_CLEANUP(ASN1_TIME *asn1_epoch_time = ASN1_TIME_set(NULL, epoch_time), ASN1_STRING_free_pointer);
+    RESULT_ENSURE_REF(asn1_epoch_time);
+
+    const ASN1_TIME *not_after = X509_get0_notAfter(x509_cert);
+    RESULT_ENSURE_REF(not_after);
+
+    int days = 0, secs = 0;
+    ASN1_TIME_diff(&days, &secs, asn1_epoch_time, not_after);
+
+    chain_and_key->expiration_time_in_seconds = (days * (uint64_t) ONE_DAY_IN_SECS) + secs;
+    return S2N_RESULT_OK;
+}
+
+static int s2n_cert_chain_and_key_parse_leaf(struct s2n_cert_chain_and_key *chain_and_key, struct s2n_blob *leaf_bytes)
 {
     const unsigned char *leaf_der = leaf_bytes->data;
     X509 *cert = d2i_X509(NULL, &leaf_der, leaf_bytes->size);
@@ -349,6 +372,8 @@ static int s2n_cert_chain_and_key_set_names(struct s2n_cert_chain_and_key *chain
      * in the future.
      */
     POSIX_GUARD(s2n_cert_chain_and_key_load_cns(chain_and_key, cert));
+
+    POSIX_GUARD_RESULT(s2n_cert_chain_and_key_load_expiration_time(chain_and_key, cert));
 
     X509_free(cert);
     return 0;
@@ -366,8 +391,8 @@ int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
     /* Validate the leaf cert's public key matches the provided private key */
     POSIX_GUARD(s2n_pkey_match(&public_key, chain_and_key->private_key));
 
-    /* Populate name information from the SAN/CN for the leaf certificate */
-    POSIX_GUARD(s2n_cert_chain_and_key_set_names(chain_and_key, &chain_and_key->cert_chain->head->raw));
+    /* Populate information from the leaf certificate */
+    POSIX_GUARD(s2n_cert_chain_and_key_parse_leaf(chain_and_key, &chain_and_key->cert_chain->head->raw));
 
     return S2N_SUCCESS;
 }

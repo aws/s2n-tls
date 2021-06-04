@@ -76,11 +76,33 @@ static S2N_RESULT s2n_tls13_serialize_keying_material_expiration(struct s2n_conn
         return S2N_RESULT_OK;
     }
 
-    uint64_t expiration_timestamp = now + (conn->server_keying_material_lifetime * (uint64_t) ONE_SEC_IN_NANOS);
+    uint64_t expiration_timestamp_default = now + (ONE_WEEK_IN_SEC * (uint64_t) ONE_SEC_IN_NANOS);
+    uint64_t expiration_timestamp_override = now + (conn->server_keying_material_lifetime * (uint64_t) ONE_SEC_IN_NANOS);
 
+    /* If the current connection used a resumption ticket, we reuse the expiration time
+     * because we're reusing the original keying material.
+     *
+     * Otherwise, use the NotAfter time from the certificate we used to authenticate.
+     * Minimally, a ticket should not be valid after the certificate used to authenticate
+     * it expires.
+     */
+    uint64_t expiration_timestamp = expiration_timestamp_default;
     struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
+    struct s2n_cert_chain_and_key *cert_chain = conn->handshake_params.our_chain_and_key;
     if (chosen_psk && chosen_psk->type == S2N_PSK_TYPE_RESUMPTION) {
-        expiration_timestamp = MIN(chosen_psk->keying_material_expiration, expiration_timestamp);
+        expiration_timestamp = chosen_psk->keying_material_expiration;
+    } else if (cert_chain) {
+        expiration_timestamp = cert_chain->expiration_time_in_seconds * (uint64_t) ONE_SEC_IN_NANOS;
+    } else if (conn->server_keying_material_lifetime) {
+        expiration_timestamp = expiration_timestamp_override;
+    }
+
+    /* If the user set a custom lifetime, apply it.
+     * However, a custom lifetime can't extend the lifetime of an existing ticket or set
+     * the lifetime longer than the original certificate's lifetime.
+     */
+    if (conn->server_keying_material_lifetime) {
+        expiration_timestamp = MIN(expiration_timestamp_override, expiration_timestamp);
     }
 
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint64(out, expiration_timestamp));

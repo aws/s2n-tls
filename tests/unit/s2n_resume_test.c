@@ -67,6 +67,10 @@ int main(int argc, char **argv)
     "18df06843d13a08bf2a449844c5f8a"
     "478001bc4d4c627984d5a41da8d0402919");
 
+    struct s2n_cert_chain_and_key *cert_chain = NULL;
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_chain,
+            S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+
     /* s2n_connection_get_session_state_size */
     {
         /* Safety */
@@ -425,7 +429,6 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(conn, 1));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
 
@@ -435,8 +438,62 @@ int main(int argc, char **argv)
             conn->tls13_ticket_fields = (struct s2n_ticket_fields) { .ticket_age_add = 1 };
             EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
 
-            /* New expiration time */
+            /* New default expiration time */
             {
+                EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(conn, 0));
+                uint64_t expected_expiration_time = ticket_issue_time + SECONDS_TO_NANOS(ONE_WEEK_IN_SEC);
+
+                EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &output));
+                tls13_server_state_size = s2n_stuffer_data_available(&output);
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, tls13_client_state_size - SIZE_OF_MAX_EARLY_DATA_SIZE));
+
+                uint64_t actual_keying_material_expiration = 0;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint64(&output, &actual_keying_material_expiration));
+                EXPECT_EQUAL(actual_keying_material_expiration, expected_expiration_time);
+
+                EXPECT_EQUAL(s2n_stuffer_data_available(&output), SIZE_OF_MAX_EARLY_DATA_SIZE);
+                EXPECT_SUCCESS(s2n_stuffer_wipe(&output));
+            }
+
+            /* New expiration time from server settings */
+            {
+                EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(conn, 1));
+                uint64_t expected_expiration_time = ticket_issue_time + ONE_SEC_IN_NANOS;
+
+                EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &output));
+                tls13_server_state_size = s2n_stuffer_data_available(&output);
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, tls13_client_state_size - SIZE_OF_MAX_EARLY_DATA_SIZE));
+
+                uint64_t actual_keying_material_expiration = 0;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint64(&output, &actual_keying_material_expiration));
+                EXPECT_EQUAL(actual_keying_material_expiration, expected_expiration_time);
+
+                EXPECT_EQUAL(s2n_stuffer_data_available(&output), SIZE_OF_MAX_EARLY_DATA_SIZE);
+                EXPECT_SUCCESS(s2n_stuffer_wipe(&output));
+            }
+
+            conn->handshake_params.our_chain_and_key = cert_chain;
+
+            /* New expiration time from certificate */
+            {
+                EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(conn, 0));
+                uint64_t expected_expiration_time = SECONDS_TO_NANOS(cert_chain->expiration_time_in_seconds);
+
+                EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &output));
+                tls13_server_state_size = s2n_stuffer_data_available(&output);
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, tls13_client_state_size - SIZE_OF_MAX_EARLY_DATA_SIZE));
+
+                uint64_t actual_keying_material_expiration = 0;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint64(&output, &actual_keying_material_expiration));
+                EXPECT_EQUAL(actual_keying_material_expiration, expected_expiration_time);
+
+                EXPECT_EQUAL(s2n_stuffer_data_available(&output), SIZE_OF_MAX_EARLY_DATA_SIZE);
+                EXPECT_SUCCESS(s2n_stuffer_wipe(&output));
+            }
+
+            /* New expiration time from certificate not supported by server settings */
+            {
+                EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(conn, 1));
                 uint64_t expected_expiration_time = ticket_issue_time + ONE_SEC_IN_NANOS;
 
                 EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &output));
@@ -458,6 +515,7 @@ int main(int argc, char **argv)
 
             /* Existing expiration time */
             {
+                EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(conn, 0));
                 uint64_t expected_expiration_time = ticket_issue_time + 1;
                 chosen_psk->keying_material_expiration = expected_expiration_time;
 
@@ -475,6 +533,7 @@ int main(int argc, char **argv)
 
             /* Existing expiration time not supported by server settings */
             {
+                EXPECT_SUCCESS(s2n_connection_set_server_keying_material_lifetime(conn, 1));
                 uint64_t expected_expiration_time = ticket_issue_time + ONE_SEC_IN_NANOS;
                 chosen_psk->keying_material_expiration = UINT64_MAX;
 
@@ -1404,5 +1463,6 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn.server_keying_material_lifetime, UINT32_MAX);
     }
 
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_chain));
     END_TEST();
 }

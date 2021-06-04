@@ -51,6 +51,8 @@ struct s2n_cert_chain_and_key {
      * server_name extension. Decoded as UTF8.
      */
     struct s2n_array *cn_names;
+    /* "NotAfter" field of the leaf certificate */
+    uint64_t expiration_time_in_seconds;
     /* Application defined data related to this cert. */
     void *context;
 };

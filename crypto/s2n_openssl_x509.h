@@ -18,7 +18,12 @@
 #include <stdint.h>
 #include <openssl/x509.h>
 
+#include "crypto/s2n_openssl.h"
 #include "utils/s2n_safety.h"
+
+#if !S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
+#define X509_get0_notAfter (const ASN1_TIME *)X509_get_notAfter
+#endif
 
 DEFINE_POINTER_CLEANUP_FUNC(X509*, X509_free);
 

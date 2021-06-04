@@ -554,6 +554,21 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(custom_cert_chain));
     }
 
+    /* Test NotAfter timestamp parsing */
+    {
+        struct s2n_cert_chain_and_key *rsa_2048_pkcs1_cert_chain = NULL;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_2048_pkcs1_cert_chain,
+                S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY));
+        EXPECT_EQUAL(rsa_2048_pkcs1_cert_chain->expiration_time_in_seconds, 4612964263);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_2048_pkcs1_cert_chain));
+
+        struct s2n_cert_chain_and_key *ecdsa_p384_pkcs1_cert_chain = NULL;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_p384_pkcs1_cert_chain,
+                S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+        EXPECT_EQUAL(ecdsa_p384_pkcs1_cert_chain->expiration_time_in_seconds, 4760668262);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_p384_pkcs1_cert_chain));
+    }
+
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     END_TEST();
 }
