@@ -1935,30 +1935,30 @@ function that can free memory.
 TLS1.3 introduced the ability for clients to send data before completing the handshake when using external pre-shared keys or session resumption.
 
 **WARNING:** Early data does not have the same security properties as regular data sent after a successful handshake.
-* It is not forward secret. This means that if the PSK or session resumption secret is compromised, then the early data is also compromised.
-* It is susceptible to replay attacks unless proper precautions are taken. This means that early data could be copied and successfully sent again by an attacker. See https://tools.ietf.org/rfc/rfc8446#appendix-E.5 and https://tools.ietf.org/rfc/rfc8446#section-8 for more details, and ["Adding anti-replay protection"](#adding-anti-replay-protection) for how to implement counter measures.
+* It is not forward secret. If the PSK or session resumption secret is compromised, then the early data is also compromised.
+* It is susceptible to replay attacks unless proper precautions are taken. Early data could be captured and successfully resent by an attacker. See https://tools.ietf.org/rfc/rfc8446#appendix-E.5 and https://tools.ietf.org/rfc/rfc8446#section-8 for more details, and ["Adding anti-replay protection"](#adding-anti-replay-protection) for how to implement counter measures.
 
 _**Do not enable early data for your application unless you have understood and mitigated the risks.**_
 
 ### Configuring session resumption for early data
 
-To use early data with session tickets, early data must be enabled on a server by setting the maximum early data allowed to a non-zero value with **s2n_config_set_server_max_early_data_size** or **s2n_connection_set_server_max_early_data_size**. The server will then begin issuing tickets that support early data, and clients can use early data when they use those tickets.
+To use early data with session tickets, early data must be enabled on a server by setting the maximum early data allowed to a non-zero value with **s2n_config_set_server_max_early_data_size** or **s2n_connection_set_server_max_early_data_size**. The server then begins issuing tickets that support early data, and clients can use early data when they use those tickets.
 
 ### Configuring external pre-shared keys for early data
 
-To use early data with pre-shared keys, individual pre-shared keys must support early data. In addition to configuring the maximum early data allowed, each pre-shared key will need an associated cipher suite and (if applicable) application protocol. Early data will only be accepted by the server if the pre-shared key's associated cipher suite and application protocol match the cipher suite and application protocol negotiated during the handshake.
+To use early data with pre-shared keys, individual pre-shared keys must support early data. In addition to configuring the maximum early data allowed, each pre-shared key needs an associated cipher suite and if applicable, application protocol. The server only accepts early data if the pre-shared key's associated cipher suite and application protocol match the cipher suite and the application protocol negotiated during the handshake.
 
 The maximum early data allowed and cipher suite can be set with **s2n_psk_configure_early_data**, and if the connection will negotiate an application protocol then the expected application protocol can be set with **s2n_psk_set_application_protocol**. 
 
 ### Sending early data
 
-To send early data, your application should call **s2n_send_early_data** before it calls **s2n_negotiate**. Like other IO functions, **s2n_send_early_data** will potentially fail with a blocking error repeatedly before it eventually succeeds: see [I/O Functions](#io-functions) for more information.
+To send early data, your application should call **s2n_send_early_data** before it calls **s2n_negotiate**. Like other IO functions, **s2n_send_early_data** can potentially fail repeatedly with a blocking error before it eventually succeeds: see [I/O Functions](#io-functions) for more information.
 
-**s2n_connection_get_remaining_early_data_size** can be called to check how much more early data the client is allowed to send. If **s2n_send_early_data** exceeds the allowed maximum it will return a usage error. 
+**s2n_connection_get_remaining_early_data_size** can be called to check how much more early data the client is allowed to send. If **s2n_send_early_data** exceeds the allowed maximum , s2n-tls returns a usage error.
 
 An application can stop calling **s2n_send_early_data** at any time, even if the function has not returned success yet. If **s2n_send_early_data** does return success, that means that the handshake has progressed to the point where the application should stop sending early data, complete the client side of the handshake, and begin sending normal data. However, **s2n_send_early_data** can continue to be called to send more early data if desired. 
 
-Once a client is done sending early data, **s2n_negotiate** should be called to complete the handshake just as you would for a handshake that did not include early data.
+Once a client finishes sending early data, you call **s2n_negotiate** to complete the handshake just as you would for a handshake that did not include early data.
 
 For example:
 ```
@@ -1984,11 +1984,11 @@ while (s2n_negotiate(client_conn, &blocked) != S2N_SUCCESS) {
 
 ### Receiving early data
 
-To receive early data, your application should call **s2n_recv_early_data** before it calls **s2n_negotiate**. Like other S2N IO functions, **s2n_recv_early_data** will potentially fail with a blocking error repeatedly before it eventually succeeds: see [I/O Functions](#io-functions) for more information.
+To receive early data, your application should call **s2n_recv_early_data** before it calls **s2n_negotiate**. Like other S2N IO functions, **s2n_recv_early_data** can potentially fail repeatedly with a blocking error before it eventually succeeds: see [I/O Functions](#io-functions) for more information.
 
-Once **s2n_recv_early_data** has been called once, it must be called until it returns success, indicating that all early data has been read. If an application stops calling it early, some early data may be left unread and cause later calls to **s2n_negotiate** to fail and close the connection with a protocol error. Calling **s2n_recv_early_data** again after it returns success is a no-op.
+Once **s2n_recv_early_data** has been called once, it must be called until it returns success, indicating that all early data has been read. If an application stops calling it early, some early data may be left unread and cause later calls to **s2n_negotiate** to fail and close the connection with a protocol error. Calling **s2n_recv_early_data** again after it returns success is possible but does nothing.
 
-Once a server has read all early data, **s2n_negotiate** should be called to complete the handshake just as you would for a handshake that did not include early data.
+Once a server has read all early data, you should call **s2n_negotiate** to complete the handshake just as you would for a handshake that did not include early data.
 
 For example:
 ```
@@ -2009,13 +2009,13 @@ while (s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {
 ```
 
 ### Adding anti-replay protection
-s2n-tls does not include anti-replay protection automatically. Effective anti-replay protection for a multi-server application will require some external state shared by all servers to avoid an attacker replaying early data originally sent to server A from being sent to server B. 
+s2n-tls does not include anti-replay protection automatically. Effective anti-replay protection for a multi-server application requires an external state shared by all servers. Without shared state, an attacker can capture early data originally sent to server A and successfully replay it against server B.
 
-Instead, s2n-tls provides a callback that customers can implement to hook into their own anti-replay solution. The **s2n_early_data_cb** can be used to accept or reject client requests to use early data. The callback can be configured by using **s2n_config_set_early_data_cb**.
+Instead, s2n-tls provides a callback that you can implement to hook into your anti-replay solution. The **s2n_early_data_cb** can be used to accept or reject client requests to use early data. The callback can be configured by using **s2n_config_set_early_data_cb**.
 
-Using the **s2n_offered_early_data** pointer offered by the callback, **s2n_offered_early_data_reject** and **s2n_offered_early_data_accept** can be called to accept or reject the client's request to use early data. The callback can be implemented asynchronously by returning without calling either method, causing the connection to block until the early data is either rejected or accepted.
+Using the **s2n_offered_early_data** pointer offered by the callback, **s2n_offered_early_data_reject** and **s2n_offered_early_data_accept** can be called to accept or reject the client request to use early data. The callback can be implemented asynchronously by returning without calling either method, causing the connection to block until the early data is either rejected or accepted.
 
-Like most s2n-tls callbacks, **s2n_early_data_cb** takes an optional context argument to allow custom state to be passed to implementations of the callback. Unlike most s2n-tls callbacks, the optional context is not configured when the callback is set. Instead, the context is associated with the specific pre-shared key or session ticket used for early data. The context can be set for external pre-shared keys by calling **s2n_psk_set_early_data_context**. For session tickets, **s2n_connection_set_server_early_data_context** can be used to set the context that a server will include on its new session tickets. Because the session ticket version of the context will need to be serialized into the ticket, the early data context is a byte buffer instead of the usual void pointer.
+Like most s2n-tls callbacks, **s2n_early_data_cb** takes an optional context argument to allow custom state to be passed to implementations of the callback. Unlike most s2n-tls callbacks, the optional context is not configured when the callback is set. Instead, the context is associated with the specific pre-shared key or session ticket used for early data. The context can be set for external pre-shared keys by calling **s2n_psk_set_early_data_context**. For session tickets, **s2n_connection_set_server_early_data_context** can be used to set the context that a server includes on its new session tickets. Because the session ticket version of the context needs to be serialized into the ticket, the early data context is a byte buffer instead of the usual void pointer
 
 
 # Examples
