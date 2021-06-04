@@ -1018,10 +1018,6 @@ set the public keys found in the Certificate into **public_key_out**.
 s2n-tls includes support for resuming from cached SSL/TLS session, provided 
 the caller sets (and implements) three callback functions.
 
-### s2n\_config\_set\_session\_cache\_onoff
-
-**s2n_config_set_session_cache_onoff** enables and disables the session cache. In order to use the session cache feature you will need to set a ticket key with **s2n_config_add_ticket_crypto_key** to encrypt session state inside the cache.
-
 ### s2n\_config\_set\_cache\_store\_callback
 
 ```c
@@ -1554,7 +1550,7 @@ handshake.
 
 **s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of bytes that were copied. The output of this function depends on whether session ids or session tickets are being used for resumption.
 
-If the first byte in **session** is 1, then the next 2 bytes will contain the session ticket length, followed by session ticket and session state. In TLS1.3 (which allows multiple session tickets), the most recent session ticket received will be used.
+If the first byte in **session** is 1, then the next 2 bytes will contain the session ticket length, followed by session ticket and session state. In versions TLS1.3 and greater, (which allows multiple session tickets), the most recent session ticket received will be used. Note that the size of the tickets increased between TLS1.2 and TLS1.3.
 
 If the first byte in **session** is 0, then the next byte will contain session id length, followed by session id and session state.
 
@@ -1568,9 +1564,11 @@ If the first byte in **session** is 0, then the next byte will contain session i
 
 **s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0, for tls versions < TLS1.3.
 
-## Additional TLS1.3 Session Resumption Related Calls
+## TLS1.3 Session Resumption Related Calls
 
-Session resumption works differently in versions TLS1.3 and higher. Session ticket messages are now sent after the handshake in "post-handshake" messages, and multiple session tickets may be issued for the same connection. While some of the TLS1.2 session resumption APIs are still relevant for TLS1.3 session resumption, additional APIs are needed to utilize all the capabilities of TLS1.3 session resumption.
+Session resumption works differently in versions TLS1.3 and higher. While some of the TLS1.2 session resumption APIs have relevance for TLS1.3 session resumption, you need additional APIs to utilize all the capabilities of TLS1.3 session resumption. Session ticket messages are now sent immediately after the handshake in "post-handshake" messages, although more tickets can be sent and received anytime after the handshake has completed. Additionally, multiple session tickets may be issued for the same connection.
+
+Clients need to call s2n_recv after negotiating to receive session ticket messages, as these could arrive anytime post-handshake.
 
 ```c
 int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num);
@@ -1584,13 +1582,13 @@ int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, size_t max_da
 int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, uint32_t *session_lifetime);
 ```
 
-**s2n_config_set_initial_ticket_count** sets the initial number of session tickets to send.
+**s2n_config_set_initial_ticket_count** sets the initial number of session tickets the server will send. The default value is one ticket.
 
-**s2n_connection_add_new_tickets_to_send** increases the number of session tickets to send by **num**.
+**s2n_connection_add_new_tickets_to_send** increases the number of session tickets to send by **num**. If this function is called after the handshake, a server should call s2n_send to send the additional session tickets, as they do not automatically get sent.
 
-**s2n_connection_set_server_keying_material_lifetime** sets the keying material lifetime for session tickets. Use this to ensure session tickets don't get reissued past the lifetime of the certificate used to authenticate the original full handshake.
+**s2n_connection_set_server_keying_material_lifetime** sets the keying material lifetime for session tickets. Use this to ensure session tickets don't get reissued past the lifetime of the certificate used to authenticate the original full handshake. The default lifetime is one week.
 
-**s2n_session_ticket_fn** is invoked whenever a client receives a session ticket. Use this callback in conjunction with the **s2n_session_ticket** getters to get the serialized ticket data and related information. A **ctx** pointer is provided to let a user pass state to the callback, if needed.
+**s2n_session_ticket_fn** is invoked whenever a client receives a session ticket. Use this callback in conjunction with the **s2n_session_ticket** getters to get the serialized ticket data and related information. A **ctx** pointer is provided to let a user pass state to the callback, if needed. Be careful if the implemented callback is expensive or allocates a lot of memory, as the server can send many session tickets.
 
 **s2n_config_set_session_ticket_cb** sets the session ticket callback function to be invoked whenever the client receives
 a session ticket from the server.
@@ -1598,7 +1596,7 @@ a session ticket from the server.
 **s2n_session_ticket_get_data_len** takes a s2n_session_ticket object and retrieves the number of bytes needed to store the session ticket. Use this to allocate enough memory for the session ticket in **s2n_session_ticket_get_data**.
 
 **s2n_session_ticket_get_data** takes a s2n_session_ticket object and copies the serialized session ticket data into the
-**data** buffer. For this reason **max_data_len** should be set to the maximum amount of bytes that can be copied into
+**data** buffer. For this reason **max_data_len** must be set to the maximum amount of bytes that can be copied into
 the **data** buffer.
 
 **s2n_session_ticket_get_lifetime** takes a s2n_session_ticket object and retrieves the lifetime of the ticket in seconds.
