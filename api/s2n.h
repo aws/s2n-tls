@@ -724,45 +724,43 @@ extern int s2n_config_enable_cert_req_dss_legacy_compat(struct s2n_config *confi
 struct s2n_psk;
 
 /**
- * Sets the maximum early data that a server will accept.
+ * Sets the maximum bytes of early data the server will accept.
  *
- * The maximum early data size is both used to limit the client early data bytes the server accepts and is
- * included on new session tickets to communicate the server limit to clients.
- *
- * If 0, the server rejects all early data requests. If this method is not called, the server max early data size defaults to 0.
- * This API has no effect in client mode.
+ * The default maximum is 0. If the maximum is 0, the server rejects all early data requests.
+ * The config maximum can be overridden by the connection maximum or the maximum on an external pre-shared key.
  *
  * @param config A pointer to the config
  * @param max_early_data_size The maximum early data that the server will accept
- * @return A POSIX error signal. If not success, the maximum early data size was not changed.
+ * @return A POSIX error signal. If successful, the maximum early data size was updated.
  */
 S2N_API int s2n_config_set_server_max_early_data_size(struct s2n_config *config, uint32_t max_early_data_size);
 
 /**
- * Sets the maximum early data that the server will accept for the connection, overriding any value set on the config.
- * See `s2n_config_set_server_max_early_data_size` for details.
+ * Sets the maximum bytes of early data the server will accept.
+ *
+ * The default maximum is 0. If the maximum is 0, the server rejects all early data requests.
+ * The connection maximum can be overridden by the maximum on an external pre-shared key.
  *
  * @param conn A pointer to the connection
  * @param max_early_data_size The maximum early data the server will accept
- * @return A POSIX error signal. If not success, the maximum early data size was not changed.
+ * @return A POSIX error signal. If successful, the maximum early data size was updated.
  */
 S2N_API int s2n_connection_set_server_max_early_data_size(struct s2n_connection *conn, uint32_t max_early_data_size);
 
 /**
  * Sets the user context associated with early data on a server.
  *
- * This context will be included in new session tickets and ultimately passed to the `s2n_early_data_cb` callback
- * to help decide whether to accept or reject early data.
+ * This context is passed to the `s2n_early_data_cb` callback to help decide whether to accept or reject early data.
  *
  * Unlike most contexts, the early data context is a byte buffer instead of a void pointer.
- * This is because we need to serialize the context into the session ticket.
+ * This is because we need to serialize the context into session tickets.
  *
  * This API is intended for use with session resumption, and will not affect pre-shared keys.
  *
  * @param conn A pointer to the connection
  * @param context A pointer to the user context data. This data will be copied.
  * @param context_size The size of the data to read from the `context` pointer.
- * @return A POSIX error signal. If not success, the context is unchanged.
+ * @return A POSIX error signal. If successful, the context was updated.
  */
 S2N_API int s2n_connection_set_server_early_data_context(struct s2n_connection *conn, const uint8_t *context, uint16_t context_size);
 
@@ -779,7 +777,7 @@ S2N_API int s2n_connection_set_server_early_data_context(struct s2n_connection *
  * @param max_early_data_size The maximum early data that can be sent or received using this key.
  * @param cipher_suite_first_byte The first byte in the registered IANA value of the associated cipher suite.
  * @param cipher_suite_second_byte The second byte in the registered IANA value of the associated cipher suite.
- * @return A POSIX error signal. If not success, `psk` was not configured to support early data.
+ * @return A POSIX error signal. If successful, `psk` was updated.
  */
 S2N_API int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data_size,
         uint8_t cipher_suite_first_byte, uint8_t cipher_suite_second_byte);
@@ -793,7 +791,7 @@ S2N_API int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early
  * @param psk A pointer to the pre-shared key, created with `s2n_external_psk_new`.
  * @param application_protocol A pointer to the associated application protocol data. This data will be copied.
  * @param size The size of the data to read from the `application_protocol` pointer.
- * @return A POSIX error signal. If not success, the application protocol was not set.
+ * @return A POSIX error signal. If successful, the application protocol was set.
  */
 S2N_API int s2n_psk_set_application_protocol(struct s2n_psk *psk, const uint8_t *application_protocol, uint8_t size);
 
@@ -806,7 +804,7 @@ S2N_API int s2n_psk_set_application_protocol(struct s2n_psk *psk, const uint8_t 
  * @param psk A pointer to the pre-shared key, created with `s2n_external_psk_new`.
  * @param context A pointer to the associated user context data. This data will be copied.
  * @param size The size of the data to read from the `context` pointer.
- * @return A POSIX error signal. If not success, the context was not set.
+ * @return A POSIX error signal. If successful, the context was set.
  */
 S2N_API int s2n_psk_set_early_data_context(struct s2n_psk *psk, const uint8_t *context, uint16_t size);
 
@@ -836,8 +834,8 @@ S2N_API int s2n_connection_get_early_data_status(struct s2n_connection *conn, s2
  * Reports the remaining size of the early data allowed by a connection.
  *
  * If early data was rejected or not requested, the remaining early data size is 0.
- * Otherwise, the remaining early data size is the maximum early data allowed by the connection minus
- * the early data sent or received so far.
+ * Otherwise, the remaining early data size is the maximum early data allowed by the connection,
+ * minus the early data sent or received so far.
  *
  * @param conn A pointer to the connection
  * @param allowed_early_data_size A pointer which will be set to the remaining early data currently allowed by `conn`
@@ -867,7 +865,7 @@ S2N_API int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, 
  * @param conn A pointer to the connection
  * @param data A pointer to the early data to be sent
  * @param data_len The size of the early data to send
- * @param data_sent A pointer which will be set to the size of the early data actually sent
+ * @param data_sent A pointer which will be set to the size of the early data sent
  * @param blocked A pointer which will be set to the blocked status, as in `s2n_negotiate`.
  * @return A POSIX error signal. The error should be handled as in `s2n_negotiate`.
  */
@@ -884,7 +882,7 @@ S2N_API int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data
  * @param conn A pointer to the connection
  * @param data A pointer to a buffer to store the early data received
  * @param max_data_len The size of the early data buffer
- * @param data_received A pointer which will be set to the size of the early data actually received
+ * @param data_received A pointer which will be set to the size of the early data received
  * @param blocked A pointer which will be set to the blocked status, as in `s2n_negotiate`.
  * @return A POSIX error signal. The error should be handled as in `s2n_negotiate`.
  */
@@ -901,14 +899,14 @@ struct s2n_offered_early_data;
  * not the standard TLS early data validation.
  *
  * This callback can be synchronous or asynchronous. For asynchronous behavior, return success without
- * having called `s2n_offered_early_data_reject` or `s2n_offered_early_data_accept`. `early_data` will
+ * calling `s2n_offered_early_data_reject` or `s2n_offered_early_data_accept`. `early_data` will
  * still be a valid reference, and the connection will block until `s2n_offered_early_data_reject` or
- * `s2n_offered_early_data_accept` are called.
+ * `s2n_offered_early_data_accept` is called.
  *
  * @param conn A pointer to the connection
  * @param early_data A pointer which can be used to access information about the proposed early data
  *                   and then accept or reject it.
- * @return A POSIX error signal. If not success, the connection will be closed with an error.
+ * @return A POSIX error signal. If unsuccessful, the connection will be closed with an error.
  */
 typedef int (*s2n_early_data_cb)(struct s2n_connection *conn, struct s2n_offered_early_data *early_data);
 
@@ -917,7 +915,7 @@ typedef int (*s2n_early_data_cb)(struct s2n_connection *conn, struct s2n_offered
  *
  * @param conn A pointer to the connection
  * @param cb A pointer to the implementation of the callback.
- * @return A POSIX error signal. If not success, the callback was not set.
+ * @return A POSIX error signal. If successful, the callback was set.
  */
 S2N_API int s2n_config_set_early_data_cb(struct s2n_config *config, s2n_early_data_cb cb);
 
@@ -944,7 +942,7 @@ S2N_API int s2n_offered_early_data_get_context(struct s2n_offered_early_data *ea
  * Reject early data offered by the client.
  *
  * @param early_data A pointer to the early data information
- * @return A POSIX error signal.
+ * @return A POSIX error signal. If success, the client's early data will be rejected.
  */
 S2N_API int s2n_offered_early_data_reject(struct s2n_offered_early_data *early_data);
 
@@ -952,7 +950,7 @@ S2N_API int s2n_offered_early_data_reject(struct s2n_offered_early_data *early_d
  * Accept early data offered by the client.
  *
  * @param early_data A pointer to the early data information
- * @return A POSIX error signal.
+ * @return A POSIX error signal. If success, the client's early data will be accepted.
  */
 S2N_API int s2n_offered_early_data_accept(struct s2n_offered_early_data *early_data);
 
