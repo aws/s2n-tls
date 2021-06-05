@@ -43,7 +43,7 @@
 
 #include "utils/s2n_safety.h"
 
-/* Remove once the early data feature is released */
+/* TODO: Remove once the early data feature is released */
 #include "tls/s2n_early_data.h"
 
 #define MAX_CERTIFICATES 50
