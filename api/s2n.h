@@ -688,7 +688,6 @@ S2N_API
 extern int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len);
 
 /* Pre-shared key (PSK) Hash Algorithm - RFC 8446 Section-2.2 */
-/* https://tools.ietf.org/html/rfc8446#section-2.2 */
 typedef enum {
     S2N_PSK_HMAC_SHA256,
     S2N_PSK_HMAC_SHA384,
@@ -698,16 +697,9 @@ struct s2n_psk;
 
 /**
  * Creates a new s2n external Pre-shared key (PSK) object with `S2N_PSK_HMAC_SHA256` as the default 
- * PSK hash algorithm. An external PSK is an out-of-band provisioned PSK established 
- * externally using a secure mutually agreed upon mechanism. 
+ * PSK hash algorithm. An external PSK is a key established outside of TLS using a secure mutually agreed upon mechanism.
  * 
- * # Safety 
- *
  * Use `s2n_psk_free` to free the memory allocated to the s2n external PSK object created by this API. 
- *
- * The external PSK authentication mechanism in >= TLS1.3 implicitly assumes each PSK is known to exactly one client 
- * and one server, and these peers never switch roles. If this assumption is violated, the security properties of 
- * >= TLS1.3 are severely weakened
  *
  * @return struct s2n_psk* Returns a pointer to the newly created external PSK object.
  */
@@ -715,7 +707,7 @@ S2N_API
 struct s2n_psk* s2n_external_psk_new();
 
 /**
- * Frees the memory associated with the `s2n_psk` object.
+ * Frees the memory associated with the external PSK object.
  *
  * @param psk Pointer to the PSK object to be freed.
  */
@@ -723,17 +715,17 @@ S2N_API
 int s2n_psk_free(struct s2n_psk **psk);
 
 /**
- * Sets the PSK identity for a given s2n_psk object.
- * The PSK identity is a unique identifier for the pre-shared secret.
+ * Sets the identity for a given external PSK object.
+ * The identity is a unique identifier for the pre-shared secret.
  * It is a non-secret value represented by raw bytes.
  *
  * # Safety 
  *
- * The PSK identity is transmitted over the network unencrypted and is a non-secret value.
- * Do not include confidential information in the PSK identity.
+ * The identity is transmitted over the network unencrypted and is a non-secret value.
+ * Do not include confidential information in the identity.
  * 
- * Note that the identity is copied into s2n memory and the user is responsbile for freeing the memory 
- * associated with the `identity` input. 
+ * Note that the identity is copied into s2n-tls memory and the user is responsible for freeing the memory 
+ * associated with the identity input. 
  *
  * @param psk A pointer to a PSK object to be updated with the identity.
  * @param identity The identity in raw bytes format to be copied.
@@ -743,17 +735,16 @@ S2N_API
 int s2n_psk_set_identity(struct s2n_psk *psk, const uint8_t *identity, uint16_t identity_size);
 
 /**
- * Sets the out-of-band/externally provisioned PSK secret for a given s2n_psk object.
+ * Sets the out-of-band/externally provisioned secret for a given external PSK object.
  *
  * # Safety
  *
- * Note that the secret is copied into s2n memory and the user is responsbile for freeing the memory 
- * associated with the `secret` input. 
+ * Note that the secret is copied into s2n-tls memory and the user is responsible for freeing 
+ * the memory associated with the `secret` input. 
  *
- * When using an out-of-band provisioned pre-shared secret, a critical consideration is using 
- * sufficient entropy during the PSK generation. Deriving a shared secret from a password or 
- * other low-entropy sources is not secure. A low-entropy secret, or password, is subject to 
- * dictionary attacks based on the PSK binder. Refer: RFC8446 Section-2.2 for more information.
+ * Deriving a shared secret from a password or other low-entropy source
+ * is not secure and is subject to dictionary attacks.
+ * See https://tools.ietf.org/rfc/rfc8446#section-2.2 for more information.
  *
  * @param psk A pointer to a PSK object to be updated with the secret.
  * @param secret The secret in raw bytes format to be copied.
@@ -763,11 +754,11 @@ S2N_API
 int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secret_size);
 
 /**
- * Sets the PSK HMAC algorithm for a given s2n_psk object. The supported PSK HMAC 
+ * Sets the hash algorithm for a given external PSK object. The supported PSK Hash 
  * algorithms are as listed in the enum `s2n_psk_hmac` above.
  * 
- * @param psk A pointer to the s2n_psk object to be updated with the PSK HMAC algorithm.
- * @param hmac The PSK HMAC algorithm being set.  
+ * @param psk A pointer to the external PSK object to be updated with the PSK Hash algorithm.
+ * @param hmac The PSK Hash algorithm being set.  
  */
 S2N_API 
 int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac);
@@ -775,7 +766,8 @@ int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac);
 /**
  * Appends a PSK object to the list of PSKs supported by the s2n connection. 
  * If a PSK with a duplicate identity is found, an error is returned and the PSK is not added to the list.
- * Note that the PSK object is copied to the connection and the user is responsbile for freeing the memory associated with the s2n_psk object. 
+ * Note that a copy of `psk` is stored on the connection. The user is still responsible for freeing the 
+ * memory associated with `psk`.
  *
  * @param conn A pointer to the s2n_connection object that contains the list of PSKs supported.
  * @param psk A pointer to the `s2n_psk` object to be appended to the list of PSKs on the s2n connection.
@@ -788,7 +780,6 @@ int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk);
  * Currently s2n-tls supports two modes - `S2N_PSK_MODE_RESUMPTION`, which represents the PSKs established 
  * using the previous connection via session resumption, and `S2N_PSK_MODE_EXTERNAL`, which represents PSKs 
  * established out-of-band/externally using a secure mutually agreed upon mechanism.
- * Note that currently s2n-tls supports only PSK with ECDHE key exchange, which provides forward secrecy.
  */ 
 typedef enum {
     S2N_PSK_MODE_RESUMPTION,
@@ -800,7 +791,7 @@ typedef enum {
  * The supported PSK modes are listed in the enum `s2n_psk_mode` above. 
  * 
  * @param config A pointer to the s2n_config object being updated.
- * @param mode The PSK mode to be set. The supported psk modes are listed in the enum `s2n_psk_mode` above. 
+ * @param mode The PSK mode to be set.
  */
 S2N_API 
 int s2n_config_set_psk_mode(struct s2n_config *config, s2n_psk_mode mode);
@@ -808,9 +799,8 @@ int s2n_config_set_psk_mode(struct s2n_config *config, s2n_psk_mode mode);
 /**
  * Sets the PSK mode on the s2n connection object.
  * The supported PSK modes are listed in the enum `s2n_psk_mode` above. 
- * This API overrides the PSK mode for the connection and will continue to use the existing 
- * PSK mode even when a new config is set for the connection.
- * 
+ * This API overrides the PSK mode set on config for this connection.
+ *
  * @param conn A pointer to the s2n_connection object being updated.
  * @param mode The PSK mode to be set.
  */
@@ -819,8 +809,11 @@ int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode);
 
 /**
  * Gets the negotiated PSK identity length from the s2n connection object. The negotiated PSK 
- * refers to the chosen PSK by the server to be used for the PSK connection. 
- * If the negotiated PSK does not exist, the value `0` is returned.  
+ * refers to the chosen PSK by the server to be used for the connection. 
+ * 
+ * This API can be used to determine if the negotiated PSK exists. If negotiated PSK exists a 
+ * call to this API returns a value greater than zero. If the negotiated PSK does not exist, the 
+ * value `0` is returned.
  * 
  * @param conn A pointer to the s2n_connection object that successfully negotiated a PSK connection.
  * @param identity_length The length of the negotiated PSK identity. 
@@ -831,6 +824,8 @@ int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *con
 /**
  * Gets the negotiated PSK identity from the s2n connection object. 
  * If the negotiated PSK does not exist, the PSK identity will not be obtained and no error will be returned. 
+ * Prior to this API call, use `s2n_connection_get_negotiated_psk_identity_length` to determine if a 
+ * negotiated PSK exists or not. 
  *
  * # Safety
  *
@@ -903,7 +898,8 @@ int s2n_offered_psk_list_next(struct s2n_offered_psk_list *psk_list, struct s2n_
 /**
  * Returns the offered PSK list to its original read state.
  *
- * Calls to `s2n_offered_psk_list_next` will start over from the beginning of the list.
+ * When `s2n_offered_psk_list_reread` is called, `s2n_offered_psk_list_next` will return the first PSK 
+ * in the offered PSK list.
  *
  * @param psk_list A pointer to the offered PSK list being reread.
  */
@@ -915,7 +911,8 @@ int s2n_offered_psk_list_reread(struct s2n_offered_psk_list *psk_list);
  * This API matches the PSK identity received from the client against the server's known PSK identities 
  * list, in order to choose the PSK to be used for the connection. If the PSK identity sent from the client 
  * is NULL, no PSK is chosen for the connection. If the client offered PSK identity has no matching PSK identity 
- * with the server, an error will be returned. Use this API along with the `s2n_psk_selection_callback` callback to select a PSK identity.
+ * with the server, an error will be returned. Use this API along with the `s2n_psk_selection_callback` callback 
+ * to select a PSK identity.
  * 
  * @param psk_list A pointer to the server's known PSK list used to compare for a matching PSK with the client.
  * @param psk A pointer to the client's PSK object used to compare with the server's known PSK identities.
@@ -1072,6 +1069,10 @@ extern int s2n_config_set_key_log_cb(struct s2n_config *config, s2n_key_log_fn c
  */
 S2N_API
 extern int s2n_config_enable_cert_req_dss_legacy_compat(struct s2n_config *config);
+
+/* TODO: remove this declaration once the PSK work is released.
+ * It's required by some of the early data APIs. */
+struct s2n_psk;
 
 /**
  * Sets the maximum bytes of early data the server will accept.
