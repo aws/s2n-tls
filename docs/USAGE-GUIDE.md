@@ -1550,7 +1550,7 @@ handshake.
 
 **s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of bytes that were copied. The output of this function depends on whether session ids or session tickets are being used for resumption.
 
-If the first byte in **session** is 1, then the next 2 bytes will contain the session ticket length, followed by session ticket and session state. In versions TLS1.3 and greater, (which allows multiple session tickets), the most recent session ticket received will be used. Note that the size of the tickets increased between TLS1.2 and TLS1.3.
+If the first byte in **session** is 1, then the next 2 bytes will contain the session ticket length, followed by session ticket and session state. In versions TLS1.3 and greater, (which allows multiple session tickets), the most recent session ticket received will be used. Note that the size of the session tickets varies.
 
 If the first byte in **session** is 0, then the next byte will contain session id length, followed by session id and session state.
 
