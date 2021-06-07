@@ -332,7 +332,7 @@ supported status request type is OCSP, **S2N_STATUS_REQUEST_OCSP**.
 ```c
 typedef enum { S2N_CERT_AUTH_NONE, S2N_CERT_AUTH_REQUIRED, S2N_CERT_AUTH_OPTIONAL } s2n_cert_auth_type;
 ```
-**s2n_cert_auth_type** is used to declare what type of client certificiate authentication to use.
+**s2n_cert_auth_type** is used to declare what type of client certificate authentication to use.
 Currently the default for s2n-tls is for neither the server side or the client side to use Client (aka Mutual) authentication.
 
 ## Opaque structures
@@ -750,7 +750,7 @@ int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseco
 
 **s2n_config_set_wall_clock** allows the caller to set a
 callback function that will be used to get the system time. The callback function
-takes two arguments; a pointer to abitrary data for use within the callback,
+takes two arguments; a pointer to arbitrary data for use within the callback,
 and a pointer to a 64 bit unsigned integer. The first pointer will be set to
 the value of **data** which supplied by the caller when setting the callback.
 The integer pointed to by the second pointer should be set to the number of
@@ -766,7 +766,7 @@ int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nan
 
 **s2n_config_set_monotonic_clock** allows the caller to set a
 callback function that will be used to get monotonic time. The callback function
-takes two arguments; a pointer to abitrary data for use within the callback,
+takes two arguments; a pointer to arbitrary data for use within the callback,
 and a pointer to a 64 bit unsigned integer. The first pointer will be set to
 the value of **data** which supplied by the caller when setting the callback.
 The integer pointed to by the second pointer should be an always increasing value. The function
@@ -1361,7 +1361,7 @@ ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tl
 - **max_length** Max number of bytes to copy into the **out** buffer.
 
 **s2n_client_hello_get_extension_length** returns the number of bytes the given extension type takes on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
-**s2n_client_hello_get_extension_by_id** copies into the **out** buffer **max_length** bytes of a given extension type on the ClienthHello and returns the number of bytes that were copied.
+**s2n_client_hello_get_extension_by_id** copies into the **out** buffer **max_length** bytes of a given extension type on the ClientHello and returns the number of bytes that were copied.
 
 ### s2n\_connection\_client\_cert\_used
 
@@ -1548,7 +1548,11 @@ handshake.
 
 **s2n_connection_set_session** de-serializes the session state and updates the connection accordingly.
 
-**s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of bytes that were copied. If the first byte in **session** is 1, then the next 2 bytes will contain the session ticket length, followed by session ticket and session state. If the first byte in **session** is 0, then the next byte will contain session id length, followed by session id and session state.
+**s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of bytes that were copied. The output of this function depends on whether session ids or session tickets are being used for resumption.
+
+If the first byte in **session** is 1, then the next 2 bytes will contain the session ticket length, followed by session ticket and session state. In versions TLS1.3 and greater, (which allows multiple session tickets), the most recent session ticket received will be used. Note that the size of the session tickets varies.
+
+If the first byte in **session** is 0, then the next byte will contain session id length, followed by session id and session state.
 
 **s2n_connection_get_session_ticket_lifetime_hint** returns the session ticket lifetime hint in seconds from the server or -1 when session ticket was not used for resumption.
 
@@ -1559,6 +1563,43 @@ handshake.
 **s2n_connection_get_session_id** get the session id from the connection and copies into the **session_id** buffer and returns the number of bytes that were copied.
 
 **s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0, for tls versions < TLS1.3.
+
+## TLS1.3 Session Resumption Related Calls
+
+Session resumption works differently in versions TLS1.3 and higher. While some of the TLS1.2 session resumption APIs have relevance for TLS1.3 session resumption, you need additional APIs to utilize all the capabilities of TLS1.3 session resumption. Session ticket messages are now sent immediately after the handshake in "post-handshake" messages, although more tickets can be sent and received anytime after the handshake has completed. Additionally, multiple session tickets may be issued for the same connection.
+
+Clients need to call s2n_recv after negotiating to receive session ticket messages, as these could arrive anytime post-handshake.
+
+```c
+int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num);
+int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num);
+int s2n_connection_set_server_keying_material_lifetime(struct s2n_connection *conn, uint32_t lifetime_in_secs);
+
+typedef int (*s2n_session_ticket_fn)(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket);
+int s2n_config_set_session_ticket_cb(struct s2n_config *config, s2n_session_ticket_fn callback, void *ctx);
+int s2n_session_ticket_get_data_len(struct s2n_session_ticket *ticket, size_t *data_len);
+int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, size_t max_data_len, uint8_t *data);
+int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, uint32_t *session_lifetime);
+```
+
+**s2n_config_set_initial_ticket_count** sets the initial number of session tickets the server will send. The default value is one ticket.
+
+**s2n_connection_add_new_tickets_to_send** increases the number of session tickets to send by **num**. If this function is called after the handshake, a server should call s2n_send to send the additional session tickets, as they do not automatically get sent.
+
+**s2n_connection_set_server_keying_material_lifetime** sets the keying material lifetime for session tickets. Use this to ensure session tickets don't get reissued past the lifetime of the certificate used to authenticate the original full handshake. The default lifetime is one week.
+
+**s2n_session_ticket_fn** is invoked whenever a client receives a session ticket. Use this callback in conjunction with the **s2n_session_ticket** getters to get the serialized ticket data and related information. A **ctx** pointer is provided to let a user pass state to the callback, if needed. Be careful if the implemented callback is expensive or allocates a lot of memory, as the server can send many session tickets.
+
+**s2n_config_set_session_ticket_cb** sets the session ticket callback function to be invoked whenever the client receives
+a session ticket from the server.
+
+**s2n_session_ticket_get_data_len** takes a s2n_session_ticket object and retrieves the number of bytes needed to store the session ticket. Use this to allocate enough memory for the session ticket in **s2n_session_ticket_get_data**.
+
+**s2n_session_ticket_get_data** takes a s2n_session_ticket object and copies the serialized session ticket data into the
+**data** buffer. For this reason **max_data_len** must be set to the maximum amount of bytes that can be copied into
+the **data** buffer.
+
+**s2n_session_ticket_get_lifetime** takes a s2n_session_ticket object and retrieves the lifetime of the ticket in seconds.
 
 ### Session Ticket Specific calls
 
@@ -1607,7 +1648,7 @@ applied to the connection through **s2n_async_pkey_op_apply** call.
 
 Note, it is not safe to call multiple functions on the same **conn** or
 **op** objects from 2 different threads at the same time. Doing so will
-produce undefined behaviour. However it is safe to have a call to
+produce undefined behavior. However it is safe to have a call to
 function involving only **conn** at the same time with a call to
 function involving only **op**, as those 2 objects are not coupled with
 each other. It is also safe to free **conn** or **op** at any moment with

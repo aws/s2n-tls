@@ -98,16 +98,3 @@ extern int s2n_allowed_to_cache_connection(struct s2n_connection *conn);
 extern int s2n_resume_from_cache(struct s2n_connection *conn);
 extern int s2n_store_to_cache(struct s2n_connection *conn);
 S2N_RESULT s2n_connection_get_session_state_size(struct s2n_connection *conn, size_t *state_size);
-
-/* These functions will be labeled S2N_API and become a publicly visible api 
- * once we release the session resumption API. */
-S2N_API int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num);
-S2N_API int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num);
-S2N_API int s2n_connection_set_server_keying_material_lifetime(struct s2n_connection *conn, uint32_t lifetime_in_secs);
-
-struct s2n_session_ticket;
-typedef int (*s2n_session_ticket_fn)(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket);
-S2N_API int s2n_config_set_session_ticket_cb(struct s2n_config *config, s2n_session_ticket_fn callback, void *ctx);
-S2N_API int s2n_session_ticket_get_data_len(struct s2n_session_ticket *ticket, size_t *data_len);
-S2N_API int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, size_t max_data_len, uint8_t *data);
-S2N_API int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, uint32_t *session_lifetime);
