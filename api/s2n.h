@@ -1073,10 +1073,6 @@ extern int s2n_config_set_key_log_cb(struct s2n_config *config, s2n_key_log_fn c
 S2N_API
 extern int s2n_config_enable_cert_req_dss_legacy_compat(struct s2n_config *config);
 
-/* TODO: remove this declaration once the PSK work is released.
- * It's required by some of the early data APIs. */
-struct s2n_psk;
-
 /**
  * Sets the maximum bytes of early data the server will accept.
  *

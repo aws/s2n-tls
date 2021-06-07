@@ -43,9 +43,6 @@
 
 #include "utils/s2n_safety.h"
 
-/* TODO: Remove once the early data feature is released */
-#include "tls/s2n_early_data.h"
-
 #define MAX_CERTIFICATES 50
 
 static char default_certificate_chain[] =

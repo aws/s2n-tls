@@ -1829,7 +1829,7 @@ responsible for freeing the memory associated with the **secret** input. Be sure
 The supported PSK hash algorithms are listed in the **s2n_psk_hmac** enum. Note that in versions >= TLS1.3 the cipher suite selected has the same Hash alogrithm
 as the PSK. Use this API to override the default PSK Hash Algorithm value of **S2N_PSK_HMAC_SHA256**. From [RFC8446 Section-2.2](https://tools.ietf.org/html/rfc8446#section-2.2) when PSKs are provisioned out-of-band the KDF hash algorithm to be used with the PSK MUST also be provisioned. This API helps setting the KDF hash algorithm to be used with the PSK.
 
-After adding an identity and secret to the PSK object, append the PSK to the connection using 's2n_connection_append_psk'. This API sets up the list of PSKs on the connection that will later be used by the PSK extension to select a PSK for the connection. If a PSK with a duplicate identity is found, an error is returned and the PSK is not added to the list. Note that the PSK object is copied to the connection and the user is responsible for freeing the memory associated with the s2n_psk object. Use **s2n_psk_free** to free the memory associated with the external PSK object after using this API.
+After adding an identity and secret to the PSK object, append the PSK to the connection using **s2n_connection_append_psk**. This API sets up the list of PSKs on the connection that will later be used by the PSK extension to select a PSK for the connection. If a PSK with a duplicate identity is found, an error is returned and the PSK is not added to the list. Note that the PSK object is copied to the connection and the user is responsible for freeing the memory associated with the s2n_psk object. Use **s2n_psk_free** to free the memory associated with the external PSK object after using this API.
 
 **s2n_config_set_psk_mode** sets the PSK mode on the s2n config object. The enum **s2n_psk_mode** lists the supported PSK modes. Use this API prior to the ClientHello to set the PSK mode for the connection. This API can also be used to switch between the different PSK modes.
 
@@ -1851,7 +1851,7 @@ If the negotiated PSK does not exist, the value **0** is returned.
 **s2n_connection_get_negotiated_psk_identity** gets the negotiated PSK identity from the s2n connection object.
 If the negotiated PSK does not exist, the PSK identity will not be obtained and no error will be returned.
 
-### Configuring Offered Pre-Shared Keys
+### Using the Offered Pre-Shared Keys to Select a Pre-Shared Key
 
 The following APIs are use to create and free the offered PSK list:
 
@@ -1865,8 +1865,6 @@ This object is used to create the list of offered pre-shared keys shared by the 
 offered PSK object created by this API.
 
 **s2n_offered_psk_free** frees the memory associated with the **s2n_offered_psk** object.
-
-### Using the Offered Pre-Shared Keys to Select a Pre-Shared Key
 
 The following APIs are called by the server to selects the matching server PSK to be used for the connection.
 
