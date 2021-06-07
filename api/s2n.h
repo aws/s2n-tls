@@ -808,6 +808,14 @@ S2N_API int s2n_psk_set_application_protocol(struct s2n_psk *psk, const uint8_t 
  */
 S2N_API int s2n_psk_set_early_data_context(struct s2n_psk *psk, const uint8_t *context, uint16_t size);
 
+/* The status of early data on a connection.
+ *
+ * S2N_EARLY_DATA_STATUS_OK: Early data is in progress.
+ * S2N_EARLY_DATA_STATUS_NOT_REQUESTED: The client did not request early data, so none was sent or received.
+ * S2N_EARLY_DATA_STATUS_REJECTED: The client requested early data, but the server rejected the request.
+ *                                 Early data may have been sent, but was not received.
+ * S2N_EARLY_DATA_STATUS_END: All early data was successfully sent and received.
+ */
 typedef enum {
     S2N_EARLY_DATA_STATUS_OK,
     S2N_EARLY_DATA_STATUS_NOT_REQUESTED,
@@ -816,13 +824,9 @@ typedef enum {
 } s2n_early_data_status_t;
 
 /**
- * Reports the current state of early data.
+ * Reports the current state of early data for a connection.
  *
- * S2N_EARLY_DATA_STATUS_OK: Early data is in progress.
- * S2N_EARLY_DATA_STATUS_NOT_REQUESTED: The client did not request early data, so none was sent or received.
- * S2N_EARLY_DATA_STATUS_REJECTED: The client requested early data, but the server rejected the request.
- *                                 Early data may have been sent, but was not received.
- * S2N_EARLY_DATA_STATUS_END: All early data was successfully sent and received.
+ * See `s2n_early_data_status_t` for all possible states.
  *
  * @param conn A pointer to the connection
  * @param status A pointer which will be set to the current early data status
@@ -846,8 +850,9 @@ S2N_API int s2n_connection_get_remaining_early_data_size(struct s2n_connection *
 /**
  * Reports the maximum size of the early data allowed by a connection.
  *
- * This is the maximum amount of early data that can be sent and received, assuming that early data
- * is requested and accepted.
+ * This is the maximum amount of early data that can ever be sent and received for a connection.
+ * It is not affected by the actual status of the early data, so can be non-zero even if early data
+ * is rejected or not requested.
  *
  * @param conn A pointer to the connection
  * @param max_early_data_size A pointer which will be set to the maximum early data allowed by `conn`
