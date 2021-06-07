@@ -721,28 +721,30 @@ int s2n_psk_free(struct s2n_psk **psk);
 /**
  * Sets the pre-shared key (PSK) identity for a given s2n_psk object.
  * The pre-shared key identity is a unique identifier for the pre-shared secret.
- * It is a non-secret value represented by a UTF-8 string.
+ * It is a non-secret value represented by raw bytes.
  *
  * # Safety 
  *
  * The Pre-shared key identity is transmitted over the network unencrypted and is a non-secret value.
  * Be sure to not include any confidential information as a part of the pre-shared key identity. 
  * 
- * Note that it is possible for multiple clients to use the same pre-shared key secret to connect to the server 
- * in which case they would all share the pre-shared key identity associated with the shared pre-shared key secret.
+ * Note that the identity is copied into s2n memory and the user is responsbile for freeing the memory 
+ * associated with the `identity` input. 
  *
  * @param psk A pointer to pre-shared key object to be updated with the pre-shared key secret.
- * @param identity The pre-shared key identity being set.
+ * @param identity The pre-shared key identity in raw bytes format being copied.
  * @param identity_size The length of the pre-shared key identity being set.
  */
 S2N_API 
 int s2n_psk_set_identity(struct s2n_psk *psk, const uint8_t *identity, uint16_t identity_size);
 
 /**
- * Sets the out-of-band/externally provisioned pre-shared secret (PSK) for a given s2n_psk object.
- * The pre-shared key secret is a secret value that is pre-shared between the server and client securely.
+ * Sets the out-of-band/externally provisioned pre-shared key (PSK) secret for a given s2n_psk object.
  *
  * # Safety
+ *
+ * Note that the identity is copied into s2n memory and the user is responsbile for freeing the memory 
+ * associated with the `identity` input. 
  *
  * When using an out-of-band provisioned pre-shared secret, a critical consideration is using 
  * sufficient entropy during the pre-shared key generation. Deriving a shared secret from a password or 
@@ -750,16 +752,15 @@ int s2n_psk_set_identity(struct s2n_psk *psk, const uint8_t *identity, uint16_t 
  * dictionary attacks based on the pre-shared key binder. Refer: RFC8446 Section-2.2 for more information.
  *
  * @param psk A pointer to s2n_psk object to be updated with the pre-shared secret.
- * @param secret The pre-shared secret in raw bytes format.
+ * @param secret The pre-shared secret in raw bytes format being copied.
  * @param secret_size The length of the pre-shared secret being set.
  */
 S2N_API 
 int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secret_size);
 
 /**
- * Sets the pre-shared key (PSK) HMAC algorithm for a given s2n_psk object. 
- * The supported pre-shared key HMAC algorithms are `SHA256` and `SHA384` 
- * as listed in the enum `s2n_psk_hmac` above.
+ * Sets the pre-shared key (PSK) HMAC algorithm for a given s2n_psk object. The supported pre-shared key HMAC 
+ * algorithms are as listed in the enum `s2n_psk_hmac` above.
  * 
  * @param psk A pointer to the s2n_psk object to be updated with the pre-shared key HMAC algorithm.
  * @param hmac The pre-shared key HMAC algorithm being set.  
@@ -770,7 +771,8 @@ int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac);
 /**
  * Appends a pre-shared key (PSK) object to the list of pre-shared keys supported by the s2n connection. 
  * If a pre-shared key with a duplicate identity is found, an error is returned and the pre-shared key is not added to the list.
- * 
+ * Note that the PSK object is copied to the connection and the user is responsbile for freeing the memory associated with the s2n_psk object. 
+ *
  * @param conn A pointer to the s2n_connection object that contains the list of pre-shared keys supported.
  * @param psk A pointer to the `s2n_psk` object to be appended to the list of pre-shared keys on the s2n connection.
  */
@@ -781,8 +783,7 @@ int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk);
  * The list of pre-shared key modes supported by s2n-tls for TLS versions >= TLS1.3.
  * Currently s2n-tls supports two modes - `S2N_PSK_MODE_RESUMPTION` which represents the pre-shared keys established 
  * using the previous connection via session resumption, and `S2N_PSK_MODE_EXTERNAL` which represents pre-shared keys 
- * established out-of-band/externally using a secure mutually agreed upon mechanism.  
- *
+ * established out-of-band/externally using a secure mutually agreed upon mechanism.
  */ 
 typedef enum {
     S2N_PSK_MODE_RESUMPTION,
@@ -812,7 +813,8 @@ S2N_API
 int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode);
 
 /**
- * Gets the negotiated pre-shared key identity length from the s2n connection object. 
+ * Gets the negotiated pre-shared key identity length from the s2n connection object. The negotiated pre-shared key 
+ * refers to the chosen pre-shared key by the server to be used for the PSK connection. 
  * If the negotiated pre-shared key does not exist, the value `0` is returned.  
  * 
  * @param conn A pointer to the s2n_connection object that successfully negotiated a pre-shared key connection.
@@ -871,8 +873,6 @@ struct s2n_offered_psk_list;
 /**
  * Checks whether the offered pre-shared key list has an offered psk object next in line in the list.
  * An offered pre-shared key list contains all the pre-shared keys offered by the client for the server to select.
- *
- * If an offered pre-shared key exists next in line, this API returns True, otherwise False. 
  * 
  * @param psk_list A pointer to the offered pre-shared key list being read.
  * @return bool A boolean value representing whether an offered psk object is present next in line in the offered pre-shared key list.
@@ -882,7 +882,7 @@ bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list);
 
 /**
  * Obtains the next offered pre-shared key object from the list of offered pre-shared keys. Use `s2n_offered_psk_list_has_next` 
- * prior to this API call to determine if an offered pre-shared key exists next in the list. 
+ * prior to this API call to ensure we have not reached the end of the list.
  * 
  * @param psk_list A pointer to the offered pre-shared key list being read.
  * @param psk A pointer to the next offered pre-shared key object being obtained.
@@ -891,9 +891,10 @@ S2N_API
 int s2n_offered_psk_list_next(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
 
 /**
- * Resets the offered pre-shared key list pointer to the initial pre-shared key object in the order 
- * in which the pre-shared key objects were originally added to the list by the client.
- *  
+ * Returns the offered pre-shared key list to its original read state.
+ *
+ * Calls to `s2n_offered_psk_list_next` will start over from the beginning of the list.
+ *
  * @param psk_list A pointer to the offered pre-shared key list being reread.
  */
 S2N_API 
@@ -929,8 +930,8 @@ typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn, void *con
 
 /**
  * Sets the callback to select the matching pre-shared key (PSK). 
- * If this callback is not set s2n-tls uses a default PSK selection logic that chooses the first matching 
- * pre-shared key from the list of offered pre-shared keys shared by the client. 
+ * If this callback is not set s2n-tls uses a default PSK selection logic that selects the first matching 
+ * server pre-shared key.
  * 
  * @param config A pointer to the s2n_config object.
  * @param cb The function that should be called when the callback is triggered.
