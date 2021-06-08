@@ -1779,27 +1779,25 @@ of sensitive data.
 
 ## TLS1.3 Pre-Shared Key Related Calls
 
-S2N-TLS provides support for pre-shared keys (PSKs). PSKs can be established out of band (external PSKs) or in a previous connection (resumption PSKs) for versions >= TLS1.3.
-The PSK is used to mutually authenticate the peers, under the assumption that it is not shared with others.
-This allows the handshake to skip the certificate verification steps, saving bandwidth and latency.
+S2N-TLS provides support for pre-shared keys (PSKs). A PSK is a secret shared between two peers before the TLS handshake. PSKs can be established out of band (external PSKs) or in a previous connection (resumption PSKs) for versions >= TLS1.3. The PSK is used to authenticate the peers, under the assumption that it is not shared with others. This allows the handshake to skip the certificate verification steps, saving bandwidth and latency.
 
 ### Benefits of Using Pre-Shared Keys
 
 - Using pre-shared keys can avoid the need for public key operations.
   This is useful in performance-constrained environments with limited CPU power.
-- PSKs may be more convenient from a key management point of view. For instance, in closed environments where you manually configure the connections in advance, it is easier to configure a PSK than to use certificates. Another case is when the parties already have a mechanism for setting up a shared secret key, and that mechanism could be used to "bootstrap" a key for authenticating the TLS connection.
-- PSKs are more appropriate for use cases with long-lived credentials stored in hardware secure elements than PKI-based
-  solutions which enforces expiration dates and requires error-prone rotation schemes.
+- PSKs may be more convenient from a key management point of view. For instance, in closed environments where you manually configure the connections in advance, it is easier to configure a PSK than to use certificates. Another case where it may be more convenient to use PSKs is when the parties already have a mechanism for setting up a shared secret key. That mechanism could be used to "bootstrap" a key for authenticating the TLS connection.
+- PSKs may be more appropriate when using long-lived credentials in hardware security modules, given that PKI-based solutions enforce expiration dates and require error-prone rotation schemes.
 
 ### Security Considerations
 
-- To prevent the reflection (selfie) attack, use a different PSK for each endpoint, and use a different PSK when acting as a server and a different PSK when acting as a client. Read the research paper titled [Selfie: reflections on TLS 1.3 with PSK](https://eprint.iacr.org/2019/347.pdf) for more information.
+- A peer that acts as both server and client should not use the same PSK for both roles. Similarly, the peer should not use the same PSK on different endpoints.
+  Doing so would expose the handshake to a selfie attack. This attack is elaborated in detail here: [Selfie: reflections on TLS 1.3 with PSK](https://eprint.iacr.org/2019/347.pdf)
 - If you configure the server name during the ClientHello callback, you should also set the PSKs at the same time.
-- The external PSK authentication mechanism implicitly assumes each PSK is known to exactly one client and one server, and these peers never switch roles. If this assumption is violated, the security properties of >= TLS1.3 are severely weakened.
+- Each PSK should be known to exactly _one_ client and _one_ server, and these peers should never switch roles. If this assumption is violated, the security properties of >= TLS1.3 are severely weakened.
 
 ### Configuring External Pre-Shared Keys
 
-Use the following APIs to configure and use external pre-shared keys.
+Use the following APIs to configure external pre-shared keys.
 
 ```c
 struct s2n_psk* s2n_external_psk_new();
@@ -1812,9 +1810,7 @@ int s2n_config_set_psk_mode(struct s2n_config *config, s2n_psk_mode mode);
 int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode);
 ```
 
-To create an external PSK a caller must call the **s2n_external_psk_new** API. **s2n_external_psk_new** creates a new external PSK object
-with **S2N_PSK_HMAC_SHA256** as the default PSK hash algorithm. Use **s2n_psk_free** to free the memory allocated to the external
-PSK object created by this API.
+**s2n_external_psk_new** creates a new external PSK object with **S2N_PSK_HMAC_SHA256** as the default PSK hash algorithm. Use **s2n_psk_free** to free the memory allocated to the external PSK object created by this API.
 
 **s2n_psk_set_identity** sets the PSK identity for a given PSK. The PSK identity is a unique identifier for the pre-shared secret. The PSK identity is transmitted over the network unencrypted and is a non-secret value. Do not include any confidential information in the identity. Note that the identity value is copied into s2n-tls memory and the user is responsible for freeing the memory associated with the **identity** input.
 
@@ -1823,35 +1819,16 @@ PSK object created by this API.
 **s2n_psk_set_hmac** sets the PSK hash algorithm for a given PSK.
 The supported PSK hash algorithms are listed in the **s2n_psk_hmac** enum. This API overrides the default PSK hash algorithm value of **S2N_PSK_HMAC_SHA256**. Use this API if you wish to select a different cipher suite, as the selected cipher suite must have the same hash algorithm as the PSK.
 
-After adding an identity and secret to the PSK object, append the PSK to the connection using **s2n_connection_append_psk**. This API sets up the connection to be later used by the server PSK extension to select a PSK for the connection. If a PSK with a duplicate identity is found, an error is returned and the PSK is not added to the list. If the connection already contains a list of PSKs **s2n_connection_append_psk** will verify that the PSK mode being set matches that of the list. If the PSK modes differs, an error is returned. If there is no existing list of PSKs present on the connection (the input PSK is the first PSK to be added to the list) the PSK mode of the list is set to the input PSK's mode. The PSK object is copied to the connection and the user is responsible for freeing the memory associated with the PSK object. Note that both the server and client should order the PSKs appended in preference order ranging from highest preferred PSK to lowest preferred PSK.
+**s2n_connection_append_psk** appends the PSK to the connection. Both server and client should call this API to add PSKs to their connection. Note that the order this API is called matters, as PSKs that are appended first will be more preferred than PSKs appended last. This API sets up the connection to be later used by the server PSK extension to select a PSK for the connection. If a PSK with a duplicate identity is found, an error is returned and the PSK is not added to the list. If the connection already contains a list of PSKs **s2n_connection_append_psk** will verify that the PSK mode being set matches that of the list. If the PSK modes differs, an error is returned. If there is no existing list of PSKs present on the connection (the input PSK is the first PSK to be added to the list) the PSK mode of the list is set to the input PSK mode. The PSK object is copied to the connection and the user is responsible for freeing the memory associated with the PSK object.
 
 **s2n_config_set_psk_mode** sets the PSK mode on the config object. The PSK mode represents how the pre-shared key was generated and shared between the server and the client. The enum **s2n_psk_mode** lists the supported PSK modes. Use this API prior to the ClientHello to set the PSK mode for the connection. This API can also be used to switch between the different PSK modes.
 
-**s2n_connection_set_psk_mode** sets the PSK mode on the connection object. The supported PSK modes are listed in the
-enum **s2n_psk_mode** within the **api/s2n.h** file. This API overrides the PSK mode set on config for this connection.
-If the connection already contains a list of PSKs **s2n_connection_set_psk_mode** will verify that the PSK mode being set matches
-that of the list. If the PSK mode being set differs from the existing list, an error is returned. If there is no existing list of PSKs present on the connection, the PSK mode of the list is set to the input PSK mode.
-
-### Obtaining Negotiated Pre-Shared Keys
-
-The following APIs enable the caller to obtain the PSK selected by the server for the connection.
-
-```c
-int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *conn, uint16_t *identity_length);
-int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint8_t *identity, uint16_t max_identity_length);
-```
-
-**s2n_connection_get_negotiated_psk_identity_length** gets the negotiated PSK identity length from the connection object.
-If the negotiated PSK does not exist, the value **0** is returned. **s2n_connection_get_negotiated_psk_identity_length** can
-be used to determine if a negotiated PSK exists or not. If the negotiated PSK  exists **s2n_connection_get_negotiated_psk_identity_length** returns a value greater than zero.
-
-**s2n_connection_get_negotiated_psk_identity** gets the negotiated PSK identity from the connection object.
-If the negotiated PSK does not exist, the PSK identity will not be obtained and no error will be returned.
-Use **s2n_connection_get_negotiated_psk_identity_length** prior to this API call to determine if a negotiated PSK exists or not.
+**s2n_connection_set_psk_mode** sets the PSK mode on the connection object. The enum **s2n_psk_mode** lists the supported PSK modes. This API overrides the PSK mode set on config for this connection. If the connection already contains a list of PSKs **s2n_connection_set_psk_mode** verifies that the current PSK mode matches that of the list. If the PSK mode being set differs from the existing list, an error is returned. If there is no existing list of PSKs present on the connection, the PSK mode of the list is set to the input PSK mode.
 
 ### Selecting a Pre-Shared Key
 
-The following APIs are use to create and free the offered PSK list.
+By default, s2n server chooses the first identity in its PSK list that also appears in the client's PSK list. If you would like to implement your own PSK selection logic,
+use the **s2n_psk_selection_callback** to select the PSK to be used for the connection, along with the following offered PSK APIs to process the client sent list of PSKs.
 
 ```c
 struct s2n_offered_psk* s2n_offered_psk_new();
@@ -1859,12 +1836,12 @@ int s2n_offered_psk_free(struct s2n_offered_psk **psk);
 ```
 
 **s2n_offered_psk** creates a new offered PSK object. An offered PSK represents a single PSK offered by the client.
-This object is used to create the list of offered PSKs sent by the client. Use **s2n_offered_psk_free** to free
+Use this object to create the list of offered PSKs sent by the client. Use **s2n_offered_psk_free** to free
 the memory allocated to the offered PSK object created by this API.
 
 **s2n_offered_psk_free** frees the memory associated with the **s2n_offered_psk** object.
 
-The following APIs are called by the server to selects the PSK to be used for the connection.
+The server calls the following APIs to select the PSK to be used for the connection.
 
 ```c
 int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t** identity, uint16_t *size);
@@ -1883,7 +1860,7 @@ By default, s2n-tls server chooses the first identity in its PSK list that also 
 **s2n_offered_psk_get_identity** gets the PSK identity and PSK identity length for a given offered PSK object.
 Callers can use this API to obtain the identity value set on the **s2n_offered_psk** object.
 
-**s2n_offered_psk_list_has_next** checks whether the offered PSK list has an offered psk object next in line in the list.
+**s2n_offered_psk_list_has_next** checks whether the offered PSK list has an offered PSK object next in line in the list.
 An offered PSK list contains all the pre-shared keys offered by the client for the server to select.
 If an offered PSK exists next in line, this API returns True, otherwise False.
 Use this API prior to calling **s2n_offered_psk_list_next** to obtain the next offered PSK object from the offered PSK list.
@@ -1898,7 +1875,7 @@ After **s2n_offered_psk_list_reread** is called, the next call to **s2n_offered_
 This API matches the PSK identity received from the client against the server's known PSK identities list,
 in order to choose the PSK to be used for the connection. If the PSK identity sent from the client is NULL,
 no PSK is chosen for the connection. If the client offered PSK identity has no matching PSK identity with the server,
-an error will be returned. Use this API along with the optional **s2n_psk_selection_callback** to select a PSK for the connection.
+s2n-tls returns an error. Use this API along with the optional **s2n_psk_selection_callback** to select a PSK for the connection.
 
 **s2n_psk_selection_callback** is a callback function that the server calls to select a PSK from a list of offered PSKs.
 Use this callback to implement custom PSK selection logic. By default s2n-tls server chooses the first identity in its PSK
@@ -1911,8 +1888,8 @@ by the server prior to the ClientHello.
 
 For Example:
 
-In the following example **s2n_psk_selection_callback** selects a PSK with a shared PSK wired index
-that is sent to the callback via the **context** pointer.
+In the following example **s2n_psk_selection_callback** selects a PSK with a shared PSK wired index and sends it to the
+callback via the **context** pointer.
 
 ```c
 int s2n_psk_selection_callback(struct s2n_connection *conn, void *context,
@@ -1938,7 +1915,7 @@ uint16_t expected_wire_choice = 0;
 s2n_config_set_psk_selection_callback(config, s2n_psk_selection_callback, &expected_wire_choice));
 ```
 
-In the following example **s2n_psk_selection_callback** is used to set the list of server supported PSKs and also select
+In the following example **s2n_psk_selection_callback** sets the list of server supported PSKs and also selects
 the PSK to be used for the connection.
 
 ```c
@@ -1986,6 +1963,23 @@ int s2n_psk_selection_callback(struct s2n_connection *conn, void *context,
     return S2N_SUCCESS;
 }
 ```
+
+### Retrieve the Negotiated Pre-Shared Key
+
+The following APIs enable the caller to retrieve the PSK selected by the server for the connection.
+
+```c
+int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *conn, uint16_t *identity_length);
+int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint8_t *identity, uint16_t max_identity_length);
+```
+
+**s2n_connection_get_negotiated_psk_identity_length** gets the negotiated PSK identity length from the connection object.
+If the negotiated PSK does not exist, the value **0** is returned. **s2n_connection_get_negotiated_psk_identity_length** can
+be used to determine if a negotiated PSK exists or not.
+
+**s2n_connection_get_negotiated_psk_identity** gets the negotiated PSK identity from the connection object.
+If the negotiated PSK does not exist, s2n-tls does not obtain the PSK identity and does not return an error.
+Use **s2n_connection_get_negotiated_psk_identity_length** prior to this API call to determine if a negotiated PSK exists or not.
 
 ## I/O functions
 
