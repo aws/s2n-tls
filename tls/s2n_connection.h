@@ -340,7 +340,7 @@ struct s2n_connection {
 
     /* Bitmap to represent preferred list of keyshare for client to generate and send keyshares in the ClientHello message.
      * The least significant bit (lsb), if set, indicates that the client must send an empty keyshare list.
-     * Each bit value in the bitmap indiciates the corresponding curve in the ecc_preferences list for which a key share needs to be generated.
+     * Each bit value in the bitmap indicates the corresponding curve in the ecc_preferences list for which a key share needs to be generated.
      * The order of the curves represented in the bitmap is obtained from the security_policy->ecc_preferences.
      * Setting and manipulating this value requires security_policy to be configured prior.
      * */

@@ -16,8 +16,7 @@
 #pragma once
 
 #include <stdint.h>
-/* Remove once the PSK feature is released */
-#include "tls/s2n_psk.h"
+#include <s2n.h>
 
 #define GUARD_EXIT_NULL(x)                                 \
     do {                                                   \
