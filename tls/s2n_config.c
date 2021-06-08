@@ -424,6 +424,15 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
     return 0;
 }
 
+int s2n_config_wipe_trust_store(struct s2n_config *config)
+{
+    POSIX_ENSURE_REF(config);
+
+    s2n_x509_trust_store_wipe(&config->trust_store);
+
+    return 0;
+}
+
 int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem)
 {
     POSIX_ENSURE_REF(config);
