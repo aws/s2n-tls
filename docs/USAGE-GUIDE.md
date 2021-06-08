@@ -1790,9 +1790,9 @@ S2N-TLS provides support for pre-shared keys (PSKs). A PSK is a secret shared be
 
 ### Security Considerations
 
-- A peer that acts as both server and client should not use the same PSK for both roles. Similarly, the peer should not use the same PSK on different endpoints.
+- A peer that acts as both server and client should not use the same PSK for both roles and a peer should not use the same PSK on different endpoints.
   Doing so would expose the handshake to a selfie attack. This attack is elaborated in detail here: [Selfie: reflections on TLS 1.3 with PSK](https://eprint.iacr.org/2019/347.pdf)
-- If you configure the server name during the ClientHello callback, you should also set the PSKs at the same time.
+- If you configure the server name during the ClientHello callback **s2n_config_set_client_hello_cb**, you should also set the PSKs at the same time. For more details refer [RFC8446#Section-4.2.11](http://tools.ietf.org/html/rfc8446#section-4.2.11).
 - Each PSK should be known to exactly _one_ client and _one_ server, and these peers should never switch roles. If this assumption is violated, the security properties of >= TLS1.3 are severely weakened.
 
 ### Configuring External Pre-Shared Keys
@@ -1812,7 +1812,7 @@ int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode);
 
 **s2n_external_psk_new** creates a new external PSK object with **S2N_PSK_HMAC_SHA256** as the default PSK hash algorithm. Use **s2n_psk_free** to free the memory allocated to the external PSK object created by this API.
 
-**s2n_psk_set_identity** sets the PSK identity for a given PSK. The PSK identity is a unique identifier for the pre-shared secret. The PSK identity is transmitted over the network unencrypted and is a non-secret value. Do not include any confidential information in the identity. Note that the identity value is copied into s2n-tls memory and the user is responsible for freeing the memory associated with the **identity** input.
+**s2n_psk_set_identity** sets the PSK identity for a given PSK. The PSK identity is a unique identifier for the pre-shared secret. This identity is transmitted over the network unencrypted and is a non-secret value therefore do not include any confidential information in the identity.
 
 **s2n_psk_set_secret** sets the secret value for a given PSK. Note that the secret value is copied into s2n-tls memory and the user is responsible for freeing the memory associated with the **secret** input.
 
