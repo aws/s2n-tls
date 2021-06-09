@@ -882,7 +882,7 @@ struct s2n_offered_psk_list;
  * # Safety 
  * 
  * This API returns a pointer to the s2n-tls internal memory with limited lifetime. 
- * After the invocation of `s2n_psk_selection_callback` this pointer is invalid.
+ * After the completion of `s2n_psk_selection_callback` this pointer is invalid.
  *
  * @param psk_list A pointer to the offered PSK list being read.
  * @return bool A boolean value representing whether an offered psk object is present next in line in the offered PSK list.
