@@ -150,8 +150,8 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
     client_options.port = port
     server_options.port = port
 
-    server = managed_process(S2N, server_options, timeout=5)
-    client = managed_process(provider, client_options, timeout=5)
+    server = managed_process(S2N, server_options, timeout=5, send_marker=S2N.get_send_marker())
+    client = managed_process(provider, client_options, timeout=5, close_marker=str(close_marker_bytes))
 
     s2n_version = get_expected_s2n_version(protocol, provider)
 
