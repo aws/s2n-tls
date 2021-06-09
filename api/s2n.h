@@ -879,6 +879,11 @@ struct s2n_offered_psk_list;
  * Checks whether the offered PSK list has an offered psk object next in line in the list.
  * An offered PSK list contains all the PSKs offered by the client for the server to select.
  * 
+ * # Safety 
+ * 
+ * This API returns a pointer to the s2n-tls internal memory with limited lifetime. 
+ * After the invocation of `s2n_psk_selection_callback` this pointer is invalid.
+ *
  * @param psk_list A pointer to the offered PSK list being read.
  * @return bool A boolean value representing whether an offered psk object is present next in line in the offered PSK list.
  */
@@ -927,6 +932,7 @@ S2N_API int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_lis
  * # Safety
  *
  * `context` is a void pointer and the caller is responsible for ensuring it is cast to the correct type.
+ * After the completion of this callback, the pointer to `psk_list` is invalid.
  *
  * @param conn A pointer to the s2n_connection object.
  * @param context A pointer to a context for the caller to pass state to the callback, if needed.
