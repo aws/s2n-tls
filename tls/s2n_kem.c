@@ -170,7 +170,7 @@ const struct s2n_iana_to_kem kem_mapping[3] = {
  * || size of PQ key share (2 bytes)
  * || PQ key share (variable bytes) */
 const struct s2n_kem_group s2n_secp256r1_sike_p434_r3 = {
-        .name = "secp256r1_sike-p434-r2",
+        .name = "secp256r1_sike-p434-r3",
         .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R3,
         .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) +
                 (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES),
@@ -205,7 +205,7 @@ const struct s2n_kem_group s2n_secp256r1_kyber_512_r2 = {
 
 #if EVP_APIS_SUPPORTED
 const struct s2n_kem_group s2n_x25519_sike_p434_r3 = {
-        .name = "x25519_sike-p434-r2",
+        .name = "x25519_sike-p434-r3",
         .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R3,
         .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) +
                 (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES),
