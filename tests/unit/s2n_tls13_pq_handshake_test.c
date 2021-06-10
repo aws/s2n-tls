@@ -247,9 +247,9 @@ int main() {
     /* SIKE */
     const struct s2n_kem_group *sike_test_groups[] = {
 #if EVP_APIS_SUPPORTED
-            &s2n_x25519_sike_p434_r2,
+            &s2n_x25519_sike_p434_r3,
 #endif
-            &s2n_secp256r1_sike_p434_r2,
+            &s2n_secp256r1_sike_p434_r3,
     };
 
     const struct s2n_kem_preferences sike_test_prefs = {
@@ -292,13 +292,13 @@ int main() {
 
     const struct s2n_kem_group *expected_kyber_group = &s2n_x25519_kyber_512_r2;
     const struct s2n_kem_group *expected_bike_group = &s2n_x25519_bike1_l1_r2;
-    const struct s2n_kem_group *expected_sike_group = &s2n_x25519_sike_p434_r2;
+    const struct s2n_kem_group *expected_sike_group = &s2n_x25519_sike_p434_r3;
     const struct s2n_ecc_named_curve *expected_curve = &s2n_ecc_curve_x25519;
 
     if (!s2n_is_evp_apis_supported()) {
         expected_kyber_group = &s2n_secp256r1_kyber_512_r2;
         expected_bike_group = &s2n_secp256r1_bike1_l1_r2;
-        expected_sike_group = &s2n_secp256r1_sike_p434_r2;
+        expected_sike_group = &s2n_secp256r1_sike_p434_r3;
         expected_curve = &s2n_ecc_curve_secp256r1;
     }
 

@@ -497,7 +497,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_validate_kem_preferences(&kem_preferences_null, 0));
 
         const struct s2n_kem_group *test_kem_group_list[] = {
-                &s2n_secp256r1_sike_p434_r2
+                &s2n_secp256r1_sike_p434_r3
         };
 
         const struct s2n_kem_preferences invalid_kem_prefs[] = {

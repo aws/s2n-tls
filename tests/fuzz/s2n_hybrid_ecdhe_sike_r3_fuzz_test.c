@@ -34,7 +34,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_security_policies.h"
 
-static struct s2n_kem_params server_kem_params = {.kem = &s2n_sike_p434_r2};
+static struct s2n_kem_params server_kem_params = {.kem = &s2n_sike_p434_r3};
 
 /* Setup the connection in a state for a fuzz test run, s2n_client_key_recv modifies the state of the connection
  * along the way and gets cleaned up at the end of each fuzz test.
@@ -51,7 +51,7 @@ static int setup_connection(struct s2n_connection *server_conn)
 
     server_conn->secure.server_ecc_evp_params.negotiated_curve = ecc_preferences->ecc_curves[0];
     server_conn->secure.server_ecc_evp_params.evp_pkey = NULL;
-    server_conn->secure.kem_params.kem = &s2n_sike_p434_r2;
+    server_conn->secure.kem_params.kem = &s2n_sike_p434_r3;
     server_conn->secure.cipher_suite = &s2n_ecdhe_sike_rsa_with_aes_256_gcm_sha384;
     server_conn->secure.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
 
@@ -64,7 +64,7 @@ static int setup_connection(struct s2n_connection *server_conn)
 int s2n_fuzz_init(int *argc, char **argv[])
 {
     struct s2n_blob *public_key = &server_kem_params.public_key;
-    POSIX_GUARD(s2n_alloc(public_key, SIKE_P434_R2_PUBLIC_KEY_BYTES));
+    POSIX_GUARD(s2n_alloc(public_key, S2N_SIKE_P434_R3_PUBLIC_KEY_BYTES));
     POSIX_GUARD_RESULT(s2n_kem_generate_keypair(&server_kem_params));
     POSIX_GUARD(s2n_free(public_key));
 
