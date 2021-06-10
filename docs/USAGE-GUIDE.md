@@ -1313,7 +1313,7 @@ ssize_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *o
 - **max_length** Max number of bytes to copy into the **out** buffer.
 
 **s2n_client_hello_get_raw_message_length** returns the size of the ClientHello message received by the server; it can be used to allocate the **out** buffer.
-**s2n_client_hello_get_raw_message** copies **max_lenght** bytes of the ClientHello message into the **out** buffer and returns the number of bytes that were copied.
+**s2n_client_hello_get_raw_message** copies **max_length** bytes of the ClientHello message into the **out** buffer and returns the number of copied bytes.
 The ClientHello instrumented using this function will have the Random bytes zero-ed out.
 
 For SSLv2 ClientHello messages, the raw message contains only the cipher_specs, session_id and members portions of the hello message
@@ -1332,7 +1332,7 @@ ssize_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t 
 - **max_length** Max number of bytes to copy into the **out** buffer.
 
 **s2n_client_hello_get_cipher_suites_length** returns the number of bytes the cipher_suites takes on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
-**s2n_client_hello_get_cipher_suites** copies into the **out** buffer **max_length** bytes of the cipher_suites on the ClienthHello and returns the number of bytes that were copied.
+**s2n_client_hello_get_cipher_suites** copies into the **out** buffer **max_length** bytes of the cipher_suites on the ClientHello and returns the number of copied bytes.
 
 ### s2n\_client\_hello\_get\_extensions
 
@@ -1346,7 +1346,7 @@ ssize_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *ou
 - **max_length** Max number of bytes to copy into the **out** buffer.
 
 **s2n_client_hello_get_extensions_length** returns the number of bytes the extensions take on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
-**s2n_client_hello_get_extensions** copies into the **out** buffer **max_length** bytes of the extensions on the ClienthHello and returns the number of bytes that were copied.
+**s2n_client_hello_get_extensions** copies into the **out** buffer **max_length** bytes of the extensions on the ClientHello and returns the number of copied bytes.
 
 ### s2n\_client\_hello\_get\_extension
 
@@ -1361,7 +1361,7 @@ ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tl
 - **max_length** Max number of bytes to copy into the **out** buffer.
 
 **s2n_client_hello_get_extension_length** returns the number of bytes the given extension type takes on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
-**s2n_client_hello_get_extension_by_id** copies into the **out** buffer **max_length** bytes of a given extension type on the ClientHello and returns the number of bytes that were copied.
+**s2n_client_hello_get_extension_by_id** copies into the **out** buffer **max_length** bytes of a given extension type on the ClientHello and returns the number of copied bytes.
 
 ### s2n\_connection\_client\_cert\_used
 
@@ -1548,7 +1548,7 @@ handshake.
 
 **s2n_connection_set_session** de-serializes the session state and updates the connection accordingly.
 
-**s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of bytes that were copied. The output of this function depends on whether session ids or session tickets are being used for resumption.
+**s2n_connection_get_session** serializes the session state from connection and copies into the **session** buffer and returns the number of copied bytes. The output of this function depends on whether session ids or session tickets are being used for resumption.
 
 If the first byte in **session** is 1, then the next 2 bytes will contain the session ticket length, followed by session ticket and session state. In versions TLS1.3 and greater, (which allows multiple session tickets), the most recent session ticket received will be used. Note that the size of the session tickets varies.
 
@@ -1560,7 +1560,7 @@ If the first byte in **session** is 0, then the next byte will contain session i
 
 **s2n_connection_get_session_id_length** returns session id length from the connection. Session id length will be 0 for TLS versions >= TLS1.3 as stateful session resumption has not yet been implemented in TLS1.3.
 
-**s2n_connection_get_session_id** get the session id from the connection and copies into the **session_id** buffer and returns the number of bytes that were copied.
+**s2n_connection_get_session_id** get the session id from the connection and copies into the **session_id** buffer and returns the number of copied bytes.
 
 **s2n_connection_is_session_resumed** returns 1 if the handshake was abbreviated, otherwise returns 0, for tls versions < TLS1.3.
 
@@ -1776,6 +1776,115 @@ int s2n_connection_free(struct s2n_connection *conn);
 handle. The handle is considered invalid after **s2n_connection_free** is used.
 [s2n_connection_wipe](#s2n\_connection\_wipe) does not need to be called prior to this function. **s2n_connection_free** performs its own wipe
 of sensitive data.
+
+## TLS1.3 Pre-Shared Key Related Calls
+
+s2n-tls supports pre-shared keys (PSKs) as of TLS1.3. PSKs allow users to establish secrets outside of the handshake, skipping certificate exchange and authentication.
+
+### Benefits of Using Pre-Shared Keys
+
+Using pre-shared keys can avoid the need for public key operations. This is useful in performance-constrained environments with limited CPU power. PSKs may also be more convenient from a key management point of view: If the system already has a mechanism for sharing secrets, that mechanism can be reused for TLS PSKs.
+
+### Security Considerations
+
+A PSK must not be shared between more than one server and one client. An entity that acts as both a server and a client should not use the same PSK for both roles. For more information see: [Selfie: reflections on TLS 1.3 with PSK.](https://eprint.iacr.org/2019/347.pdf)
+
+
+### Configuring External Pre-Shared Keys
+
+Use the following APIs to configure external pre-shared keys.
+
+```c
+struct s2n_psk* s2n_external_psk_new();
+int s2n_psk_free(struct s2n_psk **psk);
+int s2n_psk_set_identity(struct s2n_psk *psk, const uint8_t *identity, uint16_t identity_size);
+int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secret_size);
+int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac);
+int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk);
+int s2n_config_set_psk_mode(struct s2n_config *config, s2n_psk_mode mode);
+int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode);
+```
+
+**s2n_external_psk_new** creates a new external PSK object with **S2N_PSK_HMAC_SHA256** as the default PSK hmac algorithm. Use **s2n_psk_free** to free the memory allocated to the external PSK object.
+
+**s2n_psk_set_identity** sets the identity for a given PSK. The identity is a unique identifier for the pre-shared secret. This identity is transmitted over the network unencrypted and is a non-secret value, therefore do not include any confidential information.
+
+**s2n_psk_set_secret** sets the secret value for a given PSK. Deriving a shared secret from a password or other low-entropy source is not secure and is subject to dictionary attacks.
+
+**s2n_psk_set_hmac** sets the PSK hmac algorithm for a given PSK. The supported PSK hmac algorithms are listed in the **s2n_psk_hmac** enum. This API overrides the default PSK hmac algorithm value of **S2N_PSK_HMAC_SHA256** and may influence the server cipher suite selection.
+
+**s2n_connection_append_psk** appends the PSK to the connection. Both server and client should call this API to add PSKs to their connection. The order this API is called matters, as PSKs that are appended first will be more preferred than PSKs appended last. This API must be called prior to the server selecting a PSK for the connection.
+
+**s2n_config_set_psk_mode** configures s2n-tls to expect either session resumption PSKs or external PSKs. This API should be called prior to selecting a PSK.
+
+**s2n_connection_set_psk_mode** overrides the PSK mode set on the config for this connection.
+
+### Selecting a Pre-Shared Key
+
+By default, the server chooses the first identity in its PSK list that also appears in the client's PSK list. If you would like to implement your own PSK selection logic, use the **s2n_psk_selection_callback** to select the PSK to be used for the connection, along with the following offered PSK APIs to process the client sent list of PSKs. 
+
+```c
+typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn, void *context,
+                                          struct s2n_offered_psk_list *psk_list);
+int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb, void *context);
+struct s2n_offered_psk* s2n_offered_psk_new();
+int s2n_offered_psk_free(struct s2n_offered_psk **psk);
+bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list);
+int s2n_offered_psk_list_next(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
+int s2n_offered_psk_list_reread(struct s2n_offered_psk_list *psk_list);
+int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t** identity, uint16_t *size);
+int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
+```
+
+**s2n_psk_selection_callback** is a callback function that the server calls to select a PSK from a list of offered PSKs. Implement this callback to use custom PSK selection logic. To examine the list of client PSK identities use the input **psk_list** along with the **s2n_offered_psk_list_next** and **s2n_offered_psk_get_identity** APIs. To choose a client PSK identity, call **s2n_offered_psk_list_choose_psk**. Before a client PSK identity is chosen, the server must have configured its corresponding PSK using **s2n_connection_append_psk**. Currently, this callback is not asynchronous.
+
+**s2n_config_set_psk_selection_callback** sets the **s2n_psk_selection_callback**. If it is not set, the s2n-tls server chooses the first identity in its PSK list that also appears in the client's PSK list.
+
+**s2n_offered_psk_new** creates a new offered PSK object. Pass this object to **s2n_offered_psk_list_next** to retrieve the next PSK from the list.  Use **s2n_offered_psk_list_has_next** prior to this API call to ensure we have not reached the end of the list. **s2n_offered_psk_free** frees the memory associated with the **s2n_offered_psk** object.
+
+**s2n_offered_psk_list_reread** returns the offered PSK list to its original read state. After **s2n_offered_psk_list_reread** is called, the next call to **s2n_offered_psk_list_next** will return the first PSK in the offered PSK list.
+
+**s2n_offered_psk_get_identity** gets the identity and identity length for a given offered PSK object.
+
+**s2n_offered_psk_list_choose_psk** sets the chosen offered PSK to be used for the connection. To disable PSKs for the connection and perform a full handshake instead, set the PSK identity to NULL. 
+
+In the following example, **s2n_psk_selection_callback** chooses the first client offered PSK identity present in an external store.
+
+```c
+int s2n_psk_selection_callback(struct s2n_connection *conn, void *context,
+                               struct s2n_offered_psk_list *psk_list)
+{
+    struct s2n_offered_psk *offered_psk = s2n_offered_psk_new();
+
+    while (s2n_offered_psk_list_has_next(psk_list)) {
+        uint8_t *client_psk_id = NULL;
+        uint16_t client_psk_id_len = 0;
+
+        s2n_offered_psk_list_next(psk_list, offered_psk);
+        s2n_offered_psk_get_identity(offered_psk, &client_psk_id, &client_psk_id_len);
+        struct s2n_psk *psk = user_lookup_identity_db(client_psk_id, client_psk_id_len);
+        
+        if (psk) {
+            s2n_connection_append_psk(conn, psk);
+            s2n_offered_psk_list_choose_psk(psk_list, offered_psk);
+            break;
+        }
+    }
+    s2n_offered_psk_free(&offered_psk);
+    return S2N_SUCCESS;
+}
+```
+
+### Retrieve the Negotiated Pre-Shared Key
+
+The following APIs enable the caller to retrieve the PSK selected by the server for the connection.
+
+```c
+int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *conn, uint16_t *identity_length);
+int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint8_t *identity, uint16_t max_identity_length);
+```
+
+**s2n_connection_get_negotiated_psk_identity** gets the identity of the PSK used to negotiate the connection. **s2n_connection_get_negotiated_psk_identity_length** gets the length of the identity. If the connection performed a full handshake instead of using PSKs then **s2n_connection_get_negotiated_psk_identity_length** returns 0 and **s2n_connection_get_negotiated_psk_identity** does nothing.
 
 ## I/O functions
 
