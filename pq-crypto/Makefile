@@ -52,10 +52,22 @@ bike_r2_bc: $(BCS1)
 .PHONY : run-gcov
 run-gcov: gcov
 	$(MAKE) -C sike_r1 gcov
+	$(MAKE) -C sike_r3 gcov
+	$(MAKE) -C bike_r1 gcov
+	$(MAKE) -C bike_r2 gcov
+	$(MAKE) -C bike_r3 gcov
+	$(MAKE) -C kyber_r2 gcov
+	$(MAKE) -C kyber_r3 gcov
 
 .PHONY : run-lcov
 run-lcov: lcov
 	$(MAKE) -C sike_r1 lcov
+	$(MAKE) -C sike_r3 lcov
+	$(MAKE) -C bike_r1 lcov
+	$(MAKE) -C bike_r2 lcov
+	$(MAKE) -C bike_r3 lcov
+	$(MAKE) -C kyber_r2 lcov
+	$(MAKE) -C kyber_r3 lcov
 
 .PHONY : clean
 clean: decruft
