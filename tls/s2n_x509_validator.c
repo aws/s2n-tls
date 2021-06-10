@@ -607,3 +607,8 @@ S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *
 
     RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
 }
+
+bool s2n_x509_validator_is_cert_chain_validated(const struct s2n_x509_validator *validator)
+{
+    return validator && (validator->state == VALIDATED || validator->state == OCSP_VALIDATED);
+}
