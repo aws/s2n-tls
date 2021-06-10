@@ -132,7 +132,7 @@ s2n_cert_validation_code s2n_x509_validator_validate_cert_stapled_ocsp_response(
                                                                                 const uint8_t *ocsp_response, uint32_t size);
 
 /**
- * Checks that the peer's certificate chain has been received and validated.
+ * Checks whether the peer's certificate chain has been received and validated.
  * Should be verified before any use of the peer's certificate data.
  */
 bool s2n_x509_validator_is_cert_chain_validated(const struct s2n_x509_validator *validator);
