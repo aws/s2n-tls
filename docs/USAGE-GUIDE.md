@@ -1313,7 +1313,7 @@ ssize_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *o
 - **max_length** Max number of bytes to copy into the **out** buffer.
 
 **s2n_client_hello_get_raw_message_length** returns the size of the ClientHello message received by the server; it can be used to allocate the **out** buffer.
-**s2n_client_hello_get_raw_message** copies **max_lenght** bytes of the ClientHello message into the **out** buffer and returns the number of copied bytes.
+**s2n_client_hello_get_raw_message** copies **max_length** bytes of the ClientHello message into the **out** buffer and returns the number of copied bytes.
 The ClientHello instrumented using this function will have the Random bytes zero-ed out.
 
 For SSLv2 ClientHello messages, the raw message contains only the cipher_specs, session_id and members portions of the hello message
@@ -1783,11 +1783,11 @@ s2n-tls supports pre-shared keys (PSKs) as of TLS1.3. PSKs allow users to establ
 
 ### Benefits of Using Pre-Shared Keys
 
-Using pre-shared keys can avoid the need for public key operations. This is useful in performance-constrained environments with limited CPU power. PSKs may be more convenient from a key management point of view. If the system already has a mechanism for sharing secrets, that mechanism can be reused for TLS PSKs.
+Using pre-shared keys can avoid the need for public key operations. This is useful in performance-constrained environments with limited CPU power. PSKs may also be more convenient from a key management point of view: If the system already has a mechanism for sharing secrets, that mechanism can be reused for TLS PSKs.
 
 ### Security Considerations
 
-A PSK must not be shared between more than one server and one client. An entity that acts as both a server and a client should not use the same PSK for both roles. For more information refer: [Selfie: reflections on TLS 1.3 with PSK.](https://eprint.iacr.org/2019/347.pdf)
+A PSK must not be shared between more than one server and one client. An entity that acts as both a server and a client should not use the same PSK for both roles. For more information see: [Selfie: reflections on TLS 1.3 with PSK.](https://eprint.iacr.org/2019/347.pdf)
 
 
 ### Configuring External Pre-Shared Keys
@@ -1884,7 +1884,7 @@ int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *con
 int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint8_t *identity, uint16_t max_identity_length);
 ```
 
-**s2n_connection_get_negotiated_psk_identity** gets the identity of the PSK used to negotiate the connection. **s2n_connection_get_negotiated_psk_identity_length** gets the length of the identity. If the connection performed a full handshake instead of using PSKs **s2n_connection_get_negotiated_psk_identity_length** returns 0 and **s2n_connection_get_negotiated_psk_identity** does nothing.
+**s2n_connection_get_negotiated_psk_identity** gets the identity of the PSK used to negotiate the connection. **s2n_connection_get_negotiated_psk_identity_length** gets the length of the identity. If the connection performed a full handshake instead of using PSKs then **s2n_connection_get_negotiated_psk_identity_length** returns 0 and **s2n_connection_get_negotiated_psk_identity** does nothing.
 
 ## I/O functions
 
