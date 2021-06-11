@@ -1244,7 +1244,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
             POSIX_GUARD(s2n_handshake_conn_update_hashes(conn));
         }
 
-        /* Wipe regardless of if we are currently successful or not. */
+        /* Wipe regardless of whether or not we are successful. */
         POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
         /* Bail with blinding if we have failed. */
