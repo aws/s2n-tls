@@ -14,8 +14,8 @@
  */
 
 /**
- * this file is for building with the -fmodules flag in clang. This enables consumtion of this library
- * other LLVM languages via modules.
+ * This file is for building with the -fmodules flag in clang. This enables consumption of this library
+ * by other LLVM languages via modules.
  */
  module S2N {
      explicit module Api {
