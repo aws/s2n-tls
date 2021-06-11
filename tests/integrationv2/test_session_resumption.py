@@ -109,6 +109,8 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
     p = tmp_path / 'ticket.pem'
     path_to_ticket = str(p)
 
+    close_marker_bytes = data_bytes(10)
+
     client_options = ProviderOptions(
         mode=Provider.ClientMode,
         port=port,
@@ -116,7 +118,6 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
         curve=curve,
         insecure=True,
         reconnect=False,
-        data_to_send=data_bytes(4069),
         extra_flags = ['-sess_out', path_to_ticket],
         protocol=protocol)
 
@@ -126,9 +127,10 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
     server_options.cert = certificate.cert
     server_options.use_session_ticket = True
     server_options.extra_flags = None
+    server_options.data_to_send = close_marker_bytes
 
-    server = managed_process(S2N, server_options, timeout=5)
-    client = managed_process(provider, client_options, timeout=5)
+    server = managed_process(S2N, server_options, timeout=5, send_marker=S2N.get_send_marker())
+    client = managed_process(provider, client_options, timeout=5, close_marker=str(close_marker_bytes))
 
     # The client should have received a session ticket
     for results in client.get_results():
@@ -148,8 +150,8 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
     client_options.port = port
     server_options.port = port
 
-    server = managed_process(S2N, server_options, timeout=5)
-    client = managed_process(provider, client_options, timeout=5)
+    server = managed_process(S2N, server_options, timeout=5, send_marker=S2N.get_send_marker())
+    client = managed_process(provider, client_options, timeout=5, close_marker=str(close_marker_bytes))
 
     s2n_version = get_expected_s2n_version(protocol, provider)
 
