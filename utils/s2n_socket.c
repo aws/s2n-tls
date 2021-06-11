@@ -179,7 +179,6 @@ int s2n_socket_set_read_size(struct s2n_connection *conn, int size)
     POSIX_ENSURE_REF(conn);
     struct s2n_socket_read_io_context *r_io_ctx = (struct s2n_socket_read_io_context *) conn->recv_io_context;
     POSIX_ENSURE_REF(r_io_ctx);
-    assert (r_io_ctx!=NULL);
 
     setsockopt(r_io_ctx->fd, SOL_SOCKET, SO_RCVLOWAT, &size, sizeof(size));
 #endif
