@@ -1233,9 +1233,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         /* Call the relevant handler */
         r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
         /* At this point we may have already failed.
-         * If we have failed then we skip processing necessary to continue actually connecting
-         * (such as updated the transcript hash), but still complete actions necessary to clean
-         * up secrets and state.
+         * If the handler fails, we clean up the handshake
+         * and skip processing steps necessary to continue connecting (such as updating the transcript hash.)
          */
 
         /* Don't update handshake hashes until after the handler has executed since some handlers need to read the
