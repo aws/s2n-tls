@@ -22,8 +22,10 @@
 int getpeername(int socket, struct sockaddr *address, socklen_t *address_len)
 {
     // assert(socket >= -1 && socket <= 65536); /* File descriptor limit. */   
-    errno = nondet_int();
     if(nondet_bool()) { return 0; }
-    __CPROVER_assume(errno == EBADF || errno == EINVAL || errno == ENOTCONN || errno == ENOTSOCK || errno == EOPNOTSUPP || errno == ENOBUFS);
-    return -1;
+    else {
+        errno = nondet_int();
+        __CPROVER_assume(errno == EBADF || errno == EINVAL || errno == ENOTCONN || errno == ENOTSOCK || errno == EOPNOTSUPP || errno == ENOBUFS);
+        return -1;
+    }
 }
