@@ -802,3 +802,15 @@ struct s2n_connection *cbmc_allocate_s2n_connection()
     cbmc_populate_s2n_connection(s2n_connection);
     return s2n_connection;
 }
+
+struct s2n_socket_read_io_context *cbmc_allocate_s2n_socket_read_io_context()
+{
+    struct s2n_socket_read_io_context *s2n_socket_read_io_context = malloc(sizeof(*s2n_socket_read_io_context));
+    return s2n_socket_read_io_context;
+}
+
+struct s2n_socket_write_io_context *cbmc_allocate_s2n_socket_write_io_context()
+{
+    struct s2n_socket_write_io_context *s2n_socket_write_io_context = malloc(sizeof(*s2n_socket_write_io_context));
+    return s2n_socket_write_io_context;
+}
