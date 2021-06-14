@@ -206,7 +206,9 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     }
 
     /* Choose a default signature scheme */
-    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &conn->secure.conn_sig_scheme));
+    if (conn->psk_params.chosen_psk == NULL) {
+        POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &conn->secure.conn_sig_scheme));
+    }
 
     /* Update the required hashes for this connection */
     POSIX_GUARD(s2n_conn_update_required_handshake_hashes(conn));

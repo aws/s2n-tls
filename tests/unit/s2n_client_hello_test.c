@@ -95,7 +95,7 @@ int main(int argc, char **argv)
         struct s2n_config *config;
         EXPECT_NOT_NULL(config = s2n_config_new());
 
-        /* TLS13 fails to parse client hello when no certs set */
+        /* TLS13 uses default certs to parse client hello when no certs set */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
             EXPECT_TRUE(s2n_stuffer_data_available(&conn->handshake.io) > 0);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(conn), S2N_ERR_INVALID_SIGNATURE_SCHEME);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(conn), S2N_ERR_CERT_TYPE_UNSUPPORTED);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }

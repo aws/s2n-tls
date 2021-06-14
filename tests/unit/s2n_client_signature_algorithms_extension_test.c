@@ -90,11 +90,11 @@ int main(int argc, char **argv)
             POSIX_GUARD(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.iana_list[i]));
         }
 
-        /* If only unknown algorithms are offered, expect choosing a scheme to fail for TLS1.3 */
+        /* If only unknown algorithms are offered */
         conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_client_signature_algorithms_extension.recv(conn, &signature_algorithms_extension));
         EXPECT_EQUAL(conn->handshake_params.client_sig_hash_algs.len, sig_hash_algs.len);
-        EXPECT_FAILURE(s2n_choose_sig_scheme_from_peer_preference_list(conn, &conn->handshake_params.client_sig_hash_algs,
+        EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &conn->handshake_params.client_sig_hash_algs,
                                 &conn->secure.conn_sig_scheme));
 
         EXPECT_SUCCESS(s2n_stuffer_free(&signature_algorithms_extension));
