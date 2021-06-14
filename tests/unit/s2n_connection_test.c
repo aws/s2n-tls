@@ -256,5 +256,53 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
+    /* s2n_connection_prefer_throughput */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        /* Default behavior */
+        EXPECT_SUCCESS(s2n_connection_prefer_throughput(conn));
+        EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_LARGE_FRAGMENT_LENGTH);
+
+        /* After extension - don't set mfl higher */
+        conn->chosen_mfl_code = 1;
+        conn->max_outgoing_fragment_length = S2N_LARGE_FRAGMENT_LENGTH + 1;
+        EXPECT_SUCCESS(s2n_connection_prefer_throughput(conn));
+        EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_LARGE_FRAGMENT_LENGTH);
+
+        /* After extension - set mfl lower */
+        conn->chosen_mfl_code = 1;
+        conn->max_outgoing_fragment_length = S2N_LARGE_FRAGMENT_LENGTH - 1;
+        EXPECT_SUCCESS(s2n_connection_prefer_throughput(conn));
+        EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_LARGE_FRAGMENT_LENGTH - 1);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
+    /* s2n_connection_prefer_low_latency */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        /* Default behavior */
+        EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
+        EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_SMALL_FRAGMENT_LENGTH);
+
+        /* After extension - don't set mfl higher */
+        conn->chosen_mfl_code = 1;
+        conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH + 1;
+        EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
+        EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_SMALL_FRAGMENT_LENGTH);
+
+        /* After extension - set mfl lower */
+        conn->chosen_mfl_code = 1;
+        conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH - 1;
+        EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
+        EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_SMALL_FRAGMENT_LENGTH - 1);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+    }
+
     END_TEST();
 }

@@ -19,6 +19,7 @@
 #include <strings.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/param.h>
 
 #include <s2n.h>
 #include <stdbool.h>
@@ -1298,22 +1299,26 @@ int s2n_connection_prefer_throughput(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    if (!conn->mfl_code) {
+    if (conn->chosen_mfl_code) {
+        conn->max_outgoing_fragment_length = MIN(conn->max_outgoing_fragment_length, S2N_LARGE_FRAGMENT_LENGTH);
+    } else {
         conn->max_outgoing_fragment_length = S2N_LARGE_FRAGMENT_LENGTH;
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    if (!conn->mfl_code) {
+    if (conn->chosen_mfl_code) {
+        conn->max_outgoing_fragment_length = MIN(conn->max_outgoing_fragment_length, S2N_SMALL_FRAGMENT_LENGTH);
+    } else {
         conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
     }
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold)
