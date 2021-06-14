@@ -61,7 +61,7 @@ S2N_RESULT s2n_handshake_type_set_tls13_flag(struct s2n_connection *conn, s2n_tl
 
 bool s2n_handshake_type_check_tls13_flag(struct s2n_connection *conn, s2n_tls13_handshake_type_flag flag)
 {
-    return conn && s2n_connection_get_protocol_version(conn) >= S2N_TLS13
+    return s2n_connection_get_protocol_version(conn) >= S2N_TLS13
             && (conn->handshake.handshake_type & flag);
 }
 
