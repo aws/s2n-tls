@@ -8,10 +8,10 @@
 
 #include <sys/socket.h>
 #include <utils/s2n_socket.h>
+#include <cbmc_proof/make_common_datastructures.h>
 
 void s2n_socket_set_read_size_harness()
 {
-  struct s2n_socket_read_io_context *cbmc_allocate_s2n_socket_read_io_context();
   /* Non-deterministic inputs. */
   struct s2n_connection *s2n_connection = malloc(sizeof(*s2n_connection));
   int fd;

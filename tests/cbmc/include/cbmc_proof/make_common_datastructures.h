@@ -32,6 +32,7 @@
 #include "utils/s2n_map_internal.h"
 #include "utils/s2n_safety_macros.h"
 #include "utils/s2n_set.h"
+#include "utils/s2n_socket.h"
 
 /*
  * Checks whether s2n_blob is bounded by max_size.
@@ -464,3 +465,7 @@ void cbmc_populate_s2n_connection(struct s2n_connection *s2n_connection);
  * Properly allocates s2n_connection for CBMC proofs.
  */
 struct s2n_connection *cbmc_allocate_s2n_connection();
+
+struct s2n_socket_read_io_context *cbmc_allocate_s2n_socket_read_io_context();
+
+struct s2n_socket_write_io_context *cbmc_allocate_s2n_socket_write_io_context();

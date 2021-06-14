@@ -69,7 +69,7 @@ int s2n_socket_write_snapshot(struct s2n_connection *conn)
     struct s2n_socket_write_io_context *w_io_ctx = (struct s2n_socket_write_io_context *) conn->send_io_context;
     POSIX_ENSURE_REF(w_io_ctx);
 
-    getsockopt(w_io_ctx->fd, IPPROTO_TCP, S2N_CORK, &w_io_ctx->original_cork_val, &corklen);
+    getsockopt(w_io_ctx->fd, IPPROTO_TCP, S2N_CORK, &w_io_ctx->original_cork_val, corklen);
     POSIX_ENSURE_EQ(corklen, sizeof(int));
     w_io_ctx->original_cork_is_set = 1;
 #endif
@@ -85,7 +85,7 @@ int s2n_socket_read_snapshot(struct s2n_connection *conn)
     struct s2n_socket_read_io_context *r_io_ctx = (struct s2n_socket_read_io_context *) conn->recv_io_context;
     POSIX_ENSURE_REF(r_io_ctx);
 
-    getsockopt(r_io_ctx->fd, SOL_SOCKET, SO_RCVLOWAT, &r_io_ctx->original_rcvlowat_val, &watlen);
+    getsockopt(r_io_ctx->fd, SOL_SOCKET, SO_RCVLOWAT, &r_io_ctx->original_rcvlowat_val, watlen);
     POSIX_ENSURE_EQ(watlen, sizeof(int));
     r_io_ctx->original_rcvlowat_is_set = 1;
 #endif

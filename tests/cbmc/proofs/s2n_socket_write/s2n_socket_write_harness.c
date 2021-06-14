@@ -7,10 +7,10 @@
  */
 
 #include <utils/s2n_socket.h>
+#include <cbmc_proof/make_common_datastructures.h>
 
 void s2n_socket_write_harness()
 {
-  struct s2n_socket_write_io_context *cbmc_allocate_s2n_socket_write_io_context();
   /* Non-deterministic inputs. */
   void *io_context = cbmc_allocate_s2n_socket_write_io_context();
   const uint8_t *buf = malloc(sizeof(*buf));

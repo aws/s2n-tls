@@ -7,11 +7,11 @@
  */
 
 #include <utils/s2n_socket.h>
+#include <cbmc_proof/make_common_datastructures.h>
 
 void s2n_socket_quickack_harness()
 {
-  struct s2n_socket_read_io_context *cbmc_allocate_s2n_socket_read_io_context();
-  /* Non-deterministic inputs. */
+  /* Non-deterministic inputs. */  
   struct s2n_connection *s2n_connection = malloc(sizeof(*s2n_connection));
   if (s2n_connection != NULL) {
     s2n_connection->recv_io_context = cbmc_allocate_s2n_socket_read_io_context();

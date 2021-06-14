@@ -13,11 +13,20 @@
  * limitations under the License.
  */
 
-#include <sys/socket.h>
+#include <assert.h>
 #include <cbmc_proof/nondet.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
 /* https://pubs.opengroup.org/onlinepubs/009695399/functions/setsockopt.html */
-int setsockopt(int fst, int snd, int thd, const void *vd, socklen_t st)
+int setsockopt(int socket, int level, int option_name, void *option_value, socklen_t option_len)
 {
-    return nondet_bool() ? 0 : -1;
+    /* assert(socket >= -1 && socket <= 65536); // File descriptor limit.
+    assert(level == IPPROTO_IP || level == IPPROTO_IPV6 || level == IPPROTO_ICMP || level == IPPROTO_RAW || level == IPPROTO_TCP || level == IPPROTO_UDP); 
+    assert(option_name == SO_DEBUG || option_name == SO_BROADCAST || option_name == SO_REUSEADDR || option_name == SO_KEEPALIVE || option_name == SO_LINGER || option_name == SO_OOBINLINE || option_name == SO_SNDBUF || option_name == SO_RCVBUF || option_name == SO_DONTROUTE || option_name == SO_RCVLOWAT || option_name == SO_RCVTIMEO || option_name == SO_SNDLOWAT || option_name == SO_SNDTIMEO); */
+    errno = nondet_int();
+    if(nondet_bool()) { return 0; }
+    __CPROVER_assume(errno == EBADF || errno == EINVAL || errno == ENOPROTOOPT || errno == ENOTSOCK || errno == EDOM || errno == EISCONN || errno == ENOMEM || errno == ENOBUFS);
+    return -1;
 }

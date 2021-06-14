@@ -13,11 +13,17 @@
  * limitations under the License.
  */
 
-#include <sys/socket.h>
+#include <assert.h>
 #include <cbmc_proof/nondet.h>
+#include <sys/socket.h>
+#include <errno.h>
 
 /* https://pubs.opengroup.org/onlinepubs/009695399/functions/getpeername.html */
-int getpeername(int fst, struct sockaddr *sa, socklen_t *sl)
+int getpeername(int socket, struct sockaddr *address, socklen_t *address_len)
 {
-    return nondet_bool() ? 0 : -1;
+    // assert(socket >= -1 && socket <= 65536); /* File descriptor limit. */   
+    errno = nondet_int();
+    if(nondet_bool()) { return 0; }
+    __CPROVER_assume(errno == EBADF || errno == EINVAL || errno == ENOTCONN || errno == ENOTSOCK || errno == EOPNOTSUPP || errno == ENOBUFS);
+    return -1;
 }
