@@ -83,6 +83,8 @@ extern const struct s2n_record_algorithm s2n_record_alg_aes256_sha384;
 extern const struct s2n_record_algorithm s2n_record_alg_aes128_gcm;
 extern const struct s2n_record_algorithm s2n_record_alg_aes256_gcm;
 extern const struct s2n_record_algorithm s2n_record_alg_chacha20_poly1305;
+extern const struct s2n_record_algorithm s2n_tls13_record_alg_aes128_gcm;
+extern const struct s2n_record_algorithm s2n_tls13_record_alg_chacha20_poly1305;
 
 struct s2n_cipher_suite {
     /* Is there an implementation available? Set in s2n_cipher_suites_init() */
