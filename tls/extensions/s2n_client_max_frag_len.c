@@ -56,6 +56,8 @@ static int s2n_client_max_frag_len_recv(struct s2n_connection *conn, struct s2n_
 
     /*
      *= https://tools.ietf.org/rfc/rfc6066#section-4
+     *= type=exception
+     *= reason=For compatibility, we choose to ignore malformed extensions if they are optional
      *# If a server receives a maximum fragment length negotiation request
      *# for a value other than the allowed values, it MUST abort the
      *# handshake with an "illegal_parameter" alert.
