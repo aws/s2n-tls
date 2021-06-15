@@ -19,6 +19,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
+#include "crypto/s2n_fips.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_result.h"
@@ -317,6 +318,143 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(client_config));
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+    }
+
+    /* Test s2n_choose_default_sig_scheme usage within s2n_client_cert_verify_send */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(conn);
+
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+        chain_and_key->private_key->size = test_size;
+        chain_and_key->private_key->sign = test_sign;
+        conn->handshake_params.our_chain_and_key = chain_and_key;
+        conn->actual_protocol_version = S2N_TLS11;
+        conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
+
+        /* Send cert verify */
+        EXPECT_SUCCESS(s2n_client_cert_verify_send(conn));
+
+        /* Assert signature_size written to handshake_io */
+        uint16_t signature_size = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&conn->handshake.io, &signature_size));
+        EXPECT_EQUAL(signature_size, test_signature_size);
+        EXPECT_EQUAL(signature_size, s2n_stuffer_data_available(&conn->handshake.io));
+
+        /* Assert signature_data written to handshake_io */
+        uint8_t *signature_data = s2n_stuffer_raw_read(&conn->handshake.io, test_signature_size);
+        EXPECT_NOT_NULL(signature_data);
+        EXPECT_BYTEARRAY_EQUAL(signature_data, test_signature_data, test_signature_size);
+
+        /* Obtain the chosen_sig_scheme for the connection */
+        s2n_authentication_method cipher_suite_auth_method = conn->secure.cipher_suite->auth_method;
+        EXPECT_EQUAL(cipher_suite_auth_method, S2N_AUTHENTICATION_RSA);
+        struct s2n_signature_scheme chosen_sig_scheme = { 0 };
+        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &chosen_sig_scheme));
+        if (s2n_is_in_fips_mode()) {
+            EXPECT_EQUAL(chosen_sig_scheme.iana_value, s2n_rsa_pkcs1_sha1.iana_value);
+        } else {
+            EXPECT_EQUAL(chosen_sig_scheme.iana_value, s2n_rsa_pkcs1_md5_sha1.iana_value);
+        }
+
+        /* Verify the hash_state of the chosen_sig_scheme is set correctly on the conn->handshake */
+        struct s2n_hash_state hash_state = { 0 };
+        EXPECT_SUCCESS(s2n_handshake_get_hash_state(conn, chosen_sig_scheme.hash_alg, &hash_state));
+        EXPECT_EQUAL(conn->handshake.ccv_hash_copy.alg, hash_state.alg);
+        if (s2n_is_in_fips_mode()) {
+            EXPECT_EQUAL(conn->handshake.ccv_hash_copy.alg, S2N_HASH_SHA1);
+        } else {
+            EXPECT_EQUAL(conn->handshake.ccv_hash_copy.alg, S2N_HASH_MD5_SHA1);
+        }
+
+        /* Clean up */
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+    }
+
+    /* Test s2n_choose_default_sig_scheme usage within s2n_client_cert_verify_recv */
+    {
+        const char *cert_file = S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN;
+        const char *key_file = S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY;
+
+        struct s2n_config *config = NULL;
+        EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+
+        /* Derive private/public keys and set connection variables */
+        struct s2n_stuffer certificate_in = { 0 }, certificate_out = { 0 };
+        struct s2n_blob b = { 0 };
+        struct s2n_cert_chain_and_key *cert_chain = NULL;
+        char *cert_chain_pem = NULL;
+        char *private_key_pem = NULL;
+        s2n_pkey_type pkey_type = { 0 };
+
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(cert_chain = s2n_cert_chain_and_key_new());
+        EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(cert_file, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem(key_file, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(cert_chain, cert_chain_pem, private_key_pem));
+
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        client_conn->handshake_params.our_chain_and_key = cert_chain;
+        client_conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha;
+        client_conn->actual_protocol_version = S2N_TLS11;
+
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        server_conn->secure.cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha;
+        server_conn->actual_protocol_version = S2N_TLS11;
+
+        EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
+        EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
+        EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
+
+        /* Extract public key from certificate and set it for verifying connection */
+        uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
+        EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
+        EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&server_conn->secure.client_public_key, &pkey_type, &b));
+        EXPECT_SUCCESS(s2n_pkey_match(&server_conn->secure.client_public_key, client_conn->handshake_params.our_chain_and_key->private_key));
+
+       /* Send cert verify */
+        EXPECT_SUCCESS(s2n_client_cert_verify_send(client_conn));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io, s2n_stuffer_data_available(&client_conn->handshake.io)));
+
+        /* Receive and verify cert */
+        EXPECT_SUCCESS(s2n_client_cert_verify_recv(server_conn));
+
+        /* Obtain the chosen_sig_scheme for the connection */
+        s2n_authentication_method cipher_suite_auth_method = server_conn->secure.cipher_suite->auth_method;
+        EXPECT_EQUAL(cipher_suite_auth_method, S2N_AUTHENTICATION_ECDSA);
+        struct s2n_signature_scheme chosen_sig_scheme = { 0 };
+        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(server_conn, &chosen_sig_scheme));
+        EXPECT_EQUAL(chosen_sig_scheme.iana_value, s2n_ecdsa_sha1.iana_value);
+
+        /* Verify the hash_state of the chosen_sig_scheme is set correctly on the conn->handshake */
+        struct s2n_hash_state hash_state = { 0 };
+        EXPECT_SUCCESS(s2n_handshake_get_hash_state(server_conn, chosen_sig_scheme.hash_alg, &hash_state));
+        EXPECT_EQUAL(server_conn->handshake.ccv_hash_copy.alg, hash_state.alg);
+        EXPECT_EQUAL(server_conn->handshake.ccv_hash_copy.alg, S2N_HASH_SHA1);
+
+        /* Clean up */
+        free(cert_chain_pem);
+        free(private_key_pem);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_chain));
+        EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
+        EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_config_free(config));
     }
 
     END_TEST();
