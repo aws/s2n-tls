@@ -87,6 +87,7 @@ S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_MUT(payload_size);
+
     /* remove ethernet, TCP/IP and TLS header overheads */
     const uint16_t min_outgoing_fragment_length = ETH_MTU - (conn->ipv6 ? IP_V6_HEADER_LENGTH : IP_V4_HEADER_LENGTH)
         - TCP_HEADER_LENGTH - TCP_OPTIONS_LENGTH - S2N_TLS_RECORD_HEADER_LENGTH;
@@ -105,6 +106,12 @@ S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16
         size -= active->cipher_suite->record_alg->cipher->io.comp.mac_key_size;
         /* Padding length byte */
         size -= 1;
+    }
+
+    /* If TLS1.3, remove content type */
+    if (conn->actual_protocol_version >= S2N_TLS13) {
+        RESULT_ENSURE(size > TLS13_CONTENT_TYPE_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
+        size -= TLS13_CONTENT_TYPE_LENGTH;
     }
 
     /* subtract overheads of a TLS record */
