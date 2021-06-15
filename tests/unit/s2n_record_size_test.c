@@ -229,6 +229,7 @@ int main(int argc, char **argv)
 
         /* TLS1.3 AEAD */
         {
+            EXPECT_SUCCESS(destroy_server_keys(server_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
