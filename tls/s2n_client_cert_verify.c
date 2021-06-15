@@ -65,7 +65,8 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
     S2N_ASYNC_PKEY_GUARD(conn);
     struct s2n_stuffer *out = &conn->handshake.io;
 
-    struct s2n_signature_scheme chosen_sig_scheme = s2n_rsa_pkcs1_md5_sha1;
+    struct s2n_signature_scheme chosen_sig_scheme = { 0 };
+    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &chosen_sig_scheme));
 
     if (conn->actual_protocol_version >= S2N_TLS12) {
         chosen_sig_scheme =  conn->secure.client_cert_sig_scheme;
