@@ -493,41 +493,6 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_config_free(config));
             }
 
-            /* Test that s2n_choose_default_sig_scheme chooses RSA_PSS signatures for RSA PKCS1 for versions >= TLS1.3 */
-            {
-                struct s2n_config *config = s2n_config_new();
-                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
-                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert_chain));
-
-                struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-
-                const struct s2n_security_policy *security_policy = NULL;
-                EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-                EXPECT_NOT_NULL(security_policy);
-
-                struct s2n_security_policy test_security_policy = {
-                    .minimum_protocol_version = security_policy->minimum_protocol_version,
-                    .cipher_preferences = security_policy->cipher_preferences,
-                    .kem_preferences = security_policy->kem_preferences,
-                    .signature_preferences = &test_rsa_pkcs1_preferences,
-                    .ecc_preferences = security_policy->ecc_preferences,
-                };
-
-                config->security_policy = &test_security_policy;
-
-                struct s2n_signature_scheme result;
-    
-                conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
-                conn->actual_protocol_version = S2N_TLS13;
-                EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
-                EXPECT_EQUAL(result.iana_value, s2n_rsa_pss_pss_sha256.iana_value);
-                EXPECT_BYTEARRAY_EQUAL(&result, &s2n_rsa_pss_pss_sha256, sizeof(struct s2n_signature_scheme));
-
-                EXPECT_SUCCESS(s2n_connection_free(conn));
-                EXPECT_SUCCESS(s2n_config_free(config));
-            }
-        
             /* Test that s2n_choose_default_sig_scheme skips legacy SHA1 signatures for versions >= TLS1.3 */
             {
                 struct s2n_config *config = s2n_config_new();
@@ -555,7 +520,8 @@ int main(int argc, char **argv)
     
                 conn->secure.cipher_suite = TLS13_CIPHER_SUITE;
                 conn->actual_protocol_version = S2N_TLS13;
-                EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result));
+                EXPECT_FAILURE_WITH_ERRNO(s2n_choose_default_sig_scheme(conn, &result),
+                                             S2N_ERR_INVALID_SIGNATURE_SCHEME);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
                 EXPECT_SUCCESS(s2n_config_free(config));
@@ -693,8 +659,8 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(&result, &s2n_rsa_pkcs1_sha256, sizeof(struct s2n_signature_scheme));
         }
 
-        /* Test: invalid (RSA-PKCS1-v1_5) scheme, because wrong protocol version */
-        { 
+        /* Test: invalid scheme, because wrong protocol version */
+        {
             conn->secure.cipher_suite = RSA_CIPHER_SUITE;
 
             struct s2n_sig_scheme_list peer_list = {
@@ -707,13 +673,8 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(&result, &s2n_rsa_pkcs1_sha224, sizeof(struct s2n_signature_scheme));
 
             conn->actual_protocol_version = S2N_TLS13;
-            /* From RFC https://tools.ietf.org/html/rfc8446#section-4.4.3:
-            * For TLS1.3 RSA signatures MUST use an RSA-PSS algorithm, regardless of whether RSA-PKCS1-v1_5 
-            * algorithms appear in "signature_algorithms".
-            */
-            EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
-            EXPECT_EQUAL(result.iana_value, s2n_rsa_pss_pss_sha256.iana_value);
-            EXPECT_BYTEARRAY_EQUAL(&result, &s2n_rsa_pss_pss_sha256, sizeof(struct s2n_signature_scheme));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result),
+                    S2N_ERR_INVALID_SIGNATURE_SCHEME);
         }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -900,13 +861,8 @@ int main(int argc, char **argv)
                     },
             };
 
-            /* From RFC https://tools.ietf.org/html/rfc8446#section-4.4.3:
-            * For TLS1.3 RSA signatures MUST use an RSA-PSS algorithm, regardless of whether RSA-PKCS1-v1_5 
-            * algorithms appear in "signature_algorithms".
-            */
-            EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
-            EXPECT_EQUAL(result.iana_value, s2n_rsa_pss_pss_sha256.iana_value);
-            EXPECT_BYTEARRAY_EQUAL(&result, &s2n_rsa_pss_pss_sha256, sizeof(struct s2n_signature_scheme));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result),
+                S2N_ERR_INVALID_SIGNATURE_SCHEME);
         }
 
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));

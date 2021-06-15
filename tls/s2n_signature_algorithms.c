@@ -108,35 +108,6 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
     return S2N_SUCCESS;
 }
 
-/* From RFC https://tools.ietf.org/html/rfc8446#section-4.4.3:
- * For TLS1.3 RSA signatures MUST use an RSA-PSS algorithm, regardless of whether RSA-PKCS1-v1_5 
- * algorithms appear in "signature_algorithms".
- */
-static int s2n_tls13_default_rsa_sig_scheme(struct s2n_connection *conn,
-                                            const struct s2n_signature_scheme *rsa_pkcs1_sig_scheme,
-                                            struct s2n_signature_scheme *chosen_scheme_out)
-{
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(rsa_pkcs1_sig_scheme);
-    POSIX_ENSURE_REF(chosen_scheme_out);
-
-    switch (rsa_pkcs1_sig_scheme->iana_value) {
-        case TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA224:
-        case TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA256:
-            *chosen_scheme_out = s2n_rsa_pss_pss_sha256;
-            break;
-        case TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA384:
-            *chosen_scheme_out = s2n_rsa_pss_pss_sha384;
-            break;
-        case TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA512:
-            *chosen_scheme_out = s2n_rsa_pss_pss_sha512;
-            break;
-        default:
-            POSIX_BAIL(S2N_ERR_INVALID_SIGNATURE_SCHEME);
-    }
-    return S2N_SUCCESS;
-}
-
 /* similar to s2n_choose_sig_scheme() without matching client's preference */
 static int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_scheme_out)
 {
@@ -155,25 +126,12 @@ static int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_
             continue;
         }
 
-        if (candidate->sig_alg == S2N_SIGNATURE_RSA) {
-            struct s2n_signature_scheme *rsa_sig_scheme_out = NULL;
-            POSIX_GUARD(s2n_tls13_default_rsa_sig_scheme(conn, candidate, rsa_sig_scheme_out));
-            *chosen_scheme_out = *rsa_sig_scheme_out;
-            return S2N_SUCCESS;
-        }
-
         *chosen_scheme_out = *candidate;
         return S2N_SUCCESS;
     }
 
-    s2n_authentication_method cipher_suite_auth_method = conn->secure.cipher_suite->auth_method;
-    if (cipher_suite_auth_method == S2N_AUTHENTICATION_ECDSA) { 
-         *chosen_scheme_out = s2n_ecdsa_secp256r1_sha256; 
-    } else {
-        *chosen_scheme_out = s2n_rsa_pss_pss_sha256;
-    }
-
-    return S2N_SUCCESS;
+    /* We require an exact match in TLS 1.3 unlike pre-TLS1.3 versions which can fall back to the default signature scheme */
+    POSIX_BAIL(S2N_ERR_INVALID_SIGNATURE_SCHEME);
 
 }
 
