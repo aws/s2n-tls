@@ -42,13 +42,13 @@ const s2n_extension_type s2n_server_max_fragment_length_extension = {
 
 static bool s2n_max_fragment_length_should_send(struct s2n_connection *conn)
 {
-    return conn && conn->chosen_mfl_code != S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
+    return conn && conn->negotiated_mfl_code != S2N_TLS_MAX_FRAG_LEN_EXT_NONE;
 }
 
 static int s2n_max_fragment_length_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_GUARD(s2n_stuffer_write_uint8(out, conn->chosen_mfl_code));
+    POSIX_GUARD(s2n_stuffer_write_uint8(out, conn->negotiated_mfl_code));
     return S2N_SUCCESS;
 }
 
@@ -76,7 +76,7 @@ static int s2n_max_fragment_length_recv(struct s2n_connection *conn, struct s2n_
      *# messages (including handshake messages) to ensure that no fragment
      *# larger than the negotiated length is sent.
      */
-    conn->chosen_mfl_code = mfl_code;
+    conn->negotiated_mfl_code = mfl_code;
     conn->max_outgoing_fragment_length = MIN(conn->max_outgoing_fragment_length, mfl_code_to_length[mfl_code]);
 
     return S2N_SUCCESS;

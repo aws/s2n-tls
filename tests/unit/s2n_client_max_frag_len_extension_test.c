@@ -86,7 +86,7 @@ int main(int argc, char **argv)
         /* Ignore fragment length if not accepting max fragment length */
         EXPECT_FALSE(config->accept_mfl);
         EXPECT_SUCCESS(s2n_client_max_frag_len_extension.recv(conn, &stuffer));
-        EXPECT_EQUAL(conn->chosen_mfl_code, S2N_TLS_MAX_FRAG_LEN_EXT_NONE);
+        EXPECT_EQUAL(conn->negotiated_mfl_code, S2N_TLS_MAX_FRAG_LEN_EXT_NONE);
         EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_DEFAULT_FRAGMENT_LENGTH);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 
         /* Ignore invalid mfl code */
         EXPECT_SUCCESS(s2n_client_max_frag_len_extension.recv(conn, &stuffer));
-        EXPECT_EQUAL(conn->chosen_mfl_code, S2N_TLS_MAX_FRAG_LEN_EXT_NONE);
+        EXPECT_EQUAL(conn->negotiated_mfl_code, S2N_TLS_MAX_FRAG_LEN_EXT_NONE);
         EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_DEFAULT_FRAGMENT_LENGTH);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 
         /* Accept valid mfl code */
         EXPECT_SUCCESS(s2n_client_max_frag_len_extension.recv(conn, &stuffer));
-        EXPECT_EQUAL(conn->chosen_mfl_code, S2N_TLS_MAX_FRAG_LEN_512);
+        EXPECT_EQUAL(conn->negotiated_mfl_code, S2N_TLS_MAX_FRAG_LEN_512);
         EXPECT_EQUAL(conn->max_outgoing_fragment_length, mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_512]);
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
 

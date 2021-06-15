@@ -71,7 +71,7 @@ static int s2n_client_max_frag_len_recv(struct s2n_connection *conn, struct s2n_
      *# messages (including handshake messages) to ensure that no fragment
      *# larger than the negotiated length is sent.
      */
-    conn->chosen_mfl_code = mfl_code;
+    conn->negotiated_mfl_code = mfl_code;
     conn->max_outgoing_fragment_length = mfl_code_to_length[mfl_code];
     return S2N_SUCCESS;
 }
