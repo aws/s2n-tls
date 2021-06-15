@@ -157,12 +157,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
-            conn->mfl_code = 0;
+            conn->negotiated_mfl_code = 0;
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, 0);
 
             const uint8_t MFL_EXT_SIZE = 2 + 2 + 1;
-            conn->mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
+            conn->negotiated_mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
             EXPECT_SUCCESS(s2n_server_extensions_send(conn, hello_stuffer));
             S2N_STUFFER_LENGTH_WRITTEN_EXPECT_EQUAL(hello_stuffer, MFL_EXT_SIZE + EXTENSION_LEN);
 

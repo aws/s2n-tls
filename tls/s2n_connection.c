@@ -19,6 +19,7 @@
 #include <strings.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/param.h>
 
 #include <s2n.h>
 #include <stdbool.h>
@@ -1294,26 +1295,31 @@ const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uin
     return conn->status_response.data;
 }
 
-int s2n_connection_prefer_throughput(struct s2n_connection *conn)
+static S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, uint16_t max_frag_length)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
-    if (!conn->mfl_code) {
-        conn->max_outgoing_fragment_length = S2N_LARGE_FRAGMENT_LENGTH;
+    if (conn->negotiated_mfl_code) {
+        /* Respect the upper limit agreed on with the peer */
+        RESULT_ENSURE_LT(conn->negotiated_mfl_code, s2n_array_len(mfl_code_to_length));
+        conn->max_outgoing_fragment_length = MIN(mfl_code_to_length[conn->negotiated_mfl_code], max_frag_length);
+    } else {
+        conn->max_outgoing_fragment_length = max_frag_length;
     }
 
-    return 0;
+    return S2N_RESULT_OK;
+}
+
+int s2n_connection_prefer_throughput(struct s2n_connection *conn)
+{
+    POSIX_GUARD_RESULT(s2n_connection_set_max_fragment_length(conn, S2N_LARGE_FRAGMENT_LENGTH));
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
-
-    if (!conn->mfl_code) {
-        conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
-    }
-
-    return 0;
+    POSIX_GUARD_RESULT(s2n_connection_set_max_fragment_length(conn, S2N_SMALL_FRAGMENT_LENGTH));
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold)

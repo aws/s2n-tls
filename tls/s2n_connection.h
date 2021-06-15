@@ -242,8 +242,9 @@ struct s2n_connection {
     /* number of bytes consumed during application activity */
     uint64_t active_application_bytes_consumed;
 
-    /* Negotiated TLS extension Maximum Fragment Length code */
-    uint8_t mfl_code;
+    /* Negotiated TLS extension Maximum Fragment Length code.
+     * If set, the client and server have both agreed to fragment their records to the given length. */
+    uint8_t negotiated_mfl_code;
 
     /* Keep some accounting on each connection */
     uint64_t wire_bytes_in;
