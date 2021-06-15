@@ -265,7 +265,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_prefer_throughput(conn));
         EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_LARGE_FRAGMENT_LENGTH);
 
-        /* After extension - set mfl lower than agreed with peer */
+        /* After extension - don't set mfl higher than agreed with peer */
         conn->negotiated_mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
         conn->max_outgoing_fragment_length = 1;
         EXPECT_SUCCESS(s2n_connection_prefer_throughput(conn));
@@ -290,16 +290,16 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_SMALL_FRAGMENT_LENGTH);
 
         /* After extension - don't set mfl higher than agreed with peer */
-        conn->negotiated_mfl_code = S2N_TLS_MAX_FRAG_LEN_4096;
-        conn->max_outgoing_fragment_length = 1;
-        EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
-        EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_SMALL_FRAGMENT_LENGTH);
-
-        /* After extension - set mfl lower than agreed with peer */
         conn->negotiated_mfl_code = S2N_TLS_MAX_FRAG_LEN_512;
         conn->max_outgoing_fragment_length = 1;
         EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
         EXPECT_EQUAL(conn->max_outgoing_fragment_length, 512);
+
+        /* After extension - set mfl lower than agreed with peer */
+        conn->negotiated_mfl_code = S2N_TLS_MAX_FRAG_LEN_4096;
+        conn->max_outgoing_fragment_length = 1;
+        EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
+        EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_SMALL_FRAGMENT_LENGTH);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
