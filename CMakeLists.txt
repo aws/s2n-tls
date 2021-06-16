@@ -18,9 +18,9 @@ option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for
 You likely want this on older compilers." OFF)
 option(SEARCH_LIBCRYPTO "Set this if you want to let S2N search libcrypto for you,
 otherwise a crypto target needs to be defined." ON)
-option(UNSAFE_TREAT_WARNINGS_AS_ERRORS "Compiler warning is treated as an error. Warnings may
-indicate danger points where you should check to make sure that your program really does what
-you intend. Try turning this OFF to ignore warnings." ON)
+option(UNSAFE_TREAT_WARNINGS_AS_ERRORS "Compiler warnings are treated as errors. Warnings may
+indicate danger points where you should verify with the S2N-TLS developers that the security of
+the library is not compromised. Turn this OFF to ignore warnings." ON)
 # Turn BUILD_TESTING=ON by default
 include(CTest)
 
@@ -474,4 +474,3 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
 install(FILES "cmake/modules/FindLibCrypto.cmake"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake/modules/"
         COMPONENT Development)
-
