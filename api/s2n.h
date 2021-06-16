@@ -704,7 +704,7 @@ struct s2n_psk;
  * @return struct s2n_psk* Returns a pointer to the newly created external PSK object.
  */
 S2N_API
-struct s2n_psk* s2n_external_psk_new();
+struct s2n_psk* s2n_external_psk_new(void);
 
 /**
  * Frees the memory associated with the external PSK object.
@@ -853,7 +853,7 @@ struct s2n_offered_psk;
  * @return struct s2n_offered_psk* Returns a pointer to the newly created offered PSK object.
  */
 S2N_API 
-struct s2n_offered_psk* s2n_offered_psk_new();
+struct s2n_offered_psk* s2n_offered_psk_new(void);
 
 /**
  * Frees the memory associated with the `s2n_offered_psk` object.
