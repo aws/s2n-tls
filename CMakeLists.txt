@@ -20,7 +20,7 @@ option(SEARCH_LIBCRYPTO "Set this if you want to let S2N search libcrypto for yo
 otherwise a crypto target needs to be defined." ON)
 option(UNSAFE_TREAT_WARNINGS_AS_ERRORS "Compiler warnings are treated as errors. Warnings may
 indicate danger points where you should verify with the S2N-TLS developers that the security of
-the library is not compromised. Turn this OFF to ignore warnings." OFF)
+the library is not compromised. Turn this OFF to ignore warnings." ON)
 # Turn BUILD_TESTING=ON by default
 include(CTest)
 
