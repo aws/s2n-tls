@@ -18,8 +18,9 @@ option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for
 You likely want this on older compilers." OFF)
 option(SEARCH_LIBCRYPTO "Set this if you want to let S2N search libcrypto for you,
 otherwise a crypto target needs to be defined." ON)
-option(UNSAFE_IGNORE_COMPILER_WARNINGS "Compiler warning is treated as an error. Try turning
-this off when observing errors on a new or unpopular compiler." ON)
+option(UNSAFE_TREAT_WARNINGS_AS_ERRORS "Compiler warning is treated as an error. Warnings may
+indicate danger points where you should check to make sure that your program really does what
+you intend. Try turning this OFF to ignore warnings." ON)
 # Turn BUILD_TESTING=ON by default
 include(CTest)
 
@@ -249,7 +250,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimpl
         -Wno-missing-braces -Wa,--noexecstack
 )
 
-if (UNSAFE_IGNORE_COMPILER_WARNINGS)
+if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
   target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
 endif ()
 
