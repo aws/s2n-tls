@@ -369,6 +369,8 @@ class OpenSSL(Provider):
                 cmd_line.extend(['-key', self.options.key])
             if self.options.cert:
                 cmd_line.extend(['-cert', self.options.cert])
+            if self.options.trust_store:
+                cmd_line.extend(['-CAfile', self.options.trust_store])
 
         if self.options.reconnect is True:
             cmd_line.append('-reconnect')
@@ -407,6 +409,8 @@ class OpenSSL(Provider):
             cmd_line.extend(['-cert', self.options.cert])
         if self.options.key is not None:
             cmd_line.extend(['-key', self.options.key])
+        if self.options.trust_store:
+            cmd_line.extend(['-CAfile', self.options.trust_store])
 
         # Unlike s2n, OpenSSL allows us to be much more specific about which TLS
         # protocol to use.
