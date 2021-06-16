@@ -388,3 +388,4 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn);
 /* `none` keyword represents a list of empty keyshares */
 int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn, const char* curve_name);
+S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, uint16_t length);

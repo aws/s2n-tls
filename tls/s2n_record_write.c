@@ -82,6 +82,21 @@ S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_record_max_write_record_size(struct s2n_connection *conn, uint16_t max_fragment_size, uint16_t *max_size)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_MUT(max_size);
+
+    if(!IS_NEGOTIATED(conn)) {
+        *max_size = S2N_TLS_MAX_RECORD_LEN_FOR(max_fragment_size);
+    } else if (conn->actual_protocol_version < S2N_TLS13) {
+        *max_size = S2N_TLS12_MAX_RECORD_LEN_FOR(max_fragment_size);
+    } else {
+        *max_size = S2N_TLS13_MAX_RECORD_LEN_FOR(max_fragment_size);
+    }
+    return S2N_RESULT_OK;
+}
+
 /* Find the largest size that will fit within an ethernet frame for a "small" payload */
 S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16_t *payload_size)
 {
@@ -263,7 +278,11 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     /* Start the MAC with the sequence number */
     POSIX_GUARD(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
 
-    POSIX_GUARD(s2n_stuffer_resize_if_empty(&conn->out, S2N_LARGE_RECORD_LENGTH));
+    if (s2n_stuffer_is_empty(&conn->out)) {
+        uint16_t max_wire_record_size = 0;
+        POSIX_GUARD_RESULT(s2n_record_max_write_record_size(conn, max_write_payload_size, &max_wire_record_size));
+        POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, max_wire_record_size));
+    }
 
     /* Now that we know the length, start writing the record */
     POSIX_GUARD(s2n_stuffer_write_uint8(&conn->out, is_tls13_record ?
