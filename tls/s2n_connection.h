@@ -35,6 +35,7 @@
 #include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_security_policies.h"
+#include "tls/s2n_record.h"
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"

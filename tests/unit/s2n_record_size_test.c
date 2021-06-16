@@ -241,7 +241,7 @@ int main(int argc, char **argv)
             r.size = size;
             const uint16_t IV = 0;
             const uint16_t TAG = 16;
-            EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - IV - TAG - TLS13_CONTENT_TYPE_LENGTH);
+            EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - IV - TAG - S2N_TLS_CONTENT_TYPE_LENGTH);
 
             EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
 
             EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
             EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN
-                    - S2N_TLS_GCM_TAG_LEN - TLS13_CONTENT_TYPE_LENGTH);
+                    - S2N_TLS_GCM_TAG_LEN - S2N_TLS_CONTENT_TYPE_LENGTH);
             r.size = size;
 
             EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));

@@ -110,8 +110,8 @@ S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16
 
     /* If TLS1.3, remove content type */
     if (conn->actual_protocol_version >= S2N_TLS13) {
-        RESULT_ENSURE(size > TLS13_CONTENT_TYPE_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
-        size -= TLS13_CONTENT_TYPE_LENGTH;
+        RESULT_ENSURE(size > S2N_TLS_CONTENT_TYPE_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
+        size -= S2N_TLS_CONTENT_TYPE_LENGTH;
     }
 
     /* subtract overheads of a TLS record */
@@ -301,7 +301,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
 
     /* TLS 1.3 protected record occupies one extra byte for content type */
     if (is_tls13_record) {
-        extra += TLS13_CONTENT_TYPE_LENGTH;
+        extra += S2N_TLS_CONTENT_TYPE_LENGTH;
     }
 
     /* Rewrite the length to be the actual fragment length */
@@ -341,7 +341,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         struct s2n_stuffer ad_stuffer = {0};
         POSIX_GUARD(s2n_stuffer_init(&ad_stuffer, &aad));
         if (is_tls13_record) {
-            POSIX_GUARD_RESULT(s2n_tls13_aead_aad_init(data_bytes_to_take + TLS13_CONTENT_TYPE_LENGTH, cipher_suite->record_alg->cipher->io.aead.tag_size, &ad_stuffer));
+            POSIX_GUARD_RESULT(s2n_tls13_aead_aad_init(data_bytes_to_take + S2N_TLS_CONTENT_TYPE_LENGTH, cipher_suite->record_alg->cipher->io.aead.tag_size, &ad_stuffer));
         } else {
             POSIX_GUARD_RESULT(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &ad_stuffer));
         }
@@ -422,7 +422,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         encrypted_length += cipher_suite->record_alg->cipher->io.aead.tag_size;
         if (is_tls13_record) {
             /* one extra byte for content type */
-            encrypted_length += TLS13_CONTENT_TYPE_LENGTH;
+            encrypted_length += S2N_TLS_CONTENT_TYPE_LENGTH;
         }
         break;
     case S2N_CBC:
