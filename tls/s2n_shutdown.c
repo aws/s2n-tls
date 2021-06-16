@@ -26,6 +26,8 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status * more)
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(more);
 
+    int unused_test = 0;
+
     /* Treat this call as a no-op if already wiped */
     if (conn->send == NULL && conn->recv == NULL) {
         return 0;
