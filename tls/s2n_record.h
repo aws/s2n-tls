@@ -39,11 +39,11 @@
  */
 #define S2N_TLS_MAXIMUM_FRAGMENT_LENGTH         (1 << 14)
 
-/* Maximum TLS record length allows for 2048 bytes of compression expansion and padding */
+/* TLS record length allows for 2048 bytes of compression expansion and padding.
+ * However, S2N does not support compression, so we can ignore the compression overhead.
+ */
 #define S2N_TLS12_ENCRYPTION_OVERHEAD_SIZE      1024
-#define S2N_TLS12_COMPRESSION_OVERHEAD_SIZE     1024
 #define S2N_TLS12_MAX_RECORD_LEN_FOR(frag)      ((frag) + S2N_TLS12_ENCRYPTION_OVERHEAD_SIZE \
-                                                        + S2N_TLS12_COMPRESSION_OVERHEAD_SIZE \
                                                         + S2N_TLS_RECORD_HEADER_LENGTH)
 #define S2N_TLS12_MAXIMUM_RECORD_LENGTH         S2N_TLS12_MAX_RECORD_LEN_FOR(S2N_TLS_MAXIMUM_FRAGMENT_LENGTH)
 
