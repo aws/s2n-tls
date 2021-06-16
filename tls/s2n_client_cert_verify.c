@@ -33,7 +33,12 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
 {
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_signature_scheme chosen_sig_scheme = { 0 };
-    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &chosen_sig_scheme));
+
+    if (conn->secure.client_cert_pkey_type == S2N_PKEY_TYPE_RSA) {
+        chosen_sig_scheme = s2n_rsa_pkcs1_md5_sha1;
+    } else {
+        chosen_sig_scheme = s2n_ecdsa_sha1;
+    }
 
     if(conn->actual_protocol_version >= S2N_TLS12){
         /* Verify the SigScheme picked by the Client was in the preference list we sent (or is the default SigScheme) */
@@ -64,9 +69,14 @@ int s2n_client_cert_verify_send(struct s2n_connection *conn)
 {
     S2N_ASYNC_PKEY_GUARD(conn);
     struct s2n_stuffer *out = &conn->handshake.io;
-
     struct s2n_signature_scheme chosen_sig_scheme = { 0 };
-    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &chosen_sig_scheme));
+
+    s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(conn->handshake_params.our_chain_and_key);
+    if (cert_type == S2N_PKEY_TYPE_RSA) {
+        chosen_sig_scheme = s2n_rsa_pkcs1_md5_sha1;
+    } else {
+        chosen_sig_scheme = s2n_ecdsa_sha1;
+    }
 
     if (conn->actual_protocol_version >= S2N_TLS12) {
         chosen_sig_scheme =  conn->secure.client_cert_sig_scheme;
