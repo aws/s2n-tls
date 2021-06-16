@@ -18,6 +18,8 @@ option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for
 You likely want this on older compilers." OFF)
 option(SEARCH_LIBCRYPTO "Set this if you want to let S2N search libcrypto for you,
 otherwise a crypto target needs to be defined." ON)
+option(UNSAFE_IGNORE_COMPILER_WARNINGS "Compiler warning is treated as an error. Try turning
+this off when observing errors on a new or unpopular compiler." ON)
 # Turn BUILD_TESTING=ON by default
 include(CTest)
 
@@ -242,10 +244,14 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
-target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts
+target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
         -Wno-missing-braces -Wa,--noexecstack
 )
+
+if (UNSAFE_IGNORE_COMPILER_WARNINGS)
+  target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
+endif ()
 
 if(BUILD_TESTING AND BUILD_SHARED_LIBS)
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=default)
