@@ -1315,7 +1315,7 @@ S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, u
     }
 
     uint16_t max_wire_record_size = 0;
-    RESULT_GUARD(s2n_record_max_write_record_size(conn, conn->max_outgoing_fragment_length, &max_wire_record_size));
+    RESULT_GUARD(s2n_record_max_write_size(conn, conn->max_outgoing_fragment_length, &max_wire_record_size));
     if ((conn->out.blob.size < max_wire_record_size)) {
         RESULT_GUARD_POSIX(s2n_realloc(&conn->out.blob, max_wire_record_size));
     }

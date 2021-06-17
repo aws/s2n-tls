@@ -82,17 +82,17 @@ S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_record_max_write_record_size(struct s2n_connection *conn, uint16_t max_fragment_size, uint16_t *max_size)
+S2N_RESULT s2n_record_max_write_size(struct s2n_connection *conn, uint16_t max_fragment_size, uint16_t *max_record_size)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_MUT(max_size);
+    RESULT_ENSURE_MUT(max_record_size);
 
     if(!IS_NEGOTIATED(conn)) {
-        *max_size = S2N_TLS_MAX_RECORD_LEN_FOR(max_fragment_size);
+        *max_record_size = S2N_TLS_MAX_RECORD_LEN_FOR(max_fragment_size);
     } else if (conn->actual_protocol_version < S2N_TLS13) {
-        *max_size = S2N_TLS12_MAX_RECORD_LEN_FOR(max_fragment_size);
+        *max_record_size = S2N_TLS12_MAX_RECORD_LEN_FOR(max_fragment_size);
     } else {
-        *max_size = S2N_TLS13_MAX_RECORD_LEN_FOR(max_fragment_size);
+        *max_record_size = S2N_TLS13_MAX_RECORD_LEN_FOR(max_fragment_size);
     }
     return S2N_RESULT_OK;
 }
@@ -280,7 +280,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
 
     if (s2n_stuffer_is_empty(&conn->out)) {
         uint16_t max_wire_record_size = 0;
-        POSIX_GUARD_RESULT(s2n_record_max_write_record_size(conn, max_write_payload_size, &max_wire_record_size));
+        POSIX_GUARD_RESULT(s2n_record_max_write_size(conn, max_write_payload_size, &max_wire_record_size));
         POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, max_wire_record_size));
     }
 

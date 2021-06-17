@@ -66,7 +66,11 @@ int main(int argc, char **argv)
         /* Output memory allocated according to max fragment length. */
         EXPECT_EQUAL(client_conn->max_outgoing_fragment_length, S2N_DEFAULT_FRAGMENT_LENGTH);
         EXPECT_EQUAL(server_conn->max_outgoing_fragment_length, S2N_DEFAULT_FRAGMENT_LENGTH);
+        /* The client allocates the protocol-agnostic max record size because when it sends its
+         * first message (ClientHello) the protocol hasn't been negotiated yet. */
         EXPECT_EQUAL(client_conn->out.blob.size, S2N_TLS_MAX_RECORD_LEN_FOR(S2N_DEFAULT_FRAGMENT_LENGTH));
+        /* The server allocates only enough memory for TLS1.3 records because when it sends its
+         * first message (ServerHello) the protocol has already been negotiated. */
         EXPECT_EQUAL(server_conn->out.blob.size, S2N_TLS13_MAX_RECORD_LEN_FOR(S2N_DEFAULT_FRAGMENT_LENGTH));
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
@@ -104,7 +108,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_conn->out.blob.size, S2N_TLS_MAX_RECORD_LEN_FOR(S2N_SMALL_FRAGMENT_LENGTH));
         EXPECT_EQUAL(server_conn->out.blob.size, S2N_TLS13_MAX_RECORD_LEN_FOR(S2N_LARGE_FRAGMENT_LENGTH));
 
-        /* Switch max fragment lengths after handshake */
+        /* Switch max fragment lengths after handshake to verify whether buffers are resized */
         EXPECT_SUCCESS(s2n_connection_prefer_throughput(client_conn));
         EXPECT_SUCCESS(s2n_connection_prefer_low_latency(server_conn));
         EXPECT_EQUAL(client_conn->max_outgoing_fragment_length, S2N_LARGE_FRAGMENT_LENGTH);

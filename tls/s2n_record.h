@@ -64,7 +64,7 @@
 #define S2N_TLS_MAX_RECORD_LEN_FOR(frag)        S2N_TLS12_MAX_RECORD_LEN_FOR(frag)
 #define S2N_TLS_MAXIMUM_RECORD_LENGTH           S2N_TLS_MAX_RECORD_LEN_FOR(S2N_TLS_MAXIMUM_FRAGMENT_LENGTH)
 
-S2N_RESULT s2n_record_max_write_record_size(struct s2n_connection *conn, uint16_t max_fragment_size, uint16_t *max_record_size);
+S2N_RESULT s2n_record_max_write_size(struct s2n_connection *conn, uint16_t max_fragment_size, uint16_t *max_record_size);
 extern S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16_t *max_fragment_size);
 extern S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16_t *payload_size);
 extern int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in);

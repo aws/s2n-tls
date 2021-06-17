@@ -424,35 +424,35 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
-    /* s2n_record_max_write_record_size */
+    /* s2n_record_max_write_size */
     {
         uint16_t result = 0;
         conn = s2n_connection_new(S2N_SERVER);
         EXPECT_NOT_NULL(conn);
 
-        EXPECT_ERROR_WITH_ERRNO(s2n_record_max_write_record_size(NULL, 1, &result), S2N_ERR_NULL);
-        EXPECT_ERROR_WITH_ERRNO(s2n_record_max_write_record_size(conn, 1, NULL), S2N_ERR_NULL);
+        EXPECT_ERROR_WITH_ERRNO(s2n_record_max_write_size(NULL, 1, &result), S2N_ERR_NULL);
+        EXPECT_ERROR_WITH_ERRNO(s2n_record_max_write_size(conn, 1, NULL), S2N_ERR_NULL);
 
         conn->actual_protocol_version = 0;
         conn->handshake.handshake_type = INITIAL;
-        EXPECT_OK(s2n_record_max_write_record_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &result));
+        EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &result));
         EXPECT_EQUAL(result, S2N_TLS_MAXIMUM_RECORD_LENGTH);
 
         conn->handshake.handshake_type = NEGOTIATED;
-        EXPECT_OK(s2n_record_max_write_record_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &result));
+        EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &result));
         EXPECT_EQUAL(result, S2N_TLS_MAXIMUM_RECORD_LENGTH);
 
         conn->actual_protocol_version = S2N_TLS12;
-        EXPECT_OK(s2n_record_max_write_record_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &result));
+        EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &result));
         EXPECT_EQUAL(result, S2N_TLS12_MAXIMUM_RECORD_LENGTH);
 
         conn->actual_protocol_version = S2N_TLS13;
-        EXPECT_OK(s2n_record_max_write_record_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &result));
+        EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &result));
         EXPECT_EQUAL(result, S2N_TLS13_MAXIMUM_RECORD_LENGTH);
 
         uint16_t diff = 10;
         conn->actual_protocol_version = S2N_TLS13;
-        EXPECT_OK(s2n_record_max_write_record_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH - diff, &result));
+        EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH - diff, &result));
         EXPECT_EQUAL(result, S2N_TLS13_MAXIMUM_RECORD_LENGTH - diff);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
