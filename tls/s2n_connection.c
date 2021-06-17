@@ -1033,11 +1033,13 @@ const char *s2n_connection_get_curve(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
 
-    if (!conn->secure.server_ecc_evp_params.negotiated_curve) {
-        return "NONE";
+    if (conn->secure.server_ecc_evp_params.negotiated_curve && 
+        (s2n_kex_includes(conn->secure.cipher_suite->key_exchange_alg, &s2n_ecdhe) ||
+         s2n_kex_includes(conn->secure.cipher_suite->key_exchange_alg, &s2n_hybrid_ecdhe_kem))) {
+        return conn->secure.server_ecc_evp_params.negotiated_curve->name;
     }
 
-    return conn->secure.server_ecc_evp_params.negotiated_curve->name;
+    return "NONE";
 }
 
 const char *s2n_connection_get_kem_name(struct s2n_connection *conn)
