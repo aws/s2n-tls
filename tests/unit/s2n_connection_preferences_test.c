@@ -287,7 +287,6 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
         EXPECT_BYTEARRAY_EQUAL(curve_name, no_curve, sizeof(no_curve));
 
-
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
