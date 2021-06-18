@@ -1365,7 +1365,20 @@ ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tl
 - **out** Pointer to a buffer into which the extension bytes should be copied.
 - **max_length** Max number of bytes to copy into the **out** buffer.
 
-**s2n_client_hello_get_extension_length** returns the number of bytes the given extension type takes on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
+**s2n_client_hello_get_extension_length** will return `0` if the extension is present but empty and also if the extension is not present. s2n_errno can be used to decipher between these two cases:
+
+```
+s2n_errno = S2N_ERR_T_OK;
+ssize_t len = s2n_client_hello_get_extension_by_id(ch, 0);
+if (len == 0 && s2n_errno == S2N_ERR_T_OK) {
+        /* extension is present but empty **/
+} else if (len == 0 && s2n_errno != S2N_ERR_T_OK) {
+        /* extension is not present **/
+} else {
+    /* extension is present with non-zero length */
+}
+```
+
 **s2n_client_hello_get_extension_by_id** copies into the **out** buffer **max_length** bytes of a given extension type on the ClientHello and returns the number of copied bytes.
 
 ### s2n\_connection\_client\_cert\_used
