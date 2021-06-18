@@ -42,7 +42,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
-    /* Default case: use wire record size based on default fragment length */
+    /* Allocate output buffer based on default fragment length */
     {
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(client_conn);
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
-    /* Max fragment size set manually */
+    /* Allocate output buffer to max fragment size set manually */
     {
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(client_conn);
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
-    /* max_fragment_length extension used */
+    /* Allocate output buffer to value negotiated with max_fragment_length extension */
     {
         const s2n_max_frag_len mfl_code = S2N_TLS_MAX_FRAG_LEN_2048;
         const uint16_t expected_mfl = 2048;
@@ -165,6 +165,49 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_config_free(config_for_mfl));
+    }
+
+    /* Output and input buffers both freed on connection wipe */
+    {
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        /* All IO buffers empty */
+        EXPECT_EQUAL(client_conn->in.blob.size, 0);
+        EXPECT_EQUAL(server_conn->in.blob.size, 0);
+        EXPECT_EQUAL(client_conn->out.blob.size, 0);
+        EXPECT_EQUAL(server_conn->out.blob.size, 0);
+
+        /* Create nonblocking pipes */
+        struct s2n_test_io_pair io_pair;
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+        /* Do handshake */
+        EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_CERT));
+
+        /* All IO buffers not empty */
+        EXPECT_NOT_EQUAL(client_conn->in.blob.size, 0);
+        EXPECT_NOT_EQUAL(server_conn->in.blob.size, 0);
+        EXPECT_NOT_EQUAL(client_conn->out.blob.size, 0);
+        EXPECT_NOT_EQUAL(server_conn->out.blob.size, 0);
+
+        /* Wipe connections */
+        EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+        EXPECT_EQUAL(client_conn->in.blob.size, 0);
+        EXPECT_EQUAL(server_conn->in.blob.size, 0);
+        EXPECT_EQUAL(client_conn->out.blob.size, 0);
+        EXPECT_EQUAL(server_conn->out.blob.size, 0);
+
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
     }
 
     EXPECT_SUCCESS(s2n_config_free(config));
