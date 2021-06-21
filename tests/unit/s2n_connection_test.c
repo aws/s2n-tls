@@ -61,7 +61,7 @@ int main(int argc, char **argv)
      */
     {
         /* Carefully consider any increases to this number. */
-        const size_t connection_size = 18656;
+        const size_t connection_size = 18700;
 
         if (sizeof(struct s2n_connection) > connection_size) {
             const char message[] = "s2n_connection size (%lu) increased above %lu. "
