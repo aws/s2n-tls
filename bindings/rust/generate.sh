@@ -6,6 +6,7 @@
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 mkdir -p s2n-tls-sys/lib
+mkdir -p s2n-tls-sys/lib/tests
 
 # we copy the C sources into the `lib` directory so they get published in the
 # actual crate artifact.
@@ -18,6 +19,10 @@ cp -r \
   ../../tls \
   ../../utils \
   s2n-tls-sys/lib/
+
+cp -r \
+  ../../tests/features \
+  s2n-tls-sys/lib/tests/
 
 # generate the bindings modules from the copied sources
 cd generate && cargo run -- ../s2n-tls-sys && cd ..

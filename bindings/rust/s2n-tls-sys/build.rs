@@ -47,9 +47,26 @@ fn main() {
         build.define("S2N_NO_PQ", "1");
     }
 
-    // TODO add features
+    let features = FeatureDetector::default();
 
-    // don't spit out a bunch of warnings to the end user
+    if features.supports("execinfo") {
+        build.define("S2N_HAVE_EXECINFO", "1");
+    }
+
+    if features.supports("cpuid") {
+        build.define("S2N_CPUID_AVAILABLE", "1");
+    }
+
+    if features.supports("fallthrough") {
+        build.define("FALL_THROUGH_SUPPORTED", "1");
+    }
+
+    if features.supports("__restrict__") {
+        build.define("__RESTRICT__SUPPORTED", "1");
+    }
+
+    // don't spit out a bunch of warnings to the end user, since they won't really be able
+    // to do anything with it
     build.warnings(false);
 
     build.compile("s2n-tls");
@@ -66,4 +83,39 @@ fn option_env<N: AsRef<str>>(name: N) -> Option<String> {
     let name = name.as_ref();
     eprintln!("cargo:rerun-if-env-changed={}", name);
     std::env::var(name).ok()
+}
+
+struct FeatureDetector {
+    out_dir: std::path::PathBuf,
+}
+
+impl Default for FeatureDetector {
+    fn default() -> Self {
+        Self {
+            out_dir: std::path::PathBuf::from(env("OUT_DIR")),
+        }
+    }
+}
+
+impl FeatureDetector {
+    pub fn supports(&self, name: &str) -> bool {
+        let out = self.out_dir.join("features").join(name);
+        let out = out.to_str().unwrap();
+
+        cc::Build::new()
+            .file(
+                std::path::Path::new("lib/tests/features")
+                    .join(name)
+                    .with_extension("c"),
+            )
+            // don't print anything
+            .cargo_metadata(false)
+            // make sure it doesn't warn
+            .warnings(true)
+            .debug(false)
+            // set the archiver to the `true` program, since we don't actually link anything
+            .archiver("true")
+            .try_compile(out)
+            .is_ok()
+    }
 }

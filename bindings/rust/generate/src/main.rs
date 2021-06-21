@@ -99,6 +99,10 @@ fn gen_files(input: &Path, out: &Path) -> io::Result<()> {
     for file in glob::glob(&pattern).unwrap() {
         let file = file.unwrap();
         let file = file.strip_prefix(input).unwrap();
+        // don't include tests
+        if file.starts_with("tests") {
+            continue;
+        }
         writeln!(o, "    {:?},", Path::new("lib").join(file).display())?;
     }
     writeln!(o, "]")?;
