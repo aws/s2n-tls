@@ -50,6 +50,26 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
 
+    /* Test s2n_connection does not grow too much.
+     * s2n_connection is a very large structure. We should be working to reduce its
+     * size, not increasing it.
+     * This test documents changes to its size for reviewers so that we can
+     * make very deliberate choices about increasing memory usage.
+     */
+    {
+        /* Carefully consider any increases to this number. */
+        const size_t connection_size = 17936;
+
+        if (sizeof(struct s2n_connection) != connection_size) {
+            const char message[] = "s2n_connection size changed from %lu to %lu. "
+                    "Please verify that this change was intentional and then update this test.";
+            char message_buffer[sizeof(message) + 50] = { 0 };
+            EXPECT_TRUE(snprintf(message_buffer, sizeof(message_buffer), message, connection_size, sizeof(struct s2n_connection))
+                    < sizeof(message_buffer));
+            FAIL_MSG(message_buffer);
+        }
+    }
+
     /* s2n_get_server_name */
     {
         const char* test_server_name = "A server name";
