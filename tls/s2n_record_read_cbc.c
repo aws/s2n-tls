@@ -105,7 +105,7 @@ int s2n_record_parse_cbc(
     struct s2n_blob seq = {.data = sequence_number,.size = S2N_TLS_SEQUENCE_NUM_LEN };
     POSIX_GUARD(s2n_increment_sequence_number(&seq));
 
-    /* Padding */
+    /* Padding. This destroys the mac. */
     if (s2n_verify_cbc(conn, mac, &en) < 0) {
         POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
         POSIX_BAIL(S2N_ERR_BAD_MESSAGE);

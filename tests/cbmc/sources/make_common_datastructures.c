@@ -603,7 +603,6 @@ void cbmc_populate_s2n_crypto_parameters(struct s2n_crypto_parameters *s2n_crypt
     cbmc_populate_s2n_hash_state(&(s2n_crypto_parameters->signature_hash));
     cbmc_populate_s2n_hmac_state(&(s2n_crypto_parameters->client_record_mac));
     cbmc_populate_s2n_hmac_state(&(s2n_crypto_parameters->server_record_mac));
-    cbmc_populate_s2n_hmac_state(&(s2n_crypto_parameters->record_mac_copy_workspace));
 }
 
 struct s2n_crypto_parameters *cbmc_allocate_s2n_crypto_parameters()

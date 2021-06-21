@@ -72,10 +72,8 @@ int s2n_connection_save_hmac_state(struct s2n_connection_hmac_handles *hmac_hand
 {
     POSIX_GUARD(s2n_hmac_save_evp_hash_state(&hmac_handles->initial_client, &conn->initial.client_record_mac));
     POSIX_GUARD(s2n_hmac_save_evp_hash_state(&hmac_handles->initial_server, &conn->initial.server_record_mac));
-    POSIX_GUARD(s2n_hmac_save_evp_hash_state(&hmac_handles->initial_client_copy, &conn->initial.record_mac_copy_workspace));
     POSIX_GUARD(s2n_hmac_save_evp_hash_state(&hmac_handles->secure_client, &conn->secure.client_record_mac));
     POSIX_GUARD(s2n_hmac_save_evp_hash_state(&hmac_handles->secure_server, &conn->secure.server_record_mac));
-    POSIX_GUARD(s2n_hmac_save_evp_hash_state(&hmac_handles->secure_client_copy, &conn->secure.record_mac_copy_workspace));
     return 0;
 }
 
@@ -134,9 +132,7 @@ int s2n_connection_restore_hmac_state(struct s2n_connection *conn, struct s2n_co
 {
     POSIX_GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->initial_client, &conn->initial.client_record_mac));
     POSIX_GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->initial_server, &conn->initial.server_record_mac));
-    POSIX_GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->initial_client_copy, &conn->initial.record_mac_copy_workspace));
     POSIX_GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->secure_client, &conn->secure.client_record_mac));
     POSIX_GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->secure_server, &conn->secure.server_record_mac));
-    POSIX_GUARD(s2n_hmac_restore_evp_hash_state(&hmac_handles->secure_client_copy, &conn->secure.record_mac_copy_workspace));
     return 0;
 }

@@ -67,7 +67,6 @@ struct s2n_crypto_parameters {
     struct s2n_hash_state signature_hash;
     struct s2n_hmac_state client_record_mac;
     struct s2n_hmac_state server_record_mac;
-    struct s2n_hmac_state record_mac_copy_workspace;
     uint8_t client_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN];
     uint8_t server_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN];
 };
