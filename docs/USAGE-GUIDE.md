@@ -1155,12 +1155,10 @@ file-descriptor should be active and connected. s2n-tls also supports setting th
 read and write file-descriptors to different values (for pipes or other unusual
 types of I/O).
 
-Important Note:
-Applications should be designed so that one process is reading from a pipe before another
-writes to it. If the reading process fails to start or is terminated unexpectedly, writing
-to the pipe will raise a SIGPIPE signal. A SIGPIPE signal will cause the process to
-terminate unless it is handled or ignored. **s2n-tls does NOT handle SIGPIPE.** It is the
-responsibility of the application using s2n-tls to either handle or ignore SIGPIPE.
+**Important Note:**
+If the read end of the pipe is closed unexpectedly, writing to the pipe will raise
+a SIGPIPE signal. **s2n-tls does NOT handle SIGPIPE.** A SIGPIPE signal will cause
+the process to terminate unless it is handled or ignored by the application.
 
 ### s2n\_connection\_is\_valid\_for\_cipher\_preferences
 
@@ -1906,11 +1904,9 @@ direction in which s2n-tls is blocked.
 s2n-tls I/O functions should be called repeatedly until the **blocked** parameter is
 **S2N_NOT_BLOCKED**.
 
-Applications should be designed so that one process is reading from a pipe before another
-writes to it. If the reading process fails to start or is terminated unexpectedly, writing
-to the pipe will raise a SIGPIPE signal. A SIGPIPE signal will cause the process to
-terminate unless it is handled or ignored. **s2n-tls does NOT handle SIGPIPE.** It is the
-responsibility of the application using s2n-tls to either handle or ignore SIGPIPE.
+If the read end of the pipe is closed unexpectedly, writing to the pipe will raise
+a SIGPIPE signal. **s2n-tls does NOT handle SIGPIPE.** A SIGPIPE signal will cause
+the process to terminate unless it is handled or ignored by the application.
 
 ### s2n\_negotiate
 
