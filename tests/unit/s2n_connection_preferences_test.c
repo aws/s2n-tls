@@ -269,19 +269,21 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
         EXPECT_BYTEARRAY_EQUAL(curve_name, no_curve, sizeof(no_curve));
 
-        /* ECDHE cipher negotiated and curve chosen */
+        /* TLS1.3 always returns a curve */
+        conn->actual_protocol_version = S2N_TLS13;
+        conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+        EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
+        EXPECT_BYTEARRAY_EQUAL(curve_name, s2n_ecc_curve_secp256r1.name, sizeof(s2n_ecc_curve_secp256r1.name));
+
+        /* TLS1.2 returns a curve if ECDHE cipher negotiated */
+        conn->actual_protocol_version = S2N_TLS12;
         conn->secure.cipher_suite = &s2n_ecdhe_rsa_with_aes_128_cbc_sha256;
         conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
         EXPECT_BYTEARRAY_EQUAL(curve_name, s2n_ecc_curve_secp256r1.name, sizeof(s2n_ecc_curve_secp256r1.name));
 
-        /* Hybrid ECDHE cipher negotiated and curve chosen */
-        conn->secure.cipher_suite = &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384;
-        conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
-        EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
-        EXPECT_BYTEARRAY_EQUAL(curve_name, s2n_ecc_curve_secp256r1.name, sizeof(s2n_ecc_curve_secp256r1.name));
-
-        /* ECDHE cipher was not negotiated but curve is set */
+        /* TLS1.2 does not return a curve if ECDHE cipher was not negotiated */
+        conn->actual_protocol_version = S2N_TLS12;
         conn->secure.cipher_suite = &s2n_rsa_with_aes_256_gcm_sha384;
         conn->secure.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
         EXPECT_NOT_NULL(curve_name = s2n_connection_get_curve(conn));
