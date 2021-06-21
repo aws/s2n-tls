@@ -278,7 +278,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     /* Start the MAC with the sequence number */
     POSIX_GUARD(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
 
-    if (s2n_stuffer_is_empty(&conn->out)) {
+    if (s2n_stuffer_is_freed(&conn->out)) {
         uint16_t max_wire_record_size = 0;
         POSIX_GUARD_RESULT(s2n_record_max_write_size(conn, max_write_payload_size, &max_wire_record_size));
         POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, max_wire_record_size));

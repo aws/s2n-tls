@@ -1310,7 +1310,7 @@ S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, u
     /* If no buffer has been initialized yet, no need to resize.
      * The standard I/O logic will handle initializing the buffer.
      */
-    if (s2n_stuffer_is_empty(&conn->out)) {
+    if (s2n_stuffer_is_freed(&conn->out)) {
         return S2N_RESULT_OK;
     }
 
