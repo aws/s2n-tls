@@ -73,6 +73,7 @@ fn gen_bindings(entry: &str, s2n_dir: &Path) -> bindgen::Builder {
         .blocklist_type("FILE")
         .blocklist_type("_IO_.*")
         .blocklist_type("__.*")
+        .blocklist_type("fpos_t")
         // rust can't access thread-local variables
         // https://github.com/rust-lang/rust/issues/29594
         .blocklist_item("s2n_errno")
