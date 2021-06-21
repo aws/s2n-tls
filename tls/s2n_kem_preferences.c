@@ -122,12 +122,12 @@ const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2020_12 = {
     .tls13_kem_groups = pq_kem_groups_r2,
 };
 #else /* S2N_NO_PQ */
-const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2019_06 = kem_preferences_null;
-const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_02 = kem_preferences_null;
-const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_07 = kem_preferences_null;
-const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2019_11 = kem_preferences_null;
-const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2020_02 = kem_preferences_null;
-const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2020_12 = kem_preferences_null;
+const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2019_06 = { 0 };
+const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_02 = { 0 };
+const struct s2n_kem_preferences kem_preferences_kms_pq_tls_1_0_2020_07 = { 0 };
+const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2019_11 = { 0 };
+const struct s2n_kem_preferences kem_preferences_pq_sike_test_tls_1_0_2020_02 = { 0 };
+const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2020_12 = { 0 };
 #endif /* S2N_NO_PQ */
 
 /* Determines if query_iana_id corresponds to a tls13_kem_group for these KEM preferences. */
