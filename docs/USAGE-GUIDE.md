@@ -18,7 +18,7 @@ LIBCRYPTO_ROOT=/usr/local/ssl make
 ```
 ### CMake Instructions
 
-Throughout this document, there are instructions for setting a `LIBCRYPTO_ROOT` environment variable, or setting install prefixes to `s2n/lib-crypto-root`. If you 
+Throughout this document, there are instructions for setting a `LIBCRYPTO_ROOT` environment variable, or setting install prefixes to `s2n/lib-crypto-root`. If you
 are using CMake that step is unnecessary. Just follow the instructions here to use any build of libcrypto.
 
 (Required): You need at least CMake version 3.0 to fully benefit from Modern CMake. See [this](https://www.youtube.com/watch?v=bsXLMQ6WgIk) for more information.
@@ -27,7 +27,7 @@ are using CMake that step is unnecessary. Just follow the instructions here to u
 the default installation on your machine will be used.
 
 (Optional): Set the CMake variable `BUILD_SHARED_LIBS=ON` to build shared libraries. The default is static.
- 
+
 We recommend an out-of-source build. Suppose you have a directory `s2n` which contains the s2n-tls source code. At the same level
 we can create a directory called `s2n-build`
 
@@ -38,7 +38,7 @@ mkdir s2n-build
 cd s2n-build
 cmake ../s2n-tls -DBUILD_SHARED_LIBS=ON -GNinja
 ninja
-ninja test 
+ninja test
 sudo ninja install
 ````
 
@@ -76,7 +76,7 @@ target_link_libraries(yourExecutableOrLibrary AWS::s2n-tls)
 And when invoking CMake for your project, do one of two things:
  1. Set the `CMAKE_INSTALL_PREFIX` variable with the path to your s2n-tls build.
  2. If you have globally installed s2n-tls, do nothing, it will automatically be found.
- 
+
 ## Building s2n-tls with OpenSSL-1.1.1
 
 To build s2n-tls with OpenSSL-1.1.1, do the following:
@@ -183,7 +183,7 @@ cd libcrypto-build
 
 # Clone BoringSSL
 git clone https://boringssl.googlesource.com/boringssl
-    
+
 # Build BoringSSL
 cd boringssl
 mkdir build
@@ -204,7 +204,7 @@ make
 once built, static and dynamic libraries for s2n-tls will be available in the lib/
 directory.
 
-## mlock() and system limits 
+## mlock() and system limits
 
 Internally s2n-tls uses mlock() to prevent memory from being swapped to disk. The
 s2n-tls build tests may fail in some environments where the default limit on locked
@@ -217,22 +217,22 @@ ulimit -l
 to raise the limit, consult the documentation for your platform.
 
 ### Disabling mlock()
-To disable s2n-tls's mlock behavior, run your application with the `S2N_DONT_MLOCK` environment variable set. 
+To disable s2n-tls's mlock behavior, run your application with the `S2N_DONT_MLOCK` environment variable set.
 s2n-tls also reads this for unit tests. Try `S2N_DONT_MLOCK=1 make` if you're having mlock failures during unit tests.
 
 # s2n-tls API
 
 The API exposed by s2n-tls is the set of functions and declarations that
 are in the "s2n.h" header file. Any functions and declarations that are in the "s2n.h" file
-are intended to be stable (API and ABI) within major version numbers of s2n-tls releases. Other functions 
-and structures used in s2n-tls internally can not be considered stable and their parameters, names, and 
+are intended to be stable (API and ABI) within major version numbers of s2n-tls releases. Other functions
+and structures used in s2n-tls internally can not be considered stable and their parameters, names, and
 sizes may change.
 
 The VERSIONING.rst document contains more details about s2n's approach to versions and API changes.
 
 ## Preprocessor macros
 
-s2n-tls defines five preprocessor macros that are used to determine what 
+s2n-tls defines five preprocessor macros that are used to determine what
 version of SSL/TLS is in use on a connection.
 
 ```c
@@ -307,13 +307,13 @@ typedef enum { S2N_BUILT_IN_BLINDING, S2N_SELF_SERVICE_BLINDING } s2n_blinding;
 
 **s2n_blinding** is used to opt-out of s2n-tls's built-in blinding. Blinding is a
 mitigation against timing side-channels which in some cases can leak information
-about encrypted data. By default s2n-tls will cause a thread to sleep between 10 and 
-30 seconds whenever tampering is detected. 
+about encrypted data. By default s2n-tls will cause a thread to sleep between 10 and
+30 seconds whenever tampering is detected.
 
 Setting the **S2N_SELF_SERVICE_BLINDING** option with **s2n_connection_set_blinding**
 turns off this behavior. This is useful for applications that are handling many connections
-in a single thread. In that case, if s2n_recv() or s2n_negotiate() return an error, 
-self-service applications should call **s2n_connection_get_delay** and pause 
+in a single thread. In that case, if s2n_recv() or s2n_negotiate() return an error,
+self-service applications should call **s2n_connection_get_delay** and pause
 activity on the connection  for the specified number of nanoseconds before calling
 close() or shutdown().
 
@@ -408,7 +408,7 @@ int s2n_get_stacktrace(char*** trace, int* trace_size);
 
 ### Error categories
 
-s2n-tls organizes errors into different "types" to allow applications to do logic on error values without catching all possibilities. 
+s2n-tls organizes errors into different "types" to allow applications to do logic on error values without catching all possibilities.
 Applications using non-blocking I/O should check error type to determine if the I/O operation failed because it would block or for some other error. To retrieve the type for a given error use `s2n_error_get_type()`.
 Applications should perform any error handling logic using these high level types:
 
@@ -460,7 +460,7 @@ if (s2n_recv(conn, &blocked) < 0) {
 unsigned long s2n_get_openssl_version();
 ```
 
-**s2n_get_openssl_version** returns the version number of OpenSSL that s2n-tls was compiled with. It can be used by 
+**s2n_get_openssl_version** returns the version number of OpenSSL that s2n-tls was compiled with. It can be used by
 applications to validate at runtime that the versions of s2n-tls and Openssl that they have loaded are correct.
 
 
@@ -493,7 +493,7 @@ struct s2n_config * s2n_config_new();
 ```
 
 **s2n_config_new** returns a new configuration object suitable for associating certs and keys.
-This object can (and should) be associated with many connection objects. 
+This object can (and should) be associated with many connection objects.
 
 ### s2n\_config\_free
 
@@ -538,7 +538,7 @@ The following chart maps the security policy version to protocol version and cip
 |   "20190802"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
 |   "20200207"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |       |
 
-The "default" and "default_tls13" version is special in that it will be updated with future s2n-tls changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change. 
+The "default" and "default_tls13" version is special in that it will be updated with future s2n-tls changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change.
 
 "20160411" follows the same general preference order as "default". The main difference is it has a CBC cipher suite at the top. This is to accommodate certain Java clients that have poor GCM implementations. Users of s2n-tls who have found GCM to be hurting performance for their clients should consider this version.
 
@@ -550,13 +550,13 @@ s2n-tls does not expose an API to control the order of preference for each ciphe
 underlying encrypt/decrypt functions are not available in older versions.
 
 1. Always prefer the highest protocol version supported
-2. Always use forward secrecy where possible. Prefer ECDHE over DHE. 
+2. Always use forward secrecy where possible. Prefer ECDHE over DHE.
 3. Prefer encryption ciphers in the following order: AES128, AES256, ChaCha20, 3DES, RC4.
 4. Prefer record authentication modes in the following order: GCM, Poly1305, SHA256, SHA1, MD5.
 
 The following chart maps the security policy version to the signature scheme supported:
 
-|    version     |   RSA PKCS1  |   ECDSA  |  SHA-1 Legacy |  RSA PSS | 
+|    version     |   RSA PKCS1  |   ECDSA  |  SHA-1 Legacy |  RSA PSS |
 |----------------|--------------|----------|---------------|----------|
 |   "default"    |      X       |     X    |      X        |          |
 |   "20190214"   |      X       |     X    |      X        |          |
@@ -580,39 +580,39 @@ The following chart maps the security policy version to the signature scheme sup
 |   "20190802"   |      X       |     X    |      X        |    X     |
 |   "20200207"   |      X       |     X    |      X        |    X     |
 
-Note that the default_tls13 security policy will never support legacy SHA-1 algorithms in TLS1.3, but will support 
+Note that the default_tls13 security policy will never support legacy SHA-1 algorithms in TLS1.3, but will support
 legacy SHA-1 algorithms in CertificateVerify messages if TLS1.2 has been negotiated.
 
-The following chart maps the security policy version to the supported curves/groups: 
+The following chart maps the security policy version to the supported curves/groups:
 
-|    version     |   secp256r1  |  secp384r1 | x25519 | 
+|    version     |   secp256r1  |  secp384r1 | x25519 |
 |----------------|--------------|------------|--------|
-|   "default"    |      X       |      X     |        | 
-|   "20190214"   |      X       |      X     |        | 
-|   "20170718"   |      X       |      X     |        | 
-|   "20170405"   |      X       |      X     |        | 
-|   "20170328"   |      X       |      X     |        | 
-|   "20170210"   |      X       |      X     |        | 
-|   "20160824"   |      X       |      X     |        | 
-|   "20160804"   |      X       |      X     |        | 
-|   "20160411"   |      X       |      X     |        | 
-|   "20150306"   |      X       |      X     |        | 
-|   "20150214"   |      X       |      X     |        | 
-|   "20150202"   |      X       |      X     |        | 
-|   "20141001"   |      X       |      X     |        | 
-|   "20140601"   |      X       |      X     |        | 
-|   "20190120"   |      X       |      X     |        | 
-|   "20190121"   |      X       |      X     |        | 
-|   "20190122"   |      X       |      X     |        | 
-| "default_tls13"|      X       |      X     |   X    | 
-|   "20190801"   |      X       |      X     |   X    | 
-|   "20190802"   |      X       |      X     |        | 
-|   "20200207"   |      X       |      X     |   X    | 
+|   "default"    |      X       |      X     |        |
+|   "20190214"   |      X       |      X     |        |
+|   "20170718"   |      X       |      X     |        |
+|   "20170405"   |      X       |      X     |        |
+|   "20170328"   |      X       |      X     |        |
+|   "20170210"   |      X       |      X     |        |
+|   "20160824"   |      X       |      X     |        |
+|   "20160804"   |      X       |      X     |        |
+|   "20160411"   |      X       |      X     |        |
+|   "20150306"   |      X       |      X     |        |
+|   "20150214"   |      X       |      X     |        |
+|   "20150202"   |      X       |      X     |        |
+|   "20141001"   |      X       |      X     |        |
+|   "20140601"   |      X       |      X     |        |
+|   "20190120"   |      X       |      X     |        |
+|   "20190121"   |      X       |      X     |        |
+|   "20190122"   |      X       |      X     |        |
+| "default_tls13"|      X       |      X     |   X    |
+|   "20190801"   |      X       |      X     |   X    |
+|   "20190802"   |      X       |      X     |        |
+|   "20200207"   |      X       |      X     |   X    |
 
 ### s2n\_config\_add\_cert\_chain\_and\_key
 
 ```c
-int s2n_config_add_cert_chain_and_key(struct s2n_config *config, 
+int s2n_config_add_cert_chain_and_key(struct s2n_config *config,
                                       const char *cert_chain_pem,
                                       const char *private_key_pem);
 ```
@@ -628,7 +628,7 @@ should be a PEM encoded private key corresponding to the server certificate.
 ### s2n\_config\_add\_cert\_chain\_and\_key\_to\_store
 
 ```c
-int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, 
+int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config,
                                                struct s2n_cert_chain_and_key *cert_key_pair);
 ```
 
@@ -668,7 +668,7 @@ int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_ti
 ### s2n\_config\_add\_dhparams
 
 ```c
-int s2n_config_add_dhparams(struct s2n_config *config, 
+int s2n_config_add_dhparams(struct s2n_config *config,
                             char *dhparams_pem);
 ```
 
@@ -778,8 +778,8 @@ will be used if this callback is not manually set.
 int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
 ```
 
-**s2n_config_set_verification_ca_location**  initializes the trust store from a CA file or directory 
-containing trusted certificates.  By default, the trust store will be initialized to the common locations 
+**s2n_config_set_verification_ca_location**  initializes the trust store from a CA file or directory
+containing trusted certificates.  By default, the trust store will be initialized to the common locations
 for the host operating system. Call this function to override that behavior.
 Returns 0 on success and -1 on failure.
 
@@ -795,9 +795,9 @@ int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem
 typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_len, void *ctx);
 ```
 
-**s2n_verify_host_fn** is invoked (usually multiple times) during X.509 validation for each name encountered in the leaf certificate. 
+**s2n_verify_host_fn** is invoked (usually multiple times) during X.509 validation for each name encountered in the leaf certificate.
 Return 1 to trust that hostname or 0 to not trust the hostname. If this function returns 1, then the certificate is considered trusted and that portion
-of the X.509 validation will succeed. If no hostname results in a 1 being returned, 
+of the X.509 validation will succeed. If no hostname results in a 1 being returned,
 the certificate will be untrusted and the validation will terminate immediately. The default behavior is to reject all host names found in a certificate
 if client mode or client authentication is being used..
 
@@ -806,10 +806,10 @@ if client mode or client authentication is being used..
 int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn, void *ctx);
 ```
 
-**s2n_config_set_verify_host_callback** sets the callback to use for verifying that a hostname from an X.509 certificate 
-is trusted. By default, no certificate will be trusted. To override this behavior, set this callback. 
-See [s2n_verify_host_fn](#s2n_verify_host_fn) for details. This configuration will be inherited by default to new instances of **s2n_connection**. 
-If a separate callback for different connections using the same config is desired, see 
+**s2n_config_set_verify_host_callback** sets the callback to use for verifying that a hostname from an X.509 certificate
+is trusted. By default, no certificate will be trusted. To override this behavior, set this callback.
+See [s2n_verify_host_fn](#s2n_verify_host_fn) for details. This configuration will be inherited by default to new instances of **s2n_connection**.
+If a separate callback for different connections using the same config is desired, see
 [s2n_connection_set_verify_host_callback](#s2n_connection_set_verify_host_callback).
 
 ### s2n\_config\_set\_check\_stapled\_ocsp\_response
@@ -836,7 +836,7 @@ int s2n_config_set_max_cert_chain_depth(struct s2n_config *config, uint16_t max_
 ```
 
 **s2n_config_set_max_cert_chain_depth** sets the maximum allowed depth of a cert chain used for X509 validation. The default value is 7. If this limit
-is exceeded, validation will fail if s2n_config_disable_x509_verification() has not been called. 0 is an illegal value and will return an error. 
+is exceeded, validation will fail if s2n_config_disable_x509_verification() has not been called. 0 is an illegal value and will return an error.
 1 means only a root certificate will be used.
 
 ### s2n\_config\_set\_client\_hello\_cb
@@ -914,8 +914,8 @@ This setting is ignored in TLS1.3. TLS1.3 terminates a connection for all alerts
 ```c
 int s2n_config_set_async_pkey_validation_mode(struct s2n_config *config, s2n_async_pkey_validation_mode mode);
 ```
-Sets whether or not a connection should enforce strict signature validation during the `s2n_async_pkey_op_apply` call. 
-`mode` can take the following values: 
+Sets whether or not a connection should enforce strict signature validation during the `s2n_async_pkey_op_apply` call.
+`mode` can take the following values:
 - `S2N_ASYNC_PKEY_VALIDATION_FAST` - default behavior: s2n-tls will perform only the minimum validation required for safe use of the asyn pkey operation.
 - `S2N_ASYNC_PKEY_VALIDATION_STRICT` - in addition to the previous checks, s2n-tls will also ensure that the signature created as a result of the async private key sign operation matches the public key on the connection.
 
@@ -1015,7 +1015,7 @@ set the public keys found in the Certificate into **public_key_out**.
 
 ## Session Caching related calls
 
-s2n-tls includes support for resuming from cached SSL/TLS session, provided 
+s2n-tls includes support for resuming from cached SSL/TLS session, provided
 the caller sets (and implements) three callback functions.
 
 ### s2n\_config\_set\_cache\_store\_callback
@@ -1027,10 +1027,10 @@ int s2n_config_set_cache_store_callback(struct s2n_config *config, int
 
 **s2n_config_set_cache_store_callback** allows the caller to set a callback
 function that will be used to store SSL session data in a cache. The callback
-function takes seven arguments: a pointer to the s2n_connection object, 
-a pointer to abitrary data for use within the callback, a 64-bit unsigned integer 
-specifying the number of seconds the session data may be stored for, a pointer 
-to a key which can be used to retrieve the cached entry, a 64 bit unsigned 
+function takes seven arguments: a pointer to the s2n_connection object,
+a pointer to abitrary data for use within the callback, a 64-bit unsigned integer
+specifying the number of seconds the session data may be stored for, a pointer
+to a key which can be used to retrieve the cached entry, a 64 bit unsigned
 integer specifying the size of this key, a pointer to a value which should be stored,
 and a 64 bit unsigned integer specified the size of this value.
 
@@ -1043,9 +1043,9 @@ int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, int
 
 **s2n_config_set_cache_retrieve_callback** allows the caller to set a callback
 function that will be used to retrieve SSL session data from a cache. The
-callback function takes six arguments: a pointer to the s2n_connection object, 
-a pointer to abitrary data for use within the callback, a pointer to a key which 
-can be used to retrieve the cached entry, a 64 bit unsigned integer specifying 
+callback function takes six arguments: a pointer to the s2n_connection object,
+a pointer to abitrary data for use within the callback, a pointer to a key which
+can be used to retrieve the cached entry, a 64 bit unsigned integer specifying
 the size of this key, a pointer to a memory location where the value should be stored,
 and a pointer to a 64 bit unsigned integer specifing the size of this value.
 Initially *value_size will be set to the amount of space allocated for
@@ -1064,9 +1064,9 @@ int s2n_config_set_cache_delete_callback(struct s2n_config *config, int
 
 **s2n_config_set_cache_delete_callback** allows the caller to set a callback
 function that will be used to delete SSL session data from a cache. The
-callback function takes four arguments: a pointer to s2n_connection object, 
-a pointer to abitrary data for use within the callback, a pointer to a key 
-which can be used to delete the cached entry, and a 64 bit unsigned integer 
+callback function takes four arguments: a pointer to s2n_connection object,
+a pointer to abitrary data for use within the callback, a pointer to a key
+which can be used to delete the cached entry, and a 64 bit unsigned integer
 specifying the size of this key.
 
 ### s2n\_config\_send\_max\_fragment\_length
@@ -1114,12 +1114,12 @@ connections immediately after use.
 ### s2n\_connection\_set\_config
 
 ```c
-int s2n_connection_set_config(struct s2n_connection *conn, 
+int s2n_connection_set_config(struct s2n_connection *conn,
                               struct s2n_config *config);
 ```
 
 **s2n_connection_set_config** Associates a configuration object with a
-connection. 
+connection.
 
 ### s2n\_connection\_set\_ctx
 
@@ -1142,11 +1142,11 @@ object.
 ### s2n\_connection\_set\_fd
 
 ```c
-int s2n_connection_set_fd(struct s2n_connection *conn, 
+int s2n_connection_set_fd(struct s2n_connection *conn,
                           int readfd);
-int s2n_connection_set_read_fd(struct s2n_connection *conn, 
+int s2n_connection_set_read_fd(struct s2n_connection *conn,
                                int readfd);
-int s2n_connection_set_write_fd(struct s2n_connection *conn, 
+int s2n_connection_set_write_fd(struct s2n_connection *conn,
                                 int writefd);
 ```
 
@@ -1155,6 +1155,11 @@ file-descriptor should be active and connected. s2n-tls also supports setting th
 read and write file-descriptors to different values (for pipes or other unusual
 types of I/O).
 
+**Important Note:**
+If the read end of the pipe is closed unexpectedly, writing to the pipe will raise
+a SIGPIPE signal. **s2n-tls does NOT handle SIGPIPE.** A SIGPIPE signal will cause
+the process to terminate unless it is handled or ignored by the application.
+
 ### s2n\_connection\_is\_valid\_for\_cipher\_preferences
 
 ```c
@@ -1162,8 +1167,8 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
 ```
 
 **s2n_connection_is_valid_for_cipher_preferences** checks if the cipher used by current connection
-is supported by a given cipher preferences. It returns 
--  1 if the connection satisfies the cipher suite 
+is supported by a given cipher preferences. It returns
+-  1 if the connection satisfies the cipher suite
 -  0 if it does not
 - -1 on any other errors
 
@@ -1192,7 +1197,7 @@ protocol preferences on the connection to something different than what is in th
 ### s2n\_set\_server\_name
 
 ```c
-int s2n_set_server_name(struct s2n_connection *conn, 
+int s2n_set_server_name(struct s2n_connection *conn,
                         const char *server_name);
 ```
 
@@ -1219,7 +1224,7 @@ int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blindi
 
 **s2n_connection_set_blinding** can be used to configure s2n-tls to either use
 built-in blinding (set blinding to S2N_BUILT_IN_BLINDING) or self-service blinding
-(set blinding to S2N_SELF_SERVICE_BLINDING). 
+(set blinding to S2N_SELF_SERVICE_BLINDING).
 
 ### s2n\_connection\_get\_delay
 
@@ -1260,7 +1265,7 @@ uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn);
 
 **s2n_connection_get_wire_bytes_in** and **s2n_connection_get_wire_bytes_out**
 return the number of bytes transmitted by s2n-tls "on the wire", in and out
-respectively. 
+respectively.
 
 ### s2n\_connection\_get\_protocol\_version
 
@@ -1270,7 +1275,7 @@ int s2n_connection_get_client_protocol_version(struct s2n_connection *conn);
 int s2n_connection_get_server_protocol_version(struct s2n_connection *conn);
 int s2n_connection_get_actual_protocol_version(struct s2n_connection *conn);
 ```
-    
+
 **s2n_connection_get_client_protocol_version** returns the protocol version
 number supported by the client, **s2n_connection_get_server_protocol_version**
 returns the protocol version number supported by the server and
@@ -1285,10 +1290,10 @@ Each version number value corresponds to the macros defined as **S2N_SSLv2**,
 ```c
 int s2n_connection_set_verify_host_callback(struct s2n_connection *config, s2n_verify_host_fn host_fn, void *data);
 ```
-Every connection inherits the value of **s2n_verify_host_fn** from it's instance of **s2n_config**. 
-Since a configuration can (and should) be used for multiple connections, it may be useful to override 
+Every connection inherits the value of **s2n_verify_host_fn** from it's instance of **s2n_config**.
+Since a configuration can (and should) be used for multiple connections, it may be useful to override
 this value on a per connection basis. For example, this may be based on a host header from an http request. In that case,
-calling this function will override the value inherited from the configuration. 
+calling this function will override the value inherited from the configuration.
 See [s2n_verify_host_fn](#s2n_verify_host_fn) for details.
 
 ### s2n\_connection\_get\_client\_hello
@@ -1368,7 +1373,7 @@ ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tl
 ```c
 int s2n_connection_client_cert_used(struct s2n_connection *conn);
 ```
-**s2n_connection_client_cert_used** returns 1 if the handshake completed and Client Auth was 
+**s2n_connection_client_cert_used** returns 1 if the handshake completed and Client Auth was
 negotiated during the handshake.
 
 ### s2n\_get\_application\_protocol
@@ -1480,7 +1485,7 @@ int s2n_cert_chain_get_cert(const struct s2n_cert_chain_and_key *chain_and_key, 
 int s2n_cert_get_der(const struct s2n_cert *cert, const uint8_t **out_cert_der, uint32_t *cert_length);
 ```
 
-**s2n_cert_get_der** gets the certificate `cert` in .der format which is returned in the buffer `out_cert_der`, `cert_len` represents the length of the certificate. 
+**s2n_cert_get_der** gets the certificate `cert` in .der format which is returned in the buffer `out_cert_der`, `cert_len` represents the length of the certificate.
 
 ### s2n\_connection\_get_peer\_cert\_chain
 
@@ -1699,15 +1704,15 @@ be called for each of the **op** received in **s2n_async_pkey_fn** to
 avoid any memory leaks.
 
 ### Offloading asynchronous private key operations
-**The s2n_async_pkey_op_\*** API can be used to perform a private key operation 
-outside of the S2N context. The application can query the type of private 
-key operation by calling **s2n_async_pkey_op_get_op_type**. In order to perform 
-an operation, the application must ask S2N to copy the operation's input into an 
-application supplied buffer. The appropriate buffer size can be determined by calling 
-**s2n_async_pkey_op_get_input_size**. Once a buffer of proper size is 
-allocated, the application can request the input data from the **s2n_async_pkey_op** 
-by calling **s2n_async_pkey_op_get_input**. After the operation is completed, the 
-finished output can be copied back to S2N by calling **s2n_async_pkey_op_set_output**. 
+**The s2n_async_pkey_op_\*** API can be used to perform a private key operation
+outside of the S2N context. The application can query the type of private
+key operation by calling **s2n_async_pkey_op_get_op_type**. In order to perform
+an operation, the application must ask S2N to copy the operation's input into an
+application supplied buffer. The appropriate buffer size can be determined by calling
+**s2n_async_pkey_op_get_input_size**. Once a buffer of proper size is
+allocated, the application can request the input data from the **s2n_async_pkey_op**
+by calling **s2n_async_pkey_op_get_input**. After the operation is completed, the
+finished output can be copied back to S2N by calling **s2n_async_pkey_op_set_output**.
 Once the output is set the asynchronous private key operation can be completed by
 following the steps outlined [above](#Asynchronous-private-key-operations-related-calls)
 to apply the operation and free the op object.
@@ -1725,13 +1730,13 @@ extern int s2n_async_pkey_op_set_output(struct s2n_async_pkey_op *op, const uint
 **s2n_async_pkey_op_type** contains the private key operation types.
 **s2n_async_pkey_op_get_op_type** retrieves the operation type of the **op**.
 **s2n_async_pkey_op_get_input_size** queries the **op** for the size of the input data.
-**s2n_async_pkey_op_get_input** retrieves the input data buffer from the **op**. 
-The **op** will copy the data into a buffer passed in through the **data** parameter. 
-This buffer is owned by the application, and it is the responsibility of the 
+**s2n_async_pkey_op_get_input** retrieves the input data buffer from the **op**.
+The **op** will copy the data into a buffer passed in through the **data** parameter.
+This buffer is owned by the application, and it is the responsibility of the
 application to free it.
-**s2n_async_pkey_op_set_output** copies the inputted data buffer, and uses it 
-to complete the private key operation. The data buffer is owned by the application. 
-Once **s2n_async_pkey_op_set_output** has returned, the application is free to 
+**s2n_async_pkey_op_set_output** copies the inputted data buffer, and uses it
+to complete the private key operation. The data buffer is owned by the application.
+Once **s2n_async_pkey_op_set_output** has returned, the application is free to
 release the data buffer.
 
 ### s2n\_connection\_free\_handshake
@@ -1821,7 +1826,7 @@ int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode);
 
 ### Selecting a Pre-Shared Key
 
-By default, the server chooses the first identity in its PSK list that also appears in the client's PSK list. If you would like to implement your own PSK selection logic, use the **s2n_psk_selection_callback** to select the PSK to be used for the connection, along with the following offered PSK APIs to process the client sent list of PSKs. 
+By default, the server chooses the first identity in its PSK list that also appears in the client's PSK list. If you would like to implement your own PSK selection logic, use the **s2n_psk_selection_callback** to select the PSK to be used for the connection, along with the following offered PSK APIs to process the client sent list of PSKs.
 
 ```c
 typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn, void *context,
@@ -1846,7 +1851,7 @@ int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struc
 
 **s2n_offered_psk_get_identity** gets the identity and identity length for a given offered PSK object.
 
-**s2n_offered_psk_list_choose_psk** sets the chosen offered PSK to be used for the connection. To disable PSKs for the connection and perform a full handshake instead, set the PSK identity to NULL. 
+**s2n_offered_psk_list_choose_psk** sets the chosen offered PSK to be used for the connection. To disable PSKs for the connection and perform a full handshake instead, set the PSK identity to NULL.
 
 In the following example, **s2n_psk_selection_callback** chooses the first client offered PSK identity present in an external store.
 
@@ -1863,7 +1868,7 @@ int s2n_psk_selection_callback(struct s2n_connection *conn, void *context,
         s2n_offered_psk_list_next(psk_list, offered_psk);
         s2n_offered_psk_get_identity(offered_psk, &client_psk_id, &client_psk_id_len);
         struct s2n_psk *psk = user_lookup_identity_db(client_psk_id, client_psk_id_len);
-        
+
         if (psk) {
             s2n_connection_append_psk(conn, psk);
             s2n_offered_psk_list_choose_psk(psk_list, offered_psk);
@@ -1897,7 +1902,11 @@ to either **S2N_BLOCKED_ON_READ** or **S2N_BLOCKED_ON_WRITE**, depending on the
 direction in which s2n-tls is blocked.
 
 s2n-tls I/O functions should be called repeatedly until the **blocked** parameter is
-**S2N_NOT_BLOCKED**. 
+**S2N_NOT_BLOCKED**.
+
+If the read end of the pipe is closed unexpectedly, writing to the pipe will raise
+a SIGPIPE signal. **s2n-tls does NOT handle SIGPIPE.** A SIGPIPE signal will cause
+the process to terminate unless it is handled or ignored by the application.
 
 ### s2n\_negotiate
 
@@ -1910,7 +1919,7 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked);
 ### s2n\_send
 
 ```c
-ssize_t s2n_send(struct s2n_connection *conn 
+ssize_t s2n_send(struct s2n_connection *conn
               void *buf,
               ssize_t size,
               s2n_blocked_status *blocked);
@@ -1929,13 +1938,13 @@ do {
         break;
     }
     written += w;
-} while (blocked != S2N_NOT_BLOCKED); 
-```    
+} while (blocked != S2N_NOT_BLOCKED);
+```
 
 ### s2n\_sendv\_with\_offset
 
 ```c
-ssize_t s2n_sendv_with_offset(struct s2n_connection *conn 
+ssize_t s2n_sendv_with_offset(struct s2n_connection *conn
               const struct iovec *bufs,
               ssize_t count,
               ssize_t offs,
@@ -1958,13 +1967,13 @@ do {
         break;
     }
     written += w;
-} while (blocked != S2N_NOT_BLOCKED); 
-```    
+} while (blocked != S2N_NOT_BLOCKED);
+```
 
 ### s2n\_sendv
 
 ```c
-ssize_t s2n_sendv(struct s2n_connection *conn 
+ssize_t s2n_sendv(struct s2n_connection *conn
               const struct iovec *bufs,
               ssize_t count,
               s2n_blocked_status *blocked);
@@ -2023,20 +2032,20 @@ int s2n_connection_set_send_ctx(struct s2n_connection *conn, void *ctx);
 s2n-tls also provides an I/O abstraction layer in the event the application would
 like to keep control over I/O operations. **s2n_connection_set_recv_cb** and
 **s2n_connection_set_send_cb** may be used to send or receive data with callbacks
-defined by the user. These may be blocking or nonblocking. 
+defined by the user. These may be blocking or nonblocking.
 
 ```c
 typedef int s2n_connection_send(void *io_context, const uint8_t *buf, uint32_t len);
 typedef int s2n_connection_recv(void *io_context, uint8_t *buf, uint32_t len);
 ```
 
-These callbacks take as input a context containing anything needed in the 
-function (for example, a file descriptor), the buffer holding data to be sent 
+These callbacks take as input a context containing anything needed in the
+function (for example, a file descriptor), the buffer holding data to be sent
 or received, and the length of the buffer. The **io_context** passed to the
 callbacks may be set separately using **s2n_connection_set_recv_ctx** and
-**s2n_connection_set_send_ctx**. 
+**s2n_connection_set_send_ctx**.
 
-The callback may send or receive less than the requested length. The function 
+The callback may send or receive less than the requested length. The function
 should return the number of bytes sent/received, or set errno and return an error code < 0.
 
 ### s2n_shutdown
@@ -2098,7 +2107,7 @@ To use early data with session tickets, early data must be enabled on a server b
 
 To use early data with pre-shared keys, individual pre-shared keys must support early data. In addition to configuring the maximum early data allowed, each pre-shared key needs an associated cipher suite and if applicable, application protocol. The server only accepts early data if the pre-shared key's associated cipher suite and application protocol match the cipher suite and the application protocol negotiated during the handshake.
 
-The maximum early data allowed and cipher suite can be set with **s2n_psk_configure_early_data**. If the connection will negotiate an application protocol then the expected application protocol can be set with **s2n_psk_set_application_protocol**. 
+The maximum early data allowed and cipher suite can be set with **s2n_psk_configure_early_data**. If the connection will negotiate an application protocol then the expected application protocol can be set with **s2n_psk_set_application_protocol**.
 
 ### Sending early data
 
