@@ -6,6 +6,8 @@ In order to generate rust bindings for s2n-tls, you need to have the following i
 
 * Rust - this can be easily installed with [rustup](https://rustup.rs/)
 * libclang - this is usually installed through your system's package manager
+* libssl-dev
+* pkg-config
 
 ## Usage
 

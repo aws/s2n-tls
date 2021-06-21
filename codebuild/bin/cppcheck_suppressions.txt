@@ -13,3 +13,6 @@ ConfigurationNotChecked:utils/s2n_socket.c
 // Reason: s2n_config_set_monotonic_clock() takes a reference to mock_time so that whenever it's modified locally, the timer sees the update when it dereferences the pointer.
 redundantAssignment:tests/unit/s2n_timer_test.c
 
+// cppcheck Message: (style:duplicateValueTernary) Same value in both branches of ternary operator.
+// Reason: when PQ is disabled, the generated code ends up with redudant checks
+duplicateValueTernary:tls/s2n_kem.c
