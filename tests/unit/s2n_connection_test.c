@@ -55,16 +55,19 @@ int main(int argc, char **argv)
      * size, not increasing it.
      * This test documents changes to its size for reviewers so that we can
      * make very deliberate choices about increasing memory usage.
+     *
+     * We can't easily enforce an exact size for s2n_connection because it varies
+     * based on some settings (like how many KEM groups are supported).
      */
     {
         /* Carefully consider any increases to this number. */
-        const size_t connection_size = 17936;
+        const size_t connection_size = 18656;
 
-        if (sizeof(struct s2n_connection) != connection_size) {
-            const char message[] = "s2n_connection size changed from %lu to %lu. "
+        if (sizeof(struct s2n_connection) > connection_size) {
+            const char message[] = "s2n_connection size (%lu) increased above %lu. "
                     "Please verify that this change was intentional and then update this test.";
             char message_buffer[sizeof(message) + 50] = { 0 };
-            EXPECT_TRUE(snprintf(message_buffer, sizeof(message_buffer), message, connection_size, sizeof(struct s2n_connection))
+            EXPECT_TRUE(snprintf(message_buffer, sizeof(message_buffer), message, sizeof(struct s2n_connection), connection_size)
                     < sizeof(message_buffer));
             FAIL_MSG(message_buffer);
         }
