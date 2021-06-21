@@ -17,7 +17,6 @@
 
 #include <errno.h>
 #include <s2n.h>
-#include <signal.h>
 #include <stdint.h>
 
 #include "stuffer/s2n_stuffer.h"

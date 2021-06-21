@@ -27,7 +27,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
-#include <signal.h>
 #include <stdio.h>
 #include <getopt.h>
 
