@@ -314,7 +314,7 @@ const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2020_02 = {
 };
 
 const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2019_11 = {
-    .minimum_protocol_version = S2N_TLS10,
+    .minimum_protocol_version = S2N_TLS10,  
     .cipher_preferences = &cipher_preferences_pq_sike_test_tls_1_0_2019_11,
     .kem_preferences = &kem_preferences_pq_sike_test_tls_1_0_2019_11,
     .signature_preferences = &s2n_signature_preferences_20140601,
@@ -322,7 +322,7 @@ const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2019_11 = 
 };
 
 const struct s2n_security_policy security_policy_pq_sike_test_tls_1_0_2020_02 = {
-    .minimum_protocol_version = S2N_TLS10,
+    .minimum_protocol_version = S2N_TLS10,  
     .cipher_preferences = &cipher_preferences_pq_sike_test_tls_1_0_2020_02,
     .kem_preferences = &kem_preferences_pq_sike_test_tls_1_0_2020_02,
     .signature_preferences = &s2n_signature_preferences_20140601,
@@ -573,9 +573,9 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version="ELBSecurityPolicy-TLS-1-2-2017-01", .security_policy=&security_policy_elb_tls_1_2_2017_01, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="ELBSecurityPolicy-TLS-1-2-Ext-2018-06", .security_policy=&security_policy_elb_tls_1_2_ext_2018_06, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="ELBSecurityPolicy-FS-2018-06", .security_policy=&security_policy_elb_fs_2018_06, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="ELBSecurityPolicy-FS-1-2-2019-08", .security_policy=&security_policy_elb_fs_1_2_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="ELBSecurityPolicy-FS-1-1-2019-08", .security_policy=&security_policy_elb_fs_1_1_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="ELBSecurityPolicy-FS-1-2-Res-2019-08", .security_policy=&security_policy_elb_fs_1_2_Res_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version="ELBSecurityPolicy-FS-1-2-2019-08", .security_policy=&security_policy_elb_fs_1_2_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0 }, 
+    { .version="ELBSecurityPolicy-FS-1-1-2019-08", .security_policy=&security_policy_elb_fs_1_1_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0 }, 
+    { .version="ELBSecurityPolicy-FS-1-2-Res-2019-08", .security_policy=&security_policy_elb_fs_1_2_Res_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0 }, 
     { .version="CloudFront-Upstream", .security_policy=&security_policy_cloudfront_upstream, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="CloudFront-Upstream-TLS-1-0", .security_policy=&security_policy_cloudfront_upstream_tls10, .ecc_extension_required=0, .pq_kem_extension_required=0 },
     { .version="CloudFront-Upstream-TLS-1-1", .security_policy=&security_policy_cloudfront_upstream_tls11, .ecc_extension_required=0, .pq_kem_extension_required=0 },
@@ -723,13 +723,9 @@ int s2n_security_policies_init()
                 security_policy_selection[i].ecc_extension_required = 1;
             }
 
-/* only require kem extensions if PQ is enabled */
-#ifndef S2N_NO_PQ
             if (s2n_kex_includes(cipher->key_exchange_alg, &s2n_kem)) {
                 security_policy_selection[i].pq_kem_extension_required = 1;
             }
-#endif
-
         }
 
         POSIX_GUARD(s2n_validate_kem_preferences(kem_preference, security_policy_selection[i].pq_kem_extension_required));

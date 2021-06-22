@@ -12,3 +12,4 @@ ConfigurationNotChecked:utils/s2n_socket.c
 // cppcheck Message: (style:redundantAssignment) Variable 'mock_time' is reassigned a value before the old one has been used.
 // Reason: s2n_config_set_monotonic_clock() takes a reference to mock_time so that whenever it's modified locally, the timer sees the update when it dereferences the pointer.
 redundantAssignment:tests/unit/s2n_timer_test.c
+
