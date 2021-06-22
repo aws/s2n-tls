@@ -127,6 +127,7 @@ static int s2n_choose_supported_group(struct s2n_connection *conn) {
     const struct s2n_kem_preferences *kem_pref = NULL;
     POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
     POSIX_ENSURE_REF(kem_pref);
+    POSIX_ENSURE(kem_pref->tls13_kem_group_count <= S2N_SUPPORTED_KEM_GROUPS_COUNT, S2N_ERR_ARRAY_INDEX_OOB);
 
     /* Ensure that only the intended group will be non-NULL (if no group is chosen, everything
      * should be NULL). */

@@ -34,7 +34,7 @@ extern const struct s2n_kem *pq_kems_r2r1[4];
 extern const struct s2n_kem *pq_kems_r2r1_2020_07[5];
 extern const struct s2n_kem *pq_kems_sike_r1[1];
 extern const struct s2n_kem *pq_kems_sike_r2r1[2];
-extern const struct s2n_kem *pq_kems_r3r2r1_2021_05[8];
+extern const struct s2n_kem *pq_kems_r3r2r1_2021_05[7];
 
 extern const struct s2n_kem_group *pq_kem_groups_r2[];
 extern const struct s2n_kem_group *pq_kem_groups_r3r2[];

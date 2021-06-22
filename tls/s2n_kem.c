@@ -286,13 +286,33 @@ const struct s2n_kem_group s2n_x25519_kyber_512_r3 = {
 
 
 #else
-const struct s2n_kem_group s2n_x25519_sike_p434_r3 = { 0 };
 const struct s2n_kem_group s2n_x25519_bike1_l1_r2 = { 0 };
 const struct s2n_kem_group s2n_x25519_kyber_512_r2 = { 0 };
 const struct s2n_kem_group s2n_x25519_sike_p434_r3 = { 0 };
 const struct s2n_kem_group s2n_x25519_bike_l1_r3 = { 0 };
 const struct s2n_kem_group s2n_x25519_kyber_512_r3 = { 0 };
 #endif
+
+const struct s2n_kem_group* ALL_SUPPORTED_KEM_GROUPS[] = {
+        &s2n_secp256r1_bike_l1_r3,
+        &s2n_secp256r1_sike_p434_r3,
+        &s2n_secp256r1_kyber_512_r3,
+        &s2n_secp256r1_bike1_l1_r2,
+        &s2n_secp256r1_kyber_512_r2,
+/* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
+#if EVP_APIS_SUPPORTED
+        &s2n_x25519_bike_l1_r3,
+        &s2n_x25519_sike_p434_r3,
+        &s2n_x25519_kyber_512_r3,
+        &s2n_x25519_bike1_l1_r2,
+        &s2n_x25519_kyber_512_r2
+#endif
+};
+
+/* Add static assertion to ensure the value in S2N_SUPPORTED_KEM_GROUPS_COUNT is kept in sync with the actual list of
+ * all supported KEM groups. */
+S2N_STATIC_ASSERT(s2n_array_len_unchecked(ALL_SUPPORTED_KEM_GROUPS) == S2N_SUPPORTED_KEM_GROUPS_COUNT);
+
 
 /* Helper safety macro to call the NIST PQ KEM functions. The NIST
  * functions may return any non-zero value to indicate failure. */
