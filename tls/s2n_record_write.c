@@ -279,6 +279,17 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     POSIX_GUARD(s2n_hmac_update(mac, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
 
     if (s2n_stuffer_is_freed(&conn->out)) {
+        /* If the output buffer has not been allocated yet, allocate enough memory to hold
+         * a record with the local maximum fragment length. Because this only occurs if the
+         * output buffer has not been allocated, it does NOT resize existing buffers.
+         *
+         * The maximum fragment length is:
+         * 1) The local default configured for new connections
+         * 2) The local value set by the user via s2n_connection_prefer_throughput()
+         *    or s2n_connection_prefer_low_latency()
+         * 3) On the server, the minimum of the local value and the value negotiated with the
+         *    client via the max_fragment_length extension
+         */
         uint16_t max_wire_record_size = 0;
         POSIX_GUARD_RESULT(s2n_record_max_write_size(conn, max_write_payload_size, &max_wire_record_size));
         POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, max_wire_record_size));

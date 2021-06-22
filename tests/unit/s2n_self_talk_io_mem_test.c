@@ -147,8 +147,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
-        /* Set connections to use smaller fragment size */
-        EXPECT_SUCCESS(s2n_connection_prefer_low_latency(client_conn));
+        /* Set connections to use fragment size larger than what will be negotiated
+         * via the max_fragment_length extension */
+        EXPECT_SUCCESS(s2n_connection_prefer_throughput(client_conn));
         EXPECT_SUCCESS(s2n_connection_prefer_throughput(server_conn));
 
         /* Do handshake */
@@ -157,9 +158,13 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
 
         /* Output memory allocated according to max fragment length. */
-        EXPECT_EQUAL(client_conn->max_outgoing_fragment_length, S2N_SMALL_FRAGMENT_LENGTH);
+        EXPECT_EQUAL(client_conn->max_outgoing_fragment_length, expected_mfl);
         EXPECT_EQUAL(server_conn->max_outgoing_fragment_length, expected_mfl);
-        EXPECT_EQUAL(client_conn->out.blob.size, S2N_TLS_MAX_RECORD_LEN_FOR(S2N_SMALL_FRAGMENT_LENGTH));
+        /* The client allocates enough memory for the initial large max_fragment_length, because the
+         * final smaller max_fragment_length has not be negotiated yet when its first message (the ClientHello) is sent. */
+        EXPECT_EQUAL(client_conn->out.blob.size, S2N_TLS_MAX_RECORD_LEN_FOR(S2N_LARGE_FRAGMENT_LENGTH));
+        /* The server only allocates enough memory for the negotiated small max_fragment_length, because the
+         * max_fragment_length is negotiated before its first message (the ServerHello) is sent. */
         EXPECT_EQUAL(server_conn->out.blob.size, S2N_TLS13_MAX_RECORD_LEN_FOR(expected_mfl));
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
