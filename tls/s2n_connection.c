@@ -1295,7 +1295,7 @@ const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uin
     return conn->status_response.data;
 }
 
-static S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, uint16_t max_frag_length)
+S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, uint16_t max_frag_length)
 {
     RESULT_ENSURE_REF(conn);
 
@@ -1305,6 +1305,19 @@ static S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *
         conn->max_outgoing_fragment_length = MIN(mfl_code_to_length[conn->negotiated_mfl_code], max_frag_length);
     } else {
         conn->max_outgoing_fragment_length = max_frag_length;
+    }
+
+    /* If no buffer has been initialized yet, no need to resize.
+     * The standard I/O logic will handle initializing the buffer.
+     */
+    if (s2n_stuffer_is_freed(&conn->out)) {
+        return S2N_RESULT_OK;
+    }
+
+    uint16_t max_wire_record_size = 0;
+    RESULT_GUARD(s2n_record_max_write_size(conn, conn->max_outgoing_fragment_length, &max_wire_record_size));
+    if ((conn->out.blob.size < max_wire_record_size)) {
+        RESULT_GUARD_POSIX(s2n_realloc(&conn->out.blob, max_wire_record_size));
     }
 
     return S2N_RESULT_OK;

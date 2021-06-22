@@ -77,7 +77,7 @@ static int s2n_max_fragment_length_recv(struct s2n_connection *conn, struct s2n_
      *# larger than the negotiated length is sent.
      */
     conn->negotiated_mfl_code = mfl_code;
-    conn->max_outgoing_fragment_length = MIN(conn->max_outgoing_fragment_length, mfl_code_to_length[mfl_code]);
+    POSIX_GUARD_RESULT(s2n_connection_set_max_fragment_length(conn, conn->max_outgoing_fragment_length));
 
     return S2N_SUCCESS;
 }

@@ -256,50 +256,77 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
-    /* s2n_connection_prefer_throughput */
+    /* s2n_connection_set_max_fragment_length */
     {
+        const uint8_t mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
+        const uint16_t mfl_code_value = 1024;
+        const uint16_t low_mfl = 10;
+        const uint16_t high_mfl = UINT16_MAX;
+
+        /* Safety check */
+        EXPECT_ERROR_WITH_ERRNO(s2n_connection_set_max_fragment_length(NULL, 1), S2N_ERR_NULL);
+
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(conn);
 
-        /* Default behavior */
-        EXPECT_SUCCESS(s2n_connection_prefer_throughput(conn));
-        EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_LARGE_FRAGMENT_LENGTH);
+        /* Default behavior - set high mfl */
+        {
+            conn->max_outgoing_fragment_length = 1;
+            EXPECT_OK(s2n_connection_set_max_fragment_length(conn, high_mfl));
+            EXPECT_EQUAL(conn->max_outgoing_fragment_length, high_mfl);
+            EXPECT_EQUAL(conn->out.blob.size, 0);
+        }
+
+        /* Default behavior - set low mfl */
+        {
+            conn->max_outgoing_fragment_length = 1;
+            EXPECT_OK(s2n_connection_set_max_fragment_length(conn, low_mfl));
+            EXPECT_EQUAL(conn->max_outgoing_fragment_length, low_mfl);
+            EXPECT_EQUAL(conn->out.blob.size, 0);
+        }
 
         /* After extension - don't set mfl higher than agreed with peer */
-        conn->negotiated_mfl_code = S2N_TLS_MAX_FRAG_LEN_1024;
-        conn->max_outgoing_fragment_length = 1;
-        EXPECT_SUCCESS(s2n_connection_prefer_throughput(conn));
-        EXPECT_EQUAL(conn->max_outgoing_fragment_length, 1024);
-
-        /* After extension - invalid negotiated mfl */
-        conn->negotiated_mfl_code = UINT8_MAX;
-        conn->max_outgoing_fragment_length = 1;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_prefer_throughput(conn), S2N_ERR_SAFETY);
-        EXPECT_EQUAL(conn->max_outgoing_fragment_length, 1);
-
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
-
-    /* s2n_connection_prefer_low_latency */
-    {
-        struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-        EXPECT_NOT_NULL(conn);
-
-        /* Default behavior */
-        EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
-        EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_SMALL_FRAGMENT_LENGTH);
-
-        /* After extension - don't set mfl higher than agreed with peer */
-        conn->negotiated_mfl_code = S2N_TLS_MAX_FRAG_LEN_512;
-        conn->max_outgoing_fragment_length = 1;
-        EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
-        EXPECT_EQUAL(conn->max_outgoing_fragment_length, 512);
+        {
+            conn->negotiated_mfl_code = mfl_code;
+            conn->max_outgoing_fragment_length = 1;
+            EXPECT_OK(s2n_connection_set_max_fragment_length(conn, high_mfl));
+            EXPECT_EQUAL(conn->max_outgoing_fragment_length, mfl_code_value);
+            EXPECT_EQUAL(conn->out.blob.size, 0);
+        }
 
         /* After extension - set mfl lower than agreed with peer */
-        conn->negotiated_mfl_code = S2N_TLS_MAX_FRAG_LEN_4096;
-        conn->max_outgoing_fragment_length = 1;
-        EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
-        EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_SMALL_FRAGMENT_LENGTH);
+        {
+            conn->negotiated_mfl_code = mfl_code;
+            conn->max_outgoing_fragment_length = 1;
+            EXPECT_OK(s2n_connection_set_max_fragment_length(conn, low_mfl));
+            EXPECT_EQUAL(conn->max_outgoing_fragment_length, low_mfl);
+            EXPECT_EQUAL(conn->out.blob.size, 0);
+        }
+
+        /* After extension - invalid negotiated mfl */
+        {
+            conn->negotiated_mfl_code = UINT8_MAX;
+            EXPECT_ERROR_WITH_ERRNO(s2n_connection_set_max_fragment_length(conn, low_mfl), S2N_ERR_SAFETY);
+            conn->negotiated_mfl_code = 0;
+        }
+
+        /* output IO buffer already allocated: resize for higher mfl */
+        {
+            EXPECT_SUCCESS(s2n_realloc(&conn->out.blob, 1));
+            EXPECT_OK(s2n_connection_set_max_fragment_length(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH));
+            EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
+            EXPECT_EQUAL(conn->out.blob.size, S2N_TLS_MAXIMUM_RECORD_LENGTH);
+            EXPECT_SUCCESS(s2n_free(&conn->out.blob));
+        }
+
+        /* output IO buffer already allocated: do nothing for lower mfl */
+        {
+            EXPECT_SUCCESS(s2n_realloc(&conn->out.blob, UINT16_MAX));
+            EXPECT_OK(s2n_connection_set_max_fragment_length(conn, low_mfl));
+            EXPECT_EQUAL(conn->max_outgoing_fragment_length, low_mfl);
+            EXPECT_EQUAL(conn->out.blob.size, UINT16_MAX);
+            EXPECT_SUCCESS(s2n_free(&conn->out.blob));
+        }
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }

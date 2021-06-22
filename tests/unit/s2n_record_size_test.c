@@ -241,7 +241,7 @@ int main(int argc, char **argv)
             r.size = size;
             const uint16_t IV = 0;
             const uint16_t TAG = 16;
-            EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - IV - TAG - TLS13_CONTENT_TYPE_LENGTH);
+            EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - IV - TAG - S2N_TLS_CONTENT_TYPE_LENGTH);
 
             EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
             const uint16_t wire_size = s2n_stuffer_data_available(&server_conn->out);
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
 
             EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
             EXPECT_EQUAL(size, RECORD_SIZE_LESS_OVERHEADS - S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN
-                    - S2N_TLS_GCM_TAG_LEN - TLS13_CONTENT_TYPE_LENGTH);
+                    - S2N_TLS_GCM_TAG_LEN - S2N_TLS_CONTENT_TYPE_LENGTH);
             r.size = size;
 
             EXPECT_SUCCESS(bytes_written = s2n_record_write(server_conn, TLS_APPLICATION_DATA, &r));
@@ -422,6 +422,40 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
+    }
+
+    /* s2n_record_max_write_size */
+    {
+        uint16_t result = 0;
+        conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(conn);
+
+        EXPECT_ERROR_WITH_ERRNO(s2n_record_max_write_size(NULL, 1, &result), S2N_ERR_NULL);
+        EXPECT_ERROR_WITH_ERRNO(s2n_record_max_write_size(conn, 1, NULL), S2N_ERR_NULL);
+
+        conn->actual_protocol_version = 0;
+        conn->handshake.handshake_type = INITIAL;
+        EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &result));
+        EXPECT_EQUAL(result, S2N_TLS_MAXIMUM_RECORD_LENGTH);
+
+        conn->handshake.handshake_type = NEGOTIATED;
+        EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &result));
+        EXPECT_EQUAL(result, S2N_TLS_MAXIMUM_RECORD_LENGTH);
+
+        conn->actual_protocol_version = S2N_TLS12;
+        EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &result));
+        EXPECT_EQUAL(result, S2N_TLS12_MAXIMUM_RECORD_LENGTH);
+
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &result));
+        EXPECT_EQUAL(result, S2N_TLS13_MAXIMUM_RECORD_LENGTH);
+
+        uint16_t diff = 10;
+        conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_record_max_write_size(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH - diff, &result));
+        EXPECT_EQUAL(result, S2N_TLS13_MAXIMUM_RECORD_LENGTH - diff);
+
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     END_TEST();
