@@ -61,14 +61,17 @@ int main(int argc, char **argv)
      */
     {
         /* Carefully consider any increases to this number. */
-        const uint16_t connection_size = 18700;
+        const uint16_t max_connection_size = 18700;
+        const uint16_t min_connection_size = max_connection_size * 0.75;
 
-        if (sizeof(struct s2n_connection) > connection_size) {
-            const char message[] = "s2n_connection size (%lu) increased above %i. "
+        size_t connection_size = sizeof(struct s2n_connection);
+
+        if (connection_size > max_connection_size || connection_size < min_connection_size) {
+            const char message[] = "s2n_connection size (%zu) no longer in (%i, %i). "
                     "Please verify that this change was intentional and then update this test.";
-            char message_buffer[sizeof(message) + 50] = { 0 };
+            char message_buffer[sizeof(message) + 100] = { 0 };
             int r = snprintf(message_buffer, sizeof(message_buffer), message,
-                    (unsigned long) sizeof(struct s2n_connection), connection_size);
+                    connection_size, min_connection_size, max_connection_size);
             EXPECT_TRUE(r < sizeof(message_buffer));
             FAIL_MSG(message_buffer);
         }
