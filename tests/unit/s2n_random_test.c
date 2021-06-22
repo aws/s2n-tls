@@ -82,10 +82,10 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13());
 
     /* Verify that randomness callbacks can't be set to NULL */
-    EXPECT_ERROR(s2n_rand_set_callbacks(NULL, cleanup, entropy, entropy));
-    EXPECT_ERROR(s2n_rand_set_callbacks(init, NULL, entropy, entropy));
-    EXPECT_ERROR(s2n_rand_set_callbacks(init, cleanup, NULL, entropy));
-    EXPECT_ERROR(s2n_rand_set_callbacks(init, cleanup, entropy, NULL));
+    EXPECT_FAILURE(s2n_rand_set_callbacks(NULL, cleanup, entropy, entropy));
+    EXPECT_FAILURE(s2n_rand_set_callbacks(init, NULL, entropy, entropy));
+    EXPECT_FAILURE(s2n_rand_set_callbacks(init, cleanup, NULL, entropy));
+    EXPECT_FAILURE(s2n_rand_set_callbacks(init, cleanup, entropy, NULL));
 
     /* Get one byte of data, to make sure the pool is (almost) full */
     blob.size = 1;
