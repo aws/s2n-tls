@@ -243,8 +243,6 @@ const struct s2n_kem_group s2n_x25519_sike_p434_r3 = { 0 };
 const struct s2n_kem_group s2n_x25519_bike1_l1_r2 = { 0 };
 const struct s2n_kem_group s2n_x25519_kyber_512_r2 = { 0 };
 #endif
-#else /* S2N_NO_PQ */
-const struct s2n_iana_to_kem kem_mapping[0] = { };
 #endif
 
 /* Helper safety macro to call the NIST PQ KEM functions. The NIST
@@ -395,6 +393,7 @@ int s2n_kem_group_free(struct s2n_kem_group_params *kem_group_params) {
 }
 
 int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_iana_to_kem **compatible_params) {
+#ifndef S2N_NO_PQ
     for (int i = 0; i < s2n_array_len(kem_mapping); i++) {
         const struct s2n_iana_to_kem *candidate = &kem_mapping[i];
         if (memcmp(iana_value, candidate->iana_value, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
@@ -402,10 +401,13 @@ int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], 
             return S2N_SUCCESS;
         }
     }
+#endif
+
     POSIX_BAIL(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 }
 
 int s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_kem **kem) {
+#ifndef S2N_NO_PQ
     for (int i = 0; i < s2n_array_len(kem_mapping); i++) {
         const struct s2n_iana_to_kem *iana_to_kem = &kem_mapping[i];
 
@@ -417,6 +419,7 @@ int s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_ke
             }
         }
     }
+#endif
 
     POSIX_BAIL(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 }
