@@ -33,3 +33,7 @@ cd s2n-tls-sys \
   && cargo test --release \
   && cargo test --features quic \
   && cd ..
+
+cd integration \
+  && cargo run \
+  && cd ..

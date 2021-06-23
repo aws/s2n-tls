@@ -1,6 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use std::path::{Path, PathBuf};
+
 fn main() {
     let mut build = cc::Build::new();
 
@@ -38,7 +40,7 @@ fn main() {
         .flag_if_supported("-Wno-deprecated-declarations")
         .define("_POSIX_C_SOURCE", "200112L");
 
-    // fortify source is only availabe in release mode
+    // fortify source is only available in release mode
     if env("PROFILE") == "release" {
         build.define("_FORTIFY_SOURCE", "2");
     }
@@ -47,7 +49,9 @@ fn main() {
         build.define("S2N_NO_PQ", "1");
     }
 
-    let features = FeatureDetector::default();
+    let out_dir = PathBuf::from(env("OUT_DIR"));
+
+    let features = FeatureDetector::new(&out_dir);
 
     if features.supports("execinfo") {
         build.define("S2N_HAVE_EXECINFO", "1");
@@ -73,6 +77,12 @@ fn main() {
 
     // tell rust we're linking with libcrypto
     println!("cargo:rustc-link-lib=crypto");
+
+    // let consumers know where to find our header files
+    let include_dir = out_dir.join("include");
+    std::fs::create_dir_all(&include_dir).unwrap();
+    std::fs::copy("lib/api/s2n.h", include_dir.join("s2n.h")).unwrap();
+    println!("cargo:include={}", include_dir.display());
 }
 
 fn env<N: AsRef<str>>(name: N) -> String {
@@ -85,19 +95,15 @@ fn option_env<N: AsRef<str>>(name: N) -> Option<String> {
     std::env::var(name).ok()
 }
 
-struct FeatureDetector {
-    out_dir: std::path::PathBuf,
+struct FeatureDetector<'a> {
+    out_dir: &'a std::path::Path,
 }
 
-impl Default for FeatureDetector {
-    fn default() -> Self {
-        Self {
-            out_dir: std::path::PathBuf::from(env("OUT_DIR")),
-        }
+impl<'a> FeatureDetector<'a> {
+    pub fn new(out_dir: &'a Path) -> Self {
+        Self { out_dir }
     }
-}
 
-impl FeatureDetector {
     pub fn supports(&self, name: &str) -> bool {
         let out = self.out_dir.join("features").join(name);
         let out = out.to_str().unwrap();

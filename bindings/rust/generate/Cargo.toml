@@ -10,4 +10,3 @@ publish = false
 [dependencies]
 bindgen = "0.58"
 glob = "0.3"
-heck = "0.3"
