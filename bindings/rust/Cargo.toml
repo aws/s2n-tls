@@ -1,0 +1,16 @@
+[workspace]
+members = [
+    "generate",
+    "s2n-tls",
+    "s2n-tls-sys",
+]
+
+[profile.release]
+lto = true
+codegen-units = 1
+incremental = false
+
+[profile.bench]
+lto = true
+codegen-units = 1
+incremental = false
