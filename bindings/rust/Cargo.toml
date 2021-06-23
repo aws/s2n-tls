@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "generate",
+    "integration",
     "s2n-tls",
     "s2n-tls-sys",
 ]
