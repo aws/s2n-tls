@@ -1,9 +1,9 @@
 diff --git a/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c b/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c
-index 679ba1ba..3a76000c 100644
+index 401ab760..f39cc7e2 100644
 --- a/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c
 +++ b/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c
-@@ -25,6 +25,28 @@
- 
+@@ -26,6 +26,28 @@
+ #include "tls/s2n_connection.h"
  #include "tls/s2n_record.h"
  
 +#include <smack.h>
@@ -31,7 +31,7 @@ index 679ba1ba..3a76000c 100644
  /* A TLS CBC record looks like ..
   *
   * [ Payload data ] [ HMAC ] [ Padding ] [ Padding length byte ]
-@@ -47,17 +69,20 @@
+@@ -48,23 +70,28 @@
   */
  int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted)
  {
@@ -54,7 +54,15 @@ index 679ba1ba..3a76000c 100644
  
      int payload_length = MAX(payload_and_padding_size - padding_length - 1, 0);
  
-@@ -76,20 +101,21 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
+     /* Update the MAC */
+     POSIX_GUARD(s2n_hmac_update(hmac, decrypted->data, payload_length));
+     int currently_in_hash_block = hmac->currently_in_hash_block;
++    __VERIFIER_assume(currently_in_hash_block >= 0);
++    __VERIFIER_assume(currently_in_hash_block < BLOCK_SIZE);
+ 
+     /* Check the MAC */
+     uint8_t check_digest[S2N_MAX_DIGEST_LEN];
+@@ -81,18 +108,19 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
      POSIX_GUARD(s2n_hmac_update(hmac, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1));
  
      /* SSLv3 doesn't specify what the padding should actually be */
@@ -78,9 +86,6 @@ index 679ba1ba..3a76000c 100644
 +    //    uint8_t mask = ~(0xff << ((i >= cutoff) * 8));
 +    //    mismatches |= (decrypted->data[j] ^ padding_length) & mask;
 +    //}
- 
--    POSIX_GUARD(s2n_hmac_reset(hmac));
-+    //POSIX_GUARD(s2n_hmac_reset(hmac));
  
      S2N_ERROR_IF(mismatches, S2N_ERR_CBC_VERIFY);
  
