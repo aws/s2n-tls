@@ -320,13 +320,13 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(psk->early_data_config.application_protocol.allocated, 0);
     }
 
-    /* Test s2n_psk_set_context */
+    /* Test s2n_psk_set_early_data_context */
     {
         /* Safety checks */
         {
             struct s2n_psk psk = { 0 };
-            EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_context(&psk, NULL, 1), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_context(NULL, test_value, 1), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_early_data_context(&psk, NULL, 1), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_psk_set_early_data_context(NULL, test_value, 1), S2N_ERR_NULL);
         }
 
         DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
@@ -334,27 +334,27 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(psk->early_data_config.context.allocated, 0);
 
         /* Set empty value as no-op */
-        EXPECT_SUCCESS(s2n_psk_set_context(psk, test_value, 0));
+        EXPECT_SUCCESS(s2n_psk_set_early_data_context(psk, test_value, 0));
         EXPECT_EQUAL(psk->early_data_config.context.size, 0);
         EXPECT_EQUAL(psk->early_data_config.context.allocated, 0);
 
         /* Set valid value */
-        EXPECT_SUCCESS(s2n_psk_set_context(psk, test_value, sizeof(test_value)));
+        EXPECT_SUCCESS(s2n_psk_set_early_data_context(psk, test_value, sizeof(test_value)));
         EXPECT_EQUAL(psk->early_data_config.context.size, sizeof(test_value));
         EXPECT_BYTEARRAY_EQUAL(psk->early_data_config.context.data, test_value, sizeof(test_value));
 
         /* Replace previous value */
-        EXPECT_SUCCESS(s2n_psk_set_context(psk, test_value_2, sizeof(test_value_2)));
+        EXPECT_SUCCESS(s2n_psk_set_early_data_context(psk, test_value_2, sizeof(test_value_2)));
         EXPECT_EQUAL(psk->early_data_config.context.size, sizeof(test_value_2));
         EXPECT_BYTEARRAY_EQUAL(psk->early_data_config.context.data, test_value_2, sizeof(test_value_2));
 
         /* Clear with empty value */
-        EXPECT_SUCCESS(s2n_psk_set_context(psk, test_value, 0));
+        EXPECT_SUCCESS(s2n_psk_set_early_data_context(psk, test_value, 0));
         EXPECT_EQUAL(psk->early_data_config.context.size, 0);
         EXPECT_EQUAL(psk->early_data_config.context.allocated, 0);
 
         /* Repeat clear */
-        EXPECT_SUCCESS(s2n_psk_set_context(psk, test_value, 0));
+        EXPECT_SUCCESS(s2n_psk_set_early_data_context(psk, test_value, 0));
         EXPECT_EQUAL(psk->early_data_config.context.size, 0);
         EXPECT_EQUAL(psk->early_data_config.context.allocated, 0);
     }
@@ -374,7 +374,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_psk_configure_early_data(original, test_max_early_data,
                     test_cipher_suite->iana_value[0], test_cipher_suite->iana_value[1]));
             EXPECT_SUCCESS(s2n_psk_set_application_protocol(original, test_apln, sizeof(test_apln)));
-            EXPECT_SUCCESS(s2n_psk_set_context(original, test_context, sizeof(test_context)));
+            EXPECT_SUCCESS(s2n_psk_set_early_data_context(original, test_context, sizeof(test_context)));
             original->early_data_config.protocol_version = test_version;
 
             DEFER_CLEANUP(struct s2n_psk *clone = s2n_external_psk_new(), s2n_psk_free);
@@ -649,7 +649,7 @@ int main(int argc, char **argv)
             /* With callback set, may still accept early data */
             conn->handshake.early_data_async_state = (struct s2n_offered_early_data){ 0 };
             conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
-            EXPECT_SUCCESS(s2n_psk_set_context(conn->psk_params.chosen_psk, &accept_early_data, sizeof(accept_early_data)));
+            EXPECT_SUCCESS(s2n_psk_set_early_data_context(conn->psk_params.chosen_psk, &accept_early_data, sizeof(accept_early_data)));
             EXPECT_OK(s2n_early_data_accept_or_reject(conn));
             EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_ACCEPTED);
 
@@ -657,7 +657,7 @@ int main(int argc, char **argv)
             accept_early_data = false;
             conn->handshake.early_data_async_state = (struct s2n_offered_early_data){ 0 };
             conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
-            EXPECT_SUCCESS(s2n_psk_set_context(conn->psk_params.chosen_psk, &accept_early_data, sizeof(accept_early_data)));
+            EXPECT_SUCCESS(s2n_psk_set_early_data_context(conn->psk_params.chosen_psk, &accept_early_data, sizeof(accept_early_data)));
             EXPECT_OK(s2n_early_data_accept_or_reject(conn));
             EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_REJECTED);
 
@@ -1335,7 +1335,7 @@ int main(int argc, char **argv)
         {
             early_data.conn = s2n_connection_new(S2N_SERVER);
             DEFER_CLEANUP(struct s2n_psk *test_psk = s2n_test_psk_new(early_data.conn), s2n_psk_free);
-            EXPECT_SUCCESS(s2n_psk_set_context(test_psk, context, sizeof(context)));
+            EXPECT_SUCCESS(s2n_psk_set_early_data_context(test_psk, context, sizeof(context)));
             early_data.conn->psk_params.chosen_psk = test_psk;
 
             EXPECT_SUCCESS(s2n_offered_early_data_get_context_length(&early_data, &length));

@@ -423,6 +423,97 @@ extern int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_
 S2N_API
 extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
 
+/**
+ * Sets the initial number of session tickets to send after a >=TLS1.3 handshake. The default value is one ticket.
+ *
+ * @param config A pointer to the config object.
+ * @param num The number of session tickets that will be sent.
+ */
+S2N_API
+extern int s2n_config_set_initial_ticket_count(struct s2n_config *config, uint8_t num);
+
+/**
+ * Increases the number of session tickets to send after a >=TLS1.3 handshake.
+ *
+ * @param conn A pointer to the connection object.
+ * @param num The number of additional session tickets to send.
+ */
+S2N_API
+extern int s2n_connection_add_new_tickets_to_send(struct s2n_connection *conn, uint8_t num);
+
+/**
+ * Sets the keying material lifetime for >=TLS1.3 session tickets so that one session doesn't get re-used ad infinitum.
+ * The default value is one week.
+ *
+ * @param conn A pointer to the connection object.
+ * @param lifetime_in_secs Lifetime of keying material in seconds.
+ */
+S2N_API
+extern int s2n_connection_set_server_keying_material_lifetime(struct s2n_connection *conn, uint32_t lifetime_in_secs);
+
+struct s2n_session_ticket;
+
+/**
+ * Callback function for receiving a session ticket.
+ *
+ * # Safety
+ *
+ * `ctx` is a void pointer and the caller is responsible for ensuring it is cast to the correct type.
+ * `ticket` is valid only within the scope of this callback.
+ *
+ * @param conn A pointer to the connection object.
+ * @param ctx Context for the session ticket callback function.
+ * @param ticket Pointer to the received session ticket object.
+ */
+typedef int (*s2n_session_ticket_fn)(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket);
+
+/**
+ * Sets a session ticket callback to be called when a client receives a new session ticket.
+ *
+ * # Safety
+ *
+ * `callback` MUST cast `ctx` into the same type of pointer that was originally created.
+ * `ctx` MUST be valid for the lifetime of the config, or until a different context is set.
+ *
+ * @param config A pointer to the config object.
+ * @param callback The function that should be called when the callback is triggered.
+ * @param ctx The context to be passed when the callback is called.
+ */
+S2N_API
+extern int s2n_config_set_session_ticket_cb(struct s2n_config *config, s2n_session_ticket_fn callback, void *ctx);
+
+/**
+ * Gets the length of the session ticket from a session ticket object.
+ *
+ * @param ticket Pointer to the session ticket object.
+ * @param data_len Pointer to be set to the length of the session ticket on success.
+ */
+S2N_API
+extern int s2n_session_ticket_get_data_len(struct s2n_session_ticket *ticket, size_t *data_len);
+
+/**
+ * Gets the session ticket data from a session ticket object.
+ *
+ * # Safety
+ * The entire session ticket will be copied into `data` on success. Therefore, `data` MUST have enough
+ * memory to store the session ticket data.
+ *
+ * @param ticket Pointer to the session ticket object.
+ * @param max_data_len Maximum length of data that can be written to the 'data' pointer.
+ * @param data Pointer to where the session ticket data will be stored.
+ */
+S2N_API
+extern int s2n_session_ticket_get_data(struct s2n_session_ticket *ticket, size_t max_data_len, uint8_t *data);
+
+/**
+ * Gets the lifetime in seconds of the session ticket from a session ticket object.
+ *
+ * @param ticket Pointer to the session ticket object.
+ * @param session_lifetime Pointer to a variable where the lifetime of the session ticket will be stored.
+ */
+S2N_API
+extern int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ticket, uint32_t *session_lifetime);
+
 S2N_API
 extern int s2n_connection_set_session(struct s2n_connection *conn, const uint8_t *session, size_t length);
 S2N_API
@@ -524,7 +615,7 @@ extern int s2n_cert_chain_get_cert(const struct s2n_cert_chain_and_key *chain_an
  * copying the contents into a caller-provided buffer.
  *
  * The pointer to the output buffer `out_cert_der` is valid only while the connection exists.
- * The `s2n_connection_free` API frees the memory assosciated with the out_cert_der buffer and after the `s2n_connection_wipe` API is
+ * The `s2n_connection_free` API frees the memory associated with the out_cert_der buffer and after the `s2n_connection_wipe` API is
  * called the memory pointed by out_cert_der is invalid.
  *
  * If a caller wishes to persist the `out_cert_der` beyond the lifetime of the connection, the contents would need to be
@@ -597,6 +688,272 @@ extern int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *ex
  */
 S2N_API
 extern int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len);
+
+/* Pre-shared key (PSK) Hash Algorithm - RFC 8446 Section-2.2 */
+typedef enum {
+    S2N_PSK_HMAC_SHA256,
+    S2N_PSK_HMAC_SHA384,
+} s2n_psk_hmac;
+
+struct s2n_psk;
+
+/**
+ * Creates a new s2n external pre-shared key (PSK) object with `S2N_PSK_HMAC_SHA256` as the default 
+ * PSK hash algorithm. An external PSK is a key established outside of TLS using a secure mutually agreed upon mechanism.
+ * 
+ * Use `s2n_psk_free` to free the memory allocated to the s2n external PSK object created by this API. 
+ *
+ * @return struct s2n_psk* Returns a pointer to the newly created external PSK object.
+ */
+S2N_API
+struct s2n_psk* s2n_external_psk_new(void);
+
+/**
+ * Frees the memory associated with the external PSK object.
+ *
+ * @param psk Pointer to the PSK object to be freed.
+ */
+S2N_API 
+int s2n_psk_free(struct s2n_psk **psk);
+
+/**
+ * Sets the identity for a given external PSK object.
+ * The identity is a unique identifier for the pre-shared secret.
+ * It is a non-secret value represented by raw bytes.
+ *
+ * # Safety 
+ *
+ * The identity is transmitted over the network unencrypted and is a non-secret value.
+ * Do not include confidential information in the identity.
+ * 
+ * Note that the identity is copied into s2n-tls memory and the caller is responsible for 
+ * freeing the memory associated with the identity input. 
+ *
+ * @param psk A pointer to a PSK object to be updated with the identity.
+ * @param identity The identity in raw bytes format to be copied.
+ * @param identity_size The length of the PSK identity being set.
+ */
+S2N_API 
+int s2n_psk_set_identity(struct s2n_psk *psk, const uint8_t *identity, uint16_t identity_size);
+
+/**
+ * Sets the out-of-band/externally provisioned secret for a given external PSK object.
+ *
+ * # Safety
+ *
+ * Note that the secret is copied into s2n-tls memory and the caller is responsible for 
+ * freeing the memory associated with the `secret` input. 
+ *
+ * Deriving a shared secret from a password or other low-entropy source
+ * is not secure and is subject to dictionary attacks.
+ * See https://tools.ietf.org/rfc/rfc8446#section-2.2 for more information.
+ *
+ * @param psk A pointer to a PSK object to be updated with the secret.
+ * @param secret The secret in raw bytes format to be copied.
+ * @param secret_size The length of the pre-shared secret being set.
+ */
+S2N_API 
+int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secret_size);
+
+/**
+ * Sets the hash algorithm for a given external PSK object. The supported PSK hash 
+ * algorithms are as listed in the enum `s2n_psk_hmac` above.
+ * 
+ * @param psk A pointer to the external PSK object to be updated with the PSK hash algorithm.
+ * @param hmac The PSK hash algorithm being set.  
+ */
+S2N_API 
+int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac);
+
+/**
+ * Appends a PSK object to the list of PSKs supported by the s2n connection. 
+ * If a PSK with a duplicate identity is found, an error is returned and the PSK is not added to the list.
+ * Note that a copy of `psk` is stored on the connection. The user is still responsible for freeing the 
+ * memory associated with `psk`.
+ *
+ * @param conn A pointer to the s2n_connection object that contains the list of PSKs supported.
+ * @param psk A pointer to the `s2n_psk` object to be appended to the list of PSKs on the s2n connection.
+ */
+S2N_API 
+int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk);
+
+/**
+ * The list of PSK modes supported by s2n-tls for TLS versions >= TLS1.3.
+ * Currently s2n-tls supports two modes - `S2N_PSK_MODE_RESUMPTION`, which represents the PSKs established 
+ * using the previous connection via session resumption, and `S2N_PSK_MODE_EXTERNAL`, which represents PSKs 
+ * established out-of-band/externally using a secure mutually agreed upon mechanism.
+ */ 
+typedef enum {
+    S2N_PSK_MODE_RESUMPTION,
+    S2N_PSK_MODE_EXTERNAL 
+} s2n_psk_mode;
+
+/**
+ * Sets the PSK mode on the s2n config object. 
+ * The supported PSK modes are listed in the enum `s2n_psk_mode` above. 
+ * 
+ * @param config A pointer to the s2n_config object being updated.
+ * @param mode The PSK mode to be set.
+ */
+S2N_API 
+int s2n_config_set_psk_mode(struct s2n_config *config, s2n_psk_mode mode);
+
+/**
+ * Sets the PSK mode on the s2n connection object.
+ * The supported PSK modes are listed in the enum `s2n_psk_mode` above. 
+ * This API overrides the PSK mode set on config for this connection.
+ *
+ * @param conn A pointer to the s2n_connection object being updated.
+ * @param mode The PSK mode to be set.
+ */
+S2N_API 
+int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode);
+
+/**
+ * Gets the negotiated PSK identity length from the s2n connection object. The negotiated PSK 
+ * refers to the chosen PSK by the server to be used for the connection. 
+ * 
+ * This API can be used to determine if the negotiated PSK exists. If negotiated PSK exists a 
+ * call to this API returns a value greater than zero. If the negotiated PSK does not exist, the 
+ * value `0` is returned.
+ * 
+ * @param conn A pointer to the s2n_connection object that successfully negotiated a PSK connection.
+ * @param identity_length The length of the negotiated PSK identity. 
+ */
+S2N_API 
+int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *conn, uint16_t *identity_length);
+
+/**
+ * Gets the negotiated PSK identity from the s2n connection object. 
+ * If the negotiated PSK does not exist, the PSK identity will not be obtained and no error will be returned. 
+ * Prior to this API call, use `s2n_connection_get_negotiated_psk_identity_length` to determine if a 
+ * negotiated PSK exists or not. 
+ *
+ * # Safety
+ *
+ * The negotiated PSK identity will be copied into the identity buffer on success.
+ * Therefore, the identity buffer must have enough memory to fit the identity length.
+ * 
+ * @param conn A pointer to the s2n_connection object.
+ * @param identity The negotiated PSK identity obtained from the s2n_connection object. 
+ * @param max_identity_length The maximum length for the PSK identity. If the negotiated psk_identity length is 
+ * greater than this `max_identity_length` value an error will be returned.
+ */
+S2N_API 
+int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint8_t *identity, uint16_t max_identity_length);
+
+struct s2n_offered_psk;
+
+/**
+ * Creates a new s2n offered PSK object. 
+ * An offered PSK object represents a single PSK sent by the client.
+ * 
+ * # Safety
+ * 
+ * Use `s2n_offered_psk_free` to free the memory allocated to the s2n offered PSK object created by this API. 
+ *
+ * @return struct s2n_offered_psk* Returns a pointer to the newly created offered PSK object.
+ */
+S2N_API 
+struct s2n_offered_psk* s2n_offered_psk_new(void);
+
+/**
+ * Frees the memory associated with the `s2n_offered_psk` object.
+ *
+ * @param psk A pointer to the `s2n_offered_psk` object to be freed.
+ */
+S2N_API 
+int s2n_offered_psk_free(struct s2n_offered_psk **psk);
+
+/**
+ * Gets the PSK identity and PSK identity length for a given offered PSK object. 
+ * 
+ * @param psk A pointer to the offered PSK object being read.
+ * @param identity The PSK identity being obtained.
+ * @param size The length of the PSK identity being obtained.
+ */
+S2N_API 
+int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t** identity, uint16_t *size);
+
+struct s2n_offered_psk_list;
+
+/**
+ * Checks whether the offered PSK list has an offered psk object next in line in the list.
+ * An offered PSK list contains all the PSKs offered by the client for the server to select.
+ * 
+ * # Safety 
+ * 
+ * This API returns a pointer to the s2n-tls internal memory with limited lifetime. 
+ * After the completion of `s2n_psk_selection_callback` this pointer is invalid.
+ *
+ * @param psk_list A pointer to the offered PSK list being read.
+ * @return bool A boolean value representing whether an offered psk object is present next in line in the offered PSK list.
+ */
+S2N_API 
+bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list);
+
+/**
+ * Obtains the next offered PSK object from the list of offered PSKs. Use `s2n_offered_psk_list_has_next` 
+ * prior to this API call to ensure we have not reached the end of the list.
+ * 
+ * @param psk_list A pointer to the offered PSK list being read.
+ * @param psk A pointer to the next offered PSK object being obtained.
+ */
+S2N_API 
+int s2n_offered_psk_list_next(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
+
+/**
+ * Returns the offered PSK list to its original read state.
+ *
+ * When `s2n_offered_psk_list_reread` is called, `s2n_offered_psk_list_next` will return the first PSK 
+ * in the offered PSK list.
+ *
+ * @param psk_list A pointer to the offered PSK list being reread.
+ */
+S2N_API 
+int s2n_offered_psk_list_reread(struct s2n_offered_psk_list *psk_list);
+
+/**
+ * Chooses a PSK from the offered PSK list to be used for the connection.  
+ * This API matches the PSK identity received from the client against the server's known PSK identities 
+ * list, in order to choose the PSK to be used for the connection. If the PSK identity sent from the client 
+ * is NULL, no PSK is chosen for the connection. If the client offered PSK identity has no matching PSK identity 
+ * with the server, an error will be returned. Use this API along with the `s2n_psk_selection_callback` callback 
+ * to select a PSK identity.
+ * 
+ * @param psk_list A pointer to the server's known PSK list used to compare for a matching PSK with the client.
+ * @param psk A pointer to the client's PSK object used to compare with the server's known PSK identities.
+ */
+S2N_API int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struct s2n_offered_psk *psk);
+
+/**
+ * Callback function to select a PSK from a list of offered PSKs.
+ * Use this callback to implement custom PSK selection logic. The s2n-tls default PSK selection logic 
+ * chooses the first matching PSK from the list of offered PSKs sent by the client.
+ * 
+ * # Safety
+ *
+ * `context` is a void pointer and the caller is responsible for ensuring it is cast to the correct type.
+ * After the completion of this callback, the pointer to `psk_list` is invalid.
+ *
+ * @param conn A pointer to the s2n_connection object.
+ * @param context A pointer to a context for the caller to pass state to the callback, if needed.
+ * @param psk_list A pointer to the offered PSK list being read.
+ */
+typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn, void *context,
+                                          struct s2n_offered_psk_list *psk_list);
+
+/**
+ * Sets the callback to select the matching PSK. 
+ * If this callback is not set s2n-tls uses a default PSK selection logic that selects the first matching 
+ * server PSK.
+ * 
+ * @param config A pointer to the s2n_config object.
+ * @param cb The function that should be called when the callback is triggered.
+ * @param context A pointer to a context for the caller to pass state to the callback, if needed.
+ */
+S2N_API 
+int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb, void *context);
 
 S2N_API
 extern uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn);
@@ -720,6 +1077,242 @@ extern int s2n_config_set_key_log_cb(struct s2n_config *config, s2n_key_log_fn c
  */
 S2N_API
 extern int s2n_config_enable_cert_req_dss_legacy_compat(struct s2n_config *config);
+
+/**
+ * Sets the maximum bytes of early data the server will accept.
+ *
+ * The default maximum is 0. If the maximum is 0, the server rejects all early data requests.
+ * The config maximum can be overridden by the connection maximum or the maximum on an external pre-shared key.
+ *
+ * @param config A pointer to the config
+ * @param max_early_data_size The maximum early data that the server will accept
+ * @return A POSIX error signal. If successful, the maximum early data size was updated.
+ */
+S2N_API int s2n_config_set_server_max_early_data_size(struct s2n_config *config, uint32_t max_early_data_size);
+
+/**
+ * Sets the maximum bytes of early data the server will accept.
+ *
+ * The default maximum is 0. If the maximum is 0, the server rejects all early data requests.
+ * The connection maximum can be overridden by the maximum on an external pre-shared key.
+ *
+ * @param conn A pointer to the connection
+ * @param max_early_data_size The maximum early data the server will accept
+ * @return A POSIX error signal. If successful, the maximum early data size was updated.
+ */
+S2N_API int s2n_connection_set_server_max_early_data_size(struct s2n_connection *conn, uint32_t max_early_data_size);
+
+/**
+ * Sets the user context associated with early data on a server.
+ *
+ * This context is passed to the `s2n_early_data_cb` callback to help decide whether to accept or reject early data.
+ *
+ * Unlike most contexts, the early data context is a byte buffer instead of a void pointer.
+ * This is because we need to serialize the context into session tickets.
+ *
+ * This API is intended for use with session resumption, and will not affect pre-shared keys.
+ *
+ * @param conn A pointer to the connection
+ * @param context A pointer to the user context data. This data will be copied.
+ * @param context_size The size of the data to read from the `context` pointer.
+ * @return A POSIX error signal. If successful, the context was updated.
+ */
+S2N_API int s2n_connection_set_server_early_data_context(struct s2n_connection *conn, const uint8_t *context, uint16_t context_size);
+
+/**
+ * Configures a particular pre-shared key to allow early data.
+ *
+ * `max_early_data_size` must be set to the maximum early data accepted by the server.
+ *
+ * In order to use early data, the cipher suite set on the pre-shared key must match the cipher suite
+ * ultimately negotiated by the TLS handshake. Additionally, the cipher suite must have the same
+ * hmac algorithm as the pre-shared key.
+ *
+ * @param psk A pointer to the pre-shared key, created with `s2n_external_psk_new`.
+ * @param max_early_data_size The maximum early data that can be sent or received using this key.
+ * @param cipher_suite_first_byte The first byte in the registered IANA value of the associated cipher suite.
+ * @param cipher_suite_second_byte The second byte in the registered IANA value of the associated cipher suite.
+ * @return A POSIX error signal. If successful, `psk` was updated.
+ */
+S2N_API int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data_size,
+        uint8_t cipher_suite_first_byte, uint8_t cipher_suite_second_byte);
+
+/**
+ * Sets the optional `application_protocol` associated with the given pre-shared key.
+ *
+ * In order to use early data, the `application_protocol` set on the pre-shared key must match
+ * the `application_protocol` ultimately negotiated by the TLS handshake.
+ *
+ * @param psk A pointer to the pre-shared key, created with `s2n_external_psk_new`.
+ * @param application_protocol A pointer to the associated application protocol data. This data will be copied.
+ * @param size The size of the data to read from the `application_protocol` pointer.
+ * @return A POSIX error signal. If successful, the application protocol was set.
+ */
+S2N_API int s2n_psk_set_application_protocol(struct s2n_psk *psk, const uint8_t *application_protocol, uint8_t size);
+
+/**
+ * Sets the optional user early data context associated with the given pre-shared key.
+ *
+ * The early data context is passed to the `s2n_early_data_cb` callback to help decide whether
+ * to accept or reject early data.
+ *
+ * @param psk A pointer to the pre-shared key, created with `s2n_external_psk_new`.
+ * @param context A pointer to the associated user context data. This data will be copied.
+ * @param size The size of the data to read from the `context` pointer.
+ * @return A POSIX error signal. If successful, the context was set.
+ */
+S2N_API int s2n_psk_set_early_data_context(struct s2n_psk *psk, const uint8_t *context, uint16_t size);
+
+/* The status of early data on a connection.
+ *
+ * S2N_EARLY_DATA_STATUS_OK: Early data is in progress.
+ * S2N_EARLY_DATA_STATUS_NOT_REQUESTED: The client did not request early data, so none was sent or received.
+ * S2N_EARLY_DATA_STATUS_REJECTED: The client requested early data, but the server rejected the request.
+ *                                 Early data may have been sent, but was not received.
+ * S2N_EARLY_DATA_STATUS_END: All early data was successfully sent and received.
+ */
+typedef enum {
+    S2N_EARLY_DATA_STATUS_OK,
+    S2N_EARLY_DATA_STATUS_NOT_REQUESTED,
+    S2N_EARLY_DATA_STATUS_REJECTED,
+    S2N_EARLY_DATA_STATUS_END,
+} s2n_early_data_status_t;
+
+/**
+ * Reports the current state of early data for a connection.
+ *
+ * See `s2n_early_data_status_t` for all possible states.
+ *
+ * @param conn A pointer to the connection
+ * @param status A pointer which will be set to the current early data status
+ * @return A POSIX error signal.
+ */
+S2N_API int s2n_connection_get_early_data_status(struct s2n_connection *conn, s2n_early_data_status_t *status);
+
+/**
+ * Reports the remaining size of the early data allowed by a connection.
+ *
+ * If early data was rejected or not requested, the remaining early data size is 0.
+ * Otherwise, the remaining early data size is the maximum early data allowed by the connection,
+ * minus the early data sent or received so far.
+ *
+ * @param conn A pointer to the connection
+ * @param allowed_early_data_size A pointer which will be set to the remaining early data currently allowed by `conn`
+ * @return A POSIX error signal.
+ */
+S2N_API int s2n_connection_get_remaining_early_data_size(struct s2n_connection *conn, uint32_t *allowed_early_data_size);
+
+/**
+ * Reports the maximum size of the early data allowed by a connection.
+ *
+ * This is the maximum amount of early data that can ever be sent and received for a connection.
+ * It is not affected by the actual status of the early data, so can be non-zero even if early data
+ * is rejected or not requested.
+ *
+ * @param conn A pointer to the connection
+ * @param max_early_data_size A pointer which will be set to the maximum early data allowed by `conn`
+ * @return A POSIX error signal.
+ */
+S2N_API int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, uint32_t *max_early_data_size);
+
+/**
+ * Called by the client to begin negotiation and send early data.
+ *
+ * See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#using-early-data--0rtt
+ * for usage and examples. DO NOT USE unless you have considered the security issues and
+ * implemented mitigation for anti-replay attacks.
+ *
+ * @param conn A pointer to the connection
+ * @param data A pointer to the early data to be sent
+ * @param data_len The size of the early data to send
+ * @param data_sent A pointer which will be set to the size of the early data sent
+ * @param blocked A pointer which will be set to the blocked status, as in `s2n_negotiate`.
+ * @return A POSIX error signal. The error should be handled as in `s2n_negotiate`.
+ */
+S2N_API int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data, ssize_t data_len,
+        ssize_t *data_sent, s2n_blocked_status *blocked);
+
+/**
+ * Called by the server to begin negotiation and accept any early data the client sends.
+ *
+ * See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#using-early-data--0rtt
+ * for usage and examples. DO NOT USE unless you have considered the security issues and
+ * implemented mitigation for anti-replay attacks.
+ *
+ * @param conn A pointer to the connection
+ * @param data A pointer to a buffer to store the early data received
+ * @param max_data_len The size of the early data buffer
+ * @param data_received A pointer which will be set to the size of the early data received
+ * @param blocked A pointer which will be set to the blocked status, as in `s2n_negotiate`.
+ * @return A POSIX error signal. The error should be handled as in `s2n_negotiate`.
+ */
+S2N_API int s2n_recv_early_data(struct s2n_connection *conn, uint8_t *data, ssize_t max_data_len,
+        ssize_t *data_received, s2n_blocked_status *blocked);
+
+struct s2n_offered_early_data;
+
+/**
+ * A callback which can be implemented to accept or reject early data.
+ *
+ * This callback is triggered only after the server has determined early data is otherwise acceptable according
+ * to the TLS early data specification. Implementations therefore only need to cover application-specific checks,
+ * not the standard TLS early data validation.
+ *
+ * This callback can be synchronous or asynchronous. For asynchronous behavior, return success without
+ * calling `s2n_offered_early_data_reject` or `s2n_offered_early_data_accept`. `early_data` will
+ * still be a valid reference, and the connection will block until `s2n_offered_early_data_reject` or
+ * `s2n_offered_early_data_accept` is called.
+ *
+ * @param conn A pointer to the connection
+ * @param early_data A pointer which can be used to access information about the proposed early data
+ *                   and then accept or reject it.
+ * @return A POSIX error signal. If unsuccessful, the connection will be closed with an error.
+ */
+typedef int (*s2n_early_data_cb)(struct s2n_connection *conn, struct s2n_offered_early_data *early_data);
+
+/**
+ * Set a callback to accept or reject early data.
+ *
+ * @param conn A pointer to the connection
+ * @param cb A pointer to the implementation of the callback.
+ * @return A POSIX error signal. If successful, the callback was set.
+ */
+S2N_API int s2n_config_set_early_data_cb(struct s2n_config *config, s2n_early_data_cb cb);
+
+/**
+ * Get the length of the early data context set by the user.
+ *
+ * @param early_data A pointer to the early data information
+ * @param context_len The length of the user context
+ * @return A POSIX error signal.
+ */
+S2N_API int s2n_offered_early_data_get_context_length(struct s2n_offered_early_data *early_data, uint16_t *context_len);
+
+/**
+ * Get the early data context set by the user.
+ *
+ * @param early_data A pointer to the early data information
+ * @param context A byte buffer to copy the user context into
+ * @param max_len The size of `context`. Must be >= to the result of `s2n_offered_early_data_get_context_length`.
+ * @return A POSIX error signal.
+ */
+S2N_API int s2n_offered_early_data_get_context(struct s2n_offered_early_data *early_data, uint8_t *context, uint16_t max_len);
+
+/**
+ * Reject early data offered by the client.
+ *
+ * @param early_data A pointer to the early data information
+ * @return A POSIX error signal. If success, the client's early data will be rejected.
+ */
+S2N_API int s2n_offered_early_data_reject(struct s2n_offered_early_data *early_data);
+
+/**
+ * Accept early data offered by the client.
+ *
+ * @param early_data A pointer to the early data information
+ * @return A POSIX error signal. If success, the client's early data will be accepted.
+ */
+S2N_API int s2n_offered_early_data_accept(struct s2n_offered_early_data *early_data);
 
 #ifdef __cplusplus
 }

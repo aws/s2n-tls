@@ -23,6 +23,7 @@
 
 #include "crypto/s2n_hmac.h"
 
+#include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
 
 /* A TLS CBC record looks like ..

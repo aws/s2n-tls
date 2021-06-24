@@ -42,7 +42,7 @@ if pq_enabled():
         ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2020_02):
             {"cipher": "ECDHE-BIKE-RSA-AES256-GCM-SHA384", "kem": "BIKE1r2-Level1"},
         ("kms.us-east-1.amazonaws.com", Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02):
-            {"cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "kem": "SIKEp434r2-KEM"},
+            {"cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "kem": "SIKEp434r3-KEM"},
     }
 else:
     EXPECTED_RESULTS = {

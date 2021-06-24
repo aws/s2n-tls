@@ -19,6 +19,7 @@
 #include <strings.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/param.h>
 
 #include <s2n.h>
 #include <stdbool.h>
@@ -1294,26 +1295,44 @@ const uint8_t *s2n_connection_get_ocsp_response(struct s2n_connection *conn, uin
     return conn->status_response.data;
 }
 
-int s2n_connection_prefer_throughput(struct s2n_connection *conn)
+S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, uint16_t max_frag_length)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
-    if (!conn->mfl_code) {
-        conn->max_outgoing_fragment_length = S2N_LARGE_FRAGMENT_LENGTH;
+    if (conn->negotiated_mfl_code) {
+        /* Respect the upper limit agreed on with the peer */
+        RESULT_ENSURE_LT(conn->negotiated_mfl_code, s2n_array_len(mfl_code_to_length));
+        conn->max_outgoing_fragment_length = MIN(mfl_code_to_length[conn->negotiated_mfl_code], max_frag_length);
+    } else {
+        conn->max_outgoing_fragment_length = max_frag_length;
     }
 
-    return 0;
+    /* If no buffer has been initialized yet, no need to resize.
+     * The standard I/O logic will handle initializing the buffer.
+     */
+    if (s2n_stuffer_is_freed(&conn->out)) {
+        return S2N_RESULT_OK;
+    }
+
+    uint16_t max_wire_record_size = 0;
+    RESULT_GUARD(s2n_record_max_write_size(conn, conn->max_outgoing_fragment_length, &max_wire_record_size));
+    if ((conn->out.blob.size < max_wire_record_size)) {
+        RESULT_GUARD_POSIX(s2n_realloc(&conn->out.blob, max_wire_record_size));
+    }
+
+    return S2N_RESULT_OK;
+}
+
+int s2n_connection_prefer_throughput(struct s2n_connection *conn)
+{
+    POSIX_GUARD_RESULT(s2n_connection_set_max_fragment_length(conn, S2N_LARGE_FRAGMENT_LENGTH));
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
-
-    if (!conn->mfl_code) {
-        conn->max_outgoing_fragment_length = S2N_SMALL_FRAGMENT_LENGTH;
-    }
-
-    return 0;
+    POSIX_GUARD_RESULT(s2n_connection_set_max_fragment_length(conn, S2N_SMALL_FRAGMENT_LENGTH));
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold)
@@ -1462,7 +1481,7 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 
     const struct s2n_x509_validator *validator = &conn->x509_validator;
     POSIX_ENSURE_REF(validator);
-    POSIX_ENSURE(validator->state == VALIDATED, S2N_ERR_CERT_NOT_VALIDATED);
+    POSIX_ENSURE(s2n_x509_validator_is_cert_chain_validated(validator), S2N_ERR_CERT_NOT_VALIDATED);
 
     /* X509_STORE_CTX_get1_chain() returns a validated cert chain if a previous call to X509_verify_cert() was successful.
      * X509_STORE_CTX_get0_chain() is a better API because it doesn't return a copy. But it's not available for Openssl 1.0.2.

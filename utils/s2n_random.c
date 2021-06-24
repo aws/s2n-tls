@@ -98,6 +98,10 @@ int s2n_rand_set_callbacks(s2n_rand_init_callback rand_init_callback,
                              s2n_rand_seed_callback rand_seed_callback,
                              s2n_rand_mix_callback rand_mix_callback)
 {
+    POSIX_ENSURE_REF(rand_init_callback);
+    POSIX_ENSURE_REF(rand_cleanup_callback);
+    POSIX_ENSURE_REF(rand_seed_callback);
+    POSIX_ENSURE_REF(rand_mix_callback);
     s2n_rand_init_cb = rand_init_callback;
     s2n_rand_cleanup_cb = rand_cleanup_callback;
     s2n_rand_seed_cb = rand_seed_callback;

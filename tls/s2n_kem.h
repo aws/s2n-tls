@@ -75,7 +75,6 @@ extern const struct s2n_kem s2n_bike1_l1_r1;
 extern const struct s2n_kem s2n_bike1_l1_r2;
 extern const struct s2n_kem s2n_bike_l1_r3;
 extern const struct s2n_kem s2n_sike_p503_r1;
-extern const struct s2n_kem s2n_sike_p434_r2;
 extern const struct s2n_kem s2n_kyber_512_r2;
 extern const struct s2n_kem s2n_kyber_512_90s_r2;
 extern const struct s2n_kem s2n_kyber_512_r3;
@@ -88,10 +87,10 @@ extern const struct s2n_kem s2n_sike_p434_r3;
 #define S2N_SUPPORTED_KEM_GROUPS_COUNT 3
 #endif
 
-extern const struct s2n_kem_group s2n_secp256r1_sike_p434_r2;
+extern const struct s2n_kem_group s2n_secp256r1_sike_p434_r3;
 extern const struct s2n_kem_group s2n_secp256r1_bike1_l1_r2;
 extern const struct s2n_kem_group s2n_secp256r1_kyber_512_r2;
-extern const struct s2n_kem_group s2n_x25519_sike_p434_r2;
+extern const struct s2n_kem_group s2n_x25519_sike_p434_r3;
 extern const struct s2n_kem_group s2n_x25519_bike1_l1_r2;
 extern const struct s2n_kem_group s2n_x25519_kyber_512_r2;
 
@@ -143,15 +142,6 @@ extern int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params
 int SIKE_P503_r1_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk);
 int SIKE_P503_r1_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN  const unsigned char *pk);
 int SIKE_P503_r1_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
-
-/* sikep434r2 */
-#define SIKE_P434_R2_PUBLIC_KEY_BYTES 330
-#define SIKE_P434_R2_SECRET_KEY_BYTES 374
-#define SIKE_P434_R2_CIPHERTEXT_BYTES 346
-#define SIKE_P434_R2_SHARED_SECRET_BYTES 16
-int SIKE_P434_r2_crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk);
-int SIKE_P434_r2_crypto_kem_enc(OUT unsigned char *ct, OUT unsigned char *ss, IN const unsigned char *pk);
-int SIKE_P434_r2_crypto_kem_dec(OUT unsigned char *ss, IN const unsigned char *ct, IN const unsigned char *sk);
 
 /* bike1_l1_r1 */
 #define BIKE1_L1_R1_SECRET_KEY_BYTES    3110

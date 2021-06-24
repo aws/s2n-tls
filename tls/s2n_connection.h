@@ -35,6 +35,7 @@
 #include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_security_policies.h"
+#include "tls/s2n_record.h"
 
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_hmac.h"
@@ -242,8 +243,9 @@ struct s2n_connection {
     /* number of bytes consumed during application activity */
     uint64_t active_application_bytes_consumed;
 
-    /* Negotiated TLS extension Maximum Fragment Length code */
-    uint8_t mfl_code;
+    /* Negotiated TLS extension Maximum Fragment Length code.
+     * If set, the client and server have both agreed to fragment their records to the given length. */
+    uint8_t negotiated_mfl_code;
 
     /* Keep some accounting on each connection */
     uint64_t wire_bytes_in;
@@ -340,7 +342,7 @@ struct s2n_connection {
 
     /* Bitmap to represent preferred list of keyshare for client to generate and send keyshares in the ClientHello message.
      * The least significant bit (lsb), if set, indicates that the client must send an empty keyshare list.
-     * Each bit value in the bitmap indiciates the corresponding curve in the ecc_preferences list for which a key share needs to be generated.
+     * Each bit value in the bitmap indicates the corresponding curve in the ecc_preferences list for which a key share needs to be generated.
      * The order of the curves represented in the bitmap is obtained from the security_policy->ecc_preferences.
      * Setting and manipulating this value requires security_policy to be configured prior.
      * */
@@ -386,3 +388,4 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn);
 /* `none` keyword represents a list of empty keyshares */
 int s2n_connection_set_keyshare_by_name_for_testing(struct s2n_connection *conn, const char* curve_name);
+S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, uint16_t length);

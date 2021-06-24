@@ -54,6 +54,18 @@ void process_safety_tester(int write_fd)
     _exit(0);
 }
 
+static int init(void) {
+    return S2N_SUCCESS;
+}
+
+static int cleanup(void) {
+    return S2N_SUCCESS;
+}
+
+static int entropy(void *ptr, uint32_t size) {
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     uint8_t bits[8] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
@@ -68,6 +80,12 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
+
+    /* Verify that randomness callbacks can't be set to NULL */
+    EXPECT_FAILURE(s2n_rand_set_callbacks(NULL, cleanup, entropy, entropy));
+    EXPECT_FAILURE(s2n_rand_set_callbacks(init, NULL, entropy, entropy));
+    EXPECT_FAILURE(s2n_rand_set_callbacks(init, cleanup, NULL, entropy));
+    EXPECT_FAILURE(s2n_rand_set_callbacks(init, cleanup, entropy, NULL));
 
     /* Get one byte of data, to make sure the pool is (almost) full */
     blob.size = 1;

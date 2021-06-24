@@ -84,7 +84,7 @@ int main()
         /* Define various PQ security policies to test different configurations */
         /* SIKE, BIKE*/
         const struct s2n_kem_group *test_kem_groups_sike_bike[] = {
-                &s2n_secp256r1_sike_p434_r2,
+                &s2n_secp256r1_sike_p434_r3,
                 &s2n_secp256r1_bike1_l1_r2,
         };
         const struct s2n_kem_preferences test_kem_prefs_sike_bike = {
@@ -158,7 +158,7 @@ int main()
 
         /* SIKE, Kyber */
         const struct s2n_kem_group *test_kem_groups_sike_kyber[] = {
-                &s2n_secp256r1_sike_p434_r2,
+                &s2n_secp256r1_sike_p434_r3,
                 &s2n_secp256r1_kyber_512_r2,
         };
         const struct s2n_kem_preferences test_kem_prefs_sike_kyber = {
@@ -270,7 +270,7 @@ int main()
             };
             /* Expected KEM group to be negotiated - corresponds to test_policy_overrides array */
             const struct s2n_kem_group *expected_negotiated_kem_group[NUM_PQ_TEST_POLICY_OVERRIDES] = {
-                    &s2n_secp256r1_sike_p434_r2,
+                    &s2n_secp256r1_sike_p434_r3,
                     &s2n_secp256r1_bike1_l1_r2,
                     &s2n_secp256r1_bike1_l1_r2,
                     &s2n_secp256r1_kyber_512_r2,

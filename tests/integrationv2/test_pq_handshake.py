@@ -21,7 +21,7 @@ CIPHERS = [
 KEM_GROUPS = [
     KemGroups.P256_KYBER512R2,
     KemGroups.P256_BIKE1L1FOR2,
-    KemGroups.P256_SIKEP434R2,
+    KemGroups.P256_SIKEP434R3,
 ]
 
 EXPECTED_RESULTS = {
@@ -57,9 +57,9 @@ EXPECTED_RESULTS = {
     (Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02, Ciphers.KMS_PQ_TLS_1_0_2019_06):
         {"cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "kem": "SIKEp503r1-KEM", "kem_group": "NONE"},
     (Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02, Ciphers.KMS_PQ_TLS_1_0_2020_02):
-        {"cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "kem": "SIKEp434r2-KEM", "kem_group": "NONE"},
+        {"cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "kem": "SIKEp434r3-KEM", "kem_group": "NONE"},
     (Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02, Ciphers.KMS_PQ_TLS_1_0_2020_07):
-        {"cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "kem": "SIKEp434r2-KEM", "kem_group": "NONE"},
+        {"cipher": "ECDHE-SIKE-RSA-AES256-GCM-SHA384", "kem": "SIKEp434r3-KEM", "kem_group": "NONE"},
 
     (Ciphers.KMS_PQ_TLS_1_0_2019_06, Ciphers.KMS_TLS_1_0_2018_10):
         {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": "NONE", "kem_group": "NONE"},
@@ -88,15 +88,15 @@ EXPECTED_RESULTS = {
         {"cipher": "AES256_GCM_SHA384", "kem": "NONE", "kem_group": "secp256r1_kyber-512-r2"},
     (Ciphers.PQ_TLS_1_0_2020_12, KemGroups.P256_BIKE1L1FOR2):
         {"cipher": "AES256_GCM_SHA384", "kem": "NONE", "kem_group": "secp256r1_bike-1l1fo-r2"},
-    (Ciphers.PQ_TLS_1_0_2020_12, KemGroups.P256_SIKEP434R2):
-        {"cipher": "AES256_GCM_SHA384", "kem": "NONE", "kem_group": "secp256r1_sike-p434-r2"},
+    (Ciphers.PQ_TLS_1_0_2020_12, KemGroups.P256_SIKEP434R3):
+        {"cipher": "AES256_GCM_SHA384", "kem": "NONE", "kem_group": "secp256r1_sike-p434-r3"},
 
     (KemGroups.P256_KYBER512R2, Ciphers.PQ_TLS_1_0_2020_12):
         {"cipher": "AES256_GCM_SHA384", "kem": "NONE", "kem_group": "secp256r1_kyber-512-r2"},
     (KemGroups.P256_BIKE1L1FOR2, Ciphers.PQ_TLS_1_0_2020_12):
         {"cipher": "AES256_GCM_SHA384", "kem": "NONE", "kem_group": "secp256r1_bike-1l1fo-r2"},
-    (KemGroups.P256_SIKEP434R2, Ciphers.PQ_TLS_1_0_2020_12):
-        {"cipher": "AES256_GCM_SHA384", "kem": "NONE", "kem_group": "secp256r1_sike-p434-r2"},
+    (KemGroups.P256_SIKEP434R3, Ciphers.PQ_TLS_1_0_2020_12):
+        {"cipher": "AES256_GCM_SHA384", "kem": "NONE", "kem_group": "secp256r1_sike-p434-r3"},
 }
 
 """

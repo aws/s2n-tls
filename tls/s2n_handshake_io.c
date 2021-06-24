@@ -1232,14 +1232,23 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
 
         /* Call the relevant handler */
         r = ACTIVE_STATE(conn).handler[conn->mode] (conn);
+        /* At this point we may have already failed.
+         * If the handler fails, we clean up the handshake
+         * and skip processing steps necessary to continue connecting (such as updating the transcript hash.)
+         */
 
         /* Don't update handshake hashes until after the handler has executed since some handlers need to read the
          * hash values before they are updated. */
-        POSIX_GUARD(s2n_handshake_conn_update_hashes(conn));
+        if (r >= S2N_SUCCESS || S2N_ERROR_IS_BLOCKING(s2n_errno)) { /* Only do this if we haven't already failed */
+            POSIX_GUARD(s2n_handshake_conn_update_hashes(conn));
+        }
 
+        /* Wipe regardless of whether or not we are successful. */
         POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
+        /* Bail with blinding if we have failed. */
         WITH_ERROR_BLINDING(conn, POSIX_GUARD(r));
+        /* At this point we know that we have not failed yet because the prior line would have bailed if we had. */
 
         /* Update the secrets, if necessary */
         POSIX_GUARD(s2n_tls13_handle_secrets(conn));

@@ -275,7 +275,7 @@ static S2N_RESULT s2n_tls13_deserialize_session_state(struct s2n_connection *con
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(from, &early_data_context_size));
         uint8_t *early_data_context_data = s2n_stuffer_raw_read(from, early_data_context_size);
         RESULT_ENSURE_REF(early_data_context_data);
-        RESULT_GUARD_POSIX(s2n_psk_set_context(&psk, early_data_context_data, early_data_context_size));
+        RESULT_GUARD_POSIX(s2n_psk_set_early_data_context(&psk, early_data_context_data, early_data_context_size));
     }
 
     /* Make sure that this connection is configured for resumption PSKs, not external PSKs */

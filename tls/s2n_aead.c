@@ -18,6 +18,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 
+#include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
 
 /* Derive the AAD for an AEAD mode cipher suite from the connection state, per

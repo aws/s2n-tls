@@ -85,13 +85,13 @@ struct hybrid_test_vector {
 #define SECP256R1_SHARED_SECRET "9348e27655539e08fffe46b35f863dd634e7437cc6bc11c7d329ef5484ec3b60"
 
 /* PQ shared secrets taken from the first entry in the NIST KAT files */
-#define SIKEP434R2_SECRET "35f7f8ff388714dedc41f139078cedc9"
+#define SIKEP434R3_SECRET "35f7f8ff388714dedc41f139078cedc9"
 #define BIKE1L1R2_SECRET "C1C96E2B8B1D23E52F02AD3A766A75ADBEDF7BA1558B94412B4AB534EEDBDE36"
 #define KYBER512R2_SECRET "D0FF6083EE6E516C10AECB53DB05426C382A1A75F3E943C9F469A060C634EF4E"
 
 /* Hybrid shared secrets are the concatenation: ECDHE || PQ */
-#define X25519_SIKEP434R2_HYBRID_SECRET      (X25519_SHARED_SECRET      SIKEP434R2_SECRET)
-#define SECP256R1_SIKEP434R2_HYBRID_SECRET   (SECP256R1_SHARED_SECRET   SIKEP434R2_SECRET)
+#define X25519_SIKEP434R3_HYBRID_SECRET      (X25519_SHARED_SECRET      SIKEP434R3_SECRET)
+#define SECP256R1_SIKEP434R3_HYBRID_SECRET   (SECP256R1_SHARED_SECRET   SIKEP434R3_SECRET)
 #define X25519_BIKE1L1R2_HYBRID_SECRET       (X25519_SHARED_SECRET      BIKE1L1R2_SECRET)
 #define SECP256R1_BIKE1L1R2_HYBRID_SECRET    (SECP256R1_SHARED_SECRET   BIKE1L1R2_SECRET)
 #define X25519_KYBER512R2_HYBRID_SECRET      (X25519_SHARED_SECRET      KYBER512R2_SECRET)
@@ -99,10 +99,10 @@ struct hybrid_test_vector {
 
 /* The expected traffic secrets were calculated from an independent implementation,
  * using the ECDHE & PQ secrets defined above. */
-#define AES_128_SECP256R1_SIKEP434R2_CLIENT_TRAFFIC_SECRET "2fa1a075eaf636138170e3b2a84f6baa4ac08f846ffe2d005ae5e66b03352c11"
-#define AES_128_SECP256R1_SIKEP434R2_SERVER_TRAFFIC_SECRET "423dfaf8fd66b17aaf8c919a9318f3a6bd69875aacdf022aa58a953a7b6de806"
-#define AES_256_SECP256R1_SIKEP434R2_CLIENT_TRAFFIC_SECRET "f7d349f364f49ff3ae9c4e9e7aa60c41d6c650d09c03d8c076bc714ab76177045e23e7426dceb872d2fe7c0d07abdefd"
-#define AES_256_SECP256R1_SIKEP434R2_SERVER_TRAFFIC_SECRET "184755801232f7b9b5c42cbdc66c793071f4322079e34307fd60261c0f7a27612b3808918218c4000c12f829d6c19ebf"
+#define AES_128_SECP256R1_SIKEP434R3_CLIENT_TRAFFIC_SECRET "2fa1a075eaf636138170e3b2a84f6baa4ac08f846ffe2d005ae5e66b03352c11"
+#define AES_128_SECP256R1_SIKEP434R3_SERVER_TRAFFIC_SECRET "423dfaf8fd66b17aaf8c919a9318f3a6bd69875aacdf022aa58a953a7b6de806"
+#define AES_256_SECP256R1_SIKEP434R3_CLIENT_TRAFFIC_SECRET "f7d349f364f49ff3ae9c4e9e7aa60c41d6c650d09c03d8c076bc714ab76177045e23e7426dceb872d2fe7c0d07abdefd"
+#define AES_256_SECP256R1_SIKEP434R3_SERVER_TRAFFIC_SECRET "184755801232f7b9b5c42cbdc66c793071f4322079e34307fd60261c0f7a27612b3808918218c4000c12f829d6c19ebf"
 
 #define AES_128_X25519_SIKEP434_CLIENT_TRAFFIC_SECRET "9b9c53221edb5cc1f95ab2ecfc5eb8ec27d6b9fc2159c956333cd90099911dc7"
 #define AES_128_X25519_SIKEP434_SERVER_TRAFFIC_SECRET "29a8786ffc6a48692b95d70ab7e04bcf112afd0a019dff6c15c1d095cfa5ebcc"
@@ -136,39 +136,39 @@ int main(int argc, char **argv) {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
 
-    S2N_BLOB_FROM_HEX(sikep434r2_secret, SIKEP434R2_SECRET);
+    S2N_BLOB_FROM_HEX(sikep434r3_secret, SIKEP434R3_SECRET);
 
     S2N_BLOB_FROM_HEX(secp256r1_secret, SECP256R1_SHARED_SECRET);
-    S2N_BLOB_FROM_HEX(secp256r1_sikep434r2_hybrid_secret, SECP256R1_SIKEP434R2_HYBRID_SECRET);
+    S2N_BLOB_FROM_HEX(secp256r1_sikep434r3_hybrid_secret, SECP256R1_SIKEP434R3_HYBRID_SECRET);
 
-    S2N_BLOB_FROM_HEX(aes_128_secp256r1_sikep434r2_client_secret, AES_128_SECP256R1_SIKEP434R2_CLIENT_TRAFFIC_SECRET);
-    S2N_BLOB_FROM_HEX(aes_128_secp256r1_sikep434r2_server_secret, AES_128_SECP256R1_SIKEP434R2_SERVER_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_128_secp256r1_sikep434r3_client_secret, AES_128_SECP256R1_SIKEP434R3_CLIENT_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_128_secp256r1_sikep434r3_server_secret, AES_128_SECP256R1_SIKEP434R3_SERVER_TRAFFIC_SECRET);
 
-    const struct hybrid_test_vector aes_128_sha_256_secp256r1_sikep434r2_vector = {
+    const struct hybrid_test_vector aes_128_sha_256_secp256r1_sikep434r3_vector = {
             .cipher_suite = &s2n_tls13_aes_128_gcm_sha256,
             .transcript = FAKE_TRANSCRIPT,
-            .kem_group = &s2n_secp256r1_sike_p434_r2,
+            .kem_group = &s2n_secp256r1_sike_p434_r3,
             .client_ecc_key = CLIENT_SECP256R1_PRIV_KEY,
             .server_ecc_key = SERVER_SECP256R1_PRIV_KEY,
-            .pq_secret = &sikep434r2_secret,
-            .expected_hybrid_secret = &secp256r1_sikep434r2_hybrid_secret,
-            .expected_client_traffic_secret = &aes_128_secp256r1_sikep434r2_client_secret,
-            .expected_server_traffic_secret = &aes_128_secp256r1_sikep434r2_server_secret,
+            .pq_secret = &sikep434r3_secret,
+            .expected_hybrid_secret = &secp256r1_sikep434r3_hybrid_secret,
+            .expected_client_traffic_secret = &aes_128_secp256r1_sikep434r3_client_secret,
+            .expected_server_traffic_secret = &aes_128_secp256r1_sikep434r3_server_secret,
     };
 
-    S2N_BLOB_FROM_HEX(aes_256_secp256r1_sikep434r2_client_secret, AES_256_SECP256R1_SIKEP434R2_CLIENT_TRAFFIC_SECRET);
-    S2N_BLOB_FROM_HEX(aes_256_secp256r1_sikep434r2_server_secret, AES_256_SECP256R1_SIKEP434R2_SERVER_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_256_secp256r1_sikep434r3_client_secret, AES_256_SECP256R1_SIKEP434R3_CLIENT_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_256_secp256r1_sikep434r3_server_secret, AES_256_SECP256R1_SIKEP434R3_SERVER_TRAFFIC_SECRET);
 
-    const struct hybrid_test_vector aes_256_sha_384_secp256r1_sikep434r2_vector = {
+    const struct hybrid_test_vector aes_256_sha_384_secp256r1_sikep434r3_vector = {
             .cipher_suite = &s2n_tls13_aes_256_gcm_sha384,
             .transcript = FAKE_TRANSCRIPT,
-            .kem_group = &s2n_secp256r1_sike_p434_r2,
+            .kem_group = &s2n_secp256r1_sike_p434_r3,
             .client_ecc_key = CLIENT_SECP256R1_PRIV_KEY,
             .server_ecc_key = SERVER_SECP256R1_PRIV_KEY,
-            .pq_secret = &sikep434r2_secret,
-            .expected_hybrid_secret = &secp256r1_sikep434r2_hybrid_secret,
-            .expected_client_traffic_secret = &aes_256_secp256r1_sikep434r2_client_secret,
-            .expected_server_traffic_secret = &aes_256_secp256r1_sikep434r2_server_secret,
+            .pq_secret = &sikep434r3_secret,
+            .expected_hybrid_secret = &secp256r1_sikep434r3_hybrid_secret,
+            .expected_client_traffic_secret = &aes_256_secp256r1_sikep434r3_client_secret,
+            .expected_server_traffic_secret = &aes_256_secp256r1_sikep434r3_server_secret,
     };
 
     S2N_BLOB_FROM_HEX(bike1l1r2_secret, BIKE1L1R2_SECRET);
@@ -238,36 +238,36 @@ int main(int argc, char **argv) {
 #if EVP_APIS_SUPPORTED
     /* All x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
     S2N_BLOB_FROM_HEX(x25519_secret, X25519_SHARED_SECRET);
-    S2N_BLOB_FROM_HEX(x25519_sikep434r2_hybrid_secret, X25519_SIKEP434R2_HYBRID_SECRET);
+    S2N_BLOB_FROM_HEX(x25519_sikep434r3_hybrid_secret, X25519_SIKEP434R3_HYBRID_SECRET);
 
-    S2N_BLOB_FROM_HEX(aes_128_x25519_sikep434r2_client_secret, AES_128_X25519_SIKEP434_CLIENT_TRAFFIC_SECRET);
-    S2N_BLOB_FROM_HEX(aes_128_x25519_sikep434r2_server_secret, AES_128_X25519_SIKEP434_SERVER_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_128_x25519_sikep434r3_client_secret, AES_128_X25519_SIKEP434_CLIENT_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_128_x25519_sikep434r3_server_secret, AES_128_X25519_SIKEP434_SERVER_TRAFFIC_SECRET);
 
-    const struct hybrid_test_vector aes_128_sha_256_x25519_sikep434r2_vector = {
+    const struct hybrid_test_vector aes_128_sha_256_x25519_sikep434r3_vector = {
             .cipher_suite = &s2n_tls13_aes_128_gcm_sha256,
             .transcript = FAKE_TRANSCRIPT,
-            .kem_group = &s2n_x25519_sike_p434_r2,
+            .kem_group = &s2n_x25519_sike_p434_r3,
             .client_ecc_key = CLIENT_X25519_PRIV_KEY,
             .server_ecc_key = SERVER_X25519_PRIV_KEY,
-            .pq_secret = &sikep434r2_secret,
-            .expected_hybrid_secret = &x25519_sikep434r2_hybrid_secret,
-            .expected_client_traffic_secret = &aes_128_x25519_sikep434r2_client_secret,
-            .expected_server_traffic_secret = &aes_128_x25519_sikep434r2_server_secret,
+            .pq_secret = &sikep434r3_secret,
+            .expected_hybrid_secret = &x25519_sikep434r3_hybrid_secret,
+            .expected_client_traffic_secret = &aes_128_x25519_sikep434r3_client_secret,
+            .expected_server_traffic_secret = &aes_128_x25519_sikep434r3_server_secret,
     };
 
-    S2N_BLOB_FROM_HEX(aes_256_x25519_sikep434r2_client_secret, AES_256_X25519_SIKEP434_CLIENT_TRAFFIC_SECRET);
-    S2N_BLOB_FROM_HEX(aes_256_x25519_sikep434r2_server_secret, AES_256_X25519_SIKEP434_SERVER_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_256_x25519_sikep434r3_client_secret, AES_256_X25519_SIKEP434_CLIENT_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_256_x25519_sikep434r3_server_secret, AES_256_X25519_SIKEP434_SERVER_TRAFFIC_SECRET);
 
-    const struct hybrid_test_vector aes_256_sha_384_x25519_sikep434r2_vector = {
+    const struct hybrid_test_vector aes_256_sha_384_x25519_sikep434r3_vector = {
             .cipher_suite = &s2n_tls13_aes_256_gcm_sha384,
             .transcript = FAKE_TRANSCRIPT,
-            .kem_group = &s2n_x25519_sike_p434_r2,
+            .kem_group = &s2n_x25519_sike_p434_r3,
             .client_ecc_key = CLIENT_X25519_PRIV_KEY,
             .server_ecc_key = SERVER_X25519_PRIV_KEY,
-            .pq_secret = &sikep434r2_secret,
-            .expected_hybrid_secret = &x25519_sikep434r2_hybrid_secret,
-            .expected_client_traffic_secret = &aes_256_x25519_sikep434r2_client_secret,
-            .expected_server_traffic_secret = &aes_256_x25519_sikep434r2_server_secret,
+            .pq_secret = &sikep434r3_secret,
+            .expected_hybrid_secret = &x25519_sikep434r3_hybrid_secret,
+            .expected_client_traffic_secret = &aes_256_x25519_sikep434r3_client_secret,
+            .expected_server_traffic_secret = &aes_256_x25519_sikep434r3_server_secret,
     };
 
     S2N_BLOB_FROM_HEX(x25519_bike1l1r2_hybrid_secret, X25519_BIKE1L1R2_HYBRID_SECRET);
@@ -336,10 +336,10 @@ int main(int argc, char **argv) {
 #if EVP_APIS_SUPPORTED
     EXPECT_EQUAL(6, S2N_SUPPORTED_KEM_GROUPS_COUNT);
     const struct hybrid_test_vector *all_test_vectors[] = {
-            &aes_128_sha_256_secp256r1_sikep434r2_vector,
-            &aes_256_sha_384_secp256r1_sikep434r2_vector,
-            &aes_128_sha_256_x25519_sikep434r2_vector,
-            &aes_256_sha_384_x25519_sikep434r2_vector,
+            &aes_128_sha_256_secp256r1_sikep434r3_vector,
+            &aes_256_sha_384_secp256r1_sikep434r3_vector,
+            &aes_128_sha_256_x25519_sikep434r3_vector,
+            &aes_256_sha_384_x25519_sikep434r3_vector,
             &aes_128_sha_256_secp256r1_bike1l1r2_vector,
             &aes_256_sha_384_secp256r1_bike1l1r2_vector,
             &aes_128_sha_256_x25519_bike1l1r2_vector,
@@ -352,8 +352,8 @@ int main(int argc, char **argv) {
 #else
     EXPECT_EQUAL(3, S2N_SUPPORTED_KEM_GROUPS_COUNT);
     const struct hybrid_test_vector *all_test_vectors[] = {
-            &aes_128_sha_256_secp256r1_sikep434r2_vector,
-            &aes_256_sha_384_secp256r1_sikep434r2_vector,
+            &aes_128_sha_256_secp256r1_sikep434r3_vector,
+            &aes_256_sha_384_secp256r1_sikep434r3_vector,
             &aes_128_sha_256_secp256r1_bike1l1r2_vector,
             &aes_256_sha_384_secp256r1_bike1l1r2_vector,
             &aes_128_sha_256_secp256r1_kyber512r2_vector,
@@ -426,7 +426,7 @@ int main(int argc, char **argv) {
     }
     {
         /* Various failure cases for s2n_tls13_compute_shared_secret() */
-        const struct hybrid_test_vector *test_vector = &aes_128_sha_256_secp256r1_sikep434r2_vector;
+        const struct hybrid_test_vector *test_vector = &aes_128_sha_256_secp256r1_sikep434r3_vector;
         s2n_mode modes[] = { S2N_SERVER, S2N_CLIENT };
 
         for (size_t i = 0; i < s2n_array_len(modes); i++) {
