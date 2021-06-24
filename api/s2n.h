@@ -107,7 +107,7 @@ extern const char *s2n_strerror(int error, const char *lang);
 S2N_API
 extern const char *s2n_strerror_debug(int error, const char *lang);
 S2N_API
-extern const char *s2n_strerror_name(int error);
+extern const char *s2n_strerror_name(int error); 
 
 struct s2n_stacktrace;
 S2N_API
@@ -204,9 +204,9 @@ extern int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
 S2N_API
 extern int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
 S2N_API
-extern int s2n_config_wipe_trust_store(struct s2n_config *config);
-S2N_API
 extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem);
+S2N_API
+extern int s2n_config_wipe_trust_store(struct s2n_config *config);
 
 typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_len, void *data);
 /* will be inherited by s2n_connection. If s2n_connection specifies a callback, that callback will be used for that connection. */
@@ -531,8 +531,8 @@ extern int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 S2N_API
 extern int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn);
 
-/* TLS Signature Algorithms - RFC 5246 7.4.1.4.1 */
-/* https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16 */
+/* TLS Signature Algorithms - RFC 5246 7.4.1.4.1 */ 
+/* https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-16 */ 
 typedef enum {
     S2N_TLS_SIGNATURE_ANONYMOUS = 0,
     S2N_TLS_SIGNATURE_RSA = 1,
@@ -543,8 +543,8 @@ typedef enum {
     S2N_TLS_SIGNATURE_RSA_PSS_PSS
 } s2n_tls_signature_algorithm;
 
-/* TLS Hash Algorithm - https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */
-/* https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-18 */
+/* TLS Hash Algorithm - https://tools.ietf.org/html/rfc5246#section-7.4.1.4.1 */ 
+/* https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-18 */ 
 typedef enum {
     S2N_TLS_HASH_NONE = 0,
     S2N_TLS_HASH_MD5 = 1,
@@ -553,7 +553,7 @@ typedef enum {
     S2N_TLS_HASH_SHA256 = 4,
     S2N_TLS_HASH_SHA384 = 5,
     S2N_TLS_HASH_SHA512 = 6,
-
+    
     /* Use Private Range for MD5_SHA1 */
     S2N_TLS_HASH_MD5_SHA1 = 224
 } s2n_tls_hash_algorithm;
@@ -572,7 +572,7 @@ extern struct s2n_cert_chain_and_key *s2n_connection_get_selected_cert(struct s2
 
 /**
  * Returns the length of the s2n certificate chain `chain_and_key`.
- *
+ * 
  * @param chain_and_key A pointer to the s2n_cert_chain_and_key object being read.
  * @param cert_length This return value represents the length of the s2n certificate chain `chain_and_key`.
  */
@@ -581,15 +581,15 @@ extern int s2n_cert_chain_get_length(const struct s2n_cert_chain_and_key *chain_
 
 /**
  * Returns the certificate `out_cert` present at the index `cert_idx` of the certificate chain `chain_and_key`.
- *
+ * 
  * Note that the index of the leaf certificate is zero. If the certificate chain `chain_and_key` is NULL or the
  * certificate index value is not in the acceptable range for the input certificate chain, an error is returned.
- *
- * # Safety
+ * 
+ * # Safety 
  *
  * There is no memory allocation required for `out_cert` buffer prior to calling the `s2n_cert_chain_get_cert` API.
  * The `out_cert` will contain the pointer to the s2n_cert initialized within the input s2n_cert_chain_and_key `chain_and_key`.
- * The pointer to the output s2n certificate `out_cert` is valid until `chain_and_key` is freed up.
+ * The pointer to the output s2n certificate `out_cert` is valid until `chain_and_key` is freed up. 
  * If a caller wishes to persist the `out_cert` beyond the lifetime of `chain_and_key`, the contents would need to be
  * copied prior to freeing `chain_and_key`.
  *
@@ -602,25 +602,25 @@ extern int s2n_cert_chain_get_cert(const struct s2n_cert_chain_and_key *chain_an
 
 /**
  * Returns the s2n certificate in DER format along with its length.
- *
+ * 
  * The API gets the s2n certificate `cert` in DER format. The certificate is returned in the `out_cert_der` buffer.
  * Here, `cert_len` represents the length of the certificate.
- *
+ * 
  * A caller can use certificate parsing tools such as the ones provided by OpenSSL to parse the DER encoded certificate chain returned.
  *
  * # Safety
- *
- * The memory for the `out_cert_der` buffer is allocated and owned by s2n-tls.
- * Since the size of the certificate can potentially be very large, a pointer to internal connection data is returned instead of
+ * 
+ * The memory for the `out_cert_der` buffer is allocated and owned by s2n-tls. 
+ * Since the size of the certificate can potentially be very large, a pointer to internal connection data is returned instead of 
  * copying the contents into a caller-provided buffer.
- *
+ * 
  * The pointer to the output buffer `out_cert_der` is valid only while the connection exists.
  * The `s2n_connection_free` API frees the memory associated with the out_cert_der buffer and after the `s2n_connection_wipe` API is
  * called the memory pointed by out_cert_der is invalid.
- *
+ * 
  * If a caller wishes to persist the `out_cert_der` beyond the lifetime of the connection, the contents would need to be
  * copied prior to the connection termination.
- *
+ * 
  * @param cert A pointer to the s2n_cert object being read.
  * @param out_cert_der A pointer to the output buffer which will hold the s2n certificate `cert` in DER format.
  * @param cert_length This return value represents the length of the certificate.
@@ -630,11 +630,11 @@ extern int s2n_cert_get_der(const struct s2n_cert *cert, const uint8_t **out_cer
 
 /**
  * Returns the validated peer certificate chain as a `s2n_cert_chain_and_key` opaque object.
- *
+ * 
  * The `s2n_cert_chain_and_key` parameter must be allocated by the caller using the `s2n_cert_chain_and_key_new` API
- * prior to this function call and must be empty. To free the memory associated with the `s2n_cert_chain_and_key` object use the
+ * prior to this function call and must be empty. To free the memory associated with the `s2n_cert_chain_and_key` object use the 
  * `s2n_cert_chain_and_key_free` API.
- *
+ * 
  * @param conn A pointer to the s2n_connection object being read.
  * @param s2n_cert_chain_and_key The returned validated peer certificate chain `cert_chain` retrieved from the s2n connection.
  */
@@ -643,50 +643,50 @@ extern int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn,
 
 /**
  * Returns the length of the DER encoded extension value of the ASN.1 X.509 certificate extension.
- *
+ * 
  * @param cert A pointer to the s2n_cert object being read.
  * @param oid A null-terminated cstring that contains the OID of the X.509 certificate extension to be read.
  * @param ext_value_len This return value contains the length of DER encoded extension value of the ASN.1 X.509 certificate extension.
  */
-S2N_API
+S2N_API 
 extern int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid, uint32_t *ext_value_len);
 
 /**
  * Returns the DER encoding of an ASN.1 X.509 certificate extension value, it's length and a boolean critical.
- *
+ * 
  * @param cert A pointer to the s2n_cert object being read.
  * @param oid A null-terminated cstring that contains the OID of the X.509 certificate extension to be read.
- * @param ext_value A pointer to the output buffer which will hold the DER encoding of an ASN.1 X.509 certificate extension value returned.
- * @param ext_value_len  This value is both an input and output parameter and represents the length of the output buffer `ext_value`.
- * When used as an input parameter, the caller must use this parameter to convey the maximum length of `ext_value`.
- * When used as an output parameter, `ext_value_len` holds the actual length of the DER encoding of the ASN.1 X.509 certificate extension value returned.
+ * @param ext_value A pointer to the output buffer which will hold the DER encoding of an ASN.1 X.509 certificate extension value returned. 
+ * @param ext_value_len  This value is both an input and output parameter and represents the length of the output buffer `ext_value`. 
+ * When used as an input parameter, the caller must use this parameter to convey the maximum length of `ext_value`. 
+ * When used as an output parameter, `ext_value_len` holds the actual length of the DER encoding of the ASN.1 X.509 certificate extension value returned. 
  * @param critical This return value contains the boolean value for `critical`.
  */
-S2N_API
+S2N_API 
 extern int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, uint8_t *ext_value, uint32_t *ext_value_len, bool *critical);
 
 /**
- * Returns the UTF8 String length of the ASN.1 X.509 certificate extension data.
- *
+ * Returns the UTF8 String length of the ASN.1 X.509 certificate extension data. 
+ * 
  * @param extension_data A pointer to the DER encoded ASN.1 X.509 certificate extension value being read.
  * @param extension_len represents the length of the input buffer `extension_data`.
  * @param utf8_str_len This return value contains the UTF8 String length of the ASN.1 X.509 certificate extension data.
  */
-S2N_API
+S2N_API 
 extern int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len);
 
 /**
  * Returns the UTF8 String representation of the DER encoded ASN.1 X.509 certificate extension data.
- *
+ * 
  * @param extension_data A pointer to the DER encoded ASN.1 X.509 certificate extension value being read.
  * @param extension_len represents the length of the input buffer `extension_data`.
- * @param out_data A pointer to the output buffer which will hold the UTF8 String representation of the DER encoded ASN.1 X.509
- * certificate extension data returned.
+ * @param out_data A pointer to the output buffer which will hold the UTF8 String representation of the DER encoded ASN.1 X.509 
+ * certificate extension data returned. 
  * @param out_len This value is both an input and output parameter and represents the length of the output buffer `out_data`.
- * When used as an input parameter, the caller must use this parameter to convey the maximum length of `out_data`.
+ * When used as an input parameter, the caller must use this parameter to convey the maximum length of `out_data`. 
  * When used as an output parameter, `out_len` holds the actual length of UTF8 String returned.
  */
-S2N_API
+S2N_API 
 extern int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len);
 
 /* Pre-shared key (PSK) Hash Algorithm - RFC 8446 Section-2.2 */
