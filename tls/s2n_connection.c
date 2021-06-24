@@ -1034,7 +1034,7 @@ const char *s2n_connection_get_curve(struct s2n_connection *conn)
     PTR_ENSURE_REF(conn);
 
     if (conn->secure.server_ecc_evp_params.negotiated_curve) {
-        /* s2n-tls currently only supports ECC groups for TLS1.3. */
+        /* TLS1.3 currently only uses ECC groups. */
         if (conn->actual_protocol_version >= S2N_TLS13 || s2n_kex_includes(conn->secure.cipher_suite->key_exchange_alg, &s2n_ecdhe)) {
             return conn->secure.server_ecc_evp_params.negotiated_curve->name;
         }
