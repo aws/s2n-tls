@@ -79,7 +79,9 @@ int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blo
     POSIX_ENSURE_REF(conn);
 
     POSIX_GUARD(s2n_key_update_send(conn, blocked));
-    POSIX_GUARD_RESULT(s2n_tls13_server_nst_send(conn, blocked));
+    if(s2n_result_is_error(s2n_tls13_server_nst_send(conn, blocked))) {
+        return S2N_SUCCESS;
+    }
 
     return S2N_SUCCESS;
 }

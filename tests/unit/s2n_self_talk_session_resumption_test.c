@@ -664,6 +664,42 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
     }
 
+    /* If the server has no ticket key, no session ticket is issued. */
+    {
+        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client_conn);
+
+        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server_conn);
+
+        /* Setup config without session ticket key */
+        struct s2n_config *no_key_config = s2n_config_new();
+        EXPECT_NOT_NULL(no_key_config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(no_key_config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(no_key_config));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(no_key_config, tls13_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(no_key_config, tls12_chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(no_key_config, true));
+
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, no_key_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_client_config));
+
+        /* Create nonblocking pipes */
+        struct s2n_test_io_pair io_pair = { 0 };
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Server never sent a ticket to the client */
+        EXPECT_EQUAL(s2n_connection_get_session_length(client_conn), 0);
+
+        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+        EXPECT_SUCCESS(s2n_config_free(no_key_config));
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+    }
+
     /* Clean-up */
     EXPECT_SUCCESS(s2n_config_free(server_config));
     EXPECT_SUCCESS(s2n_config_free(tls13_client_config));
