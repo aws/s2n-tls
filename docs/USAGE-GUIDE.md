@@ -1444,7 +1444,7 @@ negotiated by s2n-tls for a connection in Openssl format, e.g. "ECDHE-RSA-AES128
 const char * s2n_connection_get_curve(struct s2n_connection *conn);
 ```
 
-**s2n_connection_get_curve** returns a string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve has was used.
+**s2n_connection_get_curve** returns a string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve was used.
 
 ### s2n\_connection\_get\_selected\_cert
 
