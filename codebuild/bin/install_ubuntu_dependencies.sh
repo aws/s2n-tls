@@ -22,7 +22,7 @@ add-apt-repository ppa:ubuntu-toolchain-r/test -y
 add-apt-repository ppa:longsleep/golang-backports -y
 apt-get update -o Acquire::CompressionTypes::Order::=gz
 
-DEPENDENCIES="unzip make indent kwstyle libssl-dev tcpdump valgrind lcov m4 nettle-dev nettle-bin pkg-config gcc g++ zlibc zlib1g-dev python3-pip python3-testresources llvm curl git tox cmake libtool ninja-build golang-go quilt"
+DEPENDENCIES="unzip make indent kwstyle libssl-dev tcpdump valgrind lcov m4 nettle-dev nettle-bin pkg-config gcc g++ zlibc zlib1g-dev python3-pip python3-testresources llvm curl git tox cmake libtool ninja-build golang-go quilt softhsm opensc"
 
 
 if [[ -n "$GCC_VERSION" ]] && [[ "$GCC_VERSION" != "NONE" ]]; then

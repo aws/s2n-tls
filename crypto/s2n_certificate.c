@@ -363,9 +363,6 @@ int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
     S2N_ERROR_IF(pkey_type == S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
     POSIX_GUARD(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, pkey_type));
 
-    /* Validate the leaf cert's public key matches the provided private key */
-    POSIX_GUARD(s2n_pkey_match(&public_key, chain_and_key->private_key));
-
     /* Populate name information from the SAN/CN for the leaf certificate */
     POSIX_GUARD(s2n_cert_chain_and_key_set_names(chain_and_key, &chain_and_key->cert_chain->head->raw));
 

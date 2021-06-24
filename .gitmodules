@@ -7,3 +7,6 @@
 [submodule "tests/litani"]
 	path = tests/litani
 	url = https://github.com/awslabs/aws-build-accumulator
+[submodule "tests/pkcs11"]
+	path = tests/pkcs11
+	url = https://github.com/oasis-tcs/pkcs11.git
