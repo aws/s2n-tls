@@ -40,7 +40,7 @@ ifndef S2N_NO_PQ_ASM
 	# by the compiler. So for each needed instruction set
 	# extension we check if the compiler supports it and
 	# set proper flags to be added in the BIKE_R3 Makefile.
-	dummy_file := "$(S2N_ROOT)/tests/unit/s2n_pq_asm_noop_test.c"
+	dummy_file := "$(S2N_ROOT)/tests/features/noop_main.c"
 	dummy_file_out := "test_bike_r3_avx_support.o"
 	BIKE_R3_AVX2_SUPPORTED := $(shell $(CC) -mavx2 -c -o $(dummy_file_out) $(dummy_file) > /dev/null 2>&1; echo $$?; rm $(dummy_file_out) > /dev/null 2>&1)
 	ifeq ($(BIKE_R3_AVX2_SUPPORTED), 0)
