@@ -350,7 +350,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_1_2021_05_17 = {
     .cipher_preferences = &cipher_preferences_pq_tls_1_1_2021_05_17,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_18 = {
@@ -358,7 +358,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_18 = {
     .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_18,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_19 = {
@@ -366,7 +366,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_19 = {
     .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_19,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_20 = {
@@ -374,7 +374,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_20 = {
     .cipher_preferences = &cipher_preferences_kms_pq_tls_1_0_2020_07,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_1_2021_05_21 = {
@@ -382,7 +382,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_1_2021_05_21 = {
     .cipher_preferences = &cipher_preferences_pq_tls_1_1_2021_05_21,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_22 = {
@@ -390,7 +390,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_22 = {
     .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_22,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_23 = {
@@ -398,7 +398,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_23 = {
     .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_23,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
 const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_24 = {
@@ -406,7 +406,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_24 = {
     .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_24,
     .kem_preferences = &kem_preferences_pq_tls_1_0_2021_05,
     .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
 const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2018_10 = {
