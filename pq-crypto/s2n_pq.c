@@ -17,6 +17,8 @@
 
 static bool sikep434r3_asm_enabled = false;
 
+static bool kyber512r3_avx2_enabled = false;
+
 /* BIKE Round-3 code supports several levels of optimization */
 static bool bike_r3_avx2_enabled    = false;
 static bool bike_r3_avx512_enabled  = false;
@@ -95,6 +97,18 @@ bool s2n_cpu_supports_sikep434r3_asm() {
 #endif /* defined(S2N_SIKE_P434_R3_ASM) */
 }
 
+bool s2n_cpu_supports_kyber512r3_avx2() {
+#if defined(S2N_KYBER512_R3_AVX2)
+    uint32_t eax, ebx, ecx, edx;
+    if (!s2n_get_cpuid_count(EXTENDED_FEATURES_LEAF, EXTENDED_FEATURES_SUBLEAF_ZERO, &eax, &ebx, &ecx, &edx)) {
+        return false;
+    }
+    return ((ebx & EBX_BIT_AVX2) != 0);
+#else
+    return false;
+#endif
+}
+
 bool s2n_cpu_supports_bike_r3_avx2() {
 #if defined(S2N_BIKE_R3_AVX2)
     uint32_t eax, ebx, ecx, edx;
@@ -150,6 +164,10 @@ bool s2n_cpu_supports_sikep434r3_asm() {
     return false;
 }
 
+bool s2n_cpu_supports_kyber512r3_avx2() {
+    return false;
+}
+
 bool s2n_cpu_supports_bike_r3_avx2() {
     return false;
 }
@@ -170,6 +188,10 @@ bool s2n_cpu_supports_bike_r3_vpclmul() {
 
 bool s2n_sikep434r3_asm_is_enabled() {
     return sikep434r3_asm_enabled;
+}
+
+bool s2n_kyber512r3_is_avx2_enabled() {
+    return kyber512r3_avx2_enabled;
 }
 
 bool s2n_bike_r3_is_avx2_enabled() {
@@ -198,6 +220,11 @@ bool s2n_pq_is_enabled() {
 
 S2N_RESULT s2n_disable_sikep434r3_asm() {
     sikep434r3_asm_enabled = false;
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_disable_kyber512r3_opt_avx2() {
+    kyber512r3_avx2_enabled    = false;
     return S2N_RESULT_OK;
 }
 
@@ -250,6 +277,13 @@ S2N_RESULT s2n_try_enable_sikep434r3_asm() {
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_try_enable_kyber512r3_opt_avx2() {
+    if (s2n_pq_is_enabled() && s2n_cpu_supports_kyber512r3_avx2()) {
+        kyber512r3_avx2_enabled = true;
+    }
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_bike_r3_x86_64_opt_init()
 {
     /* try_enable_vpclmul function recursively tries to enable
@@ -263,5 +297,11 @@ S2N_RESULT s2n_pq_init() {
     RESULT_ENSURE_OK(s2n_try_enable_sikep434r3_asm(), S2N_ERR_SAFETY);
     RESULT_ENSURE_OK(s2n_bike_r3_x86_64_opt_init(), S2N_ERR_SAFETY);
 
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_kyber512r3_avx2_opt_init()
+{
+    RESULT_ENSURE_OK(s2n_try_enable_kyber512r3_opt_avx2(), S2N_ERR_SAFETY);
     return S2N_RESULT_OK;
 }

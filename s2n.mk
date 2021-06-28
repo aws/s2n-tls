@@ -39,7 +39,7 @@ else ifeq ($(S2N_LIBCRYPTO), awslc)
 	# AWS-LC is a BoringSSL derivative.
 	DEFAULT_CFLAGS = -std=c11
 else
-	DEFAULT_CFLAGS = -std=c99 -Wcast-qual
+	DEFAULT_CFLAGS = -std=c99
 endif
 
 DEFAULT_CFLAGS += -pedantic -Wall -Werror -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized \
