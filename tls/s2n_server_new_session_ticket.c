@@ -138,7 +138,9 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
     RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&nst_stuffer, maximum_nst_size));
 
     while (conn->tickets_to_send - conn->tickets_sent > 0) {
-        RESULT_GUARD(s2n_tls13_server_nst_write(conn, &nst_stuffer));
+        if (s2n_result_is_error(s2n_tls13_server_nst_write(conn, &nst_stuffer))) {
+            return S2N_RESULT_OK;
+        }
 
         struct s2n_blob nst_blob = { 0 };
         uint16_t nst_size = s2n_stuffer_data_available(&nst_stuffer);
