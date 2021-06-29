@@ -206,6 +206,21 @@ extern int s2n_config_set_verification_ca_location(struct s2n_config *config, co
 S2N_API
 extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem);
 
+/**
+ * Clear the trust store.
+ *
+ * Note that the trust store will be initialized with the common locations for
+ * the host operating system by default. To completely override those locations,
+ * call this before functions like `s2n_config_set_verification_ca_location()`
+ * or `s2n_config_add_pem_to_trust_store()`
+ *
+ * @param config The configuration object being updated
+ *
+ * @return 0 on success and -1 on error
+ */
+S2N_API
+extern int s2n_config_wipe_trust_store(struct s2n_config *config);
+
 typedef uint8_t (*s2n_verify_host_fn) (const char *host_name, size_t host_name_len, void *data);
 /* will be inherited by s2n_connection. If s2n_connection specifies a callback, that callback will be used for that connection. */
 S2N_API

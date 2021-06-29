@@ -778,9 +778,10 @@ will be used if this callback is not manually set.
 int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
 ```
 
-**s2n_config_set_verification_ca_location**  initializes the trust store from a CA file or directory
-containing trusted certificates.  By default, the trust store will be initialized to the common locations
-for the host operating system. Call this function to override that behavior.
+**s2n_config_set_verification_ca_location** adds to the trust store from a CA file or directory
+containing trusted certificates. Note that the trust store will be initialized with the common locations
+for the host operating system by default. To completely override those locations, call
+[s2n_config_wipe_trust_store](#s2n_config_wipe_trust_store) before calling this function.
 Returns 0 on success and -1 on failure.
 
 ### s2n\_config\_add\_pem\_to\_trust\_store
@@ -788,7 +789,24 @@ Returns 0 on success and -1 on failure.
 int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem);
 ```
 
-**s2n_config_add_pem_to_trust_store**  Initialize trust store from a PEM. This will allocate memory, and load PEM into the Trust Store
+**s2n_config_add_pem_to_trust_store**  adds a PEM to the trust store. This will allocate memory, and load PEM into the Trust Store.
+Note that the trust store will be initialized with the common locations for the host operating system by default.
+To completely override those locations, call [s2n_config_wipe_trust_store](#s2n_config_wipe_trust_store)
+before calling this function.
+This function returns 0 on success and -1 on error.
+
+
+### s2n\_config\_wipe\_trust\_store
+```c
+int s2n_config_wipe_trust_store(struct s2n_config *config);
+```
+
+***s2n_config_wipe_trust_store*** clears the trust store.
+Note that the trust store will be initialized with the common locations for the host operating system by default.
+To completely override those locations, call this before functions like
+[s2n_config_set_verification_ca_location](#s2n_config_set_verification_ca_location)
+or [s2n_config_add_pem_to_trust_store](#s2n_config_add_pem_to_trust_store).
+This function returns 0 on success and -1 on error.
 
 ### s2n\_verify\_host\_fn
 ```c
