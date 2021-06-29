@@ -430,7 +430,7 @@ int s2n_config_wipe_trust_store(struct s2n_config *config)
 
     s2n_x509_trust_store_wipe(&config->trust_store);
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem)

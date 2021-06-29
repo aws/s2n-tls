@@ -205,6 +205,17 @@ S2N_API
 extern int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
 S2N_API
 extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem);
+
+/**
+ * Clear the trust store.
+ * 
+ * A config's trust store is always initialized with the system defaults (e.g. /usr/local/ssl).
+ * To ignore these defaults and rely entirely on custom sources of trust,
+ * wipe the trust store before calling functions like 
+ * `s2n_config_set_verification_ca_location()` and `s2n_config_add_pem_to_trust_store()`.
+ * 
+ * @param config The configuration object being updated
+ */
 S2N_API
 extern int s2n_config_wipe_trust_store(struct s2n_config *config);
 
