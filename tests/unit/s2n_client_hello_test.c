@@ -556,7 +556,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(collected_client_hello_len, sslv2_client_hello_len);
 
         /* Verify the collected client hello matches what was sent */
-        EXPECT_SUCCESS(memcmp(collected_client_hello, sslv2_client_hello, sslv2_client_hello_len));
+        EXPECT_BYTEARRAY_EQUAL(collected_client_hello, sslv2_client_hello, sslv2_client_hello_len);
 
         /* Verify s2n_client_hello_get_raw_message_length correct */
         EXPECT_EQUAL(s2n_client_hello_get_raw_message_length(client_hello), sslv2_client_hello_len);
@@ -569,7 +569,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_hello->cipher_suites.size, sizeof(expected_cs));
 
         /* Verify collected cipher_suites correct */
-        EXPECT_SUCCESS(memcmp(client_hello->cipher_suites.data, expected_cs, sizeof(expected_cs)));
+        EXPECT_BYTEARRAY_EQUAL(client_hello->cipher_suites.data, expected_cs, sizeof(expected_cs));
 
         /* Verify s2n_client_hello_get_cipher_suites_length correct */
         EXPECT_EQUAL(s2n_client_hello_get_cipher_suites_length(client_hello), sizeof(expected_cs));
@@ -739,13 +739,13 @@ int main(int argc, char **argv)
         /* Verify the collected client hello has client random zero-ed out */
         uint8_t client_random_offset = S2N_TLS_PROTOCOL_VERSION_LEN;
         uint8_t expected_client_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
-        EXPECT_SUCCESS(memcmp(collected_client_hello + client_random_offset, expected_client_random, S2N_TLS_RANDOM_DATA_LEN));
+        EXPECT_BYTEARRAY_EQUAL(collected_client_hello + client_random_offset, expected_client_random, S2N_TLS_RANDOM_DATA_LEN);
 
         /* Verify the collected client hello matches what was sent except for the zero-ed client random */
         EXPECT_NOT_NULL(expected_client_hello = malloc(sent_client_hello_len));
         EXPECT_MEMCPY_SUCCESS(expected_client_hello, sent_client_hello, sent_client_hello_len);
         POSIX_CHECKED_MEMSET(expected_client_hello + client_random_offset, 0, S2N_TLS_RANDOM_DATA_LEN);
-        EXPECT_SUCCESS(memcmp(collected_client_hello, expected_client_hello, sent_client_hello_len));
+        EXPECT_BYTEARRAY_EQUAL(collected_client_hello, expected_client_hello, sent_client_hello_len);
 
         /* Verify s2n_client_hello_get_raw_message_length correct */
         EXPECT_EQUAL(s2n_client_hello_get_raw_message_length(client_hello), sent_client_hello_len);
@@ -756,7 +756,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(collected_client_hello_len < S2N_LARGE_RECORD_LENGTH);
         EXPECT_NOT_NULL(raw_ch_out = malloc(S2N_LARGE_RECORD_LENGTH));
         EXPECT_EQUAL(sent_client_hello_len, s2n_client_hello_get_raw_message(client_hello, raw_ch_out, S2N_LARGE_RECORD_LENGTH));
-        EXPECT_SUCCESS(memcmp(raw_ch_out, expected_client_hello, sent_client_hello_len));
+        EXPECT_BYTEARRAY_EQUAL(raw_ch_out, expected_client_hello, sent_client_hello_len);
         free(raw_ch_out);
         raw_ch_out = NULL;
 
@@ -765,7 +765,7 @@ int main(int argc, char **argv)
         uint32_t max_len = collected_client_hello_len - 1;
         EXPECT_NOT_NULL(raw_ch_out = malloc(max_len));
         EXPECT_EQUAL(max_len, s2n_client_hello_get_raw_message(client_hello, raw_ch_out, max_len));
-        EXPECT_SUCCESS(memcmp(raw_ch_out, expected_client_hello, max_len));
+        EXPECT_BYTEARRAY_EQUAL(raw_ch_out, expected_client_hello, max_len);
         free(raw_ch_out);
         raw_ch_out = NULL;
 
@@ -775,7 +775,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_hello->cipher_suites.size, sizeof(expected_cs));
 
         /* Verify collected cipher_suites correct */
-        EXPECT_SUCCESS(memcmp(client_hello->cipher_suites.data, expected_cs, sizeof(expected_cs)));
+        EXPECT_BYTEARRAY_EQUAL(client_hello->cipher_suites.data, expected_cs, sizeof(expected_cs));
 
         /* Verify s2n_client_hello_get_cipher_suites_length correct */
         EXPECT_EQUAL(s2n_client_hello_get_cipher_suites_length(client_hello), sizeof(expected_cs));
@@ -787,7 +787,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(client_hello->cipher_suites.size < S2N_LARGE_RECORD_LENGTH);
         EXPECT_NOT_NULL(cs_out = malloc(S2N_LARGE_RECORD_LENGTH));
         EXPECT_EQUAL(sizeof(expected_cs), s2n_client_hello_get_cipher_suites(client_hello, cs_out, S2N_LARGE_RECORD_LENGTH));
-        EXPECT_SUCCESS(memcmp(cs_out, client_hello->cipher_suites.data, sizeof(expected_cs)));
+        EXPECT_BYTEARRAY_EQUAL(cs_out, client_hello->cipher_suites.data, sizeof(expected_cs));
         free(cs_out);
         cs_out = NULL;
 
@@ -797,7 +797,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(cs_out = malloc(max_len));
         EXPECT_EQUAL(max_len, s2n_client_hello_get_cipher_suites(client_hello, cs_out, max_len));
-        EXPECT_SUCCESS(memcmp(cs_out, client_hello->cipher_suites.data, max_len));
+        EXPECT_BYTEARRAY_EQUAL(cs_out, client_hello->cipher_suites.data, max_len);
         free(cs_out);
         cs_out = NULL;
 
@@ -805,7 +805,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_hello->extensions.raw.size, client_extensions_len);
 
         /* Verify collected extensions correct */
-        EXPECT_SUCCESS(memcmp(client_hello->extensions.raw.data, client_extensions, client_extensions_len));
+        EXPECT_BYTEARRAY_EQUAL(client_hello->extensions.raw.data, client_extensions, client_extensions_len);
 
         /* Verify s2n_client_hello_get_extensions_length correct */
         EXPECT_EQUAL(s2n_client_hello_get_extensions_length(client_hello), client_extensions_len);
@@ -817,7 +817,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(client_hello->extensions.raw.size < S2N_LARGE_RECORD_LENGTH);
         EXPECT_NOT_NULL(extensions_out = malloc(S2N_LARGE_RECORD_LENGTH));
         EXPECT_EQUAL(client_extensions_len, s2n_client_hello_get_extensions(client_hello, extensions_out, S2N_LARGE_RECORD_LENGTH));
-        EXPECT_SUCCESS(memcmp(extensions_out, client_extensions, client_extensions_len));
+        EXPECT_BYTEARRAY_EQUAL(extensions_out, client_extensions, client_extensions_len);
         free(extensions_out);
         extensions_out = NULL;
 
@@ -827,7 +827,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(extensions_out = malloc(max_len));
         EXPECT_EQUAL(max_len, s2n_client_hello_get_extensions(client_hello, extensions_out, max_len));
-        EXPECT_SUCCESS(memcmp(extensions_out, client_hello->extensions.raw.data, max_len));
+        EXPECT_BYTEARRAY_EQUAL(extensions_out, client_hello->extensions.raw.data, max_len);
         free(extensions_out);
         extensions_out = NULL;
 
@@ -835,14 +835,14 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_client_hello_get_extension_length(client_hello, S2N_EXTENSION_SERVER_NAME), server_name_extension_len);
         EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len));
         EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_SERVER_NAME, ext_data, server_name_extension_len), server_name_extension_len);
-        EXPECT_SUCCESS(memcmp(ext_data, server_name_extension, server_name_extension_len));
+        EXPECT_BYTEARRAY_EQUAL(ext_data, server_name_extension, server_name_extension_len);
         free(ext_data);
         ext_data = NULL;
 
         /* Verify server name extension is truncated if extension_size > max_len */
         EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len - 1));
         EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_SERVER_NAME, ext_data, server_name_extension_len - 1), server_name_extension_len - 1);
-        EXPECT_SUCCESS(memcmp(ext_data, server_name_extension, server_name_extension_len - 1));
+        EXPECT_BYTEARRAY_EQUAL(ext_data, server_name_extension, server_name_extension_len - 1);
         free(ext_data);
         ext_data = NULL;
 
@@ -907,7 +907,7 @@ int main(int argc, char **argv)
         /* Verify the collected client hello on the reused connection matches the expected client hello */
         client_hello = s2n_connection_get_client_hello(server_conn);
         collected_client_hello = client_hello->raw_message.blob.data;
-        EXPECT_SUCCESS(memcmp(collected_client_hello, expected_client_hello, sent_client_hello_len));
+        EXPECT_BYTEARRAY_EQUAL(collected_client_hello, expected_client_hello, sent_client_hello_len);
 
         /* Not a real tls client but make sure we block on its close_notify */
         shutdown_rc = s2n_shutdown(server_conn, &server_blocked);
