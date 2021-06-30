@@ -24,6 +24,8 @@ the library is not compromised. Turn this OFF to ignore warnings." ON)
 option(S2N_INTERN_LIBCRYPTO "This ensures that s2n-tls is compiled and deployed with a specific
 version of libcrypto by interning the code and hiding symbols. This also enables s2n-tls to be
 loaded in an application with an otherwise conflicting libcrypto version." OFF)
+# Not to be confused with BENCHMARK, which is different.
+option(S2N_HYPERFINE "Run benchmarking on unit tests, OFF by default." OFF)
 # Turn BUILD_TESTING=ON by default
 include(CTest)
 
@@ -505,6 +507,9 @@ if (BUILD_TESTING)
         endif()
         target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -Wno-deprecated -D_POSIX_C_SOURCE=200809L -std=gnu99)
         add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+        if(S2N_HYPERFINE)
+          add_test(NAME benchmark_${test_case_name} COMMAND hyperfine --warmup 1 --ignore-failure --time-unit millisecond -n ${test_case_name} --export-json bench_${test_case_name}_${CMAKE_HOST_SYSTEM_PROCESSOR}.json $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+        endif()
 
         set_property(
         TEST

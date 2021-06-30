@@ -29,3 +29,7 @@ if [[ "$CODECOV_IO_UPLOAD" == "true" ]]; then
     fi
 fi
 
+
+if [[ "$TESTS" == "unit" ]]; then
+    ./codebuild/bin/s2n_hyperfine_munge.sh
+fi
