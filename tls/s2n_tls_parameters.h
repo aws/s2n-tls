@@ -73,8 +73,8 @@
 #define TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3 28
 
 /* TLS 1.3 hybrid post-quantum definitions are from the proposed reserved range defined
- * in https://tools.ietf.org/html/draft-stebila-tls-hybrid-design. Values for interoperability
- * are defined in https://docs.google.com/spreadsheets/d/12YarzaNv3XQNLnvDsWLlRKwtZFhRrDdWf36YlzwrPeg/edit#gid=0. */
+ * in https://tools.ietf.org/html/draft-stebila-tls-hybrid-design. Values for onteroperability are defined in
+ * https://github.com/open-quantum-safe/openssl/blob/OQS-OpenSSL_1_1_1-stable/oqs-template/oqs-kem-info.md */
 #define TLS_PQ_KEM_GROUP_ID_X25519_SIKE_P434_R3     0x2F27
 #define TLS_PQ_KEM_GROUP_ID_SECP256R1_SIKE_P434_R3  0x2F1F
 #define TLS_PQ_KEM_GROUP_ID_X25519_BIKE1_L1_R2      0x2F28

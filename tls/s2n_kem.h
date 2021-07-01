@@ -87,7 +87,7 @@ extern const struct s2n_kem s2n_sike_p434_r3;
 #define S2N_SUPPORTED_KEM_GROUPS_COUNT 5
 #endif
 
-extern const struct s2n_kem_group* ALL_SUPPORTED_KEM_GROUPS[];
+extern const struct s2n_kem_group* ALL_SUPPORTED_KEM_GROUPS[S2N_SUPPORTED_KEM_GROUPS_COUNT];
 
 /* secp256r1 KEM Groups */
 extern const struct s2n_kem_group s2n_secp256r1_bike_l1_r3;

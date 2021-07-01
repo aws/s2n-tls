@@ -19,17 +19,6 @@
 #define s2n_unlikely(x) __builtin_expect(!!(x), 0)
 
 /**
- * S2N_STATIC_ASSERT provides a low-level compile-time safety check functionality.
- *
- * If "condition" evaluates to false during compilation, the line that called S2N_STATIC_ASSERT() will fail to compile.
- *
- */
-#define S2N_CONCAT(A, B) A##B
-#define S2N_STATIC_ASSERT0(cond, msg) typedef char S2N_CONCAT(static_assertion_, msg)[(!!(cond)) * 2 - 1]
-#define S2N_STATIC_ASSERT1(cond, line) S2N_STATIC_ASSERT0(cond, S2N_CONCAT(at_line_, line))
-#define S2N_STATIC_ASSERT(cond) S2N_STATIC_ASSERT1(cond, __LINE__)
-
-/**
  * s2n_ensure provides low-level safety check functionality
  *
  * This should only consumed directly by s2n_safety.

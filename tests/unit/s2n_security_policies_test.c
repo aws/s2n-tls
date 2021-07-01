@@ -16,12 +16,40 @@
 #include "s2n_test.h"
 
 #include "tls/s2n_security_policies.h"
+#include "tls/s2n_kem.h"
 #include "pq-crypto/s2n_pq.h"
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13());
+
+    EXPECT_TRUE(s2n_array_len(ALL_SUPPORTED_KEM_GROUPS) == S2N_SUPPORTED_KEM_GROUPS_COUNT);
+
+    /* Perform basic checks on all Security Policies. */
+    for (size_t policy_index = 0; security_policy_selection[policy_index].version != NULL; policy_index++) {
+        const struct s2n_security_policy *security_policy = security_policy_selection[policy_index].security_policy;
+
+        /* TLS 1.3 + PQ checks */
+        if (security_policy->kem_preferences->tls13_kem_group_count > 0) {
+            /* Ensure that no TLS 1.3 KEM group preference lists go over max supported limit */
+            EXPECT_TRUE(security_policy->kem_preferences->tls13_kem_group_count <= S2N_SUPPORTED_KEM_GROUPS_COUNT);
+
+            /* Ensure all TLS 1.3 KEM groups in all policies are in the global list of all supported KEM groups */
+            for(int i = 0; i < security_policy->kem_preferences->tls13_kem_group_count; i++) {
+                const struct s2n_kem_group *kem_group = security_policy->kem_preferences->tls13_kem_groups[i];
+
+                int kem_group_is_supported = 0;
+                for (int j = 0; j < S2N_SUPPORTED_KEM_GROUPS_COUNT; j++) {
+                    if (kem_group->iana_id == ALL_SUPPORTED_KEM_GROUPS[j]->iana_id) {
+                        kem_group_is_supported = 1;
+                        break;
+                    }
+                }
+                EXPECT_TRUE(kem_group_is_supported);
+            }
+        }
+    }
 
     const struct s2n_security_policy *security_policy = NULL;
 
